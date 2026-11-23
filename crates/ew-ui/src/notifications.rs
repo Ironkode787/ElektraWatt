@@ -68,13 +68,9 @@ fn one_link(
         semibold: true,
         ..t.type_small
     });
-    let link = egui::Button::new(
-        RichText::new(strings::text(action.label_key()))
-            .font(font)
-            .color(colour.color32()),
-    )
-    .frame(false)
-    .min_size(Vec2::ZERO);
+    let link = egui::Button::new(RichText::new(n.label(action)).font(font).color(colour.color32()))
+        .frame(false)
+        .min_size(Vec2::ZERO);
     if ui.add_enabled(valid, link).clicked() {
         events.push(Event::Action(
             "notifications.run",

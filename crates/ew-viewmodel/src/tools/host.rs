@@ -206,6 +206,9 @@ pub(crate) struct ToolHost {
     /// The terminals a delete's toast offers to remove from the project (its Remove them from the project), while
     /// that toast's delete is the next undo step.
     pub offered_removal: Vec<ew_api::output::Uuid>,
+    /// The `fields.set_many` a paste's toast offers to keep the tags it changed (its Keep), while that toast's paste is
+    /// the next undo step.
+    pub offered_keep: Option<serde_json::Value>,
     /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
     pub layout_options: super::LayoutOptions,
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
@@ -354,6 +357,7 @@ impl ToolHost {
             result_note: None,
             offered_wire: None,
             offered_removal: Vec::new(),
+            offered_keep: None,
             layout_options: super::LayoutOptions::default(),
             connect_on_move: true,
             tube_kind: None,

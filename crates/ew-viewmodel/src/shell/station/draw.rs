@@ -922,13 +922,10 @@ impl ShellModel {
     /// schematic page takes that page's tag), or of devices a paste brought back from a cut to another page, whose
     /// page their tags follow; `None` where no tag changed.
     pub(in crate::shell) fn retagged_words(&self, name: &str, before: &[(Uuid, String)]) -> Option<String> {
-        let session = self.project_session()?;
-        let pairs: Vec<String> = before
-            .iter()
-            .filter_map(|(d, was)| {
-                let now = session.device_tag(*d)?;
-                (now != *was).then(|| strings::format(key!("retag-pair"), &[was, &now]))
-            })
+        let pairs: Vec<String> = self
+            .retagged(before)
+            .into_iter()
+            .map(|(_, was, now)| strings::format(key!("retag-pair"), &[&was, &now]))
             .collect();
         let why = if name == "edit.paste" {
             key!("toast-paste-retagged")
@@ -936,5 +933,19 @@ impl ShellModel {
             key!("toast-retagged")
         };
         (!pairs.is_empty()).then(|| strings::format(why, &[&pairs.join(", ")]))
+    }
+
+    /// Of the tags `before` ([`ShellModel::redrawn_tags`]), those that changed: each device with its tag before and now.
+    pub(in crate::shell) fn retagged(&self, before: &[(Uuid, String)]) -> Vec<(Uuid, String, String)> {
+        let Some(session) = self.project_session() else {
+            return Vec::new();
+        };
+        before
+            .iter()
+            .filter_map(|(d, was)| {
+                let now = session.device_tag(*d)?;
+                (now != *was).then(|| (*d, was.clone(), now))
+            })
+            .collect()
     }
 }

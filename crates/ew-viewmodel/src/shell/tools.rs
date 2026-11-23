@@ -725,7 +725,18 @@ impl ShellModel {
                         .into_iter()
                         .chain(notices)
                         .collect();
-                    if !parts.is_empty() {
+                    // A tag the paste changed can be kept as it read (frozen), beside Undo.
+                    let kept: Vec<(ew_api::output::Uuid, String)> = match cmd.name() {
+                        "edit.paste" => self
+                            .retagged(&retag)
+                            .into_iter()
+                            .map(|(d, was, _)| (d, was))
+                            .collect(),
+                        _ => Vec::new(),
+                    };
+                    if !kept.is_empty() {
+                        self.notify_keep_tags(parts.join(" "), &kept);
+                    } else if !parts.is_empty() {
                         self.notify(parts.join(" "), true);
                     }
                 }
@@ -1300,7 +1311,7 @@ impl ShellModel {
         };
         self.count(|c| c.preview_with += 1);
         // What the tool may show of its preview (the predicted tag, the unmapped CPs).
-        let info = PreviewInfo {
+        let mut info = PreviewInfo {
             ok: result.is_ok(),
             tags: derived
                 .tags
@@ -1313,6 +1324,18 @@ impl ShellModel {
                 .unwrap_or_default(),
             message: result.as_ref().err().map(ToString::to_string),
         };
+        // A paste that brings a cut device back to another page says before the click that its tag follows the page,
+        // as its toast says after it (a persona missed the toast's sentence and kept the old tag in mind).
+        if cmd.name() == "edit.paste" {
+            for c in &derived.tags {
+                if let Some((_, was)) = self.tools.cut_tags.iter().find(|(d, _)| *d == c.key.as_uuid())
+                    && *was != c.after
+                {
+                    info.notices
+                        .push(strings::format(key!("label-paste-retag"), &[was, &c.after]));
+                }
+            }
+        }
         self.tools.preview = Some(PreviewState {
             base_rev: rev,
             command: json,

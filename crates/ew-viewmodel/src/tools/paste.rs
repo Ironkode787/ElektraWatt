@@ -5,7 +5,8 @@
 //! the grid cursor and is pasted with one `edit.paste`.
 //!
 //! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`: one ghost rectangle per ghost entry of
-//! the fragment, its middle at the point and its anchor snapped to the grid (never to a connection point:
+//! the fragment, its middle at the point (moved in to stand two grid steps inside the frame's drawing area where it
+//! fits, its symbols' numbers clear of the frame) and its anchor snapped to the grid (never to a connection point:
 //! `snap_grid`; Duplicate starts with the anchor at its point, Paste in place with the anchor where the copy's was), a
 //! label `paste <n> records` with the dropped connections, and after a preview the predicted tags; where a part of it
 //! would lie outside the frame's drawing area (a free text or graphic: outside the sheet) the label says so and `Press`
@@ -141,8 +142,46 @@ impl PasteTool {
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         let page = cx.snapper.sheet_to_page(at);
         let (mx, my) = self.middle();
-        let anchor = (page.0.saturating_sub(mx), page.1.saturating_sub(my));
+        let anchor = self.inside((page.0.saturating_sub(mx), page.1.saturating_sub(my)), cx);
         self.anchor_at(cx.snapper.page_to_sheet(anchor), cx)
+    }
+
+    /// The anchor `anchor` (page nm) moved so that the block's symbols and wires stand two grid steps inside the
+    /// frame's drawing area, their numbers clear of it, where the block fits in it (a persona's block centred on a click
+    /// near the frame touched its edge); a block wider or taller than the area stays where it is on that axis, and is
+    /// refused there.
+    fn inside(&self, anchor: (i64, i64), cx: &ToolCx<'_>) -> (i64, i64) {
+        let Some(area) = super::ip::drawing_area(cx.page) else {
+            return anchor;
+        };
+        let fixed = || {
+            self.fragment
+                .ghost
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| !self.fragment.free.contains(i))
+                .map(|(_, g)| g)
+        };
+        let (Some(x0), Some(y0), Some(x1), Some(y1)) = (
+            fixed().map(|r| r[0].min(r[2])).min(),
+            fixed().map(|r| r[1].min(r[3])).min(),
+            fixed().map(|r| r[0].max(r[2])).max(),
+            fixed().map(|r| r[1].max(r[3])).max(),
+        ) else {
+            return anchor;
+        };
+        let step = cx.snapper.page_of_index(2).saturating_abs();
+        let clamp = |a: i64, lo: i64, hi: i64, b0: i64, b1: i64| {
+            let (min, max) = (
+                lo.saturating_add(step).saturating_sub(b0),
+                hi.saturating_sub(step).saturating_sub(b1),
+            );
+            if min <= max { a.clamp(min, max) } else { a }
+        };
+        (
+            clamp(anchor.0, area[0], area[2], x0, x1),
+            clamp(anchor.1, area[1], area[3], y0, y1),
+        )
     }
 
     /// The anchor at the sheet point `at`, snapped to the grid.

@@ -344,8 +344,8 @@ fn paste_in_place_puts_the_block_where_it_was_copied() {
     s.shutdown();
 }
 
-/// A block whose free text lies in the frame's header band, where the Text tool put it, is pasted; a symbol outside
-/// the drawing area is still refused.
+/// A block whose free text lies in the frame's header band, where the Text tool put it, is pasted; a symbol put down
+/// outside the drawing area is moved in to stand inside it.
 #[test]
 fn a_text_in_the_header_band_does_not_refuse_the_paste() {
     let tmp = Tmp::new("ft1862-band");
@@ -390,18 +390,30 @@ fn a_text_in_the_header_band_does_not_refuse_the_paste() {
         Outcome::Done,
         "the text may stay in the band"
     );
-    // The breaker at the sheet's corner lies outside the drawing area: refused.
+    // The breaker put down at the sheet's corner, outside the drawing area, is moved in to stand inside it.
+    done(&mut s, "page.goto", json!({"folio": "106"}));
+    let before: Vec<_> = common::tables(&s).reps.iter().map(|r| r.id).collect();
     done(&mut s, "page.goto", json!({"folio": "102"}));
     done(&mut s, "select.set", json!({ "ids": [rep.to_string()] }));
     done(&mut s, "edit.copy", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "106"}));
     done(&mut s, "edit.paste_clip", json!({}));
     let corner = common::sheet(&s, (0, 0));
     done(&mut s, "canvas.pointer", common::at(corner, json!({})));
     assert_eq!(
         s.dispatch("canvas.press", &common::at(corner, json!({}))),
-        Outcome::Refused {
-            reason_key: key!("reason-paste-outside")
-        }
+        Outcome::Done
+    );
+    let t = common::tables(&s);
+    let new = t
+        .reps
+        .iter()
+        .find(|r| !before.contains(&r.id))
+        .expect("the pasted breaker");
+    let b = new.body;
+    assert!(
+        area[0] < b[0].min(b[2]) && area[1] < b[1].min(b[3]),
+        "inside the drawing area: {b:?} in {area:?}"
     );
     s.shutdown();
 }

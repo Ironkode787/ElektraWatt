@@ -624,6 +624,14 @@ impl ShellModel {
                 self.notes.dismiss(entry.serial);
                 self.run_logged("edit.delete".to_owned(), params)
             }
+            // The tags a paste changed, each frozen as it read before.
+            Some(NoteAction::KeepTag) => {
+                let Some(params) = self.tools.offered_keep.take() else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                self.run_logged("fields.set_many".to_owned(), params)
+            }
             // The wire a placement offered instead of drawing it.
             Some(NoteAction::Connect) => {
                 let Some(params) = self.tools.offered_wire.take() else {
@@ -663,6 +671,39 @@ impl ShellModel {
     /// `terminals` the delete left drawn nowhere (and a strip that keeps no terminal and draws nothing), both valid while
     /// the delete is the next undo step.
     pub(super) fn notify_remove_undrawn(&mut self, text: String, terminals: Vec<ew_api::output::Uuid>) {
+        self.tools.offered_removal = terminals;
+        self.notify_undo_and(text, NoteAction::RemoveUndrawn);
+    }
+
+    /// Shows a paste's `text` with its Undo and Keep, which freezes each tag of `kept` (a device and its tag before the
+    /// paste) as it read, both valid while the paste is the next undo step. Keep is left out when no tag can be read
+    /// back as typed; its label names the tag when it keeps one.
+    pub(super) fn notify_keep_tags(&mut self, text: String, kept: &[(ew_api::output::Uuid, String)]) {
+        let edits: Vec<Value> = self.project_session().map_or_else(Vec::new, |s| {
+            kept.iter()
+                .filter_map(|(d, tag)| {
+                    let parsed = s.parse_field_input("device", "tag.frozen", tag).ok()?;
+                    (!parsed.value.is_null()).then(|| {
+                        serde_json::json!({"kind": "device", "targets": [d.to_string()], "path": "tag.frozen",
+                            "value": parsed.value})
+                    })
+                })
+                .collect()
+        });
+        if edits.is_empty() {
+            self.notify(text, true);
+            return;
+        }
+        self.tools.offered_keep = Some(serde_json::json!({ "edits": edits }));
+        let serial = self.notify_undo_and(text, NoteAction::KeepTag);
+        if let [(_, tag)] = kept {
+            self.notes.set_keep(serial, tag.clone());
+        }
+    }
+
+    /// Pushes `text` with Undo and `action`, both valid while the step just committed is the next undo step; returns
+    /// its serial.
+    fn notify_undo_and(&mut self, text: String, action: NoteAction) -> u64 {
         let validity = self.project.as_ref().and_then(|p| {
             let h = p.session.history();
             let cursor = h.cursor();
@@ -673,13 +714,12 @@ impl ShellModel {
                 rev,
             })
         });
-        self.tools.offered_removal = terminals;
         self.notes.push_two(
             text,
             "edit",
             validity.clone().map(|v| (NoteAction::Undo, v)),
-            validity.map(|v| (NoteAction::RemoveUndrawn, v)),
-        );
+            validity.map(|v| (action, v)),
+        )
     }
 
     /// The `edit.delete` of the terminals `terminals` and of each strip that would keep none of its terminals and draws
@@ -694,7 +734,14 @@ impl ShellModel {
             .collect();
         let strips: std::collections::BTreeSet<_> = terminals
             .iter()
-            .filter_map(|t| q.devices().get(t.to_string().parse().ok()?)?.aspects.terminal.as_ref().map(|a| a.strip))
+            .filter_map(|t| {
+                q.devices()
+                    .get(t.to_string().parse().ok()?)?
+                    .aspects
+                    .terminal
+                    .as_ref()
+                    .map(|a| a.strip)
+            })
             .collect();
         for strip in strips {
             let emptied = idx

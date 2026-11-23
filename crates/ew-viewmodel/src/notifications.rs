@@ -74,6 +74,9 @@ pub enum NoteAction {
     FitSheet,
     /// Remove from the project the terminals a delete left drawn nowhere (beside the delete's Undo).
     RemoveUndrawn,
+    /// Keep the tags a paste changed (a moved strip's tag follows the page): each frozen as it read before (beside the
+    /// paste's Undo).
+    KeepTag,
 }
 
 impl NoteAction {
@@ -103,6 +106,7 @@ impl NoteAction {
             NoteAction::WheelScrolls => "wheel_scrolls",
             NoteAction::FitSheet => "fit_sheet",
             NoteAction::RemoveUndrawn => "remove_undrawn",
+            NoteAction::KeepTag => "keep_tag",
         }
     }
 
@@ -132,6 +136,7 @@ impl NoteAction {
             "wheel_scrolls" => Some(NoteAction::WheelScrolls),
             "fit_sheet" => Some(NoteAction::FitSheet),
             "remove_undrawn" => Some(NoteAction::RemoveUndrawn),
+            "keep_tag" => Some(NoteAction::KeepTag),
             _ => None,
         }
     }
@@ -162,6 +167,7 @@ impl NoteAction {
             NoteAction::WheelScrolls => key!("note-action-wheel-scrolls"),
             NoteAction::FitSheet => key!("action-layout-fit-sheet"),
             NoteAction::RemoveUndrawn => key!("note-action-remove-undrawn"),
+            NoteAction::KeepTag => key!("note-action-keep-tags"),
         }
     }
 }
@@ -232,9 +238,19 @@ pub struct Notification {
     pub(crate) second: Option<(NoteAction, Validity)>,
     /// The tone a result set (the check's worst severity); `None` for every other notification.
     pub(crate) tone: Option<NoteTone>,
+    /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
+    pub(crate) keep: Option<String>,
 }
 
 impl Notification {
+    /// The label of its action `action`: Keep names the one tag it keeps, any other its fixed words.
+    pub fn label(&self, action: NoteAction) -> String {
+        match (action, &self.keep) {
+            (NoteAction::KeepTag, Some(tag)) => strings::format(key!("note-action-keep-tag"), &[tag]),
+            _ => strings::text(action.label_key()).to_owned(),
+        }
+    }
+
     /// The action it offers, valid or not.
     pub fn action(&self) -> Option<NoteAction> {
         self.action.as_ref().map(|(a, _)| *a)
@@ -343,6 +359,7 @@ impl NotificationLog {
             action,
             second: None,
             tone,
+            keep: None,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {
@@ -366,6 +383,13 @@ impl NotificationLog {
             n.second = second;
         }
         serial
+    }
+
+    /// Names the one tag the Keep of notification `serial` keeps, for its label.
+    pub(crate) fn set_keep(&mut self, serial: u64, tag: String) {
+        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
+            n.keep = Some(tag);
+        }
     }
 
     /// The log, newest first.

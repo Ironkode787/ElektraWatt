@@ -571,10 +571,10 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     shell.shutdown();
 }
 
-/// The block hangs on the pointer at once, and a click where a part of it would lie outside
-/// the drawing area is refused in the status line, nothing pasted.
+/// The block hangs on the pointer at once, and a click where a part of it would lie outside the drawing area puts it
+/// down moved in to stand inside it.
 #[test]
-fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
+fn a_paste_shows_its_ghost_at_once_and_a_click_by_the_frame_lands_inside() {
     let tmp = Tmp::new("clip-ghost");
     let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     select_rep(&mut shell, "-102F1");
@@ -586,26 +586,20 @@ fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
         !shell.tool_overlay().is_empty(),
         "the ghost shows before the pointer moves"
     );
-    // At the sheet's top-left corner: outside the drawing area.
-    let corner = sheet(&shell, (0, 0));
-    let rev = shell.revision();
-    done(&mut shell, "canvas.pointer", at(corner, json!({})));
-    assert_eq!(
-        shell.dispatch("canvas.press", &at(corner, json!({}))),
-        Outcome::Refused {
-            reason_key: key!("reason-paste-outside")
-        }
-    );
-    assert_eq!(shell.revision(), rev, "nothing pasted");
-    assert_eq!(
-        shell.tool().name(),
-        "paste",
-        "the block still hangs on the pointer"
-    );
     // The first Ctrl+Z puts the hanging block away and undoes nothing.
+    let rev = shell.revision();
     done(&mut shell, "edit.undo", json!({}));
     assert_ne!(shell.tool().name(), "paste");
     assert_eq!(shell.revision(), rev);
+    // At the sheet's top-left corner, outside the drawing area: the block is moved in and pasted.
+    done(&mut shell, "edit.paste_clip", json!({}));
+    let corner = sheet(&shell, (0, 0));
+    done(&mut shell, "canvas.pointer", at(corner, json!({})));
+    assert_eq!(
+        shell.dispatch("canvas.press", &at(corner, json!({}))),
+        Outcome::Done
+    );
+    assert_eq!(shell.revision(), rev.map(|r| r + 1), "pasted inside");
     shell.shutdown();
 }
 
