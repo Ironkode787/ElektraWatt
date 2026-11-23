@@ -358,23 +358,10 @@ pub fn measure(page: &DraftPage) -> Quality {
     }
     // F5.
     for j in &junctions {
-        let mut dirs: BTreeSet<(i64, i64)> = BTreeSet::new();
-        for l in lines
-            .iter()
-            .filter(|l| l.ends.contains(&End::Junction(j.id)) && l.pts.len() >= 2)
-        {
-            let n = l.pts.len();
-            let next = if l.pts[0] == j.at {
-                l.pts[1]
-            } else if l.pts[n - 1] == j.at {
-                l.pts[n - 2]
-            } else {
-                continue;
-            };
-            dirs.insert(geom::direction((j.at, next)));
-        }
-        if dirs.len() >= 4 {
-            f.four_way.push((j.id, dirs.len(), j.at));
+        let at_j = lines.iter().filter(|l| l.ends.contains(&End::Junction(j.id)));
+        let arms = geom::arms(j.at, at_j.map(|l| &l.pts), true);
+        if arms >= 4 {
+            f.four_way.push((j.id, arms, j.at));
         }
     }
     // C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2).

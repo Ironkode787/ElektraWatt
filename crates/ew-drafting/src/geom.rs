@@ -233,6 +233,24 @@ pub fn direction((a, b): Seg) -> (i64, i64) {
     (dx / g, dy / g)
 }
 
+/// The arms at `at` of the cleaned `lines` that begin or end there: their directions out of `at`, each once. With
+/// `slanted` every direction counts (the measure's F5); without, only the four sides (the router's fourth arm).
+pub(crate) fn arms<L: AsRef<[Pt]>>(at: Pt, lines: impl IntoIterator<Item = L>, slanted: bool) -> usize {
+    let mut dirs: std::collections::BTreeSet<(i64, i64)> = std::collections::BTreeSet::new();
+    for line in lines {
+        let next = match line.as_ref() {
+            [a, b, ..] if *a == at => *b,
+            [.., b, a] if *a == at => *b,
+            _ => continue,
+        };
+        let d = direction((at, next));
+        if slanted || (d.0 == 0) != (d.1 == 0) {
+            dirs.insert(d);
+        }
+    }
+    dirs.len()
+}
+
 fn gcd(a: i64, b: i64) -> i64 {
     let (mut a, mut b) = (a.unsigned_abs(), b.unsigned_abs());
     while b != 0 {

@@ -88,11 +88,7 @@ pub fn jobs(page: &DraftPage, scope: Scope<'_>) -> Jobs {
         Scope::Page => {
             let q = measure(page);
             let f = &q.findings;
-            let mut faulty: BTreeSet<WireId> = BTreeSet::new();
-            faulty.extend(f.through_points.iter().map(|x| x.0));
-            faulty.extend(f.on_wires.iter().flat_map(|x| x.0));
-            faulty.extend(f.through_parts.iter().map(|x| x.0));
-            faulty.extend(f.false_joints.iter().flat_map(|x| x.0));
+            let mut faulty = wires_with_faults(&q);
             let mut junction_wires: BTreeMap<JunctionId, Vec<WireId>> = BTreeMap::new();
             for w in &page.wires {
                 for e in w.ends {
@@ -454,24 +450,12 @@ impl Router {
             let Some(at) = self.junction_at(*j) else {
                 return false;
             };
-            let mut arms: BTreeSet<Side> = BTreeSet::new();
-            for x in &self.page.wires {
-                if x.id == w || !x.ends.contains(e) || x.route.is_empty() {
-                    continue;
-                }
-                let r = geom::clean(&x.route);
-                let next = if r.first() == Some(&at) {
-                    r.get(1)
-                } else if r.last() == Some(&at) {
-                    r.len().checked_sub(2).and_then(|k| r.get(k))
-                } else {
-                    None
-                };
-                if let Some(h) = next.and_then(|n| heading(at, *n)) {
-                    arms.insert(h);
-                }
-            }
-            arms.len() >= 3
+            let others = self
+                .page
+                .wires
+                .iter()
+                .filter(|x| x.id != w && x.ends.contains(e) && !x.route.is_empty());
+            geom::arms(at, others.map(|x| geom::clean(&x.route)), false) >= 3
         })
     }
 
@@ -1387,8 +1371,15 @@ fn labels_with_clashes(q: &Quality) -> BTreeSet<crate::model::LabelId> {
 }
 
 /// What breaks the never-worse rule (§1.2) from `before` to `after`: the wires routed before and free of a finding
-/// that get one, and whether a text free of C5 gets one where the plan routes no wire that had no route.
-pub(crate) fn worse(page: &DraftPage, before: &Quality, after: &Quality) -> (BTreeSet<WireId>, bool) {
+/// that get one, and whether a text free of C5 gets one where the plan routes no wire that had no route. Where the
+/// caller holds the plan's wires without a way fewer (`gained`, with the wires whose faults it excuses), a wire counts
+/// only where it gets a fault that is not excused: Route excuses the faults it started from, the placer none.
+pub(crate) fn worse(
+    page: &DraftPage,
+    before: &Quality,
+    after: &Quality,
+    gained: Option<&BTreeSet<WireId>>,
+) -> (BTreeSet<WireId>, bool) {
     let (fb, fa) = (wires_with_findings(before), wires_with_findings(after));
     let routed_before: BTreeSet<WireId> = page
         .wires
@@ -1396,11 +1387,15 @@ pub(crate) fn worse(page: &DraftPage, before: &Quality, after: &Quality) -> (BTr
         .filter(|w| !w.route.is_empty())
         .map(|w| w.id)
         .collect();
-    let wires = fa
+    let mut wires: BTreeSet<WireId> = fa
         .difference(&fb)
         .filter(|w| routed_before.contains(w))
         .copied()
         .collect();
+    if let Some(excused) = gained {
+        let faulty = wires_with_faults(after);
+        wires.retain(|w| faulty.contains(w) && !excused.contains(w));
+    }
     let (lb, la) = (labels_with_clashes(before), labels_with_clashes(after));
     let texts = after.unrouted >= before.unrouted && la.difference(&lb).next().is_some();
     (wires, texts)
@@ -1445,7 +1440,7 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     let faulty_before = wires_with_faults(&before);
     let mut after = measure(&r.page);
     for _ in 0..=nets.len() {
-        let (mut culprits, _) = worse(page, &before, &after);
+        let (mut culprits, _) = worse(page, &before, &after, None);
         culprits.extend(wires_with_faults(&after).difference(&faulty_before));
         let mut reverted = false;
         for net in nets
@@ -1464,15 +1459,11 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
         after = measure(&r.page);
     }
     let offered = |after: &Quality| {
-        let (bad, texts) = worse(page, &before, after);
         // A wire without a route is the worst state a wire has: a plan that routes one is not refused for a text that
         // then lies across a wire routed before (the plan's quality names it); for a fault on such a wire it is.
-        let faulty_after = wires_with_faults(after);
-        let gained = after.unrouted < before.unrouted;
-        let refused = bad
-            .iter()
-            .any(|w| !gained || (faulty_after.contains(w) && !faulty_before.contains(w)));
-        after.better_than(&before) && !refused && !texts
+        let gained = (after.unrouted < before.unrouted).then_some(&faulty_before);
+        let (bad, texts) = worse(page, &before, after, gained);
+        after.better_than(&before) && bad.is_empty() && !texts
     };
     if !offered(&after) {
         return empty(before);

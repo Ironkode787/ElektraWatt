@@ -221,15 +221,13 @@ struct Taken {
 /// a strip's other terminals held a channel's terminal off its column, each of them again with the strip opened as one
 /// (`Sketch::open_strips`); the best page by the measure with the price of its moves is offered.
 fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
-    let (stepped, cards, bound, _) = arrange_try(page, scope, fixed, CardSteps::Columns, false);
+    // Route over the same wires (every wire of the scope, whoever shaped it): the plan to beat, the same for every way.
+    let routed_only = route::route(page, &jobs(page, scope, fixed));
+    let (stepped, cards, bound, _) = arrange_try(page, scope, fixed, &routed_only, CardSteps::Columns, false);
     if !cards && !bound {
         return stepped;
     }
-    let score = |a: &Arranged| {
-        let q = &a.plan.after;
-        let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * a.moves.len() as i64;
-        (q.faults, q.unrouted, q.cost + price)
-    };
+    let score = |a: &Arranged| score(&a.plan.after, a.moves.len());
     let steps: &[CardSteps] = if cards {
         &[CardSteps::Columns, CardSteps::Supply, CardSteps::None]
     } else {
@@ -243,7 +241,7 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
             if (k == 0 && !open) || (open && !bound) {
                 continue;
             }
-            let (other, _, _, strips) = arrange_try(page, scope, fixed, *steps, open);
+            let (other, _, _, strips) = arrange_try(page, scope, fixed, &routed_only, *steps, open);
             held.extend(other.held.iter().copied());
             opened.extend(strips);
             if score(&other) < score(&best) {
@@ -265,19 +263,18 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
     best
 }
 
-/// One arrangement routed and judged, with the strip opened as one where `open`; whether a card of the page would take
-/// a step along its edge, whether a strip's other terminals held a channel's terminal off its column, and the strips
-/// that opened (each by its first terminal).
+/// One arrangement routed and judged against Route's plan `routed_only`, with the strip opened as one where `open`;
+/// whether a card of the page would take a step along its edge, whether a strip's other terminals held a channel's
+/// terminal off its column, and the strips that opened (each by its first terminal).
 fn arrange_try(
     page: &DraftPage,
     scope: Scope<'_>,
     fixed: &[ew_ids::Uuid],
+    routed_only: &Plan,
     cards: CardSteps,
     open: bool,
 ) -> (Arranged, bool, bool, Vec<PartId>) {
     let before = measure(page);
-    // Route over the same wires (every wire of the scope, whoever shaped it): the plan to beat.
-    let routed_only = route::route(page, &jobs(page, scope, fixed));
     let baseline = routed_only.after.clone();
     let mut sk = Sketch::new(page, scope, fixed);
     sk.card_steps = cards;
@@ -363,15 +360,11 @@ fn arrange_try(
             return None;
         }
         let quality = measure(&after);
-        let (mut bad, texts) = route::worse(page, &before, &quality);
-        if quality.unrouted < baseline.unrouted {
-            // A plan that routes a wire Route's plan leaves without a way may lay another across a text (C4), as it may
-            // cross more wires: the dashed wire weighs more (§3.8). A new fault still holds it back.
-            let faulty = route::wires_with_faults(&quality);
-            bad.retain(|w| faulty.contains(w));
-        }
-        let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * moves.len() as i64;
-        let score = (quality.faults, quality.unrouted, quality.cost + price);
+        // A plan that routes a wire Route's plan leaves without a way may lay another across a text (C4), as it may
+        // cross more wires: the dashed wire weighs more (§3.8). A new fault still holds it back.
+        let gained = quality.unrouted < baseline.unrouted;
+        let (bad, texts) = route::worse(page, &before, &quality, gained.then_some(&BTreeSet::new()));
+        let score = score(&quality, moves.len());
         let crossed =
             quality.unrouted >= baseline.unrouted && quality.counts.crossings > baseline.counts.crossings;
         let why = if let Some(w) = bad.iter().next() {
@@ -533,7 +526,7 @@ fn arrange_try(
                 plan: Plan {
                     before,
                     after: baseline,
-                    ..routed_only
+                    ..routed_only.clone()
                 },
                 left: left(&[]),
                 moves: Vec::new(),
@@ -559,6 +552,13 @@ fn arrange_try(
         bound,
         opened,
     )
+}
+
+/// What a plan is compared by: the faults and the unrouted wires of its page's quality `q`, then its cost with the price
+/// of its `moves` parts' moves ([`MOVE_PRICE`] each).
+fn score(q: &crate::Quality, moves: usize) -> (usize, usize, i64) {
+    let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * moves as i64;
+    (q.faults, q.unrouted, q.cost + price)
 }
 
 /// The part that owns a text, where a part of `page` does.
