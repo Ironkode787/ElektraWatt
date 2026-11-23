@@ -32,8 +32,20 @@
 //! | [`revision_next_id`] | `v5(latest released revision, "next")` | `"next"` |
 //! | [`revision_withdrawal_id`] | `v5(revision, "withdrawal")` | `"withdrawal"` |
 //! | [`conflict_file_id`] | `v5(NS_CONFLICT, path)` | `"pages/<id>.jsonl"` |
+//! | [`library_item_id`] | `v5(library, key)` | `"ew.fn.coil"` |
+//! | [`kind_item_id`] | `v5(library, kind ‖ key)` | `"macro\u{1F}<key>"` |
+//! | [`manufacturer_item_id`] | `v5(library, "manufacturer:" name)` | `"manufacturer:siemens ag"` |
+//! | [`fork_item_id`] | `v5(copy, "fork")`, `v5(copy, "fork", n)` | `"fork"`, `"fork\u{1F}2"` |
+//! | [`macro_instance_id`] | `v5(copy, "instance")`, `v5(copy, "instance", n)` | `"instance"`, `"instance\u{1F}2"` |
+//! | [`macro_thumbnail_instance_id`] | `v5(copy, "thumbnail")` | `"thumbnail"` |
+//! | [`instance_member_id`] | `v5(instance, local)` | `"<local>"` |
+//! | [`drives_link_id`] | `v5(valve, "drives", device)` | `"drives\u{1F}<device>"` |
+//! | [`valve_glyph_entity`] | `v5(representation, device)` | the device UUID's 16 bytes |
+//! | [`valve_position_entity`] | `v5(representation, "position", n)` | `"position\u{1F}1"` |
 //!
-//! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous. The module's
+//! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous. Two schemes keep a
+//! form of their own: [`manufacturer_item_id`] lower-cases the name and joins with a colon, and
+//! [`valve_glyph_entity`] hashes the device UUID's bytes, not its text. The module's
 //! constants are [`NS_LIBCOPY`], [`NS_IMPORT`] and [`NS_CONFLICT`]; [`LineageAnchor`] and [`LineageNameError`]
 //! belong to [`lineage_namespace`].
 //!
@@ -259,6 +271,73 @@ pub fn conflict_file_id<T>(path: &str) -> Id<T> {
     v5(NS_CONFLICT, path)
 }
 
+/// The item ID of the item of `library` named by `key` (the system library's starter content):
+/// `v5(library, key)`.
+pub fn library_item_id(library: Uuid, key: &str) -> Uuid {
+    Uuid::new_v5(&library, key.as_bytes())
+}
+
+/// The item ID of the item of kind `kind` saved under `key` in `library`: `v5(library, kind ‖ key)`. A macro is of
+/// kind `macro`, a symbol drawn in the symbol editor of kind `symbol` and its function definition of kind `fndef`,
+/// so that a later save of the key is the same item.
+pub fn kind_item_id(library: Uuid, kind: &str, key: &str) -> Uuid {
+    Uuid::new_v5(&library, format!("{kind}{SEP}{key}").as_bytes())
+}
+
+/// The item ID of the manufacturer `name` made in `library`: `v5(library, "manufacturer:" name)`, the name in
+/// lower case (Unicode's mapping) after a colon.
+pub fn manufacturer_item_id(library: Uuid, name: &str) -> Uuid {
+    Uuid::new_v5(
+        &library,
+        format!("manufacturer:{}", name.to_lowercase()).as_bytes(),
+    )
+}
+
+/// The item ID of a fork of the held copy `copy`: `v5(copy, "fork")` for `None`, `v5(copy, "fork", n)` for
+/// `Some(n)`.
+pub fn fork_item_id(copy: Uuid, n: Option<u64>) -> Uuid {
+    match n {
+        None => Uuid::new_v5(&copy, b"fork"),
+        Some(n) => Uuid::new_v5(&copy, format!("fork{SEP}{n}").as_bytes()),
+    }
+}
+
+/// The ID of an instance of the macro copy `copy`: `v5(copy, "instance")` for `None`, `v5(copy, "instance", n)` for
+/// `Some(n)`.
+pub fn macro_instance_id(copy: Uuid, n: Option<usize>) -> Uuid {
+    match n {
+        None => Uuid::new_v5(&copy, b"instance"),
+        Some(n) => Uuid::new_v5(&copy, format!("instance{SEP}{n}").as_bytes()),
+    }
+}
+
+/// The ID of the instance of the macro copy `copy` that its thumbnail draws: `v5(copy, "thumbnail")`.
+pub fn macro_thumbnail_instance_id(copy: Uuid) -> Uuid {
+    Uuid::new_v5(&copy, b"thumbnail")
+}
+
+/// The ID that `macro.insert` gives the record of local ID `local` in `instance`: `v5(instance, local)`.
+pub fn instance_member_id(instance: Uuid, local: Uuid) -> Uuid {
+    Uuid::new_v5(&instance, local.hyphenated().to_string().as_bytes())
+}
+
+/// The ID of the `drives` link a fluid line adds from `valve` to `device`: `v5(valve, "drives", device)`.
+pub fn drives_link_id(valve: Uuid, device: Uuid) -> Uuid {
+    Uuid::new_v5(&valve, format!("drives{SEP}{}", device.hyphenated()).as_bytes())
+}
+
+/// The entity of the glyph of the valve `device` on the overview representation `rep`: `v5(rep, device)` over
+/// the device UUID's 16 bytes. Never stored.
+pub fn valve_glyph_entity(rep: Uuid, device: Uuid) -> Uuid {
+    Uuid::new_v5(&rep, device.as_bytes())
+}
+
+/// The entity of valve position `position` (from 1) on the overview representation `rep`:
+/// `v5(rep, "position", position)`. Never stored.
+pub fn valve_position_entity(rep: Uuid, position: usize) -> Uuid {
+    Uuid::new_v5(&rep, format!("position{SEP}{position}").as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -345,6 +424,76 @@ mod tests {
                 "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl"
             )),
             "c801da2a-0f8c-5452-8203-791712d85dcd"
+        );
+    }
+
+    /// The schemes that were minted by hand outside this crate, against the identifiers the hand-written code
+    /// gave for these inputs (captured before the move): moving them here changed no byte.
+    #[test]
+    fn moved_schemes_keep_their_identifiers() {
+        let s = |u: Uuid| u.to_string();
+        let system = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
+        let (library, copy) = (uuid(LIBRARY), uuid(ITEM));
+        let (instance, local, device, rep) = (uuid(REVISION), uuid(FUNCTION), uuid(DEVICE), uuid(MODULE));
+        assert_eq!(
+            s(library_item_id(system, "ew.fn.coil")),
+            "aebc618c-20bb-54eb-bda5-a82355802f37"
+        );
+        assert_eq!(
+            s(library_item_id(system, "ew.fn.ip")),
+            "71f84e74-578d-5835-9a77-cfdaf8057ecd"
+        );
+        assert_eq!(
+            s(kind_item_id(library, "macro", "Motor starter")),
+            "b571fb07-4d27-5a9b-867f-ace2a65f7e09"
+        );
+        assert_eq!(
+            s(kind_item_id(library, "symbol", "my.sym.x1")),
+            "4e4c9530-5c93-5c2d-8020-ea9815fb787e"
+        );
+        assert_eq!(
+            s(manufacturer_item_id(library, "Siemens AG")),
+            "a6e479ee-8c67-5878-8058-60cfa6ff117b"
+        );
+        assert_eq!(
+            s(fork_item_id(copy, None)),
+            "bbbb9b53-aea7-5043-ba46-d4e6fecf55d0"
+        );
+        assert_eq!(
+            s(fork_item_id(copy, Some(2))),
+            "a1c4ee27-c31d-592d-8401-68f3da6539ea"
+        );
+        assert_eq!(
+            s(macro_instance_id(copy, Some(2))),
+            "0f4f9bff-2584-5c50-a720-b156d4d9ffb5"
+        );
+        assert_eq!(
+            s(macro_instance_id(copy, None)),
+            "87c22f7e-c47b-5028-917f-85bdc9c8936c"
+        );
+        assert_eq!(
+            s(macro_thumbnail_instance_id(copy)),
+            "32b55d0f-4cc1-541b-a87b-e39e199de499"
+        );
+        assert_eq!(
+            s(instance_member_id(instance, local)),
+            "5a85ea0d-3b58-5cfb-b2d5-e782df5f8d9a"
+        );
+        assert_eq!(
+            s(drives_link_id(local, device)),
+            "56fa696c-e19a-57c1-90f1-f9f9864872e4"
+        );
+        assert_eq!(
+            s(valve_glyph_entity(rep, device)),
+            "80c70eac-a07f-5b3f-84b2-89073027d45a"
+        );
+        assert_eq!(
+            s(valve_position_entity(rep, 3)),
+            "ddb4ac79-b485-5ecf-821f-e6c17535e103"
+        );
+        assert_eq!(
+            s(lib_copy_id::<K>(system, copy).as_uuid()),
+            "890a0a06-cd31-5a6e-a401-c85336509394"
         );
     }
 

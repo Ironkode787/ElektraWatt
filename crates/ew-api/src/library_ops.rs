@@ -563,8 +563,9 @@ impl Session {
             q.parts()
                 .contains(ew_derive::ew_ids::v5::lib_copy_id(project, item))
         };
-        std::iter::once(Uuid::new_v5(&copy, b"fork"))
-            .chain((1u64..).map(|n| Uuid::new_v5(&copy, format!("fork\u{1f}{n}").as_bytes())))
+        std::iter::once(None)
+            .chain((1u64..).map(Some))
+            .map(|n| ew_derive::ew_ids::v5::fork_item_id(copy, n))
             .find(|item| !held(*item))
             .expect("an unbounded sequence has a free item")
     }

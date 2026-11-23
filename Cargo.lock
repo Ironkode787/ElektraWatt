@@ -6029,6 +6029,7 @@ version = "0.3.5"
 dependencies = [
  "anyhow",
  "cargo_metadata",
+ "ew-ids",
  "kurbo",
  "serde",
  "serde_json",

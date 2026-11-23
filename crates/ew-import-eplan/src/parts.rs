@@ -12,7 +12,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_interop_api::ew_ids::Uuid;
+use ew_interop_api::ew_ids::v5;
 use ew_interop_api::{
     Code, ImportError, ImportInput, Limits, PartDraft, ReportEntry, SYSTEM_LIBRARY, Severity, SourceLocation,
 };
@@ -514,7 +514,7 @@ impl Notes {
 fn builtin(key: &str) -> Value {
     json!({
         "library": SYSTEM_LIBRARY.hyphenated().to_string(),
-        "item": Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes()).hyphenated().to_string(),
+        "item": v5::library_item_id(SYSTEM_LIBRARY, key).hyphenated().to_string(),
         "version_req": BUILTIN_VERSION_REQ,
         "key": key,
     })

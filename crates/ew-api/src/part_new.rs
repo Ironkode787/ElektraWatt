@@ -680,10 +680,7 @@ fn new_maker(library: Uuid, name: &str) -> Result<LibCopy<Manufacturer>, PartDra
             &[&e.to_string()],
         ))
     })?;
-    let item = Uuid::new_v5(
-        &library,
-        format!("manufacturer:{}", name.to_lowercase()).as_bytes(),
-    );
+    let item = v5::manufacturer_item_id(library, name);
     Ok(finish(
         LibCopy {
             id: v5::lib_copy_id(library, item),

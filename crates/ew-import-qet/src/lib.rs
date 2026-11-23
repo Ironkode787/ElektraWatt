@@ -121,7 +121,6 @@ pub const BUILTIN_VERSION_REQ: &str = "^0.1";
 #[cfg(test)]
 mod tests {
     use super::IP_FNDEF_KEY;
-    use ew_ids::Uuid;
     use ew_interop_api::SYSTEM_LIBRARY;
 
     /// L1-5: the built-in reference to `ew.fn.ip` points at the same library and item as before
@@ -131,7 +130,7 @@ mod tests {
     fn the_builtin_references_are_unchanged_by_the_move_to_system_library() {
         assert_eq!(SYSTEM_LIBRARY.to_string(), "7202fd8b-1024-4bf1-9e99-670772eaa589");
         assert_eq!(
-            Uuid::new_v5(&SYSTEM_LIBRARY, IP_FNDEF_KEY.as_bytes()).to_string(),
+            ew_ids::v5::library_item_id(SYSTEM_LIBRARY, IP_FNDEF_KEY).to_string(),
             "71f84e74-578d-5835-9a77-cfdaf8057ecd"
         );
     }

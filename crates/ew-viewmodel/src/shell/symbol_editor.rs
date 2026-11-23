@@ -2089,11 +2089,7 @@ impl ShellModel {
         // which carries the content's suffix, never a new UUIDv7 per placement. The v5 name's parts
         // joined with U+001F (ADR-0004 amendment 4), as projects store these IDs.
         let item = |kind: &str| {
-            ew_api::output::Uuid::new_v5(
-                &symbols::DRAFT_LIBRARY,
-                format!("{kind}\u{1f}{}", draft.key).as_bytes(),
-            )
-            .to_string()
+            ew_api::output::v5::kind_item_id(symbols::DRAFT_LIBRARY, kind, &draft.key).to_string()
         };
         let fndef = draft.function_ref.is_none().then(|| item("fndef"));
         draft.identity = Some(

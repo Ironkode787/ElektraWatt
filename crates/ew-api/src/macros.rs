@@ -179,12 +179,6 @@ fn spec(at: impl Into<String>, message: impl Into<String>) -> MacroError {
     }
 }
 
-/// The item ID of the macro `key` in `library`: `v5(library, "macro" ‖ key)`, so a later save of the key is the same
-/// item.
-pub fn macro_item_id(library: Uuid, key: &str) -> Uuid {
-    Uuid::new_v5(&library, format!("macro\u{1f}{key}").as_bytes())
-}
-
 /// The next minor version after `v` (`1.2.3` → `1.3.0`); 1.0.0 when `v` does not parse; `None` when the minor
 /// number is the largest one (a held version read from a library file has no next minor version then).
 fn next_minor(v: &str) -> Option<String> {
@@ -652,7 +646,7 @@ impl Session {
                 .map_err(|(_, m)| spec(format!("value_sets/{i}"), m.to_string()))?;
         }
         // The document.
-        let item = macro_item_id(target, key.as_str());
+        let item = ew_derive::ew_ids::v5::kind_item_id(target, "macro", key.as_str());
         let held = self.libraries().resolve(&LibRef {
             library: Id::from_uuid(target),
             item: Id::from_uuid(item),

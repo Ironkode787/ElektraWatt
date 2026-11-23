@@ -628,7 +628,7 @@ impl Session {
             at: (detail.kind == "Window").then(|| ew_units::Pt2::new(corner, corner)),
             orient: ew_units::Orient2::R0,
         };
-        let instance = Uuid::new_v5(&detail.copy, b"thumbnail");
+        let instance = ew_derive::ew_ids::v5::macro_thumbnail_instance_id(detail.copy);
         let cmd = self
             .insert_macro(&reference, &at, &crate::MacroValues::default(), instance)
             .ok()?;
@@ -733,9 +733,9 @@ impl Session {
         let table = q.table::<ew_schema::MacroInstance>();
         let held: BTreeSet<Uuid> = table.iter().map(|(id, _)| id.as_uuid()).collect();
         (held.len()..)
-            .map(|n| Uuid::new_v5(&copy, format!("instance\u{1f}{n}").as_bytes()))
+            .map(|n| ew_derive::ew_ids::v5::macro_instance_id(copy, Some(n)))
             .find(|id| !held.contains(id))
-            .unwrap_or_else(|| Uuid::new_v5(&copy, b"instance"))
+            .unwrap_or_else(|| ew_derive::ew_ids::v5::macro_instance_id(copy, None))
     }
 
     /// Macros: tier → macro of every installed library, then "In this project" → the macro copies the

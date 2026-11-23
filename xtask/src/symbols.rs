@@ -29,12 +29,6 @@ use uuid::Uuid;
 /// The provisional system library id (same constant as `ew-import-qet`).
 const BUILTIN_LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 
-/// The namespace of embedded library copies (`ew_ids::v5::NS_LIBCOPY`).
-const NS_LIBCOPY: Uuid = Uuid::from_u128(0x04c1640f_8857_4dfc_9bff_e9baad47fb47);
-
-/// The component separator of `ew_ids::v5::lib_copy_id`, U+001F.
-const SEP: char = '\u{1F}';
-
 /// The suffix of the QET edition's keys.
 const QET_SUFFIX: &str = "@qet10";
 
@@ -206,16 +200,14 @@ pub(crate) fn scale(v: i64) -> i64 {
     if v < 0 { -q } else { q }
 }
 
-/// The item id of a library key: `v5(BUILTIN_LIBRARY, key)`.
+/// The item id of a library key of the built-in library.
 pub(crate) fn item_id(key: &str) -> Uuid {
-    Uuid::new_v5(&BUILTIN_LIBRARY, key.as_bytes())
+    ew_ids::v5::library_item_id(BUILTIN_LIBRARY, key)
 }
 
-/// The copy id of an item of the built-in library: `v5(NS_LIBCOPY, library 0x1F item)`
-/// (`ew_ids::v5::lib_copy_id`).
+/// The copy id of an item of the built-in library.
 pub(crate) fn copy_id(item: Uuid) -> Uuid {
-    let name = format!("{}{SEP}{}", BUILTIN_LIBRARY.hyphenated(), item.hyphenated());
-    Uuid::new_v5(&NS_LIBCOPY, name.as_bytes())
+    ew_ids::v5::lib_copy_id::<()>(BUILTIN_LIBRARY, item).as_uuid()
 }
 
 /// A UUID as a lower-case hyphenated string value.

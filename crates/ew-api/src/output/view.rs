@@ -712,7 +712,6 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
     let parts = q.parts();
     let mut ids: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
     ids.sort();
-    let entity = |rep: Id<Representation>, name: &[u8]| ew_ids::Uuid::new_v5(&rep.as_uuid(), name);
     let mut out = Vec::new();
     for rid in ids {
         let Some(rep) = reps.get(rid) else { continue };
@@ -737,7 +736,7 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
             .enumerate()
             .map(|(i, slot)| match slot {
                 ew_derive::ValveSlot::Valve { device, .. } => ValveGlyph::Valve {
-                    entity: entity(rid, device.as_uuid().as_bytes()),
+                    entity: ew_ids::v5::valve_glyph_entity(rid.as_uuid(), device.as_uuid()),
                     part_number: devices
                         .get(*device)
                         .and_then(|d| d.parts.first())
@@ -746,10 +745,10 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
                         .unwrap_or_default(),
                 },
                 ew_derive::ValveSlot::Blank { device } => ValveGlyph::Blank {
-                    entity: entity(rid, device.as_uuid().as_bytes()),
+                    entity: ew_ids::v5::valve_glyph_entity(rid.as_uuid(), device.as_uuid()),
                 },
                 ew_derive::ValveSlot::Empty => ValveGlyph::Empty {
-                    entity: entity(rid, format!("position\u{1F}{}", i + 1).as_bytes()),
+                    entity: ew_ids::v5::valve_position_entity(rid.as_uuid(), i + 1),
                 },
             })
             .collect();

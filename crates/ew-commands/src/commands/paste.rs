@@ -560,14 +560,9 @@ impl NewIds {
     fn of(self, tx: &mut TxBuilder<'_>, local: Uuid) -> Uuid {
         match self {
             NewIds::Mint => tx.mint::<()>().as_uuid(),
-            NewIds::Instance(instance) => instance_member_id(instance, local),
+            NewIds::Instance(instance) => ew_ids::v5::instance_member_id(instance, local),
         }
     }
-}
-
-/// `v5(instance, local)`: the ID `macro.insert` gives the record of local ID `local`.
-pub(crate) fn instance_member_id(instance: Uuid, local: Uuid) -> Uuid {
-    Uuid::new_v5(&instance, local.hyphenated().to_string().as_bytes())
 }
 
 /// The insertion engine of `edit.paste`, `macro.insert` and `page.copy`: the effects 1 to 7 of

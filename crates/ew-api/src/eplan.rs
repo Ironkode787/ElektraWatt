@@ -57,7 +57,7 @@ fn starter_fndef(reg: &library::Registry, key: &str) -> Option<LibDocument> {
     let library = ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY;
     reg.resolve(&LibRef {
         library: Id::from_uuid(library),
-        item: Id::from_uuid(Uuid::new_v5(&library, key.as_bytes())),
+        item: Id::from_uuid(ew_derive::ew_ids::v5::library_item_id(library, key)),
         version_req: "*".to_owned(),
         extra: Default::default(),
     })

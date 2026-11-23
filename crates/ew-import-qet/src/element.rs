@@ -313,7 +313,7 @@ pub(crate) fn read_on_stack(
     let (fndef_ref, fndef_copy) = match resolution {
         Resolution::Builtin(builtin) => {
             let item: Id<LibItem> =
-                Id::from_uuid(Uuid::new_v5(&ew_interop_api::SYSTEM_LIBRARY, builtin.as_bytes()));
+                Id::from_uuid(v5::library_item_id(ew_interop_api::SYSTEM_LIBRARY, builtin));
             let mut extra = BTreeMap::new();
             extra.insert("key".to_owned(), Value::String(builtin.to_owned()));
             let r = LibRef {

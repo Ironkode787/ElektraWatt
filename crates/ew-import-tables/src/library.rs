@@ -276,7 +276,7 @@ mod tests {
             assert_eq!(library, SYSTEM_LIBRARY, "{key}: library_id");
             assert_eq!(
                 item,
-                Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes()),
+                ew_ids::v5::library_item_id(SYSTEM_LIBRARY, &key),
                 "{key}: item_id"
             );
         }

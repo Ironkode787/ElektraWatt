@@ -17,7 +17,7 @@
 
 use std::collections::BTreeSet;
 
-use ew_ids::Id;
+use ew_ids::{Id, v5};
 use ew_model::EndpointKey;
 use ew_schema::{
     Connection, ConnectionKind, ContactKind, Device, DeviceLink, DeviceLinkKind, Extra, FluidPortRole, FnDef,
@@ -33,12 +33,6 @@ use crate::words;
 /// Normaliser N-FL-4.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DrivesLink;
-
-/// The ID of the `drives` link a line adds: `v5(valve, "drives" ␟ device)`.
-fn link_id(valve: Id<Device>, device: Id<Device>) -> Id<DeviceLink> {
-    let name = format!("drives\u{1F}{}", device.as_uuid().hyphenated());
-    Id::from_uuid(ew_ids::Uuid::new_v5(&valve.as_uuid(), name.as_bytes()))
-}
 
 /// The CPs of the fluid net of `line` in the transaction: breadth first through `fluid` connections and junctions.
 fn net_cps(tx: &TxBuilder<'_>, line: &Connection) -> BTreeSet<(Id<Function>, u16)> {
@@ -141,7 +135,7 @@ impl Normaliser for DrivesLink {
                     [] => {}
                     [device] => {
                         tx.insert(DeviceLink {
-                            id: link_id(valve, *device),
+                            id: Id::from_uuid(v5::drives_link_id(valve.as_uuid(), device.as_uuid())),
                             v: 1,
                             from: valve,
                             to: *device,

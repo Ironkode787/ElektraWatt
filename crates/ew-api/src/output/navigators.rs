@@ -29,6 +29,9 @@ use std::collections::BTreeMap;
 use ew_derive::ew_ids::Id;
 /// The record IDs of the tables, re-exported so that the view model names them without naming `ew-ids`.
 pub use ew_derive::ew_ids::Uuid;
+/// The naming schemes of derived IDs, re-exported so that the view model mints a draft's item IDs without naming
+/// `ew-ids`.
+pub use ew_derive::ew_ids::v5;
 /// The natural sort key of a label or cell text, re-exported so that the view model sorts without naming `ew-mltext`.
 pub use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_mltext::{natural_key, to_nfc};
