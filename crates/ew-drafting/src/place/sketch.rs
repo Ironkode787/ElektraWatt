@@ -142,7 +142,7 @@ use crate::model::{
     DraftPage, End, Groups, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role,
     Side, Tick, Wire, WireId, grid_away, grid_down,
 };
-use crate::route::Scope;
+use crate::route::{Scope, plain_line};
 use crate::rules::Wiring;
 
 /// How two related pins stand to each other, strongest first (module documentation).
@@ -2822,24 +2822,8 @@ impl<'a> Sketch<'a> {
             let (Some(sf), Some(sh)) = (self.side(*f), self.side(*h)) else {
                 continue;
             };
-            let route = if sf.vertical() != sh.vertical() {
-                let corner = if sf.vertical() {
-                    Pt::new(a.x, b.y)
-                } else {
-                    Pt::new(b.x, a.y)
-                };
-                vec![a, corner, b]
-            } else if sf == sh {
-                // Out, across and back: the router's to place.
+            let Some(route) = plain_line((a, sf), (b, sh)) else {
                 continue;
-            } else if sf.across(a) == sf.across(b) {
-                vec![a, b]
-            } else if sf.vertical() {
-                let y = grid_down((a.y + b.y).div_euclid(2));
-                vec![a, Pt::new(a.x, y), Pt::new(b.x, y), b]
-            } else {
-                let x = grid_down((a.x + b.x).div_euclid(2));
-                vec![a, Pt::new(x, a.y), Pt::new(x, b.y), b]
             };
             mini.wires.push(Wire {
                 id: WireId(f.0),

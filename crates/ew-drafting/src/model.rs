@@ -511,16 +511,51 @@ pub enum LabelKind {
     CableTag,
 }
 
+/// What the text placer reads of a kind of label (§5.2).
+struct KindRow {
+    /// Labels are placed in this order, 1 first.
+    priority: u8,
+    /// A symbol's text of the block rule: its tag, cross-reference, data or contact list.
+    symbol_text: bool,
+    /// A text of the two-rows rule.
+    two_rows: bool,
+}
+
 impl LabelKind {
+    /// The table of the kinds: one row each.
+    fn row(self) -> KindRow {
+        let (priority, symbol_text, two_rows) = match self {
+            LabelKind::PinNumber(_) => (1, false, false),
+            LabelKind::TerminalName => (1, false, true),
+            LabelKind::Tag => (2, true, true),
+            LabelKind::BoxTag => (2, false, true),
+            LabelKind::Xref => (3, true, false),
+            LabelKind::ContactList => (3, true, true),
+            LabelKind::MarkName | LabelKind::MarkXref => (3, false, false),
+            LabelKind::Data => (4, true, false),
+            LabelKind::BoxData | LabelKind::PathFunction | LabelKind::StripTag => (4, false, false),
+            LabelKind::WireNumber | LabelKind::CableType | LabelKind::CableTag => (5, false, false),
+        };
+        KindRow {
+            priority,
+            symbol_text,
+            two_rows,
+        }
+    }
+
     /// The priority: labels are placed in this order, 1 first (§5.2).
     pub fn priority(self) -> u8 {
-        match self {
-            LabelKind::PinNumber(_) | LabelKind::TerminalName => 1,
-            LabelKind::Tag | LabelKind::BoxTag => 2,
-            LabelKind::Xref | LabelKind::ContactList | LabelKind::MarkName | LabelKind::MarkXref => 3,
-            LabelKind::Data | LabelKind::BoxData | LabelKind::PathFunction | LabelKind::StripTag => 4,
-            LabelKind::WireNumber | LabelKind::CableType | LabelKind::CableTag => 5,
-        }
+        self.row().priority
+    }
+
+    /// Whether it is a symbol's text of the block rule: its tag, cross-reference, data or contact list (§5.2).
+    pub(crate) fn symbol_text(self) -> bool {
+        self.row().symbol_text
+    }
+
+    /// Whether it is a text of the two-rows rule (§5.2).
+    pub(crate) fn two_rows(self) -> bool {
+        self.row().two_rows
     }
 }
 

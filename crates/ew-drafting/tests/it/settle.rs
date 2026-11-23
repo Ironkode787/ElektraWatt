@@ -3,25 +3,11 @@
 
 //! The text placer (docs/design/06a-drafting.md §5) on small pages.
 
-use crate::kit::{Page, TAG, id, p, s};
+use crate::kit::{Page, TAG, find, id, p, s, tag_of};
 use ew_drafting::consts::LABEL_CLEAR;
 use ew_drafting::{
     DraftPage, FixedText, LabelId, LabelKind, Owner, PartId, Places, Pt, Rect, Settled, settle_labels,
 };
-
-fn find(settled: &[Settled], label: LabelId) -> Settled {
-    *settled
-        .iter()
-        .find(|s| s.id == label)
-        .expect("the label is placed")
-}
-
-fn tag_of(name: &str) -> LabelId {
-    LabelId {
-        owner: id(name),
-        n: 0,
-    }
-}
 
 /// Whether no two settled labels come nearer than [`LABEL_CLEAR`].
 fn apart(settled: &[Settled]) -> bool {

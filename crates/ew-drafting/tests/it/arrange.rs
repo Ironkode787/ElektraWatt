@@ -4,7 +4,7 @@
 //! Arrange and route (docs/design/06a-drafting.md §4, §1.6, §9.2, §9.3 rows 4 and 5): parts where the page is best for
 //! them within the rules of their kind, on small pages.
 
-use crate::kit::{Page, fixtures, p, s};
+use crate::kit::{Page, fixtures, p, point, s};
 use ew_drafting::{
     Arranged, DraftPage, End, InTheWay, PageKind, PartId, Pt, Role, Rule, Scope, Side, Tick, arrange, geom,
     measure, rules_kept,
@@ -63,17 +63,6 @@ pub(crate) fn at(page: &DraftPage, name: &str) -> Pt {
         .find(|x| x.id == PartId(crate::kit::id(name)))
         .expect("a part")
         .at
-}
-
-fn point(page: &DraftPage, e: End) -> Pt {
-    match e {
-        End::Pin(pin) => page
-            .parts
-            .iter()
-            .find_map(|part| part.pins.iter().find(|x| x.id == pin).map(|x| part.at.plus(x.at)))
-            .expect("a pin"),
-        End::Junction(j) => page.junctions.iter().find(|x| x.id == j).expect("a junction").at,
-    }
 }
 
 /// The fixture's page as wired by hand, its wires routed anew: what the router gives with every part in place.

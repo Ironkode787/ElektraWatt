@@ -350,6 +350,18 @@ fn in_way(r: Rect, q: Pt, side: Side) -> bool {
 }
 
 /// A box of size `size` with its top-left corner at `(x, y)`.
+/// The place of a mark's name beyond its arrow, past its body `b`, in line with its pin at `q` that leaves along `side`:
+/// left of the body where the pin leaves right, and so on; none for a pin without a side.
+fn mark_name_beyond(b: Rect, (q, side): (Pt, Option<Side>), (w, h): (Tick, Tick)) -> Option<Rect> {
+    let g = LABEL_CLEAR;
+    match side? {
+        Side::Right => Some(bx(b.x0 - g - w, q.y - half(h), (w, h))),
+        Side::Left => Some(bx(b.x1 + g, q.y - half(h), (w, h))),
+        Side::Down => Some(bx(q.x - half(w), b.y0 - g - h, (w, h))),
+        Side::Up => Some(bx(q.x - half(w), b.y1 + g, (w, h))),
+    }
+}
+
 fn bx(x: Tick, y: Tick, size: (Tick, Tick)) -> Rect {
     Rect::sized(Pt::new(x, y), size)
 }
@@ -485,14 +497,8 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
             ]
         }
         LabelKind::MarkName => {
-            let beyond = match first_pin {
-                Some((q, Some(Side::Right))) => Some(bx(b.x0 - g - w, q.y - half(h), unit.size)),
-                Some((q, Some(Side::Left))) => Some(bx(b.x1 + g, q.y - half(h), unit.size)),
-                Some((q, Some(Side::Down))) => Some(bx(q.x - half(w), b.y0 - g - h, unit.size)),
-                Some((q, Some(Side::Up))) => Some(bx(q.x - half(w), b.y1 + g, unit.size)),
-                _ => None,
-            };
-            beyond
+            first_pin
+                .and_then(|pin| mark_name_beyond(b, pin, unit.size))
                 .into_iter()
                 .chain([
                     bx(c.x - half(w), b.y0 - g - h, unit.size),
@@ -851,7 +857,7 @@ pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
         };
         let own: Vec<usize> = (0..units.len())
             .filter(|&v| {
-                units[v].owner == units[u].owner && symbol_text(units[v].kind) && symbol_text(units[u].kind)
+                units[v].owner == units[u].owner && units[v].kind.symbol_text() && units[u].kind.symbol_text()
             })
             .collect();
         let k = clear.unwrap_or_else(|| {
@@ -1321,14 +1327,6 @@ fn candidates(ground: &Ground<'_>, unit: &Unit, numbers: &[(Rect, bool, Seg)]) -
     list
 }
 
-/// Whether a kind is a symbol's text of the block rule: its tag, cross-reference, data or contact list.
-fn symbol_text(kind: LabelKind) -> bool {
-    matches!(
-        kind,
-        LabelKind::Tag | LabelKind::Xref | LabelKind::Data | LabelKind::ContactList
-    )
-}
-
 /// Whether a kind joins the block of its side of its part: every text of a part but a pin's number.
 fn blocks(kind: LabelKind) -> bool {
     !matches!(kind, LabelKind::PinNumber(_))
@@ -1488,7 +1486,7 @@ fn stacked_marks(ground: &Ground<'_>, units: &mut [Unit]) {
         let Some(part) = ground.parts.get(&p) else {
             continue;
         };
-        let (b, (w, h)) = (part.bounds(), u.size);
+        let b = part.bounds();
         let Some((q, side)) = part.pins.first().map(|pin| (part.at.plus(pin.at), pin.side)) else {
             continue;
         };
@@ -1496,9 +1494,11 @@ fn stacked_marks(ground: &Ground<'_>, units: &mut [Unit]) {
             continue;
         }
         let in_line = match side {
-            Some(Side::Right) => bx(b.x0 - LABEL_CLEAR - w, q.y - half(h), u.size),
-            Some(Side::Left) => bx(b.x1 + LABEL_CLEAR, q.y - half(h), u.size),
-            _ => continue,
+            Some(Side::Right | Side::Left) => mark_name_beyond(b, (q, side), u.size),
+            _ => None,
+        };
+        let Some(in_line) = in_line else {
+            continue;
         };
         u.given.retain(|r| *r != in_line);
         u.given.insert(0, in_line);
@@ -1507,18 +1507,12 @@ fn stacked_marks(ground: &Ground<'_>, units: &mut [Unit]) {
 
 /// The two-rows rule (module documentation).
 fn stagger(units: &mut [Unit]) {
-    let rows = |k: LabelKind| {
-        matches!(
-            k,
-            LabelKind::Tag | LabelKind::BoxTag | LabelKind::TerminalName | LabelKind::ContactList
-        )
-    };
     let firsts: Vec<Option<(LabelKind, Owner, Rect)>> = units
         .iter()
         .map(|u| {
             u.given
                 .first()
-                .filter(|_| rows(u.kind))
+                .filter(|_| u.kind.two_rows())
                 .map(|r| (u.kind, u.owner, *r))
         })
         .collect();

@@ -4,22 +4,8 @@
 //! The row rule of the text placer (FT-1870; docs/design/06a-drafting.md §5.3): like parts that stand level take one
 //! place for their texts.
 
-use crate::kit::{Page, id, p, s};
-use ew_drafting::{LabelId, Pt, Settled, settle_labels};
-
-fn tag_of(name: &str) -> LabelId {
-    LabelId {
-        owner: id(name),
-        n: 0,
-    }
-}
-
-fn find(settled: &[Settled], label: LabelId) -> Settled {
-    *settled
-        .iter()
-        .find(|s| s.id == label)
-        .expect("the label is placed")
-}
+use crate::kit::{Page, find, p, s, tag_of};
+use ew_drafting::{Pt, Settled, settle_labels};
 
 /// Where each tag of `names` stands from its part's origin `at`, and its place down its list.
 fn offsets(settled: &[Settled], names: &[(&str, Pt)]) -> Vec<((i32, i32), u32)> {

@@ -22,19 +22,19 @@
 
 pub mod consts;
 pub mod geom;
-pub mod guides;
-pub mod labels;
+pub(crate) mod guides;
+pub(crate) mod labels;
 pub mod marks;
-pub mod measure;
-pub mod model;
+pub(crate) mod measure;
+pub(crate) mod model;
 pub mod nets;
 pub mod occupancy;
-pub mod place;
+pub(crate) mod place;
 mod rounds;
-pub mod route;
+pub(crate) mod route;
 pub mod rules;
-pub mod search;
-pub mod tracks;
+pub(crate) mod search;
+pub(crate) mod tracks;
 
 pub use guides::{Guide, GuideKind, Guided, guides};
 pub use labels::{Settled, settle_labels};

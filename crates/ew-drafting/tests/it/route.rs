@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::kit::{Page, TAG, fixtures, p, s};
+use crate::kit::{Page, TAG, fixtures, p, point, s};
 use ew_drafting::{
     DraftPage, End, FixedText, LabelKind, MarkId, Owner, Places, Pt, Reason, Rect, Scope, Side, WireEnd,
     WireId, geom, jobs, measure, route, route_wire,
@@ -28,17 +28,6 @@ pub fn routed(page: &DraftPage) -> DraftPage {
         }
     }
     out
-}
-
-fn point(page: &DraftPage, e: End) -> Pt {
-    match e {
-        End::Pin(pin) => page
-            .parts
-            .iter()
-            .find_map(|part| part.pins.iter().find(|x| x.id == pin).map(|x| part.at.plus(x.at)))
-            .expect("a pin"),
-        End::Junction(j) => page.junctions.iter().find(|x| x.id == j).expect("a junction").at,
-    }
 }
 
 fn corners(route: &[Pt]) -> usize {

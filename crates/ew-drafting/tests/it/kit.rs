@@ -7,7 +7,7 @@
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{
     DraftPage, End, FixedText, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkId, Owner,
-    PageKind, Part, PartId, Pin, PinId, Places, Pt, Rect, Role, Side, Tick, Wire, WireClass, WireId,
+    PageKind, Part, PartId, Pin, PinId, Places, Pt, Rect, Role, Settled, Side, Tick, Wire, WireClass, WireId,
 };
 use ew_ids::Uuid;
 
@@ -24,6 +24,34 @@ pub fn p(x: Tick, y: Tick) -> Pt {
 /// The ID named `name`.
 pub fn id(name: &str) -> Uuid {
     ew_ids::v5::imported_id::<()>(Uuid::nil(), name).as_uuid()
+}
+
+/// The point of the end `e` of a wire on `page`.
+pub fn point(page: &DraftPage, e: End) -> Pt {
+    match e {
+        End::Pin(pin) => page
+            .parts
+            .iter()
+            .find_map(|part| part.pins.iter().find(|x| x.id == pin).map(|x| part.at.plus(x.at)))
+            .expect("a pin"),
+        End::Junction(j) => page.junctions.iter().find(|x| x.id == j).expect("a junction").at,
+    }
+}
+
+/// The tag of the part named `name`.
+pub fn tag_of(name: &str) -> LabelId {
+    LabelId {
+        owner: id(name),
+        n: 0,
+    }
+}
+
+/// Where the text placer set `label` in `settled`.
+pub fn find(settled: &[Settled], label: LabelId) -> Settled {
+    *settled
+        .iter()
+        .find(|s| s.id == label)
+        .expect("the label is placed")
 }
 
 /// A tag's size: about three characters.

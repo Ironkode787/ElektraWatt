@@ -35,7 +35,7 @@ use crate::model::{End, Groups, JunctionId, Pt, Side, Tick, WireId, grid_down, g
 
 /// A net job.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Net {
+pub struct JobNet {
     /// Its wires, by ID.
     pub wires: Vec<WireId>,
     /// Its taps: the junctions that may move and the pins two or more of its wires end at.
@@ -50,7 +50,7 @@ pub fn nets(
     jobs: &[WireId],
     ends: &BTreeMap<WireId, [End; 2]>,
     movable: &dyn Fn(JunctionId) -> bool,
-) -> Vec<Net> {
+) -> Vec<JobNet> {
     let mut jobs: Vec<WireId> = jobs.to_vec();
     jobs.sort();
     jobs.dedup();
@@ -95,7 +95,7 @@ pub fn nets(
                 .collect();
             taps.sort();
             let spine = chain(&wires, &taps, ends);
-            Net { wires, taps, spine }
+            JobNet { wires, taps, spine }
         })
         .collect()
 }

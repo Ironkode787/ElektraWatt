@@ -52,12 +52,11 @@ use crate::geom;
 use crate::labels::settle_labels;
 use crate::measure::{Quality, TextRef, measure};
 use crate::model::{
-    DraftPage, End, JunctionId, MarkId, Owner as LabelOwner, PartId, PinId, Pt, Rect, Side, Tick, WireId,
-    grid_down,
+    DraftPage, End, JunctionId, MarkId, Owner, PartId, PinId, Pt, Rect, Side, Tick, WireId, grid_down,
 };
-use crate::nets::{self, Line, Net};
+use crate::nets::{self, JobNet, Line};
 use crate::occupancy::{Occupancy, Text, node_of};
-use crate::search::{self, Ask, Found, Owner, Relax, Tip, heading};
+use crate::search::{self, Ask, Found, Relax, Tip, TipKind, heading};
 use crate::{rounds, tracks};
 
 /// What a Route runs on.
@@ -275,7 +274,7 @@ impl Router {
             let Some(l) = self.page.labels.iter().find(|l| l.id == s.id) else {
                 continue;
             };
-            if matches!(l.owner, LabelOwner::Wire(_) | LabelOwner::Mark(_)) {
+            if matches!(l.owner, Owner::Wire(_) | Owner::Mark(_)) {
                 continue;
             }
             out.push(Text {
@@ -387,7 +386,7 @@ impl Router {
                 Some(Tip {
                     at: pin.at,
                     side: pin.side,
-                    owner: Owner::Pin(p),
+                    owner: TipKind::Pin(p),
                     part: Some((pin.part.0, pin.body)),
                     shared,
                 })
@@ -395,7 +394,7 @@ impl Router {
             End::Junction(j) => Some(Tip {
                 at: self.junction_at(j)?,
                 side: None,
-                owner: Owner::Junction(j),
+                owner: TipKind::Junction(j),
                 part: None,
                 shared: Vec::new(),
             }),
@@ -472,7 +471,7 @@ impl Router {
 type TrunkRoutes = (BTreeMap<WireId, Option<Vec<Pt>>>, BTreeMap<JunctionId, Pt>);
 
 /// The routes of a net on trunk `line`; `None` when the line breaks the spine's order.
-fn trunk_routes(r: &Router, net: &Net, line: Line) -> Option<TrunkRoutes> {
+fn trunk_routes(r: &Router, net: &JobNet, line: Line) -> Option<TrunkRoutes> {
     let movable: BTreeSet<JunctionId> = net
         .taps
         .iter()
@@ -612,7 +611,7 @@ fn on_a_wire(occ: &Occupancy, p: Pt) -> bool {
 
 impl Router {
     /// Phase 2: the nets of one wire whose ends face each other on one line, straight where that is free.
-    fn straights(&mut self, nets: &[Net]) -> BTreeSet<WireId> {
+    fn straights(&mut self, nets: &[JobNet]) -> BTreeSet<WireId> {
         let mut laid = BTreeSet::new();
         for net in nets.iter().filter(|n| n.wires.len() == 1) {
             let w = net.wires[0];
@@ -642,10 +641,10 @@ impl Router {
     }
 
     /// Phase 3: the trunks (module documentation); the wires laid, the nets whose order ran against their places.
-    fn trunks(&mut self, nets: &[Net]) -> (BTreeSet<WireId>, Vec<Vec<WireId>>) {
+    fn trunks(&mut self, nets: &[JobNet]) -> (BTreeSet<WireId>, Vec<Vec<WireId>>) {
         let mut laid = BTreeSet::new();
         let mut notes = Vec::new();
-        let supply = |r: &Router, net: &Net| {
+        let supply = |r: &Router, net: &JobNet| {
             net.wires
                 .iter()
                 .filter_map(|w| r.page.wires.iter().find(|x| x.id == *w)?.supply)
@@ -803,7 +802,7 @@ impl Router {
     /// Phase 4: the stepping wires (`tracks`): the nets of one wire still without a route between two pins in the shape
     /// of a Z or a U (a pin's wires together are the trunks' and the search's, which share their runs), on the tracks of their channels where the route is clear and pays no more for crossings and texts than the
     /// search's way for the wire; the wires laid.
-    fn tracks(&mut self, nets: &[Net]) -> BTreeSet<WireId> {
+    fn tracks(&mut self, nets: &[JobNet]) -> BTreeSet<WireId> {
         let area = self.page.area;
         let mut frames: BTreeMap<tracks::Frame, Vec<(WireId, tracks::Lane)>> = BTreeMap::new();
         for net in nets.iter().filter(|n| n.wires.len() == 1) {
@@ -863,7 +862,7 @@ impl Router {
     /// its edge (then the shorter); those round one end of one body, two or more, are laid again together as nested
     /// rings, the pin nearest the corner innermost (a wire whose ring is not clear keeps its route), and the rings are
     /// kept where the page costs no more.
-    fn rings(&mut self, nets: &[Net], searched: &[WireId]) {
+    fn rings(&mut self, nets: &[JobNet], searched: &[WireId]) {
         let wired = self.page.wired();
         type Key = (PartId, Side, rounds::Corner);
         let mut groups: BTreeMap<Key, Vec<(Tick, WireId, rounds::Ask)>> = BTreeMap::new();
@@ -946,7 +945,7 @@ impl Router {
     }
 
     /// Phase 5: a net whose only tap is a junction that may move: the junction where its wires cost least.
-    fn single_taps(&mut self, nets: &[Net]) -> BTreeSet<WireId> {
+    fn single_taps(&mut self, nets: &[JobNet]) -> BTreeSet<WireId> {
         let mut laid = BTreeSet::new();
         for net in nets {
             let [End::Junction(j)] = net.taps.as_slice() else {
@@ -1166,36 +1165,26 @@ impl Router {
     }
 
     /// The page with net `net`'s wires on their stored routes and its junctions at their first places.
-    fn stored_page(&self, net: &Net) -> DraftPage {
+    fn stored_page(&self, net: &JobNet) -> DraftPage {
         self.stored_on(&self.page, net)
     }
 
     /// `base` with net `net`'s wires on their stored routes and its junctions at their first places.
-    fn stored_on(&self, base: &DraftPage, net: &Net) -> DraftPage {
-        let mut page = base.clone();
-        for w in &mut page.wires {
-            if net.wires.contains(&w.id)
-                && let Some(s) = self.stored.get(&w.id)
-            {
-                w.route.clone_from(s);
-            }
-        }
-        for j in &mut page.junctions {
-            if net.taps.contains(&End::Junction(j.id))
-                && let Some(p) = self.first.get(&j.id)
-            {
-                j.at = *p;
-            }
-        }
-        page
+    fn stored_on(&self, base: &DraftPage, net: &JobNet) -> DraftPage {
+        net_on(
+            base,
+            net,
+            |w| self.stored.get(&w).map(Vec::as_slice),
+            |j| self.first.get(&j).copied(),
+        )
     }
 
     /// Phase 8: the nets with a stored drawing weighed against it (module documentation). Back: from the new drawing, a
     /// net whose stored routes cost no less and keep free of faults among the others keeps them. Forward: from the
     /// stored drawing, a net takes its new routes where they cost less and keep free of faults among the others. The
     /// cheaper page stands: one net's gain is not lost to another's loss that no single net's going back undoes.
-    fn weigh(&mut self, nets: &[Net]) {
-        let weighed: Vec<&Net> = nets
+    fn weigh(&mut self, nets: &[JobNet]) {
+        let weighed: Vec<&JobNet> = nets
             .iter()
             .filter(|net| {
                 net.wires
@@ -1301,26 +1290,43 @@ impl Router {
 }
 
 /// `page` with net `net`'s wires on the routes and its junctions at the places they have in `from`.
-fn taken_from(page: &DraftPage, net: &Net, from: &DraftPage) -> DraftPage {
-    let mut out = page.clone();
-    for w in &mut out.wires {
-        if net.wires.contains(&w.id)
-            && let Some(x) = from.wires.iter().find(|x| x.id == w.id)
-        {
-            w.route.clone_from(&x.route);
-        }
-    }
-    for j in &mut out.junctions {
-        if net.taps.contains(&End::Junction(j.id))
-            && let Some(x) = from.junctions.iter().find(|x| x.id == j.id)
-        {
-            j.at = x.at;
-        }
-    }
-    out
+fn taken_from(page: &DraftPage, net: &JobNet, from: &DraftPage) -> DraftPage {
+    net_on(
+        page,
+        net,
+        |w| from.wires.iter().find(|x| x.id == w).map(|x| x.route.as_slice()),
+        |j| from.junctions.iter().find(|x| x.id == j).map(|x| x.at),
+    )
 }
 
-fn is_fan(net: &Net) -> bool {
+/// `base` with net `net`'s wires on the routes `route` gives and its junctions at the places `at` gives; a wire or
+/// junction they give none for stays as it is.
+fn net_on<'a>(
+    base: &DraftPage,
+    net: &JobNet,
+    route: impl Fn(WireId) -> Option<&'a [Pt]>,
+    at: impl Fn(JunctionId) -> Option<Pt>,
+) -> DraftPage {
+    let mut page = base.clone();
+    for w in &mut page.wires {
+        if net.wires.contains(&w.id)
+            && let Some(r) = route(w.id)
+        {
+            w.route.clear();
+            w.route.extend_from_slice(r);
+        }
+    }
+    for j in &mut page.junctions {
+        if net.taps.contains(&End::Junction(j.id))
+            && let Some(p) = at(j.id)
+        {
+            j.at = p;
+        }
+    }
+    page
+}
+
+fn is_fan(net: &JobNet) -> bool {
     matches!(net.taps.as_slice(), [End::Pin(_)])
 }
 
@@ -1497,8 +1503,8 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
 }
 
 impl Router {
-    /// What is in the way of job `w` (§3.8): searched again without the other wires, then without the connection points
-    /// of other wires, then without the bodies.
+    /// What is in the way of job `w` (§3.8): a fourth arm at a junction; else, searched again without the other wires,
+    /// the wires; else, without the connection points of other wires too, the points; else the parts.
     fn reason(&mut self, w: WireId) -> Reason {
         if self.fourth_arm(w) {
             return Reason::FourArms;
@@ -1516,7 +1522,6 @@ impl Router {
                 Relax {
                     wires: true,
                     points: true,
-                    bodies: false,
                 },
                 Reason::Points,
             ),
@@ -1661,7 +1666,7 @@ fn tool_router(page: &DraftPage, without: &[PartId]) -> Option<Router> {
         let gone: BTreeSet<Uuid> = without.iter().map(|p| p.0).collect();
         page.parts.retain(|p| !without.contains(&p.id));
         page.labels
-            .retain(|l| !matches!(l.owner, LabelOwner::Part(p) if gone.contains(&p.0)));
+            .retain(|l| !matches!(l.owner, Owner::Part(p) if gone.contains(&p.0)));
         page.fixed_texts.retain(|t| !gone.contains(&t.owner));
     }
     Router::new(&page, &[])
@@ -1737,22 +1742,8 @@ pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, before: &[Pt]) -
             over_text: false,
         });
     }
-    let ask = Ask {
-        occ: &r.occ,
-        from: a,
-        to: b,
-        arrive,
-        area: r.page.area,
-        full: &[],
-        relax: Relax::default(),
-    };
-    let found = search::route(&ask)?;
-    let over_text = r.occ.texts.iter().any(|t| {
-        t.label.is_none()
-            && geom::segments(&found.route)
-                .iter()
-                .any(|s| geom::stretch_inside(*s, t.rect.grown(-1)).is_some())
-    });
+    let found = search::route(&tool_ask(&r, a, b, arrive))?;
+    let over_text = across_text(&r, &found.route, true);
     Some(WireRoute {
         route: found.route,
         over_text,
@@ -1774,22 +1765,58 @@ pub fn wire_clear(
     let (Some(a), Some(b)) = (wire_tip(&r, from), wire_tip(&r, to)) else {
         return false;
     };
-    let ask = Ask {
+    // The direct route keeps clear of every text: a text in its way sends the wire to the search.
+    !across_text(&r, route, false) && search::clear(&tool_ask(&r, a, b, arrive), route)
+}
+
+/// The Wire tool's search from `from` to `to` on `r`, the route arriving along `arrive`.
+fn tool_ask(r: &Router, from: Tip, to: Tip, arrive: Option<Side>) -> Ask<'_> {
+    Ask {
         occ: &r.occ,
-        from: a,
-        to: b,
+        from,
+        to,
         arrive,
         area: r.page.area,
         full: &[],
         relax: Relax::default(),
-    };
-    // The direct route keeps clear of every text: a text in its way sends the wire to the search.
-    let across = r.occ.texts.iter().any(|t| {
-        geom::segments(route)
-            .iter()
-            .any(|s| geom::stretch_inside(*s, t.rect.grown(-1)).is_some())
-    });
-    !across && search::clear(&ask, route)
+    }
+}
+
+/// Whether `route` runs through a text of `r`'s occupancy (inside it by more than a tick): any text, or with `fixed`
+/// only one that cannot step aside.
+fn across_text(r: &Router, route: &[Pt], fixed: bool) -> bool {
+    r.occ.texts.iter().any(|t| {
+        (!fixed || t.label.is_none())
+            && geom::segments(route)
+                .iter()
+                .any(|s| geom::stretch_inside(*s, t.rect.grown(-1)).is_some())
+    })
+}
+
+/// The plain shape of a wire from a pin at `a` leaving along `sa` to one at `b` leaving along `sb`, as the placer asks
+/// the text placer about it: one corner where the sides turn a quarter; straight where they face each other on one
+/// line, else stepping at the middle, its middle on the whole step at or before the half way; none where both leave on
+/// one side (out, across and back: the router's to place). Unlike [`unrouted_line`] it steps where pins that face each
+/// other stand off one line.
+pub(crate) fn plain_line((a, sa): (Pt, Side), (b, sb): (Pt, Side)) -> Option<Vec<Pt>> {
+    Some(if sa.vertical() != sb.vertical() {
+        let corner = if sa.vertical() {
+            Pt::new(a.x, b.y)
+        } else {
+            Pt::new(b.x, a.y)
+        };
+        vec![a, corner, b]
+    } else if sa == sb {
+        return None;
+    } else if sa.across(a) == sa.across(b) {
+        vec![a, b]
+    } else if sa.vertical() {
+        let y = grid_down((a.y + b.y).div_euclid(2));
+        vec![a, Pt::new(a.x, y), Pt::new(b.x, y), b]
+    } else {
+        let x = grid_down((a.x + b.x).div_euclid(2));
+        vec![a, Pt::new(x, a.y), Pt::new(x, b.y), b]
+    })
 }
 
 /// The line of a wire without a route between its two ends `a` and `b` (in any one unit): right-angled, never

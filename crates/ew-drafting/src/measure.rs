@@ -52,7 +52,8 @@ use crate::consts::{
 use crate::geom::{self, Seg};
 use crate::labels::{Settled, settle_labels};
 use crate::model::{
-    DraftPage, End, JunctionId, LabelId, LabelKind, PartId, PinId, Pt, Rect, Side, Tick, WireId,
+    DraftPage, End, Junction, JunctionId, LabelId, LabelKind, Part, PartId, PinId, Pt, Rect, Side, Tick,
+    Wire, WireId,
 };
 
 /// What a wire runs through without ending there (F2).
@@ -207,6 +208,9 @@ struct Line {
     segs: Vec<Seg>,
 }
 
+/// Every pin of the page by ID: its point, its side, its part.
+type Pins = BTreeMap<PinId, (Pt, Option<Side>, PartId)>;
+
 /// The measure of `page` (module documentation).
 pub fn measure(page: &DraftPage) -> Quality {
     // The page as the scene draws it: its marks where its routes put them.
@@ -226,9 +230,60 @@ pub fn measure(page: &DraftPage) -> Quality {
     wires.sort_by_key(|w| w.id);
     let mut f = Findings::default();
     let mut c = Counts::default();
+    let lines = lines(&wires, &point_of, &mut f, &mut c);
+    f2(&lines, &pins, &junctions, &point_of, &mut f);
+    // F3, F6 and C3, pair by pair.
+    for i in 0..lines.len() {
+        for k in i + 1..lines.len() {
+            pair(&lines[i], &lines[k], &pins, &point_of, &mut f);
+        }
+    }
+    f4(&lines, &parts, &pins, &mut f);
+    f5(&lines, &junctions, &mut f);
+    c8(&lines, &parts, &wires, &point_of, &mut f);
+    f.parts_on_parts = parts_on_parts(page);
+    texts(page, &labels, &lines, &parts, &mut f, &mut c);
+    c.crossings = f.crossings.len();
+    c.across_texts = f.across_texts.len();
+    c.label_clashes = f.texts_on_texts.len() + f.texts_on_parts.len() + f.texts_outside.len();
+    c.mark_jogs = f.mark_jogs.len();
+    let step = i64::from(TICKS_PER_STEP);
+    let cost = STEP * c.length
+        + BEND * step * c.bends as i64
+        + CROSSING * step * c.crossings as i64
+        + TEXT_CROSSED * step * c.across_texts as i64
+        + TEXT_STEP * c.on_texts
+        + LABEL_CLASH * step * c.label_clashes as i64
+        + LABEL_RANK * step * c.label_ranks
+        + HALF_STEP_EXTRA * c.half_grid
+        + MARK_JOG * step * c.mark_jogs as i64;
+    let faults = f.through_points.len()
+        + f.on_wires.len()
+        + f.through_parts.len()
+        + f.four_way.len()
+        + f.false_joints.len()
+        + f.parts_on_parts.len();
+    Quality {
+        faults,
+        unrouted: f.unrouted.len(),
+        cost,
+        counts: c,
+        findings: f,
+        labels,
+    }
+}
+
+/// The routed `wires` as lines, and what each wire alone gives: the unrouted wires, C1, C2, C7, the wires drawn
+/// straight, the turn-backs and the detour.
+fn lines(
+    wires: &[&Wire],
+    point_of: &dyn Fn(End) -> Option<Pt>,
+    f: &mut Findings,
+    c: &mut Counts,
+) -> Vec<Line> {
     let mut lines: Vec<Line> = Vec::new();
     let (mut drawn, mut distance) = (0_i64, 0_i64);
-    for w in &wires {
+    for w in wires {
         let pts = geom::clean(&w.route);
         if pts.is_empty() {
             let (a, b) = (point_of(w.ends[0]), point_of(w.ends[1]));
@@ -283,29 +338,36 @@ pub fn measure(page: &DraftPage) -> Quality {
     } else {
         100
     };
+    lines
+}
+
+/// F2 (module documentation).
+fn f2(
+    lines: &[Line],
+    pins: &Pins,
+    junctions: &[&Junction],
+    point_of: &dyn Fn(End) -> Option<Pt>,
+    f: &mut Findings,
+) {
     let ends_here = |l: &Line, p: Pt| l.ends.iter().any(|e| point_of(*e) == Some(p));
-    // F2.
-    for l in &lines {
+    for l in lines {
         let hit = |p: Pt| l.segs.iter().any(|s| geom::on(p, *s));
-        for (id, (q, _, _)) in &pins {
+        for (id, (q, _, _)) in pins {
             if !l.ends.contains(&End::Pin(*id)) && !ends_here(l, *q) && hit(*q) {
                 f.through_points.push((l.id, Passed::Pin(*id), *q));
             }
         }
-        for j in &junctions {
+        for j in junctions {
             if !l.ends.contains(&End::Junction(j.id)) && hit(j.at) {
                 f.through_points.push((l.id, Passed::Junction(j.id), j.at));
             }
         }
     }
-    // F3, F6 and C3, pair by pair.
-    for i in 0..lines.len() {
-        for k in i + 1..lines.len() {
-            pair(&lines[i], &lines[k], &pins, &point_of, &mut f);
-        }
-    }
-    // F4.
-    for l in &lines {
+}
+
+/// F4 (module documentation).
+fn f4(lines: &[Line], parts: &[&Part], pins: &Pins, f: &mut Findings) {
+    for l in lines {
         let rays: Vec<(PartId, Pt, Pt)> = l
             .ends
             .iter()
@@ -351,22 +413,34 @@ pub fn measure(page: &DraftPage) -> Quality {
             }
         }
     }
-    // F5.
-    for j in &junctions {
+}
+
+/// F5 (module documentation).
+fn f5(lines: &[Line], junctions: &[&Junction], f: &mut Findings) {
+    for j in junctions {
         let at_j = lines.iter().filter(|l| l.ends.contains(&End::Junction(j.id)));
         let arms = geom::arms(j.at, at_j.map(|l| &l.pts), true);
         if arms >= 4 {
             f.four_way.push((j.id, arms, j.at));
         }
     }
-    // C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2).
+}
+
+/// C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2).
+fn c8(
+    lines: &[Line],
+    parts: &[&Part],
+    wires: &[&Wire],
+    point_of: &dyn Fn(End) -> Option<Pt>,
+    f: &mut Findings,
+) {
     let marks_pins: BTreeSet<PinId> = parts
         .iter()
         .filter(|p| p.role.is_mark())
         .flat_map(|p| p.pins.iter().map(|pin| pin.id))
         .collect();
     let mut wires_at: BTreeMap<PinId, usize> = BTreeMap::new();
-    for w in &wires {
+    for w in wires {
         for e in w.ends {
             if let End::Pin(p) = e {
                 *wires_at.entry(p).or_default() += 1;
@@ -386,7 +460,7 @@ pub fn measure(page: &DraftPage) -> Quality {
         };
         next.map(|n| n.y == q.y)
     };
-    for l in &lines {
+    for l in lines {
         let at_mark = |e: End| matches!(e, End::Pin(p) if marks_pins.contains(&p));
         let [a, b] = l.ends;
         let (mark, far) = match (at_mark(a), at_mark(b)) {
@@ -410,8 +484,17 @@ pub fn measure(page: &DraftPage) -> Quality {
             f.mark_jogs.push(l.id);
         }
     }
-    f.parts_on_parts = parts_on_parts(page);
-    // C4 and C5 over the texts where they stand.
+}
+
+/// C4 and C5 over the texts where they stand, and C6.
+fn texts(
+    page: &DraftPage,
+    labels: &[Settled],
+    lines: &[Line],
+    parts: &[&Part],
+    f: &mut Findings,
+    c: &mut Counts,
+) {
     let mut texts: Vec<(TextRef, Rect)> = labels.iter().map(|s| (TextRef::Label(s.id), s.rect)).collect();
     let mut fixed: Vec<_> = page
         .fixed_texts
@@ -429,7 +512,7 @@ pub fn measure(page: &DraftPage) -> Quality {
         .chain(page.wires.iter().map(|w| w.id.0))
         .collect();
     let crossable = |t: &TextRef| !matches!(t, TextRef::Fixed(o, _) if marks.contains(o));
-    for l in &lines {
+    for l in lines {
         for (t, r) in texts.iter().filter(|(t, _)| crossable(t)) {
             let inside: Vec<Seg> = l
                 .segs
@@ -498,44 +581,10 @@ pub fn measure(page: &DraftPage) -> Quality {
             c.labels_moved += 1;
         }
     }
-    c.crossings = f.crossings.len();
-    c.across_texts = f.across_texts.len();
-    c.label_clashes = f.texts_on_texts.len() + f.texts_on_parts.len() + f.texts_outside.len();
-    c.mark_jogs = f.mark_jogs.len();
-    let step = i64::from(TICKS_PER_STEP);
-    let cost = STEP * c.length
-        + BEND * step * c.bends as i64
-        + CROSSING * step * c.crossings as i64
-        + TEXT_CROSSED * step * c.across_texts as i64
-        + TEXT_STEP * c.on_texts
-        + LABEL_CLASH * step * c.label_clashes as i64
-        + LABEL_RANK * step * c.label_ranks
-        + HALF_STEP_EXTRA * c.half_grid
-        + MARK_JOG * step * c.mark_jogs as i64;
-    let faults = f.through_points.len()
-        + f.on_wires.len()
-        + f.through_parts.len()
-        + f.four_way.len()
-        + f.false_joints.len()
-        + f.parts_on_parts.len();
-    Quality {
-        faults,
-        unrouted: f.unrouted.len(),
-        cost,
-        counts: c,
-        findings: f,
-        labels,
-    }
 }
 
 /// F3, F6 and C3 for one pair of wires.
-fn pair(
-    a: &Line,
-    b: &Line,
-    pins: &BTreeMap<PinId, (Pt, Option<Side>, PartId)>,
-    point_of: &dyn Fn(End) -> Option<Pt>,
-    f: &mut Findings,
-) {
+fn pair(a: &Line, b: &Line, pins: &Pins, point_of: &dyn Fn(End) -> Option<Pt>, f: &mut Findings) {
     let mut shared: Vec<Seg> = Vec::new();
     let mut points: Vec<Pt> = Vec::new();
     for &s in &a.segs {

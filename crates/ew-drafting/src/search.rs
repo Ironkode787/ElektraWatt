@@ -75,7 +75,7 @@ pub fn heading(a: Pt, b: Pt) -> Option<Side> {
 
 /// What an end of a route is.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Owner {
+pub enum TipKind {
     /// A pin.
     Pin(PinId),
     /// A junction.
@@ -92,7 +92,7 @@ pub struct Tip {
     /// The side a wire leaves it on, for a pin with one.
     pub side: Option<Side>,
     /// What it is.
-    pub owner: Owner,
+    pub owner: TipKind,
     /// Its own part's ID and body on the page, for a pin.
     pub part: Option<(Uuid, Rect)>,
     /// The routes of the wires laid from the same pin, each from the pin outward: the route may share their run.
@@ -105,7 +105,7 @@ impl Tip {
         Tip {
             at,
             side: None,
-            owner: Owner::Free,
+            owner: TipKind::Free,
             part: None,
             shared: Vec::new(),
         }
@@ -119,8 +119,6 @@ pub struct Relax {
     pub wires: bool,
     /// The pins, stubs and junctions of other wires.
     pub points: bool,
-    /// The parts' bodies.
-    pub bodies: bool,
 }
 
 /// One search.
@@ -225,37 +223,35 @@ impl<'a> Space<'a> {
         if at_tip {
             return false;
         }
-        if !ask.relax.bodies {
-            let mut bodies = i32::from(ask.occ.bodies_at(n, self.half()));
+        let mut bodies = i32::from(ask.occ.bodies_at(n, self.half()));
+        if bodies > 0 {
+            for r in &self.held {
+                if self.inside(n, *r) {
+                    bodies -= 1;
+                }
+            }
+            for (k, tip) in tips.iter().enumerate() {
+                if let Some((_, r)) = tip.part
+                    && self.corridors[k].contains(&n)
+                    && self.inside(n, r)
+                {
+                    bodies -= 1;
+                }
+                for r in &self.frames[k] {
+                    if self.corridors[k].contains(&n) && self.inside(n, *r) {
+                        bodies -= 1;
+                    }
+                }
+            }
             if bodies > 0 {
-                for r in &self.held {
-                    if self.inside(n, *r) {
-                        bodies -= 1;
-                    }
-                }
-                for (k, tip) in tips.iter().enumerate() {
-                    if let Some((_, r)) = tip.part
-                        && self.corridors[k].contains(&n)
-                        && self.inside(n, r)
-                    {
-                        bodies -= 1;
-                    }
-                    for r in &self.frames[k] {
-                        if self.corridors[k].contains(&n) && self.inside(n, *r) {
-                            bodies -= 1;
-                        }
-                    }
-                }
-                if bodies > 0 {
-                    return true;
-                }
+                return true;
             }
         }
         if !ask.relax.points {
             for h in ask.occ.holders_at(n) {
                 let own = match h {
-                    Holder::Pin { pin, .. } => tips.iter().any(|t| t.owner == Owner::Pin(*pin)),
-                    Holder::Junction(j) => tips.iter().any(|t| t.owner == Owner::Junction(*j)),
+                    Holder::Pin { pin, .. } => tips.iter().any(|t| t.owner == TipKind::Pin(*pin)),
+                    Holder::Junction(j) => tips.iter().any(|t| t.owner == TipKind::Junction(*j)),
                 };
                 // A free pin's stub on an end's own stub (a second connection point on the same point) is the end's way
                 // out, its half step as well as its full one.
@@ -565,7 +561,7 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
                     pins.iter()
                         .any(|p| (1..=STUB).any(|d| t.at.minus(Pt::new(u.x * d, u.y * d)) == *p))
                 });
-                t.owner == Owner::Free && inside && over_pin
+                t.owner == TipKind::Free && inside && over_pin
             })
             .map(|(_, r, _)| *r)
             .collect(),

@@ -92,7 +92,7 @@ pub struct Broken {
 
 /// A net of the page: its pins, junctions and wires, each by ID.
 #[derive(Clone, Default, Debug)]
-pub(crate) struct Net {
+pub(crate) struct PageNet {
     pub pins: Vec<PinId>,
     pub junctions: Vec<JunctionId>,
     pub wires: Vec<WireId>,
@@ -106,7 +106,7 @@ pub(crate) struct Wiring<'a> {
     /// Each pin: its part's index, its point on the page, its side.
     pub pins: BTreeMap<PinId, (usize, Pt, Option<Side>)>,
     /// The nets, each with at least one wire, in the order of their first wire's ID.
-    pub nets: Vec<Net>,
+    pub nets: Vec<PageNet>,
 }
 
 impl<'a> Wiring<'a> {
@@ -133,7 +133,7 @@ impl<'a> Wiring<'a> {
         for w in &wires {
             groups.join(keys[&w.ends[0]], keys[&w.ends[1]]);
         }
-        let mut by_root: BTreeMap<usize, Net> = BTreeMap::new();
+        let mut by_root: BTreeMap<usize, PageNet> = BTreeMap::new();
         for w in &wires {
             let r = groups.root(keys[&w.ends[0]]);
             by_root.entry(r).or_default().wires.push(w.id);
@@ -147,7 +147,7 @@ impl<'a> Wiring<'a> {
                 End::Pin(_) => {}
             }
         }
-        let mut nets: Vec<Net> = by_root.into_values().collect();
+        let mut nets: Vec<PageNet> = by_root.into_values().collect();
         nets.sort_by_key(|n| n.wires.first().copied());
         Wiring {
             page,
@@ -173,7 +173,7 @@ impl<'a> Wiring<'a> {
     }
 
     /// The horizontal line most of a net's junctions lie on, two at least (the upper of two such): its rail's line.
-    pub fn line(&self, n: &Net) -> Option<Tick> {
+    pub fn line(&self, n: &PageNet) -> Option<Tick> {
         let mut ys: BTreeMap<Tick, usize> = BTreeMap::new();
         for p in n.junctions.iter().filter_map(|j| self.junction(*j)) {
             *ys.entry(p.y).or_default() += 1;
