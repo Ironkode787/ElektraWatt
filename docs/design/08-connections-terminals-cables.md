@@ -11,9 +11,8 @@ wire-numbering part of NUM in [02a](02a-requirements-core.md). It builds on the 
 [domain model](03-domain-model.md) §9, §11 and §12 and follows the accepted [architecture](04-architecture.md)
 (ADR-0001, ADR-0006, ADR-0007).
 
-**Notation.** W1 … W44, J1 … J6 and BR1 … BR6 are the physical wires, junctions and bridges of the golden project
-(retired at 0.3.5, see the [glossary](glossary.md)). ▲ and ▲U-nn mark golden test inputs that the reference set does
-not determine. EF-nn and MF-nn are expected findings. PQ-nn are questions for the pilot user ([brainstorm](01-brainstorm.md)).
+**Notation.** W1 … W44, J1 … J6 and BR1 … BR6 are the physical wires, junctions and bridges of the reference
+drawing set's project, the running example. ▲ and ▲U-nn mark test inputs that the reference set does not determine. EF-nn and MF-nn are expected findings. PQ-nn are questions for the pilot user ([brainstorm](01-brainstorm.md)).
 
 **Contents**
 1. [Scope and position](#1-scope-and-position)
@@ -163,18 +162,13 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
   the lowest side-1 CP of its function definition, so bridges can be drawn before parts are chosen; Bridge terminals
   (`strip.bridge`, on the Draw tab) draws the chain over two or more selected terminals of one strip (consecutive in `seq` order) in one
   undo step, one `connection.draw` for a pair and one `connection.draw_many` for a longer chain ([06](06-schematic-editor.md) §3.1).
-  The BOM's bridge row stays WP-S2.07. *As built:* a bridge between terminals
-  without a part shaft is stored as a plug-in bridge on shaft 1 at their lowest side-1 CPs. When a part with a
-  shaft-1 entry is chosen later, Bridge terminals does not treat the pair as bridged, because it compares CPs: it draws
-  a second bridge between the shaft CPs, in a new group unless an existing bridge of the strip ends at one of those
-  CPs, and leaves the side-1 bridge in place. Storing a clamp-end kind, or re-seating the bridge on the shaft, is
-  M2 work.
-  *As built.* **A bridge joins terminals, not CPs**, for every editor rule: two
-  terminals are bridged when a bridge connection joins any CP of one to any CP of the other, so Bridge terminals no
-  longer draws the second bridge described above; it keeps such a pair and refuses when every selected pair is
-  bridged. The stored CPs stay what was drawn (a side-1 fallback bridge stays on its clamps when a part with a shaft
-  is chosen later); re-seating onto the shaft waits for the terminal assembly list (FR-MFG-016, 1.0). *As built
-  (0.3.5).* **A block's level is bridged on its own:** selecting the level-2 symbols bridges at the level-2 CP of the
+  A bridge between terminals
+  without a part shaft is stored as a plug-in bridge on shaft 1 at their lowest side-1 CPs.
+  **A bridge joins terminals, not CPs**, for every editor rule: two
+  terminals are bridged when a bridge connection joins any CP of one to any CP of the other, so Bridge terminals
+  keeps such a pair and refuses when every selected pair is bridged. The stored CPs stay what was drawn (a side-1 fallback bridge stays on its clamps when a part with a shaft
+  is chosen later); re-seating onto the shaft waits for the terminal assembly list (FR-MFG-016, 1.0). **A block's level is bridged on
+  its own:** selecting the level-2 symbols bridges at the level-2 CP of the
   same side, on shaft 2 (shaft = level), and a bridge joins terminals at its own level only, so a level-1 bridge does
   not refuse a level-2 one. In the Terminal strips table a row of a block is one level (`terminal:<id>:<level>` from
   level 2) and selects that level's symbol; F2 on the Bridge cell over two or more marked terminal rows bridges them,
@@ -186,11 +180,9 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
   belongs to the strip of its first terminal end, `a` then `b`) and gives per group its kind, terminals (in `seq`
   order), connections, carrier and part. `device_part_lines(strip)` appends one BOM line of quantity 1 per group
   with a part (`LineSource::Bridge`, after the strip's accessory lines, in group order), so the BOM counts a bridge
-  part once per group by construction. Golden A's bridges carry no part, so its BOM is unchanged; its interim part
-  uses stay until a follow-up moves them onto the bridges.
+  part once per group by construction.
 - **Strip groups** label ranges of terminals. The terminal's own `function_text` holds its printed label ("1+").
-  This follows the golden strip table, where "1+" is the printed function text and "Pneumatics" is the group
-  label.
+  So "1+" is the printed function text and "Pneumatics" is the group label.
 - **`Strip.field_side`** says which terminal side faces the field when a strip is mounted the other way round. The
   default is Side2 (FR-TRM-012).
 - **Part data read here** ([07](07-symbols-parts-macros.md) §2.5, levels L1 and L2):
@@ -219,7 +211,7 @@ Moving representations never changes an endpoint. Only routes follow (FR-CON-004
 depends on geometry, except through the explicit commands that create connections: autoconnect, splitting and the
 cable definition line (ADR-0007).
 
-*As built.* A page connection without a stored route whose ends lie at
+A page connection without a stored route whose ends lie at
 two points is **unrouted**. It keeps its connectivity (its potential, its wire number, its rows in the wire list), but
 it has no wire geometry: it is drawn as a dashed right-angled line between its ends on the canvas and in every export,
 normaliser 7 does not split it, EW-TERM-006 and autoconnect do not see it, and EW-CORE-073 reports it (an info, an
@@ -245,12 +237,11 @@ A junction tells the shop **which CP is wired to which**. A dot or a bevel only 
 - **Defaults.** A Dot junction defaults to Star and a Bevel junction to Chain (ADR-0007). A
   junction is created by ending a wire on another connection. Its default sequence lists the two parts of the split
   connection, the part nearer the potential's source first (flow distance, §3.6, with reading order as tie-break),
-  and then appends the new branch. [06](06-schematic-editor.md) §3.5 uses the same rule, and the M2 usability test
-  confirms it (PQ-27).
+  and then appends the new branch. [06](06-schematic-editor.md) §3.5 uses the same rule (PQ-27).
 - **Daisy chain versus junction.** Two connections on one CP are a daisy chain (FR-CON-006). Their order is the
   order in which the shop lands them on the clamp. It is ascending connection ID unless a junction sequence fixes it.
 
-*As built (D-20).* The wire list prints how a wire is joined in its Via column: the junction it passes by
+The wire list prints (D-20) how a wire is joined in its Via column: the junction it passes by
 its place and effective wiring, "101-C11 star at F55:2" (Star: the entering CP) or "102-C6 chain on -102F1:1"
 (Chain: the wire's ends shared with another wire of the junction), and its daisy chains, "chain on -101F1:1" (a
 device CP that two drawn `Wire` or `Core` connections touch). `ew-derive`'s `wire_join` derives it; the style (dot,
@@ -317,15 +308,14 @@ an undefined one.
      2c. the name of the first interruption point of another direction (a target, an undirected point) in page
      order, non-external points before external ones: a point names the potential it carries whichever its
      direction, so a supply drawn at the page's left edge (a target by the page's quarters) with no source yet, or one
-     coming in from elsewhere (Supply comes in here…), names its wires. Its own rule still reports it unpaired. (As
-     built, 0.2.0-rc.2: such a wire read the device pin's fallback name, so it had no colour by name and no offer.)
+     coming in from elsewhere (Supply comes in here…), names its wires. Its own rule still reports it unpaired.
   3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column),
      ties by that fallback text in natural order, then by CP ID (so two CPs of one anchor cell, such as a terminal's two sides, give the same name in every fresh copy of a project, whose IDs are random; blind replay, §6 item 3).
      A protective earth (type PE) whose first CP is an earth connection's, which has no tag, is `PE`, not that pin's
-     designation (an imported earth point's `1`, FT-1933).
+     designation (an imported earth point's `1`).
 
   An external source interruption point counts as a source IP for step 2.
-  *As built (FT-1700).* A potential named only by step 3 may be **offered** a name, never given one: the window
+  A potential named only by step 3 may be **offered** a name, never given one: the window
   shows a card at the selected wire, and Accept is an ordinary `potential.define`. It reasons only from a member CP's
   own `potential_role`, or from the A2 of a coil whose A1 is on a potential of type L+ (A2 is then M) or of one phase
   (A2 is then N); every such CP must agree. The project's one potential of that type named by steps 1 to 2b gives
@@ -343,16 +333,15 @@ an undefined one.
   therefore names B1 and is neither an alias of 0V nor of PE.
 - **Conflicts.** Two definitions with different names in one potential produce EW-POT-017. The first definition in
   rank order (§3.6: natural order of the name) wins.
-- *As built.* On a Potentials row known only at its CPs, the **Name** cell is a
+- On a Potentials row known only at its CPs, the **Name** cell is a
   defining cell: typing a name compiles to one `potential.define {at: the row's CP, name}`, with the Type, Voltage
   and `env.ac_dc` typed in the same gesture. Type, Voltage or `env.ac_dc` alone on such a row refuse in the cell with
-  "Name the potential first". The earlier behaviour that stored the row's shown name
-  (a step-2 or step-3 name) as `PotentialDef.name` is retired, with the test that pinned it.
-- *As built.* Step 2b lives in `potential_name`, between the source point and the
+  "Name the potential first".
+- Step 2b lives in `potential_name`, between the source point and the
   fallback; the walk is guarded against a revisit (the flow is a tree). Supply names over a fuse and a switch are
   equal over two runs and under permuted IDs.
 
-Golden: 24VDC-1 has no definition and takes the name of its source IP on folio 102. Its aliases are 24VDC-AIR1 …
+Example: 24VDC-1 has no definition and takes the name of its source IP on folio 102. Its aliases are 24VDC-AIR1 …
 AIR4. 0V is defined, with aliases 0VDC and 0VDC-AIR1 … AIR4. PE is defined, with 7 aliases: J-E-206-PE, PE-1.1 …
 PE-1.4, PE-AIR1 and PE-AIR2.
 
@@ -381,7 +370,7 @@ potential_flow(potential):                              // memo per potential; t
 
 - **Switched.** `switched` marks functional switching: contacts, switches, thermostats. MCBs, fuses and electronic
   circuit breakers are protection, so their outputs are not "switched". All-pole switching devices such as S51 do
-  not set it either. On the golden project exactly N-55T (via T55) and N-55S (via S56) are "N, switched".
+  not set it either. In the example exactly N-55T (via T55) and N-55S (via S56) are "N, switched".
 - **Protected by.** `protected_by` names the nearest upstream protective device. 24VDC-1 is protected by the Out1
   channel of -102F2. This feeds the load summary (FR-REP-026) and D-25.
 - **Circuit class** (FR-CON-022) comes from the size profile's class rules, unless `PotentialDef.circuit_class` sets
@@ -396,15 +385,15 @@ potential_flow(potential):                              // memo per potential; t
   profile's choice (the ELV and LV limits), not quoted standard text.
 - **Conflicts.** Two types or voltages meeting in one potential produce EW-POT-001 (FR-CHK-028). So do a defined
   type that contradicts a member CP role (compatible roles excepted: FE on PE or PEN, PE or N on PEN, L on any one
-  phase L1, L2 or L3, as a single-phase input fed from one phase; FT-1701), definitions that disagree on voltage,
+  phase L1, L2 or L3, as a single-phase input fed from one phase), definitions that disagree on voltage,
   environment or class, and a
   pass-through pair whose two reached sides have different types without a converting function. They are errors; the
   first definition in natural order still gives the value. Nothing merges silently.
-  *As built (round):* member roles that disagree on a potential without a
+  Member roles that disagree on a potential without a
   definition are ranked by a fixed role order (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal, undefined), never by
   CP or ID order, and the finding targets every member function; the definition half still follows ID order. A role
   compatible with the first by the list above (an L pin beside an L1 pin) is no conflict there either.
-  *As built (rc.5, the role pairs).* Which member roles may meet on one potential, either order: **nothing to report**
+  Which member roles may meet on one potential, either order: **nothing to report**
   for equal roles, FE on PE or PEN, PE or N on PEN, L on one phase, M with L− (two names of one 0 V), a signal on any
   conductor but an earth (a signal pin wired straight to a supply is a fixed level), and an undefined role or one of a
   newer format with anything; **a bond** for 0 V (M or L−) on PE, which a drawn wire declares (§3.7, the drawn bond);
@@ -413,7 +402,7 @@ potential_flow(potential):                              // memo per potential; t
   definitions or member CPs and the attribute), and EW-POT-001 words each as a sentence in the trade's words: what is
   wired to what, on which page, why that is a fault and what to do ("-G1:+ (plus L+) is wired to -X1:N (neutral N) on
   page 3: a wire joins two different potentials. Take that wire away.").
-  *As built.* A potential's definitions are **ranked** by natural order of the
+  A potential's definitions are **ranked** by natural order of the
   name, then the defining point's printed text (`<tag>:<designation>` of its CP; a junction's after every CP's), then
   the ID, which decides only between two definitions that print alike. The first applies its values and names the
   potential, every definition is a target of the finding, and the conflict texts name definitions and member CPs by
@@ -421,7 +410,7 @@ potential_flow(potential):                              // memo per potential; t
   give one potential named 0V in every fresh copy of the project.
   *Ruled.* Such a merged potential keeps the name 0V but does **not** take 0V's
   colour: an unbonded merged 0 V/PE potential shows the PE colour, and EW-POT-001's
-  conflict colour overrides it on the canvas ([16a](16a-design-language.md) §7.5). Not yet built.
+  conflict colour overrides it on the canvas ([16a](16a-design-language.md) §7.5). Not built.
 - **Loads** (FR-REP-026). A load of a potential is a consuming function on it: the upstream
   feeding function and every function with a pass-through pair touching the potential are excluded, and end
   consumers such as coils, lamps and PLC inputs are loads.
@@ -432,20 +421,20 @@ potential_flow(potential):                              // memo per potential; t
   wire) is left out of union at both levels. B1 (`Pelv0vPe`, via W27) keeps 0V and PE as two potentials (FR-CON-014,
   D-22). The bond wire is still a physical wire: physical-wire extraction runs on the full drawing graph, including
   via connections (§3.8). The wire list shows W27 with potential "0V ⇄ PE".
-- *As built (rc.5).* **The drawn bond.** A wire drawn on a page from a 0 V point to a protective-earth point is the
+- **The drawn bond.** A wire drawn on a page from a 0 V point to a protective-earth point is the
   bond itself: whoever draws it has declared it, and no second declaration is asked. `page_local_nets` joins the page
   without the connections that end on a PE-role CP first; then such a connection with exactly one end on a PE-role CP
   whose other end lies in a net holding an M- or L−-role CP is an **earth wire**: it is cut like a bond's `via` and
   both its ends stay nodes of the page. The partition lists every earth wire as a bond (`BondLink::drawn`, kind
   `Pelv0vPe`, its ID the connection's, `a` the 0 V side), so the 0 V keeps its own name, type and colour, the wire
   list shows the wire as "0V ⇄ PE" and EW-POT-002 counts it (a PELV 0 V with one earth wire is satisfied, with two it
-  is reported). *rc.5:* a point says what it is by a pin's role, else a potential definition's type there, else (no
+  is reported). A point says what it is by a pin's role, else a potential definition's type there, else (no
   type) a definition or an interruption point named by the type's word (`0V`, `M`, `L-`; `PE`, `FE`), so a 0 V
   typed from the list, a potential named 0V and a 0 V carried in by an interruption point named 0V are earthed alike.
-  *0.3.5 (FT-1821, FT-1867).* A 0 V point is also a definition or an interruption point whose name's head (the part
+  A 0 V point is also a definition or an interruption point whose name's head (the part
   before a dash with something after it, spaces aside) is `0V`, `0VDC`, `M` or `L-` (`0VDC-6`, `0 V DC`; the supply
-  marks' panel proposes the kind M for such a name, where it proposed a plus of 0 V): an imported supply whose pins say nothing, its 0 V named by its mark, stays 0 V when it
-  is earthed, where it was typed PE as a whole. And the rule follows the potential over the page links: the derived
+  marks' panel proposes the kind M for such a name): an imported supply whose pins say nothing, its 0 V named by its
+  mark, stays 0 V when it is earthed. And the rule follows the potential over the page links: the derived
   `zero_volt_ips` holds every interruption point whose net, joined without the connections to earth points, holds a
   0 V point, or reaches one through the pairs of interruption points, net by net and page by page; such a point is a
   0 V point of its own page, so the wire from it to an earth point is the bond wherever the 0 V was named.
@@ -456,7 +445,7 @@ potential_flow(potential):                              // memo per potential; t
   meets PE, and the declared bond below is the way to say which wire bonds it.
 - **PELV and SELV.** An M-type potential is PELV when it has a `Pelv0vPe` bond or `env.earthing = Pelv`.
   EW-POT-002 requires exactly one such bond. A potential declared `Selv` must have none (FR-CHK-028).
-- *As built.* **The 0 V–PE quick fix.** When a potential's member CPs
+- **The 0 V–PE quick fix.** When a potential's member CPs
   (interruption points aside) carry both a 0 V role (M or L−) and the role PE, its EW-POT-001 finding carries the
   quick fix
   "Declare 0 V–PE bond (PELV)": one `bond.create {a, b, kind: pelv_0v_pe, via}` on the potential's **carrier**, which
@@ -469,16 +458,11 @@ potential_flow(potential):                              // memo per potential; t
   the displayed wire number in natural order (an unnumbered wire last), then the two ends' `tag:designation` texts;
   `a` is the M-side end, `b` the PE-side end. With no candidate, a disconnected graph or a tie between the first two
   on every key there is no fix, and the sentence says to declare the bond with Draw ▸ Connect ▸ Bond. The query is
-  **Cold**, not memoised, so Golden A's AC-16 memo sweep (the acceptance report's key and family counts) stays
-  byte-equal; only EW-POT-001 asks for it, and everything it reads is memoised. Golden A without B1: the fix names
-  W27, commits through the command path, and undo restores the finding.
+  **Cold**, not memoised; only EW-POT-001 asks for it, and everything it reads is memoised.
 - **FE to PE.** An `FePe` bond declares a deliberate FE–PE link. Without one, FE-role CPs on the PE potential are
-  reported (EW-POT-003, D-16). In the golden test part data only CPX pin 3 carries role FE (▲U-18); the earth
-  screws -201U1:FE and -202U1:FE are the devices' intended earthing points with role PE, so EF-10 has exactly two
-  targets. *As built (Golden A data fix):* the golden part data now gives the earth screw (CP 5 of the CPX
-  part) role PE, as this paragraph states; before, it carried FE and EW-POT-003 reported it.
+  reported (EW-POT-003, D-16). A device's intended earthing point (an earth screw) carries role PE, not FE.
 - **Rail bonding at MVP.** Each location node (`+J-E-2416`) has a virtual "location PE node". The PE CPs of every
-  rail-bonded terminal of that location join it as a POTENTIAL edge (FR-CON-015, FR-TRM-017). In the golden project
+  rail-bonded terminal of that location join it as a POTENTIAL edge (FR-CON-015, FR-TRM-017). In the example
   1X1:PE (USLKG 5) and -X1032:1–5 are rail-bonded. -X1032 therefore joins 1X1:PE, and through W6 the PE bar -XPE, in
   one PE potential although no wire runs between folio 101 and the -X1032 strip on folio 103 (D-21). Only CPs with
   clamp `RailFoot` or role PE or PEN join the location node. A rail-bonded terminal without
@@ -487,7 +471,7 @@ potential_flow(potential):                              // memo per potential; t
   project's implicit main location while the project has at most one own location (a location node that no
   external reference names; `+J-E-206` of an external point is not one): it joins the only own location's PE node,
   or an implicit main-location PE node when the project has none. It is skipped and reported as EW-POT-008 only
-  when the project has two or more own locations. *As built (the review's fix):* the own locations are the
+  when the project has two or more own locations. The own locations are the
   location nodes that no external reference names, or that an own device or page assigns as its location (a node
   both named by an external reference and assigned by an own device or page is own).
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
@@ -537,16 +521,15 @@ physical_wires_of(potential):                              // memo per potential
      pass-through pair).
   3. Ties are broken by the anchor cell (row, column) and then by CP ID. A terminal drawn only by a strip segment
      has no anchor of its own: its anchor cell is the cell of its CP in the segment (§6.7).
-     *As built:* the anchor cell of an end is the smallest cell (row, column)
-     of its function's representations on the wire's page (no longer the cell of the smallest representation ID);
+     The anchor cell of an end is the smallest cell (row, column)
+     of its function's representations on the wire's page;
      ties then go to the CP label in natural order, then to the places the function is drawn at (page order, cell),
-     and the CP IDs come last, so no minted ID decides an orientation that the print can decide. No Golden A wire
-     changed orientation or number.
+     and the CP IDs come last, so no minted ID decides an orientation that the print can decide.
 
-  This reproduced every From/To pair of the golden wire table. Examples: 1X1:1 → S51:2, because the supply
+  Examples: 1X1:1 → S51:2, because the supply
   enters at J-E-206-L; -102G1:+#2 → -102F1:1; E55:PE → -X1032:1/b, by page order.
 
-  **As built.** `ew-derive`'s `orient_wire` applies the
+  `ew-derive`'s `orient_wire` applies the
   three rules. Rule 2 reads the memo query `cp_flow_distance(potential)`: a breadth-first walk from the entry CPs (a
   root potential's external points and source outputs; otherwise the `to` CP of its upstream pass-through pair)
   over the potential's physical wires, bridges and the `Short` links of any function (terminal levels and declared
@@ -560,12 +543,11 @@ physical_wires_of(potential):                              // memo per potential
   (FR-TRM-006, FR-MFG-002). A device end prints `tag:designation`, with `#n` only where printed designations repeat
   (`-102G1:+ #1`). `cp_label` of `ew-derive` is the one owner
   of this label; the From/To CP columns of the wire list (`conn::end_text` in `ew-reports`) still drop `#n` and are to
-  converge on it (FT-102). A terminal end whose function repeats a clamp letter within one level
-  prints `#n` after the clamp, the n-th CP of that level and clamp in index order (`-X1:1/a#2`); `cp_label` owns it
-  (O30). The starter terminal FnDefs give side 1 clamp `a` and side 2 clamp `b` (§6.1, §6.3), so the golden 1X1 prints `1X1:1/a` and `1X1:1/b`; the rule applies only to third-party
+  converge on it. A terminal end whose function repeats a clamp letter within one level
+  prints `#n` after the clamp, the n-th CP of that level and clamp in index order (`-X1:1/a#2`); `cp_label` owns it. The starter terminal FnDefs give side 1 clamp `a` and side 2 clamp `b` (§6.1, §6.3), so 1X1 prints `1X1:1/a` and `1X1:1/b`; the rule applies only to third-party
   FnDefs that repeat a letter.
 
-*As built.* The families of §3.3 to §3.8 exist in `ew-derive`,
+The families of §3.3 to §3.8 are in `ew-derive`,
 Memo by policy and cold in phase 1. Decisions the code had to fix:
 - An interruption-point group without `ip_pairing` is a star with project scope; its source is the point flagged
   `star_source`, else the single Source point, else the point with the lowest ID.
@@ -574,8 +556,8 @@ Memo by policy and cold in phase 1. Decisions the code had to fix:
   sides. Equal pin designations of one function are one signal only for black-box and
   part-pattern-origin functions, never for terminals and never across levels.
 - The carrier of a junction arm is the connection of the arm that touches the end CP, as the pseudo-code above
-  says, also when the arm crosses an IP pair; the Target-IP rule applies only to hub-free paths. This fixes wire
-  IDs before M1.
+  says, also when the arm crosses an IP pair; the Target-IP rule applies only to hub-free paths, which fixes wire
+  IDs.
 - A connection to a missing function still forms one physical wire, which ends at the missing CP; accepted for now
  .
 - Only a bond's `via` connection is cut, and the IPs on the `via` path name the bond (§3.5); drawn bridges join at
@@ -593,7 +575,7 @@ The effective value of each property comes from the highest level that sets it. 
 the level and the defining entity (FR-CON-017, FR-CON-025, D-08). This is the chain of
 [03](03-domain-model.md) §9.5 and ARCH §6.4, unchanged.
 
-| Level | Source | Can set | Golden example |
+| Level | Source | Can set | Example |
 |---|---|---|---|
 | 1 | Project default (`ProjectSettings.wire_default`) | all | used only by Undefined potentials |
 | 2 | Profile rule: colour row × size row, plus the PE-class rule, the bond rule and the protecting device's rating (§4.2) | colour, csa, wire part (1.0), insulation | W29: 0.75 mm², DBU |
@@ -664,13 +646,11 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
 - **A phase is AC mains.** A potential of type L1, L2 or L3 is a phase of an AC supply: when it states no AC or DC
   it matches as AC, and when its voltage is not known its circuit class is mains (as a class of its own definition
   would be). A wire given only the type L1 therefore takes the mains cross-section (1.5 mm² built in) and the phase's
-  colour of the colour profile (IEC 60445: BN), not the control circuit's 0.75 mm² (FT-1688). A phase with a known
-  voltage below 50 V is matched by the class rules as before. *A new wire's cross-section from its circuit (FT-1834).*
+  colour of the colour profile (IEC 60445: BN), not the control circuit's 0.75 mm². A phase with a known
+  voltage below 50 V is matched by the class rules. *A new wire's cross-section from its circuit.*
   What is read is the circuit class: a single phase L and the neutral N are conductors of an AC supply too, so
-  without a known voltage they are of the mains class as well (the sample's N wires beside its 1.5 mm² phases took
-  0.75 mm²), and a new wire shows that class's cross-section in Properties before anything is set.
-- **A cross-section from the protecting device's rating** (0.3.5, FT-2055). A 16 A circuit of the control class took
-  the control size, 0.75 mm². Below level 3, a wire whose protecting device is rated above what its cross-section
+  without a known voltage they are of the mains class as well, and a new wire shows that class's cross-section in Properties before anything is set.
+- **A cross-section from the protecting device's rating.** Below level 3, a wire whose protecting device is rated above what its cross-section
   carries takes the least cross-section that carries the rating, by the current table
   `content/profiles/current/ew.current.iec60204-1-b2.toml`.
   - *The table* holds the values of IEC/EN 60204-1:2016 Table 6, installation method B2, PVC-insulated copper, 40 °C
@@ -701,8 +681,8 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
     proposed size" removes the override where the size without it carries the rating, else sets the proposed size.
   - *What it does not do.* Size by the load's current, by the length (voltage drop) or by a short-circuit check; read a
     motor-protective device's setting range; choose another installation method or table.
-- **Which value wins** (FT-1688, as built): the wire's own override (level 7), else the core of its cable (level 6,
-  the conductor's colour and cross-section; as built in rc.3 a core's conductor wins over the wire's override for
+- **Which value wins:** the wire's own override (level 7), else the core of its cable (level 6,
+  the conductor's colour and cross-section; a core's conductor wins over the wire's override for
   these two, so a wire made a core takes them at once however it got there, Properties names the cable and core as
   their source and offers no override: they are changed at the cable), else its potential's definition (level 3), else the profile rows of
   its potential's type, AC/DC, voltage and class (level 2), else the project default (level 1), else the built-in
@@ -718,10 +698,10 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
 - **Cover tables.** Folio 1's CABLE COLOUR DEFINITIONS and standard-size tables are embedded report blocks over
   these rows (FR-REP-028, REF-005). In marker mode "only explicit overrides" the cover also prints the note "If size
   or sign is not indicated in diagram, standard size or sign is to be used." That note is derived text, not a rule.
-  *As built.* The `profile_tables` kind draws the colour and size tables; their
+  The `profile_tables` kind draws the colour and size tables; their
   display order is the profile's `order`, the cover prints the profile's `standards` text and keeps the basis note
-  as metadata, and the note is part of the size-table block, always printed on the golden cover while the marker
-  mode is not modelled (lane B's cycle-12 fix round).
+  as metadata, and the note is part of the size-table block, printed whenever the cover has a table (the kind does not
+  read the marker mode).
 
 ### 4.3 Shipped profiles
 
@@ -752,15 +732,15 @@ IEC 60445 profile maps that M like L−. Both entries are therefore marked (veri
 *Built-in defaults*. Without a project profile, colours follow the EN 60204-1
 column and honour the circuit class (L BK, N BU, PE GNYE, FE PK, DC BU, AC control L RD), and sizes are Mains
 1.5 mm² and Control, Analogue and Bus 0.75 mm²; a potential of unknown voltage or AC/DC never matches a selector that
-constrains them. Two colour rows of equal specificity that disagree are a profile load error. The levels as built
+constrains them. Two colour rows of equal specificity that disagree are a profile load error. The levels
 are override > conductor > potential definition > colour and size rows > project default > built-in default; net
-definitions are WP-S1.26.
+definitions (levels 4 and 5) have no record in this format.
 
 Size profiles for the standards ship as data with `verified = false` until they have been checked against licensed
-copies. The company size profile is the golden one: Control 0.75 mm², Mains 1.5 mm², PE by class. NFPA 79 is
+copies. The company size profile is the sample project's: Control 0.75 mm², Mains 1.5 mm², PE by class. NFPA 79 is
 data-only at 1.x. Its rule pack is Later, as [vision](00-vision-and-scope.md) §9 says for UL 508A and NFPA 79.
 
-*As built.* Two of the columns of the table above ship as data in
+Two of the columns of the table above ship as data in
 `content/profiles/colour/`: **"EN 60204-1 machine"** (`ew.colour.en60204-1-machine.json`) and **"IEC 60445
 installation"** (`ew.colour.iec60445-installation.json`), which the company-standard wizard offers at step 3
 ([16](16-ux-ui.md) §9.2) and writes through `project.settings.set` (`colour_profile`). They are **our own tables**,
@@ -773,19 +753,17 @@ data" marker (above). No size profile ships: the wizard's step 4 has a default, 
   analogue flag, **not by circuit class**. The AC control row of EN 60204-1 (red) therefore applies to a potential
   typed `signal` on AC; an AC control line typed `L` takes the line row and stays **black instead of red** (the
   built-in default, which knows the circuit class, would print red). The **excepted circuits in orange** have no
-  selector and are left out of the profile. Both gaps close when a selector can name the circuit class (FT-388, with the
-  verification of the shipped tables).
+  selector and are left out of the profile. Both gaps close when a selector can name the circuit class.
 - **The wizard's default stays the sample's convention** ("DBU/WH 24 V"), not EN 60204-1,
   until the shipped profiles are verified and a profile can select by circuit class: a company default over a standard
   whose shipped table would print such a line black.
 
-*As built.* The sample project's company
+The sample project's company
 profiles ship as content too: the colour profile "DBU/WH 24 V" as `content/profiles/colour/company.dbu-wh-24v.json`
 and the size profile "0.75/1.5" as `content/profiles/size/company.0.75-1.5.json`, each byte for byte the value the
-setting stores, the wizard's constants now `include_str!` of the files, with their rows in
-`content/profiles/README.md` (basis: company convention, `verified: true`). No standard-based size profile ships at
-0.1.0 (WP-S7.03 §13 O4): its cross-sections would need a licensed copy of the standard to choose and to mark verified,
-and the built-in defaults stay code; "No size profile ships" above now reads "no standard-based size profile".
+setting stores, the wizard's constants `include_str!` of the files, with their rows in
+`content/profiles/README.md` (basis: company convention, `verified: true`). No standard-based size profile ships: its cross-sections would need a licensed copy of the standard to choose and to
+mark verified, and the built-in defaults stay code.
 
 ### 4.4 Company codes
 
@@ -812,10 +790,9 @@ and the built-in defaults stay code; "No size profile ships" above now reads "no
 
   The mode only selects which wires carry a marker. The marker text always prints effective values: the
   cross-section, then one colour code per covered wire, whatever level set them ([06](06-schematic-editor.md)
-  §3.5). Golden A uses "only explicit overrides", so exactly the four reference groups print: "2.5 BK BU" below and
-  above S51, "1.5 DBU DBU WH WH" below -102G1 and "1.5 DBU DBU" above -102F2. Only the cross-sections of these ten
-  wires are level 7; their colours are level 2, so EW-POT-016 stays silent (MF-07 counts 10 CDPs).
-- **How a marker prints** (FT-1706). A marker stands clear of its wires, as drawing practice has it: a short line
+  §3.5). In the example "only explicit overrides" prints four groups: "2.5 BK BU" below and
+  above S51, "1.5 DBU DBU WH WH" below -102G1 and "1.5 DBU DBU" above -102F2.
+- **How a marker prints.** A marker stands clear of its wires, as drawing practice has it: a short line
   across the wires it marks, 1.5 mm past the outer ones, and its text 1 mm beyond the line's end: right of a line
   across vertical wires, reading upwards from the top of a line across horizontal ones (a group marker turned 90°),
   and above the line across a single horizontal wire (a ticked wire's own marker). No wire runs through the text.
@@ -826,14 +803,14 @@ and the built-in defaults stay code; "No size profile ships" above now reads "no
     same override. It proposes a profile row, as a previewed command.
 - **Reset to derived** removes the level-7 value (FR-CON-025).
 
-*Specified, not built.* The marker mode is a **project setting**,
+The marker mode is a **project setting**,
 `settings.extra.drawing.marker_mode` (`all`, `deviations`, `explicit` or `none`), set by `project.drawing.set`
-([17](17-extensibility.md) §2.1); **absent means the rule as built** (a connection shows a marker when its
-`WireOverrides.show_marker` is set), so Golden A's output stays byte-equal and the four modes are values a project opts
-into. The group marker text follows FR-CON-039 (spec §10.2 item 4): the distinct effective cross-sections of the
+([17](17-extensibility.md) §2.1); **absent means** a connection shows a marker when its
+`WireOverrides.show_marker` is set, and the four modes are values a project opts into. The group marker text follows
+FR-CON-039: the distinct effective cross-sections of the
 listed connections in list order joined by `/`, then one colour code per connection in list order, each as the
 per-connection marker prints it, separated by spaces (`2.5 BK BU`, `1.5 DBU DBU WH WH`); a connection listed by a
-wire marker item draws no marker of its own. The per-page mode of FR-CON-024 is not decided here: it is FT-375.
+wire marker item draws no marker of its own. The per-page mode of FR-CON-024 is not decided.
 
 ### 4.6 Units
 
@@ -887,15 +864,13 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   sets `online = true`. Otherwise they print "?" (FR-NUM-021).
 - **Excluded.** Bridges are never numbered. Cores are numbered only if the format-group selector includes them.
 - **Display** (FR-CON-026): on each segment, once per page or at both ends, with the text style `wire.number`.
-- **Golden** (▲U-33): connection-oriented `{page}.{counter}` (the `{page}` token prints the folio label; it is the
-  one page token of every format), counter scope page, cores not numbered, not printed. W1–W34 receive 34 unique
-  numbers, listed in the derived "No." column of the golden wire table: W29 gets 102.10 and W33 103.1.
-  The acceptance runner generated the golden `expected/wires.csv` with this rule, which also decides the ties between wires of
-  equal cells by what is printed, then by the wire ID. Since the orientation has its flow-distance step AC-09 has no
-  known deviation. Golden A's nine tied wires are numbered W1 101.1, W2 101.2, W3 101.3, W7 101.4, W9 101.5, W4 101.6, W5 101.7, W22 102.3 and W23 102.4. **As built:** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
-  (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
+- **Example** (▲U-33): connection-oriented `{page}.{counter}` (the `{page}` token prints the folio label; it is the
+  one page token of every format), counter scope page, cores not numbered: W1–W34 receive 34 unique numbers (W29 102.10, W33 103.1); ties between wires of
+  equal cells go by what is printed, then by the wire ID. The numbers are derived by the query `wire_numbers` and printed
+  in the wire list; they are not stored (`NumberWires` is not built), and the pages print them with the drawing
+  setting `wire_numbers` ([03](03-domain-model.md) §5.1). Where wires
   tie on their cells, the query keeps the counter range of the group (`WireNumber::tie`) beside the exact counter.
-- **By potential, as built** (FT-1858). A drawing specification may ask for wire codes by potential: one code per
+- **By potential.** A drawing specification may ask for wire codes by potential: one code per
   potential (0 V DC D01, 24 V DC D02, AC A01 …), a circuit number in front where a set has several circuits (6A03), every
   wire carrying its potential's code. The project setting `drawing.wire_numbering: per_potential` (Draw ▸ Connect ▸
   Number wires by potential; `project.drawing.set`) gives every wire the code of its potential: the potential's name
@@ -918,7 +893,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Effect.** Frozen numbers survive renumbering (FR-NUM-022). The numbering report lists each one with its
   rule-derived value (FR-REP-022), and EW-NUM-002 reports deviations as info (FR-CHK-037,
   [15](15-checks-revisions-collaboration.md) §4.3).
-- **It prints** (FT-1858). A wire whose carrier holds a frozen number prints it in place of the scheme's: on the page
+- **It prints.** A wire whose carrier holds a frozen number prints it in place of the scheme's: on the page
   (when the project prints wire numbers), in the wire list, in `api_v1_wire.number`, in Properties' title and Number
   row. It keeps its place in the count, so freezing one wire renumbers no other. A cable's core and a wire drawn on no
   page stay unnumbered, frozen or not. Properties' Number row takes the number typed as the page should print it
@@ -954,11 +929,11 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   which the field side, read from the first selected terminal's sides and its strip's field side (§2.1).
 - **CP index space of a terminal**. A terminal function is template-origin when its
   device carries a part whose function template declares a function with the same FnDef (and role, if given); the
-  template's CP pattern then defines the function's CP indexes and count, not the FnDef: the golden PT 2.5-TWIN
+  template's CP pattern then defines the function's CP indexes and count, not the FnDef: the PT 2.5-TWIN
   terminal has the CPs a, b, c and the shaft. The starter FnDef `ew.fn.terminal` keeps its two CPs, which apply to a
   terminal without such a part; no twin FnDef is needed.
 - **Printed label.** `Strip.label_mode = Designation | FunctionText` decides what the terminal symbol prints
-  (FR-TRM-021). Golden -X1031 is designated 1–20 and prints "1+", "2+", … "4-".
+  (FR-TRM-021). The example's -X1031 is designated 1–20 and prints "1+", "2+", … "4-".
 - **Groups.** `Strip.groups` prints "Pneumatics" and "Spare" once per range (FR-TRM-010).
 - **Structure.** A terminal always takes its strip's structure assignment, never its page's. A terminal drawn on a
   page of another location still prints `=P01+J-E-2416-X1031:n` (FR-TRM-027).
@@ -980,7 +955,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   three rows in the terminal diagram (FR-TRM-004). The EPLAN report-spreadsheet importer folds consecutive
   same-designation terminals with rising levels into one multi-level terminal (EW-IMP-207,
   [14](14-interop.md) §5.4), and a connection list's ends land on the levels its level columns name.
-- **A number per level** (FT-1878, after the first production job). A draughtsman draws a two-level block as two
+- **A number per level.** A draughtsman draws a two-level block as two
   terminal symbols in two circuits with a number on each (1 above, 2 below). It is one terminal: one place on the
   strip (`seq`), one part, its levels listed in `Terminal.levels`.
   - *Members.* A `LevelSpec` may carry its own `designation`; a level without one is designated by the terminal's
@@ -1045,9 +1020,8 @@ wires, bridges, rail feet, carriers and surfaces to the main PE point (§8.2). F
 | Appears in | terminal diagrams, assembly list, BOM (one part per group), wire list as a *bridge row* | wire list as a wire row, wire records, machine files |
 | Numbered | never | by the scheme |
 
-The printed wire list (FR-REP-014) shows bridges as a separate block of rows of kind "bridge": golden folio 907 has
-44 wires and 6 bridges. *As built:* the reports' `bridges` kind is built on
-`strip_bridges` (§2.3), its output byte-equal, and `bridge_groups` gives every bridge group of the project with its
+The printed wire list (FR-REP-014) shows bridges as a separate block of rows of kind "bridge". The reports' `bridges` kind is built on
+`strip_bridges` (§2.3), and `bridge_groups` gives every bridge group of the project with its
 label `BR1`, `BR2` … (numbered over the strips in natural order of the strip tag, then group, then strip ID), which the
 Terminal strips navigator's Bridge column shows. Bridges are never wire rows, never wire records and never in machine files (FR-TRM-007,
 FR-TRM-026, FR-MFG-016). At 1.0
@@ -1055,9 +1029,8 @@ the strip editor proposes bridges between adjacent terminals of one potential (F
 without BR6 it proposes one 5-pole plug-in bridge over 1–5. Strip segments draw the bridges as the familiar vertical
 bus with dots. That drawing is derived from the bridge connections.
 
-**A bridge on a schematic page** (0.3.5, FT-1908). Terminals drawn alone in a row with a bridge between them stood as
-separate terminals: on the sample's control page the supply reaches -X1021:1, and nothing showed that it reaches 2, 3
-and 4 too. The page now draws the bridge as a jumper bar is drawn in IEC 60617 practice: a line across the terminals
+**A bridge on a schematic page.** Terminals drawn alone in a row with a bridge between them would stand as separate
+terminals, so the page draws the bridge as a jumper bar is drawn in IEC 60617 practice: a line across the terminals
 it joins with a connection dot on each.
 
 - *What it is.* The program's drawing of the model's bridge, made from the bridge's connections and the terminals'
@@ -1072,7 +1045,7 @@ it joins with a connection dot on each.
   x for turned ones) are one row. A row of two or more is one straight line from its first point to its last in the
   wire pen, with a dot of the junction dot's size at each point. So the bar stands on the side of the clamps it joins,
   clear of the terminal's circle and of its designation and function text, which stand at the circle's height.
-- *In a strip segment* (FT-2020). A terminal a segment draws has its side-1 point above and its side-2 point below
+- *In a strip segment.* A terminal a segment draws has its side-1 point above and its side-2 point below
   (§6.7); its centre is half way between them, so its point stands a quarter of the segment's height from the side the
   bridge joins, and the segment's bridged terminals make the bus across its leads with a dot on each, by the same
   rule.
@@ -1082,8 +1055,7 @@ it joins with a connection dot on each.
   terminals the bridge joins, so a reader never sees a bridge that is not there; a bridge split over pages or rows
   shows as its parts, and the terminal diagram lists it whole. A terminal that stands between two of the row and is
   not part of the bridge is crossed without a dot, as a wire crosses a wire; across up or down leads the line hops
-  over that lead with a half circle a quarter of a grid step high (0.3.5: a persona read the plain crossing of a
-  block's level-2 lead as bridged).
+  over that lead with a half circle a quarter of a grid step high, so a block's level-2 lead never reads as bridged.
 - *A block of two levels* (0.3.5). The level-2 symbol's point stands three quarters of the way to its clamp instead
   of half way, so a level-1 bridge and a level-2 bridge along the same leads run apart, each with its own dots; the
   level-1 line hops towards the bodies, the level-2 line towards the clamps. The two symbols of a block are tied by a
@@ -1098,7 +1070,7 @@ it joins with a connection dot on each.
 
 - **Spare is authored.** It is the terminal's `Device.state = Spare` (FR-TRM-009). A terminal with no connection at
   all is *unused* (derived). It is reported only through strip statistics, never as an unconnected CP.
-- **Golden counts.** Golden -X1031 has 12 spares (5–10, 15–20). Spares 5, 7 and 9 receive the feeds W30–W32 on side
+- **Example.** -X1031 has 12 spares (5–10, 15–20). Spares 5, 7 and 9 receive the feeds W30–W32 on side
   1, so a spare may be fed. A spare wired on its field side produces EW-TERM-003.
 - **Unplaced terminals.** A terminal may exist unplaced, appear in the terminal diagram and be placed later from the
   strip editor (FR-TRM-015).
@@ -1126,7 +1098,7 @@ it joins with a connection dot on each.
   (designation in natural order, then terminal ID, then representation ID; as the strip's main representation is
   taken) whose tag slot is shown (its `visible` override, else its arrangement, else the slot's own `visible`); a
   strip without such a terminal on the page prints no tag there.
-  *As built:* page 101 prints "1X1" at terminal "1" (a (row, column, ID)
+  Page 101 prints "1X1" at terminal "1" (a (row, column, ID)
   order would pick the PE terminal, as all three share 101-D2). The tag is a page-level text
   (`PageView::strip_tags`), at that terminal's tag-slot anchor moved one connection-grid step up in the text's own
   frame (exactly on the page axes for a quarter turn; otherwise by the deterministic arc point of doc 09 §4.3 rule 4),
@@ -1140,9 +1112,9 @@ it joins with a connection dot on each.
 - **Page token.** The strip's `{page}` comes from its first segment in (page order, row, column, ID). A strip
   without a segment takes the page of its first placed terminal (FR-NUM-032): the lowest page by folio order, folio
   label and page ID, then the lowest designation in natural order, then the smallest ID (the
-  interim rule shared with [03](03-domain-model.md) §8.2 step 4 until WP-S1.11). 1X1, drawn only as three terminal
+  rule shared with [03](03-domain-model.md) §8.2 step 4). 1X1, drawn only as three terminal
   symbols at 101-D2, derives the rule value -X1011, which the numbering report shows next to its frozen tag "1X1"
-  (EF-15); after Golden B's step B1 drops the strip rule it prints -101X1. Moving the first segment of -X1031 to folio 104 makes the strip -X1041 everywhere, unless its tag is
+  (EF-15); without the strip rule it prints -101X1. Moving the first segment of -X1031 to folio 104 makes the strip -X1041 everywhere, unless its tag is
   frozen ([03](03-domain-model.md) §8.4).
 
 ### 6.8 Designation uniqueness (D-11, D-12)
@@ -1158,7 +1130,7 @@ it joins with a connection dot on each.
 - **Generating designations** (FR-TRM-014): a pattern of prefix, start, step, numeric or alphanumeric and per level,
   as a preview. Schemes per profile follow at 1.0 (FR-NUM-024). Sorting uses natural order: 1, 2, … 10, never 1, 10,
   2 (FR-NUM-018).
-- **As built.** EW-TERM-002 is the prevent rule of this section, not a structural invariant. It is evaluated through the shipped prevent hook on the base and the candidate snapshot, and only a duplicate the batch creates is refused. The command `terminal.designate` sets the designations of several terminals in one transaction, so a swap needs no temporary names (FR-TRM-022). EW-TERM-002 skips fallback strips, those whose stored frozen tag contains `?`. The quick fix "renumber 1–n" is not built (FT-186).
+- EW-TERM-002 is the prevent rule of this section, not a structural invariant. It is evaluated through the shipped prevent hook on the base and the candidate snapshot, and only a duplicate the batch creates is refused. The command `terminal.designate` sets the designations of several terminals in one transaction, so a swap needs no temporary names (FR-TRM-022). EW-TERM-002 skips fallback strips, those whose stored frozen tag contains `?`. The quick fix "renumber 1–n" is not built.
 
 ### 6.9 Terminal reports linkage
 
@@ -1173,7 +1145,7 @@ TerminalRow { seq, designation, label (printed), group, level, part, potential (
 Target      { device tag, CP, level/clamp, cable tag?, core?, wire number?, wire id }
 ```
 
-Golden row 1 of folio 904:
+Row 1 of folio 904 in the example:
 
 > 1 · "1+" · Pneumatics · PT 2.5-TWIN · 24VDC-1 · used · side 1: -102F2:Out1 (W29), BR1 1–4 · side 2: -201U1:5 via
 > -106W1 BN
@@ -1185,7 +1157,7 @@ strip length is the sum of terminal and accessory widths (FR-TRM-024).
 
 Plugs and sockets reuse the terminal model: the plug plays the strip's role, its pins are terminal-like devices with
 male or female ends, and plug diagrams use the same row source (FR-TRM-023, FR-REP-024). The 7/8" socket of -106W1
-is the golden candidate at 1.0. The PROFIBUS connector -3X1 is not a plug in this sense: it is a bus connector with
+is the example at 1.0. The PROFIBUS connector -3X1 is not a plug in this sense: it is a bus connector with
 a port function, In entry A1/B1 and Out entry A2/B2 ([10](10-plc-and-bus.md) §2.7).
 
 ---
@@ -1221,17 +1193,17 @@ On folio 106 the -106W1 line crosses five wires left to right, so ByOrder gives 
 → 3 (W37), WH → 4 (W38) and BN → 5 (W39). An edit-cable table lists the cores with assignment, colour, targets and
 potential. Swapping two cores is one transaction (FR-CBL-016).
 
-*As built.* **Where a cable without a drawn
+**Where a cable without a drawn
 line is numbered.** A cable's tag takes the page of its definition line when one is drawn; without one, the page of
-its first connected core or of the first bus line it carries (rc.5; the connection with the smallest ID); with
+its first connected core or of the first bus line it carries (the connection with the smallest ID); with
 neither, the project's counter and no page
 in its tag (`-W1`). A cable placed later takes its page's next free counter. `fields.set` refuses an unplaced cable a
 counter another unplaced cable holds, in words naming no page, and renumbering groups the cables by the same scope
 ([03](03-domain-model.md) §8.2's note).
 
-*As built (FT-1685).* **The Cable form.** Draw ▸ Connect ▸ Cable… (`cable.from_wires`, on the Draw tab's Connect group)
+**The Cable form.** Draw ▸ Connect ▸ Cable… (`cable.from_wires`, on the Draw tab's Connect group)
 makes the selected wires a cable's cores in one form (with nothing selected it is greyed with "Select the wires that
-become the cable's cores", where it said "Nothing is selected"): the cable's tag (the tag a new cable would take, else the cable
+become the cable's cores"): the cable's tag (the tag a new cable would take, else the cable
 one of the wires already belongs to), its type as a person writes it (`3G1.5`: three cores, the last green-yellow;
 `4x0.75`: no green-yellow; or a cable part's number) and the wires with the core each gets, which can be changed. A
 written type gives HD 308 S2's harmonised colours up to five cores (`2x` BN BU, `3x` BN BK GY, `4x` BU BN BK GY, `3G`
@@ -1289,11 +1261,11 @@ cable rows and in the bus cable list (FR-BUS-008).
 
 | Source | Release | Rule |
 |---|---|---|
-| Manual, FromPart, Missing | MVP | Missing is a warning while the drawing grows and an error that blocks release in the check for delivery (EW-CORE-033, FR-CHK-033; rc.3) |
+| Manual, FromPart, Missing | MVP | Missing is a warning while the drawing grows and an error that blocks release in the check for delivery (EW-CORE-033, FR-CHK-033) |
 | Routed | 1.0 | a committed computation from `RouteWires`; stale once its input hash changes (EW-LAY-011, FR-CBL-010) |
 | Estimated | 1.0 | from footprints and duct paths, flagged (FR-LAY-053) |
 
-Golden: -106W1 and -106W2 are FromPart (2 m, ▲). -3W1 is Missing (EF-08). The cable length is the cable's value.
+Example: -106W1 and -106W2 are FromPart (2 m, ▲). -3W1 is Missing (EF-08). The cable length is the cable's value.
 Single-wire lengths belong to [12](12-panel-layout.md) and [13](13-manufacturing-outputs.md).
 
 **Voltage drop (1.x).** With a length, a core cross-section and the load current of the potential (FR-REP-026 data),
@@ -1305,7 +1277,7 @@ unverified (IEC 60364-5-52 informative), so the table ships with `verified = fal
 
 - **Ends** are derived (FR-CBL-012). End A is the set of devices at the From ends of its cores, and end B the set at
   the To ends (§3.8), each with its location. -106W1 runs from `+J-E-2416` -X1031/-X1032 to -201U1.
-- **External end.** A cable end may be an external reference (FR-CBL-015): the Golden A-R supply cable -101W1 runs
+- **External end.** A cable end may be an external reference (FR-CBL-015): the supply cable -101W1 runs
   from `+J-E-206` to 1X1. Wires to an external connection point that are not cores of a cable produce EW-CORE-034,
   one finding per external reference (EF-07).
 
@@ -1331,42 +1303,42 @@ EW-CORE's 03x block of class 003, mirroring the EPLAN class topics ([research](.
 drop, 1.x) were proposed by this document and are in 15's catalogue. The modes are o = online, f = offline,
 p = prevent and r = release.
 
-| Rule | Checks | Req. | Modes | Severity | Golden A |
-|---|---|---|---|---|---|
-| EW-POT-001 | Type or voltage conflict in one potential without a bond | FR-CHK-028 | o r | error | 0 (B1 declared) |
-| EW-POT-002 | PELV potential without exactly one 0 V–PE bond; SELV potential with any | FR-CHK-028 | o r | error | 0 |
-| EW-POT-003 | FE-role CP on a PE potential without an FePe bond | FR-CHK-030 | o r | warning | EF-10: -201U1:3, -202U1:3 |
-| EW-POT-004 | GNYE on a non-PE potential (bond wires exempt) | FR-CHK-031 | o r | error | 0 (W27 is a bond wire) |
-| EW-POT-005 | Exact code BU on a non-N conductor in a project with an N potential | FR-CHK-031 | o r | warning | EF-11: W36, W41 |
-| EW-POT-006 | PE cross-section below the sizing table for its associated line conductors | FR-CHK-020 | o r | error | EF-06: W6 |
-| EW-POT-007 | PE continuity to the main PE point through wires, bridges, rails, carriers (1.0) | FR-CHK-029 | f r | error | 0 (EF-23) |
-| EW-POT-008 | More than one PE potential in one location (PE island), or a rail-bonded terminal without a location in a project with two or more own locations (with at most one, the terminal belongs to the implicit main location, §3.7) | FR-CHK-055 | o r | warning | 0 |
-| EW-POT-009 | Unconnected electrical CP of a placed function, not `unused` (fluid ports: EW-FL-001) | FR-CHK-018 | o r | warning; info if `unused` | EF-09: -102F2:13, :14 |
-| EW-POT-010 | Conductors or csa on a CP beyond its clamp data (1.0) | FR-CHK-021 | o r | error | 0 |
-| EW-POT-011 | Junction feed ambiguous (§3.2) | FR-CON-041 | o | warning | 0 |
-| EW-POT-012 | Wires in a ring (a ring in the drawing graph of a net) | FR-CON-005, FR-CON-035 | o | warning | 0 |
-| EW-POT-013 | Opening pass-through pair carrying N without the associated L (§8.2) | FR-CHK-019 | o r | error | EF-01: T55, S56 |
-| EW-POT-014 | Physical wire with constituents on different conductors or with conflicting overrides | FR-CHK-057 | o r | error | 0 |
-| EW-POT-015 | One wire number on two numbering units, or two numbers within one unit (§5.3) | FR-NUM-019, FR-NUM-020 | o r | error | 0 |
-| EW-POT-016 | Override equal to the value below it | FR-CON-025 | o | info | 0 |
-| EW-POT-017 | Two definitions with different names in one potential | FR-CON-012 | o r | warning | 0 |
-| EW-POT-019 | Cross-section units mixed within one potential (mm², AWG, kcmil) (1.0) | FR-CON-032 | o | warning | 0 |
-| EW-POT-020 | Voltage drop of a cable above the profile's threshold; threshold table unverified (1.x, §7.6) | FR-CHK-059 | f r | warning | 0 |
-| EW-POT-022 | Cross-section set by hand below the size the rating of the wire's protecting device needs by the current table (§4.2); fix "Take the proposed size" (0.3.5) | — | o r | warning | — |
-| EW-TERM-001 | Terminal without designation | FR-TRM-002, FR-CHK-016 | p o r | error | 0 (C: MF-08) |
-| EW-TERM-002 | Duplicate designation within a strip | FR-TRM-002, FR-CHK-016 | p o r | error | 0 (C: MF-09) |
-| EW-TERM-003 | Spare terminal wired on its field side | FR-TRM-009 | o | warning | 0 |
-| EW-TERM-004 | Bridge group not consecutive, overlapping, or across strips | FR-TRM-007 | p o | error | 0 |
-| EW-TERM-005 | `rail_bonded` set on a terminal without any PE CP | FR-TRM-017 | o | error | 0 |
-| EW-CORE-031 | Core colour not an IEC 60757 or profile code; a prevent rule, so only a lenient import stores a foreign code such as "BR", with the quick fix "use BN" | FR-CHK-032 | p o r | error | 0 (C: MF-11) |
-| EW-CORE-032 | Core differs from the cable part's core definition | FR-CHK-032 | o r | warning | 0 |
-| EW-CORE-033 | Cable without length (blocks release) | FR-CHK-033 | o r | warning (release: error) | EF-08: -3W1 |
-| EW-CORE-034 | External connection without a cable | FR-CHK-033 | o r | warning | EF-07: +J-E-206 → 1X1 |
-| EW-CORE-035 | Pre-assembled core on a pin other than the part's pin map | FR-CHK-056 | o r | warning | 0 |
-| EW-CORE-036 | Core assigned to two wires, or more assignments than cores (invariant CI-05) | FR-CBL-003, FR-CBL-011 | p o | error | 0 |
-| EW-CORE-037 | Shield connected at neither end | FR-CBL-007 | o | warning | 0 |
+| Rule | Checks | Req. | Modes | Severity |
+|---|---|---|---|---|
+| EW-POT-001 | Type or voltage conflict in one potential without a bond | FR-CHK-028 | o r | error |
+| EW-POT-002 | PELV potential without exactly one 0 V–PE bond; SELV potential with any | FR-CHK-028 | o r | error |
+| EW-POT-003 | FE-role CP on a PE potential without an FePe bond | FR-CHK-030 | o r | warning |
+| EW-POT-004 | GNYE on a non-PE potential (bond wires exempt) | FR-CHK-031 | o r | error |
+| EW-POT-005 | Exact code BU on a non-N conductor in a project with an N potential | FR-CHK-031 | o r | warning |
+| EW-POT-006 | PE cross-section below the sizing table for its associated line conductors | FR-CHK-020 | o r | error |
+| EW-POT-007 | PE continuity to the main PE point through wires, bridges, rails, carriers (1.0) | FR-CHK-029 | f r | error |
+| EW-POT-008 | More than one PE potential in one location (PE island), or a rail-bonded terminal without a location in a project with two or more own locations (with at most one, the terminal belongs to the implicit main location, §3.7) | FR-CHK-055 | o r | warning |
+| EW-POT-009 | Unconnected electrical CP of a placed function, not `unused` (fluid ports: EW-FL-001) | FR-CHK-018 | o r | warning; info if `unused` |
+| EW-POT-010 | Conductors or csa on a CP beyond its clamp data (1.0) | FR-CHK-021 | o r | error |
+| EW-POT-011 | Junction feed ambiguous (§3.2) | FR-CON-041 | o | warning |
+| EW-POT-012 | Wires in a ring (a ring in the drawing graph of a net) | FR-CON-005, FR-CON-035 | o | warning |
+| EW-POT-013 | Opening pass-through pair carrying N without the associated L (§8.2) | FR-CHK-019 | o r | error |
+| EW-POT-014 | Physical wire with constituents on different conductors or with conflicting overrides | FR-CHK-057 | o r | error |
+| EW-POT-015 | One wire number on two numbering units, or two numbers within one unit (§5.3) | FR-NUM-019, FR-NUM-020 | o r | error |
+| EW-POT-016 | Override equal to the value below it | FR-CON-025 | o | info |
+| EW-POT-017 | Two definitions with different names in one potential | FR-CON-012 | o r | warning |
+| EW-POT-019 | Cross-section units mixed within one potential (mm², AWG, kcmil) (1.0) | FR-CON-032 | o | warning |
+| EW-POT-020 | Voltage drop of a cable above the profile's threshold; threshold table unverified (1.x, §7.6) | FR-CHK-059 | f r | warning |
+| EW-POT-022 | Cross-section set by hand below the size the rating of the wire's protecting device needs by the current table (§4.2); fix "Take the proposed size" (0.3.5) | — | o r | warning |
+| EW-TERM-001 | Terminal without designation | FR-TRM-002, FR-CHK-016 | p o r | error |
+| EW-TERM-002 | Duplicate designation within a strip | FR-TRM-002, FR-CHK-016 | p o r | error |
+| EW-TERM-003 | Spare terminal wired on its field side | FR-TRM-009 | o | warning |
+| EW-TERM-004 | Bridge group not consecutive, overlapping, or across strips | FR-TRM-007 | p o | error |
+| EW-TERM-005 | `rail_bonded` set on a terminal without any PE CP | FR-TRM-017 | o | error |
+| EW-CORE-031 | Core colour not an IEC 60757 or profile code; a prevent rule, so only a lenient import stores a foreign code such as "BR", with the quick fix "use BN" | FR-CHK-032 | p o r | error |
+| EW-CORE-032 | Core differs from the cable part's core definition | FR-CHK-032 | o r | warning |
+| EW-CORE-033 | Cable without length (blocks release) | FR-CHK-033 | o r | warning (release: error) |
+| EW-CORE-034 | External connection without a cable | FR-CHK-033 | o r | warning |
+| EW-CORE-035 | Pre-assembled core on a pin other than the part's pin map | FR-CHK-056 | o r | warning |
+| EW-CORE-036 | Core assigned to two wires, or more assignments than cores (invariant CI-05) | FR-CBL-003, FR-CBL-011 | p o | error |
+| EW-CORE-037 | Shield connected at neither end | FR-CBL-007 | o | warning |
 
-These rows reproduced EF-01, EF-06 … EF-11 and EF-23 of the golden finding set and added nothing else to it. Frozen wire numbers deviating from the scheme are reported by EW-NUM-002 (FR-CHK-037). The
+Frozen wire numbers deviating from the scheme are reported by EW-NUM-002 (FR-CHK-037). The
 PLC-specific card supply rule EW-PLC-013 supersedes EW-POT-003 at 1.0 (EF-22). The opt-in EW-EN60204 pack
 ([15](15-checks-revisions-collaboration.md) §4.7) includes EW-POT-004, -005, -006, -007 and -010 with clause
 references and adds overcurrent coordination (I_b ≤ I_n ≤ I_z, EW-EN60204-007) over the effective cross-sections of
@@ -1380,9 +1352,9 @@ references and adds overcurrent coordination (I_b ≤ I_n ≤ I_z, EW-EN60204-00
 for each function f, for each PassThrough pair p = (u, d, opens = true) of f.def.internal:
   P_up = upstream side of p (potential_flow)
   if ptype(P_up) ∈ {N, PEN}:
-     ok = f has an opening pair whose upstream type ∈ {L, L1, L2, L3}   // rc.5: its poles are one mechanism
+     ok = f has an opening pair whose upstream type ∈ {L, L1, L2, L3}   // its poles are one mechanism
        or (another function of f's device has one and loads(P_d, S) = ∅, S = the downstream potentials of all
-           the device's opening pairs)   // 0.3.5 (FT-1903): a 1P+N breaker drawn as a pole per function
+           the device's opening pairs)   // a 1P+N breaker drawn as a pole per function
      if f.def.flags.n_isolation: report info "N isolating terminal" and continue
      if not ok: report error {function f, potential P_up → P_d, loads}
   loads = loads(P_d, the downstream potentials of f's opening pairs)
@@ -1394,14 +1366,11 @@ for each function f, for each PassThrough pair p = (u, d, opens = true) of f.def
   whose contact 13-14 switches the line of one lamp and whose contact 23-24 opens the neutral of another lamp left on
   its line is reported.
 
-- **Golden.** T55 is reported: pair 5–3 opens N-55 into N-55T, and E55:L stays on L-55, which T55 does not switch.
+- **Example.** T55 is reported: pair 5–3 opens N-55 into N-55T, and E55:L stays on L-55, which T55 does not switch.
   S56 is reported: pair 13–14 opens N-55 into N-55S, and E56:X2 stays on L-55.
-- **Not reported:** S51 (2-pole, flag set, opens L as well) and the MCBs -101F1 and F55 (1P+N, flag set).
-  *As built (Golden A data fix):* the starter function definition `ew.fn.mcb-1pn` now sets
-  `flags.switches_n_with_l`; before, EW-POT-013 reported both MCBs. *As built (rc.5):* the flag is no longer needed
-  for EW-POT-013: a function that opens a line pair as well switches its neutral with it (its poles are one
-  mechanism), so a two- or four-pole breaker or switch of any definition is accepted; a first-timer's `ew.fn.mcb-2p`,
-  which has no flag, was reported. The message says why and what to do: "-1F1 opens the neutral N → N/1F1:4 without
+- **Not reported:** S51 (2-pole, opens L as well) and the MCBs -101F1 and F55 (1P+N). A function that opens a line
+  pair as well switches its neutral with it (its poles are one mechanism), so a two- or four-pole breaker or switch of
+  any definition is accepted, flag or not; the starter `ew.fn.mcb-1pn` sets `flags.switches_n_with_l`. The message says why and what to do: "-1F1 opens the neutral N → N/1F1:4 without
   the phase: what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device
   that opens phase and neutral together, such as a two-pole breaker."
 - **Message:** "T55 switches the neutral N-55 → N-55T; load E55 stays connected to L-55." There is no automatic
@@ -1417,13 +1386,13 @@ graph: PE-typed CPs; non-bond physical wires and bridges of the PE potential; te
 BFS from main; every PE-typed CP not reached → error with the nearest reached node and the missing link kind
 ```
 
-- **Golden.** No finding (EF-23). -X1032, 1X1:PE, -XPE and the CPX FE screws reach the plate through the bonded
+- **Example.** No finding (EF-23). -X1032, 1X1:PE, -XPE and the CPX FE screws reach the plate through the bonded
   rails R1–R3.
 - **Test.** Clearing `rail_bonded` on -X1032 cuts off an island: the five -X1032 terminals and the PE CPs wired to
   them (E55:PE via W19, -102G1:PE via W28, -201U1:3, -201U1:FE, -202U1:3 and -202U1:FE). EW-POT-007 reports each
   unreached CP once, grouped in one finding per island with the missing link kind "rail foot not bonded". At MVP
   the same edit yields one EW-POT-008 warning naming the PE of -X1032's side, which reaches no earth, by its first
-  pin and page (rc.5).
+  pin and page.
 - **Checklist.** The same traversal feeds the EN 60204-1 18.2.2 continuity checklist (FR-MFG-036).
 
 **EW-POT-006, PE sizing (D-38).**
@@ -1434,9 +1403,9 @@ BFS from main; every PE-typed CP not reached → error with the nearest reached 
 - **Rule.** The required PE csa comes from the sizing data pack (copper: equal up to 16 mm², then 16, then S/2;
   IEC 60364-5-54 and EN 60204-1 8.2, values marked (verify), unverified data). The default
   parameter `line_types = [L, L1, L2, L3]` excludes L+.
-- **Golden.** W6 at 1X1:PE (internal side) has W4 at 2.5 mm² next to it and is reported. W3 at 1X1:PE (field side)
+- **Example.** W6 at 1X1:PE (internal side) has W4 at 2.5 mm² next to it and is reported. W3 at 1X1:PE (field side)
   has only the 1.5 mm² W1 next to it and is not.
-- *As built.* The table ships as rule data, `crates/ew-checks/data/pe_sizing.toml`, with
+- The table ships as rule data, `crates/ew-checks/data/pe_sizing.toml`, with
   the clauses cited and not reproduced and `verified = false` (NFR-COMP-05); while it is unverified every finding says
   so. Cross-sections in AWG or kcmil are not compared. One finding per PE wire, at the end with the largest
   requirement, targeting the wire's carrier connection.
@@ -1470,7 +1439,7 @@ The interaction design is in [16](16-ux-ui.md), canvas tools in [06](06-schemati
 | Wire list table | the connection navigator in table mode (one of the MVP navigators of FR-UI-005), keyed by wire ID, with Excel round trip | FR-UI-005, FR-UI-008, FR-EXP-004 |
 | Quick fixes | "declare PELV bond via this wire", "set core colour BN", "renumber 1–n, keep labels", "mark CP unused", "create supply cable", "remove override", "move override to profile" | FR-CHK-010 |
 
-*As built.* The strip editor is the Terminal strips navigator in
+The strip editor is the Terminal strips navigator in
 table mode, opened on one strip by Edit ▸ Strip editor (`strip.edit`), which sets its filter to `strip:<tag>`. Its
 rows are in mounting order (the `Order` sort: strips in natural tag order, `-X1031`, `-X1032`, `1X1`; each strip's
 terminals in `seq` order, with its accessories as rows of their own at their `after_seq`, numbered `<after_seq>.<k>`
@@ -1482,8 +1451,8 @@ through the table card; accessory rows directly), move (`terminal.move`: only th
 range are permuted, so groups and accessories stay where they are and a moved terminal takes the group of its new
 place), add accessory (one `fields.set` of `strip.accessories`), Bridge terminals and Remove bridge are each one
 command and one undo step; designations never change. A terminal's Properties show its function text as "Printed
-label" and an editable "Group" row. Placing an unplaced terminal from its row (Enter, drag) is part 2. Bridge
-proposals (FR-TRM-008), generate levels and the strip length stay as planned.
+label" and an editable "Group" row. Placing an unplaced terminal from its row (Enter, drag), bridge
+proposals (FR-TRM-008), generate levels and the strip length are not built.
 
 Wire colours are never shown by colour alone (FR-UI-025, NFR-A11Y-03). The keyboard path from CP to CP is in
 [06](06-schematic-editor.md) §4.4.
@@ -1494,19 +1463,19 @@ Wire colours are never shown by colour alone (FR-UI-025, NFR-A11Y-03). The keybo
 
 Report kind names are those of [09](09-reports-forms-output.md) §2.4.
 
-| Output (report kind) | Row source | Golden | Req. |
-|---|---|---|---|
-| Wire list `wire_list` (folio 907, `ew export wires`) | physical wires plus bridge rows: number, From/To with level/clamp, potential, csa, colour, wire part, length and source, cable and core, page references, provenance | 44 + 6 rows on 907, 907.1, 907.2 | FR-REP-014, FR-CON-034 |
-| Terminal diagrams `terminal_diagram` (903–905, `ew export terminals`) | `terminal_rows` | 3, 20 and 5 rows | FR-REP-009 |
-| Strip overview `terminal_overview` | strip statistics | -X1031: 20 terminals, 12 spare | FR-REP-010 |
-| Cable overview and diagrams `cable_overview_diagrams` (906, `ew export cables`) | `cable_rows` | 20 rows | FR-REP-012, FR-REP-013 |
-| Potential overview `potential_overview` (909) | partition and flow: name, aliases, type, voltage, class, colour, default csa, switched, protected by, bonds, member counts, pages | 19 potentials plus B1 | FR-REP-016 |
-| Numbering report `numbering_report` | frozen numbers with derived values | — in Golden A | FR-REP-022 |
-| Cover tables `profile_tables` (folio 1) | profile rows | 15 colour rows, size table | FR-REP-028, FR-REP-038 |
-| Device connection diagram `device_connection` (1.0) | `function_cps` per device joined with `physical_wires_of` | -102G1: 7 CPs, 9 wires | FR-REP-015 |
-| Load summary `load_summary` (1.0) | `potential_flow` (`protected_by`), the CP role classification of `api_v1_cp.role` (`source`, `through`, `load`, `other`; [17](17-extensibility.md) §6.1, ADR-0017 amendment 3) and the optional part load current per supply CP (`i_load`, [07](07-symbols-parts-macros.md) §2.5) | MICO Out1 feeding -201U1 and -202U1 (EF-24) | FR-REP-026 |
-| SQL projection | `api_v1_wire`, `_terminal`, `_cable`, `_conductor`, `_potential` | — | FR-EXT-007 |
-| Manufacturing (1.0) | `WireRecord` per physical wire ID, without bridges | W29: -102F2:Out1 → -X1031:1 (1/a) | FR-MFG-001, FR-MFG-002 |
+| Output (report kind) | Row source | Req. |
+|---|---|---|
+| Wire list `wire_list` (folio 907, `ew export wires`) | physical wires plus bridge rows: number, From/To with level/clamp, potential, csa, colour, wire part, length and source, cable and core, page references, provenance | FR-REP-014, FR-CON-034 |
+| Terminal diagrams `terminal_diagram` (903–905, `ew export terminals`) | `terminal_rows` | FR-REP-009 |
+| Strip overview `terminal_overview` | strip statistics | FR-REP-010 |
+| Cable overview and diagrams `cable_overview_diagrams` (906, `ew export cables`) | `cable_rows` | FR-REP-012, FR-REP-013 |
+| Potential overview `potential_overview` (909) | partition and flow: name, aliases, type, voltage, class, colour, default csa, switched, protected by, bonds, member counts, pages | FR-REP-016 |
+| Numbering report `numbering_report` | frozen numbers with derived values | FR-REP-022 |
+| Cover tables `profile_tables` (folio 1) | profile rows | FR-REP-028, FR-REP-038 |
+| Device connection diagram `device_connection` (1.0) | `function_cps` per device joined with `physical_wires_of` | FR-REP-015 |
+| Load summary `load_summary` (1.0) | `potential_flow` (`protected_by`), the CP role classification of `api_v1_cp.role` (`source`, `through`, `load`, `other`; [17](17-extensibility.md) §6.1, ADR-0017 amendment 3) and the optional part load current per supply CP (`i_load`, [07](07-symbols-parts-macros.md) §2.5) | FR-REP-026 |
+| SQL projection | `api_v1_wire`, `_terminal`, `_cable`, `_conductor`, `_potential` | FR-EXT-007 |
+| Manufacturing (1.0) | `WireRecord` per physical wire ID, without bridges | FR-MFG-001, FR-MFG-002 |
 
 `api_v1_wire` columns ([17](17-extensibility.md) §6 owns the list): `id`, `number`, `kind` (wire, core, bridge),
 `from_device_id`, `from_tag`, `from_cp`, `from_level`, `from_clamp`, `to_device_id`, `to_tag`, `to_cp`, `to_level`,
@@ -1553,7 +1522,7 @@ derivation profiles keep wire numbers and properties byte-identical across EW re
    excluded from machine export (FR-CHK-017).
 6. **Wires to an external connection point** print the external target as their From end ("+J-E-206 /
    JE-N1000-03 (L)"). They are field wiring and are excluded from machine export by default.
-   *As built (FT-1699).* A placed point becomes one by Supply comes in here… (`ip.supply_in`): the supply that
+   A placed point becomes one by Supply comes in here… (`ip.supply_in`): the supply that
    enters a drawing set by interruption points (L1, L2, L3, N, PE from another drawing) is an external reference, no
    flag of its own. One transaction makes the location node where the project lacks one of that code, the reference
    (reused for the same location and device), sets every point's `ip.external`, and the supply's
