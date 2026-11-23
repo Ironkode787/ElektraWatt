@@ -73,9 +73,20 @@ pub fn epoch_ms(t: SystemTime) -> u64 {
 /// RFC 3339 in UTC with whole seconds (`2026-10-17T07:42:10Z`), the time form of the lock record.
 pub fn rfc3339(t: SystemTime) -> String {
     let secs = t.duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
-    let days = i64::try_from(secs / 86_400).unwrap_or(0);
     let rem = secs % 86_400;
-    // Civil date from days since 1970-01-01 (H. Hinnant's algorithm).
+    let (year, month, day) = civil_from_days(i64::try_from(secs / 86_400).unwrap_or(0));
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        rem / 3_600,
+        rem % 3_600 / 60,
+        rem % 60
+    )
+}
+
+/// The date `(year, month, day)` of the day `days` after 1970-01-01 (before it when negative), by the proleptic
+/// Gregorian calendar (H. Hinnant's `civil_from_days`): the one civil date of the program, which the lock record, the
+/// print's date and the window's date of today read.
+pub fn civil_from_days(days: i64) -> (i64, i64, i64) {
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
     let doe = z.rem_euclid(146_097);
@@ -85,12 +96,7 @@ pub fn rfc3339(t: SystemTime) -> String {
     let day = doy - (153 * mp + 2) / 5 + 1;
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = yoe + era * 400 + i64::from(month <= 2);
-    format!(
-        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
-        rem / 3_600,
-        rem % 3_600 / 60,
-        rem % 60
-    )
+    (year, month, day)
 }
 
 #[cfg(test)]
@@ -110,5 +116,15 @@ mod tests {
             rfc3339(UNIX_EPOCH + Duration::from_secs(4_107_542_399)),
             "2100-02-28T23:59:59Z"
         );
+        // Days of the window's date of today.
+        for (days, date) in [
+            (0, (1970, 1, 1)),
+            (59, (1970, 3, 1)),
+            (11_016, (2000, 2, 29)),
+            (20_756, (2026, 10, 30)),
+            (20_819, (2027, 1, 1)),
+        ] {
+            assert_eq!(civil_from_days(days), date);
+        }
     }
 }

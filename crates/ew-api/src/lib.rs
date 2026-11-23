@@ -246,8 +246,8 @@ pub use ew_store::{
 };
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport
-/// (doc 05 §12).
-pub use ew_store::{archive, cloud, ewz, external, git, zip};
+/// (doc 05 §12). The clock's civil date the window reads its date of today by.
+pub use ew_store::{archive, clock, cloud, ewz, external, git, zip};
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
 pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,

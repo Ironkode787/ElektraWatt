@@ -74,36 +74,10 @@ pub fn today() -> String {
         .now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
-    civil_date(secs / 86_400)
+    let (year, month, day) =
+        ew_viewmodel::ew_api::clock::civil_from_days(i64::try_from(secs / 86_400).unwrap_or(0));
+    format!("{year:04}-{month:02}-{day:02}")
 }
 
 /// The date of a run on the frame clock.
 pub const FRAME_CLOCK_DATE: &str = "2026-01-01";
-
-/// `YYYY-MM-DD` of the day `days` after 1970-01-01 (the `civil_from_days` algorithm of H. Hinnant).
-fn civil_date(days: u64) -> String {
-    let z = i64::try_from(days).unwrap_or(0) + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = yoe + era * 400 + i64::from(month <= 2);
-    format!("{year:04}-{month:02}-{day:02}")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn civil_dates_of_known_days() {
-        assert_eq!(civil_date(0), "1970-01-01");
-        assert_eq!(civil_date(59), "1970-03-01");
-        assert_eq!(civil_date(11_016), "2000-02-29");
-        assert_eq!(civil_date(20_756), "2026-10-30");
-        assert_eq!(civil_date(20_819), "2027-01-01");
-    }
-}
