@@ -899,12 +899,10 @@ fn tutorial_a_pneumatic_circuit_runs_as_its_page_says() {
         positions.contains("\"Valve positions\" \"1 -2Q2 · 2 -2Q3 · 3 empty · 4 empty\""),
         "{positions}"
     );
-    // Step 19: the default tube.
-    assert_eq!(
-        line_of(&settings, "toast"),
-        "toast \"The default tube is 6 × 4 mm PU (polyurethane) now: every tube without one of its own takes it, the \
-         tubes drawn already too.\" undo"
-    );
+    // Step 19: the default tube, among the toasts (the supply point's, which names its tube, stays up beside it).
+    let said = "toast \"The default tube is 6 × 4 mm PU (polyurethane) now: every tube without one of its own takes it, \
+                the tubes drawn already too.\" undo";
+    assert!(settings.lines().any(|l| l == said), "{settings}");
     // Step 20: the tube table, a row per tube with its ends, medium and size.
     assert_eq!(
         lines_of(&tubes, &["row \"\" \"-2"]),

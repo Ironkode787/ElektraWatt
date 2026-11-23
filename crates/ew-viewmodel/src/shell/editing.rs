@@ -337,7 +337,10 @@ impl ShellModel {
                     .unwrap_or_else(|| rep.symbol_key.clone());
                 // A row's terminal that made a wire is named on the placed terminal's strip (its ghost named a strip
                 // without a tag `-X??`): "-X1501 terminal 1".
-                let strip = rep.terminal.then(|| tag.rsplit_once(':').map(|(s, _)| s.to_owned())).flatten();
+                let strip = rep
+                    .terminal
+                    .then(|| tag.rsplit_once(':').map(|(s, _)| s.to_owned()))
+                    .flatten();
                 let wires = wires.map(|(tubes, list)| {
                     let own = |o: String| match (&strip, o.rsplit_once(':')) {
                         (Some(strip), Some((_, number))) => {
@@ -345,7 +348,10 @@ impl ShellModel {
                         }
                         _ => o,
                     };
-                    (tubes, list.into_iter().map(|(o, to)| (own(o), to)).collect::<Vec<_>>())
+                    (
+                        tubes,
+                        list.into_iter().map(|(o, to)| (own(o), to)).collect::<Vec<_>>(),
+                    )
                 });
                 // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3".
                 let tag = if rep.terminal {
@@ -386,11 +392,18 @@ impl ShellModel {
                             1 => strings::format(key!("toast-placed-connected-one"), &[placed, own, to]),
                             n => {
                                 let count = strings::format(
-                                    if tubes { key!("count-tubes") } else { key!("count-wires") },
+                                    if tubes {
+                                        key!("count-tubes")
+                                    } else {
+                                        key!("count-wires")
+                                    },
                                     &[&n.to_string()],
                                 );
                                 let more = (n - 1).to_string();
-                                strings::format(key!("toast-placed-connected"), &[placed, &count, own, to, &more])
+                                strings::format(
+                                    key!("toast-placed-connected"),
+                                    &[placed, &count, own, to, &more],
+                                )
                             }
                         }
                     }

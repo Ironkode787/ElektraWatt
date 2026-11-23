@@ -752,7 +752,13 @@ impl ShellModel {
                     // A Terminal… row places its terminals in one dispatch and names the last: the wires of the
                     // terminals before it are said too (a persona run read only the last terminal's placement).
                     let connects = match (self.tools.result_note.take(), connects) {
-                        (Some(ResultNote::Placed { wires: Some((t, mut earlier)), .. }), now) => {
+                        (
+                            Some(ResultNote::Placed {
+                                wires: Some((t, mut earlier)),
+                                ..
+                            }),
+                            now,
+                        ) => {
                             let (tubes, list) = now.unwrap_or((t, Vec::new()));
                             earlier.extend(list);
                             Some((tubes && t, earlier))
@@ -1161,10 +1167,7 @@ impl ShellModel {
                 })
             })
         });
-        let Some(crate::tools::Ghost::Place {
-            proposals, strip, ..
-        }) = self.tools.tool.ghost()
-        else {
+        let Some(crate::tools::Ghost::Place { proposals, strip, .. }) = self.tools.tool.ghost() else {
             return None;
         };
         let list: Vec<(String, String)> = proposals

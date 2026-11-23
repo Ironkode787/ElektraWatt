@@ -23,7 +23,11 @@ fn toasts(s: &ShellModel) -> Vec<(String, &'static str)> {
 /// Places a normally open contact at `cell`, without wires when `alt`.
 fn contact(s: &mut ShellModel, cell: &str, alt: bool) {
     done(s, "tool.place", json!({}));
-    done(s, "place.pick", json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}));
+    done(
+        s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
     done(s, "nav.goto", json!({ "text": cell }));
     done(s, "canvas.activate", json!({ "alt": alt }));
     done(s, "ui.dismiss", json!({}));
@@ -42,12 +46,16 @@ fn a_placement_names_its_wires_and_its_toast_stays_up() {
         .collect();
     assert_eq!(
         wired,
-        ["Placed -101K2 at 101-E4 and connected 13 to -101K1:14. Alt+Click or Ctrl+Enter places without connecting."]
+        [
+            "Placed -101K2 at 101-E4 and connected 13 to -101K1:14. Alt+Click or Ctrl+Enter places without connecting."
+        ]
     );
     // A placement without wires leaves it up.
     contact(&mut s, "101-C8", true);
     assert!(
-        toasts(&s).iter().any(|(t, _)| t.contains("connected 13 to -101K1:14")),
+        toasts(&s)
+            .iter()
+            .any(|(t, _)| t.contains("connected 13 to -101K1:14")),
         "{:?}",
         toasts(&s)
     );

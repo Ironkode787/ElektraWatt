@@ -226,7 +226,11 @@ impl ShellModel {
     pub(super) fn notify_wired(&mut self, made: &str, without: &str) {
         let text = match self.notes.visible().iter().find(|n| n.key == WIRED) {
             Some(earlier) => {
-                let earlier = earlier.text.strip_suffix(without).unwrap_or(&earlier.text).trim_end();
+                let earlier = earlier
+                    .text
+                    .strip_suffix(without)
+                    .unwrap_or(&earlier.text)
+                    .trim_end();
                 format!("{earlier} {made} {without}")
             }
             None => format!("{made} {without}"),
