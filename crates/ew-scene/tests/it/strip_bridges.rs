@@ -68,14 +68,35 @@ fn mid(x: i64, y: i64) -> Pt2 {
     Pt2::new(Nm(g(x)), Nm(g(y) + (g(y + 1) - g(y)).div_euclid(2)))
 }
 
-/// The bridge lines (paths without an entity, stroked, of two points) and the dots (filled, by their centres).
+/// The bridge lines (paths without an entity, stroked, from their first point to their last; a hop's apex off the
+/// line ends one of its curves) and the dots (filled, by their centres).
 fn drawn(v: &PageView) -> (Vec<(Pt2, Pt2)>, Vec<Pt2>) {
+    let (lines, dots) = drawn_with_hops(v);
+    (lines.into_iter().map(|(a, b, _)| (a, b)).collect(), dots)
+}
+
+/// A bridge line: its first point, its last and the x of each hop's apex, in drawing order.
+type Line = (Pt2, Pt2, Vec<Nm>);
+
+/// [`drawn`] with each line's hops.
+fn drawn_with_hops(v: &PageView) -> (Vec<Line>, Vec<Pt2>) {
     let list = page_display_list(v, Layer::Wires, bundled(), builtin()).list;
     let (mut lines, mut dots) = (Vec::new(), Vec::new());
     for item in list.items.iter().filter(|i: &&Item| i.entity.is_none()) {
         let ItemKind::Path(p) = &item.kind else { continue };
         match (&p.path.els[..], &p.fill) {
-            ([PathEl::MoveTo(a), PathEl::LineTo(b)], None) => lines.push((*a, *b)),
+            ([PathEl::MoveTo(a), .., PathEl::LineTo(b)], None) => {
+                let apexes = p
+                    .path
+                    .els
+                    .iter()
+                    .filter_map(|e| match e {
+                        PathEl::CubicTo(_, _, end) if end.y != a.y => Some(end.x),
+                        _ => None,
+                    })
+                    .collect();
+                lines.push((*a, *b, apexes));
+            }
             (_, Some(fill)) if *fill == Brush::BLACK => {
                 let b = p.path.bounds().expect("a dot");
                 assert_eq!(
@@ -109,9 +130,61 @@ fn a_bridge_across_a_row_of_terminals_is_a_line_with_a_dot_on_each() {
         bridges: vec![bridge(&[1, 2, 4, 5])],
         ..blank_page(PAGE)
     };
-    let (lines, dots) = drawn(&v);
-    assert_eq!(lines, [(mid(10, 20), mid(28, 20))]);
+    let (lines, dots) = drawn_with_hops(&v);
+    // The third terminal's lead, crossed without a dot, is hopped over (a persona read the line as joining it).
+    assert_eq!(lines, [(mid(10, 20), mid(28, 20), vec![Nm(g(22))])]);
     assert_eq!(dots, [mid(10, 20), mid(16, 20), mid(28, 20)]);
+}
+
+/// The two symbols of a block of two levels read as one block (doc 08 §6.3): a dashed tie at their bodies' height
+/// between them; two symbols of two terminals get none.
+#[test]
+fn the_two_symbols_of_a_block_are_tied() {
+    // Terminal 1's second level drawn by symbol 2 through its pin map, two steps to the right.
+    let level_two = {
+        let mut r = terminal(2, 12, 20);
+        let mut rep = (*r.rep).clone();
+        rep.functions = vec![Id::from_uuid(Uuid::from_u128(0xF1))];
+        rep.pin_map = serde_json::from_value(json!([
+            {"symbol_cp": 0, "function": uuid(0xF1), "idx": 2},
+            {"symbol_cp": 1, "function": uuid(0xF1), "idx": 3},
+        ]))
+        .unwrap();
+        r.rep = Arc::new(rep);
+        r
+    };
+    let ties = |v: &PageView| {
+        let list = page_display_list(v, Layer::Wires, bundled(), builtin()).list;
+        list.items
+            .iter()
+            .filter(|i| i.entity.is_none())
+            .filter_map(|i| match &i.kind {
+                ItemKind::Path(p) if p.stroke.as_ref().is_some_and(|s| s.dash.is_some()) => p.path.bounds(),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    let block = PageView {
+        reps: vec![terminal(1, 10, 20), level_two],
+        ..blank_page(PAGE)
+    };
+    let tie = ties(&block);
+    assert_eq!(tie.len(), 1, "one tie");
+    let y = Nm(g(20) - block.grid.at(1).expect("a step").0 / 2);
+    assert_eq!(
+        (tie[0].min().y, tie[0].max().y),
+        (y, y),
+        "half a step above the bodies' middle, clear of their numbers"
+    );
+    assert!(
+        Nm(g(10)) < tie[0].min().x && tie[0].max().x < Nm(g(12)),
+        "between the bodies"
+    );
+    let two_terminals = PageView {
+        reps: vec![terminal(1, 10, 20), terminal(2, 12, 20)],
+        ..blank_page(PAGE)
+    };
+    assert!(ties(&two_terminals).is_empty());
 }
 
 #[test]

@@ -90,10 +90,19 @@ pub fn hops(polylines: &[Vec<Pt2>]) -> Vec<Vec<(usize, Vec<i64>)>> {
 /// The path of one polyline with the hops of [`hops`] (`hops[segment]` ascending x): straight lines, each hop a gap
 /// of `2r` bridged by a half circle above it, in the polyline's direction.
 pub fn hop_path(line: &[Pt2], hops: &[(usize, Vec<i64>)]) -> Path {
+    hop_path_with(line, hops, HOP_RADIUS, false)
+}
+
+/// [`hop_path`] with hops of radius `r` (nm), above the line, or below it with `below` (a strip's bridge hops towards
+/// the side its other bridges leave free).
+pub fn hop_path_with(line: &[Pt2], hops: &[(usize, Vec<i64>)], r: i64, below: bool) -> Path {
     let Some(&first) = line.first() else {
         return Path::polyline(line);
     };
-    let r = HOP_RADIUS;
+    // The quarter circle's control distance, `r × 4(√2 − 1)/3` as [`KAPPA_R`] is for [`HOP_RADIUS`].
+    let k = i64::try_from(i128::from(r) * i128::from(KAPPA_R) / i128::from(HOP_RADIUS)).unwrap_or(KAPPA_R);
+    // Upwards (towards −y) unless `below`.
+    let (r_y, k_y) = if below { (-r, -k) } else { (r, k) };
     let mut els = vec![PathEl::MoveTo(first)];
     for (i, w) in line.windows(2).enumerate() {
         if let Some((_, xs)) = hops.iter().find(|(s, _)| *s == i) {
@@ -108,17 +117,13 @@ pub fn hop_path(line: &[Pt2], hops: &[(usize, Vec<i64>)]) -> Path {
             for x in ordered {
                 let (a, b) = (x - s * r, x + s * r);
                 els.push(PathEl::LineTo(pt(a, y)));
-                // Two quarter circles through the apex (x, y − r).
+                // Two quarter circles through the apex (x, y − r), or (x, y + r) below.
                 els.push(PathEl::CubicTo(
-                    pt(a, y - KAPPA_R),
-                    pt(x - s * KAPPA_R, y - r),
-                    pt(x, y - r),
+                    pt(a, y - k_y),
+                    pt(x - s * k, y - r_y),
+                    pt(x, y - r_y),
                 ));
-                els.push(PathEl::CubicTo(
-                    pt(x + s * KAPPA_R, y - r),
-                    pt(b, y - KAPPA_R),
-                    pt(b, y),
-                ));
+                els.push(PathEl::CubicTo(pt(x + s * k, y - r_y), pt(b, y - k_y), pt(b, y)));
             }
         }
         els.push(PathEl::LineTo(w[1]));

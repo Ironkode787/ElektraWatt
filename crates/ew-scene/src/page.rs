@@ -69,12 +69,21 @@
 //!   Each clamp of a [`BridgeView`] that the page draws gives a point half way between the terminal's centre and the
 //!   clamp's point, on the lead the bridge joins: the centre of a terminal drawn alone is its insertion point, that of
 //!   a terminal a strip segment draws half way between its side-1 and side-2 points (FT-2020), so a segment's
-//!   bridged terminals make the bus across its leads. Points whose clamps leave the same way and that lie on one line
+//!   bridged terminals make the bus across its leads. A symbol of a block's level from 2 (drawn through a pin map)
+//!   gives its point three quarters of the way instead, so that a block's level-1 and level-2 bridges along the same
+//!   leads run apart, each with its own dots. Points whose clamps leave the same way and that lie on one line
 //!   across those leads (one height for leads that leave up or down, one x for leads that leave left or right) are one
 //!   row; a row of two or more is drawn as a straight line from its first point to its last in the page's
 //!   [`wire_stroke`], and a dot of [`JUNCTION_DOT_RADIUS`] at each of its points, after the junctions. A terminal of
 //!   the bridge in another row or on another page joins no line here; a terminal that is no part of the bridge and
-//!   stands between two of the row is crossed without a dot.
+//!   stands between two of the row is crossed without a dot, a row across up or down leads hopping over its lead
+//!   (a half circle a quarter of a grid step high, towards the bodies from a level-1 row and towards the clamps from
+//!   a level-2 row), so the line reads as joining only the dotted leads.
+//! - **Level ties** (doc 08 §6.3): the two symbols of a block of two levels read as one block. Neighbouring symbols of
+//!   one function, one drawn through a pin map, on one height at most three grid steps apart, are joined between
+//!   their bodies, half a grid step above their middle (clear of the numbers beside the bodies and of a bridge across
+//!   the lower leads), by a dashed line in pen 0.13 (`level_ties`), no record and nothing to select, after the
+//!   bridges.
 //! - **Slot texts.** A slot is shown when its override says so, else when it belongs to the
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
@@ -454,6 +463,9 @@ pub struct BreakMarkView {
 
 /// The gap between a symbol's bounds and its break mark, and the mark's overhang: 1 mm.
 pub const BREAK_GAP: Nm = Nm(1_000_000);
+
+/// The room a block's level tie leaves to each symbol's body: 0.5 mm.
+pub const LEVEL_TIE_GAP: Nm = Nm(500_000);
 
 /// The amplitude of a break mark's zig-zag: 1.5 mm.
 pub const BREAK_ZIGZAG: Nm = Nm(1_500_000);
@@ -1573,11 +1585,50 @@ impl Builder<'_> {
     /// The bridges of the page's strips (module documentation, "Bridges").
     fn bridges(&mut self, view: &PageView) {
         let stroke = wire_stroke(view.grid);
+        // The vertical leads of the symbols drawn alone: (x, the insertion point's y, the pin's y).
+        let reps: BTreeMap<Uuid, &RepView> = view.reps.iter().map(|r| (r.rep.id.as_uuid(), r)).collect();
+        let leads: Vec<(i64, i64, i64)> = drawn_cps(view)
+            .values()
+            .filter(|(_, dir, _)| matches!(dir, Dir4::Up | Dir4::Down))
+            .filter_map(|(at, _, rep)| {
+                let c = reps.get(rep).filter(|r| r.terminals.is_empty())?.rep.pos;
+                (c.x == at.x && c.y != at.y).then_some((at.x.0, c.y.0, at.y.0))
+            })
+            .collect();
+        // A hop a quarter of a grid step high, so it stays clear of the bodies and of a block's other bridge.
+        let r = view.grid.at(1).map_or(crate::hops::HOP_RADIUS, |s| s.0 / 4);
         for points in Self::bridge_rows(view) {
             let (Some(&first), Some(&last)) = (points.first(), points.last()) else {
                 continue;
             };
-            self.push(Item::path(Path::line(first, last), Some(stroke.clone()), None));
+            let y = first.y.0;
+            // A lead the bridge does not join, crossed between its points, is hopped over.
+            let crossed: Vec<&(i64, i64, i64)> = leads
+                .iter()
+                .filter(|(x, c, at)| {
+                    first.y == last.y
+                        && first.x.0 < *x
+                        && *x < last.x.0
+                        && (*c).min(*at) < y
+                        && y < (*c).max(*at)
+                        && !points.iter().any(|p| p.x.0 == *x)
+                })
+                .collect();
+            let mut xs: Vec<i64> = crossed.iter().map(|(x, _, _)| *x).collect();
+            xs.sort_unstable();
+            xs.dedup();
+            // A level-1 bridge (half way along the leads) hops towards the bodies, a level-2 bridge (nearer the clamps)
+            // towards the clamps, so the two never meet.
+            let below = crossed.first().is_some_and(|(_, c, at)| {
+                let towards_pin = (y - c).abs() > (at - y).abs();
+                (at > c) == towards_pin
+            });
+            let path = if xs.is_empty() {
+                Path::line(first, last)
+            } else {
+                crate::hops::hop_path_with(&[first, last], &[(0, xs)], r, below)
+            };
+            self.push(Item::path(path, Some(stroke.clone()), None));
             for p in points {
                 self.push(Item::path(
                     Path::circle(p, JUNCTION_DOT_RADIUS),
@@ -1586,6 +1637,67 @@ impl Builder<'_> {
                 ));
             }
         }
+        let tie = Stroke::pen(Pen::P013).dashed(DashPattern::Dash42);
+        for (a, b) in Self::level_ties(view) {
+            self.push(Item::path(Path::line(a, b), Some(tie.clone()), None));
+        }
+    }
+
+    /// The ties of the page's blocks (module documentation, "Level ties"): per pair of neighbouring symbols of one
+    /// function, one of them drawn through a pin map (a block's level from 2), that stand on one height at most three
+    /// grid steps apart, the dashed line between their bodies half a grid step above their middle, [`LEVEL_TIE_GAP`]
+    /// clear of each body.
+    pub(crate) fn level_ties(view: &PageView) -> Vec<(Pt2, Pt2)> {
+        let most = view.grid.at(3).unwrap_or(Nm(15_000_000));
+        let mut by_function: BTreeMap<Uuid, Vec<&RepView>> = BTreeMap::new();
+        for rv in &view.reps {
+            if let [f] = rv.rep.functions.as_slice()
+                && rv.terminals.is_empty()
+                && rv.symbol.is_some()
+            {
+                by_function.entry(f.as_uuid()).or_default().push(rv);
+            }
+        }
+        let mut out = Vec::new();
+        for (_, mut reps) in by_function {
+            if reps.len() < 2 || reps.iter().all(|r| r.rep.pin_map.is_empty()) {
+                continue;
+            }
+            reps.sort_by_key(|r| (r.rep.pos.y, r.rep.pos.x, r.rep.id));
+            for w in reps.windows(2) {
+                let (a, b) = (&w[0].rep, &w[1].rep);
+                let (Some(da), Some(db)) = (&w[0].symbol, &w[1].symbol) else {
+                    continue;
+                };
+                if a.pos.y != b.pos.y || b.pos.x - a.pos.x > most {
+                    continue;
+                }
+                // The bodies: the extent of the symbols' drawn graphics (their texts are left out).
+                let drawn = |def: &SymbolDef, orient| {
+                    symbol::lower(def, orient)
+                        .graphics
+                        .items
+                        .iter()
+                        .filter_map(|i| match &i.kind {
+                            ItemKind::Path(p) => p.path.bounds(),
+                            _ => None,
+                        })
+                        .reduce(Rect::union)
+                };
+                let (Some(ga), Some(gb)) = (drawn(da, a.orient), drawn(db, b.orient)) else {
+                    continue;
+                };
+                let x0 = a.pos.x + ga.max().x + LEVEL_TIE_GAP;
+                let x1 = b.pos.x + gb.min().x - LEVEL_TIE_GAP;
+                // Half a grid step above the bodies' middle: clear of the numbers printed beside the bodies and of a
+                // bridge across the lower leads.
+                let y = a.pos.y - Nm(view.grid.at(1).unwrap_or(Nm(2_000_000)).0 / 2);
+                if x0 < x1 {
+                    out.push((Pt2::new(x0, y), Pt2::new(x1, y)));
+                }
+            }
+        }
+        out
     }
 
     /// The lines of the page's bridges (module documentation, "Bridges"): per bridge in the view's order, per row of
@@ -1625,9 +1737,12 @@ impl Builder<'_> {
                         Nm(a.y.0 + (b.y.0 - a.y.0).div_euclid(2)),
                     )
                 };
+                // A block's level from 2 (a symbol drawn through a pin map) is bridged three quarters of the way to its
+                // clamp, so its bridge runs apart from the level-1 bridge along the same leads.
+                let (num, den) = if rv.rep.pin_map.is_empty() { (1, 2) } else { (3, 4) };
                 let mid = Pt2::new(
-                    Nm(c.x.0 + (at.x.0 - c.x.0).div_euclid(2)),
-                    Nm(c.y.0 + (at.y.0 - c.y.0).div_euclid(2)),
+                    Nm(c.x.0 + ((at.x.0 - c.x.0) * num).div_euclid(den)),
+                    Nm(c.y.0 + ((at.y.0 - c.y.0) * num).div_euclid(den)),
                 );
                 let key = match dir {
                     Dir4::Up => (0, mid.y.0),
