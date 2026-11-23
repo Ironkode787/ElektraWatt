@@ -12,32 +12,30 @@ display list), and keep 3:1 on the white sheet.
 ### 7.1 Selection, hover and handles
 
 Selection: a 2s-px `canvas.selection` outline around the representation's bounds with a 1s-px white casing on both sides of it
-(as built, the mockup draws it so and wins), so it reads over black lines. Hover: a 1s-px dashed accent
+(the mockup draws it so and wins), so it reads over black lines. Hover: a 1s-px dashed accent
 outline (4s on, 4s off). A selected object under the pointer shows the selection only.
 
-*As built (rc.3).* The window and the offscreen snapshot paint one list of marks (`ew_render2d::overlay::marks`): the
-window had left out the casing, which the snapshot painted. A symbol's selection has no corner handles: a symbol is
+The window and the offscreen snapshot paint one list of marks (`ew_render2d::overlay::marks`). A symbol's selection has no corner handles: a symbol is
 not resized by its corners, and a square that cannot be dragged promises what the page does not do (the mockup's
 squares are dropped). What can be dragged shows its own handle: a black box's grips, a selected wire's round handles.
 
-*As built (rc.3).* A line between two ends (a wire, a fluid line) is never outlined by the box round its ends: it
+A line between two ends (a wire, a fluid line) is never outlined by the box round its ends: it
 answers to the pointer only within 4 points of its own path, and its hover and selection are a band along that path,
 4 points to each side and round at its bends. The hover's band is `canvas.hover` at 22 %; the selection's is
 `canvas.selection` at 28 % inside a solid 1s-px edge. The one selected line carries round handles, 10 points across
 (14 under the pointer): an accent disc with a white 1.5-point ring on the middle of every segment and on every bend.
-*As built (FT-1780).* Every selected line marks its two ends with the connection point's ring of §7.2 (8s + 1 px, open,
+Every selected line marks its two ends with the connection point's ring of §7.2 (8s + 1 px, open,
 in the accent), so where it ends reads at a glance; a ring is no handle and promises no drag.
 
 ### 7.2 Connection points, snap and the grid cursor
 
 CP rings 8s + 1 px in the accent on hover and while a wire tool is active; the snap target a crosshair with a 6-px gap;
 the keyboard grid cursor a 1s-px accent cross with its cell in the status bar (doc 16 §3.6). A hovered CP shows a
-tooltip with its printed label, its symbol name and its potential (FT-512's tooltip half), in the inverse look:
-"`<printed label> · <symbol name> · <potential>`", for example "1X1:1/a · terminal · L" on Golden A. *As built (cycle
-32):* this replaces the earlier "-X1031 : 21 · terminal · 24VDC-1" form; a part the page tables
+tooltip with its printed label, its symbol name and its potential, in the inverse look:
+"`<printed label> · <symbol name> · <potential>`", for example "1X1:1/a · terminal · L"; a part the page tables
 do not know is left out.
 
-*As built (proposed decision row).* A connection point with no connection on its page shows a
+A connection point with no connection on its page shows a
 (4s + 1)-px hollow square in `canvas.open_cp` at all times, so that a wire drawn across it is visibly not connected; a
 connected CP shows none. It is a session overlay (never in the display list, so never in print or PDF), drawn while one
 step of the connection grid is at least 4 points on screen (QET's 2.6 mm step is about 6.8 points at the 69 % fit
@@ -61,15 +59,15 @@ is it drawn at the preferred anchor with 80 % opacity. Chips never cover the tar
 alternative exists. Highlight name chips are the exception to the inverse fill: they take their slot's hue with a black
 label (§4.6).
 
-**Labels on the sheet** (FT-1185). The same aim holds
+**Labels on the sheet.** The same aim holds
 for the drawing's own texts, which the scene places and the print carries: a terminal's label or an external point's
 label never overlaps another symbol's graphics, connection points or tags. The scene tries the label's slot, then
-steps the label outward along the slot's axis by `SLOT_TEXT_GAP`, at most three times, as a black box's caption moves
-, and otherwise keeps the slot.
+steps the label outward along the slot's axis by `SLOT_TEXT_GAP`, at most three times, as a black box's caption moves,
+and otherwise keeps the slot.
 
 ### 7.5 Highlights
 
-As built (doc 16 §10.3 as-built note) with the hues of §4.6: halos with hatch patterns and a name chip, at most four,
+Doc 16 §10.3's, with the hues of §4.6: halos with hatch patterns and a name chip, at most four,
 painted above the overlays and below the chips.
 
 **The colour a merged 0 V/PE potential shows.** The potential highlight and the wire colour take the role of the
@@ -108,30 +106,29 @@ HUD; chips avoid it (§7.4).
    was not written: the folder does not exist. Choose another folder." No "Please", no exclamation marks, no blame,
    no codes without words (a rule ID follows the words: "Contact T55 switches N-55 without its line conductor
    (EW-POT-013)").
-   *As built:* a reason (`reason-*`, the words a refused or disabled
+   A reason (`reason-*`, the words a refused or disabled
    command shows in the status line, a tooltip or a menu) ends without a full stop, also when it holds two clauses
    ("That action does not apply to this row; its menu shows the ones that do"); an error message (`error-*`), a toast
    and a banner are sentences and end with one.
-6. **Numbers**: a space between value and unit ("2.5 mm²", "69 %", as built); counts with their noun ("3 devices",
+6. **Numbers**: a space between value and unit ("2.5 mm²", "69 %"); counts with their noun ("3 devices",
    "1 selected"); "of" for positions ("Page 6 of 36", "2 of 4 placed").
 7. **Keys** are written as on the keyboard with "+" ("Ctrl+Shift+H") in text and tooltips, and as spaced keys in a key
    chip ("Ctrl K"). The macOS symbols (⌘⇧H) from the same registry text (doc 16 §3.9 Keyboard) are kept for
    portability only: macOS is not a supported platform.
-   *As built:* a key has one name in every text, the form on its keycap
+   A key has one name in every text, the form on its keycap
    (`keymap::short_display`: "Esc", "Del", "Up", with its modifiers, "Ctrl+Z"), in the HUDs, the hints, toasts,
    notices, reasons and tooltips alike ("Esc ends", "Del deletes"); the full names ("Escape", "Delete") are not used.
-   The rule has no exception: the menus, the key chips, the palette and the keymap editor name a key in the same form
-   too. *As built:* the menus, the key chips, the
-   palette, the keymap editor (a chord being typed too) and the command bar name a key by `short_display`; the keymap
-   findings and the keymap editor's list of unused bindings keep `Chord::display`.
+   The menus, the key chips, the palette, the keymap editor (a chord being typed too) and the command bar name a key
+   by `short_display` too; only the keymap findings and the keymap editor's list of unused bindings keep
+   `Chord::display`.
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
-   *As built:* a sentence names a terminal by strip and number in words,
+   A sentence names a terminal by strip and number in words,
    "-X1011 terminal 3" (a toast, the Place target "-X1031 terminal 21"), so the strip and the number read apart; tags,
    tables, Properties and print keep the designation `-X1011:3`.
-   *As built:* a pin whose designation the device shares is named in a sentence by
+   A pin whose designation the device shares is named in a sentence by
    its position, "-1A4 pin − (2nd)" (the placement toast), never by the label's `#2`; tags, tables and print keep
-   the label `-1A4:-#2`. The ordinal is English only (FT-752).
+   the label `-1A4:-#2`. The ordinal is English only.
 9. **Titles of dialogs** are the question or the task, not the subject: "Recover unsaved changes?", not "Recovery".
    Primary buttons repeat the verb ("Recover", "Export", "Discard"), never "OK" or "Yes".
 
@@ -167,7 +164,7 @@ commands, otherwise a separated block), then **Window** and **Help**. The as-bui
 Draw; Tools dissolves (Command palette into View and the search field, Settings into File, Renumber devices into
 Draw); Window and Help stay. The menu opens from the app button (§5.2).
 
-*As built.* **File has no Import ▸ and Export ▸:** each action appears once in the app menu, and the imports and exports sit in their tabs' groups (Project and Output). The app menu is built by tab and group; the blind reference was re-blessed over it.
+**File has no Import ▸ and Export ▸:** each action appears once in the app menu, and the imports and exports sit in their tabs' groups (Project and Output). The app menu is built by tab and group.
 
 ### 9.3 The palette
 
@@ -178,31 +175,7 @@ found by search also teaches where it lives in the bar.
 
 ## 10. Migration map from the current window
 
-Screenshots are referenced by file name from the window checks that preceded this document (`win30`, `win30b`,
-`wincheck4`). The part column names WP-S2.17's part that changes it.
-
-| Screenshot | Today | Target | Part |
-|---|---|---|---|
-| 01-open.png, f9-screen.png | egui default dark theme; no accent hierarchy; flat greys | Tokens of §4 in light (default follows the system), dark and high contrast | 1 |
-| 01-open.png | Eight menus, no toolbar | Command bar with the app menu, quick access, six tabs and search (§5.2) | 2 |
-| 01-open.png, 32-place-chip-mid.png | A hint strip under the menu repeating the status bar ("Select: Click to select…") | Removed; the tool and its prompt in the HUD (§5.5) | 2 |
-| 01-open.png | "Pages" heading over a "Pages" tab; "Page view" heading over the canvas tabs | One name per pane, in its tab or rail button (§5.4, §5.5) | 3 |
-| 06-nav-connections.png, 16-highlight-103.png | Left tab strip "Pages, Connections, Te ▸" hides navigators | Navigator rail (§5.4) | 3 |
-| 01-open.png, 19b-terminal-tooltip.png | Tree rows "1 Title Page [QET grid]", "[generated]" in text, truncated titles, no icons | Kind icon, folio column, title, icon and caption badges (§6.6) | 3 |
-| 01-open.png, 19b-terminal-tooltip.png, 21-props-scrolled.png | Every property row "= authored" and a clipped "edit" button; `$v`, Key "pages\|103", UUIDs; "Tag" and "Parts" twice | Provenance icon only when not authored, in-place editing, Advanced hidden, distinct labels (§6.8) | 3 |
-| 01-open.png | Status bar "Click to select… · 1 (1 of 36) · 69 % · QET 10 px · saved · GPU DX12 · EN" | Ordered fields, exceptions emphasised, one findings field, no language or page field (§5.8) | 3 |
-| 02-palette-nav.png | Palette with a grey "Command palette" title and disabled entries "Parameter forms come with a later version" | Search-field palette with breadcrumbs and key chips; unrunnable actions not listed (§6.14) | 4 |
-| 04-view-menu.png, 22-insert-menu.png, 03-window-menu.png | Hovered and checked menu items filled with saturated blue; no icons; three-dot ellipses | Neutral hover, check icons, icon column, "…" (§6.13, §8) | 4 |
-| 36-quit-prompt.png | Grey centred title "Unsaved changes", three equal buttons left-aligned | "Save changes to <project> before closing?"; Save (Primary), Don't save (Danger, left), Cancel (§6.12) | 4 |
-| 37-recovery-dialog.png | A banner and a dialog say the same thing; grey centred title; equal buttons | One dialog first ("Recover unsaved changes?", Recover as Primary); the banner only for the read-only state that follows (§6.11, §6.12) | 4 |
-| 35-notifications.png | Notifications popover with a grey title and a "Close" button over the Properties | Toast stack at the canvas's top right; the log as a bell popover from the status bar (§6.10) | 4 |
-| 34-jobs-pane.png, wincheck4 a2-jobs-pane.png | "Jobs" heading over "No jobs"; finished entries without an outcome word | Empty state; outcome badges; the bottom dock closed by default (§5.7, §6.17, §6.19) | 4 |
-| 30-picker.png | Insert symbol modal with raw IDs ("ew.iec.terminal@qet10 [embedded]") | Picker rows with thumbnail, name and library in tertiary text; the Symbols palette at the right (§5.6, §6.15) | 4 |
-| 32-place-chip-mid.png, 33-place-chip-near-stats.png | Ghost label printing the tag twice and the preview chip over it; chips under the statistics panel | One ghost label; the chip placement rule (§7.3, §7.4) | 5 |
-| 16-highlight-103.png, 15c-highlight.png | Orange and sky-blue highlight slots below 3:1 on white | §10.3's hues (§4.6) | 5 |
-| 19-terminal-selected.png | Selection a blue box; no CP tooltip | Selection with casing and handles; CP tooltip (§7.1, §7.2) | 5 |
-| 34-jobs-pane.png | Frame-statistics panel in egui's default tooltip style overlapping the drawing | Diagnostic chip style, avoided by chips (§7.7) | 5 |
-| every screenshot | No icons anywhere | Tabler set plus EW glyphs (§4.11) | 6 |
+The window follows this language; how it looked before is in git.
 
 ---
 
@@ -215,8 +188,8 @@ motor-starter page, the tool HUD, the zoom control and a toast, the closed right
 the findings field) and the status bar. It loads Noto Sans from Google Fonts and nothing else. All its drawing
 content, names and rule codes are illustrative.
 
-**It is the visual reference.** The values of §4 to §7 are read from it; WP-S2.17's snapshot checks compare each
-part's components with it: token values exactly, layout proportions within the tolerances its specification
+**It is the visual reference.** The values of §4 to §7 are read from it; the snapshot checks compare the components
+with it: token values exactly, layout proportions within the tolerances its specification
 states. Where this document and the mockup differ on look, the mockup wins and this document is corrected. Two
 corrections were made in the committed copy because requirements demand them, and only these:
 1. **The status bar** shows the fields FR-UI-034 and NFR-PLAT-03 require (selection count, the cell in the cursor
@@ -226,14 +199,12 @@ corrections were made in the committed copy because requirements demand them, an
 
 The mockup's tooltip keys are illustrative; the keys are doc 16 §4.4's. Behaviour stays doc 16's.
 
-**Addition of 2026-10-28 (v1.1).** The mockup gains a **component sheet**, opened by a third mockup control
+The mockup has a **component sheet**, opened by a third mockup control
 ("Components") and following the theme and density toggles, that shows the components §6.21 and §6.22 add: a strip of
 a Terminal strips navigator in table mode (the tool line with the Table toggle, the filter and Columns; a sticky
 header with a sorted and a derived column; the frozen key column; a marked row, the cursor row and its cursor cell,
 an editing cell) and the chooser list over a piece of sheet with a dashed hover outline, labelled as a proposed
-follow-up. The additions are a block of CSS at the end of the style sheet, the sheet's markup before the mockup
-controls, one button in the mockup controls and one script function; every approved part is byte-identical. The
-sheet's names are illustrative.
+follow-up. The sheet's names are illustrative.
 
 **Decided** (2026-10-28, by the orchestrator under the owner's delegation, after the owner's approval of the
 mockup): ADR-0031 is Accepted; the accent is Volt blue #0B63CE (light) and #5AA2FF (dark); the default density is

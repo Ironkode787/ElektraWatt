@@ -1,14 +1,14 @@
 # Design language
 
 **Status:** v1.3, accepted 2026-10-28 · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
-(Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
-WP-S2.17 · **Part of:** ElektraWatt design document set
+(Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Part of:**
+ElektraWatt design document set
 
 **Purpose.** This document is the visual and verbal language of ElektraWatt (EW): the pillars every screen follows, the
 design tokens (colour, type, spacing, sizes, radii, borders, elevation, icons, motion, density) in light, dark and
 high-contrast themes, the layout of the main window and its command surface, the component inventory with anatomy and
-states, the canvas overlays, the wording rules, the order in which commands are offered, and the map from today's
-window to the target. [16 UX and UI](16-ux-ui.md) says what the window does; this document says how it looks and
+states, the canvas overlays, the wording rules and the order in which commands are offered.
+[16 UX and UI](16-ux-ui.md) says what the window does; this document says how it looks and
 reads. Where the two differ on appearance, this one wins (ADR-0031 decision 1); behaviour stays doc 16's. The
 owner-approved mockup is the visual reference: every value here is the mockup's, and where this text and the mockup
 differ the mockup wins, except for the two corrections that requirements force (§11).

@@ -32,7 +32,7 @@ tool; and the status bar is quiet. EW keeps those principles and none of its bra
 
 | Who | Comes from | Wants from the window |
 |---|---|---|
-| Panel-builder engineer (the pilot) | QElectroTech today, EPLAN at customers | Draw folios 101 to 103 and export the PDF without help (G-PP); see at a glance what is unfinished |
+| Panel-builder engineer (the pilot) | QElectroTech today, EPLAN at customers | Draw folios 101 to 103 and export the PDF without help; see at a glance what is unfinished |
 | EPLAN user | A ribbon since EPLAN 2022, navigators at left, properties dialogs | Commands where a ribbon would put them; EPLAN words (device, function, interruption point) |
 | QET user | Menus, toolbars, an element panel at left | A familiar left panel; drag symbols from a palette |
 | New user | Office, browsers | Labels on buttons, one obvious next step, no jargon in the chrome |
@@ -44,13 +44,12 @@ key away. **Screens:** 1920 × 1080 is the main resolution: the window is design
 hierarchy and for nothing truncated or overlapping. 2560 × 1440 is its extension: the extra space goes to the work
 (the page, a list's rows, a dialog's content), never to empty chrome beside a capped width. A smaller window only
 has to stay usable, every control reachable by folding, wrapping or scrolling; no layout is designed for it and none
-is shaped by what fits there (the owner, 2026-11-13; until then 1280 × 800 was the floor every default layout had to
-serve). Remote desktop sessions are common (no reliance on animation or subtle gradients; NFR-PLAT-03). A first start
+is shaped by what fits there (the owner, 2026-11-13). Remote desktop sessions are common (no reliance on animation or subtle gradients; NFR-PLAT-03). A first start
 opens the window maximised; a remembered window is restored. The offscreen driver renders 1920 × 1080 at one pixel
 per point by default (`--window 2560x1440 --ppp 1` for the extension); the gated snapshots are `main-*` at 1920 ×
 1080 and `*-2560` at 2560 × 1440.
 
-*As built (FT-1730).* **Widths at the main resolution and its extension.** Every width is set at 1920 × 1080 and
+**Widths at the main resolution and its extension.** Every width is set at 1920 × 1080 and
 grows on to 2560 × 1440, where the extra room goes to the page, to more rows and to wider lists; a token is a width's
 least value in a small window.
 
@@ -69,17 +68,16 @@ The navigator table re-fills its capped columns on a resize. **Exceptions, fixed
 and the parts card keep `size.dialog.small`; the first-run screen keeps the reading measure `size.text_measure`
 (520), a line length that does not grow with the window. A right-click menu (the canvas's, a navigator row's) is as
 wide as its widest entry: the icon column, the label, `space.6` and the shortcut, no label wrapping and a greyed
-entry's reason wrapping within it (a persona run saw a terminal's menu about 550 px wide; the sample's wrapped its
-labels). What
-remains of the look at 1920 (the ribbon's and the menu bar's empty middle, the right rail) is FT-798.
+entry's reason wrapping within it. What
+remains of the look at 1920 (the ribbon's and the menu bar's empty middle, the right rail) is not solved.
 
-*As built (W40a item 4).* **The macro card's value fields** follow a form dialog, not
+**The macro card's value fields** follow a form dialog, not
 the preview's width: the label column is as wide as the widest label, at most half the row; the field is as wide as
 a form dialog's field (`dialog::form_width` less its margins, growing with the window, never wider than the panel);
 a refusal sits right under its field (about 735 px of field at 1920). The Macros navigator's
 thumbnail gives up height before its detail card clips.
 
-*As built.* **The keyboard-shortcuts list** (Help ▸ Keyboard shortcuts) is a
+**The keyboard-shortcuts list** (Help ▸ Keyboard shortcuts) is a
 list dialog that fits its content up to half the window's height, in whole rows: a row is `max(size.row,
 size.control)` high (28 px) with no gap, so 19 rows show at 1920 and 25 at 2560; mid-scroll positions are not
 snapped to whole rows. Of the columns' room the keys column takes at most 25 % and the "where" column at most
@@ -134,7 +132,7 @@ One accent, one primary action per surface, a contrast budget.
   NN/g: "If everything is contrasted, then nothing stands out."
 - **Do** give each dialog, card and banner exactly one filled (primary) button, and the command row at most one: the
   tab's next step at its right end (§5.2); the others are secondary or subtle.
-- **Don't** fill hovered menu items with saturated accent (today's View menu does); hover is a neutral overlay.
+- **Don't** fill hovered menu items with saturated accent; hover is a neutral overlay.
 
 ### P5 Task-ordered commands (logical progression)
 
@@ -176,7 +174,7 @@ Every action has a keyboard path; the frequent ones a key (NFR-A11Y-01, doc 16 �
 Contrast, names and patterns are part of the token and component definitions, not a later pass.
 - **Do** meet 4.5:1 for text and 3:1 for icons, component boundaries and focus rings in light and dark, and 7:1 for
   text in high contrast (NFR-A11Y-04, WCAG 2.1 SC 1.4.3, 1.4.11); overlays reach 3:1 on the white sheet
-  (NFR-A11Y-03). The token test (WP-S2.17 part 1) enforces it.
+  (NFR-A11Y-03). The token test enforces it.
 - **Do** give every icon-only control an accessible name and a tooltip, from the registry label.
 - **Don't** carry meaning by colour alone, and don't put text under 11 px at 100 % scale.
 
@@ -284,7 +282,7 @@ row. **Text** needs 4.5:1, **non-text** (icons, boundaries, focus) 3:1.
 | `color.state.pressed` | `slate-900` at 10 % | #FFFFFF at 12 % | — | — | — | Pressed overlay |
 | `color.error` … `color.success` | §4.4 | §4.4 | panel | 5.59, 5.43, 5.90 | 6.9, 8.6, 7.4 | Findings, outcomes |
 
-Every value in both columns is recomputed by the token test of WP-S2.17 part 1; a token that fails is changed in the
+Every value in both columns is recomputed by the token test; a token that fails is changed in the
 dump, not exempted. Selected rows keep their text readable: primary text on `color.accent.subtle` is 14.7:1 (light)
 and 10.4:1 (dark); the accent label of an active command on `color.accent.subtle` is 4.95:1 and 4.64:1. Other pairs
 the mockup uses: secondary text on chrome 6.19:1, warning text on its subtle fill 4.98:1 (dark 7.31:1), the HUD's
@@ -299,7 +297,7 @@ lines of the drawing.
 |---|---|---|---|
 | `canvas.surround` | light `slate-150` #E3E6EA, dark #2E3238 | — | The grey around the sheet |
 | `canvas.sheet_shadow` | elevation 1 (§4.10) | — | Lifts the sheet off the surround |
-| `canvas.grid_dot` | #B8BEC7 | 1.9 (intentionally faint) | Dots; the pitch doubles below 8 points (as built) |
+| `canvas.grid_dot` | #B8BEC7 | 1.9 (intentionally faint) | Dots; the pitch doubles below 8 points |
 | `canvas.selection` | `volt-600` #0B63CE | 5.69 (3.69 on black lines) | Solid 2s-px outline with a 1s-px white casing, 8s-px square corner handles |
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3); a Level guide, dotted (doc 06a §6) |
@@ -316,17 +314,16 @@ lines of the drawing.
 | `canvas.highlight.label` | #000000 | 6.43, 6.86, 6.14, 5.43 on the four hues | `type.caption` SemiBold on a highlight name chip |
 
 `s` is the integer scale factor `max(1, ⌊ppp⌋)`. **The highlight slots** take doc 16 §10.3's
-hues (the as-built Okabe–Ito orange and sky blue are 2.25:1 and 2.31:1 on white), and the slot geometry (an 8-pt band,
-fill alpha 77, 2-pt hatch at a 6-pt pitch) stays as built. **The selection departs from §10.3's #0072B2** for the
+hues and geometry (an 8-pt band, fill alpha 77, 2-pt hatch at a 6-pt pitch). **The selection departs from §10.3's #0072B2** for the
 accent #0B63CE, so the tree, the Properties header and the canvas show the selected object in one colour; both are
 blue, and the CVD renders of NFR-A11Y-03 are re-run with the new value. **Highlight name chips** are filled with
 their slot's hue (`radius.sm`, 20 px high), as in the mockup; their label is black, because white on the four hues
-is 3.87, 3.42, 3.06 and 4.25:1, under NFR-A11Y-04's 4.5:1 for text (one of the two corrections of §11).
+is under NFR-A11Y-04's 4.5:1 for text (one of the two corrections of §11).
 
 With slot 1 violet, white on the four hues in slot order is 3.27,
 3.06, 3.42 and 3.87:1, so the label stays black (the table's 6.43, 6.86, 6.14 and 5.43).
 
-*As built.* The open-CP squares are a session overlay, never in the display list, print or PDF. On paper, a black box's pins print their CP designations as stored, with the PLC address after one space when the CP is bound ("1 I0.0"): on the top and bottom sides turned a quarter, reading from bottom to top (a text of signs only, "+" or "−", horizontal), on the left and right sides horizontal; pin texts never move, and a cross-reference that would overlap one drops below it.
+The open-CP squares are a session overlay, never in the display list, print or PDF. On paper, a black box's pins print their CP designations as stored, with the PLC address after one space when the CP is bound ("1 I0.0"): on the top and bottom sides turned a quarter, reading from bottom to top (a text of signs only, "+" or "−", horizontal), on the left and right sides horizontal; pin texts never move, and a cross-reference that would overlap one drops below it.
 
 ### 4.7 High-contrast themes
 
@@ -358,7 +355,7 @@ do not jitter; no monospace face is needed.
 At most three sizes in one panel (NN/g). Sizes scale with the UI scale (100 % to 300 %); `type.caption` at 11 px is
 the floor and the configurable minimum font size (FR-UI-027) raises every token proportionally.
 
-*As built.* **The minimum text size raises each token below it
+**The minimum text size raises each token below it
 to the minimum**, not every token proportionally, as platforms' minimum font sizes do; the UI scale is the proportional
 control. View ▸ Minimum text size offers Off, 12, 14 and 16; its "pt" is this table's px at 100 %. At 16 `type.title` and
 `type.body` share a size and differ by weight, which is accepted for a minimum.
@@ -389,16 +386,16 @@ padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 | `size.command.large` | 46 × ≥ 52 | 28 high | Comfortable: icon 20 over label, 2-px gap; Compact: icon 20 beside label |
 | `size.command.small` | 24 | 24 | Icon 16 and label beside it |
 | `size.quick_access` | 28 × 24 | 28 × 24 | Save, Undo, Redo |
-| `size.search` | 280 × 24 | 280 × 24 | The command search field's least width; as built it is 0.2 of the tab row, 384 at 1920 and 512 at 2560 (§2) |
+| `size.search` | 280 × 24 | 280 × 24 | The command search field's least width; it is 0.2 of the tab row, 384 at 1920 and 512 at 2560 (§2) |
 | `size.panel_header` | 32 | 32 | Navigator, Properties and palette headers |
 | `size.dock_tab_bar` | 32 | 32 | Canvas-tab bar (tabs 28 high) and the bottom dock's tab row |
 | `size.rail` | 40 | 40 | Rail width; rail buttons 32 square |
 | `size.status` | 26 | 26 | Status bar; its fields 22 high |
-| `size.panel.left` | 280 (220 to 640) | 280 | Navigator and Properties column; Properties takes half its height; its least default width (as built, shown 480 wide at 1920 and 640 at 2560 while not dragged, §2) |
-| `size.panel.left_max` | 640 | 640 | As built: the widest the left column is shown while it keeps its default share (from about 2380) |
-| `size.panel.right` | 280 (220 to 480) | 280 | Palettes. *Not built:* the token was removed because nothing read it; FT-835 proposes the right column that reads it |
-| `size.text_measure` | 520 | 520 | As built: the line length of running text on a full-window page (the first-run screen), fixed on purpose |
-| `size.dock.bottom` | 184 | 184 | The mockup's reference height of the bottom dock only (the mockup's `.bottom` rule, checked by DL8); as built the dock does not open at it (§5.7) |
+| `size.panel.left` | 280 (220 to 640) | 280 | Navigator and Properties column; Properties takes half its height; its least default width (shown 480 wide at 1920 and 640 at 2560 while not dragged, §2) |
+| `size.panel.left_max` | 640 | 640 | The widest the left column is shown while it keeps its default share (from about 2380) |
+| `size.panel.right` | 280 (220 to 480) | 280 | Palettes. Not built: no right column reads it, so the token is not in the theme |
+| `size.text_measure` | 520 | 520 | The line length of running text on a full-window page (the first-run screen), fixed on purpose |
+| `size.dock.bottom` | 184 | 184 | The mockup's reference height of the bottom dock only (the mockup's `.bottom` rule, checked by DL8); the dock does not open at it (§5.7) |
 | `size.dock.bottom_min` | 300 | 300 | The bottom dock's least shown height: in the vertical split that holds the page view, the child holding a bottom pane is shown at least this high, at most 2/3 of the split; display only, the user's shares stay the layout (§5.7) |
 | `size.property_label` | 96 | 96 | The property label column |
 
@@ -495,15 +492,15 @@ none of it reads raw egui defaults.
 
 These are for the widgets built alongside this
 document (§6.21 to §6.25). Each is a component token (§4.1, layer 3) defined by an alias or an existing size; none
-adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases. *As built:* `size.dialog.label` and `size.dialog.preview` are the exceptions, raw 160 px and 1040 px in both densities; `color.badge.on_chrome` is checked as a background of `color.text.secondary` in the token dump.
+adds a raw value, so the token test checks them through their aliases. `size.dialog.label` and `size.dialog.preview` are the exceptions, raw 160 px and 1040 px in both densities; `color.badge.on_chrome` is checked as a background of `color.text.secondary` in the token dump.
 
 | Token | Comfortable | Compact | Defined as | Use |
 |---|---|---|---|---|
 | `size.table_header` | 24 | 24 | `size.control.inline` | The header row of every table and data grid (§6.7, §6.21) |
-| `size.table_column` | 110 (40 to 480) | 110 (40 to 480) | as built (WP-S2.06 part 3) | A grid column's starting width and its resize range |
-| `size.severity_icon` | 16 | 16 | `icon.sm` | Severity icons in finding rows, grid cells and the Messages counts (as built 10 px) |
+| `size.table_column` | 110 (40 to 480) | 110 (40 to 480) | raw | A grid column's starting width and its resize range |
+| `size.severity_icon` | 16 | 16 | `icon.sm` | Severity icons in finding rows, grid cells and the Messages counts |
 | `size.chooser` | 240 to 360 wide, 8 rows | the same | `size.row` × 8 high at most | The chooser list (§6.22) |
-| `size.preview_list` | 10 rows | 10 rows | `size.row` × 10 | Rows a Preview list shows before it scrolls (as built: 10 rows) |
+| `size.preview_list` | 10 rows | 10 rows | `size.row` × 10 | Rows a Preview list shows before it scrolls |
 | `size.card_strip` | 28 | 28 | `size.control` | The "Preview open" strip (§6.23) |
 | `color.table.frozen_edge` | = `color.border.default` | = `color.border.default` | alias | The frozen key column's right edge, the grid's one vertical line (§6.21) |
 | `color.table.cursor` | = `color.focus` | = `color.focus` | alias | The cursor cell's 2-px inset ring while the grid has the keyboard (5.69:1 and 6.0:1 on the panel, 4.95:1 and 4.64:1 on a marked row) |
