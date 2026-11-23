@@ -68,8 +68,7 @@ pub fn cp_cell(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Optio
 
 /// The point at which `rep`, drawn with `symbol` (its symbol copy's item) on a page of `grid`, draws `(function, idx)`
 /// by the symbol's CPs or its black box, and the direction a wire leaves it in (see the module documentation); `None`
-/// when `rep` does not draw it or the point would overflow. The part of [`cp_end`] that reads no index: a caller that
-/// holds the records another way (a transaction of `ew-commands`) places a CP by the same rule.
+/// when `rep` does not draw it or the point would overflow. The part of [`cp_end`] that reads no index.
 pub fn rep_cp_end(
     rep: &Representation,
     symbol: &SymbolDef,
@@ -77,27 +76,67 @@ pub fn rep_cp_end(
     function: Id<Function>,
     idx: u16,
 ) -> Option<(Pt2, Option<Dir4>)> {
-    let placed = |local: Pt2, dir: &Dir4| {
-        let point = rep.pos.checked_add(rep.orient.checked_apply(local)?)?;
-        Some((grid.settle_point(point), oriented_dir(dir, rep.orient)))
+    rep_drawn_cps(rep, symbol)
+        .into_iter()
+        .filter(|c| (c.function, c.idx) == (function, idx))
+        .find_map(|c| {
+            let point = rep.pos.checked_add(rep.orient.checked_apply(c.local)?)?;
+            Some((grid.settle_point(point), c.dir))
+        })
+}
+
+/// One function CP a representation draws by a symbol CP or a box CP ([`rep_drawn_cps`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RepDrawnCp {
+    /// The symbol's CP index (`SymbolCp.idx`); a box CP's own index.
+    pub symbol_cp: u16,
+    /// The function the CP belongs to.
+    pub function: Id<Function>,
+    /// The function's CP index.
+    pub idx: u16,
+    /// The CP's place in the symbol frame (`R0`), before the representation's position and orientation.
+    pub local: Pt2,
+    /// The direction a wire leaves it in on the page: the CP's `dir` turned by the representation's orientation;
+    /// `None` when it is unknown.
+    pub dir: Option<Dir4>,
+}
+
+/// The function CPs `rep` draws with `symbol` (its symbol copy's item), in symbol-CP order: each symbol CP stands for
+/// the function CP of its `pin_map` entry, else `(functions[0], cp.fn_cp)`. A black box (a symbol without CPs on a
+/// representation with a `box`) draws its box CPs instead, in stored order, each as `(functions[0], cp.idx)`. Where the
+/// page places them is [`rep_cp_end`]'s rule; a caller that holds the records another way (a transaction of
+/// `ew-commands`) lists a representation's CPs by the same rule.
+pub fn rep_drawn_cps(rep: &Representation, symbol: &SymbolDef) -> Vec<RepDrawnCp> {
+    if !symbol.cps.is_empty() {
+        return symbol
+            .cps
+            .as_slice()
+            .iter()
+            .filter_map(|cp| {
+                let (function, idx) = rep.fn_cp_of(cp)?;
+                Some(RepDrawnCp {
+                    symbol_cp: cp.idx,
+                    function,
+                    idx,
+                    local: cp.pos,
+                    dir: oriented_dir(&cp.dir, rep.orient),
+                })
+            })
+            .collect();
+    }
+    let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
+        return Vec::new();
     };
-    let by_symbol = symbol.cps.as_slice().iter().find_map(|cp| {
-        let (f, i) = rep.fn_cp_of(cp)?;
-        ((f, i) == (function, idx))
-            .then(|| placed(cp.pos, &cp.dir))
-            .flatten()
-    });
-    if by_symbol.is_some() || !symbol.cps.is_empty() {
-        return by_symbol;
-    }
-    let b = rep.box_.as_ref()?;
-    if rep.functions.first() != Some(&function) {
-        return None;
-    }
     b.cps
         .iter()
-        .find(|c| c.idx == idx)
-        .and_then(|c| placed(c.pos, &c.dir))
+        .map(|cp| RepDrawnCp {
+            symbol_cp: cp.idx,
+            function,
+            idx: cp.idx,
+            local: cp.pos,
+            dir: oriented_dir(&cp.dir, rep.orient),
+        })
+        .collect()
 }
 
 /// The point at which a strip segment on `page` draws terminal CP `(function, idx)`, and the direction a wire leaves

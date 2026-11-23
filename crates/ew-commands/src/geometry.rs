@@ -86,15 +86,13 @@ pub fn sub(a: Pt2, b: Pt2) -> Result<Pt2, OutOfRange> {
     ))
 }
 
-/// The drawn CPs of a representation, in symbol-CP order: the symbol copy's CPs (base variant) placed at
-/// `rep.pos + rep.orient(cp.pos)`, each mapped to a function CP by the stored `pin_map` entry or, by
-/// default, to `(functions[0], cp.fn_cp)` (doc 07 §5: the pin map is derived unless it deviates). A black box
-/// (a symbol without CPs and a `box`) draws its box CPs instead, in stored order, each at
-/// `rep.pos + rep.orient(cp.pos)` and mapped to `(functions[0], cp.idx)`, with `symbol_cp` = `cp.idx`. A point within
-/// 1 nm of a position of the page's grid is the grid's own number for it ([`Grid::settle_point`]). The rule of
-/// `ew_derive`'s `cp_point`, the scene and the Wire tool's targets, so the CP-exact rule of [`require_route`] covers
-/// a black box's pins as it covers a symbol's. A symbol copy that is not embedded yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is
-/// not drawn (the commands that place or move a representation refuse that with [`rep_cps_checked`]).
+/// The drawn CPs of a representation, in symbol-CP order: the function CPs it draws by its symbol's CPs or its black
+/// box ([`ew_derive::rep_drawn_cps`]), each placed at `rep.pos + rep.orient(cp.pos)`. A point within 1 nm of a position
+/// of the page's grid is the grid's own number for it ([`Grid::settle_point`]). The rule of `ew_derive`'s `cp_point`,
+/// the scene and the Wire tool's targets, so the CP-exact rule of [`require_route`] covers a black box's pins as it
+/// covers a symbol's; the terminals a strip segment draws are not among them. A symbol copy that is not embedded
+/// yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is not drawn (the commands that place or move a
+/// representation refuse that with [`rep_cps_checked`]).
 pub fn rep_cps(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<RepCp> {
     cps_of(tx, rep).into_iter().filter_map(Result::ok).collect()
 }
@@ -551,6 +549,8 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
         return Vec::new();
     };
     // A point within 1 nm of a grid position is the grid's own number for it (`Grid::settle_point`, doc 06a §2.1).
+    // The commands place a CP within ±`MAX_COORD`: a local place or a page point beyond it is `OutOfRange`, and a
+    // settled point beyond it keeps the unsettled one.
     let grid = tx.get::<Page>(rep.page).map_or(Grid::MM4, |p| p.grid);
     let placed = |local: Pt2| {
         if point_in_range(local) {
@@ -563,13 +563,8 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
             Err(OutOfRange)
         }
     };
-    let vertical = |dir: &Dir4| {
-        ew_derive::oriented_dir(dir, rep.orient)
-            .as_ref()
-            .and_then(ew_derive::dir_vertical)
-    };
     let out = |dir: &Dir4| {
-        let (x, y) = match ew_derive::oriented_dir(dir, rep.orient)? {
+        let (x, y) = match dir {
             Dir4::Up => (0, -1),
             Dir4::Right => (1, 0),
             Dir4::Down => (0, 1),
@@ -578,40 +573,17 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
         };
         Some(Pt2::new(Nm(x), Nm(y)))
     };
-    if symbol.item.cps.is_empty() {
-        let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
-            return Vec::new();
-        };
-        return b
-            .cps
-            .iter()
-            .map(|cp| {
-                placed(cp.pos).map(|pos| RepCp {
-                    symbol_cp: cp.idx,
-                    function,
-                    idx: cp.idx,
-                    pos,
-                    vertical: vertical(&cp.dir),
-                    out: out(&cp.dir),
-                })
-            })
-            .collect();
-    }
-    symbol
-        .item
-        .cps
-        .as_slice()
-        .iter()
-        .filter_map(|cp| {
-            let (function, idx) = rep.fn_cp_of(cp)?;
-            Some(placed(cp.pos).map(|pos| RepCp {
-                symbol_cp: cp.idx,
-                function,
-                idx,
+    ew_derive::rep_drawn_cps(rep, &symbol.item)
+        .into_iter()
+        .map(|cp| {
+            placed(cp.local).map(|pos| RepCp {
+                symbol_cp: cp.symbol_cp,
+                function: cp.function,
+                idx: cp.idx,
                 pos,
-                vertical: vertical(&cp.dir),
-                out: out(&cp.dir),
-            }))
+                vertical: cp.dir.as_ref().and_then(ew_derive::dir_vertical),
+                out: cp.dir.as_ref().and_then(out),
+            })
         })
         .collect()
 }
