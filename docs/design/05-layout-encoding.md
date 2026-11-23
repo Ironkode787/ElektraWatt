@@ -25,7 +25,7 @@ A chapter of [Project format and persistence](05-project-format-and-persistence.
 | `<name>.ew/.ew/u-<hash>/` | Per-user view state in `view.json`: open pages, viewports, jump history, workspace (FR-UI-033). `<hash>` = 8 hex digits of SHA-256(`user@host`), so the users of a shared folder do not overwrite each other. From 1.0 also `base.ewz`, the base generation of a work copy ([15](15-checks-revisions-collaboration.md) §6.8) | Ignored |
 | `<name>.ew/.~ew.lock` | Lock record (§7); `.~ew.lock.stale-<session>` after a takeover | Ignored |
 | `<name>.ew/.~ew.requests/` | "Request edit" files (1.x, [15](15-checks-revisions-collaboration.md) §6.2) | Ignored |
-| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05). *As built:* also `releases/`, one record per release run of a project directory and archive (§14.1), removed when the run is settled or found stale | Never |
+| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05). Also `releases/`, one record per release run of a project directory and archive (§14.1), removed when the run is settled or found stale | Never |
 | OS cache directory | STEP meshes, thumbnails, the file-backed SQL projection at XL, read-only `.ewz` extractions, the derived per-user library search index (§13.1) | Never |
 | OS data directory | User library and installed community packs ([07](07-symbols-parts-macros.md) §2.1) | Never |
 | OS configuration directory | Settings, recent projects, **trust decisions** (§13.4) | Never |
@@ -53,12 +53,11 @@ mapping crate (etcetera or directories) is **(verify)**, as in ARCH §3.
 
 ## 2. Directory layout and record ownership
 
-### 2.1 Layout of the golden project
+### 2.1 The layout, by example
 
-The reference project on disk, as an example of the layout (Golden A, retired at 0.3.5; see the
-[glossary](glossary.md)). The sample project `fixtures/sample/sample.ew` has the same layout. Its IDs were UUIDv5
-values derived from its tables, as `ew import csv` derives them; records created in the GUI get UUIDv7 IDs
-(ADR-0004).
+The layout, shown on a project of the reference drawing set (its names and counts are that project's). The sample
+project `fixtures/sample/sample.ew` has the same layout. Records imported from tables have UUIDv5 IDs derived from
+their rows, as `ew import csv` derives them; records created in the GUI get UUIDv7 IDs (ADR-0004).
 
 ```text
 J-E-2416.ew/                      # folder name chosen by the user; everything inside is UUID-named
@@ -83,24 +82,23 @@ J-E-2416.ew/                      # folder name chosen by the user; everything i
   .gitattributes  .gitignore      # §11.1; not listed in the manifest
 ```
 
-Optional directories and files are absent in the golden project:
+Optional directories and files, absent in the example:
 - `rules/<uuid>.toml` (a project rule pack; its rhai, SQL, Fluent and doc files go into `rules/<uuid>/`; the human
   pack ID such as `EW-POT` lives inside the file, [15](15-checks-revisions-collaboration.md) §3.7) and
   `reports/<uuid>.sql` (user SQL reports);
 - `imports/<run-uuid>.jsonl` (MVP): one file per import run (kind `import_run`), so import runs never conflict with
   project data; the lineage they belong to is an `import_lineage` record in `project.jsonl`
-  ([14](14-interop.md) §2.3, ADR-0004 amendment 1);
-  *as built:* the QET project import writes
+  ([14](14-interop.md) §2.3, ADR-0004 amendment 1); the QET project import writes
   one such file, one line, per import into a lineage, never changed after its transaction and deleted by no command;
-  `ImportLineage.last_run` links the lineage's last run; the golden CSV bootstrap, the parts table import and the
-  table round trip write none, so Golden A has no `imports/` folder;
+  `ImportLineage.last_run` links the lineage's last run; the CSV bootstrap, the parts table import and the
+  table round trip write none;
 - from 1.0, `scripts/<uuid>.rhai` and `jobs/<uuid>.ewjobs` (ADR-0010 amendment 2);
 - from 1.0, `exchange/<config-project-uuid>.jsonl`: the PLC exchange records and foreign IDs of one configuration
   project (kinds `exchange_record`, `foreign_id`), included in the as-built archive; the `PlcConfigProject` keeps
-  only the exchange stamp ([10](10-plc-and-bus.md) §4.2). *As built (WP-S3.16):* both kinds are typed within format
+  only the exchange stamp ([10](10-plc-and-bus.md) §4.2). Both kinds are typed within format
   0.1 (ADR-0011 amendments 4 and 6); a record names its configuration project (`config_project`, a load-tolerant
   link that cascades) and the record its object is (`target`, history and no link); the file exists once a
-  configuration project was exchanged or an instrument list applied, so Golden A has no `exchange/` folder;
+  configuration project was exchanged or an instrument list applied;
 - from 1.0, `lib/plc-profiles/<copy_id>.json` (user PLC address profiles, kind `plc_profile`; built-in profiles are
   versioned and never removed) and `lib/profiles/<copy_id>.toml` (machine and label profiles kept in their TOML
   source form, so that the SHA-256 equals the published item; the `schema` key tells the two apart,
@@ -109,22 +107,19 @@ Optional directories and files are absent in the golden project:
   `assets/<sha256>.glb` ([12](12-panel-layout.md) §6.2).
 
 User PLC address profiles in
-`lib/plc-profiles/<copy_id>.json` (kind `plc_profile`, §2.2's row) are the MVP's, not 1.0's: FR-PLC-008 (MVP) binds
-over this list's date, and WP-S7.03 D7 types the kind with the built-in profiles as library documents. The machine
-and label profiles of `lib/profiles/` stay 1.0's.
+`lib/plc-profiles/<copy_id>.json` (kind `plc_profile`, §2.2's row) are the MVP's, not 1.0's (FR-PLC-008), and the built-in profiles are library documents of the kind too. The
+machine and label profiles of `lib/profiles/` stay 1.0's.
 
-*As built.* The kind `plc_profile` is
-implemented: `PlcProfileDef` in `ew-schema` (doc 10 §2.5's members), `LibDocument::PlcProfile`, the record directory
+The kind `plc_profile` is `PlcProfileDef` in `ew-schema` (doc 10 §2.5's members), `LibDocument::PlcProfile`, the record directory
 `plc-profiles` of a library and `lib/plc-profiles/<copy_id>.json` of a project, item keys `ew.plc-profile.<id>`, the
-schema in `schemas/0.1`. The two built-in profiles are compiled into `ew-derive` from `content/plc-profiles/`
-(`siemens-tia-intl.json`, `iec-61131-3.json`); a project's copy of a profile is found before the built-in of the same
-pin everywhere. §2.2's row reads "MVP" for the kind.
+schema in `schemas/0.1`. The built-in profiles are compiled into `ew-derive` from `content/plc-profiles/`; a project's
+copy of a profile is found before the built-in of the same pin everywhere.
 
 None of the rule, report, script or job content runs until the user trusts the project (NFR-SEC-05, §13.4).
 
-**Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3). The save protocol's
+**Temps, orphans and strays** (ADR-0010 amendment 3). The save protocol's
 own temps ("our temps") are the intents `manifest.json.tmp-<g>` and the `.tmp-<g>` files of record files, library
-documents and assets (`assets/<sha256>.<ext>.tmp-<g>`, as built); an editing open
+documents and assets (`assets/<sha256>.<ext>.tmp-<g>`); an editing open
 deletes or rolls forward only those (§5.3, §6.1). Every other file that the
 manifest does not list is left alone: with a manifest present it is never read, never deleted and reported as
 EW-CORE-004 (§6.2). A save that needs the path of such a file first moves it aside to
@@ -163,15 +158,13 @@ rule**. Ranks are never reused or renumbered.
 | — | `machine_profile`, `label_profile` (library copies, 1.0) | `lib/profiles/<id>.toml`, the TOML source form; the `schema` key tells the kinds apart | own ID |
 | 255 | `conflict` | file of its target | target |
 
-**The project record's text styles** (as built, [ADR-0032](../adr/0032-per-project-text-styles.md)). `ProjectSettings.text_styles` is an optional member of the `project` record in `project.jsonl`: an object keyed by style key, each value `{"size": <em height in nm>, "weight": "regular" | "bold"}` (weight optional) plus unknown members kept verbatim, written in key order. It is additive within format 0.1 (ADR-0011 amendment 4): `schemas/0.1` re-blessed, no version step, an older 0.1 build keeps it in `settings.extra`. An absent or empty member means the built-in table; nothing writes it into a file that lacks it except `Session::new_project`, which writes `cp.small` and `marker` at 1,852,083 nm (7 QET px). On reading, an override whose size lies outside 500,000 … 50,000,000 nm is ignored (the built-in row stays) and a weight of a newer format reads as absent; `project.settings.set` refuses both at `/text_styles/<key>/size` or the member's path. `ProjectSettings.revision_label` is declared before `text_styles`, in byte order of the names, so a line that held both as unknown members stays canonical when a newer build types them. `ProjectSettings.typeface` (since 0.3.5, [09](09-reports-forms-output.md) §4.8), `{"asset": "sha256:<64 hex>", "name": "<file name>"}`, is the last declared member, additive in the same way: an older build keeps it in `settings.extra` and its file as an opaque asset file.
+**The project record's text styles** ([ADR-0032](../adr/0032-per-project-text-styles.md)). `ProjectSettings.text_styles` is an optional member of the `project` record in `project.jsonl`: an object keyed by style key, each value `{"size": <em height in nm>, "weight": "regular" | "bold"}` (weight optional) plus unknown members kept verbatim, written in key order. It is additive within format 0.1 (ADR-0011 amendment 4): no version step, and an older 0.1 build keeps it in `settings.extra`. An absent or empty member means the built-in table; nothing writes it into a file that lacks it except `Session::new_project`, which writes `cp.small` and `marker` at 1,852,083 nm (7 QET px). On reading, an override whose size lies outside 500,000 … 50,000,000 nm is ignored (the built-in row stays) and a weight of a newer format reads as absent; `project.settings.set` refuses both at `/text_styles/<key>/size` or the member's path. `ProjectSettings.revision_label` is declared before `text_styles`, in byte order of the names, so a line that held both as unknown members stays canonical when a newer build types them. `ProjectSettings.typeface` ([09](09-reports-forms-output.md) §4.8), `{"asset": "sha256:<64 hex>", "name": "<file name>"}`, is the last declared member, additive in the same way: an older build keeps it in `settings.extra` and its file as an opaque asset file.
 
-**`page_item` and `structure_box`** (specified 2026-10-23). Both kinds have had
-their rank and ownership since the registry was written: `page_item` is rank 43 and `structure_box` rank 44, each
-owned by the page file of its `page` member. In `ew-schema` both are `KindStatus::Implemented`; as reserved kinds their records were
-kept verbatim (§10.3). Their typed tables are additive within format 0.1 on the basis of ADR-0011 amendment 4 (§10.3 rule 2), which applies again: `schemas/0.1` is re-blessed, with no format bump and no `$v` bump, and an
-older 0.1 build keeps the records verbatim. The shapes below are those of WP-S2.04 §10.1; the domain model's
-[03](03-domain-model.md) §5 (`StructureBox`) and §6 (`PageItem`) carry the fields. Illustrative records, on folio 101
-of the golden project (Golden A has neither kind; IDs shortened, the connection is W7):
+**`page_item` and `structure_box`.** `page_item` is rank 43 and `structure_box` rank 44, each
+owned by the page file of its `page` member; in `ew-schema` both are `KindStatus::Implemented`. Their typed tables
+are additive within format 0.1 (ADR-0011 amendment 4, §10.3 rule 2): no format bump and no `$v` bump, and an
+older 0.1 build keeps the records verbatim. The domain model's [03](03-domain-model.md) §5 (`StructureBox`) and §6
+(`PageItem`) carry the fields. Illustrative records on a folio 101 (IDs shortened, the connection is W7):
 
 ```json
 {"$k":"page_item","id":"…","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"wire_marker":{"connections":["b29e4f17-8d63-5a0c-9f71-3c6a2e8d05b1"],"at":[90000000,24000000],"fields":["csa","colour"]}}}
@@ -181,7 +174,7 @@ of the golden project (Golden A has neither kind; IDs shortened, the connection 
 
 - **`page_item`:** `{"$k", "id", "$v"?, "page", "layer"?: Ident, "kind": <variant>}`, the variant an externally tagged
   object: `graphic`, `free_text`, `wire_marker` or `surface_view` (`{"surface", "datum_at", "label_mode"?}`, on a
-  `panel_layout` page only, set by `page.surface_view.set`), `image` and `underlay` (WP-S3.19). Their members,
+  `panel_layout` page only, set by `page.surface_view.set`), `image` and `underlay`. Their members,
   enumerations and defaults are in [03](03-domain-model.md) §6. Any other variant (`macro_box`, `model_view`,
   `dimension`) is kept verbatim as `PageItemKind::Unknown(Value)` (§10.3 rule 3) and round-trips
   byte for byte, as does a variant of a newer format.
@@ -198,7 +191,7 @@ of the golden project (Golden A has neither kind; IDs shortened, the connection 
   an integrity rule of §6.3; specified; not built: `Session::load_findings` is gone, so nothing is reported). The stale entry is ignored
   by the derivation and the drawing, and the project opens; the next edit of that marker writes a clean list.
 - **Migration test.** A page file that holds both kinds and an unknown `page_item` variant is read and written back byte
-  for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3). *As built:* that file round-trips byte for byte; the same records as an earlier build wrote them (reserved kinds, so every object's members in byte-wise order) load typed with a `NonCanonical` finding and are rewritten in the typed kinds' member order (§10.3; the revision precedent). `free_text.text` is omitted when empty, `arc.start` when 0 and `$v` when 1, so an explicit `"$v": 1` is not canonical.
+  for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3); the same records as an earlier build wrote them (reserved kinds, so every object's members in byte-wise order) load typed with a `NonCanonical` finding and are rewritten in the typed kinds' member order (§10.3; the revision precedent). `free_text.text` is omitted when empty, `arc.start` when 0 and `$v` when 1, so an explicit `"$v": 1` is not canonical.
 
 **`macro_instance`, `macro` and `manufacturer`**.
 The three kinds turn `Implemented`, each at schema version 1, under the same rule (ADR-0011 amendment 4, §10.3 rule 2):
@@ -211,12 +204,12 @@ The three kinds turn `Implemented`, each at schema version 1, under the same rul
   stays). An older 0.1 build keeps its lines verbatim as a reserved kind and does not apply these links.
 - **`macro` and `manufacturer`** are library copies under `lib/macros/` and `lib/manufacturers/`, one pretty document
   each (§3.4), read and written and hashed like the other library kinds (§13.2).
-- **`placeholder_group`** (rank 47) stays reserved (WP-S1.19 D15).
+- **`placeholder_group`** (rank 47) stays reserved.
 
 Channel IDs are `v5(module, "channel", number)` ([10](10-plc-and-bus.md) §2.4, ADR-0004 amendment 2), so a channel
 keeps its file and line position however often its module is re-addressed.
 
-**Anchor fallbacks** (2026-10-20, format level). Every record of a known kind has exactly one
+**Anchor fallbacks** (format level). Every record of a known kind has exactly one
 deterministic file, also when its anchor cannot be resolved the normal way:
 - a page-less record anchored at a connection point of an interruption-point function (which has no device), such
   as a page-less connection or a potential definition at that point, follows the function into its page file;
@@ -230,8 +223,8 @@ deterministic file, also when its anchor cannot be resolved the normal way:
 
 A shard is `devices/<xx>.jsonl`, where `xx` is the anchor ID's last byte as two lower-case hex digits. The
 [domain model](03-domain-model.md) §14 allows a `LogicalNet` in its master's shard or in `project.jsonl`; this
-format always uses `project.jsonl`, so that a change of master (in the golden project the external partner
-JE-N1000-03) does not re-key the net.
+format always uses `project.jsonl`, so that a change of master (an external partner such as JE-N1000-03) does not
+re-key the net.
 
 **Follow relations.** Some records take their file from another record. A transaction that changes one of these
 source fields re-keys the dependent records, and the writer marks both their old and their new files dirty:
@@ -242,12 +235,12 @@ source fields re-keys the dependent records, and the writer marks both their old
 | `Function.device` | page-less connections, potential, net and medium definitions and bonds at the function's CPs |
 | `Carrier.surface`, `MountingSurface.enclosure`, `Enclosure.space` | dependent layout records |
 
-*As built.* Ranks 50 to 54 (`layout_space`, `enclosure`,
-`mounting_surface`, `carrier`, `placement`) are implemented in `layout/<space>.jsonl`: a space owns itself, an
+Ranks 50 to 54 (`layout_space`, `enclosure`,
+`mounting_surface`, `carrier`, `placement`) live in `layout/<space>.jsonl`: a space owns itself, an
 enclosure names its space, and a surface, carrier and placement reach it through carrier → surface → enclosure. The
 follow closure re-keys the dependants of `Carrier.surface`, `MountingSurface.enclosure` and `Enclosure.space`, so a
 carrier moved to another surface moves its placements' lines, and an incremental save equals a full save (LM-1).
-Ranks 55 to 58 (`route_override`, `committed_route`, `routing_path`, `surface_feature`) have no table yet and are
+Ranks 55 to 58 (`route_override`, `committed_route`, `routing_path`, `surface_feature`) have no table and are
 kept and written as unknown records.
 
 A property test guards the table: after any random command sequence, incremental saves must equal a full save,
@@ -284,10 +277,10 @@ numbers live in `Connection.number`. A released revision's report snapshots live
   1. `"$k"`, `"id"`, `"$v"` (per-kind schema version, omitted when 1, §10.2);
   2. known members in **schema declaration order**;
   3. flattened device aspects (`strip`, `terminal`, `cable`, `assembly`, `plc_station`, `plc_module`, `bus_node`,
-     `valve_terminal`), as in the ARCH §7.3 example (as built, `assembly` is written before `plc_station`);
+     `valve_terminal`), as in the ARCH §7.3 example (`assembly` is written before `plc_station`);
   4. the `extra` map (unknown members and namespaced `plugin.<id>.*` keys, FR-EXT-021), in byte-wise key order.
 - **Defaults omitted.** A member equal to its schema default is not written: `None`, empty arrays and maps, `false`
-  flags and default enum variants. Where the default is not the type's zero value the schema names it. The v0
+  flags and default enum variants. Where the default is not the type's zero value the schema names it. The
   defaults: `Page.scale` `not_to_scale`; `Representation.rep_type` and `SymbolDef.rep_type` `multi_line`;
   `Junction.wiring` absent means the style's default (Dot: star, Bevel: chain); `Cable.length` `missing`;
   `ItemMeta.status` `released`; `CpDef.discipline` and `SymbolCp.discipline` `electrical`; `Strip.field_side`
@@ -413,7 +406,7 @@ byte 15, which is random under both schemes. Loading records in any order yields
 the same bytes on save (NFR-REL-07).
 
 **Unknown and reserved kinds.** Records of a kind this reader does not know, and of a reserved kind that has a
-rank but no table yet (such as `import_run`, or the layout kinds before WP-S4.01), are kept and written in the same
+rank but no table (such as `route_override`), are kept and written in the same
 order: by rank where the registry knows the kind, else after every known kind, ordered by the `$k` text byte-wise,
 and then by the ID order above. A duplicate `($k, id)` among them is EW-CORE-009 like any other (§6.3). Records of
 a **reserved** kind are kept verbatim without a finding, because this format version defines them; only kinds,
@@ -446,7 +439,7 @@ it, while the manifest hash stays over the file's bytes.
 Before this, a BOM made the copy opaque and the project failed to open with an integrity error (EW-INV-001), the
 first finding of the `migration_chain` fuzz target ([18](18-quality-security-release.md) §3.12).
 
-### 3.5 Example records (golden project)
+### 3.5 Example records
 
 Folio 101's page file holds the page row, the -101F1 representation and wire W7 (S51:1 → -101F1:1):
 
@@ -463,10 +456,9 @@ Folio 101's page file holds the page row, the -101F1 representation and wire W7 
   is additive within 0.1 (ADR-0011 amendment 4).
 - **W7.** Its 2.5 mm² BK is an explicit override (CDP) with a marker. W8 (-101F1:1 → F55:1) has **no**
   `overrides` member: its 1.5 mm² BK is derived (D-08).
-  *As built.* `route` is, in the schema's words, "the orthogonal
+  `route` is, in the schema's words, "the orthogonal
   route in nm, in model order: every vertex from end a's point to end b's, both included. Empty: the connection is
-  not routed." W7's two vertices are its two ends. The meaning changed before format 0.1 locks, so no
-  record shape and no migration changed; `schemas/0.1/connection.schema.json` carries the text.
+  not routed." W7's two vertices are its two ends; `schemas/0.1/connection.schema.json` carries the text.
 
 Shard `devices/c2.jsonl` holds -102G1 (ID ending `c2`) and, after it (rank 32 after 31), its main function:
 
@@ -516,8 +508,7 @@ copy of that item under `lib/manufacturers/` ([07](07-symbols-parts-macros.md) �
 
 `meta` is the part's provenance object (§3.4); the part's version is the copy metadata `version` alone.
 
-**A part with `mech`**. Golden A's part copies
-carry no L3 data, so this excerpt is the `ew-format` test fixture of 2904602 (dimensions and offsets are test values,
+**A part with `mech`**. This excerpt is the `ew-format` test fixture of 2904602 (dimensions and offsets are test values,
 not checked against a datasheet), with an alternative and a macro link; library IDs and the hash abbreviated. Lengths
 are nanometres, the mass grams. The typed members follow `cp_pattern` in the order of
 [07](07-symbols-parts-macros.md) §2.5 (`contacts`, `mech`, `sections`, `alternatives`, `configured`, `macros`). The
@@ -562,7 +553,7 @@ The JSONL loader is a hardened parser under NFR-SEC-02 and is fuzzed together wi
 - lines ≤ 16 MiB, files ≤ 512 MiB, ≤ 100,000 files, JSON nesting ≤ 64; a file or line beyond a limit is not
   read and is EW-CORE-019 (error, read-only), checked by a linear pre-scan before any parse;
   reading the manifest, the lock and an intent with the same bound before their size is checked is
-  not built yet;
+  not built;
 - duplicate member names rejected;
 - only regular files are read. Symbolic links and junctions inside the project are not followed (NFR-SEC-16),
   because a received project could otherwise make EW read, export or overwrite a file outside its directory.

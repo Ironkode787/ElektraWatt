@@ -33,7 +33,7 @@ A chapter of [Project format and persistence](05-project-format-and-persistence.
 | `generator` | Program and version that wrote this generation |
 | `project` | The project row's ID: key for the journal, the trust store and "two copies open" warnings |
 | `generation` | +1 per save; after a git merge, max(ours, theirs) + 1 (§11.3) |
-| `base` | `"sha256:<hex>"` of the raw bytes of the `manifest.json` that this generation's save replaced (ADR-0010 amendment 3). Written into the intent (§5.2 step 5) and therefore present in every manifest a save writes; absent in a first generation (the golden fixture has none). The comparison that skips writing an unchanged project ignores it, and no save copies an earlier `base` forward. It conflicts in text merges like `generation` (§11.3, §11.4) |
+| `base` | `"sha256:<hex>"` of the raw bytes of the `manifest.json` that this generation's save replaced (ADR-0010 amendment 3). Written into the intent (§5.2 step 5) and therefore present in every manifest a save writes; absent in a first generation. The comparison that skips writing an unchanged project ignores it, and no save copies an earlier `base` forward. It conflicts in text merges like `generation` (§11.3, §11.4) |
 | `files` | Every EW file except the manifest, the git files, `.ew/`, the lock files, `.~ew.requests/` and temps |
 | `merged` | `true` only when written by the merge driver: the hashes are not authoritative |
 | `unstable` | `true` when written by a development build with an unreleased schema (§10.4) |
@@ -182,10 +182,10 @@ and APFS. Every reopen must yield g or g+1.
   never as a silent mixed generation (NFR-REL-01).
 - **Error mode.** ENOSPC, EACCES, EROFS and, on Windows, `ERROR_SHARING_VIOLATION` are injected at each call: g
   stays intact, the project stays dirty, and the message names cause and remedy (NFR-REL-03).
-- **As built.** The kill, power-loss and error modes run in-process on the in-memory `MemVfs`,
-  which numbers, fails and "powers off" calls; the power-loss mode found the sync order that §5.2 steps 5 to 7 now
-  prescribe, and an extra probe of 2,944 double-crash roll-forward cases found no failure (the roll-forward is
-  idempotent). The child-process run on real ext4, NTFS and APFS volumes is a milestone task.
+- The kill, power-loss and error modes run in-process on the in-memory `MemVfs`,
+  which numbers, fails and "powers off" calls; the power-loss mode checks the sync order of §5.2 steps 5 to 7, and
+  the roll-forward is idempotent under a second crash. The child-process run on real ext4, NTFS and APFS volumes is
+  not built.
 
 ---
 
@@ -217,7 +217,7 @@ flowchart TD
 ```
 
 - **Only listed files are read.** With a manifest present the loader reads exactly the files it lists; any other
-  file in the layout is EW-CORE-004 and is not read (§6.2). *As built:* the readers of `ew` (export, print, render,
+  file in the layout is EW-CORE-004 and is not read (§6.2). The readers of `ew` (export, print, render,
   query, sql, layout, `fmt --check`) and its writers that take the common editing open (`apply`, `fmt`, the imports
   into a project) name every such file on stderr (`warning: <file>: manifest.json does not list it, so it is not read …`), so a file
   added by hand is never silently absent; a library directory's records file that `library.json` does not list is a
@@ -228,7 +228,7 @@ flowchart TD
   opener reads the intent's generation **in memory**: each listed file from its target or from its temp, whichever
   matches the intent's hash, after the base check of §5.3. The disk is not changed, the result is exactly one
   generation, and a file that matches neither is EW-CORE-002. A read-only open therefore never waits longer than
-  5 s and never fails because a save is in progress; `OpenError::SaveInProgress` is no longer produced.
+  5 s and never fails because a save is in progress; no `OpenError::SaveInProgress` is produced.
 - **Parallel parse.** Files are parsed in parallel into ordered tables, so the result does not depend on order.
 - **Budget.** Opening stays within NFR-PERF-03 (S ≤ 0.5 s … XL ≤ 20 s). Hashing the roughly 250 MB of an XL
   project takes well under a second in parallel (estimate, to be measured in the performance spike (gate G-SP)).
@@ -245,10 +245,10 @@ A mismatch is classified, loaded anyway and explained (FR-COL-004):
 | A listed file is missing | Partial copy, sparse checkout, sync unfinished | EW-CORE-003, read-only. On cloud paths, re-check after 5 s first |
 | An unlisted file matching an EW or sync-conflict name pattern (§15), or a stray `.unlisted-<g>` name | Orphan, conflict copy or a file moved aside by a save | EW-CORE-004. Not read while a manifest exists, never deleted. A save or roll-forward that needs its path moves it aside first (§5.2 step 4) and reports EW-CORE-004 in its save report; the save continues |
 
-**As built (WP-S1.09).** The format layer loads anyway as above, but `Model::from_records` still refuses a record
+The format layer loads anyway as above, but `Model::from_records` refuses a record
 set it cannot build (for example one that breaks a structural invariant, EW-CORE-012), so such a project fails to
 open with its findings instead of opening read-only; the lenient model build that FR-COL-004's "load anyway"
-needs follows with FT-87.
+needs is not built.
 
 The "last good generation" of FR-COL-004 is not a second copy on disk. Earlier states come from the recovery
 snapshots, git history and `.ewz` backups.
@@ -331,7 +331,7 @@ app_version, started_at}` with a format number, the session ID and the PID's sta
 ### 7.2 Heartbeat and lock loss
 
 - **Heartbeat.** The holder refreshes the lock's modification time every 5 minutes (`File::set_modified`) and
-  re-reads the session ID. *As built:* the session refreshes it once 5 minutes have passed since the last refresh,
+  re-reads the session ID. The session refreshes it once 5 minutes have passed since the last refresh,
   checked at each disk poll of the window (every 3 s) and before each line of a command log (`ew apply`).
 - **Lock loss.** If the session ID is no longer its own, the holder has lost the lock (FR-COL-026). It
   switches to read-only at once. Its unsaved changes stay in memory and in the journal, and it offers "Save a Copy"
@@ -366,11 +366,10 @@ editing".
 A laptop that wakes after a takeover detects the loss at its next heartbeat (§7.2). `.~ew.lock.stale-*` files
 older than `lock.stale_after` (counted from the takeover, step 2) are deleted at the next editing open.
 
-**PID liveness as built**. Only Linux probes the PID (through `/proc/<pid>`, without its
+**PID liveness.** Only Linux probes the PID (through `/proc/<pid>`, without its
 start time). On Windows and macOS a crashed holder's lock is stale only by age, so after a crash on the same host the
 project opens read-only for up to 60 minutes (`lock.stale_after`) before a takeover is offered. The probe of PID
-and start time on Windows and macOS (and the start time on Linux) comes with the small `ew-sysprobe` crate
-(FT-89).
+and start time on Windows and macOS (and the start time on Linux) is not built.
 
 ---
 
@@ -382,7 +381,7 @@ The journal lives in `<state>/journal/<project id>-<8 hex of SHA-256(canonical p
 absolute path with links, `.` and `..` resolved and, on Windows, the verbatim prefix `\\?\` stripped, so one project
 reached through two paths has one journal; journals of pre-release builds kept under a
 non-canonical path are not found. It holds one JSONL segment per base generation and three snapshot slots (the
-slots, group commit and the undo rebuild of §8.2 step 5 follow with FT-88; v0 replays the whole segment onto its
+slots, group commit and the undo rebuild of §8.2 step 5 are not built; the whole segment is replayed onto its
 base generation). The example records W20's colour change from DBU to BU
 (folio 102):
 
@@ -402,7 +401,7 @@ base generation). The example records W20's colour change from DBU to BU
   - Undo and redo are journalled as the transactions they are.
   - **Assets**. A `tx` line carries in `assets`, each as
     `{"ref": <AssetRef>, "b64": <base64 of the bytes>}`, every asset that the model after the transaction names
-    (`Model::referenced_assets`, today the company logo, §10.3) unless its file is on disk with that hash or an earlier
+    (`Model::referenced_assets`: the company logo, §10.3) unless its file is on disk with that hash or an earlier
     line of the segment carried it. The second condition is a per-segment set, reset when a segment starts, to which a
     hash is added only after its line is appended; after a save's commit point the saved assets count as on disk, which
     is safe because a roll-forward restores them from their temps (§5.3). A recovery therefore restores the bytes of
@@ -446,11 +445,11 @@ base generation). The example records W20's colour change from DBU to BU
   - At start-up, leftovers older than 30 days are pruned and logged.
   - If the state directory is unavailable, EW shows "unsaved changes are not crash-protected" and editing continues.
 
-*As built.* **Pruning at start:** every
+**Pruning at start:** every
 start (window and headless, not smoke) deletes the leftover journals older than 30 days of every project, after
 reading each project's lock, so a live session keeps its journal, and the crash logs older than 30 days or beyond the
 20 newest; the store's clock decides the age. **Panics:** there is no abort path and no flush from the hook: every
-journal entry is synced as it is appended, the panic hook writes only the crash log (18 §12.3 as built), and the
+journal entry is synced as it is appended, the panic hook writes only the crash log (18 §12.3), and the
 unwind reaches no clean close, so a dirty session's journal stays for the start-up offer (§8.3). The journal's
 directories are 0700 and its segments 0600 on Unix.
 
@@ -480,26 +479,19 @@ At start-up, and when opening a project with a leftover journal, EW shows projec
 the number of unsaved transactions. The choices are "Recover", "Open without recovering" (the journal is kept 30
 days) and "Discard". The CLI equivalent is `ew recover <project> [--list | --apply | --discard]`.
 
-*As built.* Neither the dialog nor `ew recover` exists yet. The
-shell opens a project with a leftover journal read-only, with the banner "This project has unsaved changes from a
-session that ended unexpectedly. It is open read-only; recovery comes with a later version.", and keeps the journal;
-`ew apply` refuses such a project. Because every dirty exit of the shell now leaves a journal, discarding it in the
-application comes first, with WP-S2.01 part 2; recovery follows with WP-S2.09.
-
-*As built.* A project with a leftover
-journal still opens read-only first, and the recovery dialog then shows the unsaved transactions, the time of the last
-change (in UTC; local time is not built yet) and whether the project changed on disk since. **Recover** re-opens it with
+A project with a leftover
+journal opens read-only first, and the recovery dialog then shows the unsaved transactions, the time of the last
+change (in UTC; local time is not built) and whether the project changed on disk since. **Recover** re-opens it with
 `Recovery::Apply`, editable and dirty with the edits; a failed recovery (the leftover still present, a collision with
 another session's save, or a re-open that is not an editing one) re-opens read-only with the reason and leaves only
 Open read-only and Discard…. **Open read-only** keeps the journal and the read-only access (Escape means the same).
 **Discard…** asks for confirmation, then opens editable without the edits; its Cancel returns to the dialog. Nothing
 is written before a choice. Headless, `journal.recover`, `journal.keep` and `file.discard_journal { confirm: true }`
-answer the dialog. `ew recover` is not built. Save As closes the original cleanly once the copy exists (its
+answer the dialog. `ew recover` is not built, and `ew apply` refuses a project with a leftover journal. Save As closes the original cleanly once the copy exists (its
 journal of the edits that went into the copy deleted, its lock released), so reopening the original does not show this
 dialog; a failed Save As keeps the original's journal.
 
-*As built, the start-up half.* At start the
-shell lists the leftover journals with unsaved transactions of every project whose lock is not live, each with its
+**At start** the shell lists the leftover journals with unsaved transactions of every project whose lock is not live, each with its
 directory name, path, unsaved count (the transactions after the segment's last save) and last change, and the newest
 crash log that ends a session and was not offered. The start-up dialog offers Recover per project (several projects
 are a choice under the one Recover), which opens the project as Open does, so the recovery dialog above follows; Open
@@ -512,9 +504,9 @@ or pruned. Headless, the prompt is pending and answered by `startup.recover`, `s
 
 ## 9. External changes
 
-*As built (D20 to D23):* no `notify` watcher; the manifest is polled every 3 s and on focus, a change read
+The window has no `notify` watcher: the manifest is polled every 3 s and on focus, a change read
 after two equal reads 750 ms apart and no git operation in progress, applied through the merge core as one undoable
-`external.apply`, and the journal follows the new baseline (`external.rebase`). The steps below are the design.
+`external.apply`, and the journal follows the new baseline (`external.rebase`). The steps below are the full design.
 
 1. **Detection.**
    - `notify` 8.2.0 watches the project recursively, excluding `.ew/`, temps and the lock.

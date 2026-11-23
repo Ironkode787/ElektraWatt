@@ -38,7 +38,7 @@ Libraries are `.ewlib` text directories in the project format at every tier
   (`part`, `symbol`, `fndef`, `form`, `macro`, `manufacturer`; from 1.0 also the profile kinds of §2.2) are the
   same in every tier, so embedding is a copy.
 
-*As built.* `ew-library` implements the
+`ew-library` implements the
 tiers above except the project row, which is `ew-store`'s. The system tier is the compiled-in starter, the compiled-in
 generic starter parts `ew-starter-parts` (a `.ewlib` whose files are compiled in; a directory of the same ID replaces
 it) and `content/libraries/*.ewlib`; community, company (settings' paths) and user follow. Reading applies the project
@@ -65,9 +65,9 @@ writes to the system and community tiers are refused.
     the checks of parts, symbols, FnDefs and forms (a copy listed twice, copy identity, hash, an edited member, a
     project-local item), refuses one that is already held; `edit.paste` refuses a fragment that carries either kind, since a fragment's
     closure names neither. A
-    part's `manufacturer` `LibRef` is not yet resolved to the embedded manufacturer copy (WP-S1.19 part 3); a
+    part's `manufacturer` `LibRef` is not resolved to the embedded manufacturer copy; a
     `macro_instance` names its macro copy by copy ID, a forbid link (§2.2).
-  - Project-local part copies made by the parts import take the IDs the golden emitter mints: `library_id` = the project ID, `item_id` = `v5(ns, "parts|{key}")` from the part's key in the namespace of `ew-import-tables`' bootstrap, so an import and the bootstrap give the same copy; `meta.source` is the file's base name, no import date is stored (FR-PRT-017's reading, [02a](02a-requirements-core.md)), and an absent licence is `NOASSERTION`. A template's FnDef key resolves in the starter FnDefs, then in the project's own (a held FnDef with a key the starter has not). `library.embed` still refuses project-local items but a form (a frame or title-block form of the project's own, which no command makes yet).
+  - Project-local part copies made by the parts import take the IDs the CSV bootstrap mints: `library_id` = the project ID, `item_id` = `v5(ns, "parts|{key}")` from the part's key in the namespace of `ew-import-tables`' bootstrap, so an import and the bootstrap give the same copy; `meta.source` is the file's base name, no import date is stored (FR-PRT-017's reading, [02a](02a-requirements-core.md)), and an absent licence is `NOASSERTION`. A template's FnDef key resolves in the starter FnDefs, then in the project's own (a held FnDef with a key the starter has not). `library.embed` refuses project-local items except a form (a frame or title-block form of the project's own, which no command makes).
 - **Metadata** is `{library_id, item_id, version, sha256}` (ARCH §4.2), with `version` the item's semantic version.
   `ItemMeta` carries no `version`. An embedded copy stores the version once, in this metadata; a library record
   (`.ewlib`, [07](07-symbols-parts-macros.md) §2.2) stores it once, in its own top-level `version` member after `id`.
@@ -90,18 +90,17 @@ writes to the system and community tiers are refused.
 
 ### 13.3 Assets
 
-*As built (ADR-0021 amendment 1).* The asset store below exists in
-`ew-model`, `ew-commands` and `ew-store`; where a bullet says "as built" it states the code, and the rest is design.
+The asset store below lives in `ew-model`, `ew-commands` and `ew-store` (ADR-0021 amendment 1).
 
 - **Naming.** `assets/<sha256>.<ext>`, with `ext` ∈ {svg, png, jpg} at MVP (the format names in JSON are `svg`, `png`,
   `jpeg`) and `glb` from 1.0 (opt-in embeddable meshes, [12](12-panel-layout.md) §6.2; ADR-0010 amendment 2). Raster
-  images are at most 16 MiB; SVG files at most 8 MiB and 100,000 elements. *As built* the limits are applied by the
+  images are at most 16 MiB; SVG files at most 8 MiB and 100,000 elements. The limits are applied by the
   sniffer (below), which counts SVG elements textually; an SVG is also parsed by `ew_schema::svg_hazard`
   inside the sniff and drawn through usvg with external references refused ([14](14-interop.md) §11). The underlay
   sources `pdf` and `dxf` are at most 64 MiB, and the project's typeface is a `ttf` or `otf` file (by its sfnt magic)
   of at most 2.5 MiB, which `project.typeface.set` reads further ([09](09-reports-forms-output.md) §4.8). The
   extensions are `AssetFormat`'s, which the path classification of `ew-format` reads too (with `glb`).
-- **The store in the model (as built).** The model keeps image bytes by hash in an asset store beside its tables
+- **The store in the model.** The model keeps image bytes by hash in an asset store beside its tables
   (`Model::asset`, `Model::assets`, `Model::put_asset`). Assets are not rows and not ops: putting an asset the model
   already holds does nothing, and no revision is made. A transaction brings its assets through
   `TxBuilder::put_asset(bytes)`, which sniffs the format and the intrinsic size from the headers (magic bytes; no
@@ -115,7 +114,7 @@ writes to the system and community tiers are refused.
   command that names it (`project.company.set`, `project.typeface.set`), which also changes the project row. The rule
   is mechanical: the raw-read rule's `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
   source, with those two as its allowlisted sites.
-- **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: the company logo and
+- **What a save writes.** The assets the records name (`Model::referenced_assets`: the company logo and
   the typeface of the project row, §10.3, and the files of image and underlay page items) that have no file on disk
   with that hash, through the **full save protocol** of §5: a temp
   `assets/<sha256>.<ext>.tmp-<g>` (`create_new`, `sync_all`), named in the intent manifest, the directory syncs, the
@@ -126,7 +125,7 @@ writes to the system and community tiers are refused.
   unknown members and lines may name assets that no known record names (the flag is reset even when that save fails). A
   new project made from a basic project carries the template's assets unchanged (they are named by content), and its
   first save writes them.
-- **Open (as built).** Every file under `assets/` whose name is its SHA-256 and whose bytes sniff as the format of its
+- **Open.** Every file under `assets/` whose name is its SHA-256 and whose bytes sniff as the format of its
   extension is loaded into the model. Any other asset file stays an opaque file listed in the manifest, never rewritten
   or deleted; EW-CORE-015 reports bytes that do not match the hash in the name (§6.3).
 - **Lifetime.** **A save never removes an asset file.** The model keeps the
@@ -134,14 +133,13 @@ writes to the system and community tiers are refused.
   none. EW cannot know every reference: kept unknown members and lines (§10.3) and future kinds that name assets (`glb`
   meshes, images in forms, `image` page items) may name a file that no known record does, so deleting on save could
   destroy a file that a newer writer's record still uses, and a hidden deletion is a model change, as with library
-  copies (§13.2: saving never removes a copy). The earlier rule, that a save deletes unreferenced asset files, is
-  withdrawn. Cleanup is the **explicit, previewed purge command** (before the first release): it deletes only
+  copies (§13.2: saving never removes a copy). Cleanup is the **explicit, previewed purge command**: it deletes only
   asset files whose hash appears in no project file, the kept lines included, and in no undo entry; it is refused in
   read-only sessions and while lines are quarantined; and the deletions go through the save protocol's removal list
-  (§5.2 step 8). *As built:* the command is
+  (§5.2 step 8). The command is
   `project.assets.purge`, `Bulk`, a non-undoable marker line of ADR-0008 amendment 1, and **`HumanOnly`** (amendment 3): the `Session` checks its origin before touching any file (`PurgeError::HumanOnly`), the
   CLI `ew project assets purge [<dir>]` confirms with the typed word `purge` on a terminal (`--preview` lists only and
-  needs none), and the GUI's confirmed step under Project settings → Storage is not built yet. The file side runs in the
+  needs none), and the GUI's confirmed step under Project settings → Storage is not built. The file side runs in the
   `Session` (`purge_preview`, `purge_assets`). An asset file goes only if its bytes match its name, **re-hashed at
   purge time** (a file rewritten from outside is never deleted by its old hash), and its hash is named nowhere: not by
   the model's records (`referenced_assets` over every record as the next save writes it, kept lines once
@@ -155,8 +153,8 @@ writes to the system and community tiers are refused.
 - **Format and size**. When an asset is imported, the asset store sniffs its magic bytes and
   records its format (PNG, JPEG or SVG) and its intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or
   `width`/`height`). Readers such as the forms layer trust the resulting `AssetRef {sha256, format, size}` and never
-  sniff; an asset without a known size fills its cell's inset area instead of being fitted. *As built* (`ew_schema::sniff`,
-  the asset store's one entry): a PNG must start with its `IHDR` chunk and a JPEG must reach a start-of-frame marker, and a
+  sniff; an asset without a known size fills its cell's inset area instead of being fitted. In `ew_schema::sniff`,
+  the asset store's one entry, a PNG must start with its `IHDR` chunk and a JPEG must reach a start-of-frame marker, and a
   zero dimension or a cut-short header is `AssetError::Damaged`; an SVG is recognised by its root element `svg` after an
   optional byte-order mark, XML declaration, comments and a doctype, and takes its size from the root's `viewBox`, else
   `width` and `height` (a percentage gives none); other bytes are `UnknownFormat`.
@@ -167,27 +165,26 @@ writes to the system and community tiers are refused.
   size before and after reading. Base64 in the journal is acceptable at this bound; larger rasters and meshes need the
   side files of §8.1.
 - **SVG** is rendered by EW's own pipeline and never executed. **Sniffing is not sanitising**,
-  so *as built* `ew_schema::svg_hazard` runs inside the sniff and
+  so `ew_schema::svg_hazard` runs inside the sniff and
   refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject`, any `href` that is not
-  `#…` (embedded `data:` images too, until FT-407), nesting deeper than 64, reference cycles, expansion past 200,000
+  `#…` (embedded `data:` images too), nesting deeper than 64, reference cycles, expansion past 200,000
   elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`;
   the parse runs inside `catch_unwind` (threat-model row TM-18, [18](18-quality-security-release.md) §11). An accepted
-  SVG is parsed by usvg 0.48.1 in `ew-scene` and drawn as `ew-dl` paths. **What renders:** SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are not built yet. The
-  golden PDF bytes are unchanged. **The drawn SVG subset:** gradients are drawn in their mean colour, even-odd fills as
+  SVG is parsed by usvg 0.48.1 in `ew-scene` and drawn as `ew-dl` paths. **What renders:** SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are not built. **The drawn SVG subset:** gradients are drawn in their mean colour, even-odd fills as
   non-zero; text, embedded images, clip paths, masks and filters are not drawn. **No silent loss:** an image an export cannot draw (its asset missing, or refused by the sniff) is reported as
-  `PageFinding::Image` (missing or refused) among the export's findings. The rejecter's limits are not yet calibrated against
-  real exporters' output, and a viewer-side parse cache by hash is not built yet.
-- **The raster pixel limit** (*as built 2026-11-05*). A PNG
+  `PageFinding::Image` (missing or refused) among the export's findings. The rejecter's limits are not calibrated against
+  real exporters' output, and a viewer-side parse cache by hash is not built.
+- **The raster pixel limit.** A PNG
   or JPEG that declares more than `ew_schema::MAX_RASTER_PIXELS` (16 Mi pixels, the renderers' decode limit) or a side
   over 65,535 is refused, in words, **at the gates that bring an image in only**: `ew_api::asset_ref_of` (a file the
   user picks or drops) and the commands' `store_image` (the company logo and an image given as data to `item.place`);
-  a held image placed again by its hash (`item.place {asset}`, the window's `image.pick`) is refused in the same words
-  (*as built cycle 53, FT-1523; ID-1458*). `TxBuilder::put_asset` does not apply it, so `external.apply` keeps another
+  a held image placed again by its hash (`item.place {asset}`, the window's `image.pick`) is refused in the same words.
+  `TxBuilder::put_asset` does not apply it, so `external.apply` keeps another
   build's assets as they are. **At open**, in a journal replay and in a template's copy, an over-limit image an earlier
   build accepted is **kept, never dropped**: the renderers still refuse to decode it, and the window's open banner and
   the banner of a project made from a template name each such image in words, by its folio or folios or as the company
   logo, with its pixel size and what to do (scale it down and add it again). `ew` says the same words
-  (`Session::undrawn_image_notices`; *as built cycle 53, FT-1503; ID-1458, ID-1459*): `ew check --integrity` and `ew
+  (`Session::undrawn_image_notices`): `ew check --integrity` and `ew
   check` as a `notice:` line on stderr outside the counts, their JSON in the result's optional `notices` array, and a
   writer's open as a `notice:` line on stderr; no check rule reports it.
 - **STEP** files are not embedded by default. `PartCopy` references `sha256(STEP)`; meshes live in
@@ -230,7 +227,7 @@ a signature over this hash; it counts only for a signer key the user has trusted
    commits only that directory as "Release V2.0" and records commit C.
 4. **Archive.**
    - Build it from snapshot g plus the explicit **release context** (date, label).
-   - Write `V2.0.ewarchive.tmp-<owner>-<g>` and sync it. The owner is the key of the project directory (as built; before, the project's ID): the first 16 hex digits of the SHA-256 of the
+   - Write `V2.0.ewarchive.tmp-<owner>-<g>` and sync it. The owner is the key of the project directory: the first 16 hex digits of the SHA-256 of the
      directory's path made absolute, cleaned and canonicalised where it exists, in the stored case. A leftover
      temp of the same archive name and owner, a crashed release of this directory, is removed first, and a temp
      of any other owner is never touched, because an archive root may be shared and another project's release,
@@ -248,8 +245,7 @@ a signature over this hash; it counts only for a signer key the user has trusted
      hard links the archive is created anew (`create_new`, never over an existing file, removed again if its write
      fails) with the temp's time set. A file system that cannot set the time keeps the archive and the record is
      rewritten with the archive's own time.
-5. **Tag.** Create the annotated tag `ew/rev/V2.0` on C. Its message carries the archive's SHA-256 and, as built,
-   the run's mark as a line `Run: <mark>`.
+5. **Tag.** Create the annotated tag `ew/rev/V2.0` on C. Its message carries the archive's SHA-256 and the run's mark as a line `Run: <mark>`.
 6. **Stamp.** A transaction sets `Released` and writes `ReleaseRecord{generation g, released_on, approval,
    rule_packs, derivation_profile, archive{name, sha256}, git_tag}`, plus `content_digest`, `page_digests` and
    `changed_pages` ([15](15-checks-revisions-collaboration.md) §5.5). EW then saves generation g+1 and leaves it
@@ -261,13 +257,13 @@ a signature over this hash; it counts only for a signer key the user has trusted
   The freeze of step 2 stays, as an ordinary undoable transaction in the history.
 - A crash leaves at most a complete but unreferenced archive. The next open offers "incomplete release V2.0: discard
   or complete".
-- *As built.* Discard and complete act only on an archive whose `ARCHIVE.json`
+- Discard and complete act only on an archive whose `ARCHIVE.json`
   names this project and the open revision. Any other (another project's, another revision's, a damaged one, or one
   whose `ARCHIVE.json` does not read) is kept and the action refused in words ("…; it is kept"); the person removes
   it or names another archive root (`--archive-dir`). The tag `ew/rev/V2.0` is deleted by a discard, or reused by a
   completion, only when its message carries the archive's `SHA-256:` line; a completion refuses another archive's
   tag before it commits. A discard removes only this project's leftover temps of the name.
-- *As built.* Two copies of one project directory carry the same
+- Two copies of one project directory carry the same
   project ID and, at the same generation, write the same archive bytes, so the archive cannot tell whose run wrote
   it. **Discard** therefore also needs this directory's run record naming that archive, its SHA-256 and its time;
   without it (a copy, a wiped state directory, a session without one) nothing is removed and the refusal says why
@@ -277,7 +273,7 @@ a signature over this hash; it counts only for a signer key the user has trusted
   settled run removes its record. A record left **stale** (its archive gone, or its revision released with the
   archive's SHA-256 by a roll-forward or a completion) is removed when the project opens for editing and when the
   incomplete release is looked up; a removal or rewrite that fails is kept as release trouble for the front-end
-  (the CLI prints it as a warning; the window does not yet). A temp of the form
+  (the CLI prints it as a warning; the window does not). A temp of the form
   `<label>.ewarchive.tmp-<project id>-<g>` is never cleaned.
 
 This is the release atomicity of NFR-REL-15.
@@ -347,12 +343,12 @@ Screens are specified in [UX and UI](16-ux-ui.md). Persistence provides:
 
 | Touchpoint | Behaviour |
 |---|---|
-| Status bar | Dirty dot, generation, badges (network share, cloud folder, read-only, merge driver missing), save progress and failures with cause and remedy (NFR-UX-07). As built: "Merge driver not configured" in an editing window, a click sets it up after a question; the cloud folder is a banner at open |
+| Status bar | Dirty dot, generation, badges (network share, cloud folder, read-only, merge driver missing), save progress and failures with cause and remedy (NFR-UX-07); "Merge driver not configured" in an editing window, a click sets it up after a question; the cloud folder is a banner at open |
 | File commands | Save, Save As, Save a Copy, Export `.ewz`, Open `.ewz`; all non-blocking |
 | Recovery dialog (§8.3) | At start-up and on open |
 | Lock banner and dialogs (§7) | Holder, "since", "last seen"; take over, notify when free, switch to editing; lock lost |
 | External-change toast | "External change applied: 12 records on folios 103 and 106 (git a1b2c3d)", with Undo and Show changes (the history at the step) |
-| Merge panel | Base, ours and theirs per field, with derived tags. External-change collisions at MVP as a form dialog (mine or theirs per field, All mine, All theirs, Decide later, which leaves a banner and held saves; WP-S1.17 D24); conflict records at 1.0 (FR-COL-015) |
+| Merge panel | Base, ours and theirs per field, with derived tags. External-change collisions at MVP as a form dialog (mine or theirs per field, All mine, All theirs, Decide later, which leaves a banner and held saves); conflict records at 1.0 (FR-COL-015) |
 | Banners | Integrity (read-only on EW-CORE-005); newer minor, newer major, older major (with backup), unstable format; untrusted rules, reports or scripts |
 | Project settings → Storage | Save mode, lock stale age, archive roots, git status with "Set up merge driver", purge unused library copies; purge unused assets (the confirmed `HumanOnly` step with the preview in the `Destructive` dialog) |
 
@@ -377,11 +373,11 @@ again as a whole. It opens with no error and no warning under the pre-delivery c
 
 ### 17.2 Edits and the files they write
 
-| Edit (golden) | Files written besides the manifest |
+| Edit (example) | Files written besides the manifest |
 |---|---|
 | Renumber folio 3 → 4 (AC-20, the D-01 replay) | Folio 3's page file only: one op on the page row. -3W1 becomes -4W1 everywhere because no tag is stored ([domain model](03-domain-model.md) §8.6) |
-| Golden B2: folio 106 → 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
-| Golden B1: page-based renumbering of 10 tags | `project.jsonl` (the `numbering` settings line drops the strip rule, which renames -X1031/-X1032 without touching their records) and the shards of the devices whose `TagSpec` changes (frozen text cleared, counter set). After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
+| Folio 106 renumbered to 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
+| Page-based renumbering of 10 tags | `project.jsonl` (the `numbering` settings line drops the strip rule, which renames -X1031/-X1032 without touching their records) and the shards of the devices whose `TagSpec` changes (frozen text cleared, counter set). After undo and save, every data file is byte-identical to before; only `generation` differs (AC-18) |
 | 24 V DC colour changed in the profile (AC-12) | `project.jsonl` only. No wire record stores a derived colour |
 | Company, frame defaults, languages or check scheme set by `project.company.set`, `project.frames.set`, `project.languages.set` or `project.checks.set` | `project.jsonl` only: the `Party` rows, `languages` and `settings` (with the `frames` and `checks` members in `extra`) are all inside the project record. Exception: a company logo also writes `assets/<sha256>.<ext>` at the first save that finds no file with that hash, and the manifest lists it (§13.3) |
 | W29 colour override set, then undone | Nothing, not even the manifest: step 3 of §5.2 drops the unchanged file, so the dirty set is empty |
