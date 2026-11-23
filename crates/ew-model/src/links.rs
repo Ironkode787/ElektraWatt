@@ -56,11 +56,12 @@
 //! in `schemas/0.1`, so adding an ID field to a record without declaring it fails CI.
 
 use std::collections::BTreeSet;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, CarrierRef, ConnectionKind, Endpoint, FunctionKind, Kind, LibRef, PageItemKind, Slot, SourceRef,
+    AnyId, CarrierRef, ConnectionKind, Endpoint, FileRule, FunctionKind, Kind, LibRef, PageItemKind, Slot,
+    SourceRef,
 };
 
 use crate::entity::{AnyKey, AnyRow};
@@ -988,9 +989,34 @@ pub static LINKS: &[LinkDecl] = &[
     }),
 ];
 
-/// Every ID-valued schema member that is **not** a link, as `(kind name, field path, reason)`. Each
-/// kind's own `id` is identity and not listed.
-pub static NOT_LINKS: &[(&str, &str, &str)] = &[
+/// Every ID-valued schema member that is **not** a link, as `(kind name, field path, reason)`: the members of a
+/// library copy's envelope for each library kind, then the members of one kind. Each kind's own `id` is identity and
+/// not listed.
+pub static NOT_LINKS: LazyLock<Vec<(&str, &str, &str)>> = LazyLock::new(|| {
+    Kind::ALL
+        .into_iter()
+        .filter(|k| matches!(k.file_rule(), FileRule::LibraryDocument(_)))
+        .flat_map(|k| ENVELOPE_NOT_LINKS.map(|(field, reason)| (k.name(), field, reason)))
+        .chain(OWN_NOT_LINKS.iter().copied())
+        .collect()
+});
+
+/// The ID-valued members of a library copy's envelope, which no library kind links by.
+const ENVELOPE_NOT_LINKS: [(&str, &str); 4] = [
+    ("library_id", "library identity of the copy, not a reference"),
+    ("item_id", "library identity of the copy, not a reference"),
+    (
+        "meta.status.deprecated.successor.library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
+        "meta.status.deprecated.successor.item",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+];
+
+/// The members of [`NOT_LINKS`] that belong to one kind.
+const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "import_lineage",
         "namespace",
@@ -1064,22 +1090,6 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
     ),
     (
         "part",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    ("part", "item_id", "library identity of the copy, not a reference"),
-    (
-        "part",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "part",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "part",
         "manufacturer.library",
         "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is WP-S1.19 part 3's (D10)",
     ),
@@ -1135,84 +1145,8 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
     ),
     (
         "symbol",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "symbol",
-        "item_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "symbol",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "symbol",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "symbol",
         "fndef.library",
         "the library half of the LibRef link symbol.fndef.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
-    ),
-    (
-        "fndef",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "fndef",
-        "item_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "fndef",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "fndef",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "form",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    ("form", "item_id", "library identity of the copy, not a reference"),
-    (
-        "form",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "form",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "macro",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "macro",
-        "item_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "macro",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "macro",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "macro",
@@ -1223,46 +1157,6 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "macro",
         "groups[].members[]",
         "fragment-local IDs of the macro's own fragment (doc 07 §4.6), not records of the project",
-    ),
-    (
-        "manufacturer",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "manufacturer",
-        "item_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "manufacturer",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "manufacturer",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "plc_profile",
-        "library_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "plc_profile",
-        "item_id",
-        "library identity of the copy, not a reference",
-    ),
-    (
-        "plc_profile",
-        "meta.status.deprecated.successor.library",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
-    ),
-    (
-        "plc_profile",
-        "meta.status.deprecated.successor.item",
-        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "macro_instance",
