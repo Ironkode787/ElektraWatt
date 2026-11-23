@@ -13,7 +13,6 @@ use std::fmt;
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::PageType;
-use ew_derive::ew_schema::PotentialType;
 use ew_derive::ew_units::{Grid, Nm, Pt2, Rect};
 use ew_derive::{CellOf, CpRef, DisplayedTag, PageOrder, PageRef, PotentialFlow, PotentialPartition, Q};
 use ew_dl::Layer;
@@ -386,20 +385,7 @@ fn supply_rank(q: &Q, c: &TableConnection) -> Option<u8> {
         let p = partition.potential_at(CpRef::new(Id::from_uuid(function), idx).key())?;
         let flow = q.get::<PotentialFlow>(p.id);
         let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
-        let word = match ptype {
-            PotentialType::L1 => "L1",
-            PotentialType::L2 => "L2",
-            PotentialType::L3 => "L3",
-            PotentialType::L => "L",
-            PotentialType::N => "N",
-            PotentialType::Pen => "PEN",
-            PotentialType::Pe => "PE",
-            PotentialType::Fe => "FE",
-            PotentialType::LPlus => "L+",
-            PotentialType::M => "M",
-            PotentialType::LMinus => "L-",
-            _ => return None,
-        };
+        let word = ew_derive::potential_type_code(&ptype)?;
         SUPPLY_ORDER
             .iter()
             .position(|w| *w == word)

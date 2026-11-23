@@ -55,11 +55,7 @@ pub(crate) fn channel_name(q: &Q, module: Id<Device>, channel: Id<Channel>, numb
 
 /// A derived address as printed: the profile's text, `TBD`, or `no address`.
 fn address_text(a: &ChannelAddr) -> String {
-    match a {
-        ChannelAddr::At { text, .. } => text.clone(),
-        ChannelAddr::Tbd => "TBD".to_owned(),
-        ChannelAddr::Excluded | ChannelAddr::Unresolved => "no address".to_owned(),
-    }
+    ew_derive::channel_address(a).unwrap_or("no address").to_owned()
 }
 
 /// The configuration project of a module, through its station.

@@ -5,7 +5,6 @@
 
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{ColourCode, ColourSpec, Csa};
-use ew_derive::ew_units::Dec3;
 use rusqlite::types::Value as SqlValue;
 use serde::Serialize;
 
@@ -137,72 +136,26 @@ pub(crate) fn enum_text<T: Serialize>(v: &T) -> String {
     }
 }
 
-/// The neutral text of a multilingual value, else its first language's text.
-pub(crate) fn ml_text(ml: &MlText) -> String {
-    ml.neutral_or_first().unwrap_or_default().to_owned()
-}
-
 /// The JSON of a multilingual value.
 pub(crate) fn ml_json(ml: &MlText) -> String {
     serde_json::to_string(ml).unwrap_or_default()
 }
 
-/// A decimal as exact text: `0.75`, `24`, `-1.5`.
-pub(crate) fn decimal(v: Dec3) -> String {
-    let abs = v.0.unsigned_abs();
-    let (int, frac) = (abs / 1000, abs % 1000);
-    let mut s = String::new();
-    if v.0 < 0 {
-        s.push('-');
-    }
-    s.push_str(&int.to_string());
-    if frac != 0 {
-        s.push('.');
-        s.push_str(format!("{frac:03}").trim_end_matches('0'));
-    }
-    s
-}
-
 /// A cross-section as (value, unit): `("0.75", "mm²")`, `("14", "AWG")`, `("250", "kcmil")`.
 pub(crate) fn csa_parts(c: &Csa) -> Option<(String, &'static str)> {
     match c {
-        Csa::Mm2(d) => Some((decimal(*d), "mm\u{00B2}")),
+        Csa::Mm2(d) => Some((d.to_string(), "mm\u{00B2}")),
         Csa::Awg(n) => Some((n.to_string(), "AWG")),
-        Csa::Kcmil(d) => Some((decimal(*d), "kcmil")),
+        Csa::Kcmil(d) => Some((d.to_string(), "kcmil")),
         Csa::Unknown(_) => None,
     }
-}
-
-/// A colour as printed: the codes concatenated (`GNYE`).
-pub(crate) fn colour_text(c: &ColourSpec) -> String {
-    c.codes()
-        .iter()
-        .map(|c| match c {
-            ColourCode::Iec(i) => i.as_str().to_owned(),
-            ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
-            ColourCode::Unknown(v) => v.to_string(),
-        })
-        .collect()
 }
 
 /// The colour when every code is an IEC 60757 code.
 pub(crate) fn colour_iec(c: &ColourSpec) -> Option<String> {
     if c.codes().iter().all(|c| matches!(c, ColourCode::Iec(_))) {
-        Some(colour_text(c))
+        Some(ew_derive::colour_raw(c))
     } else {
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn decimals_are_exact_text() {
-        assert_eq!(decimal(Dec3(750)), "0.75");
-        assert_eq!(decimal(Dec3(24_000)), "24");
-        assert_eq!(decimal(Dec3(-1_500)), "-1.5");
-        assert_eq!(decimal(Dec3(1)), "0.001");
     }
 }

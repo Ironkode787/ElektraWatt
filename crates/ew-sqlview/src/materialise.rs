@@ -14,9 +14,7 @@ use ew_checks::{CheckReport, FindingState};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_rds::{Aspect, RdsSyntax};
-use ew_derive::ew_schema::{
-    AcDc, CircuitClass, Device, DeviceState, FnRole, FunctionKind, LengthSource, PotentialType,
-};
+use ew_derive::ew_schema::{AcDc, CircuitClass, Device, DeviceState, FnRole, FunctionKind, LengthSource};
 use ew_derive::{
     BomMode, BomRows, CpRef, DevicePartLines, DeviceTag, EndKind, MainRep, PageOrder, PageRef,
     PageRefStructure, PageTitle, Potential, PotentialAttrsOf, PotentialFlow, PotentialId, PropSource, Q,
@@ -25,9 +23,7 @@ use ew_derive::{
 use rusqlite::types::Value as SqlValue;
 
 use crate::conn::{self, Bridge, WireRec, Wires, cp_of, device_of, ip_name, tag_short};
-use crate::rows::{
-    Row, colour_iec, colour_text, csa_parts, decimal, enum_text, json_array, ml_json, ml_text, non_empty,
-};
+use crate::rows::{Row, colour_iec, csa_parts, enum_text, json_array, ml_json, non_empty};
 use crate::schema::{
     self, BOM_ASSEMBLY, BOM_COMPONENT, BOND, CABLE, CONDUCTOR, DEVICE, FLUID_LINE, FUNCTION, MEDIUM, MESSAGE,
     META, PAGE, PLC_CHANNEL, POTENTIAL, TERMINAL, VALVE_POSITION, View, WIRE,
@@ -83,8 +79,8 @@ pub(crate) fn tables(q: &Q, input: &BuildInput<'_>) -> Tables {
 /// `api_v1_plc_channel`: the channels of every station (`ew_derive::stations` order), each module's in slot and
 /// channel order, from `plc_rows(station)`.
 fn plc_channels(q: &Q) -> Vec<Row> {
+    use ew_derive::PlcRows;
     use ew_derive::ew_schema::{AddrSpec, Channel, PlcConfigProject};
-    use ew_derive::{ChannelAddr, PlcRows, Slot};
     let channels = q.table::<Channel>();
     let mut rows = Vec::new();
     for station in ew_derive::stations(q) {
@@ -95,11 +91,7 @@ fn plc_channels(q: &Q) -> Vec<Row> {
             .and_then(|c| q.table::<PlcConfigProject>().get(c).cloned());
         let cfg = cfg_row.as_ref().map(|c| c.name.to_string());
         let cpu = cfg_row.as_ref().and_then(|c| c.cpu).and_then(|d| tag_short(q, d));
-        let bus_address = match ew_derive::station_bus_address(q, station) {
-            Some(ew_derive::ew_schema::AddrValue::Tbd) => Some("TBD".to_owned()),
-            Some(ew_derive::ew_schema::AddrValue::Value(a)) => ew_derive::net_address_text(&a),
-            _ => None,
-        };
+        let bus_address = ew_derive::station_bus_address(q, station).and_then(|a| ew_derive::bus_address(&a));
         for r in q.get::<PlcRows>(station).iter() {
             let ch = channels.get(r.channel);
             let source = ch.map(|c| match &c.address {
@@ -109,25 +101,8 @@ fn plc_channels(q: &Q) -> Vec<Row> {
                 AddrSpec::Tbd => "tbd",
                 AddrSpec::Unknown(_) => "other",
             });
-            let slot = match r.slot {
-                Slot::Positional(n) => Some(n.to_string()),
-                Slot::Rack {
-                    rack,
-                    slot,
-                    subslot: None,
-                } => Some(format!("{rack}.{slot}")),
-                Slot::Rack {
-                    rack,
-                    slot,
-                    subslot: Some(s),
-                } => Some(format!("{rack}.{slot}.{s}")),
-                Slot::Unresolved => None,
-            };
-            let address = match &r.address {
-                ChannelAddr::At { text, .. } => Some(text.clone()),
-                ChannelAddr::Tbd => Some("TBD".to_owned()),
-                ChannelAddr::Excluded | ChannelAddr::Unresolved => None,
-            };
+            let slot = ew_derive::slot_text(r.slot);
+            let address = ew_derive::channel_address(&r.address).map(str::to_owned);
             let pin = r.target_pin.and_then(|cp| {
                 q.get::<ew_derive::FunctionCps>(cp.function)
                     .iter()
@@ -165,10 +140,16 @@ fn plc_channels(q: &Q) -> Vec<Row> {
                 .set("address", address)
                 .set("symbol", r.text.symbol.clone())
                 .set("data_type", r.data_type.clone())
-                .set("comment", ch.and_then(|c| non_empty(ml_text(&c.comment))))
+                .set(
+                    "comment",
+                    ch.and_then(|c| non_empty(ew_derive::neutral(&c.comment))),
+                )
                 .set(
                     "function_text",
-                    r.text.function_text.as_ref().and_then(|t| non_empty(ml_text(t))),
+                    r.text
+                        .function_text
+                        .as_ref()
+                        .and_then(|t| non_empty(ew_derive::neutral(t))),
                 )
                 .set("process_tag", r.text.process_tag.clone())
                 .set("target", r.target_device.map(|d| tag_short(q, d)))
@@ -247,7 +228,7 @@ fn pages(q: &Q) -> Vec<Row> {
                     (
                         uuid(p),
                         page.and_then(|pg| pg.folio.label.as_ref().map(|l| l.as_str().to_owned())),
-                        page.and_then(|pg| pg.description_override.as_ref().map(ml_text)),
+                        page.and_then(|pg| pg.description_override.as_ref().map(ew_derive::neutral)),
                         false,
                         None,
                     )
@@ -270,7 +251,7 @@ fn pages(q: &Q) -> Vec<Row> {
                 .set("label", label)
                 .set("section_id", e.section.map(uuid))
                 .set("kind", enum_text(&e.kind))
-                .set("title", ml_text(&title))
+                .set("title", ew_derive::neutral(&title))
                 .set("title_ml", ml_json(&title))
                 .set("description_overridden", description.is_some())
                 .set("description", description)
@@ -345,7 +326,7 @@ fn devices(q: &Q) -> Vec<Row> {
                     "structure_location",
                     tag.and_then(|t| render_aspect(&t.structure, Aspect::Location)),
                 )
-                .set("function_text", non_empty(ml_text(&d.function_text)))
+                .set("function_text", non_empty(ew_derive::neutral(&d.function_text)))
                 .set(
                     "function_text_ml",
                     (!d.function_text.is_empty()).then(|| ml_json(&d.function_text)),
@@ -539,7 +520,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
         r.set("csa", value).set("csa_unit", unit);
     }
     if let Some(c) = &p.colour {
-        r.set("colour", colour_text(&c.value))
+        r.set("colour", ew_derive::colour_raw(&c.value))
             .set("colour_iec", colour_iec(&c.value));
     }
     r.set(
@@ -692,7 +673,7 @@ fn terminals(q: &Q, wires: &Wires, bridges: &[Bridge]) -> Vec<Row> {
             };
             let group = aspect
                 .and_then(|a| a.groups.iter().find(|g| g.from_seq <= seq && seq <= g.to_seq))
-                .map(|g| ml_text(&g.label));
+                .map(|g| ew_derive::neutral(&g.label));
             let part = q
                 .get::<DevicePartLines>(t)
                 .first()
@@ -704,7 +685,7 @@ fn terminals(q: &Q, wires: &Wires, bridges: &[Bridge]) -> Vec<Row> {
                 q.get::<PotentialAttrsOf>(p)
                     .ptype
                     .as_ref()
-                    .map(|a| type_name(&a.value))
+                    .map(|a| ew_derive::potential_type_sql(&a.value).to_owned())
             });
             let state = match &dev.state {
                 DeviceState::Spare => "spare",
@@ -730,7 +711,7 @@ fn terminals(q: &Q, wires: &Wires, bridges: &[Bridge]) -> Vec<Row> {
                 .set("designation", term.designation.as_str())
                 .set("printed", term.designation.as_str())
                 .set("seq", seq)
-                .set("function_text", non_empty(ml_text(&dev.function_text)))
+                .set("function_text", non_empty(ew_derive::neutral(&dev.function_text)))
                 .set("strip_group", group)
                 .set("part_number", part)
                 .set("levels", term.levels.len().max(1))
@@ -884,7 +865,7 @@ fn conductors(q: &Q, wires: &Wires) -> Vec<Row> {
                 .set("cable_tag", cable_tag.clone())
                 .set("core", c.core.as_str())
                 .set("pair", c.pair)
-                .set("colour", c.colour.as_ref().map(colour_text))
+                .set("colour", c.colour.as_ref().map(ew_derive::colour_raw))
                 .set("colour_iec", c.colour.as_ref().and_then(colour_iec))
                 .set("shield", c.shield)
                 .set("wire_id", by_core.get(&id).map(|w| uuid(w.wire.id)));
@@ -913,26 +894,6 @@ fn conductors(q: &Q, wires: &Wires) -> Vec<Row> {
 
 // ---------------------------------------------------------------------------------------------------------
 // potential, bond
-
-fn type_name(t: &PotentialType) -> String {
-    match t {
-        PotentialType::L1 => "L1",
-        PotentialType::L2 => "L2",
-        PotentialType::L3 => "L3",
-        PotentialType::L => "L",
-        PotentialType::N => "N",
-        PotentialType::Pe => "PE",
-        PotentialType::Pen => "PEN",
-        PotentialType::Fe => "FE",
-        PotentialType::LPlus => "L+",
-        PotentialType::LMinus => "L-",
-        PotentialType::M => "M",
-        PotentialType::Signal => "signal",
-        PotentialType::Undefined => "undefined",
-        PotentialType::Unknown(_) => "other",
-    }
-    .to_owned()
-}
 
 fn class_name(c: &CircuitClass) -> String {
     match c {
@@ -1013,8 +974,14 @@ fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
             r.set("id", potential_uuid(p.id))
                 .set("name", names.name.text.as_str())
                 .set("aliases", json_array(&names.aliases))
-                .set("ptype", attrs.ptype.as_ref().map(|t| type_name(&t.value)))
-                .set("voltage", attrs.voltage.as_ref().map(|v| decimal(v.value)))
+                .set(
+                    "ptype",
+                    attrs
+                        .ptype
+                        .as_ref()
+                        .map(|t| ew_derive::potential_type_sql(&t.value).to_owned()),
+                )
+                .set("voltage", attrs.voltage.as_ref().map(|v| v.value.to_string()))
                 .set(
                     "ac_dc",
                     attrs.env.as_ref().and_then(|e| match e.value.ac_dc.as_ref() {
@@ -1028,7 +995,7 @@ fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
                     "circuit_class",
                     attrs.circuit_class.as_ref().map(|c| class_name(&c.value)),
                 )
-                .set("colour", colour.map(|c| colour_text(&c.value)))
+                .set("colour", colour.map(|c| ew_derive::colour_raw(&c.value)))
                 .set("colour_iec", colour.and_then(|c| colour_iec(&c.value)))
                 .set("switched", flow.as_ref().as_ref().is_some_and(|f| f.switched))
                 .set("protected_by_device_id", protected_device.map(uuid))
@@ -1108,9 +1075,9 @@ fn bom(q: &Q, mode: BomMode, view: &'static View) -> Vec<Row> {
                 .set("manufacturer", manufacturer_name(q, &b.manufacturer))
                 .set("part_number", b.part_number.as_str())
                 .set("type", b.type_designation.clone())
-                .set("description", ml_text(&b.description))
+                .set("description", ew_derive::neutral(&b.description))
                 .set("description_ml", ml_json(&b.description))
-                .set("quantity", decimal(b.qty))
+                .set("quantity", b.qty.to_string())
                 .set("unit", enum_text(&b.unit))
                 .set("tags", json_array(&tags))
                 .set("folios", folios_json(q, b.pages.iter().copied()));
@@ -1221,13 +1188,19 @@ fn fluid_lines(q: &Q) -> Vec<Row> {
                 .set("to_port", non_empty(t.to.port.clone()))
                 .set("to_role", role(&t.to.role))
                 .set("fluid_net_id", t.net.map(|n| n.0.as_uuid().to_string()))
-                .set("medium", non_empty(ml_text(&ew_derive::medium_text(q, t.net))))
+                .set(
+                    "medium",
+                    non_empty(ew_derive::neutral(&ew_derive::medium_text(q, t.net))),
+                )
                 .set("od_nm", p.od.as_ref().map(|v| v.value.0))
                 .set("id_nm", p.id.as_ref().map(|v| v.value.0))
                 .set("material", p.material.as_ref().map(|v| v.value.code().to_owned()))
-                .set("colour", p.colour.as_ref().map(|v| colour_text(&v.value)))
+                .set(
+                    "colour",
+                    p.colour.as_ref().map(|v| ew_derive::colour_raw(&v.value)),
+                )
                 .set("tube_part", number(p.part.as_ref().map(|v| v.value)))
-                .set("p_rating", p.p_rating.as_ref().map(|v| decimal(v.value)))
+                .set("p_rating", p.p_rating.as_ref().map(|v| v.value.to_string()))
                 .set("length_nm", t.length.map(|n| n.0))
                 .set(
                     "length_source",
@@ -1273,7 +1246,7 @@ fn valve_positions(q: &Q) -> Vec<Row> {
                 .set("solenoids", json_array(&v.solenoids))
                 .set("channel_ids", json_array(&channels))
                 .set("addresses", v.addresses.clone())
-                .set("function_text", non_empty(ml_text(&v.function_text)))
+                .set("function_text", non_empty(ew_derive::neutral(&v.function_text)))
                 .set("process_tag", v.process_tag.clone())
                 .set("target_id", v.target.map(uuid))
                 .set(
@@ -1295,10 +1268,10 @@ fn media(q: &Q) -> Vec<Row> {
             let rec = media.get(m.medium)?;
             let mut r = Row::new(&MEDIUM);
             r.set("id", uuid(m.medium))
-                .set("name", ml_text(&rec.name))
+                .set("name", ew_derive::neutral(&rec.name))
                 .set("code", rec.code.as_ref().map(|c| c.as_str().to_owned()))
                 .set("discipline", enum_text(&rec.discipline))
-                .set("p_nom", decimal(rec.p_nom))
+                .set("p_nom", rec.p_nom.to_string())
                 .set("quality", rec.quality.as_ref().map(|c| c.as_str().to_owned()))
                 .set("source_cps", json_array(&m.sources))
                 .set("consumer_count", m.consumers.len())

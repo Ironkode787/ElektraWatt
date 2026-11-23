@@ -39,8 +39,8 @@ use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_rds::RdsSyntax;
 use ew_schema::{
-    Connection, ConnectionKind, Csa, Device, FreeText, Function, FunctionKind, Page, PageItem,
-    PageItemKind, Representation, Slot, StructureBox,
+    Connection, ConnectionKind, Csa, Device, FreeText, Function, FunctionKind, Page, PageItem, PageItemKind,
+    Representation, Slot, StructureBox,
 };
 use ew_units::Pt2;
 

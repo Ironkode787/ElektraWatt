@@ -5,7 +5,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock};
-use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot, short_tag};
+use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, short_tag};
 
 use super::conn::put;
 use super::plc_overview::{address_cell, kind_text, page_cell, state_text};
@@ -168,31 +168,13 @@ fn ident(text: &str) -> Cell {
     }
 }
 
-/// The slot as the list prints it: `n` for a positional slot, `rack.slot` or `rack.slot.subslot`.
-fn slot_text(slot: Slot) -> Option<String> {
-    match slot {
-        Slot::Positional(n) => Some(n.to_string()),
-        Slot::Rack {
-            rack,
-            slot,
-            subslot: None,
-        } => Some(format!("{rack}.{slot}")),
-        Slot::Rack {
-            rack,
-            slot,
-            subslot: Some(sub),
-        } => Some(format!("{rack}.{slot}.{sub}")),
-        Slot::Unresolved => None,
-    }
-}
-
 fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
     put(columns, &mut cells, "config_project", head.config_project.clone());
     put(columns, &mut cells, "cpu", head.cpu.clone());
     put(columns, &mut cells, "station", head.station.clone());
     put(columns, &mut cells, "bus_address", head.bus_address.clone());
-    if let Some(slot) = slot_text(r.slot) {
+    if let Some(slot) = ew_derive::slot_text(r.slot) {
         put(columns, &mut cells, "slot", Cell::Ident(slot));
     }
     put(columns, &mut cells, "module", ident(&short_tag(q, r.module)));

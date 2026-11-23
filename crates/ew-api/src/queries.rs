@@ -1318,8 +1318,18 @@ fn tube_props(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
         value.map(|(value, s)| WireProp { value, via: via(s) })
     };
     let out = TubePropsOutput {
-        od: prop(props.od.as_ref().map(|v| (ew_derive::mm(v.value), &v.source))),
-        id: prop(props.id.as_ref().map(|v| (ew_derive::mm(v.value), &v.source))),
+        od: prop(
+            props
+                .od
+                .as_ref()
+                .map(|v| (ew_derive::mm_micro(v.value), &v.source)),
+        ),
+        id: prop(
+            props
+                .id
+                .as_ref()
+                .map(|v| (ew_derive::mm_micro(v.value), &v.source)),
+        ),
         material: prop(
             props
                 .material
@@ -1399,10 +1409,9 @@ fn channel_addresses(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
             .map(|e| ChannelAddress {
                 number: e.number,
                 address: match &e.address {
-                    ChannelAddr::At { text, .. } => text.clone(),
-                    ChannelAddr::Tbd => "TBD".to_owned(),
                     ChannelAddr::Excluded => "excluded".to_owned(),
                     ChannelAddr::Unresolved => "unresolved".to_owned(),
+                    printed => ew_derive::channel_address(printed).unwrap_or_default().to_owned(),
                 },
             })
             .collect(),

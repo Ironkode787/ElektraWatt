@@ -49,8 +49,8 @@ pub(super) fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
             || {
                 format!(
                     "{}, {}",
-                    crate::output::fields::nm_text(point.x.0),
-                    crate::output::fields::nm_text(point.y.0)
+                    ew_derive::mm_padded(point.x.0),
+                    ew_derive::mm_padded(point.y.0)
                 )
             },
             |cell| cell.to_string(),

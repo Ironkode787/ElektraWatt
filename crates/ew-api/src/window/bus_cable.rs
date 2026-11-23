@@ -171,7 +171,7 @@ impl Session {
             .and_then(|d| d.aspects.cable.as_ref())
             .map(|c| &c.length)
         {
-            Some(LengthSource::Manual(nm)) => ew_derive::layout::mm(i128::from(nm.0) / 1000),
+            Some(LengthSource::Manual(nm)) => ew_derive::mm_exact(i128::from(nm.0) / 1000),
             _ => String::new(),
         };
         let ends = match conns.as_slice() {

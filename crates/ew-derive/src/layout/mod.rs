@@ -64,7 +64,7 @@ pub use legend::{
     carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page, metres_of_nm,
     page_surface, surface_pages,
 };
-pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, mm, plate_frame, rehome_pose};
+pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, plate_frame, rehome_pose};
 pub(crate) use queries::shown_location;
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,

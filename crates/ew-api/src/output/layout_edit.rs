@@ -105,7 +105,7 @@ pub struct LayoutPartOffer {
 
 /// Millimetres as the project prints them: the shortest decimal, the project's separator.
 pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
-    let text = ew_derive::layout::mm(nm);
+    let text = ew_derive::mm_exact(nm);
     if comma(q) { text.replace('.', ",") } else { text }
 }
 

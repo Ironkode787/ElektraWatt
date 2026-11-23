@@ -448,7 +448,7 @@ pub fn cell_key(q: &Q, cell: &Cell) -> CellKey {
         Cell::Folios(ps) => Class::Value(Val::Folios(ps.iter().map(|p| folio_key(q, *p)).collect())),
         Cell::CellRef(p, c) => Class::Value(Val::CellRef(folio_key(q, *p), c.column, c.row)),
         Cell::Qty(v, _) => Class::Value(Val::Qty(*v)),
-        Cell::Colour(c) => Class::Value(Val::Colour(natural_key(&crate::render::colour_text(c)))),
+        Cell::Colour(c) => Class::Value(Val::Colour(natural_key(&ew_derive::colour_raw(c)))),
         Cell::Address(s) => Class::Value(Val::Address(natural_key(s))),
         Cell::Date(d) => Class::Value(Val::Date(*d)),
         Cell::Bool(b) => Class::Value(Val::Bool(*b)),
@@ -476,7 +476,7 @@ pub fn cell_text(q: &Q, cell: &Cell) -> String {
             .join(", "),
         Cell::CellRef(p, c) => format!("{}-{c}", folio_text(q, *p)),
         Cell::Qty(v, _) => v.to_string(),
-        Cell::Colour(c) => crate::render::colour_text(c),
+        Cell::Colour(c) => ew_derive::colour_raw(c),
         Cell::Date(d) => d.to_string(),
         Cell::Bool(b) => b.to_string(),
         Cell::Range(ids) => ids

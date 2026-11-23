@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{ColourCode, ColourSpec, DecimalSeparator, Device, OrderUnit};
+use ew_derive::ew_schema::{DecimalSeparator, Device, OrderUnit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 
@@ -81,7 +81,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
                 s => format!("{n} {s}"),
             }
         }
-        Cell::Colour(c) => colour_text(c),
+        Cell::Colour(c) => ew_derive::colour_raw(c),
         Cell::Date(d) => format!("{:02}-{:02}-{:04}", d.day(), d.month(), d.year()),
         Cell::Range(ds) => compress_range(q, ds),
         Cell::Tbd => match &opts.tbd {
@@ -112,19 +112,6 @@ fn words((english, dutch): (&str, &str), opts: &RenderOptions) -> String {
 /// language's text, else "").
 fn text(ml: &MlText, lang: Option<&LangTag>) -> String {
     ew_derive::text_in(ml, lang).to_owned()
-}
-
-/// The codes of a colour joined without a separator (`GNYE`); a code of a newer format prints its raw value.
-/// The printed text and the sort and group text of a colour cell are this one text.
-pub(crate) fn colour_text(c: &ColourSpec) -> String {
-    c.codes()
-        .iter()
-        .map(|c| match c {
-            ColourCode::Iec(i) => i.as_str().to_owned(),
-            ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
-            ColourCode::Unknown(v) => v.to_string(),
-        })
-        .collect()
 }
 
 fn tag(q: &Q, id: Id<Device>, opts: &RenderOptions) -> String {
@@ -258,18 +245,8 @@ fn uses_comma(lang: Option<&LangTag>) -> bool {
 /// A decimal without trailing fractional zeros or a trailing separator and without grouping:
 /// 750 → "0.75", 1500 → "1.5", 2000 → "2", -5 → "-0.005".
 pub fn decimal(v: Dec3, comma: bool) -> String {
-    let abs = v.0.unsigned_abs();
-    let (int, frac) = (abs / 1000, abs % 1000);
-    let mut s = String::new();
-    if v.0 < 0 {
-        s.push('-');
-    }
-    s.push_str(&int.to_string());
-    if frac != 0 {
-        s.push(if comma { ',' } else { '.' });
-        s.push_str(format!("{frac:03}").trim_end_matches('0'));
-    }
-    s
+    let s = v.to_string();
+    if comma { s.replace('.', ",") } else { s }
 }
 
 /// The tag class of a device: its letter code and its assembly root (the top of the `parent` chain), or

@@ -375,7 +375,7 @@ impl Session {
             .and_then(|c| q.devices().get(Id::from_uuid(c)).cloned())
             .and_then(|d| match d.aspects.cable.as_ref().map(|c| &c.length) {
                 Some(ew_derive::ew_schema::LengthSource::Manual(nm)) => {
-                    Some(ew_derive::layout::mm(i128::from(nm.0) / 1000))
+                    Some(ew_derive::mm_exact(i128::from(nm.0) / 1000))
                 }
                 _ => None,
             })

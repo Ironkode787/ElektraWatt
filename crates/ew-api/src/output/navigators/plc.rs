@@ -111,31 +111,6 @@ fn station_role_word(r: &ew_derive::ew_schema::StationRole) -> &'static str {
     }
 }
 
-/// A module's slot as the grid prints it and its typed editor reads it back (`plc_slot_input`): a positional slot as
-/// its rank (`3`), an authored slot in rack 0 without a subslot as the slot alone (`3`), else `<rack>.<slot>` and
-/// `<rack>.<slot>.<subslot>`.
-fn slot_text(s: &ew_derive::Slot) -> String {
-    match s {
-        ew_derive::Slot::Positional(n) => n.to_string(),
-        ew_derive::Slot::Rack {
-            rack: 0,
-            slot,
-            subslot: None,
-        } => slot.to_string(),
-        ew_derive::Slot::Rack {
-            rack,
-            slot,
-            subslot: None,
-        } => format!("{rack}.{slot}"),
-        ew_derive::Slot::Rack {
-            rack,
-            slot,
-            subslot: Some(sub),
-        } => format!("{rack}.{slot}.{sub}"),
-        ew_derive::Slot::Unresolved => String::new(),
-    }
-}
-
 /// The channels that the `duplicate` flag marks: the targets of EW-PLC-007 (duplicate symbol) and of
 /// EW-PLC-001's `overlap` findings (two addresses whose bit ranges overlap), in every configuration project.
 fn duplicate_channels(
@@ -370,11 +345,9 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     }
                 };
                 let ch = r.channel.as_uuid();
-                let address = match &r.address {
-                    ChannelAddr::At { text, .. } => text.clone(),
-                    ChannelAddr::Tbd => "TBD".to_owned(),
-                    ChannelAddr::Excluded | ChannelAddr::Unresolved => String::new(),
-                };
+                let address = ew_derive::channel_address(&r.address)
+                    .unwrap_or_default()
+                    .to_owned();
                 let page = r
                     .rep
                     .and_then(|rep| drawable(q, &folios, rep, true))
@@ -411,7 +384,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     page.as_ref().map(Drawable::place).unwrap_or_default(),
                     station_tag.clone(),
                     rack,
-                    slot_text(&r.slot),
+                    ew_derive::slot_short(r.slot).unwrap_or_default(),
                     comment,
                 ];
                 debug_assert_eq!(cells.len(), PLC_COLUMNS.len());

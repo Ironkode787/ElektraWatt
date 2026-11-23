@@ -396,6 +396,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/strip_bridges.rs` |  | `strip_bridges(strip)`: the terminal bridges of one strip, grouped (doc 08 §2.3, §6.5). |
 | `src/structure.rs` |  | Structure: node paths and the resolved structure of pages and devices (doc 03 §5, §8.1–§8.2 step 5, FR-PRJ-019, FR-NUM-002). |
 | `src/tag.rs` |  | Device tags (doc 03 §8.2–§8.5, FR-NUM-001, FR-NUM-002, FR-DEV-021, ADR-0026, D-27, D-41). |
+| `src/text.rs` |  | How a value of the domain is printed as a string that no language changes (doc 04 §3.4): one function per value. |
 | `src/text_frame.rs` |  | The frame a representation's slot texts are placed in: [`text_frame`]. |
 | `src/title_block.rs` |  | Title-block values: `title_block(page)` (doc 09 §2.6–§2.7, FR-REP-033, FR-REP-036, FR-REP-037, FR-REV-003, D-05, D-06, D-30). |
 | `src/toc.rs` |  | The table of contents: `toc_rows()` (FR-REP-003, REF-012, REF-104, doc 09 §3.1). |

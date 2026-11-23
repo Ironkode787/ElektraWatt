@@ -252,8 +252,9 @@ fn a_plate_is_centred_in_its_enclosure() {
 /// Millimetre text for messages is exact and trims fraction zeros.
 #[test]
 fn millimetres_are_printed_exactly() {
-    assert_eq!(mm(96_000_000), "96");
-    assert_eq!(mm(7_500_000), "7.5");
-    assert_eq!(mm(-1), "-0.000001");
-    assert_eq!(mm(0), "0");
+    use crate::text::mm_exact;
+    assert_eq!(mm_exact(96_000_000), "96");
+    assert_eq!(mm_exact(7_500_000), "7.5");
+    assert_eq!(mm_exact(-1), "-0.000001");
+    assert_eq!(mm_exact(0), "0");
 }

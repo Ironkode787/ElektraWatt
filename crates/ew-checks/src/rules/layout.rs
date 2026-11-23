@@ -55,19 +55,13 @@ use crate::rules::term::{full_tag, location_text};
 // ---------------------------------------------------------------------------------------------------------
 // Shared helpers
 
-/// Nanometres per tenth of a millimetre.
-const NM_PER_TENTH: i128 = 100_000;
-
-/// A length in nanometres as millimetres with one decimal: rounded half away from zero (`40.0`, `-0.5`).
-fn mm1(nm: i128) -> String {
-    let tenths = (nm.unsigned_abs() + (NM_PER_TENTH as u128) / 2) / (NM_PER_TENTH as u128);
-    let sign = if nm < 0 && tenths > 0 { "-" } else { "" };
-    format!("{sign}{}.{}", tenths / 10, tenths % 10)
-}
-
 /// A point of the surface frame as printed: `(40.0, 740.0)`.
 fn point(p: Pt2) -> String {
-    format!("({}, {})", mm1(i128::from(p.x.0)), mm1(i128::from(p.y.0)))
+    format!(
+        "({}, {})",
+        ew_derive::mm_tenth(i128::from(p.x.0)),
+        ew_derive::mm_tenth(i128::from(p.y.0))
+    )
 }
 
 /// Where a carrier lies, as printed: its path's first and last points in millimetres (`(40.0, 740.0)–(610.0, 740.0)
@@ -991,13 +985,13 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
                         format!(
                             "{name} is placed at {} mm on the rail at {at}, outside its 0.0 to {} mm; move it onto \
                              the rail",
-                            mm1(s),
-                            mm1(l)
+                            ew_derive::mm_tenth(s),
+                            ew_derive::mm_tenth(l)
                         ),
                     )
                     .arg("rail", at)
-                    .arg("s", mm1(s))
-                    .arg("length", mm1(l)),
+                    .arg("s", ew_derive::mm_tenth(s))
+                    .arg("length", ew_derive::mm_tenth(l)),
                     PoseError::RailTurn => lay010(
                         q,
                         pl,
@@ -1097,15 +1091,15 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
                 "overflow",
                 format!(
                     "{name} occupies {} to {} mm on the rail at {at}, beyond its 0.0 to {} mm; shorten it or move it",
-                    mm1(o.s0),
-                    mm1(o.s1),
-                    mm1(axis.length)
+                    ew_derive::mm_tenth(o.s0),
+                    ew_derive::mm_tenth(o.s1),
+                    ew_derive::mm_tenth(axis.length)
                 ),
             )
             .arg("rail", at)
-            .arg("from", mm1(o.s0))
-            .arg("to", mm1(o.s1))
-            .arg("length", mm1(axis.length)),
+            .arg("from", ew_derive::mm_tenth(o.s0))
+            .arg("to", ew_derive::mm_tenth(o.s1))
+            .arg("length", ew_derive::mm_tenth(axis.length)),
         );
     }
     // borrowed, not cloned per placement
@@ -1120,15 +1114,6 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             "outside",
             format!("{name} lies outside the usable area of the mounting plate; move it inside"),
         ));
-    }
-}
-
-/// A length in millimetres as a bracket case prints it: to a tenth, without a trailing ".0" (`10`, `2.5`).
-fn mm_short(nm: i128) -> String {
-    let text = mm1(nm);
-    match text.strip_suffix(".0") {
-        Some(whole) => whole.to_owned(),
-        None => text,
     }
 }
 
@@ -1268,7 +1253,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
             None
         };
         if let Some((edge, by)) = outside {
-            let by = mm_short(by);
+            let by = ew_derive::mm_tenth_short(by);
             out.push(
                 finding(
                     "bracket_outside",
@@ -1616,12 +1601,12 @@ mod tests {
 
     #[test]
     fn millimetres_print_with_one_decimal_rounded_half_away_from_zero() {
-        assert_eq!(mm1(0), "0.0");
-        assert_eq!(mm1(40_000_000), "40.0");
-        assert_eq!(mm1(58_600_000), "58.6");
-        assert_eq!(mm1(149_950_000), "150.0");
-        assert_eq!(mm1(-500_000), "-0.5");
-        assert_eq!(mm1(-40_000), "0.0", "no negative zero");
+        assert_eq!(ew_derive::mm_tenth(0), "0.0");
+        assert_eq!(ew_derive::mm_tenth(40_000_000), "40.0");
+        assert_eq!(ew_derive::mm_tenth(58_600_000), "58.6");
+        assert_eq!(ew_derive::mm_tenth(149_950_000), "150.0");
+        assert_eq!(ew_derive::mm_tenth(-500_000), "-0.5");
+        assert_eq!(ew_derive::mm_tenth(-40_000), "0.0", "no negative zero");
     }
 
     #[test]

@@ -68,7 +68,7 @@ fn port_role_word(r: &ew_derive::ew_schema::PortRole) -> &'static str {
 /// record is the port's function, so selecting it shows the port in Properties, and a net's row selects the net
 /// (its rate and master in Properties).
 pub(super) fn bus_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::{AddrValue, LogicalNet, OnOff, PhysicalNet};
+    use ew_derive::ew_schema::{LogicalNet, OnOff, PhysicalNet};
     use ew_derive::{BusSegments, NetMembersOf, SegmentMember};
     let folios = folios(q);
     let functions = q.functions();
@@ -90,11 +90,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             Some(l) => format!("{} {l}", port.interface),
             None => port.interface.to_string(),
         };
-        let address = match &port.address {
-            AddrValue::Tbd => "TBD".to_owned(),
-            AddrValue::Value(a) => ew_derive::net_address_text(a).unwrap_or_default(),
-            AddrValue::NotApplicable | AddrValue::Unknown(_) => String::new(),
-        };
+        let address = ew_derive::bus_address(&port.address).unwrap_or_default();
         let termination = match &port.termination {
             Some(OnOff::On) => "on",
             Some(OnOff::Off) => "off",

@@ -532,23 +532,22 @@ fn line_words(tx: &TxBuilder<'_>, c: &Connection) -> Text {
     text!("refusal-words-connection", end(&c.a), end(&c.b))
 }
 
-/// A length in millimetres as words take it.
-fn mm(n: Nm) -> String {
-    Dec3(n.0 / 1_000).to_string()
-}
-
 /// Checks a tube specification against FI-05 (doc 11 §4.1): diameters larger than zero, the outer larger than the
 /// inner, a pressure rating of zero or more; refused in words.
 pub(crate) fn check_tube(tx: &TxBuilder<'_>, spec: &TubeSpec) -> Result<(), CmdError> {
     for d in [spec.od, spec.id].into_iter().flatten() {
         if d.0 <= 0 {
-            return tx.reject(text!("refusal-tube-diameter-positive", mm(d)));
+            return tx.reject(text!("refusal-tube-diameter-positive", ew_derive::mm_micro(d)));
         }
     }
     if let (Some(od), Some(id)) = (spec.od, spec.id)
         && od <= id
     {
-        return tx.reject(text!("refusal-tube-diameters", mm(od), mm(id)));
+        return tx.reject(text!(
+            "refusal-tube-diameters",
+            ew_derive::mm_micro(od),
+            ew_derive::mm_micro(id)
+        ));
     }
     if let Some(p) = spec.p_rating
         && p < Dec3::ZERO
@@ -958,7 +957,9 @@ impl Command for SetLength {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let lines = fluid_lines(tx, &self.lines)?;
         let length = match self.length {
-            Some(n) if n.0 <= 0 => return tx.reject(text!("refusal-fluid-length-positive", mm(n))),
+            Some(n) if n.0 <= 0 => {
+                return tx.reject(text!("refusal-fluid-length-positive", ew_derive::mm_micro(n)));
+            }
             Some(n) => LengthSource::Manual(n),
             None => LengthSource::Missing,
         };

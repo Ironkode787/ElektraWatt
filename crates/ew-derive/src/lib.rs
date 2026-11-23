@@ -128,10 +128,10 @@ pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
 // Page items and structure boxes, derived.
 pub use items::{
     BINDABLE, CableMark, GroupMarker, IpStructure, MarkerMode, RepStructureBox, SYMBOL_BINDABLE, bound_text,
-    box_caption, cable_mark, cable_size_text, connection_marker, connection_number,
-    effective_marker_text, explicit_marker_text, free_text, group_marker, grouped_connections,
-    live_connections, marker_mode, neutral, outline_area2, outline_contains, shows_marker,
-    stale_marker_notes, strips_named_on, symbol_bound_text,
+    box_caption, cable_mark, cable_size_text, connection_marker, connection_number, effective_marker_text,
+    explicit_marker_text, free_text, group_marker, grouped_connections, live_connections, marker_mode,
+    neutral, outline_area2, outline_contains, shows_marker, stale_marker_notes, strips_named_on,
+    symbol_bound_text,
 };
 pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
 pub use links::{
@@ -162,7 +162,7 @@ pub use fluid::{
 };
 pub use fluid_media::{
     Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,
-    TubeSource, mm, node_net,
+    TubeSource, node_net,
 };
 pub use fluid_rows::{
     MediumRow, MediumRows, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtRow, VtSlot, is_blanking_plate,
@@ -227,7 +227,11 @@ pub use tag::{
     numbering_format, rep_level, rule_product, short_tag,
 };
 // How a value of the domain is printed.
-pub use text::{colour_text, csa_text};
+pub use text::{
+    bus_address, channel_address, colour_code_marked, colour_marked, colour_raw, colour_text, csa_text,
+    mm_exact, mm_hundredth, mm_micro, mm_padded, mm_tenth, mm_tenth_float, mm_tenth_short, mm_truncated,
+    potential_type_code, potential_type_sql, potential_type_text, slot_short, slot_text,
+};
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{
     TbValue, TitleBlock, TitleBlockValues, current_revision, last_changed_in, last_released_revision,

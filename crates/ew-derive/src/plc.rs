@@ -2202,11 +2202,7 @@ impl Query for PlcAddressText {
         let address = |id: Id<Channel>| -> Option<String> {
             let module = channels.get(id)?.module;
             let entry = q.get::<ChannelAddresses>(module);
-            match &entry.iter().find(|e| e.channel == id)?.address {
-                ChannelAddr::At { text, .. } => Some(text.clone()),
-                ChannelAddr::Tbd => Some("TBD".to_owned()),
-                ChannelAddr::Excluded | ChannelAddr::Unresolved => None,
-            }
+            crate::text::channel_address(&entry.iter().find(|e| e.channel == id)?.address).map(str::to_owned)
         };
         // (solenoid rank, function, CP index, designation, text) of the bound CPs of `f` that `keep` admits
         type Bound = (u8, Id<Function>, u16, String, String);

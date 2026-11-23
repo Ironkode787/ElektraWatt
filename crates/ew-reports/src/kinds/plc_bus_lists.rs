@@ -18,7 +18,7 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::{
     BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
-    NetMaster, NetMembersOf, Q, SegmentMember, Slot, Start, bus_word, external_partner_text, iolink_device,
+    NetMaster, NetMembersOf, Q, SegmentMember, Start, bus_word, external_partner_text, iolink_device,
     module_io, module_part, net_address_text, port_windows, profile_of, short_tag, stations,
 };
 
@@ -53,24 +53,6 @@ fn cfgs(q: &Q) -> Vec<Id<PlcConfigProject>> {
         }
     }
     out
-}
-
-/// A slot as the lists print it: `n` positional, `rack.slot` or `rack.slot.subslot`.
-fn slot_text(slot: Slot) -> String {
-    match slot {
-        Slot::Positional(n) => n.to_string(),
-        Slot::Rack {
-            rack,
-            slot,
-            subslot: None,
-        } => format!("{rack}.{slot}"),
-        Slot::Rack {
-            rack,
-            slot,
-            subslot: Some(s),
-        } => format!("{rack}.{slot}.{s}"),
-        Slot::Unresolved => String::new(),
-    }
 }
 
 /// The logical nets in natural order of their names.
@@ -147,7 +129,12 @@ impl ReportKindDef for PlcCardList {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
                 let c = &set.columns;
                 put(c, &mut cells, "station", ident(&short_tag(q, m.station)));
-                put(c, &mut cells, "slot", ident(&slot_text(m.slot)));
+                put(
+                    c,
+                    &mut cells,
+                    "slot",
+                    ident(&ew_derive::slot_text(m.slot).unwrap_or_default()),
+                );
                 put(c, &mut cells, "module", ident(&short_tag(q, m.module)));
                 if let Some((copy, _)) = module_part(q, m.module) {
                     put(c, &mut cells, "part", ident(copy.item.part_number.as_str()));

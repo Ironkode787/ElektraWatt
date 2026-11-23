@@ -742,7 +742,7 @@ impl Rule for CardSupply {
                                 && **t != role
                                 && !alias
                         }) {
-                            let type_word = potential_type_word(t);
+                            let type_word = ew_derive::potential_type_text(t);
                             (
                                 "wrong",
                                 format!(
@@ -767,9 +767,9 @@ impl Rule for CardSupply {
                             .arg("group", group_word)
                             .arg(
                                 "type",
-                                ptype
-                                    .as_ref()
-                                    .map_or_else(String::new, |t| potential_type_word(t).to_owned()),
+                                ptype.as_ref().map_or_else(String::new, |t| {
+                                    ew_derive::potential_type_text(t).to_owned()
+                                }),
                             )
                             .reading(confidence),
                         );
@@ -778,25 +778,6 @@ impl Rule for CardSupply {
             }
         }
         out
-    }
-}
-
-/// A potential type as a message prints it.
-fn potential_type_word(t: &PotentialType) -> &'static str {
-    match t {
-        PotentialType::L1 => "L1",
-        PotentialType::L2 => "L2",
-        PotentialType::L3 => "L3",
-        PotentialType::L => "L",
-        PotentialType::N => "N",
-        PotentialType::Pe => "PE",
-        PotentialType::Pen => "PEN",
-        PotentialType::Fe => "FE",
-        PotentialType::LPlus => "L+",
-        PotentialType::LMinus => "L-",
-        PotentialType::M => "M",
-        PotentialType::Signal => "signal",
-        PotentialType::Undefined | PotentialType::Unknown(_) => "undefined",
     }
 }
 

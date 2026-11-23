@@ -60,7 +60,7 @@ pub fn mount_words() -> Vec<String> {
 
 /// The texts of [`SIZE_FIELDS`] of `mech` (empty for what it does not give).
 pub(crate) fn size_rows(mech: Option<&MechData>) -> Vec<(&'static str, String)> {
-    let mm = |n: Option<Nm>| n.map_or_else(String::new, |n| ew_derive::layout::mm(i128::from(n.0)));
+    let mm = |n: Option<Nm>| n.map_or_else(String::new, |n| ew_derive::mm_exact(i128::from(n.0)));
     let clear = |f: fn(&Clearance) -> Nm| {
         mm(mech
             .and_then(|m| m.clearance.as_ref())

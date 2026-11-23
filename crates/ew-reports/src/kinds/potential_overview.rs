@@ -208,22 +208,13 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
 
 /// A potential type in English and in Dutch.
 fn type_name(t: &PotentialType) -> (&'static str, &'static str) {
-    let same = |s| (s, s);
+    if let Some(code) = ew_derive::potential_type_code(t) {
+        return (code, code);
+    }
     match t {
-        PotentialType::L1 => same("L1"),
-        PotentialType::L2 => same("L2"),
-        PotentialType::L3 => same("L3"),
-        PotentialType::L => same("L"),
-        PotentialType::N => same("N"),
-        PotentialType::Pe => same("PE"),
-        PotentialType::Pen => same("PEN"),
-        PotentialType::Fe => same("FE"),
-        PotentialType::LPlus => same("L+"),
-        PotentialType::LMinus => same("L-"),
-        PotentialType::M => same("M"),
         PotentialType::Signal => ("signal", "signaal"),
         PotentialType::Undefined => ("undefined", "onbepaald"),
-        PotentialType::Unknown(_) => ("other", "overig"),
+        _ => ("other", "overig"),
     }
 }
 

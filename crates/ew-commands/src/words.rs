@@ -362,19 +362,14 @@ pub(crate) fn carrier_label(label: CarrierLabel) -> Text {
     }
 }
 
-/// A length in millimetres to one decimal, a whole number without it ("45.5", "120"; 1 nm is "0").
-fn mm(n: ew_units::Nm) -> String {
-    let s = format!("{:.1}", n.to_mm_f64());
-    match s.strip_suffix(".0") {
-        Some("-0") => "0".to_owned(),
-        Some(whole) => whole.to_owned(),
-        None => s,
-    }
-}
-
 /// A point of a page by its position and page ("x 120, y 45.5 mm on page 3").
 pub(crate) fn point(tx: &TxBuilder<'_>, page_id: ew_ids::Id<Page>, p: ew_units::Pt2) -> Text {
-    text!("refusal-words-point", mm(p.x), mm(p.y), page(tx, page_id))
+    text!(
+        "refusal-words-point",
+        ew_derive::mm_tenth_float(p.x),
+        ew_derive::mm_tenth_float(p.y),
+        page(tx, page_id)
+    )
 }
 
 /// A junction by its page and position ("the junction at x 120, y 45 mm on page 3"), or "a junction that is
@@ -397,7 +392,11 @@ pub(crate) fn interruption_point(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -
 
 /// A position of a page without the page ("x 120, y 45.5 mm").
 pub(crate) fn position(p: ew_units::Pt2) -> Text {
-    text!("refusal-words-position", mm(p.x), mm(p.y))
+    text!(
+        "refusal-words-position",
+        ew_derive::mm_tenth_float(p.x),
+        ew_derive::mm_tenth_float(p.y)
+    )
 }
 
 /// A wire by the number the drawing prints for its physical wire ("wire 102.5", the derived `wire_numbers` label of

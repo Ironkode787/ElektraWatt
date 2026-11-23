@@ -16,7 +16,7 @@ use ew_derive::Q;
 use ew_derive::layout::{
     Fit, Mountable, PathError, PlacementGeometry, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent,
     RailItem, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade,
-    cascade_mirrored, check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, mm,
+    cascade_mirrored, check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap,
     mount_label, next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
@@ -336,7 +336,11 @@ fn pose_words(e: &PoseError) -> Text {
     match e {
         PoseError::OffRailAxis => text!("refusal-layout-pose-rail-axis"),
         PoseError::RailTurn => text!("refusal-layout-pose-rail-turn"),
-        PoseError::OffRail(s, l) => text!("refusal-layout-pose-off-rail", mm(*s), mm(*l)),
+        PoseError::OffRail(s, l) => text!(
+            "refusal-layout-pose-off-rail",
+            ew_derive::mm_exact(*s),
+            ew_derive::mm_exact(*l)
+        ),
         PoseError::OffSurface => text!("refusal-layout-pose-surface-plane"),
         PoseError::SurfaceTurn => text!("refusal-layout-pose-surface-turn"),
         PoseError::OnDuct => text!("refusal-layout-pose-duct"),
@@ -1143,7 +1147,12 @@ fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> Text {
     match e {
         SnapError::NoGap { width } => {
             let rail = rail_in_sentence(q, w.carrier);
-            text!("refusal-layout-snap-no-gap", rail, item, mm(width))
+            text!(
+                "refusal-layout-snap-no-gap",
+                rail,
+                item,
+                ew_derive::mm_exact(width)
+            )
         }
         SnapError::MovedLocked => text!("refusal-layout-snap-unlock", item),
         SnapError::Locked(p) if swap => text!("refusal-layout-snap-swap-locked", placed(p)),
@@ -1151,13 +1160,25 @@ fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> Text {
         SnapError::PastEnd {
             neighbour: Some(p),
             by,
-        } if swap => text!("refusal-layout-snap-swap-past-end", placed(Some(p)), mm(by)),
+        } if swap => text!(
+            "refusal-layout-snap-swap-past-end",
+            placed(Some(p)),
+            ew_derive::mm_exact(by)
+        ),
         SnapError::PastEnd {
             neighbour: Some(p),
             by,
-        } => text!("refusal-layout-snap-push-past-end", placed(Some(p)), mm(by)),
+        } => text!(
+            "refusal-layout-snap-push-past-end",
+            placed(Some(p)),
+            ew_derive::mm_exact(by)
+        ),
         SnapError::PastEnd { neighbour: None, by } => {
-            text!("refusal-layout-snap-item-past-end", sentence_start(&item), mm(by))
+            text!(
+                "refusal-layout-snap-item-past-end",
+                sentence_start(&item),
+                ew_derive::mm_exact(by)
+            )
         }
         SnapError::SwapAcrossRails => text!("refusal-layout-snap-swap-across"),
         SnapError::SwapNoTarget => text!("refusal-layout-snap-swap-no-target"),

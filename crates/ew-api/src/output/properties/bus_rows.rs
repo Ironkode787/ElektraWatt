@@ -41,11 +41,7 @@ pub(super) fn bus_address_in_words(built: &mut [Built]) {
         if let RowValue::One { json, text } = &mut b.row.value
             && let Ok(address) = serde_json::from_value::<ew_schema::AddrValue>(json.clone())
         {
-            *text = match address {
-                ew_schema::AddrValue::Tbd => "TBD".to_owned(),
-                ew_schema::AddrValue::Value(a) => ew_derive::net_address_text(&a).unwrap_or_default(),
-                ew_schema::AddrValue::NotApplicable | ew_schema::AddrValue::Unknown(_) => String::new(),
-            };
+            *text = ew_derive::bus_address(&address).unwrap_or_default();
         }
     }
 }

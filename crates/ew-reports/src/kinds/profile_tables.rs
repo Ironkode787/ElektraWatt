@@ -33,8 +33,8 @@ use ew_derive::ew_units::Dec3;
 use serde_json::Value;
 
 use crate::kind::ReportKindDef;
-use crate::render::colour_text;
 use crate::rowset::{Cell, CellType, ColumnDef, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
+use ew_derive::colour_raw;
 
 /// The colour and size tables of the cover.
 #[derive(Clone, Copy, Debug)]
@@ -167,7 +167,7 @@ fn colours(profile: &Value, set: &mut RowSet, names: &mut BTreeMap<String, (MlTe
         };
         let name = ml(row.get("colour_name"));
         names
-            .entry(colour_text(&colour))
+            .entry(colour_raw(&colour))
             .or_insert_with(|| (name.clone(), colour.clone()));
         rows.push(Row::data(
             id("colours", i),

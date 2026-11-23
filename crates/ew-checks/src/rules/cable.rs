@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    CableCore, ColourCode, ColourSpec, Conductor, Connection, ConnectionKind, Device, ExternalRef, Function,
+    CableCore, ColourCode, Conductor, Connection, ConnectionKind, Device, ExternalRef, Function,
     FunctionKind, Kind, LibCopy, Part, StructureNode,
 };
 use ew_derive::{
@@ -41,20 +41,6 @@ pub(crate) fn cable_text(q: &Q, cable: Id<Device>) -> String {
 /// A conductor as messages print it: `<cable>/<core>` (`-106W1/BU`), as EW-POT-005 prints a core wire.
 fn core_text(q: &Q, c: &Conductor) -> String {
     format!("{}/{}", cable_text(q, c.cable), c.core.as_str())
-}
-
-/// One colour code as written: the IEC or company code, a foreign code as stored.
-fn code_text(c: &ColourCode) -> String {
-    match c {
-        ColourCode::Iec(c) => c.as_str().to_owned(),
-        ColourCode::Company(c) | ColourCode::Foreign(c) => c.as_str().to_owned(),
-        ColourCode::Unknown(_) => "?".to_owned(),
-    }
-}
-
-/// A colour specification as written (`GNYE`, `BR`).
-fn colour_spec_text(c: &ColourSpec) -> String {
-    c.codes().iter().map(code_text).collect()
 }
 
 /// The conductors of a cable in printed order (core text in natural order, then bytes, then the ID).
@@ -107,7 +93,7 @@ fn invalid_codes(c: &Conductor, declared: &BTreeSet<String>) -> Vec<String> {
             ColourCode::Company(x) => !declared.contains(x.as_str()),
             ColourCode::Foreign(_) => true,
         })
-        .map(code_text)
+        .map(ew_derive::colour_code_marked)
         .collect()
 }
 
@@ -127,7 +113,11 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
         return None;
     }
     let core = core_text(q, c);
-    let shown = c.colour.as_ref().map(colour_spec_text).unwrap_or_default();
+    let shown = c
+        .colour
+        .as_ref()
+        .map(ew_derive::colour_marked)
+        .unwrap_or_default();
     let codes = bad
         .iter()
         .map(|b| format!("\"{b}\""))
@@ -253,8 +243,8 @@ fn core_differences(c: &Conductor, def: &CableCore) -> (Vec<String>, Vec<(&'stat
         let part = def
             .colour
             .as_ref()
-            .map_or_else(|| "none".to_owned(), colour_spec_text);
-        let ours = colour_spec_text(colour);
+            .map_or_else(|| "none".to_owned(), ew_derive::colour_marked);
+        let ours = ew_derive::colour_marked(colour);
         let text = format!("colour {ours} ≠ {part}");
         add(
             &mut out,

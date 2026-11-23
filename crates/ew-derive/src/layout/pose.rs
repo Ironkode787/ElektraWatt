@@ -77,20 +77,6 @@ impl Quarter {
     }
 }
 
-/// A length in nanometres as millimetres for messages: exact, without trailing fraction zeros (`96`, `7.5`,
-/// `-0.000001`).
-pub fn mm(nm: i128) -> String {
-    let sign = if nm < 0 { "-" } else { "" };
-    let a = nm.unsigned_abs();
-    let (int, frac) = (a / 1_000_000, a % 1_000_000);
-    if frac == 0 {
-        format!("{sign}{int}")
-    } else {
-        let digits = format!("{frac:06}");
-        format!("{sign}{int}.{}", digits.trim_end_matches('0'))
-    }
-}
-
 /// What a pose is relative to, for [`check_pose`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PoseOn {
@@ -129,8 +115,8 @@ impl fmt::Display for PoseError {
             PoseError::OffRail(s, l) => write!(
                 f,
                 "the pose is off the rail: s = {} mm is outside [0, {} mm]",
-                mm(*s),
-                mm(*l)
+                crate::text::mm_exact(*s),
+                crate::text::mm_exact(*l)
             ),
             PoseError::OffSurface => f.write_str("a pose on a surface lies in its plane: t = (u, v, 0)"),
             PoseError::SurfaceTurn => {

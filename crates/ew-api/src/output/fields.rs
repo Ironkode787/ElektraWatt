@@ -1136,18 +1136,6 @@ fn unit_text(unit: &str) -> &str {
     ew_schema::Unit::named(unit).map_or(unit, |u| u.symbol())
 }
 
-/// Nanometres as millimetres: three decimals, more when not exact.
-pub(crate) fn nm_text(nm: i64) -> String {
-    let sign = if nm < 0 { "-" } else { "" };
-    let abs = nm.unsigned_abs();
-    let (mm, frac) = (abs / 1_000_000, abs % 1_000_000);
-    let mut digits = format!("{frac:06}");
-    while digits.len() > 3 && digits.ends_with('0') {
-        digits.pop();
-    }
-    format!("{sign}{mm}.{digits}")
-}
-
 /// [`format_field_value`] with a display context.
 pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> String {
     if value.is_null() {
@@ -1181,7 +1169,9 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
             _ => compact_json(value),
         },
         FieldType::Csa => csa_text(value),
-        FieldType::Nm => value.as_i64().map_or_else(|| compact_json(value), nm_text),
+        FieldType::Nm => value
+            .as_i64()
+            .map_or_else(|| compact_json(value), ew_derive::mm_padded),
         FieldType::Date => match value.as_str().map(str::parse::<ew_schema::Date>) {
             Some(Ok(d)) => cx.date_format().format(d),
             _ => value.as_str().map_or_else(|| compact_json(value), str::to_owned),
@@ -1327,10 +1317,10 @@ fn rect_text(value: &Value) -> Option<String> {
     }
     Some(format!(
         "{}, {} mm · {} × {} mm",
-        nm_text(x1),
-        nm_text(y1),
-        nm_text(x2.checked_sub(x1)?),
-        nm_text(y2.checked_sub(y1)?)
+        ew_derive::mm_padded(x1),
+        ew_derive::mm_padded(y1),
+        ew_derive::mm_padded(x2.checked_sub(x1)?),
+        ew_derive::mm_padded(y2.checked_sub(y1)?)
     ))
 }
 

@@ -293,17 +293,17 @@ impl Rule for TubeMisfit {
                             text.clone(),
                             format!(
                                 "tube {text} is {} mm outside, but port {} takes {} mm",
-                                ew_derive::mm(od.value),
+                                ew_derive::mm_micro(od.value),
                                 end.text,
-                                ew_derive::mm(port_od)
+                                ew_derive::mm_micro(port_od)
                             ),
                         )
                         .arg("form", "od")
                         .arg("tube", text.clone())
                         .arg("tube_nl", text_nl.clone())
-                        .arg("od", ew_derive::mm(od.value))
+                        .arg("od", ew_derive::mm_micro(od.value))
                         .arg("port", end.text.clone())
-                        .arg("port_od", ew_derive::mm(port_od)),
+                        .arg("port_od", ew_derive::mm_micro(port_od)),
                     );
                 }
             }

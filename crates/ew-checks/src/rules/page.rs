@@ -453,12 +453,6 @@ fn is_style(table: &[EffectiveStyle], key: &str) -> bool {
     table.iter().any(|s| s.key.as_str() == key)
 }
 
-/// A length in nm printed in millimetres with two decimals, rounded half up.
-fn mm2(nm: i64) -> String {
-    let hundredths = (nm + 5_000) / 10_000;
-    format!("{}.{:02}", hundredths / 100, hundredths % 100)
-}
-
 /// EW-CORE-061 "Text below minimum height" (doc 15 §4.2): hygiene, o r, warning, project.
 pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
     id: "EW-CORE-061",
@@ -512,7 +506,10 @@ impl Rule for TextBelowMinimum {
             .map(|s| {
                 let key = s.key.as_str();
                 let name = crate::messages::text_style_name(key, crate::messages::DEFAULT_LANGUAGE);
-                let (height, minimum) = (mm2(cap_height(s.em).0), mm2(MIN_CAP_HEIGHT.0));
+                let (height, minimum) = (
+                    ew_derive::mm_hundredth(cap_height(s.em).0),
+                    ew_derive::mm_hundredth(MIN_CAP_HEIGHT.0),
+                );
                 // Set to 1.2 mm: this style at the minimum, every other entry as it is.
                 let mut value = overrides.clone();
                 let raised = EffectiveStyle {

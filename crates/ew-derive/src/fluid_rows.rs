@@ -593,7 +593,7 @@ pub fn tube_spec_text(q: &Q, t: &ew_schema::TubeSpec) -> String {
         parts.push(m.code().to_owned());
     }
     if let (Some(od), Some(id)) = (t.od, t.id) {
-        parts.push(format!("{}×{}", crate::mm(od), crate::mm(id)));
+        parts.push(format!("{}×{}", crate::mm_micro(od), crate::mm_micro(id)));
     }
     if let Some(c) = t.colour.as_ref().and_then(crate::colour_text) {
         parts.push(c);

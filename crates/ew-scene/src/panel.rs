@@ -639,23 +639,6 @@ fn chain(pieces: &[(Pt2, Pt2)], closed: bool) -> Path {
     b.build()
 }
 
-/// The millimetre text of a length: whole millimetres without decimals, else up to three decimals without trailing
-/// zeros ("40", "37.5").
-fn mm_text(n: Nm) -> String {
-    let (whole, frac) = (n.0 / 1_000_000, (n.0 % 1_000_000).abs());
-    if frac == 0 {
-        return whole.to_string();
-    }
-    let sign = if n.0 < 0 && whole == 0 { "-" } else { "" };
-    let micro = format!("{:06}", frac);
-    let dec = micro[..3].trim_end_matches('0');
-    if dec.is_empty() {
-        format!("{sign}{whole}")
-    } else {
-        format!("{sign}{whole}.{dec}")
-    }
-}
-
 /// The midpoint of the longest of `rects` (the first of equal ones) and whether it is taller than wide.
 fn longest(rects: &[Rect]) -> Option<(Pt2, bool)> {
     let mut best: Option<(i64, Rect)> = None;
@@ -924,7 +907,11 @@ impl Builder<'_> {
                 }
             }
             if let (Some((w, h)), Some((at, vertical))) = (c.duct, longest(&outline)) {
-                let text = format!("{}\u{d7}{}", mm_text(w), mm_text(h));
+                let text = format!(
+                    "{}\u{d7}{}",
+                    ew_derive::mm_truncated(w),
+                    ew_derive::mm_truncated(h)
+                );
                 self.text(&TextSpec {
                     text: &text,
                     at,
@@ -1216,8 +1203,8 @@ mod tests {
         assert!(!has_descender("-101F1"));
         assert!(!has_descender("=P01+J-E-2416-X1031:1"));
         assert!(has_descender("Pump"));
-        assert_eq!(mm_text(Nm(40_000_000)), "40");
-        assert_eq!(mm_text(Nm(37_500_000)), "37.5");
-        assert_eq!(mm_text(Nm(6_250_000)), "6.25");
+        assert_eq!(ew_derive::mm_truncated(Nm(40_000_000)), "40");
+        assert_eq!(ew_derive::mm_truncated(Nm(37_500_000)), "37.5");
+        assert_eq!(ew_derive::mm_truncated(Nm(6_250_000)), "6.25");
     }
 }

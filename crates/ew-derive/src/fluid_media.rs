@@ -378,15 +378,14 @@ impl TubeProps {
     /// "6×4" in millimetres; empty without both diameters.
     pub fn size_text(&self) -> String {
         match (&self.od, &self.id) {
-            (Some(od), Some(id)) => format!("{}×{}", mm(od.value), mm(id.value)),
+            (Some(od), Some(id)) => format!(
+                "{}×{}",
+                crate::text::mm_micro(od.value),
+                crate::text::mm_micro(id.value)
+            ),
             _ => String::new(),
         }
     }
-}
-
-/// A length in millimetres as text: whole millimetres plain, else three decimals at most.
-pub fn mm(nm: Nm) -> String {
-    Dec3(nm.0 / 1_000).to_string()
 }
 
 /// The default tube of a medium for a line kind: its `line_kind_tubes` entry, else its default tube.
