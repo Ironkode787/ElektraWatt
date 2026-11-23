@@ -31,6 +31,7 @@ worked on after it.
 | Candidate | Cut from | Checklist | State |
 |---|---|---|---|
 | `v0.3.5-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-22; its release build passed (run 19 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet; the rows open at the cut are worked on for a second candidate, with a review and a persona round before it (owner) |
+| `v0.3.5-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-23, with what was done between the candidates (below). Not tested by the owner yet. A third candidate follows after the hygiene step that the owner added to the milestone (step 15 of the plan) |
 
 Before the first cut, on the tip that the release branch moves to: two reviews, each with its fixes. The first
 read everything from 0.3.0 to the end of the fix round's sweep, in four parts (the format, the model and the
@@ -51,6 +52,24 @@ Fifteen rows of the fix round are open at the cut, each with what was tried
 The release branch `release/0.3` was moved forward to the working branch's tip: everything since 0.3.0 on the
 working branch is this release.
 
+**Between the first and the second candidate.** The rows open at the first cut were worked in three bundles, and
+a review of those bundles found no major fault and eleven small ones, mended by the reviewers. Then personas (a
+model that works the program from pictures of its window, as a person new to it would, on a job sheet) ran nine
+times in two rounds: four jobs on the tree after the review (a second installation, parts and terminals of one's
+own, a layout and a drawing, a complete cabinet: 7, 6, 6 and 7 of 10, no crash, nothing lost) and five re-tests
+after the fixes (8, 6, 5, 6 and 5 of 10). What they met was mended by lanes in between: where a person looks in
+the window and what it says, terminals of two levels, a cut and its paste as a move, the form for a part of
+one's own, a strip of terminals that keeps its order under Arrange and route, a card laid in one row whichever
+way it is placed. The verdicts did not rise as the fixes went in, and the owner's reading of that is on record in
+the plan's log: the lanes mended findings and not their causes, the causes are saved for later work, and the
+placer is a general aid whose page needs a draughtsman's eye. No fix was made after the last run. On the
+candidate's tree, with nothing else building, the whole workspace (7,881 of 7,881 tests), the deep run with the
+private corpus (9 of 9), the format guard, the guide's translation check, the advisories and the translation
+status pass; the first such run failed on three things, which the checklist's RC-02 names.
+
+Eighteen rows of the fix round are open at the second cut ([backlog](../../../plan/backlog.md), "0.3.5: the fix
+round"), and the notes' section 7 names what a reader would meet.
+
 ## 3. The release manager's decisions
 
 - The README's pictures were made on the day of the cut from the program as the candidate's tree draws it; no
@@ -60,6 +79,13 @@ working branch is this release.
   only): `url` was updated to 2.5.9 before the cut; no waiver was written.
 - The format guard read the unreleased notes only and so failed from a cut until the final tag; it now reads the
   notes of the release being cut as well (`xtask/src/api_guard.rs`).
+
+- For the second candidate the notes' summary was written again for what changed since the first, and the notes'
+  known limitations gained what the persona runs showed and no lane mended: a move to another page drops the wires
+  to what stays, a strip wired to a card in another order leaves its page as it is, a station is drawn on one page.
+- The fixes of the persona rounds were checked lane by lane on the crates each touched; the harness's own tests,
+  the deep run and the translation status ran only at the exit, where three things failed and were mended. For
+  the third candidate a lane that changes a layout, a message or a tutorial runs those as well.
 
 ## 4. The go
 
