@@ -63,9 +63,9 @@
 //! so no memoised query may read it. In the non-test source of the listed packages (`ew-derive`, whose `Q` holds the
 //! model; reader crates included), a method call `.<accessor>(` or a path `::<accessor>` of the listed accessors
 //! (`asset`, `assets`, `has_asset`) is a finding unless the innermost function around it has an
-//! `[[raw_read.asset_presence.allow]]` entry (path, function, reason). `Q::logo_asset` is the one entry; an entry that
-//! matches nothing fails. A second reader is not allowlisted: asset presence then becomes a tracked input of the memo
-//! engine (ADR-0002).
+//! `[[raw_read.asset_presence.allow]]` entry (path, function, reason). `Q::logo_asset` and `Q::typeface_bytes` are the
+//! entries, each recording a read of the asset store (`DepKey::Assets`), so the memo engine tracks the presence it
+//! answers (ADR-0002); an entry that matches nothing fails.
 //!
 //! # Test code
 //!

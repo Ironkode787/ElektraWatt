@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "GPL-3.0-or-later"
-description = "Model to display lists per page and layer, forms engine, spatial index and hit-testing."
+description = "A page as display lists per layer, the forms engine, and the entities its items draw."
 repository.workspace = true
 publish = false
 

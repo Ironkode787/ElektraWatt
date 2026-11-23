@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`,
+//! Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0),
 //! pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018;
 //! [`table`], [`csv`], [`xlsx`]).
 //!

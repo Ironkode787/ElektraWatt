@@ -139,7 +139,7 @@ allowed = ["CC-BY-SA-4.0"]
 glob = "content/libraries/ew-starter-parts.ewlib/**"
 allowed = ["CC0-1.0"]
 
-# L8: the sample project's catalogue parts (WP-S7.03 D3), part facts from Golden A's CC0 copies (CC0-1.0).
+# L8: the sample project's catalogue parts (WP-S7.03 D3), CC0 part facts (CC0-1.0).
 [[path]]
 glob = "content/libraries/ew-sample-parts.ewlib/**"
 allowed = ["CC0-1.0"]
@@ -326,8 +326,8 @@ allowed = ["CC0-1.0"]
 glob = "crates/*/tests/fixtures/**"
 allowed = ["CC0-1.0"]
 
-# L8 (golden fixture): fixtures/format/ holds each released format's frozen copy of the golden project and the corpus
-# job's expected saves (ADR-0011 amendment 6, WP-S6.08 D13).
+# L8 (format fixture): fixtures/format/ holds each released format's frozen fixture and its expected save: format
+# 0.1's is the frozen reference project (ADR-0011 amendments 6 and 7, WP-S6.08 D13).
 [[path]]
 glob = "fixtures/format/**"
 allowed = ["CC0-1.0"]

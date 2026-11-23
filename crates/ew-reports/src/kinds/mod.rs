@@ -16,7 +16,7 @@
 //! `bus_cable_list`, `iolink_port_list` and `safety_io_list`. From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
 //! `revision_overview` (`revision_rows`). From the layout: `enclosure_legend`
-//! (`layout_legend`, registered, drawn on no page). From the check engine:
+//! (`layout_legend`; a layout page draws it as an embedded block). From the check engine:
 //! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; none
 //! of those rules reads the page order, so the list paginates inside it). From the fluid row sources (doc 11 §8.2):
 //! `tube_list`, `tube_cut_list`, `tube_labels`, `valve_terminal_config` and `medium_overview`. Other schema kinds are not

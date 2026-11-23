@@ -29,7 +29,7 @@ use crate::error::SqlError;
 use crate::functions::{self, CURRENT_FUNCTIONS, DATE_FUNCTIONS};
 use crate::result::{ResultSet, Value};
 
-/// The limits and the deadline of one kind of consumer (doc 17 §6.2).
+/// The limits and the deadline of a statement (doc 17 §6.2); `ew sql` is the one consumer ([`Profile::EW_SQL`]).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Profile {
     /// The consumer, for messages (`ew sql`).

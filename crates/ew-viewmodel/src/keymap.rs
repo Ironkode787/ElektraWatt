@@ -12,9 +12,8 @@
 //!
 //! **Keymaps.** A keymap file is doc 16 §4.4's TOML: `[meta]` with `name` and `version = 1`, then `[[bind]]` tables
 //! with `keys`, `action`, `context` (one of the five shell contexts in lower case) and an optional `alt`. The EW preset
-//! is generated from the registry's `ActionMeta.shortcut` (the registry stays its source; `keymaps/ew.toml` is its
-//! written form, kept equal by a test); the KiCad-like preset is the EW preset with `A` for Place (replacing `I`) and
-//! `G` beside `M` for Move. The user's `keymap.toml` in the settings directory replaces the preset's bindings of the
+//! is generated from the registry's `ActionMeta.shortcut`, its one source; the KiCad-like preset is the EW preset with
+//! `A` for Place (replacing `I`) and `G` beside `M` for Move. The user's `keymap.toml` in the settings directory replaces the preset's bindings of the
 //! actions it names; a binding for an action this build does not know is kept and listed as unused.
 //!
 //! **Rules** (D8, doc 16 §15.5 over the contexts that exist, `global` the parent of the four others): equal chords in

@@ -190,7 +190,8 @@ pub struct RuleMeta {
     pub code: &'static str,
     /// The pack, for example `EW-TERM` or `EW-IEC81346`.
     pub pack: &'static str,
-    /// The English title (the `.title` attribute of the rule's Fluent message, until the messages ship).
+    /// The English title, the catalogue's; the en-GB `.title` attribute of the rule's Fluent message
+    /// ([`crate::messages`]) is the same text, which a test holds.
     pub title: &'static str,
     /// The kind.
     pub kind: RuleKind,

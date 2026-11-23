@@ -4,10 +4,9 @@
 //! The dependency-recording hook of [`Q`](crate::Q) (ADR-0002 decisions 1, 2 and 4).
 //!
 //! Every tracked accessor of `Q` reports what it read as a [`DepKey`] together with the revision stamp it
-//! observed (`changed_at` of the row, index key or table; ARCH §6.2). Phase 1 is cold, so the default
-//! [`ColdTracker`] drops the reports. The memo engine of `ew-memo` (after the performance spike, G-SP)
-//! implements [`Tracker`] to collect `deps: SmallVec<(DepKey, observed)>` per memo; query code does not
-//! change, because queries only ever call `Q`'s accessors.
+//! observed (`changed_at` of the row, index key or table; ARCH §6.2). The default [`ColdTracker`] drops the
+//! reports; the [`RecordingTracker`] keeps them for the tests. The memo engine of `ew-memo` receives the same reads
+//! through the memo store a `Q` carries, beside this hook; query code calls only `Q`'s accessors either way.
 //!
 //! **Verifier contract.** A memo engine re-validates a value by re-reading every recorded [`DepKey`] and
 //! comparing its current stamp with the recorded `observed`; a dependency is unchanged iff the current stamp

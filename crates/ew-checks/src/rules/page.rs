@@ -843,7 +843,7 @@ impl Rule for GraphicLineOnCp {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-CORE-067 to -070, -072 and -073: the layout rules (D19)
+// EW-CORE-067 to -070 and -072 to -077: the layout rules (D19)
 
 /// The metadata of a layout rule: pack EW-CORE, scope page, release MVP, modes `o r`.
 const fn layout_rule(
