@@ -141,7 +141,7 @@ mod tests;
 
 pub use asset::Asset;
 pub use diff::{ContentDiff, Presence};
-pub use entity::{AnyKey, AnyRow, Entity, LibraryCopies};
+pub use entity::{AnyKey, AnyRow, Entity, LibraryCopies, TABLE_KINDS};
 pub use error::ModelError;
 pub use index::{BaseIndexes, Bucket, EndpointKey, RevIndex};
 pub use invariants::{

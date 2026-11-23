@@ -302,6 +302,21 @@ impl Model {
     }
 
     raw_read! {
+        /// The revision that last changed the row of a key; `None` when the row does not exist.
+        fn row_changed_at(&self, key: &AnyKey) -> Option<Rev> {
+            crate::entity::row_changed_at(self, key)
+        }
+    }
+
+    raw_read! {
+        /// The revision that last changed a kind's table, the project row's for [`Kind::Project`]; a kind without a
+        /// table never changes ([`Rev::ZERO`]).
+        fn table_changed_at(&self, kind: Kind) -> Rev {
+            crate::entity::table_changed_at(self, kind)
+        }
+    }
+
+    raw_read! {
         /// Whether a row exists under the key.
         fn contains(&self, key: &AnyKey) -> bool {
             get_row(self, key).is_some()
@@ -580,52 +595,6 @@ impl Model {
             }
         }
         out
-    }
-}
-
-impl AnyRow {
-    /// The row of a record of a kind with a table, or the project row; the record itself back, boxed, for a record of a
-    /// kind without one ([`Record::Unknown`]), which a model keeps aside.
-    pub fn from_record(record: Record) -> Result<AnyRow, Box<Record>> {
-        Ok(match record {
-            Record::Project(p) => AnyRow::Project(Arc::new(p)),
-            Record::PlcConfigProject(r) => AnyRow::of(r),
-            Record::LogicalNet(r) => AnyRow::of(r),
-            Record::PhysicalNet(r) => AnyRow::of(r),
-            Record::Medium(r) => AnyRow::of(r),
-            Record::ImportLineage(r) => AnyRow::of(r),
-            Record::StructureNode(r) => AnyRow::of(r),
-            Record::Section(r) => AnyRow::of(r),
-            Record::ExternalRef(r) => AnyRow::of(r),
-            Record::Page(r) => AnyRow::of(r),
-            Record::Device(r) => AnyRow::of(r),
-            Record::Function(r) => AnyRow::of(r),
-            Record::Representation(r) => AnyRow::of(r),
-            Record::Connection(r) => AnyRow::of(r),
-            Record::Junction(r) => AnyRow::of(r),
-            Record::Conductor(r) => AnyRow::of(r),
-            Record::Channel(r) => AnyRow::of(r),
-            Record::PotentialDef(r) => AnyRow::of(r),
-            Record::MediumDef(r) => AnyRow::of(r),
-            Record::Bond(r) => AnyRow::of(r),
-            Record::DeviceLink(r) => AnyRow::of(r),
-            Record::PageItem(r) => AnyRow::of(r),
-            Record::StructureBox(r) => AnyRow::of(r),
-            Record::ReportBlock(r) => AnyRow::of(r),
-            Record::MacroInstance(r) => AnyRow::of(r),
-            Record::LayoutSpace(r) => AnyRow::of(r),
-            Record::Enclosure(r) => AnyRow::of(r),
-            Record::MountingSurface(r) => AnyRow::of(r),
-            Record::Carrier(r) => AnyRow::of(r),
-            Record::Placement(r) => AnyRow::of(r),
-            Record::Revision(r) => AnyRow::of(r),
-            Record::Waiver(r) => AnyRow::of(r),
-            Record::ExchangeRecord(r) => AnyRow::of(r),
-            Record::ForeignId(r) => AnyRow::of(r),
-            Record::ImportRun(r) => AnyRow::of(r),
-            Record::Conflict(r) => AnyRow::of(r),
-            other => return Err(Box::new(other)),
-        })
     }
 }
 

@@ -14,8 +14,8 @@ use ew_schema::{
     ExchangeRecord, ExternalRef, FnDef, ForeignId, FormDef, Function, ImportLineage, ImportRun, Junction,
     Kind, LayoutSpace, LibCopy, LogicalNet, MacroDef, MacroInstance, Manufacturer, Medium, MediumDef,
     MountingSurface, Page, PageItem, Part, PhysicalNet, Placement, PlcConfigProject, PlcProfileDef,
-    PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
-    SymbolDef, Waiver,
+    PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section, StructureBox,
+    StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
@@ -133,6 +133,31 @@ impl LibraryCopies {
 }
 
 macro_rules! entities {
+    (records { $($records:tt)* } library { $($library:tt)* }) => {
+        entities_of_tables! { $($records)* $($library)* }
+        entities_of_records! { $($records)* }
+    };
+}
+
+/// The conversion of a record into its row, for the kinds that are records (a library copy is not).
+macro_rules! entities_of_records {
+    ($( $variant:ident : $ty:ty, $marker:ty, $($field:ident).+ ; )*) => {
+        impl AnyRow {
+            /// The row of a record of a kind with a table, or the project row; the record itself back, boxed, for a
+            /// record of a kind without one ([`Record::Unknown`]), which a model keeps aside.
+            pub fn from_record(record: Record) -> Result<AnyRow, Box<Record>> {
+                Ok(match record {
+                    Record::Project(p) => AnyRow::Project(Arc::new(p)),
+                    $( Record::$variant(r) => AnyRow::$variant(Arc::new(r)), )*
+                    other => return Err(Box::new(other)),
+                })
+            }
+        }
+    };
+}
+
+/// Everything a table's declaration hands out: the [`Entity`] impls, [`AnyRow`] and the kind-erased accessors.
+macro_rules! entities_of_tables {
     ($( $variant:ident : $ty:ty, $marker:ty, $($field:ident).+ ; )*) => {
         $(
             impl sealed::Sealed for $ty {
@@ -204,10 +229,40 @@ macro_rules! entities {
                     _ => false,
                 }
             }
+
+            /// The row as JSON: the record's serde form (for a record, without `$k`; the key carries the kind).
+            pub fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+                match self {
+                    AnyRow::Project(r) => serde_json::to_value(&**r),
+                    $( AnyRow::$variant(r) => serde_json::to_value(&**r), )*
+                }
+            }
         }
 
-        /// The kinds stored in tables, in [`Kind`] order of declaration (project excluded).
-        pub(crate) const TABLE_KINDS: &[Kind] = &[ $( Kind::$variant, )* ];
+        /// The kinds stored in tables, in the order of their declaration (project excluded).
+        pub const TABLE_KINDS: &[Kind] = &[ $( Kind::$variant, )* ];
+
+        /// The revision that last changed the row of a key; `None` when the row does not exist.
+        pub(crate) fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
+            let (kind, id) = *key;
+            match kind {
+                Kind::Project => {
+                    (model.project.value.id.cast::<()>() == id).then(|| model.project.changed_at())
+                }
+                $( Kind::$variant => model.$($field).+.row(&id.cast()).map(|r| r.changed_at()), )*
+                _ => None,
+            }
+        }
+
+        /// The revision that last changed a kind's table (the project row's for the project); a kind without a table
+        /// never changes.
+        pub(crate) fn table_changed_at(model: &Model, kind: Kind) -> Rev {
+            match kind {
+                Kind::Project => model.project.changed_at(),
+                $( Kind::$variant => model.$($field).+.changed_at(), )*
+                _ => Rev::ZERO,
+            }
+        }
 
         /// The current row of a key.
         pub(crate) fn get_row(model: &Model, key: &AnyKey) -> Option<AnyRow> {
@@ -263,6 +318,7 @@ macro_rules! entities {
 }
 
 entities! {
+    records {
     PlcConfigProject: PlcConfigProject, PlcConfigProject, plc_config_projects;
     LogicalNet: LogicalNet, LogicalNet, logical_nets;
     PhysicalNet: PhysicalNet, PhysicalNet, physical_nets;
@@ -298,6 +354,8 @@ entities! {
     ForeignId: ForeignId, ForeignId, foreign_ids;
     ImportRun: ImportRun, ImportRun, import_runs;
     Conflict: Conflict, Conflict, conflicts;
+    }
+    library {
     Part: LibCopy<Part>, Part, lib.parts;
     Symbol: LibCopy<SymbolDef>, SymbolDef, lib.symbols;
     Fndef: LibCopy<FnDef>, FnDef, lib.fndefs;
@@ -305,6 +363,7 @@ entities! {
     Macro: LibCopy<MacroDef>, MacroDef, lib.macros;
     Manufacturer: LibCopy<Manufacturer>, Manufacturer, lib.manufacturers;
     PlcProfile: LibCopy<PlcProfileDef>, PlcProfileDef, lib.plc_profiles;
+    }
 }
 
 impl AnyRow {

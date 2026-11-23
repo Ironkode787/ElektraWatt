@@ -19,7 +19,7 @@ use crate::fixture::*;
 use crate::rev::RowId;
 use crate::{
     AnyKey, AnyRow, ApplyOptions, BaseIndexes, EndpointKey, Entity, Model, ModelError, Op, PreventHook,
-    PreventViolation, Rev, Strictness, invert_batch,
+    PreventViolation, Rev, Strictness, TABLE_KINDS, invert_batch,
 };
 
 fn nid<T>(n: u128) -> Id<T> {
@@ -132,6 +132,48 @@ fn insert_update_delete_stamp_changed_at() {
     assert!(m3.table::<StructureNode>().get(&id).is_none());
     assert_eq!(m3.table::<StructureNode>().changed_at(), Rev(3));
     assert_eq!(m3.rev(), Rev(3));
+}
+
+/// The kind-erased accessors of the table declaration agree with the typed tables: a row's and a table's revision
+/// (the project's row included, a missing row and a kind without a table answered), a row as JSON and from its
+/// record, and the tables in declaration order.
+#[test]
+fn kind_erased_accessors_agree_with_the_typed_tables() {
+    let m0 = mini_project();
+    let node = new_node(0x20000, LOC);
+    let key = <StructureNode as Entity>::key(node.id);
+    assert_eq!(m0.row_changed_at(&key), None);
+    let m1 = m0
+        .apply_history(&[Op::insert(AnyRow::of(node.clone()))], Rev(1))
+        .unwrap();
+    assert_eq!(m1.row_changed_at(&key), Some(Rev(1)));
+    assert_eq!(
+        m1.row_changed_at(&<StructureNode as Entity>::key(LOC)),
+        Some(Rev::ZERO)
+    );
+    assert_eq!(m1.table_changed_at(Kind::StructureNode), Rev(1));
+    assert_eq!(m1.table_changed_at(Kind::Device), Rev::ZERO);
+    assert_eq!(
+        m1.table_changed_at(Kind::NetDef),
+        Rev::ZERO,
+        "a kind without a table"
+    );
+    let project = (Kind::Project, m1.project().id.cast());
+    assert_eq!(m1.row_changed_at(&project), Some(Rev::ZERO));
+    assert_eq!(m1.table_changed_at(Kind::Project), Rev::ZERO);
+
+    let row = AnyRow::from_record(Record::StructureNode(node.clone())).unwrap();
+    assert!(row.same(&m1.row(&key).unwrap()));
+    assert_eq!(row.to_json().unwrap(), serde_json::to_value(&node).unwrap());
+    assert!(AnyRow::from_record(Record::Unknown(json!({"$k": "later"}))).is_err());
+
+    let mut kinds = TABLE_KINDS.to_vec();
+    assert!(!kinds.contains(&Kind::Project));
+    assert_eq!(kinds.first(), Some(&Kind::PlcConfigProject));
+    assert_eq!(kinds.last(), Some(&Kind::PlcProfile));
+    kinds.sort();
+    kinds.dedup();
+    assert_eq!(kinds.len(), TABLE_KINDS.len(), "each kind once");
 }
 
 /// A successful apply leaves the original snapshot untouched.
