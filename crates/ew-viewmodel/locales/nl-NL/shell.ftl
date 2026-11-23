@@ -815,6 +815,7 @@ error-accessory-part-ambiguous = Meerdere artikelen passen: { $p0 }; geef part
 table-accessory-row = rij met toebehoren
 table-pos-move = rijen verplaatsen met Alt+Up en Alt+Down
 table-no-bridge = de klem heeft geen brug
+table-bridge-how = markeer de rijen van twee of meer klemmen van de strook en druk op F2 in deze kolom, of kies Klemmen bruggen in het menu van een klem op de pagina
 toast-strip-inserted = { $p0 } klemmen ingevoegd vóór { $p1 }.
 toast-strip-inserted-one = 1 klem ingevoegd vóór { $p1 }.
 toast-strip-appended = { $p0 } klemmen ingevoegd aan het einde van { $p1 }.

@@ -316,7 +316,8 @@ impl ShellModel {
         out.extend(self.menu_item("ip.continue_on"));
     }
 
-    /// Add terminal to its strip (of its kind and its part), Choose part…, Edit strip, Define potential….
+    /// Add terminal to its strip (of its kind and its part), Choose part…, Bridge terminals…, Edit strip, Define
+    /// potential….
     fn terminal_fits(&self, rep: &TableRep, out: &mut Vec<ActionItem>) {
         if let Some(strip) = rep.device.and_then(|d| self.strip_of_device(d)) {
             let mut params = json!({ "strip": strip.to_string() });
@@ -336,6 +337,8 @@ impl ShellModel {
             out.extend(self.aimed("tool.place_terminal", params, label));
         }
         out.extend(self.menu_item("part.choose"));
+        // Bridge terminals… where a person looks for it, greyed with how a bridge is made (two or more terminals).
+        out.extend(self.menu_item("strip.bridge"));
         let label = strings::text(key!("canvas-edit-strip")).to_owned();
         out.extend(self.aimed("strip.edit", json!({}), label));
         if self.potential_point().is_ok() {

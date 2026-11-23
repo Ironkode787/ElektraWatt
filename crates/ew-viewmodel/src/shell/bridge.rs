@@ -7,7 +7,9 @@
 //!
 //! **Ends.** A terminal's bridge end is its part's bridge shaft (the lowest CP of the first part use whose copy has
 //! a shaft-1 entry); a terminal without one (no part chosen yet, or a part without a shaft) bridges at the lowest
-//! side-1 CP of its function definition, so a bridge can be drawn before the parts are chosen.
+//! side-1 CP of its function definition, so a bridge can be drawn before the parts are chosen. A block's level from 2,
+//! chosen by selecting that level's symbol, bridges at the CP of that level with the same side, and a bridge joins
+//! terminals at its own level only (a level-1 bridge does not keep a level-2 bridge from being drawn).
 //!
 //! **Selection by records.** The window selection's items of any kind count: a representation
 //! with one function, a function, or a device; each resolves to the terminal function of a terminal device (a device:
@@ -159,6 +161,10 @@ impl ShellModel {
                     .min()
             });
             terminal.end = end.ok_or(key!("reason-bridge-no-shaft"))?;
+            // A block's level from 2, chosen by selecting its symbol, bridges at that level's CP of the same side.
+            if let Ok(f) = terminal.function.parse::<Uuid>() {
+                terminal.end = self.end_on_level(f, terminal.end, self.selected_level(f));
+            }
         }
 
         let bridges = self.project_bridges();
@@ -173,12 +179,23 @@ impl ShellModel {
         });
         let ends: Vec<CpKey> = terminals.iter().map(|t| (t.function.clone(), t.end)).collect();
 
-        // 4. A pair of terminals already joined by a bridge (any CP of one to any CP of the other, D10) is kept; when
-        // every pair is, the command is refused.
+        // 4. A pair of terminals already joined by a bridge at the chain's level (any CP of one to any CP of the other,
+        // D10) is kept; when every pair is, the command is refused.
+        let level = self.cp_level(&ends[0].0, ends[0].1);
+        let at_level = |bridge: &Bridge| {
+            bridge
+                .a
+                .as_ref()
+                .is_some_and(|(f, i)| self.cp_level(f, *i) == level)
+        };
         let pairs: Vec<(&CpKey, &CpKey)> = ends
             .windows(2)
             .map(|w| (&w[0], &w[1]))
-            .filter(|(a, b)| !bridges.iter().any(|bridge| bridge.joins(&a.0, &b.0)))
+            .filter(|(a, b)| {
+                !bridges
+                    .iter()
+                    .any(|bridge| bridge.joins(&a.0, &b.0) && at_level(bridge))
+            })
             .collect();
         if pairs.is_empty() {
             return Err(key!("reason-bridge-exists"));
@@ -191,11 +208,12 @@ impl ShellModel {
             .iter()
             .filter(|bridge| bridge.strip.as_deref() == Some(strip))
             .collect();
-        // D10: a bridge touches the chain when it ends on one of the chain's terminals (any CP of it).
+        // D10: a bridge touches the chain when it ends on one of the chain's terminals (any CP of it) at its level.
         let functions: Vec<&str> = ends.iter().map(|(f, _)| f.as_str()).collect();
         let touches = |bridge: &Bridge| {
             let (a, b) = bridge.ends();
-            a.is_some_and(|f| functions.contains(&f)) || b.is_some_and(|f| functions.contains(&f))
+            at_level(bridge)
+                && (a.is_some_and(|f| functions.contains(&f)) || b.is_some_and(|f| functions.contains(&f)))
         };
         let group: u64 = if let Some(group) = strip_bridges
             .iter()
@@ -215,7 +233,8 @@ impl ShellModel {
             json!({
                 "a": {"cp": {"function": a.0, "idx": a.1}},
                 "b": {"cp": {"function": b.0, "idx": b.1}},
-                "kind": {"bridge": {"kind": "plug_in", "group": group, "shaft": 1}},
+                // Each level of a block has its own bridge shaft, numbered as the level.
+                "kind": {"bridge": {"kind": "plug_in", "group": group, "shaft": level}},
             })
         };
         Ok(match pairs.as_slice() {
@@ -298,6 +317,60 @@ impl ShellModel {
             }
         }
         Some(out)
+    }
+
+    /// The level (doc 08 §6.3) of the terminal CP `idx` of function `function` as the page shown draws it; 1 for a CP
+    /// without a level or one the page does not draw.
+    fn cp_level(&self, function: &str, idx: u16) -> u8 {
+        self.canvas()
+            .and_then(|c| {
+                c.page()
+                    .tables
+                    .cps
+                    .iter()
+                    .find(|c| c.idx == idx && c.function.to_string() == function)
+                    .and_then(|c| c.level)
+            })
+            .unwrap_or(1)
+    }
+
+    /// The level of terminal function `function` that the selection names: the level of the CPs of a selected symbol
+    /// of it on the page shown (a table row of a block's level selects that level's symbol); 1 otherwise.
+    fn selected_level(&self, function: Uuid) -> u8 {
+        let Some(c) = self.canvas() else { return 1 };
+        let cps = &c.page().tables.cps;
+        self.tools
+            .selection
+            .items
+            .iter()
+            .find_map(|e| {
+                cps.iter()
+                    .find(|c| c.rep == e.0 && c.function == function && c.level.is_some())
+                    .and_then(|c| c.level)
+            })
+            .unwrap_or(1)
+    }
+
+    /// The bridge end `end` (a CP of level 1 of `function`) on level `level`: the CP of that level with the same side,
+    /// as the page shown draws them; `end` on level 1, or where the page draws no such CP.
+    fn end_on_level(&self, function: Uuid, end: u16, level: u8) -> u16 {
+        if level <= 1 {
+            return end;
+        }
+        let Some(c) = self.canvas() else { return end };
+        let cps = &c.page().tables.cps;
+        let Some(side) = cps
+            .iter()
+            .find(|c| c.function == function && c.idx == end)
+            .and_then(|c| c.side)
+        else {
+            return end;
+        };
+        cps.iter()
+            .filter(|c| c.function == function && c.level == Some(level) && c.side == Some(side))
+            .map(|c| c.idx)
+            .min()
+            .unwrap_or(end)
     }
 
     /// `strip.unbridge` (Remove bridge, D11): the bridge connections with both ends on the selected terminals, in one

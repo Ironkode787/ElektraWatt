@@ -80,8 +80,8 @@ fn cell_of<'n>(table: &NavTable, node: &'n NavNode, key: &str) -> &'n str {
 }
 
 /// The strip editor's read-only reasons, as text keys: `Some(None)` for an editable strip-editor cell,
-/// `Some(reason)` for an accessory row's other cells, the Pos column and a Bridge part cell of a terminal without a
-/// bridge; `None` for every other cell (the rules above apply).
+/// `Some(reason)` for an accessory row's other cells, the Pos column, a terminal's Bridge cell (how a bridge is made) and
+/// a Bridge part cell of a terminal without a bridge; `None` for every other cell (the rules above apply).
 fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Option<&'static str>> {
     if table.kind != NavKind::Strips {
         return None;
@@ -93,6 +93,10 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     }
     if c.key == "pos" {
         return Some(Some(ew_commands::text_key!("table-pos-move")));
+    }
+    // The Bridge cell says how a bridge is made (a persona typed into it); F2 there over marked rows bridges them.
+    if node.role == NavRole::Terminal && c.key == "bridge" {
+        return Some(Some(ew_commands::text_key!("table-bridge-how")));
     }
     if node.role == NavRole::Terminal {
         return match c.strip_cell {

@@ -165,12 +165,15 @@ pub fn strip_targets(table: &NavTable, node: &NavNode, path: &str) -> Vec<Uuid> 
         .unwrap_or_default()
 }
 
-/// The terminal device of a terminal row (its key's last segment `terminal:<uuid>`).
+/// The terminal device of a terminal row (its key's last segment `terminal:<uuid>`, `terminal:<uuid>:<level>` for a
+/// block's level from 2).
 pub fn row_terminal(row_key: &str) -> Option<Uuid> {
     row_key
         .rsplit('/')
         .next()?
         .strip_prefix("terminal:")?
+        .split(':')
+        .next()?
         .parse()
         .ok()
 }

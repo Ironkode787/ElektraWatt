@@ -821,6 +821,7 @@ error-accessory-part-ambiguous = Several parts fit: { $p0 }; give part
 table-accessory-row = accessory row
 table-pos-move = move rows with Alt+Up and Alt+Down
 table-no-bridge = the terminal has no bridge
+table-bridge-how = mark the rows of two or more terminals of the strip and press F2 in this column, or choose Bridge terminals in a terminal's menu on the page
 toast-strip-inserted = Inserted { $p0 } terminals before { $p1 }.
 toast-strip-inserted-one = Inserted 1 terminal before { $p1 }.
 toast-strip-appended = Inserted { $p0 } terminals at the end of { $p1 }.

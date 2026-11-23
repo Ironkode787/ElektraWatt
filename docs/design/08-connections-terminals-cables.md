@@ -175,7 +175,13 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
   terminals are bridged when a bridge connection joins any CP of one to any CP of the other, so Bridge terminals no
   longer draws the second bridge described above; it keeps such a pair and refuses when every selected pair is
   bridged. The stored CPs stay what was drawn (a side-1 fallback bridge stays on its clamps when a part with a shaft
-  is chosen later); re-seating onto the shaft waits for the terminal assembly list (FR-MFG-016, 1.0). **The bridge's
+  is chosen later); re-seating onto the shaft waits for the terminal assembly list (FR-MFG-016, 1.0). *As built
+  (0.3.5).* **A block's level is bridged on its own:** selecting the level-2 symbols bridges at the level-2 CP of the
+  same side, on shaft 2 (shaft = level), and a bridge joins terminals at its own level only, so a level-1 bridge does
+  not refuse a level-2 one. In the Terminal strips table a row of a block is one level (`terminal:<id>:<level>` from
+  level 2) and selects that level's symbol; F2 on the Bridge cell over two or more marked terminal rows bridges them,
+  and on one row the cell says how a bridge is made; a single terminal's menu shows Bridge terminals greyed with
+  "Select two or more terminals of one strip". **The bridge's
   part** is the `overrides.wire_part` of its group's **carrier**: the group's first connection with a part, else its
   first connection, in (lower `seq` of its two terminal ends, connection ID) order. The memoised derived query
   `strip_bridges(strip)` (`StripBridges`) groups a strip's bridge connections by `BridgeSpec.group` (a connection

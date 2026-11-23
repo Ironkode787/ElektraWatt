@@ -408,6 +408,8 @@ pub struct TableCp {
     /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
     /// `field_side`, `internal` for the other side; `None` for a CP without a side.
     pub side: Option<&'static str>,
+    /// A terminal CP's level (doc 08 §6.3: a block of two levels); `None` for a CP without one.
+    pub level: Option<u8>,
     /// Whether it is a fluid port (a pneumatic, vacuum or hydraulic CP): autoconnect joins a fluid port to a fluid port
     /// only (FT-1733).
     pub fluid: bool,
@@ -839,6 +841,11 @@ impl Session {
                 connections,
                 potential,
                 side: terminal_side(&q, function, idx),
+                level: q
+                    .get::<ew_derive::FunctionCps>(function)
+                    .iter()
+                    .find(|c| c.idx == idx)
+                    .and_then(|c| c.level),
                 fluid: q
                     .get::<ew_derive::FunctionCps>(function)
                     .iter()

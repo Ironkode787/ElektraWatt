@@ -492,6 +492,7 @@ mod tests {
             connections: Vec::new(),
             potential: None,
             side: None,
+            level: None,
             fluid: false,
             valve_port: None,
             plc_address: None,

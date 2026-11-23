@@ -1023,6 +1023,30 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-nav-row"));
         };
         let i = view.rows[r];
+        // F2 on the Bridge cell over the marked rows of two or more terminals bridges them, each at the level its row
+        // is (its symbol of that level, else the terminal); fewer rows say how a bridge is made, below.
+        if kind == NavKind::Strips && view.table.columns[col].key == "bridge" {
+            let rows: Vec<&NavNode> = view
+                .acted
+                .iter()
+                .map(|i| &view.table.nodes[*i as usize])
+                .filter(|n| row_terminal(&n.key).is_some())
+                .collect();
+            if rows.len() >= 2 {
+                let items: Vec<ew_dl::EntityRef> = rows
+                    .iter()
+                    .flat_map(|n| match n.drawables.first() {
+                        Some(d) => vec![d.record],
+                        None => n.records.clone(),
+                    })
+                    .map(ew_dl::EntityRef)
+                    .collect();
+                self.tools
+                    .selection
+                    .apply(&crate::tools::SelectionChange::Replace(items));
+                return self.act_strip_bridge();
+            }
+        }
         // A PLC channel's function text is typed as in the station view; one nothing is wired to says why.
         let channel_text = channel_text_cell(&view.table, &view.table.nodes[i as usize], col);
         if channel_text == Some(None) {

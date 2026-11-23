@@ -145,13 +145,26 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
         for (k, (i, t)) in terminals.into_iter().enumerate() {
             let texts = ew_reports::csv::row_texts(q, &set, i);
             let id: Id<Device> = Id::from_uuid(t);
-            let drawables = device_drawables(q, &folios, id);
+            // A row of a block of two levels is that level (a persona read the two rows as two terminals): it selects
+            // the symbol of its level, and a level from 2 has a key of its own.
+            let level = level_at
+                .and_then(|c| texts.get(c))
+                .and_then(|l| l.parse::<u8>().ok());
+            let mut drawables = device_drawables(q, &folios, id);
+            let drawn = !drawables.is_empty();
+            if let Some(l) = level {
+                drawables.retain(|d| {
+                    q.reps()
+                        .get(Id::from_uuid(d.record))
+                        .is_none_or(|r| ew_derive::rep_level(q, r).unwrap_or(1) == l)
+                });
+            }
             let mut facets = base_facets(NavRole::Terminal, &drawables);
             facets.push(strip_facet.clone());
             let mut badges = Vec::new();
             // A terminal with no representation of its own on a strip that no strip segment draws is unplaced
             // (a strip's segments draw all its terminals).
-            if drawables.is_empty() && !strip_drawn {
+            if !drawn && !strip_drawn {
                 badges.push("unplaced".to_owned());
                 facets.push(("unplaced".to_owned(), String::new()));
             }
@@ -184,10 +197,14 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             if bridge_part_at >= n {
                 cells.push(bridge_part);
             }
+            let key = match level.filter(|l| *l >= 2) {
+                Some(l) => format!("terminal:{t}:{l}"),
+                None => format!("terminal:{t}"),
+            };
             b.push(
                 Some(snode),
                 NavRole::Terminal,
-                &format!("terminal:{t}"),
+                &key,
                 label,
                 badges,
                 vec![t],
