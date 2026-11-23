@@ -7,7 +7,7 @@
 use std::collections::BTreeSet;
 
 use ew_ids::{Id, v5};
-use ew_schema::{AnyId, LibCopy, LibDocument, Sha256};
+use ew_schema::{AnyId, LibDocument, Sha256};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -62,32 +62,9 @@ pub(crate) struct Lineage {
 /// §13.2, the rule of EW-CORE-014); `None` for a document of an unknown kind. The format reader computes
 /// the same value (`ew_format::library_copy_hash`); an agreement test in `ew-api` keeps the two equal.
 pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
-    fn hash<T: Serialize>(item: &T) -> Option<[u8; 32]> {
-        serde_json::to_string(item)
-            .ok()
-            .map(|text| sha2::Sha256::digest(text.as_bytes()).into())
-    }
-    match doc {
-        LibDocument::Part(c) => hash(&c.item),
-        LibDocument::Symbol(c) => hash(&c.item),
-        LibDocument::Fndef(c) => hash(&c.item),
-        LibDocument::Form(c) => hash(&c.item),
-        LibDocument::Macro(c) => hash(&c.item),
-        LibDocument::Manufacturer(c) => hash(&c.item),
-        LibDocument::PlcProfile(c) => hash(&c.item),
-        LibDocument::Unknown(_) => None,
-    }
-}
-
-fn lineage<T: Serialize>(c: &LibCopy<T>, doc: &LibDocument) -> Lineage {
-    let computed = library_copy_hash(doc);
-    Lineage {
-        id: c.id.cast(),
-        library: c.library_id.as_uuid(),
-        item: c.item_id.as_uuid(),
-        claimed: c.sha256,
-        computed,
-    }
+    doc.item_json()?
+        .ok()
+        .map(|text| sha2::Sha256::digest(text.as_bytes()).into())
 }
 
 /// Checks one library document of a command parameter at `at` (the rules of [`EmbedLibraryCopies`]): it reads as
@@ -129,15 +106,15 @@ pub(crate) fn read_copy(
             text!("refusal-params-detail", crate::error::schema_error_text(&e)),
         )
     })?;
-    let l = match &doc {
-        LibDocument::Part(c) => lineage(c, &doc),
-        LibDocument::Symbol(c) => lineage(c, &doc),
-        LibDocument::Fndef(c) => lineage(c, &doc),
-        LibDocument::Form(c) => lineage(c, &doc),
-        LibDocument::Macro(c) => lineage(c, &doc),
-        LibDocument::Manufacturer(c) => lineage(c, &doc),
-        LibDocument::PlcProfile(c) => lineage(c, &doc),
-        LibDocument::Unknown(_) => {
+    let l = match doc.copy_meta() {
+        Some(c) => Lineage {
+            id: ew_ids::Id::from_uuid(c.id),
+            library: c.library_id.as_uuid(),
+            item: c.item_id.as_uuid(),
+            claimed: c.sha256,
+            computed: library_copy_hash(&doc),
+        },
+        None => {
             return Err(CmdError::invalid_params(
                 command,
                 at.to_owned(),

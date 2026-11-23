@@ -866,6 +866,28 @@ fn validate_accepts_every_golden_example() {
     }
 }
 
+/// A library document's envelope and item, whatever its kind: the members of its copy, and the item's own members
+/// in their order, without the envelope.
+#[test]
+fn a_library_documents_envelope_and_item() {
+    let text = fill(DOC05_PART);
+    let doc = LibDocument::from_json(&text).unwrap();
+    let raw: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let meta = doc.copy_meta().unwrap();
+    assert_eq!(meta.id.to_string(), raw["id"]);
+    assert_eq!(meta.library_id.to_string(), raw["library_id"]);
+    assert_eq!(meta.item_id.to_string(), raw["item_id"]);
+    assert_eq!((meta.version, meta.v), ("1.2.0", 1));
+    assert_eq!(meta.sha256.to_string(), raw["sha256"]);
+    let item = doc.item_json().unwrap().unwrap();
+    assert!(item.starts_with(r#"{"meta":"#) && item.contains(r#""part_number":"2904602""#), "{item}");
+    for envelope in ["\"$v\"", "\"id\"", "\"library_id\"", "\"item_id\"", "\"version\"", "\"sha256\""] {
+        assert!(!item.contains(envelope), "{envelope} in {item}");
+    }
+    let unknown = LibDocument::Unknown(serde_json::json!({"$k": "later"}));
+    assert!(unknown.copy_meta().is_none() && unknown.item_json().is_none());
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Doc additions
 

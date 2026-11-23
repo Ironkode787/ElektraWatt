@@ -1331,21 +1331,7 @@ impl<'a> Loader<'a> {
 /// the same value (`ew_commands::commands::library_copy_hash`); an agreement test in `ew-api` keeps the two
 /// equal.
 pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
-    fn hash<T: serde::Serialize>(item: &T) -> Option<[u8; 32]> {
-        serde_json::to_string(item)
-            .ok()
-            .map(|text| sha256(text.as_bytes()))
-    }
-    match doc {
-        LibDocument::Part(c) => hash(&c.item),
-        LibDocument::Symbol(c) => hash(&c.item),
-        LibDocument::Fndef(c) => hash(&c.item),
-        LibDocument::Form(c) => hash(&c.item),
-        LibDocument::Macro(c) => hash(&c.item),
-        LibDocument::Manufacturer(c) => hash(&c.item),
-        LibDocument::PlcProfile(c) => hash(&c.item),
-        LibDocument::Unknown(_) => None,
-    }
+    doc.item_json()?.ok().map(|text| sha256(text.as_bytes()))
 }
 
 /// A library copy's `sha256` after its migration (doc 05 §10.2): a step
@@ -1387,17 +1373,10 @@ fn copy_item(value: &Value) -> Option<serde_json::Map<String, Value>> {
 
 /// EW-CORE-014: the `sha256` of a library copy is the hash of its item's compact JSON.
 fn copy_hash_matches(doc: &LibDocument) -> bool {
-    let claimed = match doc {
-        LibDocument::Part(c) => &c.sha256,
-        LibDocument::Symbol(c) => &c.sha256,
-        LibDocument::Fndef(c) => &c.sha256,
-        LibDocument::Form(c) => &c.sha256,
-        LibDocument::Macro(c) => &c.sha256,
-        LibDocument::Manufacturer(c) => &c.sha256,
-        LibDocument::PlcProfile(c) => &c.sha256,
-        LibDocument::Unknown(_) => return true,
+    let Some(meta) = doc.copy_meta() else {
+        return true;
     };
-    library_copy_hash(doc) == Some(claimed.0)
+    library_copy_hash(doc) == Some(meta.sha256.0)
 }
 
 #[cfg(test)]

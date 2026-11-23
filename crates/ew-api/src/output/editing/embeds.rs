@@ -170,15 +170,8 @@ impl Session {
                 .closure_docs(std::slice::from_ref(&r))
                 .map_err(|e| vec![e.to_string()])?;
             for doc in docs {
-                let id = match &doc {
-                    LibDocument::Part(c) => c.id.as_uuid(),
-                    LibDocument::Fndef(c) => c.id.as_uuid(),
-                    LibDocument::Symbol(c) => c.id.as_uuid(),
-                    LibDocument::Manufacturer(c) => c.id.as_uuid(),
-                    LibDocument::PlcProfile(c) => c.id.as_uuid(),
-                    LibDocument::Form(c) => c.id.as_uuid(),
-                    LibDocument::Macro(c) => c.id.as_uuid(),
-                    LibDocument::Unknown(_) => continue,
+                let Some(id) = doc.copy_meta().map(|c| c.id) else {
+                    continue;
                 };
                 if seen.insert(id) {
                     copies.push(serde_json::to_value(&doc).map_err(|e| vec![e.to_string()])?);
@@ -222,14 +215,5 @@ pub(super) fn starter_id(json: &str) -> Option<Uuid> {
         .iter()
         .zip(starter::items())
         .find(|(_, i)| i.json == json)
-        .and_then(|((_, _, d), _)| match d {
-            LibDocument::Symbol(c) => Some(c.id.as_uuid()),
-            LibDocument::Fndef(c) => Some(c.id.as_uuid()),
-            LibDocument::Part(c) => Some(c.id.as_uuid()),
-            LibDocument::Form(c) => Some(c.id.as_uuid()),
-            LibDocument::Macro(c) => Some(c.id.as_uuid()),
-            LibDocument::Manufacturer(c) => Some(c.id.as_uuid()),
-            LibDocument::PlcProfile(c) => Some(c.id.as_uuid()),
-            LibDocument::Unknown(_) => None,
-        })
+        .and_then(|((_, _, d), _)| d.copy_meta().map(|c| c.id))
 }

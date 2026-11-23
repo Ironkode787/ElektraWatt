@@ -975,16 +975,7 @@ fn page_device(q: &Q, d: &Device, pages: &[Page]) -> Option<Page> {
 
 /// The copy ID of a library document.
 fn copy_id(d: &LibDocument) -> Option<Uuid> {
-    Some(match d {
-        LibDocument::Part(c) => c.id.as_uuid(),
-        LibDocument::Symbol(c) => c.id.as_uuid(),
-        LibDocument::Fndef(c) => c.id.as_uuid(),
-        LibDocument::Form(c) => c.id.as_uuid(),
-        LibDocument::Macro(c) => c.id.as_uuid(),
-        LibDocument::Manufacturer(c) => c.id.as_uuid(),
-        LibDocument::PlcProfile(c) => c.id.as_uuid(),
-        LibDocument::Unknown(_) => return None,
-    })
+    d.copy_meta().map(|c| c.id)
 }
 
 /// Whether the project holds a library copy with this ID.

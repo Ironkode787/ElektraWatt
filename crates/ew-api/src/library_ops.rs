@@ -278,26 +278,15 @@ fn ref_text(r: &LibRef) -> String {
 
 /// Kind, copy ID, library, item, version and hash of a library document.
 fn identity(doc: &LibDocument) -> Option<(Kind, Uuid, Uuid, Uuid, String, Sha256)> {
-    fn of<T>(k: Kind, c: &LibCopy<T>) -> (Kind, Uuid, Uuid, Uuid, String, Sha256) {
-        (
-            k,
-            c.id.as_uuid(),
-            c.library_id.as_uuid(),
-            c.item_id.as_uuid(),
-            c.version.clone(),
-            c.sha256,
-        )
-    }
-    Some(match doc {
-        LibDocument::Part(c) => of(Kind::Part, c),
-        LibDocument::Symbol(c) => of(Kind::Symbol, c),
-        LibDocument::Fndef(c) => of(Kind::Fndef, c),
-        LibDocument::Form(c) => of(Kind::Form, c),
-        LibDocument::Macro(c) => of(Kind::Macro, c),
-        LibDocument::Manufacturer(c) => of(Kind::Manufacturer, c),
-        LibDocument::PlcProfile(c) => of(Kind::PlcProfile, c),
-        LibDocument::Unknown(_) => return None,
-    })
+    let c = doc.copy_meta()?;
+    Some((
+        doc.kind()?,
+        c.id,
+        c.library_id.as_uuid(),
+        c.item_id.as_uuid(),
+        c.version.to_owned(),
+        c.sha256,
+    ))
 }
 
 /// Why each address profile of `library` that does not render is left out of the profiles at hand (T2), in

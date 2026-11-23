@@ -901,32 +901,11 @@ impl Command for UpdateLibraryCopies {
 }
 
 fn held_version_of(doc: &LibDocument) -> String {
-    fn v<T>(c: &LibCopy<T>) -> String {
-        c.version.clone()
-    }
-    match doc {
-        LibDocument::Part(c) => v(c),
-        LibDocument::Symbol(c) => v(c),
-        LibDocument::Fndef(c) => v(c),
-        LibDocument::Form(c) => v(c),
-        LibDocument::Macro(c) => v(c),
-        LibDocument::Manufacturer(c) => v(c),
-        LibDocument::PlcProfile(c) => v(c),
-        LibDocument::Unknown(_) => String::new(),
-    }
+    doc.copy_meta().map(|c| c.version.to_owned()).unwrap_or_default()
 }
 
 fn held_sha_of(doc: &LibDocument) -> Option<Sha256> {
-    Some(match doc {
-        LibDocument::Part(c) => c.sha256,
-        LibDocument::Symbol(c) => c.sha256,
-        LibDocument::Fndef(c) => c.sha256,
-        LibDocument::Form(c) => c.sha256,
-        LibDocument::Macro(c) => c.sha256,
-        LibDocument::Manufacturer(c) => c.sha256,
-        LibDocument::PlcProfile(c) => c.sha256,
-        LibDocument::Unknown(_) => return None,
-    })
+    doc.copy_meta().map(|c| c.sha256)
 }
 
 /// Rewrites the CP endpoints `(function, old) → new` of connections, potential definitions, bonds and channel

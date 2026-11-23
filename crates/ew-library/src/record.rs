@@ -181,18 +181,18 @@ macro_rules! each_copy {
 
 /// `(library, item, version)` of a document; `None` for an unknown kind.
 pub(crate) fn identity(doc: &LibDocument) -> Option<(Uuid, Uuid, String)> {
-    each_copy!(doc, c => Some((c.library_id.as_uuid(), c.item_id.as_uuid(), c.version.clone())), None)
+    let c = doc.copy_meta()?;
+    Some((c.library_id.as_uuid(), c.item_id.as_uuid(), c.version.to_owned()))
 }
 
 /// The canonical record line of a document: `$k`, `id` = the item ID, `$v` when not 1, `version`, the item's members.
 pub(crate) fn record_line(doc: &LibDocument) -> Result<String, String> {
     let kind = doc.kind().ok_or("a document of an unknown kind")?;
-    let (item, v, version, members) = each_copy!(doc, c => (
-        c.item_id.as_uuid(),
-        c.v,
-        c.version.clone(),
-        serde_json::to_string(&c.item).map_err(|e| e.to_string())?,
-    ), return Err("a document of an unknown kind".to_owned()));
+    let (Some(c), Some(members)) = (doc.copy_meta(), doc.item_json()) else {
+        return Err("a document of an unknown kind".to_owned());
+    };
+    let (item, v, version) = (c.item_id.as_uuid(), c.v, c.version.to_owned());
+    let members = members.map_err(|e| e.to_string())?;
     let mut out = format!(
         "{{\"$k\":{},\"id\":\"{}\"",
         Value::from(kind.name()),

@@ -636,6 +636,62 @@ impl LibDocument {
             LibDocument::Unknown(_) => return None,
         })
     }
+
+    /// The copy envelope, whatever the kind; `None` for an unknown kind.
+    pub fn copy_meta(&self) -> Option<CopyMeta<'_>> {
+        fn meta<T>(c: &LibCopy<T>) -> CopyMeta<'_> {
+            CopyMeta {
+                id: c.id.as_uuid(),
+                v: c.v,
+                library_id: c.library_id,
+                item_id: c.item_id,
+                version: &c.version,
+                sha256: c.sha256,
+            }
+        }
+        Some(match self {
+            LibDocument::Part(c) => meta(c),
+            LibDocument::Symbol(c) => meta(c),
+            LibDocument::Fndef(c) => meta(c),
+            LibDocument::Form(c) => meta(c),
+            LibDocument::Macro(c) => meta(c),
+            LibDocument::Manufacturer(c) => meta(c),
+            LibDocument::PlcProfile(c) => meta(c),
+            LibDocument::Unknown(_) => return None,
+        })
+    }
+
+    /// The compact JSON of the item's own members, in their declared order (the copy without its envelope): the
+    /// text whose SHA-256 is the copy's `sha256` (doc 05 §13.2, EW-CORE-014); `None` for an unknown kind.
+    pub fn item_json(&self) -> Option<Result<String, serde_json::Error>> {
+        Some(match self {
+            LibDocument::Part(c) => serde_json::to_string(&c.item),
+            LibDocument::Symbol(c) => serde_json::to_string(&c.item),
+            LibDocument::Fndef(c) => serde_json::to_string(&c.item),
+            LibDocument::Form(c) => serde_json::to_string(&c.item),
+            LibDocument::Macro(c) => serde_json::to_string(&c.item),
+            LibDocument::Manufacturer(c) => serde_json::to_string(&c.item),
+            LibDocument::PlcProfile(c) => serde_json::to_string(&c.item),
+            LibDocument::Unknown(_) => return None,
+        })
+    }
+}
+
+/// The copy envelope of a library document: the members of its [`LibCopy`] around the item.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct CopyMeta<'a> {
+    /// The copy ID.
+    pub id: Uuid,
+    /// The per-kind schema version `$v`.
+    pub v: u16,
+    /// The library's UUID.
+    pub library_id: Id<crate::Library>,
+    /// The item's UUID, stable across versions.
+    pub item_id: Id<crate::LibItem>,
+    /// The item's semantic version.
+    pub version: &'a str,
+    /// The hash of the item's own members.
+    pub sha256: crate::Sha256,
 }
 
 impl Serialize for LibDocument {

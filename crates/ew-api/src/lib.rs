@@ -1559,16 +1559,7 @@ impl Session {
         kind: ew_schema::Kind,
         copy: ew_derive::ew_ids::Id<()>,
     ) -> Option<(LibDocument, String)> {
-        let item_id = |d: &LibDocument| match d {
-            LibDocument::Part(c) => Some(c.item_id),
-            LibDocument::Symbol(c) => Some(c.item_id),
-            LibDocument::Fndef(c) => Some(c.item_id),
-            LibDocument::Form(c) => Some(c.item_id),
-            LibDocument::Macro(c) => Some(c.item_id),
-            LibDocument::Manufacturer(c) => Some(c.item_id),
-            LibDocument::PlcProfile(c) => Some(c.item_id),
-            LibDocument::Unknown(_) => None,
-        };
+        let item_id = |d: &LibDocument| d.copy_meta().map(|c| c.item_id);
         let libraries = self.libraries();
         libraries.libraries().into_iter().find_map(|info| {
             libraries

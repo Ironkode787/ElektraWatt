@@ -231,16 +231,7 @@ pub fn lib_dir(kind: Kind) -> Option<&'static str> {
 
 /// The kind and ID of a library document of a known kind.
 pub fn lib_key(doc: &LibDocument) -> Option<(Kind, AnyId)> {
-    Some(match doc {
-        LibDocument::Part(d) => (Kind::Part, d.id.cast()),
-        LibDocument::Symbol(d) => (Kind::Symbol, d.id.cast()),
-        LibDocument::Fndef(d) => (Kind::Fndef, d.id.cast()),
-        LibDocument::Form(d) => (Kind::Form, d.id.cast()),
-        LibDocument::Macro(d) => (Kind::Macro, d.id.cast()),
-        LibDocument::Manufacturer(d) => (Kind::Manufacturer, d.id.cast()),
-        LibDocument::PlcProfile(d) => (Kind::PlcProfile, d.id.cast()),
-        LibDocument::Unknown(_) => return None,
-    })
+    Some((doc.kind()?, AnyId::from_uuid(doc.copy_meta()?.id)))
 }
 
 /// The file of a library document: `lib/<dir>/<id>.json` (doc 05 §2.1); `None` for a document of an
