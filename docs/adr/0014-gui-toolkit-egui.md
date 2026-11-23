@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 and 2026-10-28 (amendment 4) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-28 (amendment 4) and 2026-11-23 (amendment 5, proposed with ADR-0035) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -74,6 +74,16 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `ScrollArea::show_rows` with AccessKit tree roles, as the Pages navigator has done since cycle 23, so a tree
    crate would add a quarterly upgrade and a second selection model without adding a capability. Decision 1 reads
    "egui/eframe 0.37 with egui_tiles and egui_table".
+5. **The shell decides what is said, a tool what follows its commit, and the window draws**
+   (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decisions 11 to 14; in force when that record is
+   accepted). Decision 3 gave `ew-viewmodel` the panel models; it is the shell, and it also owns which screen
+   shows, why an entry is greyed, what a key does, and where the outcome of an action is said (under a row, in the
+   dialog, in the tool's HUD, in a toast, in the banner), so that a script and a view-model test see what a person
+   sees. Decision 4 placed the tools in `ew-ui`; they and their host are toolkit-neutral in `ew-viewmodel`, and
+   beside `Transient`, `Preview` and `Commit` a tool answers what follows its commit (the sentences to say, the
+   selection to leave, whether it gives way to Select), so the host holds no branch on a command's or a tool's
+   name. `ew-ui` lays out and paints the shell's models and maps input to actions; it holds no branch on an
+   action's identifier, a tool's name or the words of a message.
 
 ## As built
 
