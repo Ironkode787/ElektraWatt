@@ -68,14 +68,13 @@ the fluid part of the QET importer.
    `SymbolDef.iso1219_ref` metadata ([07](07-symbols-parts-macros.md) §2.3; NFR-LIC-06, NFR-LIC-07, NFR-COMP-05).
    QET pneumatic elements are never bundled; imported ones stay in the project's "QET import" library.
 
-   *As built (rc.2).* The shipped set is drawn on one module, so that a fluid page and an electrical page read as one
+   The shipped set is drawn on one module, so that a fluid page and an electrical page read as one
    drawing set: a valve position is a square of 12 mm, its ports on the 4 mm grid 4 mm apart with 2 mm leads (the
    square's edge 2 mm off the grid), the paths drawn from the definition's switching model (a flow arrow, a closed
    port's T), the actuators 6 mm (solenoid, spring, pilot), the manual override 3 mm. Every other component is a body
    of 12 mm or less centred between its ports, which stand 8 mm from its centre with 2 mm leads; a port's designation
    stands beside its tube just beyond the port. Line widths and text sizes are the electrical symbols'. The script
-   `tools/iso1219/symbols.py` draws them (then `cargo xtask symbols-qet10` seals them); Golden A's 5/2 valves and
-   cylinders were redrawn with the rest, their positions kept. A library update that draws a CP elsewhere takes the routes at it along
+   `tools/iso1219/symbols.py` draws them (then `cargo xtask symbols-qet10` seals them). A library update that draws a CP elsewhere takes the routes at it along
    (the end segments stretch, a hand-drawn route keeps its other bends).
 
 ---
@@ -103,8 +102,7 @@ defined in §5.
 | `Representation{rep_type: Fluid \| Overview}` | A | page file | Fluid symbols on 203–206 and the generated overview on 201/202 |
 | `PartCopy.sections.fluid` | L | `lib/parts/` | §2.6 |
 
-*As built.* The fluid MVP uses these records with the members of §2.7 as
-built; the closure's part is optional (a plug's part enters the BOM at 1.0).
+The fluid MVP uses these records with the members of §2.7; the closure's part is optional (a plug's part enters the BOM at 1.0).
 
 ### 2.2 Fluid ports
 
@@ -162,10 +160,10 @@ The FR-FLU-007 acceptance is the first row: 1→2 and 4→5 at rest, 1→4 and 2
 of the symbol carries the solenoid is graphics only: the reference draws the spring on the left and the solenoid
 with manual override on the right.
 
-*As built (WP-S1.25).* `FnDef.valve_model` holds the model above, written `{"sections": [{"positions": [{"label",
+`FnDef.valve_model` holds the model above, written `{"sections": [{"positions": [{"label",
 "paths": [{"flow": {"from", "to"}} | {"open": {"a", "b"}} | {"closed": idx}]}], "rest", "actuation": [{"actuator",
 "selects"}]}]}`; `ValvePath` and `Actuator` keep a value of a newer format as `Unknown`. Every shipped valve FnDef
-carries its model (the 5/2 and 3/2 starter FnDefs at 0.2.1 and 0.1.1), and a passive component with flow paths (a
+carries its model, and a passive component with flow paths (a
 filter, a check valve, a throttle, the ejector: 1→2, 1→3 and 2→3) carries a one-position model, which is how
 propagation crosses it. The library's fluid symbol lint asks a model of every definition that needs one: a valve, or
 a component with an inlet (port 1 or a generic port) and another port the medium leaves by that no `short` link
@@ -193,13 +191,13 @@ ColourSpec` (an IEC 60757 code or a profile company code such as NT for natural)
 specification is resolved per field (§5.4). Lengths reuse `LengthSource` of [08](08-connections-terminals-cables.md)
 §7.6; `Routed` is 1.x (FR-FLU-024), a committed `RouteTubes` computation (ADR-0003).
 
-*As built (WP-S1.25).* `FluidLine {line_kind, tube: TubeSpec, length: LengthSource, fitting_a, fitting_b}`. The
+`FluidLine {line_kind, tube: TubeSpec, length: LengthSource, fitting_a, fitting_b}`. The
 fittings sit on the line, one per end, not in the tube specification: a medium's or the project's default names no
 fittings. `TubeSpec {od, id, material, colour, part, p_rating, t_range}`, every value optional, is the one shape of
 a line's overrides, a medium's defaults and `ProjectSettings.fluid.default_tube`; a tube part's data is the part's
 `fluid.tube` (§2.6). `fluid.tube.set` and `fluid.length.set` write them (§4.3). The line-tag scheme is
 `ProjectSettings.fluid.line_tags`: absent (no tags) or `page_counter`, printed `{page}.{counter}` (N-FL-5, §4.2); a
-frozen number prints as written; the ISO 1219-2 line number (FR-FLU-023) is Later. *As built (rc.5).* A tube with a
+frozen number prints as written; the ISO 1219-2 line number (FR-FLU-023) is Later. A tube with a
 tag prints it beside the line on its page, as a wire prints its number (`ew_derive::connection_number`), and in the
 tube list; its size, its tube part and a length from the drawing are not printed or derived at the tube (a length is
 typed in the tube table; routed lengths are 1.x).
@@ -207,8 +205,7 @@ typed in the tube table; routed lengths are 1.x).
 The line tag is `Connection.number: NumberSpec = Unassigned | Assigned{counter} | Frozen(Ident)`, the field every
 connection already has ([03](03-domain-model.md) §8.7, [08](08-connections-terminals-cables.md) §5.1). The numbering
 engine runs a separate scheme for `Fluid` connections (FR-FLU-011): none (default for imported projects),
-`{page}.{counter}` ("203.1" … "203.16" for F1–F16), or an ISO 1219-2 line number (FR-FLU-023). The golden labels
-F1–F16 are test identifiers, not printed tags. `NumberSpec::Frozen` freezes tags at release.
+`{page}.{counter}` ("203.1" … "203.16"), or an ISO 1219-2 line number (FR-FLU-023). `NumberSpec::Frozen` freezes tags at release.
 
 ### 2.5 Media
 
@@ -226,7 +223,7 @@ Media that propagation derives without a record:
 | `Vacuum(root)` | the vacuum port of an ejector | "vacuum (from compressed air 6 bar)" |
 | `Exhaust(key)` | an exhaust-role port reached through a valve path | "exhaust"; tube default from the root medium |
 
-*As built (WP-S1.25).* `medium` (rank 14, `project.jsonl`) is `{id, name, code?, discipline (pneumatic by default,
+`medium` (rank 14, `project.jsonl`) is `{id, name, code?, discipline (pneumatic by default,
 vacuum or hydraulic), p_nom, quality?, t_range?, colour?, default_tube, line_kind_tubes: [{line_kind, tube}]}`;
 `medium_def` (rank 40) is `{id, at, medium}` in the file of the owner of `at`. `fluid.medium.edit` makes, changes and
 deletes a medium (a deletion takes its definitions with it); `fluid.medium.define` sets or removes the definition of
@@ -234,9 +231,9 @@ a fluid port (FI-04: one per port; a new one replaces the definition of the port
 defined twice). The derived keys carry their root medium only:
 `Regulated(root, p_set)`, `Vacuum(root)`, `Exhaust(root)`; their texts are "… → 4 bar", "vacuum (from …)" and
 "exhaust" in en-GB and nl-NL. A medium defined in a regulator's outlet net replaces the regulated key there.
-*As built (rc.2, F26, F27).* New medium… starts from a usual medium (compressed air 6 bar, vacuum -0.9 bar, hydraulic
+New medium… (F26, F27) starts from a usual medium (compressed air 6 bar, vacuum -0.9 bar, hydraulic
 oil 160 bar, cooling water 4 bar, lubricant 5 bar, inert gas 10 bar; `fluid.medium_new {preset}`), which fills the name
-and the pressure, both editable. Nothing reads `code` yet (the ISO 1219-2 line number, FR-FLU-023, is Later and the
+and the pressure, both editable. Nothing reads `code` (the ISO 1219-2 line number, FR-FLU-023, is Later and the
 letters are unverified), so the form has no Letter field; the action still takes `code`. Every field
 of New medium… and Fluid settings… (and of the symbol policy, the process-tag scheme, module safety and channel mode
 forms) says under it what it changes, with an example: the text `form-hint-<action>-<field>` of a form's field. The
@@ -260,32 +257,30 @@ This is the fluid entry of `PartCopy.sections` (FR-PRT-010). It is owned by this
 | `fitting{port_thread, tube_od}` | push-in fittings | EW-FL-006, BOM |
 | `transform` | regulator, ejector, silencer | §5.3 |
 
-*As built (WP-S1.25).* The section is typed whole but `overview` (the overview generator's, WP-S2.13): `ports
+The section is typed whole but `overview` (the overview generator's): `ports
 [{designation, position?, thread?, push_in_od?, qn?}]`, `positions`, `coil {voltage, env, power_w}`, `galleries
 [{gallery, tap?, separates}]`, `tube` (`TubeData`: the tube values and `min_bend_radius`), `fitting {port_thread,
 tube_od}` and `transform` (`{"regulator": {outlet, p_set}}` or `{"ejector": {vacuum}}`, the outlet and vacuum ports
 by designation; the path itself is the FnDef's valve model). A gallery is named by the role of the valve ports it
 joins (`supply1`, `exhaust3`, `exhaust5`, `pilot_exhaust82`, `pilot_exhaust84`), and `tap` is the **designation** of
 the part's port, not a CP index, so a part tapping a gallery does not depend on its FnDef's CP order. A module's
-position count is `fluid.positions`, else `plc.positions.count`. The starter parts (FT-1326) add a generic valve
+position count is `fluid.positions`, else `plc.positions.count`. The starter parts hold a generic valve
 terminal: EW-GEN-VTM-1 (four positions, eight internal outputs, solenoid 14 on channel 2p), valve
-EW-GEN-VLV-3 (5/2 with an internal coil, 24 V DC) and supply plate EW-GEN-VTS-1 (taps 1, 3 and 5). *As built (M3
-persona round).* EW-GEN-VTM-1 is a station part with its outputs integrated (`plc.role` `station`, the positions map),
+EW-GEN-VLV-3 (5/2 with an internal coil, 24 V DC) and supply plate EW-GEN-VTS-1 (taps 1, 3 and 5). EW-GEN-VTM-1 is a station part with its outputs integrated (`plc.role` `station`, the positions map),
 so that a device placed from it is a valve terminal and its own valve module: normaliser N0 gives a station whose
 part maps solenoids to valve positions the role `valve_terminal` ([10](10-plc-and-bus.md) §3.3), and its valves are
-its children. *As built (M3 persona round 3).* The part's category is ValveTerminalNode, not its overview FnDef's
+its children. The part's category is ValveTerminalNode, not its overview FnDef's
 Assembly: the device browser files it under "Valve terminals", beside "Valve terminal plates", and a device placed from
 it takes that category's letter (K under EN 81346-2:2009, U allowed). Under a filter the browser lists first the parts
-whose description starts with it, so "valve terminal" finds the terminal first. *As built (M3 persona re-test).* EW-GEN-VTS-1's one template entry is the supply plate's function, so
-placed from Device it draws ew.iso.valve-supply-plate with its ports 1, 3 and 5 (it was an overview box without a
-connection point) and, placed in a valve terminal's box, joins the terminal (§4.3); the starter parts EW-GEN-CYL-1
+whose description starts with it, so "valve terminal" finds the terminal first. EW-GEN-VTS-1's one template entry is the supply plate's function, so
+placed from Device it draws ew.iso.valve-supply-plate with its ports 1, 3 and 5 and, placed in a valve terminal's box, joins the terminal (§4.3); the starter parts EW-GEN-CYL-1
 (double-acting cylinder) and EW-GEN-AIR-1 (an air supply: a service unit, on the air-supply point's FnDef) answer the
 "no part" findings of a pneumatics job's own devices. The starter tubes EW-GEN-TUB-6, -8 and -10 (polyurethane 6×4, 8×6 and 10×8 mm, blue, 10 bar; part kind
 `tube`, sold by the metre) and the push-in fittings EW-GEN-FIT-6 and -8 (G1/8 for 6 mm, G1/4 for 8 mm; kind
 `accessory`) carry `fluid.tube` and `fluid.fitting` and no template. A fluid line's Tube part offers the parts of kind
 `tube`, the project's and the system libraries' (a library part is embedded with the edit).
 
-*As built (rc.2, F10).* The starter parts hold the basic pneumatic parts, generic, each on its symbol's FnDef, so that
+The starter parts (F10) hold the basic pneumatic parts, generic, each on its symbol's FnDef, so that
 the device browser files it by the FnDef's category: air preparation (filter, with manual and with automatic drain,
 regulator, with gauge, lubricator, service unit simplified and detailed, the 3/2 shut-off valve, soft-start valve,
 gauge, condensate drain, air reservoir), the pressure switch EW-GEN-PSW-1 with its changeover contact as its second
@@ -297,10 +292,7 @@ suction cup), fittings (silencer, open exhaust, plug, a distributor block with f
 on the module of §1 rule 6. Left out: a pilot-operated variant of every valve (the piloted 5/2 only), a 3/2 lever
 valve with detent beside the shut-off valve, a cushioning adjustment, a hydraulic set.
 
-*As built (WP-S1.20).* Of this section only `solenoids` is typed
-(`PartSections.fluid`), with the part's template: the k-th `function_template` entry on a FnDef of contact kind `coil`
-is solenoid k (WP-S1.20 D4); the other members stay in the section's `extra`. A module's position count is read from
-its PLC section's `plc.positions.count`, since `positions` is not typed here at the MVP.
+The k-th `function_template` entry of the part on a FnDef of contact kind `coil` is solenoid k.
 
 ### 2.7 Schema additions
 
@@ -319,23 +311,22 @@ This document added the following to the first draft of [03](03-domain-model.md)
 | `Junction.fitting: PartRef?` on fluid pages | A drawn fluid T is a physical tee (§5.1) |
 | `DeviceKind::BlankingPlate` with a CP-less FnDef | A blank position is a BOM item with one main function (FR-DEV-004) |
 
-*As built.* Format 0.1 holds, each optional with an `Unknown` arm and
+Format 0.1 holds, each optional with an `Unknown` arm and
 `schemas/0.1` re-blessed with additions only (ADR-0011 amendment 4): `CpDef.port_role` (`FluidPortRole`: `supply1`,
 `working2`, `working4`, `exhaust3`, `exhaust5`, the pilot and pilot-exhaust roles, `external_pilot`, `consumer`,
 `sensing`, `generic`); `ConnectionKind::Fluid(FluidLine)` with `line_kind` (`working`, the default, omitted;
 `pilot`, `exhaust`, `drain`, `flexible`), written `{"fluid": {}}`; `CpOverride.closure` (`plug`, `silencer`,
 `blanked`, with an optional `part`, a new link to a part copy); `PartSections.fluid` with `solenoids`; and
-`TextSlot.fallback` (`process_tag`). The tube specification, media and galleries stay 1.0's (WP-S1.25).
+`TextSlot.fallback` (`process_tag`).
 
-*As built (WP-S1.25).* Additive within the locked format 0.1 (ADR-0011 amendment 6; `cargo xtask api-guard`: 0
-breaking): `FnDef.valve_model`, the 1.0 members of `PartSections.fluid` (§2.6), `FluidLine.tube`, `.length`,
+Additive within the locked format 0.1 (ADR-0011 amendment 6): `FnDef.valve_model`, the 1.0 members of `PartSections.fluid` (§2.6), `FluidLine.tube`, `.length`,
 `.fitting_a` and `.fitting_b`, `Junction.fitting`, `ProjectSettings.fluid`, the reserved kinds `medium` and
 `medium_def`, and the report kinds `tube_list`, `tube_cut_list`, `tube_labels`, `valve_terminal_config` and
 `medium_overview`. Every new link (the tube, fitting and tee parts, a definition's point and medium, a medium's
-tube parts) is **load-tolerant**: a 0.1 build before WP-S1.25 keeps the members in `extra` and the kinds verbatim and
+tube parts) is **load-tolerant**: an older 0.1 build keeps the members in `extra` and the kinds verbatim and
 does not apply them, so a stale target is no refusal on open, and a definition whose port or medium is gone seeds
-nothing. `CpOverride.closure.part` stays as built. The `valve_terminal` aspect (`pilot_supply`) is not typed: no
-pilot gallery is derived, and EW-FL-010 does not check an X port (Open: a row of the backlog).
+nothing. The `valve_terminal` aspect (`pilot_supply`) is not typed: no
+pilot gallery is derived, and EW-FL-010 does not check an X port.
 
 ---
 
@@ -354,29 +345,27 @@ per declared solenoid (FR-FLU-003). Assigning the part creates both through the 
 
 **Derived valve texts** (FR-FLU-005), all text slots of the fluid symbol ([07](07-symbols-parts-macros.md) §2.3):
 - **`PlcAddress`** prints the rendered address of every channel bound to a coil function of the representation's
-  device, in solenoid order 14, 12 ("Q0.0 / Q0.1" for a bistable valve). At MVP only direct bindings count. At 1.0
-  wired coils are found by target tracking. *As built (rc.3 of 0.3.0):* a slot that names a `solenoid` (`14`, `12`)
+  device, in solenoid order 14, 12 ("Q0.0 / Q0.1" for a bistable valve); wired coils are found by target tracking. A slot that names a `solenoid` (`14`, `12`)
   prints that solenoid's address alone; the shipped valves with two solenoids (5/2 bistable, the three 5/3 valves) have
   one such slot above each solenoid, clear of the valve's squares, and a valve with one solenoid keeps its one slot.
   In a valve terminal's cell, where a valve stands with its insertion point on the cell's top line, an address slot
   higher than one grid step under that point is drawn one step under it (the two-solenoid valves' row), so the
-  address stands inside the cell; the symbol and the record keep their place, and a valve drawn elsewhere (Golden A's)
-  prints as before.
+  address stands inside the cell; the symbol and the record keep their place, and a valve drawn elsewhere prints in its own slot.
 - **`FunctionText` with fallback to `ProcessTag`.** The slot prints the automatic function text (FR-DEV-011). If that
   is empty, it prints the tracked process tag (§3.3). Both are slot kinds of [07](07-symbols-parts-macros.md) §2.3; the
   fallback is a slot option `fallback: ProcessTag`, so reports keep the two values in separate columns (Open
   question 5). Used valves carry no function text of their own; "Spare" stays a manual function text.
 - **`CpDesignation(idx)`** prints the port designations.
 
-*As built.* A valve declares solenoid s
+A valve declares solenoid s
 exactly when s is in `fluid.solenoids` of its valve part, and its coil CP is the first non-physical CP with the
 effective designation s among the device's functions on a FnDef of contact kind `coil` (`ew_derive::solenoid_coil`,
-read by the solenoid positions, N2 and the PLC address slot); a physical coil gives no coil CP. The solenoid left the
-valve body: `ew.fn.valve-5-2-sol-spring` 0.2.0 carries ports 1 to 5 with their roles and no CP "14", and the coil is
-the new `ew.fn.valve-solenoid` (contact kind `coil`). Golden A's 571334 declares `["14"]` with the template
-`[the 5/2 valve, ew.fn.valve-solenoid]`, so its 28 valves have 28 coil functions with the bindings on their CPs.
+read by the solenoid positions, N2 and the PLC address slot); a physical coil gives no coil CP. The solenoid is not on the
+valve body: `ew.fn.valve-5-2-sol-spring` carries ports 1 to 5 with their roles and no CP "14", and the coil is
+`ew.fn.valve-solenoid` (contact kind `coil`). The valve 571334 declares `["14"]` with the template
+`[the 5/2 valve, ew.fn.valve-solenoid]`, so each valve has a coil function with the binding on its CP.
 
-*As built (rc.2).* A stand-alone valve's solenoids are drawn and joined in the window. The valve's menu (on its
+A stand-alone valve's solenoids are drawn and joined in the window. The valve's menu (on its
 symbol and its row) offers **Draw solenoid 14 on an electrical page…** for each coil function not drawn
 (`fluid.draw_solenoid`: the nearest multi-line page, looking back first, with the coil's symbol on the pointer) and
 **Go to solenoid 14 at 101-B4** for one that is; the valve's Properties list each solenoid as a row (where it is drawn,
@@ -420,7 +409,7 @@ flowchart TB
   - `Empty`: no child, reported by EW-FL-013.
 
   The BOM and the slot table distinguish all of them (FR-FLU-004). Channel states follow the bound coil's device
-  state ([10](10-plc-and-bus.md) §3.2, FR-PLC-019): Golden A gives 8 used, 20 spare and 28 deactivated channels.
+  state ([10](10-plc-and-bus.md) §3.2, FR-PLC-019).
 - **Child tags.** The child rule gives `{parent}-{letter}{position}`, the letter being the valve's `TagSpec.letter`
   from the project's identifier set: Q for directional valves in the shipped EN 81346-2:2009 set, which accepts QM
   as an alternative ([03](03-domain-model.md) §8.5, ADR-0026). Normaliser N-FL-2 keeps the counter equal to the
@@ -432,10 +421,10 @@ flowchart TB
   [06](06-schematic-editor.md) §2.2): a line drawn on them is an `Overview` connection and joins no net (FR-PAG-002,
   FR-CON-002).
 
-*As built (rc.2, F15).* On a fluid page a valve terminal is drawn **as its positions**: a black box whose
+On a fluid page (F15) a valve terminal is drawn **as its positions**: a black box whose
 `BoxSpec.slots {pitch}` (an optional member, additive in format 0.1) marks it, laid out by `ew_derive::SlotFrame` on the
 page grid: a supply end of six grid steps, then one cell of `pitch` (eleven grid steps, a 5/2 valve of the 12 mm module
-with a step to spare) per position in a row, eight steps high, the sub-base the bottom four (two before rc.3) with each cell's number in
+with a step to spare) per position in a row, eight steps high, the sub-base the bottom four with each cell's number in
 it. A row reads best with upright valves whose working ports 2 and 4 leave the box upwards while ports 1, 3 and 5 end
 on the sub-base (the galleries join them, §5.2; the terminal itself is the first gallery slot, so a terminal part that
 taps a gallery feeds it). The cells are the terminal's positions, then its modules' (`terminal_cells`); their content is
@@ -460,7 +449,7 @@ the first chosen. The box's menu lists, on a cell, that position, and on its bod
 before stays as it is: `valve_terminal.draw_slots {rep}` (Draw as slots, previewed) redraws a free
 box as its positions. A box drawn as its positions is not reshaped (`box.reshape` refuses it).
 
-*As built (rc.3, G16).* A filled position shows its valve however it was filled. A valve stands in its cell with its
+A filled position shows its valve however it was filled. A valve stands in its cell with its
 working ports 2 and 4 on the cell's top edge, where a tube leaves upwards; the sub-base is four grid steps high and
 draws the galleries 1, 3 and 5 as lines through every position (`ew_derive::GALLERY_PORTS`), each valve port that ends
 on it joined to its own gallery with a dot, the cell numbers under them. `seat_reps` makes the valves' functions first
@@ -486,7 +475,7 @@ position. Not built: a terminal
 part with several sizes whose count is asked when it is made (it needs a device-level position count that the channel
 instantiation honours, which an older build would not: not additive).
 
-*As built (rc.2, F15: two kinds).* A valve terminal **with a bus node** is a PLC station of role `valve_terminal`
+**Two kinds (F15).** A valve terminal **with a bus node** is a PLC station of role `valve_terminal`
 (EW-GEN-VTM-1, "Valve terminal with bus node, 4 valve positions, 8 outputs"): its outputs drive the solenoids, nothing is
 wired per solenoid. A **multipin** valve terminal has no station ([10](10-plc-and-bus.md) §2.3): its part's
 `fluid.pins [{solenoid, pin}]` (an optional member, additive) names the plug pin of each solenoid as an expression in
@@ -559,18 +548,18 @@ the transaction. P means a prevent rule: strict mode rejects, lenient mode (impo
 | FI-06 | A `Drives` link from a valve targets neither the valve nor an assembly ancestor | S | Reject |
 | FI-07 | Module children of a `ValveTerminal` assembly have unique positions | P | Strict rejects; lenient reports EW-FL-013 |
 
-*As built.* FI-01 is the structural invariant **EW-INV-024** (ADR-0009
+FI-01 is the structural invariant **EW-INV-024** (ADR-0009
 amendment 9): a `fluid` connection ends at fluid CPs of one medium family, or at junctions whose every connection is
 `fluid`, and no other connection but `overview` ends at a fluid CP; `connection.draw` and the Wire tool refuse first
 in words at connection-point ends (elsewhere the invariant's ID shows, the media are read one junction deep). FI-06 is `device.link`'s refusal of a second `drives` link, not an invariant. FI-02 and FI-07 are
 EW-FL-013's prevent half.
 
-*As built (WP-S1.25).* FI-04 and FI-05 are the refusals of the commands that write the values (`fluid.medium.define`;
+FI-04 and FI-05 are the refusals of the commands that write the values (`fluid.medium.define`;
 `fluid.tube.set`, `fluid.medium.edit` and the `fluid` settings refuse, in words, a diameter of zero or less, an
 outer diameter not larger than the inner one, a negative rating). FI-06 is the structural invariant **EW-INV-025**
 (ADR-0009 amendment 10): a `drives` link targets neither its device nor an ancestor of it, judged on the edit path
 only, because a 0.1 build did not enforce it; `device.link` refuses it first in words. A port whose FnDef copy is
-missing (dropped as damaged at an open) is exempt from EW-INV-024 (FT-1569).
+missing (dropped as damaged at an open) is exempt from EW-INV-024.
 
 ### 4.2 Normalisers
 
@@ -585,14 +574,14 @@ deterministic, with ties broken by ID.
 | N-FL-4 | First tube from a valve working port to a `Consumer` port of another device | Adds `DeviceLink{Drives}` unless one exists |
 | N-FL-5 | Tube connection created | Assigns the tube counter when a line-tag scheme is active |
 
-**As built.** N-FL-3 is N2 of [10](10-plc-and-bus.md) §3.3, registry row 13
+N-FL-3 is N2 of [10](10-plc-and-bus.md) §3.3, registry row 13
 in `ew-commands`: it binds a coil only when the channel the map assigns is unbound and no channel binds the coil. A
 moved valve keeps the binding of its coil (with a notice), pairs the transaction did not touch are never re-examined,
 and a rebinding is `plc.bind_channel` (FR-PLC-051 as reworded). A valve moved out of its module keeps its coil bound
-to a channel of the old module, outside that module's subtree; the move is to unbind it. N-FL-1, N-FL-2 (as a
-normaliser), N-FL-4 and N-FL-5 are not built.
+to a channel of the old module, outside that module's subtree; the move is to unbind it. N-FL-2 is not a normaliser
+(§4.3).
 
-*As built.* **N-FL-1** is `valve_functions`, first in `ORDER`: for a
+**N-FL-1** is `valve_functions`, first in `ORDER`: for a
 new device or one whose parts changed, with a valve part, it adds the valve function from the part's template when
 missing and each template coil function (ID `v5(device, template_index)`), removes a coil function that the current
 part's template lacks and unbinds its channel (notice T20), and never replaces or removes the valve function (notice
@@ -601,7 +590,7 @@ after `bus_ports`: a new `fluid` line whose net joins a valve's working port to 
 other device outside the valve's parent chain adds `DeviceLink {kind: drives}` unless the valve has one (T22); two or
 more such devices give T23 and no link.
 
-*As built (WP-S1.25).* N-FL-1 (d): a new valve part whose valve entry names another FnDef **replaces the valve
+N-FL-1 (d): a new valve part whose valve entry names another FnDef **replaces the valve
 function's definition in place**: the function keeps its ID, representations and role; its CPs follow by
 designation, and the connections, closures and medium definitions at a port follow to the new index, those at a port
 the new valve lacks are deleted, each listed in a notice; of two old ports with one designation, which become one
@@ -625,28 +614,25 @@ counter of its page; without a scheme a new line has none (`wire_numbering` leav
 | `device.link{from, to, Drives}` | Manual driven-device link | 1 step |
 | `fluid.length.set{lines, length: Nm}`; `RouteTubes` (1.x) | Manual length; committed routing | 1 step |
 
-**As built.** `valve.add` and `device.link` are registered commands
+`valve.add` and `device.link` are registered commands
 ([06](06-schematic-editor.md) §3.1). `valve.add{module, position?, part, letter?, fndef?, structure?}` creates the
 valve child with the child tag scheme and its counter equal to its position (the lowest free position by default; a
-held one is refused, no push insert). Because N-FL-1 is not built, the interim parameter `fndef` names the FnDef copy
-of the valve's main function and `letter` its letter code (default Q); the coil functions are not created, and when
-N-FL-1 lands `fndef` is ignored for a part that declares solenoids and removed at the command's next schema version
-. N-FL-2 is not a normaliser yet: its counter rule is applied inside `valve.add` and `assembly.attach` (a child
-tag of the child scheme, not frozen, whose counter equalled its old position follows the new one), and its push
-insert, with `assembly.detach`, is FT-273. `device.link{from, to, kind}` refuses a self-link and a duplicate of the same
-kind; N-FL-4 is not built. `valve.set_occupancy` and the other commands of the table are not built; the coil-to-channel
-binding was the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (built, §4.2); the
-golden builder keeps its 28 explicit bindings, because under H1 the map and the drawing differ.
+held one is refused, no push insert); `fndef` names the FnDef copy of the valve's main function for a part without a
+valve entry, and `letter` its letter code (default Q). N-FL-2 is not a normaliser: its counter rule is applied inside
+`valve.add` and `assembly.attach` (a child tag of the child scheme, not frozen, whose counter equalled its old
+position follows the new one), and its push insert, with `assembly.detach`, is not built. `device.link{from, to,
+kind}` refuses a self-link and a duplicate of the same kind. The coil-to-channel binding is N2's ([10](10-plc-and-bus.md)
+§3.3) or an explicit `plc.bind_channel`.
 
-*As built (WP-S1.25).* `fluid.medium.edit {medium?, set?}`, `fluid.medium.define {function, idx, medium?}`,
+`fluid.medium.edit {medium?, set?}`, `fluid.medium.define {function, idx, medium?}`,
 `fluid.tube.set {lines, set, fitting_a?, fitting_b?, reset: [field]}` and `fluid.length.set {lines, length?}` are
 built, each one undo step (`fluid.medium.define` takes `also`, further ports defined alike in the same step: a tube's
 Medium in Properties set on several tubes at once defines it at each tube's end); the project's default tube and line-tag scheme are the `fluid` member of
 `project.settings.set`. `valve.add` refuses a part with a PLC section (a station or module part, which N0 would attach
-to a station; FT-1576). `fluid.line.draw` is `connection.draw` with kind `fluid`; `valve_terminal.generate_overview`
+to a station). `fluid.line.draw` is `connection.draw` with kind `fluid`; `valve_terminal.generate_overview`
 is built (§5.5); `RouteTubes` is 1.x.
 
-*As built.* `valve.set_occupancy {module, position, occupancy, copies?}`
+`valve.set_occupancy {module, position, occupancy, copies?}`
 (`{"valve": {state, part?}}`, `{"blank": {part?}}` or `"empty"`, one undo step; a blank removes the valve with its
 delete plan and makes a `blanking_plate` child with the position's tag; a new valve of a part with a PLC section is
 refused as `valve.add` refuses it) and `fluid.port.close {function, idx,
@@ -654,7 +640,7 @@ closure?}` (refused on a port that is no fluid port or has a fluid line) are bui
 template has a valve entry ignores `fndef` and lets N-FL-1 make the functions; `fields.set` sets a fluid line's
 `line_kind`.
 
-*As built (M3 persona re-test).* A valve placed or moved into a valve terminal's box is that terminal's valve:
+A valve placed or moved into a valve terminal's box is that terminal's valve:
 `device.place` and `rep.move` take `into` (the terminal whose box the window saw the insertion point in), and the new
 or moved device joins it as `assembly.attach` makes it, in the same undo step: a valve at the first free position, a
 supply plate (a part whose fluid section taps a gallery) without a position; a device already on it, any other device,
@@ -683,9 +669,10 @@ therefore stable under unrelated edits (as FR-CON-013 is for potentials).
 - a tube continued through a fluid interruption-point pair is one tube with the target-side connection's ID;
 - a drawn fluid junction is a tee (`Junction.fitting`), so each branch is its own tube.
 
-The 16 golden lines F1–F16 are 16 tubes.
+@@@ END
 
-*As built (WP-S1.25).* `fluid_nets()` joins the gallery edges of every valve terminal, the pairs of fluid
+
+`fluid_nets()` joins the gallery edges of every valve terminal, the pairs of fluid
 interruption points (an interruption point whose CP is a fluid port) that a line reaches, and the `short` internal
 links of the FnDefs of the functions a line reaches. A net's ID stays its minimum member CP ID (not its definition
 point's): stable under unrelated edits, and one rule with the electrical nets. `fluid_tubes()` gives one tube per
@@ -716,12 +703,12 @@ port says "port 1 · via gallery 1 of -201U1". Modules without fluid data are tr
 is also shipped without fluid data, hence transparent, until its supply and exhaust ports are verified (PBF §8.1
 marks them unverified).
 
-*As built (WP-S1.25).* `galleries(vt)` takes as valve terminals the devices whose `plc_station.role` is
+`galleries(vt)` takes as valve terminals the devices whose `plc_station.role` is
 `valve_terminal`; the slots are its children in position order, each followed by its own children; per gallery
 (supply 1, exhausts 3 and 5, pilot exhausts 82 and 84), a slot with a valve function joins its ports of that role, a
 slot whose part taps the gallery joins its port of the tap's designation, a separator closes the segment, and
 everything else is transparent. A segment of one member is kept, so a terminal of one valve still has its gallery-1
-segment. Golden A's parts carry no gallery data: its 28 valves form one segment per gallery.
+segment.
 
 ### 5.3 Media propagation
 
@@ -763,7 +750,7 @@ while n = queue.pop_front():
 
 Two different **direct** keys in one net is EW-FL-005.
 
-*As built (WP-S1.25).* `medium_zones()` works on nets, a CP that no line or gallery reaches being a net of its own,
+`medium_zones()` works on nets, a CP that no line or gallery reaches being a net of its own,
 and records for each net the node through which a key first reached it (`ew query medium_zones` prints it). A
 definition whose port or medium is gone seeds nothing. Transforms come from the part of the function's device
 (§2.6). Not measured: the cost estimate above.
@@ -773,17 +760,16 @@ channel drives a valve coil gives an upper bound of 10,000 valves and about 60k 
 625k CPs. The partition is linear in CPs and edges; the fixpoint is linear in nets times distinct keys per net
 (typically one or two). The estimate is under 2 ms per committed fluid edit, inside NFR-PERF-05's XL budget of
 20 ms. Editing a `Medium`, which re-derives the tube properties of every net in its zones, stays inside
-NFR-PERF-07's XL budget of 100 ms. Both are measured on the XL fixture, whose replicated
-Golden B pages include folios 203–206. The whole computation is Class I.
+NFR-PERF-07's XL budget of 100 ms. The whole computation is Class I.
 
 ### 5.4 Effective tube properties
 
 Each field resolves separately, from the highest level that sets it, with provenance (FR-FLU-010). This mirrors the
 wire chain of [03](03-domain-model.md) §9.5:
 
-| Level | Source | Example (golden test values ▲) |
+| Level | Source | Example (test values ▲) |
 |---|---|---|
-| 1 | `ProjectSettings.fluid.default_tube` | none in Golden A |
+| 1 | `ProjectSettings.fluid.default_tube` | none |
 | 2 | Medium of the line's net: `line_kind_tubes[kind]`, else `default_tube`; colour from `Medium.colour` | "PU 6×4 BU · from medium 'compressed air 6 bar'" |
 | 3 | Data of the effective tube part (the override's part, else the level-2 default's part) | PU tube part ▲: od, id, material, colour, p_rating |
 | 4 | `TubeOverrides` field on the line | "8×6 · override" with the reset-to-derived action |
@@ -791,7 +777,7 @@ wire chain of [03](03-domain-model.md) §9.5:
 `tube_props_of(net)` is memoised per fluid net (granularity rule, ARCH §6.3). The per-line accessor is a cold
 lookup into that map. A line with no effective od/id/material after level 4 is EW-FL-007.
 
-*As built (WP-S1.25).* `tube_props_of(line)` is memoised per line, not per net (a net's lines differ by line kind,
+`tube_props_of(line)` is memoised per line, not per net (a net's lines differ by line kind,
 `line_kind_tubes`). Level 2 is the medium of the effective key (an exhaust key takes its root medium); a mixed net
 gives no level 2. Level 1 to 4 each replace the values they set; the part of level 3 is the line's override part,
 else the part the lower levels name. `ew query tube_props id:<line>` prints each value with its source.
@@ -816,24 +802,23 @@ content is derived as follows:
    "Order Code 2: 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS") on 201 and 202 (D-36).
 
 **MVP and 1.0.** At MVP the content of each segment is generated (FR-DEV-023): the user places the overview
-representations of the members on their pages (Golden A: -201U1 … -201U9 on 201, -202U1 … -202U3 on 202), and the
+representations of the members on their pages, and the
 break marks follow from the pages. At 1.0 `valve_terminal.generate_overview` builds the pages as well. It splits the children
 into segments by the frame's usable width, never inside a module, and previews the tag changes a new break would
 cause, because modules are page-based ([06](06-schematic-editor.md) §8).
 
-*As built.* Step 3 is built: the scene derives one glyph
+Step 3 is built: the scene derives one glyph
 per position of a module from `valve_slots`, a valve as a rectangle with a circle and its part's number, a blank with
 both diagonals, an empty position dashed, in a band above the module glyph; the glyphs are derived items, never
-records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32's MVP part).
+records (AC-32's MVP part).
 
-*As built (WP-S2.13).* `valve_terminal.generate_overview {station, left, right, y, symbol?, copies?, title?}` is built, a
+`valve_terminal.generate_overview {station, left, right, y, symbol?, copies?, title?}` is built, a
 `Bulk` command (previewed, one undo step); the window's entry is Generate overview… on a valve terminal's row of the
 fluid, PLC or device navigator, which sends the drawing area of the frame on the page the overview starts from (the
 first page of a member's overview, else the terminal's first fluid page, else the station's page;
 `ew_derive::overview_start_page`, `Session::overview_params`) and, for members not drawn
-yet, the starter `ew.ovw.module-wide` of the page grid's family (*as built, M3 persona round 3*: the drawing area is
-the frame's, in page coordinates, never mapped as if it lay on the sheet, which put the strip left of a QET frame;
-`ew.ovw.module` is 24 mm wide and its QET edition 15.875 mm, too narrow for the starter parts' numbers and their valve
+yet, the starter `ew.ovw.module-wide` of the page grid's family (the drawing area is
+the frame's, in page coordinates; `ew.ovw.module` is 24 mm wide and its QET edition 15.875 mm, too narrow for the starter parts' numbers and their valve
 glyphs, so the starter overview takes the wide module, 64 mm and 42.3 mm, whose four valve glyphs hold a part number
 of twelve characters; a new overview page is titled by the window with the terminal, "Valve terminal -201A1",
 `title`). The members (`assembly_members`) stand left to right, each
@@ -841,19 +826,18 @@ the width of its symbol's graphics, snapped to the page grid; one that would pas
 page (the members' overview pages in member order, then new assembly-overview pages after the last, with its frame,
 grid and structure; with none, the first new page follows the terminal's first fluid page in its section, so that the
 overview stands with its fluid diagram, not in the wiring section, doc 10 §6; a new page after an overview sub-page
-is its sibling, `104.1`, `104.2`, `104.3`, not `104.1.1`, FT-1926). A member already drawn in member order inside the band (on a later page than the member before,
-or right of it on the same page) stays where it stands (M3 review): a refresh of Golden A's overviews 201 (-201U1 …
--201U9) and 202 (-202U1 … -202U3) changes nothing. A member without an overview representation gets one of its main
+is its sibling, `104.1`, `104.2`, `104.3`, not `104.1.1`). A member already drawn in member order inside the band (on a later page than the member before,
+or right of it on the same page) stays where it stands: a refresh of an overview drawn in order changes nothing. A member without an overview representation gets one of its main
 function; a module added without functions gets the symbol's FnDef as its main function. The preview's changes name
 each page's members, the new pages and a page left without members; the derived changes show the tags that move with a page. A member takes
 part in the overview with its **overview representation** (`overview_rep`: its main representation when that is an
 overview one, else the smallest-ID overview representation of its main function), so a module drawn on a multi-line
 page first is a member of the generated overview too; its main representation, and so its page-based tag, stay with
 the smallest-ID representation (doc 03 §5.1). The positions in the overview are each member's symbol width apart,
-so a refresh of Golden A, drawn by hand with gaps, closes the gaps. The part data's `overview.symbol` and
+so a refresh of an overview drawn by hand with gaps closes the gaps. The part data's `overview.symbol` and
 `overview.width` (step 1) are not read: the symbol is the member's own or the starter one, the width its graphics'.
 
-*As built (M3 persona round).* A valve or a blanking plate is never a member: it is a glyph of its module's position
+A valve or a blanking plate is never a member: it is a glyph of its module's position
 (step 3), also when the module is the terminal itself (the starter terminal, §2.6). So a terminal with valve positions
 of its own is an overview without other members; the command refuses only a station with neither members nor valve
 positions.
@@ -884,45 +868,42 @@ the pack in class 120 with codes `1200nn` (EW-FL-001 → `120001`) and adopt EW-
 stay within the 5 ms per-commit budget and the full check run within NFR-PERF-09. The check panel and release
 reports state that checks do not replace engineering verification (NFR-COMP-04).
 
-| Rule | Checks | Req. | Modes | Severity | Release | Golden A |
-|---|---|---|---|---|---|---|
-| EW-FL-001 | Working port 2 or 4 unconnected and not closed (plug, silencer, blanked). One finding per valve function, listing the ports | FR-FLU-018 | o r | warning | MVP | EF-13: 20 spare valves |
-| EW-FL-002 | Channels bound to a valve's coils ≠ its solenoids. Excess → error; used valve with an unbound coil → warning; spare unbound → none. In strict mode the second binding is already refused by FR-PLC-005, so excess arises only on import (FR-FLU-017's criterion) | FR-FLU-017 | o r | error / warning | MVP | 0 (28 bindings, one per coil) |
-| EW-FL-003 | Slot occupancy contradicts the configurator order code (decoder plugin) | FR-FLU-022 | f r | warning | 1.x | none before 1.x (D-40, ▲U-24) |
-| EW-FL-004 | Spare and blank positions, listed | FR-FLU-017 | o | info | MVP | EF-14: 20 |
-| EW-FL-005 | Two different direct media in one fluid net | FR-FLU-019 | o r | error | 1.0 | 0 |
-| EW-FL-006 | Tube `p_rating` below the highest `p_nom` in its net; tube od ≠ port `push_in_od` at either end | FR-FLU-020 | o r | warning | 1.0 | 0 (no data) |
-| EW-FL-007 | Line without effective tube specification (§5.4) | FR-FLU-020 | o r | warning | 1.0 | EF-21: F1 … F16 |
-| EW-FL-008 | Fluid net whose ports all have exhaust roles (3, 5, 82, 84), or that carries an `Exhaust` key, with no silencer, collector line or closure; off by default | FR-FLU-021 | o | info | 1.0 | off. When enabled: 2 (galleries 3 and 5 of -201U1, listing the valves' ports 3 and 5) |
-| EW-FL-009 | Coil `voltage` ≠ voltage of the potential feeding the coil or its module's valve-supply pin | FR-FLU-019 | o r | error | 1.0 | 0 (24 V DC ▲ on 24VDC-1 via -201U1:5) |
-| EW-FL-010 | Valve, or manifold gallery-1 segment, whose port-1 net has no medium definition and no member outside the terminal | FR-FLU-020 | o r | warning | 1.0 | EF-20: 1 on -201U1 |
-| EW-FL-011 | `Drives` target ≠ the device reached through the working-port tubes | FR-FLU-029 | o | warning | MVP | 0 |
-| EW-FL-012 | Port-role conflict: a valve's working port joined to an exhaust port of another valve without a valve between them; two ports of one valve function joined, unless all are exhausts | FR-FLU-032 | o r | warning | 1.0 | 0 |
-| EW-FL-013 | Occupancy: duplicate or out-of-range position, `Empty` position (lenient report of FI-02, FI-07) | FR-FLU-027 | p o | error (empty: warning) | MVP | 0 |
-| EW-FL-014 | Tube crossing a location boundary without a transition device (bulkhead); off by default | FR-FLU-032 | o | info | 1.0 | off. When enabled: 16 |
+| Rule | Checks | Req. | Modes | Severity | Release |
+|---|---|---|---|---|---|
+| EW-FL-001 | Working port 2 or 4 unconnected and not closed (plug, silencer, blanked). One finding per valve function, listing the ports | FR-FLU-018 | o r | warning | MVP |
+| EW-FL-002 | Channels bound to a valve's coils ≠ its solenoids. Excess → error; used valve with an unbound coil → warning; spare unbound → none. In strict mode the second binding is already refused by FR-PLC-005, so excess arises only on import (FR-FLU-017's criterion) | FR-FLU-017 | o r | error / warning | MVP |
+| EW-FL-003 | Slot occupancy contradicts the configurator order code (decoder plugin) | FR-FLU-022 | f r | warning | 1.x |
+| EW-FL-004 | Spare and blank positions, listed | FR-FLU-017 | o | info | MVP |
+| EW-FL-005 | Two different direct media in one fluid net | FR-FLU-019 | o r | error | 1.0 |
+| EW-FL-006 | Tube `p_rating` below the highest `p_nom` in its net; tube od ≠ port `push_in_od` at either end | FR-FLU-020 | o r | warning | 1.0 |
+| EW-FL-007 | Line without effective tube specification (§5.4) | FR-FLU-020 | o r | warning | 1.0 |
+| EW-FL-008 | Fluid net whose ports all have exhaust roles (3, 5, 82, 84), or that carries an `Exhaust` key, with no silencer, collector line or closure; off by default | FR-FLU-021 | o | info | 1.0 |
+| EW-FL-009 | Coil `voltage` ≠ voltage of the potential feeding the coil or its module's valve-supply pin | FR-FLU-019 | o r | error | 1.0 |
+| EW-FL-010 | Valve, or manifold gallery-1 segment, whose port-1 net has no medium definition and no member outside the terminal | FR-FLU-020 | o r | warning | 1.0 |
+| EW-FL-011 | `Drives` target ≠ the device reached through the working-port tubes | FR-FLU-029 | o | warning | MVP |
+| EW-FL-012 | Port-role conflict: a valve's working port joined to an exhaust port of another valve without a valve between them; two ports of one valve function joined, unless all are exhausts | FR-FLU-032 | o r | warning | 1.0 |
+| EW-FL-013 | Occupancy: duplicate or out-of-range position, `Empty` position (lenient report of FI-02, FI-07) | FR-FLU-027 | p o | error (empty: warning) | MVP |
+| EW-FL-014 | Tube crossing a location boundary without a transition device (bulkhead); off by default | FR-FLU-032 | o | info | 1.0 |
 
 The core rule FR-CHK-022 ([02a](02a-requirements-core.md)) covers hand-drawn or imported overviews that disagree
 with the children (MF-14). Generated overviews cannot disagree. EW-PLC-012, the address-map rule, is in
 [10](10-plc-and-bus.md).
 
-*As built.* EW-FL-001, -002, -004, -011 and -013 are built
+EW-FL-001, -002, -004, -011 and -013 are
 in pack EW-FL, on in every shipped scheme, with their catalogue rows, rule pages and messages in both languages.
-**EW-FL-004 runs in `o r`**, not `o` alone, so that the pre-delivery release run counts EF-14 (O2); EW-FL-013's prevent half refuses a strict transaction for FI-02 and FI-07.
+**EW-FL-004 runs in `o r`**, not `o` alone, so that the pre-delivery release run counts it; EW-FL-013's prevent half refuses a strict transaction for FI-02 and FI-07.
 
-*As built (WP-S1.25).* EW-FL-005 … -010, -012 and -014 are built in the pack's **1.0 content** and run in the
-shipped schemes (doc 15 §4.1; FT-1728); on Golden A, EF-20 (EW-FL-010 on -201U1) and EF-21
-(EW-FL-007, F1 to F16) are found and the others report nothing, and EW-FL-008 and -014, switched on, give 2 and 16.
-Scopes: EW-FL-009 and -010 per device, the others per project (no `fluid_net` scope kind). EW-FL-008 counts a line
+EW-FL-005 … -010, -012 and -014 are in the pack's **1.0 content** and run in the
+shipped schemes (doc 15 §4.1). Scopes: EW-FL-009 and -010 per device, the others per project (no `fluid_net` scope kind). EW-FL-008 counts a line
 (a collector), a closure and a port of another role as treatment; a silencer device is a line's end. EW-FL-009 reads
 the feed at a physical coil's pins, and at an internal coil the load supply pin (`L+` of a `load` supply group) of
 the bound channel's module or of the first device above it with one. EW-FL-010 counts a junction
 as a member outside the terminal. EW-FL-012 skips a net without a line (a gallery alone); a working port into an
 inlet (port 1 of another valve or of a manifold, a quick-exhaust or shuttle valve's inlet) is a circuit, not a
 conflict, the ports of a component that is no valve never conflict but a supply plate's taps, which are on the
-sides of the gallery they tap (*as built, M3 persona round 3*: a working port joined to a plate's exhaust tap
-conflicts), and two exhausts of one valve may share a silencer. EW-FL-009 also compares AC and DC where the coil and the potential both name one. Each has its rule page.
+sides of the gallery they tap (a working port joined to a plate's exhaust tap conflicts), and two exhausts of one valve may share a silencer. EW-FL-009 also compares AC and DC where the coil and the potential both name one. Each has its rule page.
 
-*As built (M3 persona round).* EW-FL-007 keeps §5.4's test (outer and inner diameter and material), and its message
+EW-FL-007 keeps §5.4's test (outer and inner diameter and material), and its message
 says what is missing: a tube whose size is known reads "tube … is 6×4 mm but has no material; give the default tube of
 its medium or of the project a material, or set it on the tube", so that it agrees with the tube table, which showed
 the size. Its title is "Tube without specification". Fluid settings… says in a toast what the default tube is now, that
@@ -944,7 +925,7 @@ the tubes drawn already take it, and that it lacks a material when it does.
 | Fluid navigator and Fluid workspace (1.0) | Fluid devices, lines with tube specs and lengths, media. The workspace docks the fluid navigator, the tube table and the medium table | FR-UI-003, FR-UI-006 |
 | Tables | The tube table supports fill-down of specs and lengths and Excel round trip, each edit one command (FR-EXP-004) | FR-FLU-011 |
 
-*As built (WP-S2.13).* **The Fluid workspace** is the built-in workspace Fluid (View ▸ Workspaces ▸ Fluid power): the
+**The Fluid workspace** is the built-in workspace Fluid (View ▸ Workspaces ▸ Fluid power): the
 fluid navigator (rail entry Fluid) in the left column, the tube table and the medium table as tabs of the bottom dock.
 The fluid navigator lists Valve terminals → each terminal → its modules → their valves, then Fluid devices (every other
 device at a line's end), each device with its lines (`→ <the other end's port>`, from `tube_rows`), then Media, each
@@ -954,17 +935,17 @@ millimetres), which Properties shows on fluid lines too. The medium table is the
 set** by Project ▸ New medium… (a form of name, pressure and letter: one `fluid.medium.edit`) and by a fluid line's
 context menu, Medium: `<name>` (one `fluid.medium.define` at the line's end, which replaces the net's definition
 wherever it is; the entry of the medium the line's net carries is checked), which also offers the line kinds (Line:
-Working … Flexible: the line-kind picker of FT-1733, after drawing). **Zones are shown** by a medium's row with
+Working … Flexible: the line-kind picker, after drawing). **Zones are shown** by a medium's row with
 Highlight (`Ctrl+Shift+H`, the window highlight of doc 16 §7.3 in a slot's colour and hatch, never colour alone): the
 lines of the nets whose medium is that medium. This is the highlight half of FR-FLU-034 (Could), built because the
-zones were otherwise invisible; the per-position flow preview stays Later. **The device rows' fluid actions** (FT-1733)
+zones were otherwise invisible; the per-position flow preview stays Later. **The device rows' fluid actions**
 are on a device's row of the fluid, PLC and device navigators (`Session::fluid_menu`): a valve terminal's Generate
 overview… (§5.5); a valve module's Add valve at position *n* for each blank or empty position (a `valve.set_occupancy`
 with the part of the module's first valve, else of another module's; disabled with its reason without one) and Blank
-position *n* for each empty one (*as built, M3 persona round 3*: it stood on a valve's menu only); a valve's
+position *n* for each empty one; a valve's
 Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug port *p* for each open working port
 (EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. **The line
-tool** (FT-1733, rc.2): Fluid ▸ Tube on a fluid page starts the Wire tool at once, drawing lines of the kind used last
+tool**: Fluid ▸ Tube on a fluid page starts the Wire tool at once, drawing lines of the kind used last
 (Working at first; `connection.draw` with `{"fluid": {"line_kind"}}`); the HUD says the kind and the project's default
 tube ("Working line · tube 6/4 mm") and its Line kind button (`fluid.tube_kind`) steps through Working, Pilot,
 Exhaust, Drain and Flexible, remembered; a project without a default tube is told once that Fluid settings… sets it.
@@ -972,15 +953,14 @@ Draw ▸ Wire draws working lines. Fluid pages autoconnect: a placed symbol's fl
 join, and the committed hint is a working fluid line (`device.place`'s hint takes the fluid kind when both ends are
 fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page, and a
 valve's working port never proposes another valve's exhaust port or a supply plate's exhaust tap, nor the other way
-round (EW-FL-012's conflict, `ew_derive::ValvePort`; the persona re-test's stacked valves, round 3's valve below a
-loose plate), and an in-line fitting's port (a FnDef with two generic fluid ports: a flow control, a check valve, a
+round (EW-FL-012's conflict, `ew_derive::ValvePort`), and an in-line fitting's port (a FnDef with two generic fluid ports: a flow control, a check valve, a
 throttle, a coupling, a bulkhead; `ew_derive::is_fitting`) never proposes another fitting's: two set side by side are
-a row of branches, not one line (rc.5: four flow controls placed in a row were joined by tubes); a fitting facing a
+a row of branches, not one line; a fitting facing a
 valve's or a cylinder's port still is. The placement's toast counts the tubes it draws ("connected 1 tube"). A flexible
 line is drawn as an arc between its ends: a quadratic curve whose control point stands a quarter of the chord to the
-left of it, the route's corners not drawn. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
+left of it, the route's corners not drawn. Project ▸ Fluid settings… is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
 
-*As built (M3 persona round, pneumatics from nothing).* The device's fluid actions stand on its symbol's menu as on
+The device's fluid actions stand on its symbol's menu as on
 its rows, so a valve terminal's box offers Add valve and Generate overview…. **Add valve at position n** is the window
 action `fluid.valve_add {module, position}`: one `valve.set_occupancy` with the part of the terminal's other valves,
 else the system libraries' valve for its positions (the first by part number of the parts that name solenoids the
@@ -990,7 +970,7 @@ names it. **Generate overview…** without a row acts on the selected valve term
 with "Select a valve terminal first: on its page or in the Fluid panel", and on a device that is no terminal with
 "The selection is no valve terminal: a valve terminal is placed from a part with valve positions".
 
-*As built (M3 persona round).* **A tube's Properties** show, beside Line kind, Tube part and Tube length, two derived
+**A tube's Properties** show, beside Line kind, Tube part and Tube length, two derived
 rows: **Medium**, the medium its net carries, its chip saying where it is defined ("medium defined at -201X1:1", else
 "carried through the valves"), chosen among the project's media (one `fluid.medium.define` at the tube's end through
 `Session::layout_edit`, which replaces the net's definition); and **Tube**, its effective specification ("6×4 mm PU"),
@@ -998,14 +978,14 @@ its chip naming the sources of its size and material (the project's default tube
 override; §5.4), read-only. **The Fluid panel's tool line** offers Fluid settings… and New medium…, the Project tab's
 actions.
 
-*As built (M3 persona re-test, rc.2).* The Medium row's list ends in **New medium…**; the medium its form makes is set
+The Medium row's list ends in **New medium…**; the medium its form makes is set
 on the row's tubes. While the project has no medium, the list (and the tube's and the source's menus) offers New
 medium…'s usual media first ("Compressed air, 6 bar"): one is made and set on the row's ports in one undo step
 (`fluid.medium.edit {set, at}`). A row whose only action is Edit opens its editor from its "…" at once. **A source's Properties** (a device with a function on
 a FnDef of category `Source`, the air-supply point) show the same Medium row in Main: the medium its port's net carries
 and where it is defined, set at its port.
 
-*As built (M3 persona round).* **One word.** The window calls a drawn fluid line a **tube** (Dutch *slang*): Draw ▸
+**One word.** The window calls a drawn fluid line a **tube** (Dutch *slang*): Draw ▸
 Connect ▸ Tube, a tube's Properties headed "Tube (Working)", the refusals, the medium's count ("3 tubes"), the layout
 findings; "line kind" stays the attribute (Working, Pilot, Exhaust, Drain, Flexible), "fluid line" stays this document's
 and the format's term. **The Fluid panel's table** lists the tubes drawn: `NavKind::Fluid`'s columns are the tube
@@ -1029,26 +1009,25 @@ table's (`NavKind::source`), and each tube's first row in the tree carries the t
 All row sources are deterministic, sorted naturally by tag, with ties broken by ID. Each one feeds PDF, XLSX and CSV
 alike (ADR-0018, FR-EXP-002).
 
-| Row source | Columns | Golden A |
-|---|---|---|
-| Tube list (FR-FLU-012, 1.0) | tag, from DT:port (role), to DT:port (role), medium, line kind, od×id, material, colour, tube part, length + source, fittings A/B, location change, page/cell | 16 rows F1–F16, e.g. "— · -201U3-Q1:2 (working) · -203Q1:A ▲ · — · working · (no spec, EW-FL-007) · +J-E-2416 → +FIELD · 203" |
-| Tube cut list (FR-FLU-013, 1.0) | material, od×id, colour, part, count, Σ length + per-end cut allowance (default 0), order length rounded to the part's order increment | Golden A-R (PU 6×4 BU at 1,200 mm on F1–F17 ▲): 1 line, 17 pieces, 20.4 m |
-| Tube labels (FR-FLU-013, 1.0) | per tube end: text by marking scheme (tag, or destination "-203Q1:A" / "-201U3-Q1:2"), marker part | Input to the label engine (FR-MFG-012, [13](13-manufacturing-outputs.md)) |
-| Valve-terminal configuration (FR-FLU-015, 1.0) | position, module DT, module part, valve DT, valve part, solenoids, channel and address, function text / process tag, occupancy and state | 12 module rows -201U1 … -202U3, 28 valve rows (8 used, 20 spare) |
-| Medium overview (FR-FLU-016, 1.0) | medium, sources (DT:port), p_nom, quality, consumers (devices whose port 1 lies in the zone, and the actuators it reaches), default tube | Golden A-R (medium at -201U9:1 through F17): one row, 36 consumers |
-| Fluid BOM lines (FR-FLU-014, 1.0) | Tubes as consumables in m per tube part; fittings per end; plugs and silencers from closures and devices; blanking plates; configured assemblies in assembly mode (FR-REP-005); field devices supplied by others excluded | Component mode: 571334 × 28, 533361 × 7, 533354 × 2 (D-04); assembly mode: rows A1 (51E-F13GCQP-D+H2GG) and A2 (32P-VGL-R-…-28MS) |
+| Row source | Columns |
+|---|---|
+| Tube list (FR-FLU-012, 1.0) | tag, from DT:port (role), to DT:port (role), medium, line kind, od×id, material, colour, tube part, length + source, fittings A/B, location change, page/cell |
+| Tube cut list (FR-FLU-013, 1.0) | material, od×id, colour, part, count, Σ length + per-end cut allowance (default 0), order length rounded to the part's order increment |
+| Tube labels (FR-FLU-013, 1.0) | per tube end: text by marking scheme (tag, or destination "-203Q1:A" / "-201U3-Q1:2"), marker part |
+| Valve-terminal configuration (FR-FLU-015, 1.0) | position, module DT, module part, valve DT, valve part, solenoids, channel and address, function text / process tag, occupancy and state |
+| Medium overview (FR-FLU-016, 1.0) | medium, sources (DT:port), p_nom, quality, consumers (devices whose port 1 lies in the zone, and the actuators it reaches), default tube |
+| Fluid BOM lines (FR-FLU-014, 1.0) | Tubes as consumables in m per tube part; fittings per end; plugs and silencers from closures and devices; blanking plates; configured assemblies in assembly mode (FR-REP-005); field devices supplied by others excluded |
 
-*As built (WP-S1.25).* The row sources are `tube_rows()`, `valve_terminal_rows()` and `medium_rows()` of
+The row sources are `tube_rows()`, `valve_terminal_rows()` and `medium_rows()` of
 `ew-derive`, shared by the report kinds and the SQL views. A terminal that is its own valve module (EW-GEN-VTM-1:
 positions of its own, no child with positions) has a row per position after its own row, and its valves no module
-rows (FT-1927: the sample's -201K1 lists positions 1 to 4 with -201K1-Q1 … -Q4, solenoid 14, Q0.0 … Q0.6). The tube
+rows (the sample's -201K1 lists positions 1 to 4 with -201K1-Q1 … -Q4, solenoid 14, Q0.0 … Q0.6). The tube
 list prints lengths in metres. The cut list
 groups by material, size, colour and tube part, with the count and the summed length; it has no per-end cut
 allowance and no order length, since no part data names an order increment. The tube labels give one row per tube
 end with the line tag, else the far end; no marker part. The medium overview counts as consumers the **valves** whose
 port 1 lies in a net carrying the medium (not the supply plates that feed it) and the **actuators** whose consumer port
-(a cylinder's A or B) does, so a medium set on a working line counts the cylinder it feeds and Golden A-R has 36 (its 28
-valves and the 8 cylinders of 203; M3's whole review: a medium set on a working line showed Count 0). The fluid BOM
+(a cylinder's A or B) does, so a medium set on a working line counts the cylinder it feeds. The fluid BOM
 lines are part lines of a device: a closure's part on the device of the closed port, a tube's part on the device of
 its from end in metres, else of its to end (a tube from a tee), a fitting on the device of its end, and a tee on the
 owner of the lowest tube at it that has one; a tube between two tees has no owner.
@@ -1066,14 +1045,13 @@ owner of the lowest tube at it that has one; a tube between two tees has no owne
   document (FR-EXT-032, ADR-0017 amendment 2; `api_v1` is Preview until the 1.0 freeze). Column names follow the
   `api_v1_wire` conventions (`*_nm` lengths, `prov_*` provenance):
 
-  | View | Row | Columns | Golden A rows |
-  |---|---|---|---|
-  | `api_v1_fluid_line` | one physical tube (§5.1) | `id, tag, line_kind, from_device_id, from_tag, from_port, from_role, to_device_id, to_tag, to_port, to_role, fluid_net_id, medium, od_nm, id_nm, material, colour, tube_part, p_rating, length_nm, length_source, fitting_a, fitting_b, from_location, to_location, page_id, cell, prov_tube` | 16 (17 on Golden A-R) |
-  | `api_v1_valve_position` | one position of a valve module | `module_id, module_tag, position, occupancy, valve_id, valve_tag, valve_part, solenoids, channel_ids, addresses, function_text, process_tag, target_id, target_tag, state` | 28 |
-  | `api_v1_medium` | one project medium | `id, name, code, discipline, p_nom, quality, source_cps, consumer_count, default_tube` | 0 (1 on Golden A-R) |
+  | View | Row | Columns |
+  |---|---|---|
+  | `api_v1_fluid_line` | one physical tube (§5.1) | `id, tag, line_kind, from_device_id, from_tag, from_port, from_role, to_device_id, to_tag, to_port, to_role, fluid_net_id, medium, od_nm, id_nm, material, colour, tube_part, p_rating, length_nm, length_source, fitting_a, fitting_b, from_location, to_location, page_id, cell, prov_tube` |
+  | `api_v1_valve_position` | one position of a valve module | `module_id, module_tag, position, occupancy, valve_id, valve_tag, valve_part, solenoids, channel_ids, addresses, function_text, process_tag, target_id, target_tag, state` |
+  | `api_v1_medium` | one project medium | `id, name, code, discipline, p_nom, quality, source_cps, consumer_count, default_tube` |
 
-*As built (WP-S1.25).* The three views are built with the columns above (`cell` is NULL: a tube has no frame cell
-yet; `prov_tube` is a JSON object of the sources). The report kinds export with `ew export report --kind tube_list`
+The three views have the columns above (`cell` is NULL: a tube has no frame cell; `prov_tube` is a JSON object of the sources). The report kinds export with `ew export report --kind tube_list`
 (and the others' names); `ew export tubes` is not built, it would repeat that command. `ew query medium_zones` and
 `ew query tube_props` are built. The production package's `tubes.json` and tube rows in `cutlists.csv` are not
 built (doc 13's package).
@@ -1096,7 +1074,7 @@ QET pneumatic elements have unnamed generic terminals. The 5/2 valve definition
 | `cp_map` | QET terminal key (terminal UUID if present, else the definition-order index) → EW designation and role |
 | `coils` | Solenoid designations to create: `14` |
 | `line_kind_from_style` | Dashed conductor → Pilot, otherwise Working |
-| `confidence` | `verified` (checked against the corpus and the golden import) or `draft` |
+| `confidence` | `verified` (checked against the corpus) or `draft` |
 
 | `match` (examples) | EW symbol | `cp_map` | Coils | Confidence |
 |---|---|---|---|---|
@@ -1106,9 +1084,9 @@ QET pneumatic elements have unnamed generic terminals. The 5/2 valve definition
 | Any other `50_pneumatic/**` | Kept in the project's "QET import" library, `rep_type = Fluid`, CPs `Generic` (FR-SYM-018) | — | — | review item |
 
 The shipped rows are generated in CI from the QET element corpus (24 example projects plus the elements
-repository) and are checked against the golden import. A QET conductor with both ends on mapped fluid CPs becomes a
+repository). A QET conductor with both ends on mapped fluid CPs becomes a
 `Fluid` connection. A conductor with mixed ends goes to the review list. Page type `Fluid` is inferred when the
-mapped representations on a folio are mostly fluid, and is confirmed in the review (Golden C: 203–206).
+mapped representations on a folio are mostly fluid, and is confirmed in the review.
 
 ### 9.2 Text recognition and valve-terminal reconstruction
 
@@ -1118,7 +1096,7 @@ Uncertain matches go to the review list:
 
 | Recogniser ([14](14-interop.md) §4.12 default) | Becomes on a fluid symbol |
 |---|---|
-| PLC address `^%?(I\|Q\|E\|A)(\d+)\.([0-7])$` | Pending channel binding `{coil CP, address}`, resolved by `ApplyImport` once the module exists ([10](10-plc-and-bus.md) §3.3 A7; MF-19: 28 addresses) |
+| PLC address `^%?(I\|Q\|E\|A)(\d+)\.([0-7])$` | Pending channel binding `{coil CP, address}`, resolved by `ApplyImport` once the module exists ([10](10-plc-and-bus.md) §3.3 A7; MF-19) |
 | Process tag, project regex (default `^[A-Z]{2}\d{2}-[A-Z]-\d{2}$`, PQ-18) | `process_tag` on the valve until a field device exists (§3.3) |
 | Keyword "Spare" (configurable list) | Manual function text "Spare" kept; state Spare proposed in the review list |
 | Port number `^(1\|2\|3\|4\|5\|12\|14\|82\|84)$` and the grouped "3 1 5" | Consumed. A mismatch with `cp_map` is a review item |
@@ -1136,7 +1114,8 @@ never see the model (ADR-0021, ARCH §3 rule 4):
 4. **Preview.** It shows the hand-drawn overview's count against the proposed children (MF-14, FR-CHK-022) and
    regenerates the overview on accept.
 
-The result equals step 6 of the Golden C fix script.
+@@@ END
+
 
 ---
 
@@ -1145,7 +1124,7 @@ The result equals step 6 of the Golden C fix script.
 1. **A fifth valve on a 4-position sub-base** (D-10). Strict mode refuses it (FI-02). An import creates children
    only through the assistant, which proposes four positions and reports the fifth drawn glyph (FR-CHK-022).
 2. **Changing 571334 to a double-solenoid part.** N-FL-1 adds coil 12; N2 (N-FL-3) finds channel 2p + 1 already
-   bound to coil 14 (as drawn in Golden A). EW-FL-002 and EW-PLC-012 report it; nothing is rebound silently.
+   bound to coil 14 (as drawn). EW-FL-002 and EW-PLC-012 report it; nothing is rebound silently.
 3. **Moving a module across the overview break.** Its page-based tag changes (-201U9 → -202U4). The preview lists
    it; freezing the tag keeps shop labels valid.
 4. **Spare valve vs blanking plate** (▲U-36). The BOM count of 571334 changes (28 vs 8). The occupancy toggle is one
