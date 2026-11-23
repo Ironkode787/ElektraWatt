@@ -3,42 +3,6 @@
 
 //! The rules that bind the placer (docs/design/06a-drafting.md §1.6): [`rules_kept`] checks a plan's page against
 //! the page it starts from. Each rule is a small function that names the parts that break it.
-//!
-//! # How a rule reads a page
-//!
-//! A **pair** is a net (wires joined through junctions or ending at one pin) with exactly two pins, on two parts; a
-//! net with more pins is a **trunk** net. A pin's side is the side its wire leaves on.
-//!
-//! - **A1.** A part with pins (or a drawn box) outside the drawing area or on another part (F7 of the measure).
-//! - **A2.** A part kept in place (`locked`: kept, outside the scope, inside a structure box) that moved.
-//! - **A3.** A part turned, mirrored or reshaped (its body or a pin moved against its origin), or gone.
-//! - **A4.** The partners that face the pins of one line (the pins of one part on one side, or of parts of one size
-//!   whose pins stand on one line: the terminals of a strip) out of the order of those pins across that side. Facing
-//!   pairs only: wires that turn a corner nest, and wires that turn back lie inside one another, the other way round.
-//! - **A5.** A pair of facing pins, the second at least two steps beyond the first, closed up (nearer than it stood
-//!   and nearer than the chain gap) or spread (further than it stood, or than the chain gap, by more than
-//!   [`ROW_PULL`]: what a row's common line may take); not a pair with a part that stood against another rule (it had
-//!   to move).
-//! - **E1.** A pair from a pin that faces down to a pin that faces up whose first pin is not above the second.
-//! - **E2.** A part of a circuit above the rail that feeds it (or below the one it returns to): a trunk net with two
-//!   junctions or more on one horizontal line and whose pins all face that line from one side, its circuits the parts
-//!   reached from its pins through pairs; and any part but a mark above the highest feeding rail or below the lowest
-//!   returning one.
-//! - **E3.** An incoming mark not at the left end of its net (a pin or junction of the net further left), an outgoing
-//!   one not at the right end.
-//! - **E4.** A card's partner not beyond the card's pin along its side, or two partners of one edge of a card out of
-//!   the order of their channels. Not a partner whose own pin faces the same way as the card's: its wire turns back,
-//!   and it has no place in the channel's column.
-//! - **E5.** An earth symbol further than [`EARTH_REACH`] (city-block) from the nearest pin of its net.
-//! - **F1.** A pressure source or service unit not lower than every valve; an actuator not higher than a valve it is
-//!   reached from through tubes and parts that are neither valves nor sources.
-//! - **F2.** Two actuators whose order from left to right changed.
-//! - **B1.** Two stations of a bus line out of the line's order from left to right (the line read from its
-//!   controller, else from its leftmost station).
-//! - **B2.** Two stations of a pair whose ports face the same side not level.
-//!
-//! [`rules_kept`] holds when no rule is broken in the plan's page but where it was broken before by the same parts
-//! and none of them moved: a part that stood against a rule and has no room is left where it stands, and named.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -90,7 +54,9 @@ pub struct Broken {
     pub parts: Vec<PartId>,
 }
 
-/// A net of the page: its pins, junctions and wires, each by ID.
+/// A net of the page (wires joined through junctions or ending at one pin): its pins, junctions and wires, each by
+/// ID. A **pair** is a net with exactly two pins, on two parts; a net with more pins is a **trunk** net. A pin's side
+/// is the side its wire leaves on.
 #[derive(Clone, Default, Debug)]
 pub(crate) struct PageNet {
     pub pins: Vec<PinId>,
@@ -190,8 +156,10 @@ impl<'a> Wiring<'a> {
 /// A partner of a part's pin on one side: the pin's coordinate across that side, the partner pin's, the partner.
 type Partner = (Tick, Tick, usize);
 
-/// Whether the plan's page `after` keeps the rules of §1.6 against the page `before` it starts from (module
-/// documentation); else the rules it breaks, each with the parts that break it, in rule order.
+/// Whether the plan's page `after` keeps the rules of §1.6 against the page `before` it starts from: no rule is
+/// broken in the plan's page but where it was broken before by the same parts and none of them moved (a part that
+/// stood against a rule and has no room is left where it stands, and named); else the rules it breaks, each with
+/// the parts that break it, in rule order.
 pub fn rules_kept(before: &DraftPage, after: &DraftPage) -> Result<(), Vec<Broken>> {
     let moved: BTreeSet<PartId> = after
         .parts
@@ -232,6 +200,8 @@ fn broken_by(rule: Rule, mut parts: Vec<PartId>) -> Broken {
     Broken { rule, parts }
 }
 
+/// The rules a page breaks on its own. A1: a part with pins (or a drawn box) outside the drawing area or on another
+/// part (F7 of the measure).
 fn states(w: &Wiring<'_>) -> BTreeSet<Broken> {
     let mut out = BTreeSet::new();
     for (p, o) in parts_on_parts(w.page) {
@@ -251,6 +221,9 @@ fn states(w: &Wiring<'_>) -> BTreeSet<Broken> {
     out
 }
 
+/// The rules a plan breaks against the page it starts from. A2: a part kept in place (`locked`: kept, outside the
+/// scope, inside a structure box) that moved. A3: a part turned, mirrored or reshaped (its body or a pin moved
+/// against its origin), or gone.
 fn changes(
     b: &Wiring<'_>,
     a: &Wiring<'_>,
@@ -295,8 +268,10 @@ fn changes(
     out
 }
 
-/// A4: per line of pins that face one side, of one part or of parts of one size (a card's edge, the terminals of a
-/// strip), their partners' pins across that side in the order of the pins.
+/// A4: the partners that face the pins of one line (the pins of one part on one side, or of parts of one size whose
+/// pins stand on one line: a card's edge, the terminals of a strip) out of the order of those pins across that side.
+/// Facing pairs only: wires that turn a corner nest, and wires that turn back lie inside one another, the other way
+/// round.
 fn a4(w: &Wiring<'_>) -> Vec<Broken> {
     let mut rows: BTreeMap<((Tick, Tick), Side, Tick), Vec<Partner>> = BTreeMap::new();
     for (a, b) in w.pairs() {
@@ -332,7 +307,9 @@ fn a4(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// A5: the facing pairs closed up or spread, but a pair with a part that stood against a rule.
+/// A5: a pair of facing pins, the second at least two steps beyond the first, closed up (nearer than it stood and
+/// nearer than the chain gap) or spread (further than it stood, or than the chain gap, by more than [`ROW_PULL`]:
+/// what a row's common line may take); not a pair with a part that stood against another rule (it had to move).
 fn a5(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTreeSet<PartId>) -> Vec<Broken> {
     let mut out = Vec::new();
     for (p, q) in b.pairs() {
@@ -361,7 +338,7 @@ fn a5(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTre
     out
 }
 
-/// E1: of a pair from a pin facing down to one facing up, the first above the second.
+/// E1: a pair from a pin that faces down to a pin that faces up whose first pin is not above the second.
 fn e1(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for (a, b) in w.pairs() {
@@ -422,8 +399,10 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
     out
 }
 
-/// E2: no part of a circuit beyond its rail; no part but a mark above the highest feeding rail or below the lowest
-/// returning one.
+/// E2: a part of a circuit above the rail that feeds it (or below the one it returns to): a rail is a trunk net with
+/// two junctions or more on one horizontal line and whose pins all face that line from one side, its circuits the
+/// parts reached from its pins through pairs; and any part but a mark above the highest feeding rail or below the
+/// lowest returning one.
 fn e2(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     let rails = rails(w);
@@ -450,7 +429,8 @@ fn e2(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// E3: an incoming mark at the left end of its net, an outgoing one at the right end.
+/// E3: an incoming mark not at the left end of its net (a pin or junction of the net further left), an outgoing one
+/// not at the right end.
 fn e3(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for n in &w.nets {
@@ -481,7 +461,9 @@ fn e3(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// E4: a card's partners beyond its pins, in the order of its channels.
+/// E4: a card's partner not beyond the card's pin along its side, or two partners of one edge of a card out of the
+/// order of their channels. Not a partner whose own pin faces the same way as the card's: its wire turns back, and
+/// it has no place in the channel's column.
 fn e4(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     let mut edges: BTreeMap<(usize, Side), Vec<Partner>> = BTreeMap::new();
@@ -521,7 +503,7 @@ fn e4(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// E5: an earth symbol within reach of the nearest other pin of its net.
+/// E5: an earth symbol further than [`EARTH_REACH`] (city-block) from the nearest other pin of its net.
 fn e5(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for n in &w.nets {
@@ -582,7 +564,8 @@ fn driven(w: &Wiring<'_>, v: usize) -> BTreeSet<usize> {
     out
 }
 
-/// F1: the supply below every valve, every actuator above the valves it is reached from.
+/// F1: a pressure source or service unit not lower than every valve; an actuator not higher than a valve it is
+/// reached from through tubes and parts that are neither valves nor sources.
 fn f1(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     let valves = of_role(w, &[Role::Valve]);
@@ -603,7 +586,7 @@ fn f1(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// F2: the actuators' order from left to right kept.
+/// F2: two actuators whose order from left to right changed.
 fn f2(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>) -> Vec<Broken> {
     let order = |w: &Wiring<'_>| -> Vec<PartId> {
         let mut xs: Vec<(Tick, PartId)> = of_role(w, &[Role::Actuator])
@@ -626,7 +609,8 @@ fn f2(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>) -> Vec<Broken> {
     out
 }
 
-/// B1: the stations of each bus line in its order from left to right.
+/// B1: two stations of a bus line out of the line's order from left to right (the line read from its controller,
+/// else from its leftmost station).
 fn b1(w: &Wiring<'_>) -> Vec<Broken> {
     let station = |i: usize| matches!(w.parts[i].role, Role::Station | Role::Controller);
     // The line as a graph of stations through pairs.
@@ -664,7 +648,7 @@ fn b1(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// B2: two stations of a pair whose ports face one side stand level.
+/// B2: two stations of a pair whose ports face the same side not level.
 fn b2(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for (a, b) in w.pairs() {

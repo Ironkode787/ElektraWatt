@@ -4,44 +4,7 @@
 //! The one measure of a page (docs/design/06a-drafting.md §1.2): [`measure`] says what is a fault, counts what a
 //! reader weighs, and reports the figures `ew layout` prints. It draws the marks from the routes
 //! ([`crate::marks::draw_marks`]) and places the labels with [`settle_labels`] first, so it judges the texts where the
-//! page shows them.
-//!
-//! # Definitions
-//!
-//! Exact on ticks. A wire's route is taken without consecutive equal points; its segments are the pieces between its
-//! vertices, its runs the segments with the vertices it runs straight through left out, its corners the vertices
-//! where it changes direction (a reversal is one). A point lies on a segment when it is on the closed segment; a
-//! segment runs through a rectangle when it has points strictly inside it. A wire ends at a pin or a junction when one
-//! of its two ends names it. Only wires with a route are geometry; a wire without one is unrouted.
-//!
-//! **Faults**, one item each:
-//!
-//! - **F2** (a wire, a point): a pin or junction the wire does not end at lies on it, and the point is not where one
-//!   of its own ends stands (the clamps of a terminal drawn at one point).
-//! - **F3** (a pair of wires): they share a stretch of positive length on one line, but along their common beginning
-//!   at a pin both end at (the shared run of §3.4: walked from the pin together until they part).
-//! - **F4** (a wire, a part with pins or a drawn box): a stretch of the wire runs through the part's body, but on the
-//!   ray out of a pin the wire ends at, along the pin's side, through that pin's part or a part with a pin on the same
-//!   point. An outline drawn round other parts is no body.
-//! - **F5** (a junction): the wires ending at it leave it in four or more directions.
-//! - **F6** (a pair of wires, a point): a corner of each lies on the other's corner: they meet without joining.
-//!   (A corner or an end on another wire's end, a junction on a crossing and a wire's end on a wire are F2 by their
-//!   geometry: the other wire runs through a pin or a junction it does not end at.)
-//! - **F7** (a part, and the part it lies on or none): two parts with pins (or drawn boxes) whose bodies overlap, an
-//!   outline drawn round other parts excepted; a part whose body leaves the drawing area.
-//!
-//! **Cost**, in sixteenths of a step (the tick): C1 the routes' length; C2 [`BEND`] per corner; C3 [`CROSSING`] per
-//! point where two wires meet that is no end of either, on no stretch they share and no F6; C4 for each pair of a wire
-//! and a text it runs through, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick inside; C5 [`LABEL_CLASH`] for each pair
-//! of a label and a text, a label and another part's body, and each label outside the drawing area; C6
-//! [`LABEL_RANK`] for each place a label stands down its list; C7 [`HALF_STEP_EXTRA`] per tick of a run on the half
-//! grid (its line at an odd multiple of half a step); C8 [`MARK_JOG`] for each wire from a pin of a mark (an
-//! interruption point or a supply mark) to a tap (a junction, or a pin another wire ends at too) with a corner: the
-//! trunk it taps runs off the mark's line.
-//!
-//! **Reported:** the wires drawn straight (routed, no corner) against all wires; the turn-backs (three runs in a
-//! row of which the third runs against the first); the detour (the routes' length against the city-block distance of
-//! their ends, in percent); the labels off their first place.
+//! page shows them. Each fault and each cost has its function below, with its definition.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -171,7 +134,7 @@ impl Quality {
     }
 }
 
-/// F7 of `page` (module documentation), by part ID: each part with pins (or drawn box) that leaves the drawing area,
+/// F7 of `page` (a part, and the part it lies on or none), by part ID: each part with pins (or drawn box) that leaves the drawing area,
 /// with `None`, and each pair whose bodies overlap, the outlines drawn round other parts and two parts with a pin on
 /// one point (an interruption point on a pin) left out.
 pub fn parts_on_parts(page: &DraftPage) -> Vec<(PartId, Option<PartId>)> {
@@ -200,7 +163,12 @@ pub fn parts_on_parts(page: &DraftPage) -> Vec<(PartId, Option<PartId>)> {
     out
 }
 
-/// A wire as the measure reads it.
+/// A wire as the measure reads it, exact on ticks: its route without consecutive equal points; its segments are the
+/// pieces between its vertices, its runs the segments with the vertices it runs straight through left out, its
+/// corners the vertices where it changes direction (a reversal is one). A point lies on a segment when it is on the
+/// closed segment; a segment runs through a rectangle when it has points strictly inside it. A wire ends at a pin or
+/// a junction when one of its two ends names it. Only wires with a route are geometry; a wire without one is
+/// unrouted.
 struct Line {
     id: WireId,
     ends: [End; 2],
@@ -211,7 +179,8 @@ struct Line {
 /// Every pin of the page by ID: its point, its side, its part.
 type Pins = BTreeMap<PinId, (Pt, Option<Side>, PartId)>;
 
-/// The measure of `page` (module documentation).
+/// The measure of `page`: its faults F2 to F7, its unrouted wires and its cost in sixteenths of a step (the tick),
+/// each fault and each cost as its function below defines it.
 pub fn measure(page: &DraftPage) -> Quality {
     // The page as the scene draws it: its marks where its routes put them.
     let page = &*crate::marks::with_marks(page);
@@ -273,8 +242,11 @@ pub fn measure(page: &DraftPage) -> Quality {
     }
 }
 
-/// The routed `wires` as lines, and what each wire alone gives: the unrouted wires, C1, C2, C7, the wires drawn
-/// straight, the turn-backs and the detour.
+/// The routed `wires` as lines, and what each wire alone gives: the unrouted wires; C1 the routes' length; C2
+/// [`BEND`] per corner; C7 [`HALF_STEP_EXTRA`] per tick of a run on the half grid (its line at an odd multiple of
+/// half a step); and, reported, the wires drawn straight (routed, no corner) against all wires, the turn-backs
+/// (three runs in a row of which the third runs against the first) and the detour (the routes' length against the
+/// city-block distance of their ends, in percent).
 fn lines(
     wires: &[&Wire],
     point_of: &dyn Fn(End) -> Option<Pt>,
@@ -341,7 +313,8 @@ fn lines(
     lines
 }
 
-/// F2 (module documentation).
+/// F2 (a wire, a point): a pin or junction the wire does not end at lies on it, and the point is not where one of its
+/// own ends stands (the clamps of a terminal drawn at one point).
 fn f2(
     lines: &[Line],
     pins: &Pins,
@@ -365,7 +338,9 @@ fn f2(
     }
 }
 
-/// F4 (module documentation).
+/// F4 (a wire, a part with pins or a drawn box): a stretch of the wire runs through the part's body, but on the ray
+/// out of a pin the wire ends at, along the pin's side, through that pin's part or a part with a pin on the same
+/// point. An outline drawn round other parts is no body.
 fn f4(lines: &[Line], parts: &[&Part], pins: &Pins, f: &mut Findings) {
     for l in lines {
         let rays: Vec<(PartId, Pt, Pt)> = l
@@ -415,7 +390,7 @@ fn f4(lines: &[Line], parts: &[&Part], pins: &Pins, f: &mut Findings) {
     }
 }
 
-/// F5 (module documentation).
+/// F5 (a junction): the wires ending at it leave it in four or more directions.
 fn f5(lines: &[Line], junctions: &[&Junction], f: &mut Findings) {
     for j in junctions {
         let at_j = lines.iter().filter(|l| l.ends.contains(&End::Junction(j.id)));
@@ -426,7 +401,9 @@ fn f5(lines: &[Line], junctions: &[&Junction], f: &mut Findings) {
     }
 }
 
-/// C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2).
+/// C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2): [`MARK_JOG`] for each wire from a pin
+/// of a mark (an interruption point or a supply mark) to a tap (a junction, or a pin another wire ends at too) with a
+/// corner, where the trunk it taps goes on along the mark's axis, off its line.
 fn c8(
     lines: &[Line],
     parts: &[&Part],
@@ -486,7 +463,10 @@ fn c8(
     }
 }
 
-/// C4 and C5 over the texts where they stand, and C6.
+/// Over the texts where they stand: C4 for each pair of a wire and a text it runs through, [`TEXT_CROSSED`] and
+/// [`TEXT_STEP`] per tick inside; C5 [`LABEL_CLASH`] for each pair of a label and a text, a label and another part's
+/// body, and each label outside the drawing area; C6 [`LABEL_RANK`] for each place a label stands down its list;
+/// and, reported, the labels off their first place.
 fn texts(
     page: &DraftPage,
     labels: &[Settled],
@@ -583,7 +563,11 @@ fn texts(
     }
 }
 
-/// F3, F6 and C3 for one pair of wires.
+/// For one pair of wires: F3, they share a stretch of positive length on one line, but along their common beginning
+/// at a pin both end at (the shared run of §3.4: walked from the pin together until they part); F6 (with the
+/// point), a corner of each lies on the other's corner: they meet without joining (a corner or an end on another
+/// wire's end, a junction on a crossing and a wire's end on a wire are F2 by their geometry); C3 [`CROSSING`] per
+/// point where they meet that is no end of either, on no stretch they share and no F6.
 fn pair(a: &Line, b: &Line, pins: &Pins, point_of: &dyn Fn(End) -> Option<Pt>, f: &mut Findings) {
     let mut shared: Vec<Seg> = Vec::new();
     let mut points: Vec<Pt> = Vec::new();

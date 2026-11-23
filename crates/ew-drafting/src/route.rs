@@ -3,43 +3,7 @@
 
 //! The router (docs/design/06a-drafting.md §3.2, §3.6 to §3.10): [`route`] makes a page's plan for the wires its
 //! caller names ([`jobs`]), [`route_wire`] the Wire tool's route between two ends, on the same occupancy and search.
-//!
-//! # The run
-//!
-//! 1. **The drawing it starts from.** The jobs' stored routes are lifted; a junction whose every wire is a job may
-//!    move. The labels are placed against what stays (the starting places), and the occupancy is built over the parts,
-//!    the pins, the junctions, the fixed wires and the texts (a label at its place, a fixed text; not the texts of a
-//!    mark or of a wire).
-//! 2. **Straights.** A net of one wire whose ends face each other on one line is that segment, where it is free.
-//! 3. **Trunks** (`nets`): a net whose taps form a chain, or a pin's fan, gets the trunk of least price; in the order
-//!    of their supply ranks, then their first tapped pin's place (left first), then more taps first, then the ID.
-//! 4. **Tracks** (`tracks`): a net of one wire still without a route, between two pins in the shape of a Z or a U,
-//!    takes the track its channel assigns it, where the route is clear and pays no more for crossings and texts than
-//!    the way the search would find for it; the others go on.
-//! 5. **A single tap.** A junction that is a net's only tap stands where its wires cost least with three arms.
-//! 6. **The search** for the rest, by the city-block distance of their ends (shortest first), then the first end's
-//!    place, then the ID; then at most [`PASSES`] passes in the same order, each wire lifted, searched again and its
-//!    new route kept where it costs less. A wire ending at a junction that the other wires leave in three directions
-//!    is not searched (its route would be a fourth arm). Then the **rings** (`rounds`): the searched wires that go
-//!    round one end of one body, two or more, laid again together as nested rings, kept where the page costs no more.
-//! 7. **Texts** (§3.7): the labels placed again against all wires; a job that still runs across a text is searched
-//!    once more with the texts it crosses at their full price, and the new route kept where the page's cost is
-//!    lower; at most [`TEXT_ROUNDS`] rounds.
-//! 8. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
-//!    among the others keeps them; and from the stored drawing, a net takes its new routes where they cost less. The
-//!    cheaper of the two pages stands. Then wire by wire: a job whose stored route still meets its ends takes it back
-//!    where the page costs no more and it keeps free of faults, and a job without a stored route that the routes kept
-//!    leave with a fault is searched again among them. The figures §1.2 only reports (length, labels moved, wires
-//!    straight, turn-backs) veto nothing.
-//! 9. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
-//!    before that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire
-//!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides. A plan
-//!    that routes a wire that had no route is not refused for a text across a wire routed before (C4): only for a
-//!    fault on one.
-//! 10. **Marks follow** (§3.10) the wires they name, and the page with them moved, the page that is stored, is judged
-//!     again by 9: where a moved mark makes it worse, nothing is offered.
-//!
-//! A job without a way keeps its stored route, or stays unrouted, and is named with the first thing in its way.
+//! The phases of a run are the methods of `Router`, in the order [`route`] calls them.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -218,7 +182,10 @@ struct Router {
 }
 
 impl Router {
-    /// The router over `page` with the routes of `jobs` lifted.
+    /// Phase 1, the drawing a run starts from: the router over `page` with the routes of `jobs` lifted. The labels are
+    /// placed against what stays (the starting places), and the occupancy is built over the parts, the pins, the
+    /// junctions, the fixed wires and the texts (a label at its place, a fixed text; not the texts of a mark or of a
+    /// wire).
     fn new(page: &DraftPage, jobs: &[WireId]) -> Option<Router> {
         let mut page = page.clone();
         let jobs: BTreeSet<WireId> = jobs.iter().copied().collect();
@@ -640,7 +607,9 @@ impl Router {
         laid
     }
 
-    /// Phase 3: the trunks (module documentation); the wires laid, the nets whose order ran against their places.
+    /// Phase 3: the trunks (`nets`): a net whose taps form a chain, or a pin's fan, gets the trunk of least price; in the
+    /// order of their supply ranks, then their first tapped pin's place (left first), then more taps first, then the
+    /// ID. The wires laid, and the nets whose order ran against their places.
     fn trunks(&mut self, nets: &[JobNet]) -> (BTreeSet<WireId>, Vec<Vec<WireId>>) {
         let mut laid = BTreeSet::new();
         let mut notes = Vec::new();
@@ -1024,7 +993,10 @@ impl Router {
 
     /// Phase 6: the search for the jobs without a route, then the passes; the wires searched in order, and those with
     /// no way. A job without a way keeps its stored route at once, so the jobs after it keep clear of it (§3.8); each pass
-    /// tries it again first.
+    /// tries it again first. The order: the city-block distance of their ends (shortest first), then the first end's
+    /// place, then the ID; each pass lifts each wire in the same order, searches it again and keeps its new route where
+    /// it costs less. A wire ending at a junction that the other wires leave in three directions is not searched (its
+    /// route would be a fourth arm).
     fn searches(&mut self) -> (Vec<WireId>, BTreeSet<WireId>) {
         let mut rest: Vec<WireId> = self
             .jobs
@@ -1110,7 +1082,9 @@ impl Router {
         }
     }
 
-    /// Phase 7: the text rounds (module documentation).
+    /// Phase 7, the text rounds (§3.7): the labels placed again against all wires; a job that still runs across a text
+    /// is searched once more with the texts it crosses at their full price, and the new route kept where the page's
+    /// cost is lower; at most [`TEXT_ROUNDS`] rounds.
     fn text_rounds(&mut self) {
         for _ in 0..TEXT_ROUNDS {
             let q = measure(&self.page);
@@ -1179,10 +1153,11 @@ impl Router {
         )
     }
 
-    /// Phase 8: the nets with a stored drawing weighed against it (module documentation). Back: from the new drawing, a
+    /// Phase 8: the nets with a stored drawing weighed against it (§3.9). Back: from the new drawing, a
     /// net whose stored routes cost no less and keep free of faults among the others keeps them. Forward: from the
     /// stored drawing, a net takes its new routes where they cost less and keep free of faults among the others. The
-    /// cheaper page stands: one net's gain is not lost to another's loss that no single net's going back undoes.
+    /// cheaper page stands: one net's gain is not lost to another's loss that no single net's going back undoes. The
+    /// figures §1.2 only reports (length, labels moved, wires straight, turn-backs) veto nothing.
     fn weigh(&mut self, nets: &[JobNet]) {
         let weighed: Vec<&JobNet> = nets
             .iter()
@@ -1388,8 +1363,15 @@ pub(crate) fn worse(
     (wires, texts)
 }
 
-/// The plan of a run over `page` for `jobs` (module documentation). Deterministic: the same page in any order of its
-/// lists gives the same plan.
+/// The plan of a run over `page` for `jobs`: a junction whose every wire is a job may move; the phases in order, then
+/// never worse (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed before
+/// that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire that had
+/// no route. A net that breaks it goes back to its stored drawing; then the rule decides. A plan that routes a wire
+/// that had no route is not refused for a text across a wire routed before (C4): only for a fault on one. Then the
+/// marks follow (§3.10) the wires they name, and the page with them moved, the page that is stored, is judged again:
+/// where a moved mark makes it worse, nothing is offered. A job without a way keeps its stored route, or stays
+/// unrouted, and is named with the first thing in its way. Deterministic: the same page in any order of its lists
+/// gives the same plan.
 pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     let before = measure(page);
     let mut wanted: Vec<WireId> = jobs.wires.clone();

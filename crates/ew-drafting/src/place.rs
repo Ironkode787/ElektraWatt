@@ -2,40 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The placer (docs/design/06a-drafting.md §4): [`arrange`] puts each part where the page is best for it, within the
-//! rules of §1.6 ([`crate::rules`]), and routes the page as it would become.
-//!
-//! # The run
-//!
-//! 1. **Route's plan** over the same wires (every wire of the scope, whoever shaped it): the plan to beat.
-//! 2. **The arrangement** (`sketch`): the units, their relations by strength, one tree per group, and each unit's
-//!    place from its lead: rows, stacks, the followers beside. It rates nothing.
-//! 3. **The rules** (§1.6). The parts a broken rule names go back with what hangs on them until [`rules_kept`] holds
-//!    (the rules read the parts and the nets alone).
-//! 4. **Routed and judged.** The arrangement is routed for real and measured. It is taken when every row of terminals
-//!    keeps the order it stands in, the rules hold on the routed page, no wire or text gains a finding (where it routes more wires than Route's plan, a wire newly across a
-//!    text does not count), it has no more faults and (where it routes no more wires) no more
-//!    crossings than Route's plan, and it is better than Route's plan by the measure with the price of its moves added
-//!    ([`MOVE_PRICE`] for each part). Where the whole arrangement is not taken, its trees are tried one after another,
-//!    each kept when the page gets better with it; then the arrangement without one branch, and one branch alone.
-//! 5. **The price, for real.** From the plan taken, each branch (a unit's own move with what hangs on it; the members
-//!    of a row the person made, of one shape and level, as one: a row is not left half moved) is put back in turn
-//!    where that breaks no rule the plan set right; the plan without it is routed, and kept when it is the better one
-//!    with the price of its moves: no part moves for a tie.
-//! 6. **Without a better plan** Route's plan of the scope is offered. The parts that stand against a rule and stay
-//!    (they had no room on the side their host's pin faces, or the page was no better with them there) are named.
-//! 7. **Again**, on the page the plan leaves, until a run changes nothing ([`ROUNDS`] at most): the plan offered is
-//!    the sum, and a second press finds nothing to do.
-//!
-//! On a page where a card would step along its edge (`sketch::CardSteps`) steps 2 to 6 are made three times, with the
-//! step, with the part of it that clears the card's supply, and without it; where a strip's other terminals held a
-//! channel's terminal off its column, each of them once more with the strip opened as one (`sketch::Sketch::open`,
-//! FT-2110); the best page is offered.
-//!
-//! Nothing here estimates what the router will draw: every plan compared has been routed. The work of one run is one
-//! run of the router over the page for each plan tried: the whole arrangement, at most [`BRANCHES`] trees, at most
-//! twice [`BRANCHES`] plans without or with one branch, and at most [`BRANCHES`] for the price. A run of the router
-//! grows with the page's wires and, in its search, with the drawing area; setting a tree asks the text placer once for
-//! each row and stack and tries at most 4 x [`crate::consts::REACH`] steps of its root for each of at most [`crate::consts::ANCHORS`] anchors.
+//! rules of §1.6 ([`crate::rules`]), and routes the page as it would become; `sketch` makes the arrangement it judges.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -110,8 +77,9 @@ impl Arranged {
 }
 
 /// The plan of Arrange and route over `scope` of `page` with the parts and wires named in `fixed` kept as they stand
-/// (the rows unticked in the preview: a wire kept keeps its route and the parts at its ends; module documentation).
-/// Deterministic: the same page in any order of its lists gives the same plan.
+/// (the rows unticked in the preview: a wire kept keeps its route and the parts at its ends): run after run on the
+/// page the last leaves, until a run changes nothing ([`ROUNDS`] at most); the plan offered is the sum, and a second
+/// press finds nothing to do. Deterministic: the same page in any order of its lists gives the same plan.
 pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
     // Planned again on the page each plan leaves, until a run changes nothing (at most `ROUNDS` runs), so that a second
     // press of the button finds nothing to do (§4.8).
@@ -216,7 +184,7 @@ struct Taken {
     quality: crate::Quality,
 }
 
-/// One run of Arrange and route (module documentation). Where a card would step along its edge ([`CardSteps`]) the
+/// One run of Arrange and route ([`arrange_try`]). Where a card would step along its edge ([`CardSteps`]) the
 /// arrangement is made three ways: with that step, with the step that clears the supply alone, and without it; where
 /// a strip's other terminals held a channel's terminal off its column, each of them again with the strip opened as one
 /// (`Sketch::open_strips`); the best page by the measure with the price of its moves is offered.
@@ -265,7 +233,15 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
 
 /// One arrangement routed and judged against Route's plan `routed_only`, with the strip opened as one where `open`;
 /// whether a card of the page would take a step along its edge, whether a strip's other terminals held a channel's
-/// terminal off its column, and the strips that opened (each by its first terminal).
+/// terminal off its column, and the strips that opened (each by its first terminal). The arrangement (`sketch`): the
+/// units, their relations by strength, one tree per group, and each unit's place from its lead; it rates nothing.
+/// The rules (§1.6): the parts a broken rule names go back with what hangs on them until [`rules_kept`] holds (the
+/// rules read the parts and the nets alone). Then it is routed and judged (`judged`); where the whole arrangement is
+/// not taken, its trees are tried one after another, each kept when the page gets better with it; then the
+/// arrangement without one branch, and one branch alone. Then the price, for real. Without a better plan Route's
+/// plan of the scope is offered, and the parts that stand against a rule and stay (they had no room on the side
+/// their host's pin faces, or the page was no better with them there) are named. Nothing here estimates what the
+/// router will draw: every plan compared has been routed.
 fn arrange_try(
     page: &DraftPage,
     scope: Scope<'_>,
@@ -340,7 +316,11 @@ fn arrange_try(
     let mut seen: BTreeSet<Vec<(PartId, Pt)>> = BTreeSet::new();
     // Why the judge refused the whole arrangement, for the parts it moved that stay (§4.9).
     let mut refused: Option<InTheWay> = None;
-    // A plan routed and judged (module documentation, 4).
+    // A plan routed for real and measured. It is taken when every row of terminals keeps the order it stands in, the
+    // rules hold on the routed page, no wire or text gains a finding (where it routes more wires than Route's plan, a
+    // wire newly across a text does not count), it has no more faults and (where it routes no more wires) no more
+    // crossings than Route's plan, and it is better than Route's plan by the measure with the price of its moves added
+    // ([`MOVE_PRICE`] for each part).
     let mut judged = |sk: &mut Sketch<'_>, d: &[Pt]| -> Option<Taken> {
         sk.d = d.to_vec();
         let moves = sk.moves();
@@ -455,7 +435,10 @@ fn arrange_try(
             }
         }
     }
-    // The price, for real: a branch whose move does not pay goes back.
+    // The price, for real: from the plan taken, each branch (a unit's own move with what hangs on it; the members of a
+    // row the person made, of one shape and level, as one: a row is not left half moved) is put back in turn where
+    // that breaks no rule the plan set right; the plan without it is routed, and kept when it is the better one with
+    // the price of its moves: no part moves for a tie.
     if let Some(taken) = &best {
         sk.d.clone_from(&taken.d);
         let branches: Vec<Vec<usize>> = sk.branches().into_iter().take(BRANCHES).collect();

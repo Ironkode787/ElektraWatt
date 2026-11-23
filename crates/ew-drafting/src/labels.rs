@@ -4,80 +4,8 @@
 //! The one text placer (docs/design/06a-drafting.md §5): [`settle_labels`] gives every label of a page its place
 //! from the places of its kind, against the parts' bodies, the wires, the fixed texts and the labels placed before
 //! it. The scene calls it when it draws a page, and [`crate::measure`] calls it, so the canvas, the PDF and the checks
-//! see one page.
-//!
-//! # The places (§5.2)
-//!
-//! A label's places are the ones its adapter gives ([`Places::At`]: a symbol's slot as its author set it), those of
-//! them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line (not onto its own part's body),
-//! "one line lower" for the second
-//! of a row (the two-rows rule), then the places of its kind, each once. For a part whose pins leave up or down (or
-//! that has none with a side) the corners are: upper left (right of the box against the body's left edge, its top
-//! level with the body's top), upper right (beyond the pins' numbers at their first places), lower left, lower right
-//! (the same), centred above (when no wire leaves upward), centred below, above the upper left and upper right
-//! corners, centred below one line lower, the upper corners half a step lower; for a part whose pins leave sideways: centred above, centred below, above
-//! and below at either end, centred below one line lower, centred above past its tag. Every gap to the owner is
-//! [`LABEL_CLEAR`].
-//!
-//! | Kind | Places after the adapter's |
-//! |---|---|
-//! | pin number | right of the pin's line at its outer end, left of it (above and below for a pin leaving sideways) |
-//! | tag, cross-reference, data, contact list | the corners |
-//! | function text | centred below, right of the body at its middle, then the corners |
-//! | tag of a drawn box | above the upper left corner ending at the left edge; above the upper edge from the corner; above the upper right corner; inside at the upper left |
-//! | data of a drawn box | left of the box under its top, under the box's data before it; right of it; inside under the tag; above the box over its tag |
-//! | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
-//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same past the number of a pin the mark is set on; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
-//! | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
-//! | strip designation | left of the terminal at its middle; centred above it; the same past the terminal's name; above it, ending at its left edge |
-//! | wire number | along the wire ([`along_wire`]) |
-//! | cable tag and type | the type before the mark's line and the tag after it; both after it (tag over type); both before it |
-//!
-//! **The block rule.** The tag, cross-references, data and contact list of one part that stand on one side of its
-//! body (left of its middle, right of it, or across it) and one under the other are one block: it is placed as one
-//! label of their joined box, with the places of its first member's kind, and its members keep their places in it. A
-//! member that overlaps another at its first place, or stands beside the block, is placed on its own.
-//!
-//! **The two-rows rule.** A tag (of a symbol, a drawn box or a terminal) or a contact list whose first place reaches
-//! within [`LABEL_CLEAR`] of the first place of a label of its kind level with it, on another part, has "one line
-//! lower" (its height and [`LABEL_CLEAR`] down) as its second place: the first of a row keeps its place, the second
-//! steps down, the third finds its place free again: two rows.
-//!
-//! **The stacked-marks rule.** The name of a mark (a part of one pin that leaves sideways) whose texts, where their
-//! author put them, reach another mark or its texts, or leave the drawing area, has "in line with the wire beyond the
-//! arrow" as its first place: marks stacked two steps apart read as a list, each name beside its arrow. A mark that
-//! stands alone, and a name its author set in line already, keep the author's place. `first_places` gives the placer these first places, so that
-//! it sets a stack by the texts as they will stand.
-//!
-//! # The choice (§5.3)
-//!
-//! Labels (blocks) are placed in the order of their kind's priority, then of their owner's place (top, then left),
-//! then of their ID. Each takes its first place that lies in the drawing area and off the frame's bands and is clear
-//! by [`LABEL_CLEAR`] of every part's body but its own (an outline drawn round other parts is no body), every wire
-//! segment, every fixed text and every label placed before it. At its author's place it only must not lie on a fixed
-//! text or a text of its own part, and a pin's number there may stand on another part's body; two texts of one part
-//! at their author's places, one over the other or one a pin's number, do not count against each other. A label
-//! stands nowhere it reads as another part's (nearer another part of the same body size than its own); a label of a
-//! part without pins stays inside its outline or clear of it; a place that is the first place of a label not yet
-//! placed is taken only when no other is clear. A text whose author's place lies on a text of its own part placed
-//! before it has the place under that text second.
-//!
-//! **The row rule.** Like parts that stand level (one shape: the same body and pins; their origins on one line) take
-//! one place for each of their texts: when the first of them comes in the order, the place the same number down every
-//! one's list at which all of them are clear is taken for all, so the tags and cross-references of a row of relays
-//! stand alike. Where their lists are not alike or no place is clear for all, each is placed on its own; texts wider
-//! than their row's pitch keep the two-rows rule.
-//!
-//! A label without a clear place takes its place of least cost ([`LABEL_CLASH`] for each text and body it lies on
-//! and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it or nearer
-//! than [`LABEL_CLEAR`],
-//! [`LABEL_RANK`] for each place down its list; ties to the earlier place) of those inside the drawing area: a text
-//! never stands outside it. Where every place leaves the area, its places moved in (onto its own part's body too) are
-//! its places. There a symbol's text does not count the first place of another text of its symbol against itself. One repair round follows: for each such
-//! label, each label it lies on is tried at each of its other clear places in turn, and that label then at its first
-//! clear place; the first change that lowers the labels' cost on the page is kept, and while the label still lies on
-//! another, the next one it lay on is tried. Every list is read in a fixed order, so the
-//! result does not depend on the order of the page's lists.
+//! see one page. The places of each kind, the rules that change them and the choice are on the functions that make
+//! them, each citing its section of §5.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -370,7 +298,7 @@ fn half(v: Tick) -> Tick {
     v.div_euclid(2)
 }
 
-/// The corners of a part (module documentation), for a unit `w` by `h` whose first line is `line` high, of a part whose
+/// The corners of a part ([`candidates`]), for a unit `w` by `h` whose first line is `line` high, of a part whose
 /// tag's first place has its top at `tag_top`.
 fn corners(s: &Shape, (w, h): (Tick, Tick), (line, tag_top): (Tick, Tick)) -> Vec<Rect> {
     let (b, g, size) = (s.body, LABEL_CLEAR, (w, h));
@@ -426,7 +354,21 @@ fn pin_places(q: Pt, side: Option<Side>, (w, h): (Tick, Tick)) -> Vec<Rect> {
     }
 }
 
-/// The places of the kind of a unit owned by a part (module documentation).
+/// The places of the kind of a unit owned by a part (§5.2), after the adapter's:
+///
+/// | Kind | Places after the adapter's |
+/// |---|---|
+/// | pin number | right of the pin's line at its outer end, left of it (above and below for a pin leaving sideways) |
+/// | tag, cross-reference, data, contact list | the corners |
+/// | function text | centred below, right of the body at its middle, then the corners |
+/// | tag of a drawn box | above the upper left corner ending at the left edge; above the upper edge from the corner; above the upper right corner; inside at the upper left |
+/// | data of a drawn box | left of the box under its top, under the box's data before it; right of it; inside under the tag; above the box over its tag |
+/// | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
+/// | cross-reference of a mark | beside the wire past the pin, under it then over it; the same past the number of a pin the mark is set on; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
+/// | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
+/// | strip designation | left of the terminal at its middle; centred above it; the same past the terminal's name; above it, ending at its left edge |
+/// | wire number | along the wire ([`along_wire`]) |
+/// | cable tag and type | the type before the mark's line and the tag after it; both after it (tag over type); both before it |
 fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
     let (b, g) = (s.body, LABEL_CLEAR);
     let (w, h) = unit.size;
@@ -655,7 +597,7 @@ fn sibling(ground: &Ground<'_>, owner: Owner, pick: impl Fn(LabelKind) -> bool) 
     labels.first().map(|l| l.size)
 }
 
-/// The places of a cable mark's tag or type text (module documentation).
+/// The places of a cable mark's tag or type text ([`part_places`]).
 fn mark_places(ground: &Ground<'_>, unit: &Unit, mark: MarkId) -> Vec<Rect> {
     let Some(m) = ground.page.marks.iter().find(|m| m.id == mark) else {
         return Vec::new();
@@ -778,8 +720,30 @@ fn along_wire(route: &[Pt], (w, h): (Tick, Tick), placed: &[(Rect, bool, Seg)]) 
     out
 }
 
-/// The labels of `page` where the text placer sets them (module documentation), by label ID; a label without a place
-/// (an owner not on the page, a wire without a route and no place given) is left out.
+/// The labels of `page` where the text placer sets them, by label ID; a label without a place (an owner not on the
+/// page, a wire without a route and no place given) is left out. The choice (§5.3):
+///
+/// Labels (blocks) are placed in the order of their kind's priority, then of their owner's place (top, then left),
+/// then of their ID. Each takes its first place that lies in the drawing area and off the frame's bands and is clear
+/// by [`LABEL_CLEAR`] of every part's body but its own (an outline drawn round other parts is no body), every wire
+/// segment, every fixed text and every label placed before it. At its author's place it only must not lie on a fixed
+/// text or a text of its own part, and a pin's number there may stand on another part's body; two texts of one part
+/// at their author's places, one over the other or one a pin's number, do not count against each other. A label
+/// stands nowhere it reads as another part's (nearer another part of the same body size than its own); a label of a
+/// part without pins stays inside its outline or clear of it; a place that is the first place of a label not yet
+/// placed is taken only when no other is clear. A text whose author's place lies on a text of its own part placed
+/// before it has the place under that text second.
+///
+/// A label without a clear place takes its place of least cost ([`LABEL_CLASH`] for each text and body it lies on
+/// and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it or nearer
+/// than [`LABEL_CLEAR`],
+/// [`LABEL_RANK`] for each place down its list; ties to the earlier place) of those inside the drawing area: a text
+/// never stands outside it. Where every place leaves the area, its places moved in (onto its own part's body too) are
+/// its places. There a symbol's text does not count the first place of another text of its symbol against itself. One repair round follows: for each such
+/// label, each label it lies on is tried at each of its other clear places in turn, and that label then at its first
+/// clear place; the first change that lowers the labels' cost on the page is kept, and while the label still lies on
+/// another, the next one it lay on is tried. Every list is read in a fixed order, so the
+/// result does not depend on the order of the page's lists.
 pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
     let ground = Ground::of(page);
     let mut units = units(&ground);
@@ -938,7 +902,7 @@ fn list_of(
     list
 }
 
-/// The rows of the row rule (module documentation): the units of one kind and label number on parts of one shape (the
+/// The rows of the row rule ([`place_row`]): the units of one kind and label number on parts of one shape (the
 /// same body and pins) whose origins stand level, two or more, left to right. A pin's number, a text along a wire and
 /// a text of the two-rows rule (wider than its row's pitch: staggered) are no row's.
 fn like_rows(ground: &Ground<'_>, units: &[Unit]) -> Vec<Vec<usize>> {
@@ -976,7 +940,13 @@ type Placing<'s> = (
     &'s mut [Vec<(Rect, bool)>],
 );
 
-/// The row rule (module documentation): the units of `row` take the first place, the same number down each one's list,
+/// **The row rule.** Like parts that stand level (one shape: the same body and pins; their origins on one line) take
+/// one place for each of their texts: when the first of them comes in the order, the place the same number down every
+/// one's list at which all of them are clear is taken for all, so the tags and cross-references of a row of relays
+/// stand alike. Where their lists are not alike or no place is clear for all, each is placed on its own; texts wider
+/// than their row's pitch keep the two-rows rule.
+///
+/// The units of `row` take the first place, the same number down each one's list,
 /// at which every one of them is clear, each tried against the ones before it. `false`, with nothing placed, where
 /// their lists are not alike (a wire leaves one of them upward) or no place is clear for all: then each is placed on
 /// its own.
@@ -1266,7 +1236,18 @@ fn repair(
 }
 
 /// The places of a unit, each once, in order: the adapter's, the kind's, and for the two-rows rule one line lower
-/// second.
+/// second (§5.2).
+///
+/// A label's places are the ones its adapter gives ([`Places::At`]: a symbol's slot as its author set it), those of
+/// them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line (not onto its own part's body),
+/// "one line lower" for the second
+/// of a row (the two-rows rule), then the places of its kind, each once. For a part whose pins leave up or down (or
+/// that has none with a side) the corners are: upper left (right of the box against the body's left edge, its top
+/// level with the body's top), upper right (beyond the pins' numbers at their first places), lower left, lower right
+/// (the same), centred above (when no wire leaves upward), centred below, above the upper left and upper right
+/// corners, centred below one line lower, the upper corners half a step lower; for a part whose pins leave sideways: centred above, centred below, above
+/// and below at either end, centred below one line lower, centred above past its tag. Every gap to the owner is
+/// [`LABEL_CLEAR`].
 fn candidates(ground: &Ground<'_>, unit: &Unit, numbers: &[(Rect, bool, Seg)]) -> Vec<(Rect, bool)> {
     let mut list: Vec<(Rect, bool)> = unit.given.iter().map(|r| (*r, false)).collect();
     // A given place that leaves the drawing area, moved in by the least distance, to stand LABEL_CLEAR off the frame's
@@ -1332,7 +1313,12 @@ fn blocks(kind: LabelKind) -> bool {
     !matches!(kind, LabelKind::PinNumber(_))
 }
 
-/// The units of the page: the blocks of the block rule and every other label alone.
+/// The units of the page: the blocks of the block rule and every other label alone (§5.2).
+///
+/// **The block rule.** The tag, cross-references, data and contact list of one part that stand on one side of its
+/// body (left of its middle, right of it, or across it) and one under the other are one block: it is placed as one
+/// label of their joined box, with the places of its first member's kind, and its members keep their places in it. A
+/// member that overlaps another at its first place, or stands beside the block, is placed on its own.
 fn units(ground: &Ground<'_>) -> Vec<Unit> {
     let page = ground.page;
     let mut order: Vec<usize> = (0..page.labels.len()).collect();
@@ -1440,9 +1426,12 @@ fn units(ground: &Ground<'_>) -> Vec<Unit> {
     out
 }
 
-/// The stacked-marks rule (module documentation): the name of a mark whose texts, where their author put them, reach
-/// another mark or its texts, or leave the drawing area, has "in line with the wire beyond the arrow" as its first
-/// place. A name its author set in line already (the wire's line runs through its height) keeps its author's place.
+/// **The stacked-marks rule.** The name of a mark (a part of one pin that leaves sideways) whose texts, where their
+/// author put them, reach another mark or its texts, or leave the drawing area, has "in line with the wire beyond the
+/// arrow" as its first place: marks stacked two steps apart read as a list, each name beside its arrow. A mark that
+/// stands alone, and a name its author set in line already, keep the author's place. `first_places` gives the placer these first places, so that
+/// it sets a stack by the texts as they will stand.
+/// A name set in line already is one the wire's line runs through.
 fn stacked_marks(ground: &Ground<'_>, units: &mut [Unit]) {
     // Each mark with a name: its part, the texts' first places and its body.
     let mut marks: BTreeMap<PartId, (Vec<Rect>, Rect)> = BTreeMap::new();
@@ -1505,7 +1494,10 @@ fn stacked_marks(ground: &Ground<'_>, units: &mut [Unit]) {
     }
 }
 
-/// The two-rows rule (module documentation).
+/// **The two-rows rule.** A tag (of a symbol, a drawn box or a terminal) or a contact list whose first place reaches
+/// within [`LABEL_CLEAR`] of the first place of a label of its kind level with it, on another part, has "one line
+/// lower" (its height and [`LABEL_CLEAR`] down) as its second place: the first of a row keeps its place, the second
+/// steps down, the third finds its place free again: two rows.
 fn stagger(units: &mut [Unit]) {
     let firsts: Vec<Option<(LabelKind, Owner, Rect)>> = units
         .iter()

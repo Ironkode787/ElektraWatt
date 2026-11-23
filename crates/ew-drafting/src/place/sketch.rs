@@ -3,130 +3,8 @@
 
 //! The arrangement the placer proposes (docs/design/06a-drafting.md §4.2 to §4.7): [`Sketch`] reads a page's units and
 //! relations, hangs the units in trees and sets each where its lead asks. It routes nothing and rates nothing:
-//! [`super::arrange`] routes what it proposes and lets the measure judge.
-//!
-//! # Units and relations
-//!
-//! A **unit** moves as one: the parts of one `unit` number, the parts inside an outline drawn round other parts, and a
-//! part that stands with its pin on another part's pin (a mark set on a connection point). It is **fixed** when a part
-//! of it is kept in place, outside the scope, unticked, off the whole grid, or at the end of a kept wire.
-//!
-//! A **relation** joins a pin of one unit to a pin of another, by strength:
-//!
-//! 1. **facing**: the two pins of a net of two, on opposite sides: the best drawing is one straight wire. An end
-//!    symbol of one pin that is no mark (an earth symbol among them) keeps its hook: it has no line to take;
-//! 2. **tap**: a pin of a net of three or more and the one pin of that net that faces the other way (a path's drop to
-//!    its branches, a return's rise from them), where the second already stands beyond the first (on a fluid page
-//!    wherever it stands: rule F1 tells the supply from the work). The branch nearer across than every other belongs
-//!    in line, the others keep their column. A unit in a row of three mates or more takes no tap: it stays in its row;
-//! 3. **corner**: the two pins of a net of two, at a right angle: one bend;
-//! 4. **level**: the two pins of a net of two on the same side: out, across and back;
-//! 5. **mate**: no wire. Two units of one shape (the body of their largest part) that stand level side by side or in
-//!    line under one another, a step off at most, the nearest within twice [`ROW_PULL`]: a strip's terminals, cards
-//!    side by side, like devices in a row;
-//! 6. **overruled**: a level pair of a unit more of whose mates face that host than are wired to it out and back; and
-//!    a facing pair or a tap of two units of one row that runs across the wire, where one of them would have to leave
-//!    the row for it (two cards side by side, wired from the upper edge of one to the lower edge of the other).
-//!
-//! A mark set on a pin of another part asks for nothing where its arrow lies along that part's body (a potential's
-//! mark on a controller's supply pin: it has no way out on its own side), and a pin with a mark set on it asks for no
-//! corner: the potential arrives there, and neither part steps for the wire from it.
-//!
-//! # The trees
-//!
-//! The wired relations are taken strongest first (of one strength, the one nearest in line first), each joining two
-//! units that no stronger relation joined yet: a spanning forest, with every fixed unit as ground. Then the mates join
-//! those trees, the relation nearest the heaviest unit of the heavier tree first, and only where one of the two is the
-//! heaviest of its tree or fixed (a terminal with its device joins its strip, not the row of devices; two marks of
-//! two strips are not joined; a unit that hangs on its mate is the top of no tree any more, so a spare terminal
-//! between the terminals of two cards does not join the cards); then the overruled pairs.
-//!
-//! A tree hangs from its fixed units. A tree without one hangs from its **anchor**: of its heaviest units (4 per wired
-//! pin and the bodies' area in square steps over 16; those of at least three quarters of the heaviest's weight,
-//! [`ANCHORS`] at most) the one from which the tree is set with room for every unit, with every step a rail demands,
-//! and with the least weight moved: a part out of place moves, not the circuit round it. A unit's relation towards the
-//! root is its **lead**; a relation left out of the tree is kept for the stacks, which nest by it.
-//!
-//! # Rails
-//!
-//! A net of three pins or more whose pins, but marks', all face one side up or down is a rail. The units it taps
-//! belong on the row most of them stand on, where they stand within [`ROW_PULL`] of it; the step is a demand where the
-//! unit stands beyond the line of the rail's junctions. A mark of the rail belongs on that line.
-//!
-//! # Setting the places
-//!
-//! The trees are set one after another, the heaviest first, each as if the units of the trees after it will step
-//! aside. A unit that then kept its place where a moved unit came to stand is in the way from the start, and the
-//! trees are set again ([`RESETS`] times at most).
-//!
-//! A card that is the root of its tree steps along its edge first, clear of its supply's way and of another card's
-//! columns ([`CardSteps`]): the judge tries the arrangement with that step, with a part of it and without it.
-//!
-//! A tree is set from its root where it stands. Where a unit of it then has no room (it would leave the drawing area
-//! or stand on a unit that is set) the root steps by whole steps, the least first and [`REACH`] at most each way, until
-//! the whole tree has room; the roots of its shape that stood level with it take the same step, so that a row of cards
-//! stays a row. Without such a step the root stays, and what has no room goes back to where it stood.
-//!
-//! From the root outward, rank by rank (the root, then the units set beside one another by one step of the method).
-//! The mates that hang on a rank join it first: each takes its host's step, stands level with it, takes the pitch the
-//! row now has where the row had one, and what a rail asks of it.
-//!
-//! - **A row** (facing and tap leads on one side of a rank). The members that stand more than [`ROW_PULL`] beyond the
-//!   nearest wait until what hangs on the near ones is set: a device wired straight to a card does not take the place
-//!   of the row over the terminals.
-//!   - *Across*, a member wants its pin on its host pin's line. It takes the line where the straight way between the
-//!     two pins is free of other parts, and where that does not carry it past a member that stays, nor past a unit
-//!     of its row that has no line of its own to take or further from such a unit than it stood by more than
-//!     [`ROW_PULL`]. A unit of the row with a line of its own binds nobody: the terminals of one strip that are wired
-//!     to two cards each stand at their own card's pin.
-//!   - *Along*, a member keeps its place when it stands at least [`CHAIN_GAP_MIN`] beyond its host pin and clear of its
-//!     host (one its host left more than a row's pull behind keeps the distance it had; a keeper one step off the
-//!     distance most keepers of its shape keep takes that). Else it takes the row's line: [`CHAIN_GAP`], a step more
-//!     than the tracks its stepping wires need, or the line the keepers stand on within [`ROW_PULL`] of that. A member
-//!     a rail taps takes the rail's row where its lead leaves it the room. Where a member that takes the row's line
-//!     would stand on a unit that is set, those members step back together to the first line that is clear, no
-//!     nearer than [`CHAIN_GAP_MIN`] and their tracks (sensors under a box at the head).
-//!   - *Packed*: the members whose extents meet along the side stand in the order of their host pins with [`ROW_GAP`]
-//!     between: by their bodies where the text placer then sets every text of the row clear and within a step of
-//!     its part (a strip's terminals two steps apart), else by their footprints (bodies and texts at their first
-//!     places). Of
-//!     three ways to pack them (by the least total move from their wishes: neighbours that would overlap are pooled
-//!     at their median; from the first member onward; from the last member back) the one is taken whose stepping wires
-//!     cross the fewest of the wires that pass the row (those that leave the rank on that side and do not end at a
-//!     pin of the row that faces the rank: a supply's riser beside a row of sensors), and none that sets a member
-//!     outside the drawing area while another does not. Members that keep their places and distances stay.
-//!   - A member that then stands on a unit already set steps further out on its line where the line is free that far
-//!     (two parts wider than their pins' pitch stand staggered, both in line); else it stands where it stood across,
-//!     and steps further out from there.
-//! - **A stack** (corner leads on one side of a rank that turn one way): each member is set first with what hangs on
-//!   it, as one block. A block heavier than the unit it hangs on keeps its place (a card with its channels does not
-//!   step for the corner of one supply wire). The blocks are taken in nesting order (the drop nearest the side they stand on turns first) and
-//!   each keeps its place when every one of its wires has its corner (the drop at least [`CHAIN_GAP_MIN`] long, its own
-//!   pin at least [`MARK_LEAD`] before the drop), it lies beyond the blocks before it and stands clear; else it takes
-//!   the nearest such place: in the column most single marks of the stack stand in, or in the column a mark's lead
-//!   before the nearest drop. The pitch is [`MARK_PITCH`](crate::consts::MARK_PITCH), or the next larger one at which the text placer finds
-//!   every text of the stack a place as clear as it had. A stack that leaves the drawing area slides back towards its
-//!   hosts.
-//! - **Level followers.** One whose wire has no way out and back (it stands under or over its host) is set beside the
-//!   host, pins level, the pin nearest that side innermost, where that side or the other has the room. One that stands
-//!   neither beside its host nor near beyond its pins takes the row beyond them: two steps clear of the host and off
-//!   the pin's line by its own width, so that the wire passes it, on the side where the host has the fewer pins of
-//!   that edge. On a bus page two stations whose ports face one side stand level (rule B2). A level follower that
-//!   keeps its place joins the next rank: what hangs on a strip of terminals is one row.
-//! - **On a fluid page** (rule F1) what hangs on a valve's unit with a part of the supply steps below every valve, and
-//!   what hangs there with an actuator steps above that unit's valves, with the blocks above it, so that a stack
-//!   keeps its order.
-//! - **A strip opens as one** (FT-2110). A strip of terminals over or under a card, two or more of them in line on the
-//!   card's pins, is set anew where the arrangement opens it ([`Sketch::open`]; the judge tries it where the strip's
-//!   other terminals held a channel's terminal off its column, or the rows set a row of terminals out of its order):
-//!   its other terminals bind nobody while the rows are set, and none of them is set beside or round a corner from its
-//!   host. Then [`Sketch::open_strip`] sets the whole strip in the order it stands in: the longest run of channels'
-//!   terminals in their channels' order with room between takes its columns, every other terminal keeps its place in
-//!   the order. A strip that opened goes or stays as one ([`Sketch::with_strips`]), and no row of terminals leaves its
-//!   order in any plan ([`Sketch::order_kept`]).
-//!
-//! Last, a moved unit that stands outside the drawing area or on another unit goes back to where it stood, with what
-//! hangs on it.
+//! [`super::arrange`] routes what it proposes and lets the measure judge. Each step of the method is on the function
+//! that makes it.
 
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -145,7 +23,24 @@ use crate::model::{
 use crate::route::{Scope, plain_line};
 use crate::rules::Wiring;
 
-/// How two related pins stand to each other, strongest first (module documentation).
+/// How two related pins stand to each other, strongest first (§4.2).
+///
+/// A **relation** joins a pin of one unit to a pin of another, by strength:
+///
+/// 1. **facing**: the two pins of a net of two, on opposite sides: the best drawing is one straight wire. An end
+///    symbol of one pin that is no mark (an earth symbol among them) keeps its hook: it has no line to take;
+/// 2. **tap**: a pin of a net of three or more and the one pin of that net that faces the other way (a path's drop to
+///    its branches, a return's rise from them), where the second already stands beyond the first (on a fluid page
+///    wherever it stands: rule F1 tells the supply from the work). The branch nearer across than every other belongs
+///    in line, the others keep their column. A unit in a row of three mates or more takes no tap: it stays in its row;
+/// 3. **corner**: the two pins of a net of two, at a right angle: one bend;
+/// 4. **level**: the two pins of a net of two on the same side: out, across and back;
+/// 5. **mate**: no wire. Two units of one shape (the body of their largest part) that stand level side by side or in
+///    line under one another, a step off at most, the nearest within twice [`ROW_PULL`]: a strip's terminals, cards
+///    side by side, like devices in a row;
+/// 6. **overruled**: a level pair of a unit more of whose mates face that host than are wired to it out and back; and
+///    a facing pair or a tap of two units of one row that runs across the wire, where one of them would have to leave
+///    the row for it (two cards side by side, wired from the upper edge of one to the lower edge of the other).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub(super) enum Kind {
     Facing,
@@ -159,6 +54,9 @@ pub(super) enum Kind {
 
 /// How a card that is its tree's root steps along its edge ([`Sketch::card_step`]): clear of its supply's way and of
 /// another card's columns, clear of its supply's way alone, or not at all. Which of them is best the judge finds.
+///
+/// A card that is the root of its tree steps along its edge first, clear of its supply's way and of another card's
+/// columns ([`CardSteps`]): the judge tries the arrangement with that step, with a part of it and without it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(super) enum CardSteps {
     Columns,
@@ -224,7 +122,7 @@ type Rail = (Side, Vec<PinId>, Vec<PinId>, Option<Tick>);
 /// A block of a stack: its units, and its wires towards the rank it hangs on, each as (host pin, own pin).
 type Block = (Vec<usize>, Vec<(PinId, PinId)>);
 
-/// The arrangement being made (module documentation).
+/// The arrangement being made: the page's units, their relations, the trees and each unit's place (§4.2 to §4.7).
 pub(super) struct Sketch<'a> {
     pub w: Wiring<'a>,
     /// Each part's texts at their first places, relative to its origin.
@@ -358,6 +256,11 @@ fn rising(want: &[Tick]) -> Vec<Tick> {
 }
 
 impl<'a> Sketch<'a> {
+    /// The units and relations of `page` for a run over `scope` with `fixed` kept (§4.2).
+    ///
+    /// A **unit** moves as one: the parts of one `unit` number, the parts inside an outline drawn round other parts, and a
+    /// part that stands with its pin on another part's pin (a mark set on a connection point). It is **fixed** when a part
+    /// of it is kept in place, outside the scope, unticked, off the whole grid, or at the end of a kept wire.
     pub fn new(page: &'a DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Sketch<'a> {
         let w = Wiring::new(page);
         // The pins at the ends of a kept wire hold their parts.
@@ -573,7 +476,6 @@ impl<'a> Sketch<'a> {
         self.w.pins[&p].2
     }
 
-    /// The first ID of a unit's parts: what its order falls back on.
     /// The part of unit `u` that names it: its largest (a terminal, not the mark set on its pin).
     pub fn largest(&self, u: usize) -> PartId {
         self.units[u]
@@ -587,6 +489,7 @@ impl<'a> Sketch<'a> {
             .map_or(PartId(ew_ids::Uuid::nil()), |p| p.id)
     }
 
+    /// The first ID of a unit's parts: what its order falls back on.
     fn id(&self, u: usize) -> PartId {
         self.units[u]
             .parts
@@ -688,7 +591,11 @@ impl<'a> Sketch<'a> {
         }
     }
 
-    /// The relations of the page (module documentation), in a fixed order.
+    /// The relations of the page ([`Kind`]), in a fixed order.
+    ///
+    /// A mark set on a pin of another part asks for nothing where its arrow lies along that part's body (a potential's
+    /// mark on a controller's supply pin: it has no way out on its own side), and a pin with a mark set on it asks for no
+    /// corner: the potential arrives there, and neither part steps for the wire from it.
     fn relations(&self) -> Vec<Rel> {
         // A mark set on a pin of another part: the parts of its unit that have a pin on its own.
         let under = |p: &PinId| -> Vec<&crate::model::Part> {
@@ -888,7 +795,20 @@ impl<'a> Sketch<'a> {
         out
     }
 
-    /// The tree (module documentation): the leads, the relations left out, the roots.
+    /// The tree (§4.2): the leads, the relations left out, the roots.
+    ///
+    /// The wired relations are taken strongest first (of one strength, the one nearest in line first), each joining two
+    /// units that no stronger relation joined yet: a spanning forest, with every fixed unit as ground. Then the mates join
+    /// those trees, the relation nearest the heaviest unit of the heavier tree first, and only where one of the two is the
+    /// heaviest of its tree or fixed (a terminal with its device joins its strip, not the row of devices; two marks of
+    /// two strips are not joined; a unit that hangs on its mate is the top of no tree any more, so a spare terminal
+    /// between the terminals of two cards does not join the cards); then the overruled pairs.
+    ///
+    /// A tree hangs from its fixed units. A tree without one hangs from its **anchor**: of its heaviest units (4 per wired
+    /// pin and the bodies' area in square steps over 16; those of at least three quarters of the heaviest's weight,
+    /// [`ANCHORS`] at most) the one from which the tree is set with room for every unit, with every step a rail demands,
+    /// and with the least weight moved: a part out of place moves, not the circuit round it. A unit's relation towards the
+    /// root is its **lead**; a relation left out of the tree is kept for the stacks, which nest by it.
     fn tree(&mut self) {
         let m = self.units.len();
         let mut rels = self.relations();
@@ -1078,7 +998,11 @@ impl<'a> Sketch<'a> {
 
     /// The rails of the page: each net of three pins or more whose pins, but marks', all face one side up or down, as
     /// that side, its tapped pins, its marks' pins and the line its junctions lie on (two at least), as [`out`]
-    /// measures along the side.
+    /// measures along the side (§4.6).
+    ///
+    /// A net of three pins or more whose pins, but marks', all face one side up or down is a rail. The units it taps
+    /// belong on the row most of them stand on, where they stand within [`ROW_PULL`] of it; the step is a demand where the
+    /// unit stands beyond the line of the rail's junctions. A mark of the rail belongs on that line.
     fn rails(&self) -> Vec<Rail> {
         let mark = |p: &PinId| self.w.parts[self.w.pins[p].0].role.is_mark();
         let mut rails = Vec::new();
@@ -1149,7 +1073,11 @@ impl<'a> Sketch<'a> {
         steps
     }
 
-    /// Sets every unit's place (module documentation).
+    /// Sets every unit's place (§4.4).
+    ///
+    /// The trees are set one after another, the heaviest first, each as if the units of the trees after it will step
+    /// aside. A unit that then kept its place where a moved unit came to stand is in the way from the start, and the
+    /// trees are set again ([`RESETS`] times at most).
     pub fn lay(&mut self) {
         let m = self.units.len();
         self.steps = self.rail_steps();
@@ -1348,6 +1276,15 @@ impl<'a> Sketch<'a> {
 
     /// Each strip over or under a card opens as one, in its own order (doc 06a §4.4, FT-2110), by
     /// [`Sketch::open_strip`]; where that cannot hold, the strip stays as the rows set it.
+    ///
+    /// **A strip opens as one** (FT-2110). A strip of terminals over or under a card, two or more of them in line on the
+    /// card's pins, is set anew where the arrangement opens it ([`Sketch::open`]; the judge tries it where the strip's
+    /// other terminals held a channel's terminal off its column, or the rows set a row of terminals out of its order):
+    /// its other terminals bind nobody while the rows are set, and none of them is set beside or round a corner from its
+    /// host. Then [`Sketch::open_strip`] sets the whole strip in the order it stands in: the longest run of channels'
+    /// terminals in their channels' order with room between takes its columns, every other terminal keeps its place in
+    /// the order. A strip that opened goes or stays as one ([`Sketch::with_strips`]), and no row of terminals leaves its
+    /// order in any plan ([`Sketch::order_kept`]).
     fn open_strips(&mut self) {
         self.opened.clear();
         self.held.clear();
@@ -1553,7 +1490,7 @@ impl<'a> Sketch<'a> {
         }
     }
 
-    /// Whether the bodies of `u` lie in the drawing area, a step inside its edge.
+    /// Whether the bodies of `u` lie in the drawing area, half a step inside its edge.
     fn inside(&self, u: usize) -> bool {
         let area = self.w.page.area.grown(-HALF);
         self.bodies(u).iter().all(|b| area.holds(*b))
@@ -1793,6 +1730,11 @@ impl<'a> Sketch<'a> {
     /// The tree of `root` set from the root where it stands, or stepped by the least distance at which the whole tree
     /// has room (`first` tried first); the root's step. Where no step gives it room, the root stays and what has no
     /// room goes back to where it stood.
+    ///
+    /// A tree is set from its root where it stands. Where a unit of it then has no room (it would leave the drawing area
+    /// or stand on a unit that is set) the root steps by whole steps, the least first and [`REACH`] at most each way, until
+    /// the whole tree has room; the roots of its shape that stood level with it take the same step, so that a row of cards
+    /// stays a row. Without such a step the root stays, and what has no room goes back to where it stood.
     fn room(&mut self, root: usize, tree: &[usize], first: Pt) -> Option<Pt> {
         let mut steps: Vec<Pt> = vec![first, Pt::default()];
         if !self.units[root].fixed {
@@ -1865,6 +1807,10 @@ impl<'a> Sketch<'a> {
     /// On a fluid page (rule F1): what hangs on a valve's unit with a part of the supply that does not stand lower than
     /// every valve steps down by the least distance, and what hangs there with an actuator that does not stand higher
     /// than that unit's valves steps up; each by whole blocks, until it stands clear.
+    ///
+    /// **On a fluid page** (rule F1) what hangs on a valve's unit with a part of the supply steps below every valve, and
+    /// what hangs there with an actuator steps above that unit's valves, with the blocks above it, so that a stack
+    /// keeps its order.
     fn fluid(&mut self, tree: &[usize]) {
         if self.w.page.kind != PageKind::Fluid {
             return;
@@ -1942,6 +1888,10 @@ impl<'a> Sketch<'a> {
     }
 
     /// Sets what hangs on `root`, rank by rank.
+    ///
+    /// From the root outward, rank by rank (the root, then the units set beside one another by one step of the method).
+    /// The mates that hang on a rank join it first: each takes its host's step, stands level with it, takes the pitch the
+    /// row now has where the row had one, and what a rail asks of it.
     fn lay_from(&mut self, root: usize) {
         let mut ranks: VecDeque<Vec<usize>> = VecDeque::from([vec![root]]);
         let mut late: VecDeque<(Side, Vec<usize>)> = VecDeque::new();
@@ -2181,7 +2131,35 @@ impl<'a> Sketch<'a> {
         })
     }
 
-    /// A row of followers on side `s` of their hosts, which stand in the rank `hosts` (module documentation).
+    /// A row of followers on side `s` of their hosts, which stand in the rank `hosts` (§4.4).
+    ///
+    /// **A row** (facing and tap leads on one side of a rank). The members that stand more than [`ROW_PULL`] beyond the
+    /// nearest wait until what hangs on the near ones is set: a device wired straight to a card does not take the place
+    /// of the row over the terminals.
+    /// - *Across*, a member wants its pin on its host pin's line. It takes the line where the straight way between the
+    ///   two pins is free of other parts, and where that does not carry it past a member that stays, nor past a unit
+    ///   of its row that has no line of its own to take or further from such a unit than it stood by more than
+    ///   [`ROW_PULL`]. A unit of the row with a line of its own binds nobody: the terminals of one strip that are wired
+    ///   to two cards each stand at their own card's pin.
+    /// - *Along*, a member keeps its place when it stands at least [`CHAIN_GAP_MIN`] beyond its host pin and clear of its
+    ///   host (one its host left more than a row's pull behind keeps the distance it had; a keeper one step off the
+    ///   distance most keepers of its shape keep takes that). Else it takes the row's line: [`CHAIN_GAP`], a step more
+    ///   than the tracks its stepping wires need, or the line the keepers stand on within [`ROW_PULL`] of that. A member
+    ///   a rail taps takes the rail's row where its lead leaves it the room. Where a member that takes the row's line
+    ///   would stand on a unit that is set, those members step back together to the first line that is clear, no
+    ///   nearer than [`CHAIN_GAP_MIN`] and their tracks (sensors under a box at the head).
+    /// - *Packed*: the members whose extents meet along the side stand in the order of their host pins with [`ROW_GAP`]
+    ///   between: by their bodies where the text placer then sets every text of the row clear and within a step of
+    ///   its part (a strip's terminals two steps apart), else by their footprints (bodies and texts at their first
+    ///   places). Of
+    ///   three ways to pack them (by the least total move from their wishes: neighbours that would overlap are pooled
+    ///   at their median; from the first member onward; from the last member back) the one is taken whose stepping wires
+    ///   cross the fewest of the wires that pass the row (those that leave the rank on that side and do not end at a
+    ///   pin of the row that faces the rank: a supply's riser beside a row of sensors), and none that sets a member
+    ///   outside the drawing area while another does not. Members that keep their places and distances stay.
+    /// - A member that then stands on a unit already set steps further out on its line where the line is free that far
+    ///   (two parts wider than their pins' pitch stand staggered, both in line); else it stands where it stood across,
+    ///   and steps further out from there.
     fn row(&mut self, hosts: &[usize], s: Side, members: &[usize]) {
         let mut items: Vec<(usize, Lead)> = members
             .iter()
@@ -2547,7 +2525,17 @@ impl<'a> Sketch<'a> {
         out
     }
 
-    /// A stack of corner followers on side `s` of `hosts`, their own pins facing `sf` (module documentation).
+    /// A stack of corner followers on side `s` of `hosts`, their own pins facing `sf` (§4.4).
+    ///
+    /// **A stack** (corner leads on one side of a rank that turn one way): each member is set first with what hangs on
+    /// it, as one block. A block heavier than the unit it hangs on keeps its place (a card with its channels does not
+    /// step for the corner of one supply wire). The blocks are taken in nesting order (the drop nearest the side they stand on turns first) and
+    /// each keeps its place when every one of its wires has its corner (the drop at least [`CHAIN_GAP_MIN`] long, its own
+    /// pin at least [`MARK_LEAD`] before the drop), it lies beyond the blocks before it and stands clear; else it takes
+    /// the nearest such place: in the column most single marks of the stack stand in, or in the column a mark's lead
+    /// before the nearest drop. The pitch is [`MARK_PITCH`](crate::consts::MARK_PITCH), or the next larger one at which the text placer finds
+    /// every text of the stack a place as clear as it had. A stack that leaves the drawing area slides back towards its
+    /// hosts.
     fn stack(&mut self, hosts: &[usize], s: Side, sf: Side, members: &[usize]) {
         let way = sf.opposite();
         let mut blocks: Vec<Block> = members
@@ -2893,7 +2881,14 @@ impl<'a> Sketch<'a> {
         })
     }
 
-    /// The level followers on side `s` of their hosts (module documentation). Those that keep their place: what hangs
+    /// **Level followers.** One whose wire has no way out and back (it stands under or over its host) is set beside the
+    /// host, pins level, the pin nearest that side innermost, where that side or the other has the room. One that stands
+    /// neither beside its host nor near beyond its pins takes the row beyond them: two steps clear of the host and off
+    /// the pin's line by its own width, so that the wire passes it, on the side where the host has the fewer pins of
+    /// that edge. On a bus page two stations whose ports face one side stand level (rule B2). A level follower that
+    /// keeps its place joins the next rank: what hangs on a strip of terminals is one row.
+    ///
+    /// The level followers on side `s` of their hosts (§4.3). Those that keep their place: what hangs
     /// on them is then set with the rest of their rank.
     fn beside(&mut self, s: Side, members: &[usize]) -> Vec<usize> {
         let mut stay: Vec<usize> = Vec::new();
@@ -3275,7 +3270,6 @@ impl<'a> Sketch<'a> {
         })
     }
 
-    /// The moves, by part ID.
     /// The moves, by part ID.
     pub fn moves(&self) -> Vec<(PartId, Pt)> {
         let mut out: Vec<(PartId, Pt)> = self
