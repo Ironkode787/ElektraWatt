@@ -26,12 +26,11 @@ use std::fmt;
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{
-    BomMode, BomRows, ChannelAddr, ChannelAddresses, DepKey, DeviceTag, DisplayedTag, IxKey, MainFunction,
-    MainRep, MemoInput, PageOrder, PageRef, PlcAddressText, Policy, PotentialId, PotentialNameOf,
-    PotentialPartition, Q, Query, RepAnchorCell, TbValue, TitleBlockValues, WireNumbers, WirePropsOf,
-    XrefTextOf,
+    BomMode, BomRows, ChannelAddr, ChannelAddresses, DepKey, DeviceTag, DisplayedTag, MainFunction, MainRep,
+    MemoInput, PageOrder, PageRef, PlcAddressText, Policy, PotentialId, PotentialNameOf, PotentialPartition,
+    Q, Query, RepAnchorCell, TbValue, TitleBlockValues, WireNumbers, WirePropsOf, XrefTextOf,
 };
-use ew_model::EndpointKey;
+use ew_model::{EndpointKey, IxKey};
 use ew_schema::{AnyId, Connection, Device, Function, Junction, Kind, Page, Representation};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

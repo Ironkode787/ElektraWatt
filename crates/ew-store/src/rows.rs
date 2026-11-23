@@ -6,7 +6,6 @@
 //! the writer is one of the three readers of the untracked API).
 
 use std::collections::BTreeSet;
-use std::sync::Arc;
 
 use ew_format::ew_schema::{
     AnyId, Carrier, Enclosure, Function, Junction, Kind, LibDocument, MountingSurface, Record, Representation,
@@ -17,276 +16,9 @@ use ew_format::{
 use ew_model::{AnyKey, AnyRow, Model};
 use serde_json::Value;
 
-/// Applies `$m!(variant, type)` to every entity kind, for matches over [`AnyRow`].
-macro_rules! with_row {
-    ($row:expr, |$kind:ident, $r:ident| $body:expr) => {
-        match $row {
-            AnyRow::Project($r) => {
-                let $kind = Kind::Project;
-                $body
-            }
-            AnyRow::PlcConfigProject($r) => {
-                let $kind = Kind::PlcConfigProject;
-                $body
-            }
-            AnyRow::ImportLineage($r) => {
-                let $kind = Kind::ImportLineage;
-                $body
-            }
-            AnyRow::StructureNode($r) => {
-                let $kind = Kind::StructureNode;
-                $body
-            }
-            AnyRow::Section($r) => {
-                let $kind = Kind::Section;
-                $body
-            }
-            AnyRow::ExternalRef($r) => {
-                let $kind = Kind::ExternalRef;
-                $body
-            }
-            AnyRow::Page($r) => {
-                let $kind = Kind::Page;
-                $body
-            }
-            AnyRow::Device($r) => {
-                let $kind = Kind::Device;
-                $body
-            }
-            AnyRow::Function($r) => {
-                let $kind = Kind::Function;
-                $body
-            }
-            AnyRow::Representation($r) => {
-                let $kind = Kind::Representation;
-                $body
-            }
-            AnyRow::Connection($r) => {
-                let $kind = Kind::Connection;
-                $body
-            }
-            AnyRow::Junction($r) => {
-                let $kind = Kind::Junction;
-                $body
-            }
-            AnyRow::Conductor($r) => {
-                let $kind = Kind::Conductor;
-                $body
-            }
-            AnyRow::Channel($r) => {
-                let $kind = Kind::Channel;
-                $body
-            }
-            AnyRow::PotentialDef($r) => {
-                let $kind = Kind::PotentialDef;
-                $body
-            }
-            AnyRow::MediumDef($r) => {
-                let $kind = Kind::MediumDef;
-                $body
-            }
-            AnyRow::Bond($r) => {
-                let $kind = Kind::Bond;
-                $body
-            }
-            AnyRow::DeviceLink($r) => {
-                let $kind = Kind::DeviceLink;
-                $body
-            }
-            AnyRow::LogicalNet($r) => {
-                let $kind = Kind::LogicalNet;
-                $body
-            }
-            AnyRow::PhysicalNet($r) => {
-                let $kind = Kind::PhysicalNet;
-                $body
-            }
-            AnyRow::Medium($r) => {
-                let $kind = Kind::Medium;
-                $body
-            }
-            AnyRow::PageItem($r) => {
-                let $kind = Kind::PageItem;
-                $body
-            }
-            AnyRow::StructureBox($r) => {
-                let $kind = Kind::StructureBox;
-                $body
-            }
-            AnyRow::ReportBlock($r) => {
-                let $kind = Kind::ReportBlock;
-                $body
-            }
-            AnyRow::MacroInstance($r) => {
-                let $kind = Kind::MacroInstance;
-                $body
-            }
-            AnyRow::LayoutSpace($r) => {
-                let $kind = Kind::LayoutSpace;
-                $body
-            }
-            AnyRow::Enclosure($r) => {
-                let $kind = Kind::Enclosure;
-                $body
-            }
-            AnyRow::MountingSurface($r) => {
-                let $kind = Kind::MountingSurface;
-                $body
-            }
-            AnyRow::Carrier($r) => {
-                let $kind = Kind::Carrier;
-                $body
-            }
-            AnyRow::Placement($r) => {
-                let $kind = Kind::Placement;
-                $body
-            }
-            AnyRow::Revision($r) => {
-                let $kind = Kind::Revision;
-                $body
-            }
-            AnyRow::Waiver($r) => {
-                let $kind = Kind::Waiver;
-                $body
-            }
-            AnyRow::ExchangeRecord($r) => {
-                let $kind = Kind::ExchangeRecord;
-                $body
-            }
-            AnyRow::ForeignId($r) => {
-                let $kind = Kind::ForeignId;
-                $body
-            }
-            AnyRow::ImportRun($r) => {
-                let $kind = Kind::ImportRun;
-                $body
-            }
-            AnyRow::Conflict($r) => {
-                let $kind = Kind::Conflict;
-                $body
-            }
-            AnyRow::Part($r) => {
-                let $kind = Kind::Part;
-                $body
-            }
-            AnyRow::Symbol($r) => {
-                let $kind = Kind::Symbol;
-                $body
-            }
-            AnyRow::Fndef($r) => {
-                let $kind = Kind::Fndef;
-                $body
-            }
-            AnyRow::Form($r) => {
-                let $kind = Kind::Form;
-                $body
-            }
-            AnyRow::Macro($r) => {
-                let $kind = Kind::Macro;
-                $body
-            }
-            AnyRow::Manufacturer($r) => {
-                let $kind = Kind::Manufacturer;
-                $body
-            }
-            AnyRow::PlcProfile($r) => {
-                let $kind = Kind::PlcProfile;
-                $body
-            }
-        }
-    };
-}
-
-/// The record of a row of a JSON Lines kind (`None` for a library copy).
-pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
-    Some(match row {
-        AnyRow::Project(r) => Record::Project((**r).clone()),
-        AnyRow::PlcConfigProject(r) => Record::PlcConfigProject((**r).clone()),
-        AnyRow::ImportLineage(r) => Record::ImportLineage((**r).clone()),
-        AnyRow::StructureNode(r) => Record::StructureNode((**r).clone()),
-        AnyRow::Section(r) => Record::Section((**r).clone()),
-        AnyRow::ExternalRef(r) => Record::ExternalRef((**r).clone()),
-        AnyRow::Page(r) => Record::Page((**r).clone()),
-        AnyRow::Device(r) => Record::Device((**r).clone()),
-        AnyRow::Function(r) => Record::Function((**r).clone()),
-        AnyRow::Representation(r) => Record::Representation((**r).clone()),
-        AnyRow::Connection(r) => Record::Connection((**r).clone()),
-        AnyRow::Junction(r) => Record::Junction((**r).clone()),
-        AnyRow::Conductor(r) => Record::Conductor((**r).clone()),
-        AnyRow::Channel(r) => Record::Channel((**r).clone()),
-        AnyRow::PotentialDef(r) => Record::PotentialDef((**r).clone()),
-        AnyRow::MediumDef(r) => Record::MediumDef((**r).clone()),
-        AnyRow::Bond(r) => Record::Bond((**r).clone()),
-        AnyRow::DeviceLink(r) => Record::DeviceLink((**r).clone()),
-        AnyRow::LogicalNet(r) => Record::LogicalNet((**r).clone()),
-        AnyRow::PhysicalNet(r) => Record::PhysicalNet((**r).clone()),
-        AnyRow::Medium(r) => Record::Medium((**r).clone()),
-        AnyRow::PageItem(r) => Record::PageItem((**r).clone()),
-        AnyRow::StructureBox(r) => Record::StructureBox((**r).clone()),
-        AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
-        AnyRow::MacroInstance(r) => Record::MacroInstance((**r).clone()),
-        AnyRow::LayoutSpace(r) => Record::LayoutSpace((**r).clone()),
-        AnyRow::Enclosure(r) => Record::Enclosure((**r).clone()),
-        AnyRow::MountingSurface(r) => Record::MountingSurface((**r).clone()),
-        AnyRow::Carrier(r) => Record::Carrier((**r).clone()),
-        AnyRow::Placement(r) => Record::Placement((**r).clone()),
-        AnyRow::Revision(r) => Record::Revision((**r).clone()),
-        AnyRow::Waiver(r) => Record::Waiver((**r).clone()),
-        AnyRow::ExchangeRecord(r) => Record::ExchangeRecord((**r).clone()),
-        AnyRow::ForeignId(r) => Record::ForeignId((**r).clone()),
-        AnyRow::ImportRun(r) => Record::ImportRun((**r).clone()),
-        AnyRow::Conflict(r) => Record::Conflict((**r).clone()),
-        AnyRow::Part(_)
-        | AnyRow::Symbol(_)
-        | AnyRow::Fndef(_)
-        | AnyRow::Form(_)
-        | AnyRow::Macro(_)
-        | AnyRow::Manufacturer(_)
-        | AnyRow::PlcProfile(_) => return None,
-    })
-}
-
 /// The row of a record of an implemented kind (`None` for [`Record::Unknown`]).
 pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
-    Some(match record {
-        Record::Project(r) => AnyRow::Project(Arc::new(r)),
-        Record::PlcConfigProject(r) => AnyRow::of(r),
-        Record::ImportLineage(r) => AnyRow::of(r),
-        Record::StructureNode(r) => AnyRow::of(r),
-        Record::Section(r) => AnyRow::of(r),
-        Record::ExternalRef(r) => AnyRow::of(r),
-        Record::Page(r) => AnyRow::of(r),
-        Record::Device(r) => AnyRow::of(r),
-        Record::Function(r) => AnyRow::of(r),
-        Record::Representation(r) => AnyRow::of(r),
-        Record::Connection(r) => AnyRow::of(r),
-        Record::Junction(r) => AnyRow::of(r),
-        Record::Conductor(r) => AnyRow::of(r),
-        Record::Channel(r) => AnyRow::of(r),
-        Record::PotentialDef(r) => AnyRow::of(r),
-        Record::MediumDef(r) => AnyRow::of(r),
-        Record::Bond(r) => AnyRow::of(r),
-        Record::DeviceLink(r) => AnyRow::of(r),
-        Record::LogicalNet(r) => AnyRow::of(r),
-        Record::PhysicalNet(r) => AnyRow::of(r),
-        Record::Medium(r) => AnyRow::of(r),
-        Record::PageItem(r) => AnyRow::of(r),
-        Record::StructureBox(r) => AnyRow::of(r),
-        Record::ReportBlock(r) => AnyRow::of(r),
-        Record::MacroInstance(r) => AnyRow::of(r),
-        Record::LayoutSpace(r) => AnyRow::of(r),
-        Record::Enclosure(r) => AnyRow::of(r),
-        Record::MountingSurface(r) => AnyRow::of(r),
-        Record::Carrier(r) => AnyRow::of(r),
-        Record::Placement(r) => AnyRow::of(r),
-        Record::Revision(r) => AnyRow::of(r),
-        Record::Waiver(r) => AnyRow::of(r),
-        Record::ExchangeRecord(r) => AnyRow::of(r),
-        Record::ForeignId(r) => AnyRow::of(r),
-        Record::ImportRun(r) => AnyRow::of(r),
-        Record::Conflict(r) => AnyRow::of(r),
-        Record::Unknown(_) => return None,
-    })
+    AnyRow::from_record(record).ok()
 }
 
 /// The row of a library document of an implemented kind.
@@ -306,21 +38,20 @@ pub(crate) fn document_row(doc: LibDocument) -> Option<AnyRow> {
 /// The canonical bytes of a row's file content: the line of a record (without LF), or the whole pretty
 /// document of a library copy (with its final LF).
 pub(crate) fn row_text(row: &AnyRow) -> Result<String, FormatError> {
-    with_row!(row, |kind, r| if kind.is_library() {
-        tagged_document(kind, &**r)
+    let kind = row.kind();
+    if kind.is_library() {
+        tagged_document(kind, row)
     } else {
-        tagged_line(kind, &**r)
-    })
+        tagged_line(kind, row)
+    }
 }
 
 /// A row's members as a JSON object without `$k` (the journal form).
 pub(crate) fn row_value(row: &AnyRow) -> Result<Value, FormatError> {
-    with_row!(row, |kind, r| serde_json::to_value(&**r).map_err(|e| {
-        FormatError::Serialize {
-            record: format!("{kind}:{}", row.id()),
-            message: e.to_string(),
-        }
-    }))
+    row.to_json().map_err(|e| FormatError::Serialize {
+        record: format!("{}:{}", row.kind(), row.id()),
+        message: e.to_string(),
+    })
 }
 
 /// The row of kind `kind` from its journal form (an object without `$k`).
@@ -403,7 +134,7 @@ pub(crate) fn file_of(model: &Model, key: &AnyKey) -> Result<Option<FilePath>, F
         })?;
         return Ok(Some(FilePath::lib(dir, key.1)));
     }
-    let record = row_record(&row).ok_or_else(|| FormatError::NoFile {
+    let record = row.to_record().ok_or_else(|| FormatError::NoFile {
         kind: key.0.name().to_owned(),
         id: Some(key.1),
     })?;

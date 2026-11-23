@@ -10,7 +10,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_model::{EndpointKey, Entity, IndexName, Model, Rev, RevIndex, RowId, Table};
+use ew_model::{EndpointKey, Entity, IndexName, IxKey, Model, Rev, RevIndex, RowId, Table};
 use ew_schema::{
     Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, Junction, Kind, LibCopy,
     Manufacturer, Page, PageItem, Part, PlcProfileDef, PotentialDef, Project, Record, ReportBlock,
@@ -22,7 +22,7 @@ use crate::memo_store::{self, MemoOf};
 use crate::note::{DeriveNote, NoteFrame, NoteSet};
 use crate::profile::{self, DerivationProfile, ProfileStatus};
 use crate::query::{Cache, Lookup, Policy, Query};
-use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
+use crate::tracker::{ColdTracker, DepKey, Tracker};
 
 /// The memo store a `Q` from a [`MemoStore`](crate::MemoStore) reads through (ADR-0002 amendment 4).
 pub(crate) type DeriveStore = ew_memo::Store<Q>;

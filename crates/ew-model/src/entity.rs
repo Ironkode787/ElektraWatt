@@ -152,6 +152,15 @@ macro_rules! entities_of_records {
                     other => return Err(Box::new(other)),
                 })
             }
+
+            /// The record of a row of a record kind or of the project row; `None` for a library copy.
+            pub fn to_record(&self) -> Option<Record> {
+                Some(match self {
+                    AnyRow::Project(r) => Record::Project((**r).clone()),
+                    $( AnyRow::$variant(r) => Record::$variant((**r).clone()), )*
+                    _ => return None,
+                })
+            }
         }
     };
 }
@@ -232,9 +241,16 @@ macro_rules! entities_of_tables {
 
             /// The row as JSON: the record's serde form (for a record, without `$k`; the key carries the kind).
             pub fn to_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+                serde_json::to_value(self)
+            }
+        }
+
+        /// A row serialises as its record (for a record, without `$k`; the key carries the kind).
+        impl serde::Serialize for AnyRow {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
                 match self {
-                    AnyRow::Project(r) => serde_json::to_value(&**r),
-                    $( AnyRow::$variant(r) => serde_json::to_value(&**r), )*
+                    AnyRow::Project(r) => r.serialize(serializer),
+                    $( AnyRow::$variant(r) => r.serialize(serializer), )*
                 }
             }
         }

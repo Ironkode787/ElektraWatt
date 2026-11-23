@@ -18,17 +18,8 @@
 use std::cell::RefCell;
 use std::fmt;
 
-use ew_model::{AnyKey, EndpointKey, IndexName, Rev};
-use ew_schema::{AnyId, Kind};
-
-/// The key of one index bucket.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum IxKey {
-    /// A record ID (`reps_by_page(page)` …).
-    Id(AnyId),
-    /// An endpoint (`connections_at_cp(f, idx)` …).
-    Endpoint(EndpointKey),
-}
+use ew_model::{AnyKey, IndexName, IxKey, Rev};
+use ew_schema::Kind;
 
 /// One tracked read.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

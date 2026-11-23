@@ -32,15 +32,11 @@
 
 use ew_ids::Id;
 use ew_memo::Durability;
-use ew_model::{AnyKey, AnyRow, EndpointKey, Entity, IndexName, Model, Rev, RevIndex, Row};
-use ew_schema::{
-    AnyId, Bond, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, Page, PageItem, Part, PotentialDef, ReportBlock, Representation,
-    Section, StructureBox, StructureNode, SymbolDef,
-};
+use ew_model::{AnyKey, AnyRow, EndpointKey, IndexName, IxKey, Model, Rev, TABLE_KINDS, named_index_keys};
+use ew_schema::{AnyId, Function, Kind, Page};
 
 use crate::potentials::PotentialId;
-use crate::tracker::{DepKey, IxKey};
+use crate::tracker::DepKey;
 
 /// The number of ID shards per kind or index (a power of two).
 pub(crate) const SHARDS: u16 = 4096;
@@ -102,58 +98,6 @@ pub(crate) fn shard(id: AnyId) -> u16 {
     (b16 ^ (b16 >> 12)) & (SHARDS - 1)
 }
 
-/// Calls the generic function `$f::<T>(args)` for the entity type `T` of `$kind`, or evaluates `$other` for a
-/// kind without a table (the project row, reserved kinds).
-macro_rules! by_kind {
-    ($kind:expr, $f:ident ( $($arg:expr),* ), $other:expr) => {
-        match $kind {
-            Kind::PlcConfigProject => $f::<ew_schema::PlcConfigProject>($($arg),*),
-            Kind::ImportLineage => $f::<ImportLineage>($($arg),*),
-            Kind::StructureNode => $f::<StructureNode>($($arg),*),
-            Kind::Section => $f::<Section>($($arg),*),
-            Kind::ExternalRef => $f::<ExternalRef>($($arg),*),
-            Kind::Page => $f::<Page>($($arg),*),
-            Kind::Device => $f::<Device>($($arg),*),
-            Kind::Function => $f::<Function>($($arg),*),
-            Kind::Representation => $f::<Representation>($($arg),*),
-            Kind::Connection => $f::<Connection>($($arg),*),
-            Kind::Junction => $f::<Junction>($($arg),*),
-            Kind::Conductor => $f::<Conductor>($($arg),*),
-            Kind::Channel => $f::<ew_schema::Channel>($($arg),*),
-            Kind::PotentialDef => $f::<PotentialDef>($($arg),*),
-            Kind::MediumDef => $f::<ew_schema::MediumDef>($($arg),*),
-            Kind::Bond => $f::<Bond>($($arg),*),
-            Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
-            Kind::LogicalNet => $f::<ew_schema::LogicalNet>($($arg),*),
-            Kind::PhysicalNet => $f::<ew_schema::PhysicalNet>($($arg),*),
-            Kind::Medium => $f::<ew_schema::Medium>($($arg),*),
-            Kind::PageItem => $f::<PageItem>($($arg),*),
-            Kind::StructureBox => $f::<StructureBox>($($arg),*),
-            Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
-            Kind::MacroInstance => $f::<ew_schema::MacroInstance>($($arg),*),
-            Kind::LayoutSpace => $f::<ew_schema::LayoutSpace>($($arg),*),
-            Kind::Enclosure => $f::<ew_schema::Enclosure>($($arg),*),
-            Kind::MountingSurface => $f::<ew_schema::MountingSurface>($($arg),*),
-            Kind::Carrier => $f::<ew_schema::Carrier>($($arg),*),
-            Kind::Placement => $f::<ew_schema::Placement>($($arg),*),
-            Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
-            Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
-            Kind::ExchangeRecord => $f::<ew_schema::ExchangeRecord>($($arg),*),
-            Kind::ForeignId => $f::<ew_schema::ForeignId>($($arg),*),
-            Kind::ImportRun => $f::<ew_schema::ImportRun>($($arg),*),
-            Kind::Conflict => $f::<ew_schema::Conflict>($($arg),*),
-            Kind::Part => $f::<LibCopy<Part>>($($arg),*),
-            Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
-            Kind::Fndef => $f::<LibCopy<FnDef>>($($arg),*),
-            Kind::Form => $f::<LibCopy<FormDef>>($($arg),*),
-            Kind::Macro => $f::<LibCopy<ew_schema::MacroDef>>($($arg),*),
-            Kind::Manufacturer => $f::<LibCopy<ew_schema::Manufacturer>>($($arg),*),
-            Kind::PlcProfile => $f::<LibCopy<ew_schema::PlcProfileDef>>($($arg),*),
-            _ => $other,
-        }
-    };
-}
-
 /// The page a row is drawn on: a representation's, a connection's (when it has one), a junction's, a page item's,
 /// a structure box's and a macro instance's anchor page.
 fn page_of(row: &AnyRow) -> Option<Id<Page>> {
@@ -209,117 +153,32 @@ pub(crate) fn coarse(model: &Model, input: &MemoInput) -> MemoInput {
     }
 }
 
-fn row_stamp<T: Entity>(model: &Model, id: AnyId) -> Rev {
-    let table = model.table::<T>();
-    table
-        .row(&id.cast())
-        .map_or_else(|| table.changed_at(), Row::changed_at)
-}
-
-fn table_stamp<T: Entity>(model: &Model) -> Rev {
-    model.table::<T>().changed_at()
-}
-
-fn bucket_stamp<K: Ord + Clone, V: Ord + Clone>(ix: &RevIndex<K, V>, key: &K) -> Rev {
-    ix.key_changed_at(key).unwrap_or(ix.changed_at())
-}
-
-/// The stamp of a bucket, as `IdxView::bucket` observes it. A key shape no accessor produces is the
-/// model's revision (conservative, like the reserved records).
-fn index_key_stamp(model: &Model, name: IndexName, key: IxKey) -> Rev {
-    let ix = model.indexes();
-    match (name, key) {
-        (IndexName::FunctionsByDevice, IxKey::Id(id)) => bucket_stamp(ix.functions_by_device(), &id.cast()),
-        (IndexName::RepsByPage, IxKey::Id(id)) => bucket_stamp(ix.reps_by_page(), &id.cast()),
-        (IndexName::RepsByFunction, IxKey::Id(id)) => bucket_stamp(ix.reps_by_function(), &id.cast()),
-        (IndexName::ConnectionsByPage, IxKey::Id(id)) => bucket_stamp(ix.connections_by_page(), &id.cast()),
-        (IndexName::ConnectionsByEndpoint, IxKey::Endpoint(e)) => {
-            bucket_stamp(ix.connections_by_endpoint(), &e)
-        }
-        (IndexName::JunctionsByPage, IxKey::Id(id)) => bucket_stamp(ix.junctions_by_page(), &id.cast()),
-        (IndexName::TerminalsByStrip, IxKey::Id(id)) => bucket_stamp(ix.terminals_by_strip(), &id.cast()),
-        (IndexName::ConductorsByCable, IxKey::Id(id)) => bucket_stamp(ix.conductors_by_cable(), &id.cast()),
-        (IndexName::StructureChildren, IxKey::Id(id)) => bucket_stamp(ix.structure_children(), &id.cast()),
-        (IndexName::DeviceChildren, IxKey::Id(id)) => bucket_stamp(ix.device_children(), &id.cast()),
-        (IndexName::PagesBySection, IxKey::Id(id)) => bucket_stamp(ix.pages_by_section(), &id.cast()),
-        (IndexName::PotentialDefsByEndpoint, IxKey::Endpoint(e)) => {
-            bucket_stamp(ix.potential_defs_by_endpoint(), &e)
-        }
-        (IndexName::BondsByEndpoint, IxKey::Endpoint(e)) => bucket_stamp(ix.bonds_by_endpoint(), &e),
-        (IndexName::PageItemsByPage, IxKey::Id(id)) => bucket_stamp(ix.page_items_by_page(), &id.cast()),
-        (IndexName::StructureBoxesByPage, IxKey::Id(id)) => {
-            bucket_stamp(ix.structure_boxes_by_page(), &id.cast())
-        }
-        (IndexName::PlacementsByDevice, IxKey::Id(id)) => bucket_stamp(ix.placements_by_device(), &id.cast()),
-        (IndexName::PlacementsByCarrier, IxKey::Id(id)) => {
-            bucket_stamp(ix.placements_by_carrier(), &id.cast())
-        }
-        (IndexName::CarriersBySurface, IxKey::Id(id)) => bucket_stamp(ix.carriers_by_surface(), &id.cast()),
-        _ => model.rev(),
-    }
-}
-
-/// The stamp of a whole index, as `Q` observes it for `DepKey::Index`.
-fn index_stamp(model: &Model, name: IndexName) -> Rev {
-    let ix = model.indexes();
-    match name {
-        IndexName::FunctionsByDevice => ix.functions_by_device().changed_at(),
-        IndexName::RepsByPage => ix.reps_by_page().changed_at(),
-        IndexName::RepsByFunction => ix.reps_by_function().changed_at(),
-        IndexName::ConnectionsByPage => ix.connections_by_page().changed_at(),
-        IndexName::ConnectionsByEndpoint => ix.connections_by_endpoint().changed_at(),
-        IndexName::JunctionsByPage => ix.junctions_by_page().changed_at(),
-        IndexName::TerminalsByStrip => ix.terminals_by_strip().changed_at(),
-        IndexName::ConductorsByCable => ix.conductors_by_cable().changed_at(),
-        IndexName::StructureChildren => ix.structure_children().changed_at(),
-        IndexName::DeviceChildren => ix.device_children().changed_at(),
-        IndexName::PagesBySection => ix.pages_by_section().changed_at(),
-        IndexName::PotentialDefsByEndpoint => ix.potential_defs_by_endpoint().changed_at(),
-        IndexName::BondsByEndpoint => ix.bonds_by_endpoint().changed_at(),
-        IndexName::PageItemsByPage => ix.page_items_by_page().changed_at(),
-        IndexName::StructureBoxesByPage => ix.structure_boxes_by_page().changed_at(),
-        IndexName::PlacementsByDevice => ix.placements_by_device().changed_at(),
-        IndexName::PlacementsByCarrier => ix.placements_by_carrier().changed_at(),
-        IndexName::CarriersBySurface => ix.carriers_by_surface().changed_at(),
-    }
-}
-
 /// The revision stamp of a tracked read in `model`: exactly what `Q`'s accessor observes for it (the
 /// verifier contract of `tracker.rs`): a row's `changed_at` (the table's for an absent row), a bucket's
 /// `changed_at` (the index's for an absent key), the table's, the index's, the project row's; the number of
 /// assets held for the asset store; the model's revision for the reserved records.
 pub(crate) fn stamp(model: &Model, dep: &DepKey) -> Rev {
     match dep {
+        DepKey::Row(key) if TABLE_KINDS.contains(&key.0) => model
+            .row_changed_at(key)
+            .unwrap_or_else(|| model.table_changed_at(key.0)),
+        DepKey::Table(kind) if TABLE_KINDS.contains(kind) => model.table_changed_at(*kind),
         // A kind without a table has no read in `Q`: the model's revision is the conservative answer.
-        DepKey::Row((kind, id)) => by_kind!(*kind, row_stamp(model, *id), model.rev()),
-        DepKey::Table(kind) => by_kind!(*kind, table_stamp(model), model.rev()),
-        DepKey::IndexKey(name, key) => index_key_stamp(model, *name, *key),
-        DepKey::Index(name) => index_stamp(model, *name),
+        DepKey::Row(_) | DepKey::Table(_) => model.rev(),
+        // A key shape no accessor produces is the model's revision (conservative, like the reserved records).
+        DepKey::IndexKey(name, key) => model.indexes().key_changed_at(*name, *key).unwrap_or(model.rev()),
+        DepKey::Index(name) => model.indexes().changed_at(*name),
         DepKey::Project => model.project_row().changed_at(),
         DepKey::Assets => model.assets_stamp(),
         DepKey::Reserved => model.rev(),
     }
 }
 
-/// Whether a kind is an embedded library copy.
-fn is_library(kind: Kind) -> bool {
-    matches!(
-        kind,
-        Kind::Part
-            | Kind::Symbol
-            | Kind::Fndef
-            | Kind::Form
-            | Kind::Macro
-            | Kind::Manufacturer
-            | Kind::PlcProfile
-    )
-}
-
 /// The durability of a kind's rows and table.
 fn kind_durability(kind: Kind) -> Durability {
     if kind == Kind::Project {
         Durability::Settings
-    } else if is_library(kind) {
+    } else if kind.is_library() {
         Durability::Library
     } else {
         Durability::Drawing
@@ -374,7 +233,7 @@ pub(crate) fn touched(before: &Model, after: &Model, keys: &[AnyKey]) -> (Vec<Me
         for model in [before, after] {
             let Some(row) = model.row(key) else { continue };
             out.extend(page_of(&row).map(MemoInput::Page));
-            for (name, k) in index_keys(&row) {
+            for (name, k) in named_index_keys(&row) {
                 out.push(coarse(model, &MemoInput::Read(DepKey::IndexKey(name, k))));
                 out.push(MemoInput::Read(DepKey::Index(name)));
             }
@@ -392,83 +251,6 @@ fn reserved_changed(before: &Model, after: &Model) -> bool {
     !(std::ptr::eq(a, b) || a == b)
 }
 
-fn by_id<T>(out: &mut Vec<(IndexName, IxKey)>, name: IndexName, id: Id<T>) {
-    out.push((name, IxKey::Id(id.cast())));
-}
-
-fn at(out: &mut Vec<(IndexName, IxKey)>, name: IndexName, e: &Endpoint) {
-    if let Some(key) = EndpointKey::of(e) {
-        out.push((name, IxKey::Endpoint(key)));
-    }
-}
-
-/// The named index keys a row feeds (the hand mirror of `ew-model`'s `LINKS` with an `index`, checked by
-/// the unit tests against `ew-model`'s own bucket stamps).
-fn index_keys(row: &AnyRow) -> Vec<(IndexName, IxKey)> {
-    let mut out = Vec::new();
-    match row {
-        AnyRow::StructureNode(n) => {
-            if let Some(parent) = n.parent {
-                by_id(&mut out, IndexName::StructureChildren, parent);
-            }
-        }
-        AnyRow::Page(p) => {
-            if let Some(section) = p.folio.section {
-                by_id(&mut out, IndexName::PagesBySection, section);
-            }
-        }
-        AnyRow::Device(d) => {
-            if let Some(parent) = d.parent {
-                by_id(&mut out, IndexName::DeviceChildren, parent);
-            }
-            if let Some(terminal) = &d.aspects.terminal {
-                by_id(&mut out, IndexName::TerminalsByStrip, terminal.strip);
-            }
-        }
-        AnyRow::Function(f) => {
-            if let Some(device) = f.device {
-                by_id(&mut out, IndexName::FunctionsByDevice, device);
-            }
-        }
-        AnyRow::Representation(r) => {
-            for f in &r.functions {
-                by_id(&mut out, IndexName::RepsByFunction, *f);
-            }
-            for entry in &r.pin_map {
-                by_id(&mut out, IndexName::RepsByFunction, entry.function);
-            }
-            by_id(&mut out, IndexName::RepsByPage, r.page);
-        }
-        AnyRow::Connection(c) => {
-            at(&mut out, IndexName::ConnectionsByEndpoint, &c.a);
-            at(&mut out, IndexName::ConnectionsByEndpoint, &c.b);
-            if let Some(page) = c.page {
-                by_id(&mut out, IndexName::ConnectionsByPage, page);
-            }
-        }
-        AnyRow::Junction(j) => by_id(&mut out, IndexName::JunctionsByPage, j.page),
-        AnyRow::PageItem(i) => by_id(&mut out, IndexName::PageItemsByPage, i.page),
-        AnyRow::StructureBox(b) => by_id(&mut out, IndexName::StructureBoxesByPage, b.page),
-        AnyRow::Conductor(c) => by_id(&mut out, IndexName::ConductorsByCable, c.cable),
-        AnyRow::PotentialDef(p) => at(&mut out, IndexName::PotentialDefsByEndpoint, &p.at),
-        AnyRow::Bond(b) => {
-            at(&mut out, IndexName::BondsByEndpoint, &b.a);
-            at(&mut out, IndexName::BondsByEndpoint, &b.b);
-        }
-        AnyRow::Placement(p) => {
-            by_id(&mut out, IndexName::PlacementsByDevice, p.device);
-            if let ew_schema::CarrierRef::Carrier(c) = p.carrier {
-                by_id(&mut out, IndexName::PlacementsByCarrier, c);
-            }
-        }
-        AnyRow::Carrier(c) => by_id(&mut out, IndexName::CarriersBySurface, c.surface),
-        _ => {}
-    }
-    out.sort_unstable();
-    out.dedup();
-    out
-}
-
 /// The integration tests' fixture builder, shared with the unit tests below. The `path` is relative to this
 /// file's directory (`src/`): a path attribute inside the inline `tests` module would be resolved against the
 /// non-existent `src/memo_keys/tests/`, which Windows tolerates (lexical `..`) and Linux and macOS do not.
@@ -483,8 +265,12 @@ mod tests {
     use std::rc::Rc;
     use std::sync::Arc;
 
-    use ew_model::{LINKS, Op};
-    use ew_schema::Project;
+    use ew_model::{Entity, Op};
+    use ew_schema::{
+        Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, ImportLineage, Junction, LibCopy,
+        PageItem, Part, PotentialDef, Project, ReportBlock, Representation, Section, StructureBox,
+        StructureNode, SymbolDef,
+    };
     use proptest::collection::vec;
     use proptest::prelude::*;
     use proptest::test_runner::{
@@ -497,6 +283,58 @@ mod tests {
     use crate::tracker::RecordingTracker;
 
     use super::test_common::{Fx, id, uid};
+
+    /// Calls the generic function `$f::<T>(args)` for the entity type `T` of `$kind`, or evaluates `$other` for a
+    /// kind without a table (the project row, reserved kinds): the typed views of `Q` the tests probe.
+    macro_rules! by_kind {
+        ($kind:expr, $f:ident ( $($arg:expr),* ), $other:expr) => {
+            match $kind {
+                Kind::PlcConfigProject => $f::<ew_schema::PlcConfigProject>($($arg),*),
+                Kind::ImportLineage => $f::<ImportLineage>($($arg),*),
+                Kind::StructureNode => $f::<StructureNode>($($arg),*),
+                Kind::Section => $f::<Section>($($arg),*),
+                Kind::ExternalRef => $f::<ExternalRef>($($arg),*),
+                Kind::Page => $f::<Page>($($arg),*),
+                Kind::Device => $f::<Device>($($arg),*),
+                Kind::Function => $f::<Function>($($arg),*),
+                Kind::Representation => $f::<Representation>($($arg),*),
+                Kind::Connection => $f::<Connection>($($arg),*),
+                Kind::Junction => $f::<Junction>($($arg),*),
+                Kind::Conductor => $f::<Conductor>($($arg),*),
+                Kind::Channel => $f::<ew_schema::Channel>($($arg),*),
+                Kind::PotentialDef => $f::<PotentialDef>($($arg),*),
+                Kind::MediumDef => $f::<ew_schema::MediumDef>($($arg),*),
+                Kind::Bond => $f::<Bond>($($arg),*),
+                Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
+                Kind::LogicalNet => $f::<ew_schema::LogicalNet>($($arg),*),
+                Kind::PhysicalNet => $f::<ew_schema::PhysicalNet>($($arg),*),
+                Kind::Medium => $f::<ew_schema::Medium>($($arg),*),
+                Kind::PageItem => $f::<PageItem>($($arg),*),
+                Kind::StructureBox => $f::<StructureBox>($($arg),*),
+                Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
+                Kind::MacroInstance => $f::<ew_schema::MacroInstance>($($arg),*),
+                Kind::LayoutSpace => $f::<ew_schema::LayoutSpace>($($arg),*),
+                Kind::Enclosure => $f::<ew_schema::Enclosure>($($arg),*),
+                Kind::MountingSurface => $f::<ew_schema::MountingSurface>($($arg),*),
+                Kind::Carrier => $f::<ew_schema::Carrier>($($arg),*),
+                Kind::Placement => $f::<ew_schema::Placement>($($arg),*),
+                Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
+                Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
+                Kind::ExchangeRecord => $f::<ew_schema::ExchangeRecord>($($arg),*),
+                Kind::ForeignId => $f::<ew_schema::ForeignId>($($arg),*),
+                Kind::ImportRun => $f::<ew_schema::ImportRun>($($arg),*),
+                Kind::Conflict => $f::<ew_schema::Conflict>($($arg),*),
+                Kind::Part => $f::<LibCopy<Part>>($($arg),*),
+                Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
+                Kind::Fndef => $f::<LibCopy<FnDef>>($($arg),*),
+                Kind::Form => $f::<LibCopy<FormDef>>($($arg),*),
+                Kind::Macro => $f::<LibCopy<ew_schema::MacroDef>>($($arg),*),
+                Kind::Manufacturer => $f::<LibCopy<ew_schema::Manufacturer>>($($arg),*),
+                Kind::PlcProfile => $f::<LibCopy<ew_schema::PlcProfileDef>>($($arg),*),
+                _ => $other,
+            }
+        };
+    }
 
     const FNDEF: u128 = 0x500;
     const SYM: u128 = 0x510;
@@ -970,191 +808,6 @@ mod tests {
         let mut again = after.clone();
         again.put_asset(asset);
         assert_eq!(touched(&after, &again, &[]).0, Vec::new());
-    }
-
-    // -------------------------------------------------------------------------------------------------
-    // index_keys
-
-    /// A row of kind `from` whose link `field` names `t`, and the index key it must feed.
-    fn link_row(from: Kind, field: &str, t: u128) -> (AnyRow, IxKey) {
-        let target = uid(t);
-        let by_id = IxKey::Id(id::<()>(t));
-        let other = json!({"cp": [uid(0x9999), 0]});
-        // Endpoint links `a.cp[0]`, `b.junction` ...: the named side names `t`, the other one a CP.
-        let sides = |field: &str| -> (Value, Value, IxKey) {
-            let (named, key) = if field.ends_with("junction") {
-                (json!({"junction": target}), EndpointKey::Junction(id(t)))
-            } else {
-                (json!({"cp": [target, 3]}), EndpointKey::Cp(id(t), 3))
-            };
-            if field.starts_with('b') {
-                (other.clone(), named, IxKey::Endpoint(key))
-            } else {
-                (named, other.clone(), IxKey::Endpoint(key))
-            }
-        };
-        match (from, field) {
-            (Kind::StructureNode, "parent") => (
-                typed::<StructureNode>(
-                    json!({"id": uid(1), "aspect": "location", "code": "A", "parent": target}),
-                ),
-                by_id,
-            ),
-            (Kind::Page, "folio.section") => (
-                typed::<Page>(json!({
-                    "id": uid(1), "folio": {"number": 1, "section": target}, "kind": "multi_line",
-                    "structure": {}, "title": {"en": "t"}, "grid": {"num": 4_000_000, "den": 1},
-                })),
-                by_id,
-            ),
-            (Kind::Device, "parent") => (
-                typed::<Device>(json!({"id": uid(1), "tag": {"letter": "K"}, "parent": target})),
-                by_id,
-            ),
-            (Kind::Device, "terminal.strip") => (
-                typed::<Device>(json!({
-                    "id": uid(1), "tag": {"letter": "X"},
-                    "terminal": {"strip": target, "seq": 1, "designation": "1"},
-                })),
-                by_id,
-            ),
-            (Kind::Function, "device") => (
-                typed::<Function>(json!({"id": uid(1), "def": uid(FNDEF), "device": target})),
-                by_id,
-            ),
-            (Kind::Representation, "functions[]") => (
-                typed::<Representation>(json!({
-                    "id": uid(1), "functions": [target], "page": uid(2), "symbol": uid(SYM), "pos": [0, 0],
-                })),
-                by_id,
-            ),
-            (Kind::Representation, "pin_map[].function") => (
-                typed::<Representation>(json!({
-                    "id": uid(1), "functions": [], "page": uid(2), "symbol": uid(SYM), "pos": [0, 0],
-                    "pin_map": [{"symbol_cp": 0, "function": target, "idx": 0}],
-                })),
-                by_id,
-            ),
-            (Kind::Representation, "page") => (
-                typed::<Representation>(json!({
-                    "id": uid(1), "functions": [], "page": target, "symbol": uid(SYM), "pos": [0, 0],
-                })),
-                by_id,
-            ),
-            (Kind::Connection, "page") => (
-                typed::<Connection>(json!({
-                    "id": uid(1), "a": other, "b": other, "page": target,
-                })),
-                by_id,
-            ),
-            (Kind::Connection, f @ ("a.cp[0]" | "a.junction" | "b.cp[0]" | "b.junction")) => {
-                let (a, b, key) = sides(f);
-                (typed::<Connection>(json!({"id": uid(1), "a": a, "b": b})), key)
-            }
-            (Kind::Junction, "page") => (
-                typed::<Junction>(json!({
-                    "id": uid(1), "page": target, "at": [0, 0], "style": "dot", "sequence": [],
-                })),
-                by_id,
-            ),
-            (Kind::Conductor, "cable") => (
-                typed::<Conductor>(json!({"id": uid(1), "cable": target, "core": "1"})),
-                by_id,
-            ),
-            (Kind::PotentialDef, f @ ("at.cp[0]" | "at.junction")) => {
-                let (at, _, key) = sides(&format!("a.{}", &f[3..]));
-                (
-                    typed::<PotentialDef>(json!({"id": uid(1), "at": at, "name": "P"})),
-                    key,
-                )
-            }
-            (Kind::Bond, f @ ("a.cp[0]" | "a.junction" | "b.cp[0]" | "b.junction")) => {
-                let (a, b, key) = sides(f);
-                (
-                    typed::<Bond>(json!({"id": uid(1), "a": a, "b": b, "kind": "equipotential"})),
-                    key,
-                )
-            }
-            (Kind::PageItem, "page") => (
-                typed::<ew_schema::PageItem>(json!({
-                    "id": uid(1), "page": target,
-                    "kind": {"graphic": {"shape": {"line": {"a": [0, 0], "b": [1, 0]}}}},
-                })),
-                by_id,
-            ),
-            (Kind::StructureBox, "page") => (
-                typed::<ew_schema::StructureBox>(json!({
-                    "id": uid(1), "page": target, "outline": [[0, 0], [1, 0], [1, 1]], "style": "dotted",
-                    "assigns": {},
-                })),
-                by_id,
-            ),
-            (Kind::Carrier, "surface") => (
-                typed::<ew_schema::Carrier>(json!({
-                    "id": uid(1), "surface": target, "kind": "rail", "path": [[0, 0], [1, 0]],
-                    "params": {"rail": {"profile": "ts35x7_5"}},
-                })),
-                by_id,
-            ),
-            (Kind::Placement, "device") => (
-                typed::<ew_schema::Placement>(json!({
-                    "id": uid(1), "device": target, "carrier": {"surface": uid(0x9998)},
-                    "pose": {"t": [0, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
-                })),
-                by_id,
-            ),
-            (Kind::Placement, "carrier.carrier") => (
-                typed::<ew_schema::Placement>(json!({
-                    "id": uid(1), "device": uid(0x9998), "carrier": {"carrier": target},
-                    "pose": {"t": [0, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
-                })),
-                by_id,
-            ),
-            (kind, field) => panic!("link {kind:?}.{field} has no index_keys case in this test"),
-        }
-    }
-
-    #[test]
-    fn index_keys_cover_every_indexed_link() {
-        let mut seen = Vec::new();
-        for link in LINKS.iter().filter(|l| l.index.is_some()) {
-            let name = link.index.expect("filtered");
-            let (row, key) = link_row(link.from, link.field, 0x7777);
-            let keys = index_keys(&row);
-            assert!(
-                keys.contains(&(name, key)),
-                "{} is not mirrored by index_keys: {keys:?}",
-                link.path()
-            );
-            seen.push(name);
-        }
-        seen.sort_unstable();
-        seen.dedup();
-        assert_eq!(seen, INDEXES.to_vec(), "every named index is fed by some link");
-    }
-
-    #[test]
-    fn index_keys_are_sorted_and_deduplicated() {
-        // `functions` and `pin_map` name the same function and CP twice: one key each.
-        let row = typed::<Representation>(json!({
-            "id": uid(1), "functions": [uid(0x42)], "page": uid(2), "symbol": uid(SYM), "pos": [0, 0],
-            "pin_map": [
-                {"symbol_cp": 0, "function": uid(0x42), "idx": 0},
-                {"symbol_cp": 1, "function": uid(0x42), "idx": 1},
-            ],
-        }));
-        let keys = index_keys(&row);
-        assert_eq!(
-            keys,
-            vec![
-                (IndexName::RepsByPage, IxKey::Id(id(2))),
-                (IndexName::RepsByFunction, IxKey::Id(id(0x42))),
-            ]
-        );
-        let row = typed::<Connection>(json!({
-            "id": uid(1), "a": {"cp": [uid(7), 0]}, "b": {"cp": [uid(7), 0]},
-        }));
-        assert_eq!(index_keys(&row).len(), 1);
     }
 
     // -------------------------------------------------------------------------------------------------

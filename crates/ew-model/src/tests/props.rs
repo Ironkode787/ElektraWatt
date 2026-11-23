@@ -21,13 +21,13 @@ use ew_units::{Nm, Pt2};
 use proptest::prelude::*;
 use serde_json::json;
 
-use crate::entity::{AnyKey, table_keys};
+use crate::entity::table_keys;
 use crate::fixture::{
     DEV_3W1, DEV_101F1, DEV_102F2, FNDEF_CONTACT, FNDEF_MCB, LIBRARY_X, LOC, PAGE_101, PAGE_102, conductor,
     connection, cp, device, fndef_copy_for, function, mini_project, mini_project_parts, part_using, strip,
     structure_node, symbol_using,
 };
-use crate::{AnyRow, ApplyOptions, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
+use crate::{AnyRow, ApplyOptions, BaseIndexes, Entity, Model, ModelError, Op, invert_batch};
 
 // ---------------------------------------------------------------------------------------------------------
 // The abstract plan
@@ -577,42 +577,6 @@ fn step(m: &Model, actions: &[Action], counter: &mut u32) -> (Model, Vec<Op>) {
     (next, ops)
 }
 
-/// The `changed_at` of the row under `key`, `None` if there is none.
-fn changed_at(m: &Model, key: &AnyKey) -> Option<Rev> {
-    fn of<T: Entity>(m: &Model, key: &AnyKey) -> Option<Rev> {
-        m.table::<T>().row(&key.1.cast()).map(|r| r.changed_at())
-    }
-    match key.0 {
-        Kind::ImportLineage => of::<ImportLineage>(m, key),
-        Kind::StructureNode => of::<StructureNode>(m, key),
-        Kind::Section => of::<Section>(m, key),
-        Kind::ExternalRef => of::<ExternalRef>(m, key),
-        Kind::Page => of::<Page>(m, key),
-        Kind::Device => of::<Device>(m, key),
-        Kind::Function => of::<Function>(m, key),
-        Kind::Representation => of::<Representation>(m, key),
-        Kind::Connection => of::<Connection>(m, key),
-        Kind::Junction => of::<Junction>(m, key),
-        Kind::Conductor => of::<Conductor>(m, key),
-        Kind::Channel => of::<ew_schema::Channel>(m, key),
-        Kind::DeviceLink => of::<ew_schema::DeviceLink>(m, key),
-        Kind::LogicalNet => of::<ew_schema::LogicalNet>(m, key),
-        Kind::PhysicalNet => of::<ew_schema::PhysicalNet>(m, key),
-        Kind::PlcConfigProject => of::<ew_schema::PlcConfigProject>(m, key),
-        Kind::Revision => of::<ew_schema::Revision>(m, key),
-        Kind::PotentialDef => of::<PotentialDef>(m, key),
-        Kind::Bond => of::<Bond>(m, key),
-        Kind::ReportBlock => of::<ReportBlock>(m, key),
-        Kind::Project => Some(m.project_row().changed_at()),
-        // A delete plan may remove a library copy once its last referrer is gone.
-        Kind::Part => of::<LibCopy<ew_schema::Part>>(m, key),
-        Kind::Symbol => of::<LibCopy<ew_schema::SymbolDef>>(m, key),
-        Kind::Fndef => of::<LibCopy<ew_schema::FnDef>>(m, key),
-        Kind::Form => of::<LibCopy<ew_schema::FormDef>>(m, key),
-        other => panic!("the generator never touches {other:?}"),
-    }
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // Properties
 
@@ -633,7 +597,7 @@ proptest! {
         prop_assert!(m2.content_eq(&m0));
         for op in &ops {
             let key = op.key();
-            if let Some(stamp) = changed_at(&m2, &key) {
+            if let Some(stamp) = m2.row_changed_at(&key) {
                 prop_assert_eq!(stamp, undo, "{:?} keeps a stale changed_at", key);
             } else {
                 prop_assert!(m0.row(&key).is_none(), "{:?} vanished", key);

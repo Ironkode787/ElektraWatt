@@ -1699,6 +1699,7 @@ dependencies = [
  "ew-units",
  "imbl",
  "proptest",
+ "serde",
  "serde_json",
 ]
 

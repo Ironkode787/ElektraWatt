@@ -21,10 +21,10 @@ use std::sync::Arc;
 
 use common::{Fx, id};
 use ew_derive::{
-    DepKey, DeriveNote, DeviceTag, EW_CORE_018, IxKey, NoteSeverity, Policy, ProfileStatus, Q, Query,
+    DepKey, DeriveNote, DeviceTag, EW_CORE_018, NoteSeverity, Policy, ProfileStatus, Q, Query,
     RecordingTracker, StructureOf,
 };
-use ew_model::{AnyRow, Entity, IndexName, Op, Rev};
+use ew_model::{AnyRow, Entity, IndexName, IxKey, Op, Rev};
 use ew_schema::{Device, Kind, Page};
 use serde_json::json;
 

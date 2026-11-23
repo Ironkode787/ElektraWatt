@@ -143,7 +143,7 @@ pub use asset::Asset;
 pub use diff::{ContentDiff, Presence};
 pub use entity::{AnyKey, AnyRow, Entity, LibraryCopies, TABLE_KINDS};
 pub use error::ModelError;
-pub use index::{BaseIndexes, Bucket, EndpointKey, RevIndex};
+pub use index::{BaseIndexes, Bucket, EndpointKey, IxKey, RevIndex, named_index_keys};
 pub use invariants::{
     CONDUCTOR_CABLE, DEVICE_ACYCLIC, DEVICE_IFF_NOT_IP, DRIVES_TARGET, ENDPOINTS_DIFFER, EXCLUSIVE_ASPECTS,
     FLUID_LINES, FluidMedium, FluidPortClass, INHERITANCE_ACYCLIC, IP_ONE_REPRESENTATION, ITEM_PAGE_EXISTS,

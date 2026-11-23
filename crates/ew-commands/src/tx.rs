@@ -11,9 +11,8 @@ use std::sync::Arc;
 use ew_ids::{EntropyError, Id, IdSource, UnixTime, Uuid, V7Generator};
 use ew_model::{AnyKey, AnyRow, Asset, EndpointKey, Entity, Model, Op, Rev, RowId};
 use ew_schema::{
-    AnyId, AssetError, AssetRef, Bond, Channel, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef,
-    FormDef, Function, ImportLineage, Junction, Kind, LibCopy, MacroInstance, Page, Part, PotentialDef,
-    Project, ReportBlock, Representation, Section, Sha256, StructureNode, SymbolDef,
+    AnyId, AssetError, AssetRef, Bond, Channel, Conductor, Connection, Device, Endpoint, Function, Junction,
+    Kind, MacroInstance, Page, PotentialDef, Project, Representation, Section, Sha256,
 };
 use sha2::Digest;
 
@@ -174,104 +173,31 @@ pub struct ReadSet {
     tables: BTreeSet<Kind>,
 }
 
-/// `changed_at` of a row, kind-erased; `None` when the row does not exist.
+/// The kinds a read set does not stamp (item O1 of the rework's list, to be mended in a stage of its own): a
+/// read row of these kinds counts as never present and a scanned table of them as unchanged, whatever happened
+/// to them.
+const UNSTAMPED: [Kind; 5] = [
+    Kind::Medium,
+    Kind::MediumDef,
+    Kind::ExchangeRecord,
+    Kind::ForeignId,
+    Kind::ImportRun,
+];
+
+/// `changed_at` of a row, kind-erased; `None` when the row does not exist or its kind is [`UNSTAMPED`].
 fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
-    fn at<T: Entity>(model: &Model, id: AnyId) -> Option<Rev> {
-        model.table::<T>().row(&id.cast()).map(|r| r.changed_at())
+    if UNSTAMPED.contains(&key.0) {
+        return None;
     }
-    let (kind, id) = *key;
-    match kind {
-        Kind::Project => {
-            let row = model.project_row();
-            (row.value().id.cast::<()>() == id).then(|| row.changed_at())
-        }
-        Kind::PlcConfigProject => at::<ew_schema::PlcConfigProject>(model, id),
-        Kind::ImportLineage => at::<ImportLineage>(model, id),
-        Kind::StructureNode => at::<StructureNode>(model, id),
-        Kind::Section => at::<Section>(model, id),
-        Kind::ExternalRef => at::<ExternalRef>(model, id),
-        Kind::Page => at::<Page>(model, id),
-        Kind::Device => at::<Device>(model, id),
-        Kind::Function => at::<Function>(model, id),
-        Kind::Representation => at::<Representation>(model, id),
-        Kind::Connection => at::<Connection>(model, id),
-        Kind::Junction => at::<Junction>(model, id),
-        Kind::Conductor => at::<Conductor>(model, id),
-        Kind::Channel => at::<ew_schema::Channel>(model, id),
-        Kind::PotentialDef => at::<PotentialDef>(model, id),
-        Kind::Bond => at::<Bond>(model, id),
-        Kind::DeviceLink => at::<ew_schema::DeviceLink>(model, id),
-        Kind::LogicalNet => at::<ew_schema::LogicalNet>(model, id),
-        Kind::PhysicalNet => at::<ew_schema::PhysicalNet>(model, id),
-        Kind::PageItem => at::<ew_schema::PageItem>(model, id),
-        Kind::StructureBox => at::<ew_schema::StructureBox>(model, id),
-        Kind::ReportBlock => at::<ReportBlock>(model, id),
-        Kind::MacroInstance => at::<ew_schema::MacroInstance>(model, id),
-        Kind::LayoutSpace => at::<ew_schema::LayoutSpace>(model, id),
-        Kind::Enclosure => at::<ew_schema::Enclosure>(model, id),
-        Kind::MountingSurface => at::<ew_schema::MountingSurface>(model, id),
-        Kind::Carrier => at::<ew_schema::Carrier>(model, id),
-        Kind::Placement => at::<ew_schema::Placement>(model, id),
-        Kind::Revision => at::<ew_schema::Revision>(model, id),
-        Kind::Waiver => at::<ew_schema::Waiver>(model, id),
-        Kind::Conflict => at::<ew_schema::Conflict>(model, id),
-        Kind::Part => at::<LibCopy<Part>>(model, id),
-        Kind::Symbol => at::<LibCopy<SymbolDef>>(model, id),
-        Kind::Fndef => at::<LibCopy<FnDef>>(model, id),
-        Kind::Form => at::<LibCopy<FormDef>>(model, id),
-        Kind::Macro => at::<LibCopy<ew_schema::MacroDef>>(model, id),
-        Kind::Manufacturer => at::<LibCopy<ew_schema::Manufacturer>>(model, id),
-        Kind::PlcProfile => at::<LibCopy<ew_schema::PlcProfileDef>>(model, id),
-        _ => None,
-    }
+    model.row_changed_at(key)
 }
 
-/// `changed_at` of a whole table; kinds without a table never change.
+/// `changed_at` of a whole table; kinds without a table and the [`UNSTAMPED`] kinds never change.
 fn table_changed_at(model: &Model, kind: Kind) -> Rev {
-    fn at<T: Entity>(model: &Model) -> Rev {
-        model.table::<T>().changed_at()
+    if UNSTAMPED.contains(&kind) {
+        return Rev::ZERO;
     }
-    match kind {
-        Kind::Project => model.project_row().changed_at(),
-        Kind::PlcConfigProject => at::<ew_schema::PlcConfigProject>(model),
-        Kind::ImportLineage => at::<ImportLineage>(model),
-        Kind::StructureNode => at::<StructureNode>(model),
-        Kind::Section => at::<Section>(model),
-        Kind::ExternalRef => at::<ExternalRef>(model),
-        Kind::Page => at::<Page>(model),
-        Kind::Device => at::<Device>(model),
-        Kind::Function => at::<Function>(model),
-        Kind::Representation => at::<Representation>(model),
-        Kind::Connection => at::<Connection>(model),
-        Kind::Junction => at::<Junction>(model),
-        Kind::Conductor => at::<Conductor>(model),
-        Kind::Channel => at::<ew_schema::Channel>(model),
-        Kind::PotentialDef => at::<PotentialDef>(model),
-        Kind::Bond => at::<Bond>(model),
-        Kind::DeviceLink => at::<ew_schema::DeviceLink>(model),
-        Kind::LogicalNet => at::<ew_schema::LogicalNet>(model),
-        Kind::PhysicalNet => at::<ew_schema::PhysicalNet>(model),
-        Kind::PageItem => at::<ew_schema::PageItem>(model),
-        Kind::StructureBox => at::<ew_schema::StructureBox>(model),
-        Kind::ReportBlock => at::<ReportBlock>(model),
-        Kind::MacroInstance => at::<ew_schema::MacroInstance>(model),
-        Kind::LayoutSpace => at::<ew_schema::LayoutSpace>(model),
-        Kind::Enclosure => at::<ew_schema::Enclosure>(model),
-        Kind::MountingSurface => at::<ew_schema::MountingSurface>(model),
-        Kind::Carrier => at::<ew_schema::Carrier>(model),
-        Kind::Placement => at::<ew_schema::Placement>(model),
-        Kind::Revision => at::<ew_schema::Revision>(model),
-        Kind::Waiver => at::<ew_schema::Waiver>(model),
-        Kind::Conflict => at::<ew_schema::Conflict>(model),
-        Kind::Part => at::<LibCopy<Part>>(model),
-        Kind::Symbol => at::<LibCopy<SymbolDef>>(model),
-        Kind::Fndef => at::<LibCopy<FnDef>>(model),
-        Kind::Form => at::<LibCopy<FormDef>>(model),
-        Kind::Macro => at::<LibCopy<ew_schema::MacroDef>>(model),
-        Kind::Manufacturer => at::<LibCopy<ew_schema::Manufacturer>>(model),
-        Kind::PlcProfile => at::<LibCopy<ew_schema::PlcProfileDef>>(model),
-        _ => Rev::ZERO,
-    }
+    model.table_changed_at(kind)
 }
 
 impl ReadSet {
@@ -1105,6 +1031,74 @@ mod tests {
                 assert_eq!(link.kind_erased, ew_model::MACRO_MEMBER_KINDS);
             }
         }
+    }
+
+    /// Item O1: a read set notices a change of every table kind's rows and tables but five, which it counts as
+    /// unchanged (tables) or never present (rows) whatever happened to them.
+    #[test]
+    fn a_read_set_stamps_every_table_kind_but_the_five_of_item_o1() {
+        let project = serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+        )
+        .expect("project");
+        let model = Model::new(project);
+        // An op that removes no row still stamps its table: every table changes at revision 1.
+        let touch_every_table: Vec<Op> = ew_model::TABLE_KINDS
+            .iter()
+            .map(|kind| Op::Put {
+                key: first_key(*kind),
+                before: None,
+                after: None,
+            })
+            .collect();
+        let changed = model
+            .apply_history(&touch_every_table, Rev(1))
+            .expect("touch every table");
+        let unstamped: Vec<Kind> = ew_model::TABLE_KINDS
+            .iter()
+            .copied()
+            .filter(|kind| {
+                let reads = ReadSet {
+                    tables: BTreeSet::from([*kind]),
+                    ..ReadSet::default()
+                };
+                reads.unchanged_since(&changed, Rev::ZERO)
+            })
+            .collect();
+        let o1 = [
+            Kind::Medium,
+            Kind::MediumDef,
+            Kind::ExchangeRecord,
+            Kind::ForeignId,
+            Kind::ImportRun,
+        ];
+        assert_eq!(unstamped, o1);
+
+        // Rows: an unchanged structure node reads as unchanged; an unchanged medium reads as gone.
+        let node: ew_schema::Record = serde_json::from_str(
+            r#"{"$k":"structure_node","id":"019a4f00-0000-7000-8000-000000000001","aspect":"function","code":"P01"}"#,
+        )
+        .expect("structure node");
+        let medium: ew_schema::Record = serde_json::from_str(
+            r#"{"$k":"medium","id":"019a4f00-0000-7000-8000-000000000002","name":{"en-GB":"air"},"p_nom":"6"}"#,
+        )
+        .expect("medium");
+        let rows: Vec<AnyRow> = [node, medium]
+            .into_iter()
+            .map(|r| AnyRow::from_record(r).expect("a record with a table"))
+            .collect();
+        let with_rows = changed
+            .apply_history(&rows.iter().cloned().map(Op::insert).collect::<Vec<_>>(), Rev(2))
+            .expect("insert the rows");
+        let unchanged_row = |row: &AnyRow| {
+            ReadSet {
+                rows: BTreeMap::from([(row.key(), true)]),
+                ..ReadSet::default()
+            }
+            .unchanged_since(&with_rows, Rev(2))
+        };
+        assert!(unchanged_row(&rows[0]));
+        assert!(!unchanged_row(&rows[1]));
     }
 
     #[cfg(debug_assertions)]

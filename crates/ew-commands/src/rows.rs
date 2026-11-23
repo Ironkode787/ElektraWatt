@@ -19,57 +19,10 @@ use crate::error::CmdError;
 /// The JSON form of a row: the record's serde form (for records, without `$k`; the key carries the kind).
 /// A record without a JSON form is [`CmdError::Internal`] naming its key.
 pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
-    fn v<T: serde::Serialize>(t: &T, row: &AnyRow) -> Result<Value, CmdError> {
-        serde_json::to_value(t).map_err(|e| {
-            let (kind, id) = row.key();
-            CmdError::internal(format!("the record {kind}:{id} has no JSON form ({e})"))
-        })
-    }
-    match row {
-        AnyRow::Project(r) => v(&**r, row),
-        AnyRow::PlcConfigProject(r) => v(&**r, row),
-        AnyRow::ImportLineage(r) => v(&**r, row),
-        AnyRow::StructureNode(r) => v(&**r, row),
-        AnyRow::Section(r) => v(&**r, row),
-        AnyRow::ExternalRef(r) => v(&**r, row),
-        AnyRow::Page(r) => v(&**r, row),
-        AnyRow::Device(r) => v(&**r, row),
-        AnyRow::Function(r) => v(&**r, row),
-        AnyRow::Representation(r) => v(&**r, row),
-        AnyRow::Connection(r) => v(&**r, row),
-        AnyRow::Junction(r) => v(&**r, row),
-        AnyRow::Conductor(r) => v(&**r, row),
-        AnyRow::Channel(r) => v(&**r, row),
-        AnyRow::PotentialDef(r) => v(&**r, row),
-        AnyRow::MediumDef(r) => v(&**r, row),
-        AnyRow::Bond(r) => v(&**r, row),
-        AnyRow::DeviceLink(r) => v(&**r, row),
-        AnyRow::LogicalNet(r) => v(&**r, row),
-        AnyRow::PhysicalNet(r) => v(&**r, row),
-        AnyRow::Medium(r) => v(&**r, row),
-        AnyRow::PageItem(r) => v(&**r, row),
-        AnyRow::StructureBox(r) => v(&**r, row),
-        AnyRow::ReportBlock(r) => v(&**r, row),
-        AnyRow::MacroInstance(r) => v(&**r, row),
-        AnyRow::LayoutSpace(r) => v(&**r, row),
-        AnyRow::Enclosure(r) => v(&**r, row),
-        AnyRow::MountingSurface(r) => v(&**r, row),
-        AnyRow::Carrier(r) => v(&**r, row),
-        AnyRow::Placement(r) => v(&**r, row),
-        AnyRow::Revision(r) => v(&**r, row),
-        AnyRow::Waiver(r) => v(&**r, row),
-        AnyRow::ExchangeRecord(r) => v(&**r, row),
-        AnyRow::ForeignId(r) => v(&**r, row),
-        AnyRow::ImportRun(r) => v(&**r, row),
-        AnyRow::Conflict(r) => v(&**r, row),
-        AnyRow::Part(r) => v(&**r, row),
-        AnyRow::Symbol(r) => v(&**r, row),
-        AnyRow::Fndef(r) => v(&**r, row),
-        AnyRow::Form(r) => v(&**r, row),
-        AnyRow::Macro(r) => v(&**r, row),
-        AnyRow::Manufacturer(r) => v(&**r, row),
-        AnyRow::PlcProfile(r) => v(&**r, row),
-    }
+    row.to_json().map_err(|e| {
+        let (kind, id) = row.key();
+        CmdError::internal(format!("the record {kind}:{id} has no JSON form ({e})"))
+    })
 }
 
 /// The compact JSON text of a row (its canonical bytes, up to the leading `$k`).

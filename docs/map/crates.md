@@ -730,7 +730,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 | `src/tests/mod.rs` |  | In-crate tests: they see the crate-private internals (tables, scopes) and share the `mini_project()` fixture of `crate::fixture`. |
 | `src/tests/ops.rs` | large | Tests of the op layer, the delete plans (FR-DEV-030, doc 03 §4.2), loading and snapshots. |
 | `src/tests/plc_links.rs` |  | The links of the PLC records (doc 03 §4.2, §13; doc 10 §2.2–§2.4): `channel.module` cascades, `channel.binding` and `channel.target` unlink, `device_link.from`/`to` cascade, `device.plc_station.config_project` forbids and `plc_config_project.cpu` unlinks. |
-| `src/tests/props.rs` | large | Property tests of the model (doc 18 §3.3, §3.5): undo, maintained indexes and load order. |
+| `src/tests/props.rs` |  | Property tests of the model (doc 18 §3.3, §3.5): undo, maintained indexes and load order. |
 
 ## ew-plc
 

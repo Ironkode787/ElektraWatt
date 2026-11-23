@@ -250,24 +250,26 @@ pub struct BaseIndexes {
     pub(crate) referrers: RevIndex<AnyKey, (LinkId, AnyId)>,
 }
 
-/// The key part of one index entry.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
-enum IxKey {
+/// The key of one bucket of a named index.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum IxKey {
+    /// A record ID (`reps_by_page(page)` …).
     Id(AnyId),
-    Ep(EndpointKey),
+    /// An endpoint (`connections_at_cp(f, idx)` …).
+    Endpoint(EndpointKey),
 }
 
 impl IxKey {
     fn id(self) -> AnyId {
         match self {
             IxKey::Id(id) => id,
-            IxKey::Ep(e) => e.target().1,
+            IxKey::Endpoint(e) => e.target().1,
         }
     }
 
     fn ep(self) -> EndpointKey {
         match self {
-            IxKey::Ep(e) => e,
+            IxKey::Endpoint(e) => e,
             IxKey::Id(_) => unreachable!("endpoint index fed by a non-endpoint link"),
         }
     }
@@ -302,7 +304,7 @@ fn row_entries(row: &AnyRow) -> BTreeSet<IxEntry> {
                         Target::Cp(f, idx) => EndpointKey::Cp(f.cast(), idx),
                         Target::Id(j) => EndpointKey::Junction(j.cast()),
                     };
-                    IxEntry::Named(name, IxKey::Ep(key), source)
+                    IxEntry::Named(name, IxKey::Endpoint(key), source)
                 }
                 Some(name) => IxEntry::Named(name, IxKey::Id(t.id()), source),
                 None => IxEntry::Referrer((link.to, t.id()), link_id, source),
@@ -310,6 +312,23 @@ fn row_entries(row: &AnyRow) -> BTreeSet<IxEntry> {
         }
     }
     out
+}
+
+/// The buckets of the named indexes a row feeds, sorted and deduplicated (its entries in [`LINKS`] with an
+/// index).
+pub fn named_index_keys(row: &AnyRow) -> Vec<(IndexName, IxKey)> {
+    row_entries(row)
+        .into_iter()
+        .filter_map(|e| match e {
+            IxEntry::Named(name, key, _) => Some((name, key)),
+            IxEntry::Referrer(..) => None,
+        })
+        .collect()
+}
+
+/// The revision that last changed the bucket of `key`, the index's when it has none.
+fn bucket<K: Ord + Clone, V: Ord + Clone>(ix: &RevIndex<K, V>, key: &K) -> Rev {
+    ix.key_changed_at(key).unwrap_or(ix.changed_at())
 }
 
 impl BaseIndexes {
@@ -445,6 +464,64 @@ impl BaseIndexes {
         /// `(link position in LINKS, referrer ID)`.
         fn referrers(&self) -> &RevIndex<AnyKey, (LinkId, AnyId)> {
             &self.referrers
+        }
+    }
+
+    raw_read! {
+        /// The revision that last changed a named index.
+        fn changed_at(&self, name: IndexName) -> Rev {
+            match name {
+                IndexName::FunctionsByDevice => self.functions_by_device.changed_at(),
+                IndexName::RepsByPage => self.reps_by_page.changed_at(),
+                IndexName::RepsByFunction => self.reps_by_function.changed_at(),
+                IndexName::ConnectionsByPage => self.connections_by_page.changed_at(),
+                IndexName::ConnectionsByEndpoint => self.connections_by_endpoint.changed_at(),
+                IndexName::JunctionsByPage => self.junctions_by_page.changed_at(),
+                IndexName::TerminalsByStrip => self.terminals_by_strip.changed_at(),
+                IndexName::ConductorsByCable => self.conductors_by_cable.changed_at(),
+                IndexName::StructureChildren => self.structure_children.changed_at(),
+                IndexName::DeviceChildren => self.device_children.changed_at(),
+                IndexName::PagesBySection => self.pages_by_section.changed_at(),
+                IndexName::PotentialDefsByEndpoint => self.potential_defs_by_endpoint.changed_at(),
+                IndexName::BondsByEndpoint => self.bonds_by_endpoint.changed_at(),
+                IndexName::PageItemsByPage => self.page_items_by_page.changed_at(),
+                IndexName::StructureBoxesByPage => self.structure_boxes_by_page.changed_at(),
+                IndexName::PlacementsByDevice => self.placements_by_device.changed_at(),
+                IndexName::PlacementsByCarrier => self.placements_by_carrier.changed_at(),
+                IndexName::CarriersBySurface => self.carriers_by_surface.changed_at(),
+            }
+        }
+    }
+
+    raw_read! {
+        /// The revision that last changed the bucket of `key` in a named index, the index's when it holds no such
+        /// bucket; `None` for a key of the other shape (an endpoint for an index keyed by ID, or the reverse).
+        fn key_changed_at(&self, name: IndexName, key: IxKey) -> Option<Rev> {
+            Some(match (name, key) {
+                (IndexName::FunctionsByDevice, IxKey::Id(id)) => bucket(&self.functions_by_device, &id.cast()),
+                (IndexName::RepsByPage, IxKey::Id(id)) => bucket(&self.reps_by_page, &id.cast()),
+                (IndexName::RepsByFunction, IxKey::Id(id)) => bucket(&self.reps_by_function, &id.cast()),
+                (IndexName::ConnectionsByPage, IxKey::Id(id)) => bucket(&self.connections_by_page, &id.cast()),
+                (IndexName::ConnectionsByEndpoint, IxKey::Endpoint(e)) => bucket(&self.connections_by_endpoint, &e),
+                (IndexName::JunctionsByPage, IxKey::Id(id)) => bucket(&self.junctions_by_page, &id.cast()),
+                (IndexName::TerminalsByStrip, IxKey::Id(id)) => bucket(&self.terminals_by_strip, &id.cast()),
+                (IndexName::ConductorsByCable, IxKey::Id(id)) => bucket(&self.conductors_by_cable, &id.cast()),
+                (IndexName::StructureChildren, IxKey::Id(id)) => bucket(&self.structure_children, &id.cast()),
+                (IndexName::DeviceChildren, IxKey::Id(id)) => bucket(&self.device_children, &id.cast()),
+                (IndexName::PagesBySection, IxKey::Id(id)) => bucket(&self.pages_by_section, &id.cast()),
+                (IndexName::PotentialDefsByEndpoint, IxKey::Endpoint(e)) => {
+                    bucket(&self.potential_defs_by_endpoint, &e)
+                }
+                (IndexName::BondsByEndpoint, IxKey::Endpoint(e)) => bucket(&self.bonds_by_endpoint, &e),
+                (IndexName::PageItemsByPage, IxKey::Id(id)) => bucket(&self.page_items_by_page, &id.cast()),
+                (IndexName::StructureBoxesByPage, IxKey::Id(id)) => {
+                    bucket(&self.structure_boxes_by_page, &id.cast())
+                }
+                (IndexName::PlacementsByDevice, IxKey::Id(id)) => bucket(&self.placements_by_device, &id.cast()),
+                (IndexName::PlacementsByCarrier, IxKey::Id(id)) => bucket(&self.placements_by_carrier, &id.cast()),
+                (IndexName::CarriersBySurface, IxKey::Id(id)) => bucket(&self.carriers_by_surface, &id.cast()),
+                _ => return None,
+            })
         }
     }
 

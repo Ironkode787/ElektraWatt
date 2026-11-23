@@ -231,7 +231,7 @@ pub use title_block::{
     open_revision, recorded_changed_pages, revision_label_key,
 };
 pub use toc::{TocRow, TocRows};
-pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
+pub use tracker::{ColdTracker, DepKey, Recorded, RecordingTracker, Tracker};
 pub use valve_cells::{
     BAND_TOP, CELL_STEPS, END_STEPS, GALLERY_PORTS, HEIGHT_STEPS, PlugPin, SlotFrame, ValveCell, box_frame,
     device_fits_terminal, fits_terminal, graphics_x_extent, is_fluid_terminal, is_multipin_terminal,
