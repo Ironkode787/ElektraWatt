@@ -967,7 +967,8 @@ case-folded, is a substring of its folio or its title, and the parents of a matc
 `f:<text>/l:<text>/s:<n>`, `f:-`, `l:-`, and `<parent key>/p:<page uuid>` for a page) because a location or a section
 repeats under different parents, so a key is unique in every view. **Keys:** Up and Down move the row cursor, Left
 collapses (or moves to the parent), Right expands, Home and End go to the first and last row, Enter opens the page in
-the focused tab as a jump, Ctrl+Enter in a new tab; a click opens, a middle click opens in a new tab. Rows are drawn
+the focused tab as a jump, Ctrl+Enter in a new tab; a click opens, a middle click opens in a new tab. A page opened
+from the list takes the keyboard focus, so a tool's key works on it at once (0.3.5). Rows are drawn
 with row virtualisation. **Accessibility** (§10.1): the list is a `Tree`; a page row is a `TreeItem` named `<folio>
 <title>, page, <badges>` and a node a `TreeItem` named `<label>, <section|function|location>`; the level, the position
 in the set, the set size and the expanded state are AccessKit's own properties, which a screen reader speaks in its own

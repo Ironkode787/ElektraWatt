@@ -1636,11 +1636,21 @@ impl ShellModel {
             let out = self.area_op(|a| a.open(page, g), "");
             if out == Outcome::Done {
                 self.show(g, page, Arrival::Remembered);
+                self.focus_opened_page();
             }
             return out;
         }
         self.jump(g, page, None, CursorAt::None);
+        self.focus_opened_page();
         Outcome::Done
+    }
+
+    /// The keyboard focus on the page a page row opened, so that a tool's key works at once (a persona pressed W after
+    /// opening a page from the list and the list, which kept the focus, refused it).
+    fn focus_opened_page(&mut self) {
+        if let Some(g) = self.area.as_ref().map(|a| a.focused) {
+            self.focus = Some(Focus::Canvas(g));
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------
