@@ -903,7 +903,10 @@ fn route_routes_a_selected_wire_again_and_leaves_his_route_alone_otherwise() {
     // It says that the selection was the scope, and how to route the page (a persona run had to guess).
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(said.starts_with("Routed 1 selected wire: "), "{said}");
-    assert!(said.ends_with(" Select nothing to route the whole page."), "{said}");
+    assert!(
+        said.ends_with(" Select nothing to route the whole page."),
+        "{said}"
+    );
     let after = tables(&s);
     let now = after
         .connections

@@ -33,6 +33,7 @@ fn a_wire_that_makes_an_error_says_so() {
         toast.text.starts_with("The wire makes an error: ") && !toast.text.ends_with(".."),
         "{}",
         toast.text
-    );    assert_eq!(toast.tone(), NoteTone::Error);
+    );
+    assert_eq!(toast.tone(), NoteTone::Error);
     assert_eq!(toast.action(), Some(NoteAction::Undo));
 }

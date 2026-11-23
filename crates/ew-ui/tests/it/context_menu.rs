@@ -158,10 +158,15 @@ fn a_terminals_menu_is_as_wide_as_its_widest_entry() {
     let terminal = find_rep(&mut h, &|id, _| id == "tool.place_terminal");
     let at = point_on(&h, &terminal);
     right_click(&mut h, at);
-    let rows: Vec<egui::Rect> = ["Add terminal", "Renumber devices", "Name the terminal strip here", "Copy"]
-        .iter()
-        .map(|l| entry(&h, at, l).rect())
-        .collect();
+    let rows: Vec<egui::Rect> = [
+        "Add terminal",
+        "Renumber devices",
+        "Name the terminal strip here",
+        "Copy",
+    ]
+    .iter()
+    .map(|l| entry(&h, at, l).rect())
+    .collect();
     assert!(
         rows.iter().all(|r| (r.height() - rows[0].height()).abs() < 0.5),
         "every label on one line: {rows:?}"

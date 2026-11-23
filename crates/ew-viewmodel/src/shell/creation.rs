@@ -416,7 +416,8 @@ pub(super) fn report_kind_found(query: &str, uses: usize, enabled: bool) -> Opti
     report_kinds()
         .into_iter()
         .filter_map(|k| {
-            let search = strings::lookup(&format!("report-kind-{}-words", k.replace('_', "-"))).unwrap_or_default();
+            let search =
+                strings::lookup(&format!("report-kind-{}-words", k.replace('_', "-"))).unwrap_or_default();
             let aliases = search.split(',').map(str::trim).filter(|w| !w.is_empty());
             crate::palette::rank(query, "", aliases, &report_kind_words(k), uses, enabled).map(|r| (r, k))
         })

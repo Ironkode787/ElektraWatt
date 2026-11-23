@@ -39,9 +39,7 @@ fn the_arrange_cards_rows_scroll_under_the_wheel() {
     h.run_ok();
     h.event(press(below, false));
     settle(&mut h);
-    let pane = h
-        .get_by_role_and_label(egui::Role::Group, "Preview")
-        .rect();
+    let pane = h.get_by_role_and_label(egui::Role::Group, "Preview").rect();
     // The top of the card's first row, where the pane shows one.
     let first = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
         h.query_all_by_role(egui::Role::CheckBox)

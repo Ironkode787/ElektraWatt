@@ -320,7 +320,11 @@ fn a_cut_read_only_value_shows_whole_in_its_tooltip() {
     // A label's text is its node's value.
     let cell = h
         .get_all_by_role(egui::Role::Label)
-        .find(|n| n.accesskit_node().value().is_some_and(|l| l.starts_with("Default: ")))
+        .find(|n| {
+            n.accesskit_node()
+                .value()
+                .is_some_and(|l| l.starts_with("Default: "))
+        })
         .expect("the Frames row's value");
     let value = cell.accesskit_node().value().unwrap_or_default();
     cell.hover();

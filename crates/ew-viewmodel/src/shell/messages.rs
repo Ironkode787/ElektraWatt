@@ -170,8 +170,15 @@ impl ShellModel {
             .check(project.session.online_scheme(), CheckMode::Online)
             .findings
             .iter()
-            .filter(|f| matches!(f.state, FindingState::Open) && f.severity == ew_api::checks::Severity::Error)
-            .map(|f| (f.fingerprint.to_string(), ew_api::checks::messages::render(f, lang)))
+            .filter(|f| {
+                matches!(f.state, FindingState::Open) && f.severity == ew_api::checks::Severity::Error
+            })
+            .map(|f| {
+                (
+                    f.fingerprint.to_string(),
+                    ew_api::checks::messages::render(f, lang),
+                )
+            })
             .collect()
     }
 
