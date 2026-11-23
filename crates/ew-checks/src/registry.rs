@@ -4,11 +4,14 @@
 //! The registry of shipped Rust rules (ADR-0019 amendment 7: `ew-checks` owns the rule-implementation
 //! registry). One list, in rule-ID order; the tests check IDs, codes and families against doc 15 §2.2.
 
+use std::sync::LazyLock;
+
 use crate::rule::Rule;
 use crate::rules as shipped;
 
-/// Every shipped rule implementation, in rule-ID order.
-static RULES: &[&dyn Rule] = &[
+/// The shipped rule implementations with a type of their own, in rule-ID order; the EW-IMP rules join them in
+/// [`RULES`].
+static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::bus::BusAddress,
     &shipped::bus_net::AddressRange,
     &shipped::bus_net::Profinet,
@@ -72,39 +75,6 @@ static RULES: &[&dyn Rule] = &[
     &shipped::fluid_media::PortRoleConflict,
     &shipped::fluid::Occupancy,
     &shipped::fluid_media::LocationCrossing,
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[0]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[1]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[2]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[3]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[4]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[5]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[6]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[7]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[8]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[9]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[10]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[11]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[12]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[13]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[14]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[15]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[16]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[17]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[18]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[19]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[20]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[21]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[22]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[23]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[24]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[25]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[26]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[27]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[28]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[29]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[30]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[31]),
-    &shipped::imp::ImportEntries(&shipped::imp::IMP[32]),
     &shipped::iolink::PortClassRule,
     &shipped::iolink::Limits,
     &shipped::layout::UnplacedDevice,
@@ -172,9 +142,18 @@ static RULES: &[&dyn Rule] = &[
     &shipped::term::TerminalOnUnjoinedWire,
 ];
 
+/// Every shipped rule implementation, in rule-ID order: [`IMPLEMENTED`] and one rule per code of
+/// [`shipped::imp::IMP`].
+static RULES: LazyLock<Vec<&'static dyn Rule>> = LazyLock::new(|| {
+    let mut rules: Vec<&'static dyn Rule> = IMPLEMENTED.to_vec();
+    rules.extend(shipped::imp::IMP_RULES.iter().map(|r| r as &dyn Rule));
+    rules.sort_by_key(|r| r.meta().id);
+    rules
+});
+
 /// Every shipped rule implementation, in rule-ID order.
 pub fn rules() -> &'static [&'static dyn Rule] {
-    RULES
+    RULES.as_slice()
 }
 
 /// The shipped rule with this ID.
@@ -185,24 +164,6 @@ pub fn rule(id: &str) -> Option<&'static dyn Rule> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// The family table of doc 15 §2.2 for the families with shipped rules: class and code offset.
-    const FAMILIES: &[(&str, &str, u32)] = &[
-        ("TERM", "EW-TERM", 0),
-        ("POT", "EW-POT", 0),
-        ("PLC", "EW-PLC", 0),
-        ("SAF", "EW-PLC", 100),
-        ("PRC", "EW-PLC", 200),
-        ("BUS", "EW-BUS", 0),
-        ("IOL", "EW-BUS", 100),
-        ("RDS", "EW-IEC81346", 0),
-        ("NUM", "EW-IEC81346", 100),
-        ("CORE", "EW-CORE", 0),
-        ("REL", "EW-REL", 0),
-        ("LAY", "EW-LAYOUT", 0),
-        ("FL", "EW-FL", 0),
-        ("IMP", "EW-IMP", 0),
-    ];
 
     /// The class of an EW-CORE number block (doc 15 §2.2).
     fn core_class(n: u32) -> &'static str {
@@ -248,18 +209,17 @@ mod tests {
         codes.sort_unstable();
         codes.dedup();
         assert_eq!(codes.len(), RULES.len(), "codes are unique");
-        for r in RULES {
+        for r in RULES.iter() {
             let m = r.meta();
             let parts: Vec<&str> = m.id.split('-').collect();
             assert_eq!(parts.len(), 3, "{}", m.id);
             assert_eq!(parts[0], "EW", "{}", m.id);
             assert_eq!(parts[2].len(), 3, "{}", m.id);
             let n: u32 = parts[2].parse().expect("a three-digit number");
-            let (_, pack, offset) = FAMILIES
+            let (_, _, offset) = crate::rule::FAMILIES
                 .iter()
                 .find(|(f, _, _)| *f == parts[1])
                 .unwrap_or_else(|| panic!("{}: family not in the table", m.id));
-            assert_eq!(m.pack, *pack, "{}", m.id);
             assert_eq!(
                 m.code,
                 format!("{}{:03}", class_of(parts[1], n), n + offset),
@@ -272,40 +232,5 @@ mod tests {
             }
         }
         assert!(rule("EW-NOPE-001").is_none());
-    }
-
-    /// T5: the refusal of a rule whose `docs` is not its page `reference/rules/<id in lower case>`.
-    fn docs_refusal(m: &crate::rule::RuleMeta) -> Option<String> {
-        let page = format!("reference/rules/{}", m.id.to_lowercase());
-        (m.docs != page).then(|| {
-            format!(
-                "{}: docs \"{}\" is not the rule's page {page} (FR-CHK-015)",
-                m.id, m.docs
-            )
-        })
-    }
-
-    /// FR-CHK-015: every shipped rule, the integrity rules of opening a project included, declares the reference of
-    /// its page of the user guide, and a wrong one is refused in words (T5).
-    #[test]
-    fn every_rule_declares_its_documentation_page() {
-        let refused: Vec<String> = RULES
-            .iter()
-            .map(|r| r.meta())
-            .chain(crate::rules::core::INTEGRITY)
-            .filter_map(docs_refusal)
-            .collect();
-        assert_eq!(refused, Vec::<String>::new());
-        let wrong = crate::rule::RuleMeta {
-            docs: "reference/rules/ew-core",
-            ..crate::rules::core::CABLE_WITHOUT_LENGTH
-        };
-        assert_eq!(
-            docs_refusal(&wrong).as_deref(),
-            Some(
-                "EW-CORE-033: docs \"reference/rules/ew-core\" is not the rule's page reference/rules/ew-core-033 \
-                 (FR-CHK-015)"
-            )
-        );
     }
 }

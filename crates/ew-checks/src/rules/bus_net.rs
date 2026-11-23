@@ -75,7 +75,6 @@ fn net_name(q: &Q, net: Id<LogicalNet>) -> String {
 pub const ADDRESS_RANGE: RuleMeta = RuleMeta {
     id: "EW-BUS-002",
     code: "111002",
-    pack: "EW-BUS",
     title: "Address outside the range",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -84,7 +83,6 @@ pub const ADDRESS_RANGE: RuleMeta = RuleMeta {
     scope: ScopeKind::Lnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-002",
 };
 
 /// The PROFIBUS DP station addresses (0–125, doc 10 §3.8), unverified: a warning at most.
@@ -142,7 +140,6 @@ impl Rule for AddressRange {
 pub const PROFINET: RuleMeta = RuleMeta {
     id: "EW-BUS-003",
     code: "111003",
-    pack: "EW-BUS",
     title: "PROFINET name or IP",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -151,7 +148,6 @@ pub const PROFINET: RuleMeta = RuleMeta {
     scope: ScopeKind::Lnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-003",
 };
 
 /// Whether `name` is a DNS-compatible PROFINET device name (IEC 61158-6-10, unverified): at most 240 characters, labels
@@ -296,7 +292,6 @@ impl Rule for Profinet {
 pub const RATE: RuleMeta = RuleMeta {
     id: "EW-BUS-005",
     code: "111005",
-    pack: "EW-BUS",
     title: "Rate not supported",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -305,7 +300,6 @@ pub const RATE: RuleMeta = RuleMeta {
     scope: ScopeKind::Lnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-005",
 };
 
 /// EW-BUS-005: the logical net's rate is not among the rates a port's part supports (`PartBusPort.rates`, the GSD
@@ -365,7 +359,6 @@ impl Rule for Rate {
 pub const SEGMENT_LIMITS: RuleMeta = RuleMeta {
     id: "EW-BUS-006",
     code: "111006",
-    pack: "EW-BUS",
     title: "Segment limits",
     kind: RuleKind::Conflict,
     modes: Modes::letters("fr"),
@@ -374,7 +367,6 @@ pub const SEGMENT_LIMITS: RuleMeta = RuleMeta {
     scope: ScopeKind::Pnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-006",
 };
 
 /// The most stations of an RS-485 PROFIBUS segment (unverified).
@@ -539,7 +531,6 @@ impl Rule for SegmentLimits {
 pub const NO_MASTER: RuleMeta = RuleMeta {
     id: "EW-BUS-007",
     code: "111007",
-    pack: "EW-BUS",
     title: "No master",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -548,7 +539,6 @@ pub const NO_MASTER: RuleMeta = RuleMeta {
     scope: ScopeKind::Lnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-007",
 };
 
 /// EW-BUS-007: a logical net that names no master and has no port with role master or controller. An external
@@ -595,7 +585,6 @@ impl Rule for NoMaster {
 pub const WRONG_CABLE: RuleMeta = RuleMeta {
     id: "EW-BUS-009",
     code: "111009",
-    pack: "EW-BUS",
     title: "Wrong bus cable",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -604,7 +593,6 @@ pub const WRONG_CABLE: RuleMeta = RuleMeta {
     scope: ScopeKind::Pnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-009",
 };
 
 /// EW-BUS-009 over the `Bus` connections at the ports of a physical net: a cable whose part is made for other bus
@@ -735,7 +723,6 @@ impl Rule for WrongCable {
 pub const NET_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-BUS-010",
     code: "111010",
-    pack: "EW-BUS",
     title: "Net mismatch",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -744,7 +731,6 @@ pub const NET_MISMATCH: RuleMeta = RuleMeta {
     scope: ScopeKind::Pnet,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-bus-010",
 };
 
 /// EW-BUS-010 over the segments of a physical net: the ports of one segment (joined by `Bus` connections) that name

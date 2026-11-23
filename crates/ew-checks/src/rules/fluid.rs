@@ -20,6 +20,7 @@ use ew_derive::{
 use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::and_list;
 use crate::rules::term::full_tag;
 
 // ---------------------------------------------------------------------------------------------------------
@@ -41,15 +42,6 @@ fn channel_text(q: &Q, c: &Channel) -> String {
 /// The same in nl-NL: "kanaal 1 van -201U3".
 fn channel_text_nl(q: &Q, c: &Channel) -> String {
     format!("kanaal {} van {}", c.number, tag(q, c.module))
-}
-
-/// "A, B and C".
-fn and_list(items: &[String], and: &str) -> String {
-    match items {
-        [] => String::new(),
-        [one] => one.clone(),
-        [init @ .., last] => format!("{} {and} {last}", init.join(", ")),
-    }
 }
 
 /// The contact kind of a function's FnDef.
@@ -78,7 +70,6 @@ fn functions_of_kind(q: &Q, d: Id<Device>, kind: &ContactKind) -> Vec<Id<Functio
 pub const WORKING_PORT_OPEN: RuleMeta = RuleMeta {
     id: "EW-FL-001",
     code: "120001",
-    pack: "EW-FL",
     title: "Working port open",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -87,7 +78,6 @@ pub const WORKING_PORT_OPEN: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-fl-001",
 };
 
 /// EW-FL-001 (FR-FLU-018): per placed valve function (a function on a FnDef of contact kind `valve`
@@ -173,7 +163,6 @@ impl Rule for WorkingPortOpen {
 pub const COIL_BINDINGS: RuleMeta = RuleMeta {
     id: "EW-FL-002",
     code: "120002",
-    pack: "EW-FL",
     title: "Solenoids and their outputs",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -182,7 +171,6 @@ pub const COIL_BINDINGS: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-fl-002",
 };
 
 /// EW-FL-002 (FR-FLU-017, FI-03): per valve whose valve part declares solenoids and that has internal
@@ -318,7 +306,6 @@ impl Rule for CoilBindings {
 pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
     id: "EW-FL-004",
     code: "120004",
-    pack: "EW-FL",
     title: "Spare positions",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -327,7 +314,6 @@ pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-fl-004",
 };
 
 /// EW-FL-004 (FR-FLU-017): one finding per position of a module that holds a spare valve or a blanking
@@ -393,7 +379,6 @@ impl Rule for SparePositions {
 pub const DRIVES_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-FL-011",
     code: "120011",
-    pack: "EW-FL",
     title: "Drives target mismatch",
     kind: RuleKind::Conflict,
     modes: Modes::letters("o"),
@@ -402,7 +387,6 @@ pub const DRIVES_MISMATCH: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-fl-011",
 };
 
 /// EW-FL-011 (FR-FLU-029): a valve with a `drives` link whose target differs from the device its
@@ -448,7 +432,6 @@ impl Rule for DrivesMismatch {
 pub const OCCUPANCY: RuleMeta = RuleMeta {
     id: "EW-FL-013",
     code: "120013",
-    pack: "EW-FL",
     title: "Occupancy",
     kind: RuleKind::Conflict,
     modes: Modes::letters("po"),
@@ -457,7 +440,6 @@ pub const OCCUPANCY: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-fl-013",
 };
 
 /// The modules among a device's children, by position: position → modules in ID order.

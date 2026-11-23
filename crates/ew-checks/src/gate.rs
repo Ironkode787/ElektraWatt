@@ -36,7 +36,7 @@ pub fn gate(q: &Q, scheme: &Scheme, input: &GateInput) -> CheckReport {
     // EW-REL-002 reports nothing at MVP (no committed computation has an input hash yet).
     for r in rules() {
         let m = r.meta();
-        if m.pack == LABEL_ORDER.pack && !report.rules.iter().any(|x| x.id == m.id) {
+        if m.pack() == LABEL_ORDER.pack() && !report.rules.iter().any(|x| x.id == m.id) {
             report.rules.push(m);
         }
     }
@@ -98,7 +98,7 @@ pub fn pack_definition(pack: &str) -> Option<String> {
     let metas: Vec<&'static RuleMeta> = rules()
         .iter()
         .map(|r| r.meta())
-        .filter(|m| m.pack == pack)
+        .filter(|m| m.pack() == pack)
         .collect();
     if metas.is_empty() {
         return None;
@@ -141,7 +141,7 @@ pub fn pack_definition(pack: &str) -> Option<String> {
 /// The packs of the rules `report` evaluated, in pack-ID order, each with its version and the SHA-256 of its
 /// definition (doc 15 §3.9: what a release records for every evaluated pack).
 pub fn pack_versions(report: &CheckReport) -> Vec<PackVersion> {
-    let mut packs: Vec<&'static str> = report.rules.iter().map(|m| m.pack).collect();
+    let mut packs: Vec<&'static str> = report.rules.iter().map(|m| m.pack()).collect();
     packs.sort_unstable();
     packs.dedup();
     packs

@@ -38,7 +38,6 @@ fn mode_word(m: &PortMode) -> &'static str {
 pub const PORT_CLASS: RuleMeta = RuleMeta {
     id: "EW-IOL-001",
     code: "111101",
-    pack: "EW-BUS",
     title: "IO-Link port class",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -47,7 +46,6 @@ pub const PORT_CLASS: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-iol-001",
 };
 
 /// EW-IOL-001 over the ports of an IO-Link master: a connected IO-Link device of class B on a class-A port (`class`),
@@ -137,7 +135,6 @@ impl Rule for PortClassRule {
 pub const LIMITS: RuleMeta = RuleMeta {
     id: "EW-IOL-002",
     code: "111102",
-    pack: "EW-BUS",
     title: "IO-Link limits",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -146,7 +143,6 @@ pub const LIMITS: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-iol-002",
 };
 
 /// EW-IOL-002 over the ports of an IO-Link master: a connected device whose process data is larger than the part's

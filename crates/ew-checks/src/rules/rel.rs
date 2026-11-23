@@ -28,7 +28,6 @@ pub struct GateInput {
 pub const FOUR_EYES: RuleMeta = RuleMeta {
     id: "EW-REL-001",
     code: "190001",
-    pack: "EW-REL",
     title: "Four eyes",
     kind: RuleKind::Integrity,
     modes: Modes::letters("g"),
@@ -37,14 +36,12 @@ pub const FOUR_EYES: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rel-001",
 };
 
 /// EW-REL-002 "Stale committed computation" (doc 15 §4.8): integrity, g, error, project.
 pub const STALE_COMMITTED: RuleMeta = RuleMeta {
     id: "EW-REL-002",
     code: "190002",
-    pack: "EW-REL",
     title: "Stale committed computation",
     kind: RuleKind::Integrity,
     modes: Modes::letters("g"),
@@ -53,14 +50,12 @@ pub const STALE_COMMITTED: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rel-002",
 };
 
 /// EW-REL-004 "Revision label order" (doc 15 §4.8): integrity, p g, error, project.
 pub const LABEL_ORDER: RuleMeta = RuleMeta {
     id: "EW-REL-004",
     code: "190004",
-    pack: "EW-REL",
     title: "Revision label order",
     kind: RuleKind::Integrity,
     modes: Modes::letters("pg"),
@@ -69,7 +64,6 @@ pub const LABEL_ORDER: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rel-004",
 };
 
 /// The role's name as the file writes it (`checker`).

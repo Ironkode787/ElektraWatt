@@ -24,7 +24,6 @@ use crate::rules::term::full_tag;
 pub const F_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-SAF-001",
     code: "110101",
-    pack: "EW-PLC",
     title: "F-address",
     kind: RuleKind::Safety,
     modes: Modes::letters("or"),
@@ -33,7 +32,6 @@ pub const F_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-saf-001",
 };
 
 /// EW-SAF-001 over every F-module (a `plc_module` with `safety`): an F-destination address that is missing
@@ -126,7 +124,6 @@ impl Rule for FAddress {
 pub const PAIR: RuleMeta = RuleMeta {
     id: "EW-SAF-002",
     code: "110102",
-    pack: "EW-PLC",
     title: "1oo2 pair",
     kind: RuleKind::Safety,
     modes: Modes::letters("fr"),
@@ -135,7 +132,6 @@ pub const PAIR: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-saf-002",
 };
 
 /// EW-SAF-002 over the 1oo2 channels of a module: a channel without a pair, paired with itself, or whose pair is not a
@@ -236,7 +232,6 @@ impl Rule for Pair {
 pub const TEST_PULSE: RuleMeta = RuleMeta {
     id: "EW-SAF-003",
     code: "110103",
-    pack: "EW-PLC",
     title: "Test pulse",
     kind: RuleKind::Safety,
     modes: Modes::letters("fr"),
@@ -245,7 +240,6 @@ pub const TEST_PULSE: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-saf-003",
 };
 
 /// EW-SAF-003: an F-DI channel whose safety data names a test-pulse pin (`SafetyChannel.test_pulse`, the module's

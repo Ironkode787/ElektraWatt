@@ -16,7 +16,6 @@ use serde_json::{Value, json};
 const FIXTURE: RuleMeta = RuleMeta {
     id: "EW-TEST-001",
     code: "999001",
-    pack: "EW-TEST",
     title: "A part's PLC section is read",
     kind: RuleKind::Completeness,
     modes: Modes::letters("o"),
@@ -25,7 +24,6 @@ const FIXTURE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-test-001",
 };
 
 /// Reports every part copy and reads its `plc` section's confidence.

@@ -66,7 +66,6 @@ fn conductors_of(q: &Q, cable: Id<Device>) -> Vec<(Id<Conductor>, Conductor)> {
 pub const INVALID_CORE_COLOUR: RuleMeta = RuleMeta {
     id: "EW-CORE-031",
     code: "003031",
-    pack: "EW-CORE",
     title: "Invalid core colour",
     kind: RuleKind::Conflict,
     modes: Modes::letters("por"),
@@ -75,7 +74,6 @@ pub const INVALID_CORE_COLOUR: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-031",
 };
 
 /// The codes of a conductor's colour that are neither IEC 60757 codes nor company codes the project's colour
@@ -198,7 +196,6 @@ impl Rule for InvalidCoreColour {
 pub const CORE_DIFFERS_FROM_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-032",
     code: "003032",
-    pack: "EW-CORE",
     title: "Core differs from the part",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -207,7 +204,6 @@ pub const CORE_DIFFERS_FROM_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-032",
 };
 
 /// The cable part of a cable device: the first of its part uses whose copy defines cable cores.
@@ -372,7 +368,6 @@ impl Rule for CoreDiffersFromPart {
 pub const EXTERNAL_WITHOUT_CABLE: RuleMeta = RuleMeta {
     id: "EW-CORE-034",
     code: "003034",
-    pack: "EW-CORE",
     title: "External connection without cable",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -381,7 +376,6 @@ pub const EXTERNAL_WITHOUT_CABLE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-034",
 };
 
 /// A wire as a message prints it: its wire number, else its connection ID's end texts.
@@ -558,7 +552,6 @@ fn sort_natural(items: &mut [String]) {
 pub const CORE_ASSIGNED_TWICE: RuleMeta = RuleMeta {
     id: "EW-CORE-036",
     code: "003036",
-    pack: "EW-CORE",
     title: "Core assigned twice",
     kind: RuleKind::Conflict,
     modes: Modes::letters("po"),
@@ -567,7 +560,6 @@ pub const CORE_ASSIGNED_TWICE: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-036",
 };
 
 /// The physical wires that use conductor `core`: the IDs of the wires whose constituents include a connection of
@@ -720,7 +712,6 @@ impl Rule for CoreAssignedTwice {
 pub const SHIELD_NOT_CONNECTED: RuleMeta = RuleMeta {
     id: "EW-CORE-037",
     code: "003037",
-    pack: "EW-CORE",
     title: "Shield not connected",
     kind: RuleKind::Completeness,
     modes: Modes::letters("o"),
@@ -729,7 +720,6 @@ pub const SHIELD_NOT_CONNECTED: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-037",
 };
 
 /// EW-CORE-037: a shield conductor (`Conductor.shield`) that no connection assigns, so it is connected at neither

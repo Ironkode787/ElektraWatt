@@ -48,7 +48,6 @@ fn sort_printed<T: Ord>(rows: &mut [(String, T)]) {
 pub const FOLIO_OUTSIDE_SECTION: RuleMeta = RuleMeta {
     id: "EW-CORE-021",
     code: "101021",
-    pack: "EW-CORE",
     title: "Folio outside its section",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -57,7 +56,6 @@ pub const FOLIO_OUTSIDE_SECTION: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-021",
 };
 
 /// EW-CORE-021: a drawn page whose folio number lies outside the folio range of its section (FR-CHK-038; doc 09
@@ -122,7 +120,6 @@ impl Rule for FolioOutsideSection {
 pub const FOLIO_COLLISION: RuleMeta = RuleMeta {
     id: "EW-CORE-022",
     code: "101022",
-    pack: "EW-CORE",
     title: "Folio collision",
     kind: RuleKind::Conflict,
     modes: Modes::letters("opr"),
@@ -131,7 +128,6 @@ pub const FOLIO_COLLISION: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-022",
 };
 
 /// One page of the page order as EW-CORE-022 reads it: the record it comes from and how it is printed.
@@ -256,7 +252,6 @@ impl Rule for FolioCollision {
 pub const TOC_FIXPOINT: RuleMeta = RuleMeta {
     id: "EW-CORE-025",
     code: "101025",
-    pack: "EW-CORE",
     title: "TOC fixpoint not reached",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -265,7 +260,6 @@ pub const TOC_FIXPOINT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-025",
 };
 
 /// EW-CORE-025: the confirming round of the table of contents' page count needed more pages than the closed form
@@ -316,7 +310,6 @@ impl Rule for TocFixpoint {
 pub const REPORT_COVERAGE_GAP: RuleMeta = RuleMeta {
     id: "EW-CORE-026",
     code: "101026",
-    pack: "EW-CORE",
     title: "Report coverage gap",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -325,7 +318,6 @@ pub const REPORT_COVERAGE_GAP: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-026",
 };
 
 /// The report families of EW-CORE-026: the entity, its report kind, the kind's name as printed and the
@@ -457,7 +449,6 @@ fn is_style(table: &[EffectiveStyle], key: &str) -> bool {
 pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
     id: "EW-CORE-061",
     code: "104061",
-    pack: "EW-CORE",
     title: "Text below minimum height",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -466,7 +457,6 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-061",
 };
 
 /// EW-CORE-061: a text style the project prints with ([`used_text_styles`]) whose cap height (the ISO 3098 nominal
@@ -653,7 +643,6 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
 pub const UNSTYLED_TEXT_SIZE: RuleMeta = RuleMeta {
     id: "EW-CORE-063",
     code: "104063",
-    pack: "EW-CORE",
     title: "Unstyled text size",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("o"),
@@ -662,7 +651,6 @@ pub const UNSTYLED_TEXT_SIZE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-063",
 };
 
 /// EW-CORE-063: a free text whose style is an explicit size that no text style binds (FR-SYM-013; D-29, MF-26): a key
@@ -723,7 +711,6 @@ impl Rule for UnstyledTextSize {
 pub const GRAPHIC_LINE_ON_CP: RuleMeta = RuleMeta {
     id: "EW-CORE-071",
     code: "104071",
-    pack: "EW-CORE",
     title: "Graphic line on a CP",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("o"),
@@ -732,7 +719,6 @@ pub const GRAPHIC_LINE_ON_CP: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-071",
 };
 
 /// EW-CORE-071: a graphic line or polyline (a page item) whose first or last point lies exactly on a connection point
@@ -840,12 +826,10 @@ const fn layout_rule(
     kind: RuleKind,
     severity: Severity,
     release_severity: Option<Severity>,
-    docs: &'static str,
 ) -> RuleMeta {
     RuleMeta {
         id,
         code,
-        pack: "EW-CORE",
         title,
         kind,
         modes: Modes::letters("or"),
@@ -854,7 +838,6 @@ const fn layout_rule(
         scope: ScopeKind::Page,
         supersedes: &[],
         release: Release::Mvp,
-        docs,
     }
 }
 
@@ -866,7 +849,6 @@ pub const WIRE_THROUGH_CP: RuleMeta = layout_rule(
     RuleKind::Conflict,
     Severity::Warning,
     Some(Severity::Error),
-    "reference/rules/ew-core-067",
 );
 
 /// EW-CORE-068 "Wire along another wire": conflict, o r, warning (release error), page.
@@ -877,7 +859,6 @@ pub const WIRE_ALONG_WIRE: RuleMeta = layout_rule(
     RuleKind::Conflict,
     Severity::Warning,
     Some(Severity::Error),
-    "reference/rules/ew-core-068",
 );
 
 /// EW-CORE-069 "Wire through a symbol": hygiene, o r, warning, page.
@@ -888,7 +869,6 @@ pub const WIRE_THROUGH_SYMBOL: RuleMeta = layout_rule(
     RuleKind::Hygiene,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-069",
 );
 
 /// EW-CORE-070 "Wire through a text": hygiene, o r, warning, page.
@@ -899,7 +879,6 @@ pub const WIRE_THROUGH_TEXT: RuleMeta = layout_rule(
     RuleKind::Hygiene,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-070",
 );
 
 /// EW-CORE-072 "Four-way junction": hygiene, o r, warning, page.
@@ -910,7 +889,6 @@ pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
     RuleKind::Hygiene,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-072",
 );
 
 /// EW-CORE-073 "Unrouted wire" (D3): completeness, o r, info (release error), page.
@@ -921,7 +899,6 @@ pub const UNROUTED_WIRE: RuleMeta = layout_rule(
     RuleKind::Completeness,
     Severity::Info,
     Some(Severity::Error),
-    "reference/rules/ew-core-073",
 );
 
 /// A layout rule (EW-CORE-067 to -070 and -072 to -077). Its evidence, a page's drawn geometry with the
@@ -1221,7 +1198,6 @@ pub const WIRES_MEET: RuleMeta = layout_rule(
     RuleKind::Conflict,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-074",
 );
 
 /// EW-CORE-075 "Text on a text" (docs/design/06a-drafting.md §1.2, C5): hygiene, o r, warning, page.
@@ -1232,7 +1208,6 @@ pub const TEXT_ON_TEXT: RuleMeta = layout_rule(
     RuleKind::Hygiene,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-075",
 );
 
 /// EW-CORE-076 "Text on a symbol" (docs/design/06a-drafting.md §1.2, C5: a text on a part): hygiene, o r, warning, page.
@@ -1243,7 +1218,6 @@ pub const TEXT_ON_PART: RuleMeta = layout_rule(
     RuleKind::Hygiene,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-076",
 );
 
 /// EW-CORE-077 "Symbol on a symbol" (docs/design/06a-drafting.md §1.2, F7: a part on a part): conflict, o r, warning, page.
@@ -1254,7 +1228,6 @@ pub const PART_ON_PART: RuleMeta = layout_rule(
     RuleKind::Conflict,
     Severity::Warning,
     None,
-    "reference/rules/ew-core-077",
 );
 
 /// The frame cell a finding names, or the folio where the point is off the frame grid: the `place` argument's word

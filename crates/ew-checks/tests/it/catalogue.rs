@@ -54,7 +54,7 @@ fn generated() -> String {
             json!({
                 "id": m.id,
                 "code": m.code,
-                "pack": m.pack,
+                "pack": m.pack(),
                 "title": m.title,
                 "kind": m.kind.name(),
                 "modes": modes(m.modes),
@@ -72,7 +72,7 @@ fn generated() -> String {
                     "discriminator": o.discriminator,
                 })),
                 // The rule's page reference and the en-GB hint, for the rule's page of the guide.
-                "docs": m.docs,
+                "docs": m.docs(),
                 // An integrity finding carries the reader's own text and has no Fluent message: its hint is empty.
                 "hint": ew_checks::messages::hint(m.id, ew_checks::messages::DEFAULT_LANGUAGE)
                     .or_else(|| (m.kind == RuleKind::Integrity).then(String::new)),

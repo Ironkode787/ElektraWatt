@@ -19,7 +19,6 @@ use crate::rules::term::full_tag;
 pub const PROCESS_TAG: RuleMeta = RuleMeta {
     id: "EW-PRC-001",
     code: "110201",
-    pack: "EW-PLC",
     title: "Process-tag scheme",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -28,7 +27,6 @@ pub const PROCESS_TAG: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-prc-001",
 };
 
 /// EW-PRC-001 over the devices' process tags: a tag that does not match the project's process-tag scheme

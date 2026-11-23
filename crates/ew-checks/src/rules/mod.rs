@@ -35,3 +35,12 @@ pub mod rel;
 pub mod safety;
 pub mod system;
 pub mod term;
+
+/// "A, B and C", the conjunction `and` in the message's language.
+fn and_list(items: &[String], and: &str) -> String {
+    match items {
+        [] => String::new(),
+        [one] => one.clone(),
+        [init @ .., last] => format!("{} {and} {last}", init.join(", ")),
+    }
+}

@@ -214,7 +214,6 @@ fn inside_usable(usable: &[Pt2], r: Rect) -> Option<bool> {
 pub const UNPLACED_DEVICE: RuleMeta = RuleMeta {
     id: "EW-LAY-001",
     code: "130001",
-    pack: "EW-LAYOUT",
     title: "Unplaced device",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -223,7 +222,6 @@ pub const UNPLACED_DEVICE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-lay-001",
 };
 
 /// EW-LAY-001: a mountable device of a location that has a layout space, without a placement (`unplaced(space)` of every
@@ -278,7 +276,6 @@ impl Rule for UnplacedDevice {
 pub const PART_NOT_ON_DEVICE: RuleMeta = RuleMeta {
     id: "EW-LAY-003",
     code: "130003",
-    pack: "EW-LAYOUT",
     title: "Part use not on the device",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -287,7 +284,6 @@ pub const PART_NOT_ON_DEVICE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-lay-003",
 };
 
 /// EW-LAY-003: a placement whose `part` is not a part use of its device (the copy is compared; D6 writes `part` at
@@ -360,7 +356,6 @@ impl Rule for PartNotOnDevice {
 pub const LOCATION_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-LAY-004",
     code: "130004",
-    pack: "EW-LAYOUT",
     title: "Location mismatch",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -369,7 +364,6 @@ pub const LOCATION_MISMATCH: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-lay-004",
 };
 
 /// EW-LAY-004: a placed device whose own location (its resolved `+` aspect) is not the location of the layout space
@@ -449,7 +443,6 @@ impl Rule for LocationMismatch {
 pub const COLLISION: RuleMeta = RuleMeta {
     id: "EW-LAY-006",
     code: "130006",
-    pack: "EW-LAYOUT",
     title: "Collision",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -458,7 +451,6 @@ pub const COLLISION: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-lay-006",
 };
 
 /// One footprint of the overlap sweep.
@@ -833,7 +825,6 @@ impl Rule for Collision {
 pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
     id: "EW-LAY-010",
     code: "130010",
-    pack: "EW-LAYOUT",
     title: "Carrier incompatible",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -842,7 +833,6 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-lay-010",
 };
 
 /// EW-LAY-010 (D12), one finding per case, each with its discriminator (the `form` argument):
@@ -1375,7 +1365,6 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
 pub const ASSEMBLY_ORDER: RuleMeta = RuleMeta {
     id: "EW-LAY-016",
     code: "130016",
-    pack: "EW-LAYOUT",
     title: "Assembly order",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -1384,7 +1373,6 @@ pub const ASSEMBLY_ORDER: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-lay-016",
 };
 
 /// An assembly member placed on the rail: its full designation (for the texts) and its device. The wanted order is

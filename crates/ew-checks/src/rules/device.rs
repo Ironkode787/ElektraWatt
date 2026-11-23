@@ -51,7 +51,6 @@ fn parts_of(q: &Q, device: &Device) -> Vec<(Id<Part>, std::sync::Arc<LibCopy<Par
 pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-041",
     code: "102041",
-    pack: "EW-CORE",
     title: "Device without part",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -60,7 +59,6 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-041",
 };
 
 /// EW-CORE-041: a device without a part use (FR-CHK-024; D-04, EF-04, EF-19). The device half only: a device that
@@ -120,7 +118,6 @@ pub fn lacks_part(q: &Q, device: Id<Device>) -> bool {
 pub const INCOMPLETE_PART_DATA: RuleMeta = RuleMeta {
     id: "EW-CORE-042",
     code: "102042",
-    pack: "EW-CORE",
     title: "Incomplete part data",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -129,7 +126,6 @@ pub const INCOMPLETE_PART_DATA: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-042",
 };
 
 /// What a part copy lacks for EW-CORE-042, in a fixed order: `description`, `manufacturer`. A placeholder (part
@@ -202,7 +198,6 @@ impl Rule for IncompletePartData {
 pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-043",
     code: "102043",
-    pack: "EW-CORE",
     title: "Placeholder part",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -211,7 +206,6 @@ pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-043",
 };
 
 /// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17;
@@ -330,7 +324,6 @@ fn uses_copy(q: &Q, id: Id<Device>, device: &Device, part: Id<Part>) -> bool {
 pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
     id: "EW-CORE-044",
     code: "102044",
-    pack: "EW-CORE",
     title: "Open Tbd value",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -339,7 +332,6 @@ pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-044",
 };
 
 /// EW-CORE-044: a typed `Tbd` value of the device (FR-CHK-034, D-15): a PLC module's input or output start, the
@@ -436,7 +428,6 @@ impl Rule for OpenTbdValue {
 pub const CONTACTS_EXCEED_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-045",
     code: "102045",
-    pack: "EW-CORE",
     title: "Auxiliary contacts exceed the part",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -445,7 +436,6 @@ pub const CONTACTS_EXCEED_PART: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-045",
 };
 
 /// Counts of normally open, normally closed and change-over contacts.
@@ -565,7 +555,6 @@ impl Rule for ContactsExceedPart {
 pub const ORDER_CODES_COVER: RuleMeta = RuleMeta {
     id: "EW-CORE-048",
     code: "102048",
-    pack: "EW-CORE",
     title: "Order codes do not cover the children",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -574,7 +563,6 @@ pub const ORDER_CODES_COVER: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-048",
 };
 
 /// EW-CORE-048: an assembly with `bom_basis = assembly` whose order codes do not cover each of its descendants with

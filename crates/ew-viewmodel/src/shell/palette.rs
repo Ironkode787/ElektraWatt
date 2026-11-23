@@ -398,7 +398,7 @@ impl ShellModel {
                     shortcut: String::new(),
                     enabled,
                     reason: (!enabled).then(|| strings::text(key!("reason-no-project")).to_owned()),
-                    breadcrumb: meta.pack.to_owned(),
+                    breadcrumb: meta.pack().to_owned(),
                 },
                 rank: best,
             });

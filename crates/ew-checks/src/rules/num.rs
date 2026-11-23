@@ -17,7 +17,6 @@ use crate::rules::term::full_tag;
 pub const TAG_DEVIATES: RuleMeta = RuleMeta {
     id: "EW-NUM-001",
     code: "017101",
-    pack: "EW-IEC81346",
     title: "Tag deviates from the scheme",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -26,7 +25,6 @@ pub const TAG_DEVIATES: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &["EW-NUM-002", "EW-RDS-001"],
     release: Release::Mvp,
-    docs: "reference/rules/ew-num-001",
 };
 
 /// EW-NUM-001: a tag that does not match the active numbering scheme (FR-CHK-025).
@@ -86,7 +84,6 @@ impl Rule for TagDeviates {
 pub const FROZEN_VALUE_DEVIATES: RuleMeta = RuleMeta {
     id: "EW-NUM-002",
     code: "017102",
-    pack: "EW-IEC81346",
     title: "Frozen value deviates",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -95,7 +92,6 @@ pub const FROZEN_VALUE_DEVIATES: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-num-002",
 };
 
 /// EW-NUM-002: a frozen wire number (`NumberSpec::Frozen` on a connection, doc 08 §5.3) that differs from the number

@@ -1196,13 +1196,13 @@ fn derived_path(words: &[&str]) -> String {
 /// `reference/rules/<id in lower case>.md` (`reference/rules/ew-core-033.md`); `None` for a rule this build does not
 /// ship.
 pub fn rule_page(rule: &str) -> Option<String> {
-    Some(format!("{}.md", rule_meta(rule)?.docs))
+    Some(format!("{}.md", rule_meta(rule)?.docs()))
 }
 
 /// The page of the built book for a shipped rule (F1 on a finding or rule row of the Messages pane):
 /// `reference/rules/ew-core-033.html`.
 pub fn rule_target(rule: &str) -> Option<String> {
-    Some(format!("{}.html", rule_meta(rule)?.docs))
+    Some(format!("{}.html", rule_meta(rule)?.docs()))
 }
 
 /// The data of a shipped rule: a registered rule, or an integrity rule of opening a project, whose findings reach the

@@ -24,12 +24,10 @@ const fn imp(
     title: &'static str,
     kind: RuleKind,
     severity: Severity,
-    docs: &'static str,
 ) -> RuleMeta {
     RuleMeta {
         id,
         code,
-        pack: "EW-IMP",
         title,
         kind,
         modes: Modes::letters("r"),
@@ -38,7 +36,6 @@ const fn imp(
         scope: ScopeKind::Project,
         supersedes: &[],
         release: Release::Mvp,
-        docs,
     }
 }
 
@@ -47,62 +44,25 @@ use Severity::{Error as E, Info as I, Warning as W};
 
 /// The EW-IMP codes the importers emit (doc 14 §2.5's catalogue), with EW-IMP-010 and EW-IMP-011 of a re-import and
 /// the three codes [`FOLDED`] pairs with a live rule.
-pub static IMP: [RuleMeta; 33] = [
+pub const IMP: &[RuleMeta] = &[
     imp(
         "EW-IMP-001",
         "160001",
         "Input limit exceeded; item or file refused",
         C,
         E,
-        "reference/rules/ew-imp-001",
     ),
-    imp(
-        "EW-IMP-002",
-        "160002",
-        "Malformed or refused item skipped",
-        C,
-        E,
-        "reference/rules/ew-imp-002",
-    ),
-    imp(
-        "EW-IMP-003",
-        "160003",
-        "Unresolvable reference dropped",
-        C,
-        E,
-        "reference/rules/ew-imp-003",
-    ),
-    imp(
-        "EW-IMP-004",
-        "160004",
-        "Content dropped by design",
-        H,
-        I,
-        "reference/rules/ew-imp-004",
-    ),
-    imp(
-        "EW-IMP-005",
-        "160005",
-        "Object inferred, review",
-        C,
-        W,
-        "reference/rules/ew-imp-005",
-    ),
-    imp(
-        "EW-IMP-006",
-        "160006",
-        "Font substituted",
-        H,
-        I,
-        "reference/rules/ew-imp-006",
-    ),
+    imp("EW-IMP-002", "160002", "Malformed or refused item skipped", C, E),
+    imp("EW-IMP-003", "160003", "Unresolvable reference dropped", C, E),
+    imp("EW-IMP-004", "160004", "Content dropped by design", H, I),
+    imp("EW-IMP-005", "160005", "Object inferred, review", C, W),
+    imp("EW-IMP-006", "160006", "Font substituted", H, I),
     imp(
         "EW-IMP-007",
         "160007",
         "Value mapped through an alias table",
         H,
         I,
-        "reference/rules/ew-imp-007",
     ),
     imp(
         "EW-IMP-008",
@@ -110,31 +70,15 @@ pub static IMP: [RuleMeta; 33] = [
         "Value kept as foreign or opaque text",
         C,
         W,
-        "reference/rules/ew-imp-008",
     ),
-    imp(
-        "EW-IMP-009",
-        "160009",
-        "Print-equivalence deviation",
-        X,
-        W,
-        "reference/rules/ew-imp-009",
-    ),
-    imp(
-        "EW-IMP-010",
-        "160010",
-        "Removed in the source, kept here",
-        X,
-        W,
-        "reference/rules/ew-imp-010",
-    ),
+    imp("EW-IMP-009", "160009", "Print-equivalence deviation", X, W),
+    imp("EW-IMP-010", "160010", "Removed in the source, kept here", X, W),
     imp(
         "EW-IMP-011",
         "160011",
         "Changed in the source and here, kept here",
         X,
         W,
-        "reference/rules/ew-imp-011",
     ),
     imp(
         "EW-IMP-101",
@@ -142,31 +86,15 @@ pub static IMP: [RuleMeta; 33] = [
         "Stored label differs from the formula result",
         X,
         W,
-        "reference/rules/ew-imp-101",
     ),
-    imp(
-        "EW-IMP-102",
-        "160102",
-        "Structure-code spelling variants",
-        X,
-        W,
-        "reference/rules/ew-imp-102",
-    ),
-    imp(
-        "EW-IMP-103",
-        "160103",
-        "Label kept as a frozen tag",
-        H,
-        I,
-        "reference/rules/ew-imp-103",
-    ),
+    imp("EW-IMP-102", "160102", "Structure-code spelling variants", X, W),
+    imp("EW-IMP-103", "160103", "Label kept as a frozen tag", H, I),
     imp(
         "EW-IMP-104",
         "160104",
         "Per-folio title-block value conflict",
         X,
         W,
-        "reference/rules/ew-imp-104",
     ),
     imp(
         "EW-IMP-105",
@@ -174,7 +102,6 @@ pub static IMP: [RuleMeta; 33] = [
         "Per-folio description kept as an override",
         H,
         I,
-        "reference/rules/ew-imp-105",
     ),
     imp(
         "EW-IMP-109",
@@ -182,7 +109,6 @@ pub static IMP: [RuleMeta; 33] = [
         "Strip segments merged into one strip",
         H,
         I,
-        "reference/rules/ew-imp-109",
     ),
     imp(
         "EW-IMP-114",
@@ -190,81 +116,29 @@ pub static IMP: [RuleMeta; 33] = [
         "Imported text styles not bound to slot kinds",
         H,
         I,
-        "reference/rules/ew-imp-114",
     ),
-    imp(
-        "EW-IMP-115",
-        "160115",
-        "Folio-report pair names differ",
-        X,
-        W,
-        "reference/rules/ew-imp-115",
-    ),
+    imp("EW-IMP-115", "160115", "Folio-report pair names differ", X, W),
     imp(
         "EW-IMP-116",
         "160116",
         "Slave without master, or master above its slaves",
         C,
         W,
-        "reference/rules/ew-imp-116",
     ),
-    imp(
-        "EW-IMP-117",
-        "160117",
-        "Default folio-index formula",
-        H,
-        I,
-        "reference/rules/ew-imp-117",
-    ),
-    imp(
-        "EW-IMP-118",
-        "160118",
-        "Junction wiring assumed",
-        H,
-        I,
-        "reference/rules/ew-imp-118",
-    ),
-    imp(
-        "EW-IMP-119",
-        "160119",
-        "Element without function semantics",
-        C,
-        W,
-        "reference/rules/ew-imp-119",
-    ),
-    imp(
-        "EW-IMP-120",
-        "160120",
-        "Shared element UUID disambiguated",
-        H,
-        I,
-        "reference/rules/ew-imp-120",
-    ),
+    imp("EW-IMP-117", "160117", "Default folio-index formula", H, I),
+    imp("EW-IMP-118", "160118", "Junction wiring assumed", H, I),
+    imp("EW-IMP-119", "160119", "Element without function semantics", C, W),
+    imp("EW-IMP-120", "160120", "Shared element UUID disambiguated", H, I),
     imp(
         "EW-IMP-122",
         "160122",
         "Unlabelled element, tag synthesised",
         C,
         I,
-        "reference/rules/ew-imp-122",
     ),
     // The EPLAN report spreadsheets (WP-S3.18, doc 14 §5.4).
-    imp(
-        "EW-IMP-206",
-        "160206",
-        "Report column not mapped",
-        C,
-        W,
-        "reference/rules/ew-imp-206",
-    ),
-    imp(
-        "EW-IMP-207",
-        "160207",
-        "Multi-level terminals folded",
-        H,
-        I,
-        "reference/rules/ew-imp-207",
-    ),
+    imp("EW-IMP-206", "160206", "Report column not mapped", C, W),
+    imp("EW-IMP-207", "160207", "Multi-level terminals folded", H, I),
     // The DXF and DWG imports (WP-S3.19, doc 14 §6). EW-IMP-256 is the symbol wizard's, in a draft's details only.
     imp(
         "EW-IMP-251",
@@ -272,39 +146,16 @@ pub static IMP: [RuleMeta; 33] = [
         "Drawing without a unit, read in the chosen unit",
         C,
         W,
-        "reference/rules/ew-imp-251",
     ),
-    imp(
-        "EW-IMP-252",
-        "160252",
-        "SHX font drawn in a bundled font",
-        H,
-        W,
-        "reference/rules/ew-imp-252",
-    ),
-    imp(
-        "EW-IMP-253",
-        "160253",
-        "Drawing entity not imported",
-        C,
-        I,
-        "reference/rules/ew-imp-253",
-    ),
-    imp(
-        "EW-IMP-254",
-        "160254",
-        "External file not opened",
-        C,
-        I,
-        "reference/rules/ew-imp-254",
-    ),
+    imp("EW-IMP-252", "160252", "SHX font drawn in a bundled font", H, W),
+    imp("EW-IMP-253", "160253", "Drawing entity not imported", C, I),
+    imp("EW-IMP-254", "160254", "External file not opened", C, I),
     imp(
         "EW-IMP-255",
         "160255",
         "Hatch pattern reduced to its outline",
         C,
         I,
-        "reference/rules/ew-imp-255",
     ),
     imp(
         "EW-IMP-257",
@@ -312,13 +163,23 @@ pub static IMP: [RuleMeta; 33] = [
         "DWG converted by the ODA File Converter",
         H,
         I,
-        "reference/rules/ew-imp-257",
     ),
 ];
 
 /// One EW-IMP rule: the entries of its code in the import runs.
 #[derive(Clone, Copy, Debug)]
 pub struct ImportEntries(pub &'static RuleMeta);
+
+/// The registered rule of every code of [`IMP`], in its order.
+pub static IMP_RULES: [ImportEntries; IMP.len()] = {
+    let mut out = [ImportEntries(&IMP[0]); IMP.len()];
+    let mut i = 1;
+    while i < IMP.len() {
+        out[i] = ImportEntries(&IMP[i]);
+        i += 1;
+    }
+    out
+};
 
 /// The import runs the lineages name, in lineage order.
 fn runs(q: &Q) -> Vec<std::sync::Arc<ImportRun>> {

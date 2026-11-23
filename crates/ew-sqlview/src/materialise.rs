@@ -1113,7 +1113,7 @@ fn messages(report: Option<&CheckReport>) -> Vec<Row> {
             let mut r = Row::new(&MESSAGE);
             r.set("fingerprint", format!("{:032x}", f.fingerprint.0))
                 .set("rule", f.rule)
-                .set("pack", meta.map(|m| m.meta().pack))
+                .set("pack", meta.map(|m| m.meta().pack()))
                 .set("severity", f.severity.name())
                 .set("mode", mode)
                 .set("state", state)

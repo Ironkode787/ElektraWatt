@@ -447,7 +447,6 @@ fn note_owner(q: &Q, p: PotentialId, wires: &[PhysicalWire], subject: &str) -> O
 pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
     id: "EW-POT-001",
     code: "005001",
-    pack: "EW-POT",
     title: "Type or voltage conflict",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -456,7 +455,6 @@ pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-001",
 };
 
 /// EW-POT-001: two definitions or member roles of one potential disagree on type, voltage, environment or
@@ -892,7 +890,6 @@ fn endpoint_param(e: EndpointKey) -> serde_json::Value {
 pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
     id: "EW-POT-002",
     code: "005002",
-    pack: "EW-POT",
     title: "PELV or SELV bonding",
     kind: RuleKind::Safety,
     modes: Modes::letters("or"),
@@ -901,7 +898,6 @@ pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-002",
 };
 
 /// EW-POT-002: a PELV potential without exactly one 0 V–PE bond, a SELV potential with any (FR-CHK-028,
@@ -1016,7 +1012,6 @@ impl Rule for PelvSelvBonding {
 pub const FE_PIN_ON_PE: RuleMeta = RuleMeta {
     id: "EW-POT-003",
     code: "005003",
-    pack: "EW-POT",
     title: "FE pin on PE",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -1025,7 +1020,6 @@ pub const FE_PIN_ON_PE: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-003",
 };
 
 /// EW-POT-003: a connection point with the role FE on a PE (or PEN) potential without an FE–PE bond at it (doc 08
@@ -1093,7 +1087,6 @@ impl Rule for FePinOnPe {
 pub const GNYE_ON_NON_PE: RuleMeta = RuleMeta {
     id: "EW-POT-004",
     code: "005004",
-    pack: "EW-POT",
     title: "GNYE on a non-PE potential",
     kind: RuleKind::Safety,
     modes: Modes::letters("or"),
@@ -1102,7 +1095,6 @@ pub const GNYE_ON_NON_PE: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-004",
 };
 
 /// Whether a colour is exactly the IEC code(s) `codes`.
@@ -1182,7 +1174,6 @@ impl Rule for GnyeOnNonPe {
 pub const BU_ON_NON_N: RuleMeta = RuleMeta {
     id: "EW-POT-005",
     code: "005005",
-    pack: "EW-POT",
     title: "BU on a non-N conductor",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -1191,7 +1182,6 @@ pub const BU_ON_NON_N: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-005",
 };
 
 /// EW-POT-005: a wire or core whose effective colour is exactly the IEC code BU (not a company code such as DBU) on a
@@ -1271,7 +1261,6 @@ fn project_has_n(q: &Q) -> bool {
 pub const PE_UNDERSIZED: RuleMeta = RuleMeta {
     id: "EW-POT-006",
     code: "005006",
-    pack: "EW-POT",
     title: "PE undersized",
     kind: RuleKind::Safety,
     modes: Modes::letters("or"),
@@ -1280,7 +1269,6 @@ pub const PE_UNDERSIZED: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-006",
 };
 
 /// The rule data of EW-POT-006 (`data/pe_sizing.toml`).
@@ -1566,7 +1554,6 @@ fn associated_line(q: &Q, table: &PeSizing, cp: CpRef, pe_wire: Id<Connection>) 
 pub const PE_ISLAND: RuleMeta = RuleMeta {
     id: "EW-POT-008",
     code: "005008",
-    pack: "EW-POT",
     title: "PE island",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -1575,7 +1562,6 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-008",
 };
 
 /// EW-POT-008 (doc 08 §8.1, FR-CHK-055), both halves:
@@ -1745,7 +1731,6 @@ fn first_point(q: &Q, partition: &ew_derive::Partition, p: PotentialId) -> Optio
 pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
     id: "EW-POT-009",
     code: "005009",
-    pack: "EW-POT",
     title: "Unconnected CP",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -1754,7 +1739,6 @@ pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-009",
 };
 
 /// EW-POT-009: an electrical connection point of a placed function with no connection (doc 08 §8.2, FR-CHK-018,
@@ -1982,7 +1966,6 @@ fn idle_channel_pin(q: &Q, function: Id<Function>, idx: u16) -> bool {
 pub const JUNCTION_FEED_AMBIGUOUS: RuleMeta = RuleMeta {
     id: "EW-POT-011",
     code: "005011",
-    pack: "EW-POT",
     title: "Junction feed ambiguous",
     kind: RuleKind::Conflict,
     modes: Modes::letters("o"),
@@ -1991,7 +1974,6 @@ pub const JUNCTION_FEED_AMBIGUOUS: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-011",
 };
 
 /// EW-POT-011: the arm between two junctions feeds both or neither, or a source feeds a star without a
@@ -2017,7 +1999,6 @@ impl Rule for JunctionFeedAmbiguous {
 pub const RING_IN_DRAWING_GRAPH: RuleMeta = RuleMeta {
     id: "EW-POT-012",
     code: "005012",
-    pack: "EW-POT",
     title: "Wires in a ring",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("o"),
@@ -2026,7 +2007,6 @@ pub const RING_IN_DRAWING_GRAPH: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-012",
 };
 
 /// EW-POT-012: the connections of a potential form a ring; the highest connection of the ring forms no
@@ -2054,7 +2034,6 @@ impl Rule for RingInDrawingGraph {
 pub const N_SWITCHING: RuleMeta = RuleMeta {
     id: "EW-POT-013",
     code: "005013",
-    pack: "EW-POT",
     title: "N switching",
     kind: RuleKind::Safety,
     modes: Modes::letters("or"),
@@ -2063,7 +2042,6 @@ pub const N_SWITCHING: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-013",
 };
 
 /// The line types of the N-switching rule (doc 08 §8.2).
@@ -2342,7 +2320,6 @@ fn stranded_loads(
 pub const PHYSICAL_WIRE_CONFLICT: RuleMeta = RuleMeta {
     id: "EW-POT-014",
     code: "005014",
-    pack: "EW-POT",
     title: "Physical-wire conflict",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -2351,7 +2328,6 @@ pub const PHYSICAL_WIRE_CONFLICT: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-014",
 };
 
 /// EW-POT-014: the constituents of one physical wire name different conductors or carry different
@@ -2380,7 +2356,6 @@ impl Rule for PhysicalWireConflict {
 pub const WIRE_NUMBER_CONFLICT: RuleMeta = RuleMeta {
     id: "EW-POT-015",
     code: "005015",
-    pack: "EW-POT",
     title: "Wire-number conflict",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -2389,7 +2364,6 @@ pub const WIRE_NUMBER_CONFLICT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-015",
 };
 
 /// EW-POT-015: one printed wire number on two numbering units, or two numbers within one unit (doc 08 §5.3,
@@ -2461,7 +2435,6 @@ pub(crate) fn duplicate_numbers(numbers: impl IntoIterator<Item = (String, Id<Co
 pub const REDUNDANT_OVERRIDE: RuleMeta = RuleMeta {
     id: "EW-POT-016",
     code: "005016",
-    pack: "EW-POT",
     title: "Redundant override",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("o"),
@@ -2470,7 +2443,6 @@ pub const REDUNDANT_OVERRIDE: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-016",
 };
 
 /// EW-POT-016: a wire override (level 7, CDP) equal to the value below it in the inheritance chain (doc 08 §4.1,
@@ -2575,7 +2547,6 @@ impl Rule for RedundantOverride {
 pub const TWO_POTENTIAL_NAMES: RuleMeta = RuleMeta {
     id: "EW-POT-017",
     code: "005017",
-    pack: "EW-POT",
     title: "Two potential names",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -2584,7 +2555,6 @@ pub const TWO_POTENTIAL_NAMES: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-017",
 };
 
 /// EW-POT-017: definitions with different names in one potential (doc 08 §3.5, FR-CON-012, D-24); the first in
@@ -2639,7 +2609,6 @@ impl Rule for TwoPotentialNames {
 pub const LOAD_NOT_RETURNED: RuleMeta = RuleMeta {
     id: "EW-POT-021",
     code: "005021",
-    pack: "EW-POT",
     title: "Load not returned",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -2648,7 +2617,6 @@ pub const LOAD_NOT_RETURNED: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-021",
 };
 
 /// Whether a type is a protective or functional earth (PEN is a return conductor): an earth potential is never a
@@ -2840,7 +2808,6 @@ impl Rule for LoadNotReturned {
 pub const CSA_BELOW_PROTECTION: RuleMeta = RuleMeta {
     id: "EW-POT-022",
     code: "005022",
-    pack: "EW-POT",
     title: "Cross-section below its protection",
     kind: RuleKind::Safety,
     modes: Modes::letters("or"),
@@ -2849,7 +2816,6 @@ pub const CSA_BELOW_PROTECTION: RuleMeta = RuleMeta {
     scope: ScopeKind::Potential,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-pot-022",
 };
 
 /// EW-POT-022: a wire whose cross-section set by hand (level 7, in mm²) is below what the rating of its protecting

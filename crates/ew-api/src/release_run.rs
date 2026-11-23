@@ -1797,7 +1797,7 @@ mod tests {
     /// (and the approval's `ident()` never refuses one).
     #[test]
     fn every_gate_pack_id_and_version_is_an_ident() {
-        let mut packs: Vec<&str> = checks::rules().iter().map(|r| r.meta().pack).collect();
+        let mut packs: Vec<&str> = checks::rules().iter().map(|r| r.meta().pack()).collect();
         packs.sort_unstable();
         packs.dedup();
         assert!(!packs.is_empty());

@@ -24,7 +24,6 @@ use crate::rules::term::full_tag;
 pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     id: "EW-CORE-033",
     code: "003033",
-    pack: "EW-CORE",
     title: "Cable without length",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -33,7 +32,6 @@ pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-033",
 };
 
 /// EW-CORE-033: a cable whose length source is `missing` (FR-CBL-009). A manual length and a length from
@@ -78,7 +76,6 @@ impl Rule for CableWithoutLength {
 pub const DEVICE_NOT_IN_SCHEMATIC: RuleMeta = RuleMeta {
     id: "EW-CORE-047",
     code: "102047",
-    pack: "EW-CORE",
     title: "Device not drawn",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -87,7 +84,6 @@ pub const DEVICE_NOT_IN_SCHEMATIC: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-047",
 };
 
 /// EW-CORE-047: a device with functions none of which has a representation on any page (FR-REV-007). A terminal or a
@@ -195,7 +191,6 @@ fn drawn_terminal_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
 pub const UNPAIRED_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-051",
     code: "103051",
-    pack: "EW-CORE",
     title: "Unpaired interruption point",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -204,7 +199,6 @@ pub const UNPAIRED_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-051",
 };
 
 /// EW-CORE-051: an interruption point without a partner (FR-CHK-017, doc 08 §3.5), read from the typed
@@ -304,7 +298,6 @@ impl Rule for UnpairedInterruptionPoint {
 pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-052",
     code: "103052",
-    pack: "EW-CORE",
     title: "Ambiguous interruption point",
     kind: RuleKind::Conflict,
     modes: Modes::letters("opr"),
@@ -313,7 +306,6 @@ pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-052",
 };
 
 /// EW-CORE-052: a star-mode pairing group that violates "at most one star source per name and scope"
@@ -425,7 +417,6 @@ impl Rule for AmbiguousInterruptionPoint {
 pub const WAIVER_MATCHES_NOTHING: RuleMeta = RuleMeta {
     id: "EW-CORE-081",
     code: "105081",
-    pack: "EW-CORE",
     title: "Waiver matches nothing",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -434,7 +425,6 @@ pub const WAIVER_MATCHES_NOTHING: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-081",
 };
 
 /// EW-CORE-081: a waiver whose fingerprint matches no finding. The finding depends on the findings of every
@@ -457,7 +447,6 @@ impl Rule for WaiverMatchesNothing {
 pub const TITLE_BLOCK_OVERRIDE: RuleMeta = RuleMeta {
     id: "EW-CORE-023",
     code: "101023",
-    pack: "EW-CORE",
     title: "Title-block override",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -466,7 +455,6 @@ pub const TITLE_BLOCK_OVERRIDE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-023",
 };
 
 /// EW-CORE-023: a title-block value overridden on one page (FR-REP-036, D-06, MF-05). The page's
@@ -536,7 +524,6 @@ fn ml_texts(t: &MlText) -> Vec<&str> {
 pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
     id: "EW-CORE-053",
     code: "103053",
-    pack: "EW-CORE",
     title: "Cross-reference cell invalid",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -545,7 +532,6 @@ pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-core-053",
 };
 
 /// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
@@ -730,7 +716,6 @@ fn graphics_cells(
 pub const DESCRIPTION_LINT: RuleMeta = RuleMeta {
     id: "EW-CORE-065",
     code: "104065",
-    pack: "EW-CORE",
     title: "Description lint",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("fr"),
@@ -739,7 +724,6 @@ pub const DESCRIPTION_LINT: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-core-065",
 };
 
 /// EW-CORE-065: the descriptions of the project's parts (the BOM description, `Part.description`, "a noun
@@ -923,12 +907,10 @@ const fn integrity(
     title: &'static str,
     modes: &'static str,
     severity: Severity,
-    docs: &'static str,
 ) -> RuleMeta {
     RuleMeta {
         id,
         code,
-        pack: "EW-CORE",
         title,
         kind: RuleKind::Integrity,
         modes: Modes::letters(modes),
@@ -937,7 +919,6 @@ const fn integrity(
         scope: ScopeKind::Project,
         supersedes: &[],
         release: Release::Mvp,
-        docs,
     }
 }
 
@@ -951,7 +932,6 @@ pub const DANGLING_REFERENCE: RuleMeta = integrity(
     "Dangling reference",
     "r",
     Severity::Error,
-    "reference/rules/ew-core-008",
 );
 
 /// EW-CORE-011 "Conflict records present" (doc 15 §4.2): integrity, n r, error, project. A registered rule over the
@@ -962,7 +942,6 @@ pub const CONFLICT_RECORDS: RuleMeta = integrity(
     "Conflict records present",
     "r",
     Severity::Error,
-    "reference/rules/ew-core-011",
 );
 
 /// EW-CORE-011: one finding per conflict record a merge left (doc 05 §11.2, §11.4), an error of release
@@ -1042,7 +1021,6 @@ pub const MERGE_COLLISION: RuleMeta = integrity(
     "Collision after a merge",
     "or",
     Severity::Error,
-    "reference/rules/ew-core-013",
 );
 
 /// The six uniqueness rules whose groups EW-CORE-013 reports after a merge (doc 15 §6.4): device tags, terminal
@@ -1286,62 +1264,25 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
 /// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
 /// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
 pub const INTEGRITY: &[RuleMeta] = &[
-    integrity(
-        "EW-CORE-001",
-        "100001",
-        "Manifest damaged",
-        "",
-        Severity::Warning,
-        "reference/rules/ew-core-001",
-    ),
-    integrity(
-        "EW-CORE-002",
-        "100002",
-        "Mixed generation",
-        "r",
-        Severity::Error,
-        "reference/rules/ew-core-002",
-    ),
+    integrity("EW-CORE-001", "100001", "Manifest damaged", "", Severity::Warning),
+    integrity("EW-CORE-002", "100002", "Mixed generation", "r", Severity::Error),
     integrity(
         "EW-CORE-003",
         "100003",
         "Listed file missing",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-003",
     ),
-    integrity(
-        "EW-CORE-004",
-        "100004",
-        "Orphan file",
-        "",
-        Severity::Warning,
-        "reference/rules/ew-core-004",
-    ),
-    integrity(
-        "EW-CORE-005",
-        "100005",
-        "JSON syntax error",
-        "r",
-        Severity::Error,
-        "reference/rules/ew-core-005",
-    ),
+    integrity("EW-CORE-004", "100004", "Orphan file", "", Severity::Warning),
+    integrity("EW-CORE-005", "100005", "JSON syntax error", "r", Severity::Error),
     integrity(
         "EW-CORE-006",
         "100006",
         "Git conflict markers",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-006",
     ),
-    integrity(
-        "EW-CORE-007",
-        "100007",
-        "Schema violation",
-        "r",
-        Severity::Error,
-        "reference/rules/ew-core-007",
-    ),
+    integrity("EW-CORE-007", "100007", "Schema violation", "r", Severity::Error),
     DANGLING_REFERENCE,
     integrity(
         "EW-CORE-009",
@@ -1349,7 +1290,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Duplicate record ID",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-009",
     ),
     integrity(
         "EW-CORE-010",
@@ -1357,7 +1297,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Record in the wrong file",
         "",
         Severity::Info,
-        "reference/rules/ew-core-010",
     ),
     integrity(
         "EW-CORE-012",
@@ -1365,7 +1304,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Structural invariant violated",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-012",
     ),
     integrity(
         "EW-CORE-014",
@@ -1373,23 +1311,14 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Library copy modified",
         "",
         Severity::Warning,
-        "reference/rules/ew-core-014",
     ),
-    integrity(
-        "EW-CORE-015",
-        "100015",
-        "Asset missing",
-        "r",
-        Severity::Error,
-        "reference/rules/ew-core-015",
-    ),
+    integrity("EW-CORE-015", "100015", "Asset missing", "r", Severity::Error),
     integrity(
         "EW-CORE-016",
         "100016",
         "Data from a newer format",
         "r",
         Severity::Info,
-        "reference/rules/ew-core-016",
     ),
     integrity(
         "EW-CORE-017",
@@ -1397,7 +1326,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Malformed known variant",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-017",
     ),
     integrity(
         "EW-CORE-018",
@@ -1405,7 +1333,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Unknown derivation profile",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-018",
     ),
     integrity(
         "EW-CORE-019",
@@ -1413,7 +1340,6 @@ pub const INTEGRITY: &[RuleMeta] = &[
         "Reader limit exceeded",
         "r",
         Severity::Error,
-        "reference/rules/ew-core-019",
     ),
 ];
 

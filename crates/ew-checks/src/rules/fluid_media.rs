@@ -23,6 +23,7 @@ use ew_derive::{
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rules::and_list;
 use crate::rules::term::full_tag;
 
 /// A device's displayed tag (`-201U3-Q1`), else `device`.
@@ -47,15 +48,6 @@ fn en_nl(t: &MlText) -> (String, String) {
     (get("en-GB"), get("nl-NL"))
 }
 
-/// "A, B and C".
-fn and_list(items: &[String], and: &str) -> String {
-    match items {
-        [] => String::new(),
-        [one] => one.clone(),
-        [init @ .., last] => format!("{} {and} {last}", init.join(", ")),
-    }
-}
-
 /// Whether a CP of a function carries a closure.
 fn closed(q: &Q, f: Id<Function>, idx: u16) -> bool {
     q.functions().get(f).is_some_and(|x| {
@@ -78,12 +70,11 @@ fn members(q: &Q, net: NetId, alone: EndpointKey) -> Vec<EndpointKey> {
 }
 
 macro_rules! meta {
-    ($name:ident, $id:literal, $page:literal, $code:literal, $title:literal, $kind:ident, $modes:literal, $sev:ident, $scope:ident) => {
+    ($name:ident, $id:literal, $code:literal, $title:literal, $kind:ident, $modes:literal, $sev:ident, $scope:ident) => {
         #[doc = concat!($id, " \"", $title, "\" (doc 11 §6): 1.0.")]
         pub const $name: RuleMeta = RuleMeta {
             id: $id,
             code: $code,
-            pack: "EW-FL",
             title: $title,
             kind: RuleKind::$kind,
             modes: Modes::letters($modes),
@@ -92,7 +83,6 @@ macro_rules! meta {
             scope: ScopeKind::$scope,
             supersedes: &[],
             release: Release::V1_0,
-            docs: concat!("reference/rules/", $page),
         };
     };
 }
@@ -103,7 +93,6 @@ macro_rules! meta {
 meta!(
     TWO_MEDIA,
     "EW-FL-005",
-    "ew-fl-005",
     "120005",
     "Two media in one net",
     Conflict,
@@ -189,7 +178,6 @@ impl Rule for TwoMedia {
 meta!(
     TUBE_MISFIT,
     "EW-FL-006",
-    "ew-fl-006",
     "120006",
     "Tube does not fit",
     Conflict,
@@ -318,7 +306,6 @@ impl Rule for TubeMisfit {
 meta!(
     NO_TUBE_SPEC,
     "EW-FL-007",
-    "ew-fl-007",
     "120007",
     "Tube without specification",
     Completeness,
@@ -382,7 +369,6 @@ impl Rule for NoTubeSpec {
 meta!(
     EXHAUST_OPEN,
     "EW-FL-008",
-    "ew-fl-008",
     "120008",
     "Exhaust open",
     Completeness,
@@ -528,7 +514,6 @@ fn gallery_number(g: &FluidPortRole) -> &'static str {
 meta!(
     COIL_VOLTAGE,
     "EW-FL-009",
-    "ew-fl-009",
     "120009",
     "Coil voltage",
     Conflict,
@@ -705,7 +690,6 @@ impl Rule for CoilVoltage {
 meta!(
     NO_SUPPLY,
     "EW-FL-010",
-    "ew-fl-010",
     "120010",
     "No supply",
     Completeness,
@@ -829,7 +813,6 @@ fn cp_text(q: &Q, at: EndpointKey) -> String {
 meta!(
     PORT_ROLE_CONFLICT,
     "EW-FL-012",
-    "ew-fl-012",
     "120012",
     "Port-role conflict",
     Conflict,
@@ -952,7 +935,6 @@ impl Rule for PortRoleConflict {
 meta!(
     LOCATION_CROSSING,
     "EW-FL-014",
-    "ew-fl-014",
     "120014",
     "Tube crosses a location",
     Completeness,

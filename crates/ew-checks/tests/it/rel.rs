@@ -50,7 +50,7 @@ fn gated(records: Vec<Record>, content_digest: Option<Sha256>) -> Vec<(&'static 
 fn ew_rel_runs_in_the_gate_only() {
     for id in ["EW-REL-001", "EW-REL-002", "EW-REL-004"] {
         let m = rule(id).expect("registered").meta();
-        assert_eq!(m.pack, "EW-REL");
+        assert_eq!(m.pack(), "EW-REL");
         assert_eq!(m.kind, RuleKind::Integrity);
         assert!(!m.waivable(), "{id}");
         assert!(m.modes.gate, "{id}");

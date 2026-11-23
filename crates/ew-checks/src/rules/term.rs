@@ -101,7 +101,6 @@ fn designation_groups(q: &Q, strip: Id<Device>) -> Groups {
 pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-TERM-001",
     code: "001001",
-    pack: "EW-TERM",
     title: "Terminal without designation",
     kind: RuleKind::Conflict,
     modes: Modes::letters("por"),
@@ -110,7 +109,6 @@ pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-term-001",
 };
 
 /// EW-TERM-001: a terminal of a strip whose designation is empty. `Ident` is non-empty, so a model built
@@ -200,7 +198,6 @@ fn is_unnumbered_strip(q: &Q, strip: Id<Device>) -> bool {
 pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-TERM-002",
     code: "001002",
-    pack: "EW-TERM",
     title: "Duplicate designation",
     kind: RuleKind::Conflict,
     modes: Modes::letters("por"),
@@ -209,7 +206,6 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-term-002",
 };
 
 /// EW-TERM-002: a designation used by more than one terminal of a strip (FR-TRM-002, D-12; doc 08 §6.8).
@@ -364,7 +360,6 @@ impl Rule for DuplicateDesignation {
 pub const RAIL_BONDING_ON_NON_PE: RuleMeta = RuleMeta {
     id: "EW-TERM-005",
     code: "001005",
-    pack: "EW-TERM",
     title: "Rail bonding on a non-PE terminal",
     kind: RuleKind::Conflict,
     modes: Modes::letters("o"),
@@ -373,7 +368,6 @@ pub const RAIL_BONDING_ON_NON_PE: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-term-005",
 };
 
 /// EW-TERM-005: a terminal with `rail_bonded` set that has no PE connection point (doc 08 §6.8). The
@@ -433,7 +427,6 @@ impl Rule for RailBondingOnNonPe {
 pub const SPARE_WIRED_ON_FIELD_SIDE: RuleMeta = RuleMeta {
     id: "EW-TERM-003",
     code: "001003",
-    pack: "EW-TERM",
     title: "Spare wired on the field side",
     kind: RuleKind::Conflict,
     modes: Modes::letters("o"),
@@ -442,7 +435,6 @@ pub const SPARE_WIRED_ON_FIELD_SIDE: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-term-003",
 };
 
 /// EW-TERM-003: a spare terminal (`Device.state = Spare`, FR-TRM-009) with a wire or a cable core at a CP of its
@@ -510,7 +502,6 @@ impl Rule for SpareWiredOnFieldSide {
 pub const BRIDGE_GROUP_INVALID: RuleMeta = RuleMeta {
     id: "EW-TERM-004",
     code: "001004",
-    pack: "EW-TERM",
     title: "Bridge group invalid",
     kind: RuleKind::Conflict,
     modes: Modes::letters("po"),
@@ -519,7 +510,6 @@ pub const BRIDGE_GROUP_INVALID: RuleMeta = RuleMeta {
     scope: ScopeKind::Strip,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-term-004",
 };
 
 /// The EW-TERM-004 findings of one strip (see [`BridgeGroupInvalid`]).
@@ -750,7 +740,6 @@ impl Rule for BridgeGroupInvalid {
 pub const TERMINAL_ON_UNJOINED_WIRE: RuleMeta = RuleMeta {
     id: "EW-TERM-006",
     code: "001006",
-    pack: "EW-TERM",
     title: "Terminal on a wire it does not join",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -759,7 +748,6 @@ pub const TERMINAL_ON_UNJOINED_WIRE: RuleMeta = RuleMeta {
     scope: ScopeKind::Page,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-term-006",
 };
 
 /// The axis-parallel segments of the page's wires on one line (the y of a horizontal one, the x of a vertical one):

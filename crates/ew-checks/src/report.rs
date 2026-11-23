@@ -334,7 +334,7 @@ pub fn to_result(report: &CheckReport) -> CheckResult {
             .map(|r| ResultRule {
                 id: r.id.to_owned(),
                 code: r.code.to_owned(),
-                pack: r.pack.to_owned(),
+                pack: r.pack().to_owned(),
                 title: r.title.to_owned(),
             })
             .collect(),

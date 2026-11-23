@@ -231,7 +231,6 @@ fn new_group_members(rule: &dyn Rule, before: &Q, after: &Q, touched: &Touched) 
 pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
     id: "EW-PLC-001",
     code: "110001",
-    pack: "EW-PLC",
     title: "Address overlap",
     kind: RuleKind::Conflict,
     modes: Modes::letters("op"),
@@ -240,7 +239,6 @@ pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-001",
 };
 
 /// EW-PLC-001: channel addresses of one configuration project whose bit ranges overlap in one area (`IW0` against
@@ -352,7 +350,6 @@ impl Rule for AddressOverlap {
 pub const OUTSIDE_MODULE: RuleMeta = RuleMeta {
     id: "EW-PLC-002",
     code: "110002",
-    pack: "EW-PLC",
     title: "Address outside the module",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -361,7 +358,6 @@ pub const OUTSIDE_MODULE: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-002",
 };
 
 /// EW-PLC-002: a channel address outside its module's I/O range in the channel's direction: another area, or bytes
@@ -480,7 +476,6 @@ impl ModuleRange {
 pub const BIT_OUT_OF_RANGE: RuleMeta = RuleMeta {
     id: "EW-PLC-003",
     code: "110003",
-    pack: "EW-PLC",
     title: "Bit index out of range",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -489,7 +484,6 @@ pub const BIT_OUT_OF_RANGE: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-003",
 };
 
 /// EW-PLC-003: a stored manual address whose bit index is not below the profile's unit width (`I4.9` in an 8-bit
@@ -574,7 +568,6 @@ impl Rule for BitOutOfRange {
 pub const DUPLICATE_SYMBOL: RuleMeta = RuleMeta {
     id: "EW-PLC-007",
     code: "110007",
-    pack: "EW-PLC",
     title: "Duplicate symbol",
     kind: RuleKind::Conflict,
     modes: Modes::letters("opr"),
@@ -583,7 +576,6 @@ pub const DUPLICATE_SYMBOL: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-007",
 };
 
 /// EW-PLC-007: a determined symbol (manual, else the template's) that two or more channels of one configuration project
@@ -677,7 +669,6 @@ impl Rule for DuplicateSymbol {
 pub const USED_WITHOUT_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-PLC-008",
     code: "110008",
-    pack: "EW-PLC",
     title: "Used channel without address",
     kind: RuleKind::Completeness,
     modes: Modes::letters("oxr"),
@@ -686,7 +677,6 @@ pub const USED_WITHOUT_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-008",
 };
 
 /// EW-PLC-008: a used channel (effective state `used`, A3) that resolves to no address: an excluded address or
@@ -756,7 +746,6 @@ impl Rule for UsedWithoutAddress {
 pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
     id: "EW-PLC-012",
     code: "110012",
-    pack: "EW-PLC",
     title: "Binding differs from the part map",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -765,7 +754,6 @@ pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &["EW-NUM-002"],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-012",
 };
 
 /// EW-PLC-012 (doc 10 §3.10, D-26): a binding or an address that differs from the part's address map, by
@@ -936,7 +924,6 @@ impl Rule for DiffersFromMap {
 pub const TBD_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-PLC-015",
     code: "110015",
-    pack: "EW-PLC",
     title: "Tbd address",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -945,7 +932,6 @@ pub const TBD_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &["EW-CORE-044"],
     release: Release::Mvp,
-    docs: "reference/rules/ew-plc-015",
 };
 
 /// EW-PLC-015: a `Tbd` module start or channel address of a module of the configuration project (D-15), one finding
@@ -1017,7 +1003,6 @@ impl Rule for TbdAddress {
 pub const PINS_UNBOUND: RuleMeta = RuleMeta {
     id: "EW-PLC-018",
     code: "110018",
-    pack: "EW-PLC",
     title: "Module drawn with its channels unbound",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -1026,7 +1011,6 @@ pub const PINS_UNBOUND: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-018",
 };
 
 /// EW-PLC-018: a module that is drawn, whose part maps its channels to pins, while none of its channels is bound to a
@@ -1089,7 +1073,6 @@ impl Rule for PinsUnbound {
 pub const NOT_A_MODULE: RuleMeta = RuleMeta {
     id: "EW-PLC-017",
     code: "110017",
-    pack: "EW-PLC",
     title: "Not a PLC module",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -1098,7 +1081,6 @@ pub const NOT_A_MODULE: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-017",
 };
 
 /// EW-PLC-017: a device that carries `plc_module` while nothing of it describes a module

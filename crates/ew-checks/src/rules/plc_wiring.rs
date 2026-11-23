@@ -74,7 +74,6 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<(Id<Device>, Slot)> {
 pub const KIND_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-PLC-004",
     code: "110004",
-    pack: "EW-PLC",
     title: "Channel kind mismatch",
     kind: RuleKind::Conflict,
     modes: Modes::letters("fr"),
@@ -83,7 +82,6 @@ pub const KIND_MISMATCH: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-004",
 };
 
 /// EW-PLC-004: an output channel (DO, AO) whose target is a contact (a sensor, `no`, `nc`, `co`), or an input channel
@@ -161,7 +159,6 @@ impl Rule for KindMismatch {
 pub const INVALID_SYMBOL: RuleMeta = RuleMeta {
     id: "EW-PLC-005",
     code: "110005",
-    pack: "EW-PLC",
     title: "Invalid symbol",
     kind: RuleKind::Conflict,
     modes: Modes::letters("xr"),
@@ -170,7 +167,6 @@ pub const INVALID_SYMBOL: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-005",
 };
 
 /// EW-PLC-005: under the configuration project's strict IEC policy (the default; `SymbolPolicy.strict_iec`) a
@@ -234,7 +230,6 @@ impl Rule for InvalidSymbol {
 pub const WITHOUT_CONNECTION: RuleMeta = RuleMeta {
     id: "EW-PLC-009",
     code: "110009",
-    pack: "EW-PLC",
     title: "Channel without connection",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -243,7 +238,6 @@ pub const WITHOUT_CONNECTION: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-009",
 };
 
 /// EW-PLC-009: a channel that carries a manual address or a symbol but reaches nothing (no target, and not used
@@ -318,7 +312,6 @@ impl Rule for WithoutConnection {
 pub const WIDTH_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-PLC-010",
     code: "110010",
-    pack: "EW-PLC",
     title: "Data-type width mismatch",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -327,7 +320,6 @@ pub const WIDTH_MISMATCH: RuleMeta = RuleMeta {
     scope: ScopeKind::Module,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-010",
 };
 
 /// The width in bits of an IEC 61131-3 elementary data type (compared without regard to case); `None` for any other
@@ -419,7 +411,6 @@ impl Rule for WidthMismatch {
 pub const SLOT_RULES: RuleMeta = RuleMeta {
     id: "EW-PLC-011",
     code: "110011",
-    pack: "EW-PLC",
     title: "Slot rules",
     kind: RuleKind::Conflict,
     modes: Modes::letters("por"),
@@ -428,7 +419,6 @@ pub const SLOT_RULES: RuleMeta = RuleMeta {
     scope: ScopeKind::Station,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-011",
 };
 
 /// EW-PLC-011: over the modules of a station, two modules in one slot (a rack slot of rack 0 and a positional module's
@@ -602,7 +592,6 @@ impl Rule for SlotRules {
 pub const CARD_SUPPLY: RuleMeta = RuleMeta {
     id: "EW-PLC-013",
     code: "110013",
-    pack: "EW-PLC",
     title: "Card supply wrong",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -611,7 +600,6 @@ pub const CARD_SUPPLY: RuleMeta = RuleMeta {
     scope: ScopeKind::Station,
     supersedes: &["EW-POT-003"],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-013",
 };
 
 /// EW-PLC-013 over the devices of a station's tree (FR-PLC-048, D-16):
@@ -767,7 +755,6 @@ impl Rule for CardSupply {
 pub const OUTPUT_LOAD: RuleMeta = RuleMeta {
     id: "EW-PLC-014",
     code: "110014",
-    pack: "EW-PLC",
     title: "Output load exceeds rating",
     kind: RuleKind::Safety,
     modes: Modes::letters("fr"),
@@ -776,7 +763,6 @@ pub const OUTPUT_LOAD: RuleMeta = RuleMeta {
     scope: ScopeKind::Station,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-014",
 };
 
 /// The load current of a device in milliamperes from its parts' technical data: `i_load` in A, else `power` in W at

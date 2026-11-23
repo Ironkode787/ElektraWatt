@@ -23,7 +23,6 @@ use crate::rules::term::full_tag;
 pub const EXCHANGE_DRIFT: RuleMeta = RuleMeta {
     id: "EW-PLC-016",
     code: "110016",
-    pack: "EW-PLC",
     title: "Exchange drift",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("o"),
@@ -32,7 +31,6 @@ pub const EXCHANGE_DRIFT: RuleMeta = RuleMeta {
     scope: ScopeKind::Cfg,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-plc-016",
 };
 
 /// EW-PLC-016: a configuration project whose exchange image differs from the snapshot of its last exchange (doc 10
@@ -128,7 +126,6 @@ impl Rule for ExchangeDrift {
 pub const OPEN_INSTRUMENT_TAG: RuleMeta = RuleMeta {
     id: "EW-PRC-002",
     code: "110202",
-    pack: "EW-PLC",
     title: "Open instrument tag",
     kind: RuleKind::Completeness,
     modes: Modes::letters("o"),
@@ -137,7 +134,6 @@ pub const OPEN_INSTRUMENT_TAG: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::V1_0,
-    docs: "reference/rules/ew-prc-002",
 };
 
 /// EW-PRC-002: a row of an instrument list (an `exchange_record` of object `instrument`, doc 10 §4.7) whose

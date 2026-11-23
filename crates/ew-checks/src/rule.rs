@@ -188,8 +188,6 @@ pub struct RuleMeta {
     pub id: &'static str,
     /// The six-digit code `CCCNNN` (doc 15 §2.2), for example `001002`.
     pub code: &'static str,
-    /// The pack, for example `EW-TERM` or `EW-IEC81346`.
-    pub pack: &'static str,
     /// The English title, the catalogue's; the en-GB `.title` attribute of the rule's Fluent message
     /// ([`crate::messages`]) is the same text, which a test holds.
     pub title: &'static str,
@@ -208,10 +206,26 @@ pub struct RuleMeta {
     /// The release whose pack ships the rule (the catalogue's release column, doc 15 §4.1): a 1.0 rule of a
     /// pack that is complete at 1.0, such as EW-CORE-065, belongs to the pack's 1.0 content.
     pub release: Release,
-    /// The rule's page of the user guide (FR-CHK-015): `reference/rules/<id in lower case>`, a path
-    /// below the book's source without its extension, which `cargo xtask docs-gen` writes from the catalogue.
-    pub docs: &'static str,
 }
+
+/// The families of doc 15 §2.2 with shipped rules: the family of a rule ID, its pack and the offset of its codes in
+/// the pack's class (EW-SAF-001 is code `110101`).
+pub(crate) const FAMILIES: &[(&str, &str, u32)] = &[
+    ("TERM", "EW-TERM", 0),
+    ("POT", "EW-POT", 0),
+    ("PLC", "EW-PLC", 0),
+    ("SAF", "EW-PLC", 100),
+    ("PRC", "EW-PLC", 200),
+    ("BUS", "EW-BUS", 0),
+    ("IOL", "EW-BUS", 100),
+    ("RDS", "EW-IEC81346", 0),
+    ("NUM", "EW-IEC81346", 100),
+    ("CORE", "EW-CORE", 0),
+    ("REL", "EW-REL", 0),
+    ("LAY", "EW-LAYOUT", 0),
+    ("FL", "EW-FL", 0),
+    ("IMP", "EW-IMP", 0),
+];
 
 /// The release column of the rule catalogue (doc 15 §4, §4.1).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -233,6 +247,22 @@ impl Release {
 }
 
 impl RuleMeta {
+    /// The pack, for example `EW-TERM` or `EW-IEC81346`: the pack of the ID's family ([`FAMILIES`]); empty for a
+    /// family without a pack.
+    pub fn pack(&self) -> &'static str {
+        let family = self.id.split('-').nth(1).unwrap_or("");
+        FAMILIES
+            .iter()
+            .find(|(f, _, _)| *f == family)
+            .map_or("", |(_, pack, _)| pack)
+    }
+
+    /// The rule's page of the user guide (FR-CHK-015): `reference/rules/<id in lower case>`, a path below the book's
+    /// source without its extension, which `cargo xtask docs-gen` writes from the catalogue.
+    pub fn docs(&self) -> String {
+        format!("reference/rules/{}", self.id.to_lowercase())
+    }
+
     /// Whether a waiver may cover the rule's findings (`false` for every rule of kind `integrity`).
     pub fn waivable(&self) -> bool {
         self.kind != RuleKind::Integrity

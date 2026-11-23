@@ -31,7 +31,6 @@ use crate::rules::term::{case_setting, full_tag};
 pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-RDS-004",
     code: "017004",
-    pack: "EW-IEC81346",
     title: "Duplicate designation",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -40,7 +39,6 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-004",
 };
 
 /// EW-RDS-004: two devices print the same full designation (FR-NUM-016). Terminals are excluded: their
@@ -178,7 +176,6 @@ fn own_tag_device(q: &Q, device: Id<Device>) -> Option<std::sync::Arc<Device>> {
 pub const DESIGNATION_DOES_NOT_PARSE: RuleMeta = RuleMeta {
     id: "EW-RDS-001",
     code: "017001",
-    pack: "EW-IEC81346",
     title: "Designation does not parse",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -187,7 +184,6 @@ pub const DESIGNATION_DOES_NOT_PARSE: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-001",
 };
 
 /// EW-RDS-001: a device whose derived full designation does not parse under the strict IEC 81346 grammar
@@ -267,7 +263,6 @@ impl Rule for DesignationDoesNotParse {
 pub const SEPARATOR_IN_CODE: RuleMeta = RuleMeta {
     id: "EW-RDS-002",
     code: "017002",
-    pack: "EW-IEC81346",
     title: "Separator in a structure code",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("o"),
@@ -276,7 +271,6 @@ pub const SEPARATOR_IN_CODE: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-002",
 };
 
 /// EW-RDS-002: a structure node code that contains a prefix or separator character (`ew_rds::code_has_separators`),
@@ -333,7 +327,6 @@ impl Rule for SeparatorInCode {
 pub const LETTER_AGAINST_FUNCTION: RuleMeta = RuleMeta {
     id: "EW-RDS-003",
     code: "017003",
-    pack: "EW-IEC81346",
     title: "Letter code against function",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -342,7 +335,6 @@ pub const LETTER_AGAINST_FUNCTION: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-003",
 };
 
 /// EW-RDS-003's parameter `frozen_severity` (doc 15 §4.3, ADR-0026 decision 6): the severity for a frozen tag. The
@@ -443,7 +435,6 @@ impl Rule for LetterAgainstFunction {
 pub const RESERVED_LETTERS: RuleMeta = RuleMeta {
     id: "EW-RDS-007",
     code: "017007",
-    pack: "EW-IEC81346",
     title: "Reserved letters",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
@@ -452,7 +443,6 @@ pub const RESERVED_LETTERS: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-007",
 };
 
 /// EW-RDS-007: a device's letter code with `I` or `O` in it, or whose class letter the project's identifier set
@@ -553,7 +543,6 @@ impl Rule for ReservedLetters {
 pub const CONFUSABLE_CHARACTER: RuleMeta = RuleMeta {
     id: "EW-RDS-009",
     code: "017009",
-    pack: "EW-IEC81346",
     title: "Confusable character",
     kind: RuleKind::Conflict,
     modes: Modes::letters("opr"),
@@ -562,7 +551,6 @@ pub const CONFUSABLE_CHARACTER: RuleMeta = RuleMeta {
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-009",
 };
 
 /// The Latin letter a non-Latin character is drawn like, for the confusable skeleton of EW-RDS-009: the Cyrillic and
@@ -760,7 +748,6 @@ impl Rule for ConfusableCharacter {
 pub const STRUCTURE_CODE_VARIANTS: RuleMeta = RuleMeta {
     id: "EW-RDS-010",
     code: "017010",
-    pack: "EW-IEC81346",
     title: "Structure-code variants",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -769,7 +756,6 @@ pub const STRUCTURE_CODE_VARIANTS: RuleMeta = RuleMeta {
     scope: ScopeKind::Project,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-rds-010",
 };
 
 /// EW-RDS-010: two or more structure nodes of one aspect whose codes differ only in separators or case

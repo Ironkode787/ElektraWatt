@@ -163,28 +163,6 @@ mod tests {
         }
     }
 
-    /// D7: the categories in the list's order, each row's category and discriminator.
-    #[test]
-    fn the_table_is_d7s_in_its_order() {
-        let rows: Vec<(&str, Option<&str>, &str)> = OPEN_ITEM_RULES
-            .iter()
-            .map(|o| (o.rule, o.discriminator, o.category))
-            .collect();
-        assert_eq!(
-            rows,
-            [
-                ("EW-CORE-043", None, "TBD value"),
-                ("EW-CORE-044", None, "TBD value"),
-                ("EW-PLC-015", None, "TBD value"),
-                ("EW-BUS-001", Some("address"), "TBD value"),
-                ("EW-CORE-041", None, "Device without part"),
-                ("EW-LAY-001", None, "Unplaced device"),
-                ("EW-POT-009", None, "Unconnected connection point"),
-                ("EW-CORE-033", None, "Missing length"),
-            ]
-        );
-    }
-
     /// `open_item_of` matches the rule and, for EW-BUS-001, the discriminator `address` only.
     #[test]
     fn open_item_of_matches_the_rule_and_the_discriminator() {

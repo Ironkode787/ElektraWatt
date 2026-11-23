@@ -81,7 +81,6 @@ fn external_end(q: &Q, f: Id<Function>) -> Option<(String, String)> {
 pub const BUS_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-BUS-001",
     code: "111001",
-    pack: "EW-BUS",
     title: "Bus address missing or duplicate",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
@@ -90,7 +89,6 @@ pub const BUS_ADDRESS: RuleMeta = RuleMeta {
     scope: ScopeKind::Lnet,
     supersedes: &["EW-CORE-044"],
     release: Release::Mvp,
-    docs: "reference/rules/ew-bus-001",
 };
 
 /// EW-BUS-001: over the ports of the logical net (`net_members(lnet)`), one finding per port whose station address
@@ -204,7 +202,6 @@ impl Rule for BusAddress {
 pub const TERMINATION: RuleMeta = RuleMeta {
     id: "EW-BUS-004",
     code: "111004",
-    pack: "EW-BUS",
     title: "Termination",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
@@ -213,7 +210,6 @@ pub const TERMINATION: RuleMeta = RuleMeta {
     scope: ScopeKind::Pnet,
     supersedes: &[],
     release: Release::Mvp,
-    docs: "reference/rules/ew-bus-004",
 };
 
 /// The terminating element an end claims, walking inward from it: the index into the segment's functions.
