@@ -14,6 +14,8 @@
 //! where needed, lengths integer `_nm`; booleans 0/1; enums lowercase text, electrical codes in their printed
 //! form (`L+`, `PE`, `DBU`); lists are JSON arrays as text; a value that is not derived yet is `NULL`.
 
+use crate::materialise;
+
 /// The SQLite type of a column.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ColType {
@@ -44,8 +46,8 @@ pub struct Column {
     pub doc: &'static str,
 }
 
-/// One public view.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// One public view: its schema, how its table is filled and what of it is a Preview addition.
+#[derive(Clone, Copy, Debug)]
 pub struct View {
     /// The view name (`api_v1_device`).
     pub name: &'static str,
@@ -53,6 +55,21 @@ pub struct View {
     pub row: &'static str,
     /// The columns, in order.
     pub columns: &'static [Column],
+    /// What of the view goes beyond the key columns of doc 17 §6.1.
+    pub addition: Addition,
+    /// Its table's rows.
+    pub(crate) fill: materialise::Fill,
+}
+
+/// What of a view goes beyond the key columns of doc 17 §6.1: a Preview addition (ADR-0017 amendment 2).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Addition {
+    /// Nothing.
+    None,
+    /// The whole view.
+    View,
+    /// These columns, in the order the schema lists them.
+    Columns(&'static [&'static str]),
 }
 
 impl View {
@@ -108,6 +125,8 @@ pub const META: View = View {
             "the views and columns beyond doc 17 §6.1, JSON array of \"view\" or \"view.column\" (PREVIEW_ADDITIONS)",
         ),
     ],
+    addition: Addition::Columns(&["api_status", "preview_additions"]),
+    fill: materialise::meta,
 };
 
 /// `api_v1_page`.
@@ -154,6 +173,8 @@ pub const PAGE: View = View {
             "the report block of a generated page; NULL otherwise",
         ),
     ],
+    addition: Addition::Columns(&["number", "section_id", "title_ml"]),
+    fill: materialise::pages,
 };
 
 /// `api_v1_device`.
@@ -227,6 +248,8 @@ pub const DEVICE: View = View {
             "1 when placed in a panel layout; NULL until panel layout is derived (1.0)",
         ),
     ],
+    addition: Addition::Columns(&["function_text_ml"]),
+    fill: materialise::devices,
 };
 
 /// `api_v1_function`.
@@ -259,6 +282,8 @@ pub const FUNCTION: View = View {
             "the printed cross-reference of that representation; NULL without one",
         ),
     ],
+    addition: Addition::Columns(&["ip_name"]),
+    fill: materialise::functions,
 };
 
 /// `api_v1_wire`.
@@ -392,6 +417,28 @@ pub const WIRE: View = View {
         t("prov_csa", "the provenance of the cross-section in words"),
         t("prov_colour", "the provenance of the colour in words"),
     ],
+    addition: Addition::Columns(&[
+        "seq",
+        "from_end",
+        "from_side",
+        "from_ip",
+        "to_end",
+        "to_side",
+        "to_ip",
+        "conductor_id",
+        "bond_id",
+        "ips",
+        "junction_id",
+        "junction_style",
+        "junction_wiring",
+        "junction_cell",
+        "junction_cps",
+        "chain_cps",
+        "bridge_kind",
+        "csa_source",
+        "colour_source",
+    ]),
+    fill: materialise::wire_rows,
 };
 
 /// `api_v1_terminal`.
@@ -446,6 +493,8 @@ pub const TERMINAL: View = View {
             "the frame cell of its main representation; NULL without one",
         ),
     ],
+    addition: Addition::Columns(&["tag", "function_text", "strip_group", "bridge"]),
+    fill: materialise::terminals,
 };
 
 /// `api_v1_cable`.
@@ -483,6 +532,8 @@ pub const CABLE: View = View {
             "the folios of the cable's representations in page order, JSON array",
         ),
     ],
+    addition: Addition::Columns(&["tag_full", "end_a", "end_b"]),
+    fill: materialise::cables,
 };
 
 /// `api_v1_conductor`.
@@ -519,6 +570,8 @@ pub const CONDUCTOR: View = View {
             "the same at the bus line's second end; NULL otherwise",
         ),
     ],
+    addition: Addition::Columns(&["pair", "csa_unit"]),
+    fill: materialise::conductors,
 };
 
 /// `api_v1_potential`.
@@ -588,6 +641,8 @@ pub const POTENTIAL: View = View {
             "the folios of its wires' pages in page order, JSON array",
         ),
     ],
+    addition: Addition::Columns(&["colour_iec", "default_csa_unit", "bus_cable_ids"]),
+    fill: materialise::potentials,
 };
 
 /// `api_v1_bond`.
@@ -615,6 +670,8 @@ pub const BOND: View = View {
             "the folios of the bond wire's pages in page order, JSON array",
         ),
     ],
+    addition: Addition::View,
+    fill: materialise::bonds,
 };
 
 /// The columns of both BOM views, then the extra columns of one.
@@ -653,6 +710,8 @@ pub const BOM_COMPONENT: View = View {
     name: "api_v1_bom_component",
     row: "bill-of-materials row in component mode, in list order",
     columns: bom_columns!(),
+    addition: Addition::Columns(&["configured", "variant", "description_ml"]),
+    fill: materialise::bom_component,
 };
 
 /// `api_v1_bom_assembly`.
@@ -669,6 +728,8 @@ pub const BOM_ASSEMBLY: View = View {
             "the level in the assembly tree; NULL until assembly levels are derived"
         ),
     ),
+    addition: Addition::Columns(&["configured", "variant", "description_ml"]),
+    fill: materialise::bom_assembly,
 };
 
 /// `api_v1_message`.
@@ -703,6 +764,8 @@ pub const MESSAGE: View = View {
         ),
         t("waiver_id", "the waiver of a waived finding; NULL otherwise"),
     ],
+    addition: Addition::None,
+    fill: materialise::messages,
 };
 
 /// `api_v1_plc_channel` (doc 17 §6.1, 1.0): one row per channel of every station, the `io_list` columns of doc 10 §5
@@ -779,6 +842,8 @@ pub const PLC_CHANNEL: View = View {
             "the module's F-destination address (PROFIsafe); NULL without one",
         ),
     ],
+    addition: Addition::None,
+    fill: materialise::plc_channels,
 };
 
 /// `api_v1_fluid_line` (doc 11 §8.3): one physical tube.
@@ -848,6 +913,8 @@ pub const FLUID_LINE: View = View {
             "the source of each effective value, JSON object (project, medium, part, override)",
         ),
     ],
+    addition: Addition::None,
+    fill: materialise::fluid_lines,
 };
 
 /// `api_v1_valve_position` (doc 11 §8.3): one position of a valve module.
@@ -877,6 +944,8 @@ pub const VALVE_POSITION: View = View {
         t("target_tag", "its tag"),
         t("state", "used, spare, reserved or not_fitted; NULL when empty"),
     ],
+    addition: Addition::None,
+    fill: materialise::valve_positions,
 };
 
 /// `api_v1_medium` (doc 11 §8.3): one project medium.
@@ -900,6 +969,8 @@ pub const MEDIUM: View = View {
             "its default tube as printed (\"PU 6×4 BU\"); NULL without one",
         ),
     ],
+    addition: Addition::None,
+    fill: materialise::media,
 };
 
 /// Every public view, in name order.
@@ -947,80 +1018,28 @@ pub(crate) fn ddl() -> String {
 /// The status of the contract: `api_v1` is Preview until the 1.0 freeze (ADR-0017 amendment 2).
 pub const API_STATUS: &str = "preview";
 
-/// The views and columns beyond the key columns of doc 17 §6.1: a whole view as
-/// `(view, &[])`, columns as `(view, &[columns])`.
-pub const PREVIEW_ADDITIONS: &[(&str, &[&str])] = &[
-    (
-        "api_v1_bom_assembly",
-        &["configured", "variant", "description_ml"],
-    ),
-    (
-        "api_v1_bom_component",
-        &["configured", "variant", "description_ml"],
-    ),
-    ("api_v1_bond", &[]),
-    ("api_v1_cable", &["tag_full", "end_a", "end_b"]),
-    ("api_v1_conductor", &["pair", "csa_unit"]),
-    ("api_v1_device", &["function_text_ml"]),
-    ("api_v1_function", &["ip_name"]),
-    ("api_v1_meta", &["api_status", "preview_additions"]),
-    ("api_v1_page", &["number", "section_id", "title_ml"]),
-    (
-        "api_v1_potential",
-        &["colour_iec", "default_csa_unit", "bus_cable_ids"],
-    ),
-    (
-        "api_v1_terminal",
-        &["tag", "function_text", "strip_group", "bridge"],
-    ),
-    (
-        "api_v1_wire",
-        &[
-            "seq",
-            "from_end",
-            "from_side",
-            "from_ip",
-            "to_end",
-            "to_side",
-            "to_ip",
-            "conductor_id",
-            "bond_id",
-            "ips",
-            "junction_id",
-            "junction_style",
-            "junction_wiring",
-            "junction_cell",
-            "junction_cps",
-            "chain_cps",
-            "bridge_kind",
-            "csa_source",
-            "colour_source",
-        ],
-    ),
-];
-
-/// [`PREVIEW_ADDITIONS`] as `view` and `view.column` names, in order.
+/// The Preview additions of every view ([`View::addition`]) as `view` and `view.column` names, views in name order.
 pub fn preview_additions() -> Vec<String> {
-    PREVIEW_ADDITIONS
+    VIEWS
         .iter()
-        .flat_map(|(view, cols)| {
-            if cols.is_empty() {
-                vec![(*view).to_owned()]
-            } else {
-                cols.iter().map(|c| format!("{view}.{c}")).collect()
-            }
+        .flat_map(|v| match v.addition {
+            Addition::None => Vec::new(),
+            Addition::View => vec![v.name.to_owned()],
+            Addition::Columns(cols) => cols.iter().map(|c| format!("{}.{c}", v.name)).collect(),
         })
         .collect()
 }
 
-fn is_addition(view: &str, column: Option<&str>) -> bool {
-    PREVIEW_ADDITIONS.iter().any(|(v, cols)| {
-        *v == view
-            && match column {
-                None => cols.is_empty(),
-                Some(c) => cols.is_empty() || cols.contains(&c),
-            }
-    })
+impl View {
+    /// Whether the whole view, or its column `column`, is a Preview addition.
+    pub fn is_addition(&self, column: Option<&str>) -> bool {
+        match (self.addition, column) {
+            (Addition::None, _) => false,
+            (Addition::View, _) => true,
+            (Addition::Columns(_), None) => false,
+            (Addition::Columns(cols), Some(c)) => cols.contains(&c),
+        }
+    }
 }
 
 /// The schema as text, one block per view (`ew sql schema`): the Preview status first, then every view with
@@ -1032,14 +1051,14 @@ pub fn schema_text() -> String {
          documented key columns (doc 17 §6.1).\n\n",
     );
     for v in VIEWS {
-        let mark = if is_addition(v.name, None) {
+        let mark = if v.is_addition(None) {
             " [preview addition]"
         } else {
             ""
         };
         out.push_str(&format!("{} — one row per {}{mark}\n", v.name, v.row));
         for c in v.columns {
-            let mark = if is_addition(v.name, Some(c.name)) && !is_addition(v.name, None) {
+            let mark = if v.is_addition(Some(c.name)) && !v.is_addition(None) {
                 " [preview addition]"
             } else {
                 ""
@@ -1074,13 +1093,11 @@ mod tests {
 
     #[test]
     fn every_preview_addition_exists_and_the_schema_text_marks_it() {
-        for (view, cols) in PREVIEW_ADDITIONS {
-            let v = VIEWS
-                .iter()
-                .find(|v| v.name == *view)
-                .unwrap_or_else(|| panic!("{view}"));
-            for c in *cols {
-                assert!(v.columns.iter().any(|x| x.name == *c), "{view}.{c}");
+        for v in VIEWS {
+            if let Addition::Columns(cols) = v.addition {
+                for c in cols {
+                    assert!(v.columns.iter().any(|x| x.name == *c), "{}.{c}", v.name);
+                }
             }
         }
         let text = schema_text();

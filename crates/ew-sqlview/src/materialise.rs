@@ -44,6 +44,17 @@ pub struct BuildInput<'a> {
     pub checks: Option<&'a CheckReport>,
 }
 
+/// What a view's rows are read from: the model, the caller's facts and the wires and bridges every wire view shares.
+pub(crate) struct Source<'a> {
+    q: &'a Q,
+    input: &'a BuildInput<'a>,
+    wires: &'a Wires,
+    bridges: &'a [Bridge],
+}
+
+/// How a view's table is filled: its rows from the [`Source`], in their order.
+pub(crate) type Fill = fn(&Source<'_>) -> Vec<Row>;
+
 /// The rows of every table, by view.
 pub(crate) type Tables = Vec<(&'static View, Vec<Vec<SqlValue>>)>;
 
@@ -51,34 +62,22 @@ pub(crate) type Tables = Vec<(&'static View, Vec<Vec<SqlValue>>)>;
 pub(crate) fn tables(q: &Q, input: &BuildInput<'_>) -> Tables {
     let wires = Wires::of(q);
     let bridges = conn::bridges(q);
-    let mut out: BTreeMap<&'static str, (&'static View, Vec<Vec<SqlValue>>)> = BTreeMap::new();
-    let mut put = |view: &'static View, rows: Vec<Row>| {
-        out.insert(view.name, (view, rows.into_iter().map(Row::finish).collect()));
+    let source = Source {
+        q,
+        input,
+        wires: &wires,
+        bridges: &bridges,
     };
-    put(&META, meta(q, input));
-    put(&PAGE, pages(q));
-    put(&DEVICE, devices(q));
-    put(&FUNCTION, functions(q));
-    put(&WIRE, wire_rows(q, &wires, &bridges));
-    put(&TERMINAL, terminals(q, &wires, &bridges));
-    put(&CABLE, cables(q, &wires));
-    put(&CONDUCTOR, conductors(q, &wires));
-    put(&POTENTIAL, potentials(q, &wires));
-    put(&BOND, bonds(q, &wires));
-    put(&BOM_COMPONENT, bom(q, BomMode::Component, &BOM_COMPONENT));
-    put(&BOM_ASSEMBLY, bom(q, BomMode::Assembly, &BOM_ASSEMBLY));
-    put(&MESSAGE, messages(input.checks));
-    put(&PLC_CHANNEL, plc_channels(q));
-    put(&FLUID_LINE, fluid_lines(q));
-    put(&VALVE_POSITION, valve_positions(q));
-    put(&MEDIUM, media(q));
-    debug_assert_eq!(out.len(), schema::VIEWS.len(), "every view has a table");
-    out.into_values().collect()
+    schema::VIEWS
+        .iter()
+        .map(|view| (view, (view.fill)(&source).into_iter().map(Row::finish).collect()))
+        .collect()
 }
 
 /// `api_v1_plc_channel`: the channels of every station (`ew_derive::stations` order), each module's in slot and
 /// channel order, from `plc_rows(station)`.
-fn plc_channels(q: &Q) -> Vec<Row> {
+pub(crate) fn plc_channels(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     use ew_derive::PlcRows;
     use ew_derive::ew_schema::{AddrSpec, Channel, PlcConfigProject};
     let channels = q.table::<Channel>();
@@ -190,7 +189,8 @@ fn folios_json(q: &Q, pages: impl IntoIterator<Item = PageRef>) -> String {
 // ---------------------------------------------------------------------------------------------------------
 // meta, page
 
-fn meta(q: &Q, input: &BuildInput<'_>) -> Vec<Row> {
+pub(crate) fn meta(s: &Source<'_>) -> Vec<Row> {
+    let (q, input) = (s.q, s.input);
     let mut r = Row::new(&META);
     let project = q.project();
     let languages: Vec<String> = project
@@ -214,7 +214,8 @@ fn meta(q: &Q, input: &BuildInput<'_>) -> Vec<Row> {
     vec![r]
 }
 
-fn pages(q: &Q) -> Vec<Row> {
+pub(crate) fn pages(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     let order = q.get::<PageOrder>(());
     order
         .entries
@@ -285,7 +286,8 @@ fn rep_place(
     )
 }
 
-fn devices(q: &Q) -> Vec<Row> {
+pub(crate) fn devices(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     let mut ids: Vec<(NaturalKey, Id<Device>)> =
         q.devices().ids().map(|d| (conn::tag_key(q, d), d)).collect();
     ids.sort();
@@ -355,7 +357,8 @@ fn devices(q: &Q) -> Vec<Row> {
         .collect()
 }
 
-fn functions(q: &Q) -> Vec<Row> {
+pub(crate) fn functions(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     let order = q.get::<PageOrder>(());
     q.functions()
         .iter()
@@ -488,7 +491,8 @@ fn set_end(q: &Q, r: &mut Row, prefix: &str, end: &ew_derive::WireEnd) {
     }
 }
 
-fn wire_rows(q: &Q, wires: &Wires, bridges: &[Bridge]) -> Vec<Row> {
+pub(crate) fn wire_rows(s: &Source<'_>) -> Vec<Row> {
+    let (q, wires, bridges) = (s.q, s.wires, s.bridges);
     let mut rows = Vec::new();
     for (seq, rec) in wires.wires.iter().enumerate() {
         rows.push(wire_row(q, wires, rec, seq));
@@ -638,7 +642,8 @@ fn bridge_row(q: &Q, wires: &Wires, b: &Bridge, seq: usize) -> Row {
 // ---------------------------------------------------------------------------------------------------------
 // terminal
 
-fn terminals(q: &Q, wires: &Wires, bridges: &[Bridge]) -> Vec<Row> {
+pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
+    let (q, wires, bridges) = (s.q, s.wires, s.bridges);
     let mut wired: BTreeSet<Id<Device>> = BTreeSet::new();
     for rec in &wires.wires {
         for e in &rec.wire.ends {
@@ -744,7 +749,8 @@ fn wires_by_core(wires: &Wires) -> BTreeMap<Id<ew_derive::ew_schema::Conductor>,
         .collect()
 }
 
-fn cables(q: &Q, wires: &Wires) -> Vec<Row> {
+pub(crate) fn cables(s: &Source<'_>) -> Vec<Row> {
+    let (q, wires) = (s.q, s.wires);
     let by_core = wires_by_core(wires);
     let mut cables: Vec<(NaturalKey, Id<Device>)> = q
         .devices()
@@ -852,7 +858,8 @@ fn device_set(q: &Q, devices: Vec<Id<Device>>, point: Option<String>) -> String 
 /// natural core name).
 type CoreKey = (NaturalKey, bool, Option<u8>, NaturalKey);
 
-fn conductors(q: &Q, wires: &Wires) -> Vec<Row> {
+pub(crate) fn conductors(s: &Source<'_>) -> Vec<Row> {
+    let (q, wires) = (s.q, s.wires);
     let by_core = wires_by_core(wires);
     let mut keyed: Vec<(CoreKey, Row)> = q
         .conductors()
@@ -913,7 +920,8 @@ fn member_count(q: &Q, p: &Potential) -> usize {
     ew_derive::potential_member_count(q, p)
 }
 
-fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
+pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
+    let (q, wires) = (s.q, s.wires);
     let order = q.get::<ew_derive::DrawnPageOrder>(());
     let mut keyed: Vec<((NaturalKey, PotentialId), Row)> = wires
         .partition
@@ -1026,7 +1034,8 @@ fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
     keyed.into_iter().map(|(_, r)| r).collect()
 }
 
-fn bonds(q: &Q, wires: &Wires) -> Vec<Row> {
+pub(crate) fn bonds(s: &Source<'_>) -> Vec<Row> {
+    let (q, wires) = (s.q, s.wires);
     wires
         .partition
         .bonds()
@@ -1060,6 +1069,16 @@ fn bonds(q: &Q, wires: &Wires) -> Vec<Row> {
 
 // ---------------------------------------------------------------------------------------------------------
 // bom, message
+
+/// `api_v1_bom_component`.
+pub(crate) fn bom_component(s: &Source<'_>) -> Vec<Row> {
+    bom(s.q, BomMode::Component, &BOM_COMPONENT)
+}
+
+/// `api_v1_bom_assembly`.
+pub(crate) fn bom_assembly(s: &Source<'_>) -> Vec<Row> {
+    bom(s.q, BomMode::Assembly, &BOM_ASSEMBLY)
+}
 
 fn bom(q: &Q, mode: BomMode, view: &'static View) -> Vec<Row> {
     q.get::<BomRows>(mode)
@@ -1095,7 +1114,8 @@ fn bom(q: &Q, mode: BomMode, view: &'static View) -> Vec<Row> {
         .collect()
 }
 
-fn messages(report: Option<&CheckReport>) -> Vec<Row> {
+pub(crate) fn messages(s: &Source<'_>) -> Vec<Row> {
+    let report = s.input.checks;
     let Some(report) = report else {
         return Vec::new();
     };
@@ -1147,7 +1167,8 @@ fn tube_source(s: &ew_derive::TubeSource) -> &'static str {
 }
 
 /// `api_v1_fluid_line`: one row per physical tube, in `tube_rows` order.
-fn fluid_lines(q: &Q) -> Vec<Row> {
+pub(crate) fn fluid_lines(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     let parts = q.parts();
     let number = |p: Option<Id<ew_derive::ew_schema::Part>>| {
         p.and_then(|p| parts.get(p))
@@ -1218,7 +1239,8 @@ fn fluid_lines(q: &Q) -> Vec<Row> {
 }
 
 /// `api_v1_valve_position`: one row per position of a valve module, in `valve_terminal_rows` order.
-fn valve_positions(q: &Q) -> Vec<Row> {
+pub(crate) fn valve_positions(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     q.get::<ew_derive::ValveTerminalRows>(())
         .iter()
         .filter_map(|v| {
@@ -1260,7 +1282,8 @@ fn valve_positions(q: &Q) -> Vec<Row> {
 }
 
 /// `api_v1_medium`: one row per project medium, in `medium_rows` order.
-fn media(q: &Q) -> Vec<Row> {
+pub(crate) fn media(s: &Source<'_>) -> Vec<Row> {
+    let q = s.q;
     let media = q.table::<ew_derive::ew_schema::Medium>();
     q.get::<ew_derive::MediumRows>(())
         .iter()

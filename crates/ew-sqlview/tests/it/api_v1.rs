@@ -7,7 +7,7 @@
 
 use std::path::PathBuf;
 
-use ew_sqlview::schema::{API_STATUS, PREVIEW_ADDITIONS, VIEWS, View};
+use ew_sqlview::schema::{API_STATUS, VIEWS, View};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -33,21 +33,6 @@ struct SnapshotColumn {
     preview: bool,
 }
 
-/// Whether the whole view `view` is a Preview addition (`(view, &[])` in [`PREVIEW_ADDITIONS`]).
-fn view_is_addition(view: &str) -> bool {
-    PREVIEW_ADDITIONS
-        .iter()
-        .any(|(v, cols)| *v == view && cols.is_empty())
-}
-
-/// Whether the column is a Preview addition, by itself or as part of a whole view that is one (as `schema_text`
-/// marks it).
-fn column_is_addition(view: &str, column: &str) -> bool {
-    PREVIEW_ADDITIONS
-        .iter()
-        .any(|(v, cols)| *v == view && (cols.is_empty() || cols.contains(&column)))
-}
-
 /// The snapshot text of `views`: in their order, pretty JSON with a two-space indent and one trailing newline.
 fn snapshot_text(views: &[View]) -> String {
     let file = SnapshotFile {
@@ -57,7 +42,7 @@ fn snapshot_text(views: &[View]) -> String {
             .map(|v| SnapshotView {
                 name: v.name,
                 row: v.row,
-                preview: view_is_addition(v.name),
+                preview: v.is_addition(None),
                 columns: v
                     .columns
                     .iter()
@@ -65,7 +50,7 @@ fn snapshot_text(views: &[View]) -> String {
                         name: c.name,
                         ty: c.ty.sql(),
                         doc: c.doc,
-                        preview: column_is_addition(v.name, c.name),
+                        preview: v.is_addition(Some(c.name)) || v.is_addition(None),
                     })
                     .collect(),
             })
