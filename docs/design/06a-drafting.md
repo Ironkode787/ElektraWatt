@@ -11,6 +11,14 @@ in the steps of §10 from this text alone. It has two grounds. The research is t
 repository and nothing of it is reproduced here, but it was measured, and **where it and the research differ,
 the reference set gives this program's defaults** (§1.3 marks those rules with an E).
 
+**What Arrange and route is, and is not (owner, 2026-11-23).** The placer is one general way of putting a
+page in order, and it is not perfect: a page it has arranged still needs the eye of a trained draughtsman, and
+that is accepted. So it is not made to handle one more shape of page by a rule for that shape; a page it serves
+badly is kept as a case (the backlog's section on the placer and the router) and is worked only as part of a
+change that holds on every page. The program is not judged by whether a page comes out ready to sign, but by
+whether what it offers is a fair start and never worse than what stood there. A model trained on laying out
+drawings may one day do what rules do not; that is a thought for the future and no plan.
+
 ## Summary
 
 1. **One measure.** A page's drawing is judged by one function: what is a fault (never drawn by the program,
