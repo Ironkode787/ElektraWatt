@@ -8,8 +8,8 @@
 use std::path::{Path, PathBuf};
 
 use ew_ids::Uuid;
-use ew_schema::starter;
 use ew_schema::LibDocument;
+use ew_schema::starter;
 
 fn content_dir(sub: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -288,7 +288,6 @@ fn every_merge_strategy_names_a_member_of_its_kind_once() {
     }
 }
 
-
 #[test]
 fn every_kind_has_a_since_format_no_newer_than_the_schema() {
     // The `since` metadata of the computed `min_reader`: every kind is "0.1" until a later format adds
@@ -298,7 +297,8 @@ fn every_kind_has_a_since_format_no_newer_than_the_schema() {
     for ((kind, since), expected) in KIND_SINCE.iter().zip(Kind::ALL) {
         assert_eq!(*kind, expected);
         assert_eq!(*since, kind.since());
-        let v = ew_schema::parse_format(since).unwrap_or_else(|| panic!("{kind}: since {since:?} is not major.minor"));
+        let v = ew_schema::parse_format(since)
+            .unwrap_or_else(|| panic!("{kind}: since {since:?} is not major.minor"));
         assert!(v <= format, "{kind}: since {since} is newer than {FORMAT}");
     }
     assert_eq!(

@@ -8,11 +8,10 @@ use std::collections::BTreeMap;
 
 use ew_ids::{Id, Uuid, v5};
 use ew_import_qet::{ElementSource, QetElementImporter, read_element};
-use ew_schema::starter;
 use ew_interop_api::{
-    Code, ImportBatch, ImportContext, ImportError, ImportInput, InputNameError, Limits, LineageInfo,
-    Severity,
+    Code, ImportBatch, ImportContext, ImportError, ImportInput, InputNameError, Limits, LineageInfo, Severity,
 };
+use ew_schema::starter;
 use ew_schema::{
     AnchorPolicy, Colour, ContactKind, Dash, Dir4, FnDef, InternalKind, LibCopy, LibDocument,
     PassThroughSpec, Pen, PotentialType, Primitive, Project, Record, RepType, Rgb, SlotKind, SymbolDef,

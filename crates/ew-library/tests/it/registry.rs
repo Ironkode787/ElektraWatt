@@ -114,8 +114,7 @@ impl<'a> P<'a> {
             v["category"] = json!(c);
         }
         if let Some(f) = self.fndef {
-            v["function_template"] =
-                json!([{"fndef": libref(ew_schema::starter::LIBRARY, starter_item(f), "^0.1"), "main": true}]);
+            v["function_template"] = json!([{"fndef": libref(ew_schema::starter::LIBRARY, starter_item(f), "^0.1"), "main": true}]);
         }
         LibDocument::from_value(v).unwrap()
     }
@@ -707,7 +706,10 @@ fn read_only_tiers_and_no_sqlite_outside_the_cache() {
         ]
     );
     let doc = P::new(id(0x5_0001), "P1", id(SE), "x").doc(ew_schema::starter::LIBRARY);
-    assert_eq!(reg.write(ew_schema::starter::LIBRARY, &[doc]), Err(LibraryError::ReadOnly));
+    assert_eq!(
+        reg.write(ew_schema::starter::LIBRARY, &[doc]),
+        Err(LibraryError::ReadOnly)
+    );
     let doc = P::new(id(0x5_0001), "P1", id(SE), "x").doc(id(0xabc));
     assert_eq!(reg.write(id(0xabc), &[doc]), Err(LibraryError::ReadOnly));
     assert_eq!(reg.take_over_stale(id(0xabc)), Err(LibraryError::ReadOnly));

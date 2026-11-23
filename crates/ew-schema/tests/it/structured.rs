@@ -880,8 +880,18 @@ fn a_library_documents_envelope_and_item() {
     assert_eq!((meta.version, meta.v), ("1.2.0", 1));
     assert_eq!(meta.sha256.to_string(), raw["sha256"]);
     let item = doc.item_json().unwrap().unwrap();
-    assert!(item.starts_with(r#"{"meta":"#) && item.contains(r#""part_number":"2904602""#), "{item}");
-    for envelope in ["\"$v\"", "\"id\"", "\"library_id\"", "\"item_id\"", "\"version\"", "\"sha256\""] {
+    assert!(
+        item.starts_with(r#"{"meta":"#) && item.contains(r#""part_number":"2904602""#),
+        "{item}"
+    );
+    for envelope in [
+        "\"$v\"",
+        "\"id\"",
+        "\"library_id\"",
+        "\"item_id\"",
+        "\"version\"",
+        "\"sha256\"",
+    ] {
         assert!(!item.contains(envelope), "{envelope} in {item}");
     }
     let unknown = LibDocument::Unknown(serde_json::json!({"$k": "later"}));
@@ -891,7 +901,10 @@ fn a_library_documents_envelope_and_item() {
 /// A symbol CP stands for its `pin_map` entry, else for its own `fn_cp` of the representation's first function.
 #[test]
 fn the_function_cp_a_symbol_cp_stands_for() {
-    let (f1, f2) = ("3e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e", "4e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e");
+    let (f1, f2) = (
+        "3e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e",
+        "4e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e",
+    );
     let rep = |functions: Value| -> ew_schema::Representation {
         serde_json::from_value(json!({
             "id": "6f03d8a5-c912-5e7b-8a40-1d5b39e2f7c6", "functions": functions,
