@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The rule `layers`: the rules between crates of `ci/dep-rules.toml`. A crate's layer is its licence and its
-//! dependencies are its manifest's; the policy file holds only what those do not state.
+//! dependencies are its manifest's; the policy file holds only what those do not state, first the order of the
+//! crates in tiers (docs/design/04-architecture.md §3.1).
 //!
 //! The check works on [`Graph`], a plain list of the direct dependencies that every workspace package
 //! declares (all kinds, all targets, optional ones included). Building it from `cargo metadata` is separate
@@ -18,10 +19,16 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Policy {
-    /// Which layer each workspace package belongs to.
-    pub layers: Layers,
-    /// Permitted direct workspace-to-workspace edges of the packages that have an entry; a package without one is
-    /// not restricted.
+    /// The order of the crates: every workspace package in exactly one tier, each depending only on packages named
+    /// before it.
+    #[serde(rename = "tier")]
+    pub tiers: Vec<Tier>,
+    /// The permissive layer, the MIT OR Apache-2.0 crates; closed under dependencies. Not in the file:
+    /// [`Policy::with_layers`] reads it from the manifests' licences.
+    #[serde(skip)]
+    pub permissive: Vec<String>,
+    /// Permitted direct workspace-to-workspace edges of the packages that have an entry; a package without one may
+    /// depend on any package before it in the order.
     #[serde(default)]
     pub allowed_edges: BTreeMap<String, Vec<String>>,
     /// Extra edges permitted for dev-dependencies only.
@@ -52,20 +59,18 @@ pub struct Policy {
     pub raw_read: Option<crate::raw_read::RawReadPolicy>,
 }
 
-/// Layer membership of the workspace packages.
+/// One tier of the order of the crates.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Layers {
-    /// MIT OR Apache-2.0 crates; closed under dependencies. Not in the file: [`Policy::with_layers`] reads it from the
-    /// manifests' licences.
-    #[serde(default)]
-    pub permissive: Vec<String>,
-    /// GPL application crates and binaries: every other package that is not a tool. From the manifests too.
-    #[serde(default)]
-    pub gpl: Vec<String>,
-    /// Development-only packages.
-    pub tools: Vec<String>,
+pub struct Tier {
+    /// What the tier is called in the crate map.
+    pub name: String,
+    /// Its packages, in their order.
+    pub crates: Vec<String>,
 }
+
+/// The tier of the development-only packages, which nothing may depend on and no binary of which ships.
+const TOOLS_TIER: &str = "tools";
 
 /// The licence expression of a permissive crate.
 pub const PERMISSIVE: &str = "MIT OR Apache-2.0";
@@ -125,26 +130,39 @@ impl Policy {
     /// The policy with its layers read from the workspace's manifests: a package whose licence is [`PERMISSIVE`] is
     /// permissive, every other one GPL; the tools are in neither.
     pub fn with_layers(mut self, metadata: &cargo_metadata::Metadata) -> Self {
-        self.layers.permissive.clear();
-        self.layers.gpl.clear();
-        for p in metadata.workspace_packages() {
-            let name = p.name.to_string();
-            if self.layers.tools.contains(&name) {
-                continue;
-            }
-            if p.license.as_deref() == Some(PERMISSIVE) {
-                self.layers.permissive.push(name);
-            } else {
-                self.layers.gpl.push(name);
-            }
-        }
-        self.layers.permissive.sort();
-        self.layers.gpl.sort();
+        let tools = self.tools().to_vec();
+        self.permissive = metadata
+            .workspace_packages()
+            .iter()
+            .filter(|p| !tools.contains(&p.name.to_string()) && p.license.as_deref() == Some(PERMISSIVE))
+            .map(|p| p.name.to_string())
+            .collect();
+        self.permissive.sort();
         self
     }
 
     fn is_permissive(&self, name: &str) -> bool {
-        self.layers.permissive.iter().any(|p| p == name)
+        self.permissive.iter().any(|p| p == name)
+    }
+
+    /// The development-only packages: the crates of the tier `tools`.
+    pub fn tools(&self) -> &[String] {
+        self.tiers
+            .iter()
+            .find(|t| t.name == TOOLS_TIER)
+            .map_or(&[], |t| t.crates.as_slice())
+    }
+
+    /// Each placed package's place in the order: the tier's index and its index in the tier's list, so that a
+    /// package before another compares less. A package placed twice keeps its first place.
+    fn places(&self) -> BTreeMap<&str, (usize, usize)> {
+        let mut places = BTreeMap::new();
+        for (t, tier) in self.tiers.iter().enumerate() {
+            for (i, name) in tier.crates.iter().enumerate() {
+                places.entry(name.as_str()).or_insert((t, i));
+            }
+        }
+        places
     }
 }
 
@@ -243,6 +261,7 @@ pub fn wildcard_match(pattern: &str, name: &str) -> bool {
 pub fn check(policy: &Policy, graph: &Graph) -> Vec<String> {
     let mut v = Vec::new();
     check_policy_consistency(policy, graph, &mut v);
+    check_order(policy, graph, &mut v);
     check_edges(policy, graph, &mut v);
     check_external_owners(policy, graph, &mut v);
     check_importers(policy, graph, &mut v);
@@ -261,8 +280,10 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
             ));
         }
     };
-    for name in &policy.layers.tools {
-        unknown(name, "[layers] tools", v);
+    for tier in &policy.tiers {
+        for name in &tier.crates {
+            unknown(name, &format!("[[tier]] `{}`", tier.name), v);
+        }
     }
     for (table, edges) in [
         ("[allowed_edges]", &policy.allowed_edges),
@@ -289,6 +310,50 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
             if name != "@permissive" {
                 unknown(name, "[[confined]] never_reached_from", v);
             }
+        }
+    }
+}
+
+/// Every workspace package has exactly one place in the tiers, and its normal and build dependencies on workspace
+/// packages are all placed before it.
+fn check_order(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
+    let places = policy.places();
+    for name in &graph.workspace {
+        let tiers: Vec<&str> = policy
+            .tiers
+            .iter()
+            .filter(|t| t.crates.contains(name))
+            .map(|t| t.name.as_str())
+            .collect();
+        match tiers.len() {
+            0 => v.push(format!(
+                "order: `{name}` has no place in a [[tier]]; give it one (docs/design/04-architecture.md §3.6)"
+            )),
+            1 => {}
+            _ => v.push(format!(
+                "order: `{name}` has more than one place: tiers {}",
+                tiers.join(", ")
+            )),
+        }
+    }
+    let tier_name = |(t, _): (usize, usize)| policy.tiers[t].name.as_str();
+    for e in graph
+        .edges
+        .iter()
+        .filter(|e| e.kind != Kind::Dev && graph.is_workspace(&e.to))
+    {
+        let (Some(&from), Some(&to)) = (places.get(e.from.as_str()), places.get(e.to.as_str())) else {
+            continue;
+        };
+        if to >= from {
+            v.push(format!(
+                "order: `{}` (tier {}) depends on `{}` (tier {}) ({}), which is not before it; a crate depends only on crates before it (docs/design/04-architecture.md §3.1)",
+                e.from,
+                tier_name(from),
+                e.to,
+                tier_name(to),
+                e.kind.label()
+            ));
         }
     }
 }
@@ -374,7 +439,7 @@ fn check_confined(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
         }
         let sources = rule.never_reached_from.iter().flat_map(|name| {
             if name == "@permissive" {
-                policy.layers.permissive.clone()
+                policy.permissive.clone()
             } else {
                 vec![name.clone()]
             }
@@ -656,10 +721,25 @@ mod tests {
 
     /// A small policy with the same shape as `ci/dep-rules.toml`.
     const POLICY: &str = r#"
-        [layers]
-        permissive = ["p-units", "p-schema", "p-api"]
-        gpl = ["g-model", "g-sql", "g-ui", "g-host", "g-import-qet", "g-import-x", "g-top", "app"]
-        tools = ["xtask"]
+        [[tier]]
+        name = "values"
+        crates = ["p-units"]
+
+        [[tier]]
+        name = "records"
+        crates = ["p-schema", "p-api"]
+
+        [[tier]]
+        name = "project"
+        crates = ["g-model", "g-sql", "g-ui", "g-host", "g-import-qet", "g-import-x"]
+
+        [[tier]]
+        name = "programs"
+        crates = ["g-top", "app"]
+
+        [[tier]]
+        name = "tools"
+        crates = ["xtask"]
 
         [allowed_edges]
         "p-units" = []
@@ -695,8 +775,15 @@ mod tests {
         reason = "ADR-0024 decision 4"
     "#;
 
+    /// The policy of `text`, its permissive layer the `p-` packages (in the workspace: read from the licences).
+    fn parse(text: &str) -> Policy {
+        let mut p = Policy::parse(text).expect("test policy parses");
+        p.permissive = ["p-units", "p-schema", "p-api"].map(String::from).to_vec();
+        p
+    }
+
     fn policy() -> Policy {
-        Policy::parse(POLICY).expect("test policy parses")
+        parse(POLICY)
     }
 
     /// The graph that exactly matches the test policy, plus some harmless external dependencies.
@@ -726,15 +813,7 @@ mod tests {
     }
 
     fn graph(edges: &[(&str, &str, Kind)]) -> Graph {
-        let p = policy();
-        let workspace = p
-            .layers
-            .permissive
-            .iter()
-            .chain(&p.layers.gpl)
-            .chain(&p.layers.tools)
-            .cloned()
-            .collect();
+        let workspace = policy().tiers.into_iter().flat_map(|t| t.crates).collect();
         let mut edges: Vec<Edge> = edges
             .iter()
             .map(|&(from, to, kind)| Edge {
@@ -781,7 +860,7 @@ mod tests {
         assert_violation(&v, "edge: `g-model` -> `g-ui` (dev-dependency)");
 
         let text = format!("{POLICY}\n[allowed_dev_edges]\n\"g-model\" = [\"g-ui\"]\n");
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let mut edges = clean_edges();
         edges.push(("g-model", "g-ui", Kind::Dev));
         assert_eq!(check(&p, &graph(&edges)), Vec::<String>::new());
@@ -793,7 +872,7 @@ mod tests {
             r#""p-api" = ["p-schema"]"#,
             r#""p-api" = ["p-schema", "g-model"]"#,
         );
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let mut edges = clean_edges();
         edges.push(("p-api", "g-model", Kind::Normal));
         let v = check(&p, &graph(&edges));
@@ -837,7 +916,7 @@ mod tests {
             r#""g-import-x" = ["p-api"]"#,
             r#""g-import-x" = ["p-api", "g-model"]"#,
         );
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let mut edges = clean_edges();
         edges.push(("g-import-x", "g-model", Kind::Normal));
         let v = check(&p, &graph(&edges));
@@ -854,7 +933,7 @@ mod tests {
             r#""app" = ["g-ui", "g-top"]"#,
             r#""app" = ["g-ui", "g-top", "g-import-qet"]"#,
         );
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let mut edges = clean_edges();
         edges.push(("app", "g-import-qet", Kind::Normal));
         let v = check(&p, &graph(&edges));
@@ -865,14 +944,16 @@ mod tests {
     #[test]
     fn confined_crate_reached_transitively_fails() {
         // g-host -> g-top -> g-import-qet: g-host reaches the confined crate without depending on it directly.
-        // The policy allows both edges, so only the confined rule can catch it.
+        // The policy allows both edges and places g-host after g-top, so only the confined rule can catch it.
         let text = POLICY
+            .replace(r#""g-ui", "g-host","#, r#""g-ui","#)
+            .replace(r#"["g-top", "app"]"#, r#"["g-top", "g-host", "app"]"#)
             .replace(r#""g-host" = ["g-sql"]"#, r#""g-host" = ["g-sql", "g-top"]"#)
             .replace(
                 r#""g-top" = ["g-sql", "g-import-qet", "g-import-x", "g-host"]"#,
                 r#""g-top" = ["g-sql", "g-import-qet", "g-import-x"]"#,
             );
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let mut edges = clean_edges();
         edges.retain(|e| *e != ("g-top", "g-host", Kind::Normal));
         edges.push(("g-host", "g-top", Kind::Normal));
@@ -929,10 +1010,11 @@ mod tests {
         );
     }
 
-    /// A package without an `[allowed_edges]` entry may depend on what its manifest says; the licence boundary
-    /// still holds for it.
+    /// A package without an `[allowed_edges]` entry may depend on any package before it in the order; the licence
+    /// boundary still holds for it.
     #[test]
     fn a_package_without_an_entry_is_not_restricted() {
+        let p = parse(&POLICY.replace(r#"["g-top", "app"]"#, r#"["g-top", "app", "g-new"]"#));
         let mut g = graph(&clean_edges());
         g.workspace.insert("g-new".into());
         g.edges.push(Edge {
@@ -940,13 +1022,43 @@ mod tests {
             to: "g-sql".into(),
             kind: Kind::Normal,
         });
-        assert_eq!(check(&policy(), &g), Vec::<String>::new());
+        assert_eq!(check(&p, &g), Vec::<String>::new());
+    }
+
+    /// The order refuses a normal or build edge to a package not before the dependent (in a later tier, or later in
+    /// the same tier's list), a workspace package without a place and one with two; a dev edge is not bound by it.
+    #[test]
+    fn the_order_refuses_a_later_crate_and_a_crate_without_one_place() {
+        let mut edges = clean_edges();
+        edges.push(("p-schema", "g-top", Kind::Build));
+        edges.push(("g-model", "g-sql", Kind::Normal));
+        edges.push(("p-units", "p-api", Kind::Dev));
+        let mut g = graph(&edges);
+        g.workspace.insert("g-new".into());
+        let v = check(&policy(), &g);
+        assert_violation(
+            &v,
+            "order: `p-schema` (tier records) depends on `g-top` (tier programs) (build-dependency), which is not before it",
+        );
+        assert_violation(
+            &v,
+            "order: `g-model` (tier project) depends on `g-sql` (tier project) (dependency), which is not before it",
+        );
+        assert_violation(&v, "order: `g-new` has no place in a [[tier]]");
+        assert!(!v.iter().any(|v| v.contains("`p-units` (tier values)")), "{v:#?}");
+
+        let p = parse(&POLICY.replace(r#"["g-top", "app"]"#, r#"["g-top", "app", "g-ui"]"#));
+        let v = check(&p, &graph(&clean_edges()));
+        assert_violation(
+            &v,
+            "order: `g-ui` has more than one place: tiers project, programs",
+        );
     }
 
     #[test]
     fn policy_naming_unknown_crate_fails() {
         let text = POLICY.replace(r#""xtask" = []"#, "\"xtask\" = []\n\"g-gone\" = []");
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let v = check(&p, &graph(&clean_edges()));
         assert_violation(
             &v,
@@ -954,7 +1066,7 @@ mod tests {
         );
 
         let text = POLICY.replace(r#"owners = ["g-sql"]"#, r#"owners = ["g-sql", "g-nowhere"]"#);
-        let p = Policy::parse(&text).unwrap();
+        let p = parse(&text);
         let v = check(&p, &graph(&clean_edges()));
         assert_violation(&v, "names `g-nowhere`, which is not a workspace package");
     }

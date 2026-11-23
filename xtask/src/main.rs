@@ -49,7 +49,7 @@ the loop:
                        reference pages, the maps of the actions and the crates (docs/map/), the icon table, the
                        lint list and the QET symbol edition; --check writes
                        nothing and fails when a committed file that needs no build to compare is stale
-  rules                the repository rules alone, in seconds: the crate layers and the licence boundary
+  rules                the repository rules alone, in seconds: the order of the crates and the licence boundary
                        (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model,
                        confidential tokens (ci/denylist.sha256), UI texts outside the text keys, and `gen --check`
 
@@ -255,7 +255,7 @@ pub(crate) fn rules(root: &Path) -> Result<bool> {
     Ok(generate::check_own(root)? && ok)
 }
 
-/// The crate layers and dependency rules of `ci/dep-rules.toml`.
+/// The order of the crates, the licence layers and the dependency rules of `ci/dep-rules.toml`.
 fn check_deps(root: &Path, ws: &Workspace) -> Result<Violations> {
     let policy = &ws.policy;
     let graph = deps::Graph::from_metadata(&ws.metadata);
@@ -284,7 +284,7 @@ fn check_features(root: &Path, ws: &Workspace) -> Result<Violations> {
     let shipped: Vec<&str> = metadata
         .workspace_packages()
         .iter()
-        .filter(|p| !policy.layers.tools.iter().any(|t| *t == p.name.as_str()))
+        .filter(|p| !policy.tools().iter().any(|t| *t == p.name.as_str()))
         .filter(|p| p.targets.iter().any(|t| t.is_bin()))
         .map(|p| p.name.as_str())
         .collect();
@@ -330,7 +330,7 @@ fn check_licence_map_at(root: &Path, ws: &Workspace) -> Result<Violations> {
     let graph = licence::DepGraph::from_metadata(metadata)?;
     violations.extend(licence::check_boundary(
         &map.boundary.allow,
-        &ws.policy.layers.permissive,
+        &ws.policy.permissive,
         &graph,
     ));
     Ok(violations)

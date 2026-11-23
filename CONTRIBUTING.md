@@ -36,7 +36,7 @@ cargo xtask rules                               # the repository rules alone, in
   `cargo xtask gen-maps` alone, in seconds, after you add, move or delete an action, a handler's file, a text key, a
   source file or a crate, or change a file's head comment: the maps under `docs/map/` follow, and `rules` fails
   until they do.
-- **`rules`** checks the crate layers and the licence boundary, test-only features, raw reads of the model,
+- **`rules`** checks the order of the crates and the licence boundary, test-only features, raw reads of the model,
   confidential tokens, and that the generated files xtask writes are current. It builds nothing.
 - **`outline <path>...`** prints a Rust file's items (or each file's under a directory) with their line spans and
   first doc sentence; **`where <name>...`** a name's definitions with their spans, then its uses as line numbers by

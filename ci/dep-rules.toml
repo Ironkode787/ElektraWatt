@@ -5,9 +5,12 @@
 # `cargo metadata` (the direct, declared dependencies of every workspace package, all kinds and targets).
 #
 # A crate's layer is its licence: a crate whose manifest says `MIT OR Apache-2.0` is permissive, every other one is
-# GPL. A crate's dependencies are its manifest's. Nothing here repeats either; a new crate needs no entry.
+# GPL. A crate's dependencies are its manifest's. Nothing here repeats either; a new crate needs a place in a [[tier]]
+# and nothing else.
 #
 # The check fails when:
+# - a workspace package has no place in a [[tier]], or more than one;
+# - a package depends (normal or build dependency) on a workspace package not named before it in the [[tier]]s;
 # - a permissive crate depends on a GPL workspace crate (any dependency kind);
 # - a crate with an [allowed_edges] entry depends on a workspace crate outside it (dev-dependencies may also use
 #   [allowed_dev_edges]);
@@ -29,13 +32,70 @@ banned_crates = [
   "reqwest", "rustls", "sentry", "trust-dns-resolver", "ureq",
 ]
 
-[layers]
-# Development-only packages; they may not be depended on.
-tools = ["xtask"]
+# The order of the crates. Every workspace package stands in exactly one tier. A package depends (normal and build
+# dependencies) only on packages named before it: in an earlier tier, or earlier in its own tier's list.
+# `cargo xtask rules` fails on any other edge and on a package without a place. Dev-dependencies are not bound by
+# the order; [allowed_dev_edges], banned_crates and the feature rules bind them.
+
+[[tier]]
+name = "build"        # the workspace-hack crate: no code
+crates = ["ew-hack"]
+
+[[tier]]
+name = "values"       # a length, an identifier, a text, a designation, an address, a text by key, a display list
+crates = ["ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-plcaddr", "ew-memo", "ew-zip", "ew-jobs", "ew-dl"]
+
+[[tier]]
+name = "records"      # what is stored, how it is written, what an import hands over
+crates = ["ew-schema", "ew-format", "ew-interop-api", "ew-caex"]
+
+[[tier]]
+name = "importers"    # permissive workspace crates only ([importers])
+crates = ["ew-import-catalog", "ew-import-dxf", "ew-import-eplan", "ew-import-qet", "ew-import-tables"]
+
+[[tier]]
+name = "project"      # the project as a value, and everything computed from it
+crates = ["ew-model", "ew-derive", "ew-plc"]
+
+[[tier]]
+name = "files"        # projects and libraries on disk
+crates = ["ew-store", "ew-library"]
+
+[[tier]]
+name = "drawing"      # a page in ticks, shaped text, a page as display lists, the renderers and the writers
+crates = ["ew-drafting", "ew-text", "ew-scene", "ew-render-cpu", "ew-render2d", "ew-export", "ew-print"]
+
+[[tier]]
+name = "operations"   # a project is judged, edited, listed, projected
+crates = ["ew-checks", "ew-commands", "ew-reports", "ew-sqlview"]
+
+[[tier]]
+name = "session"
+crates = ["ew-api"]
+
+[[tier]]
+name = "shell"
+crates = ["ew-viewmodel"]
+
+[[tier]]
+name = "window"
+crates = ["ew-ui"]
+
+[[tier]]
+name = "programs"
+crates = ["ew", "elektrawatt"]
+
+[[tier]]
+name = "tests"        # dev-only crates; banned_crates keeps them off normal and build edges
+crates = ["ew-testdir", "ew-testids", "ew-testkit"]
+
+[[tier]]
+name = "tools"        # development only; they may not be depended on
+crates = ["xtask"]
 
 # The two crates whose dependencies are the architecture: the window reaches the model only through the view model,
 # and the view model only through `ew-api`; beside that each names the foundation crates it uses by their own name
-# (ARCH §3 rule 6). A crate without an entry here may depend on what its manifest says.
+# (ARCH §3 rule 6). A crate without an entry here may depend on any crate before it in the order.
 [allowed_edges]
 "ew-viewmodel" = ["ew-api", "ew-dl", "ew-units", "ew-hack"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-dl", "ew-units", "ew-hack"]
