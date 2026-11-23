@@ -672,7 +672,9 @@ impl ShellModel {
     /// the delete is the next undo step.
     pub(super) fn notify_remove_undrawn(&mut self, text: String, terminals: Vec<ew_api::output::Uuid>) {
         self.tools.offered_removal = terminals;
-        self.notify_undo_and(text, NoteAction::RemoveUndrawn);
+        // Terminals that stay in the project are a consequence the person may not want: the toast stays.
+        let serial = self.notify_undo_and(text, NoteAction::RemoveUndrawn);
+        self.notes.set_stays(serial);
     }
 
     /// Shows a paste's `text` with its Undo and Keep, which freezes each tag of `kept` (a device and its tag before the

@@ -1383,6 +1383,8 @@ impl App {
             .iter()
             .map(|n| {
                 let age = self.toast_since.get(&n.serial).map_or(0.0, |s| frame_time - s);
+                // A toast that stays fades in and never out.
+                let age = if n.stays() { age.min(fade) } else { age };
                 (
                     n.serial,
                     crate::notifications::toast_opacity(age, TOAST_SECONDS, fade),
@@ -1446,17 +1448,25 @@ impl App {
         if !events.is_empty() {
             ctx.request_repaint();
         }
-        // The toasts' timeouts are the window's: 8 seconds each after the frame that first showed it.
-        let visible: Vec<u64> = self
+        // The toasts' timeouts are the window's: 8 seconds each after the frame that first showed it; a toast that stays
+        // (a consequence the person may not want) has none.
+        let visible: Vec<(u64, bool)> = self
             .shell
             .notifications()
             .visible()
             .iter()
-            .map(|n| n.serial)
+            .map(|n| (n.serial, n.stays()))
             .collect();
-        self.toast_since.retain(|s, _| visible.contains(s));
-        for serial in visible {
+        self.toast_since
+            .retain(|s, _| visible.iter().any(|(v, _)| v == s));
+        for (serial, stays) in visible {
             let age = frame_time - *self.toast_since.entry(serial).or_insert(frame_time);
+            if stays {
+                if age < fade {
+                    ctx.request_repaint();
+                }
+                continue;
+            }
             if age >= TOAST_SECONDS {
                 events.push(Event::DismissToast(serial));
             } else if age < fade || age >= TOAST_SECONDS - fade {

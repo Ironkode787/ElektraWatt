@@ -243,9 +243,17 @@ pub struct Notification {
     /// What its toast shows where that is shorter than its text: the first of several reasons and how many more. The
     /// toast's tooltip and the log show the whole text.
     pub(crate) brief: Option<String>,
+    /// Whether it reports a consequence the person may not want (terminals that stay in the project, wires a cut
+    /// removed): it stays on screen until it is dismissed, replaced or the next command commits, no timeout.
+    pub(crate) stays: bool,
 }
 
 impl Notification {
+    /// Whether it stays on screen without a timeout, until dismissed, replaced or the next commit.
+    pub fn stays(&self) -> bool {
+        self.stays
+    }
+
     /// The label of its action `action`: Keep names the one tag it keeps, any other its fixed words.
     pub fn label(&self, action: NoteAction) -> String {
         match (action, &self.keep) {
@@ -370,6 +378,7 @@ impl NotificationLog {
             tone,
             keep: None,
             brief: None,
+            stays: false,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {
@@ -399,6 +408,14 @@ impl NotificationLog {
     pub(crate) fn set_brief(&mut self, serial: u64, brief: String) {
         if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
             n.brief = Some(brief);
+        }
+    }
+
+    /// Makes notification `serial` stay on screen until dismissed, replaced or the next commit
+    /// ([`Notification::stays`]).
+    pub(crate) fn set_stays(&mut self, serial: u64) {
+        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
+            n.stays = true;
         }
     }
 

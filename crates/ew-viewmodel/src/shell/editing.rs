@@ -562,6 +562,10 @@ impl ShellModel {
                     .collect::<Vec<_>>()
                     .join(" ");
                 self.notify(text, true);
+                // Wires a cut removed are a consequence the person may not want: the toast stays.
+                if gone > 0 {
+                    self.notes.set_stays(self.notes.newest_serial());
+                }
             }
         }
     }

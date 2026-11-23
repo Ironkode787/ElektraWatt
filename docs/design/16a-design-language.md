@@ -1129,6 +1129,11 @@ its 8 s, all on the window's frame clock; then it leaves. Hovering a toast still
 while the pointer is on it, once the pointer has moved onto it: a toast that appears under a pointer at rest
 fades on time, and a toast already paused stays paused while the pointer is still.
 
+*As built (0.3.5).* **A toast that reports a consequence the person may not want stays:** Delete's toast of terminals
+that stay in the project and its lists (with Remove them from the project) and the Cut's toast of the wires it removed
+fade in and have no timeout; they stay until they are closed, replaced by a toast of their key or the next command
+commits (a persona called the fading Remove an easy-to-miss second step).
+
 *As built.* **Tips** (WP-S2.08 D17) are toasts with the info icon, whatever
 their action (beside ID-750's rule), and the key `tip`. A toast with two actions (Undo and Show changes after an
 external change) shows them on one row while they fit.

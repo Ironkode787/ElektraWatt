@@ -1756,10 +1756,23 @@ impl ShellModel {
         // committing action removed it gives way to the stack).
         // The project session and revision before the action, for the editing page.
         let before = self.epoch_rev();
+        // A toast that stays (a consequence the person may not want) goes with the next commit.
+        let staying: Vec<u64> = self
+            .notes
+            .visible()
+            .iter()
+            .filter(|n| n.stays())
+            .map(|n| n.serial)
+            .collect();
         // The context before the action is kept for the history entries it commits.
         let context = self.take_context();
         let outcome = (meta.handler)(self, p);
         self.keep_contexts(context);
+        if self.epoch_rev() != before {
+            for serial in staying {
+                self.notes.dismiss(serial);
+            }
+        }
         // The canvases follow the pages and the revision the action left (section 6.1), and a
         // busy tool is escaped when its canvas changed; the property grid fetches its sheet when its
         // key changed.
