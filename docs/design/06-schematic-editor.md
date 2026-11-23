@@ -322,150 +322,19 @@ Every command has a stable dotted name and a JSON Schema (FR-EXT-015). `Cost::Bu
 jobs (ARCH §5.1). The Bulk threshold of `edit.delete` counts the records affected, which is the size of the delete
 plan, not the number of selected targets.
 
-*v0*. 25 commands are registered, all exposure `Edit`, stability `Preview`
-and undoable: those of the table except `page.copy`, `page.move`, `rep.exchange_symbol`, `ip.arrange`, `box.*`,
-`item.place`, `edit.paste` and `macro.insert`, which arrive with their work packages, plus `connection.delete`,
-`structure.create_node`, `section.create`, `report_block.create`, `device.create`, `terminal.add`, `cable.create`,
-`conductor.add`, `project.settings.set` and `terminal.designate`. The alias `device.place_from_part` stays unregistered until parts exist (WP-S1.19a). A
-placement whose `rep_type` the page type does not allow is refused (§2.2), and an autoconnect hint whose target
-vanished is dropped and reported in the outcome's notices.
+The commands are generated from their registry, and so is their reference: `ew commands` lists them with their
+exposure, cost and stability, and the user guide's command reference (`docs/book/src/reference/commands/`, written by
+`cargo xtask docs-gen` from the parameter schemas) has one page per command with its parameters and the description
+that states what it does and what it refuses. What holds for all of them:
 
-*As built.* Three commands join, all `Edit`, `Preview`, undoable,
-with committed schemas: `box.black` (`PlaceBlackBox`: page, black-box symbol, pos, orient, rep type, optional `box:
-BoxSpec`, and the placement target of `device.place`; the created function is of kind `black_box`, an existing one must
-be; an outline has at least three points, box CP indexes are distinct and on the grid; the containment gesture of
-§2.7 is the place tool's, not this command's), `bond.create` (`CreateBond`: a, b as CP or junction, kind, optional
-`via`; the label is derived; the PELV and type rules stay checks) and `external_ref.create` (`CreateExternalRef`:
-an optional location node of the location aspect, an optional device, connection and project, §3.5). 29 commands are registered. The
-page-type admission of §2.2 also lets MultiLine and BusTopology pages take
-graphic representations (cable markers) and Fluid pages multi-line ones (the CPX black boxes of a valve terminal), as
-the reference drawings show (`allowed_rep_types`; AC-15 path (b)).
-
-*As built.* Seven commands join, all `Edit`, `Preview`, Interactive,
-undoable, with committed schemas; 36 commands are registered. `assembly.attach` (`AttachChildren`: parent and
-children with optional 1-based positions; sets `Device.parent`/`position`; a held position, two children at one
-position or an ancestor as child are refused, no push insert; a child tag whose counter equals its old position
-follows the new position, N-FL-2); `valve.add` ([11](11-fluid-power.md) §4.3: module,
-position (default the lowest free), part use, letter (default Q), FnDef of the main function, structure; the valve
-gets the child tag scheme with its counter equal to its position); `device.link` ([11](11-fluid-power.md) §4.3:
-from, to, kind; no self-link, no duplicate); `plc.config_project.create` (name unique, profile `id@version`,
-optional CPU); `plc.bind_channel` ([10](10-plc-and-bus.md) §3.9: channel and a CP of the function's FnDef on the
-channel's module or one of its descendants, or `null` to unbind; another channel on the same CP is unbound in the
-same transaction, FR-PLC-005); `project.supply.set` (one member of the supply per command, Bulk with a preview,
-ADR-0008 amendment 6, FT-1928: its phases, neutral, protective earth, earthing system, nominal voltage, frequency,
-upstream rating, short-circuit current and the external reference it comes from; refused in words at `/value`: other
-than one to three phases, a nominal voltage of 0 V or less, a frequency below 0 (0 is DC), an upstream rating or a
-short-circuit current of 0 or less. A schematic project without a supply, a new one's, takes the supply of one phase
-with N and PE, 230 V, 50 Hz, its earthing unset, with the first member set, so that Properties, whose Project rows show
-the supply's members while it has none, can give a new project its supply; a basic or macro project has none and is
-refused, FR-PRJ-026, and its Properties show no Supply rows. A new project is still made without one: a supply guessed at its creation would print on its
-cover page before the person chose it); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage: the ID
-must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be consistent with the item, a
-project-local item or an item already embedded is refused). `fields.set` gains `tag.scheme` and the device aspects
-`assembly`, `plc_station`, `plc_module` (as a whole or member by member; a cover that the edit adds outside the
-assembly device's subtree is refused, one already out of scope is a check). Normaliser row 3 (N1) is built
-(§3.2). The golden builder of AC-15 path (b) builds the valve-terminal assembly, the PLC records and the supply origin
-with them. Two parameters of `valve.add` are interim: `fndef` and
-`letter` stand in for normaliser N-FL-1 (row 1), which is to create the valve and coil functions from the part's
-`solenoids`; when it lands, `fndef` is ignored for a part that declares solenoids and is removed at the command's
-next schema version, and `letter` stays as an override. Not built: `assembly.detach` and the push insert (FT-273), the
-library-reference form of `library.embed`, the electrical supply members (FT-280).
-
-*As built.* `revision.create` (`CreateRevision`) joins, `Edit`, `Preview`, Interactive,
-undoable, with a committed schema; **37 commands** are registered. It writes the open revision or a historic released
-one (no release record, no archive) with label, date, author and checker roles, description and page notes
-([03](03-domain-model.md) §18). Refused: a label that a non-withdrawn revision has (EW-INV-017), a second open
-revision (EW-INV-016), the author as checker (at `/checker`, EW-INV-018), a note on a missing page or a second note
-on one page (EW-INV-019), and `state: released` once any revision has a release record (a historic release
-never follows a release by EW). Label format and order stay EW-REL-004's. `fields.set` gains the `revision` kind
-(`label`, `date`, `author`, `checker`, `description`, `page_notes`; not `state`; unknown note members refused), and
-`edit.delete` takes the open revision; both refuse a released or withdrawn revision at the target (FR-REV-009,
-EW-INV-020). No command changes a revision's state: `revision.approve`, `revision.release` and `revision.withdraw`
-are not built yet.
-
-*As built.* `plc.set_module_part` (`SetModulePart`) joins, `Edit`, `Preview`, **Bulk**,
-undoable as one step, with a committed schema; **38 commands** are registered. It sets a module's part uses (`parts`,
-the whole list as `fields.set` takes it; absent: the parts stay) and deletes the module's channels numbered at or
-above the channel count of the resulting PLC section, with their bindings, symbols and comments. Being Bulk, it always
-runs as a preview first (ADR-0008): the preview's diff lists every deleted channel and its outcome has one notice per
-channel, so committing the preview is FR-PLC-053's confirmation; normaliser N1 then creates the missing channels and
-applies the part's channel kind. Refused: a device without the `plc_module` aspect, and new `parts` in which
-`plc_module.part_use` names no entry (at `/parts`: the count would fall to 0). The same parts give an empty
-transaction. A part change of a module in the UI goes through this command; `fields.set` on `parts` never removes a
-channel and N1 names the surplus it leaves, which this command without `parts` removes ([10](10-plc-and-bus.md)
-§3.3).
-
-*As built.* The commands 39 to 43 are project-level and are described in [17](17-extensibility.md) §2.1 and §2.3: `project.company.set`, `project.frames.set`, `project.languages.set`, the `HumanOnly` `project.checks.set` and the `HumanOnly` `project.assets.purge`. `rep.exchange_symbol` and `project.drawing.set` join, both `Edit`, `Preview`, Interactive and undoable, so **45 commands** are registered (43 `Edit`, two `HumanOnly`). `rep.exchange_symbol` derives the pin map from the function definition or by designation, takes an explicit `pin_map`, and refuses a symbol connection point the map leaves unmatched whose index names a function connection point; routes at the representation follow (`follow_end`). `project.drawing.set` writes `settings.extra.drawing` with `crossings` ([03](03-domain-model.md) §5.1); nothing reads it before WP-S2.04 part 2. `device.place` and `box.black` gain the target `from_part` (a device and one function per template entry of a part copy, the drawn entry placed; a template without exactly one main entry is refused, EW-INV-002), `device.place` gains `new_terminal` (a terminal created as `terminal.add` creates it, then placed), and `rep.move` gains `steps` (grid-step moves, §5.7: a route coordinate equal to an end connection point moves with it, and two end points on one coordinate whose grid indices differ in k mod 3 keep the segment's axis with a jog at the grid point nearest its middle). Every new optional member is `skip_serializing_if`, so existing logs serialise unchanged. The other commands that WP-S2.04 specifies (`connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place`, `marker.place`) arrive with its later parts.
-
-*As built.* **`fields.set_many`** (`SetFieldsMany`) joins: `{edits: [SetFields…]}`, each entry checked as `fields.set` with its pointer `/edits/<i>`, `Edit`, `Preview`, Interactive, and `Bulk` above 500 targets in all, undoable in one step; find and replace commits one per replace, and Freeze on several devices one per freeze. **46 commands** are registered (44 `Edit`, two `HumanOnly`).
-
-*As built.* Eight commands join: `connection.draw_to_ip`, `ip.arrange` and `box.reshape`, `box.structure`, `item.place` and `marker.place`, `edit.paste` (the clipboard) and `parts.import` (`Bulk`, the parts import), each `Edit`, `Preview` and undoable; the changes to `rep.move`, `edit.delete`, `fields.set` and `project.drawing.set` are additive. **54 commands** are registered (52 `Edit`, two `HumanOnly`).
-
-*As built.* No command joins; 54 are registered. `item.place` with an image takes either `asset` (a held hash) or `data` (the file's bytes in base64, stored through the logo path's `store_image`). `fields.set` of kind `project`, with the project's ID as the one target, takes `master.description`, and `edit.delete` refuses the project ("the project cannot be deleted"). `fields.set` and `fields.set_many` on a connection's `overrides.colour` apply `marker.place`'s colour check, refused at `/value` (FR-CON-019), and `null` removes the override. `page.create` with an explicit folio is refused when it lies outside the section's folio range, is the section's divider folio, is generated by a report block of the section, or is printed by another page of the section, in strict and lenient projects alike (§5.6, FR-PAG-012).
-
-*As built.* **`page.reorder`** joins: the moved page records go before a page of the same section, or to its end, and the folio keys (number, label) of the range of positions that changed are given to the pages of that range in their new order (106 dragged before 103 turns 106 into 103 and 103 into 106); cost `Bulk`, so always previewed; a move across sections is refused; `section` without `before` names the section (null or absent is the front matter), `section` with `before` is refused at `/section`, and an order that does not change at `/pages`. **55 commands** are registered. `page.renumber` also rewrites the sub-page labels that carry a renumbered page's old number, and `fields.set` checks a conductor's colour as a connection's.
-
-**`connection.draw_many`** (`ConnectMany`) joins: `{connections: [Connect…]}`, each entry applied as `connection.draw` in order, in one transaction and one undo step; an entry's parameter error keeps its pointer prefixed by `/connections/<i>` and its refusal its reason prefixed by `entry <i>: `; no entry, or more than 10,000, is refused at `/connections`; cost `Bulk` above 500 entries. Bridge terminals (`strip.bridge`, on the Draw tab) uses it for a chain over three or more selected terminals of one strip and keeps `connection.draw` for a pair. **56 commands** are registered (54 `Edit`, two `HumanOnly`).
-
-*As built.* **`terminal.insert`** `{strip, before?, fndef, terminals, parts?}` and **`terminal.move`** `{terminals, before?}` join, both `Edit`. Insert: every terminal of the strip with `seq` at or above the insertion point, every group bound and every accessory position at or after it shift by the count, then the new terminals are inserted with consecutive `seq` values (refused: not a strip, `before` not of the strip, an empty list, a `seq` given, a duplicate designation, an overflow past `u32::MAX`). Move: the terminals go before `before` (absent: to the end), and only the sequence values of the range that changed are permuted, so groups and accessories stay and a moved terminal takes the group of its new place (refused: an empty list, a repeat, two strips, a non-terminal, `before` among the moved or of another strip, an order that does not change). `strip.accessories` joins `fields.set`. **58 commands** are registered (56 `Edit`, two `HumanOnly`).
-
-*As built.* **`part.assign`** and **`library.update`** join, both `Edit`, with committed schemas, DSL verbs `assign_part` and `update_library` and fuzzer arms (rows in the table below; [07](07-symbols-parts-macros.md) §3.3, §4.5): **60 commands** are registered (58 `Edit`, two `HumanOnly`). WP-S2.18 parts 1 to 3 add no command.
-
-*As built (G-PP finding 5).* **Delete removes an orphaned device.** Deleting a device's last representation (Delete, and Cut through the same path) deletes the device in the same `edit.delete` step, so one undo restores the device, its part use and the representation. "Last" means every representation of every function of the device is among the deleted ones, panel-front and contact-image representations included (a function no representation draws, such as a part's other contacts, keeps nothing: FT-1658), so a device that keeps a panel-front representation is kept and EW-CORE-047 reports it. The device is also kept when it has another role (a function the deletion leaves drawn, a terminal or strip role, child devices, or a cable, assembly or PLC aspect) or when one of its functions carries other intent: a CP of the device holds a potential definition, a bond, or a connection that is page-less or lies on another page than the deleted representations. A kept device stays unplaced and is left to EW-CORE-047 ([15](15-checks-revisions-collaboration.md) §4.2).
-
-*As built (FT-823).* A PLC module whose `plc_module` aspect holds no setting (the aspect normaliser N0 gives a card's device: positional slot, automatic starts, no part use, not integrated) is no other role: the card's device goes with its last symbol and its channels with it, so deleting a card to draw it again leaves no `-?A1`. A station, or a module with a set slot, start, part use or integrated I/O, is kept as before. A card drawn before the CPU no longer needs that: when a run gives a device `plc_station` and the project then holds exactly one station that is no valve terminal, N0 attaches every module that waits for a station (not integrated, no station above it) to it, in the order of the modules' anchor cells, in the same transaction; with several stations EW-PLC-008 asks the user.
-
-The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
-preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
-command reference are the exact form.
-
-| Command (`NAME`) | Parameters (abridged) | Cost | Notes |
-|---|---|---|---|
-| `page.create` | folio, kind, section, structure, title, form?, grid | Interactive | folio proposal §5.6; refuses an explicit folio per FR-PAG-012 |
-| `page.copy` (`CopyPages`) | the pages as a fragment, `offset` or `after`, `structure`, `rename` | Bulk | §3.6, "A copy of pages": one transaction; the session builds the fragment |
-| `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025); with `delete_devices` a strip whose terminals all go goes too |
-| `page.renumber` | scope, start, step, keep_gaps | Bulk | FR-PAG-007; Golden B2 |
-| `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
-| `rep.move`, `rep.transform` | reps, delta or page, or `steps`; rotate, mirror, variant | Interactive | routes follow (FR-CON-004); `steps` moves by whole grid steps and is refused with `page` or a non-zero `delta` |
-| `rep.exchange_symbol` | rep, symbol, `pin_map?` | Interactive | FR-SYM-022: orientation kept, variant 0, text-slot overrides kept where the new symbol has the slot; refused: a connected function CP the new map does not draw, an unmatched symbol CP that names a function CP, an IP representation, a rep type the page does not allow |
-| `project.drawing.set` | `crossings?` (`plain` or `hops`); `marker_mode?` | Interactive | sets `crossings` ([03](03-domain-model.md) §5.1); presentation only |
-| `rep.set_anchor_policy` | reps, anchor (origin, graphic centre, slot, named point) | Interactive | FR-SYM-010; the MF-13 quick fix of EW-CORE-053 (D-14). As built: it writes `Representation.anchor`, a per-representation override of the policy of the symbol copy (null resets it to the copy's policy); it does not touch the symbol copy, so other representations of the same copy keep their policy |
-| `connection.draw` (`Connect`) | a, b (CP, junction or point on a connection), route, kind | Interactive | §4.4 |
-| `connection.draw_many` (`ConnectMany`) | connections: a list of `connection.draw` parameters | Interactive; Bulk above 500 entries | one transaction, one undo step; Bridge terminals (Draw tab) draws a chain of bridges with it |
-| `connection.route` | connection, route | Interactive | FR-CON-007 |
-| `junction.edit` | style, wiring, sequence | Interactive | FR-CON-005 |
-| `ip.place`, `ip.continue`, `ip.arrange` | name, direction, star source, scope; target page; sort key | Interactive | FR-XRF-006 … FR-XRF-014; `ip.arrange` (`ArrangeIps`), with `connection.draw_to_ip` (`DrawToIp`: a wire ending in a new interruption point, one transaction) |
-| `box.black`, `box.structure` | outline, device or assignment, caption, external ref | Interactive | §2.7; `box.structure` (`CreateStructureBox`), and `box.reshape` (`ReshapeBox`: a black box's outline replaced, its CPs given or re-projected) |
-| `item.place` | graphic, text, image, wire marker | Interactive | §3.8; `PlaceItem` for graphics and free texts; wire markers by `marker.place` (`PlaceMarker`: one transaction sets the overrides and places the group), images: `asset` or `data` |
-| `potential.define` | endpoint, name, type, voltage, props | Interactive | FR-CON-010 |
-| `fields.set` (`SetFields`) | targets, field path, value | Interactive | property grid, multi-select; on a revision only while it is open (FR-REV-009); kind `project` (its ID as the one target) takes `master.description`, and a connection's `overrides.colour` is colour-checked as `marker.place` does |
-| `fields.set_many` (`SetFieldsMany`) | `edits`: a list of `fields.set` parameter sets | Interactive; Bulk above 500 targets in all | one replace of find and replace, one Freeze on several devices; one undo step |
-| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6; `edit.delete` takes the open revision, never a released or withdrawn one, and refuses the project; `edit.paste` (`PasteFragment`): the fragment `#ew-fragment v1` as its parameters |
-| `macro.insert` (`InsertMacro`) | macro, at, value set | Bulk | [07](07-symbols-parts-macros.md), FR-MAC-005 |
-| `numbering.renumber` (`RenumberDevices`) | scope, scheme, options | Bulk | FR-NUM-008, FR-NUM-009 |
-| `terminal.designate` | assignments (terminal, designation), at least one | Interactive | one transaction, swaps without temporary names; uniqueness by the prevent rule EW-TERM-002 (FR-TRM-022, [08](08-connections-terminals-cables.md) §6.8) |
-| `connection.delete` | connections | Interactive | through the delete policies; junction clean-up by row 8 |
-| `structure.create_node` | aspect, code, parent?, aliases, description | Interactive | no product-aspect node; same aspect as the parent (EW-INV-011); sibling codes unique (FR-PRJ-017) |
-| `section.create` | number, folio range, title, divider | Interactive | ranges do not overlap (FR-PAG-008) |
-| `report_block.create` | source, form, first folio, section, embedded, sort, group, manual, continuation, empty | Interactive | a page-oriented block needs `first_folio` (EW-INV-014); [09](09-reports-forms-output.md) §2.2 |
-| `device.create` | letter, counter?, kind, parts, main FnDef?, function text, structure, strip | Interactive | a device without a representation (FR-DEV-001); unnumbered until its main function is placed unless a counter is given |
-| `terminal.add` | strip, FnDef, terminals (seq, designation, levels, rail bonding) | Interactive | terminals are devices with the terminal aspect ([08](08-connections-terminals-cables.md) §6) |
-| `cable.create`, `conductor.add` | tag, parts, cable aspect, conductors (core, colour, csa, shield, pair) | Interactive | cores unique per cable ([08](08-connections-terminals-cables.md) §7) |
-| `project.settings.set` | member, value | Bulk | one settable member per command, previewed (ADR-0008 amendment 3; [17](17-extensibility.md) §2.1) |
-| `bond.create` (`CreateBond`) | a, b (CP or junction), kind, via? | Interactive | label derived; the PELV and type rules are checks (FR-CON-014) |
-| `external_ref.create` (`CreateExternalRef`) | location node?, device?, connection?, project? (§3.5: what is known of the far end) | Interactive | a location-aspect node (FR-XRF-011) |
-| `assembly.attach` (`AttachChildren`) | parent, children (device, position?) | Interactive | sets `parent` and `position` of existing devices; no push insert, no detach (FT-273); a child-scheme counter that equalled the old position follows the new one (N-FL-2's rule) |
-| `valve.add` (`AddValve`) | module, position?, part, letter? (default Q), fndef? (interim), structure? | Interactive | [11](11-fluid-power.md) §4.3; child tag with counter = position; `fndef` and `letter` are interim until N-FL-1 |
-| `device.link` (`LinkDevices`) | from, to, kind | Interactive | [11](11-fluid-power.md) §4.3; no self-link, no duplicate of the same kind |
-| `plc.config_project.create` (`CreatePlcConfigProject`) | name, profile (`id@version`), cpu? | Interactive | [10](10-plc-and-bus.md) §2.2; names unique; the command form of what `ew new` creates |
-| `plc.bind_channel` (`BindChannel`) | channel, endpoint (CP or `null`) | Interactive | [10](10-plc-and-bus.md) §3.9; a CP of the module or its descendants; the CP's other channel is unbound (FR-PLC-005) |
-| `project.supply.set` (`SetProjectSupply`) | path, value | Bulk | one member: `phases`, `neutral`, `pe`, `earthing`, `u_nom`, `frequency`, `origin.upstream_rating`, `origin.ik_max`, `origin.source` (ADR-0008 amendment 6, FT-1928); a schematic project without a supply takes one with its first member |
-| `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure |
-| `part.assign` (`AssignPart`) | devices, part, copies?, mode? (`append`, `replace_all`, `replace`), from?, qty? | Interactive; Bulk from 50 devices | [07](07-symbols-parts-macros.md) §3.3; embeds the closure it carries, reuses a held copy of the same hash, refuses another held version |
-| `library.update` (`UpdateLibraryCopies`) | copies, cp_maps? | Bulk | [07](07-symbols-parts-macros.md) §3.1, §4.5; replaces held copies in place, maps CPs and rewrites endpoints; refuses a connected CP left unmapped, a downgrade and a copy not held |
-| `parts.import` (`ImportParts`) | copies (parsed project-local part copies) | Bulk | the parts import; keys the project holds are skipped and counted; [05](05-project-format-and-persistence.md) §13.2 |
-| `revision.create` (`CreateRevision`) | label, state (`open` or historic `released`), date?, author?, checker?, description, page notes | Interactive | [03](03-domain-model.md) §18; EW-INV-016 to EW-INV-019 refused at the parameter path; no historic release after a release record; the state transitions are not built yet |
-| `plc.set_module_part` (`SetModulePart`) | module, parts? | Bulk | [10](10-plc-and-bus.md) §3.3, §3.9; removes the channels at or above the new part's count with their bindings; the preview is FR-PLC-053's confirmation; refuses a non-module and a `part_use` the new parts do not name |
+- A placement whose `rep_type` the page type does not allow is refused (§2.2, `allowed_rep_types`), and an
+  autoconnect hint whose target vanished is dropped and reported in the outcome's notices.
+- A new optional parameter member is left out when absent, so existing command logs serialise unchanged.
+- A new project is made without a supply: a supply guessed at its creation would print on its cover before the
+  person chose it. A schematic project without one takes the default supply with the first member that
+  `project.supply.set` sets, so Properties can give it one; a basic or macro project has none.
+- A part change of a PLC module in the window goes through `plc.set_module_part`, which removes the channels the new
+  part does not have; `fields.set` on `parts` never removes a channel ([10](10-plc-and-bus.md) §3.3).
 
 ### 3.2 Normalisers that run behind the editor
 
@@ -687,6 +556,23 @@ installed library's symbol by its key as well as by its address, before its firs
   tree's menu of a device or a strip has Delete (`navigator.delete`). Cut's toast says what it took instead ("Cut 12
   terminals. 14 wires that ended at them are removed with them; a paste keeps the wires between the cut items only."),
   with Undo and no Remove (its paste brings the terminals back).
+- **Delete removes an orphaned device.** Deleting a device's last representation (Delete, and Cut through the same
+  path) deletes the device in the same `edit.delete` step, so one undo restores the device, its part use and the
+  representation. "Last" means every representation of every function of the device is among the deleted ones,
+  panel-front and contact-image representations included (a function no representation draws, such as a part's other
+  contacts, keeps nothing), so a device that keeps a panel-front representation is kept and EW-CORE-047 reports it.
+  The device is also kept when it has another role (a function the deletion leaves drawn, a terminal or strip role,
+  child devices, or a cable, assembly or PLC aspect) or when one of its functions carries other intent: a CP of the
+  device holds a potential definition, a bond, or a connection that is page-less or lies on another page than the
+  deleted representations. A kept device stays unplaced and is left to EW-CORE-047
+  ([15](15-checks-revisions-collaboration.md) §4.2).
+- **A PLC card without settings is no other role.** A module whose `plc_module` aspect holds no setting (what the
+  aspect normaliser N0 gives a card's device: positional slot, automatic starts, no part use, not integrated) goes
+  with its last symbol, and its channels with it, so deleting a card to draw it again leaves no `-?A1`. A station, or
+  a module with a set slot, start, part use or integrated I/O, is kept. When a run gives a device `plc_station` and
+  the project then holds exactly one station that is no valve terminal, N0 attaches every module that waits for a
+  station (not integrated, no station above it) to it, in the order of the modules' anchor cells, in the same
+  transaction; with several stations EW-PLC-008 asks the user.
 
 ### 3.5 Connections, junctions, interruption points and potentials
 
@@ -1520,52 +1406,22 @@ navigators, which highlight a potential on all pages with pattern plus colour (F
 and history panels; the bulk preview dialog (FR-UI-022); and the command palette with EPLAN and QET aliases such as
 "folio report" and "master/slave" (FR-UI-012, NFR-UX-03).
 
-**Keyboard shortcuts** (canvas set; presets per FR-UI-013; "EPLAN-like" ships at 1.0 once two EPLAN users confirm
-it, FR-UI-014). On macOS, Ctrl reads Cmd, except where [16](16-ux-ui.md) §4.4 sets a macOS binding (find and
-replace is ⌥⌘F because ⌘H is reserved); the key display is kept in `ew-ui` for portability only: macOS is not a supported platform and this is not tested. Punctuation keys bind by physical key (16 §4.4), so `[` and `]` stay
-reachable without AltGr on QWERTZ and AZERTY layouts.
+**Keyboard shortcuts.** The bindings of the canvas and of every other shell context are data of the action registry
+with conflict detection; the generated keymap reference (`docs/book/src/reference/keymaps.md`, written by
+`cargo xtask docs-gen`) lists them per preset, and [the action map](../map/actions.md) per action. The rules they
+follow:
 
-| Action | EW preset | KiCad-like preset |
-|---|---|---|
-| Command palette | Ctrl+K | Ctrl+K |
-| Insert symbol (search) | I | A |
-| Insert device from part | Shift+I | — |
-| Draw connection | W | W |
-| Interruption point (while routing: end here) | P | Ctrl+L |
-| Potential definition point | Shift+P | — |
-| Connection definition point / wire marker | Shift+W | — |
-| Black box, structure box | B, Shift+B | — |
-| Text, graphic line | T, L | T, — |
-| Move selection | M or drag | M, G |
-| Rotate 90° clockwise / anticlockwise | R / Shift+R | R / Shift+R |
-| Mirror horizontally / vertically | X / Y | X / Y |
-| Next orientation variant / representation type | V / Shift+V | Alt+V / Alt+Shift+V |
-| Next autoconnect proposal / suppress / connect during move | Tab / hold Alt / C | Tab / hold Alt / C |
-| IP direction toggle | D | D |
-| Properties of selection | E, Alt+Enter | E |
-| Follow xref under cursor; Back; Forward | F; Alt+←; Alt+→ | F; Alt+←; Alt+→ |
-| Go to page or cell | Ctrl+G | Ctrl+G |
-| Next / previous page in page order | Page Down / Page Up | Page Down / Page Up |
-| Next CP, previous CP, next unconnected CP | ], [, N | ], [, N |
-| Highlight potential of selection | H | `` ` `` (backtick) |
-| Show all representations of the device | Alt+D | Alt+D |
-| Find, find and replace | Ctrl+F, Ctrl+H | Ctrl+F, Ctrl+H |
-| Undo, redo | Ctrl+Z, Ctrl+Shift+Z (Ctrl+Y on Windows) | Ctrl+Z, Ctrl+Y |
-| Copy, cut, paste, paste as representation, duplicate | Ctrl+C, Ctrl+X (on Windows also Shift+Delete, as built), Ctrl+V, Ctrl+Shift+V, Ctrl+D | Ctrl+C, Ctrl+X, Ctrl+V, —, Ctrl+D |
-| Paste in place (§3.6) | Edit menu only | — |
-| Delete | Del | Del |
-| Fit page, fit selection | Home, Shift+Home | Home, — |
-| Cancel tool, clear selection | Esc | Esc |
-
-All bindings are data in the keymap file with conflict detection. Beyond the four bindings FR-UI-013 fixes for the
-KiCad-like preset (M, R, W, E), the table is a proposal, validated in the M2 usability test (NFR-UX-01). The
-KiCad-like column must be checked against KiCad's own hotkey list before it ships, in particular the rotation
-direction of R and which of X and Y mirrors horizontally **(verify)**; where KiCad differs, the preset follows
-KiCad.
-
-*As built.* The EW preset now binds, in the canvas context, I (Insert ▸ Symbol, the picker), Shift+I (Insert ▸ Device from part), M (keyboard move: the arrow keys move by grid steps, Enter commits, Escape cancels), R and Shift+R, X and Y, V and Shift+V (on the Place ghost and on a selection), Delete (the selection; a pending move is cancelled first), Shift+Enter (finish the active tool, also a double click) and E or Alt+Enter (Properties of selection: the focus moves to the property grid); the picker takes Up, Down, Home, End and Enter itself. In the property grid's context the registry binds F2 (edit the row), Shift+F10 (the row menu; egui reports no Menu key), Shift+Enter (the multi-language editor) and Ctrl+Enter (apply the preview card), and the pane itself takes the arrows, Home, End, Enter, Space (toggle a checkbox) and the keys that start an edit; Escape stays the global dismiss. A chord is unique within its shell context, so Shift+Enter means "finish" on the canvas and "multi-language editor" in the grid. Edit ▸ Change symbol has no default key. W, P, B, T, L and Shift+W follow with WP-S2.04's later parts; Ctrl+F and Ctrl+H with WP-S2.05 part 2; the KiCad-like preset with WP-S2.08.
-
-*As built.* The canvas context adds W (Insert ▸ Connection, the Wire tool; with it `]` and `[` move the grid cursor between connection points, Enter or a click fixes a bend or ends the wire, Backspace removes the last bend, Escape cancels), Tab (the next autoconnect proposal of the Place ghost), C (connect on move: turns it off or on for the session), Ctrl+Enter (a click with Alt held at the grid cursor, `canvas.activate_alt`: a placement without proposals) and Enter on exactly one selected junction (Edit ▸ Junction sequence…; in its popup Alt+Up and Alt+Down move the focused member and R cycles a bevel's orientation). Edit ▸ Junction sequence… is disabled until exactly one junction is selected. Edit ▸ Find… (Ctrl+F) and Edit ▸ Find and replace… (Ctrl+H) are global; in the find pane Enter searches, Up, Down, Home and End move the result cursor, Enter on a result jumps, Tab moves between the fields, and Ctrl+Enter replaces (or applies the open card). Ctrl+Enter is thus bound in three contexts, canvas, property grid and find, each unique within its own. macOS keeps Ctrl+H until the per-platform keymap gives it ⌥⌘F. P, B, T, L and Shift+W follow with WP-S2.04's later parts.
+- The presets are "EW" and "KiCad-like" (FR-UI-013, which fixes M, R, W and E for the KiCad-like one); "EPLAN-like"
+  ships only once EPLAN users confirm its bindings (FR-UI-014). Where KiCad's own hotkeys differ, the KiCad-like preset
+  follows KiCad.
+- A chord is unique within its shell context and may mean something else in another (Shift+Enter finishes the
+  active tool on the canvas and opens the multi-language editor in the property grid).
+- Punctuation keys bind by physical key ([16](16-ux-ui.md) §4.4), so they stay reachable without AltGr on QWERTZ and
+  AZERTY layouts. On macOS Ctrl reads Cmd where [16](16-ux-ui.md) §4.4 sets no macOS binding; macOS is not a
+  supported platform and this is not tested.
+- A pane takes its own navigation keys: the picker Up, Down, Home, End and Enter; the property grid the arrows, Home,
+  End, Enter, Space (a checkbox) and the keys that start an edit; the find pane Enter (search, or jump on a result),
+  Up, Down, Home, End and Tab. Escape stays the global dismiss.
 
 **Accessibility.** Every tool is operable from the keyboard (NFR-A11Y-01). The selected object is announced as a live
 region ("-102G1, power supply 24 V DC, 7 connection points, 9 wires"; FR-UI-026, NFR-A11Y-02), and the navigators

@@ -274,40 +274,23 @@ pub enum Cell {
 Each kind is a registered Rust row query with a column schema and default form. Row content for domain reports is
 owned by the listed document; this document owns forms, pagination and output for all of them.
 
-| Kind | Report | Row source (ARCH §6.4) | Group | Rel. | Requirement | Golden |
-|---|---|---|---|---|---|---|
-| `cover` (form, not a block) | Title page: the `Cover` form of the drawn `TitlePage` page, bound to master data | project, parties, supply | — | MVP | FR-REP-038 | 1 |
-| `profile_tables` (embedded) | CABLE COLOUR DEFINITIONS and standard-size tables | colour and size profiles | group | MVP | FR-REP-028, FR-REP-038 | 1 |
-| `part_data` (embedded) | PART DATA box | `AssemblyConfig` order codes, or `device_part_lines(dev)` | — | MVP | FR-REP-028 | 201, 202, 902 |
-| `toc` | Table of contents | `toc_rows()` | — | MVP | FR-REP-003 | 2, 2.1 |
-| `structure_overview` | Structure-identifier and device-tag overview | structure nodes, `device_tag` | aspect | MVP | FR-REP-017 | 910 (4 pages) |
-| `parts_summary` | Summarised parts list (EPLAN `.f02`), assembly or component mode; 2D layout objects per FR-REP-007 (MVP), accessories from part data per FR-REP-051 (1.0); row order by the BOM key below | `bom_rows(mode)` | — | MVP | FR-REP-004 … FR-REP-007, FR-REP-051 | 901, 901.1 |
-| `parts_list` | Parts list, one row per device part line (EPLAN `.f01`) | `device_part_lines` | — | MVP | FR-REP-006 (row source), FR-REP-008 | — |
-| `device_list` | Device list | devices, `device_tag` | location | MVP | FR-REP-008 | — |
-| `terminal_diagram` | Terminal diagram per strip | `terminal_rows(strip)` | strip | MVP | FR-REP-009 | 903–905 |
-| `terminal_overview` | Terminal-strip overview | strips | — | MVP | FR-REP-010 | — |
-| `terminal_lineup` | Terminal line-up with accessories | strips, accessories | strip | 1.0 | FR-REP-011 | — |
-| `terminal_connection` | Terminal connection diagram (graphical) | `terminal_rows` | strip | 1.x | FR-REP-043 | — |
-| `cable_overview_diagrams` | Cable overview and per-cable diagrams | `cable_rows(cable)` | cable | MVP | FR-REP-012, FR-REP-013 | 906 |
-| `wire_list` | Wire/connection list | physical wires, then a separate bridge block (bridges are never wire rows; [08](08-connections-terminals-cables.md)) | — | MVP | FR-REP-014, FR-CON-034 | 907–907.2 |
-| `device_connection` | Device connection diagram | `function_cps`, connections | device | 1.0 | FR-REP-015 | — |
-| `plug_diagram` | Plug diagram and overview | plugs | plug | 1.0 | FR-REP-024 | — |
-| `plc_overview` | PLC overview per station or module | `plc_rows(station)` ([10](10-plc-and-bus.md)) | module | MVP | FR-REP-019, FR-PLC-022 | 908–908.2 |
-| `io_list` | I/O assignment list | FR-PLC-023 row source | station | MVP | FR-PLC-023 | — |
-| `plc_card_list` | PLC card list: one row per module (slot, part, start address, used/spare counts) | modules, `channel_addresses` | station | 1.0 | FR-REP-045 | — |
-| `safety_io_list` | Safety I/O list | FR-PLC-041 row source ([10](10-plc-and-bus.md) §5) | station | 1.0 | FR-PLC-041 | — |
-| `potential_overview` | Potential overview | `potential_partition()`, `wire_props_of` | — | MVP | FR-REP-016 | 909 |
-| `bus_overview`, `network_address_list`, `bus_cable_list`, `iolink_port_list` | Bus reports | [10](10-plc-and-bus.md) | network | 1.0 | FR-REP-020, FR-BUS-007, FR-BUS-008, FR-BUS-014 | — |
-| `revision_overview` | Revision overview: every revision, Withdrawn ones with their reason; from 1.0 also the issue purpose and the last transmittal response. *As built:* derived from `revision_rows` in label order, a withdrawal record after the revision it withdraws; the changed pages come from the page change status of [15](15-checks-revisions-collaboration.md) §5.6 (the page-notes branch of ID-117 when the last release has no digests), handed to folio 911's pages cell at draw time; `{page.last_changed_in}` reads the same status in the title block (a free text: FT-703; the CSV and navigator consumers: FT-704) | revisions, page change status, transmittals (1.0) | — | MVP | FR-REP-018 | 911 |
-| `open_items` | Open items | Tbd values, unplaced, missing parts and lengths | category | MVP | FR-REP-021 | — |
-| `numbering_report` | Frozen tags and numbers with rule values. *As built:* columns `item` (the device tag; empty for a wire), `kind` (`tag` or `wire number`), `frozen` (the frozen text), `rule` (the value the active scheme derives where the frozen value is left out: `rule_product` for a tag, the `wire_numbers` label for a wire; empty when the scheme derives none) and `status` (`matches` or `deviates`); one row per frozen tag in natural order of the full tag, then one row per frozen wire number in connection ID order; EW-NUM-001 reports the deviating frozen tags (the 10 infos of EF-15 on the golden project); frozen wire numbers are EW-NUM-002's, not built | `TagSpec.frozen`, `NumberSpec` | — | MVP | FR-REP-022 | — |
-| `enclosure_legend`, `mounting_list` | Enclosure legend (EPLAN `.f18`), mounting list (`.f32`) | placements ([12](12-panel-layout.md)) | surface | legend embedded on the layout page: MVP (FR-LAY-012); as pages: 0.3.5 (FR-REP-023, brought forward); mounting list: 1.0 | FR-REP-023, FR-LAY-012 | 902 |
-| `tube_list`, `tube_cut_list`, `valve_terminal_config`, `medium_overview` | Fluid lists | [11](11-fluid-power.md) | — | 1.0 | FR-FLU-012, FR-FLU-013, FR-FLU-015, FR-FLU-016 | — |
-| `load_summary` | Load per potential and protective device | part currents, potentials | potential | 1.0 | FR-REP-026 | — |
-| `order_list`, `manufacturer_list` | Purchasing views | `bom_rows` | supplier | 1.0 | FR-REP-025 | — |
-| `check_report` | Findings, waivers, packs, disclaimer | `checks` ([15](15-checks-revisions-collaboration.md)) | severity | MVP | FR-CHK-014, NFR-COMP-04 | — |
-| `thermal_report`, `checklist_*`, `hole_table`, `cut_list`, `terminal_assembly_list` | Domain reports | [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) | — | 1.0 | FR-THM-009, FR-MFG-016, FR-MFG-029, FR-MFG-030, FR-MFG-036 … FR-MFG-038 | — |
-| `untranslated` | Untranslated texts per language | `MlText` fallbacks | language | 1.0 | FR-I18N-005 | — |
+The built kinds are the files of `ew-reports`' `src/kinds/` (one per kind or family, registered in
+`kinds::builtin`); the [crate map](../map/crates.md) lists them with their heads, which name each kind's rows and
+requirement. The cover is no kind: it is the `Cover` form of the drawn `TitlePage` page (FR-REP-038). Specified and not
+built:
+
+| Kind | Report | Row source (ARCH §6.4) | Group | Rel. | Requirement |
+|---|---|---|---|---|---|
+| `terminal_lineup` | Terminal line-up with accessories | strips, accessories | strip | 1.0 | FR-REP-011 |
+| `terminal_connection` | Terminal connection diagram (graphical) | `terminal_rows` | strip | 1.x | FR-REP-043 |
+| `device_connection` | Device connection diagram | `function_cps`, connections | device | 1.0 | FR-REP-015 |
+| `plug_diagram` | Plug diagram and overview | plugs | plug | 1.0 | FR-REP-024 |
+| `mounting_list` | Mounting list (EPLAN `.f32`) | placements ([12](12-panel-layout.md)) | surface | 1.0 | FR-REP-023 |
+| `load_summary` | Load per potential and protective device | part currents, potentials | potential | 1.0 | FR-REP-026 |
+| `order_list`, `manufacturer_list` | Purchasing views | `bom_rows` | supplier | 1.0 | FR-REP-025 |
+| `check_report` | Findings, waivers, packs, disclaimer | `checks` ([15](15-checks-revisions-collaboration.md)) | severity | MVP | FR-CHK-014, NFR-COMP-04 |
+| `thermal_report`, `checklist_*`, `hole_table`, `cut_list`, `terminal_assembly_list` | Domain reports | [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) | — | 1.0 | FR-THM-009, FR-MFG-016, FR-MFG-029, FR-MFG-030, FR-MFG-036 … FR-MFG-038 |
+| `untranslated` | Untranslated texts per language | `MlText` fallbacks | language | 1.0 | FR-I18N-005 |
 
 The domain kinds of 02b are registered through one row (FR-REP-045); a labour-estimate report is FR-REP-044 (1.x,
 Could).
@@ -318,15 +301,13 @@ number. Rows without a schematic representation (enclosure, plate, carriers, acc
 order of [12](12-panel-layout.md) §5.4: enclosure, plate, carriers, then accessories. A row whose part is a layout-only
 accessory (kind end bracket or accessory) is always in that second group, whatever the placement of the strip it sits
 on; its folio column still lists the folios of its devices. Until layout placements exist, that column prints the folios of the
-devices' representations instead of the layout page (the golden BOM printed 902). On Golden A the folio-3 rows
-(-3X1, -3W1) therefore come first, and the enclosure and plate are rows 22 and 23.
+devices' representations instead of the layout page.
 
-**Bond numbers in the potential overview** (FT-1827). The bond rows follow the potentials and are numbered B1, B2 …:
+**Bond numbers in the potential overview.** The bond rows follow the potentials and are numbered B1, B2 …:
 first the declared bonds (bond records, doc 03 §9.6), in the order they were made (their IDs, which grow with time),
 then the drawn ones (a wire from a 0 V point to earth, 08 §3.7), in the order their wires were drawn. A bond drawn on a
 page never moves a declared bond's number, and a new bond of either kind takes the next number of its group; a new
-declared bond moves the drawn ones by one. Before, the two were numbered together by ID, so an earth wire drawn
-before a bond was declared took B1 from it.
+declared bond moves the drawn ones by one.
 
 EPLAN report types without a kind of their own: the cable connection diagram (`.f07`) and the cable assignment
 diagram (`.f08`) are alternative forms of `cable_overview_diagrams` over the same `cable_rows`, shipped at 1.0
@@ -338,7 +319,7 @@ rather than the model.
 a query cycle, so no model content makes it panic; a schema kind that no engine registers yet is a placeholder.
 The placeholder page and a box whose rows do not derive print the reason in words in the project's language ("Not
 derived: this build does not make this list", "Niet afgeleid: de lijst hangt af van haar eigen pagina's"), never a
-family or kind name; the log and the command line keep the name (FT-1995).
+family or kind name; the log and the command line keep the name.
 
 ### 2.5 `FormDef`
 

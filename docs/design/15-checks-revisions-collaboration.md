@@ -551,12 +551,16 @@ lint that the rule registry of `ew-checks` does not hold, one row per ID. The ow
 specify the algorithms, examples and quick fixes; IDs, kinds, modes, default severities and scopes are fixed here
 until the rule is built. A built rule's row leaves this catalogue: its ID, title, kind, modes, severities, scope and
 release are the registry's, and the rule reference that `cargo xtask gen` writes from the registry (one page per
-rule, with its notes and its findings on the golden project) prints them; the rule's doc comment names its
+rule, with its notes) prints them; the rule's doc comment names its
 requirement and owning document.
 
-**As built.** The EW-POT pack's MVP content is complete: EW-POT-003, -004, -005, -006, -008 (its PE-island half), -009, -013, -015, -016 and -017 join -001, -002, -011, -012 and -014, 15 rules in all (the generated rule reference lists them). Common to the pack: every order, text, target and fingerprint follows printed keys, never the IDs of a new project. Findings of a defined potential target every definition and are keyed on the potential's identity; findings of a potential without a definition target every member and are keyed on its discriminator member alone, the first member CP by printed text (device CPs before interruption points, then `<tag>:<designation>` in natural order, then the CP index), so a waiver survives adding a member. A wire note of a bond closure is reported once, by the potential of its subject that prints first. The bonds and the potential are read as their own parts of the partition (`BondsOf`). When a finding has several primary targets, `finding_node` breaks the tie on the printed label. On Golden A the pack's findings were exactly the golden EW-POT rows, after two golden data fixes: the 1P+N MCB definition switches N with L, and the CPX earth screw has role PE ([08](08-connections-terminals-cables.md) §3.7, §8.2).
-
-The remaining rules of the golden finding set are FT-192.
+**The EW-POT pack.** Every order, text, target and fingerprint follows printed keys, never the IDs of a new project.
+Findings of a defined potential target every definition and are keyed on the potential's identity; findings of a
+potential without a definition target every member and are keyed on its discriminator member alone, the first member
+CP by printed text (device CPs before interruption points, then `<tag>:<designation>` in natural order, then the CP
+index), so a waiver survives adding a member. A wire note of a bond closure is reported once, by the potential of its
+subject that prints first. The bonds and the potential are read as their own parts of the partition (`BondsOf`).
+When a finding has several primary targets, `finding_node` breaks the tie on the printed label.
 
 **Columns.**
 - **Kind** (§2.3): `safety`, `conflict`, `completeness`, `hygiene`; `integrity` for findings about the stored
@@ -598,7 +602,8 @@ The remaining rules of the golden finding set are FT-192.
 FR-CHK-004 (MVP packs) and FR-CHK-005 (domain packs: their MVP subsets at MVP, complete at 1.0) are satisfied by
 this table. EW-LIB is not a project pack: the library linter runs it (§4.11), and no project scheme enables it.
 
-*As built.* `RuleMeta.release` (`Release::Mvp`, `Release::V1_0`) is a built rule's release column and gates nothing: a rule that is built runs in every shipped scheme that its modes allow and that does not switch it off. Until M3 a scheme ran the MVP content only (`Scheme.content`), so no user saw a rule of release 1.0; FT-1728 took the gate out when M3 built the 1.0 rules of the EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL and EW-FL packs. On Golden A the pre-delivery run then reports doc 20 §18.1 with §18.2's additions.
+`RuleMeta.release` (`Release::Mvp`, `Release::V1_0`) is a built rule's release column and gates nothing: a rule
+that is built runs in every shipped scheme that its modes allow and that does not switch it off.
 
 ### 4.2 EW-CORE
 
@@ -615,28 +620,6 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 - **Not rules:** the reader's notices for line endings, foreign edits, non-canonical files and a truncated finding
   list carry no rule ID; the integrity block 001–019 is full (05 §6.3).
 
-| ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
-|---|---|---|---|---|---|---|---|---|---|---|
-| EW-CORE-001 | Manifest damaged | Manifest missing, unparseable or with conflict markers; quick fix "rebuild manifest" | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-002 | Mixed generation | Mixed generation that cannot roll forward; journal recovery or a best-effort read-only load | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-003 | Listed file missing | A file named in the manifest is missing; restore it from git or the sync client, or drop the entry | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-004 | Orphan file | Orphan or sync-conflict copy, any file the manifest does not list (never read while a manifest exists), or a file a save moved aside to a stray `.unlisted-<g>` name instead of overwriting it (05 §5.2); merge it as an external change, or delete it by hand | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-005 | JSON syntax error | Syntax error at file and line; the project opens read-only until `ew fmt --repair` | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-006 | Git conflict markers | Conflict markers in a JSONL file, converted into conflict records | integrity | n r | error | project | MVP | FR-CHK-012, FR-COL-025 | — | 05 §6.3 |
-| EW-CORE-007 | Schema violation | Wrong type, missing member, a float or an unparseable value; the line is quarantined verbatim and references to it are reported | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-008 | Dangling reference | Reference to a missing record; fixed by the link's delete policy as a previewed command | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-009 | Duplicate record ID | Duplicate `($k, id)` within or across files; cross-file move reconciliation at 1.0, else keep one | integrity | n r | error | project | MVP | FR-CHK-012, FR-COL-016 | — | 05 §6.3 |
-| EW-CORE-010 | Record in the wrong file | A record stored in another file than its kind's; moved at the next save | integrity | n | info | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-011 | Conflict records present | Conflict records left by a merge; resolved in the merge panel or by `ew merge resolve` | integrity | n r | error | project | MVP | FR-CHK-012, FR-COL-015 | — | 05 §6.3 |
-| EW-CORE-012 | Structural invariant violated | A file-level change broke an ADR-0009 invariant; the next transaction that touches the key must restore it. Declared: no reader reports it yet | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-013 | Collision after a merge | Tag or counter, terminal designation, wire number, IP star source, PLC address or symbol taken twice (§6.4); supersedes the violated prevent rule; quick fix "renumber the newer". *As built:* modes `o r`: the window's online check stands for the integrity run on open and after an external change | integrity | o r | error | project | MVP | FR-CHK-012 | — | 05 §6.3; 15 §6.4 |
-| EW-CORE-014 | Library copy modified | A library copy whose content does not match its `sha256`; mark it locally modified, or re-embed it | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-015 | Asset missing | An asset missing or not matching its hash name | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-016 | Data from a newer format | Unknown kinds, members or variants; blocks release only where outputs are affected. Records of a reserved kind (a rank but no table yet) are kept verbatim and are not reported | integrity | n r | info (release: error where outputs are affected) | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-017 | Malformed known variant | An enum value whose tag names a variant this reader knows but whose payload does not parse; kept verbatim as `Unknown` (ADR-0011 amendment 2) and treated as unknown by derivations | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-018 | Unknown derivation profile | The project pins a derivation profile this build does not ship; the pin is kept, the newest shipped profile is used for display only and profile-dependent commands are refused until the profile upgrade (ADR-0003 amendment 1) | integrity | n r | error | project | MVP | FR-CHK-012, FR-PRJ-011 | — | 05 §6.3, §10.1 |
-| EW-CORE-019 | Reader limit exceeded | A hostile-input limit of the loader (line, file size, file count or JSON nesting, 05 §3.6) is exceeded; the file or line is not read and the project opens read-only | integrity | n r | error | project | MVP | FR-CHK-012, NFR-SEC-02 | — | 05 §3.6, §6.3 |
-
 **Pages, cables, devices, references, texts and the rule system.**
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
@@ -651,16 +634,6 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-062 | Text overflow | Text overflows a title-block cell or report column after shrink-to-fit, per display language | hygiene | o r | warning | page | 1.0 | FR-I18N-012, FR-REP-039 | — | 09 §7 |
 | EW-CORE-064 | *Retired* | Font substitution at import is the import finding EW-IMP-006 | — | — | — | — | — | — | — | — |
 | EW-CORE-066 | Glyph missing | A character that no bundled face drew (it prints as `.notdef`); a character drawn by the bundled symbol fallback face is not a finding | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
-| EW-CORE-067 | Wire through a connection point | A drawn wire passes a CP or a junction it does not end at (06a F2); a terminal's CP is left to EW-TERM-006. *As built:* evaluated by the session with the page's measure (`ew_drafting::measure`) and joined to the report (D19), like the rules below up to -077 | conflict | o r | warning/error | page | MVP | FR-CON-007 | RK1, RK2 | 06a §1.2 |
-| EW-CORE-068 | Wire along another wire | A wire runs on another wire with a positive overlap, a common beginning at a pin both end at (a shared run, 06a §3.4) excepted (06a F3); one finding per pair | conflict | o r | warning/error | page | MVP | FR-CON-007 | RK1, RK2 | 06a §1.2 |
-| EW-CORE-069 | Wire through a symbol | A wire passes through the body or black box of a representation that draws a connection point, other than straight out of its own pin (06a F4); a mark without one, such as a cable marker, is drawn across its wires | hygiene | o r | warning | page | MVP | FR-CON-007 | RK1, RK2 | 06a §1.2 |
-| EW-CORE-070 | Wire through a text | A wire runs across a text the scene draws: a tag, a slot, pin or cross-reference text, a free text, a structure box's caption (06a C4); a text of a cable mark or of the wire itself is not counted; the message quotes the text | hygiene | o r | warning | page | MVP | FR-CON-007 | RK1, RK2 | 06a §1.2 |
-| EW-CORE-072 | Four-way junction | A junction that wires leave in four directions (06a F5); reported only, the router never splits a junction | hygiene | o r | warning | page | MVP | FR-CON-005 | RK1 | 06a §1.2 |
-| EW-CORE-073 | Unrouted wire | A page connection between two different points without a stored route, drawn as a dashed line (ADR-0033 decision 3) | completeness | o r | info/error | page | MVP | FR-CON-007 | RK1, RK2 | 06a §1.2 |
-| EW-CORE-074 | Wires meet without joining | A false joint: a corner on another wire's corner or end, a junction on a crossing, a wire's end on another wire without a junction (06a F6); one finding per pair | conflict | o r | warning | page | MVP | FR-CON-007 | — | 06a §1.2 |
-| EW-CORE-075 | Text on a text | A text the program places lies on another text of the page (06a C5); one finding per pair, the message quotes both | hygiene | o r | warning | page | MVP | FR-CON-007 | — | 06a §1.2 |
-| EW-CORE-076 | Text on a symbol | A text the program places lies on another symbol than its own (06a C5); a pin's number where the symbol's author put it is not reported | hygiene | o r | warning | page | MVP | FR-CON-007 | — | 06a §1.2 |
-| EW-CORE-077 | Symbol on a symbol | A symbol with connection points or a drawn box lies on another one, or leaves the drawing area (06a F7); a symbol on another one's connection point and the valves in a valve terminal's cells are not reported | conflict | o r | warning | page | MVP | FR-CON-007 | EF-26 | 06a §1.2 |
 | EW-CORE-082 | Waiver expired | A waiver past its expiry date or release | hygiene | o r | warning | project | 1.0 | FR-CHK-049 | — | 15 |
 
 EW-CORE-047 implements the first half of the rule on unplaced devices (FR-REV-007): a device without any
@@ -724,14 +697,6 @@ both 1.0, so it follows at 1.x (Could).
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
 | EW-FL-003 | Order-code occupancy | Slot occupancy contradicts the configurator order code (decoder plugin) | conflict | f r | warning | device | 1.x | FR-FLU-022 | D-40 | 11 §6 |
-| EW-FL-005 | Mixed media | Two different direct media in one fluid net | conflict | o r | error | fluid_net | 1.0 | FR-FLU-019 | D-28 | 11 §6 |
-| EW-FL-006 | Tube rating or size | A tube `p_rating` below the highest `p_nom` in its net; tube od differs from the port `push_in_od` at either end | conflict | o r | warning | fluid_net | 1.0 | FR-FLU-020 | D-28 | 11 §6 |
-| EW-FL-007 | Tube specification missing | A line without effective tube specification | completeness | o r | warning | fluid_net | 1.0 | FR-FLU-020 | D-28; EF-21 | 11 §6 |
-| EW-FL-008 | Exhaust left open | A fluid net whose ports all have exhaust roles, or that carries an `Exhaust` key, without silencer, collector line or closure; off by default | completeness | o | info | fluid_net | 1.0 | FR-FLU-021 | D-28 | 11 §6 |
-| EW-FL-009 | Coil voltage | The coil voltage differs from the voltage of the potential feeding the coil or its module's valve-supply pin | conflict | o r | error | device | 1.0 | FR-FLU-019 | — | 11 §6 |
-| EW-FL-010 | No supply on port 1 | A valve, or a manifold gallery-1 segment, whose port-1 net has no medium definition and no member outside the terminal | completeness | o r | warning | fluid_net | 1.0 | FR-FLU-020 | D-28; EF-20 | 11 §6 |
-| EW-FL-012 | Port-role conflict | A working port joined to an exhaust or supply port of another device without a valve; two ports of one valve function joined | conflict | o r | warning | fluid_net | 1.0 | FR-FLU-032 | — | 11 §6 |
-| EW-FL-014 | Bulkhead missing | A tube crossing a location boundary without a transition device; off by default | completeness | o | info | fluid_net | 1.0 | FR-FLU-032 | — | 11 §6 |
 
 *As built.* EW-FL-004 runs in modes `o r`, so
 that the pre-delivery release run counts EF-14 (O2); the MVP rules EW-FL-001, -002, -004, -011
@@ -885,54 +850,21 @@ run, defined in 14 §2.5.
 
 | ID | Name | Checks | Severity | Rel | Req. | D (golden) |
 |---|---|---|---|---|---|---|
-| EW-IMP-001 | Input limit exceeded | Item or file refused | error | MVP | FR-IMP-005 | — |
-| EW-IMP-002 | Malformed item skipped | NaN, overflow, unparsable node | error | MVP | FR-IMP-005 | — |
-| EW-IMP-003 | Reference dropped | Unresolvable conductor end or link UUID | error | MVP | FR-IMP-007, FR-IMP-012 | — |
-| EW-IMP-004 | Content dropped by design | QET custom SQL, `.ema` geometry, `.e3d`, DXF 3D solids | info | MVP | FR-IMP-016 | — |
-| EW-IMP-005 | Object inferred | Strip, cable, section or junction inferred; review | warning | MVP | FR-IMP-013, FR-IMP-014 | — |
-| EW-IMP-006 | Font substituted | Recorded once per family, also in the PDF XMP | info | MVP | FR-IMP-020 | MF-22 |
-| EW-IMP-007 | Value mapped by alias | Manufacturer, colour code or structure alias mapped through an alias table | info | MVP | FR-IMP-044 | D-17, D-18; MF-11, MF-12 |
-| EW-IMP-008 | Value kept foreign | A value kept as foreign or opaque text | warning | MVP | FR-IMP-044 | D-17, D-18; MF-12 |
-| EW-IMP-009 | Print-equivalence deviation | EW's derived text differs from the text the source printed | warning | MVP | FR-IMP-021 | — |
-| EW-IMP-010 | Removed in the source, kept here | A re-import's record that the source no longer holds, kept in the project | warning | MVP | FR-IMP-040 | — |
-| EW-IMP-011 | Changed in the source and here, kept here | A re-import's record changed on both sides, EW's version kept | warning | MVP | FR-IMP-040 | — |
-| EW-IMP-101 | Stored label stale | A stored label differs from the formula result; the derived tag wins | warning | MVP | FR-IMP-010 | D-01; MF-01 |
-| EW-IMP-102 | Structure-code spelling variants | Spelling variants of one structure code; live rule EW-RDS-010 | warning | MVP | FR-IMP-011, FR-PRJ-018 | D-03; MF-02 |
-| EW-IMP-103 | Label kept as frozen tag | A label that does not fit an inferred rule | info | MVP | FR-IMP-042 | D-03; MF-03 |
-| EW-IMP-104 | Per-folio title-block values | Revision, author or date differ per folio; revisions are created | warning | MVP | FR-IMP-015 | D-05; MF-04 |
-| EW-IMP-105 | Description override kept | A per-folio description kept as `description_override`; live rule EW-CORE-023 | info | MVP | FR-IMP-015 | D-06; MF-05 |
 | EW-IMP-106 | Title-block party differs | The title-block party differs from the cover party | warning | MVP | FR-IMP-015 | D-30; MF-06 |
 | EW-IMP-107 | Text converted to data | A wire marker, address, port, process tag or bus address recognised and converted | info | MVP | FR-IMP-017 | D-08, D-15, D-26; MF-07, MF-18, MF-19 |
 | EW-IMP-108 | Data-like text not converted | Listed for review | warning | MVP | FR-IMP-017 | D-08, D-26 |
-| EW-IMP-109 | Strip segments merged | A strip drawn in several segments, merged into one strip; quick fix "split" | info | MVP | FR-IMP-013 | D-42; MF-10 |
 | EW-IMP-110 | Overview differs from detail | A hand-drawn overview differs from the linked detail; EW-CORE-046 takes over once the assembly exists | warning | MVP | FR-CHK-022, FR-IMP-039 | D-10; MF-14 |
 | EW-IMP-111 | Layout binding proposal | A layout item matched to a device, to confirm | warning | MVP | FR-IMP-019 | D-02; MF-15 |
 | EW-IMP-112 | Untagged device-class symbol | A symbol of a device class without device tag; build assembly and children | warning | MVP | FR-IMP-039 | D-27; MF-20 |
 | EW-IMP-113 | Imported table differs | Imported nomenclature rows differ from the derived BOM | info | MVP | FR-IMP-016 | D-01, D-04; MF-21 |
-| EW-IMP-114 | Text styles not bound | Imported text styles not bound to slot kinds; live rule EW-CORE-063 | info | MVP | FR-IMP-003 | D-29; MF-26 |
-| EW-IMP-115 | Folio-report pair names differ | Pair names differ, or the pairing needs chain mode | warning | MVP | FR-IMP-009 | D-24 |
-| EW-IMP-116 | Slave without master | A slave without master; a master above `max_slaves` | warning | MVP | FR-IMP-009 | — |
-| EW-IMP-117 | Default folio formula | The project uses QET's default `%f` folio-index formula | info | MVP | FR-IMP-010 | — |
-| EW-IMP-118 | Junction wiring assumed | Star assumed at a QET junction element | info | MVP | FR-IMP-012 | D-20 |
-| EW-IMP-119 | Generic black box | An element without function semantics, imported as a generic black box | warning | MVP | FR-IMP-008 | — |
-| EW-IMP-120 | Shared element UUID | A shared element UUID disambiguated | info | MVP | FR-IMP-007 | — |
 | EW-IMP-121 | Several IP names on one potential | Several interruption-point names on one potential | info | MVP | FR-IMP-012 | D-24; MF-17 |
-| EW-IMP-122 | Unlabelled element, tag synthesised | An element without label keeps its prefix letter without counter and prints "?" | info | MVP | FR-IMP-042 | — |
 | EW-IMP-123 | Cross-section mark differs | A QET cross-section mark differs from the derived wire property; the derived value is kept and the mark's value reported | warning | MVP | FR-IMP-017 | D-08 |
 | EW-IMP-201 | EDZ terms notice | The Data Portal terms notice was shown | info | 1.0 | FR-IMP-026 | — |
 | EW-IMP-202 | Function definition unmapped | No FnDef mapping for an EPLAN function template; generic pin used | warning | 1.0 | FR-IMP-028 | — |
 | EW-IMP-203 | ZIP-format EDZ | An EDZ in a ZIP rather than a 7-Zip container | info | 1.0 | FR-IMP-025 | — |
 | EW-IMP-204 | EDZ extras ignored | Extras such as `.e3d` ignored in favour of STEP | info | 1.0 | FR-IMP-027 | — |
 | EW-IMP-205 | Unit converted | A length unit other than mm converted | info | 1.0 | FR-IMP-028 | — |
-| EW-IMP-206 | Report column unmapped | A column of an EPLAN report export without mapping | warning | 1.0 | FR-IMP-029 | — |
-| EW-IMP-207 | Multi-level terminals folded | Terminals with rising levels folded into one multi-level terminal | info | 1.0 | FR-IMP-028 | — |
-| EW-IMP-251 | DXF units missing | No units in the header; the user was prompted | warning | 1.0 | FR-IMP-032 | — |
-| EW-IMP-252 | SHX font substituted | An SHX font substituted through the table | warning | 1.0 | FR-IMP-033 | — |
-| EW-IMP-253 | DXF entity unsupported | 3DFACE, 3DSOLID, REGION, BODY or a proxy object not imported | info | 1.0 | FR-IMP-032 | — |
-| EW-IMP-254 | External reference not followed | A referenced image or file never opened | info | 1.0 | FR-IMP-032 | — |
-| EW-IMP-255 | Hatch reduced | A hatch pattern reduced to its boundary | info | 1.0 | FR-IMP-032 | — |
 | EW-IMP-256 | CP snapped | A connection point snapped to the grid by the symbol wizard | warning | 1.0 | FR-IMP-034 | — |
-| EW-IMP-257 | DWG converted | A DWG converted through the user-installed ODA File Converter | info | 1.0 | FR-IMP-036 | — |
 | EW-IMP-301 | Derived column edited | A derived column edited in a round-trip table | warning | MVP | FR-PLC-038, FR-EXT-028 | — |
 | EW-IMP-302 | Row changed in EW since export | Kept, listed | info | MVP | FR-PLC-038, FR-EXT-028 | — |
 | EW-IMP-303 | Unknown ID | A row whose ID is unknown | warning | MVP | FR-PLC-038, FR-EXT-028 | — |

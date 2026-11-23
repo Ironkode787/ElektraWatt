@@ -151,9 +151,9 @@ dashed hover outline over `DisplayList::entity_bounds`) are screen-space primiti
 
 ### 10.1 CLI `ew`
 
-`ew` is the headless `Session`. Panel builders can fail CI on `ew check --scheme pre-delivery`. The authoritative
-catalogue, with options, releases and requirements, is [extensibility](17-extensibility.md) §3.3; this table
-summarises its groups.
+`ew` is the headless `Session`. Panel builders can fail CI on `ew check --scheme pre-delivery`. The built
+subcommands, with their options and exit codes, are the generated command-line reference, and the ones specified and
+not built are listed in [extensibility](17-extensibility.md) §3.3; this table summarises the groups of both.
 
 | Group | Subcommands |
 |---|---|

@@ -690,92 +690,52 @@ context = "tool"
 alt = "Alt+N"                  # second binding for keyboards without that key; Alt+Right stays "Forward" (06 §6)
 ```
 
-- **Presets.** "EW" and "KiCad-like" (M move, R rotate, W wire, E properties) at MVP (FR-UI-013); "EPLAN-like" at
-  1.0, once two EPLAN users confirm its bindings (FR-UI-014). The canvas bindings are
-  [06](06-schematic-editor.md) §6. This document adds the shell set. In the macOS column the key display is kept in `ew-ui` for portability only: macOS is not a supported platform and this is not tested:
+The bindings are generated from the action registry (`ActionMeta.shortcut`, their one source), so the keymap file of
+the EW preset is its written form; the generated keymap reference (`docs/book/src/reference/keymaps.md`, from the
+keymap sheet) lists every binding per preset and context, and [the action map](../map/actions.md) every action.
 
-| Action | EW preset | macOS |
-|---|---|---|
-| Command palette | Ctrl+K (alias Ctrl+Shift+P) | ⌘K |
-| New project from basic project, Open, Save, Save As | Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S | ⌘ equivalents |
-| Print, Export PDF… | Ctrl+P, Ctrl+Shift+E | ⌘P, ⇧⌘E |
-| Copy, Copy tag list, Copy as image (FR-UI-040) | Ctrl+C ([06](06-schematic-editor.md) §6); the other two through the Edit menu, the context menu and the palette | ⌘C |
-| Find and replace | Ctrl+H | ⌥⌘F (⌘H is reserved by macOS) |
-| Run the active check scheme | F7 | F7 |
-| Next and previous finding | F8, Shift+F8 | F8, ⇧F8 |
-| Renumber devices… | Ctrl+Shift+N | ⇧⌘N |
-| Fill down, pattern fill (tables) | Ctrl+D, Ctrl+Shift+D | ⌘D, ⇧⌘D |
-| Help for this context | F1 | F1 or ⌘? |
-| Context menu | Shift+F10, Menu key | Ctrl+click |
-| Cycle dock areas | F6, Shift+F6 (as built: the page navigator, then each canvas group) | F6, ⇧F6 |
-| Maximise canvas | F11 | ⌃⌘F |
-| Settings | Ctrl+, | ⌘, |
-| Close project (moved here from Ctrl+W) | Ctrl+Shift+W | ⇧⌘W |
-| New tab, close tab | Ctrl+T, Ctrl+W | ⌘T, ⌘W |
-| Next tab, previous tab (as built: the focused group, wrapping) | Ctrl+Tab, Ctrl+Shift+Tab | Control+Tab, Control+Shift+Tab, as in macOS browsers (⌘Tab belongs to the system) |
-| Other tab group | Ctrl+F6 | Control+F6 |
-| Back, Forward (per tab, 06 §6) | Alt+←, Alt+→ | ⌥←, ⌥→ |
-| Go to page or cell | Ctrl+G | ⌘G |
-| Follow cross-reference; next, previous link in reading order (canvas) | F; Shift+F, Ctrl+Shift+F | F; ⇧F, ⇧⌘F |
-| Grid cursor: one grid step; one cell (canvas) | Arrow keys; Shift+Arrow keys | same |
-
-- **Rules.** No preset uses Ctrl+Alt+letter, because AltGr equals Ctrl+Alt on Windows and produces characters on
-  QWERTZ and AZERTY layouts. Every action of a preset must be reachable on QWERTY, QWERTZ and AZERTY without AltGr
-  (NFR-I18N-06; §15.5; the automatic check is specified; not built). Context-specific bindings shadow general ones: Ctrl+D duplicates on the canvas and fills
-  down in a table.
-- **Keymap editor** (Tools ▸ Keymap): search actions, record a chord, show conflicts and shadowing (§15.5), reset
-  per action, import and export. A keymap file from a newer version keeps unknown action IDs and marks them unused.
-
-*As built.* The presets are `crates/ew-viewmodel/keymaps/ew.toml`,
-generated from the action registry and kept equal by a test, and `kicad.toml` (the EW preset with A for Place instead
-of I and G beside M for Move); the contexts are the registry's five (`global`, the parent, and four children); `Plus`,
-`Minus` and `Equals` bind by logical key, punctuation by physical key. The user's `keymap.toml` replaces the preset's
-bindings of the actions it names. **The keymap editor is Help ▸ Keyboard shortcuts** (`help.shortcuts` made
-editable), not Tools ▸ Keymap: search, Record (the one recorded chord replaces the action's bindings, in its registry
-context), Reset per action, refused edits with their errors, what a changed binding shadows, the unused bindings, the
-Menu-key note, Import keymap… and Export keymap… (the full effective keymap). An edit applies at once and is
-written only when the keymap has no error; while the file could not be read, or a refused one could not be copied
-aside, edits apply for the session and the file is left as it is. Renumber devices… has Ctrl+Shift+N; Print, Maximise
-canvas and Settings wait for their actions. The keymap sheet `keymaps/sheet.json` feeds the generated page
-`reference/keymaps.md`.
-
-*As built.* Zoom to 100 % binds `Ctrl+phys:Digit0`; the window shows a
-physical digit or letter as its key cap ("Ctrl+0"), never the `phys:` grammar. In the editor an action is Changed
-when its effective bindings differ from the preset's, so Reset, a user binding equal to the preset's and a
-re-imported export mark nothing; the Menu-key note shows under the list only while a chord is being recorded; a
-refused recording names what is in the way ("M is already Move in the canvas."). The editor lists conflicts and
-shadowing only (FT-846).
-
-*As built (FIX40d).* One display function (`keymap::display`) shows every physical key
-the `phys:` grammar accepts as its US key cap (`phys:Minus` reads "-", `Shift+phys:BracketLeft` "Shift+[") in every
-text a person reads: the editor's refusal, conflict, shadow, Ctrl+Alt, reserved and needs-Shift texts, the unused
-bindings, the chips, the menus and the HUD; the grammar stays in the keymap file, and the book's keymap page explains
-it. A text that names a key for a way out takes the user's binding: EW-CORE-052's notice says "Press D for a target"
-with the EW preset, and names the action by its title when nothing is bound.
-
-*As built.* The canvas context gains `]` and `[` (`cp.next`,
-`cp.previous`), matched as physical keys so that they need no AltGr on QWERTZ and AZERTY, with Alt+N and Alt+Shift+N
-as the alternatives; N (`cp.next_unconnected`); Enter (`canvas.activate`, a click at the grid cursor, refused without a
-grid cursor); and Backspace (`tool.back`). Tools ▸ Select (`tool.select`) and Tools ▸ Measure (`tool.measure`) have no
-default keys. Checking `]` and `[` on German and French layouts is an owner item, not covered by the automated checks.
-
-*As built.* The canvas keys of part 1 are in [06](06-schematic-editor.md) §6. The property grid has its own keyboard context: F2 edits the row, Shift+F10 opens the row menu (the Menu key is not reported by egui), Shift+Enter opens the multi-language editor and Ctrl+Enter applies the preview card; the pane itself takes the arrows, Home, End, Enter (Override on a derived row), Space (a checkbox) and the keys that start an edit, and F6 moves the focus between the page navigator, the canvas groups and the grid. **Shortcuts are unique per shell context** (WP-S2.01 A1): one chord may be bound in two contexts, and a context's binding shadows a global one, which is §15.5's rule; Shift+Enter is "finish the tool" on the canvas and "multi-language editor" in the grid. The registry tests check uniqueness per context and keep the Ctrl+Alt+letter ban.
-
-*As built.* The wiring keys (W, Tab for the next proposal, C, Backspace in the Wire tool, Enter on a selected junction, Alt+Up and Alt+Down in the junction popup) and the find keys (Ctrl+F, Ctrl+H, and in the pane Enter, the arrows and Ctrl+Enter) are listed in [06](06-schematic-editor.md) §6. **Ctrl+Enter has one meaning per context:** `canvas.activate_alt` in the canvas (a click with Alt held at the grid cursor), `preview.apply` in the property grid and `find.replace_all` in the find pane (`preview.apply` there when a replace card is open). A find field that takes the keyboard focus makes the pane the shell's focus, so Tab and Shift+Tab move between its fields and never reach a canvas chord (the focus report is one helper in `ew-ui`, which the property grid's editor field also calls). The table above gives Find and replace ⌥⌘F on macOS; as built it is Ctrl+H on every OS, and ⌘H hides an application on macOS, so a per-platform binding is not built.
-
-*As built.* The canvas gains P (the IP tool; while the Wire tool routes, P ends the wire in an interruption point), D (the IP's direction) and B (the black box tool); Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste and duplicate on the canvas through the platform's clipboard events, and a focused text field keeps its own copy and paste; on Windows egui-winit also turns Shift+Delete into the Cut event, so Shift+Delete cuts there; while the IP tool's name field has the focus, P, D and B type into it. The creation form of `page.new`, `structure.new` and `external_ref.new` takes Enter to create, Escape to cancel and Tab to move on; the parts import's card applies with Apply or Ctrl+Enter. The existing refusal banner shows only for an incomplete-item Cut, preserving the marker, selection, external clipboard and pre-side-effect guard. Failed precedence and other Refused behavior remain unchanged. Keyboard Ctrl+C and Edit ▸ Cut publish the fragment to the OS clipboard, and Ctrl+V plus placement renders the external fragment text.
-
-*As built.* Every native file dialog (open folder, new folder, open .qet, open parts table, open image, save PDF) runs on a thread of its own, and its answer returns to the shell by a channel and a repaint request, so the card or dialog raised after it (the parts import's card among them) is painted at once without pointer input; on Windows the dialog is owned by the main window, which takes no input while it is open.
-
-*As built:* T starts Text, F2 edits a selected free text, L starts a line, Shift+W starts Wire marker and Shift+B starts Structure box. D changes arc direction in Graphic; Shift+Enter or double click finishes a Graphic/Structure box outline. Edit ▸ Bridge terminals has no shortcut.
-
-*As built.* **The strip editor's keys.** In the Terminal strips navigator (open and focused; headless: open) Insert is `strip.insert` (Insert terminal, before the cursor terminal row) and Ctrl+Delete is `strip.delete_rows` (Delete rows; terminal rows through the table card, accessory rows directly). Edit ▸ Strip editor (`strip.edit`), Add accessory (`strip.add_accessory`), Remove bridge (`strip.unbridge`) and Bridge terminals (`strip.bridge`) have no shortcut. **Alt+Up and Alt+Down are `strip.move` (`step` −1 and +1) while the Terminal strips navigator has the focus, and `pages.move_up` and `pages.move_down` elsewhere** (the shell maps the page-move chords to `strip.move` in that focus, so the keymap conflict test of §15.5 still sees one binding per chord). The Pos cell's read-only reason reads "move rows with Alt+Up and Alt+Down". Enter on an unplaced terminal row (placing it) is part 2 as well.
-Delete (`table.clear`) with the cell cursor in the key column (Strip) takes the rows whole: it deletes the marked
-terminal rows' terminals with their symbols and the wires drawn to them, one undo step, and its toast counts the wires
-as the page's Delete does (0.3.5, a persona run found no way to delete rows from the table); in any other column it
-clears the cells.
-
-*As built.* **J is `place.join`** in the canvas context, enabled only while the Place tool's armed symbol can be an auxiliary function (the HUD names it: "J Join device…"). It opens the Join chooser ([16a](16a-design-language.md) §6.22, [06](06-schematic-editor.md) §3.3), whose actions `chooser.row`, `chooser.type` and `chooser.choose` have no default keymap entry: the chooser takes Up, Down, Home, End, type-ahead, Enter and Escape (`ui.dismiss`) itself. **275 actions.**
+- **Presets.** "EW" and "KiCad-like" (FR-UI-013; the KiCad-like preset is the EW preset with A for Place instead of
+  I and G beside M for Move); "EPLAN-like" ships only once EPLAN users confirm its bindings (FR-UI-014). The user's
+  `keymap.toml` replaces the preset's bindings of the actions it names; a binding for an action the build does not
+  know is kept and listed as unused.
+- **Contexts and chords.** The contexts are the registry's five (`global`, the parent, and four children). A chord
+  is unique within its context: equal chords in one context are a conflict, a child context's chord over a global one
+  shadows it (Ctrl+D duplicates on the canvas and fills down in a table; Shift+Enter finishes the tool on the canvas
+  and opens the multi-language editor in the property grid; Ctrl+Enter is `canvas.activate_alt` on the canvas,
+  `preview.apply` in the property grid and `find.replace_all` in the find pane). Where one focus needs another
+  meaning for a chord, the shell maps it (Alt+Up and Alt+Down are `strip.move` while the Terminal strips navigator
+  has the focus and `pages.move_up` and `pages.move_down` elsewhere), so the conflict rules still see one binding per
+  chord.
+- **Reachability.** No preset uses Ctrl+Alt+letter, because AltGr equals Ctrl+Alt on Windows and produces
+  characters on QWERTZ and AZERTY layouts, and the reserved chords (Alt+F4, Alt+Tab, Win+anything) are refused.
+  Letters, digits, named keys and `Plus`, `Minus` and `Equals` bind by logical key, punctuation by physical key, so
+  every action of a preset is reachable on QWERTY, QWERTZ and AZERTY without AltGr (NFR-I18N-06; §15.5); the keymap
+  rules check it per layout. Checking `]` and `[` on German and French keyboards by hand is an owner item.
+- **Key caps.** One display function (`keymap::display`) shows every physical key as its US key cap (`phys:Minus`
+  reads "-", `Shift+phys:BracketLeft` "Shift+[") in every text a person reads: the editor's texts, the chips, the
+  menus and the HUD; the `phys:` grammar stays in the keymap file. A text that names a key for a way out takes the
+  user's binding ("Press D for a target" with the EW preset) and names the action by its title when nothing is bound.
+- **Focus.** A text field that has the keyboard focus keeps its own keys (copy and paste, and the letters a tool
+  would take); a find field that takes the focus makes its pane the shell's focus, so Tab and Shift+Tab move between
+  its fields and never reach a canvas chord. A pane takes its own navigation keys (the property grid the arrows,
+  Home, End, Enter, Space and the keys that start an edit; a chooser Up, Down, Home, End, type-ahead, Enter and
+  Escape; a creation form Enter to create, Escape to cancel and Tab to move on). F6 moves the focus between the page
+  navigator, the canvas groups and the property grid. Copy, cut and paste on the canvas come through the platform's
+  clipboard events, so on Windows egui-winit's Shift+Delete cuts too. Find and replace is Ctrl+H on every OS.
+- **The keymap editor** is Help ▸ Keyboard shortcuts (`help.shortcuts`): search, Record (the recorded chord replaces
+  the action's bindings in its registry context), Reset per action, refused edits with their reasons ("M is already
+  Move in the canvas."), what a changed binding shadows, the unused bindings, the Menu-key note while a chord is
+  recorded, Import keymap… and Export keymap… (the full effective keymap). An action is Changed when its effective
+  bindings differ from the preset's. An edit applies at once and is written only when the keymap has no error; while
+  the file could not be read, or a refused one could not be copied aside, edits apply for the session and the file is
+  left as it is. The editor lists conflicts and shadowing only.
+- **Native file dialogs** run on a thread of their own, and the answer returns to the shell by a channel and a
+  repaint request, so the card or dialog raised after it is painted at once without pointer input; on Windows the
+  dialog is owned by the main window, which takes no input while it is open.
+- **Rows of the Terminal strips navigator.** Delete (`table.clear`) with the cell cursor in the key column (Strip)
+  takes the rows whole: it deletes the marked terminal rows' terminals with their symbols and the wires drawn to
+  them, one undo step, and its toast counts the wires as the page's Delete does; in any other column it clears the
+  cells.
 
 ### 4.5 Tool host
 
