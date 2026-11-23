@@ -98,9 +98,9 @@ on a graphic page.
 
 The reference drawings place cable markers and black boxes as graphics on multi-line and bus-topology pages and draw the CPX blocks multi-line on the fluid pages, so the table offers those combinations; every other combination is still refused at placement. The builder DSL of AC-15 path (b) found the restriction (the "(a) ≠ (b)" gap class, [18](18-quality-security-release.md) §3.10).
 
-*As built.* The editing tools refuse a page whose type takes no symbols or wires (TitlePage, PanelLayout, ModelView, ExternalDocument and the generated pages) with the text "This page type takes no symbols or wires: draw on a schematic page" (`reason-page-type-no-symbols`); the table above gave no wording. *As built:* the refusal names the page's kind in words where a key exists for it: "A section divider takes no symbols or wires: draw on a schematic page", and likewise "A title page", "A table of contents", "A report page" and "A panel layout page" (`reason-page-type-no-symbols-divider`, `-title`, `-contents`, `-report`, `-panel`); every other such page type keeps the generic text. A page type that takes symbols offers in the picker only the symbols whose representation type it allows; the others are listed disabled with their reason, which names the page types that take the symbol as New page lists them ("Goes on a page of type Fluid"). **Every row of the Insert symbol list does something** (the owner's hands-on test of 0.1.0): a choice arms a tool or opens a chooser, or the row is greyed with its reason in words. A symbol with a tool of its own arms that tool: Wire marker the Wire marker tool, Interruption point and Interruption point, incoming the Interruption tool in that direction. What the program draws with what it belongs to (a junction's dot or bevel, a cable's marker, the arrow of an external reference; the function categories `Graphic` and `ExternalReference`) is no row; `place.pick` with a letter still places one. A symbol whose category maps to no letter code is greyed with "Give a letter code: the symbol's category maps to none".
+The editing tools refuse a page whose type takes no symbols or wires (TitlePage, PanelLayout, ModelView, ExternalDocument and the generated pages) with the text "This page type takes no symbols or wires: draw on a schematic page" (`reason-page-type-no-symbols`); the refusal names the page's kind in words where a key exists for it: "A section divider takes no symbols or wires: draw on a schematic page", and likewise "A title page", "A table of contents", "A report page" and "A panel layout page" (`reason-page-type-no-symbols-divider`, `-title`, `-contents`, `-report`, `-panel`); every other such page type keeps the generic text. A page type that takes symbols offers in the picker only the symbols whose representation type it allows; the others are listed disabled with their reason, which names the page types that take the symbol as New page lists them ("Goes on a page of type Fluid"). **Every row of the Insert symbol list does something**: a choice arms a tool or opens a chooser, or the row is greyed with its reason in words. A symbol with a tool of its own arms that tool: Wire marker the Wire marker tool, Interruption point and Interruption point, incoming the Interruption tool in that direction. What the program draws with what it belongs to (a junction's dot or bevel, a cable's marker, the arrow of an external reference; the function categories `Graphic` and `ExternalReference`) is no row; `place.pick` with a letter still places one. A symbol whose category maps to no letter code is greyed with "Give a letter code: the symbol's category maps to none".
 
-*As built.* The Wire tool draws the column "Wire tool creates" where it is built: a `Wire` on MultiLine pages and an `Overview` connection on SingleLine (the MVP kind), Overview and AssemblyOverview pages; on BusTopology and Fluid pages, and on every type whose Wire tool creates nothing, `tool.wire` is disabled with "The Wire tool does not draw this page type's connections yet" (`reason-no-wire-kind`) until the `Bus` and `Fluid` kinds are drawn (FT-434). Autoconnect proposals are offered on MultiLine and SingleLine pages only, a narrowing of the column "Autoconnect": a table connection point carries no discipline yet (FT-434).
+The Wire tool draws the column "Wire tool creates": a `Wire` on MultiLine pages, an `Overview` connection on SingleLine (the MVP kind), Overview and AssemblyOverview pages, a `Fluid` working line on Fluid pages and a `Bus` connection on BusTopology pages; on every type whose Wire tool creates nothing, `tool.wire` is disabled with "The Wire tool does not draw this page type's connections yet" (`reason-no-wire-kind`). Autoconnect proposals are offered on MultiLine, SingleLine and Fluid pages (a fluid port with fluid lines), a narrowing of the column "Autoconnect".
 
 ### 2.3 Folios, sections and page names
 
@@ -131,8 +131,8 @@ A page has three distinct geometric systems. Mixing them up is the most common s
 | **Sheet transform** | the frame form's page-to-sheet transform (`FormDef.page_to_sheet`, QET-compatible frames only; FR-PAG-029) | paper output only | scale 0.986282578, offset 9.79 mm; native frames scale 1 |
 
 Shipped frames:
-- **QET-compatible A4 landscape**, grid and no-grid variants with one title block (FR-PAG-015, FR-PAG-017). Golden
-  folios 1, 2, 100, 200, 900, 901 and the generated pages use the no-grid variant.
+- **QET-compatible A4 landscape**, grid and no-grid variants with one title block (FR-PAG-015, FR-PAG-017). Title,
+  contents and divider pages and the generated pages use the no-grid variant.
 - **ISO 5457** A4–A0 with 50 mm grid fields and centring marks, and an A3 frame with 10 numbered columns
   (FR-PAG-016, 1.0).
 
@@ -177,18 +177,16 @@ body: lying flat, its tag centred above it and its data and cross-reference cent
 pins' numbers at its pins (owner, 2026-11-22; [07](07-symbols-parts-macros.md) §4.1). A device tag the page would put on a wire or another text is never turned to
 make room: it moves, upright, to the other side of its symbol, above or below what is in its way, or centred above or
 below its symbol, and stays where it is when none of these is free. It never moves onto its own symbol; where a symbol
-turned by a half turn and a neighbour's tag or body meet, the tag moves off the body and takes no place on a body
-(rc.3).
+turned by a half turn and a neighbour's tag or body meet, the tag moves off the body and takes no place on a body.
 
-*As built (0.3).* With one symbol (or black box) selected, each of its texts can be grabbed (the pointer shows a grab
+With one symbol (or black box) selected, each of its texts can be grabbed (the pointer shows a grab
 hand over it) and dragged alone; the tag of a symbol that is not selected is grabbed the same way, the tag under the
-pointer winning over a symbol's body (rc.3), and so is a pin's label (the text of a connection point's designation,
-FT-1796), and a click on either selects its symbol; a click without a drag on a selected symbol's text that is a
-cross-reference follows it, as with nothing selected (FT-1911). This rule covers every text of a symbol a drag moves
+pointer winning over a symbol's body, and so is a pin's label (the text of a connection point's designation),
+and a click on either selects its symbol; a click without a drag on a selected symbol's text that is a
+cross-reference follows it, as with nothing selected. This rule covers every text of a symbol a drag moves
 alone, pin labels included: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
 counter-clockwise while it is dragged (its box turns about its anchor; turned, the text takes its new angle's
-alignment, so the anchor that snaps is the one that prints that box, and the text lands where its ghost showed it,
-FT-2099), and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
+alignment, so the anchor that snaps is the one that prints that box, and the text lands where its ghost showed it), and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
 representation's `SlotOverride` in symbol coordinates (one undo step). Hide text in the menu over a text sets
 `visible: false`; Put the text back, in the menu over a text (greyed with its reason while the texts stand where the
 symbol puts them) and in the symbol's menu (`rep.texts_reset {reps}`), removes the positions and angles of its overrides
@@ -223,7 +221,7 @@ a box edge; structure assignment is a derived default that EPLAN users expect to
 outline and its inner graphics ("AC ~ / 24 VDC" on -102G1, the "24VDC" and "GND" fields of -102F2) are page
 geometry, stored in `Representation.box: BoxSpec` ([03](03-domain-model.md) §6; FR-DEV-039). CPs stay on the
 connection grid and on the outline; resizing the box moves its CPs along the outline and connections follow. A box
-whose device has no part has pins of its own (rc.5): each box CP may carry a `name` (`BoxCp.name`, an optional member,
+whose device has no part has pins of its own: each box CP may carry a `name` (`BoxCp.name`, an optional member,
 ADR-0011 amendment 6), and the black-box function then has a CP of that index printed with that name
 (`ew_derive::FunctionCps`); the window adds, names, renames and removes them on the box (Add pin, a wire to a free point
 of its edge, a double click on a pin, Remove pin), each one `box.reshape`. A box of a part draws the part's pins, edited
@@ -256,7 +254,7 @@ matrix      = { per_row = 3, max = 9, overflow = "…" }   # one-to-many points 
 
 | Preset | Example at L-1 on folio 101 | Use |
 |---|---|---|
-| QET style (pilot basic project) | `102-A1`; aux `(201-E1)`; main `∞ 203-B4` | Golden A, migrated projects (C-15) |
+| QET style (pilot basic project) | `102-A1`; aux `(201-E1)`; main `∞ 203-B4` | the sample project, migrated projects (C-15) |
 | EPLAN column | `/102.1` | native A3 projects without rows |
 | EPLAN cell | `/102.A1` | native projects with rows |
 | Full structure | `=P01+J-E-2416/102.A1` | targets in another structure |
@@ -270,7 +268,7 @@ Xref texts are freshness class I: every move, renumber and frame change updates 
 
 **Text placement** per relation kind (FR-XRF-011, FR-XRF-022): IP partner text below the arrow, right-aligned, style
 `data.small`, and so is the partner text of an external arrow; aux text `(…)` under the device tag and the main
-list after the tag, both style `xref.device` (as built: the xref slots of the IEC contact and coil symbols,
+list after the tag, both style `xref.device` (the xref slots of the IEC contact and coil symbols,
 `ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it). Every xref text is a link on screen and in the PDF (FR-XRF-019, FR-OUT-005).
 
 **Interruption-point glyph.** The arrow shows signal flow, not page side (FR-XRF-009): a **Source** point draws its
@@ -289,6 +287,6 @@ row         = "{glyph} {designations} {xref}"   # "13-14 /105.3"
 ```
 
 Rows come from the auxiliary functions (sorted by contact sequence digit, then designation) plus unused part
-contacts. Glyphs come from each FnDef's contact-image variant. The golden project has no contactor; the acceptance
+contacts. Glyphs come from each FnDef's contact-image variant. The acceptance
 case is the test contactor -K1 of FR-XRF-017 ("13-14 /105.3, 21-22 /106.5").
 

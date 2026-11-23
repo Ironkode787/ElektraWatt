@@ -24,8 +24,7 @@ A chapter of [Schematic editor](06-schematic-editor.md), whose table says where 
   language chosen per view; a missing translation falls back to the source text and is marked (FR-I18N-005).
   Identifiers never change with the language.
 
-*As built.* The viewer implements this list
-except the hover preview of a cross-reference (below) and the snap mode, the selection count and
+The viewer implements this list except the snap mode, the selection count and
 the running jobs in the status bar (the fields are in doc 16 §3.6). **Tabs:** at most 32 over one or two groups, each tab with its
 own history and a viewport per page. **Following:** a click or F on a cross-reference jumps to its target page in the
 same tab and centres the target point at no less than twice the zoom that fits the target page (the previous zoom if it
@@ -43,7 +42,7 @@ position), so a keyboard user reaches every link. The cursor is a crosshair over
 announces the cursor's cell, its position and a link at it (doc 16 §10.1). Selecting by pointer, and the connection-point
 jumps with `]`, `[` and N, are built (§4.3, §5.7; keys in doc 16 §4.4). The 300 ms
 hover preview of a link is a 320 × 200 point popup beside the pointer while the active tool wants hover (Select yes,
-Measure no), as built in doc 16 §4.5.
+Measure no), as doc 16 §4.5 says.
 
 **Panels the editor drives** ([16](16-ux-ui.md) owns their layout): the page navigator, where drag to reorder opens
 the renumber preview (FR-PAG-024); the device navigator with unplaced functions as drag sources; the IP and potential
@@ -99,7 +98,7 @@ export start (FR-OUT-001).
 3. **Mixed grids.** Pasting from a QET-grid page onto a native page keeps nm geometry. The fragment's insertion point
    snaps to the native grid, but its CPs stay on the 10 px lattice, so autoconnect cannot align them with native
    symbols. The ghost warns ("12 CPs off the page grid"). The remedies are to keep QET symbols on QET pages or to
-   convert the page (FR-PAG-022, 1.x). *As built (rc.5):* a paste onto a page of another grid is fitted to it: each
+   convert the page (FR-PAG-022, 1.x). A paste onto a page of another grid is fitted to it: each
    symbol moves so that its first pin lies on the nearest grid point of the page (a symbol whose own pin spacing does
    not fit keeps its other pins where its spacing puts them), junctions and structure-box corners go to their nearest
    grid points, page items keep their place with the rest, and the pasted wires are routed anew between the same pins
@@ -107,8 +106,8 @@ export start (FR-OUT-001).
    A page's Connection grid changed in Properties while it holds items asks first (what moves, that the wires are
    redrawn; Change and fit or Cancel) and fits the whole page the same way (`page.set_grid`), one undo step.
 
-   *The fit parts what it would push together (FT-1817).* Each item going to its nearest grid point alone put two
-   symbols on one another and two pins so close that a wire found no way. The fit moves the symbols and junctions of
+   *The fit parts what it would push together.* Each item going to its nearest grid point alone would put two
+   symbols on one another and two pins so close that a wire finds no way. The fit moves the symbols and junctions of
    the page (of the paste) together, one function for `page.set_grid`, `edit.paste` and `macro.insert`
    (`geometry::fit`), axis by axis, x first. Each item takes the box of its body and its pins and goes onto the grid by
    its point (a symbol's first pin, a junction's own point): to the nearest grid point, then, taken in the order of
@@ -121,22 +120,20 @@ export start (FR-OUT-001).
    does not hold spreads to whole steps; a strip of terminals closer than a step may close up to touching), and the
    line-up of things that do not face each other (a column above a row may part from it by a step; its wires, routed
    anew, take the turn). Items that overlapped along an axis before keep no rule between them there. *A row keeps
-   one pitch (FT-1935).* Three or more items of one box height (width, for a column) whose points stood at one pitch
+   one pitch.* Three or more items of one box height (width, for a column) whose points stood at one pitch
    along the axis are a row: the first goes to its nearest grid point and the others follow at one pitch of whole
    steps, the old pitch's nearest that keeps the gaps between every two of them by the rule above (twelve narrow
    symbols 5.29 mm apart on a 4 mm grid stand 8 mm apart throughout, not by turns 4 and 8 mm); another item before the
    row still pushes a member on where it would be overlapped.
-   *A pin's wire keeps its way (FT-2010).* The gaps alone left wires without a way: a card whose pins face the drawing
-   area's edge ended 2.3 steps from it, and the router keeps a step from both the edge and a body; a terminal wired
-   straight up to a contactor's pin ended five ticks beside it, so its wire needed a column, which a neighbour a
-   quarter step from the terminal's line closed. So `page.set_grid` takes the page's drawing area as the router reads
+   *A pin's wire keeps its way.* The gaps alone would leave wires without a way (a card whose pins face the drawing
+   area's edge too close to it, the router keeping a step from both the edge and a body; a terminal wired straight up
+   to a contactor's pin a few ticks beside it, its column closed by a neighbour). So `page.set_grid` takes the page's drawing area as the router reads
    it (`area`, which the window fills): a symbol with pins on a side of its box that faces an edge of the area (the
    pins on that side, their wires leaving towards the edge) whose wires turn along that edge, which stood a step of the
    new grid or more from that edge, keeps a grid line for each of those pins, a step from the edge, from one another
    and from its box; a pin whose wire runs straight on to its other end (a mark in line with it) needs none. From the
    left (top) edge it is pushed on, from the right (bottom) edge taken back by whole steps as far as the gaps before it
-   allow. With one line for both, L+ and M of the sample's output card on 104 shared it: M took it and L+ went over
-   the card and through its tag. Two pins wired straight that stood in line (a
+   allow; each pin has a line of its own. Two pins wired straight that stood in line (a
    wire without a route, or one along their line) stay as near in line as the grid allows: the later of their symbols
    along the axis goes to the grid point nearest the line of the other's pin as fitted (field devices under a card's
    channels follow the card when it is pushed on). Where the pin of only one of them lands on the grid (the other's
@@ -144,7 +141,7 @@ export start (FR-OUT-001).
    keeps a step from it, so the wire's step has a column. A `page.set_grid` without `area` keeps no room at the edges;
    a paste and a macro fit by the gaps alone.
    Structure
-   boxes take their corners' nearest grid points and page items keep their places, as before. A copy of pages is no
+   boxes take their corners' nearest grid points and page items keep their places. A copy of pages is no
    fit: it keeps every position as its source holds it (§3.6).
 4. **QET anchors.** QET-imported symbols keep QET's element-origin anchor so that imported texts match the source,
    including "3-B0"; FR-CHK-035 then reports the empty cell (FR-IMP-038).
@@ -166,12 +163,12 @@ export start (FR-OUT-001).
     ghost label shows the new tag before release, and the toast offers "freeze previous tag", which creates a frozen
     tag reported at info.
 13. **Black box resize.** CPs slide along the outline and cannot leave it; a CP on a removed polygon edge moves to
-    the nearest remaining edge and is listed in the preview. *As built (rc.5):* the CPs of a side keep their order and
+    the nearest remaining edge and is listed in the preview. The CPs of a side keep their order and
     spacing and stay centred on it as a group, on grid points, a grid step clear of each corner; on a shorter side the
     spacing closes up to one step, and below that the grip stops and the status line says why (`box.reshape` refuses
     it in words); across the box it goes no lower than its longest top pin text and its longest bottom pin text
     together need, and no narrower than its longest left and right pin texts together need, each with a gap, one rule
-    for the four sides (FT-1839), and the grip stops there (the texts stay as they were drawn: turned a quarter on the
+    for the four sides, and the grip stops there (the texts stay as they were drawn: turned a quarter on the
     top and bottom sides, horizontal on the left and right). The representation's position follows the outline's top-left corner, so the box's texts keep their
     place relative to it. A CP never moves onto a corner; Centre the pins (the box's right-click, `box.reshape` with
     `centre`) re-centres a box stored with one there.

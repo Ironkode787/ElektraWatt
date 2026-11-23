@@ -42,27 +42,18 @@ one run for its own cascades, so the passes only carry effects from one normalis
 for example, works through a worklist, so a dissolve that leaves another junction with two connections is handled in
 the same run.
 
-**v0**. `ew-commands` runs rows 2, 4, 7, 8 and 12 in this order (`ORDER`, asserted by
-a test); row 3 runs between rows 2 and 4 (six rows). Row 2 records nothing, because CPs are derived and no override exists yet. Row 4 numbers within the scope
+`ew-commands` runs the rows it has built in the table's order (`ORDER`, asserted by a test; the head of its
+`normalise` module lists them), one pass after another until a pass changes nothing. Row 2 records nothing, because
+CPs are derived and only overrides persist. Row 4 numbers within the scope
 (page of the main representation, letter) and skips devices with a terminal aspect, a frozen tag or a scheme other
 than the page-based default. Row 7 splits by an exact integer point-on-route test; W′ keeps its ID and
 number and W″ is new and `Unassigned`. Row 8 keeps, when a junction dissolves, the member that carries an assigned
 wire number (rows 8 and 11, FR-NUM-023); if both members carry different assigned numbers the command is rejected
-rather than losing one. Row 12 leaves every new connection `Unassigned` until a wire-numbering scheme exists
-(WP-S1.11). The other rows arrive with their owners' work packages; the notes of this paragraph
-give the current order. The prevent hook of the validate step stays
-unwired until WP-S1.15, so M1 accepts, for example, duplicate terminal designations; this is a documented known gap
-. Row 3 (N1, `channel_instantiation`) runs between rows 2 and 4: a device of the transaction
-that is new with a `plc_module` aspect, gained one, or changed its parts or `part_use` gets the channels 0 … n−1 of
-its part's channel spec with v5 IDs; a channel exists when one with the same (module, number) exists and existing
-channels are kept with their authored members. Row 5 (N-FL-2) is not a normaliser yet: its counter rule is applied
-inside `valve.add` and `assembly.attach`, and its push insert is FT-273. Rows 13 (N2, `solenoid_binding`) and 14 (N3, `module_pin_binding`) run after row 12, so `ORDER`
-holds eight rows: 2, 3, 4, 7, 8, 12, 13, 14. Row 3 now applies the part's channel kind to existing channels
-and names surplus channels in a notice; it still removes none, because FR-PLC-053 removes them only through the
-preview of the Bulk command `plc.set_module_part` (§3.1). N2 binds a declared coil to the channel the part's
-position map assigns when both are free and considers only the valves and channels the transaction touches; N3 binds
-a new channel to the pin its part's `pin_of` names ([10](10-plc-and-bus.md) §2.6, §3.3). Normaliser notices are merged
-once into the command's outcome. Row 1 (N-FL-1) is not built.
+rather than losing one. Row 12 leaves every new connection but a fluid line `Unassigned`: no wire-numbering scheme
+runs online. Rows 3, 13 and 14 (N1, N2, N3) are [10](10-plc-and-bus.md) §3.3's; row 3 removes no surplus channel,
+because FR-PLC-053 removes them only through the preview of the Bulk command `plc.set_module_part` (§3.1). Row 5
+(N-FL-2) is not a normaliser: its counter rule is applied inside `valve.add` and `assembly.attach`, and its push
+insert is not built. Normaliser notices are merged once into the command's outcome.
 
 **Explicit counter edits** (FR-NUM-029). Row 4 renumbers only collisions that the edit itself
 creates by placing a new device, moving a main representation or changing a page. A `fields.set` that sets a tag's
@@ -70,7 +61,7 @@ letter or counter to a value that collides on the page is rejected in the strict
 free counter proposed, and is never silently replaced. Duplicates that already exist in a lenient project stay
 findings.
 
-*As built (G-PP finding 6).* The refusal of a colliding letter edit offers the
+The refusal of a colliding letter edit offers the
 proposal: the window shows "<refusal>. Use <tag> to accept it." with a "Use <tag>" button under the error, and the hidden
 parameterless action `props.accept_tag_proposal` accepts it in one step (the counter cleared and the letter set in one
 `fields.set_many`, so online numbering assigns the counter and the tag stays unfrozen). A script or blind-run failure
@@ -96,8 +87,8 @@ and accepted only while its refusal is still under the field on the same revisio
 | 12 | **Online wire numbering** | New wires get the next number of the active wire-numbering scheme when online numbering is on, otherwise they stay `Unassigned` and print "?" (FR-NUM-019, FR-NUM-021) | [08](08-connections-terminals-cables.md) §5.2 |
 | 13 | **Solenoid binding** (N2 = N-FL-3) | Binds each declared solenoid's coil to the channel the part's position map assigns, if that channel is unbound and no channel binds the coil; an existing binding wins, and only the valves and channels of the transaction are considered (FR-PLC-051) | [10](10-plc-and-bus.md) §3.3 |
 | 14 | **Module pin binding** (N3) | Binds a new physical channel to the module pin whose designation the part's channel → pin map gives | [10](10-plc-and-bus.md) §3.3 |
-| 14a | **Bus ports** (N5) | On a new device or a changed bus part, or a bus-port function (FnDef contact kind `bus_port`) added to or moved onto a device with a bus part: the part's ports that no function of the device carries (by interface and label) go in list order to its port-less bus-port functions by ID, address `tbd` (`not_applicable` when passive), the part's termination, no nets. Never rewrites or removes a port; a disagreement gives a notice; a part port without a function seeds nothing. Duplicates are dropped first and unknown buses or roles filtered after, so a newer-format first port drops its whole (interface, label) pair. Runs after `module_pin_binding` | WP-S1.21 spec §8a.2 |
-| 14b | **Bus nets** (N6) | On a new or changed `Bus` line between CPs of two functions with bus ports of one bus system: the ports of its segment (reached over bus lines) join one logical net, the one net they name (when it exists), else, with two ports or more, a new `LogicalNet` named for the bus system (`PROFIBUS DP`, `PROFIBUS DP 2` …) whose master is the CP of the one `master` or `controller` port. A passive port passes the net through and takes none. Never changes a net a port names; ports in different nets stay (EW-BUS-010). Runs after `bus_ports` | persona round of M3 (doc 10 §2.7) |
+| 14a | **Bus ports** (N5) | On a new device or a changed bus part, or a bus-port function (FnDef contact kind `bus_port`) added to or moved onto a device with a bus part: the part's ports that no function of the device carries (by interface and label) go in list order to its port-less bus-port functions by ID, address `tbd` (`not_applicable` when passive), the part's termination, no nets. Never rewrites or removes a port; a disagreement gives a notice; a part port without a function seeds nothing. Duplicates are dropped first and unknown buses or roles filtered after, so a newer-format first port drops its whole (interface, label) pair. Runs after `module_pin_binding` | [10](10-plc-and-bus.md) §2.6 |
+| 14b | **Bus nets** (N6) | On a new or changed `Bus` line between CPs of two functions with bus ports of one bus system: the ports of its segment (reached over bus lines) join one logical net, the one net they name (when it exists), else, with two ports or more, a new `LogicalNet` named for the bus system (`PROFIBUS DP`, `PROFIBUS DP 2` …) whose master is the CP of the one `master` or `controller` port. A passive port passes the net through and takes none. Never changes a net a port names; ports in different nets stay (EW-BUS-010). Runs after `bus_ports` | [10](10-plc-and-bus.md) §2.7 |
 | 15 | **Logical-net inheritance** (N4) | A bus connection to a port without a logical net assigns the net of the other port | [10](10-plc-and-bus.md) §3.3 |
 | 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
@@ -107,27 +98,25 @@ and accepted only while its refusal is still under the field on the same revisio
 **Routing is one pure function, `ew_drafting::route` ([06a](06a-drafting.md) §3), reached through `ew_api::routing`, and
 the tools call it; the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
 `connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less
-(*unrouted*, below). `rep.move` moves the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2) and takes the
+(*unrouted*, below). `rep.move` moves the route's vertices by `geometry::follow_end` and takes the
 routes the Select tool re-solved (§5.4). A script therefore gets the mouse's route by calling the same function and passing the result, not by a
 command that routes. **Normaliser 7 (connection split) works on routes**, so it splits a connection that has a stored
 route, which every connection drawn with the Wire tool has; a route-less connection has no route to test, and the
-route editor's first edit stores its drawn polyline (WP-S2.04 §8.4).
+route editor's first edit stores its drawn polyline.
 
 [ADR-0033](../adr/0033-schematic-routing-model.md) governs routing. A connection is drawn along its stored route, the full
 vertex list with both ends, and a page connection without a route is *unrouted*:
 drawn as a dashed right-angled line (below), not split by normaliser 7, not read by EW-TERM-006, reported by
-EW-CORE-073. **The unrouted line is never a diagonal** (the owner's hands-on test of 0.1.0: a diagonal read as a
-route the router had drawn askew): ends on one horizontal or vertical line are joined straight, else by one corner
+EW-CORE-073. **The unrouted line is never a diagonal** (a diagonal reads as a route the router drew askew): ends on one horizontal or vertical line are joined straight, else by one corner
 made of the ends' own coordinates, the first leg along the first end's direction, else the last leg along the second
 end's, else horizontal first. It takes no notice of what lies under it and is no route: the page draws it dashed in
 the thinnest pen, and the Wire tool's ghost and the router's own result for a request without a route are the same
 line (`ew_api::routing::unrouted_line`). The
 commands still never route: the router runs in the tools and in Route, which stores its plan with `layout.apply`
-(06a §2.6); autoconnect hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
-*interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction
-(WP-S2.19 specification D16).
+(06a §2.6); autoconnect hints store their straight run; `rep.move` takes the routes the Select tool re-solved. Row 18,
+*interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction.
 
-*As built.* The commands that store a route are `connection.draw`,
+The commands that store a route are `connection.draw`,
 `connection.draw_many`, `connection.draw_to_ip`, `connection.route`, `layout.apply` (06a §2.6) and `rep.move` with its
 optional `routes`, each checked by
 `require_route` (on the grid, the first vertex at end `a`'s point and the last at end `b`'s, a junction end included);
@@ -137,8 +126,8 @@ hint whose ends are not aligned stays unrouted. `rep.move`'s `connect` hint name
 and a black box draws points no symbol CP indexes. Normaliser 7 splits routed connections only; row 18 runs
 after row 16, before the revision normaliser of [15](15-checks-revisions-collaboration.md) §5.3.
 
-*As built.* Rows 1 and 16 are built: N-FL-1
-as `valve_functions`, first in `ORDER`, and N-FL-4 as `drives_link`, after `bus_ports` (doc 11 §4.2 as built); row 1
+Row 1 is N-FL-1, `valve_functions`, first in `ORDER`, and row 16 N-FL-4, `drives_link`, after `bus_ports`
+(doc 11 §4.2); row 1
 neither replaces nor removes a valve function on a part change (notice T21).
 
 ---
@@ -180,10 +169,9 @@ Rules:
 - **Black box inside the drop point**: the function joins the box's device (§2.7); a valve inside a valve terminal's
   box is a new device that joins the terminal at its next free position ([11](11-fluid-power.md) §4.3).
 
-*As built.* **Joining an existing device has two paths
-in the design and one built.** Both are `device.place`: with `existing_function` while the device has an unplaced
+**Joining an existing device.** Both paths are `device.place`: with `existing_function` while the device has an unplaced
 function of the symbol's FnDef (a template slot, filled first), else with `join_device {device, role: aux}`; one undo
-step per placement. **Before placing (built, D2):** while the armed symbol can be an auxiliary function, the Place
+step per placement. **Before placing (D2):** while the armed symbol can be an auxiliary function, the Place
 tool's HUD offers "J Join device…"; J opens the Join chooser ([16a](16a-design-language.md) §6.22): "New device", then
 the slots ("slot 13-14"), then the devices whose family takes auxiliary functions, in natural tag order with
 type-ahead. Enter arms the target (ghost label `join -K1`), which stays sticky; Escape keeps it; "New device" restores
@@ -198,28 +186,27 @@ brought in from another program) joins any device but a terminal or a strip as a
 another thing for a valve's solenoid or a taken tag); a contact keeps D2's family rule, and a terminal, an
 interruption point and a graphic join no device. A library symbol's address `library:<library>:<item>` names it before
 and after its first placement. **A part's function that a device of the part has
-unplaced fills that device** (FT-1658): the browser's function row names it ("join -K1"), the Place tool arms that
+unplaced fills that device**: the browser's function row names it ("join -K1"), the Place tool arms that
 join with the part's new device as its "New device", and once the device has no more of that function the next
 placement is a new device of the part. **From a part:** the picker and the Parts row list the generic starter parts of a system library after the
 project's embedded copies ([07](07-symbols-parts-macros.md) §2.1); a placement from one embeds it with its closure in a
-`library.embed` before the placement, two undo steps (FT-656). Every starter symbol has a tested path to a usable
+`library.embed` before the placement, two undo steps. Every starter symbol has a tested path to a usable
 device (`crates/ew-viewmodel/tests/starter_symbols.rs`).
 
-*As built.* **Device from part lists the
+**Device from part lists the
 project's own part copies and the libraries' parts in one order**, by maker and part number, so a library part keeps
 its row once it is embedded (its Library column then says "In this project"): the rows do not move between two
-placements (persona round). The tree has All, then In this project once the project holds a part (rc.5: not
-before), then the heading Library with the trades and their groups under it, so that the library's categories do not
+placements. The tree has All, then In this project once the project holds a part, then the heading Library with the trades and their groups under it, so that the library's categories do not
 read as the project's; and
 its empty state names Edit ▸ Choose part…. **A part without a function template** is placed through the symbols it
 can take: `device.place` with `from_part` accepts such a part at template entry 0 and gives the new device the part
-and one main function of the chosen symbol's function definition. **A black-box entry with a symbol of its own**
-(FT-1865): a symbol drawn for the entry's own function definition, such as a power supply drawn for the starter's
+and one main function of the chosen symbol's function definition. **A black-box entry with a symbol of its own**:
+a symbol drawn for the entry's own function definition, such as a power supply drawn for the starter's
 `ew.fn.psu-ac-dc`, is placed by the Place tool like any symbol, and the entry's function is then a normal one; an
 entry on the generic `ew.fn.blackbox`, or one no own symbol draws, stays the Black box tool's; placed from the Place
-tool, its hint says that the part has no symbol of its own and is drawn as a box (FT-1808), and a toast says it as the
+tool, its hint says that the part has no symbol of its own and is drawn as a box, and a toast says it as the
 tool changes, naming the part, or the device whose box is placed again ("EW-GEN-PSU-1 has no symbol of its own and is
-drawn as a box, by the Black box tool: …"; a persona run clicked before reading the hint). `place.pick` names an
+drawn as a box, by the Black box tool: …"). `place.pick` names an
 installed library's symbol by its key as well as by its address, before its first placement and after it.
 
 ---
@@ -228,26 +215,24 @@ installed library's symbol by its key as well as by its address, before its firs
 
 - **Moves never change connectivity** (FR-CON-004). Route vertices adjacent to moved CPs are re-solved (§5.4); other
   vertices stay. Live potential highlighting during a drag uses page-local nets only (NFR-PERF-05).
-- **A turned or mirrored symbol stays where it stands** (rc.3): `rep.transform` turns it about the grid point nearest
+- **A turned or mirrored symbol stays where it stands**: `rep.transform` turns it about the grid point nearest
   the middle of its body (its graphics' bounding box, a black box's outline), not about its insertion point, so a
-  turned cylinder no longer lands on its neighbour. Four quarter turns bring it back exactly; its wires and tubes
-  follow its connection points; a drawing made before is not moved, only the act of turning changed.
+  turned cylinder does not land on its neighbour. Four quarter turns bring it back exactly; its wires and tubes
+  follow its connection points.
 - **Cross-page move** (dragging a representation onto a page tab, or `rep.move` with a target page) keeps
   identities and, because it is a move, connectivity (FR-CON-004): each connection whose other end stays behind is
   replaced by an IP pair whose name is proposed from the potential ("24VDC-1" or the next free name of its series),
   listed and editable in the preview. The user may instead drop those connections; the preview then lists them as
   removed, so the connectivity change is explicit, never silent (FR-CON-043). **Cut and paste** is a move of the
   devices and follows §3.6: the devices the cut left unplaced come back as themselves, and the wires the cut took to
-  outside the selection are not pasted. *v0*
-  rejects a cross-page move that would leave a connection end behind, and leaves page-less connections (bridges)
-  untouched; the IP-pair replacement arrives with WP-S1.07, which carries FR-CON-043.
+  outside the selection are not pasted. The command rejects a cross-page move that would leave a connection end
+  behind, and leaves page-less connections (bridges) untouched: the IP-pair replacement and the dropping are not built.
 - **Structure follows the page** unless the device has an explicit slot; moving the only representation of a device
   to a page of another location asks whether to keep the old location as an explicit slot (FR-PRJ-019).
 - **Deleting a representation** leaves its function unplaced; deleting a device follows the delete policies and
   previews every function, representation and connection removed (FR-DEV-030). Deleting a page lists its IPs and
   devices left unplaced (FR-PAG-025).
-- **Delete on a page takes the wires drawn to the deleted symbols** (0.3.5, a persona run met a wire drawn nowhere it
-  could not click): Delete (`edit.delete_selection`, and Cut through it) also deletes, in the same step, every
+- **Delete on a page takes the wires drawn to the deleted symbols**: Delete (`edit.delete_selection`, and Cut through it) also deletes, in the same step, every
   connection on the page that ends at a connection point the deleted symbols draw, so no connection stays whose end's
   symbol went; the toast counts them. A terminal it leaves drawn by no symbol stays in its strip and the lists (a
   terminal is never deleted with its symbol, below); the toast says how many, with Remove them from the project beside
@@ -287,8 +272,8 @@ installed library's symbol by its key as well as by its address, before its firs
   OQ7). `sequence` stores connection IDs; the editor shows each member by its far endpoint, e.g. (+#1, -102F1:1,
   +#2) for J3. The initial sequence lists the two parts of the split connection ordered by flow distance from the
   potential's source ([08](08-connections-terminals-cables.md) §3.2, §3.6), with reading order (row, then column of
-  the far endpoints' anchor cells) as the tie-break, so the feeding device comes first, and appends the new branch;
-  the M2 usability test confirms this default (PQ-27). The junction's property page shows its sequence as a
+  the far endpoints' anchor cells) as the tie-break, so the feeding device comes first, and appends the new branch
+  (PQ-27). The junction's property page shows its sequence as a
   reorderable list together with the
   **physical wires it produces** ("W13 F55:2 → E55:L; W14 F55:2 → E56:X2"), so the user edits the wiring order the
   shop will cut, not a graphic. A junction whose feed cannot be determined is reported by EW-POT-011
@@ -296,17 +281,15 @@ installed library's symbol by its key as well as by its address, before its firs
 - **Interruption points.** An IP is a `Function{kind: Ip}` with one CP. It is placed on its own and wired afterwards,
   or created at the free end of a wire being routed (`P`, §4.4). The name field proposes the potential's name,
   then the next name in a numbered series ("24VDC-2" after "24VDC-1"). The direction defaults to Source at the
-  right or bottom edge of the drawing area and Target at the left or top edge, and is toggled with `D`. *As built
-  (a persona run, 0.3.5):* a direction chosen (D, Source | Target) holds until the person chooses another; a chosen
-  Target stays after a target whose name has no source yet (the tool turned to Source by itself and every later mark
-  became a source), and the bar says "next: one more target of 24V, which has no source yet (D makes this point its
+  right or bottom edge of the drawing area and Target at the left or top edge, and is toggled with `D`. A direction chosen (D, Source | Target) holds until the person chooses another; a chosen
+  Target stays after a target whose name has no source yet, and the bar says "next: one more target of 24V, which has no source yet (D makes this point its
   source)"; only a chosen Source turns to Target after the source, as a name has one source. EW-CORE-051 names where
   the mark stands and what it lacks: a target its one source, where the potential comes from; a source its targets,
   where it goes on.
   Pairing (star or chain, scope) follows the project's `ip_pairing` setting with per-name overrides (FR-XRF-007,
   FR-XRF-010). "Continue on page…" creates the partner on a chosen page at the opposite edge in the same row, with
   the direction reversed (FR-XRF-014). "Arrange" sorts a page's IP stack by name or potential (FR-XRF-013, D-39).
-  *As built.* EW's interruption-point symbol comes in two
+  EW's interruption-point symbol comes in two
   forms, both with the arrow pointing right and its tip at the origin: the source form (`ew.gen.ip` 0.2.0), the wire
   on the tail and the CP one grid step left of the tip, leaving left; the target form (`ew.gen.ip-target` 0.1.0), the
   wire on the tip and the CP at the tip, leaving right; each with its `@qet10` twin. The name sits above the arrow and
@@ -316,13 +299,12 @@ installed library's symbol by its key as well as by its address, before its firs
   else above the name (`ew_scene::page`, "Slot text collisions" rule 5; the tool's footprint keeps the place below,
   since the wire is not drawn when the point is placed). A point drawn with these forms is never turned: its form is
   its direction's (an undirected point takes either), D swaps the form with the direction (source and target, to
-  and fro; undirected is a choice of a placed point's Direction in Properties, since D on a point the tool had
-  already made a target used to give an undirected one), and the rotate and mirror
+  and fro; undirected is a choice of a placed point's Direction in Properties), and the rotate and mirror
   keys are not offered. The tool takes the name first when it is chosen from the bar or a menu (the name field has
   the keys, its name selected; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed
   name without a source starts with its source where the page's quarters say nothing, a typed name stays until it is
-  changed, so that after the pair each click places one more target of the same source (rc.5: no "24V-1" of nothing),
-  the pointer as near a pin as the Wire tool catches one puts the point's CP on it, in either form (a source's CP is at its tail), but on a drawn box's pin the arrow never lies along or in the box (0.3.5, FT-1798): on the box's lower side the point stands one grid step below the pin and on its upper side two steps above it (its cross-reference under the arrow needs the room), joined to the pin by a straight wire (`connection.draw_to_ip` with that route; the ghost shows it there), on its left side a target and on its right side a source stand on the pin, and a source on the left side or a target on the right side, whose arrow would point into the box, is refused in words (Alt places it free), a drop on a pin is not refused for room, Alt places a point unjoined and a point left within 6 mm of a pin without a wire says so on placing (EW-POT-009 then offers to join the two), a free point too close to another is refused with the grid steps and millimetres the two must stand apart, the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
+  changed, so that after the pair each click places one more target of the same source,
+  the pointer as near a pin as the Wire tool catches one puts the point's CP on it, in either form (a source's CP is at its tail), but on a drawn box's pin the arrow never lies along or in the box: on the box's lower side the point stands one grid step below the pin and on its upper side two steps above it (its cross-reference under the arrow needs the room), joined to the pin by a straight wire (`connection.draw_to_ip` with that route; the ghost shows it there), on its left side a target and on its right side a source stand on the pin, and a source on the left side or a target on the right side, whose arrow would point into the box, is refused in words (Alt places it free), a drop on a pin is not refused for room, Alt places a point unjoined and a point left within 6 mm of a pin without a wire says so on placing (EW-POT-009 then offers to join the two), a free point too close to another is refused with the grid steps and millimetres the two must stand apart, the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
   source is drawn)"), and a point whose arrow, name or
   cross-reference would print over another point's is refused with the reason, Alt placing it anyway: the name
   stands above the arrow and the cross-reference below, each as wide as its text, so a point in another's footprint
@@ -337,7 +319,7 @@ installed library's symbol by its key as well as by its address, before its firs
   and the external arrow keep a free orientation.
 - **External connection points** are IPs with `external = Some(ExternalRef)`. They never pair and print the external
   target ("+J-E-206 / JE-N1000-03") in the xref slot (FR-XRF-012).
-- **What an external point's reference holds** (0.3.5, FT-1876). A drawing set whose signals come from another
+- **What an external point's reference holds.** A drawing set whose signals come from another
   cabinet names each mark at the head of a current path for its signal ("Valve 1 open") and prints under it where the
   signal comes from: often an address alone ("Q4.1"), sometimes nothing, because the far end is not known yet.
   - *Fields.* `ExternalRef.location` and `ExternalRef.device` are optional, as `project` and `connection` were: a
@@ -351,8 +333,8 @@ installed library's symbol by its key as well as by its address, before its firs
     connection prints in the wire list's end, as before. The person chooses what prints by what the reference holds.
   - *Making one.* Supply comes in here… (`ip.supply_in`) keeps its two fields, the location and the device there; a
     field left empty is not known, so the device alone is an address and two empty fields a far end not known (a
-    script that leaves a field out takes the proposal, as before). The location is taken with or without its sign
-    (`+UP` and `UP` are one node, FT-1901). `external_ref.create` takes any of them or none.
+    script that leaves a field out takes the proposal). The location is taken with or without its sign
+    (`+UP` and `UP` are one node). `external_ref.create` takes any of them or none.
     The Interruption tool's external field names a reference by its printed device (and connection); one without a
     device is named by its ID.
   - *What the checks ask.* EW-CORE-034 still asks that the wires of an external point be a cable's cores; its finding
@@ -368,7 +350,7 @@ installed library's symbol by its key as well as by its address, before its firs
   connections. It sets the chosen overrides (cross-section, colour) on each crossed connection and creates one
   `WireMarker` page item that positions the group (FR-CON-023). The marker's text is derived: the cross-section at
   the left, one colour code per conductor ("2.5 BK BU"). The project's marker mode decides which connections show
-  markers (all, deviations, explicit overrides, none; FR-CON-024). *As built:* a wire whose Wire marker box is
+  markers (all, deviations, explicit overrides, none; FR-CON-024). A wire whose Wire marker box is
   ticked (`overrides.show_marker`) always prints a marker, except in the mode none: with the mode absent (Per wire,
   a new project's) it prints the cross-section and colour the wire states itself, and what the wire is where it
   states neither; in a rule mode the tick adds the wire to those the rule selects. In modes that show markers for connections

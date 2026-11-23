@@ -50,22 +50,22 @@ selection, so no `ew-model` name reaches a tool (architecture §3 rule 3) and th
 calls the `Session`, and the tool host in `ew-viewmodel` does (doc 16 §4.5). **Previews run on the UI thread, not in
 the job pool, for now:** after the pointer has rested 80 ms (the action `canvas.dwell`, an input rather than model
 state) the host evaluates the tool's `Preview(cmd)` through `Session::preview`, a dry run on a fork, and the semantic
-ghost is that preview's derived diff; a fork job off the UI thread is not built yet. `Select` and `Follow`
+ghost is that preview's derived diff; a fork job off the UI thread is not built. `Select` and `Follow`
 join the outputs for the Select tool's result and for a click on a link.
 
-*As built (delivered).* A tool's context reads the per-page content below the shell: the display list, the entity rectangles, the cross-reference links with their resolved
+A tool's context reads the per-page content below the shell: the display list, the entity rectangles, the cross-reference links with their resolved
 targets, the cell table and the grid, fetched once per (epoch, revision) and page (doc 16 §2.5). The connection points
 of the page (`page_cps`) join it.
 
-*As built.* The contract is built as decided above. The
+The
 events are `CanvasEvent`, with `Mods` and `Button`. The
 outputs are `ToolOutput`, including `Select` (the Select tool's result) and `Follow` (a click on a link). The trait
 `Tool` has `name`, `state`, `on_event`, `status_hint` and `wants_hover`. `ToolCx` is `{ page, points_per_nm, pane,
 snapper, selection }` and has no `World`. A tool returns one output per event, and its overlay is made of the items
 `Line`, `Polyline`, `Rect`, `Ghost`, `Marker` and `Label`. The page's connection points and their snapper are fetched
 once per (revision, folio) with the page content. Previews run on the UI thread through `Session::preview_with` after
-the 80 ms dwell action (`canvas.dwell`); the fork job off the UI thread is not built yet. The host, the commit paths and the
-preview rules are in doc 16 §4.5. The only tools shipped are Select and Measure, and neither previews nor commits.
+the 80 ms dwell action (`canvas.dwell`); the fork job off the UI thread is not built. The host, the commit paths and the
+preview rules are in doc 16 §4.5.
 
 ### 4.2 Place tool
 
@@ -103,24 +103,16 @@ Outputs: `Floating` emits `Transient`; `Previewing` emits `Preview(PlaceSymbol)`
 | RubberBand | release | Idle | selection change; left-to-right selects enclosed objects, right-to-left touched objects |
 | any | double-click on a text slot | TextEdit | inline editor; `Commit(fields.set)` on Enter or focus loss |
 
-*As built.* The one row of this table that exists after part 1 is the
-click on a cross-reference: a primary press and release within 3 points on a link follows it, and F follows the link at
-the grid cursor, else under the pointer. Both are the shell's action `nav.follow`, because the Select tool is part 2;
-nothing is selected and nothing is committed. The drag rows (`rep.move` on release, the route edit by segment) are
-WP-S2.04's, and its merged Select table replaces the drag rows above when
-they are built.
-
-*As built.* The Select tool is the default tool and has
+The Select tool is the default tool and has
 three states: idle, pressed and rubber-band. A click (press and release within 3 points) selects the entity under the
 pointer, Shift adds it and Ctrl toggles it. A left-to-right drag draws a solid band that selects what it encloses, a
 right-to-left drag a dashed band that selects what it touches; an entity with several rectangles is enclosed only if all
-of them are inside the band and touched if any one is. The enclosing band reads an entity's drawing without its texts
-(0.3.5: a terminal printing the strip's designation beside it was left out of a band over its row); an entity that
-draws texts only is enclosed by them. A click on empty canvas clears the selection (Shift keeps it).
+of them are inside the band and touched if any one is. The enclosing band reads an entity's drawing without its texts, so a terminal printing the strip's designation beside
+it is enclosed by a band over its row; an entity that draws texts only is enclosed by them. A click on empty canvas clears the selection (Shift keeps it).
 A click on a link follows it (the `Follow` output; the 3-point slope above), which replaces the shell action `nav.follow` for the pointer; F stays the shell's action. Activate (Enter, `canvas.activate`) is
 a press and a release at the grid cursor, so a keyboard user selects as the pointer does. Escape leaves the band, then
-returns to Select, then clears the selection (the chain is in doc 16 §4.2). The drag-move rows are not built: they
-remain WP-S2.04 part 1's, with the probe tool (tests only) as the pattern.
+returns to Select, then clears the selection (the chain is in doc 16 §4.2). A drag of a selected representation moves
+it (`rep.move` on release, doc 16 §4.5).
 
 ### 4.4 Wire tool
 
@@ -149,7 +141,7 @@ stateDiagram-v2
 - **The route** the ghost shows and the wire stores is the drafting design's: `ew_drafting::route_wire`, the search of
   [06a](06a-drafting.md) §3.6 against the page as drawn (§7.4 there, which also says when a route counts as the
   program's). A junction that already joins three wires is not an end target.
-- *As built.* Without a way the ghost is the dashed right-angled line of an unrouted wire, the line the page then
+- Without a way the ghost is the dashed right-angled line of an unrouted wire, the line the page then
   draws, and the HUD says "No clear route: the wire stays a dashed line without a route. Click free points to lead
   it, or route it later with Route."; a commit then stores the wire without a route. After a fixed bend from which no
   clear route leads on, the wire is routed from its start as if drawn anew (its fixed bends dropped), else stored
@@ -158,16 +150,14 @@ stateDiagram-v2
   routing, the HUD says what a click at the point does: over a wire, a tee (Alt+Click a bend); over the start,
   nothing; elsewhere "Click a connection point to end, a free point for a bend". Over a junction that already joins
   three wires it says "This junction already joins three wires: end on a wire to make a new junction."
-- *As built (0.3.5 persona re-test).* A wire whose commit brings a new open error finding of the online check (L
+- A wire whose commit brings a new open error finding of the online check (L
   joined to N) says so in a toast in the error's tone, "The wire makes an error: " and the finding's message in the
-  UI language, with Undo; the online report is memoised per revision, so the comparison costs no second check (a
-  persona run joined L and N by two missed clicks, and only the red wire and "1 Error" in Properties showed it).
-- *As built (rc.2 persona runs).* A click inside a symbol's body or a black box's outline places no bend (a bend there
+  UI language, with Undo; the online report is memoised per revision, so the comparison costs no second check.
+- A click inside a symbol's body or a black box's outline places no bend (a bend there
   draws the wire through the symbol, rule (c) of ADR-0033): it is refused in words, "A bend cannot sit inside a
   symbol; click one of its connection points, or a free point outside it", and the wire keeps routing. A run that
   entered the symbol over one of its connection points takes the bend (a wire drawn through a free terminal, §5.3),
-  and a box that holds another symbol's connection point is an outline drawn around it, as the router treats it. A
-  persona aiming at a power supply's pin clicked its pin text inside the box and got a wire through the box. Before a
+  and a box that holds another symbol's connection point is an outline drawn around it, as the router treats it. Before a
   wire starts, the HUD says that free points clicked while drawing lead the wire: "Click or Enter on a connection
   point, a junction or a wire to start, then on free points to lead the wire through them".
 
@@ -175,39 +165,36 @@ stateDiagram-v2
 
 | Tool | States (abridged) | Commits |
 |---|---|---|
-| Interruption point | Armed → Floating (name, direction, star source) → Committed | `ip.place` (§3.5; WP-S2.04 §9.1) |
-| Black box | Armed → Outline → Assign device → Committed | `box.black` (WP-S2.04 §9.4) |
+| Interruption point | Armed → Floating (name, direction, star source) → Committed | `ip.place` (§3.5) |
+| Black box | Armed → Outline → Assign device → Committed | `box.black` |
 | Structure box | Armed → Outline → Fields → Committed | `box.structure` |
 | Wire marker (CDP) | Armed → Crossing (rubber line across wires) → Fields (size, colours) → Committed | `marker.place` |
 | Graphic, Text | Armed → Drawing/Typing → Committed | `item.place`; Text edit uses `fields.set` |
 | Image (part 5, open) | Planned placement flow | planned `item.place` path |
 | Route edit | Grip selected → Dragging segment (stays orthogonal) → Committed | `connection.route` |
 
-*As built (M2.5-Fix; the owner's hands-on test of 0.1.0: a route is edited with the mouse, by dots on the sections
-of the wire).* While Select is idle and one connection is selected, the page shows a handle on every axis-parallel
+A route is edited with the mouse, by handles on the sections of the wire. While Select is idle and one connection is selected, the page shows a handle on every axis-parallel
 segment of its line and a dashed one on every bend. A press on a segment of a selected connection drags it across
 itself; a press on a bend drags the corner, which moves its two segments. The ends never move: a first or last
 segment keeps a stub of one grid step at its end (none when it is no longer than a step) and jogs after it, so a
 straight wire becomes a bracket. An unrouted connection's dashed line drags the same way, and the release stores
 its first route. A press that does not move is a click on what a click there picks (a junction on the wire, the next
-wire of an overlap), and a press inside a representation's rectangle belongs to the representation. Before, only the
-segments between the first and the last moved, so a straight wire and an L had nothing to drag.
+wire of an overlap), and a press inside a representation's rectangle belongs to the representation.
 | Measure | Armed → Measuring | none (transient) |
 | Pan, zoom | — | none |
 
-*As built.* **Measure** (Tools ▸ Measure) goes from armed to
+**Measure** (Tools ▸ Measure) goes from armed to
 measuring on a press (or Activate at the grid cursor) and shows a line from the first point to the pointer with the
 readout chip `dx … dy … mm, d mm`. Its points snap to a connection point within 9.5 points, or to the grid while Alt is
 held. It never previews and never commits, and it does not want hover, so the entity hover outline and the link hover
 and preview are not drawn under it. The readout is announced through the canvas's live region on Press and on Activate
 (doc 16 §4.5).
 
-*A text clicked on a wire* (FT-1870). A point within 1.5 mm of a straight stretch of a wire is a code written for
+*A text clicked on a wire.* A point within 1.5 mm of a straight stretch of a wire is a code written for
 that wire: the Text tool sets the text beside it, as a wire's code is written, on its baseline 1 mm above a
-horizontal line or 1 mm right of a vertical one, and shows it there while it is typed. Set by its middle at the
-point, it lay on the wire.
+horizontal line or 1 mm right of a vertical one, and shows it there while it is typed, never on the wire.
 
-*As built.* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code. Text edit uses F2/double click on free text and refuses a read-only page. Select moves and deletes mixed representations, page items and structure boxes together in one command. `strip.bridge` (Edit ▸ Bridge terminals, no shortcut) uses the lowest CP of the first part use with a shaft-1 bridge entry, checks bridge connectivity/group selection and draws one page-less connection in one undo step. Disabled reasons distinguish selection, strip, shaft and already-connected conditions.
+Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every drawing tool. Text edit uses F2/double click on free text and refuses a read-only page. Select moves and deletes mixed representations, page items and structure boxes together in one command. `strip.bridge` (Edit ▸ Bridge terminals, no shortcut) uses the lowest CP of the first part use with a shaft-1 bridge entry, checks bridge connectivity/group selection and draws one page-less connection in one undo step. Disabled reasons distinguish selection, strip, shaft and already-connected conditions.
 
 ---
 
@@ -236,7 +223,7 @@ outside the drawing area → None, reported by FR-CHK-035
   it without any rounding. Only off-grid points (free texts) use the stored nm value directly. "On the grid" means
   within the rounding window: a point less than 1 nm from its nearest grid point `k·g` is evaluated at `k·g`, and
   any other point at its exact nm value, never snapped.
-- **Where it lives** (2026-10-18). The exact lookup is the cold derivation `cell_of(point, page) -> Option<Cell>` in
+- **Where it lives.** The exact lookup is the cold derivation `cell_of(point, page) -> Option<Cell>` in
   `ew-derive`: the page supplies its frame form and its connection grid, and the function replaces a point within
   the rounding window by its grid point before evaluating the formula above. `rep_anchor_cell`, the cursor's cell readout (FR-UI-034) and
   the empty-cell check call it. `ew-units` provides only the integer primitives (`Grid::snap` and the plain
@@ -276,7 +263,7 @@ The proposals are computed in `ew-viewmodel` from the prepared page tables (not 
 dashed overlay stubs. Placement: the accepted proposals become the `connect` hints of the committed `device.place`,
 and Alt at the commit sends none.
 
-*As built (ADR-0007 amendment 3).* A move connects the proposals its drag shows by default. They commit with the move as `rep.move`'s `connect`
+A move connects the proposals (ADR-0007 amendment 3) its drag shows by default. They commit with the move as `rep.move`'s `connect`
 hints, `{rep, cp: {function, idx}, to}` (the CP named by function, as the window knows a placed representation's CPs),
 each making its wire as a `device.place` hint does, in the move's one undo step. Alt held at the release moves without
 them; `tool.connect_on_move` (C) turns connect on move off or on for the session, and the move's HUD and the status
@@ -342,9 +329,9 @@ proposal is 101.1.1), and no other folio changes (FR-PAG-005). The user may type
 that another page of the section prints, one outside the section range, the section's divider folio, or one that a report block of the
 section generates (FR-PAG-012); collisions in imported data are reported (FR-CHK-038, FR-REP-041).
 
-*As built (a persona run, 0.3.5).* New page…'s proposal follows the Type chosen in the form; a type the front matter
+New page…'s proposal follows the Type chosen in the form; a type the front matter
 does not hold (a panel layout, chosen on the title page) keeps the section the form proposed and never moves into the
-front matter (it became 3 there where 101 had been proposed).
+front matter.
 
 ### 5.7 Hit-testing and snapping
 
@@ -353,14 +340,13 @@ depends on the tool:
 - **Select:** text slot > representation > junction > connection > page item > structure-box edge;
 - **Wire:** CP > junction > connection segment > grid point.
 
-Snap targets within 9.5 screen points win over the grid, at every zoom (rc.5, FT-1800: at eight points a click nine
-points off a port placed a bend; a little under ten, as at 100 % a step of the QET grid is ten points and the grid point
-beside a pin stays one for a bend); what Select rings and the Wire tool's snap marker rings is what a click takes. A
+Snap targets within 9.5 screen points (`CP_SNAP_PT`) win over the grid, at every zoom (a little under ten, as at
+100 % a step of the QET grid is ten points and the grid point beside a pin stays one for a bend); what Select rings and the Wire tool's snap marker rings is what a click takes. A
 click of the Wire or Tube tool that takes nothing and leaves a free point right beside a connection point (within that
 reach or one grid step, whichever is more) says so at once in the status line: a start that took nothing, a bend
 beside the point, and a wire that ended elsewhere with such a bend. The Tube tool is the Wire tool on a fluid page (a
 click on a port ends the tube as one on a pin ends a wire); its hints say "port" and "tube" where the Wire tool's say
-"connection point" and "wire" (a persona run could not tell which of his clicks ended a tube). Alt means one thing per tool: in the Place tool it suppresses
+"connection point" and "wire". Alt means one thing per tool: in the Place tool it suppresses
 autoconnect proposals, in the graphic, text and route-edit tools it suspends object snaps and the fine grid. CPs
 never leave the connection grid in any tool. All snapping works on grid indices, never on float equality
 (ADR-0005). The grid rule binds every origin, scripts, command logs and MCP included: a command
@@ -368,30 +354,27 @@ rejects a position off the page's connection grid (`Page.grid`, ADR-0027) and a 
 an end that does not meet its CP (a route's corner may stand half way between two grid lines, where the router steps
 between close pins: ADR-0033 amendment 3). GUI tools snap before they issue the command, so they never meet the rejection.
 
-*As built.* Picking is on the display list's entity
-rectangles, as in WP-S2.02's hover, until the spatial index: `page_spatial_index` with exact kurbo picking and the
-per-tool priorities of the list above are FT-359, narrowed to that and the rich announcement. Part 1 adds one pick: a
-cross-reference link, found in the link rectangle inflated by 4 points at the current zoom, the smallest area winning
-and the later in paint order breaking a tie; a link wins over the entity under it. Snapping with its indicators is below, and the Alt rules of the tools are WP-S2.04's.
-
-*As built.* **Picking** is still on WP-S2.02's entity
-rectangles, inflated by 4 points: the smallest area containing the point wins. `selected_rects` and the band
-selection are O(n·m) over entities and rectangles, and are not measured. **Snapping** follows the specification of WP-S2.03: `Snapper::snap` returns `{at_nm, page_nm,
-grid_index, kind, label}`; a connection point within 8 points wins unless Alt is held, else the point snaps to the grid
+Picking is on the display list's entity
+rectangles, as the hover is; a spatial index with exact kurbo picking and the per-tool priorities of the list above
+are not built. A cross-reference link is picked found in the link rectangle inflated by 4 points at the current zoom, the smallest area winning
+and the later in paint order breaking a tie; a link wins over the entity under it. An entity rectangle is inflated by 4 points: the smallest area containing the
+point wins. `selected_rects` and the band
+selection are O(n·m) over entities and rectangles, and are not measured. **Snapping:** `Snapper::snap` returns `{at_nm, page_nm,
+grid_index, kind, label}`; a connection point within 9.5 points wins unless Alt is held, else the point snaps to the grid
 on grid indices in i128, and `page_nm` lies on the page's connection grid. The indicators are overlay markers: a ring
-for a connection point (9 pixels), a cross for a grid point (7 pixels) and a square for a junction. **The mark scale**: today the markers are fixed at 7 and 9 pixels while lines double at a
-scale of 2 or more. The rule is one integer overlay factor `s = max(1, floor(ppp))` for every tool mark: lines `s`
+for a connection point (9 pixels), a cross for a grid point (7 pixels) and a square for a junction. **The mark scale**: the markers are fixed at 7 and 9 pixels while lines double at a
+scale of 2 or more. The intended rule, not built, is one integer overlay factor `s = max(1, floor(ppp))` for every tool mark: lines `s`
 pixels wide, dashes 4s on and 4s off, the grid cross and the junction square 6s+1 pixels, the connection-point ring
 8s+1 pixels, so that marks keep a centre pixel and their proportions and snapshots stay pixel-exact; the selection
-outline is 2s pixels. Until it is built the as-built sizes hold.
+outline is 2s pixels.
 
 **Moves are in grid steps.**
-`rep.move` gains `steps: [kx, ky]`: each moved representation's position becomes the grid point at its index plus the
+`rep.move` takes `steps: [kx, ky]`: each moved representation's position becomes the grid point at its index plus the
 steps, exactly, per axis, and the tools always send `steps`, computed from the pointer's page displacement as
 `k = round(displacement × den / num)`. A uniform nm delta cannot keep several representations on `round(k·g)` on the QET
-grid (WP-S1.04's D3 refuses them), and grid indices are this section's rule. `steps` and a non-zero `delta` are mutually
+grid, and grid indices are this section's rule. `steps` and a non-zero `delta` are mutually
 exclusive, `steps` with `page` (a cross-page move) is rejected, and a representation whose position is off the grid
 cannot be moved by steps. A route vertex on the grid moves by the same steps, and a CP-exact coordinate moves with its
 CP (`follow_end` with the moving CP's own displacement). The member is absent from every logged command that does not
-use it (`skip_serializing_if`), so the existing command logs serialise unchanged.
+use it (`skip_serializing_if`).
 
