@@ -270,53 +270,19 @@ this table is not built. PLC is built as [10](10-plc-and-bus.md) §6's *As built
 
 ### 3.2 Menu bar
 
-**Design language (2026-10-28).** On Windows and Linux the menu bar becomes the app menu: one button at the left of the command bar that opens the same tree ([16a](16a-design-language.md) §9.2, [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md) decision 4); on macOS the global menu bar carries it. Tools dissolves into the command-bar tabs and Insert becomes Draw.
+The menu bar is the app menu: one button at the left of the command bar that opens the tree of every action
+([16a](16a-design-language.md) §9.2, [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
+decision 4). Its submenus and their order are 16a §9.2's: File, Edit, Project, Page, Draw, PLC, Fluid, Check, Output,
+View, Window and Help. The entries are generated from the action registry (§2.4) and show the active keymap's
+accelerators; [the action map](../map/actions.md) lists each action with its menu.
 
-Menus are generated from the action registry (§2.4) and show the active keymap's accelerators.
-
-| Menu | Content (MVP) | Added at 1.0 |
-|---|---|---|
-| File | New project from basic project, Open, Open recent, Close, Save, Save As, Save a Copy, Import (QET, CSV), Export (PDF, SVG, BOM, wire list, terminals, cables, `.ewz`), Print, Project trust, Quit | Import EDZ, DXF, EPLAN parts XML; Export DXF, AML, TIA XLSX, PLCopen, `.ewpp`, machine profiles |
-| Edit | Undo, Redo, Cut, Copy, Copy tag list, Copy as image, Paste, Paste as representation, Duplicate, Delete, Select all, Find, Find and replace, History | Multi-format copy (FR-UI-051) |
-| View | Workspaces, Panels, Zoom, Fit page, Grid, Highlight potential, Side by side, Wire-colour view, Theme, UI scale, Maximise canvas | Second window, Dark sheet |
-| Insert | Symbol, Device from part, Macro, Connection, Interruption point, Potential definition point, Wire marker, Black box, Structure box, Text, Graphic, Image, Report block | Dimension (FR-SYM-026) |
-| Project | Properties, Parties, Structure identifiers, Settings and schemes, Report blocks, Revisions (new, release), Company standard (run wizard, edit basic project), Derivation-profile upgrade | Revision compare |
-| Page | New page, Properties, Renumber pages, Go to page or cell, Next, Previous, Arrange interruption points (FR-XRF-013) | Layers (FR-PAG-026) |
-| Device | Properties, Assign part, Renumber devices, Freeze or unfreeze tag, Show all representations, Place unplaced functions | Device selection by function |
-| Check | Run check scheme, Check schemes, Waivers, Export check report | — |
-| Reports | Report blocks, Open generated page | Form editor, user SQL reports |
-| Tools | Command palette, Keymap editor, Library manager, Settings | Script runner, macro recorder |
-| Window | Workspaces, panels list, open canvas tabs | Move to new window |
-| Help | Help for this context (F1), Documentation, Tutorials, Glossary, Keyboard shortcuts, Rule catalogue, Verify derived data, First-run setup, About | — |
-
-*As built.* The shell's menu bar has ten menus: File,
-Edit, Project, Page, Draw, Check, Output, View, **Window** and Help. **Window** holds New tab (Ctrl+T), Close tab (Ctrl+W), Next tab
-(Ctrl+Tab), Previous tab (Ctrl+Shift+Tab), Other tab group (Ctrl+F6) and then the list of the focused group's open
-tabs, one checked item per tab; the workspaces and the panels list of the design join with their panels. **View** gains
-Side by side (checked while two tab groups exist) and Page navigator, a submenu of the navigator's three modes (flat,
-by section, by structure) and two sort orders (by folio, by type). **Page** gains Go to page or cell (Ctrl+G), Back
-(Alt+Left), Forward (Alt+Right), Follow cross-reference (F), Next link (Shift+F) and Previous link (Ctrl+Shift+F). **File
-▸ Close project moves from Ctrl+W to Ctrl+Shift+W**, because Ctrl+W now closes a tab (§4.4). The hidden action
-`page.goto` (a folio only) stays for scripts. A refused tab or history action names its reason ("32 tabs are open", "The last tab
-stays open", "The tab group has one tab", "Only one tab group is shown", "No page to return to").
-
-*As built.* The **Insert** menu of the table is now the Draw menu. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; it sits in Edit), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The crossings setting is set through `project.crossings`, which commits `project.drawing.set`.
-
-*As built.* The Output menu holds Print… (Ctrl+P, `file.print`) beside Export PDF…, opening the print pre-dialog
-([16a](16a-design-language.md) §6.26), and Export DXF… (`file.export_dxf`, FT-1960: a folder, then the DXF set of
-[09](09-reports-forms-output.md) §4.9 written as a job), and, in its Lists group, Export table… and Import table…
-(`navigator.export_table`, `navigator.import_table`), which also stand as a separated block in a navigator table's
-Columns menu; each has a predicate and gives its reason while no table navigator is shown in table mode.
-
-**Platform behaviour.**
-- **macOS:** not built; macOS is not a supported platform. (The plan was a muda 0.21.2 global menu bar with the
-  standard application menu and the system Window and Help menus.)
-- **Windows:** muda menu on the window's HWND, with Alt mnemonics from the Fluent labels (**verify** HWND access
-  through eframe).
-- **Linux:** muda attaches only to GTK windows, which eframe/winit does not create (**verify**). EW draws the menu
-  bar with egui from the same registry (FR-UI-001; ADR-0014 amendment 1).
-- Enabled states update at most once per frame after a selection change. macOS menus show no tooltips, so the
-  reason a command is disabled is shown in the palette.
+- **Window** holds the tab actions and then the list of the focused group's open tabs, one checked item per tab. A
+  refused tab or history action names its reason ("32 tabs are open", "The last tab stays open", "The tab group has
+  one tab", "Only one tab group is shown", "No page to return to"). The hidden action `page.goto` (a folio only)
+  stays for scripts.
+- **Platforms.** The app menu is drawn with egui from the registry on Windows and Linux (FR-UI-001; ADR-0014
+  amendment 1); macOS is not a supported platform. Enabled states update at most once per frame after a selection
+  change.
 
 ### 3.3 Toolbar
 
@@ -542,7 +508,8 @@ a line when the session crashed, and the buttons Recover (the Primary with a pro
 the first focus, so Enter runs it. Headless, the dialog is a pending prompt that does not block the script.
 
 **The headless mode**. `elektrawatt --headless --script <file|->` runs the same registry
-actions on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the
+actions on the same shell model with no window, no GPU and no display, and writes a deterministic transcript (its rule, the
+ID aliases, the order of listed records and the relative paths, is [18](18-quality-security-release.md) §3.17): the
 script is JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after
 each step, `ui.describe` returns the visible UI as text for agents, `ui.actions` the list of every action (its ID,
 label, shortcut, whether it runs now with the reason when not, and its parameters as `name[?]:type`) in the same

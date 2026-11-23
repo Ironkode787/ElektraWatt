@@ -517,8 +517,11 @@ Rules that a local run on one OS cannot see:
   step was not done). The actions are the shell's action registry, each with a parameter signature, and the describe
   text's structural words are machine text that the drafter learns from the output, because it may not read the design
   documents.
-  Every UUID the shell prints is shown as an alias `@n`, numbered by first appearance in the run's output, so that two
-  runs of one script give byte-identical transcripts; a script writes `@n` back where an action takes an id. Wherever
+  Every UUID the shell prints is shown as an alias `@n`, numbered by first appearance in the run's output, and a path under the
+  run's working folder (an export's toast names its file's folder) is written relative to it, the folder itself as
+  `.`, so that two runs of one script give byte-identical transcripts wherever they run; a script writes `@n` back
+  where an action takes an id. The alias table is reset only at the start of a script run, an unknown alias fails the
+  step naming it, and `id:@n` resolves where a reference with `id:` is accepted. Wherever
   the shell lists records it orders them by what a person sees, the id only as the last key. A `HumanOnly` command
   (`project.checks.set`, the wizard's `wizard.apply_check_scheme`) is refused in a UI script with `reason-human-only`,
   so the drafter cannot change the check scheme; the human path is the CLI subcommand `ew project checks set`, which

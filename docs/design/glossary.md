@@ -259,7 +259,7 @@ The IEC 81346 prefixes that appear in tags:
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
-| **ID alias (`@n`)** | The one spelling of a record ID in the shell's machine text (transcripts and `ui.describe`): `@` and a number counted from 1 in order of first appearance in a session. The model, the window and the recorded command log keep real UUIDs, and an action parameter that takes an ID also takes the alias. As built: the table is reset only at the start of a script run, an unknown alias fails the step naming it, and `id:@n` resolves where a reference with `id:` is accepted. | — | — | [18 §3.17](18-quality-security-release.md) |
+| **ID alias (`@n`)** | The one spelling of a record ID in the shell's machine text (transcripts and `ui.describe`): `@` and a number counted from 1 in order of first appearance in a session. The model, the window and the recorded command log keep real UUIDs, and an action parameter that takes an ID also takes the alias. | — | — | [18 §3.17](18-quality-security-release.md) |
 | **Ident (`Ident`)** | An NFC-normalised identifier string for tags, folio labels, terminal names and part numbers; never translated, checked for confusables, and sorted in natural order. | Identifier | Label text | [03 §3.3](03-domain-model.md) |
 | **Identifier set (letter-code set)** | A data table in `ew-rds` mapping function categories to letter codes. Shipped sets: EN 81346-2:2009 single letters (default), IEC 81346-2:2019 two-letter classes, IEC 60750 legacy. | DT letter code table | — | [ADR-0026](../adr/0026-default-device-tag-identifier-set.md) |
 | **IEC 60617** | The graphical-symbol standard that starter symbols follow. | IEC symbols | IEC symbols | [07](07-symbols-parts-macros.md) |

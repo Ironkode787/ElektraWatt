@@ -1113,7 +1113,7 @@ then leave sideways). Not
 done: the symbol beside a function text and the process tag per channel, which the reference set prints in some
 cells.
 
-**Every placement lays a card out in one row** (0.3.5, the owner: the two-row form is retired). One function lays a
+**Every placement lays a card out in one row** (the owner: the two-row form is retired). One function lays a
 card's box out, `CardPins::boxes` over `part_box::card_box`: its inputs' pins in one row on the upper edge of a box,
 its outputs' in one row on the lower edge of another, its supply down the first box's left side, a row wider than the
 drawing area split as below. Every path that makes or redraws a card's box calls it: Draw on a page, Draw the card in
@@ -1914,8 +1914,9 @@ view's own bar above the rack acts on it (`plc.module_replace`, `plc.module_remo
 other menus (Replace, Draw on a page and Move to page a list beside their entry, the part the module has checked),
 Delete empties the slot. *Move to page* (FT-2134) puts a drawn module's or head's boxes on electrical pages on the
 schematic page chosen where they stand, with one `rep.move` (one undo step): the device, its channels, bindings and
-slot stay, and a wire between its pins and something that stays behind is refused in the move's words; a cut and paste
-gives a new device out of the rack (doc 06 §3.6). Its entries read as moves ("To page 101 …", "To a new page") and
+slot stay, and a wire between its pins and something that stays behind is refused in the move's words; a cut and its
+paste bring a module with a set slot, start, part use or integrated I/O back as itself, while a card without settings
+goes with its cut and its paste makes a new one (doc 06 §3.4, §3.6). Its entries read as moves ("To page 101 …", "To a new page") and
 leave out the page the module is drawn on; To a new page makes the page after the module's own in its section, its
 folio the one New page proposes after it, with that page's type, frame, structure and grid, and moves
 the boxes there in the same undo step (`rep.move_to_new_page`), the toast naming the page. Not built: such a wire kept as a pair of interruption points or

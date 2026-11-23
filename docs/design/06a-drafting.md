@@ -24,7 +24,9 @@ drawings may one day do what rules do not; that is a thought for the future and 
 1. **One measure.** A page's drawing is judged by one function: what is a fault (never drawn by the program,
    reported by a check), and what is counted and weighed (length 1 per grid step, a bend 4, a crossing 6, a wire
    across a text 12, a text on a text or on another part 24). The router, the placer, the text placer, the checks,
-   `ew layout` and the tests all call it. Nothing else rates a drawing.
+   `ew layout` and the tests all call it. Nothing else rates a drawing, with one difference in the text placer: its cost
+   of a place counts a wire within `LABEL_CLEAR` (1/8 step) of a text as across it, where the measure counts a wire
+   strictly inside the text.
 2. **Two commands, and nothing by itself.** *Route* draws wires; parts stay. *Arrange and route* first puts the
    parts where the page is best for them, across the page where need be and within the rules of a drawing of its
    kind (the potentials at the head and the foot, current running down a circuit, a card's channels in their
@@ -35,7 +37,8 @@ drawings may one day do what rules do not; that is a thought for the future and 
    person gave, and makes room where things touch. Rails, current paths, card channels and fluid chains come out of
    this rule and the trunk rule below. Every arrangement it weighs is routed and measured for real, and none is
    offered that Route alone beats (§4.7). The spacings (two steps between wires and between rails, five between the
-   devices of a chain, five between a card's pins) and the places of texts are those of the pilot's reference set.
+   devices of a chain) and the places of texts are those of the pilot's reference set; a card's pins stand eight
+   apart (§7.5).
 4. **A net is routed as one thing.** Wires joined by junctions, or leaving one pin, are one job. A net with
    several taps gets a **trunk**: one straight line with its junctions on it and a straight drop to each pin.
    The junctions' wiring order is the person's and is never changed; their positions are the router's. A wire that
@@ -124,9 +127,12 @@ a pin no other wire ends at at no jog; `ew-api`'s `arrange_keeps_a_marks_straigh
 route on the sample's 104, whose marks' wires run straight, and finds each of them straight in the plan.
 
 **Never worse.** A plan (§3.9, §4.9) is offered only when the page's `Quality` after it is better than before,
-and when no wire or text that was free of a finding (F2 to F6, C4, C5) gets one. The second half is what a person
-sees as "a check's warning more": a drawing with nine crossings fewer and one wire newly across a text is not
-offered.
+and when no wire routed before and no text that was free of a finding (F2 to F6, C4, C5) gets one. The second half
+is what a person sees as "a check's warning more": a drawing with nine crossings fewer and one wire newly across a
+text is not offered. **The exception:** a wire without a route is the worst state a wire has, so a plan that routes
+more wires than stood routed before is offered although a text then lies across a wire routed before (C4) or a text
+gets a finding (C5); only a new fault (F2 to F6) on a wire routed before refuses it. The plan's quality names the
+wire.
 
 **Reported, not weighed.** `ew layout` and the preview print four more figures, because they say what a reader
 sees and make a page comparable before and after: the wires drawn **straight** against all wires; the
@@ -708,10 +714,8 @@ A part of one pin that is set on the end's own point (a potential's mark on a pi
 leaves its own part: the mark does not wall the pin in. Before, such a wire had no way and kept the route the
 person drew.
 
-*Never worse, and a wire without a route (2026-11-20).* A wire without a route is the worst state a wire has. A
-plan that routes one is offered although a text then lies across a wire that was routed before (the text had to
-step aside; the result names the wire); only a fault on such a wire refuses it. Before, one such text refused the
-whole plan and every wire stayed without a route.
+*Never worse, and a wire without a route.* A plan that routes a wire that had no route is offered under the
+exception of §1.2: a text across a wire routed before does not refuse it, a fault on such a wire does.
 
 *Two ends nearly in line (FT-2010).* Where the search's route between two ends is straight on the lattice but the ends
 are not on one line (a pin off the grid a part of a step beside it, as a grid change leaves a symbol whose own spacing
@@ -738,13 +742,13 @@ places the router reckoned with are the places the page then shows.
 ### 3.8 How it ends, and what it does when no way exists
 
 Every phase is bounded: one pass over the straights, the nets and the channels; the search runs once per
-remaining job per pass, in a bounded area; two passes; two text rounds. There is no loop that runs until nothing
-changes.
+remaining job per pass, in a bounded area; two passes; two text rounds. A loop that runs until nothing changes is bounded by what it can
+change: the never-worse round of §1.2 by the nets plus one, the wire-by-wire weighing of §3.9 by `PASSES` rounds.
 
 A job with no route free of faults keeps its stored route when it has one, else stays unrouted and is drawn as the
 dashed line. The plan names it with the first thing in its way, found by searching again without the other wires,
-then without the pins of other wires, then without the bodies: "other wires", "connection points", "parts", or
-"a fourth arm at a junction". Nothing is ever drawn through.
+then without the pins of other wires: "other wires", "connection points", "parts" when neither search finds a way,
+or "a fourth arm at a junction". Nothing is ever drawn through.
 
 ### 3.9 The plan, and the drawing it starts from
 
@@ -961,11 +965,12 @@ The order within a row or a stack follows the hosts' pins, not the places the fo
   a fault, whatever it saved in crossings. What may change is the pitch and the place of the row as a whole, and the
   wires then cross where the person's wiring crosses. The judge takes no plan that sets one terminal of a row past
   another (two that stood at one place along the row have no order to keep).
-- **A strip opens as one** (FT-2110). Where the strip's other terminals hold a channel's terminal off its column
+- **A strip opens as one.** Where the strip's other terminals hold a channel's terminal off its column
   (a strip at a narrow pitch over or under a card of a wide one, with a feed, the sensors' common terminals, a
   terminal of another card or a spare among them), or where the rows set a row of terminals out of its order, the
   arrangement is made once more with the strip opened, and the judge takes the better page. The strip is the
-  terminals joined as mates side by side, two or more of them in line on the card's pins. Of its channels' terminals
+  terminals joined as mates side by side, three or more and none fixed, two or more of them in line on pins of one
+  card that face up or down. Of its channels' terminals
   the longest run that stands in the order of the channels' columns, with room between each two for the terminals that
   stand between them in the order (their bodies a row's gap apart: two steps for a terminal), takes its columns; of runs
   as long, the first. A channel's terminal whose column would put it out of order (a card with two rows of pins, a
@@ -1001,7 +1006,7 @@ The order within a row or a stack follows the hosts' pins, not the places the fo
   and their tracks, to the first line that is clear: sensors under the controller's box.
 - **Who is in the way.** A tree is set as if the units of the trees after it will step aside. A unit that then
   kept its place where a moved unit came to stand is in the way from the start, and the trees are set again,
-  `PASSES` times at most.
+  `PASSES` times at most (so `PASSES` + 1 settings in all).
 - **A card steps along its edge.** A card that is the root of its tree, with its channel pins on its upper or
   lower edge and its supply pins on its left side, steps right along its edge (a) until every pin its supply is
   wired to on the side its channels face (the controller's supply pin, a mark, the supply pin of a card at the
@@ -1052,7 +1057,7 @@ where its lead leaves it the room (the coils of a control page on one line).
 
 1. **Where a tree stands.** A tree is set from its root where the root stands. Where a unit of it then has no
    room (it would leave the drawing area or stand on a unit that is set), the root steps by whole steps, the
-   least first, up, down, right and left, `REACH` (24) at most each way, until the whole tree has room; the
+   least first, down, up, right and left, `REACH` (24) at most each way, until the whole tree has room; the
    other roots of its shape that stood level with it take the same step along that axis, so that a row of cards
    stays a row. Without such a step the root stays and what has no room goes back to where it stood. The trees
    are set heaviest first, each clear of those set before it. On a fluid page (rule F1) what hangs on a valve's
@@ -1142,10 +1147,9 @@ mirror a terminal or a card (rule A3), and so on such a page it offers Route's p
 The remedy is the person's: wire the terminals by the pins that face the card, or use the card with its pins on
 the side the field stands.
 
-**A card in the older form.** Until step 7 "Draw on a page" drew a card with two rows of pins, so half its
-channels face away from their circuits: such a page is the case above. Since 0.3.5 no placement makes that form (doc
-10 §3.6): only a project of an earlier version holds it. Draw the card in one row, in the box's menu
-(FT-1897, [10](10-plc-and-bus.md) §3.6), draws the card again in its place without wiring it anew, in one undo step:
+**A card in the older form.** A project of an earlier version may hold a card with two rows of pins, so half its
+channels face away from their circuits: such a page is the case above. No placement makes that form (doc 10 §3.6).
+Draw the card in one row, in the box's menu ([10](10-plc-and-bus.md) §3.6), draws the card again in its place without wiring it anew, in one undo step:
 the device, its channels and every connection stay, because a connection joins connection points of the device's
 function, not the box; the connections end at the new pins, and Arrange and route draws them. What stays for the person is
 each terminal of a channel that now faces the other way: the wire to the card belongs on the terminal's pin that
@@ -1196,8 +1200,8 @@ swaps two trees), and the labels between a host and a row as room of their own (
 
 ### 5.1 One text placer
 
-`settle_labels(scene) -> Vec<(LabelId, Rect, rank)>` is the one place where a label gets its place. It runs when
-the scene draws a page (in place of the scene's present rules), inside `measure`, and inside the router and the
+`settle_labels(&DraftPage) -> Vec<Settled>` (each a label, its box, its rank down its list and whether it reads
+turned a quarter) is the one place where a label gets its place. It runs when the scene draws a page, inside `measure`, and inside the router and the
 placer. Its input is what is stored: the parts' bodies, the wires' routes, the fixed texts, the drawing area and
 the labels with their sizes and places. So a page looks the same on the canvas, in the PDF and in the plan.
 
@@ -1248,8 +1252,9 @@ outside the area (a persona run, 2026-11-23). Where every place of a label leave
 its own part's body too, are its places. There the first place of another text of the same symbol (its tag,
 cross-reference, data, contact list) not yet placed costs nothing, as that text moves on, and a neighbour's first place
 costs as a text: a symbol's texts stand by their own symbol before a neighbour's. One repair round follows: for each such label, each label
-it stands on that came later in the order is tried at its next clear place, and the change is kept when the page's
-cost is lower. The result does not depend on the order of the page's lists.
+it lies on is tried at each of its other clear places in turn, and the label without a clear place then at its first
+clear place; the first change that lowers the labels' cost on the page is kept, and while the label still lies on
+another, the next one it lay on is tried. The result does not depend on the order of the page's lists.
 
 A label leaves its first place only when something stands there, so a change elsewhere on the page does not move
 it.
@@ -1320,9 +1325,8 @@ terminal's name turned a quarter, and beside its body; a mark's cross-reference 
 the wire. A label stands nowhere it reads as another part's (nearer another part of the same body size than its
 own), and a label of a part without pins stays inside its outline or clear of it. A place that is the free first
 place of a label not yet placed is taken only when no other is clear. A text whose author's place lies on a text
-of its own part placed before it has the place under that text second (line under line). The repair round tries
-each label a clashing label lies on at its first other clear place, and the clashing label then at its first clear
-place.
+of its own part placed before it has the place under that text second (line under line). A clashing label is then
+moved by the repair round of §5.3.
 
 ---
 
@@ -1506,58 +1510,49 @@ and is laid as it stands.
 
 ### 7.5 Cards drawn from the station view
 
-The router and the placer work with a card as it is drawn, whatever its form. "Draw on a page" draws a card
-as **a low, wide box with its channel pins in one
-row on one edge, `CARD_PIN_PITCH` (8 steps) apart**: the upper edge for inputs, with the card set at the foot of
-the drawing area; the lower edge for outputs, with the card set at its head; a card with both gets two boxes. Its
-supply pins are on its left side. Today it draws two rows of pins two steps apart, so half the channels face
-away from their circuits and nothing fits over a pin. A card is `pins × CARD_PIN_PITCH` wide plus two steps and
-six steps high; a card wider than the drawing area is split into boxes of at most 8 pins, and the command asks
-for the page of each further box. Stretching a box already spreads its pins at one common pitch. Cards already
-drawn are not changed. The pin texts stay as the program
-draws them on a box.
+The router and the placer work with a card as it is drawn, whatever its form. "Draw on a page" draws a card as **a
+low, wide box with its channel pins in one row on one edge, `CARD_PIN_PITCH` (8 steps) apart**: the upper edge for
+inputs, with the card set at the foot of the drawing area; the lower edge for outputs, with the card set at its head;
+a card with both gets two boxes. Stretching a box spreads its pins at one common pitch. The pin texts stay as the
+program draws them on a box.
 
-In the same step the starter symbols get the first places of §5.2 as their slots (tag at the upper left, make
-and type under it, pin numbers right of the pins), and the interruption point and supply mark get their name in
-line with the wire, so that marks stack two steps apart.
+- **What a card is.** A device of the station whose part's pin map gives its channels pins: inputs are digital and
+  analogue inputs, counters, IO-Link and multi-function ports; outputs are digital and analogue outputs. Its box is
+  `pins × CARD_PIN_PITCH` and two steps wide, the row centred (half a step to the left), `CARD_HEIGHT` (6 steps)
+  high; its other pins (the supply) stand down its left side `MARK_PITCH` apart, the lowest that far above the lower
+  edge of a card of inputs and the highest that far under the upper edge of a card of outputs. The CPU and any
+  device without channel pins keep their box; so does a box a person draws (Place here).
+- **Where it stands.** The other boxes stand from the next free place, in slot order; then each card's box takes the
+  first place that keeps a gap from what the page draws, a card of inputs as near the foot as there is room and one
+  of outputs as near the head, each line from the left. On its line a card of inputs takes the first place beside the
+  boxes drawn with it that are no card (the controller's), a gap off, before one under them, so the supply wires
+  from the head cross none of its channels. A card that finds no room waits for another page, which a toast and the
+  To do list say.
+- **Wide cards.** A row wider than the drawing area takes as many pins as fit, `CARD_PINS_MOST` (8) at most, a byte
+  a box; the station view's To do list offers the rest on another page, and a toast after the draw says so.
+- **A part that lays out its box** ([07](07-symbols-parts-macros.md) §2.5: a person placed its pins in the box) is
+  one box as the part lays it out, placed as a card of outputs is; so is it placed by Place here, with one click.
+- **Further boxes.** `plc.draw_station` draws a box of a card whose black-box function a page draws already as
+  another drawing of it when none of its pins is drawn yet, which also gives a card with inputs and outputs its two
+  boxes in one step.
+- **Why 8 steps.** A sensor with its tag and address is six to seven steps wide, so at a smaller pitch no row of
+  devices can stand in line with a card's channels and every wire steps; at 8 steps a device stands over each pin,
+  and a card of eight channels (66 steps) still fits beside the controller's box at the head of an A3 sheet. The
+  price: a card of sixteen channels does not fit one A3 page, and a card of inputs, which is set at the foot from the
+  left edge, finds no room on a page where a symbol stands within two gaps of the foot (the To do list then offers
+  another page). The pins of a card at the head and one at the foot stand on columns two steps apart where the
+  controller's box is not a whole number of pitches wide; the command draws them so, and Arrange and route steps the
+  card aside (§4.4), for a card the person drew as well.
 
-*As built (step 7).* A card is a device of the station whose part's pin map gives its channels pins: inputs are
-digital and analogue inputs, counters, IO-Link and multi-function ports; outputs are digital and analogue outputs.
-Its box is `pins × CARD_PIN_PITCH` and two steps wide, the row centred (half a step to the left), `CARD_HEIGHT`
-high; its other pins stand down its left side `MARK_PITCH` apart, the lowest that far above the lower edge of a card
-of inputs and the highest that far under the upper edge of a card of outputs. The CPU and any device without
-channel pins keep their box; so does a box a person draws (Place here). The other boxes stand from the next free
-place, in slot order; then each card's box takes the first place that keeps a gap from what the page draws, a card
-of inputs as near the foot as there is room and one of outputs as near the head, each line from the left; on its line a
-card of inputs takes the first place beside the boxes drawn with it that are no card (the controller's), a gap off,
-before one under them (FT-1894, 0.3.5), so the supply wires from the head cross none of its channels; a card that
-finds no room waits for another page, which a toast and the To do list say. A row wider than the drawing area takes as
-many pins as fit, `CARD_PINS_MOST` at most; "asks for the page" is the station view's To do list, which offers the
-rest on another page, and a toast after the draw says so. A card whose part lays out its device box (doc 07 §2.5,
-FT-1788: a person placed its pins in the box) is one box as the part lays it out, placed as a card of outputs is; so
-is it placed by Place here, with one click. `plc.draw_station` draws a box of a card whose black-box
-function a page draws already as another drawing of it when none of its pins is drawn yet, which also gives a card
-with inputs and outputs its two boxes in one step. The starter symbols that have a pin leaving upward (not the
-terminals, the earth symbols and the valve solenoid) carry the tag right-aligned one millimetre left of their
-graphics with its foot one step under the upper pin, then the PLC address, make, type, rating, function text and
-cross-reference line under line 6 mm apart (a coil's contact list last): 4 mm on the QET grid, which scales places
-and not texts, as in the reference set; there the lines are one block, on the native grid each line is placed alone. The interruption point's two forms keep their cross-reference under the
-arrow: under the wire on the wire's side, a wire that turns at once (a supply mark's drop) ran through it. The text placer gained two places for this: a part's right corners stand beyond its pin
-numbers, and a mark's cross-reference may stand centred under or over its arrow.
-
-*The pitch, changed on 2026-11-20.* The pitch was 5 steps, with the advice to stretch a card to 10 where devices
-stand over its pins. On a page with field devices that was the commonest case and the box stood in the way: a
-sensor with its tag and address is six to seven steps wide, so at 5 steps no row of devices can stand in line
-with its channels, and every wire steps. At 8 steps a device stands over each pin, and a card of eight channels
-(66 steps) still fits beside the controller's box at the head of an A3 sheet. `CARD_PINS_MOST` went from 16 to 8
-with it: a row that does not fit is drawn a byte a box, 8 and 8 for a card of sixteen channels, not 12 and 4.
-The price: a card of sixteen channels no longer fits one A3 page, and a card of inputs, which is set at the foot
-from the left edge, finds no room on a page where a symbol stands within two gaps of the foot (the To do list
-then offers another page). One thing the box still does that a draughtsman would not: the pins of a card at the
-head and one at the foot stand on columns two steps apart where the controller's box is not a whole number of
-pitches wide. The command still draws them so; Arrange and route steps the card aside (§4.4), for a card the person
-drew as well. (A card of inputs under the controller's box, its first channels crossed by the supply wires from the
-head, stands beside that box since FT-1894, above.)
+**The starter symbols' slots.** The starter symbols that have a pin leaving upward (not the terminals, the earth
+symbols and the valve solenoid) carry the tag right-aligned one millimetre left of their graphics with its foot one
+step under the upper pin, then the PLC address, make, type, rating, function text and cross-reference line under line
+6 mm apart (a coil's contact list last): 4 mm on the QET grid, which scales places and not texts, as in the reference
+set; there the lines are one block, on the native grid each line is placed alone. The interruption point and the
+supply mark have their name in line with the wire, so that marks stack two steps apart; the interruption point's two
+forms keep their cross-reference under the arrow: under the wire on the wire's side, a wire that turns at once (a
+supply mark's drop) ran through it. The text placer has two places for this: a part's right corners stand beyond its
+pin numbers, and a mark's cross-reference may stand centred under or over its arrow.
 
 ### 7.6 Joining wires: the bevel by default
 
@@ -1693,7 +1688,7 @@ Not measured: no timing test goes into the repository.
   for the price; a press makes at most `ROUNDS` runs. Setting the arrangement: relations and a sort per row; for
   each tree at most `ANCHORS` anchors, each with at most 4 × `REACH` steps of its root; the text placer once per
   row and per pitch of a stack, on a page of those parts alone; the trees are set again for each unit found in the
-  way, `PASSES` times at most. On a page where a card would step along its edge the whole run is made three times
+  way, `PASSES` times at most (`PASSES` + 1 settings). On a page where a card would step along its edge the whole run is made three times
   (§4.4). So the work of a press grows with the wires of the page times a bounded number of
   plans, and with the number of trees times the steps tried for each.
 - Trunks: nets × candidates (a handful) × taps. Tracks: per channel a sort of its wires.
@@ -1745,18 +1740,19 @@ not a layered layout. Nothing is ported from libavoid, ELK or OGDF.
    only by two changes that each lose alone, or by an order of its circuits that the trees' steps do not give, the
    plan is missed and Route's is offered: a good arrangement can be missed, never a bad one taken. The price of a
    move (2 per part) is a first value; it counts a part, not its distance. A page wired against its symbols
-   (§4.8) gets Route's plan and no move; wires that have to go round their own card are the router's to nest,
-   which it does not do yet: they cross where a draughtsman would nest them.
+   (§4.8) gets Route's plan and no move; wires that have to go round their own card are nested by the router as
+   rings (§3.5).
 4. **The weights** (§1.2) continue today's ratios. The text weight of 12 replaces a rule of thumb (8/5) with one
    number; the private pages named in ADR-0033's amendments are its test.
 5. **The rules of §1.6 are few on purpose.** They say what binds on every page of a kind. What a draughtsman
    also does (the loads at the foot of the sheet, like circuits drawn alike) is left to the measure and the
    person; a rule is easy to add when pages show the need. A part whose role the adapter cannot tell is bound
-   by the general rules only.
+   by the general rules only, except that a one-pin end symbol that is no mark stands beside the pin it is wired to
+   on a short hook, as an earth symbol does.
 6. **No readability study of circuit diagrams exists** (research §9): the ranking of crossings, bends and length
    comes from general graphs and from the trade's practice.
 7. **Bevels by default** (§7.6) make every joint of a new drawing a chain in the wire list. It is the pilot's
    choice and the trade's notation; a user who wires in stars asks for the dot each time, until a setting is
    wanted.
-8. **The reference set is one hand.** The defaults taken from it (two steps between wires, five between devices,
-   five between card pins) are constants, and a second user may want settings.
+8. **The reference set is one hand.** The defaults taken from it (two steps between wires, five between devices)
+   and the card pitch of §7.5 are constants, and a second user may want settings.

@@ -1151,26 +1151,27 @@ Print… (Ctrl+P) in the Output menu, whose pre-dialog previews the print set, b
 ### 4.6 XLSX and CSV
 
 Every report block and navigator table exports from its `RowSet` with exactly the rows and order of its pages
-(FR-REP-030, FR-EXP-002).
+(FR-REP-030, FR-EXP-002). `ew export bom|wires|terminals|cables|report` and `ew sql` use the same code and take
+`--format xlsx`, `--preset ew|excel-nl|excel-en|rfc4180` (`ew`, the default), `--bom` and `--line-end`.
 
-- **XLSX** (rust_xlsxwriter): one sheet per block (names sanitised, ≤ 31 characters); header row from localised
-  column labels with units ("Cross-section [mm²]"); typed cells (numbers, dates, text); frozen header, autofilter,
-  column widths from the form; for the round trip (FR-EXP-004) a hidden `id` column (`RowId`), a hidden `_ew` sheet
-  (format `ew-table/1`, project ID, block ID, export revision, locale, column schema) and a hidden `_ew_base` sheet
-  with the editable cells as exported, as specified in [14](14-interop.md) §8.1. All text, including tags such as
-  "-101F1" and "+J-E-2416", is written as string cells, so Excel never evaluates it. Workbook properties and ZIP
-  entry dates follow §4.3 (verify that the rust_xlsxwriter API lets both be set explicitly).
-- **CSV** dialects (FR-EXP-003): `excel-nl` (`;`, decimal comma, UTF-8 BOM, CRLF), `excel-en` (`,`, decimal point,
-  UTF-8 BOM, CRLF), `rfc4180` (`,`, CRLF, no BOM, values unaltered). The Excel presets apply the formula-injection
-  guard of NFR-SEC-17; `rfc4180` and machine profiles never alter values.
-- *As built:* the default of the shipped exports is the `ew` dialect (`ew_reports::csv`: LF line ends, no BOM, header `row,<column labels>`); the presets above are taken with `--preset` (below); the FR-EXP-005 gaps are FT-242.
-- `ew export bom|wires|terminals|cables` (FR-EXT-003) and a generic `ew export report --block <name>` (FR-EXT-027,
-  listed in [17](17-extensibility.md) §3.3) use the same code.
-- *As built:* the XLSX writer is `ew-reports`' own (`xlsx()`, over `ew-zip`, inline strings), not rust_xlsxwriter; a
-  sheet is named after its kind; the `id` column is always written; a quantity with a unit, and a number past 15
-  significant digits, stay text. `ew export cables|bom|wires|terminals|report` and `ew sql` take `--format xlsx`,
-  `--preset ew|excel-nl|excel-en|rfc4180` (`ew`, the default), `--bom` and `--line-end`; the
-  formula guard covers the header labels; every preset is UTF-8 (FR-EXP-003); FT-242's preset half is built.
+- **XLSX** comes from `ew-reports`' own writer (`xlsx()`, over `ew-zip`, inline strings): one sheet per block, named
+  after its kind; a header row from the localised column labels with units ("Cross-section [mm²]"); typed cells,
+  where a quantity with a unit and a number past 15 significant digits stay text; frozen header, autofilter, column
+  widths from the form. The `id` column (`RowId`) is always written; for the round trip (FR-EXP-004) a hidden `_ew`
+  sheet (format `ew-table/1`, project ID, block ID, export revision, locale, column schema) and a hidden `_ew_base`
+  sheet with the editable cells as exported, as [14](14-interop.md) §8.1 specifies. All text, tags such as "-101F1"
+  and "+J-E-2416" included, is written as string cells, so Excel never evaluates it. Workbook properties and ZIP entry
+  dates follow §4.3.
+- **CSV** is UTF-8 in every dialect (FR-EXP-003). The default **`ew`** dialect (`ew_reports::csv`) has LF line ends,
+  no byte-order mark, a header line `row,<column labels>` (the first column `data` or `heading`), and a field quoted
+  exactly when it holds `,`, `"`, LF or CR or begins or ends with a space. The presets write the `id` column first and
+  no `row` column: `excel-nl` (`;`, decimal comma in number cells, byte-order mark, CR LF), `excel-en` (`,`, decimal
+  point, byte-order mark, CR LF) and `rfc4180` (`,`, CR LF, no byte-order mark, values verbatim). `--bom` and
+  `--line-end` override a preset's byte-order mark and line end.
+- **The formula guard** (NFR-SEC-17): in `excel-nl` and `excel-en` a text cell and a header label whose first
+  character is `=`, `+`, `-`, `@`, tab or CR gets a leading apostrophe, which the dialog says, and the Excel round-trip
+  import (FR-EXP-004) strips exactly that prefix again; a number cell never gets it. `ew`, `rfc4180` and machine
+  profiles never alter a value. XLSX is the format for Excel users.
 
 ### 4.7 Multi-language output
 

@@ -1772,9 +1772,8 @@ Every report row source and navigator table exports as XLSX and CSV with the row
 - a hidden sheet `_ew_base`: the editable cells as exported, with a SHA-256 over the sheet, so an edited base is
   detected and the import falls back to a two-way diff.
 
-Tags and locations are string cells, so Excel never evaluates "-101F1" or "+J-E-2416". CSV dialects are `excel-nl`
-(semicolon, decimal comma, UTF-8 BOM, CRLF), `excel-en` and `rfc4180` (FR-EXP-003); the formula-injection guard for
-the Excel presets is [09](09-reports-forms-output.md) OQ 8.
+Tags and locations are string cells, so Excel never evaluates "-101F1" or "+J-E-2416". The CSV dialects and the
+formula-injection guard of the Excel presets are [09](09-reports-forms-output.md) §4.6 (FR-EXP-003).
 
 *As built.* The workbook comes from `ew-reports`' own writer over `ew-zip` (inline strings), its `id` column always
 written; `_ew_base`'s SHA-256 is made in `ew-api` (`with_base_digest`), since `ew-reports` takes no hash. `ew export
