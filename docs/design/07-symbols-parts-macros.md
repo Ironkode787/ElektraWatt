@@ -7,10 +7,9 @@ parts database, macros with value sets, basic projects (company templates), and 
 hold them. It refines the [architecture](04-architecture.md) (§4.2 library copies, §5.5 macros, §7.7 catalogues)
 and the [domain model](03-domain-model.md) (§6 `SymbolDef`, §7 `FnDef`, `PartCopy`, `MacroDef`), and elaborates the
 SYM, PRT and MAC rows of [02a](02a-requirements-core.md). Every example comes from the reference project, the
-cabinet J-E-2416, held as Golden A until 0.3.5 (see the [glossary](glossary.md)).
+cabinet J-E-2416.
 
 The symbol editor's authoring profile is specified in [07a: Symbol design standard](07a-symbol-design-standard.md).
-Its implementation and import compatibility scope are recorded in WP-S2.10.
 
 **Contents**
 
@@ -132,7 +131,7 @@ part's accessories, a macro's parts.
   `LibCopy<T>{id, library_id, item_id, version, sha256, item: T}` (`id` is the copy ID, typed `Id<T>`) with `item`
   flattened on write.
 
-*As built.* The system tier holds two compiled-in
+The system tier holds two compiled-in
 libraries: the starter (`ew-starter`: symbols, FnDefs, forms) and **`ew-starter-parts`**, the generic starter parts.
 `ew-starter-parts` (`content/libraries/ew-starter-parts.ewlib`, version 0.1.0, CC0-1.0) holds the manufacturer
 "Generic" and the generic parts, numbered `EW-GEN-<kind>-<n>`: the common kinds of a control cabinet (relays,
@@ -143,7 +142,7 @@ cannot fall behind. Each carries its template
 functions on starter FnDefs, its CP pattern, contact data and the technical data the starter symbols print, and no
 order or catalogue data; its description is in English and Dutch, as every starter symbol's name is but the junction dot's and bevel's (their seals belong to a derivation
 profile), so a Dutch
-project's lists and the symbol browser in Dutch read in Dutch (FT-1934); item IDs are `v5(library, "<kind>:<key>")`. The directory is written by a test
+project's lists and the symbol browser in Dutch read in Dutch; item IDs are `v5(library, "<kind>:<key>")`. The directory is written by a test
 (`crates/ew-library/tests/starter_parts.rs`) with the library writer and compiled in, so every session holds it with
 or without configured tiers; a directory library of the same ID replaces the compiled-in copy. The relay and the
 contactor template their coil only and list their contacts as contact data.
@@ -179,7 +178,7 @@ library's manifest generation changes, and from scratch when it is missing or co
 ARCH §7.7 and the tier table of [05](05-project-format-and-persistence.md) §13.1 use the same form (Open
 question 1).
 
-*As built.* `ew-library` opens the four tiers (system: the
+`ew-library` opens the four tiers (system: the
 compiled-in libraries of §2.1 and `content/libraries/*.ewlib`; community; company, from the settings' paths and a
 repeatable `--company`; user). The `.ewlib` reader applies the project loader's limits and reads only the files `library.json` lists; a records
 file of the directory that it does not list is a note of the library, which `ew lib list` prints. The writer writes the shards
@@ -212,7 +211,7 @@ pub struct SymbolDef {                       // library item kind "symbol"
 pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, Ellipse, Arc, Polygon{closed},
                      Text(MlText), Image(Sha256) }
 // each primitive carries Stroke{width: Pen, dash: Solid|Dash42|Dot12|DashDot, colour: ByLayer|Rgb} and Fill;
-// Rect.shadow is the filled drop shadow of FR-SYM-003 (2.61 mm on the golden PART DATA boxes)
+// Rect.shadow is the filled drop shadow of FR-SYM-003 (2.61 mm on the PART DATA boxes)
 ```
 
 **Rules.**
@@ -245,10 +244,11 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
   text style in the optional member `style`, which replaces that binding for the slot. A
   `style` that names no known text style falls back to the slot kind's style and is reported as a note naming the
-  symbol, the slot and the name, never as an error. As built: `style` is
+  symbol, the slot and the name, never as an error: `style` is
   an optional identifier, absent by default, and `ew-scene` reports an unknown name as
-  `PageFinding::UnknownSlotStyle`. The styles of the golden project are `tag.main`,
-  `data.small`, `cp.small` and the others of the built-in table, which removes D-29. *As built ([ADR-0032](../adr/0032-per-project-text-styles.md)):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
+  `PageFinding::UnknownSlotStyle`. The styles are `tag.main`,
+  `data.small`, `cp.small` and the others of the built-in table, which removes D-29. A slot's `style` resolves
+  ([ADR-0032](../adr/0032-per-project-text-styles.md)) against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
@@ -270,17 +270,16 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   one-terminal-per-channel PLC modules) and proposes fifteen symbol tickets and nine importer mapping entries. It adds no
   requirement and changes no key. The seven types that a pilot project uses at least twice join the starter set
   (`ew.iec.plug-socket`, `ew.gen.screen`, `ew.iec.sensor-temp`, `ew.iec.mcb-2p`, `ew.iec.disconnector-1p`,
-  `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; follow-up task FT-148); the end-terminal and the other variants
-  follow the same rule after inspection, and the rest go to WP-S7.04. The starter set grows from 36 to 43
-  native symbols. A QET cross-section mark that disagrees with the derived wire property is
+  `ew.iec.switch-disconnector-4p`, `ew.iec.socket`); the end-terminal and the other variants
+  follow the same rule after inspection. A QET cross-section mark that disagrees with the derived wire property is
   reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12).
 
-*As built.* A text slot may carry `fallback: process_tag`: it prints the
+A text slot may carry `fallback: process_tag`: it prints the
 function text and, when that is empty, the tracked target's process tag (doc 11 §3.3); `ew.iso.valve-5-2-sol-spring`
 0.3.0 (both editions) sets it on its function-text slot. Pilot and drain lines are drawn with this section's `dashed`
 pattern, `verified = false`.
 
-*As built (FT-1840).* `ew.iec.proximity-sensor-pnp` draws a three-wire PNP proximity sensor in IEC 60617 practice: a
+`ew.iec.proximity-sensor-pnp` draws a three-wire PNP proximity sensor in IEC 60617 practice: a
 box around a normally open contact worked by a proximity actuator (the rhombus, linked by the dashed line), its pins
 the cores BN (L+, top), BK (the switched output, below the contact) and BU (M, beside it). Its FnDef
 `ew.fn.proximity-sensor-pnp` (SensingPosition, contact kind NO) passes BN to BK when the contact closes; the starter
@@ -330,7 +329,7 @@ sets it (lowest number wins):
   `ew.fn.terminal` with its two CPs applies only to a terminal without such a part
   ([08](08-connections-terminals-cables.md) §6.1). `function_cps` and the importers apply the rule now; a typed
   template marker on `Function`, tied to the `v5(device, template_index)` ID rule of ADR-0004 amendment 2, is a later
-  format decision (WP-S1.11).
+  format decision.
 - **Contacts.** FnDefs default to IEC 60947-style function digits (13-14 NO, 21-22 NC, A1-A2 coil). A part's contact
   data (FR-PRT-009) overrides them and feeds contact images (FR-XRF-017).
 - **Fluid ports** use the ISO 5599-3 port numbers 1/2/3/4/5/12/14/82/84 as designation and `port_role`
@@ -402,11 +401,11 @@ encoding of [05](05-project-format-and-persistence.md) §3.2 on parts and device
 classification scheme is spelled `"<scheme>:<id>"` inside `key` (`etim:EF001234`; schemes `etim`, `eclass`,
 `iec_cdd`), and a plain key without a colon is a native or project property (`i_out`, `curve`). Booleans and
 enumeration values are `Ident` values (`"true"`, `"false"`, the enumeration member) until a typed form is needed. One
-encoding for every property keeps the v0 schema small; ETIM features arrive only with WP-S1.28 (FR-PRT-018), which
+encoding for every property keeps the v0 schema small; ETIM features (FR-PRT-018)
 may append a typed value variant without changing stored keys.
 
-**As built.** Typed technical data on parts and devices use the native plain keys
-`characteristic`, `rated_current`, `channel_current` and `setpoint` (ID-15's plain-key form). A slot text follows
+Typed technical data on parts and devices use the native plain keys
+`characteristic`, `rated_current`, `channel_current` and `setpoint`. A slot text follows
 these rules: a device's own value wins over its part's; a miniature circuit-breaker prints characteristic and rated
 current composed as "C10" (the reading of U-32); other values print as value and unit ("40 A", "15 °C"); several
 values are joined with ", " in key order. Two interims apply. The main part of a device is its first part use, not
@@ -433,8 +432,8 @@ Part data is organised in **data levels**. Each level lists its consumers and th
 **Provenance and confidence.**
 - `ItemMeta.sources` lists where each section came from: a datasheet reference, an EDZ file hash, a BMEcat file, a
   CSV import, or manual entry.
-- `ItemMeta.confidence` marks each section `verified`, `unverified` or `test`. The golden 533361 solenoid map H1 is
-  `test`. The vendor's clamp range of PT 2.5-TWIN is `unverified` until checked. The golden test parts
+- `ItemMeta.confidence` marks each section `verified`, `unverified` or `test`. The 533361 solenoid map H1 is
+  `test`. The vendor's clamp range of PT 2.5-TWIN is `unverified` until checked. The test parts
   `TEST-DOORSW-1` and `TEST-LAMP-1` are `test`.
 - Findings computed from non-verified sections carry a "based on non-verified part data" marker. The release
   report lists every non-verified section in use (FR-PRT-031). Who may set `verified` in
@@ -450,14 +449,14 @@ Projects embed the manufacturers they use as copies under `lib/manufacturers/` (
 [05](05-project-format-and-persistence.md) §2.2); a part references its manufacturer by `LibRef`, as in the part
 copy example of 05 §3.5.
 
-**As built.** `ew-schema` types the MVP members of the
-struct above within the unreleased format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
+`ew-schema` types the MVP members of the
+struct above within format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
 part_number, type_designation, order_number, gtin, description, category, tech_data, free_props, unit, cp_pattern,
-function_template, contacts, mech, sections, alternatives, configured, macros`, then `extra`. The order is fixed now
-(WP-S1.19 D2) because a copy's `sha256` is taken over the item's compact JSON in member order, so a later
-re-ordering would re-hash every existing copy. The members typed in this step:
+function_template, contacts, mech, sections, alternatives, configured, macros`, then `extra`. The order is fixed
+because a copy's `sha256` is taken over the item's compact JSON in member order, so a later
+re-ordering would re-hash every existing copy. The typed members:
 
-| Member | As built | Requirement |
+| Member | Shape | Requirement |
 |---|---|---|
 | `contacts` | `Vec<ContactData{kind: ContactKind (the FnDef enum: no, nc, co), cps: Vec<Ident> such as ["13", "14"], seq?: u8, special?: Ident}>` | FR-PRT-009 |
 | `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams}`; `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3) |
@@ -468,8 +467,8 @@ re-ordering would re-hash every existing copy. The members typed in this step:
 | `macros` | `Vec<MacroLink{rep_type, macro: LibRef}>` | FR-PRT-027 |
 | `box` | `PartBox{width, height: Nm, pins: Vec<PartBoxPin{idx (into `cp_pattern`), side: up \| right \| down \| left (the edge, by the direction a wire leaves in), at: Nm (along the edge from the box's top-left corner)}>}`, after `macros` (added after the lock, 0.3.0) | the device box, below |
 
-**The device box** (0.3.0; the owner's test of the second candidate: a copied box-drawn part could get no pin and its
-pins no place). A part whose main function is a black box is drawn as a box with its pins on the edges. Its pins are
+**The device box.**
+A part whose main function is a black box is drawn as a box with its pins on the edges. Its pins are
 its `cp_pattern`, which a person adds to, removes from and renames in the part editor and on the symbol editor's
 screen (§5); `box` says where they stand: the box's size, and for each pin its edge and its distance along it. Placing
 the part then draws that box with one click (`box.black`): the layout is read onto the page's connection grid in its
@@ -480,15 +479,14 @@ every pin at least one step from the corners and from its neighbours, the box wi
 part without `box` is drawn as before, by two clicks, the first half of its pins on top and the rest below. A pin's
 place typed in the box editor between two 4 mm steps, or on a corner, goes to the nearest step clear of the corners,
 and a note says where it stands; a copy of a starter or library part keeps that part's number, which the line over
-the box says until the person gives it one of its own (FT-1811). The box editor's pin list stands in the order the
+the box says until the person gives it one of its own. The box editor's pin list stands in the order the
 pins stand on the box, and keeps its rows while the same pins are edited, so a pin given another edge stays under the
-pointer; a new selection sorts the list again (FT-2005). The
+pointer; a new selection sorts the list again. The
 placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
 part's layout asks before it redraws. `box` is an optional member without cascade semantics (ADR-0011 amendment 6):
 an older build keeps it in `extra`, writes it back where it stands, and lays the pins out its own way. A part with a
 PLC section or bus interfaces takes its pins from its channels and ports, and a part drawn with a symbol from that
-symbol: the box editor shows such a part and says so. *Editing a pin that comes from a channel or an interface*
-(FT-1788): what is the pin's own is its place, the edge it stands on and its distance along it, and with them its
+symbol: the box editor shows such a part and says so. *Editing a pin that comes from a channel or an interface*: what is the pin's own is its place, the edge it stands on and its distance along it, and with them its
 text's place, which stands inside the box at the pin, turned by its edge; with the box's size these are edited in the
 box as on any box, saved as the part's `box`, and drawn that way wherever the card is drawn by its box (a click of the
 Device tool, Place here, Draw on a page…, Redraw them). What is the part's is the pin's name (the pin pattern's), what
@@ -504,7 +502,7 @@ project; its sections stay the library's.
 Every new member is optional and default-omitted, every new enum keeps `Unknown(Value)` and every new object its own
 `extra`. The members of the struct that are not in the list (`classification`, `model3d`, `cp3d`, `drilling`,
 `accessories`, `variants`, `commercial`, `logistics`, `docs`, the optional `i_load` of a CP, the thermal, wire,
-ferrule and tube sections) stay in `extra` until their work package types them, at the place this struct gives them.
+ferrule and tube sections) stay in `extra`, and take the place this struct gives them when they are typed.
 The `LibRef`s of these members name library items, not project records: the library resolves them. A copy that an
 older build wrote, with such a member in `extra` (byte-wise member order), opens with the member typed, is reported
 not canonical (info) and is rewritten in the member order above at the next save; its stored `sha256` is kept, so
@@ -512,17 +510,17 @@ EW-CORE-014 reports it where the canonical order differs, which is accepted with
 ([05](05-project-format-and-persistence.md) §10.3). The manufacturer is the kind `manufacturer`, `{meta, key, name:
 MlText, aliases, brands}`, embedded under `lib/manufacturers/` by `library.embed` with the checks of the other kinds;
 the slot texts take the manufacturer name from the embedded copy the `LibRef` resolves to, and fall back to the
-`LibRef`'s `extra["key"]` only where the project holds no copy. No Golden A copy uses a typed member, so no golden file or hash changed.
-*As built.* **The part bus section** `sections.bus` is typed
+`LibRef`'s `extra["key"]` only where the project holds no copy.
+**The part bus section** `sections.bus` is typed
 after `mounting_plate`: `{ports: [...], extra}`, each port written in the order `interface`, `port_label`, `bus`,
 `role`, `termination`, then its `extra`; `interface`, `bus` and `role` are required and the enums keep `Unknown`. A
-section `{"ports": []}` is written `{}`. The station address, the nets, the address range, rates, connector and
-signal map are not typed (they stay in `extra`). An older build's copy is rewritten canonically, and an
-older build reports EW-CORE-014 on a copy this build wrote (WP-S1.21 §8a.1 as amended). EW-GEN-CPU-1 0.1.1
-carries one port `DP`, `profibus_dp`, `master`.
+section `{"ports": []}` is written `{}`. A port also types its connector, rates, address range, IO-Link data and
+signal map ([10](10-plc-and-bus.md) §2.6); the station address and the nets belong to the drawn port. An older
+build's copy is rewritten canonically, and an older build reports EW-CORE-014 on a copy this build wrote.
+EW-GEN-CPU-1 carries one port `DP`, `profibus_dp`, `master`.
 
-*As built.* The fluid section is typed with one member,
-`solenoids`, whose k-th entry is the part's k-th template entry on a coil FnDef (doc 11 §2.6 as built).
+The fluid section is typed whole ([11](11-fluid-power.md) §2.6); the k-th entry of `solenoids` is the part's k-th
+template entry on a coil FnDef.
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 
@@ -570,7 +568,7 @@ pub struct Fragment {                        // project-format records, ids loca
   overrides as a list, so a value set may move, turn, show or hide a symbol's texts; MC-4 keeps one `<group>_slots`
   variable per placeholder group.
 
-*As built.* A
+A
 `text_slots` value is typed and shown in words in the macro value table, in the window's language: "as the symbol"
 for the empty list, else one clause per slot, "; " between clauses, each clause `slot <n>: at <x>; <y> mm, turned
 <a>°, hidden` (or "shown") with every part optional and in any order, slots counted from 1. A number is written with
@@ -587,8 +585,8 @@ id)>}`. It is a record of [03](03-domain-model.md) §7, stored in the anchor pag
 rank 46 of [05](05-project-format-and-persistence.md) §2.2), and gives the macro's provenance and "where used".
 From 1.0 it is also the placeholder object that a different value set can be re-applied to (FR-MAC-008).
 
-**As built.** The kinds `macro` and `macro_instance` are
-typed in `ew-schema` within format 0.1; no command creates or inserts a macro yet (WP-S1.19 part 5).
+The kinds `macro` and `macro_instance` are
+typed in `ew-schema` within format 0.1; `macros.save` writes a macro and `macro.insert` inserts one (§3.5).
 - **`MacroDef`** is written in the member order of the struct above: `meta, name, description, kind (window | symbol
   | page), variants, variables, groups, value_sets, thumbnail`, then `extra`. A variant is `{rep_type, key,
   fragment}`; the `fragment` is the `#ew-fragment v1` text format of ARCH §5.5, kept as JSON in the permissive schema
@@ -596,7 +594,7 @@ typed in `ew-schema` within format 0.1; no command creates or inserts a macro ye
   bindings: Vec<{record (fragment-local ID), field}>, default?}` with `VarType` `text, ident, number, bool, state,
   part, process_tag, channel_binding, address, tag_counter, device_ref, text_slots` (`text_slots`, a representation's text slots as a list); the 1.0 `formula` stays in `extra`. A
   placeholder group is `{name, members (fragment-local IDs), include?}` and lives only inside the macro, so the
-  project kind `placeholder_group` (rank 47) stays reserved (WP-S1.19 D15). The copy lives under `lib/macros/` and
+  project kind `placeholder_group` (rank 47) stays reserved. The copy lives under `lib/macros/` and
   `library.embed` embeds it with the checks of the other kinds.
 - **`MacroInstance`** is `{id, $v?, macro, variant, value_set?, values, members, page}` in the anchor page's file.
   Its links are those of [03](03-domain-model.md) §7: the anchor page cascades, the macro copy is a forbid link (it
@@ -636,10 +634,10 @@ leave out pages, devices or both (FR-MAC-011).
 - keeps library copies unchanged, because their IDs derive from library and item, not from the project;
 - records `Project.basic_project = {id, version}` for later comparison.
 
-*As built (the schema half of D14).* The member is typed as
+The member is typed as
 `Project.basic_project = {id, generation}`: the basic project's project ID and its manifest generation when it was
-copied, because a basic project has no semantic version. Nothing writes it yet; WP-S1.19 part 4 records it and adds
-"save as basic project".
+copied, because a basic project has no semantic version. A project made from a directory records it
+(`Session::new_project`).
 
 ---
 
@@ -653,14 +651,13 @@ copied, because a basic project has no semantic version. Nothing writes it yet; 
 - Within a project a `LibRef{library, item, version_req}` resolves to the embedded copy of `(library, item)`.
   If that copy's version does not satisfy `version_req`, the embedding command stops and proposes "update from
   library" instead of embedding a second copy silently (§2.1, keeping two versions).
-- *As built.* `library.embed` takes the
+- `library.embed` takes the
   copies themselves; `ew-api`'s `embed_command` builds them from library references with their closure.
   `part.assign` carries the missing closure in its `copies` and embeds it in its own transaction, reusing a held copy
   of the same hash. The tables
   bootstrap and the parts import write one project-local manufacturer copy per manufacturer name, and part references
   name it with no `key` (a legacy `key` is still read). A part chosen from a system library in the Parts row is one
-  `part.assign` that carries the closure; from the picker it is a `library.embed` before the placement, two undo steps
-  (FT-656).
+  `part.assign` that carries the closure; from the picker it is a `library.embed` before the placement, two undo steps.
 
 **Unused copies stay until purged.**
 - A copy whose last reference disappears is **not** deleted implicitly, so undo and basic-project palettes stay
@@ -697,18 +694,14 @@ preview shows:
    refuses an off-grid CP at save (FR-SYM-009). A symbol is placeable only on pages
    of its own grid: QET-import symbols keep their 10 px grid (`7_937_500/3` nm) and stay on QET-grid pages until
    the page conversion of v1.x (FR-PAG-022).
-2. **QET-grid edition of the starter set.** Golden A sits on the QET 10 px grid,
-   yet FR-SYM-007 requires folios 3–206 to render from the starter library, and Golden C step 3 exchanges
-   QET-import symbols for starter symbols on QET-grid pages. The starter set therefore ships a second, **generated**
+2. **QET-grid edition of the starter set.** A project migrated from QET sits on the QET 10 px grid, and its
+   QET-import symbols are exchanged for starter symbols on QET-grid pages. The starter set therefore ships a second, **generated**
    edition with `grid = QET 10 px`: every CP offset keeps its count of grid steps (`k·g` → `k·7_937_500/3` nm),
    graphics and slot positions scale by the same ratio and round to the nm, and text heights stay style-driven. The
    scaling is `v · 7_937_500 / 12_000_000` rounded with ties toward zero; 0.5 mm becomes 1.25 px, so the edition's
    graphics lie on no whole-pixel grid, and its lint requires instead that every graphic, slot and link-point
-   coordinate equals the scaled value of its native twin, while every CP lies exactly on the QET 10 px grid
-  . Its pens are QET px, not scaled house pens (§2.3). The
-   edition has its own item IDs (key suffix `@qet10`), is linted like the native edition, is never drawn by hand,
-   and is checked visually on the Golden A pages before the starter set is frozen (FR-SYM-030; ADR-0027
-   recommendation 8). The full 1.0 library gets no such edition.
+   coordinate equals the scaled value of its native twin, while every CP lies exactly on the QET 10 px grid. Its pens are QET px, not scaled house pens (§2.3). The
+   edition has its own item IDs (key suffix `@qet10`), is linted like the native edition and is never drawn by hand (FR-SYM-030; ADR-0027 recommendation 8). The full 1.0 library gets no such edition.
 3. **CP direction.** Every CP has a direction (N, E, S, W), which autoconnect and routing use. A CP must lie on the
    symbol outline or on a line end.
 4. **Representation type.** A symbol has exactly one `rep_type`. Placement offers only the symbols of the function's
@@ -781,7 +774,7 @@ preview shows:
 **Replace part** (FR-PRT-023) is `AssignPart` over a set of devices, as one previewed transaction. **Configured
 products** (FR-PRT-006) assign like parts; their components feed the component-mode BOM (FR-REP-005).
 
-*As built.* The command is **`part.assign`** `{devices, part,
+The command is **`part.assign`** `{devices, part,
 copies?, mode?, from?, qty?}` with `mode` `append` (the default: a further part use), `replace_all` (the part becomes
 the devices' only use) or `replace` with `from` (each use of `from` swapped, its quantity kept); it is Interactive below
 50 devices and `Bulk` from 50. It carries the library documents it needs in `copies` and never reads a library, so it
@@ -795,7 +788,7 @@ as many pattern CPs as its FnDef has CPs pairs them by position, so each functio
 symbol's `fn_cp`, the FnDef's internal links) and prints the pattern's designations. A part may therefore template
 several functions of one FnDef: the generic relay and contactor template their contacts.
 
-**A part whose type is not known** (FT-1878, after the first production job: "four grey terminals, type not known").
+**A part whose type is not known**.
 The drawing shows that a part belongs to a device and nobody knows which yet. The model's placeholder part serves:
 a part copy numbered `TBD` (`PLACEHOLDER_PART_NUMBER`, `Part::is_placeholder`; FR-CHK-034). No new member and no new
 record kind.
@@ -807,8 +800,7 @@ record kind.
   description is refused in words.
 - *Window.* In the part dialog (Properties ▸ Part ▸ Choose…, a strip's terminals without a part), Type not known yet…
   opens a field for what the part is and Use as placeholder (or Enter) gives it; the placeholder is a held part of the
-  project from then on, so the dialog lists it among the project's parts for the next device. *As built (persona runs,
-  0.3.5):* Type not known yet… is also in the Parts row's … menu beside Choose part… and in the command search (under
+  project from then on, so the dialog lists it among the project's parts for the next device. Type not known yet… is also in the Parts row's … menu beside Choose part… and in the command search (under
   placeholder, stand-in, not known, undecided, TBD: the glossary's Stand-in part), each opening the part dialog of the
   selection with the field open; Make variable in that menu says on hover that it is a macro's variable, not a stand-in
   part. Remove from my parts library… is in the command search too (delete part, remove part) for the selected device's
@@ -853,7 +845,7 @@ every pull request (§6.2).
 - **Open ends.** Connections to objects outside the selection are dropped; their CPs become the macro's open ends.
 - **Insertion point.** The user picks it; it is snapped to the macro's grid.
 
-*As built (FT-1862).* A page macro's pages named by folio (`macros.save {pages}`) need no selection and no marked page,
+A page macro's pages named by folio (`macros.save {pages}`) need no selection and no marked page,
 and without a kind they make a page macro. A copy of pages ([06](06-schematic-editor.md) §3.6) starts from the same
 fragment of the pages, widened by the cables, bonds and connections a second installation keeps together; the page
 macro itself does not carry them. A page macro's records keep their positions as the pages held them, a symbol off
@@ -887,15 +879,15 @@ company library**, never directly into a project. A project then picks the resul
 | Source | Release | Mapping | Rules |
 |---|---|---|---|
 | CSV/XLSX parts | MVP | column mapper with saved mappings; dedupe on (manufacturer, normalised part number) | report of new, updated and rejected rows (FR-PRT-016) |
-| QET project elements | MVP | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user forks it; keeps QET's element-origin anchor so imported xrefs equal QET's (Golden C, MF-13); the library's `library_id` is the project ID and its key `qet-import` ([05](05-project-format-and-persistence.md) §13.2) |
+| QET project elements | MVP | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user forks it; keeps QET's element-origin anchor so imported xrefs equal QET's (MF-13); the library's `library_id` is the project ID and its key `qet-import` ([05](05-project-format-and-persistence.md) §13.2) |
 | QET element collection on demand | 1.0 (FR-SYM-029) | a user-selected directory of `.elmt` files (the user's QET installation) becomes a **user** library, `meta.licence = LicenseRef-QET-elements` with QET's `ELEMENTS.LICENSE` attached and the flag `foreign_terms` | QET's terms allow use in diagrams freely and redistribution under CC-BY 3.0 with a no-ML-training clause ([oss-landscape](../research/oss-landscape.md) §2.6). Those terms are incompatible with EW's CC-BY-SA-4.0 packs, so such items are never bundled, never merged into an EW pack (`ew lib pack` refuses `foreign_terms`), and never used for model training (NFR-LIC-06) |
-| `symbol-map.csv` | MVP | QET element UUID or path → EW symbol key + CP map; generalises the pneumatic table of FR-IMP-018 | used by FR-SYM-022 exchange; Golden C step 3 |
+| `symbol-map.csv` | MVP | QET element UUID or path → EW symbol key + CP map; generalises the pneumatic table of FR-IMP-018 | used by FR-SYM-022 exchange |
 | EDZ (7-Zip or ZIP) | 1.0 | `*.part.xml`: `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1/2` (`de_DE@…;en_US@…;` → `MlText`, FR-I18N-008); `<functiontemplate>` pins (`connectionDesignation`, `connectiondescription`, `terminalNr`, `functiondefinition`) → CP pattern and template FnDefs through the `functiondefcategory/group/id` mapping table; drilling positions, CP patterns and accessories where present (FR-IMP-025/027) | **terms notice** before the first EDZ import of a session (FR-IMP-026); `.ema` geometry never reproduced; `.e3d` ignored; pictures stored only in the user library; source file hash and import date recorded |
 | EPLAN parts XML | 1.0 | `partsmanagement` with variants, function templates, free properties, accessory lists, `length-unit` (FR-IMP-028) | into a company library |
 | BMEcat 2005, ETIM xChange | 1.x | product identification, ETIM or ECLASS feature blocks (feature system name, class, feature name, value, unit), order and price details (element names to verify against the specification) | FR-PRT-020; prices go to L4 with source and as-of date |
 | DXF blocks | 1.0 | DXF-to-symbol wizard (FR-IMP-034); vendor DXF as 2D front outline or drilling pattern (FR-IMP-035) | CPs snap to the target library's connection grid (FR-IMP-034) |
 
-*As built (WP-S3.18).* **EDZ and parts XML** are read by `ew-import-eplan` into part drafts, placed by
+**EDZ and parts XML** are read by `ew-import-eplan` into part drafts, placed by
 `ew-import-catalog`'s one placer (the dedupe on manufacturer and `pn_norm`, a new patch version with `--bump`), written by
 `ew import edz|parts-xml --library` or from the window (Add to my parts library, the library `user-parts`); the pins,
 descriptions, sizes, free properties and provenance are read, accessories and further variants kept in `extra`, the
@@ -906,7 +898,7 @@ a writable library under `LicenseRef-QET-elements` with `foreign_terms`, the sou
 folder's `ELEMENTS.LICENSE` named there by its SHA-256; the refusal to pack such a library (`ew lib pack`, LL-05) waits for
 the command, which is not built.
 
-*As built.* The CSV/XLSX row is built in
+The CSV/XLSX row is built in
 `ew-import-catalog`: a column map (`member ← header`, saved as TOML per source key), a CSV reader (UTF-8 with or without
 a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded XLSX reader (no calamine),
 and rows into part copies with item IDs `v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)`, deduplicated on
@@ -951,7 +943,7 @@ FR-EXT-019). Examples: Mouser, DigiKey, Nexar/Octopart, Farnell.
 | Content | Licence | Shipped by EW |
 |---|---|---|
 | EW-drawn symbols, frames, forms, macros | CC-BY-SA-4.0 with the design exception | yes |
-| Project-authored part data (starter catalogue facts), examples, Golden A | CC0-1.0 | yes |
+| Project-authored part data (starter catalogue facts), examples | CC0-1.0 | yes |
 | Manufacturer packs | the vendor's explicit redistribution licence, per record | only with that licence |
 | ETIM model (English) | `ODC-By-1.0`, with attribution | yes, as a data pack |
 | ECLASS dictionary, IEC 60617 database, QET element collection, EDZ/Data Portal content, vendor STEP/DXF/images | — | **never** (NFR-LIC-06) |
@@ -962,7 +954,7 @@ waives Article 3 of CC-BY-SA-4.0 (attribution and ShareAlike) for designs, drawi
 and projects that use or embed library items. NFR-LIC-09 states the same for EW outputs. Redistributing the
 library itself, modified or not, stays under CC-BY-SA-4.0.
 
-*As built.* Every shipped record carries a
+Every shipped record carries a
 licence and a source: `ew-library`'s test `content_audit` reads every library document under `content/` and every copy
 under `fixtures/sample/sample.ew/lib/` as bytes and fails, naming the file and the item, on a missing or empty
 `meta.licence`, a licence other than its kind's row above (the record's, not its file's), or an empty `meta.sources`;
@@ -1086,13 +1078,13 @@ CREATE TABLE part_cp(part INTEGER, fn_idx INTEGER, desig_norm TEXT, csa_min INTE
 
 Inside a tier, favourites and parts "used in this project" come first. Ties break by natural sort (`ew_natural`).
 
-*As built (FT-1845): what the part dialog searches and how it ranks.* A person types what a part is for ("sensor",
+**What the part dialog searches and how it ranks.** A person types what a part is for ("sensor",
 "normally open contact") as often as its words, and "sensor" found nothing while "normally open contact" ranked the
 contactor first (its description names an auxiliary contact). The dialog searches what a part already carries; no
 part gets new data and no list of synonyms is kept.
 - *Its words:* the part number (tiers 1 to 3), and the type, the manufacturer, the description in every language and
   the keywords (tier 4; a held copy's description in every language too). A row shows the description in one
-  language, the window's, else English, else the first (`ew_derive::text_in`, FT-2066), never every language joined;
+  language, the window's, else English, else the first (`ew_derive::text_in`), never every language joined;
   the device browser and Properties' list of library parts show it in the project's language by the same order.
 - *What it is for:* the window reads from the text the function categories and contact kinds it names. A category is
   named when every typed word starts one of its words, or (from four letters) stands inside one, its words being its
@@ -1144,7 +1136,7 @@ For each embedded copy `c` with a newer library version `n`:
    only where step 3 remaps them. Show `diff_model` (entities), `diff_query` (BOM, wires, xref texts) and the
    rendered pages that changed.
 
-*As built.* `classify_update` in `ew-commands` gives patch, minor or
+`classify_update` in `ew-commands` gives patch, minor or
 major with the field diff: major by step 2's list (a CP gone or re-designated, a FnDef or category change, a template
 function added or removed by FnDef reference, a macro variable removed), patch when only data that no derived structure
 or geometry reads differs (`meta`, a part's manufacturer, numbers, description, technical data and free properties, a
@@ -1178,7 +1170,7 @@ the topological order of variable dependencies, and a cycle is a save-time error
 every connection to it. Folio 206 uses this to omit the second module, and folios 204–206 to omit the field
 devices that only folio 203 draws (§9.3).
 
-*As built.* `macro.insert` takes `orient` (default r0, left out of the log at r0) and turns the fragment about its anchor before the move: representations compose it, route vertices, junctions, page items and box outlines turn as points in whole grid steps, text and arc angles turn as directions, markers modulo 180°, and route ends follow their CPs. A page macro refuses a non-default orient at `/orient`. A record a `DeviceRef` variable names stays referenced, a child tag's counter stays when its parent comes along, and a module landing on an occupied slot lists the addresses it doubles in the conflict list.
+`macro.insert` takes `orient` (default r0, left out of the log at r0) and turns the fragment about its anchor before the move: representations compose it, route vertices, junctions, page items and box outlines turn as points in whole grid steps, text and arc angles turn as directions, markers modulo 180°, and route ends follow their CPs. A page macro refuses a non-default orient at `/orient`. A record a `DeviceRef` variable names stays referenced, a child tag's counter stays when its parent comes along, and a module landing on an occupied slot lists the addresses it doubles in the conflict list.
 
 ### 4.7 Library index build
 
@@ -1191,9 +1183,9 @@ On start-up and on a watcher event:
 A full rebuild is the same loop with an empty file table. The index stores `(library_id, generation)`, so a stale
 index is detected, never trusted. The target is NFR-PERF-21.
 
-*As built.* The index is one SQLite FTS5 database per user in the
+The index is one SQLite FTS5 database per user in the
 cache directory (rusqlite bundled), rebuilt by `ew lib index --rebuild`; search ranks by the specification's rank tiers
-and tie-breaks (WP-S1.19 D6), and `Session::part_search` marks the hits the project holds. The compiled-in libraries
+and tie-breaks, and `Session::part_search` marks the hits the project holds. The compiled-in libraries
 are indexed under a pseudo path. IX-1 to IX-8 run in `crates/ew-library/tests/registry.rs`; the 500,000-part test IX-9
 is `#[ignore]`d (not measured, the owner's rule).
 
@@ -1213,13 +1205,13 @@ is `#[ignore]`d (not measured, the owner's rule).
 | **Company-standard wizard** (FR-PRJ-010, FR-UI-030) | steps: logo SVG, title-block form, colour and size profile (with stated basis, D-37), identifier set (ADR-0026 default), numbering rules, structure nodes, sections, revision format, languages, report blocks; writes a basic project and offers it as the default template | P1, J1 |
 | **Import dialogs** | CSV/XLSX column mapper; EDZ with the terms notice; parts XML; BMEcat (1.x); each ends in an import report with jump-to-record | P6, J2 |
 
-*As built.* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names.
+The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows show IDs rather than names.
 
-*As built (0.3.0, the redesign after the owner's test of the second candidate).* The **Symbol editor** opens from
+The **Symbol editor** opens from
 Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, on a screen built as the main window is.
 With nothing in hand it shows a **start card**: New symbol, Copy a library symbol…, Device box for a part…, Import a
 file…, the draft in hand and the symbols edited lately; the draft in hand stands after the four ways in, which keep
-their places (FT-1810: on top it moved every entry down after a save). Copy a library symbol… lists the symbols in the
+their places. Copy a library symbol… lists the symbols in the
 symbol browser's order, by the words of the function category each is filed under (Other last) and then by name, each
 row naming that category and its library, with the browser's picture of the symbol under the pointer (else the first)
 beside the list. With a symbol in hand: the **command bar** (Start; Select,
@@ -1246,14 +1238,14 @@ editor's own history. A drag on a thing moves the selection with a ghost of wher
 handles drag its ends and corners (`symbol.grip`); Line up puts several things on one edge (`symbol.align`). The
 highlight and the handles are the page's (doc 16a §7.1). The tools draw as on a page: a shape by a drag or two clicks,
 a text typed where it was clicked, a connection point on the connection grid with the next number and the text that
-writes that number (FT-1871): inside the body one millimetre from the point, turned a quarter on an upper or lower edge
+writes that number: inside the body one millimetre from the point, turned a quarter on an upper or lower edge
 and level on a left or right one, where a device box prints a pin's name (§2.5; one rule,
 `ew_scene::page::pin_text_place`), so a point on the lower edge has its number above it inside the box, not across
 it; a point moved alone takes that text with it, and a point given another edge in Properties has it placed again by
-the same rule (FT-1990); and the drawing shows the text the page prints (before, the drawing showed the point's name as an editor mark that
+the same rule; and the drawing shows the text the page prints (before, the drawing showed the point's name as an editor mark that
 no page printed, and a number text clicked onto a lower point hung across it); a tool's options
 stand on a card at the drawing's top left. The live A–H strip is drawn through the placement's own lowering. To do is
-the editor's validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a page
+the editor's validation, shared with `ew symbol validate`, not the library lint. "Test place" is Test on a page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
 the placement. Draw by coordinates, the three tabs of the left column and Pin mapping's drag list are gone: a thing's
 place and size are rows of Properties, and a connection point's function pin is its row under More.
@@ -1271,8 +1263,8 @@ which Save keeps in My parts; a part of My parts that the project does not hold 
 My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
 message says how many and offers Redraw them (`part.redraw_boxes`: one `box.redraw` of every
 box, one undo step, all or none).
-*As built.* In the Insert symbol picker a symbol of another connection grid says so, naming both grids as the
-status bar does ("4 mm", "QET 10 px"), and its Place puts it on the page in front (rc.3): the project gets the
+In the Insert symbol picker a symbol of another connection grid says so, naming both grids as the
+status bar does ("4 mm", "QET 10 px"), and its Place puts it on the page in front: the project gets the
 symbol's copy drawn on the page's grid (`SymbolDraft::on_grid`: every length scaled by the ratio of the grid steps,
 every connection point on the page grid's point of its own index, as the starter library's QET edition), embedded
 once (`library.embed`), and the place tool is armed with it. The editor's test placement on such a page is refused
@@ -1284,8 +1276,7 @@ step for the page and one for the placement. New page (`page.new`) has a Connect
 the current page's by default; on a page whose grid is neither (an imported one) the field is empty and the new page
 still takes the current page's grid. A page's grid changes only while the page is empty. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
 libraries; Open or import reads QElectroTech `.elmt`, EPLAN EDZ/PXF and the supported SLK subset into a draft with
-its import report, and an EPLAN draft saves only once its review is acknowledged. Every edit is a `symbol.*` action that scripts and AI tools share
-(WP-S2.10 §10 and §11).
+its import report, and an EPLAN draft saves only once its review is acknowledged. Every edit is a `symbol.*` action that scripts and AI tools share.
 
 **Accessibility (NFR-A11Y-02).** Previews expose an accessible name built from the item name, its representation
 type and its CP designations, for example "MCB 1P+N, multi-line, connection points 1, 2, N, N". Quality levels are
@@ -1357,7 +1348,7 @@ the plugin-signing infrastructure in 1.x.
 
 | Release | Symbols | Parts | Macros |
 |---|---|---|---|
-| MVP | starter set of about 40 symbols for the golden project (FR-SYM-007, §9.1) on the native grid, plus its generated QET 10 px edition (§3.2 rule 2); pole-count variants generated from family sources (§3.2 rule 10) | manufacturer master; starter catalogue with every golden part as CC0 facts, sections flagged by confidence; `TEST-*` parts marked test | PSU block (folio 102), heater/thermostat/lamp group (folio 101), valve module and valve-manifold page (folios 203–206) |
+| MVP | starter set of about 40 symbols for the reference set (FR-SYM-007, §9.1) on the native grid, plus its generated QET 10 px edition (§3.2 rule 2); pole-count variants generated from family sources (§3.2 rule 10) | manufacturer master; starter catalogue with every part of the reference set as CC0 facts, sections flagged by confidence; `TEST-*` parts marked test | PSU block (folio 102), heater/thermostat/lamp group (folio 101), valve module and valve-manifold page (folios 203–206) |
 | 1.0 | full IEC 60617-style control-cabinet set and ISO 1219 set (FR-SYM-008), linted in CI (FR-SYM-020) | ETIM data pack; first manufacturer pack under an explicit licence (B10, IDEA-091) | motor starter, contactor/relay, PLC I/O typicals with representation variants |
 | 1.x | user-authored parametric families in the symbol editor (FR-SYM-027) | community packs (FR-PRT-030), BMEcat imports (FR-PRT-020) | rule-based project generation (FR-MAC-016) |
 
@@ -1387,7 +1378,7 @@ the plugin-signing infrastructure in 1.x.
 | Update removes a connected CP | blocked in the preview until mapped (§4.5); never a silent disconnect |
 | Pasted records use another version of an embedded item | the paste asks: update, adapt to the existing copy, or keep both (§2.1); with "keep both" the library manager shows both and offers to unify them in one update |
 | QET-grid symbol on a native-grid page, or native symbol on a QET-grid page | refused, with the hint to use the symbol's other grid edition (starter set), place it on a page of its grid, or fork it onto the other grid |
-| Imported element with "3-B0"-style origin anchor | kept for Golden C fidelity; FR-CHK-035 reports it; quick fix sets the anchor policy (MF-13) |
+| Imported element with "3-B0"-style origin anchor | kept for fidelity to the QET file; FR-CHK-035 reports it; quick fix sets the anchor policy (MF-13) |
 | "UK5N / ULSKG5" in one part-number field | split at "/" into two candidates and flagged; the importer cannot tell an alternative (FR-PRT-004) from a second part on another terminal. On 1X1 it is the latter: UK 5 N on terminals 1 and 2, USLKG 5 on PE (U-17). "ULSKG5" is resolved to USLKG 5 only by review (D-18) |
 | "Murr Elektronik", "Schneider", "Eaton / Holec" | resolved through master aliases; an unknown name creates a draft manufacturer, never a silent new spelling |
 | Same part number, different manufacturers | identity includes the manufacturer; search shows both |
