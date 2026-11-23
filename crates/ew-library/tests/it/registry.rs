@@ -9,7 +9,8 @@ use std::time::Duration;
 
 use ew_format::ew_schema::{ContactKind, ItemStatus, Kind, LibDocument, LibRef, PartKind};
 use ew_ids::Uuid;
-use ew_library::lock::{Identity, LOCK};
+use ew_library::lock::LOCK;
+use ew_store::lock::Identity;
 use ew_library::{
     FnCompat, INDEX_FILE, IndexState, ItemQuery, LibManifest, LibraryError, LibraryTiers, LockPolicy,
     PartHit, PartQuery, Registry, Tier, WriteFault, starter,

@@ -13,7 +13,8 @@ use ew_api::catalog::{
     self, CatalogError, ColumnMap, LibraryImport, RowStatus, import_into_library, load_column_map,
     read_input, save_column_map,
 };
-use ew_api::library::lock::{Identity, LOCK};
+use ew_api::library::lock::LOCK;
+use ew_store::lock::Identity;
 use ew_api::library::{LibraryError, LibraryTiers, Registry};
 use ew_api::{Session, SessionOptions};
 use ew_ids::Uuid;

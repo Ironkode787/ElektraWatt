@@ -18,7 +18,7 @@
 //! - **Purge** ([`Store::purge`]): the explicit, previewed removal of asset files that no project file and no undo
 //!   entry names, through the save protocol's removal list (doc 05 §13.3).
 //! - **Lock** ([`lock`]): `.~ew.lock` with heartbeat, stale detection, read-only sessions and the takeover
-//!   rename without replacement (doc 05 §7).
+//!   rename without replacement (doc 05 §7); a library's `library.lock` keeps the same record and protocol.
 //! - **Journal** ([`journal`]): field-level diffs of every commit in the OS state directory, replayed onto
 //!   the base generation after a crash (doc 05 §8).
 //! - **I/O seam** ([`Vfs`]): every file operation goes through it; [`mem::MemVfs`] numbers, fails and

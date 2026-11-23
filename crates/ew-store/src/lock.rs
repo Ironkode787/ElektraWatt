@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The lock file `.~ew.lock` (doc 05 §7, ADR-0010 amendment 1, FR-COL-006, FR-COL-026).
+//! The lock files of the program (doc 05 §7, ADR-0010 amendment 1, FR-COL-006, FR-COL-026): the project's
+//! `.~ew.lock` ([`PROJECT_LOCK`]) and a library's `library.lock` (`ew-library`), one record and one protocol over the
+//! [`Vfs`] ([`Lock`]). The rules in which the two differ are named in [`LockFile`].
 //!
-//! - **Acquisition:** `create_new` of `.~ew.lock` with the record, then `sync`; no byte-range locks.
+//! - **Acquisition:** `create_new` of the lock with the record, then `sync`; no byte-range locks.
 //! - **Held:** the holder's session ID is in the file. Another opener is read-only and names the holder.
-//! - **Heartbeat:** the holder sets the lock's modification time every [`HEARTBEAT`] and re-reads the
-//!   session ID; a different or missing ID means the lock is lost (the session turns read-only).
+//! - **Heartbeat** (the project's lock): the holder sets the lock's modification time every [`HEARTBEAT`] and
+//!   re-reads the session ID; a different or missing ID means the lock is lost (the session turns read-only).
 //! - **Stale:** older than `stale_after` (default [`STALE_AFTER`]), or on the same host with a dead PID or a
-//!   PID whose start time differs.
+//!   PID whose start time differs; a lock of this process as [`LockFile::own_process`] says.
 //! - **Takeover** (confirmed by the caller): rename the stale lock **without replacement** to
-//!   `.~ew.lock.stale-<stale session>`, create our own lock, re-read it after [`TAKEOVER_SETTLE`].
+//!   `<stale prefix><stale session>`, create our own lock, re-read it after the settle time ([`TAKEOVER_SETTLE`]).
 
 use std::fmt;
 use std::hash::{BuildHasher, Hasher};
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
@@ -32,6 +34,51 @@ pub const HEARTBEAT: Duration = Duration::from_secs(5 * 60);
 pub const STALE_AFTER: Duration = Duration::from_secs(60 * 60);
 /// The wait before a takeover re-reads its new lock (doc 05 §7.4 step 2).
 pub const TAKEOVER_SETTLE: Duration = Duration::from_secs(2);
+
+/// One lock file of the program and the rules in which the project's lock and a library's differ.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LockFile {
+    /// The lock file's name in its directory.
+    pub name: &'static str,
+    /// The name of a stale lock a takeover renamed aside, before the stale session.
+    pub stale_prefix: &'static str,
+    /// How the stale rule judges a lock of this process.
+    pub own_process: OwnProcess,
+    /// How the stale session becomes part of the renamed lock's name.
+    pub stale_name: StaleName,
+    /// Whether a read, a create or a rename that Windows refuses with access denied is tried again for a short while:
+    /// Windows reports a file whose deletion is pending (another session's takeover just unlinked it while a handle
+    /// was open) that way, which is contention, not a read-only directory. Elsewhere every call runs once.
+    pub retry_pending_delete: bool,
+}
+
+/// How the stale rule judges a lock that names this process's PID on this host.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum OwnProcess {
+    /// A lock of another session of this process is live; this session's own lock is judged by the process probe
+    /// (the project's lock).
+    OtherSessionsLive,
+    /// Every lock of this process is live (a library's lock).
+    AllLive,
+}
+
+/// How a takeover turns the stale lock's session into the renamed lock's name.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StaleName {
+    /// Its hexadecimal digits and hyphens, lower-cased, at most 36; `unknown` when none is left (the project's lock).
+    Filtered,
+    /// The session unchanged when it holds only hexadecimal digits and hyphens, else `unknown` (a library's lock).
+    WholeOrUnknown,
+}
+
+/// The project's lock `.~ew.lock` (doc 05 §7).
+pub const PROJECT_LOCK: LockFile = LockFile {
+    name: LOCK,
+    stale_prefix: STALE_LOCK_PREFIX,
+    own_process: OwnProcess::OtherSessionsLive,
+    stale_name: StaleName::Filtered,
+    retry_pending_delete: false,
+};
 
 /// Who holds (or wants) the lock: the record of doc 05 §7.1.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -260,57 +307,6 @@ pub struct LockInfo {
     pub stale: bool,
 }
 
-/// The stale rule of doc 05 §7.4.
-pub fn is_stale(
-    record: Option<&LockRecord>,
-    modified: Option<SystemTime>,
-    now: SystemTime,
-    stale_after: Duration,
-    me: &Identity,
-    probe: &dyn ProcessProbe,
-) -> bool {
-    let old = modified.is_some_and(|m| now.duration_since(m).is_ok_and(|age| age > stale_after));
-    if old {
-        return true;
-    }
-    let Some(record) = record else {
-        return false;
-    };
-    if record.host != me.host || (record.pid == me.pid && record.session != me.session) {
-        return false;
-    }
-    match probe.probe(record.pid) {
-        ProcessState::Dead => true,
-        ProcessState::Alive { started: Some(t) } => rfc3339(t) != record.pid_started,
-        ProcessState::Alive { started: None } | ProcessState::Unknown => false,
-    }
-}
-
-/// Reads `.~ew.lock` of `root`; `Ok(None)` when there is none.
-pub fn read_lock(
-    vfs: &dyn Vfs,
-    root: &Path,
-    now: SystemTime,
-    stale_after: Duration,
-    me: &Identity,
-    probe: &dyn ProcessProbe,
-) -> io::Result<Option<LockInfo>> {
-    let path = join(root, LOCK);
-    let bytes = match vfs.read(&path) {
-        Ok(b) => b,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(e),
-    };
-    let modified = vfs.stat(&path).ok().and_then(|s| s.modified);
-    let record = LockRecord::parse(&bytes);
-    let stale = is_stale(record.as_ref(), modified, now, stale_after, me, probe);
-    Ok(Some(LockInfo {
-        record,
-        modified,
-        stale,
-    }))
-}
-
 /// The outcome of trying to take the lock.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Acquire {
@@ -322,52 +318,7 @@ pub enum Acquire {
     NotWritable(String),
 }
 
-/// Creates `.~ew.lock` with our record and syncs it (doc 05 §7.1).
-pub fn acquire(
-    vfs: &dyn Vfs,
-    root: &Path,
-    clock: &dyn Clock,
-    stale_after: Duration,
-    me: &Identity,
-    probe: &dyn ProcessProbe,
-) -> io::Result<Acquire> {
-    let path = join(root, LOCK);
-    let now = clock.now();
-    match vfs.create_new(&path, me.record(now).to_text().as_bytes()) {
-        Ok(()) => {
-            vfs.sync(&path)?;
-            vfs.sync_dir(root)?;
-            Ok(Acquire::Held)
-        }
-        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-            match read_lock(vfs, root, now, stale_after, me, probe)? {
-                Some(info) if info.record.as_ref().is_some_and(|r| r.session == me.session) => {
-                    Ok(Acquire::Held)
-                }
-                Some(info) => Ok(Acquire::HeldBy(info)),
-                // Released between our create and our read: try once more.
-                None => match vfs.create_new(&path, me.record(now).to_text().as_bytes()) {
-                    Ok(()) => {
-                        vfs.sync(&path)?;
-                        Ok(Acquire::Held)
-                    }
-                    Err(e) => Err(e),
-                },
-            }
-        }
-        Err(e)
-            if matches!(
-                e.kind(),
-                io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem
-            ) =>
-        {
-            Ok(Acquire::NotWritable(e.to_string()))
-        }
-        Err(e) => Err(e),
-    }
-}
-
-/// Who holds the lock now, as seen by session `me`.
+/// Who holds the lock now, as seen by the session that asks.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Holder {
     /// Our session.
@@ -376,30 +327,6 @@ pub enum Holder {
     Other(Option<LockRecord>),
     /// No lock file.
     Nobody,
-}
-
-/// Re-reads the lock's session ID (doc 05 §7.2).
-pub fn holder(vfs: &dyn Vfs, root: &Path, me: &Identity) -> io::Result<Holder> {
-    match vfs.read(&join(root, LOCK)) {
-        Ok(bytes) => {
-            let record = LockRecord::parse(&bytes);
-            if record.as_ref().is_some_and(|r| r.session == me.session) {
-                Ok(Holder::Us)
-            } else {
-                Ok(Holder::Other(record))
-            }
-        }
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Holder::Nobody),
-        Err(e) => Err(e),
-    }
-}
-
-/// Removes our lock if it is still ours.
-pub fn release(vfs: &dyn Vfs, root: &Path, me: &Identity) -> io::Result<()> {
-    if holder(vfs, root, me)? == Holder::Us {
-        vfs.remove_file(&join(root, LOCK))?;
-    }
-    Ok(())
 }
 
 /// Why a takeover did not happen.
@@ -413,116 +340,284 @@ pub enum TakeoverError {
     NoLock,
 }
 
-/// Takes over a stale lock (doc 05 §7.4): rename it without replacement to
-/// `.~ew.lock.stale-<stale session>`, create our own lock, wait [`TAKEOVER_SETTLE`] and re-read it.
-pub fn take_over(
-    vfs: &dyn Vfs,
-    root: &Path,
-    clock: &dyn Clock,
-    stale_after: Duration,
-    me: &Identity,
-    probe: &dyn ProcessProbe,
-) -> io::Result<Result<LockInfo, TakeoverError>> {
-    let Some(info) = read_lock(vfs, root, clock.now(), stale_after, me, probe)? else {
-        return Ok(Err(TakeoverError::NoLock));
-    };
-    if !info.stale {
-        return Ok(Err(TakeoverError::NotStale(info)));
+/// A lock of one directory as one session sees it: the lock file and its rules, the directory, the seams it is read
+/// and written through, who asks and the stale age (`lock.stale_after`).
+#[derive(Clone, Copy, Debug)]
+pub struct Lock<'a> {
+    /// The lock file and its rules.
+    pub file: LockFile,
+    /// The file system.
+    pub vfs: &'a dyn Vfs,
+    /// The directory that holds the lock.
+    pub dir: &'a Path,
+    /// The clock of the record's times, the stale age and the settle wait.
+    pub clock: &'a dyn Clock,
+    /// Process liveness for the same-host stale rule.
+    pub probe: &'a dyn ProcessProbe,
+    /// Who asks.
+    pub me: &'a Identity,
+    /// A lock not refreshed for longer is stale.
+    pub stale_after: Duration,
+}
+
+impl Lock<'_> {
+    /// The lock file's path.
+    fn path(&self) -> PathBuf {
+        join(self.dir, self.file.name)
     }
-    let stale_session = info
-        .record
-        .as_ref()
-        .map_or_else(|| "unknown".to_owned(), |r| sanitize(&r.session));
-    let from = join(root, LOCK);
-    let to = join(root, &format!("{STALE_LOCK_PREFIX}{stale_session}"));
-    match rename_away(vfs, &from, &to)? {
-        Ok(()) => {}
-        Err(TakeoverError::Lost) if left_by_a_crashed_takeover(vfs, &from, &to, &info) => {
-            // A takeover that crashed between the hard link and the unlink of `rename_noreplace` left the
-            // stale copy beside the lock, both with the stale record: every later takeover would lose to
-            // it. The copy is redundant (the lock still holds the record): prune it
-            // and try once more; a racing instance that wins instead makes this one lose as usual.
-            match vfs.remove_file(&to) {
-                Ok(()) => {}
-                Err(e) if e.kind() == io::ErrorKind::NotFound => {}
-                Err(e) => return Err(e),
+
+    /// Runs `op`, retried for a short while on a Windows access-denied when [`LockFile::retry_pending_delete`] is set;
+    /// else once.
+    fn attempt<T>(&self, mut op: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+        let mut tries = 0;
+        loop {
+            match op() {
+                Err(e)
+                    if self.file.retry_pending_delete
+                        && cfg!(windows)
+                        && e.kind() == io::ErrorKind::PermissionDenied
+                        && tries < 20 =>
+                {
+                    tries += 1;
+                    self.clock.sleep(Duration::from_millis(5));
+                }
+                r => return r,
             }
-            if let Err(lost) = rename_away(vfs, &from, &to)? {
-                return Ok(Err(lost));
-            }
         }
-        Err(lost) => return Ok(Err(lost)),
     }
-    // The renamed record keeps the holder's last heartbeat as its modification time; restamp it so that
-    // "older than `stale_after`" (doc 05 §7.4, last paragraph) counts from the takeover, and the takeover's
-    // own open does not prune the evidence at once.
-    let _ = vfs.set_modified(&to, clock.now());
-    match vfs.create_new(&from, me.record(clock.now()).to_text().as_bytes()) {
-        Ok(()) => vfs.sync(&from)?,
-        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => return Ok(Err(TakeoverError::Lost)),
-        Err(e) => return Err(e),
-    }
-    vfs.sync_dir(root)?;
-    clock.sleep(TAKEOVER_SETTLE);
-    if holder(vfs, root, me)? != Holder::Us {
-        return Ok(Err(TakeoverError::Lost));
-    }
-    Ok(Ok(info))
-}
 
-/// Step 1 of the takeover (doc 05 §7.4): renames the stale lock `from` to `to` without replacement;
-/// `Lost` when `to` exists or `from` is gone (another instance was faster).
-fn rename_away(vfs: &dyn Vfs, from: &Path, to: &Path) -> io::Result<Result<(), TakeoverError>> {
-    match vfs.rename_noreplace(from, to) {
-        Ok(()) => Ok(Ok(())),
-        Err(e) if matches!(e.kind(), io::ErrorKind::AlreadyExists | io::ErrorKind::NotFound) => {
-            Ok(Err(TakeoverError::Lost))
-        }
-        // Doc 05 §7.4 step 3: no rename without replacement on this file system; the plain rename and the
-        // re-read after the settle time (plus the heartbeat's session check) detect the loser.
-        Err(e) if e.kind() == io::ErrorKind::Unsupported => vfs.rename(from, to).map(Ok),
-        Err(e) => Err(e),
-    }
-}
-
-/// Whether the existing stale copy `to` is the leftover of a takeover that crashed after linking the lock
-/// to it and before unlinking the lock: the copy holds the same bytes as the lock `from`, which still holds
-/// the stale record of `info`. Pruning such a copy loses nothing.
-fn left_by_a_crashed_takeover(vfs: &dyn Vfs, from: &Path, to: &Path, info: &LockInfo) -> bool {
-    let (Ok(lock), Ok(copy)) = (vfs.read(from), vfs.read(to)) else {
-        return false;
-    };
-    lock == copy && LockRecord::parse(&lock) == info.record
-}
-
-/// A session ID usable in a file name: lower-case hex digits and hyphens only.
-fn sanitize(session: &str) -> String {
-    let s: String = session
-        .chars()
-        .filter(|c| c.is_ascii_hexdigit() || *c == '-')
-        .map(|c| c.to_ascii_lowercase())
-        .take(36)
-        .collect();
-    if s.is_empty() { "unknown".to_owned() } else { s }
-}
-
-/// Deletes `.~ew.lock.stale-*` files older than `stale_after` (doc 05 §7.4, last paragraph).
-pub fn prune_stale_locks(vfs: &dyn Vfs, root: &Path, now: SystemTime, stale_after: Duration) {
-    let Ok(entries) = vfs.list(root) else {
-        return;
-    };
-    for (name, _) in entries {
-        if !name.starts_with(STALE_LOCK_PREFIX) {
-            continue;
-        }
-        let path = join(root, &name);
-        let old = vfs
-            .stat(&path)
-            .ok()
-            .and_then(|s| s.modified)
-            .is_some_and(|m| now.duration_since(m).is_ok_and(|age| age > stale_after));
+    /// The stale rule of doc 05 §7.4 at `now`, a lock of this process judged as [`LockFile::own_process`] says.
+    pub fn is_stale(
+        &self,
+        record: Option<&LockRecord>,
+        modified: Option<SystemTime>,
+        now: SystemTime,
+    ) -> bool {
+        let old = modified.is_some_and(|m| now.duration_since(m).is_ok_and(|age| age > self.stale_after));
         if old {
-            let _ = vfs.remove_file(&path);
+            return true;
+        }
+        let Some(record) = record else {
+            return false;
+        };
+        let own_live = match self.file.own_process {
+            OwnProcess::OtherSessionsLive => record.pid == self.me.pid && record.session != self.me.session,
+            OwnProcess::AllLive => record.pid == self.me.pid,
+        };
+        if record.host != self.me.host || own_live {
+            return false;
+        }
+        match self.probe.probe(record.pid) {
+            ProcessState::Dead => true,
+            ProcessState::Alive { started: Some(t) } => rfc3339(t) != record.pid_started,
+            ProcessState::Alive { started: None } | ProcessState::Unknown => false,
+        }
+    }
+
+    /// Reads the lock, judged stale or not at `now`; `Ok(None)` when there is none.
+    pub fn read(&self, now: SystemTime) -> io::Result<Option<LockInfo>> {
+        let path = self.path();
+        let bytes = match self.attempt(|| self.vfs.read(&path)) {
+            Ok(b) => b,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => return Err(e),
+        };
+        let modified = self.vfs.stat(&path).ok().and_then(|s| s.modified);
+        let record = LockRecord::parse(&bytes);
+        let stale = self.is_stale(record.as_ref(), modified, now);
+        Ok(Some(LockInfo {
+            record,
+            modified,
+            stale,
+        }))
+    }
+
+    /// Creates the lock with our record and syncs it (doc 05 §7.1).
+    pub fn acquire(&self) -> io::Result<Acquire> {
+        let path = self.path();
+        let now = self.clock.now();
+        let record = self.me.record(now).to_text();
+        match self.attempt(|| self.vfs.create_new(&path, record.as_bytes())) {
+            Ok(()) => {
+                self.vfs.sync(&path)?;
+                self.vfs.sync_dir(self.dir)?;
+                Ok(Acquire::Held)
+            }
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => match self.read(now)? {
+                Some(info) if info.record.as_ref().is_some_and(|r| r.session == self.me.session) => {
+                    Ok(Acquire::Held)
+                }
+                Some(info) => Ok(Acquire::HeldBy(info)),
+                // Released between our create and our read: try once more.
+                None => match self.attempt(|| self.vfs.create_new(&path, record.as_bytes())) {
+                    Ok(()) => {
+                        self.vfs.sync(&path)?;
+                        Ok(Acquire::Held)
+                    }
+                    Err(e) => Err(e),
+                },
+            },
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem
+                ) =>
+            {
+                Ok(Acquire::NotWritable(e.to_string()))
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Re-reads the lock's session ID (doc 05 §7.2).
+    pub fn holder(&self) -> io::Result<Holder> {
+        match self.attempt(|| self.vfs.read(&self.path())) {
+            Ok(bytes) => {
+                let record = LockRecord::parse(&bytes);
+                if record.as_ref().is_some_and(|r| r.session == self.me.session) {
+                    Ok(Holder::Us)
+                } else {
+                    Ok(Holder::Other(record))
+                }
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Holder::Nobody),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Removes our lock if it is still ours.
+    pub fn release(&self) -> io::Result<()> {
+        if self.holder()? == Holder::Us {
+            self.vfs.remove_file(&self.path())?;
+        }
+        Ok(())
+    }
+
+    /// Takes over a stale lock (doc 05 §7.4): reads it and, when it is stale, [`Lock::displace`]s it.
+    pub fn take_over(&self, settle: Duration) -> io::Result<Result<LockInfo, TakeoverError>> {
+        let Some(info) = self.read(self.clock.now())? else {
+            return Ok(Err(TakeoverError::NoLock));
+        };
+        if !info.stale {
+            return Ok(Err(TakeoverError::NotStale(info)));
+        }
+        self.displace(info, settle)
+    }
+
+    /// Steps 1 to 3 of the takeover (doc 05 §7.4) of the stale lock `info` as read: rename it without replacement to
+    /// `<stale prefix><stale session>`, create our own lock, wait `settle` and re-read it.
+    pub fn displace(&self, info: LockInfo, settle: Duration) -> io::Result<Result<LockInfo, TakeoverError>> {
+        let stale_session = info
+            .record
+            .as_ref()
+            .map_or_else(|| "unknown".to_owned(), |r| self.file.stale_name.of(&r.session));
+        let from = self.path();
+        let to = join(self.dir, &format!("{}{stale_session}", self.file.stale_prefix));
+        match self.rename_away(&from, &to)? {
+            Ok(()) => {}
+            Err(TakeoverError::Lost) if self.left_by_a_crashed_takeover(&from, &to, &info) => {
+                // A takeover that crashed between the hard link and the unlink of `rename_noreplace` left the
+                // stale copy beside the lock, both with the stale record: every later takeover would lose to
+                // it. The copy is redundant (the lock still holds the record): prune it
+                // and try once more; a racing instance that wins instead makes this one lose as usual.
+                match self.vfs.remove_file(&to) {
+                    Ok(()) => {}
+                    Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e),
+                }
+                if let Err(lost) = self.rename_away(&from, &to)? {
+                    return Ok(Err(lost));
+                }
+            }
+            Err(lost) => return Ok(Err(lost)),
+        }
+        // The renamed record keeps the holder's last heartbeat as its modification time; restamp it so that
+        // "older than `stale_after`" (doc 05 §7.4, last paragraph) counts from the takeover, and the takeover's
+        // own open does not prune the evidence at once.
+        let _ = self.vfs.set_modified(&to, self.clock.now());
+        let record = self.me.record(self.clock.now()).to_text();
+        match self.attempt(|| self.vfs.create_new(&from, record.as_bytes())) {
+            Ok(()) => self.vfs.sync(&from)?,
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => return Ok(Err(TakeoverError::Lost)),
+            Err(e) => return Err(e),
+        }
+        self.vfs.sync_dir(self.dir)?;
+        self.clock.sleep(settle);
+        if self.holder()? != Holder::Us {
+            return Ok(Err(TakeoverError::Lost));
+        }
+        Ok(Ok(info))
+    }
+
+    /// Step 1 of the takeover (doc 05 §7.4): renames the stale lock `from` to `to` without replacement;
+    /// `Lost` when `to` exists or `from` is gone (another instance was faster).
+    fn rename_away(&self, from: &Path, to: &Path) -> io::Result<Result<(), TakeoverError>> {
+        match self.attempt(|| self.vfs.rename_noreplace(from, to)) {
+            Ok(()) => Ok(Ok(())),
+            Err(e) if matches!(e.kind(), io::ErrorKind::AlreadyExists | io::ErrorKind::NotFound) => {
+                Ok(Err(TakeoverError::Lost))
+            }
+            // Doc 05 §7.4 step 3: no rename without replacement on this file system; the plain rename and the
+            // re-read after the settle time (plus the heartbeat's session check) detect the loser.
+            Err(e) if e.kind() == io::ErrorKind::Unsupported => self.vfs.rename(from, to).map(Ok),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Whether the existing stale copy `to` is the leftover of a takeover that crashed after linking the lock
+    /// to it and before unlinking the lock: the copy holds the same bytes as the lock `from`, which still holds
+    /// the stale record of `info`. Pruning such a copy loses nothing.
+    fn left_by_a_crashed_takeover(&self, from: &Path, to: &Path, info: &LockInfo) -> bool {
+        let (Ok(lock), Ok(copy)) = (self.vfs.read(from), self.vfs.read(to)) else {
+            return false;
+        };
+        lock == copy && LockRecord::parse(&lock) == info.record
+    }
+
+    /// Deletes the stale locks a takeover renamed aside that are older than `stale_after` at `now` (doc 05 §7.4,
+    /// last paragraph).
+    pub fn prune_stale(&self, now: SystemTime) {
+        let Ok(entries) = self.vfs.list(self.dir) else {
+            return;
+        };
+        for (name, _) in entries {
+            if !name.starts_with(self.file.stale_prefix) {
+                continue;
+            }
+            let path = join(self.dir, &name);
+            let old = self
+                .vfs
+                .stat(&path)
+                .ok()
+                .and_then(|s| s.modified)
+                .is_some_and(|m| now.duration_since(m).is_ok_and(|age| age > self.stale_after));
+            if old {
+                let _ = self.vfs.remove_file(&path);
+            }
+        }
+    }
+}
+
+impl StaleName {
+    /// The name part of the stale session `session`.
+    fn of(self, session: &str) -> String {
+        match self {
+            StaleName::Filtered => {
+                let s: String = session
+                    .chars()
+                    .filter(|c| c.is_ascii_hexdigit() || *c == '-')
+                    .map(|c| c.to_ascii_lowercase())
+                    .take(36)
+                    .collect();
+                if s.is_empty() { "unknown".to_owned() } else { s }
+            }
+            StaleName::WholeOrUnknown => {
+                if !session.is_empty() && session.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') {
+                    session.to_owned()
+                } else {
+                    "unknown".to_owned()
+                }
+            }
         }
     }
 }
@@ -564,7 +659,7 @@ mod tests {
         assert_ne!(a, b);
         assert_eq!(a.len(), 36);
         assert_eq!(&a[14..15], "4");
-        assert_eq!(sanitize(&a), a);
-        assert_eq!(sanitize("../x"), "unknown");
+        assert_eq!(StaleName::Filtered.of(&a), a);
+        assert_eq!(StaleName::Filtered.of("../x"), "unknown");
     }
 }

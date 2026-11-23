@@ -23,7 +23,8 @@ use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 use crate::clock::{Clock, SystemClock};
 use crate::journal::{self, Journal, RecoveryInfo, ReplayError, Segment};
 use crate::lock::{
-    self, Acquire, Holder, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, STALE_AFTER, TakeoverError,
+    Acquire, Holder, Identity, Lock, LockInfo, LockRecord, OsProbe, PROJECT_LOCK, ProcessProbe, STALE_AFTER,
+    TAKEOVER_SETTLE, TakeoverError,
 };
 use crate::rows::{
     all_keys, document_row, file_of, follow_closure, is_library, record_row, row_line_key, row_text,
@@ -126,7 +127,7 @@ impl StoreOptions {
     /// The start of a front-end that keeps journals: the state directory and its `journal/` made
     /// user-only, the leftover journal segments of every project older than [`journal::KEEP_LEFTOVERS`] deleted, and
     /// the projects whose leftover journals hold unsaved transactions, newest last change first, without a project
-    /// whose lock is live ([`lock::is_stale`]: another session has it open). Empty without a state directory.
+    /// whose lock is live ([`Lock::is_stale`]: another session has it open). Empty without a state directory.
     pub fn start_up_scan(&self) -> Vec<journal::LeftoverProject> {
         let Some(state) = &self.state_dir else {
             return Vec::new();
@@ -137,10 +138,23 @@ impl StoreOptions {
         let now = self.clock.now();
         // A project whose lock is live is open in another session: its journal is neither pruned nor offered.
         let live = |project: &Path| {
-            let lock = lock::read_lock(vfs, project, now, STALE_AFTER, &self.identity, &*self.probe);
+            let lock = self.lock(project).read(now);
             matches!(lock, Ok(Some(info)) if !info.stale)
         };
         journal::scan_projects(vfs, state, now, &live)
+    }
+
+    /// The project's lock of `root` as the session of these options sees it.
+    pub fn lock<'a>(&'a self, root: &'a Path) -> Lock<'a> {
+        Lock {
+            file: PROJECT_LOCK,
+            vfs: &*self.vfs,
+            dir: root,
+            clock: &*self.clock,
+            probe: &*self.probe,
+            me: &self.identity,
+            stale_after: STALE_AFTER,
+        }
     }
 }
 
@@ -881,10 +895,7 @@ impl Store {
     /// [`OpenError::Takeover`] when the lock is not stale or another instance won; otherwise as
     /// [`Store::open`].
     pub fn take_over(root: &Path, opts: StoreOptions) -> Result<Opened, OpenError> {
-        let vfs = &*opts.vfs;
-        match lock::take_over(vfs, root, &*opts.clock, STALE_AFTER, &opts.identity, &*opts.probe)
-            .map_err(io_err(root))?
-        {
+        match opts.lock(root).take_over(TAKEOVER_SETTLE).map_err(io_err(root))? {
             Ok(_) => Store::open_inner(root, opts, true),
             Err(e) => Err(OpenError::Takeover(Box::new(e))),
         }
@@ -937,16 +948,7 @@ impl Store {
         if opts.mode == OpenMode::ReadOnly {
             access = Access::ReadOnly(ReadOnlyReason::Requested);
         } else if !locked {
-            match lock::acquire(
-                &*vfs,
-                root,
-                &*opts.clock,
-                STALE_AFTER,
-                &opts.identity,
-                &*opts.probe,
-            )
-            .map_err(io_err(root))?
-            {
+            match opts.lock(root).acquire().map_err(io_err(root))? {
                 Acquire::Held => holds_lock = true,
                 Acquire::HeldBy(info) => access = Access::ReadOnly(ReadOnlyReason::LockedBy(Box::new(info))),
                 Acquire::NotWritable(why) => access = Access::ReadOnly(ReadOnlyReason::NotWritable(why)),
@@ -1039,7 +1041,7 @@ impl Store {
                         }
                     }
                 }
-                lock::prune_stale_locks(&*vfs, &self.root, self.opts.clock.now(), STALE_AFTER);
+                self.opts.lock(&self.root).prune_stale(self.opts.clock.now());
                 listing = self.walk().map_err(io_err(&self.root))?;
             }
         } else {
@@ -1459,14 +1461,7 @@ impl Store {
         if let Access::ReadOnly(ReadOnlyReason::LockedBy(info)) = &self.access {
             return info.stale;
         }
-        match lock::read_lock(
-            &*self.opts.vfs,
-            &self.root,
-            self.opts.clock.now(),
-            STALE_AFTER,
-            &self.opts.identity,
-            &*self.opts.probe,
-        ) {
+        match self.opts.lock(&self.root).read(self.opts.clock.now()) {
             Ok(None) => true,
             Ok(Some(info)) => info.stale,
             Err(_) => false,
@@ -1743,7 +1738,7 @@ impl Store {
 
     fn release_lock(&mut self) {
         if self.holds_lock {
-            let _ = lock::release(&*self.opts.vfs, &self.root, &self.opts.identity);
+            let _ = self.opts.lock(&self.root).release();
             self.holds_lock = false;
         }
     }
@@ -1810,16 +1805,7 @@ impl Store {
 
     /// An editing store over a directory without a project.
     fn open_inner_empty(root: &Path, opts: StoreOptions) -> Result<Opened, OpenError> {
-        let vfs = Arc::clone(&opts.vfs);
-        let held = lock::acquire(
-            &*vfs,
-            root,
-            &*opts.clock,
-            STALE_AFTER,
-            &opts.identity,
-            &*opts.probe,
-        )
-        .map_err(io_err(root))?;
+        let held = opts.lock(root).acquire().map_err(io_err(root))?;
         let access = match held {
             Acquire::Held => Access::Edit,
             Acquire::HeldBy(info) => Access::ReadOnly(ReadOnlyReason::LockedBy(Box::new(info))),
@@ -1909,7 +1895,7 @@ impl Store {
             }
         }
         // Step 2: the lock still holds our session, and the manifest is what we last loaded or wrote.
-        match lock::holder(&*self.opts.vfs, &self.root, &self.opts.identity) {
+        match self.opts.lock(&self.root).holder() {
             Ok(Holder::Us) => {}
             Ok(Holder::Other(rec)) => return Err(self.lose_lock(rec)),
             Ok(Holder::Nobody) => return Err(self.lose_lock(None)),
@@ -2559,7 +2545,7 @@ impl Store {
         if !self.holds_lock {
             return Ok(LockState::NotHeld);
         }
-        match lock::holder(&*self.opts.vfs, &self.root, &self.opts.identity)? {
+        match self.opts.lock(&self.root).holder()? {
             Holder::Us => {
                 self.opts
                     .vfs
@@ -2791,20 +2777,15 @@ impl Store {
             return Err(SaveError::ReadOnly(ReadOnlyReason::Integrity));
         }
         if read_only {
-            let vfs = Arc::clone(&self.opts.vfs);
-            let acquired = lock::acquire(
-                &*vfs,
-                &self.root,
-                &*self.opts.clock,
-                STALE_AFTER,
-                &self.opts.identity,
-                &*self.opts.probe,
-            )
-            .map_err(|error| SaveError::Failed {
-                step: SaveStep::PreCheck,
-                path: join(&self.root, ew_format::LOCK),
-                error,
-            })?;
+            let acquired = self
+                .opts
+                .lock(&self.root)
+                .acquire()
+                .map_err(|error| SaveError::Failed {
+                    step: SaveStep::PreCheck,
+                    path: join(&self.root, ew_format::LOCK),
+                    error,
+                })?;
             match acquired {
                 Acquire::Held => {}
                 Acquire::HeldBy(info) => {

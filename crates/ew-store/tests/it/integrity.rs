@@ -659,14 +659,7 @@ fn update_damaged_copies_is_refused_beside_another_finding_and_under_another_loc
     // Another session takes the lock after the read-only open gave it back.
     let other = options(&vfs, 2);
     assert!(matches!(
-        ew_store::lock::acquire(
-            &*other.vfs,
-            &root,
-            &*other.clock,
-            ew_store::STALE_AFTER,
-            &other.identity,
-            &*other.probe
-        ),
+        other.lock(&root).acquire(),
         Ok(ew_store::lock::Acquire::Held)
     ));
     let before = project_files(&vfs, &root);

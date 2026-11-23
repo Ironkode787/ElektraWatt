@@ -13,9 +13,8 @@ use ew_ids::Uuid;
 use rusqlite::Transaction;
 use serde_json::Value;
 
-use ew_store::file::{Staged, temp_beside, write_replacing};
 use crate::index::{INDEX_FILE, Index, IndexState, LibState, MfrText, texts};
-use crate::lock::{self, Identity, LockPolicy};
+use crate::lock::{self, LockPolicy};
 use crate::manifest::{LibManifest, MANIFEST, hash_matches};
 use crate::record::{
     Entry, Parsed, PathRole, ShardKey, classify, identity, join, parse_records, read_file, record_line,
@@ -24,6 +23,8 @@ use crate::record::{
 use crate::search::{ItemHit, ItemQuery, PartHit, PartQuery};
 use crate::{LibraryError, LibraryTiers, Tier};
 use crate::{starter, starter_parts};
+use ew_store::file::{Staged, temp_beside, write_replacing};
+use ew_store::lock::Identity;
 
 /// The pseudo path of the compiled-in starter library in the index.
 const STARTER_PATH: &str = "<compiled-in>";
@@ -655,7 +656,7 @@ impl Registry {
             libs,
             starter: starter_docs,
             index: Mutex::new(index),
-            me: Identity::current(concat!("ElektraWatt ", env!("CARGO_PKG_VERSION"))),
+            me: lock::identity(concat!("ElektraWatt ", env!("CARGO_PKG_VERSION"))),
             policy: LockPolicy::default(),
             limits,
             fault: None,
