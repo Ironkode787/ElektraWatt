@@ -39,7 +39,7 @@ how things work today, and a design document explains why and what is intended.
 | [13 Manufacturing outputs](design/13-manufacturing-outputs.md) | Wire records, ferrules, marking, production package |
 | [14 Interop](design/14-interop.md) | Importers and exporters: QET, EPLAN data, DXF, spreadsheets |
 | [15 Checks, revisions, collaboration](design/15-checks-revisions-collaboration.md) | Rule catalogue, release workflow, revisions |
-| [16 UX and UI](design/16-ux-ui.md) | Workspace, navigators, property grid, command palette, wizards |
+| [16 UX and UI](design/16-ux-ui.md) | Workspace, navigators, property grid, command palette, wizards. Its chapters: [the shell and the main window](design/16-shell.md), [the interaction model](design/16-interaction.md), [navigators, properties, tables and history](design/16-panels.md), [onboarding and accessibility](design/16-onboarding-access.md), [theming, language, help and the rest](design/16-theming-help.md) |
 | [16a Design language](design/16a-design-language.md) | Pillars, tokens, layout, components, command bar, wording |
 | [17 Extensibility](design/17-extensibility.md) | CLI, session API, scripting, SQL projection, plugins |
 | [18 Quality, security, release](design/18-quality-security-release.md) | Test strategy, security, build, release |
