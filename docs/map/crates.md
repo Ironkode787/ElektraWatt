@@ -428,7 +428,7 @@ Display-list IR: paths, glyph runs, images, groups, symbol instances, link sourc
 
 ## ew-drafting
 
-`crates/ew-drafting` · GPL-3.0-or-later · tier drawing · depends on `ew-ids` · used by `ew-api`, `ew-scene` · in tests by none
+`crates/ew-drafting` · GPL-3.0-or-later · tier drawing · depends on `ew-ids`, `ew-units` · used by `ew-api`, `ew-scene` · in tests by none
 
 Schematic drafting (docs/design/06a-drafting.md, ADR-0034): how a page is judged, where its texts stand and where its wires run.
 
@@ -477,7 +477,7 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 
 ## ew-format
 
-`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema` · used by `ew-library`, `ew-store` · in tests by none
+`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema`, `ew-units` · used by `ew-library`, `ew-store` · in tests by none
 
 JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-way record merge core and conflict records.
 
@@ -502,7 +502,7 @@ JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-wa
 
 ## ew-ids
 
-`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testids`, `ew-testkit` · in tests by `ew-api`
+`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testids`, `ew-testkit`, `xtask` · in tests by `ew-api`
 
 Typed identifiers `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones.
 
@@ -623,7 +623,7 @@ The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; d
 
 ## ew-interop-api
 
-`crates/ew-interop-api` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-schema` · used by `ew-caex`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables` · in tests by none
+`crates/ew-interop-api` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-schema` · used by `ew-caex`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-library` · in tests by none
 
 The plain data of an import over `ew-schema` records: `ImportInput`, `ImportContext`, `ImportBatch`, `ImportReport` and `SourceRef`.
 
@@ -647,7 +647,7 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 
 ## ew-library
 
-`crates/ew-library` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-ids`, `ew-mltext`, `ew-schema` · used by `ew-api` · in tests by none
+`crates/ew-library` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-ids`, `ew-interop-api`, `ew-mltext`, `ew-schema` · used by `ew-api` · in tests by none
 
 Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects.
 
@@ -661,7 +661,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 | `src/manifest.rs` |  | `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last. |
 | `src/record.rs` |  | Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2). |
 | `src/registry.rs` | large | [`Registry`]: the opened tiers, the one resolver and the search index (§7). |
-| `src/search.rs` |  | Part and item search: the queries, the hits, `pn_norm` and the order of D6 (doc 07 §4.3). |
+| `src/search.rs` |  | Part and item search: the queries, the hits and the order of D6 (doc 07 §4.3). |
 | `src/starter.rs` |  | The starter library: the shipped symbols and function definitions of `content/symbols`, `content/symbols/qet10` and `content/fndefs`, compiled in, so that a new project without symbol copies can place symbols. |
 | `src/starter_parts.rs` |  | The system library `ew-starter-parts` compiled in: the files of `content/libraries/ew-starter-parts.ewlib`, which the build script lists from the folder. |
 | `src/tiers.rs` |  | The four library tiers and where they live (doc 07 §2.1; doc 05 §1, §13.1). |
@@ -941,6 +941,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | `src/revision.rs` |  | Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-012): the `revision` record (rank 60, `revisions.jsonl`). |
 | `src/schema.rs` |  | JSON Schema generation (ADR-0011 decision 4, doc 05 §10.4): one schema per implemented kind and library document, `record.schema.json` and `index.json`, written under `schemas/<FORMAT>/`. |
 | `src/set.rs` |  | Sets and keyed lists (doc 05 §3.2): containers that keep the canonical order themselves, so a value built in memory is written sorted, and that reject unsorted or duplicate input on read. |
+| `src/starter.rs` |  | The names of the starter content that code refers to: the system library `ew-starter` that ships under `content/` (its symbols, function definitions and forms), the version requirement of a reference to one of its items, and every key a program names. |
 | `src/template.rs` |  | The CPs of a template-origin function (doc 03 §7 "CP instantiation", FT-655): which template entry a function follows and how that entry's pattern CPs pair with its function definition's CPs. |
 | `src/text_style.rs` |  | Per-project text styles (ADR-0032, FR-SYM-013): the member `ProjectSettings.text_styles`, the built-in table it overrides and the effective table every renderer and EW-CORE-061 read. |
 | `src/track.rs` |  | The strict reader underneath every record type: the duplicate-rejecting JSON parser, the path-tracking deserialiser over a parsed [`Value`], the tag-first reader of open enums and the structured errors. |
@@ -1116,14 +1117,14 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 
 ## ew-units
 
-`crates/ew-units` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`, `ew-export`, `ew-render-cpu`
+`crates/ew-units` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-format`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`, `ew-export`, `ew-render-cpu`
 
 Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`, `Orient2`, `Angle2`, `Pose3` and the fixed-point `Dec3`.
 
 | File | Size | What it holds |
 |---|---|---|
 | `src/angle.rs` |  | `Angle2`: an integer angle for free texts and graphics. |
-| `src/arith.rs` |  | Shared rounding helpers. |
+| `src/arith.rs` |  | Integer rounding with a named tie rule, and the greatest common divisor. |
 | `src/dec3.rs` |  | `Dec3`: fixed-point decimals with three fraction digits. |
 | `src/error.rs` |  | The error type of this crate. |
 | `src/grid.rs` |  | `Grid`: a rational grid step. |
@@ -1309,7 +1310,7 @@ The deterministic ZIP writer and its strict reader (doc 05 §12, §14.2): the co
 
 ## xtask
 
-`xtask` · MIT OR Apache-2.0 · tier tools · depends on none · used by none · in tests by none
+`xtask` · MIT OR Apache-2.0 · tier tools · depends on `ew-ids` · used by none · in tests by none
 
 The development commands of ElektraWatt: one command that checks a change, one that regenerates the generated files, and the repository rules they share.
 
