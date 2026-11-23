@@ -47,9 +47,9 @@
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"tool.black_box","params":{"part":"EW-GEN-DO-1"}}
-{"action":"nav.goto","params":{"text":"101-D12"}}
+{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":106.343}}
 {"action":"canvas.activate","params":{}}
-{"action":"nav.goto","params":{"text":"101-E16"}}
+{"action":"nav.goto","params":{"text":"101-F10"}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-A5"}}
@@ -201,7 +201,7 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":132.438,"y_mm":69.809}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":127.219,"y_mm":88.076}}
+{"action":"cursor.set","params":{"x_mm":135.048,"y_mm":88.076}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":163.753,"y_mm":28.057}}
 {"action":"canvas.activate","params":{}}
@@ -213,7 +213,7 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":163.753,"y_mm":69.809}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":140.267,"y_mm":88.076}}
+{"action":"cursor.set","params":{"x_mm":155.924,"y_mm":88.076}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":54.152,"y_mm":158.534}}
 {"action":"canvas.activate","params":{}}
@@ -221,7 +221,7 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":132.438,"y_mm":129.829}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":252.477,"y_mm":108.952}}
+{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":111.562}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":48.933,"y_mm":129.829}}
 {"action":"canvas.activate","params":{}}
@@ -229,13 +229,13 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":132.438,"y_mm":150.705}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":163.753,"y_mm":108.952}}
+{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":98.514}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":163.753,"y_mm":108.952}}
+{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":98.514}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":262.915,"y_mm":108.952}}
+{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":116.781}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":221.163,"y_mm":88.076}}
+{"action":"cursor.set","params":{"x_mm":114.172,"y_mm":122.0}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":210.725,"y_mm":127.219}}
 {"action":"canvas.activate","params":{}}
@@ -247,7 +247,7 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":210.725,"y_mm":168.972}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":231.601,"y_mm":88.076}}
+{"action":"cursor.set","params":{"x_mm":135.048,"y_mm":122.0}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":242.039,"y_mm":127.219}}
 {"action":"canvas.activate","params":{}}
@@ -259,7 +259,7 @@
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":242.039,"y_mm":168.972}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":242.039,"y_mm":88.076}}
+{"action":"cursor.set","params":{"x_mm":155.924,"y_mm":122.0}}
 {"action":"canvas.activate","params":{}}
 {"action":"cursor.set","params":{"x_mm":273.353,"y_mm":127.219}}
 {"action":"canvas.activate","params":{}}
