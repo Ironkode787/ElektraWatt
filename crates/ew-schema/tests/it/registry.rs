@@ -10,9 +10,8 @@ use std::collections::BTreeSet;
 
 use common::fill;
 use ew_schema::{
-    AnchorRef, FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE, MERGE_STRATEGIES,
-    MergeStrategy, PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, VARIANT_SINCE,
-    kind_schema,
+    AnchorRef, FORMAT, FileRule, Kind, KindRegistry, KindStatus, MERGE_STRATEGIES, MergeStrategy,
+    PERSONAL_DATA_FIELDS, RELEASED_FORMATS, Record, SCHEMA_VERSIONS, kind_schema,
 };
 use serde_json::Value;
 
@@ -285,52 +284,6 @@ fn every_merge_strategy_names_a_member_of_its_kind_once() {
             row.kind,
             row.path
         );
-    }
-}
-
-#[test]
-fn every_kind_has_a_since_format_no_newer_than_the_schema() {
-    // The `since` metadata of the computed `min_reader`: every kind is "0.1" until a later format adds
-    // one; the kind table lists every kind once, in registry order.
-    let format = ew_schema::parse_format(FORMAT).expect("FORMAT is major.minor");
-    assert_eq!(KIND_SINCE.len(), Kind::ALL.len());
-    for ((kind, since), expected) in KIND_SINCE.iter().zip(Kind::ALL) {
-        assert_eq!(*kind, expected);
-        assert_eq!(*since, kind.since());
-        let v = ew_schema::parse_format(since)
-            .unwrap_or_else(|| panic!("{kind}: since {since:?} is not major.minor"));
-        assert!(v <= format, "{kind}: since {since} is newer than {FORMAT}");
-    }
-    assert_eq!(
-        Kind::Conflict.since(),
-        "0.1",
-        "a reserved kind has its format too"
-    );
-}
-
-#[test]
-fn every_member_and_variant_since_row_names_a_path_newer_than_its_kind() {
-    // The tables are empty while every member is 0.1; a row added later must name a real path and a format between its
-    // kind's and the schema's.
-    let format = ew_schema::parse_format(FORMAT).expect("FORMAT is major.minor");
-    let rows = MEMBER_SINCE
-        .iter()
-        .map(|m| (m.kind, m.path, m.since))
-        .chain(VARIANT_SINCE.iter().map(|v| (v.kind, v.path, v.since)));
-    for (kind, path, since) in rows {
-        let schema = kind_schema(kind).unwrap_or_else(|| panic!("{kind} has no schema"));
-        assert!(schema_has_path(&schema, path), "{kind}: {path} does not exist");
-        let v = ew_schema::parse_format(since)
-            .unwrap_or_else(|| panic!("{kind}.{path}: since {since:?} is not major.minor"));
-        assert!(v <= format, "{kind}.{path}: since {since} is newer than {FORMAT}");
-        assert!(
-            ew_schema::parse_format(kind.since()).is_some_and(|k| k < v),
-            "{kind}.{path}: since {since} is not newer than its kind's {}",
-            kind.since()
-        );
-    }
-    for v in VARIANT_SINCE {
-        assert!(!v.variant.is_empty(), "{}.{}: an empty variant", v.kind, v.path);
     }
 }
 

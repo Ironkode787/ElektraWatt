@@ -15,8 +15,8 @@ use ew_format::ew_schema::{AnyId, FORMAT, RELEASED_FORMATS};
 use ew_format::ew_schema::{AssetFormat, AssetRef, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
-    Manifest, MigrationError, Migrations, OpaqueKind, PathClass, SINCE, classify, crlf_to_lf, file_since,
-    hash_text, jsonl_file, min_reader, sha256, unknown_record_file,
+    Manifest, MigrationError, Migrations, OpaqueKind, PathClass, classify, crlf_to_lf, hash_text, jsonl_file,
+    sha256, unknown_record_file,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 
@@ -721,8 +721,7 @@ pub struct Store {
     manifest_hash: Option<[u8; 32]>,
     /// Whether the manifest's format stamp is kept (a newer minor, doc 05 §10.1).
     keep_format: bool,
-    /// Writer-owned files (record files and library documents of known kinds) on disk, with their hashes and their
-    /// `since` values.
+    /// Writer-owned files (record files and library documents of known kinds) on disk, with their hashes.
     disk: BTreeMap<FilePath, Held>,
     /// Files kept by hash only.
     opaque: BTreeMap<FilePath, FileHash>,
@@ -780,9 +779,8 @@ struct Migrated {
     confirmed: bool,
 }
 
-/// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, the SHA-256 of their
-/// CRLF-to-LF form when it differs, and its `since` value ([`ew_format::file_since`]; `None` at the format's floor),
-/// which the computed `min_reader` of every save reads without reading the file again.
+/// A writer-owned file as the store holds it: the SHA-256 of its bytes as loaded or written, and the SHA-256 of their
+/// CRLF-to-LF form when it differs.
 ///
 /// `hash` is the raw hash: the manifest lists it and the plan compares the bytes it renders with it. `lf` serves only
 /// the save's pre-check, which compares a record file or library document by its text, so that
@@ -791,17 +789,15 @@ struct Migrated {
 struct Held {
     hash: [u8; 32],
     lf: Option<[u8; 32]>,
-    since: Option<&'static str>,
 }
 
 impl Held {
-    /// The held form of `bytes` at `path`.
-    fn of(path: &FilePath, bytes: &[u8]) -> Held {
+    /// The held form of `bytes`.
+    fn of(bytes: &[u8]) -> Held {
         let hash = sha256(bytes);
         Held {
             hash,
             lf: lf_hash(bytes, &hash),
-            since: file_since(FORMAT, path, bytes, &SINCE),
         }
     }
 
@@ -1315,16 +1311,8 @@ impl Store {
             {
                 // The raw hash as the reader found it (the manifest's), and the LF form's beside it.
                 let bytes = files.get(path);
-                let since = bytes.and_then(|bytes| file_since(FORMAT, path, bytes, &SINCE));
                 let lf = bytes.and_then(|bytes| lf_hash(bytes, hash));
-                self.disk.insert(
-                    path.clone(),
-                    Held {
-                        hash: *hash,
-                        lf,
-                        since,
-                    },
-                );
+                self.disk.insert(path.clone(), Held { hash: *hash, lf });
             }
         }
         self.opaque = loaded
@@ -1947,21 +1935,15 @@ impl Store {
             model.project().id.cast(),
             g1,
         );
-        // The computed stamp (doc 05 §4): the greatest `since` of the files the new generation lists.
-        let since: Vec<&str> = plan.disk.values().filter_map(|h| h.since).collect();
-        manifest.min_reader = min_reader(FORMAT, since.iter().copied());
         manifest.unstable = unstable_flag(
             self.manifest.as_ref().filter(|_| self.keep_format),
             self.opts.released,
         );
         if self.keep_format {
             if let Some(old) = &self.manifest {
-                // A newer minor keeps its stamps; its `min_reader` rises when our records need more.
+                // A newer minor keeps its stamps.
                 manifest.format.clone_from(&old.format);
-                manifest.min_reader = min_reader(
-                    &old.format,
-                    since.iter().copied().chain([old.min_reader.as_str()]),
-                );
+                manifest.min_reader.clone_from(&old.min_reader);
             }
         }
         // A migrated project's members other than the stamps and the files are the manifest steps'.
@@ -2383,7 +2365,7 @@ impl Store {
             }
             let hash = sha256(&bytes);
             if disk.get(path).map(|h| h.hash) != Some(hash) {
-                disk.insert(path.clone(), Held::of(path, &bytes));
+                disk.insert(path.clone(), Held::of(&bytes));
                 writes.insert(path.clone(), bytes);
             }
         }
@@ -2806,14 +2788,7 @@ impl Store {
         );
         for path in &paths {
             if let Some(FileHash::Sha256(hash)) = self.opaque.remove(path) {
-                self.disk.insert(
-                    path.clone(),
-                    Held {
-                        hash,
-                        lf: None,
-                        since: None,
-                    },
-                );
+                self.disk.insert(path.clone(), Held { hash, lf: None });
             }
         }
         // The new manifest lists the copies left damaged with their entries as they were.
@@ -3138,13 +3113,12 @@ mod tests {
     fn a_held_crlf_file_accepts_its_raw_and_its_lf_hash() {
         // A record file held as CRLF bytes keeps the LF form's hash beside the raw one; LF bytes, or a lone
         // CR that the conversion keeps, have one hash only.
-        let path = FilePath::new("pages/0190a1b2-0000-7000-8000-000000000001.jsonl").expect("a page file");
-        let crlf = Held::of(&path, b"a\r\nb\r\n");
+        let crlf = Held::of(b"a\r\nb\r\n");
         assert_eq!(crlf.hash, sha256(b"a\r\nb\r\n"));
         assert_eq!(crlf.lf, Some(sha256(b"a\nb\n")));
         assert_eq!(crlf.accepted(), [sha256(b"a\r\nb\r\n"), sha256(b"a\nb\n")]);
         for bytes in [&b"a\nb\n"[..], b"a\rb\n", b""] {
-            let held = Held::of(&path, bytes);
+            let held = Held::of(bytes);
             assert_eq!((held.hash, held.lf), (sha256(bytes), None));
             assert_eq!(held.accepted(), [sha256(bytes)]);
         }

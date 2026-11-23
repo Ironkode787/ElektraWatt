@@ -24,9 +24,9 @@
 //!   inline (§3.4).
 //! - **Manifest** ([`Manifest`]): format stamps, generation and the SHA-256 of every file (§4), with the
 //!   reader decisions of §10.1 ([`reader_access`]), and the content digest of a generation that a sign-off binds to
-//!   ([`content_digest`], doc 15 §5.4). Its `min_reader` is computed ([`min_reader`]) from the `since` value of each
-//!   file ([`file_since`]) under `ew-schema`'s tables ([`SINCE`]); a manifest that came out of a git text merge with
-//!   conflict markers still gives the generation a save continues from ([`Manifest::conflicted_generation`]).
+//!   ([`content_digest`], doc 15 §5.4). Its `min_reader` is the format the writer writes (ADR-0011 amendment 9); a
+//!   manifest that came out of a git text merge with conflict markers still gives the generation a save continues
+//!   from ([`Manifest::conflicted_generation`]).
 //! - **Reading** ([`plan`], [`load`]): which files to read, then records, lines kept verbatim (unknown kinds,
 //!   malformed variants, quarantined lines), the rewrite set and the integrity findings of §6.2 and §6.3
 //!   ([`Finding`]), under the hostile-input [`Limits`] of §3.6.
@@ -88,7 +88,6 @@ mod migrate;
 mod order;
 mod path;
 mod read;
-mod since;
 mod version;
 mod write;
 
@@ -122,6 +121,5 @@ pub use read::{
     EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, crlf_to_lf, library_copy_hash, load,
     load_migrated, plan, rehash_migrated_copy,
 };
-pub use since::{SINCE, SinceTables, file_since, min_reader};
 pub use version::{Access, reader_access};
 pub use write::{manifest_of, project_files, render_records};

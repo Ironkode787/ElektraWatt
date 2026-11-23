@@ -16,7 +16,7 @@ In the table, R is the reader's format, F the file's format and M its `min_reade
 | Condition | Behaviour |
 |---|---|
 | M > R | Refuse; nothing written |
-| Same major, F ≤ R | Normal. A save writes `format = max(F, R)` and recomputes `min_reader` |
+| Same major, F ≤ R | Normal. A save writes `format = max(F, R)` and `min_reader` equal to it |
 | Same major, F > R, M ≤ R | Read-write with a banner: "written by a newer ElektraWatt; unknown data preserved". The stamp stays F |
 | F.major > R.major, M ≤ R | Read-only |
 | F.major < R.major | Migrate in memory. The first save asks first and writes `<name>.ew.pre-<F>.ewz` beside the project (NFR-REL-06) |
@@ -70,8 +70,7 @@ The schema-steward rule (ARCH §7.6) requires every format PR to ship a migratio
 docs. Additive changes also follow four rules (rules 1 and 3 and the original-line preservation below are ADR-0011
 amendment 1):
 
-1. **New members** are optional with a default, are **appended** after the existing members of their kind, and
-   carry `since = "1.n"`, which feeds `min_reader`.
+1. **New members** are optional with a default and are **appended** after the existing members of their kind.
 2. **New kinds** take a new rank and declare their ownership.
    (ADR-0011 amendment 4.) A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling. The typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it. No earlier build wrote covers. The reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. The rule applies again to the reserved kinds `page_item` and `structure_box` (§2.2). An older 0.1 build keeps their records verbatim and does not enforce their delete links (the cascade of a deleted page, the wire marker's connection list), so the current build opens a project whose marker lists a deleted connection or one on another page, reports it and ignores the stale entry; it neither refuses the project nor rewrites the record. The rule
    applies to the reserved kinds `macro_instance`, `macro` and `manufacturer` (§2.2) and to the part members of
@@ -101,7 +100,7 @@ memory.
 Unknown kinds and the lines of EW-CORE-007 and EW-CORE-017 are
 kept byte for byte, but an untouched record with unknown *members* is re-emitted canonically (its members kept in
 `extra`, in byte-wise order) instead of by its original line; the original-line rule above is not built.
-`min_reader` is written equal to `format` (§4, §10.4); the computed value is not built.
+`min_reader` is written equal to `format` (§4, ADR-0011 amendment 9).
 
 The four project-level commands add no record kind and change no
 schema: `frames` and `checks` (in `ProjectSettings.extra`) and `ew.company` (in `Project.extra`) are existing `extra`

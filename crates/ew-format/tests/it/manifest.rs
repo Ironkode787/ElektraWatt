@@ -171,17 +171,6 @@ fn a_conflicted_manifest_without_a_usable_generation_line_gives_none() {
 }
 
 #[test]
-fn a_new_manifest_needs_the_major_floor_of_its_format() {
-    // A manifest without files needs no more than its format's major floor; before 1.0 every step
-    // is a major, so the floor of 0.1 is 0.1.
-    assert_eq!(base().min_reader, "0.1");
-    let id = PROJECT.parse().unwrap();
-    assert_eq!(Manifest::new("1.3", "g", id, 1).min_reader, "1.0");
-    assert_eq!(Manifest::new("0.2", "g", id, 1).min_reader, "0.2");
-    assert_eq!(Manifest::new("x", "g", id, 1).min_reader, "x");
-}
-
-#[test]
 fn rejects_duplicate_member_and_non_utf8_and_non_object() {
     let dup = text_with("1", "{}", ",\"generation\":2");
     assert!(matches!(parse(&dup), Err(ManifestError::Json { .. })));

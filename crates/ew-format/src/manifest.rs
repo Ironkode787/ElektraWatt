@@ -63,7 +63,7 @@ impl fmt::Display for FileHash {
 pub struct Manifest {
     /// The writer's two-part format (`"0.1"`, doc 05 §10.1).
     pub format: String,
-    /// The lowest format a reader needs: computed by a save from the files it lists ([`min_reader`](crate::min_reader)).
+    /// The lowest format a reader needs: the format the writer writes (ADR-0011 amendment 9).
     pub min_reader: String,
     /// The program and version that wrote this generation (`"ElektraWatt 0.0.0"`). The fixture comparison
     /// of doc 20 §3.2 ignores it (doc 05 §17.1).
@@ -134,12 +134,11 @@ impl fmt::Display for ManifestError {
 impl std::error::Error for ManifestError {}
 
 impl Manifest {
-    /// A manifest without files: its `min_reader` is `format`'s major floor ([`min_reader`](crate::min_reader) of no
-    /// file), `format` itself before 1.0.
+    /// A manifest without files, its `min_reader` the format.
     pub fn new(format: &str, generator: &str, project: AnyId, generation: u64) -> Manifest {
         Manifest {
             format: format.to_owned(),
-            min_reader: crate::min_reader(format, None),
+            min_reader: format.to_owned(),
             generator: generator.to_owned(),
             project,
             generation,

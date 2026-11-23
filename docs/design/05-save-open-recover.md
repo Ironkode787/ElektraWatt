@@ -29,7 +29,7 @@ A chapter of [Project format and persistence](05-project-format-and-persistence.
 | Member | Meaning |
 |---|---|
 | `format` | Two-part format of the writer's schema (§10.1). Never lowered |
-| `min_reader` | Lowest format a reader needs. Computed from the `since` metadata of every kind, member and enum variant actually present, so a 1.3 writer that uses no newer feature writes `"1.0"` |
+| `min_reader` | Lowest format a reader needs: the format the writer writes (ADR-0011 amendment 9). A save of a newer minor (§10.1) keeps the stamps it found |
 | `generator` | Program and version that wrote this generation |
 | `project` | The project row's ID: key for the journal, the trust store and "two copies open" warnings |
 | `generation` | +1 per save; after a git merge, max(ours, theirs) + 1 (§11.3) |

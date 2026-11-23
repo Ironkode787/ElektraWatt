@@ -599,9 +599,8 @@ fn a_roll_forward_removes_a_duplicate_stray_too() {
 }
 
 #[test]
-fn a_save_stamps_the_computed_min_reader() {
-    // With the shipped tables every file of a 0.1 project is at the floor, so a save writes "0.1"; the
-    // sample's bytes do not move.
+fn a_save_stamps_its_format_as_min_reader() {
+    // A save writes the format it writes as `min_reader` (ADR-0011 amendment 9): "0.1", as the sample holds.
     let (vfs, _, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys) = edit(&model);
     store.save(&edited, Changes::Keys(&keys)).expect("the save");
