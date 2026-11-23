@@ -9,8 +9,8 @@ For each entity of an electrical control-cabinet project it gives the purpose, t
 units, the relationships, identity and lifecycle, the invariants, whether the concept is authored (stored, changed
 only by commands) or derived (computed by a query, never stored), and its EPLAN Electric P8 and QElectroTech (QET)
 equivalent. It refines §4 of the accepted [architecture](04-architecture.md) without changing its decisions: record
-names are those of `ew-schema`, and every addition is marked and listed in §1.2. The reference project (cabinet
-J-E-2416) is the running example (Golden A, retired at 0.3.5 with its acceptance specification; see the [glossary](glossary.md)).
+names are those of `ew-schema`, and every addition is marked (added). The reference drawing set (cabinet
+J-E-2416) is the running example.
 
 **Where each section lives.** The section numbers are the ones the code and the other documents cite.
 
@@ -35,4 +35,4 @@ J-E-2416) is the running example (Golden A, retired at 0.3.5 with its acceptance
 | [§17. Manufacturing](03-areas.md#17-manufacturing) | [PLC, bus, fluid, layout, manufacturing, revisions and checks](03-areas.md) |
 | [§18. Revisions and release](03-areas.md#18-revisions-and-release) | [PLC, bus, fluid, layout, manufacturing, revisions and checks](03-areas.md) |
 | [§19. Checks](03-areas.md#19-checks) | [PLC, bus, fluid, layout, manufacturing, revisions and checks](03-areas.md) |
-| [§20. Golden project mapping](03-areas.md#20-golden-project-mapping) | [PLC, bus, fluid, layout, manufacturing, revisions and checks](03-areas.md) |
+| [§20. The reference drawing and the sample project](03-areas.md#20-the-reference-drawing-and-the-sample-project) | [PLC, bus, fluid, layout, manufacturing, revisions and checks](03-areas.md) |

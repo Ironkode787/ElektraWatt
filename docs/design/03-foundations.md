@@ -23,7 +23,7 @@ A chapter of [Domain model](03-domain-model.md), whose table says where each sec
   defined in §3.
 - This document is the normative field-level schema, together with `ew-schema`; [architecture](04-architecture.md)
   §4.2 summarises it. File placement and kind ranks are those of [05](05-project-format-and-persistence.md) §2.
-- "CP" is a connection point, "IP" an interruption point, "GP" the golden project, "DT" a device tag.
+- "CP" is a connection point, "IP" an interruption point, "DT" a device tag.
 - The column **Kind** classifies every concept:
 
 | Marker | Meaning | Persisted | Changed by |
@@ -40,7 +40,7 @@ A chapter of [Domain model](03-domain-model.md), whose table says where each sec
   only report are tagged **Chk** with their rule or requirement ID. All invariants are evaluated on the candidate
   snapshot at transaction end, so swaps and renumbers need no intermediate states.
 
-### 1.2 Vocabulary mapping and additions
+### 1.2 Vocabulary mapping
 
 | Term used elsewhere | Model concept |
 |---|---|
@@ -52,48 +52,6 @@ A chapter of [Domain model](03-domain-model.md), whose table says where each sec
 | Placement | `Placement3D`, also used by the 2D panel layout |
 | Connection definition point (CDP) | `Connection.overrides`, optionally rendered as a wire marker |
 | Part | a catalogue item in `ew-library`; inside a project always a `PartCopy` reached through a `PartRef` |
-
-**Additions to arch §4.2** (records or fields not named there; each is justified where it is introduced):
-
-| Addition | Section | Reason |
-|---|---|---|
-| `PlcConfigProject` record | §13 | FR-PLC-002 needs an address profile, ownership and exchange snapshot per PLC project ([02b](02b-requirements-extended.md) OQ1) |
-| `MediumDef` record | §15 | Media propagate from sources (FR-FLU-009), as potentials propagate from definition points |
-| `DeviceLink` record | §7 | Functional links "valve drives actuator" (FR-DEV-028) |
-| `StructureBox`, `PageItem` (page items) | §5, §6 | Structure boxes (FR-PRJ-020), free graphics and texts (FR-SYM-023/024) |
-| `ReleaseRecord` value inside `Revision` | §18 | Checker approval stored with the release (FR-REV-020) |
-| `Page.title` + `Page.description_override` replacing `Page.description` | §6 | Two title-block cells; D-06 check on the override |
-| `Device.structure`, `Device.position` | §7 | Own structure assignment (FR-PRJ-019); physical order inside a parent (manifold order, valve position) |
-| `StructureNode.aliases` | §5 | Import spellings such as "JE2416" map to the one canonical node (D-03) |
-| `TagSpec.scheme = Child`, `FrozenTag.sign` | §8 | Child tags -201U3-Q1 (FR-NUM-013); frozen "S51" printed without the product sign |
-| `FnDef.internal` with `Short` and `PassThrough{opens}`; `FnFlags.switches_n_with_l` | §7, §9 | Potential-type propagation and EW-POT-013 (FR-CON-011) |
-| `Connection.page` optional | §9 | Strip-editor bridges and page-less internal links; a channel binds its coil directly, without a connection |
-| `Junction.wiring = Chain \| Star` | §9 | The physical wires behind a junction (FR-CON-005, D-20) |
-| `NetDef.scope = Signal \| Net`; `PotentialDef.props`, `PotentialDef.circuit_class` | §9 | The full property inheritance chain (FR-CON-016, FR-CON-017) |
-| `Bond.via` | §9 | The physical wire that realises a bond (PE-0VDC, D-22) |
-| `IpSpec.star_source`, `IpSpec.sort`, `IpSpec.external`; `Function.device` optional for IPs | §10 | Star and chain pairing (FR-XRF-007), external points (FR-XRF-012) |
-| `BusPort.termination` | §14 | Connector termination as a property (FR-BUS-004) |
-| Assembly overview (the superseded `Representation.assembly_view`) | §6, §7 | Assembly overviews drawn by the members' overview representations, break marks derived (FR-DEV-023, D-10) |
-| `MasterData.document_title` | §5 | The cover subtitle "Electrical Definition" is its own field, distinct from `long_description` |
-| `ProjectSettings` record shapes: `numbering`, `wire_numbering`, `xref_format`, `colour_profile`, `size_profile`, `wire_default`, `frames` | §5.1 | Fixed before M1, so the derivations of the golden PDF read one shape |
-| `UserPropDef`, `user_props` | §5 | Minimal definition of the user properties of FR-PRJ-007 |
-
-**Schema batches adopted before `ew-schema` v0 freezes** (the revision record kinds before M1). They refine the
-records of this document; the owning feature document gives the behaviour.
-
-| Batch | Additions | Section | Owner |
-|---|---|---|---|
-| Value types | `Angle2` for free texts and graphics; `ColourCode::Foreign(Ident)`, lenient mode only | §3 | [14](14-interop.md) |
-| Library items | `ItemMeta{key, licence, sources, as_of, confidence, status}` (no `version`: the document's own `version` member, [05](05-project-format-and-persistence.md) §13.2), `foreign_terms`, `LibRef{library, item, version_req}`, manufacturer copies; `SymbolCp.fn_cp`; three-level FnDef category; `FnFlags.n_isolation`; `CpDef.source_output`, `CpDef.optional`; `Part.free_props`; `PartCopy.sections.fluid` | §6, §7 | [07](07-symbols-parts-macros.md), [08](08-connections-terminals-cables.md), [11](11-fluid-power.md) |
-| Representations and page items | `Representation.box` (black boxes), `Representation.arrangement`; `PageItem::WireMarker{connections, at, angle, fields}`, `FreeText` role `PathFunction`, `MacroBox`, `SurfaceView`, `ModelView`, `Dimension`, `Underlay` (1.0) | §6 | [06](06-schematic-editor.md), [07](07-symbols-parts-macros.md), [12](12-panel-layout.md), [14](14-interop.md) |
-| Macros | `ValueSet{name, values}`, `MacroInstance`, `PlaceholderGroup` | §7 | [07](07-symbols-parts-macros.md) |
-| Report blocks and forms | `ReportBlock.source = SqlQuery{api, file}`, `manual`, `continuation`, `title`, `empty`; `FormDef.page_to_sheet`, `FormDef.continuation`; `EmbedSpec.overflow` withdrawn (overflow follows the cells' policy, [09](09-reports-forms-output.md) §3.4) | §6 | [09](09-reports-forms-output.md) |
-| Connections and potentials | `ConnectionKind` payloads `Bridge(BridgeSpec)`, `Bus(BusLine)`, `SingleLine{conductors}` (1.0); `PotentialDef.ptype` optional, `env.earthing`; `ClampKey`; `WireOverrides.length`, `WireOverrides.ends`; `Strip.groups`, `Strip.field_side`; `Junction.fitting` | §9, §11, §15 | [08](08-connections-terminals-cables.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) |
-| PLC and bus | `Owner` per field group, `ExchangeStamp`, `allocation`, `symbols`; `PlcStation.order`; `PlcModule.start: IoStarts`, `part_use`, `safety`; `Channel.state` optional, `target`, `signal_range`, `safety`; derived `PhysicalNet` segments with `order_hint`, `PhysicalNet.medium` | §13, §14 | [10](10-plc-and-bus.md) |
-| Fluid power | `ValveModel.sections`; `FluidPortRole` additions; `Medium.code`, `line_kind_tubes`; `TubeOverrides`; `ProjectSettings.fluid.default_tube`; `CpOverride.closure`; `DeviceKind::BlankingPlate`; no `FluidLine.tag` | §15 | [11](11-fluid-power.md) |
-| Layout and manufacturing | `Placement3D.part`, `.segment`; `RouteOverride.bundle`, `.seq`; `LayoutSpace.install`; `RouteNodeRef`; `RoutingPath`, `SurfaceFeature`; `WireEnd` per 13; `MfgSettings` additions incl. length increment and reserve | §16, §17 | [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) |
-| Revisions and checks | `Revision.purpose`, `sign_off`, `withdraws`, `reason`; `ReleaseRecord.content_digest`, `page_digests`, `changed_pages`; `Transmittal`; `Project.completed`; `Comment.kind`, `revision`, `parent`, `resolved`; `Waiver.target`, `expires`; finding state `possibly_resolved`; `CheckSettings`; rule scopes | §5, §18, §19 | [15](15-checks-revisions-collaboration.md) |
-| Import provenance | `source_ref{lineage, key}` on imported records; `ImportLineage`, `ImportRun` | §4, §5 | [14](14-interop.md) |
 
 ---
 
@@ -229,8 +187,8 @@ classDiagram
   This is QET's convention, so imported geometry needs no flip.
 - **`Grid { num, den }`** is a rational step in nm. The QET 10 px grid is `7_937_500/3` nm (1 px = 25.4/96 mm =
   `793_750/3` nm). The native EW connection grid is 4 mm = `4_000_000/1`, with fine grids of 0.5 mm for graphics and
-  1 mm for text slots: ADR-0027's recommendation, the default in force since 2026-10-18 while the ADR stays Proposed
-  until the pilot confirms it at G-M0. Points snap to grid indices `k`, and the stored
+  1 mm for text slots: ADR-0027's recommendation, the default in force while the ADR stays Proposed
+  until the pilot confirms it. Points snap to grid indices `k`, and the stored
   coordinate is `round(k × num / den)`, an error of at most 0.5 nm.
 - **`Rect`** is an axis-aligned closed rectangle of two `Pt2`, always normalised (minimum corner first). It is
   persisted in embedded report blocks, form cells and data areas and `SurfaceView.clip`; the JSON encoding is
@@ -260,11 +218,11 @@ classDiagram
   stored.
 - **`Csa = Mm2(Dec3) | Awg(i8) | Kcmil(Dec3)`** keeps AWG and kcmil in their original unit (FR-CON-032).
 - **Persisted spellings.** `Unit` is persisted in ASCII (`mm2`, `A`, `V`, `Hz`, `bar`, `degC`, `kg`, `W`, `m`,
-  `mm`, `piece`, `set`, and from 0.3.5 `mA` for a coil's or an input's current), `Csa` as a bare `Dec3` in mm²,
+  `mm`, `piece`, `set` and `mA` for a coil's or an input's current), `Csa` as a bare `Dec3` in mm²,
   `{"awg": n}` or `{"kcmil": Dec3}`; the encodings are in
   [05](05-project-format-and-persistence.md) §3.2 (ADR-0005 amendment 4). `Unit::ALL` is the one list of them: a
   value typed in a field or read from a parts catalogue takes a unit by its spelling or its printed symbol (`mm2` or
-  `mm²`, `piece` or `pc`), and prints by the symbol (FT-1981).
+  `mm²`, `piece` or `pc`), and prints by the symbol.
 - Part quantities are `Dec3` with the part's order unit (piece, metre, set; FR-PRT-026), so -3W1's PROFIBUS cable
   counts in metres.
 
@@ -323,8 +281,8 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 | An interruption-point function's representation (deleted alone or with its page) | cascade: the IP function is deleted, and the connections at its CP with it | an IP function has no device and is owned by its page (ADR-0009 amendment 3); EW-INV-013: a function of kind `Ip` has exactly one representation |
 | `Representation.page`, page-owned rows | cascade | deleting a page leaves its devices unplaced unless the user deletes them |
 | `Connection.a/b` (CP or junction) | cascade | a connection never dangles |
-| `PageItem.page`, `StructureBox.page` (specified for WP-S2.04 part 4a) | cascade | deleting a page deletes its page items and structure boxes (FR-PAG-025; EW-INV-022, §6) |
-| A connection listed by a `WireMarker` (specified for WP-S2.04 part 4a) | unlink: the connection leaves the marker's list, and a marker left without connections is deleted in the same plan | EW-INV-023, §6: every listed connection exists and lies on the marker's page |
+| `PageItem.page`, `StructureBox.page` | cascade | deleting a page deletes its page items and structure boxes (FR-PAG-025; EW-INV-022, §6) |
+| A connection listed by a `WireMarker` | unlink: the connection leaves the marker's list, and a marker left without connections is deleted in the same plan | EW-INV-023, §6: every listed connection exists and lies on the marker's page |
 | `Terminal.strip` | forbid | a strip with terminals cannot be deleted alone |
 | `Conductor.cable` | cascade; `Connection.kind = Core` reverts to `Wire` | the drawn wire survives |
 | `Channel.module` | cascade, after confirmation when channels are placed or exchanged | |
@@ -338,7 +296,7 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 **Policy by link class.** The complete list is `LINKS` in `crates/ew-model/src/links.rs` (`crates/ew-model/invariants.md`
 §4 explains it); the classes are:
 - **Cascade** for page-owned rows (`Representation.page`, `Connection.page`, `Junction.page`, an embedded
-  `ReportBlock`'s page, `PageItem.page` and `StructureBox.page` once WP-S2.04 part 4a implements them, and an IP
+  `ReportBlock`'s page, `PageItem.page` and `StructureBox.page`, and an IP
   function with its representation) and for `Function.device`. A connection
   cascades with either endpoint, a representation with any of its functions, a conductor with its cable.
 - **Unlink** for optional cross-references: `SupplySpec.origin.source`, `IpSpec.external`, the bus cable of a

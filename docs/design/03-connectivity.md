@@ -110,21 +110,20 @@ classDiagram
 | `Connection`: one explicit logical edge with a route (ADR-0007) | A; page-owned when drawn, else in the shard of the device that owns endpoint `a` | `a, b: Endpoint = Cp{function, idx} \| Junction(JunctionId)`; `page?` (added: None for strip-editor bridges and page-less internal links); `route: Vec<Pt2>` (nm, orthogonal, FR-CON-007); `kind: Wire \| Core(ConductorId) \| Bridge(BridgeSpec{kind, group, shaft}) \| Fluid(FluidLine) \| Bus(BusLine{cable?}) \| Overview \| Internal \| SingleLine{conductors: u8}` (`SingleLine` is 1.0; at MVP single-line pages draw connections as `Overview`, which join no nets); `overrides: WireOverrides` (the CDP level); `number: NumberSpec` (wire number or fluid line tag) | Several connections may share one CP; their order is the order of the junction sequence or, for direct connections, ascending ID (FR-CON-006). Moving representations never changes connectivity (FR-CON-004) | S: endpoints exist and differ; `Fluid` joins fluid CPs, `Bus` joins bus-port CPs, the other kinds join electrical CPs. `Overview` and `SingleLine` connections never join nets (FR-CON-002, FR-CON-029) |
 | `Junction`: explicit T-node (REF-034, D-20) | A, page-owned | `at: Pt2`, `style: Dot \| Bevel{orient}`, `wiring?: Chain \| Star` (added; absent: the style's default, Dot → Star, Bevel → Chain), `sequence: Vec<ConnectionId>`, `fitting?: PartRef` (fluid pages only: a drawn fluid T is a physical tee, [11](11-fluid-power.md) §5.1) | Created and cleaned up by normalisers | S: every connection ending at the junction is in `sequence` and vice versa; at least three connections |
 | `WireOverrides`: explicit per-connection values (CDP) | A, value | `csa?`, `colour?: ColourSpec`, `wire_part?`, `insulation?`, `function?`, `flags{shielded, twisted}`, `show_marker`; added: `length?: Nm` (manual length on the carrier connection, which works without a layout space, [12](12-panel-layout.md) §9) and `ends: SmallVec<[EndOverride{at: CpRef, treatment?, part?, strip_len?, marker?, no_marker}; 2]>` (per-end treatment, keyed by CP, [13](13-manufacturing-outputs.md) §2.3) | Rendered as a wire marker on request (FR-CON-023, FR-CON-024). The number-transfer normaliser moves `length` and `ends` together with the wire number when the carrier connection changes ([08](08-connections-terminals-cables.md) §5.1) | Chk: override equal to the derived value ("move override to profile" quick fix) |
-| `PotentialDef`: names and types a potential | A, device shard | `at: Endpoint`, `name: Ident`, `ptype?: PotentialType` (None = naming only; a set type wins over propagation; `switched` is always derived from opening pass-through pairs), `voltage: Dec3` (V), `env{ac_dc, frequency, earthing?: Pelv \| Selv \| Floating}`, `circuit_class?` (added), `props: WireProps` (added) | Optionally drawn as a definition-point symbol (FR-CON-010). The golden potentials N-55T and N-55S are naming-only definitions; the other named golden potentials carry type, voltage and class (doc 20 §7.3, decision) | Chk: two definitions with different name or type in one potential (EW-POT-017) |
+| `PotentialDef`: names and types a potential | A, device shard | `at: Endpoint`, `name: Ident`, `ptype?: PotentialType` (None = naming only; a set type wins over propagation; `switched` is always derived from opening pass-through pairs), `voltage: Dec3` (V), `env{ac_dc, frequency, earthing?: Pelv \| Selv \| Floating}`, `circuit_class?` (added), `props: WireProps` (added) | Optionally drawn as a definition-point symbol (FR-CON-010). A definition may only name its potential (N-55T, N-55S) or also give its type, voltage and class | Chk: two definitions with different name or type in one potential (EW-POT-017) |
 | `NetDef`: properties for one signal or net | A, device shard | `at: Endpoint`, `scope: Signal \| Net` (added), `props: WireProps` | FR-CON-016 | — |
 | `Bond`: intentional link of two potentials (REF-038) | A, device shard | `a, b: Endpoint`, `kind: Pelv0vPe \| FePe \| Equipotential \| Shield`, `via?: WireId` (added) | The physical wire named in `via` stays in wire lists but does not merge the two potentials (D-22) | Chk (FR-CHK-028): different types joined without a bond; PELV without exactly one 0 V–PE bond |
 | `Net`, `Signal`, `Potential` | D | see §9.3–§9.4 | `page_local_nets(page)`, `stitch_graph()`, `potential_partition()` | — |
 | `PhysicalWire`: what the shop cuts | D | ID, two CP ends, constituent connections | §9.2 | — |
 | `ColourProfile`, `SizeProfile` | A, in `ProjectSettings` | colour: rows `(voltage class, PotentialType) → (ColourSpec, name: MlText)`, company codes, `basis: Standard \| CompanyConvention` (D-37); size: rows `circuit class → (csa, wire_part?)` | Generate the cover tables of folio 1 (FR-REP-028) | — |
 
-*As built ([ADR-0033](../adr/0033-schematic-routing-model.md)).* A
-non-empty `Connection.route` is the drawing: the full orthogonal vertex list from end `a`'s point (a CP's or a
+A non-empty `Connection.route` is the drawing ([ADR-0033](../adr/0033-schematic-routing-model.md)): the full orthogonal vertex list from end `a`'s point (a CP's or a
 junction's) to end `b`'s, both included, every corner between on the page grid or on an end's coordinate; a reader
 draws it as stored and joins an end that has moved off it with one straight segment. An empty route on a page
 connection whose ends lie at two points means the connection is *unrouted*: it is drawn as a dashed right-angled line
 between its ends, has no wire geometry for normaliser 7, EW-TERM-006 or autoconnect, and is reported by EW-CORE-073.
 Routes are written only by an explicit step (the Wire tool, Route, a move's re-solve, an
-importer, Golden A's route tool); no reader routes.
+importer); no reader routes.
 
 ### 9.1 Potential types and circuit classes
 
@@ -165,7 +164,7 @@ flowchart LR
   P -. "Bond: linked, not merged" .-> P3["Bonded potential"]
 ```
 
-| Level | Joined through | Bounded by | Golden example |
+| Level | Joined through | Bounded by | Example |
 |---|---|---|---|
 | **Net** | connections of kind Wire, Core, Bus, Internal; junctions; IP pairs | every function CP (terminals, plugs and devices included) | W29: -102F2:Out1 → IP 24VDC-1 → -X1031:1 side 1 |
 | **Signal** | nets joined by `Short` internal links: terminal levels (feed-through), plug/socket pins, duplicated device pins (PSU +#1/+#2) | bridges, rail bonds, `PassThrough` pairs, devices | W29 plus the -106W1 BN core to -201U1:5 through -X1031:1: signal "24VDC-1" |
@@ -300,7 +299,7 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| Interruption point: `Function{kind: Ip(IpSpec), device: None}` with one CP and a representation (arch §4.2) | A; function in the page file of its representation, which it follows on a page move ([05](05-project-format-and-persistence.md) §2.2); representation page-owned | `name: Ident` ("L-1"); `direction: Source \| Target \| Undirected` (signal direction, independent of the arrow glyph's orientation, FR-XRF-009); `star_source: bool` (added); `sort?: i32` (chain order, added); `external?: ExternalRefId` (added); `group?: u32` (rc.3, added: external points of one reference with the same group print where they come from once, at the group's last point on the page; set by `ip.supply_in` when several points are marked at once or one is marked under or over a marked point of its place) | Its CP joins the local net; the pair joins nets across pages (§9.3). "Create counterpart" makes the partner on a chosen page (FR-XRF-014). The pairing scope is the project setting `ip_pairing.scope` (§5), not a member of `IpSpec`. Owned by its page: deleting the page or the IP representation deletes the function and the connections at its CP (ADR-0009 amendment 3). | S: `device` is None and the function has exactly one representation (ADR-0009 amendments 2 and 3; EW-INV-003, EW-INV-013). P: in star mode at most one star source per name and scope; in chain mode an even count, ordered by sort key (ADR-0009). Chk (FR-CHK-017): unpaired, ambiguous |
+| Interruption point: `Function{kind: Ip(IpSpec), device: None}` with one CP and a representation (arch §4.2) | A; function in the page file of its representation, which it follows on a page move ([05](05-project-format-and-persistence.md) §2.2); representation page-owned | `name: Ident` ("L-1"); `direction: Source \| Target \| Undirected` (signal direction, independent of the arrow glyph's orientation, FR-XRF-009); `star_source: bool` (added); `sort?: i32` (chain order, added); `external?: ExternalRefId` (added); `group?: u32` (added: external points of one reference with the same group print where they come from once, at the group's last point on the page; set by `ip.supply_in` when several points are marked at once or one is marked under or over a marked point of its place) | Its CP joins the local net; the pair joins nets across pages (§9.3). "Create counterpart" makes the partner on a chosen page (FR-XRF-014). The pairing scope is the project setting `ip_pairing.scope` (§5), not a member of `IpSpec`. Owned by its page: deleting the page or the IP representation deletes the function and the connections at its CP (ADR-0009 amendment 3). | S: `device` is None and the function has exactly one representation (ADR-0009 amendments 2 and 3; EW-INV-003, EW-INV-013). P: in star mode at most one star source per name and scope; in chain mode an even count, ordered by sort key (ADR-0009). Chk (FR-CHK-017): unpaired, ambiguous |
 | External connection point: an IP with `external = Some(ref)` | A | as above | Never pairs inside the project; prints the external target "+J-E-206 / JE-N1000-03" (FR-XRF-012), the parts its reference holds ([06](06-schematic-editor.md) §3.5) | Chk (FR-CHK-033): external connection without a cable |
 | `XrefFormat`: how relations print | A, in `ProjectSettings` | tokens `{page}` (folio label, QET `%F`), `{page_index}` (`%f`), `{row}` (`%l`), `{column}` (`%c`), `{function}` (`%M`), `{location}` (`%LM`), separators; main marker "∞ "; auxiliary wrap "(…)"; matrix layout (FR-XRF-008) | Presets "102-A1" (`%F-%l%c`), "(201-E1)", "/101.16" (FR-XRF-002) | — |
 | `XrefRelation` | D | kinds: IP pair (star or chain), main ↔ auxiliary function, same function in another representation type (overview ↔ detail), pair cross-reference (1.x), external | Computed from functions and representations; never stored (FR-XRF-001) | — |
@@ -309,9 +308,9 @@ classDiagram
 **Pairing.** IPs pair by `(name, scope key)`, where the scope key is the IP's resolved structure at the project's
 pairing scope (project, `=` or `+`; FR-XRF-010). In **star** mode the star source refers to all others and each other
 point refers to the source; in **chain** mode points pair in `(sort, page order, cell)` order (FR-XRF-007).
-*As built (rc.5).* In star mode two points of one direction are never tied to each other: without a star the source is
-the first source point, else the first undirected point; targets of a name without a source wait unpaired for it
-(before, the first target became their source), and a second source without a star stays apart (EW-CORE-052 asks
+In star mode two points of one direction are never tied to each other: without a star the source is
+the first source point, else the first undirected point; targets of a name without a source wait unpaired for it,
+and a second source without a star stays apart (EW-CORE-052 asks
 which one feeds).
 
 **Worked examples** (all from the reference project's cross-reference table):
@@ -404,7 +403,7 @@ classDiagram
 | Bridge: `Connection{kind: Bridge(BridgeSpec)}` | A; page-owned when drawn, else in the strip's shard | `BridgeSpec{kind: PlugIn \| Saddle \| Wire \| InterLevel, group: u16, shaft: u8}`; the connections of one group (a comb over consecutive `seq` on one shaft) are one bridge object, and only the first carries the part in `overrides.wire_part`, read as level-6 data | Joins signals into one potential (§9.3); appears in terminal diagrams and the BOM (once per group), never as a wire (FR-TRM-007) | S: both ends are terminal CPs. P: a group runs over consecutive `seq` on one shaft, and groups do not overlap |
 | `TerminalRow` | D | designation, level, function text, part, potential, internal and external targets (device, CP, cable and core), bridges, spare | `terminal_rows(strip)` feeds terminal diagrams (FR-REP-009) and assembly lists | — |
 
-**Golden -X1031.** 20 terminal devices, designations 1–20 (proposal ▲), function texts "1+" ×4, "2+" ×2, "3+"
+**Example: -X1031.** 20 terminal devices, designations 1–20 (proposal ▲), function texts "1+" ×4, "2+" ×2, "3+"
 ×2, "4+" ×2, "1-" ×4, "2-"/"3-"/"4-" ×2, `label_mode = FunctionText`, so the drawing looks as before while lists are
 unambiguous. `Strip.groups` carries the captions "Pneumatics" (1–4, 11–14) and "Spare" (5–10, 15–20). Bridges 1–2–3–4,
 5–6, 7–8, 9–10 and 11–20 are plug-in bridge groups defined in the strip editor (`page = None`); BR1, for example, is
@@ -476,11 +475,10 @@ classDiagram
 | `Conductor`: one core or shield | A, cable's shard | `core: Ident` ("1", "BK", "A"), `colour?: ColourSpec`, `csa?: Csa` (absent while unknown), `shield: bool` (FR-CBL-007), `pair?` (FR-CBL-019) | Generated from the part's core definition on assignment (FR-CBL-004); a drawn connection becomes `kind: Core(conductor)` (FR-CBL-003). One core may span several pages through IPs | Chk (FR-CHK-032): colours outside IEC 60757 or different from the part |
 | `CableRow`, `CableEnds` | D | per core: source and target (device, CP, location), spare; ends from conductor endpoints (FR-CBL-012) | `cable_rows(cable)` feeds cable diagrams and overviews (FR-REP-012/013) | — |
 
-**Golden.** -106W1 and -106W2 (Festo NEBU-G78W5-K-2-N-LE5): cores BK, BU, GNYE, WH, BN (drawn "BR"), length
+**Example.** -106W1 and -106W2 (Festo NEBU-G78W5-K-2-N-LE5): cores BK, BU, GNYE, WH, BN (drawn "BR"), length
 `FromPart` (2 m, unverified). -3W1 (6XV1830-0EH10): cores A and B plus a shield, drawn single-line on folio 3 as
-one `Connection{kind: Bus(BusLine{cable: -3W1})}` (FR-CBL-008), length `Missing` until entered. Golden A therefore
-has 3 cables with 13 conductors. Golden A-R adds the incoming supply cable -101W1 from +J-E-206 to 1X1 (3 cores, ▲),
-which resolves D-19 and gives 4 cables with 16 conductors.
+one `Connection{kind: Bus(BusLine{cable: -3W1})}` (FR-CBL-008), length `Missing` until entered. The incoming supply
+cable -101W1 from +J-E-206 to 1X1 (3 cores, ▲) resolves D-19.
 
 **Equivalents.** EPLAN: cable definition line, cable DT, conductors with function definition "conductor/wire",
 connection definition points at intersections, shields, edit-cable dialog. QET: `<cables>` with `<core>` entries in

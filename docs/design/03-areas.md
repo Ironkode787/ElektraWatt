@@ -87,7 +87,7 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| `PlcConfigProject` (added): one target PLC-software project | A, `project.jsonl`; the exchange body (exchange records, foreign IDs) in `exchange/<uuid>.jsonl` (1.0) | `name` ("PLC1"), `profile` (address grammar: "Siemens TIA (international)", "IEC 61131-3"; FR-PLC-008), `cpu?` (None in Golden A: the DP master sits in +J-E-206), `allocation: Packed \| SlotBased` (1.x), `ownership`: an `Owner = Ecad \| Plc \| Shared` per field group (FR-PLC-033), `symbols: SymbolPolicy{template?, strict_iec, tag_table}`, `exchange?: ExchangeStamp{format, version, file_sha256, direction, rev, date}` | Scopes address and symbol uniqueness (FR-PLC-002); a new project has one default ([10](10-plc-and-bus.md) §2.2) | — |
+| `PlcConfigProject` (added): one target PLC-software project | A, `project.jsonl`; the exchange body (exchange records, foreign IDs) in `exchange/<uuid>.jsonl` (1.0) | `name` ("PLC1"), `profile` (address grammar: "Siemens TIA (international)", "IEC 61131-3"; FR-PLC-008), `cpu?` (None when the DP master sits outside the project), `allocation: Packed \| SlotBased` (1.x), `ownership`: an `Owner = Ecad \| Plc \| Shared` per field group (FR-PLC-033), `symbols: SymbolPolicy{template?, strict_iec, tag_table}`, `exchange?: ExchangeStamp{format, version, file_sha256, direction, date}` | Scopes address and symbol uniqueness (FR-PLC-002); a new project has one default ([10](10-plc-and-bus.md) §2.2) | — |
 | `PlcStation` aspect: an addressable participant | A | `config_project`, `role: Cpu \| HeadStation \| IoDevice \| ValveTerminal \| IoLinkMaster \| Drive \| ExternalPartner`, `firmware?`, `dd?` (GSD, GSDML, ESI, EDS, IODD reference), `order?: u32` (address-allocation order; without it UUIDv7 creation order, never tag, page or bus address) | The station is a role of a device, not a second identity (FR-PLC-001). It sits on the device that owns the bus port and the address window | — |
 | `PlcModule` aspect: a card or sub-module | A | `slot: SlotPath = Rack{rack, slot, subslot} \| Positional` (rank among the station's I/O modules by `Device.position`); `type_ident` (order number plus device-description module ident); `start: IoStarts{input: AddrSpec, output: AddrSpec}` (a mixed module has both ranges); `part_use?` (which `PartUse` of the device supplies the PLC section and its address maps, needed when the device has several parts; FR-PRT-010); `integrated`; `safety?: SafetyModule{f_dest, f_source, f_wd_ms, range}` | On the station device or a child device; integrated modules cannot be deleted alone (FR-PLC-003) | S: belongs to exactly one station |
 | `Channel`: the logical I/O unit (FR-PLC-004) | A, module device's shard; ID `v5(module_id, "channel", number)` | `number: u16` (0-based), `designation?` (manual; automatic and determined are derived), `kind: Di \| Do \| Ai \| Ao \| Counter \| MultiFunction \| IoLinkPort \| PowerSupply`, `data_type`, `address: AddrSpec`, `state?` (explicit Spare, Reserved or Deactivated; derived when absent, §4.2), `symbol?` (manual; automatic from target tracking, FR-PLC-017), `comment: MlText`, `binding?: Endpoint` (signal pin or the served coil's internal CP; no `Connection` row), `aux_pins: Vec<ChannelPin{role: Supply \| M \| Shield, cp}>` (added), `target?: FunctionId` (manual target override), `signal_range?` ("4..20 mA"), `safety?: SafetyChannel{evaluation, pair?, requirement?, test_pulse?}` | Number, designation and address are three fields. A normaliser creates the channels from the module's part data when the `PlcModule` aspect is added ([10](10-plc-and-bus.md) §2.4) | S: exactly one module. P: a CP in at most one channel (FR-PLC-005); address unique per area as bit-range overlap within the configuration project (FR-PLC-044); symbol unique per configuration project |
@@ -101,13 +101,12 @@ bit n. The import binds the coil 14 of -201U3-Q1 (position 1, p = 0) to channel 
 byte 0, bit 1 = **Q0.1**. The channel's automatic symbol and the valve's printed text (its function-text slot falls
 back to the tracked process tag) follow the `DeviceLink` to field device -203Q1 and its process tag TA05-V-15. The
 same part map also states where solenoid 14 of position p belongs (FR-PLC-011). Under "channel 2p", the suspected
-vendor convention (unverified), EW-PLC-012 reports all 28 bindings as deviations; this is D-26, which the golden check
-expectation includes (FR-CHK-042, [02b](02b-requirements-extended.md) OQ2). Under "channel 2p + 1" nothing is
+vendor convention (unverified), EW-PLC-012 reports all 28 bindings as deviations; this is D-26 (FR-CHK-042, [02b](02b-requirements-extended.md) OQ2). Under "channel 2p + 1" nothing is
 reported. Newly placed valves are bound by the normaliser according to the map. Channels that are neither bound nor
 claimed by the map get the derived state `Deactivated` (OQ 9), which gives 8 used, 20 spare and 28 deactivated
 channels. Changing -201U5's start re-addresses only its 8 channels.
 
-**As built.** `ew-schema` implements, additively within format 0.1, `plc_config_project` (rank 11: `name`, `profile` = `id@version`, `cpu`), `channel` (rank 37, shard of `module`, ID `v5(module, "channel", number)`: `number`, `designation`, `kind`, `address` = `AddrSpec`, `state`, `symbol`, `comment`, `binding`, `target`) and `device_link` (rank 42, §7), the device aspects `plc_station` (`config_project`, `role`, `order`) and `plc_module` (`slot` = `SlotPath`, `start` = `IoStarts`, `part_use`, `integrated`), and the part section `sections.plc` (`role`, `io`, `channels`, `bit_of` = `MapSpec`, `unbound`): the subset of doc 10 §2.2–§2.6 that the golden project needs. The other members of the classes above stay in `extra` until their work packages: `allocation`, `ownership`, `symbols` and `exchange`; `firmware`, `dd`, `type_ident` and `safety`; `data_type`, `aux_pins` and `signal_range`; and the solenoid-position map of the `AddressMap` (`MultiFunction` is not yet a `ChannelKind`). `AddrSpec` and `PlcAddress` are implemented in full. The diagram's `AddressMap` is, as built, `sections.plc` with its `bit_of`; the position half is not built yet. `PlcRow` is the derived row of `ew-derive`. Commands reach these kinds: `plc.config_project.create`, the `plc_station` and `plc_module` aspects through `fields.set`, `plc.bind_channel`, and normaliser N1, which creates a module's channels from its part data (until then channels came only from import); the channel members are not yet settable. An older 0.1 build keeps the new records but does not enforce their links.
+`ew-schema` types these records within format 0.1 as [10](10-plc-and-bus.md) §2.2 to §2.6 say: `plc_config_project` (rank 11), `channel` (rank 37, shard of `module`, ID `v5(module, "channel", number)`), `device_link` (rank 42, §7), the device aspects `plc_station` and `plc_module`, and the part section `sections.plc`, whose `bit_of` and `positions` are the diagram's `AddressMap`. `PlcRow` is the derived row of `ew-derive`. An older 0.1 build keeps the records but does not enforce their links.
 
 **Equivalents.** EPLAN: configuration project (20161), PLC box and card, PLC connection points with channel
 designation, PLC address (20400), symbolic address (manual/automatic/determined), start address, addressing and
@@ -169,12 +168,13 @@ classDiagram
 | `PhysicalNet` | A | `name`, `medium` (copper, fibre …), `order_hint` (members not drawn on any topology page); the ordered segments of ports, connectors, cables and passive devices are derived by `bus_segments(pnet)` from the `Bus` connections and connector links, never stored ([10](10-plc-and-bus.md) §2.7, §3.8) | Termination, length and stub rules run against the derived segments (FR-BUS-003) | Chk (FR-BUS-016): termination On at exactly both segment ends |
 | External bus partner | A | `Device{kind: ExternalPartner}` with an `ExternalRef`, `BusNode`, `PlcStation{role: ExternalPartner}`, no parts | Excluded from the BOM, shown in topology and network lists (FR-BUS-005) | — |
 
-**Golden.** The logical net "PROFIBUS DP" has its master in +J-E-206 (JE-N1000-03, external partner), rate ▲. The
+**Example.** The logical net "PROFIBUS DP" has its master in +J-E-206 (JE-N1000-03, external partner), rate ▲. The
 derived physical segment is JE-N1000-03 → -3W1 → -3X1 → -201U1 DP, master first (FR-BUS-003). -3X1 (Festo 532216) is a
 connector device whose port function has `termination: On`; its "Switch to ON" text is rendered from that property.
 -201U1's DP port has `address: Tbd`, an open item (D-15).
 
-**As built.** `Bus` connections exist (`ConnectionKind::Bus(BusLine)` with `BusLine.cable`), and Golden A draws the DP cable -3W1 and the plug-on mating with them; `BusPort`, `LogicalNet` and `PhysicalNet` and `bus_segments` are not built yet.
+@@@ END
+
 
 **Equivalents.** EPLAN: bus port (`BusTerminal` with bus address, bus system, master flag), logical network
 (20414), physical network (20413), bus configuration transfer. QET: none (bus lines are conductors with `bus`
@@ -259,19 +259,16 @@ classDiagram
 | Manifold galleries | D | supply, exhaust and pilot galleries from position order and the `galleries` entries of `PartCopy.sections.fluid` | Never stored as page-less fluid connections ([11](11-fluid-power.md) §5.2) | — |
 | Blank position | A | a child device of kind `BlankingPlate` with a CP-less FnDef in a manifold position | A BOM item with one main function (FR-DEV-004) | — |
 
-**Golden.** Each of the 28 valves 571334 has a 5/2 monostable fluid function with ports 1–5 (printed "3 1 5" on top
+**Example.** Each of the 28 valves 571334 has a 5/2 monostable fluid function with ports 1–5 (printed "3 1 5" on top
 and 2, 4 below, correction C3; FR-FLU-001) and a coil function 14 bound to its channel. The 8 used valves drive
 the double-acting actuators of the field devices -203Q1 … -203Q8 (process tags TA05-V-15 … TA05-V-37) in +FIELD ▲,
-through tube pairs F1–F16 from ports 2 and 4 (Ø ▲). Golden A keeps the gaps of D-28. Golden A-R adds the medium
-"compressed air 6 bar [1:4:1]" ▲ through a supply line to -201U9:1, the default tube PU 6×4 BU, silencers on the
-supply plates' ports 3 and 5 and plugs on the spare valves' ports 2 and 4.
+through tube pairs F1–F16 from ports 2 and 4 (Ø ▲).
 
 **Equivalents.** EPLAN Fluid: fluid connection points, `PLCBoxFluid` and `PLCTerminalFluid` for valve terminals,
 ISO 1219 symbol library, fluid page type; media handling is unverified. QET: pneumatic elements with unnamed
 generic terminals (no port semantics), so the importer needs a symbol-mapping table.
 
-*As built.* The fluid records are typed in format 0.1 as doc 11 §2.7 says
-as built: the port roles on the FnDef's CPs, `ConnectionKind::Fluid` with its line kind, and the port closure on
+The fluid records are typed in format 0.1 as doc 11 §2.7 says: the port roles on the FnDef's CPs, `ConnectionKind::Fluid` with its line kind, and the port closure on
 `CpOverride.closure`, whose part is optional (a plug's part enters the BOM at 1.0).
 
 ---
@@ -361,7 +358,7 @@ classDiagram
 | `RoutingGraph` | D, Class II | duct centrelines at mid-depth with slot nodes every max(slot pitch, 25 mm), joints, CP stubs, free-air and hinge paths; edges with length, capacity, segregation mask, cost (FR-LAY-042/043) | Built on a fork from carriers and placements | — |
 | `Route`, wire length | C | per wire: path as `RouteNodeRef = Duct{carrier, seg, s} \| Joint{carrier, vertex} \| Path{routing_path, idx} \| Stub{cp} \| Entry{feature}` (carrier positions, not graph indices, so the route stays readable after a graph rebuild), `length: Nm` = the unrounded calibrated length (stubs + path + Δz + end allowances + reserve, FR-LAY-051), `input_hash`; rounding happens once, in the `WireRecord`, to the project length increment ([13](13-manufacturing-outputs.md) §3.3) | Only `RouteWires` writes it (FR-LAY-046); EW-LAY-011 flags a stale input hash | Release exports require fresh routes |
 
-*As built.* Five kinds are typed within format 0.1: `layout_space`
+Five kinds are typed within format 0.1: `layout_space`
 `{location, name}`, `enclosure {space, device, pose}`, `mounting_surface {enclosure, kind, device?, frame, usable,
 pe_bond}`, `carrier {surface, kind, part?, path, params, pe_bond}` and `placement {device, function?, part?, carrier,
 pose, locked}` (ranks 50 to 54, `layout/<space>.jsonl`); every other member above (`install`, thermal inputs, `policy`,
@@ -372,17 +369,16 @@ unit quaternion scaled by 10⁹ for `q`, in the surface frame (u right, v up, w 
 is `t = (u, v, 0)`, rotated by k·90° about w; a **duct** carries no placement. Carriers are axis-parallel. An
 enclosure's pose defaults to identity; the plate surface's frame centres the plate in the enclosure's outer W×H and
 its usable polygon is the plate rectangle. `layout.place` always writes `placement.part` (the given part use, else
-the primary mountable part), and `part.assign` replace follows the new copy (WP-S4.01 D7). MVP limits: one space
+the primary mountable part), and `part.assign` replace follows the new copy. MVP limits: one space
 per location, one enclosure per space, one plate surface per enclosure.
 
 **PE through carriers.** A rail-bonded PE terminal on a carrier with `pe_bond`, on a surface with `pe_bond`, joins
 the PE potential through that carrier. While a layout space models no PE-bonded carrier, rail-bonded
 terminals of one location join a virtual "location PE" node (OQ 10).
 
-**Golden.** One layout space +J-E-2416; enclosure -UC1 with plate; five 40×60 ducts (one type ▲); three TS 35
+**Example.** One layout space +J-E-2416; enclosure -UC1 with plate; five 40×60 ducts (one type ▲); three TS 35
 rails ▲; placements in three rows (row 1: -102G1, -101F1, -102F1, -102F2, T55, S51; row 2: 1X1, -X1031, -X1032 with
-end brackets; row 3: the valve terminal -201U1 … -202U3). F55, E55, E56, S56 and -201U9 stay unplaced in Golden A
-(EF-05); Golden A-R places them. Placement order and row assignment are the
+end brackets; row 3: the valve terminal -201U1 … -202U3). Placement order and row assignment are the
 acceptance criteria (FR-LAY-016). A PanelLayout page shows the plate through one `SurfaceView` page item.
 
 **Equivalents.** EPLAN Pro Panel: layout space, mounting surface, mounting rail, cable duct, 3D macros and
@@ -469,7 +465,7 @@ classDiagram
 | `LabelRecord` | D | wire, terminal, device, cable and plate labels from one engine (FR-MFG-012); deterministic DT abbreviation (FR-MFG-011) | Exported in marking-software layouts | Chk: truncation |
 | `ProductionPackage` `.ewpp` | X, Class II | ZIP with deterministic member order: manifest, project, devices, wires, cables, terminals, labels, layout glTF, surface DXF, cut lists, checklists, PDF, machine exports; revision and content hash (FR-MFG-031/032) | Written by export; frozen into the as-built archive at release | Release refuses stale Class II inputs (FR-MFG-025) |
 
-**Golden W29.** -102F2:Out1 → -X1031:1 (1/a); 24VDC-1; 0.75 mm², DBU; 806 mm computed and stored unrounded in the
+**Example: W29.** -102F2:Out1 → -X1031:1 (1/a); 24VDC-1; 0.75 mm², DBU; 806 mm computed and stored unrounded in the
 route, 810 mm in the wire record after rounding once to the 10 mm project increment (FR-LAY-051); insulated
 0.75 mm² ferrules at both ends; folios 102 and 103.
 
@@ -559,15 +555,14 @@ classDiagram
 | `PageChangeStatus`, `RevisionDiff` | D | page change status from per-page display-list digests compared with the last release's `page_digests`, or the page notes where no digests exist (FR-REV-004, FR-REV-022); entity and query deltas: BOM, wire list, terminals, PLC addresses (FR-REV-015) | Page digests reuse the memoised display lists (Class I); `diff_model` and `diff_query` against the archive stay for property comparison and deltas | — |
 
 The title block's "Revision" cell binds to the project revision query, so every page prints the same label (D-05).
-Committed computations (routes, frozen numbers, report snapshots) are frozen at release (FR-REV-011). Golden A holds
-V1.0 (Released, historic, no archive) and V2.0 (Open); Golden A-R releases V2.0, and its `changed_pages` are 101 and
-106 from the page notes, because V1.0 has no digests.
+Committed computations (routes, frozen numbers, report snapshots) are frozen at release (FR-REV-011). A release whose
+predecessor is a historic released revision, which has no digests, takes its `changed_pages` from the page notes.
 
-*As built.* `ew-schema`'s `Revision` types `label`, `date?`,
-`author?`, `checker?`, `description`, `state` (with the `Unknown` catch-all), `page_notes`, `withdraws?` and
-`source_ref?`; `purpose`, `sign_off`, `release` and `reason` stay in `extra` until `revision.approve`,
-`revision.release` and `revision.withdraw` write them. `date` and `author` are optional: an
-open revision may have neither yet, and Golden A's historic V1.0 has neither author nor checker. A page note's text
+`ew-schema`'s `Revision` types `label`, `date?`,
+`author?`, `checker?`, `description`, `state` (with the `Unknown` catch-all), `page_notes`, `withdraws?`,
+`source_ref?`, `reason`, `release?` and `sign_off?`, which `revision.withdraw`, `revision.release` and
+`revision.approve` write; `purpose` stays in `extra`. `date` and `author` are optional: an
+open revision may have neither yet, and a historic revision may have neither author nor checker. A page note's text
 member is `description`, like the revision's. A note is not a link to its page: a released revision is immutable, so
 its notes keep naming a page that a later revision deletes, and a note on a missing page selects nothing.
 `withdraws` is the ID of the withdrawn revision, never its label, and a forbid link (§4.2). The structural rules are
@@ -648,22 +643,22 @@ classDiagram
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
 | `RulePack`, `Rule` | data (shipped packs trusted; project packs `rules/<uuid>.toml` untrusted until the project is trusted) | `id` (EW-POT-013), six-digit `code`, class, `kind`, severity and release severity, modes `online \| offline \| prevent \| release \| export`, `scope` (the memo key of `checks(scope)`: project, page, potential, net, strip, cable, device, module, station, cfg (configuration project), lnet, pnet, fluid_net, space, surface, carrier), implementation (Rust, rhai or SQL), parameters and data tables with a `verified` flag, `supersedes`, Fluent message key, docs path (FR-CHK-001, [15](15-checks-revisions-collaboration.md) §2.3) | Versioned; a released revision records pack versions (FR-CHK-004) | — |
-| `CheckSettings` (added) | A, in `ProjectSettings` (`project.jsonl`) | `active_scheme` (online, default `drafting`), `release_scheme` (gate, default `pre-delivery`), pack pins `{id, version_req}`, `strictness: Strict \| Lenient{since}`, rule parameters (as built, only `{active_scheme?, release_scheme?}` are written, in `settings.extra.checks`, by the `HumanOnly` command `project.checks.set`, §5.1) | Company schemes may lock rules (FR-CHK-050) | — |
+| `CheckSettings` (added) | A, in `ProjectSettings` (`project.jsonl`) | `active_scheme` (online, default `drafting`), `release_scheme` (gate, default `pre-delivery`), pack pins `{id, version_req}`, `strictness: Strict \| Lenient{since}`, rule parameters (only `{active_scheme?, release_scheme?}` are written, in `settings.extra.checks`, by the `HumanOnly` command `project.checks.set`, §5.1) | Company schemes may lock rules (FR-CHK-050) | — |
 | `CheckScheme` | A, in `ProjectSettings` or the company basic project | `name`, `extends`, per-rule enablement, severity, release severity and parameters; `drafting`, `pre-delivery`, `migration`, `full` and others ship (FR-CHK-003) | Resolved pack defaults → company scheme → project scheme | — |
 | `Finding` | D (online: Class I; offline and SQL rules: Class II) | rule, code, severity, `state: open \| pending \| waived \| superseded \| deferred \| possibly_resolved`, target entity refs, page and cell, message arguments (entity references, rendered at display time), origin, `fingerprint` = first 128 bits of SHA-256 over rule ID, sorted target IDs and a rule-defined discriminator (FR-CHK-044) | `checks(scope)`; the migration report is a check run in lenient mode (FR-CHK-011) | — |
 | `Waiver` | A, `waivers.jsonl` | rule, `target: Fingerprint \| PartSelector{library, item}` (part selector from 1.0), reason (may be empty), author (optional), date, `expires: Never \| NextRelease \| Date` (FR-CHK-009) | Matches a finding by fingerprint, which survives renumbering, or every finding of the rule on the part; safety rules accept only fingerprint waivers; unmatched and expired waivers are reported (EW-CORE-081, EW-CORE-082) | — |
 
 Prevent rules are the P invariants of the sections above; structural invariants are not rules and cannot be
-waived. **Golden expectation:** `ew check --scheme pre-delivery` reports exactly the rows of `findings_mvp.csv`
-(FR-CHK-042): among them D-13 (N switching), D-26 (address bits, depending on the
-map), the TBD station address, missing parts of S56 and E56 and unplaced devices.
+waived. On a project with the reference set's defects, `ew check --scheme pre-delivery` reports them (FR-CHK-042):
+among them D-13 (N switching), D-26 (address bits, depending on the map), the TBD station address, missing parts and
+unplaced devices.
 
 **Equivalents.** EPLAN: check runs and message management with message classes (P001xxx terminals, P003xxx cables,
 P005xxx connections, P017xxx numbering). QET: none beyond import warnings.
 
 ---
 
-## 20. Golden project mapping
+## 20. The reference drawing and the sample project
 
 No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), which its script
 draws, and [reference-drawing.md](../research/reference-drawing.md) §4 keeps the analysis of the reference drawing.

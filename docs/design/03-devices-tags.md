@@ -151,9 +151,9 @@ classDiagram
 | `CpDef`: one CP of a definition | value | `idx: u16` (internal, unique); `designation: Ident` (duplicates allowed: two "N" on a 1P+N MCB, REF-029); `alias?` ("L1", REF-030); `discipline: Electrical \| Pneumatic \| Vacuum \| Hydraulic \| Bus`; `potential_role?` (PSU "+" is L+, "−" is M, PE pin is PE); `source_output: bool` (added: the CP is an output of a source function, such as PSU +/− or a transformer secondary, and roots `potential_flow`); `optional: bool` (added: may stay free by design, such as the Out entry of a terminating bus connector or a parallel duplicate pin, so EW-POT-009 skips it); `level?`, `side?`, `clamp?: ClampKey` (terminals, §11); `port_role?` (fluid, §15); `physical: bool` (false for internal points such as a VMPA coil) | Part CP patterns refine it with clamp data (cross-section range, maximum conductors, twin-ferrule permission; FR-PRT-008) | — |
 | `Function`: one logical element (a pole set, a contact, a coil, a PSU, a valve, an IP) | A, device shard; an IP function lives in the page file of its representation and follows it on a page move ([05](05-project-format-and-persistence.md) §2.2) | `device?` (None only for IPs, added); `def: Id<FnDef>`; `role: Main \| Aux`; `kind: Normal \| Ip(IpSpec) \| BlackBox`; `cp_overrides: Vec<CpOverride{idx, designation?, alias?, description?, unused: bool, closure?: Plug(PartRef) \| Silencer(PartRef) \| Blanked}>` (FR-DEV-008; `closure` added for fluid ports, §15); `bus_port?` (§14); `template_entry?` (added, the index of the part template entry it was made from, read by `function_cps`) | Placing a part creates its template functions unplaced (FR-DEV-017); UUIDv7, or `v5(device_id, template_index)` from the template | S: exactly one Main per device (FR-DEV-004); `device` is None if and only if `kind` is Ip (ADR-0009); overrides name existing indices. Chk (FR-CHK-036): more auxiliaries than the main part's contacts |
 | `ConnectionPoint`: an instantiated CP | D | `id = v5(function, idx)`, effective designation and alias, level/side/clamp, discipline, potential role, `unused`, world position per representation | Endpoint of connections; member of nets; pin of a channel | — |
-| `Device`: everything with one tag; the single owner of parts (ADR-0006) | A, device shard | `tag: TagSpec` (§8); `kind?: DeviceKind` (UI and numbering hint, below); `parent?`; `position?: u32` (added: order inside the parent); `structure` (added); `parts: Vec<PartUse>`; `function_text: MlText` (manual; the automatic text falls back to the path function text, FR-DEV-011); `process_tag?: Ident` (TA05-V-15 on field device -203Q1, never renumbered, FR-DEV-012); `tech_data: Vec<TechValue{key, value: Quantity or Ident}>` (keys `"<scheme>:<id>"` or native, [05](05-project-format-and-persistence.md) §3.2) (40 A, C10, 15 °C, 6 A; FR-DEV-009); `state`; `supply_scope?: own \| by_others` (FR-DEV-037; intended, not yet built: a device supplied by others stays out of the BOM and is exempt from EW-CORE-041 and the layout checks; FT-209); `aspects: DeviceAspects`; `user_props`, `extra` | Functions, aspects, children, placements and channels hang off it. UUIDv7 | S: parent graph acyclic. P: full tag unique in its scope (FR-NUM-012). S: aspect combinations consistent (Terminal excludes Strip and Cable) |
+| `Device`: everything with one tag; the single owner of parts (ADR-0006) | A, device shard | `tag: TagSpec` (§8); `kind?: DeviceKind` (UI and numbering hint, below); `parent?`; `position?: u32` (added: order inside the parent); `structure` (added); `parts: Vec<PartUse>`; `function_text: MlText` (manual; the automatic text falls back to the path function text, FR-DEV-011); `process_tag?: Ident` (TA05-V-15 on field device -203Q1, never renumbered, FR-DEV-012); `tech_data: Vec<TechValue{key, value: Quantity or Ident}>` (keys `"<scheme>:<id>"` or native, [05](05-project-format-and-persistence.md) §3.2) (40 A, C10, 15 °C, 6 A; FR-DEV-009); `state`; `supply_scope?: own \| by_others` (FR-DEV-037; intended, not built: a device supplied by others stays out of the BOM and is exempt from EW-CORE-041 and the layout checks); `aspects: DeviceAspects`; `user_props`, `extra` | Functions, aspects, children, placements and channels hang off it. UUIDv7 | S: parent graph acyclic. P: full tag unique in its scope (FR-NUM-012). S: aspect combinations consistent (Terminal excludes Strip and Cable) |
 | `DeviceAspects`: typed roles of one device (arch §4.3) | A, value | strip, terminal, cable, assembly, PLC station, PLC module, bus node, valve terminal | One device may carry several at once (FR-DEV-024) | Removing an aspect keeps the device's UUID and references (FR-PLC-001) |
-| `Assembly` aspect: configured product with child devices | A, value | `configs: Vec<AssemblyConfig{label: MlText, order_code: Ident, part?: PartRef, covers: Set<DeviceId>}>`; `bom_basis: Assembly \| Components` (default `Assembly`). As built: `covers` is a set that names the devices whose own part lines the order code replaces in the assembly BOM. It may name the assembly device itself, whose own parts an order code replaces (Golden A order code 1), and it is not transitive. A config without a part prints and covers nothing, and the `Components` basis keeps the components. Commands write it: `fields.set` on `assembly`, `assembly.configs` and `assembly.bom_basis` (an added cover outside the subtree is refused), and `assembly.attach` and `valve.add` build the children | Children are devices whose `parent` is the assembly, ordered by `position` (FR-DEV-020/022) | Chk: a cover outside the assembly device and its descendants is reported; the BOM derivation ignores it and skips a covered head, so no model invariant refuses it. The model unlinks a removed device from `covers` (an unlink cascade). Chk: overview vs children (FR-CHK-022) |
+| `Assembly` aspect: configured product with child devices | A, value | `configs: Vec<AssemblyConfig{label: MlText, order_code: Ident, part?: PartRef, covers: Set<DeviceId>}>`; `bom_basis: Assembly \| Components` (default `Assembly`). `covers` is a set that names the devices whose own part lines the order code replaces in the assembly BOM. It may name the assembly device itself, whose own parts an order code replaces, and it is not transitive. A config without a part prints and covers nothing, and the `Components` basis keeps the components. Commands write it: `fields.set` on `assembly`, `assembly.configs` and `assembly.bom_basis` (an added cover outside the subtree is refused), and `assembly.attach` and `valve.add` build the children | Children are devices whose `parent` is the assembly, ordered by `position` (FR-DEV-020/022) | Chk: a cover outside the assembly device and its descendants is reported; the BOM derivation ignores it and skips a covered head, so no model invariant refuses it. The model unlinks a removed device from `covers` (an unlink cascade). Chk: overview vs children (FR-CHK-022) |
 | `ValveTerminal` aspect | A, value | `pilot_supply: Internal \| External`, `positions` (derived from children), vendor configurator data? | Combined with PlcStation, BusNode and Assembly on -201U1 ([11](11-fluid-power.md) §3.2) | Chk (FR-FLU-022, 1.x): slot occupancy vs order code |
 | `PartUse` / `PartRef`: a part on a device | A, value | `part: PartRef{copy: Id<Part>, variant?}`, `qty: Dec3` in the part's order unit | Parts attach only to devices, so the BOM aggregates one path (FR-DEV-015) | S: referenced copy embedded |
 | `PartCopy` (the project's view of a catalogue `Part`) | L, `lib/parts/` | `meta: ItemMeta`; manufacturer as `LibRef` to a manufacturer record embedded under `lib/manufacturers/` (master list, FR-PRT-002), part number, type, order number, `description: MlText`, typed tech data, `free_props: Vec<{key, value: MlText}>` (EPLAN free properties, user fields), ECLASS/ETIM classes (FR-PRT-018), dimensions W×H×D (Nm), mass, mount kind; `function_template`; `cp_pattern`; contact data (FR-PRT-009); `sections{plc: AddressMap, thermal{p_loss W, i_rated A}, model3d: sha256, drilling, cable_cores, wire, ferrule, duct, rail, enclosure, tube, fluid}` (FR-PRT-010; `fluid` per [11](11-fluid-power.md) §2.6); accessories; structured alternatives (FR-PRT-004); `configured?{order_code, components: Vec<PartUse>}` (FR-PRT-006) | Renders and reports read only the copy (FR-PRT-013) | Chk (FR-CHK-024): incomplete mandatory data |
@@ -162,13 +162,12 @@ classDiagram
 | `MacroDef`: reusable fragment | L, `lib/macros/` | `meta: ItemMeta`; kind `Window \| Symbol \| Page`; variants per representation type; records in the project format with an insertion point; variables with field-path bindings; value sets `Vec<ValueSet{name, values}>` (FR-MAC-004); `groups: Vec<PlaceholderGroup{name, members, include: Option<VarName>}>` | `InsertMacro` remaps IDs and numbers the new devices (arch §5.5); a group whose `include` variable is false is removed before the remap. Placed instances reach the groups through `MacroInstance.macro`, so a group is never a separate project record | — |
 | `MacroInstance` (added): provenance of one placed macro | A, the file of its anchor page (rank 46 of [05](05-project-format-and-persistence.md) §2.2) | `macro` (copy ID of the `MacroDef`), `variant`, `value_set?`, `values: BTreeMap<VarName, Value>` (the values used), `members: Vec<(local_id, Id)>` (fragment-local ID → created record) | "Where used" and provenance at MVP; from 1.0 the placeholder object to which another value set can be re-applied (FR-MAC-008) | — |
 
-**As built.** `device_link` (rank 42, in the shard of `from`) is typed in `ew-schema` with `from`, `to` and `kind` (`drives` or `linkage`), plus the import-provenance member `source_ref`. Deleting either device deletes the link. Golden A has eight links: the valves -201U3-Q1 … Q4 and -201U4-Q1 … Q4 drive the field devices -203Q1 … -203Q8. The command `device.link` creates a link (no self-link, no duplicate of the same kind). The `DeviceLink` half of FT-80 is done; the half that prints the tracked process tag in a used valve's function-text slot stays open.
+`device_link` (rank 42, in the shard of `from`) is typed in `ew-schema` with `from`, `to` and `kind` (`drives` or `linkage`), plus the import-provenance member `source_ref`. Deleting either device deletes the link. The command `device.link` creates a link (no self-link, no duplicate of the same kind). A used valve's function-text slot does not print the tracked process tag.
 
-**As built.** The part, manufacturer and macro data are typed
-in `ew-schema` within the unreleased format 0.1 (ADR-0011 amendment 4): every new member is optional and
-default-omitted, every new enum keeps `Unknown(Value)` and every new object its own `extra`
-([05](05-project-format-and-persistence.md) §10.3). Golden A uses none of them, so no golden file and no copy hash
-changed.
+The part, manufacturer and macro data are typed
+in `ew-schema` within format 0.1 (ADR-0011 amendment 4): every member is optional and
+default-omitted, every enum keeps `Unknown(Value)` and every object its own `extra`
+([05](05-project-format-and-persistence.md) §10.3).
 - **`PartCopy`** (`LibCopy<Part>`) gains, in the member order of [07](07-symbols-parts-macros.md) §2.5, `contacts:
   Vec<ContactData{kind: ContactKind, cps: Vec<Ident>, seq?: u8, special?}>` (FR-PRT-009), `mech?: MechData{width,
   height, depth: Nm?, mount_kind?: MountKind, rail_offset?: Pt2, clearance?{top, bottom, left, right, front},
@@ -177,16 +176,16 @@ changed.
   (FR-PRT-006) and `macros: Vec<{rep_type, macro: LibRef}>` (FR-PRT-027). `CpData` gains `clamp_type?`, `csa_min?`,
   `csa_max?` (`Dec3` mm²), `max_conductors?` and `twin_ferrule` (FR-PRT-008); `PartSections` gains `enclosure`,
   `duct`, `rail` and `mounting_plate`. The other members of the `PartCopy` row (classification, the 3D and drilling
-  data, accessories, variants, the thermal, wire, ferrule and tube sections) stay in `extra` until their work package
-  types them. These `LibRef`s are not model links: the library resolves them, not the project.
+  data, accessories, variants, the thermal, wire, ferrule and tube sections) stay in `extra`.
+  These `LibRef`s are not model links: the library resolves them, not the project.
 - **`Manufacturer`** (kind `manufacturer`, `lib/manufacturers/`) is `{meta, key, name: MlText, aliases, brands}`;
-  `library.embed` embeds it with the checks of the other kinds. A part's `manufacturer` `LibRef` is not yet resolved to
-  the embedded copy (WP-S1.19 part 3).
+  `library.embed` embeds it with the checks of the other kinds. A part's `manufacturer` `LibRef` is not resolved to
+  the embedded copy.
 - **`MacroDef`** (kind `macro`, `lib/macros/`) is `{meta, name, description, kind: window | symbol | page, variants:
   Vec<{rep_type, key, fragment}>, variables: Vec<{name, ty, bindings: Vec<{record, field}>, default?}>, groups:
   Vec<PlaceholderGroup{name, members, include?}>, value_sets: Vec<{name, values}>, thumbnail?}`. The `fragment` is
   kept as JSON in the permissive schema crate; `ew-commands` parses it. Placeholder groups live only inside the macro,
-  so the kind `placeholder_group` (rank 47) stays reserved (WP-S1.19 D15).
+  so the kind `placeholder_group` (rank 47) stays reserved.
 - **`MacroInstance`** (kind `macro_instance`, rank 46, the anchor page's file) is `{id, $v?, macro, variant,
   value_set?, values, members: Vec<(fragment-local ID, created ID)>, page}`. Its three links: `page` is a cascade
   (deleting the anchor page deletes the instance); `macro` is a forbid link that stores the copy ID, so the macro copy
@@ -194,17 +193,17 @@ changed.
   (`LinkDecl::kind_erased`): a member is a bare ID that may name a record of any kind a fragment creates (page,
   device, function, representation, connection, junction, conductor, channel, potential definition, bond, device link,
   page item, structure box, report block), so a deleted member leaves the list and the instance stays, also when the
-  list is left empty. No command creates an instance yet (WP-S1.19 part 5); the property grid lists its fields
-  read-only, and the describe vocabulary gains the kind word `macro_instance` (357 words).
+  list is left empty. `macro.insert` creates an instance ([07](07-symbols-parts-macros.md) §3.5); the property grid
+  lists its fields read-only, and the describe vocabulary has the kind word `macro_instance`.
 - **`Project.basic_project`** is typed as `{id, generation}`: the basic project's project ID and its manifest
   generation when it was copied, since a basic project has no semantic version ([07](07-symbols-parts-macros.md)
-  §2.8; WP-S1.19 D14, the schema half).
+  §2.8); a project made from a directory records it.
 
 **Device kinds.** `DeviceKind` is a hint for UI defaults and for the selectors of numbering rules (§5.1, §8.2), never
-a type: behaviour comes from aspects and functions. It is an open enum persisted as a snake_case string. The v0 list
-holds the kinds that a derivation or the golden project names: `psu` (-102G1), `terminal` and `blanking_plate` (a
+a type: behaviour comes from aspects and functions. It is an open enum persisted as a snake_case string. The list
+holds the kinds that a derivation names: `psu` (-102G1), `terminal` and `blanking_plate` (a
 blank manifold position, §15). Further kinds, such as `external_partner` for external bus partners (§14), are
-appended as variants when their work package needs them. Any other string is kept as `Unknown` and written back
+appended as variants when needed. Any other string is kept as `Unknown` and written back
 unchanged; derivations treat it as "no kind", while numbering-rule selectors and UI palettes may still match it by its
 string. Kinds are therefore catalogue data, not an exhaustive Rust list.
 
@@ -252,8 +251,8 @@ flowchart TB
 - Each valve is a child device of its sub-base with one fluid function and one coil function per solenoid the part
   declares (571334: `[14]`; FR-FLU-004).
 - **Where the aspects go.** `PlcStation` sits on the device that owns the bus port and the address window,
-  `Assembly` on the device that carries the configurator order codes; in the golden project both are -201U1, which
-  also carries `BusNode` and `ValveTerminal`. A valve terminal whose bus interface is a separate module carries
+  `Assembly` on the device that carries the configurator order codes; on the valve terminal -201U1 both coincide with
+  `BusNode` and `ValveTerminal`. A valve terminal whose bus interface is a separate module carries
   `PlcStation` and `BusNode` on that module; a multi-pin valve terminal without a bus node has no station
   ([10](10-plc-and-bus.md) §2.3).
 - **BOM in assembly mode:** the two `AssemblyConfig` lines (order code 1 for the CPX part, order code 2 for the MPA
@@ -274,7 +273,7 @@ flowchart TB
 | `Assembly` | BOM modes, generated overview | Part sets / configured products (unverified detail) | none |
 | `DeviceLink` | linkage graphics, target tracking | mechanical linkage, target tracking (unverified detail) | dashed shapes |
 
-*As built.* **A part's bus ports** are `PartSections.bus`
+**A part's bus ports** are `PartSections.bus`
 (`ports: [{interface, port_label?, bus, role, termination?}]`, doc 07 §2.5). A part port is carried by a function of
 the device whose FnDef has contact kind `bus_port`; its CPs are the port's connection points, and the part names no
 function or CP. Normaliser N5 (doc 06 §3.2) seeds a port-less bus-port function from the part's first port that no
@@ -312,7 +311,7 @@ stored tag data. The counter is assigned once, at commit, by the online-numberin
 counter scope, FR-NUM-007, with the gap rule of §8.6), and changes only through `RenumberDevices` (and, for a frozen tag, through the explicit actions of §8.6). Everything else is
 derived:
 
-0. **An earth connection has no tag** (0.3.5, FT-1820). An earth symbol (FnDef category `EarthingBar / <kind> /
+0. **An earth connection has no tag.** An earth symbol (FnDef category `EarthingBar / <kind> /
    Point`: protective, functional, signal earth) drawn for a device without a part stands for a connection to
    earth, not for an object: IEC 81346-2 classes objects, and the object here is the earthing bar or terminal it
    goes to, which has its own tag. Its device therefore has no product designation unless a frozen tag names it
@@ -323,7 +322,7 @@ derived:
    its own: under EN 81346-2:2009 every letter an earth point could take (W, X) numbers cables or strips, so it
    would take their counters again. An earth symbol given a part is a device like any other, with its tag.
 1. **Frozen?** If `frozen = Some(FrozenTag{text, sign})`, the product designation is `text` (changed only as §8.6 says); `sign: Hidden` prints
-   it without "-" on pages (Golden A: "S51"); full designations always carry the sign.
+   it without "-" on pages ("S51"); full designations always carry the sign.
    **Terminal?** Otherwise a device with a `Terminal` aspect is named by its strip's product designation with the
    terminal designation as connection point (`-X1031:1`, §8.4), in its strip's structure (FR-TRM-027), and steps 2
    and 3 do not apply.
@@ -333,21 +332,21 @@ derived:
    letter or device kind) matches, else the default format. Tokens: `{letter}`, `{counter}`, `{subcounter}`,
    `{page}` (folio label of the main representation's page), `{column}`, `{row}` (FR-NUM-005, FR-NUM-006). A
    token whose value cannot be derived (no counter yet, an unplaced device) prints `?`, and an unknown token prints
-   verbatim. *Until WP-S1.11* `ew-derive` applies only the
+   verbatim. `ew-derive` applies only the
    schemes the command layer's numbering implements: a project or named scheme whose `counter_scope` is not
    `"page"`, or whose format has no `{page}` token, is not applied; the device keeps the profile's default scheme
    and a derivation note reports it.
-4. **Main representation:** the main function's representation with the lowest (page order, row, column, ID) among
-   the representation types the scheme counts (default: all except contact images and panel fronts). *Until WP-S1.11*
-   the command layer's numbering and `ew-derive` both use a simpler rule, the smallest-ID representation of the
-   smallest-ID main function, where a `ContactImage` representation never counts, so that tags stay unique wherever the counters are; this step is the WP-S1.11 target,
-   and both crates change to it together (`ew-derive`'s agreement tests pin the two rules equal). A strip without a strip segment takes the main representation of its first placed terminal: the terminal on the lowest page (folio order, then folio label, then page ID), then the lowest designation in natural order, then the smallest ID; `ew-derive`'s `MainRep` and the command layer's numbering use the same rule, and online numbering treats a touched terminal as touching its strip. Golden A's 1X1 therefore takes page 101.
+4. **Main representation:** the smallest-ID representation of the smallest-ID main function, where a `ContactImage`
+   representation never counts, in the command layer's numbering and `ew-derive` alike, so that tags stay unique
+   wherever the counters are (`ew-commands`' agreement tests pin the two rules equal). The lowest (page order, row,
+   column, ID) among the representation types the scheme counts is intended and not built; both crates change to it
+   together. A strip without a strip segment takes the main representation of its first placed terminal: the terminal on the lowest page (folio order, then folio label, then page ID), then the lowest designation in natural order, then the smallest ID; `ew-derive`'s `MainRep` and the command layer's numbering use the same rule, and online numbering treats a touched terminal as touching its strip.
 
-   *As built:* a device whose main function is not drawn takes the smallest-ID representation of its other functions that is not a contact image, in the command layer's numbering, online numbering and `ew-derive`'s `MainRep` alike.
+   A device whose main function is not drawn takes the smallest-ID representation of its other functions that is not a contact image, in the command layer's numbering, online numbering and `ew-derive`'s `MainRep` alike.
 
-   *As built.* **A cable's page and counter
+   **A cable's page and counter
    scope.** A cable drawn by its definition line takes that line's page. A cable without a drawn line takes the page
-   of its first connected core or of the first bus line it carries (rc.5), the connection with the smallest ID; a
+   of its first connected core or of the first bus line it carries, the connection with the smallest ID; a
    cable with neither takes the project's
    counter, its tag carrying no page (`-W1`); a cable placed later takes its page's next free counter. Online
    numbering, `fields.set` and `numbering.renumber` use the same scope (the drawing's page, the first core's page or
@@ -355,7 +354,7 @@ derived:
    page, and renumbering groups cables by that scope, so `include_frozen` also numbers a frozen cable without a
    drawing.
 
-   *As built (0.3.5, FT-1899).* **An enclosure's device** is drawn on no page either: its tag prints no page (`-UC1`),
+   **An enclosure's device** is drawn on no page either: its tag prints no page (`-UC1`),
    and Enclosure… gives it the lowest counter no `UC` tag holds; online numbering and renumbering leave a page-less
    device's counter as it is. Its mounting plate is its child (`-UC1-U1`). Neither is frozen: a frozen tag (step 1)
    is a fixed text a person or an import chose, and EW-NUM-001 lists every frozen tag that differs from the scheme's.
@@ -364,7 +363,7 @@ derived:
    the main representation, else the main representation's page. A slot left `Inherit` on a `Child`-scheme device
    takes its parent's resolved slot (`=P01+J-E-2416-201U3-Q1`), and an unplaced device with a parent takes the
    parent's. A page's own slots inherit from nothing: `Inherit`, `None` or an unknown slot leaves that aspect of the
-   page empty. Structure boxes (FR-PRJ-020) have no record kind in format 0.x yet; they are specified for WP-S2.04 part 4a (§5, §6), and then apply after the explicit slot, as this step says: the slot of the
+   page empty. Structure boxes (FR-PRJ-020, §5, §6) apply after the explicit slot: the slot of the
    box around the main representation (`SlotSource::StructureBox`) is taken for a device that is neither a terminal nor a
    child-tag device. The combined inheritance graph (terminal → strip,
    `Child`-scheme device → parent, unplaced device → parent) is acyclic, a structural invariant of `ew-model`
@@ -419,8 +418,7 @@ spelling stays a pilot question (PQ-08).
 
 - **Child:** valve `TagSpec{letter: "Q", counter: 1, scheme: Child}` under -201U3 gives `-201U3-Q1` (the shipped
   EN 81346-2:2009 set maps directional valves to Q and accepts QM as an alternative, ADR-0026); its counter
-  is its valve position. The sub-bases themselves use the default scheme, so -201U3 stays page-based, as Golden A
-  requires (FR-DEV-021).
+  is its valve position. The sub-bases themselves use the default scheme, so -201U3 stays page-based (FR-DEV-021).
 - **Frozen:** S51, F55, T55, E55, S56, E56 and 1X1 carry `FrozenTag{text: "S51", sign: Hidden}` and so on. The
   numbering report lists each with its rule-derived value (S51 → -101S1 under the current letter), and
   EW-NUM-001 (FR-CHK-025) reports them at severity info.
@@ -461,7 +459,7 @@ The preview lists the derived consequences, all computed from the same snapshot:
 Page renumbering cannot collide on page-scoped counters, because folios are unique. Moving a main representation to
 another page can collide (e.g. -101F1 moved to folio 102, where -102F1 exists); the normaliser then assigns the next
 free counter (-102F3) and the preview shows it (FR-NUM-029). 
-**Frozen tags** never change by derivation. They change only by an explicit user action: `fields.set` on `tag.frozen` (explicit freeze and unfreeze; the property grid shows the resulting tag before it commits) or `numbering.renumber` with `include_frozen: true` (bulk, previewed). Both are undoable. `include_frozen` unfreezes only the frozen devices the scheme can number (placed, no terminal aspect, default scheme); unplaced devices, terminals and `Child` or named-scheme devices keep their frozen tag (lists them in the preview). The renumber option `skip_frozen` no longer exists. Frozen literals do not yet reserve their counters against new devices (FT-151).
+**Frozen tags** never change by derivation. They change only by an explicit user action: `fields.set` on `tag.frozen` (explicit freeze and unfreeze; the property grid shows the resulting tag before it commits) or `numbering.renumber` with `include_frozen: true` (bulk, previewed). Both are undoable. `include_frozen` unfreezes only the frozen devices the scheme can number (placed, no terminal aspect, default scheme); unplaced devices, terminals and `Child` or named-scheme devices keep their frozen tag (lists them in the preview). Frozen literals do not reserve their counters against new devices.
 
 **Next free counter.** "Next free" is the lowest positive counter not used in the numbering scope, so gaps are
 filled; it is deterministic over the current snapshot. A scheme option `reuse_gaps = false` switches to maximum + 1.
