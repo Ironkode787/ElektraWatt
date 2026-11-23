@@ -15,8 +15,8 @@ use ew_format::ew_schema::{AnyId, FORMAT, RELEASED_FORMATS};
 use ew_format::ew_schema::{AssetFormat, AssetRef, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
-    Manifest, MigrationError, Migrations, OpaqueKind, PathClass, classify, crlf_to_lf, hash_text, jsonl_file,
-    sha256, unknown_record_file,
+    Manifest, Migration, MigrationError, Migrations, OpaqueKind, PathClass, classify, crlf_to_lf, hash_text,
+    jsonl_file, sha256, unknown_record_file,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 
@@ -837,6 +837,30 @@ pub struct BrokenLine {
     pub text: Vec<u8>,
 }
 
+/// What an open has found so far, step by step (doc 05 §6.1).
+struct Opening {
+    findings: Vec<Finding>,
+    removed: Vec<String>,
+    rolled_forward: Option<u64>,
+    repairable: bool,
+    /// The project directory's entries, as last listed.
+    listing: BTreeMap<String, EntryKind>,
+    /// A read-only open's intent still there after its wait: a save in progress, read in memory.
+    abandoned: Option<u64>,
+}
+
+/// The manifest an open read and what its format allows ([`Store::read_stamps`]).
+struct Stamps {
+    format: FormatAccess,
+    /// The files the interrupted save removes, which are not orphans.
+    pending_removal: BTreeSet<FilePath>,
+    /// The intent of the interrupted save that a read-only open reads in memory.
+    intent: Option<Manifest>,
+    manifest: Option<Manifest>,
+    /// The way from an older major's format to this one.
+    migration: Option<Migration<'static>>,
+}
+
 /// An opened project.
 #[derive(Debug)]
 pub struct Opened {
@@ -960,117 +984,152 @@ impl Store {
     }
 
     fn load(&mut self) -> Result<(Model, OpenReport), OpenError> {
-        let vfs = Arc::clone(&self.opts.vfs);
-        let mut findings: Vec<Finding> = Vec::new();
-        let mut removed = Vec::new();
-        let mut rolled_forward = None;
-        let mut repairable = true;
-        let mut abandoned: Option<u64> = None;
-
+        let mut o = Opening {
+            findings: Vec::new(),
+            removed: Vec::new(),
+            rolled_forward: None,
+            repairable: true,
+            listing: BTreeMap::new(),
+            abandoned: None,
+        };
         // Intents and temps (doc 05 §5.3, §6.1).
-        let mut listing = self.walk().map_err(io_err(&self.root))?;
+        o.listing = self.walk().map_err(io_err(&self.root))?;
         if self.holds_lock {
-            let current = self
+            self.settle_interrupted_save(&mut o)?;
+        } else {
+            self.wait_for_a_save(&mut o)?;
+        }
+        let stamps = self.read_stamps(&mut o)?;
+        let files = self.read_files(&mut o, &stamps);
+        let model = self.load_model(&mut o, stamps.manifest, stamps.migration.as_ref(), &files)?;
+        self.open_journal(&model);
+        let report = OpenReport {
+            access: self.access.clone(),
+            generation: self.generation,
+            format: stamps.format,
+            findings: o.findings,
+            rolled_forward: o.rolled_forward,
+            removed: o.removed,
+            recovery: self.recovery.clone(),
+            journaled: self.journal.is_some(),
+            migrated_from: self.migrated_from().map(str::to_owned),
+        };
+        Ok((model, report))
+    }
+
+    /// An editing open's first step (doc 05 §5.3): rolls the newest interrupted save forward, or, when it cannot,
+    /// says why; then, when the project is repairable, deletes the temps, the files a crashed save left to remove and
+    /// the old renamed locks, and lists the directory again.
+    fn settle_interrupted_save(&mut self, o: &mut Opening) -> Result<(), OpenError> {
+        let vfs = Arc::clone(&self.opts.vfs);
+        let current = self
+            .read_manifest()
+            .ok()
+            .flatten()
+            .map_or(0, |(m, _)| m.generation);
+        if let Some(newest) = newest_intent(&o.listing, current) {
+            match self.roll_forward(newest).map_err(io_err(&self.root))? {
+                Roll::Completed(g, moved) => {
+                    o.rolled_forward = Some(g);
+                    o.findings.extend(moved);
+                }
+                Roll::Torn => {}
+                Roll::NotRepairable(files) => {
+                    o.repairable = false;
+                    for f in files {
+                        o.findings.push(Finding::new(
+                            FindingKind::MixedGeneration,
+                            Some(f),
+                            None,
+                            format!(
+                                "an interrupted save of generation {newest} cannot roll forward: \
+                                 neither the file nor its temp matches the intent"
+                            ),
+                        ));
+                    }
+                }
+                Roll::BaseMoved(mismatch) => {
+                    o.repairable = false;
+                    o.findings.push(base_moved(newest, &mismatch));
+                }
+            }
+        }
+        if o.repairable {
+            o.listing = self.walk().map_err(io_err(&self.root))?;
+            for path in o.listing.keys() {
+                if is_save_temp(path) {
+                    let full = join(&self.root, path);
+                    if vfs.remove_file(&full).is_ok() {
+                        o.removed.push(path.clone());
+                    }
+                }
+            }
+            // Files a save removed after its manifest rename but before it could delete them (doc
+            // 05 §5.3 row 3) are named by the crashed session's journal.
+            if let Ok(Some((m, _))) = self.read_manifest() {
+                self.prepare_journal_dir(Some(m.project));
+                for seg in &self.leftovers {
+                    for path in seg.removes_of(m.generation) {
+                        let Ok(p) = FilePath::new(path.clone()) else {
+                            continue;
+                        };
+                        // An asset file is in `removes` only when the purge removed it.
+                        let owned = matches!(
+                            classify(p.as_str()),
+                            PathClass::Records(_)
+                                | PathClass::LibDocument { .. }
+                                | PathClass::Opaque(OpaqueKind::Asset { .. })
+                        );
+                        if owned
+                            && !m.files.contains_key(&p)
+                            && vfs.remove_file(&join(&self.root, p.as_str())).is_ok()
+                        {
+                            o.removed.push(path);
+                        }
+                    }
+                }
+            }
+            self.opts.lock(&self.root).prune_stale(self.opts.clock.now());
+            o.listing = self.walk().map_err(io_err(&self.root))?;
+        }
+        Ok(())
+    }
+
+    /// A read-only open's first step. Read-only openers never roll forward. Only an intent above the manifest's
+    /// generation is a save in progress (an older one is a leftover the next editing open deletes). Behind a live
+    /// writer they wait for its save to finish; behind a crashed one (a stale lock, or none) waiting is pointless.
+    /// Either way, an intent still there after the wait is read in memory: the intent's generation, file by file from
+    /// the target or its temp, and nothing is written. (On Windows a crashed writer's lock stays non-stale for
+    /// `lock.stale_after`: the process probe cannot tell.)
+    fn wait_for_a_save(&mut self, o: &mut Opening) -> Result<(), OpenError> {
+        let current = |store: &Store| {
+            store
                 .read_manifest()
                 .ok()
                 .flatten()
-                .map_or(0, |(m, _)| m.generation);
-            if let Some(newest) = newest_intent(&listing, current) {
-                match self.roll_forward(newest).map_err(io_err(&self.root))? {
-                    Roll::Completed(g, moved) => {
-                        rolled_forward = Some(g);
-                        findings.extend(moved);
-                    }
-                    Roll::Torn => {}
-                    Roll::NotRepairable(files) => {
-                        repairable = false;
-                        for f in files {
-                            findings.push(Finding::new(
-                                FindingKind::MixedGeneration,
-                                Some(f),
-                                None,
-                                format!(
-                                    "an interrupted save of generation {newest} cannot roll forward: \
-                                     neither the file nor its temp matches the intent"
-                                ),
-                            ));
-                        }
-                    }
-                    Roll::BaseMoved(mismatch) => {
-                        repairable = false;
-                        findings.push(base_moved(newest, &mismatch));
-                    }
-                }
+                .map_or(0, |(m, _)| m.generation)
+        };
+        let mut newest = newest_intent(&o.listing, current(self));
+        if newest.is_some() && !self.writer_gone() {
+            let mut waited = Duration::ZERO;
+            while newest.is_some() && waited < self.opts.read_only_wait {
+                self.opts.clock.sleep(READ_ONLY_POLL);
+                waited += READ_ONLY_POLL;
+                o.listing = self.walk().map_err(io_err(&self.root))?;
+                newest = newest_intent(&o.listing, current(self));
             }
-            if repairable {
-                listing = self.walk().map_err(io_err(&self.root))?;
-                for path in listing.keys() {
-                    if is_save_temp(path) {
-                        let full = join(&self.root, path);
-                        if vfs.remove_file(&full).is_ok() {
-                            removed.push(path.clone());
-                        }
-                    }
-                }
-                // Files a save removed after its manifest rename but before it could delete them (doc
-                // 05 §5.3 row 3) are named by the crashed session's journal.
-                if let Ok(Some((m, _))) = self.read_manifest() {
-                    self.prepare_journal_dir(Some(m.project));
-                    for seg in &self.leftovers {
-                        for path in seg.removes_of(m.generation) {
-                            let Ok(p) = FilePath::new(path.clone()) else {
-                                continue;
-                            };
-                            // An asset file is in `removes` only when the purge removed it.
-                            let owned = matches!(
-                                classify(p.as_str()),
-                                PathClass::Records(_)
-                                    | PathClass::LibDocument { .. }
-                                    | PathClass::Opaque(OpaqueKind::Asset { .. })
-                            );
-                            if owned
-                                && !m.files.contains_key(&p)
-                                && vfs.remove_file(&join(&self.root, p.as_str())).is_ok()
-                            {
-                                removed.push(path);
-                            }
-                        }
-                    }
-                }
-                self.opts.lock(&self.root).prune_stale(self.opts.clock.now());
-                listing = self.walk().map_err(io_err(&self.root))?;
-            }
-        } else {
-            // Read-only openers never roll forward. Only an intent above the manifest's generation is a save
-            // in progress (an older one is a leftover the next editing open deletes). Behind a live writer
-            // they wait for its save to finish; behind a crashed one (a stale lock, or none) waiting is
-            // pointless. Either way, an intent still there after the wait is read in memory: the intent's
-            // generation, file by file from the target or its temp, and nothing is written. (On Windows a
-            // crashed writer's lock stays non-stale for `lock.stale_after`: the process probe cannot tell.)
-            let current = |store: &Store| {
-                store
-                    .read_manifest()
-                    .ok()
-                    .flatten()
-                    .map_or(0, |(m, _)| m.generation)
-            };
-            let mut newest = newest_intent(&listing, current(self));
-            if newest.is_some() && !self.writer_gone() {
-                let mut waited = Duration::ZERO;
-                while newest.is_some() && waited < self.opts.read_only_wait {
-                    self.opts.clock.sleep(READ_ONLY_POLL);
-                    waited += READ_ONLY_POLL;
-                    listing = self.walk().map_err(io_err(&self.root))?;
-                    newest = newest_intent(&listing, current(self));
-                }
-            }
-            abandoned = newest;
         }
+        o.abandoned = newest;
+        Ok(())
+    }
 
-        // The manifest and the format decision (doc 05 §4, §10.1).
+    /// The manifest and the format decision (doc 05 §4, §10.1): the intent a read-only open reads in memory, the
+    /// manifest (or the generation of one with git conflict markers), and the way an older major migrates.
+    fn read_stamps(&mut self, o: &mut Opening) -> Result<Stamps, OpenError> {
+        let vfs = Arc::clone(&self.opts.vfs);
         let mut format = FormatAccess::ReadWrite;
         let mut pending_removal: BTreeSet<FilePath> = BTreeSet::new();
-        let mut intent = abandoned.and_then(|g| {
+        let mut intent = o.abandoned.and_then(|g| {
             let bytes = vfs.read(&join(&self.root, &format!("{MANIFEST}.tmp-{g}"))).ok()?;
             // A torn intent never committed: generation g on disk is the truth.
             Manifest::parse(&bytes, &Limits::default())
@@ -1082,7 +1141,7 @@ impl Store {
             // byte, is not applied.
             let on_disk = self.manifest_base().map_err(io_err(&self.root))?;
             if let Some(mismatch) = base_check(i, on_disk) {
-                findings.push(base_moved(i.generation, &mismatch));
+                o.findings.push(base_moved(i.generation, &mismatch));
                 intent = None;
             }
         }
@@ -1097,9 +1156,10 @@ impl Store {
             }
             // A file the interrupted save creates exists only as its temp so far.
             for path in intent.files.keys() {
-                if !listing.contains_key(path.as_str()) && listing.contains_key(&path.temp(intent.generation))
+                if !o.listing.contains_key(path.as_str())
+                    && o.listing.contains_key(&path.temp(intent.generation))
                 {
-                    listing.insert(path.as_str().to_owned(), EntryKind::File);
+                    o.listing.insert(path.as_str().to_owned(), EntryKind::File);
                 }
             }
         }
@@ -1123,7 +1183,7 @@ impl Store {
                     self.manifest_hash = Some(sha256(&bytes));
                     conflicted = Manifest::conflicted_generation(&bytes, &Limits::default());
                 }
-                findings.push(Finding::new(
+                o.findings.push(Finding::new(
                     FindingKind::ManifestUnreadable,
                     FilePath::new(MANIFEST).ok(),
                     None,
@@ -1134,11 +1194,11 @@ impl Store {
         };
         if manifest.is_none()
             && self.manifest_hash.is_none()
-            && listing
+            && o.listing
                 .keys()
                 .any(|p| matches!(classify(p), PathClass::Records(_)))
         {
-            findings.push(Finding::new(
+            o.findings.push(Finding::new(
                 FindingKind::ManifestUnreadable,
                 FilePath::new(MANIFEST).ok(),
                 None,
@@ -1177,20 +1237,34 @@ impl Store {
             // such a line the generation stays 0, as for a missing manifest.
             self.generation = g;
         }
+        Ok(Stamps {
+            format,
+            pending_removal,
+            intent,
+            manifest,
+            migration,
+        })
+    }
 
-        // Plan, read, parse (doc 05 §6.1, §6.2, §6.3).
+    /// Plans and reads the files the manifest lists (doc 05 §6.1, §6.2): a file larger than the limit is not read,
+    /// and behind an interrupted save each file is read from the target or its temp, whichever matches the intent.
+    fn read_files(&self, o: &mut Opening, stamps: &Stamps) -> BTreeMap<FilePath, Vec<u8>> {
+        let vfs = &*self.opts.vfs;
         let limits = Limits::default();
-        let plan = ew_format::plan(manifest.as_ref(), &listing, &limits);
+        let plan = ew_format::plan(stamps.manifest.as_ref(), &o.listing, &limits);
         // The files the interrupted save removes are not orphans.
-        findings.extend(plan.findings.into_iter().filter(|f| {
-            !(f.kind == FindingKind::Orphan && f.file.as_ref().is_some_and(|p| pending_removal.contains(p)))
+        o.findings.extend(plan.findings.into_iter().filter(|f| {
+            !(f.kind == FindingKind::Orphan
+                && f.file
+                    .as_ref()
+                    .is_some_and(|p| stamps.pending_removal.contains(p)))
         }));
         let mut files = BTreeMap::new();
         for path in plan.read {
             let full = join(&self.root, path.as_str());
             match vfs.stat(&full) {
                 Ok(s) if s.len > limits.max_file_bytes => {
-                    findings.push(Finding::new(
+                    o.findings.push(Finding::new(
                         FindingKind::LimitExceeded,
                         Some(path),
                         None,
@@ -1200,7 +1274,7 @@ impl Store {
                 }
                 _ => {}
             }
-            let read = match (&intent, vfs.read(&full)) {
+            let read = match (&stamps.intent, vfs.read(&full)) {
                 (Some(intent), target) => {
                     let wanted = intent.files.get(&path);
                     match target {
@@ -1216,7 +1290,7 @@ impl Store {
                             match temp {
                                 Ok(bytes) if wanted.is_some_and(|h| h.matches(&bytes)) => Ok(bytes),
                                 _ => {
-                                    findings.push(Finding::new(
+                                    o.findings.push(Finding::new(
                                         FindingKind::MixedGeneration,
                                         Some(path.clone()),
                                         None,
@@ -1238,7 +1312,7 @@ impl Store {
                 Ok(bytes) => {
                     files.insert(path, bytes);
                 }
-                Err(e) => findings.push(Finding::new(
+                Err(e) => o.findings.push(Finding::new(
                     FindingKind::MissingFile,
                     Some(path),
                     None,
@@ -1246,10 +1320,24 @@ impl Store {
                 )),
             }
         }
-        let loaded = match &migration {
-            Some(way) => ew_format::load_migrated(manifest.as_ref(), &files, &limits, way)
+        files
+    }
+
+    /// Parses the files read and builds the model (doc 05 §6.1, §6.3): the loader's findings, the read-only demotion,
+    /// the assets, and the baseline a save compares with (the hashes, the kept lines, the rewrite set, the file of
+    /// every key, the manifest and the base model).
+    fn load_model(
+        &mut self,
+        o: &mut Opening,
+        manifest: Option<Manifest>,
+        migration: Option<&Migration<'_>>,
+        files: &BTreeMap<FilePath, Vec<u8>>,
+    ) -> Result<Model, OpenError> {
+        let limits = Limits::default();
+        let loaded = match migration {
+            Some(way) => ew_format::load_migrated(manifest.as_ref(), files, &limits, way)
                 .map_err(OpenError::Migration)?,
-            None => ew_format::load(manifest.as_ref(), &files, &limits),
+            None => ew_format::load(manifest.as_ref(), files, &limits),
         };
         // The loader's list is capped at `max_findings`; its flag also counts the findings it dropped
         // (review, major 2: a thousand duplicates must not hide a line the writer would lose).
@@ -1261,15 +1349,16 @@ impl Store {
         } else {
             loaded.read_only
         };
-        findings.extend(loaded.findings);
-        findings.sort();
+        o.findings.extend(loaded.findings);
+        o.findings.sort();
         let Some(project) = loaded.project else {
-            return Err(OpenError::NoProject(findings));
+            return Err(OpenError::NoProject(std::mem::take(&mut o.findings)));
         };
         // FT-1383: the library copies of the documents with a finding, which the loader may have dropped. A
         // record that names one is no EW-INV-001 at this open: the project opens read-only, the finding naming the
         // copy's file, and the user updates the copy from its library.
-        let missing: BTreeSet<AnyKey> = findings
+        let missing: BTreeSet<AnyKey> = o
+            .findings
             .iter()
             .filter_map(|f| match classify(f.file.as_ref()?.as_str()) {
                 PathClass::LibDocument { id, .. } => Some(id),
@@ -1284,7 +1373,12 @@ impl Store {
             .collect();
         let mut model = match Model::from_records_missing(project, loaded.records, loaded.lib, &missing) {
             Ok(m) => m,
-            Err(error) => return Err(OpenError::Model { error, findings }),
+            Err(error) => {
+                return Err(OpenError::Model {
+                    error,
+                    findings: std::mem::take(&mut o.findings),
+                });
+            }
         };
         // The asset store (doc 05 §13.3): every asset file whose bytes match the hash in its name and the format
         // of its extension. Others stay opaque files only (EW-CORE-015 reports a wrong hash).
@@ -1293,12 +1387,13 @@ impl Store {
                 model.put_asset(asset);
             }
         }
-        let forced = findings
+        let forced = o
+            .findings
             .iter()
             .any(|f| f.kind.forces_read_only() && !(repair && f.is_broken_line()));
         // A record that names a copy the loader dropped: never an editable session, a repair open included.
         let dangling = !missing.is_empty() && model.integrity_check().is_err();
-        if !repairable || loader_read_only || forced || dangling {
+        if !o.repairable || loader_read_only || forced || dangling {
             self.demote(ReadOnlyReason::Integrity);
         }
 
@@ -1367,7 +1462,12 @@ impl Store {
         self.manifest = manifest;
         self.base = model.clone();
 
-        // The journal (doc 05 §8): only an editing session journals.
+        Ok(model)
+    }
+
+    /// The journal (doc 05 §8): only an editing session journals; a session that is not editing gives the lock
+    /// back.
+    fn open_journal(&mut self, model: &Model) {
         if self.access == Access::Edit {
             self.prepare_journal_dir(Some(model.project().id.cast()));
             // Leftovers without unsaved transactions (a session that crashed or was dropped right after a
@@ -1392,7 +1492,7 @@ impl Store {
             // `ew fmt --repair` names a crashed session's journal before a finding that forces read-only: a
             // repair open that went read-only with the lock held read the leftovers, and summarises them as
             // an editing open does, deleting and starting nothing.
-            if repair && self.holds_lock {
+            if self.opts.repair && self.holds_lock {
                 let generation = self.generation;
                 let mut keep: Vec<Segment> = self
                     .leftovers
@@ -1409,18 +1509,6 @@ impl Store {
         if self.access != Access::Edit && self.holds_lock {
             self.release_lock();
         }
-        let report = OpenReport {
-            access: self.access.clone(),
-            generation: self.generation,
-            format,
-            findings,
-            rolled_forward,
-            removed,
-            recovery: self.recovery.clone(),
-            journaled: self.journal.is_some(),
-            migrated_from: self.migrated_from().map(str::to_owned),
-        };
-        Ok((model, report))
     }
 
     /// Creates the journal handle for project `project` and reads the leftovers of other sessions (once).
