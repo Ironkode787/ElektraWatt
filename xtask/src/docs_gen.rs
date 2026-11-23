@@ -574,7 +574,7 @@ fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Su
          | Command | Summary | Cost | Exposure | Stability |\n|---|---|---|---|---|\n{rows}",
         header("the command registry"),
         items.len(),
-        repo_link("docs/design/17-extensibility.md", Some("21-command-registry")),
+        repo_link("docs/design/17-commands-cli.md", Some("21-command-registry")),
     );
     files.insert(format!("{COMMANDS_DIR}/index.md"), page);
     Ok(items)
@@ -657,8 +657,8 @@ fn command_page(entry: &Value, schema: &Value, consts: &BTreeMap<&str, String>) 
          | 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); without `--one-step` the lines before it stay committed and are saved, with `--one-step` nothing is saved. |\n\
          | 2 | Anything else stops the replay: invalid parameters, a missing record, an unresolvable reference, an open, lock or save error. |\n\n\
          The codes of every subcommand are in [doc 17 §3.2]({}).\n",
-        repo_link("docs/design/17-extensibility.md", Some("35-command-logs-ewcmd")),
-        repo_link("docs/design/17-extensibility.md", Some("32-exit-codes")),
+        repo_link("docs/design/17-commands-cli.md", Some("35-command-logs-ewcmd")),
+        repo_link("docs/design/17-commands-cli.md", Some("32-exit-codes")),
     );
     if str_of(entry, "cost") == "bulk" {
         out.push_str(
@@ -666,7 +666,7 @@ fn command_page(entry: &Value, schema: &Value, consts: &BTreeMap<&str, String>) 
              ([doc 17 §3.5](",
         );
         out.push_str(&repo_link(
-            "docs/design/17-extensibility.md",
+            "docs/design/17-commands-cli.md",
             Some("35-command-logs-ewcmd"),
         ));
         out.push_str(")).\n");
@@ -677,7 +677,7 @@ fn command_page(entry: &Value, schema: &Value, consts: &BTreeMap<&str, String>) 
             "\nExposure class `{}`: [doc 17 §2.3]({}) says whether a command log may run it.\n",
             str_of(entry, "exposure"),
             repo_link(
-                "docs/design/17-extensibility.md",
+                "docs/design/17-commands-cli.md",
                 Some("23-origins-and-exposure-classes")
             ),
         );
@@ -1201,8 +1201,8 @@ fn properties_text(sheet: &Value) -> Result<String> {
 // ---------------------------------------------------------------------------------------------------------------
 // The CLI, the queries, `api_v1` and the format
 
-/// Doc 17 (extensibility), linked from the generated pages.
-const DOC_17: &str = "docs/design/17-extensibility.md";
+/// Doc 17's chapter of commands and the command line, linked from the generated pages.
+const DOC_17: &str = "docs/design/17-commands-cli.md";
 
 /// A result schema of `ew`: its file name and its schema.
 type ResultSchema = (String, Value);
@@ -1313,7 +1313,7 @@ fn cli_pages(
         header("the catalogue of `ew` and its result schemas"),
         entries.len(),
         repo_link(DOC_17, Some("31-conventions")),
-        repo_link(DOC_17, Some("11-api-stability-and-versioning")),
+        repo_link("docs/design/17-scripting-sql-plugins.md", Some("11-api-stability-and-versioning")),
     );
     files.insert(format!("{CLI_DIR}/index.md"), page);
     Ok(items)
@@ -1501,7 +1501,7 @@ fn api_v1_text(snapshot: &Value) -> Result<String> {
          addition goes beyond the documented key columns of doc 17 §6.1. This reference lists the {} views.\n\n\
          | View | One row per | Columns |\n|---|---|---|\n{rows}\n{sections}",
         header("the `api_v1` views"),
-        repo_link(DOC_17, Some("6-read-only-sql-projection")),
+        repo_link("docs/design/17-scripting-sql-plugins.md", Some("6-read-only-sql-projection")),
         str_of(snapshot, "api_status"),
         views.len(),
     ))
