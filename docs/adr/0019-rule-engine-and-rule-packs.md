@@ -1,6 +1,6 @@
 # ADR-0019: Rule engine and rule packs
 
-**Status:** Accepted · amended 2026-10-18, 2026-11-23 (amendment 8, proposed with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-11-23 (amendment 8, with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -134,7 +134,7 @@ canonical forms of [15](../design/15-checks-revisions-collaboration.md) §2.2 an
    implements SQL rules and `ew-plugin-host` plugin rules; `ew-api` registers both at session start. `ew-checks`
    never depends on `ew-sqlview` or `ew-plugin-host`.
 8. **A finding carries its text; the message is rendered from the pattern**
-   (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decisions 8 to 10; in force when that record is
+   (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decisions 8 to 10; in force, the record is
    accepted). Decision 1 gave a rule a `message` that is a Fluent key, and amendment 4 its form `rule-<id>`. A
    finding holds that key with its typed arguments as one `Text`; its en-GB message is the pattern rendered and is
    not written a second time in the rule's code. The rule messages are files of the program's one catalogue of

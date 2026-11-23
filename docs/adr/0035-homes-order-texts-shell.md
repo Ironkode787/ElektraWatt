@@ -1,6 +1,6 @@
 # ADR-0035: One home for each thing, an order of crates, one path for a text, and a shell that decides what is said
 
-**Status:** Proposed · **Date:** 2026-11-23 ·
+**Status:** Accepted (the release manager, 2026-11-23, on the conditions in [the plan](../plan/m3.5-architecture.md) section 4) · **Date:** 2026-11-23 ·
 **Deciders:** the release manager (the redesign); the project owner (the items of the owner's list in
 [the plan](../plan/m3.5-architecture.md))
 **Amends:** [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md) amendment 5 (the source of the edges),

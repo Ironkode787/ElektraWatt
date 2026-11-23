@@ -1,6 +1,6 @@
 # ADR-0024: Licence set and the permissive/GPL crate boundary
 
-**Status:** Accepted · amended 2026-10-18, 2026-11-04 (amendment 6), 2026-11-23 (amendment 8, proposed with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** project owner (licence set, decided 2026-10-17); core
+**Status:** Accepted · amended 2026-10-18, 2026-11-04 (amendment 6), 2026-11-23 (amendment 8, with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** project owner (licence set, decided 2026-10-17); core
 team (crate boundary)
 
 ## Context
@@ -128,7 +128,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `ci/dep-rules.toml`, which `cargo xtask rules` enforces, reads `fuzz/Cargo.toml`'s direct dependencies as well as the
    workspace's. A direct edge allowed elsewhere never overrides decision 4.
 8. **The order of the crates is the source of the edges** (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md)
-   decisions 2 to 5; in force when that record is accepted). Amendment 5 made the architecture's graph the source of
+   decisions 2 to 5; in force, the record is accepted). Amendment 5 made the architecture's graph the source of
    the direct edges and listed six foundation crates. A GPL crate may now depend on any crate before it in the order
    of `ci/dep-rules.toml`, permissive or GPL, and names it in its manifest; the architecture document draws no graph.
    The boundary of decision 2 is unchanged and is still read from the manifests' licences. Two things are added to

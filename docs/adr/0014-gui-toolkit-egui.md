@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-28 (amendment 4) and 2026-11-23 (amendment 5, proposed with ADR-0035) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-28 (amendment 4) and 2026-11-23 (amendment 5, with ADR-0035) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -75,7 +75,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    crate would add a quarterly upgrade and a second selection model without adding a capability. Decision 1 reads
    "egui/eframe 0.37 with egui_tiles and egui_table".
 5. **The shell decides what is said, a tool what follows its commit, and the window draws**
-   (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decisions 11 to 14; in force when that record is
+   (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decisions 11 to 14; in force, the record is
    accepted). Decision 3 gave `ew-viewmodel` the panel models; it is the shell, and it also owns which screen
    shows, why an entry is greyed, what a key does, and where the outcome of an action is said (under a row, in the
    dialog, in the tool's HUD, in a toast, in the banner), so that a script and a view-model test see what a person

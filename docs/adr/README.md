@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt document set
 
-**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 29 ADRs are Accepted and 6 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
+**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 30 ADRs are Accepted and 5 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
 
 | ADR | Title | Status | Date | Decision |
 |---|---|---|---|---|
@@ -40,7 +40,7 @@
 | [0032](0032-per-project-text-styles.md) | Per-project text styles as overrides of the built-in table | Accepted | 2026-10-30 | A project stores text-style overrides in `ProjectSettings.text_styles` (absent: the built-in table, the 0.94 mm small styles kept); new projects write `cp.small` and `marker` at 7 px; one effective table for scene, exports and checks; no migration |
 | [0033](0033-schematic-routing-model.md) | Schematic routing: stored routes written by one page router, unrouted connections and one route convention | Accepted; decisions 4, 5 and 9 and the amendments superseded by ADR-0034 | 2026-11-07 | A connection is drawn along its stored route, the full vertex list with both ends; one deterministic page router in `ew-derive` writes routes that never break the hard rules, through `ew-api`; a connection without a route is unrouted, drawn dashed and reported; interruption points take the arrow form of their direction |
 | [0034](0034-schematic-drafting.md) | Schematic drafting: one measure, routing by nets with trunks, arranging on request, texts by candidates | Accepted | 2026-11-19 | One measure judges a page; wires are routed as whole nets with trunks and drops; parts are arranged only on request and with a preview; texts are placed by candidates together with the routes; the page router of ADR-0033 and the scene's text rules go |
-| [0035](0035-homes-order-texts-shell.md) | One home for each thing, an order of crates, one path for a text, and a shell that decides what is said | Proposed (with amendments to 0011, 0014, 0019 and 0024) | 2026-11-23 | A thing is written once in the crate that defines the type it is about; the crates stand in one order and depend only on earlier ones; a text for a person is a key with arguments, rendered once at the edge; the shell decides what is said and where, a tool what follows its commit, and the window draws; a design document states what is |
+| [0035](0035-homes-order-texts-shell.md) | One home for each thing, an order of crates, one path for a text, and a shell that decides what is said | Accepted (with amendments to 0011, 0014, 0019 and 0024) | 2026-11-23 | A thing is written once in the crate that defines the type it is about; the crates stand in one order and depend only on earlier ones; a text for a person is a key with arguments, rendered once at the edge; the shell decides what is said and where, a tool what follows its commit, and the window draws; a design document states what is |
 
 ## How to add an ADR
 

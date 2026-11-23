@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`), 2026-11-20 (amendment 7, the sample as fixture), 2026-11-22 (amendment 8, the latest version leads), 2026-11-23 (amendment 9, proposed with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`), 2026-11-20 (amendment 7, the sample as fixture), 2026-11-22 (amendment 8, the latest version leads), 2026-11-23 (amendment 9, with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -221,7 +221,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
       editing, sets that reference's line aside as a schema violation (EW-CORE-007), reports the points that name it,
       and writes the line back unchanged on save.
 9. **The `min_reader` stamp is the format** (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decision 17;
-   in force when that record is accepted and the project owner has agreed to the item of its plan's list). The
+   in force: the record is accepted, and the owner's ruling of 2026-11-22 that the latest version leads covers
+   the item of its plan's list). The
    stamp was computed as the greatest format among the kinds, members and variants a project's files use, from
    `since` tables per kind, member and variant. Those tables serve one reader only, an older build that meets a
    newer project, which amendment 8 no longer provides for. The stamp a build writes is its own format, and the
