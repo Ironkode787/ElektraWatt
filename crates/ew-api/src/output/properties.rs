@@ -52,7 +52,7 @@ mod sections;
 mod selection;
 pub(crate) use bus_rows::port_words;
 use connection_rows::{ip_ends, potential_defs_at, prop_via};
-pub(crate) use context::{SheetCx, neutral_or_first};
+pub(crate) use context::SheetCx;
 pub use fluid_rows::DeviceMedia;
 pub(crate) use fluid_rows::source_port;
 use header::marked_cable;
@@ -599,7 +599,7 @@ fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Buil
                 .get(*strip)
                 .and_then(|d| d.aspects.strip.as_ref())
                 .and_then(|a| a.groups.iter().find(|g| g.from_seq <= *seq && *seq <= g.to_seq))
-                .map(|g| neutral_or_first(&g.label))
+                .map(|g| g.label.neutral_or_first().unwrap_or_default().to_owned())
                 .filter(|l| !l.is_empty());
             (
                 label.map(Value::String),

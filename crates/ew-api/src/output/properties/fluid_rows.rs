@@ -12,7 +12,7 @@ use ew_model::EndpointKey;
 use ew_schema::{Connection, Device, Function};
 use serde_json::Value;
 
-use super::context::{SheetCx, neutral_or_first};
+use super::context::SheetCx;
 use super::sections::{Built, derived, merge};
 use super::{Provenance, RowAction, RowValue, SourceLink, device_tag_text, rep_location};
 use crate::Session;
@@ -30,7 +30,7 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
     let name = |m: Id<Medium>| {
         media
             .get(m)
-            .map(|m| neutral_or_first(&m.name))
+            .map(|m| m.name.neutral_or_first().unwrap_or_default().to_owned())
             .unwrap_or_default()
     };
     let nets = q.get::<FluidNets>(());
@@ -340,7 +340,7 @@ impl Session {
 
 /// A medium in words: its name and its nominal pressure (`Compressed air, 6 bar`).
 pub(crate) fn medium_words(m: &ew_derive::ew_schema::Medium) -> String {
-    let name = neutral_or_first(&m.name);
+    let name = m.name.neutral_or_first().unwrap_or_default().to_owned();
     if m.p_nom == ew_derive::ew_units::Dec3::ZERO {
         name
     } else {

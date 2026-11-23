@@ -176,7 +176,12 @@ impl ParseCx for SheetCx<'_> {
                     .ok()
                     .and_then(|v| v.as_str().map(str::to_owned))
                     .unwrap_or_default(),
-                description: neutral_or_first(&p.item.description),
+                description: p
+                    .item
+                    .description
+                    .neutral_or_first()
+                    .unwrap_or_default()
+                    .to_owned(),
             })
             .collect()
     }
@@ -206,16 +211,4 @@ impl ParseCx for SheetCx<'_> {
             })
             .collect()
     }
-}
-
-/// The neutral text of an `MlText`, else the text of its first language, else empty.
-pub(crate) fn neutral_or_first(text: &ew_derive::ew_mltext::MlText) -> String {
-    if let Some(n) = text.as_neutral() {
-        return n.to_owned();
-    }
-    text.languages()
-        .next()
-        .and_then(|l| text.get(l))
-        .unwrap_or_default()
-        .to_owned()
 }

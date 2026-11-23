@@ -381,7 +381,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     .map(|(_, d)| d);
                 let record = channel_table.get(r.channel);
                 let comment = record
-                    .map(|c| crate::output::properties::neutral_or_first(&c.comment))
+                    .map(|c| c.comment.neutral_or_first().unwrap_or_default().to_owned())
                     .unwrap_or_default();
                 let safety = record.and_then(|c| c.safety.as_ref()).map(safety_text);
                 let rack = match r.slot {
@@ -396,8 +396,9 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     r.text
                         .function_text
                         .as_ref()
-                        .map(crate::output::properties::neutral_or_first)
-                        .unwrap_or_default(),
+                        .and_then(|t| t.neutral_or_first())
+                        .unwrap_or_default()
+                        .to_owned(),
                     r.text.designation.clone().unwrap_or_default(),
                     module_tag.clone(),
                     r.number.to_string(),

@@ -281,12 +281,9 @@ impl Command for CreatePage {
             .into_iter()
             .find(|(_, f)| printed_folio(f.number, f.label.as_ref()) == printed)
         {
-            let title = tx.get::<Page>(held).and_then(|p| {
-                p.title
-                    .as_neutral()
-                    .or_else(|| p.title.languages().next().and_then(|l| p.title.get(l)))
-                    .map(str::to_owned)
-            });
+            let title = tx
+                .get::<Page>(held)
+                .and_then(|p| p.title.neutral_or_first().map(str::to_owned));
             let page = match title.filter(|t| !t.trim().is_empty()) {
                 Some(t) => format!("{printed} {t}"),
                 None => printed.clone(),

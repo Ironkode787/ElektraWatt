@@ -139,10 +139,7 @@ pub(crate) fn enum_text<T: Serialize>(v: &T) -> String {
 
 /// The neutral text of a multilingual value, else its first language's text.
 pub(crate) fn ml_text(ml: &MlText) -> String {
-    ml.as_neutral()
-        .or_else(|| ml.languages().next().and_then(|l| ml.get(l)))
-        .unwrap_or_default()
-        .to_owned()
+    ml.neutral_or_first().unwrap_or_default().to_owned()
 }
 
 /// The JSON of a multilingual value.

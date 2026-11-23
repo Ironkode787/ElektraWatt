@@ -57,7 +57,7 @@ impl Session {
             .table::<ew_derive::ew_schema::Medium>()
             .iter()
             .map(|(id, m)| {
-                let name = crate::output::properties::neutral_or_first(&m.name);
+                let name = m.name.neutral_or_first().unwrap_or_default().to_owned();
                 (natural_key(&name), id.as_uuid(), name)
             })
             .collect();
@@ -244,7 +244,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let mut ranked_m: Vec<(NaturalKey, Id<Medium>, String)> = media
         .iter()
         .map(|(id, m)| {
-            let name = crate::output::properties::neutral_or_first(&m.name);
+            let name = m.name.neutral_or_first().unwrap_or_default().to_owned();
             (natural_key(&name), id, name)
         })
         .collect();

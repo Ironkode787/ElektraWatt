@@ -87,8 +87,7 @@ fn ew_ml(ctx: &Context<'_>) -> rusqlite::Result<Option<String>> {
     let text = tag
         .as_ref()
         .and_then(|t| ml.text_for(t))
-        .or_else(|| ml.as_neutral())
-        .or_else(|| ml.languages().next().and_then(|l| ml.get(l)))
+        .or_else(|| ml.neutral_or_first())
         .unwrap_or_default();
     Ok(Some(text.to_owned()))
 }

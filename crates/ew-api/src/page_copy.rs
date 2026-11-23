@@ -214,12 +214,7 @@ impl Session {
             }
         }
         // The titles the rename changes, in the text the page shows first (its neutral text, else its first language).
-        let shown = |t: &ew_mltext::MlText| {
-            t.as_neutral()
-                .or_else(|| t.languages().next().and_then(|l| t.get(l)))
-                .unwrap_or_default()
-                .to_owned()
-        };
+        let shown = |t: &ew_mltext::MlText| t.neutral_or_first().unwrap_or_default().to_owned();
         let titles = pages
             .iter()
             .filter_map(|p| q.pages().get(*p))

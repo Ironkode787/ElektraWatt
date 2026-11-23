@@ -709,12 +709,7 @@ impl ShellModel {
             .sections()
             .iter()
             .map(|(_, s)| {
-                let title = s
-                    .title
-                    .as_neutral()
-                    .or_else(|| s.title.languages().next().and_then(|l| s.title.get(l)))
-                    .unwrap_or_default()
-                    .to_lowercase();
+                let title = s.title.neutral_or_first().unwrap_or_default().to_lowercase();
                 (s.number, title)
             })
             .collect();

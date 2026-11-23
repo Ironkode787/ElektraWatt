@@ -181,7 +181,7 @@ fn address_range(q: &Q, module: Id<Device>) -> String {
 
 /// A part's number and description as one text.
 fn part_text(part: &Part) -> String {
-    let description = super::properties::neutral_or_first(&part.description);
+    let description = part.description.neutral_or_first().unwrap_or_default().to_owned();
     if description.is_empty() {
         part.part_number.to_string()
     } else {
@@ -552,7 +552,7 @@ impl Session {
                     .iter()
                     .map(|c| {
                         (
-                            super::properties::neutral_or_first(&c.label),
+                            c.label.neutral_or_first().unwrap_or_default().to_owned(),
                             c.order_code.to_string(),
                         )
                     })
@@ -681,7 +681,7 @@ impl Session {
                     symbol: text.and_then(|t| t.symbol.clone()).unwrap_or_default(),
                     function_text: text
                         .and_then(|t| t.function_text.as_ref())
-                        .map(super::properties::neutral_or_first)
+                        .map(|t| t.neutral_or_first().unwrap_or_default().to_owned())
                         .unwrap_or_default(),
                     device: device.map(|d| d.as_uuid()),
                     wired: device.map(|d| tag(&q, d)).unwrap_or_default(),

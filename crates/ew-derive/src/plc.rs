@@ -2055,11 +2055,9 @@ impl Query for ChannelTexts {
                         match token {
                             "target.process_tag" => process_tag.clone(),
                             "target.dt" => device.and_then(product),
-                            "target.function_text" => function_text.as_ref().and_then(|t| {
-                                t.as_neutral()
-                                    .or_else(|| t.languages().next().and_then(|l| t.get(l)))
-                                    .map(str::to_owned)
-                            }),
+                            "target.function_text" => function_text
+                                .as_ref()
+                                .and_then(|t| t.neutral_or_first().map(str::to_owned)),
                             "pin" => target.and_then(|t| t.pin).and_then(|pin| {
                                 q.get::<crate::FunctionCps>(pin.function)
                                     .iter()

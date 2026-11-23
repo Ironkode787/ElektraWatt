@@ -136,7 +136,7 @@ impl Session {
             let fluid = def
                 .as_ref()
                 .is_some_and(|d| d.cps.iter().any(|c| ew_derive::is_fluid(&c.discipline)));
-            let description = crate::output::properties::neutral_or_first(&part.description);
+            let description = part.description.neutral_or_first().unwrap_or_default().to_owned();
             let kind = if fluid && !description.is_empty() {
                 Some(description)
             } else {
@@ -182,7 +182,7 @@ impl Session {
             manufacturer: self.library_manufacturer(&part.manufacturer),
             number: part.part_number.as_str().to_owned(),
             type_designation: text(&part.type_designation),
-            description: crate::output::properties::neutral_or_first(&part.description),
+            description: part.description.neutral_or_first().unwrap_or_default().to_owned(),
             order_number: text(&part.order_number),
             tech,
             size,

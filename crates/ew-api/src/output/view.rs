@@ -1210,7 +1210,7 @@ fn card_cells(q: &Q, rep: &Representation, function: Id<Function>, pins: &mut [P
                 // Until a device is wired to it the channel prints its own text, its symbol name (FT-2133).
                 t.function_text
                     .as_ref()
-                    .map(crate::output::properties::neutral_or_first)
+                    .map(|t| t.neutral_or_first().unwrap_or_default().to_owned())
                     .filter(|f| !f.is_empty())
                     .or_else(|| t.symbol.clone())
             })

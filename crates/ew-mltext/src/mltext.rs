@@ -150,6 +150,13 @@ impl MlText {
         }
     }
 
+    /// The text shown where no display language applies: the neutral text (possibly empty), else the string of
+    /// the first language in tag order.
+    pub fn neutral_or_first(&self) -> Option<&str> {
+        self.as_neutral()
+            .or_else(|| self.languages().next().and_then(|l| self.get(l)))
+    }
+
     /// The languages present, in tag order; none for neutral text.
     pub fn languages(&self) -> impl Iterator<Item = &LangTag> {
         match &self.0 {
@@ -317,6 +324,14 @@ mod tests {
             MlTextView::Neutral(_) => panic!("expected languages"),
         }
         assert_eq!(neutral.view(), MlTextView::Neutral("1+"));
+    }
+
+    #[test]
+    fn neutral_else_first_language() {
+        assert_eq!(MlText::neutral("1+").neutral_or_first(), Some("1+"));
+        assert_eq!(MlText::new().neutral_or_first(), Some(""));
+        let t = MlText::from_langs([(tag("nl-NL"), "Voeding"), (tag("en-GB"), "Power Supply")]);
+        assert_eq!(t.neutral_or_first(), Some("Power Supply"));
     }
 
     #[test]

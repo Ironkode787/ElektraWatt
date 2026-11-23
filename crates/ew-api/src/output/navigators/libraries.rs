@@ -122,7 +122,7 @@ fn macro_kind_word(k: &MacroKind) -> &'static str {
 
 /// A text in the neutral language, else its first.
 fn text(t: &MlText) -> String {
-    super::super::properties::neutral_or_first(t)
+    t.neutral_or_first().unwrap_or_default().to_owned()
 }
 
 /// The words of a library's index state.

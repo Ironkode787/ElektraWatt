@@ -1391,7 +1391,12 @@ impl Session {
         let offer = |c: &LibCopy<Part>, copies: Vec<Value>| LayoutPartOffer {
             part: c.id.as_uuid(),
             number: c.item.part_number.as_str().to_owned(),
-            description: super::properties::neutral_or_first(&c.item.description),
+            description: c
+                .item
+                .description
+                .neutral_or_first()
+                .unwrap_or_default()
+                .to_owned(),
             profile: c.item.sections.rail.as_ref().map(|r| r.profile.clone()),
             size: c
                 .item

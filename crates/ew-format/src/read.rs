@@ -501,9 +501,7 @@ fn document_words(doc: &LibDocument) -> String {
     // A multi-language name: its neutral text, else its first language's.
     macro_rules! text {
         ($t:expr) => {
-            $t.as_neutral()
-                .or_else(|| $t.languages().next().and_then(|l| $t.get(l)))
-                .map(str::to_owned)
+            $t.neutral_or_first().map(str::to_owned)
         };
     }
     let (kind, name, version) = match doc {
