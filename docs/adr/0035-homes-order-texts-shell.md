@@ -60,7 +60,10 @@
    tables for the build scripts, and the one renderer over Fluent. The words stand in the text files of the crate
    that says them (`texts/<language>/<area>.ftl`): `ew-derive` for the words of the domain's kinds, `ew-checks`,
    `ew-commands`, `ew-reports`, `ew-api`, `ew-viewmodel` and `ew`. Every seam that carries words for a person
-   carries a `Text`.
+   carries a `Text`. Of the four ways a text travels today, the keyed text of `ew-commands` and the window's
+   Fluent files with keys checked at build stay and become this one; the checks' own catalogue with a message
+   string beside each pattern, pairs of English and Dutch words in code, and English built in code and shown to
+   a person go.
 9. **A text is rendered once, at the edge:** the window in its language, a page, a list, an export and a stamp in
    the project's language, the command line in English unless given a language. en-GB is mandatory and the
    fallback; every language holds every key.
