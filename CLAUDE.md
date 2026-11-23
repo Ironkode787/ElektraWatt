@@ -8,8 +8,9 @@ GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. It is an 
 - `docs/plan/README.md`: the milestone that is running and the open work.
 - `CONTRIBUTING.md`, "The development loop": how a change is checked.
 - `docs/README.md`: the map of the documents. Read a design document only for the area you change.
-- `docs/map/crates.md` and `docs/map/actions.md`: every crate, file and action, where it lives and what it holds
-  (generated: `cargo xtask gen-maps`).
+- To find code: `cargo xtask where <name>` (an action, a command, a type or a function, by its name) and
+  `cargo xtask outline <file>` answer with the place and its span. `docs/map/crates.md` is where to look up one
+  crate; do not read it or `docs/map/actions.md` whole (generated: `cargo xtask gen-maps`).
 - `.claude/orchestration.md`: only when you hand work to subagents.
 
 ## The loop
