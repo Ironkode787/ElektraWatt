@@ -495,8 +495,8 @@ rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }; { $loa
   a temporary HTML file for the system browser, without a network request.
 
 A shipped rule's `docs` is
-`reference/rules/<id in lower case>` (`RuleMeta.docs`, declared by every rule; `ew-checks`' pack test fails on another
-form, T5), and `docs-gen` writes that page from the catalogue and the rule's notes file
+`reference/rules/<id in lower case>` (`RuleMeta::docs`, computed from the ID; its pack is the pack of the ID's family, `FAMILIES`)
+and `docs-gen` writes that page from the catalogue and the rule's notes file
 `docs/book/rule-notes/<id>.md` (`## What it checks`, `## Why`, `## Standard`, `## Example`, `## How to fix`,
 `## Waiving`, each non-empty), failing on a rule without its notes, a missing heading, a notes file for no rule, or a
 `docs` that names no page. The store's integrity rules (`INTEGRITY`: EW-CORE-001 to 019 but 008, 011 and 013) have
