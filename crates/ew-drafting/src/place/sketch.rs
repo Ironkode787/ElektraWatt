@@ -1486,22 +1486,23 @@ impl<'a> Sketch<'a> {
             col(first) - reach(first).map_or(0, |r| whole_up((col(first) - r.x0).max(0))),
             col(last) + reach(last).map_or(0, |r| whole_up((r.x1 - col(last) - width).max(0))),
         ];
-        let mut place: Vec<Tick> = vec![0; members.len()];
-        for i in 0..members.len() {
-            place[i] = if i < first {
-                near[0] - pitch * steps(first - i)
-            } else if i > last {
-                near[1] + pitch * steps(i - last)
-            } else {
-                col(i)
-            };
-        }
+        let mut place: Vec<Tick> = (0..members.len())
+            .map(|i| {
+                if i < first {
+                    near[0] - pitch * steps(first - i)
+                } else if i > last {
+                    near[1] + pitch * steps(i - last)
+                } else {
+                    col(i)
+                }
+            })
+            .collect();
         for w in anchors.windows(2) {
             let (a, b) = (w[0], w[1]);
             let gaps = steps(b - a);
-            for i in a + 1..b {
+            for (i, at) in place.iter_mut().enumerate().take(b).skip(a + 1) {
                 let even = (col(b) - col(a)) * steps(i - a) / gaps;
-                place[i] = col(a) + even.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
+                *at = col(a) + even.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
             }
         }
         if !place.windows(2).all(|w| w[0] + least <= w[1]) {

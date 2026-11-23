@@ -67,8 +67,16 @@ fn a_strip_over_a_card_opens_to_the_channels_columns_in_its_own_order() {
             "B{k} over its terminal"
         );
     }
-    assert_eq!(at(&done, "X2").x, p(18, 0).x, "the feed terminal halfway between X1 and X3");
-    assert_eq!(at(&done, "X5").x, p(34, 0).x, "the common terminal halfway between X4 and X6");
+    assert_eq!(
+        at(&done, "X2").x,
+        p(18, 0).x,
+        "the feed terminal halfway between X1 and X3"
+    );
+    assert_eq!(
+        at(&done, "X5").x,
+        p(34, 0).x,
+        "the common terminal halfway between X4 and X6"
+    );
 }
 
 /// A card at the foot with its inputs in two rows, as a card drawn before step 7: inputs 0 to 3 on its upper edge,
@@ -79,18 +87,20 @@ fn a_strip_over_a_card_opens_to_the_channels_columns_in_its_own_order() {
 #[test]
 fn a_strip_over_a_card_with_two_rows_of_pins_keeps_its_order() {
     let mut b = Page::new(70, 56);
-    let pins: Vec<(String, ew_drafting::Pt, Side)> = [(0, 4, true), (1, 12, true), (2, 20, true), (3, 28, true)]
-        .into_iter()
-        .chain([(4, 4, false), (5, 12, false)])
-        .map(|(n, x, up)| {
-            if up {
-                (format!("{n}"), p(x, 0), Side::Up)
-            } else {
-                (format!("{n}"), p(x, 6), Side::Down)
-            }
-        })
-        .collect();
-    let named: Vec<(&str, ew_drafting::Pt, Side)> = pins.iter().map(|(n, at, s)| (n.as_str(), *at, *s)).collect();
+    let pins: Vec<(String, ew_drafting::Pt, Side)> =
+        [(0, 4, true), (1, 12, true), (2, 20, true), (3, 28, true)]
+            .into_iter()
+            .chain([(4, 4, false), (5, 12, false)])
+            .map(|(n, x, up)| {
+                if up {
+                    (format!("{n}"), p(x, 0), Side::Up)
+                } else {
+                    (format!("{n}"), p(x, 6), Side::Down)
+                }
+            })
+            .collect();
+    let named: Vec<(&str, ew_drafting::Pt, Side)> =
+        pins.iter().map(|(n, at, s)| (n.as_str(), *at, *s)).collect();
     let card = b.part("A1", p(10, 40), (p(0, 0), p(34, 6)), &named);
     b.role(card, Role::Card);
     let strip = ["X1", "X2", "X3", "X4", "X5", "X6"];
@@ -98,7 +108,12 @@ fn a_strip_over_a_card_with_two_rows_of_pins_keeps_its_order() {
         b.terminal(name, p(18 + 2 * k as i32, 32));
     }
     for (terminal, input) in strip.iter().zip(["0", "1", "4", "2", "3", "5"]) {
-        b.wire(&format!("c{terminal}"), b.pin(terminal, "2"), b.pin("A1", input), &[]);
+        b.wire(
+            &format!("c{terminal}"),
+            b.pin(terminal, "2"),
+            b.pin("A1", input),
+            &[],
+        );
     }
     for (k, terminal) in strip.iter().enumerate() {
         let sensor = format!("B{k}");
@@ -108,7 +123,11 @@ fn a_strip_over_a_card_with_two_rows_of_pins_keeps_its_order() {
     let (_, done) = run(&b.page, &[]);
     in_order(&b.page, &done, &strip);
     for (terminal, k) in [("X1", 0), ("X2", 1), ("X4", 2), ("X5", 3)] {
-        assert_eq!(at(&done, terminal).x, p(14 + 8 * k, 0).x, "{terminal} in its channel's column");
+        assert_eq!(
+            at(&done, terminal).x,
+            p(14 + 8 * k, 0).x,
+            "{terminal} in its channel's column"
+        );
     }
 }
 

@@ -13,11 +13,21 @@ use ew_drafting::{LabelKind, Owner, Places, TextRef, measure, settle_labels};
 fn a_strip_designation_stands_clear_of_a_wire_round_the_terminal_s_left_and_top() {
     let mut b = Page::new(60, 40);
     let x = b.terminal("X11", p(20, 20));
-    let tag = b.label(Owner::Part(x), 1, LabelKind::StripTag, TAG, Places::At(Vec::new()));
+    let tag = b.label(
+        Owner::Part(x),
+        1,
+        LabelKind::StripTag,
+        TAG,
+        Places::At(Vec::new()),
+    );
     b.device("G1", p(18, 26));
     b.run("pe", b.pin("G1", "1"), b.pin("X11", "1"), &[p(18, 17), p(20, 17)]);
     let settled = settle_labels(&b.page);
-    let at = settled.iter().find(|l| l.id == tag).expect("the designation").rect;
+    let at = settled
+        .iter()
+        .find(|l| l.id == tag)
+        .expect("the designation")
+        .rect;
     let q = measure(&b.page);
     assert!(
         !q.findings.across_texts.iter().any(|x| x.1 == TextRef::Label(tag)),

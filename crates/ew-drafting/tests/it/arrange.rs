@@ -6,8 +6,8 @@
 
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    Arranged, DraftPage, End, InTheWay, PageKind, PartId, Pt, Role, Rule, Scope, Side, Tick, arrange, geom, measure,
-    rules_kept,
+    Arranged, DraftPage, End, InTheWay, PageKind, PartId, Pt, Role, Rule, Scope, Side, Tick, arrange, geom,
+    measure, rules_kept,
 };
 
 /// The page as `a` leaves it: every part moved, every route and junction of its plan.
@@ -423,7 +423,12 @@ fn a_part_left_against_a_rule_names_the_part_that_stands_in_its_place() {
     b.part("G1", p(16, 2), (p(-1, 0), p(3, 4)), &[("1", p(0, 0), Side::Up)]);
     b.wire("w", b.pin("F1", "2"), b.pin("G1", "1"), &[]);
     let wall = b.part("U9", p(1, 9), (p(0, 0), p(38, 5)), &[]);
-    for part in b.page.parts.iter_mut().filter(|x| x.id == id("F1") || x.id == wall) {
+    for part in b
+        .page
+        .parts
+        .iter_mut()
+        .filter(|x| x.id == id("F1") || x.id == wall)
+    {
         part.locked = true;
     }
     let a = arrange(&b.page, Scope::Page, &[]);
