@@ -357,6 +357,20 @@ pub struct Journal {
     segment_txs: u64,
 }
 
+/// What one transaction changed, as the journal writes it ([`Journal::tx`]): the rows of `keys` from `before` to
+/// `after`, and which assets are on disk already (`on_disk`: the asset's file holds its bytes).
+#[derive(Clone, Copy)]
+pub struct Diff<'a> {
+    /// The model before.
+    pub before: &'a Model,
+    /// The model after.
+    pub after: &'a Model,
+    /// The keys whose rows may differ.
+    pub keys: &'a [AnyKey],
+    /// Whether an asset's file holds its bytes.
+    pub on_disk: &'a dyn Fn(&AssetRef) -> bool,
+}
+
 impl Journal {
     /// The journal of `session` for the project `project` at `path`, under the state directory `state`.
     /// The directory is keyed by the canonical form of `path` ([`Vfs::canonicalize`]), so that one project
@@ -411,24 +425,20 @@ impl Journal {
     }
 
     /// The journal after an applied external change (doc 05 §9): starts the
-    /// segment of the incoming generation `base`, journals the net local diff of `keys` from `incoming` to `current` as
-    /// one transaction `external.rebase` (with the assets [`Journal::tx`] carries), and only then deletes the session's
+    /// segment of the incoming generation `base`, journals the net local diff `diff` (from the incoming model to the
+    /// current one) as one transaction `external.rebase` (with the assets [`Journal::tx`] carries), and only then deletes the session's
     /// previous segment, as after a save. A crash at any point leaves a segment that recovers the live model.
     ///
     /// # Errors
     ///
     /// An I/O error of the journal. Neither segment is kept then: the previous one's base is no longer the baseline, so
     /// it would recover the wrong model, and the session is not crash-protected until its next save starts a segment.
-    #[allow(clippy::too_many_arguments)]
     pub fn rebase(
         &mut self,
         base: u64,
         base_manifest: Option<&[u8; 32]>,
         t: SystemTime,
-        incoming: &Model,
-        current: &Model,
-        keys: &[AnyKey],
-        on_disk: &dyn Fn(&AssetRef) -> bool,
+        diff: &Diff<'_>,
     ) -> io::Result<()> {
         let old = match self.begin(base, base_manifest) {
             Ok(old) => old,
@@ -437,7 +447,7 @@ impl Journal {
                 return Err(e);
             }
         };
-        if let Err(e) = self.tx(t, "external.rebase", "external", incoming, current, keys, on_disk) {
+        if let Err(e) = self.tx(t, "external.rebase", "external", diff) {
             self.drop_segments(old);
             return Err(e);
         }
@@ -518,20 +528,16 @@ impl Journal {
         Ok(self.segment.replace(path))
     }
 
-    /// Journals a committed transaction: the field-level diff of `keys` from `before` to `after`, and the assets
-    /// that `after` names which are neither on disk (`on_disk`: the asset's file holds its bytes) nor journalled in
-    /// this segment (module documentation). Nothing is written when there is neither.
-    #[allow(clippy::too_many_arguments)]
-    pub fn tx(
-        &mut self,
-        t: SystemTime,
-        cmd: &str,
-        origin: &str,
-        before: &Model,
-        after: &Model,
-        keys: &[AnyKey],
-        on_disk: &dyn Fn(&AssetRef) -> bool,
-    ) -> io::Result<()> {
+    /// Journals a committed transaction: the field-level diff of `diff`, and the assets that its `after` names which
+    /// are neither on disk nor journalled in this segment (module documentation). Nothing is written when there is
+    /// neither.
+    pub fn tx(&mut self, t: SystemTime, cmd: &str, origin: &str, diff: &Diff<'_>) -> io::Result<()> {
+        let Diff {
+            before,
+            after,
+            keys,
+            on_disk,
+        } = *diff;
         let mut ops = Vec::new();
         for key in keys {
             let op = JournalOp::diff(*key, before.row(key).as_ref(), after.row(key).as_ref())

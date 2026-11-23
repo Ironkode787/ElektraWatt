@@ -649,6 +649,15 @@ fn parse_failure(e: SchemaError) -> (FindingKind, String) {
     }
 }
 
+/// A library document of a known kind as the reader typed it: the document, its malformed variants, whether NFC
+/// normalisation changed it, and its migrated value's text when a migration step changed it.
+struct TypedDocument<'a> {
+    doc: LibDocument,
+    malformed: &'a [MalformedVariant],
+    normalised: bool,
+    migrated_text: Option<Vec<u8>>,
+}
+
 impl<'a> Loader<'a> {
     fn new(
         manifest: Option<&'a Manifest>,
@@ -1142,20 +1151,29 @@ impl<'a> Loader<'a> {
             self.out.lib.push(doc);
             return;
         }
-        self.known_lib_document(path, bytes, hash, doc, &malformed, normalised, migrated_text);
+        let typed = TypedDocument {
+            doc,
+            malformed: &malformed,
+            normalised,
+            migrated_text,
+        };
+        self.known_lib_document(path, bytes, hash, typed);
     }
 
-    #[allow(clippy::too_many_arguments)]
+    /// Places the library document of a known kind `typed`, read from `path` as `bytes` with the SHA-256 `hash`.
     fn known_lib_document(
         &mut self,
         path: &FilePath,
         bytes: &[u8],
         hash: [u8; 32],
-        doc: LibDocument,
-        malformed: &[MalformedVariant],
-        normalised: bool,
-        migrated_text: Option<Vec<u8>>,
+        typed: TypedDocument<'_>,
     ) {
+        let TypedDocument {
+            doc,
+            malformed,
+            normalised,
+            migrated_text,
+        } = typed;
         let Some((kind, id)) = crate::lib_key(&doc) else {
             self.opaque(path, hash);
             return;

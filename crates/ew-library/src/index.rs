@@ -86,6 +86,17 @@ pub enum IndexState {
 /// What the index holds for a library: its generation, its path and its files' hashes.
 pub(crate) type LibState = (u64, String, BTreeMap<String, [u8; 32]>);
 
+/// One tier of the part search (doc 07 §4.3): its rank, the rows it reads (`from`, `cond` and its parameters from
+/// `?6` on), its score, and whether a part found by it leads its tier (what the text names the part as being for).
+struct TierQuery<'a> {
+    tier: u8,
+    from: &'a str,
+    cond: &'a str,
+    extra: Vec<Sql>,
+    score: &'a str,
+    purpose: bool,
+}
+
 /// A manufacturer as the index's full text names it: key, name, aliases and brands.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub(crate) struct MfrText {
@@ -257,20 +268,18 @@ impl Index {
     }
 
     /// Reindexes library `lib` in one transaction: the files of `removed` lose their rows, the entries of `added`
-    /// (by file) are inserted, and the library row and the file table become `generation`, `path`, `files`.
+    /// (by file) are inserted, and the library row and the file table become `state` (generation, path, files).
     /// `whole` first deletes every row of the library. Returns a message per item that could not be indexed.
-    #[allow(clippy::too_many_arguments)]
     pub fn reindex(
         &mut self,
         lib: Uuid,
         whole: bool,
-        generation: u64,
-        path: &str,
-        files: &BTreeMap<String, [u8; 32]>,
+        state: &LibState,
         removed: &[String],
         added: &[(String, Vec<Entry>)],
         mfr: &dyn Fn(&Transaction<'_>, Uuid, Uuid) -> Option<MfrText>,
     ) -> Result<Vec<String>, LibraryError> {
+        let (generation, path, files) = state;
         let l = lib.hyphenated().to_string();
         let tx = self.conn.transaction()?;
         if whole {
@@ -314,7 +323,7 @@ impl Index {
         tx.execute(
             "INSERT INTO library(lib, generation, path) VALUES (?1, ?2, ?3)
              ON CONFLICT(lib) DO UPDATE SET generation = excluded.generation, path = excluded.path",
-            params![&l, i64::try_from(generation).unwrap_or(i64::MAX), path],
+            params![&l, i64::try_from(*generation).unwrap_or(i64::MAX), path],
         )?;
         tx.commit()?;
         Ok(notes)
@@ -350,52 +359,71 @@ impl Index {
         let mut found: BTreeMap<i64, RawPart> = BTreeMap::new();
         let compat = q.compatible_with.as_ref();
         if q.text.trim().is_empty() {
-            self.part_tier(0, "part p", "1", vec![], "0.0", compat, false, &mut found)?;
+            self.part_tier(
+                TierQuery {
+                    tier: 0,
+                    from: "part p",
+                    cond: "1",
+                    extra: vec![],
+                    score: "0.0",
+                    purpose: false,
+                },
+                compat,
+                &mut found,
+            )?;
         } else {
             if !norm.is_empty() {
                 self.part_tier(
-                    1,
-                    "part p",
-                    "p.pn_norm = ?6",
-                    vec![Sql::Text(norm.clone())],
-                    "0.0",
+                    TierQuery {
+                        tier: 1,
+                        from: "part p",
+                        cond: "p.pn_norm = ?6",
+                        extra: vec![Sql::Text(norm.clone())],
+                        score: "0.0",
+                        purpose: false,
+                    },
                     compat,
-                    false,
                     &mut found,
                 )?;
                 let hi = format!("{norm}\u{10FFFF}");
                 self.part_tier(
-                    2,
-                    "part p",
-                    "p.pn_norm > ?6 AND p.pn_norm < ?7",
-                    vec![Sql::Text(norm.clone()), Sql::Text(hi)],
-                    "0.0",
+                    TierQuery {
+                        tier: 2,
+                        from: "part p",
+                        cond: "p.pn_norm > ?6 AND p.pn_norm < ?7",
+                        extra: vec![Sql::Text(norm.clone()), Sql::Text(hi)],
+                        score: "0.0",
+                        purpose: false,
+                    },
                     compat,
-                    false,
                     &mut found,
                 )?;
             }
             if norm.chars().count() >= 3 {
                 self.part_tier(
-                    3,
-                    "part_pn JOIN part p ON p.id = part_pn.rowid",
-                    "part_pn MATCH ?6",
-                    vec![Sql::Text(format!("\"{}\"", norm.replace('"', "\"\"")))],
-                    "0.0",
+                    TierQuery {
+                        tier: 3,
+                        from: "part_pn JOIN part p ON p.id = part_pn.rowid",
+                        cond: "part_pn MATCH ?6",
+                        extra: vec![Sql::Text(format!("\"{}\"", norm.replace('"', "\"\"")))],
+                        score: "0.0",
+                        purpose: false,
+                    },
                     compat,
-                    false,
                     &mut found,
                 )?;
             }
             if let Some(fts) = fts {
                 self.part_tier(
-                    4,
-                    "part_text JOIN part p ON p.id = part_text.rowid",
-                    "part_text MATCH ?6",
-                    vec![Sql::Text(fts)],
-                    "bm25(part_text, 10.0, 6.0, 3.0, 3.0, 1.0, 2.0, 1.0)",
+                    TierQuery {
+                        tier: 4,
+                        from: "part_text JOIN part p ON p.id = part_text.rowid",
+                        cond: "part_text MATCH ?6",
+                        extra: vec![Sql::Text(fts)],
+                        score: "bm25(part_text, 10.0, 6.0, 3.0, 3.0, 1.0, 2.0, 1.0)",
+                        purpose: false,
+                    },
                     compat,
-                    false,
                     &mut found,
                 )?;
             }
@@ -406,22 +434,24 @@ impl Index {
                 let categories = serde_json::to_string(&q.purpose_categories).unwrap_or_default();
                 let kinds: Vec<String> = q.purpose_kinds.iter().map(json_text).collect();
                 self.part_tier(
-                    4,
-                    "part p",
-                    "EXISTS(SELECT 1 FROM json_each(?6) c
+                    TierQuery {
+                        tier: 4,
+                        from: "part p",
+                        cond: "EXISTS(SELECT 1 FROM json_each(?6) c
                               WHERE substr(p.category, 1, length(c.value) + 1) = c.value || char(31))
                      OR EXISTS(SELECT 1 FROM part_fn f JOIN item i
                                  ON i.kind = 'fndef' AND i.lib = f.fndef_lib AND i.item = f.fndef_item
                                WHERE f.part = p.id AND f.main
                                  AND (i.cat0 IN (SELECT value FROM json_each(?6))
                                       OR i.contact IN (SELECT value FROM json_each(?7))))",
-                    vec![
-                        Sql::Text(categories),
-                        Sql::Text(serde_json::to_string(&kinds).unwrap_or_default()),
-                    ],
-                    "0.0",
+                        extra: vec![
+                            Sql::Text(categories),
+                            Sql::Text(serde_json::to_string(&kinds).unwrap_or_default()),
+                        ],
+                        score: "0.0",
+                        purpose: true,
+                    },
                     compat,
-                    true,
                     &mut found,
                 )?;
             }
@@ -495,18 +525,21 @@ impl Index {
         Ok(hits)
     }
 
-    #[allow(clippy::too_many_arguments)]
+    /// Runs the part search's tier `query` with the compatibility `compat` and adds its hits to `found`.
     fn part_tier(
         &self,
-        tier: u8,
-        from: &str,
-        cond: &str,
-        extra: Vec<Sql>,
-        score: &str,
+        query: TierQuery<'_>,
         compat: Option<&FnCompat>,
-        purpose: bool,
         found: &mut BTreeMap<i64, RawPart>,
     ) -> Result<(), LibraryError> {
+        let TierQuery {
+            tier,
+            from,
+            cond,
+            extra,
+            score,
+            purpose,
+        } = query;
         let sql = format!(
             "SELECT p.id, p.lib, p.item, p.version, p.pn, p.descr, p.kind, p.status, p.category,
                     COALESCE(m.name, p.mfr_fallback), COALESCE(m.key, p.mfr_fallback), {score},

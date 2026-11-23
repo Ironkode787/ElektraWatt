@@ -844,7 +844,7 @@ impl Registry {
         };
         let result = self
             .index()
-            .reindex(id, whole, generation, &path, &tracked, &removed, &added, &lookup);
+            .reindex(id, whole, &(generation, path, tracked), &removed, &added, &lookup);
         match result {
             Ok(more) => {
                 notes.extend(more);

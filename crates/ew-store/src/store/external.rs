@@ -12,6 +12,7 @@ use ew_model::{AnyKey, Model};
 
 use super::{OpenMode, OpenReport, Opened, Store, asset_on_disk};
 use crate::external::{Poll, QUIESCENCE, Unreadable};
+use crate::journal::Diff;
 use crate::rows::{all_keys, row_value};
 use crate::vfs::join;
 
@@ -164,9 +165,17 @@ impl Store {
         let (generation, hash) = (self.generation, self.manifest_hash);
         let opaque = &self.opaque;
         match &mut self.journal {
-            Some(j) => j.rebase(generation, hash.as_ref(), now, &self.base, current, &keys, &|r| {
-                asset_on_disk(opaque, r)
-            }),
+            Some(j) => j.rebase(
+                generation,
+                hash.as_ref(),
+                now,
+                &Diff {
+                    before: &self.base,
+                    after: current,
+                    keys: &keys,
+                    on_disk: &|r| asset_on_disk(opaque, r),
+                },
+            ),
             None => Ok(()),
         }
     }

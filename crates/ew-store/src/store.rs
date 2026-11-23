@@ -21,7 +21,7 @@ use ew_format::{
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 
 use crate::clock::{Clock, SystemClock};
-use crate::journal::{self, Journal, RecoveryInfo, ReplayError, Segment};
+use crate::journal::{self, Diff, Journal, RecoveryInfo, ReplayError, Segment};
 use crate::lock::{
     Acquire, Holder, Identity, Lock, LockInfo, LockRecord, OsProbe, PROJECT_LOCK, ProcessProbe, STALE_AFTER,
     TAKEOVER_SETTLE, TakeoverError,
@@ -2701,9 +2701,17 @@ impl Store {
         let now = self.opts.clock.now();
         let opaque = &self.opaque;
         match &mut self.journal {
-            Some(j) => j.tx(now, cmd, origin, before, after, keys, &|r| {
-                asset_on_disk(opaque, r)
-            }),
+            Some(j) => j.tx(
+                now,
+                cmd,
+                origin,
+                &Diff {
+                    before,
+                    after,
+                    keys,
+                    on_disk: &|r| asset_on_disk(opaque, r),
+                },
+            ),
             None => Ok(()),
         }
     }
@@ -2765,10 +2773,12 @@ impl Store {
                 self.opts.clock.now(),
                 "recover",
                 "journal",
-                model,
-                &recovered,
-                &keys,
-                &|r| asset_on_disk(opaque, r),
+                &Diff {
+                    before: model,
+                    after: &recovered,
+                    keys: &keys,
+                    on_disk: &|r| asset_on_disk(opaque, r),
+                },
             )
             .map_err(RecoverError::Io)?;
             j.discard(std::slice::from_ref(&seg));
