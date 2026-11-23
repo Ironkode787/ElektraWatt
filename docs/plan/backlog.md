@@ -44,10 +44,13 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
+- FT-2139 `ew-viewmodel, ew-ui`: In the station view's channel table, Enter after a refused function text opens the next row's cell and leaves two edit boxes on screen, and the error line above To do shifts the table by a row while it stands; `plc.module_goto` closes the rack tab after an Escape in the view; the rack bar's menu is not fitted to its widest entry as the other menus are (seen in fix lanes, 2026-11-23).
 - FT-2134 `ew-commands, ew-viewmodel`: Move to page (`plc.module_move`, built in lane P4 after a persona run) refuses a card whose wire to a device left behind would leave an end on the old page; doc 10 §6 asks for that wire kept as a pair of interruption points or dropped with a count in a preview. That is doc 06 §3.4's cross-page move, which `rep.move` rejects since v0 (FR-CON-043): build it there, with the preview card listing the pairs, and Move to page takes it.
 
 #### The window's finish
 
+- FT-2140 `ew-viewmodel, ew-ui`: The strip table has Delete on whole rows and Ctrl+Delete (`strip.delete_rows`, with its card) for the same thing; and "Remove them from the project" says "them" for one terminal (seen by the lane that built the first, 2026-11-23).
+- FT-2141 `ew-viewmodel`: The Dutch glossary and several action labels say "artikel" for a part where the locale test and the window's other words say "onderdeel" (seen in a fix lane, 2026-11-23).
 - FT-2115 `ew-ui`: A persona run typed an interruption point's name, pressed Enter and then D, and D did nothing; the
   click then placed a source. Not reproduced: the Interruption button of the Draw tab, a typed name, Enter, D, with the
   pointer on the tool strip and on the sheet, turned the direction each time (the window tests of the name field hold
@@ -80,6 +83,7 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### A command's words
 
+- FT-2138 `ew-scene, ew-api`: A strip segment draws a terminal's side 1 at the top, a terminal drawn alone has side 1 at the bottom; and `props.set` on a plain wire's `connection/derived.csa` is refused in a cable's words ("The cable … sets this") where the override action works (seen in a fix lane, 2026-11-23).
 
 #### Work on the window's thread
 
@@ -89,6 +93,8 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 From the drafting redesign (ADR-0034, `docs/design/06a-drafting.md`) and the pages since. Step 13 takes a row only
 where a real page shows it; each row says whether one is known.
 
+- FT-2136 `ew-drafting, ew-viewmodel`: What Arrange and route says of a part it leaves: a part that is the mate of a level neighbour gets the wrong side in its sentence, and "no room" is the fallback also where the place itself is clear and another reason held the plan back; the strip's sentence says "look at the terminals wired out of that order" without naming them, which needs the out-of-order terminals carried from the placer through `StripHeld` (seen by the lane that built the sentences, 2026-11-23).
+- FT-2137 `ew-drafting, ew-viewmodel`: Route on a selection gives no reason for a wire whose pin is blocked by a symbol standing on it; and the text block of a symbol keeps its tag right-aligned when the block moves to the symbol's right side (seen in a fix lane after a persona run, 2026-11-22).
 - FT-2105 `ew-commands`: The grid fit (doc 06 §8 item 3) keeps two bodies that stood two steps of the new grid or more apart at least two steps apart, but where their edges do not stand on the grid's lines no grid line may lie a step from both, so a wire that ran between them finds no way after the change; the drawing area's edge and two straight-wired pins in line are kept since FT-2010. **Page:** none known; the sample's 104 and 201 route on 4 mm.
 - FT-2106 `ew-drafting`: On a fluid page a one-way flow control set against a valve terminal's outline, its inlet pin on the outline and facing into the terminal, leaves the tube from its valve without a way, and Arrange and route may leave it and the cylinder it feeds where they stand (the cylinder named as standing against rule F1); the same page with the flow control two steps off the outline arranges whole, every tube routed. **Page:** a terminal of three valves with a cylinder beside its free end, whose flow controls stand at the outline's right edge (built in the fix round's bundle J, 2026-11-22, after the persona runs' fluid jobs); whether Arrange moves the flow control depends on the order of the IDs.
 - FT-2107 `ew-drafting`: A part that stands level beside the part that feeds it stays there: where a wire runs from a symbol's lower pin to the upper pin of one of the same height standing level beside it, Arrange and route leaves the second where it stands and its wire goes down, across, up over it and down into its pin (four corners), against rule E1 (doc 06a §1.6); with the second two steps or more higher or lower, Arrange sets it in line under the first with a straight wire. The rest of FT-1896's "a wire goes round a part where the part could stand in line". **Page:** a small page built in the review before 0.3.5's second candidate (2026-11-22): an incoming mark feeding a contact (upright, two steps wide and four high, pins up and down), a lamp of the same shape level beside it 2 to 6 steps to either side, the contact's lower pin wired to the lamp's upper pin, with and without the lamp's lower pin wired on to an outgoing mark: all twelve placements kept the lamp beside the contact.
