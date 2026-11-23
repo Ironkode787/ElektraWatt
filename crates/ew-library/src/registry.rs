@@ -287,7 +287,7 @@ fn check_manifest(bytes: &[u8], limits: &Limits) -> Result<LibManifest, String> 
         return Err(format!(
             "library.json needs reader format {} (this reader: {})",
             m.min_reader,
-            crate::manifest::FORMAT
+            ew_format::ew_schema::FORMAT
         ));
     }
     if m.files.len() > limits.max_files {

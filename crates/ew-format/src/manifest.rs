@@ -349,24 +349,12 @@ fn take_flag(members: &mut Map<String, Value>, name: &str) -> Result<bool, Manif
 
 /// `sha256:<64 lower-case hex digits>` or, in a merged manifest, `sha256:pending`.
 fn parse_hash(text: &str, merged: bool) -> Option<FileHash> {
-    let hex = text.strip_prefix("sha256:")?;
-    if hex == "pending" {
+    if text == "sha256:pending" {
         return merged.then_some(FileHash::Pending);
     }
-    let b = hex.as_bytes();
-    if b.len() != 64 {
-        return None;
-    }
-    let nibble = |c: u8| match c {
-        b'0'..=b'9' => Some(c - b'0'),
-        b'a'..=b'f' => Some(c - b'a' + 10),
-        _ => None,
-    };
-    let mut out = [0u8; 32];
-    for (slot, pair) in out.iter_mut().zip(b.chunks_exact(2)) {
-        *slot = (nibble(pair[0])? << 4) | nibble(pair[1])?;
-    }
-    Some(FileHash::Sha256(out))
+    text.parse::<ew_schema::Sha256>()
+        .ok()
+        .map(|h| FileHash::Sha256(h.0))
 }
 
 fn parse_files(

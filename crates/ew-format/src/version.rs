@@ -5,6 +5,8 @@
 
 use std::cmp::Ordering;
 
+use ew_schema::parse_format;
+
 use crate::manifest::Manifest;
 
 /// What a reader may do with a project, from its manifest's stamps (doc 05 §10.1).
@@ -21,17 +23,6 @@ pub enum Access {
     Migrate,
     /// Do not open: nothing may be written, nothing is read.
     Refuse(String),
-}
-
-/// A `major.minor` format.
-pub(crate) fn parse(format: &str) -> Option<(u32, u32)> {
-    let (major, minor) = format.split_once('.')?;
-    let num = |s: &str| {
-        (!s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) && (s == "0" || !s.starts_with('0')))
-            .then(|| s.parse().ok())
-            .flatten()
-    };
-    Some((num(major)?, num(minor)?))
 }
 
 /// Whether two formats are compatible as "same major" (doc 05 §10.1: before 1.0 every step counts as
@@ -68,9 +59,9 @@ pub(crate) fn same_major(a: (u32, u32), b: (u32, u32)) -> bool {
 /// ```
 pub fn reader_access(manifest: &Manifest, reader: &str, release_build: bool) -> Access {
     let (Some(r), Some(f), Some(m)) = (
-        parse(reader),
-        parse(&manifest.format),
-        parse(&manifest.min_reader),
+        parse_format(reader),
+        parse_format(&manifest.format),
+        parse_format(&manifest.min_reader),
     ) else {
         return Access::Refuse(format!(
             "unreadable format stamps \"{}\" / \"{}\"",
@@ -103,15 +94,6 @@ pub fn reader_access(manifest: &Manifest, reader: &str, release_build: bool) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn stamps_parse_strictly() {
-        assert_eq!(parse("0.1"), Some((0, 1)));
-        assert_eq!(parse("10.20"), Some((10, 20)));
-        for bad in ["", "1", "1.", ".1", "01.1", "1.01", "1.2.3", "a.b", "-1.0"] {
-            assert_eq!(parse(bad), None, "{bad}");
-        }
-    }
 
     #[test]
     fn before_one_every_step_breaks() {

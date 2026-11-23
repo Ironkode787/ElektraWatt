@@ -5,15 +5,13 @@
 
 use std::collections::BTreeMap;
 
+use ew_format::ew_schema::{FORMAT, Sha256, parse_format_lenient};
 use ew_format::{FileHash, hash_text};
 use ew_ids::Uuid;
 use serde_json::{Map, Value};
 
 /// The manifest's file name.
 pub const MANIFEST: &str = "library.json";
-
-/// The format a library is written in (doc 05 §10.1).
-pub const FORMAT: &str = "0.1";
 
 /// `library.json` (doc 07 §2.2): identity, version, licence, format stamps, generation, dependencies and the
 /// SHA-256 of every file. Pretty JSON with one file per line, sorted by path; no wall-clock time.
@@ -105,8 +103,11 @@ impl LibManifest {
                     let Value::String(h) = hash else {
                         return Err(format!("library.json files/{path}: the hash is not a string"));
                     };
-                    let parsed =
-                        parse_hash(&h).ok_or_else(|| format!("library.json files/{path}: bad hash {h}"))?;
+                    let parsed = h
+                        .parse::<Sha256>()
+                        .ok()
+                        .map(|h| h.0)
+                        .ok_or_else(|| format!("library.json files/{path}: bad hash {h}"))?;
                     files.insert(path, parsed);
                 }
             }
@@ -162,36 +163,17 @@ impl LibManifest {
         out
     }
 
-    /// Whether this reader can read the library: its `min_reader` is at most [`FORMAT`] (doc 05 §10.1).
+    /// Whether this reader can read the library: its `min_reader` is at most [`FORMAT`], the project format a
+    /// library is written in (doc 05 §10.1).
     pub fn readable(&self) -> bool {
-        fn parts(v: &str) -> Option<(u64, u64)> {
-            let (a, b) = v.split_once('.')?;
-            Some((a.parse().ok()?, b.parse().ok()?))
-        }
-        match (parts(&self.min_reader), parts(FORMAT)) {
+        match (
+            parse_format_lenient(&self.min_reader),
+            parse_format_lenient(FORMAT),
+        ) {
             (Some(need), Some(have)) => need <= have,
             _ => false,
         }
     }
-}
-
-/// `sha256:<64 lower-case hex digits>` as bytes.
-pub(crate) fn parse_hash(text: &str) -> Option<[u8; 32]> {
-    let hex = text.strip_prefix("sha256:")?.as_bytes();
-    if hex.len() != 64 {
-        return None;
-    }
-    // Each byte a digit or `a`-`f` itself: `u8::from_str_radix` would also take a sign (`+f`) or upper case.
-    let digit = |c: u8| match c {
-        b'0'..=b'9' => Some(c - b'0'),
-        b'a'..=b'f' => Some(c - b'a' + 10),
-        _ => None,
-    };
-    let mut out = [0u8; 32];
-    for (b, [high, low]) in out.iter_mut().zip(hex.as_chunks::<2>().0) {
-        *b = digit(*high)? << 4 | digit(*low)?;
-    }
-    Some(out)
 }
 
 /// Whether `bytes` hash to `hash`.
@@ -272,20 +254,8 @@ mod tests {
     }
 
     #[test]
-    fn hashes_parse_in_lower_case_only() {
+    fn hashes_match_their_bytes() {
         let h = ew_format::sha256(b"x");
-        assert_eq!(parse_hash(&hash_text(&h)), Some(h));
-        assert_eq!(
-            parse_hash(&hash_text(&h).to_uppercase().replace("SHA256", "sha256")),
-            None
-        );
-        assert_eq!(parse_hash("sha256:00"), None);
-        // A sign is not a hex digit.
-        let plus = format!("sha256:+f{}", &hash_text(&h)["sha256:".len() + 2..]);
-        assert_eq!(plus.len(), hash_text(&h).len());
-        assert_eq!(parse_hash(&plus), None);
-        let space = format!("sha256: f{}", &hash_text(&h)["sha256:".len() + 2..]);
-        assert_eq!(parse_hash(&space), None);
         assert!(hash_matches(&h, b"x"));
         assert!(!hash_matches(&h, b"y"));
     }

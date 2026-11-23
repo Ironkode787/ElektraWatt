@@ -6,13 +6,13 @@
 //! above the format itself. The `since` tables are `ew-schema`'s ([`SINCE`]); [`file_since`] takes them as an
 //! argument, so that a test can name a member of a newer format.
 
+use ew_schema::parse_format;
 use ew_schema::{Kind, MemberSince, VariantSince};
 use serde_json::Value;
 
 use crate::limits::MAX_DEPTH;
 use crate::path::{FilePath, PathClass, classify};
 use crate::read::exceeds_depth;
-use crate::version::parse;
 
 /// The `since` tables of the computed `min_reader`: the format each kind, member and variant first appeared in.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -70,8 +70,8 @@ pub fn file_since(
     bytes: &[u8],
     tables: &SinceTables<'_>,
 ) -> Option<&'static str> {
-    let floor = major_floor(parse(format)?);
-    let above = |since: &str| parse(since).is_some_and(|v| v > floor);
+    let floor = major_floor(parse_format(format)?);
+    let above = |since: &str| parse_format(since).is_some_and(|v| v > floor);
     // Nothing in the tables is above the floor (every kind and member of this format): no file needs more.
     if !(tables.kinds.iter().any(|(_, s)| above(s))
         || tables.members.iter().any(|m| above(m.since))
@@ -81,7 +81,7 @@ pub fn file_since(
     }
     let bytes = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
     let greatest = |a: Option<&'static str>, b: Option<&'static str>| match (a, b) {
-        (Some(x), Some(y)) => Some(if parse(y) > parse(x) { y } else { x }),
+        (Some(x), Some(y)) => Some(if parse_format(y) > parse_format(x) { y } else { x }),
         (x, y) => x.or(y),
     };
     match classify(path.as_str()) {
@@ -123,7 +123,7 @@ fn value_since(value: &Value, tables: &SinceTables<'_>, floor: (u32, u32)) -> Op
     kinds
         .chain(members)
         .chain(variants)
-        .filter_map(|since| parse(since).filter(|v| *v > floor).map(|v| (v, since)))
+        .filter_map(|since| parse_format(since).filter(|v| *v > floor).map(|v| (v, since)))
         .max_by_key(|(v, _)| *v)
         .map(|(_, since)| since)
 }
@@ -163,11 +163,11 @@ fn is_variant(value: &Value, name: &str) -> bool {
 /// listed file; files at the floor give none), never below `format`'s major floor and never above `format`. A value
 /// that is not a format counts as nothing; an unreadable `format` is returned unchanged (the reader refuses it).
 pub fn min_reader<'s>(format: &str, files: impl IntoIterator<Item = &'s str>) -> String {
-    let Some(top) = parse(format) else {
+    let Some(top) = parse_format(format) else {
         return format.to_owned();
     };
     let floor = major_floor(top);
-    let greatest = files.into_iter().filter_map(parse).fold(floor, Ord::max);
+    let greatest = files.into_iter().filter_map(parse_format).fold(floor, Ord::max);
     let (major, minor) = greatest.min(top);
     format!("{major}.{minor}")
 }

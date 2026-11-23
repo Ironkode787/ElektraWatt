@@ -663,7 +663,7 @@ pub fn merge_file(
 /// from an older major; `None` for a format newer than the reader's, one that does not parse, or one the chain does not
 /// reach.
 fn migration<'c>(format: &str, chain: &'c Migrations) -> Option<Migration<'c>> {
-    let (side, reader) = (version::parse(format)?, version::parse(FORMAT)?);
+    let (side, reader) = (ew_schema::parse_format(format)?, ew_schema::parse_format(FORMAT)?);
     if side > reader {
         return None;
     }
@@ -1160,7 +1160,10 @@ fn merge_document(
 /// One side's manifest, an older major migrated; `None` when it does not read.
 fn read_manifest(bytes: &[u8], limits: &Limits, chain: &Migrations) -> Option<Manifest> {
     let manifest = Manifest::parse(bytes, limits).ok()?;
-    let (side, reader) = (version::parse(&manifest.format)?, version::parse(FORMAT)?);
+    let (side, reader) = (
+        ew_schema::parse_format(&manifest.format)?,
+        ew_schema::parse_format(FORMAT)?,
+    );
     if side < reader && !version::same_major(side, reader) {
         return chain
             .towards(&manifest.format, FORMAT)
@@ -1173,7 +1176,7 @@ fn read_manifest(bytes: &[u8], limits: &Limits, chain: &Migrations) -> Option<Ma
 
 /// The later of two formats; `a` when they are equal or neither parses.
 fn later_format(a: &str, b: &str) -> String {
-    if version::parse(b) > version::parse(a) {
+    if ew_schema::parse_format(b) > ew_schema::parse_format(a) {
         b.to_owned()
     } else {
         a.to_owned()
@@ -1216,7 +1219,7 @@ fn merge_manifest(
     if [&o, &a, &b]
         .into_iter()
         .flatten()
-        .any(|m| version::parse(&m.format) > version::parse(FORMAT))
+        .any(|m| ew_schema::parse_format(&m.format) > ew_schema::parse_format(FORMAT))
     {
         return ours_as_it_is(ours);
     }

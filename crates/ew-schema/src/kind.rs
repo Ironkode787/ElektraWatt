@@ -10,6 +10,38 @@ use std::fmt;
 /// manifest that carries it belongs to `ew-format` (WP-S1.09).
 pub const FORMAT: &str = "0.1";
 
+/// A `major.minor` format stamp (`format`, `min_reader`, a `since`) as numbers (doc 05 §10.1): two decimal parts
+/// without a sign, a leading zero or a third part; `None` for anything else.
+///
+/// ```
+/// use ew_schema::{parse_format, parse_format_lenient};
+///
+/// assert_eq!(parse_format("0.1"), Some((0, 1)));
+/// assert_eq!(parse_format("10.20"), Some((10, 20)));
+/// for bad in ["", "1", "1.", ".1", "01.1", "1.01", "1.2.3", "a.b", "-1.0", "+0.1"] {
+///     assert_eq!(parse_format(bad), None, "{bad}");
+/// }
+/// // The lenient form takes what `u64` parses.
+/// assert_eq!(parse_format_lenient("01.+1"), Some((1, 1)));
+/// assert_eq!(parse_format_lenient("x"), None);
+/// ```
+pub fn parse_format(format: &str) -> Option<(u32, u32)> {
+    let (major, minor) = format.split_once('.')?;
+    let num = |s: &str| {
+        (!s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) && (s == "0" || !s.starts_with('0')))
+            .then(|| s.parse().ok())
+            .flatten()
+    };
+    Some((num(major)?, num(minor)?))
+}
+
+/// A `major.minor` format stamp as a library's `library.json` is judged readable by: two parts, each what `u64`
+/// parses (a leading zero and a `+` sign allowed); `None` for anything else.
+pub fn parse_format_lenient(format: &str) -> Option<(u64, u64)> {
+    let (a, b) = format.split_once('.')?;
+    Some((a.parse().ok()?, b.parse().ok()?))
+}
+
 /// Every record and library kind of the project format (doc 05 §2.2).
 ///
 /// The registry is complete from v0 on: kinds whose structs arrive with later work packages are listed as

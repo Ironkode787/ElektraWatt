@@ -715,6 +715,11 @@ impl JsonSchema for Date {
 /// let h: Sha256 = serde_json::from_str(&text).unwrap();
 /// assert_eq!(h.0, [0xab; 32]);
 /// assert!(serde_json::from_str::<Sha256>(&text.to_uppercase()).is_err());
+/// // Neither a short digest nor a sign or a space in place of a digit.
+/// assert!("sha256:00".parse::<Sha256>().is_err());
+/// assert!(format!("sha256:+f{}", &text[10..72]).parse::<Sha256>().is_err());
+/// assert!(format!("sha256: f{}", &text[10..72]).parse::<Sha256>().is_err());
+/// assert_eq!(Sha256::from_hex(&text[8..72]).map(|h| h.to_string()), Some(text[1..72].to_owned()));
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Sha256(pub [u8; 32]);
@@ -726,21 +731,28 @@ impl fmt::Display for Sha256 {
     }
 }
 
-impl FromStr for Sha256 {
-    type Err = SchemaError;
-
-    fn from_str(s: &str) -> Result<Sha256, SchemaError> {
-        let hex = s.strip_prefix("sha256:").ok_or(SchemaError::InvalidHash)?;
+impl Sha256 {
+    /// The digest of its 64 lower-case hex digits alone (an asset's file name); `None` for anything else.
+    pub fn from_hex(hex: &str) -> Option<Sha256> {
         let b = hex.as_bytes();
         if b.len() != 64 || !b.iter().all(|c| matches!(c, b'0'..=b'9' | b'a'..=b'f')) {
-            return Err(SchemaError::InvalidHash);
+            return None;
         }
         let nibble = |c: u8| if c <= b'9' { c - b'0' } else { c - b'a' + 10 };
         let mut out = [0u8; 32];
         for (i, pair) in b.chunks_exact(2).enumerate() {
             out[i] = (nibble(pair[0]) << 4) | nibble(pair[1]);
         }
-        Ok(Sha256(out))
+        Some(Sha256(out))
+    }
+}
+
+impl FromStr for Sha256 {
+    type Err = SchemaError;
+
+    fn from_str(s: &str) -> Result<Sha256, SchemaError> {
+        let hex = s.strip_prefix("sha256:").ok_or(SchemaError::InvalidHash)?;
+        Sha256::from_hex(hex).ok_or(SchemaError::InvalidHash)
     }
 }
 

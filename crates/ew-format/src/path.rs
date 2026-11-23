@@ -335,18 +335,6 @@ fn hex_nibble(c: u8) -> Option<u8> {
     }
 }
 
-fn parse_sha256_hex(s: &str) -> Option<[u8; 32]> {
-    let b = s.as_bytes();
-    if b.len() != 64 {
-        return None;
-    }
-    let mut out = [0u8; 32];
-    for (i, pair) in b.chunks_exact(2).enumerate() {
-        out[i] = (hex_nibble(pair[0])? << 4) | hex_nibble(pair[1])?;
-    }
-    Some(out)
-}
-
 /// A canonical (lower-case hyphenated) UUID followed by `ext`.
 fn id_file(name: &str, ext: &str) -> Option<AnyId> {
     name.strip_suffix(ext)?.parse().ok()
@@ -450,7 +438,7 @@ pub fn classify(path: &str) -> PathClass {
         },
         ["assets", name] => {
             let asset = name.split_once('.').and_then(|(hash, ext)| {
-                let sha256 = parse_sha256_hex(hash)?;
+                let sha256 = ew_schema::Sha256::from_hex(hash)?.0;
                 // The formats of the asset store, and the meshes of 1.0 (doc 05 §13.3).
                 (ew_schema::AssetFormat::from_ext(ext).is_some() || ext == "glb").then_some(sha256)
             });
