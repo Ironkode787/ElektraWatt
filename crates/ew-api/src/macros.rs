@@ -182,11 +182,9 @@ fn spec(at: impl Into<String>, message: impl Into<String>) -> MacroError {
 /// The next minor version after `v` (`1.2.3` → `1.3.0`); 1.0.0 when `v` does not parse; `None` when the minor
 /// number is the largest one (a held version read from a library file has no next minor version then).
 fn next_minor(v: &str) -> Option<String> {
-    let core = v.split(['-', '+']).next().unwrap_or_default();
-    let parts: Option<Vec<u64>> = core.split('.').map(|p| p.parse().ok()).collect();
-    match parts.as_deref() {
+    match ew_schema::semver_core(v) {
         Some([a, b, _]) => Some(format!("{a}.{}.0", b.checked_add(1)?)),
-        _ => Some("1.0.0".to_owned()),
+        None => Some("1.0.0".to_owned()),
     }
 }
 

@@ -445,12 +445,7 @@ impl SymbolDraft {
         {
             issue("symbol-invalid-key", "/key".into(), self.key.clone());
         }
-        let version: Vec<_> = self.version.split('.').collect();
-        if version.len() != 3
-            || version
-                .iter()
-                .any(|p| p.is_empty() || (p.len() > 1 && p.starts_with('0')) || p.parse::<u32>().is_err())
-        {
+        if !ew_schema::is_plain_semver(&self.version) {
             issue("symbol-invalid-version", "/version".into(), self.version.clone());
         }
         if self.symbol.name.is_empty() {

@@ -15,7 +15,7 @@ use ew_commands::commands::{
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_schema::{
     Device, ItemStatus, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroInstance, Part, Representation,
-    Sha256,
+    Sha256, semver_core,
 };
 use ew_units::Dec3;
 
@@ -507,15 +507,6 @@ fn status_of(doc: &LibDocument) -> ItemStatus {
     }
 }
 
-fn version_core(v: &str) -> Option<[u64; 3]> {
-    let core = v.trim().split(['-', '+']).next()?;
-    let parts: Vec<u64> = core.split('.').map(|p| p.parse().ok()).collect::<Option<_>>()?;
-    match parts[..] {
-        [a, b, c] => Some([a, b, c]),
-        _ => None,
-    }
-}
-
 impl Session {
     /// The documents of `refs` with their closures (D7) that the project does not hold yet: a held copy with
     /// the same hash is left out; one with another hash is [`ApiError::OtherVersionHeld`].
@@ -782,7 +773,7 @@ impl Session {
                                 successor: d.successor,
                             }
                         } else if lib_sha == sha
-                            || matches!((version_core(&lib_version), version_core(&version)), (Some(l), Some(h)) if l < h)
+                            || matches!((semver_core(lib_version.trim()), semver_core(version.trim())), (Some(l), Some(h)) if l < h)
                         {
                             CopyState::Current
                         } else {
@@ -834,7 +825,7 @@ impl Session {
                 continue;
             }
             let newer = matches!(
-                (version_core(&pasted), version_core(&held_version)),
+                (semver_core(pasted.trim()), semver_core(held_version.trim())),
                 (Some(p), Some(h)) if p > h
             );
             out.push(VersionConflict {

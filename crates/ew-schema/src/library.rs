@@ -94,6 +94,28 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for LibCopy<T> {
     }
 }
 
+/// The numeric core `[major, minor, patch]` of the semantic version `v` (a [`LibCopy`]'s `version`): the text
+/// before the first `-` or `+` (a pre-release or build part is ignored) as three dot-separated decimal numbers, leading
+/// zeros allowed, no white space; `None` for anything else.
+pub fn semver_core(v: &str) -> Option<[u64; 3]> {
+    let core = v.split(['-', '+']).next()?;
+    let parts: Vec<u64> = core.split('.').map(|p| p.parse().ok()).collect::<Option<_>>()?;
+    match parts[..] {
+        [a, b, c] => Some([a, b, c]),
+        _ => None,
+    }
+}
+
+/// Whether `v` is a plain version `MAJOR.MINOR.PATCH`, as a symbol drawn in the symbol editor takes it: three
+/// non-empty parts, none with a leading zero, each a number up to 2³² − 1, and no pre-release or build part.
+pub fn is_plain_semver(v: &str) -> bool {
+    let parts: Vec<_> = v.split('.').collect();
+    parts.len() == 3
+        && !parts
+            .iter()
+            .any(|p| p.is_empty() || (p.len() > 1 && p.starts_with('0')) || p.parse::<u32>().is_err())
+}
+
 /// The marker type of library IDs (`library_id`, `LibRef.library`).
 #[derive(Debug)]
 pub enum Library {}
@@ -2824,3 +2846,39 @@ open_enum!(
     MacroKind,
     VarType,
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_core_of_a_semantic_version() {
+        assert_eq!(semver_core("1.2.3"), Some([1, 2, 3]));
+        assert_eq!(semver_core("1.10.0-rc.1+b"), Some([1, 10, 0]));
+        assert_eq!(semver_core("1.0.0+build-1"), Some([1, 0, 0]));
+        assert_eq!(semver_core("01.2.3"), Some([1, 2, 3]));
+        assert!(
+            semver_core("1.2").is_none() && semver_core("x").is_none() && semver_core("1.2.3.4").is_none()
+        );
+        assert!(semver_core(" 1.2.3").is_none() && semver_core("").is_none());
+        assert!(semver_core("1.10.0") > semver_core("1.9.9"));
+    }
+
+    #[test]
+    fn a_plain_version() {
+        assert!(is_plain_semver("1.0.0") && is_plain_semver("0.10.4294967295"));
+        for v in [
+            "01.0.0",
+            "1.0",
+            "1.0.0.0",
+            "1..0",
+            "1.0.0-rc",
+            "1.0.0+b",
+            "4294967296.0.0",
+            " 1.0.0",
+            "",
+        ] {
+            assert!(!is_plain_semver(v), "{v:?}");
+        }
+    }
+}

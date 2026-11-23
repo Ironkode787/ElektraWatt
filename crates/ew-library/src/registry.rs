@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use ew_format::Limits;
-use ew_format::ew_schema::{Kind, LibDocument, LibRef};
+use ew_format::ew_schema::{Kind, LibDocument, LibRef, semver_core};
 use ew_ids::Uuid;
 use rusqlite::Transaction;
 use serde_json::Value;
@@ -305,14 +305,8 @@ fn check_manifest(bytes: &[u8], limits: &Limits) -> Result<LibManifest, String> 
 pub(crate) fn version_order(a: &str, b: &str) -> Option<std::cmp::Ordering> {
     use std::cmp::Ordering;
     fn parse(v: &str) -> Option<([u64; 3], Option<&str>)> {
-        let v = v.split('+').next()?;
-        let (core, pre) = match v.split_once('-') {
-            Some((c, p)) => (c, Some(p)),
-            None => (v, None),
-        };
-        let mut parts = core.split('.').map(|p| p.parse::<u64>().ok());
-        let out = [parts.next()??, parts.next()??, parts.next()??];
-        parts.next().is_none().then_some((out, pre))
+        let pre = v.split('+').next()?.split_once('-').map(|(_, p)| p);
+        Some((semver_core(v)?, pre))
     }
     let ((ca, pa), (cb, pb)) = (parse(a)?, parse(b)?);
     Some(ca.cmp(&cb).then_with(|| match (pa, pb) {
@@ -351,7 +345,7 @@ pub fn version_matches(req: &str, version: &str) -> bool {
         let parts: Option<Vec<u64>> = core.split('.').map(|p| p.parse().ok()).collect();
         parts.filter(|p| (1..=3).contains(&p.len()))
     }
-    let Some(v) = parse(version).filter(|v| v.len() == 3) else {
+    let Some(v) = semver_core(version).map(Vec::from) else {
         return false;
     };
     let req = req.trim();
