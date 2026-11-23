@@ -34,30 +34,6 @@ fn box_json(device: &str, (pos, outline, cps): crate::tools::black_box::BoxLayou
     (json, [pos.0, pos.1, pos.0 + w, pos.1 + h])
 }
 
-/// A card's box `steps` on the page's grid `page_grid` (num, den) with its insertion point snapped from `at`.
-fn card_layout(
-    steps: &ew_api::part_box::BoxSteps,
-    page_grid: (i64, i64),
-    at: (i64, i64),
-) -> Option<crate::tools::black_box::BoxLayout> {
-    use ew_api::geometry::Dir;
-    use ew_api::part_box::Dir4;
-    let (pos, outline, cps) = steps.on_grid(page_grid, at)?;
-    let cps = cps
-        .into_iter()
-        .map(|(i, p, dir)| {
-            let dir = match dir {
-                Dir4::Up => Dir::Up,
-                Dir4::Down => Dir::Down,
-                Dir4::Left => Dir::Left,
-                _ => Dir::Right,
-            };
-            (i, p, dir)
-        })
-        .collect();
-    Some((pos, outline, cps))
-}
-
 impl ShellModel {
     /// The one selected box when it is a PLC card drawn in the older form (FT-1897): channel pins on both its upper and
     /// its lower edge. With it its device, its station, and its part's black-box pins by kind ([`Session::card_pins`]);
@@ -148,21 +124,13 @@ impl ShellModel {
         let room = grid.index(right).saturating_sub(grid.index(rep.pos.0));
         let mut boxes = Vec::new();
         let mut at = rep.pos;
-        let mut others = pins.others.as_slice();
-        for (row, up) in [(&pins.inputs, true), (&pins.outputs, false)] {
-            if row.is_empty() {
-                continue;
-            }
-            for part in row.chunks(ew_api::part_box::card_share(row.len(), room)) {
-                let steps = ew_api::part_box::card_box(part, up, others);
-                others = &[];
-                let Some(laid) = card_layout(&steps, page_grid, at) else {
-                    return Outcome::refused(key!("reason-not-older-card"));
-                };
-                let (json, rect) = box_json(&device.to_string(), laid);
-                boxes.push(json);
-                at = (rep.pos.0, rect[3] + GAP);
-            }
+        for steps in pins.boxes(room) {
+            let Some(laid) = crate::tools::black_box::card_on_grid(&steps, page_grid, at) else {
+                return Outcome::refused(key!("reason-not-older-card"));
+            };
+            let (json, rect) = box_json(&device.to_string(), laid);
+            boxes.push(json);
+            at = (rep.pos.0, rect[3] + GAP);
         }
         let mut params = json!({
             "station": station.to_string(), "page": page.to_string(), "symbol": draw["symbol"],
@@ -235,7 +203,7 @@ impl ShellModel {
     /// no room is named under `left` and waits for another page. A device whose part has no
     /// black-box entry is left out. `None` without the page shown, its frame or the catalogue.
     fn station_boxes(&mut self, station: Uuid, page: Uuid) -> Option<Value> {
-        use ew_api::part_box::{BoxSteps, card_box, card_share};
+        use ew_api::part_box::BoxSteps;
         const SIZE: (i64, i64, i64) = (39_687_500, 31_750_000, 7_937_500);
         /// One box to lay out: a box of a device that is no card, by its pins, or a card's.
         enum Piece {
@@ -322,22 +290,20 @@ impl ShellModel {
                 pieces.push((device.to_owned(), Piece::Plain(cps), false));
                 continue;
             }
-            let mut others = pins.others.as_slice();
-            for (row, up) in [(&pins.inputs, true), (&pins.outputs, false)] {
-                if row.is_empty() {
+            // The card's first box of each row; the rest of a row wider than the page waits for a page of its own.
+            let mut first = (false, false);
+            for steps in pins.boxes(room) {
+                let up = steps.pins.iter().any(|p| p.1 == ew_api::part_box::Dir4::Up);
+                let seen = if up { &mut first.0 } else { &mut first.1 };
+                if std::mem::replace(seen, true) {
                     continue;
                 }
-                let take = card_share(row.len(), room);
-                pieces.push((
-                    device.to_owned(),
-                    Piece::Card(card_box(&row[..take], up, others)),
-                    up,
-                ));
-                others = &[];
+                pieces.push((device.to_owned(), Piece::Card(steps), up));
             }
         }
         let to_json = box_json;
-        let card_at = |steps: &BoxSteps, at: (i64, i64)| card_layout(steps, page_grid, at);
+        let card_at =
+            |steps: &BoxSteps, at: (i64, i64)| crate::tools::black_box::card_on_grid(steps, page_grid, at);
         let mut boxes: Vec<(usize, Value)> = Vec::new();
         let mut rects: Vec<[i64; 4]> = Vec::new();
         // The boxes that are no card, in a row from the next free place: (x, y, the lowest edge so far).
@@ -847,12 +813,15 @@ impl ShellModel {
             return Outcome::refused(key!("reason-place-no-box"));
         };
         let copies = params["copies"].as_array().cloned().unwrap_or_default();
+        // A card is laid out as Draw on a page lays it (doc 10 §3.6).
+        let card = self.project_session().map(|s| s.card_pins(device, &cps));
         let target = crate::tools::black_box::BoxTarget::Station {
             station: station.to_string(),
             device: device.to_string(),
             label,
             cps,
             layout,
+            card,
         };
         self.tools.picker = None;
         self.activate_tool(Box::new(

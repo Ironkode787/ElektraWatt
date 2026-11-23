@@ -48,14 +48,21 @@ pub(super) enum Pick {
     Join(super::join::JoinPick, usize),
 }
 
-/// The browser's picture of a part's function drawn as a box: the box on the 4 mm grid as the part lays it out (else
-/// as the black box tool lays one out), each pin with a step of lead; `None` when it does not fit the grid.
-fn box_shape(f: &ew_api::output::CatalogueTemplateFn) -> Option<SymbolShape> {
+/// The browser's picture of a part's function drawn as a box: the box on the 4 mm grid as the part lays it out, else a
+/// PLC card's (`card`, its pins by kind) as the black box tool places it (doc 10 §3.6), else as that tool lays a plain
+/// box out, each pin with a step of lead; `None` when it does not fit the grid.
+fn box_shape(
+    f: &ew_api::output::CatalogueTemplateFn,
+    card: Option<ew_api::output::CardPins>,
+) -> Option<SymbolShape> {
     use ew_api::part_box::{Dir4, EDIT_STEP, steps};
     use ew_api::symbols::units::Grid;
     let pins: Vec<u16> = f.cps.iter().map(|c| c.0).collect();
-    let (_, mut corners, cps) =
-        steps(&pins, &f.outputs, f.layout.as_ref(), EDIT_STEP).on_page(Grid::MM4, (0, 0))?;
+    let laid = match card.filter(|c| f.layout.is_none() && c.is_card()) {
+        Some(card) => card.boxes(i64::MAX / 4).into_iter().next()?,
+        None => steps(&pins, &f.outputs, f.layout.as_ref(), EDIT_STEP),
+    };
+    let (_, mut corners, cps) = laid.on_page(Grid::MM4, (0, 0))?;
     let (w, h) = corners.get(2).copied()?;
     corners.push((0, 0));
     let mut outline = vec![corners];
@@ -673,9 +680,13 @@ impl ShellModel {
             Some(PickerRow::PartFn(p, k)) => Some((*p, *k)),
             _ => None,
         }
-        .and_then(|(p, k)| picker.catalogue.parts.get(p)?.functions.get(k))
-        .filter(|f| f.black_box || f.layout.is_some())
-        .and_then(box_shape)
+        .and_then(|(p, k)| Some((picker.catalogue.parts.get(p)?, k)))
+        .and_then(|(part, k)| Some((part.copy, part.functions.get(k)?)))
+        .filter(|(_, f)| f.black_box || f.layout.is_some())
+        .and_then(|(copy, f)| {
+            let card = self.project_session().map(|s| s.part_card_pins(copy, &f.cps));
+            box_shape(f, card)
+        })
         .map(Arc::new);
         let shape = boxed.or_else(|| {
             symbol.and_then(|(key, copy)| {
@@ -1134,6 +1145,10 @@ impl ShellModel {
                     let Some(letter) = letter_param.or(part_letter).or(row.letter.clone()) else {
                         return Outcome::refused(key!("reason-letter-needed"));
                     };
+                    // A PLC card without a device box of its own is laid out as a card (doc 10 §3.6).
+                    let card = part_copy
+                        .zip(self.project_session())
+                        .map(|(copy, s)| s.part_card_pins(copy, &part_cps));
                     BoxTarget::Part {
                         part,
                         template,
@@ -1142,6 +1157,7 @@ impl ShellModel {
                         cps: part_cps,
                         outputs: part_outputs,
                         layout: part_layout,
+                        card,
                     }
                 }
                 None => {

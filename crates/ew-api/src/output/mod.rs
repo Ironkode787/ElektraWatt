@@ -172,6 +172,7 @@ pub use properties::{
     RowValue, SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, UNNUMBERED_WIRE, WireColours,
     WireEnd,
 };
+pub(crate) use rack::card_pins;
 pub use rack::{
     CardPins, FluidMenu, PlcOffer, RackCell, RackChannel, RackPosition, RackRow, RackView, SolenoidSeat,
     TerminalKind, TerminalPlug, TerminalSeat, ValveSolenoid, gives_text,

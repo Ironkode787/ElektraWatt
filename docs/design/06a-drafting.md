@@ -1135,7 +1135,8 @@ The remedy is the person's: wire the terminals by the pins that face the card, o
 the side the field stands.
 
 **A card in the older form.** Until step 7 "Draw on a page" drew a card with two rows of pins, so half its
-channels face away from their circuits: such a page is the case above. Draw the card in one row, in the box's menu
+channels face away from their circuits: such a page is the case above. Since 0.3.5 no placement makes that form (doc
+10 §3.6): only a project of an earlier version holds it. Draw the card in one row, in the box's menu
 (FT-1897, [10](10-plc-and-bus.md) §3.6), draws the card again in its place without wiring it anew, in one undo step:
 the device, its channels and every connection stay, because a connection joins connection points of the device's
 function, not the box; the connections end at the new pins, and Arrange and route draws them. What stays for the person is

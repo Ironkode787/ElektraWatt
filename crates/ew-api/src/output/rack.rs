@@ -271,10 +271,46 @@ pub struct CardPins {
     pub others: Vec<u16>,
 }
 
+impl CardPins {
+    /// Whether the pins are a card's: some of them its channels'.
+    pub fn is_card(&self) -> bool {
+        !self.inputs.is_empty() || !self.outputs.is_empty()
+    }
+
+    /// The boxes of the card as every placement lays them out (doc 10 §3.6; Draw on a page, the Device tool, Place
+    /// here, a box dragged by two corners): its inputs' pins in one row on the upper edge of a box, its outputs' in one
+    /// row on the lower edge of another, each by [`crate::part_box::card_box`], its other pins down the first box's
+    /// left side; a row wider than a drawing area `room` grid steps wide split into boxes of as many pins as fit
+    /// ([`crate::part_box::card_share`]). In that order; empty for pins that are no card's. Channel pins never stand
+    /// on two edges of one box.
+    pub fn boxes(&self, room: i64) -> Vec<crate::part_box::BoxSteps> {
+        let mut out = Vec::new();
+        let mut others = self.others.as_slice();
+        for (row, up) in [(&self.inputs, true), (&self.outputs, false)] {
+            if row.is_empty() {
+                continue;
+            }
+            for part in row.chunks(crate::part_box::card_share(row.len(), room)) {
+                out.push(crate::part_box::card_box(part, up, others));
+                others = &[];
+            }
+        }
+        out
+    }
+
+    /// The card's every pin in one box, as a part's own device box holds them (the device box editor's start, the
+    /// browser's picture): its channels in one row, the inputs' then the outputs', on the upper edge where it has
+    /// inputs (else the lower), its other pins down the left side ([`crate::part_box::card_box`]).
+    pub fn one_box(&self) -> crate::part_box::BoxSteps {
+        let row: Vec<u16> = self.inputs.iter().chain(&self.outputs).copied().collect();
+        crate::part_box::card_box(&row, !self.inputs.is_empty(), &self.others)
+    }
+}
+
 /// [`CardPins`] of the pins `cps` (function CP index, designation) of a device whose part's PLC section is `plc`: each
 /// channel's pin is the one its pin map names (normaliser N3's rule); a section without a pin map, or with channels
 /// of supply, gives none, and every pin is then one of `others`.
-fn card_pins<'a>(
+pub(crate) fn card_pins<'a>(
     plc: &ew_derive::ew_schema::PlcSection,
     cps: impl IntoIterator<Item = (u16, &'a str)>,
 ) -> CardPins {
@@ -1030,6 +1066,32 @@ impl Session {
         let pairs = cps.iter().map(|(i, d)| (*i, d.as_str()));
         match ew_derive::module_part(&self.query(), Id::from_uuid(device)) {
             Some((_, plc)) => card_pins(&plc, pairs),
+            None => CardPins {
+                others: cps.iter().map(|(i, _)| *i).collect(),
+                ..CardPins::default()
+            },
+        }
+    }
+
+    /// [`CardPins`] of the pins `cps` of a device placed from the part copy `part` (held by the project or from a
+    /// library): by the part's own PLC section, before any device has it; every pin one of `others` for a part without
+    /// one or that is gone. A card placed by its box is laid out with them as Draw on a page lays it (doc 10 §3.6).
+    pub fn part_card_pins(&self, part: Uuid, cps: &[(u16, String)]) -> CardPins {
+        let id = Id::from_uuid(part);
+        let plc = self
+            .query()
+            .parts()
+            .get(id)
+            .and_then(|c| c.item.sections.plc.clone())
+            .or_else(|| {
+                self.library_parts()
+                    .into_iter()
+                    .find(|c| c.id == id)
+                    .and_then(|c| c.item.sections.plc)
+            });
+        let pairs = cps.iter().map(|(i, d)| (*i, d.as_str()));
+        match plc {
+            Some(plc) => card_pins(&plc, pairs),
             None => CardPins {
                 others: cps.iter().map(|(i, _)| *i).collect(),
                 ..CardPins::default()

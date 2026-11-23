@@ -378,9 +378,29 @@ impl PartDraft {
         self.pins.iter().map(|p| p.idx).collect()
     }
 
-    /// The device box as it will be drawn, on the 4 mm grid it is edited on.
+    /// The device box as it will be drawn, on the 4 mm grid it is edited on: as the part lays it out, else a PLC card's
+    /// as a card's every pin in one box ([`crate::output::CardPins::one_box`], doc 10 §3.6), else the plain box.
     pub fn box_steps(&self) -> BoxSteps {
+        if self.box_.is_none()
+            && let Some(card) = self.card_pins().filter(crate::output::CardPins::is_card)
+        {
+            return card.one_box();
+        }
         steps(&self.pin_indices(), &self.outputs, self.box_.as_ref(), EDIT_STEP)
+    }
+
+    /// The pins by kind of a PLC card's draft: by its form's PLC section (a part of one's own), else the held one's;
+    /// `None` for a part without one.
+    fn card_pins(&self) -> Option<crate::output::CardPins> {
+        // The form's section only once every field of it reads (the section is made from checked texts).
+        let formed = crate::part_plc::check_plc(&self.plc)
+            .is_empty()
+            .then(|| crate::part_plc::plc_section(&self.plc))
+            .flatten()
+            .map(|(s, _)| s);
+        let plc = formed.or_else(|| self.original.sections.plc.clone())?;
+        let pairs = self.pins.iter().map(|p| (p.idx, p.name.as_str()));
+        Some(crate::output::card_pins(&plc, pairs))
     }
 
     /// Changes the layout with `change` and keeps what [`steps`] makes of it: every edit leaves a whole layout.

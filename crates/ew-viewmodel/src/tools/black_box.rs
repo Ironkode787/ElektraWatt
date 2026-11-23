@@ -78,6 +78,8 @@ pub enum BoxTarget {
         outputs: Vec<u16>,
         /// The part's device box (doc 07 §2.5): one click places the box as the part lays it out.
         layout: Option<ew_api::part_box::PartBox>,
+        /// A PLC card's pins by kind, for a part without a device box: its box is a card's (doc 10 §3.6).
+        card: Option<ew_api::output::CardPins>,
     },
     /// Another representation of an unplaced black-box function (`existing_function`): the supply pins of a station
     /// placed first on a bus-topology page, drawn on a schematic page.
@@ -108,6 +110,8 @@ pub enum BoxTarget {
         cps: Vec<(u16, String)>,
         /// The part's device box (doc 07 §2.5, FT-1788): one click places the box as the part lays it out.
         layout: Option<ew_api::part_box::PartBox>,
+        /// A PLC card's pins by kind, for a part without a device box: its box is a card's (doc 10 §3.6).
+        card: Option<ew_api::output::CardPins>,
     },
     /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
     Ports {
@@ -479,6 +483,19 @@ impl BlackBoxTool {
         out
     }
 
+    /// The pins by kind of a card target without a device box; `None` for any other target.
+    fn card(&self) -> Option<&ew_api::output::CardPins> {
+        match &self.target {
+            BoxTarget::Part {
+                card, layout: None, ..
+            }
+            | BoxTarget::Station {
+                card, layout: None, ..
+            } => card.as_ref().filter(|c| c.is_card()),
+            _ => None,
+        }
+    }
+
     fn cps(&self) -> &[(u16, String)] {
         match &self.target {
             BoxTarget::Part { cps, .. }
@@ -522,6 +539,15 @@ impl BlackBoxTool {
         };
         let grid = PageGridMap::new(cx.page.tables.grid);
         let BoxTarget::Ports { interfaces, .. } = &self.target else {
+            // A card: its box as Draw on a page lays it (doc 10 §3.6), its top-left corner at the rectangle's, in the
+            // size its row needs; a row wider than the drawing area from there is its first box, the rest drawn later.
+            if let Some(card) = self.card() {
+                let corner = (first.0.min(at.0), first.1.min(at.1));
+                let right = super::ip::drawing_area(cx.page).map_or(i64::MAX, |a| a[2]);
+                let room = grid.index(right).saturating_sub(grid.index(corner.0));
+                let steps = card.boxes(room).into_iter().next()?;
+                return card_on_grid(&steps, cx.page.tables.grid, corner).map(|l| vec![l]);
+            }
             return layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]);
         };
         let boxes = port_layouts(grid, first, at, interfaces)?;
@@ -828,6 +854,30 @@ impl BlackBoxTool {
             }
         }
     }
+}
+
+/// A box `steps` on the page's grid `page_grid` (num, den), its top-left corner at the grid point nearest `at`, as a
+/// [`BoxLayout`]: how a card's box is put on a page (Draw on a page and the black box tool alike).
+pub fn card_on_grid(
+    steps: &ew_api::part_box::BoxSteps,
+    page_grid: (i64, i64),
+    at: (i64, i64),
+) -> Option<BoxLayout> {
+    use ew_api::part_box::Dir4;
+    let (pos, outline, cps) = steps.on_grid(page_grid, at)?;
+    let cps = cps
+        .into_iter()
+        .map(|(idx, p, dir)| {
+            let dir = match dir {
+                Dir4::Up => Dir::Up,
+                Dir4::Down => Dir::Down,
+                Dir4::Left => Dir::Left,
+                _ => Dir::Right,
+            };
+            (idx, p, dir)
+        })
+        .collect();
+    Some((pos, outline, cps))
 }
 
 /// The bounds `[x0, y0, x1, y1]` of points; `None` without one.

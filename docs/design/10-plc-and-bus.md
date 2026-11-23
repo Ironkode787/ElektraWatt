@@ -1110,10 +1110,26 @@ says what an input is for before its device is drawn (FT-2133), and the refusal 
 channel says where its text will come from and that the cell prints the symbol name until then. A text wider than its cell is made smaller, down to half its size, and below that wrapped at its words
 at half its size. Nothing is stored: the view decides from the box and the bindings, and the labels layer draws the
 lines with the texts. Every other box keeps its pin texts as before (turned a quarter on its upper and lower edges): a
-card of the older two-row form, a box whose part lays it out with pins on several edges, a box without bound pins, a
-card's box turned a quarter (its channel pins then leave sideways). Not
+card's box with channel pins on two edges, which only a project of an earlier version may still hold, a box whose
+part lays it out with pins on several edges, a box without bound pins, a card's box turned a quarter (its channel pins
+then leave sideways). Not
 done: the symbol beside a function text and the process tag per channel, which the reference set prints in some
 cells.
+
+**Every placement lays a card out in one row** (0.3.5, the owner: the two-row form is retired). One function lays a
+card's box out, `CardPins::boxes` over `part_box::card_box`: its inputs' pins in one row on the upper edge of a box,
+its outputs' in one row on the lower edge of another, its supply down the first box's left side, a row wider than the
+drawing area split as below. Every path that makes or redraws a card's box calls it: Draw on a page, Draw the card in
+one row, the Device tool and Insert device's Place of a card part that has no device box of its own (its box dragged
+by two corners takes the card's box at the first corner, in the size its row needs; a card of inputs and outputs gets
+its inputs' box, and its outputs' waits in the station view's To do), the Black box tool with such a part, and Place
+here; the device box editor starts a card's box with every pin in one box (`CardPins::one_box`: its channels in one
+row, the inputs' then the outputs'), and the device browser shows the box the Device tool places. Not a card's form,
+and so not changed: a part's own device box, which may put pins on several edges (doc 07 §2.5), a station's head and
+any other box without channel pins (its supply and bus pins laid by the black box tool, a source's outputs along the
+lower edge), a bus device's sockets, a paste or a copy of pages (it copies the boxes as they stand) and an import (it
+keeps the source's drawing). A project of an earlier version keeps drawing the two-row boxes it stores: nothing
+recomputes them, and Draw the card in one row is the person's way to bring one over, as it draws the wires anew.
 
 **A card of the older form drawn in one row** (FT-1897, 0.3.5). *Draw the card in one row* (`plc.card_redraw`, in the
 box's menu, offered for one selected box with channel pins on both its upper and its lower edge)
