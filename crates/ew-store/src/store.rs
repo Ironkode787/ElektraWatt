@@ -3070,7 +3070,7 @@ impl Drop for Store {
 struct SavePlan {
     writes: BTreeMap<FilePath, Vec<u8>>,
     removes: BTreeSet<FilePath>,
-    /// The writer-owned files, their hashes and `since` values after the save.
+    /// The writer-owned files and their hashes after the save.
     disk: BTreeMap<FilePath, Held>,
     /// The new key sets of the dirty files.
     contents: BTreeMap<FilePath, BTreeSet<AnyKey>>,
