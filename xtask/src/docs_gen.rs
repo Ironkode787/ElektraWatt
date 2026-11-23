@@ -1927,7 +1927,7 @@ fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<(Summ
         catalogue.rules.len(),
         repo_tree_link(RULE_NOTES),
         repo_link(
-            "docs/design/15-checks-revisions-collaboration.md",
+            "docs/design/15-rule-catalogue.md",
             Some("4-rule-catalogue")
         ),
         schemes.join("\n"),
@@ -1949,7 +1949,7 @@ fn pack_page(pack: &str, rules: &[&Rule]) -> String {
         let _ = write!(
             out,
             " The catalogue entry of the pack is [doc 15 §{title}]({}).",
-            repo_link("docs/design/15-checks-revisions-collaboration.md", Some(anchor)),
+            repo_link("docs/design/15-rule-catalogue.md", Some(anchor)),
         );
     }
     out.push_str(
