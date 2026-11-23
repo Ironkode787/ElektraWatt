@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC-BY-4.0
 The record of the third release: its candidates, each candidate's filled checklist and the go. It is kept at an
 early alpha's size. The procedure is [the release procedure](../../README.md); the release notes are
 [`docs/release-notes/0.3.0.md`](../../../release-notes/0.3.0.md); what the release holds and how each part was
-shown is the log of [`docs/plan/m3.md`](../../../plan/m3.md). People are named by their role only.
+shown is the log of [`docs/plan/m3.md`](https://github.com/Ironkode787/ElektraWatt/blob/935e1507e1f6a175c7d93615fb441ada68cc82dc/docs/plan/m3.md). People are named by their role only.
 
 0.3.0 is the release of M3, "Automation breadth": the PLC and bus work, fluid power, the exchange with PLC software,
 the EDZ, EPLAN, DXF and DWG imports, the automation workspaces, and parts with ports made in the window. Its gate is

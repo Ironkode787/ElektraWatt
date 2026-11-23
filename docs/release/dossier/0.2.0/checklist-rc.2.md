@@ -13,7 +13,7 @@ not. An item that is not met is on record here for the owner's go; it is not hid
 prerelease `v0.2.0-rc.2` on the repository's releases page · **Filled by:** the release manager ·
 **Date:** 2026-11-12
 
-What the candidate adds to the first one is the log of [`docs/plan/m2.5-fix.md`](../../../plan/m2.5-fix.md), its
+What the candidate adds to the first one is the log of [`docs/plan/m2.5-fix.md`](https://github.com/Ironkode787/ElektraWatt/blob/0926a57cebcde0316023c66b992d075549a3a5fd/docs/plan/m2.5-fix.md), its
 entries "The second candidate": the fixes for the owner's 28 findings on the first candidate, and what two
 play-testers' runs on those fixes found.
 

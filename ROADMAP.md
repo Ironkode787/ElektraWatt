@@ -31,9 +31,9 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 | Milestone | State |
 |---|---|
 | M0 to M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
-| M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](docs/plan/m2.5.md)) |
-| M2.5-Fix | Closed: 0.2.0 was released on 2026-11-13, the fixes that make the program work well in the hand ([plan and log](docs/plan/m2.5-fix.md)) |
-| M3 | Closed: 0.3.0 was released on 2026-11-20, automation breadth ([plan and log](docs/plan/m3.md)) |
+| M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](https://github.com/Ironkode787/ElektraWatt/blob/03848ea6b52e2a933988bc81cee043627f88681b/docs/plan/m2.5.md)) |
+| M2.5-Fix | Closed: 0.2.0 was released on 2026-11-13, the fixes that make the program work well in the hand ([plan and log](https://github.com/Ironkode787/ElektraWatt/blob/0926a57cebcde0316023c66b992d075549a3a5fd/docs/plan/m2.5-fix.md)) |
+| M3 | Closed: 0.3.0 was released on 2026-11-20, automation breadth ([plan and log](https://github.com/Ironkode787/ElektraWatt/blob/935e1507e1f6a175c7d93615fb441ada68cc82dc/docs/plan/m3.md)) |
 | M3.5 | Running since 2026-11-20: hygiene and a fix round, release 0.3.5 ([plan](docs/plan/m3.5.md)) |
 | M4 to M7, 1.x | Not started |
 

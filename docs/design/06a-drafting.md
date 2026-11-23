@@ -33,4 +33,4 @@ drawings may one day do what rules do not; that is a thought for the future and 
 | [§9. Proof](06a-texts-window.md#9-proof) | [texts, placing by hand, the window and proof](06a-texts-window.md) |
 | [§10. Libraries](06a-texts-window.md#10-libraries) | [texts, placing by hand, the window and proof](06a-texts-window.md) |
 | [§11. Where this design is unsure](06a-texts-window.md#11-where-this-design-is-unsure) | [texts, placing by hand, the window and proof](06a-texts-window.md) |
-| [§Summary](06a-measure-model.md#summary) | [what a good page is, and the model of a page](06a-measure-model.md) |
+| [Summary](06a-measure-model.md#summary) | [what a good page is, and the model of a page](06a-measure-model.md) |

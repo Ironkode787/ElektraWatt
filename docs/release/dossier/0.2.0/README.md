@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC-BY-4.0
 The record of the second release: its candidates, each candidate's filled checklist and the go. It is kept at an
 early alpha's size. The procedure is [the release procedure](../../README.md); the release notes are
 [`docs/release-notes/0.2.0.md`](../../../release-notes/0.2.0.md); what the release fixes and how each fix was shown
-is the log of [`docs/plan/m2.5-fix.md`](../../../plan/m2.5-fix.md). People are named by their role only.
+is the log of [`docs/plan/m2.5-fix.md`](https://github.com/Ironkode787/ElektraWatt/blob/0926a57cebcde0316023c66b992d075549a3a5fd/docs/plan/m2.5-fix.md). People are named by their role only.
 
 0.2.0 is the release of the fix milestone M2.5-Fix. Its gate is the owner's own hands-on test of a candidate: the
 wizard, a new project, placing, wiring, routing, the symbol editor and the QElectroTech import work without
