@@ -7,7 +7,6 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 ## Checks
 
 - FT-693 `ew-commands, ew-checks`: **Medium.** EW-REL-004 on `fields.set` of a revision's `label`: today only `revision.create` applies the prevent half; part 3's gate or a prevent on the field.
-- FT-828 `ew-checks, ew-commands`: The play-test checker's markup notes (rv-vis-3b-chk): four wires meet at one 0 V point with no junction drawn (page 103); two wire routes are still provisional; the CPU sits isolated on page 102. …
 - FT-947 `ew-checks`: No completeness finding names an interruption point whose CP has no connection; add one (the checker's ruling 4) (FIXPT41, cycle 42).
 - FT-956 `ew-checks, ew-commands`: EW-LAY-003's quick fix "Realise the primary part" can be refused on a duplicate (device, part, function) key (E42, cycle 42).
 - FT-977 `ew-checks`: **Medium.** Cap the device list in EW-CORE-043's message ("used by X and N more", in en and nl-NL), so that the message stops growing with the project and the two OI-3 overflows of the open-items table go away …
@@ -55,9 +54,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-931 `ew-scene`: An interruption point's arrow and name are drawn over the PSU box's bottom line, and the fuse's "4 A" is pushed under the 24V label (with FT-897) (play-test rv-vis-5, cycle 41).
 - FT-938 `ew-scene`: Embedded-block spacing: on 201 order code 2 ends about 0.4 mm inside the right rule with no visible padding; the legend's header row has the rows' size and weight, so only the grey fill marks it …
 - FT-979 `ew-scene`: On a rail the labels of abutting 20 mm unknown-footprint items (E56, S56 beside F55 on Golden A's rail 2 after `auto_fill`) collide at 300 %; check also whether the dashed unknown square is centred …
-- FT-1541 `ew-scene, Golden A`: Fixed texts that no placement rule moves still overlap on Golden A: folio 103's `PE-1.4` over `PE-1.1` and `PE-1.2` over `106-A1`, and folio 101's J-E-206 cluster (`J-E-206-N` and `J-E-206-PE` over …
 - FT-1589 `ew-derive`: A layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5).
-- FT-1597 `golden`: On Golden A's folio 106 the wires to the modules' lower pins (4, 5, FE) wrap round the module bodies, because doc 20 §15 puts the interruption points of the top and bottom pins' feeds in one cell (B1, E1); give the lower-pin feeds cells of their own (below the modules) and route them without the wrap.
 - FT-1683 `ew-scene, ew-viewmodel`: Interruption points one or two grid steps apart cannot print their texts: the name stands above the arrow and the cross-reference below. The interruption point tool does not place such a point (0.2.0), but the Wire tool's interruption point key still ends wires one step apart in points whose texts overlap. Print a crowded point's texts in line with its arrow (the name over its own wire, the reference beyond the free end), as dense drawings do; the tool's rule can then go.
 - FT-1856 `ew-scene, ew-commands, ew-viewmodel, ew-ui`: The later steps of a valve terminal drawn over several pages (WP-S2.23 built its smallest whole form): a cut or a valve dragged across pages on the canvas; a moved valve's actuator column carried to the other page instead of its tubes continuing through interruption points; supply plates drawn at their place inside the terminal and supply ports repeated on each part; two parts in rows on one page; an automatic re-split when a wider valve pushes a part past its page.
 
@@ -143,7 +140,6 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-695 `ew-api`: `function_kind_text` reads "A1A2 coil A1-A2" for a coil: drop the last category entry when it equals the designations run together.
 - FT-741 `ew-commands, ew-api`: **Medium.** After `macro.insert` the assembly overview on 201 and 202 does not regenerate from the new children (D-10) and EW-CORE-046 is not run on them; MC-4 re-places the overview children by `device.place`.
 - FT-742 `ew-commands`: `macro.insert` under an assembly does not join the inserted children to the head's configuration covers (`assembly_configs`).
-- FT-764 `Golden A`: Low. Golden A, pre-existing: on folio 106 the potential labels "0VDC-AIR2" and "0VDC-AIR1" overprint their neighbours; on folio 102 the -102F1 tag is struck through by a wire. A golden change, the …
 - FT-784 `ew-schema, ew-commands`: **Medium.** FT-396's third choice, keep both: a paste that keeps the pasted version beside the held copy needs a format-level change of copy identity, because every library reference resolves through the one …
 - FT-787 `ew-api`: A macro thumbnail shows the throwaway folio's tags ("-102K1"), because the throwaway engine continues the project's counters; show the macro's own tags.
 - FT-800 `ew-api`: A function whose part's FnDef is not in the project falls back to its key's last segment for words ("Blackbox"); read the system library's FnDef or a word table.
@@ -184,7 +180,6 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 
 ## Revisions and release
 
-- FT-666 `WP-S1.18`: **Medium.** AC-23's success half on Golden A-R: release V2.0 after the overlay `resolutions/*.csv` (doc 20 §2.4) and `ew revision approve --as <checker>`, the archive written and verified, folio 911 showing V2.0 …
 - FT-667 `WP-S1.18`: The check report as PDF (FR-CHK-014) in the as-built archive (`check/report.pdf`); until it exists the archive carries `check/report.json` only (WP-S1.18 D11).
 - FT-668 `WP-S1.18`: A per-user party (the person's role in the project's parties, a user setting) so that `revision.ensure_open` writes the open revision's author as doc 15 §5.3 says; at MVP the author is set by …
 

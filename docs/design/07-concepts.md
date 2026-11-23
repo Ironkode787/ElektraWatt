@@ -247,9 +247,9 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   stop, electronic switch and level sensor. The note ranks the families, records the pilot's drawing style (wiring marks,
   terminal and interruption-point density, nomenclature blocks as bill of materials, slice-wise valve terminals,
   one-terminal-per-channel PLC modules) and proposes fifteen symbol tickets and nine importer mapping entries. It adds no
-  requirement and changes no key. The seven types that a pilot project uses at least twice join the starter set
+  requirement and changes no key. The seven types that a pilot project uses at least twice are to join the starter set
   (`ew.iec.plug-socket`, `ew.gen.screen`, `ew.iec.sensor-temp`, `ew.iec.mcb-2p`, `ew.iec.disconnector-1p`,
-  `ew.iec.switch-disconnector-4p`, `ew.iec.socket`); the end-terminal and the other variants
+  `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; of them `ew.iec.mcb-2p` has joined); the end-terminal and the other variants
   follow the same rule after inspection. A QET cross-section mark that disagrees with the derived wire property is
   reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12).
 
