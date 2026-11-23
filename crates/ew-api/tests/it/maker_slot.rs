@@ -127,7 +127,7 @@ fn a_part_of_any_other_maker_prints_its_maker() {
             v["manufacturer"]["item"] = json!(item.to_string());
         }
         *doc = ew_schema::LibDocument::from_value(v).unwrap();
-        if let Some(hash) = ew_commands::commands::library_copy_hash(doc) {
+        if let Some(hash) = ew_store::ew_format::library_copy_hash(doc) {
             match doc {
                 ew_schema::LibDocument::Part(p) => p.sha256 = ew_schema::Sha256(hash),
                 ew_schema::LibDocument::Manufacturer(m) => m.sha256 = ew_schema::Sha256(hash),

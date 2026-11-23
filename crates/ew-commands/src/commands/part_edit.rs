@@ -19,13 +19,13 @@ use serde_json::{Map, Value, json};
 
 use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
-use crate::commands::library::library_copy_hash;
 use crate::commands::library_update::{apply_remap, pin_moves};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_format::library_copy_hash;
 
 /// The members of a part that `part.edit_copy` edits (D20); every other member must equal the copy's.
 pub const PART_EDITABLE: [&str; 10] = [

@@ -166,8 +166,7 @@ pub fn scheme(name: &str) -> Option<&'static Scheme> {
 }
 
 /// The member of the project settings (`settings.extra`) that holds the project's check schemes, as
-/// `project.checks.set` writes it. The same text as `ew_commands::commands::CHECKS_MEMBER`, which this crate
-/// may not name (`ci/dep-rules.toml`); a test of `ew-api` keeps the two equal.
+/// `project.checks.set` writes it.
 pub const CHECKS_MEMBER: &str = "checks";
 
 /// The name the project gives the check scheme of a run in `mode`, whether or not this build ships it: the member

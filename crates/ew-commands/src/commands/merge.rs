@@ -6,11 +6,12 @@
 
 use std::collections::BTreeSet;
 
+use ew_format::{Anchors, FilePath, record_file};
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow};
 use ew_schema::{
-    AnchorRef, AnyId, Carrier, CarrierRef, Conflict, ConflictBody, ConflictSide, DELETED_SIDE, Enclosure,
-    Function, Junction, Kind, KindStatus, MountingSurface, Record, Representation,
+    AnyId, Carrier, Conflict, ConflictBody, ConflictSide, DELETED_SIDE, Enclosure, Function, Junction, Kind,
+    KindStatus, MountingSurface, Record, Representation,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -271,7 +272,7 @@ fn resolve_file(
         let Some(record) = tx.row(&key).map(|row| record_of(&row)).transpose()? else {
             continue;
         };
-        if file_of(tx, &record, 0).as_deref() == Some(path) {
+        if file_of(tx, &record).is_some_and(|file| file.as_str() == path) {
             gone.push(key);
         }
     }
@@ -293,145 +294,47 @@ fn record_of(row: &AnyRow) -> Result<Record, CmdError> {
     Record::from_value(value).map_err(|e| CmdError::internal(format!("a record does not read back: {e}")))
 }
 
-/// The file `merge.resolve` routes `record` to in `model` (its `file_of`), for the test in `ew-api` that pins it to
-/// `ew_format::record_file` record kind by record kind: the crate that sees both.
-#[cfg(feature = "testkit")]
-pub fn record_file_of(model: &ew_model::Model, record: &Record) -> Option<String> {
-    let mut ids = ew_ids::SystemSource;
-    file_of(&TxBuilder::new(model, &mut ids), record, 0)
+/// The project-relative file a record of the transaction lives in: `ew_format::record_file` over the
+/// transaction's rows ([`TxAnchors`]), `None` for a record without one.
+fn file_of(tx: &TxBuilder<'_>, record: &Record) -> Option<FilePath> {
+    record_file(record, &TxAnchors(tx)).ok()
 }
 
-/// The project-relative file a record of the transaction lives in: doc 05 §2.2's rules as `ew_format::record_file`
-/// applies them, restated over the model, `None` for a record of a kind without a rule here. The order allows
-/// `ew-commands` the edge to `ew-format`; this copy stands, and a test in `ew-api` pins the two together
-/// (`record_file_of`). A reference that does not resolve falls back to the shard of the referenced ID, as there.
-fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
-    let page = |id: AnyId| format!("pages/{id}.jsonl");
-    let shard = |id: AnyId| format!("devices/{}.jsonl", id.shard_name());
-    let layout = |id: AnyId| format!("layout/{id}.jsonl");
-    let rep_page = |f: AnyId| -> Option<AnyId> {
-        let rep = tx.reps_of_function(f.cast()).into_iter().min()?;
-        tx.get::<Representation>(rep).map(|r| r.page.cast())
-    };
-    let ip_file = |f: AnyId| rep_page(f).map_or_else(|| shard(f), page);
-    let function_file = |f: AnyId| match tx.get::<Function>(f.cast()) {
-        Some(func) => func.device.map_or_else(|| ip_file(f), |d| shard(d.cast())),
-        None => shard(f),
-    };
-    let junction_file = |j: AnyId| {
-        tx.get::<Junction>(j.cast())
-            .map_or_else(|| shard(j), |j| page(j.page.cast()))
-    };
-    let space_of_enclosure = |e: AnyId| tx.get::<Enclosure>(e.cast()).map_or(e, |e| e.space.cast());
-    let space_of_surface = |s: AnyId| {
-        tx.get::<MountingSurface>(s.cast())
-            .map_or(s, |s| space_of_enclosure(s.enclosure.cast()))
-    };
-    let space_of_carrier = |c: AnyId| {
-        tx.get::<Carrier>(c.cast())
-            .map_or(c, |c| space_of_surface(c.surface.cast()))
-    };
-    let own = || record.id().map(AnyId::from_uuid);
-    let endpoint = |anchor: AnchorRef| match anchor {
-        AnchorRef::DeviceOfFunction(f) => Some(function_file(f.cast())),
-        AnchorRef::PageOfJunction(j) => Some(junction_file(j.cast())),
-        _ => None,
-    };
-    Some(match record {
-        Record::Project(_)
-        | Record::PlcConfigProject(_)
-        | Record::LogicalNet(_)
-        | Record::PhysicalNet(_)
-        | Record::Medium(_)
-        | Record::ImportLineage(_) => "project.jsonl".to_owned(),
-        Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => {
-            "structure.jsonl".to_owned()
-        }
-        Record::Page(r) => page(r.id.cast()),
-        Record::Device(r) => shard(r.id.cast()),
-        Record::Function(r) => match r.device {
-            Some(d) => shard(d.cast()),
-            None => ip_file(r.id.cast()),
-        },
-        Record::Representation(r) => page(r.page.cast()),
-        Record::Junction(r) => page(r.page.cast()),
-        Record::PageItem(r) => page(r.page.cast()),
-        Record::StructureBox(r) => page(r.page.cast()),
-        Record::MacroInstance(r) => page(r.page.cast()),
-        Record::Conductor(r) => shard(r.cable.cast()),
-        Record::Channel(r) => shard(r.module.cast()),
-        Record::DeviceLink(r) => shard(r.from.cast()),
-        Record::ReportBlock(r) => match &r.embedded {
-            Some(e) => page(e.page.cast()),
-            None => "report-blocks.jsonl".to_owned(),
-        },
-        Record::Revision(_) => "revisions.jsonl".to_owned(),
-        Record::Waiver(_) => "waivers.jsonl".to_owned(),
-        Record::ImportRun(r) => format!("imports/{}.jsonl", r.id),
-        Record::ExchangeRecord(r) => format!("exchange/{}.jsonl", r.config_project),
-        Record::ForeignId(r) => format!("exchange/{}.jsonl", r.config_project),
-        Record::Connection(r) => match r.page {
-            Some(p) => page(p.cast()),
-            None => endpoint(record.anchor_ref()).or_else(|| own().map(shard))?,
-        },
-        Record::PotentialDef(_) | Record::MediumDef(_) | Record::Bond(_) => {
-            endpoint(record.anchor_ref()).or_else(|| own().map(shard))?
-        }
-        Record::LayoutSpace(r) => layout(r.id.cast()),
-        Record::Enclosure(r) => layout(r.space.cast()),
-        Record::MountingSurface(r) => layout(space_of_enclosure(r.enclosure.cast())),
-        Record::Carrier(r) => layout(space_of_surface(r.surface.cast())),
-        Record::Placement(r) => layout(match &r.carrier {
-            CarrierRef::Carrier(c) => space_of_carrier(c.cast()),
-            CarrierRef::Surface(s) => space_of_surface(s.cast()),
-            CarrierRef::Unknown(_) => r.id.cast(),
-        }),
-        Record::Conflict(c) => match &c.body {
-            // The writer's routing; a path that names no record file, the shard of the conflict's own ID.
-            ConflictBody::File { path, .. } if names_record_file(path) => path.clone(),
-            ConflictBody::File { .. } => shard(c.id.cast()),
-            ConflictBody::Record { kind, .. } => {
-                let target = Kind::from_name(kind)
-                    .filter(|k| *k != Kind::Conflict && depth == 0)
-                    .and_then(|k| tx.row(&(k, c.id.cast())))
-                    .map(|row| record_of(&row))
-                    .transpose()
-                    .ok()
-                    .flatten();
-                match target {
-                    Some(t) => file_of(tx, &t, depth + 1)?,
-                    None => shard(c.id.cast()),
-                }
-            }
-        },
-        Record::Unknown(_) => return None,
-    })
-}
+/// [`Anchors`] answered from a transaction: the facts of doc 05 §2.2 as the transaction reads them.
+struct TxAnchors<'a, 'm>(&'a TxBuilder<'m>);
 
-/// Whether `path` names a record file as `ew_format::classify` reads one (doc 05 §2.2): a root file, `pages/`,
-/// `layout/`, `imports/` or `exchange/<id>.jsonl`, or `devices/<xx>.jsonl` (`xx` lower-case hex). The agreement test
-/// of `record_file_of` pins it to the writer's.
-fn names_record_file(path: &str) -> bool {
-    const ROOT_FILES: [&str; 6] = [
-        "project.jsonl",
-        "structure.jsonl",
-        "revisions.jsonl",
-        "report-blocks.jsonl",
-        "waivers.jsonl",
-        "comments.jsonl",
-    ];
-    let id_file = |name: &str| {
-        name.strip_suffix(".jsonl")
-            .is_some_and(|id| id.parse::<AnyId>().is_ok())
-    };
-    let hex = |b: u8| b.is_ascii_digit() || (b'a'..=b'f').contains(&b);
-    match path.split('/').collect::<Vec<_>>().as_slice() {
-        [name] => ROOT_FILES.contains(name),
-        ["pages" | "layout" | "imports" | "exchange", name] => id_file(name),
-        ["devices", name] => {
-            let b = name.as_bytes();
-            b.len() == 8 && name.ends_with(".jsonl") && hex(b[0]) && hex(b[1])
-        }
-        _ => false,
+impl Anchors for TxAnchors<'_, '_> {
+    fn function_device(&self, f: AnyId) -> Option<Option<AnyId>> {
+        self.0
+            .get::<Function>(f.cast())
+            .map(|func| func.device.map(|d| d.cast()))
+    }
+
+    fn junction_page(&self, j: AnyId) -> Option<AnyId> {
+        self.0.get::<Junction>(j.cast()).map(|j| j.page.cast())
+    }
+
+    fn function_rep_page(&self, f: AnyId) -> Option<AnyId> {
+        let rep = self.0.reps_of_function(f.cast()).into_iter().min()?;
+        self.0.get::<Representation>(rep).map(|r| r.page.cast())
+    }
+
+    fn carrier_surface(&self, c: AnyId) -> Option<AnyId> {
+        self.0.get::<Carrier>(c.cast()).map(|c| c.surface.cast())
+    }
+
+    fn surface_enclosure(&self, s: AnyId) -> Option<AnyId> {
+        self.0
+            .get::<MountingSurface>(s.cast())
+            .map(|s| s.enclosure.cast())
+    }
+
+    fn enclosure_space(&self, e: AnyId) -> Option<AnyId> {
+        self.0.get::<Enclosure>(e.cast()).map(|e| e.space.cast())
+    }
+
+    fn target_file(&self, kind: Kind, id: AnyId) -> Option<FilePath> {
+        let target = record_of(&self.0.row(&(kind, id))?).ok()?;
+        record_file(&target, self).ok()
     }
 }

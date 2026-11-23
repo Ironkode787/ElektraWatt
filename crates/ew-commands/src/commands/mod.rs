@@ -69,7 +69,6 @@ mod typeface;
 pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
 pub use bus::{BusLineField, PlugParam};
-pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::COMPANY_MEMBER;
 pub use connection::{IpAtEnd, WiringChoice};
@@ -91,12 +90,9 @@ pub use items::{
 };
 pub use join::joins_any_device;
 pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
-pub use library::library_copy_hash;
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
 pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate};
 pub use merge::Take;
-#[cfg(feature = "testkit")]
-pub use merge::record_file_of;
 pub use page::{LabelModeParam, LabelsParam, PageScope};
 pub use page_copy::{
     NodeSwap, PAGE_COPY_KINDS, REPRODUCED, Rename, TextNames, designation_moves, names_tag, renamed,

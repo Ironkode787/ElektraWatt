@@ -11,7 +11,8 @@ use crate::common;
 
 use common::*;
 use ew_commands::CmdError;
-use ew_commands::commands::{CreateReportBlock, EmbedLibraryCopies, KindName, SetFields, library_copy_hash};
+use ew_commands::commands::{CreateReportBlock, EmbedLibraryCopies, KindName, SetFields};
+use ew_format::library_copy_hash;
 use ew_ids::{Id, Uuid};
 use ew_model::fixture::*;
 use ew_schema::{

@@ -106,7 +106,7 @@ fn the_assign_and_update_verbs_change_part_uses_and_copies() {
     next["version"] = json!("1.0.1");
     next["description"] = json!("Power supply, updated");
     let doc = LibDocument::from_value(next).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
+    let hash = ew_format::library_copy_hash(&doc).unwrap();
     let mut next = serde_json::to_value(&doc).unwrap();
     next["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     let next = LibDocument::from_value(next).unwrap();
@@ -182,6 +182,6 @@ fn part_edit_copy_edits_a_project_local_copy_in_place() {
     assert_eq!(held.item.description.as_neutral(), Some("MCB 1P C6"));
     assert_eq!(
         Some(held.sha256.0),
-        ew_commands::commands::library_copy_hash(&LibDocument::Part((**held).clone()))
+        ew_format::library_copy_hash(&LibDocument::Part((**held).clone()))
     );
 }

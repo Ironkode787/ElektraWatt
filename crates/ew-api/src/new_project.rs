@@ -97,7 +97,7 @@ pub fn template_summary(dir: &Path) -> Result<TemplateSummary, OpenError> {
     let check_level = project
         .settings
         .extra
-        .get(ew_commands::commands::CHECKS_MEMBER)
+        .get(ew_checks::CHECKS_MEMBER)
         .and_then(|c| c.get("release_scheme"))
         .and_then(Value::as_str)
         .map(str::to_owned);

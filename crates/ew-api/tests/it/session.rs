@@ -141,14 +141,6 @@ fn the_registry_resolves_command_aliases() {
     assert!(s.registry().get("symbol.place").is_some(), "aliases resolve");
 }
 
-/// `project.checks.set` takes the shipped check schemes of `ew-checks` and no other name: the command layer's
-/// list (it cannot depend on `ew-checks`, doc 04 §3) equals the engine's.
-#[test]
-fn the_check_scheme_command_knows_the_shipped_schemes() {
-    let engine: Vec<&str> = ew_api::checks::SCHEMES.iter().map(|s| s.name).collect();
-    assert_eq!(engine, ew_commands::commands::SHIPPED_CHECK_SCHEMES);
-}
-
 #[test]
 fn the_same_commands_and_seed_give_identical_records() {
     let mut a = session(9);

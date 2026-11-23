@@ -267,7 +267,7 @@ fn own_frame(s: &Session) -> (String, Value) {
     copy.id = ew_derive::ew_ids::v5::lib_copy_id(project, item);
     copy.item.meta.key = None;
     let doc = ew_schema::LibDocument::Form(copy.clone());
-    copy.sha256 = ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).expect("a hash"));
+    copy.sha256 = ew_schema::Sha256(ew_store::ew_format::library_copy_hash(&doc).expect("a hash"));
     let id = copy.id.as_uuid().to_string();
     (
         id,

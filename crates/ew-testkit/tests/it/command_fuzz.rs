@@ -251,7 +251,7 @@ fn fuzz_base() -> &'static Model {
         local.item_id = ew_ids::Id::from_uuid(item);
         local.id = ew_ids::v5::lib_copy_id(project.id.as_uuid(), item);
         local.sha256 = ew_schema::Sha256(
-            ew_commands::commands::library_copy_hash(&ew_schema::LibDocument::Part(local.clone()))
+            ew_format::library_copy_hash(&ew_schema::LibDocument::Part(local.clone()))
                 .expect("a part copy has a hash"),
         );
         model

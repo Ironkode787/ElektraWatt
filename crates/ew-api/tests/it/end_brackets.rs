@@ -484,7 +484,7 @@ fn resized(mut copy: ew_schema::LibCopy<Part>, item: u128, key: &str, width: i64
     copy.item.part_number = key.parse().expect("a part number");
     copy.item.mech.as_mut().expect("the part's mechanics").width = Some(Nm(width));
     let doc = ew_schema::LibDocument::Part(copy.clone());
-    copy.sha256 = ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).expect("a part hashes"));
+    copy.sha256 = ew_schema::Sha256(ew_store::ew_format::library_copy_hash(&doc).expect("a part hashes"));
     (
         serde_json::to_value(ew_schema::LibDocument::Part(copy.clone())).unwrap(),
         id_json(copy.id),

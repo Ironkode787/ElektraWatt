@@ -884,8 +884,7 @@ fn model_with_part_naming_an_unembedded_fndef() -> Model {
 /// The FnDef copy that [`PART_316`]'s template names, as a library document with its true hash.
 fn named_fndef() -> (Id<ew_schema::FnDef>, Value) {
     let copy = fndef_copy_for(LIBRARY_X, ITEM_Y, &["1", "2"]);
-    let hash =
-        ew_commands::commands::library_copy_hash(&LibDocument::Fndef(copy.clone())).expect("a known kind");
+    let hash = ew_format::library_copy_hash(&LibDocument::Fndef(copy.clone())).expect("a known kind");
     let mut v = serde_json::to_value(&copy).expect("copy json");
     v["$k"] = json!("fndef");
     v["sha256"] = json!(format!(

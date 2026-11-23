@@ -377,7 +377,7 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
     copy.item.meta.key = Some("OI3-TBD".parse().expect("a key"));
     copy.item.description = ew_derive::ew_mltext::MlText::neutral(what);
     let doc = ew_schema::LibDocument::Part(copy.clone());
-    let hash = ew_commands::commands::library_copy_hash(&doc).expect("a part hashes");
+    let hash = ew_store::ew_format::library_copy_hash(&doc).expect("a part hashes");
     copy.sha256 = ew_schema::Sha256(hash);
     copy
 }

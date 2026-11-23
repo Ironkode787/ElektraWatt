@@ -39,7 +39,7 @@ fn canonical(text: &str) -> String {
     c.item_id = v5::imported_id(library, &key);
     c.id = v5::lib_copy_id(library, c.item_id.as_uuid());
     let doc = LibDocument::PlcProfile(c.clone());
-    c.sha256 = Sha256(ew_commands::commands::library_copy_hash(&doc).expect("a hash"));
+    c.sha256 = Sha256(ew_format::library_copy_hash(&doc).expect("a hash"));
     format!(
         "{}\n",
         serde_json::to_string_pretty(&LibDocument::PlcProfile(c)).expect("serialisable")

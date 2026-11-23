@@ -35,7 +35,7 @@ fn before_part_3(lib: &[LibDocument]) -> Vec<LibDocument> {
                 .extra
                 .insert("key".into(), serde_json::Value::String(name.clone()));
         }
-        let hash = ew_commands::commands::library_copy_hash(doc);
+        let hash = ew_store::ew_format::library_copy_hash(doc);
         if let (LibDocument::Part(p), Some(hash)) = (doc, hash) {
             p.sha256 = Sha256(hash);
         }

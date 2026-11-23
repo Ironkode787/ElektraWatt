@@ -171,7 +171,7 @@ fn part_uses(s: &Session, d: Id<Device>) -> Vec<Uuid> {
 /// A library document as JSON with the hash of its item (as a copy carries it).
 fn with_hash(v: Value) -> Value {
     let doc = LibDocument::from_value(v).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
+    let hash = ew_store::ew_format::library_copy_hash(&doc).unwrap();
     let mut v = serde_json::to_value(&doc).unwrap();
     v["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     v

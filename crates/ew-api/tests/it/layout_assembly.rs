@@ -183,7 +183,7 @@ fn pad_102f1(s: &mut Session) {
         right: Nm(5_000_000),
         ..Clearance::default()
     });
-    copy.sha256 = Sha256(ew_commands::commands::library_copy_hash(&LibDocument::Part(copy.clone())).unwrap());
+    copy.sha256 = Sha256(ew_store::ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).unwrap());
     run(
         s,
         "part.assign",

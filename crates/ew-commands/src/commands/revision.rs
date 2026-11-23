@@ -512,15 +512,14 @@ impl Command for ApproveRevision {
                 text!("refusal-revision-checker-is-author"),
             ));
         }
-        let schemes = crate::commands::SHIPPED_CHECK_SCHEMES;
-        if !schemes.contains(&self.scheme.as_str()) {
+        if ew_checks::scheme(self.scheme.as_str()).is_none() {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/scheme",
                 text!(
                     "refusal-checks-scheme-unknown",
                     self.scheme.as_str(),
-                    schemes.join(", ")
+                    crate::commands::checks::scheme_names()
                 ),
             ));
         }

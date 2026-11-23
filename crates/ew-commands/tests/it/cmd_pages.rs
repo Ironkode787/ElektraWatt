@@ -1096,7 +1096,7 @@ fn report_block_create_refuses_a_form_copy_that_does_not_fit() {
     let mut other = doc.clone();
     other["sheet"]["width"] = serde_json::json!(420_000_000);
     let parsed = ew_schema::LibDocument::from_value(other.clone()).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&parsed).unwrap();
+    let hash = ew_format::library_copy_hash(&parsed).unwrap();
     other["sha256"] = serde_json::json!(ew_schema::Sha256(hash).to_string());
     assert!(reason(e.execute(&with_copy(960, form, &other))).contains("update from library"));
 }

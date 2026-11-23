@@ -12,8 +12,9 @@
 use crate::common;
 
 use common::*;
-use ew_commands::commands::{PasteFragment, library_copy_hash};
+use ew_commands::commands::PasteFragment;
 use ew_commands::{CmdError, Engine, Origin};
+use ew_format::library_copy_hash;
 use ew_ids::{Id, v5};
 use ew_model::Model;
 use ew_model::fixture::*;

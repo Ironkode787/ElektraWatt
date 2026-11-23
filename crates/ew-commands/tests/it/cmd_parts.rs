@@ -9,8 +9,9 @@
 use crate::common;
 
 use common::*;
-use ew_commands::commands::{ImportParts, import_counts, library_copy_hash};
+use ew_commands::commands::{ImportParts, import_counts};
 use ew_commands::{CmdError, Cost, Engine, Origin, Receipt};
+use ew_format::library_copy_hash;
 use ew_model::fixture::{ident, lib_ref_to, manufacturer_copy, part};
 use ew_schema::{Kind, LibCopy, LibDocument, Manufacturer, Part, Sha256};
 use serde_json::{Value, json};
@@ -133,7 +134,7 @@ fn only_the_manufacturers_of_inserted_parts_are_inserted() {
     let maker_item = part["manufacturer"]["item"].as_str().unwrap().to_owned();
     part["manufacturer"]["library"] = json!(project.to_string());
     let doc = LibDocument::from_value(part).unwrap();
-    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
+    let hash = ew_format::library_copy_hash(&doc).unwrap();
     let mut part = serde_json::to_value(&doc).unwrap();
     part["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     let named = all

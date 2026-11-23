@@ -40,6 +40,8 @@ ew-import-tables = { path = "../ew-import-tables" }
 # Tests load the generated projects through the Session facade and run commands on them.
 ew-api = { path = "../ew-api" }
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
+# The tests hash the library copies they embed as the format does (doc 05 §13.2).
+ew-format = { path = "../ew-format" }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }
 # The tests build texts and reference designations.

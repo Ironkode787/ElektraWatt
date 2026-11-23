@@ -108,10 +108,7 @@ pub(super) fn project_checks_set(_live: &Live, rng: &mut SplitMix64) -> Option<S
             let mut params = serde_json::Map::new();
             for member in ["active_scheme", "release_scheme"] {
                 if rng.chance(2) {
-                    params.insert(
-                        member.into(),
-                        json!(*rng.pick(ew_commands::commands::SHIPPED_CHECK_SCHEMES)?),
-                    );
+                    params.insert(member.into(), json!(rng.pick(ew_api::checks::SCHEMES)?.name));
                 }
             }
             let expect = params.clone();

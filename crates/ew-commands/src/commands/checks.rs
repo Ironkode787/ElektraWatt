@@ -5,6 +5,7 @@
 //! `CheckSettings`, doc 15 §3.1–§3.2, §4.9; doc 16 §9.2 step 9). `check.waive` (`WaiveFinding`) and `check.unwaive`
 //! (`UnwaiveFinding`): waiver recording (doc 15 §2.5, FR-CHK-009).
 
+use ew_checks::{CHECKS_MEMBER, SCHEMES};
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{Date, Extra, Kind, Waiver, WaiverTarget};
@@ -19,15 +20,11 @@ use crate::proxy::{IdentS, MlTextS, UuidS};
 use crate::text::text;
 use crate::tx::TxBuilder;
 
-/// The `ProjectSettings` member that holds the check settings (doc 03 §15 `CheckSettings`), kept in
-/// `ProjectSettings.extra` until it is typed.
-pub const CHECKS_MEMBER: &str = "checks";
-
-/// The shipped check schemes a project can name, in name order (doc 15 §4.9): a copy of the names of
-/// `ew_checks::scheme::SCHEMES`, which the order lets `ew-commands` call; an agreement test in `ew-api` keeps the two
-/// lists equal. Company and project schemes come with the scheme
-/// editor (doc 15 §3.2).
-pub const SHIPPED_CHECK_SCHEMES: &[&str] = &["drafting", "full", "migration", "pre-delivery"];
+/// The names of the shipped check schemes a project can name ([`SCHEMES`], doc 15 §4.9), in name order, as a refusal
+/// lists them. Company and project schemes come with the scheme editor (doc 15 §3.2).
+pub(crate) fn scheme_names() -> String {
+    SCHEMES.iter().map(|s| s.name).collect::<Vec<_>>().join(", ")
+}
 
 /// `project.checks.set` (`SetCheckSchemes`): names the project's check schemes (doc 03 §15 `CheckSettings`): the
 /// online scheme of the message panel (`active_scheme`, default `drafting`) and the scheme of the release gate
@@ -35,7 +32,7 @@ pub const SHIPPED_CHECK_SCHEMES: &[&str] = &["drafting", "full", "migration", "p
 ///
 /// Both members are the new value: an absent one is removed from the settings member [`CHECKS_MEMBER`], so the
 /// default applies; the member's other contents (pack pins, strictness, members of newer formats) are kept, and
-/// an empty member is removed. Each name must be a shipped scheme ([`SHIPPED_CHECK_SCHEMES`]; else invalid at its
+/// an empty member is removed. Each name must be a shipped scheme ([`SCHEMES`]; else invalid at its
 /// pointer). Rejected: a settings member [`CHECKS_MEMBER`] that is not an object (a newer or damaged format).
 ///
 /// **Exposure `HumanOnly`** (ADR-0008 amendment 3, ADR-0020): the release scheme decides which rules the release
@@ -73,16 +70,12 @@ impl Command for SetCheckSchemes {
         for (member, scheme) in members {
             let unknown = scheme
                 .as_ref()
-                .filter(|name| !SHIPPED_CHECK_SCHEMES.contains(&name.as_str()));
+                .filter(|name| ew_checks::scheme(name.as_str()).is_none());
             if let Some(name) = unknown {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/{member}"),
-                    text!(
-                        "refusal-checks-scheme-unknown",
-                        name.as_str(),
-                        SHIPPED_CHECK_SCHEMES.join(", ")
-                    ),
+                    text!("refusal-checks-scheme-unknown", name.as_str(), scheme_names()),
                 ));
             }
         }

@@ -553,10 +553,8 @@ fn a_concurrent_clearance_edit_of_a_neighbours_part_copy_conflicts_at_merge() {
     pad.version = "1.1.0".into();
     pad.item.mech = Some(mech(18, Some((9, 9))));
     let mut v = serde_json::to_value(LibDocument::Part(pad)).expect("a library document");
-    let hash = ew_commands::commands::library_copy_hash(
-        &LibDocument::from_value(v.clone()).expect("a library document"),
-    )
-    .expect("a known kind");
+    let hash = ew_format::library_copy_hash(&LibDocument::from_value(v.clone()).expect("a library document"))
+        .expect("a known kind");
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     v["sha256"] = serde_json::json!(format!("sha256:{hex}"));
     let update = ew_commands::AnyCommand {

@@ -700,7 +700,7 @@ fn a_large_fill_is_bulk() {
 /// The JSON form of a part copy in `lib/` form with its true hash (as for the placement commands' `copies`).
 fn copy_json(c: LibCopy<Part>) -> Value {
     let doc = LibDocument::Part(c);
-    let hash = ew_commands::commands::library_copy_hash(&doc).expect("a known kind");
+    let hash = ew_format::library_copy_hash(&doc).expect("a known kind");
     let mut v = serde_json::to_value(&doc).expect("copy json");
     v["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     v

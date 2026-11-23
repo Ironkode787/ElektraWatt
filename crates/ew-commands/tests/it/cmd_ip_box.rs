@@ -1118,9 +1118,8 @@ fn new_ip_symbol() -> (Id<SymbolDef>, serde_json::Value) {
     v["library_id"] = serde_json::json!(library.to_string());
     v["item_id"] = serde_json::json!(item.to_string());
     v["id"] = serde_json::json!(identity.to_string());
-    let hash =
-        ew_commands::commands::library_copy_hash(&LibDocument::from_value(v.clone()).expect("a document"))
-            .expect("a known kind");
+    let hash = ew_format::library_copy_hash(&LibDocument::from_value(v.clone()).expect("a document"))
+        .expect("a known kind");
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     v["sha256"] = serde_json::json!(format!("sha256:{hex}"));
     (identity, v)

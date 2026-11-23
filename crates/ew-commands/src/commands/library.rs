@@ -11,7 +11,6 @@ use ew_schema::{AnyId, LibDocument, Sha256};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::Digest;
 
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
@@ -56,15 +55,6 @@ pub(crate) struct Lineage {
     pub(crate) item: ew_ids::Uuid,
     pub(crate) claimed: Sha256,
     computed: Option<[u8; 32]>,
-}
-
-/// The SHA-256 of a library copy's item: the hash of the compact JSON of the item's own members (doc 05
-/// §13.2, the rule of EW-CORE-014); `None` for a document of an unknown kind. The format reader computes
-/// the same value (`ew_format::library_copy_hash`); an agreement test in `ew-api` keeps the two equal.
-pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
-    doc.item_json()?
-        .ok()
-        .map(|text| sha2::Sha256::digest(text.as_bytes()).into())
 }
 
 /// Checks one library document of a command parameter at `at` (the rules of [`EmbedLibraryCopies`]): it reads as
@@ -112,7 +102,7 @@ pub(crate) fn read_copy(
             library: c.library_id.as_uuid(),
             item: c.item_id.as_uuid(),
             claimed: c.sha256,
-            computed: library_copy_hash(&doc),
+            computed: ew_format::library_copy_hash(&doc),
         },
         None => {
             return Err(CmdError::invalid_params(

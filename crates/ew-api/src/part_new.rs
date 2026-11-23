@@ -17,11 +17,12 @@
 //! that port (a switch or a device with ports, placed as a box with every socket); any other part with bus interfaces
 //! keeps no template, so its ports are placed from the device's row (Place port).
 
-use ew_commands::commands::{EmbedLibraryCopies, ImportParts, library_copy_hash};
+use ew_commands::commands::{EmbedLibraryCopies, ImportParts};
 use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_library::starter;
 use ew_mltext::Ident;
 use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part, Sha256, TemplateFn};
+use ew_store::ew_format::library_copy_hash;
 use serde_json::{Value, json};
 
 use crate::part_editor::{BusRow, PartDraft, PartDraftError, bus_section, message};

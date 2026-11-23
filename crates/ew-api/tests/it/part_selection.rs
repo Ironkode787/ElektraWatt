@@ -615,7 +615,7 @@ fn an_edit_in_place_is_previewed() {
     assert_ne!(after.sha256, held.sha256);
     assert_eq!(
         Some(after.sha256.0),
-        ew_commands::commands::library_copy_hash(&LibDocument::Part(after.clone()))
+        ew_store::ew_format::library_copy_hash(&LibDocument::Part(after.clone()))
     );
     s.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(lines(&s), before, "undo restores the copy");

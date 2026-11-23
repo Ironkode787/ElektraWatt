@@ -9,7 +9,7 @@
 use crate::common;
 
 use common::*;
-use ew_commands::commands::{COMPANY_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, SetCompany};
+use ew_commands::commands::{COMPANY_MEMBER, SetCheckSchemes, SetCompany};
 use ew_commands::{
     AnyCommand, CmdError, CommandRegistry, Cost, DynCommand, Engine, Exposure, Origin, Submit,
 };
@@ -599,7 +599,8 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
         panic!("{err:?}");
     };
     assert_eq!(path, "/release_scheme");
-    assert!(message.contains(&SHIPPED_CHECK_SCHEMES.join(", ")), "{message}");
+    let schemes: Vec<&str> = ew_checks::SCHEMES.iter().map(|s| s.name).collect();
+    assert!(message.contains(&schemes.join(", ")), "{message}");
     for origin in [
         Origin::CmdLog {
             file: "wizard.ewcmd".into(),

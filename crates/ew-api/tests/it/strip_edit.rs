@@ -108,7 +108,7 @@ fn consistent(mut v: Value) -> Value {
     v["id"] = json!(id.as_uuid().to_string());
     v["sha256"] = json!(format!("sha256:{}", "0".repeat(64)));
     let doc = ew_derive::ew_schema::LibDocument::from_json(&v.to_string()).expect("a part copy");
-    let hash = ew_commands::commands::library_copy_hash(&doc).expect("a hash");
+    let hash = ew_store::ew_format::library_copy_hash(&doc).expect("a hash");
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     v["sha256"] = json!(format!("sha256:{hex}"));
     v

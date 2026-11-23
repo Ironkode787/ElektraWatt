@@ -258,7 +258,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
         })
         .collect();
     let hash =
-        ew_commands::commands::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
+        ew_store::ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
     copy.sha256 = Sha256(hash);
     let device = dev(s, device);
     run(

@@ -1384,8 +1384,10 @@ name = "ew-commands"
 version = "0.3.5"
 dependencies = [
  "automod",
+ "ew-checks",
  "ew-commands",
  "ew-derive",
+ "ew-format",
  "ew-hack",
  "ew-ids",
  "ew-mltext",
@@ -1877,6 +1879,7 @@ dependencies = [
  "ew-api",
  "ew-commands",
  "ew-derive",
+ "ew-format",
  "ew-hack",
  "ew-ids",
  "ew-import-tables",

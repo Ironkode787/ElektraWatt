@@ -31,6 +31,10 @@ ew-plc = { path = "../ew-plc" }
 # amendment 1), allowed on this normal edge by the feature rule of `cargo xtask rules`.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 ew-schema = { path = "../ew-schema" }
+# The file a record lives in (`merge.resolve`) and a library copy's hash (`library.embed`): the format's own rules.
+ew-format = { path = "../ew-format" }
+# The shipped check schemes a project can name and the settings member that holds them (`project.checks.set`).
+ew-checks = { path = "../ew-checks" }
 ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }

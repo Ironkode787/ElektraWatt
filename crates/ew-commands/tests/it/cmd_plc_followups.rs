@@ -556,7 +556,7 @@ fn n3_notices_name_the_records_in_words() {
 /// `sha256:<hex>` of a library document's item, as `library.update` checks it.
 fn sha_text(v: &Value) -> String {
     let doc = LibDocument::from_value(v.clone()).expect("a library document");
-    let hash = ew_commands::commands::library_copy_hash(&doc).expect("a known kind");
+    let hash = ew_format::library_copy_hash(&doc).expect("a known kind");
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     format!("sha256:{hex}")
 }

@@ -200,7 +200,7 @@ The neutral PLC exchange image and its AutomationML form (doc 10 §4.2, §4.3).
 
 ## ew-checks
 
-`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-plc` · used by `ew-api`, `ew-reports`, `ew-sqlview` · in tests by none
+`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-plc` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
 
 Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as queries, offline check jobs, waivers and quick fixes (ADR-0019, doc 15 §2–§4).
 
@@ -242,7 +242,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-commands
 
-`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-ids`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-format`, `ew-ids`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
 `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`.
 
@@ -477,7 +477,7 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 
 ## ew-format
 
-`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema`, `ew-units` · used by `ew-library`, `ew-store` · in tests by none
+`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema`, `ew-units` · used by `ew-commands`, `ew-library`, `ew-store` · in tests by `ew-testkit`
 
 JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-way record merge core and conflict records.
 

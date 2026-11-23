@@ -13,8 +13,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use ew_api::{AnyCommand, CmdError, Receipt, Recovery, Session, SessionOptions, StoreOptions};
-use ew_commands::commands::library_copy_hash;
 use ew_derive::{FunctionCps, Q, cp_point};
+use ew_format::library_copy_hash;
 use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_schema::{

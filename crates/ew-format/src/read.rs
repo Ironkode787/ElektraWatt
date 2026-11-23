@@ -1345,9 +1345,8 @@ impl<'a> Loader<'a> {
 }
 
 /// The SHA-256 of a library copy's item: the hash of the compact JSON of the item's own members (doc 05
-/// §13.2, EW-CORE-014); `None` for a document of an unknown kind. `ew-commands`' `library.embed` computes
-/// the same value (`ew_commands::commands::library_copy_hash`); an agreement test in `ew-api` keeps the two
-/// equal.
+/// §13.2, EW-CORE-014); `None` for a document of an unknown kind. `ew-commands`' `library.embed` checks a copy's
+/// claimed hash with it.
 pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
     doc.item_json()?.ok().map(|text| sha256(text.as_bytes()))
 }

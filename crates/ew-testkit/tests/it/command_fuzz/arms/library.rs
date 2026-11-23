@@ -16,7 +16,7 @@ pub(super) fn relineaged(template: &Value, library: &str, item: &str) -> Option<
     let id: ew_ids::Id<()> = ew_ids::v5::lib_copy_id(lib, it);
     copy["id"] = serde_json::to_value(id).ok()?;
     let doc = ew_schema::LibDocument::from_value(copy.clone()).ok()?;
-    let hash = ew_commands::commands::library_copy_hash(&doc)?;
+    let hash = ew_format::library_copy_hash(&doc)?;
     copy["sha256"] = json!(format!("sha256:{}", hex(&hash)));
     Some(copy)
 }

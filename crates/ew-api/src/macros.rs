@@ -670,7 +670,7 @@ impl Session {
             sha256: ew_schema::Sha256([0; 32]),
             item: def,
         };
-        let hash = ew_commands::commands::library_copy_hash(&LibDocument::Macro(doc.clone()))
+        let hash = ew_store::ew_format::library_copy_hash(&LibDocument::Macro(doc.clone()))
             .expect("a macro has a hash");
         doc.sha256 = ew_schema::Sha256(hash);
         let write = self
