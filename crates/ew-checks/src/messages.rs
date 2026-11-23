@@ -21,14 +21,14 @@
 //! finding's arguments are its printed values (derived tags, names and quantities as text, rendered when the rule
 //! ran), so a pattern never formats a number itself: the bytes cannot depend on a locale's number format.
 //!
-//! The bundles do not insert Unicode isolation marks (`set_use_isolating(false)`): the arguments are tags and names
-//! in the project's own text, and isolation marks would break the byte equality of P5-2.
+//! The languages are rendered by the one renderer, `ew_l10n::fluent`, which inserts no Unicode isolation marks: the
+//! arguments are tags and names in the project's own text, and isolation marks would break the byte equality of P5-2.
 //!
 //! Two functions let a pattern of another language word an argument as that language does:
 //!
 //! - `DECIMAL($x)` writes the decimal points of a printed number (`1.5 mm²`, `40.0`) as the language writes them
-//!   (`1,5 mm²` in nl-NL); a pattern wraps every argument that holds a measured value, never a wire number or a
-//!   version.
+//!   (`1,5 mm²` in nl-NL; [`ew_l10n::fluent::decimal`]); a pattern wraps every argument that holds a measured value,
+//!   never a wire number or a version.
 //! - `WORD($x)` writes the words a rule prints where a record has no name of its own ("a location", "a device without
 //!   designation", "the junction in C11"; each piece of a comma list and each end of a connection `a → b` or a wire
 //!   `a–b` alone) in the language: the en-GB resource's messages `word-…` hold
@@ -36,8 +36,7 @@
 
 use std::sync::OnceLock;
 
-use fluent_bundle::concurrent::FluentBundle;
-use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
+use ew_l10n::fluent::{Language, OnError, Value};
 
 use crate::finding::Finding;
 
@@ -53,54 +52,27 @@ const SOURCES: &[&str] = &[
     include_str!("../messages/nl-NL/rules.ftl"),
 ];
 
-type Bundle = FluentBundle<FluentResource>;
-
 /// The Fluent message ID of a rule: `rule-` and the rule ID in lower case (`rule-ew-pot-013`).
 pub fn message_id(rule: &str) -> String {
     format!("rule-{}", rule.to_ascii_lowercase())
 }
 
-/// The bundle of a shipped language, built once. A resource that does not parse is a defect of this crate, caught by
-/// the message tests; the entries that parse are still served.
-fn bundle(lang: &str) -> Option<&'static Bundle> {
-    static BUNDLES: OnceLock<Vec<Bundle>> = OnceLock::new();
+/// The language of a shipped tag, built once: its patterns may call `NUMBER(…, type: "ordinal")` (a pin's position),
+/// `DECIMAL` and `WORD` ([`words`]). A resource that does not parse is a defect of this crate, caught by the message
+/// tests; the entries that parse are still served.
+fn bundle(lang: &str) -> Option<&'static Language> {
+    static BUNDLES: OnceLock<Vec<Language>> = OnceLock::new();
     let bundles = BUNDLES.get_or_init(|| {
         LANGUAGES
             .iter()
             .zip(SOURCES)
             .map(|(tag, source)| {
-                let id: unic_langid::LanguageIdentifier = tag.parse().unwrap_or_default();
-                let mut b = Bundle::new_concurrent(vec![id]);
-                b.set_use_isolating(false);
-                // NUMBER(…, type: "ordinal") of a pin's position
-                let _ = b.add_builtins();
-                let tag: &'static str = tag;
-                let _ = b.add_function("DECIMAL", move |positional, _| match positional.first() {
-                    Some(FluentValue::String(s)) => decimal(tag, s).into(),
-                    Some(other) => other.clone(),
-                    None => FluentValue::None,
-                });
-                let _ = b.add_function("WORD", move |positional, _| match positional.first() {
-                    Some(FluentValue::String(s)) => {
-                        // Each piece of a list, each end of a connection (`a → b`) and of a wire (`a–b`) alone.
-                        let words = |text: &str, sep: &str, inner: &dyn Fn(&str) -> String| {
-                            text.split(sep).map(inner).collect::<Vec<_>>().join(sep)
-                        };
-                        let end = |e: &str| word(tag, e).unwrap_or_else(|| e.to_owned());
-                        let wire = |w: &str| word(tag, w).unwrap_or_else(|| words(w, "–", &end));
-                        let connection = |c: &str| words(c, " → ", &wire);
-                        words(s, ", ", &connection).into()
-                    }
-                    Some(other) => other.clone(),
-                    None => FluentValue::None,
-                });
-                let resource = match FluentResource::try_new((*source).to_owned()) {
-                    Ok(r) => r,
-                    Err((r, _)) => r,
-                };
-                // A duplicate entry keeps the first; the message tests reject duplicates.
-                let _ = b.add_resource(resource);
-                b
+                Language::new(
+                    tag,
+                    [*source],
+                    &[("DECIMAL", ew_l10n::fluent::decimal), ("WORD", words)],
+                    true,
+                )
             })
             .collect()
     });
@@ -112,10 +84,8 @@ fn bundle(lang: &str) -> Option<&'static Bundle> {
 pub fn resource_errors() -> Vec<(&'static str, String)> {
     let mut out = Vec::new();
     for (tag, source) in LANGUAGES.iter().zip(SOURCES) {
-        if let Err((_, errors)) = FluentResource::try_new((*source).to_owned()) {
-            for e in errors {
-                out.push((*tag, format!("{e:?}")));
-            }
+        for e in ew_l10n::fluent::parse_errors(source) {
+            out.push((*tag, e));
         }
     }
     out
@@ -124,33 +94,22 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
 /// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`).
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
-/// The shipped languages that write a decimal comma (`1,5 mm²`).
-const DECIMAL_COMMA: &[&str] = &["nl-NL"];
-
-/// `text` with each decimal point between two digits written as `lang` writes it (`DECIMAL`).
-fn decimal(lang: &str, text: &str) -> String {
-    if !DECIMAL_COMMA.iter().any(|l| l.eq_ignore_ascii_case(lang)) {
-        return text.to_owned();
-    }
-    let chars: Vec<char> = text.chars().collect();
-    chars
-        .iter()
-        .enumerate()
-        .map(|(i, c)| {
-            let digit = |j: Option<usize>| j.and_then(|j| chars.get(j)).is_some_and(char::is_ascii_digit);
-            if *c == '.' && digit(i.checked_sub(1)) && digit(Some(i + 1)) {
-                ','
-            } else {
-                *c
-            }
-        })
-        .collect()
+/// `WORD($x)` in `lang`: each piece of a list, each end of a connection (`a → b`) and of a wire (`a–b`) alone, in the
+/// words of `lang` where it is the en-GB text of a message `word-…` ([`word`]), else as it is.
+fn words(lang: &str, text: &str) -> String {
+    let words = |text: &str, sep: &str, inner: &dyn Fn(&str) -> String| {
+        text.split(sep).map(inner).collect::<Vec<_>>().join(sep)
+    };
+    let end = |e: &str| word(lang, e).unwrap_or_else(|| e.to_owned());
+    let wire = |w: &str| word(lang, w).unwrap_or_else(|| words(w, "–", &end));
+    let connection = |c: &str| words(c, " → ", &wire);
+    words(text, ", ", &connection)
 }
 
 /// The words of `lang` for `value` when `value` is the en-GB text of a message `word-…` (`WORD`); else `None`. A word
 /// with one argument (`the junction in { $at }`) matches its text around the argument.
 fn word(lang: &str, value: &str) -> Option<String> {
-    let mut args = FluentArgs::new();
+    let mut args = Vec::new();
     let id = SOURCES[0].lines().find_map(|l| {
         let (id, text) = l.split_once(" = ")?;
         if !id.starts_with("word-") {
@@ -163,15 +122,11 @@ fn word(lang: &str, value: &str) -> Option<String> {
         let (name, after) = rest.split_once(" }")?;
         let arg = value.strip_prefix(before)?.strip_suffix(after)?;
         (!arg.is_empty()).then(|| {
-            args.set(name.to_owned(), arg.to_owned());
+            args.push((name, Value::Text(arg)));
             id
         })
     })?;
-    let b = bundle(lang)?;
-    let pattern = b.get_message(id)?.value()?;
-    let mut errors = Vec::new();
-    let text = b.format_pattern(pattern, Some(&args), &mut errors);
-    errors.is_empty().then(|| text.into_owned())
+    bundle(lang)?.format(id, None, &args, OnError::Miss)
 }
 
 /// The name of text style `key` in `lang` (falling back to en-GB), as the Text styles page lists it and EW-CORE-061
@@ -179,11 +134,11 @@ fn word(lang: &str, value: &str) -> Option<String> {
 /// QElectroTech import made (`qet.<size>[.b][.i]`) as imported text of its point size, any other style a project
 /// adds as a text style of this project. Never the key itself.
 pub fn text_style_name(key: &str, lang: &str) -> String {
-    let mut args = FluentArgs::new();
+    let mut args = Vec::new();
     let id = if let Some(rest) = key.strip_prefix("qet.") {
         let rest = rest.strip_suffix(".i").unwrap_or(rest);
         let (size, bold) = rest.strip_suffix(".b").map_or((rest, false), |s| (s, true));
-        args.set("size", size.to_owned());
+        args.push(("size", Value::Text(size)));
         if bold {
             "word-style-imported-bold".to_owned()
         } else {
@@ -196,29 +151,24 @@ pub fn text_style_name(key: &str, lang: &str) -> String {
             false => "word-style-own".to_owned(),
         }
     };
-    let lookup = |tag: &str| -> Option<String> {
-        let b = bundle(tag)?;
-        let pattern = b.get_message(&id)?.value()?;
-        let mut errors = Vec::new();
-        let text = b.format_pattern(pattern, Some(&args), &mut errors);
-        errors.is_empty().then(|| text.into_owned())
-    };
+    let lookup = |tag: &str| bundle(tag)?.format(&id, None, &args, OnError::Miss);
     lookup(lang)
         .or_else(|| lookup(DEFAULT_LANGUAGE))
         .unwrap_or_default()
 }
 
-/// The arguments of a finding as Fluent arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
-fn fluent_args(f: &Finding) -> FluentArgs<'_> {
-    let mut args = FluentArgs::with_capacity(f.args.len());
-    for (k, v) in &f.args {
-        if NUMBER_ARGS.contains(k) {
-            args.set(*k, FluentValue::try_number(v.as_str()));
-        } else {
-            args.set(*k, v.as_str());
-        }
-    }
-    args
+/// The arguments of a finding as the pattern's arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
+fn fluent_args(f: &Finding) -> Vec<(&str, Value<'_>)> {
+    f.args
+        .iter()
+        .map(|(k, v)| {
+            if NUMBER_ARGS.contains(k) {
+                (*k, Value::Number(v.as_str()))
+            } else {
+                (*k, Value::Text(v.as_str()))
+            }
+        })
+        .collect()
 }
 
 /// The finding's text rendered from the pattern of `lang`, when the language ships, the rule has a pattern in it, the
@@ -229,49 +179,48 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     }
     let b = bundle(lang)?;
     let id = message_id(f.rule);
-    let pattern = b.get_message(&id)?.value()?;
-    let mut args = fluent_args(f);
+    if !b.has(&id, None) {
+        return None;
+    }
     // EW-CORE-013 carries the uniqueness finding it reports by that finding's arguments, its discriminator naming the
     // rule: the finding is worded by that rule's pattern where it has one, else stays the en-GB `collision`.
-    if f.rule == crate::rules::core::MERGE_COLLISION.id {
-        if let Some(inner) = b
-            .get_message(&message_id(&f.discriminator))
-            .and_then(|m| m.value())
-        {
-            let mut errors = Vec::new();
-            let text = b.format_pattern(inner, Some(&args), &mut errors).into_owned();
-            if errors.is_empty() {
-                args.set("collision", text);
-            }
-        }
-    }
+    let collision = (f.rule == crate::rules::core::MERGE_COLLISION.id)
+        .then(|| {
+            b.format(
+                &message_id(&f.discriminator),
+                None,
+                &fluent_args(f),
+                OnError::Miss,
+            )
+        })
+        .flatten();
     // EW-POT-001's conflicts, each a sentence worded by its attribute of the rule's message; a piece of another
     // shape, or one that does not resolve, leaves the finding to its en-GB message.
+    let mut conflicts = None;
     if f.rule == crate::rules::pot::TYPE_OR_VOLTAGE_CONFLICT.id
         && let Some((_, list)) = f.args.iter().find(|(k, _)| *k == "conflict_list")
     {
-        let message = b.get_message(&id)?;
         let worded: Vec<String> = list
             .split('\n')
             .map(|piece| {
                 let (attribute, fields) = crate::rules::pot::conflict_words(piece)?;
-                let pattern = message.get_attribute(attribute)?.value();
-                let mut piece_args = FluentArgs::with_capacity(fields.len());
-                for (k, v) in fields {
-                    piece_args.set(k, v);
-                }
-                let mut errors = Vec::new();
-                let text = b
-                    .format_pattern(pattern, Some(&piece_args), &mut errors)
-                    .into_owned();
-                errors.is_empty().then_some(text)
+                let piece_args: Vec<(&str, Value<'_>)> = fields
+                    .iter()
+                    .map(|(k, v)| (*k, Value::Text(v.as_str())))
+                    .collect();
+                b.format(&id, Some(attribute), &piece_args, OnError::Miss)
             })
             .collect::<Option<_>>()?;
-        args.set("conflicts", worded.join(" "));
+        conflicts = Some(worded.join(" "));
     }
-    let mut errors = Vec::new();
-    let text = b.format_pattern(pattern, Some(&args), &mut errors);
-    errors.is_empty().then(|| text.into_owned())
+    let mut args = fluent_args(f);
+    if let Some(text) = &collision {
+        args.push(("collision", Value::Text(text)));
+    }
+    if let Some(text) = &conflicts {
+        args.push(("conflicts", Value::Text(text)));
+    }
+    b.format(&id, None, &args, OnError::Miss)
 }
 
 /// The finding's message in `lang` (`ew check --lang`, the message panel): in en-GB the message itself; in another
@@ -287,13 +236,7 @@ pub fn render(f: &Finding, lang: &str) -> String {
 /// One attribute of a rule's message in `lang`, falling back to en-GB; `None` when en-GB lacks it too.
 fn attribute(rule: &str, name: &str, lang: &str) -> Option<String> {
     let id = message_id(rule);
-    let lookup = |tag: &str| -> Option<String> {
-        let b = bundle(tag)?;
-        let pattern = b.get_message(&id)?.get_attribute(name)?.value();
-        let mut errors = Vec::new();
-        let text = b.format_pattern(pattern, None, &mut errors);
-        errors.is_empty().then(|| text.into_owned())
-    };
+    let lookup = |tag: &str| bundle(tag)?.format(&id, Some(name), &[], OnError::Miss);
     lookup(lang).or_else(|| lookup(DEFAULT_LANGUAGE))
 }
 
@@ -302,13 +245,11 @@ pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
     let Some(b) = bundle(lang) else {
         return false;
     };
-    let Some(m) = b.get_message(&message_id(rule)) else {
-        return false;
-    };
+    let id = message_id(rule);
     match name {
-        None => true,
-        Some("value") => m.value().is_some(),
-        Some(attr) => m.get_attribute(attr).is_some(),
+        None => b.has_message(&id),
+        Some("value") => b.has(&id, None),
+        Some(attr) => b.has(&id, Some(attr)),
     }
 }
 
@@ -316,21 +257,19 @@ pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
 /// English label for a fix without a key (an importer's).
 pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
     // A label may name its command's parameters that are a number or a text (`{ $position }`), as printed.
-    let mut args = FluentArgs::new();
-    for (name, value) in fix.params.as_object().into_iter().flatten() {
-        match value {
-            serde_json::Value::Number(n) => args.set(name.as_str(), n.to_string()),
-            serde_json::Value::String(s) => args.set(name.as_str(), s.as_str()),
-            _ => {}
-        }
-    }
-    let lookup = |tag: &str| -> Option<String> {
-        let b = bundle(tag)?;
-        let pattern = b.get_message(fix.key?)?.value()?;
-        let mut errors = Vec::new();
-        let text = b.format_pattern(pattern, Some(&args), &mut errors);
-        errors.is_empty().then(|| text.into_owned())
-    };
+    let values: Vec<(&str, String)> = fix
+        .params
+        .as_object()
+        .into_iter()
+        .flatten()
+        .filter_map(|(name, value)| match value {
+            serde_json::Value::Number(n) => Some((name.as_str(), n.to_string())),
+            serde_json::Value::String(s) => Some((name.as_str(), s.clone())),
+            _ => None,
+        })
+        .collect();
+    let args: Vec<(&str, Value<'_>)> = values.iter().map(|(k, v)| (*k, Value::Text(v))).collect();
+    let lookup = |tag: &str| bundle(tag)?.format(fix.key?, None, &args, OnError::Miss);
     lookup(lang)
         .or_else(|| lookup(DEFAULT_LANGUAGE))
         .unwrap_or_else(|| fix.label.clone())

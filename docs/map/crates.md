@@ -200,7 +200,7 @@ The neutral PLC exchange image and its AutomationML form (doc 10 §4.2, §4.3).
 
 ## ew-checks
 
-`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-plc` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
+`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-l10n`, `ew-plc` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
 
 Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as queries, offline check jobs, waivers and quick fixes (ADR-0019, doc 15 §2–§4).
 
@@ -648,13 +648,14 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 
 ## ew-l10n
 
-`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-viewmodel` · in tests by none
+`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-viewmodel` · in tests by none
 
 A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too.
 
 | File | Size | What it holds |
 |---|---|---|
 | `src/build.rs` |  | The one generator of the key tables (architecture §18 point 5): the build script of every crate that owns a text folder calls [`generate`], and the crate reads what it writes through [`texts!`](crate::texts) or `include!`. |
+| `src/fluent.rs` |  | The one renderer over Fluent (architecture §18 point 4): a language's Fluent sources as one [`Language`], and a message or one of its attributes formatted with its arguments. |
 | `src/lib.rs` |  | A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too. |
 
 ## ew-library

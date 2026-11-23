@@ -28,10 +28,9 @@ serde.workspace = true
 schemars = "1.2.3"
 # Rule data shipped with the packs (`data/*.toml`, WP-S1.16 D5); already in the graph through `ew-derive`.
 toml.workspace = true
-# The rule messages in Fluent (WP-S1.16 D6, doc 15 §3.8; ADR-0024: MIT OR Apache-2.0): one `rules.ftl` per language,
-# compiled into the binary. `unic-langid` names a bundle's language, at the version fluent-bundle itself uses.
-fluent-bundle = { version = "=0.16.0", default-features = false }
-unic-langid = { version = "=0.9.6", default-features = false }
+# The rule messages in Fluent (WP-S1.16 D6, doc 15 §3.8): one `rules.ftl` per language, compiled into the binary and
+# rendered by the one renderer (architecture §18).
+ew-l10n = { path = "../ew-l10n" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
 
 [dev-dependencies]

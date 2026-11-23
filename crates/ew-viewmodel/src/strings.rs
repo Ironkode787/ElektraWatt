@@ -17,8 +17,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{OnceLock, PoisonError, RwLock};
 
-use fluent_bundle::concurrent::FluentBundle;
-use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
+use ew_l10n::fluent::{Language, OnError, Value};
 
 /// The key list that `build.rs` writes from the en-GB text files.
 mod keys {
@@ -162,70 +161,61 @@ const NL_NL: &str = include_str!("../locales/nl-NL/shell.ftl");
 pub const PSEUDO: &str = "en-XA";
 
 /// The arguments a text may take: `{ $p0 }` to `{ $p9 }`.
-const ARGS: usize = 10;
+const ARGS: [&str; 10] = ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"];
 
-type Bundle = FluentBundle<FluentResource>;
-
-/// A loaded UI language: its tag, its bundle (none for the pseudo-locale, whose texts are generated) and every
-/// message formatted once, the arguments shown as `{0}`, `{1}`, … (bounded: keys × loaded languages).
+/// A loaded UI language: its tag, its language of `ew_l10n::fluent` (none for the pseudo-locale, whose texts are
+/// generated) and every message formatted once, the arguments shown as `{0}`, `{1}`, … (bounded: keys × loaded
+/// languages).
 struct Locale {
     tag: String,
-    bundle: Option<Bundle>,
+    language: Option<Language>,
     texts: BTreeMap<&'static str, &'static str>,
 }
 
 impl Locale {
     /// The language `tag` from the Fluent source `source`. A resource that does not parse is a defect the tests
-    /// catch (`every_shipped_resource_parses`); the entries that parse are still served.
+    /// catch (`every_shipped_resource_parses`); the entries that parse are still served, and a duplicate entry keeps
+    /// the first (the tests reject duplicates). A pattern that resolves with an error keeps the text Fluent writes.
     fn from_source(tag: &str, source: &str) -> Locale {
-        let id: unic_langid::LanguageIdentifier = tag.parse().unwrap_or_default();
-        let mut bundle = Bundle::new_concurrent(vec![id]);
-        bundle.set_use_isolating(false);
         // `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
         // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it.
-        let _ = bundle.add_function("IN_SENTENCE", |positional, _| match positional.first() {
-            Some(FluentValue::String(s)) => FluentValue::from(in_sentence(s)),
-            Some(other) => other.clone(),
-            None => FluentValue::None,
-        });
-        let resource = FluentResource::try_new(source.to_owned()).unwrap_or_else(|(r, _)| r);
-        // A duplicate entry keeps the first; the tests reject duplicates.
-        let _ = bundle.add_resource(resource);
-        let mut args = FluentArgs::new();
-        for i in 0..ARGS {
-            args.set(format!("p{i}"), FluentValue::from(format!("{{{i}}}")));
-        }
+        let language = Language::new(
+            tag,
+            [source],
+            &[("IN_SENTENCE", |_, label| in_sentence(label))],
+            false,
+        );
+        let shown: Vec<String> = (0..ARGS.len()).map(|i| format!("{{{i}}}")).collect();
+        let args = arguments(&shown);
         let mut texts = BTreeMap::new();
         // The keys of en-GB only: no code names another.
         for key in KEYS {
-            let Some(pattern) = bundle.get_message(key).and_then(|m| m.value()) else {
+            let Some(text) = language.format(key, None, &args, OnError::Keep) else {
                 continue;
             };
-            let mut errors = Vec::new();
-            let text = bundle.format_pattern(pattern, Some(&args), &mut errors);
-            texts.insert(*key, &*Box::leak(text.into_owned().into_boxed_str()));
+            texts.insert(*key, &*Box::leak(text.into_boxed_str()));
         }
         Locale {
             tag: tag.to_owned(),
-            bundle: Some(bundle),
+            language: Some(language),
             texts,
         }
     }
 
     /// The pseudo-locale en-XA from `base` (D11): every text's letters accented, padded by 35 % of its length (rounded
-    /// up) and bracketed with `⟦ ⟧`; the arguments `{0}`, `{1}`, … stay as they are.
+    /// up) and bracketed with `⟦ ⟧`; the arguments `{0}`, `{1}`, … stay as they are (`ew_l10n::fluent::pseudo`).
     fn pseudo(base: &Locale) -> Locale {
         let texts = base
             .texts
             .iter()
             .map(|(k, t)| {
-                let t: &'static str = Box::leak(pseudo_text(t).into_boxed_str());
+                let t: &'static str = Box::leak(ew_l10n::fluent::pseudo(t).into_boxed_str());
                 (*k, t)
             })
             .collect();
         Locale {
             tag: PSEUDO.to_owned(),
-            bundle: None,
+            language: None,
             texts,
         }
     }
@@ -233,7 +223,7 @@ impl Locale {
     /// The text of `key` with `args`, or `None` for a key this language has no message for.
     fn format(&self, key: &str, args: &[&str]) -> Option<String> {
         let template = *self.texts.get(key)?;
-        let Some(bundle) = &self.bundle else {
+        let Some(language) = &self.language else {
             // The pseudo-locale: its texts are templates with `{0}`, `{1}`, ….
             let mut out = template.to_owned();
             for (i, arg) in args.iter().enumerate() {
@@ -241,47 +231,22 @@ impl Locale {
             }
             return Some(out);
         };
-        let pattern = bundle.get_message(key)?.value()?;
-        let mut fluent_args = FluentArgs::new();
-        for i in 0..ARGS {
-            let value = args
-                .get(i)
-                .map_or_else(|| format!("{{{i}}}"), |a| (*a).to_owned());
-            fluent_args.set(format!("p{i}"), FluentValue::from(value));
-        }
-        let mut errors = Vec::new();
-        Some(
-            bundle
-                .format_pattern(pattern, Some(&fluent_args), &mut errors)
-                .into_owned(),
-        )
+        let given: Vec<String> = (0..ARGS.len())
+            .map(|i| {
+                args.get(i)
+                    .map_or_else(|| format!("{{{i}}}"), |a| (*a).to_owned())
+            })
+            .collect();
+        language.format(key, None, &arguments(&given), OnError::Keep)
     }
 }
 
-/// `text` in the pseudo-locale (D11): see [`Locale::pseudo`].
-fn pseudo_text(text: &str) -> String {
-    const FROM: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const TO: &str = "áƀçďéƒĝĥíĵķĺɱñóþǫŕšţúṽŵẋýžÁƁÇĎÉƑĜĤÍĴĶĹṀÑÓÞǪŔŠŢÚṼŴẊÝŽ";
-    let mut out = String::from('⟦');
-    let mut rest = text;
-    while let Some(c) = rest.chars().next() {
-        // An argument `{0}` … `{9}` stays as it is.
-        let bytes = rest.as_bytes();
-        if c == '{' && bytes.len() >= 3 && bytes[1].is_ascii_digit() && bytes[2] == b'}' {
-            out.push_str(&rest[..3]);
-            rest = &rest[3..];
-            continue;
-        }
-        match FROM.find(c) {
-            Some(i) => out.extend(TO.chars().nth(i)),
-            None => out.push(c),
-        }
-        rest = &rest[c.len_utf8()..];
-    }
-    let pad = (text.chars().count() * 35).div_ceil(100);
-    out.extend(std::iter::repeat_n('~', pad));
-    out.push('⟧');
-    out
+/// The arguments `{ $p0 }` … `{ $p9 }` with the values `values`, in order.
+fn arguments(values: &[String]) -> Vec<(&'static str, Value<'_>)> {
+    ARGS.iter()
+        .zip(values)
+        .map(|(name, value)| (*name, Value::Text(value)))
+        .collect()
 }
 
 /// en-GB, loaded once.
@@ -411,10 +376,7 @@ pub fn register_locale_for_tests(tag: &str, source: &str) {
 /// The parse errors of the en-GB Fluent source (empty when it parses): for the tests.
 #[doc(hidden)]
 pub fn en_gb_errors() -> Vec<String> {
-    match FluentResource::try_new(EN_GB.to_owned()) {
-        Ok(_) => Vec::new(),
-        Err((_, errors)) => errors.iter().map(|e| format!("{e:?}")).collect(),
-    }
+    ew_l10n::fluent::parse_errors(EN_GB)
 }
 
 /// The text of `key` in the source language, en-GB, whatever the UI language is (the guide's headings are English).
@@ -1078,9 +1040,8 @@ mod tests {
     /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
     #[test]
     fn the_dutch_file_parses_with_every_key() {
-        if let Err((_, errors)) = FluentResource::try_new(NL_NL.to_owned()) {
-            panic!("{errors:?}");
-        }
+        let errors = ew_l10n::fluent::parse_errors(NL_NL);
+        assert!(errors.is_empty(), "{errors:?}");
         let missing: Vec<&str> = KEYS
             .iter()
             .copied()

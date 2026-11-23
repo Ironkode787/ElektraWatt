@@ -6,15 +6,18 @@
 //! argument that is itself a [`Text`] in its language too.
 //!
 //! A crate that says something keeps its words in `texts/<language>/<area>.ftl`. Its `build.rs` calls
-//! [`build::generate`], which writes the crate's key table from its en-GB files, and its `lib.rs` invokes [`texts!`] (`ew_l10n::texts!(crate)`)
-//! before its modules, which gives the crate `text!` (a [`Text`]) and `key!` (a key as it is), checked when the code is
-//! built: a key the table lacks, or a wrong number of arguments, fails the build. The table holds each one-line text
-//! that takes only positional arguments (`{ $p0 }`, `{ $p1 }`, …) as its English with the arguments written `{0}`,
-//! `{1}`, …, which a [`Text`] keeps for [`fmt::Display`].
+//! [`build::generate`], which writes the crate's key table from its en-GB files, and its `lib.rs` invokes
+//! `ew_l10n::texts!(crate)` ([`texts!`]) before its modules, which gives the crate `text!` (a [`Text`]) and `key!` (a key
+//! as it is), checked when the code is built: a key the table lacks, or a wrong number of arguments, fails the build.
+//! The table holds each one-line text that takes only positional arguments (`{ $p0 }`, `{ $p1 }`, …) as its English
+//! with the arguments written `{0}`, `{1}`, …, which a [`Text`] keeps for [`fmt::Display`].
+//!
+//! The words in a language are rendered at the edge by the one renderer over Fluent, [`fluent`].
 
 use std::fmt;
 
 pub mod build;
+pub mod fluent;
 
 /// A text by key, with its arguments: [`fmt::Display`] writes it in English.
 #[derive(Clone)]

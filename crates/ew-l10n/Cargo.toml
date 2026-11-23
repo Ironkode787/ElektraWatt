@@ -15,4 +15,9 @@ publish = false
 workspace = true
 
 [dependencies]
+# The renderer (`fluent`): a language's Fluent sources as one bundle (ADR-0024: MIT OR Apache-2.0), the messages of a
+# source (`fluent-syntax`) and the bundle's language (`unic-langid`), at the versions fluent-bundle itself uses.
+fluent-bundle = { version = "=0.16.0", default-features = false }
+fluent-syntax = { version = "=0.12.0", default-features = false }
+unic-langid = { version = "=0.9.6", default-features = false }
 ew-hack = { version = "0.3", path = "../ew-hack" }
