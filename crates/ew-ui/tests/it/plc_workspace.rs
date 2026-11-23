@@ -831,9 +831,10 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "plc.export"));
     h.get_by_label("Export").click();
-    for _ in 0..10 {
-        settle(&mut h);
-    }
+    // The export works in a job: wait for the job's own end, not for a count of frames (a loaded machine ends a
+    // job later).
+    support::finish_jobs(&mut h);
+    settle(&mut h);
     assert!(file.exists(), "the AML file is written");
     let toast = h
         .state()
@@ -849,9 +850,8 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     support::open_menu(&mut h, &["PLC"]);
     settle(&mut h);
     h.get_by_label("Import from PLC software…").click();
-    for _ in 0..5 {
-        settle(&mut h);
-    }
+    support::finish_jobs(&mut h);
+    settle(&mut h);
     let card = match h.state().shell().dialog() {
         Some(Dialog::PlcImport(card)) => card.clone(),
         other => panic!("{other:?}"),
@@ -906,9 +906,10 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     h.get_by_label("TIA Portal PLC tags (XLSX)").click();
     settle(&mut h);
     h.get_by_label("Export").click();
-    for _ in 0..10 {
-        settle(&mut h);
-    }
+    // The export works in a job: wait for the job's own end, not for a count of frames (a loaded machine ends a
+    // job later).
+    support::finish_jobs(&mut h);
+    settle(&mut h);
     assert_eq!(asked.borrow().as_slice(), [Prompt::SavePlcExchange("xlsx")]);
     assert!(file.exists(), "the tag table is written");
     h.state_mut().shell_mut().shutdown();
