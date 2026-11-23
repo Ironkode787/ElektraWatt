@@ -8,7 +8,7 @@ A chapter of [User experience and user interface](16-ux-ui.md), whose table says
 
 ### 11.1 Tokens and themes
 
-**Design language (2026-10-28).** [16a](16a-design-language.md) §4 gives these tokens their values, adds the alias and component layers and the densities, and maps them onto egui (§4.14).
+[16a](16a-design-language.md) §4 gives these tokens their values, adds the alias and component layers and the densities, and maps them onto egui (§4.14).
 
 Themes are sets of semantic tokens: `surface`, `surface_alt`, `text`, `text_secondary`, `accent`, `focus`,
 `border`, `canvas_surround`, `sheet`, `grid_dot`, `selection`, `hover`, `highlight_1 … 4`, `error`, `warning`,
@@ -93,17 +93,17 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   pre-release support line only). Help ▸ Verify derived data runs
   `ew verify-derived` as a job (ARCH §6.8).
 
-*As built (2026-11-05, and FP-4).* Help ▸ Tutorials
+Help ▸ Tutorials
 opens the tutorials page and one fresh copy of the sample project for every tutorial (each tutorial's own start is
-WP-S7.05 FP-4, a row); its items are the tutorial pages of the guide's table of contents `SUMMARY.md`, read
-when the program is built (FT-1715); with no installed guide it shows a "user guide is not installed" banner over the copy (a row).
+not built); its items are the tutorial pages of the guide's table of contents `SUMMARY.md`, read
+when the program is built; with no installed guide it shows a "user guide is not installed" banner over the copy.
 F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match), every pane and navigator, through
 the three window reference pages `reference/window/tools.md`, `dialogs.md` and `panels.md`, and a rule's `docs`
 reference `reference/rules/<id>`. In a Dutch window F1 opens `nl/<page>` when the Dutch guide holds that page, and the
 English page otherwise. In the symbol editor F1 over the outline or the drawing opens the section of what is selected
-there (a connection point's, a shape's), and the outline's or the tool's section with nothing selected (FT-1812).
+there (a connection point's, a shape's), and the outline's or the tool's section with nothing selected.
 
-*As built (rc.3 of 0.3.0).* The mapping lives in `ew_viewmodel::help`. Every action a menu or the bar shows has a
+The mapping lives in `ew_viewmodel::help`. Every action a menu or the bar shows has a
 topic: its own section, else the section of what it acts on (its family: `cable.` the cables', `view.` the page
 view's); only opening, saving, undo and the clipboard open the project view's. A thing on the page is classified by
 its record and, for a device, its natures (a terminal, a PLC card or station, a valve terminal, a valve, a bus device,
@@ -132,7 +132,7 @@ section, and a form the section of its action (Check level…, Cable…).
 | Bulk command | progress ≤ 200 ms; preview S ≤ 0.5 s … XL ≤ 10 s | NFR-PERF-08 | jobs panel, preview tab |
 | Full check run | S/M ≤ 2 s, XL ≤ 60 s | NFR-PERF-09 | "as of rev n" |
 | Navigator at 100k rows | scroll within the frame; filter ≤ 100 ms per keystroke; find ≤ 1 s at XL | NFR-PERF-15 | previous results stay until new ones land |
-| PDF of the golden project | ≤ 3 s | NFR-PERF-11 | jobs panel |
+| PDF of the sample project | ≤ 3 s | NFR-PERF-11 | jobs panel |
 | Pan and zoom | ≥ 60 fps dense A3 on GPU; ≥ 30 fps A4 on CPU | NFR-PERF-06 | backend in the status bar |
 | Any UI-thread operation | ≤ 100 ms; cancel ≤ 500 ms | NFR-PERF-19 | watchdog fails tests |
 
@@ -213,7 +213,7 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:       # reachability: specified
   every action bound in the preset has ≥ 1 binding typable on that layout without AltGr, else error
 ```
 
-*As built.* The rules run over the effective bindings in `ew_viewmodel::keymap`: conflicts, shadowing, Ctrl+Alt and
+The rules run over the effective bindings in `ew_viewmodel::keymap`: conflicts, shadowing, Ctrl+Alt and
 the reserved chords. The reachability rule (a needs-Shift error or info per layout) is specified; not built. By
 construction zoom to
 100 % binds `Ctrl+phys:Digit0`, so it types on AZERTY-FR, and zoom in's Ctrl+Plus and Ctrl+Equals each cover the other
@@ -222,8 +222,8 @@ where one needs Shift.
 ### 15.6 Colour-vision and contrast test
 
 1. Token lint per theme: text pairs ≥ 4.5:1 (≥ 7:1 in high contrast), overlay slots ≥ 3:1 against `sheet`.
-2. Render Golden A folio 102 with 24VDC-1 and 0V highlighted, plus the message panel, and folio 103 with
-   24VDC-1, 0V, PE and 24VDC-2 in highlight slots 1–4, through `ew-render-cpu` at 150 dpi; simulate protanopia,
+2. Render a schematic page with two potentials highlighted, plus the message panel, and a page with four
+   potentials in highlight slots 1–4, through `ew-render-cpu` at 150 dpi; simulate protanopia,
    deuteranopia and tritanopia (Machado et al. 2009, severity 1.0, linear RGB).
 3. Assert CIEDE2000 ΔE ≥ 10 between any two highlight slots shown together (proposed threshold, confirmed during
    the spine), and structurally assert distinct pattern IDs in the highlight layer, so highlights stay
@@ -325,9 +325,9 @@ EPLAN-like bindings (FR-UI-014), the glossary (NFR-DOC-05) and the dark-sheet pr
 
 | Round | When | Participants | Build | Tasks |
 |---|---|---|---|---|
-| R0 formative | as soon as the R0 viewer build and the place and wire tools exist (WP-S2.03, WP-S2.04), within WP-S2.12 before M2 of the work breakdown | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only (NFR-UX-09) |
+| R0 formative | as soon as the R0 viewer build and the place and wire tools exist | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only (NFR-UX-09) |
 | R1 summative | before M2 exit | ≥ 2 EPLAN users, ≥ 1 QET user (PQ-27) | M2 release candidate | T1–T8; T6 for QET users |
-| R2 summative | before 1.0 (M7, WP-S2.16) | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
+| R2 summative | before 1.0 | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
 
 **Screening.** At least one year of production work in EPLAN Electric P8 or QET; at least one participant per
 summative round on a QWERTZ or AZERTY keyboard (NFR-I18N-06); at R2 one session on a GPU-less RDP host
@@ -340,8 +340,8 @@ any identity.
   layout ([02c](02c-nonfunctional-requirements.md) §1.4), offline.
 - **Fixture GP-UT.** The sample project without the 24 V breaker -102F1 and its two wires (the prelude of the
   persona task `brief-ut-t1-place`), plus a basic project built with the shipped defaults (the pilot's own basic
-  project replaces it in pilot sessions, which keeps its logo and notice out of the repository). Until 0.3.5 it was
-  the reference project's variant `gp-ut`. Each session starts from a fresh copy.
+  project replaces it in pilot sessions, which keeps its logo and notice out of the repository). Each session starts
+  from a fresh copy.
 - **Session.** 90 minutes: a moderator and a note-taker, think-aloud, screen and audio recording with written
   consent. In-app help (F1, tooltips, glossary) is allowed and counts as unassisted; the moderator intervenes only
   after 2 minutes without progress or on request, and that counts as an assist. T6 runs without documentation

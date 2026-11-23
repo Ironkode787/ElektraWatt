@@ -16,30 +16,28 @@ A chapter of [User experience and user interface](16-ux-ui.md), whose table says
 - **Keyboard:** arrows; Left and Right collapse and expand; Enter opens the main representation; Space toggles
   selection; F2 edits an authored label; Delete runs the domain delete command, with a preview when it cascades;
   typing jumps to the next row starting with the typed prefix (reset after 1 s).
-- **Accessible names:** `"<label>, <kind>, <badges>, level n, m of k"`, for example "-X1031, terminal strip, 12 spare, level 1, 2 of 3". *As built for the Pages navigator (§5.2):* the level, position and set size are AccessKit properties of the tree item, not words of its name.
+- **Accessible names:** `"<label>, <kind>, <badges>, level n, m of k"`, for example "-X1031, terminal strip, 12 spare, level 1, 2 of 3". In the Pages navigator (§5.2) the level, position and set size are AccessKit properties of the tree item, not words of its name.
 
 ### 5.2 Catalogue
 
-| Navigator | Tree levels | Table-mode columns, badges | Drag source to | Golden A content | Release | Domain doc |
-|---|---|---|---|---|---|---|
-| Pages | structure (=, +) → section → page; flat and section views | folio, title, type, frame, change status, generated badge | reorder (renumber preview) | 36 pages: 13 page records (1, 3, 101–103, 106, 201–206, 902) and 23 generated pages (2, 2.1, 100, 200, 900, 901, 901.1, 903 … 911) | MVP | [06](06-schematic-editor.md), [09](09-reports-forms-output.md) |
-| Devices | structure → device → functions (main or auxiliary, placed or unplaced) → representations; parts | DT, kind, function text, part, main location, findings | canvas | assembly -201U1 → children -201U2 … -201U9, -202U1 … -202U3 → 28 valves -201U3-Q1 … -202U2-Q4; S56 and E56 without part | MVP | 06, [07](07-symbols-parts-macros.md) |
-| Connections | potential → connection, or flat | wire ID, from, to, potential, csa, colour code, source, number, page | — | W1–W44 | MVP (FR-UI-005) | [08](08-connections-terminals-cables.md) |
-| Terminal strips | strip → terminal → clamps | designation, function text, level, part, potential, sides, bridge, state | strip editor (FR-TRM-013) | 1X1 (3), -X1031 (20, 12 spare), -X1032 (5, 1 spare) | MVP | 08 |
-| Cables | cable → conductors | colour code, csa, assignment, potential | edit-cable table (FR-CBL-016) | -3W1, -106W1, -106W2 (-101W1 in Golden A-R) | MVP | 08 |
-| PLC | configuration project → station → rack → module → channel; bus ports | the PLC grid columns (FR-PLC-021) | coil or channel symbol | station -201U1, modules -201U3 … -201U8 and -202U2 (output bytes Q0 … Q6), 56 channels: 8 used, 20 spare, 28 deactivated | MVP (FR-PLC-020) | [10](10-plc-and-bus.md) |
-| Potentials | potential → signals → nets → CPs | canonical name, aliases, type, voltage, class, colour, size, pages, members | — | 19 potentials and bond B1; 24VDC-1 with aliases 24VDC-AIR1 … AIR4 | MVP | 08 |
-| Interruption points | name → points with direction and star source → partner cell | name, page-cell, direction, partner, state | — | 22 pairs, 4 external points | MVP | 06 |
-| Structure identifiers | aspect → node | code, description, aliases, usage count | — | =P01; +J-E-2416 (alias JE2416), +J-E-206, +FIELD | MVP | [03](03-domain-model.md) §5 |
-| Messages | severity → rule → finding | §8.4 | — | 42 errors, 32 warnings, 31 infos, 1 waived | MVP | [15](15-checks-revisions-collaboration.md) |
-| Parts in use | manufacturer → part → devices | quantity, library status (current, update available, local fork) | — | 2904602 → -102G1 | MVP Should | 07 |
-| Unplaced devices | location → device | part, dimensions | rail or surface | F55, E55, E56, S56, -201U9 | MVP | [12](12-panel-layout.md) |
-| Report blocks | section → block | kind, folio, filter, pages | — | 11 page blocks (2, 901, 903 … 911) plus embedded blocks (PART DATA on 201, 202, 902; cover tables on 1) | MVP | 09 |
-| Bus networks, fluid, layout, comments | per FR-UI-006 | — | — | 28 valves and lines F1–F16; carriers and placements | 1.0 | 10, [11](11-fluid-power.md), 12, 15 |
+| Navigator | Tree levels | Table-mode columns, badges | Drag source to | Release | Domain doc |
+|---|---|---|---|---|---|
+| Pages | structure (=, +) → section → page; flat and section views | folio, title, type, frame, change status, generated badge | reorder (renumber preview) | MVP | [06](06-schematic-editor.md), [09](09-reports-forms-output.md) |
+| Devices | structure → device → functions (main or auxiliary, placed or unplaced) → representations; parts | DT, kind, function text, part, main location, findings | canvas | MVP | 06, [07](07-symbols-parts-macros.md) |
+| Connections | potential → connection, or flat | wire ID, from, to, potential, csa, colour code, source, number, page | — | MVP (FR-UI-005) | [08](08-connections-terminals-cables.md) |
+| Terminal strips | strip → terminal → clamps | designation, function text, level, part, potential, sides, bridge, state | strip editor (FR-TRM-013) | MVP | 08 |
+| Cables | cable → conductors | colour code, csa, assignment, potential | edit-cable table (FR-CBL-016) | MVP | 08 |
+| PLC | configuration project → station → rack → module → channel; bus ports | the PLC grid columns (FR-PLC-021) | coil or channel symbol | MVP (FR-PLC-020) | [10](10-plc-and-bus.md) |
+| Potentials | potential → signals → nets → CPs | canonical name, aliases, type, voltage, class, colour, size, pages, members | — | MVP | 08 |
+| Interruption points | name → points with direction and star source → partner cell | name, page-cell, direction, partner, state | — | MVP | 06 |
+| Structure identifiers | aspect → node | code, description, aliases, usage count | — | MVP | [03](03-domain-model.md) §5 |
+| Messages | severity → rule → finding | §8.4 | — | MVP | [15](15-checks-revisions-collaboration.md) |
+| Parts in use | manufacturer → part → devices | quantity, library status (current, update available, local fork) | — | MVP Should | 07 |
+| Unplaced devices | location → device | part, dimensions | rail or surface | MVP | [12](12-panel-layout.md) |
+| Report blocks | section → block | kind, folio, filter, pages | — | MVP | 09 |
+| Bus networks, fluid, layout, comments | per FR-UI-006 | — | — | 1.0 | 10, [11](11-fluid-power.md), 12, 15 |
 
-*As built: the Pages navigator.* The `pages` pane
-(its workspace key is unchanged) is now a navigator, built from `Session::page_rows` once per revision, in place of the
-page list. **Views:** flat (one level), by section (the default: a node per section in section order, front
+**The Pages navigator.** The `pages` pane is a navigator, built from `Session::page_rows` once per revision. **Views:** flat (one level), by section (the default: a node per section in section order, front
 matter first, then its pages) or by structure (function nodes, location nodes inside them, section nodes inside those; a
 page without a function or location sits under a `(none)` node). **Sort:** by folio (page order, the default) or by
 type (the page type's declaration order, then page order). **Filter:** a text field; a row matches when the typed text,
@@ -50,22 +48,20 @@ case-folded, is a substring of its folio or its title, and the parents of a matc
 repeats under different parents, so a key is unique in every view. **Keys:** Up and Down move the row cursor, Left
 collapses (or moves to the parent), Right expands, Home and End go to the first and last row, Enter opens the page in
 the focused tab as a jump, Ctrl+Enter in a new tab; a click opens, a middle click opens in a new tab. A page opened
-from the list takes the keyboard focus, so a tool's key works on it at once (0.3.5). Rows are drawn
+from the list takes the keyboard focus, so a tool's key works on it at once. Rows are drawn
 with row virtualisation. **Accessibility** (§10.1): the list is a `Tree`; a page row is a `TreeItem` named `<folio>
 <title>, page, <badges>` and a node a `TreeItem` named `<label>, <section|function|location>`; the level, the position
 in the set, the set size and the expanded state are AccessKit's own properties, which a screen reader speaks in its own
-way (they carry the "level n, m of k" of §5.1 instead of words in the name). **Golden A** lists its 36 entries (13 page
-records and 23 generated pages, in the order of the catalogue row above) in every view, and FR-PAG-024's viewing part is
-met. **Not built:** multi-selection and drag to reorder with the renumber preview, type-ahead, the thumbnail
-mode and the facet filter. **Open items (FT-371):** the row cursor stays where the user put it after a jump made
-elsewhere (§4.2), and the visible rows are rebuilt from the page rows on every call instead of being cached per
+way (they carry the "level n, m of k" of §5.1 instead of words in the name). Every view lists the page records and the
+generated pages (FR-PAG-024's viewing part). **Not built:** multi-selection and drag to reorder with the renumber
+preview, type-ahead, the thumbnail mode and the facet filter. The row cursor stays where the user put it after a jump
+made elsewhere (§4.2), and the visible rows are rebuilt from the page rows on every call instead of being cached per
 revision and navigator state.
 
-*As built: eleven navigators on one framework.*
-Pages and Devices (part 1) and Connections, Terminal strips, Cables, PLC, Potentials, Interruption points, Structure
-identifiers, Parts in use and Report blocks (part 2) are shown from View ▸ Navigators and read their rows from
-`Session::navigator_table`, the last nine through `ew_reports::project_rows`, so each equals its stored report block on
-Golden A. **Pages** keeps its actions, keys and lines; a click marks and a double click or Enter opens. **Devices:** function `=` › location `+` › devices › child devices by position, then
+**Eleven navigators on one framework.**
+Pages, Devices, Connections, Terminal strips, Cables, PLC, Potentials, Interruption points, Structure
+identifiers, Parts in use and Report blocks are shown from View ▸ Navigators and read their rows from
+`Session::navigator_table`, the last nine through `ew_reports::project_rows`, so each equals its stored report block. **Pages** keeps its actions, keys and lines; a click marks and a double click or Enter opens. **Devices:** function `=` › location `+` › devices › child devices by position, then
 tag › functions, labelled by their FnDef key (a function has no text of its own) with `main` or `aux` ›
 representations `<folio>-<cell>`; -201U3 sits at level 4, under -201U1. **Connections:** the wire list's rows, under
 potentials, with the bridges under a group "Bridges"; a connection's drawable is the cell of its first end that is a
@@ -73,8 +69,8 @@ CP drawn on the page; an unnumbered wire reads `<from> <cp> → <to> <cp>`; ever
 least once, shared only by junction arms. **Structure identifiers:** aspect groups in the Function and Location roles;
 aliases are filter tokens. **PLC:** a channel's label is its address, else its number; it opens its representation's
 page with nothing selected. **Report blocks:** an embedded block shows its host page as first folio, a page count of 0
-and no open target; a block's section is that of its first page. **Not built:** Unplaced devices, the library status of parts, finding badges and `has:finding`
-(FT-488), thumbnails (FT-492), persisted navigator state (FT-489), Delete and F2 in trees (FT-490).
+and no open target; a block's section is that of its first page. **Not built:** Unplaced devices, the library status of parts, finding badges and `has:finding`,
+thumbnails, persisted navigator state, Delete and F2 in trees.
 
 Symbol, part and macro **browsers** are library views, specified in [07](07-symbols-parts-macros.md) §5; they
 dock like navigators.
@@ -87,12 +83,11 @@ autocompletion: `page:103`, `potential:24VDC-1`, `state:spare`, `kind:terminal`,
 per keystroke at XL (NFR-PERF-15; §15.2). Filters are saved per navigator instance in the per-user view state
 `.ew/u-<hash>/view.json` (§2.5).
 
-*As built.* A row matches when every query token is a prefix
+A row matches when every query token is a prefix
 of one of its tokens, in any order (so `-12k4` also matches -49K12), or when the whole case-folded query is a substring
 of its label; a typed number with points, a wire's number such as `1.1`, must stand in one cell as typed, not right
-after a letter or a digit (0.3.5: the Properties chip of a wire filtered Messages by its number and every message with
-two 1s matched); the facets are the closed list `page:`, `potential:`, `state:`, `kind:`, `part:` and the flags
-`unplaced` and `frozen` (`has:finding` waits for FT-488); always on the UI thread. Filters are not yet saved (FT-489).
+after a letter or a digit; the facets are the closed list `page:`, `potential:`, `state:`, `kind:`, `part:` and the
+flags `unplaced` and `frozen` (`has:finding` is not built); always on the UI thread. Filters are not saved.
 
 ### 5.4 Selection synchronisation
 
@@ -102,15 +97,14 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
   the page is **not** switched. For -201U1 selected while folio 102 is shown, the canvas shows a chip line "Not on
   this page: 201-E1, 3-B2, 106-G3, 902", and Enter opens the page of the main representation (lowest page order,
   row, column, ID; [03](03-domain-model.md) §8.2). A device drawn by no symbol of its own is drawn where its members
-  are: a cable by its cores, a strip by its terminals, so a Messages row of a cable opens the page of its cores
-  (FT-1924).
+  are: a cable by its cores, a strip by its terminals, so a Messages row of a cable opens the page of its cores.
 
-*As built.* Marking rows selects the drawables on the shown
+Marking rows selects the drawables on the shown
 page, else the records, and never switches the page; the chip line above the canvas area lists at most 12 places (main
 first) as buttons that read what they do, `Go to page <folio>, <cell>`, with Put it here beside them on a bus-topology
-page that does not draw the device yet (rc.2), and a selection or page change clears it. Every open navigator follows a
+page that does not draw the device yet, and a selection or page change clears it. Every open navigator follows a
 foreign selection once (the deepest nodes per record, each row that lists it where it stands in several, as a wire
-under its potential and again under a pin, FT-1912; ancestors expanded, the cursor on the first), guarded by a
+under its potential and again under a pin; ancestors expanded, the cursor on the first), guarded by a
 selection generation; a page switch puts the Pages cursor on the current page.
 
 ---
@@ -124,17 +118,17 @@ selection generation; a page switch puts the Pages cursor on the current page.
 - **Categories:** Identity, Part, Electrical, Connection points, Texts, Structure, Placement, PLC, Manufacturing,
   user properties, Extra (unknown fields, read-only). They come from `ew-schema` metadata (type, unit, enum options,
   Fluent label key; FR-UI-009). Collapse states persist per entity kind. A record's own bookkeeping, the members
-  whose name starts with `$` (its kind `$k`, its schema version `$v`), is no row (FT-1939).
+  whose name starts with `$` (its kind `$k`, its schema version `$v`), is no row.
 
-*As built.* The **Properties** pane (View ▸ Properties; Edit ▸ Properties of selection moves the focus to it) shows the selection, or the page on show when nothing is selected or when the selection was made on another page (the selection survives page switches, §4.6; the pane shows it again on returning to its page). The header carries the title (a record's tag, wire number, folio and title or name; for several records `<n> <kinds>`), the device's function text, the main location as folio and cell, and the finding chips of the drafting scheme on the shown records (rule, severity, message). Below it, one **section per record kind** (a representation reaches its representation, its functions and their devices), each with collapsible categories by the specification's table: Identity, Part, Electrical, Connection points, Texts, Structure, Placement, Terminal, Cable, PLC, Assembly, Other and Extra; Manufacturing and user properties have no members yet. Labels are English from `ew_viewmodel::strings` (an exact entry, else the humanised last path segment); Fluent keys come with WP-S2.08. Collapse states persist per kind and category. Rows are named AccessKit groups (label, then value, chip, read-only reason and error as the description), and a long value is ellipsised in the middle with the whole text in its tooltip.
+The **Properties** pane (View ▸ Properties; Edit ▸ Properties of selection moves the focus to it) shows the selection, or the page on show when nothing is selected or when the selection was made on another page (the selection survives page switches, §4.6; the pane shows it again on returning to its page). The header carries the title (a record's tag, wire number, folio and title or name; for several records `<n> <kinds>`), the device's function text, the main location as folio and cell, and the finding chips of the drafting scheme on the shown records (rule, severity, message). Below it, one **section per record kind** (a representation reaches its representation, its functions and their devices), each with collapsible categories by the specification's table: Identity, Part, Electrical, Connection points, Texts, Structure, Placement, Terminal, Cable, PLC, Assembly, Other and Extra; Manufacturing and user properties have no members. Labels are in the UI language (`ew_viewmodel::strings::field_label`: the field's own `field-<kind>-<path>` text, else its member's `field-word-<member>` text, else the member humanised). Collapse states persist per kind and category. Rows are named AccessKit groups (label, then value, chip, read-only reason and error as the description), and a long value is ellipsised in the middle with the whole text in its tooltip.
 
-*As built (M2.5-Fix, FT-1648, FT-1650).* A click on a category's header folds that section's category, whichever row has the cursor; a focused header folds on Enter and Space. The tooltip of a row's label explains the row (what it is, what changing it does, where a derived value comes from): one text per field, `field-help-<kind>-<path>`, else the member's `field-help-word-<member>`, in both languages, and a test walks every row the sample's records show. A wire and an interruption point reach the definitions of their potential, so their sheet shows a Potential definition section (name, type, voltage, supply, circuit class, wire properties), edited in place with undo; an interruption point's function shows its Potential row as a wire does.
+A click on a category's header folds that section's category, whichever row has the cursor; a focused header folds on Enter and Space. The tooltip of a row's label explains the row (what it is, what changing it does, where a derived value comes from): one text per field, `field-help-<kind>-<path>`, else the member's `field-help-word-<member>`, in both languages, and a test walks every row the sample's records show. A wire and an interruption point reach the definitions of their potential, so their sheet shows a Potential definition section (name, type, voltage, supply, circuit class, wire properties), edited in place with undo; an interruption point's function shows its Potential row as a wire does.
 
 Non-settable page-item/structure-box rows give specific reasons: changing a variant or marker group requires delete/place; geometry uses the canvas routes. The PageItem/StructureBox lookup kinds exist, so a selected text, graphic, box or marker shows populated narrowed Properties.
 
 ### 6.2 Rows and provenance
 
-**Design language (2026-10-28).** A row shows its provenance chip (one word: "part", "page", "derived" …) only when the value is not authored, and has no edit button (the value is the editor); internal fields move to Advanced ([16a](16a-design-language.md) §6.8).
+A row shows its provenance chip (one word: "part", "page", "derived" …) only when the value is not authored, and has no edit button (the value is the editor); internal fields move to Advanced ([16a](16a-design-language.md) §6.8).
 
 A row shows its label, value, unit, a provenance chip and its actions:
 
@@ -164,13 +158,11 @@ Part           2904602    book library 'ew-parts' v3 · update available        
 The chip names the profile that supplied the value: the cross-section from the size profile, the colour from the colour
 profile.
 
-*As built.* The chips are a glyph and words, never colour alone, and D15's golden chips match (W29's cross-section and colour name their profiles; W20's override; S51 frozen; page 101's description inherited from the project). The `Committed` and `Async` rows and the "Why?" action are not built (§2.2, FT-393); a row's actions are the ones its route allows (edit, clear, override, reset, freeze, unfreeze, set all), and a read-only row has none.
+The chips are a glyph and words, never colour alone. The `Committed` and `Async` rows and the "Why?" action are not built (§2.2); a row's actions are the ones its route allows (edit, clear, override, reset, freeze, unfreeze, set all), and a read-only row has none.
 
-*As built (M2.5-Fix, FT-1651, FT-1649).* A derived wire property's chip names the level of the chain it comes from in one word: "profile" (a colour or size profile), "potential" (a potential definition), "cable" (a core), "default" (the project's or the built-in default, which says that the project has no profile that sets it). A row whose source is a row of another record or of the project offers **Go to source** in its menu: the potential definition's row in the same sheet, the cable core's or the overriding connection's sheet, or the project's colour profile, size profile, wire default or description, with the cursor on that row. The Potential row of a potential that no definition names offers **Define potential…** at the wire's or the interruption point's point, in its menu and on Enter, F2 or a click on its value (FT-1779). A device's connection point row names its point and offers **Mark not used** or **Mark used** (`cp.unused`, the point's `cp_overrides[].unused`, one undo step; its EW-POT-009 finding drops to info); the page's right-click menu over a connection point offers the same, naming the point ("Mark -102F2:13 not used"). The page draws no mark for an unused point (doc 06 defines none).
+A derived wire property's chip names the level of the chain it comes from in one word: "profile" (a colour or size profile), "potential" (a potential definition), "cable" (a core), "default" (the project's or the built-in default, which says that the project has no profile that sets it). A row whose source is a row of another record or of the project offers **Go to source** in its menu: the potential definition's row in the same sheet, the cable core's or the overriding connection's sheet, or the project's colour profile, size profile, wire default or description, with the cursor on that row. The Potential row of a potential that no definition names offers **Define potential…** at the wire's or the interruption point's point, in its menu and on Enter, F2 or a click on its value. A device's connection point row names its point and offers **Mark not used** or **Mark used** (`cp.unused`, the point's `cp_overrides[].unused`, one undo step; its EW-POT-009 finding drops to info); the page's right-click menu over a connection point offers the same, naming the point ("Mark -102F2:13 not used"). The page draws no mark for an unused point (doc 06 defines none).
 
-Every state is distinguished by icon and text, not by colour (FR-UI-025). The examples above are the golden
-values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it to -101S1), Q0.1 from
-[10](10-plc-and-bus.md) §6, and a 1.0 routed length.
+Every state is distinguished by icon and text, not by colour (FR-UI-025).
 
 ### 6.3 Editing semantics
 
@@ -186,7 +178,7 @@ values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it t
 - **Read-only reasons** are stated in place: "generated", "defined at -102F2:Out1 (potential definition) · Go to",
   `project locked by <user>@<host>`, "released in V1.0; edits go to the open revision".
 
-*As built.* **Commit:** Enter, Tab or leaving the field commits; typing commits nothing, Escape reverts, and Enter without a change writes nothing, so a display form that does not parse (a part's "number (manufacturer)") is never written back. One edit is one command and one undo step (no coalescing is needed). **Routes:** a row is edited through `fields.set` on its settable path or through one `project.settings.set` member; every other row is read-only and says why: the record's identity; another command ("set on the canvas", the wizard, a named command); a `HumanOnly` command (`settings.checks`: the wizard's check-scheme step); "no command yet"; or the narrowing table (revision `author` and `checker`, which decide the four-eyes sign-off, [15](15-checks-revisions-collaboration.md) §5.4). A read-only project offers no action on any row. **Override and freeze** as above; Enter on a derived row is Override. **Multi-language text:** the field edits the source language (the project's first language, else the object's first, which is the alphabetically first key when the project names no languages); committing writes that language inside the stored object and keeps the others, and an emptied text removes only that language; Shift+Enter opens the per-language editor. **Typed editors:** enums, colours, part references and structure slots list their options (`Session::field_choices`) in a list box under the field, filtered by what is typed (Up and Down move the highlight while the field keeps the focus; Enter or a click chooses, and the field's focus loss commits nothing while the pointer is on the list); a boolean is a named checkbox; an ambiguous number ("1,500") offers its two readings. The editable values the schema types only as JSON (the catalogue file lists them) are edited as JSON text until FT-429; a scale reads and is typed as `1:5`, a cable's length as `12.5 m`, and a rectangle (a legend's area) as its place and size in millimetres, `20.000, 15.000 mm · 60.000 × 40.000 mm` (FT-1936). **Refusals** show the command's message under the field with the typed text kept; a refusal at a target names it by its label, and pages by folio.
+**Commit:** Enter, Tab or leaving the field commits; typing commits nothing, Escape reverts, and Enter without a change writes nothing, so a display form that does not parse (a part's "number (manufacturer)") is never written back. One edit is one command and one undo step (no coalescing is needed). **Routes:** a row is edited through `fields.set` on its settable path or through one `project.settings.set` member; every other row is read-only and says why: the record's identity; another command ("set on the canvas", the wizard, a named command); a `HumanOnly` command (`settings.checks`: the wizard's check-scheme step); "no command yet"; or the narrowing table (revision `author` and `checker`, which decide the four-eyes sign-off, [15](15-checks-revisions-collaboration.md) §5.4). A read-only project offers no action on any row. **Override and freeze** as above; Enter on a derived row is Override. **Multi-language text:** the field edits the source language (the project's first language, else the object's first, which is the alphabetically first key when the project names no languages); committing writes that language inside the stored object and keeps the others, and an emptied text removes only that language; Shift+Enter opens the per-language editor. **Typed editors:** enums, colours, part references and structure slots list their options (`Session::field_choices`) in a list box under the field, filtered by what is typed (Up and Down move the highlight while the field keeps the focus; Enter or a click chooses, and the field's focus loss commits nothing while the pointer is on the list); a boolean is a named checkbox; an ambiguous number ("1,500") offers its two readings. The editable values the schema types only as JSON (the catalogue file lists them) are edited as JSON text; a scale reads and is typed as `1:5`, a cable's length as `12.5 m`, and a rectangle (a legend's area) as its place and size in millimetres, `20.000, 15.000 mm · 60.000 × 40.000 mm`. **Refusals** show the command's message under the field with the typed text kept; a refusal at a target names it by its label, and pages by folio.
 
 **Typed editors.**
 
@@ -232,9 +224,9 @@ and tube table are table models with domain commands for insert, delete and move
 | Pattern fill (Ctrl+Shift+D) | `fields.set` with per-row values | 1 | rule §7.5 |
 | Paste from Excel (Ctrl+V) | `fields.set`, plus inserts where the table allows them | 1 | rule §7.5 |
 | Clear cells (Delete) | `fields.set` to empty, which removes overrides | 1 | no |
-| Insert, delete, move rows | the table's domain commands (strip editor: insert, delete, move, re-designate; as built: `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation as built, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); as built, a terminal-row delete always opens the table card, the other row gestures commit directly with a toast and an undo step |
+| Insert, delete, move rows | the table's domain commands (strip editor: `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); a terminal-row delete always opens the table card, the other row gestures commit directly with a toast and an undo step |
 | Sort, filter, resize, reorder columns | none | 0 | — |
-| Excel round-trip import | `table.apply_changes` ([14](14-interop.md) §8.2); as built: one `fields.set_many` | 1 | always |
+| Excel round-trip import | one `fields.set_many` ([14](14-interop.md) §8.2) | 1 | always |
 
 ### 7.3 Pattern fill
 
@@ -260,7 +252,7 @@ the bulk preview opens (FR-UI-044):
 3. a cell failed validation or was ambiguous;
 4. it comes from an external file (Excel round trip, FR-EXP-004).
 
-*As built for the property grid.* The policy is evaluated on the command's preview (one `preview_with` per commit): rule 1 by the preview's target count (`reason-bulk`, more than 500) and by the command's cost (`project.settings.set` is `Bulk` and always shows the card, `reason-bulk-command`), rule 2 by the route's identifier flag on more than one target, including a leaf below an identifier member (`reason-identifiers`); rule 3 applies to tables (WP-S2.06) and rule 4 to imports. Until WP-S2.09's bulk-preview tab exists the preview is an **inline card** in the pane (Apply with Ctrl+Enter, Cancel, up to 20 changed tags, a stale badge); a stale card rebuilds the command from the current values and needs a second Apply, and refuses with "Changed meanwhile: edit again" when the edited member changed on a target. A direct commit on several records shows the toast ("Set Part on 20 devices · Undo"), which closes after 8 s measured on the window's clock (never in the transcript).
+For the property grid the policy is evaluated on the command's preview (one `preview_with` per commit): rule 1 by the preview's target count (`reason-bulk`, more than 500) and by the command's cost (`project.settings.set` is `Bulk` and always shows the card, `reason-bulk-command`), rule 2 by the route's identifier flag on more than one target, including a leaf below an identifier member (`reason-identifiers`); rule 3 applies to tables and rule 4 to imports. The preview is an **inline card** in the pane (Apply with Ctrl+Enter, Cancel, up to 20 changed tags, a stale badge); a stale card rebuilds the command from the current values and needs a second Apply, and refuses with "Changed meanwhile: edit again" when the edited member changed on a target. A direct commit on several records shows the toast ("Set Part on 20 devices · Undo"), which closes after 8 s measured on the window's clock (never in the transcript).
 
 ### 7.6 Bulk preview
 
@@ -279,7 +271,7 @@ replace (FR-UI-020), multi-target quick fixes, structure rename and merge (FR-PR
 +-------------------------------------------------------------------------------------------------------+
 ```
 
-*As built.* In the Pages list a page whose folio the command changes is named by both
+In the Pages list a page whose folio the command changes is named by both
 folios, "106 → 104"; the others by their folio. The lists open and close in place: the dock is sized for every list
 open, and past its room the lists scroll. Renumber pages' dialog says "Section dividers keep their numbers." under
 Start.
@@ -295,10 +287,10 @@ why the preview shows them as query diffs rather than entity changes. The BOM de
 - **Accept** (Ctrl+Enter) commits the prepared transaction after the rebase check. If the model moved and the
   re-run changes the result, the tab shows "Preview updated: 1 more tag" and needs a second Accept.
 - **Cancel** (Escape in the tab) drops the fork. Large diffs are virtualised and exportable as CSV.
-- **Example.** This is Golden B step B2 (folio 106 → 104): exactly 2 tags and 14 xref texts change, and one undo
-  restores the previous state (AC-18).
+- **Example.** A page renumbered (folio 106 → 104) changes its tags and cross-reference texts, and one undo restores
+  the previous state (AC-18).
 
-*As built for find and replace.* A replace does not open the dockable tab yet: like the property grid's (§7.5), its preview is the inline card, shown **inside the find pane** ("Preview: replace 20 results on 20 records · 0 tags, 0 cross-reference texts"); Ctrl+Enter or Apply commits the one `fields.set_many`, one undo step, and the card counts only the hits that change. No toast follows, because the toast belongs to direct commits (WP-S2.05 §6.6): the results are marked `[stale]` and the pane notes "Replaced <n>; run again to refresh". A card made at an older revision is not applied: Apply runs the search again and shows a fresh card ("Preview updated: 1 fewer results") that needs a second Apply, as the Accept rule above.
+A find and replace does not open the dockable tab: like the property grid's (§7.5), its preview is the inline card, shown **inside the find pane** ("Preview: replace 20 results on 20 records · 0 tags, 0 cross-reference texts"); Ctrl+Enter or Apply commits the one `fields.set_many`, one undo step, and the card counts only the hits that change. No toast follows, because the toast belongs to direct commits: the results are marked `[stale]` and the pane notes "Replaced <n>; run again to refresh". A card made at an older revision is not applied: Apply runs the search again and shows a fresh card ("Preview updated: 1 fewer results") that needs a second Apply, as the Accept rule above.
 
 ### 7.7 Excel round trip
 
@@ -311,12 +303,11 @@ conflicts, defaulting to "keep EW" with "take file" per cell or per column; edit
 effective colour) are refused with the hint of [14](14-interop.md) §8.2; unknown and missing rows are listed, never
 deleted. Applying is one `table.apply_changes` command (FR-EXP-004).
 
-*As built.* Import table…
+Import table…
 reads the file and opens the import card in the Preview tab (`CardOrigin::TableImport`): the counts (changed, kept,
 conflicts, refused, unknown, missing) and the per-cell list. Accept applies through `preview.apply` as one
 `fields.set_many`, one undo step; a stale import is refused in words and the card stays; Escape commits nothing. A
-conflict keeps EW's value, as the card says beside the count: the switch "Take the file's values" is not built, and
-the per-cell and per-column choice is WP-S3.08's FP-2.
+conflict keeps EW's value, as the card says beside the count: the switch "Take the file's values" and the per-cell and per-column choice are not built.
 
 ---
 
@@ -364,12 +355,12 @@ History                                        oldest kept: step 1 · 12 MB of 2
 - At most three toasts are visible; repeated toasts of one kind coalesce ("3 external changes applied"). EW makes
   no sounds. OS notifications are a 1.x Could, opt-in.
 
-*As built.* `notify_with(text, key, undo)` raises a
+`notify_with(text, key, undo)` raises a
 toast and logs it; at most three toasts show, a toast of a visible key replaces it, each lasts 8 s on the window's
 clock, and the log holds the session's last 100 notifications, newest first, opened from the `Notifications <n>` field
 (§3.6) and View ▸ Notifications. Undo stays usable while the step it undoes is the next undo step of the same project
 session; closing the project removes the visible toasts and expires their Undo; Open stays usable while the exported
-file was written in this session. The stack replaces the earlier rule that the next committing action removes a toast;
+file was written in this session. A committing action does not remove a toast;
 the toasts (strip, structure node, external reference, autoconnect, PDF export) share the key `edit`.
 
 ### 8.3 Jobs and staleness
@@ -393,7 +384,7 @@ partial file (FR-UI-024). After opening a project the status bar shows "Warming 
 possible (NFR-PERF-03). An export reports the revision it ran on ("exported rev 214; the model is now at rev
 216"), as information, not as an error.
 
-*As built.* The PDF export is the first job: one named
+The PDF export is a job: one named
 `std` thread of `ew-jobs` over a snapshot, with a checkpoint per page and per drawn item. The Jobs pane is a group named
 "Jobs" whose running entry is a progress bar labelled `PDF export <name>` with Cancel; a finished entry shows its
 result ("cancelled; no file written", a failure with its cause, or Done with Open). The file is written to a hidden
@@ -401,7 +392,7 @@ sibling `.<name>.ew-part`, synced and renamed into place, and removed on cancel,
 remains. Replacing a file is confirmed once, by the native save dialog's prompt or `replace: true` in a script; a
 second export while one runs is refused. Headless, the export waits for its job unless `wait: false`.
 
-*Imports read as jobs (FT-1753, FT-1763).* A drawing for File ▸ Import…, an EDZ or a parts XML, a PLC exchange file
+*Imports read as jobs.* A drawing for File ▸ Import…, an EDZ or a parts XML, a PLC exchange file
 and a report spreadsheet are read off the window's thread: what needs no session (the file read and parsed; the PLC
 file merged against the configuration project's image, taken from the session first) runs as a job, listed in the Jobs
 pane with Cancel, and its end runs the rest on the window's thread: the dialog, the preview card, or the new project.
@@ -409,10 +400,10 @@ The window answers meanwhile, so a report's new project replaces the open one on
 where it changed while the file was read, the unsaved-changes question comes again at the end, and its Cancel keeps the
 project and drops what was read, which a toast says. A cancel takes effect when the parsing ends and is said in words ("The import of … was cancelled; nothing was
 imported."); a job of a project that closed meanwhile imports nothing and says so, and a read that fails says why in
-the banner, as an import's failure did before it ran as a job. A script waits for the read. Add to my parts library
+the banner. A script waits for the read. Add to my parts library
 takes the user's library's part of the registry first (its manufacturers, the parts it holds), parses the file against
 it in the job and writes at the end, into the library as it is then: a part another write changed meanwhile takes its
-version from the copy held at the write (FT-2081). A user library that does not exist yet is made at the end and the
+version from the copy held at the write. A user library that does not exist yet is made at the end and the
 file read again for it, so an EDZ that stops at the terms notice makes none.
 
 ### 8.4 Message panel
@@ -421,8 +412,7 @@ The message panel (FR-UI-021, FR-CHK-008) groups findings by severity and rule. 
 rule ID, message (cause), object (derived tag), page-cell, quick fixes, waiver state. The detail pane shows the
 remedy text, which every rule must provide (NFR-UX-07). Enter or a double-click jumps to the object; F8 and
 Shift+F8 walk the findings; F1 opens the rule page (FR-CHK-015). A waiver's reason and author are optional, of any
-length (the owner, 2026-11-12, FT-1705); the prompt offers the user's display name as the author (FR-CHK-009; Open
+length (the owner, 2026-11-12); the prompt offers the user's display name as the author (FR-CHK-009; Open
 question 14). Pending findings ([06](06-schematic-editor.md) §3.10) are listed in a muted style with their own
-counter. The panel has no disclaimer footer: the owner removed it from the window on 2026-11-12 (FT-1711); About keeps
-the one line (NFR-COMP-04). The check report exports as PDF and XLSX (FR-CHK-014).
+counter. The panel has no disclaimer footer (the owner, 2026-11-12); About keeps the one line (NFR-COMP-04). The check report exports as PDF and XLSX (FR-CHK-014).
 

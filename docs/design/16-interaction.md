@@ -33,8 +33,8 @@ Key events go to the first consumer in this order:
 Single-key bindings without modifiers (W, R, M) are inactive while a text field has focus. Each window has one
 focused pane, shown by a 2 px focus ring in the `focus` token (§11) and announced through AccessKit.
 
-*As built.* The page navigator takes its keys through its own context; step 3 is described below. Every registry action
-has a **context**: `global` (every action that existed before), `canvas` (the grid-cursor actions, F, Shift+F and
+The page navigator takes its keys through its own context; step 3 is described below. Every registry action
+has a **context**: `global` (every action of no other context), `canvas` (the grid-cursor actions, F, Shift+F and
 Ctrl+Shift+F) and `navigator` (its row keys). The window binds a context's chords only while the model's focus is in
 that context, and single keys never fire while a text field has focus. The model's `Focus` is the navigator or a canvas
 group; the window gives egui's keyboard focus to that node each frame and tells the model when egui's own traversal
@@ -42,26 +42,24 @@ lands on a node. Headless scripts start with the canvas focused, so a canvas act
 rules:** a primary press in a canvas focuses its group first. A primary click (press and release within 3 points) on a
 cross-reference follows it, as does F on the link under the grid cursor, else under the hovered link; the 3-point
 slope separates a click from the start of a drag. **The mouse's back and forward buttons act on the focused group**
-(`nav.back`, `nav.forward`), which is not always the group under the pointer; moving them to the hovered group is
-FT-371. The navigator's row cursor follows the focused tab's page until the user
+(`nav.back`, `nav.forward`), which is not always the group under the pointer. The navigator's row cursor follows the focused tab's page until the user
 moves it with the arrow keys, and then stays on the row the user chose while that row is shown, also after a jump made
-from the canvas or a link; making it follow such jumps is FT-371. The transcript's `navigator.row` is `null` while the
+from the canvas or a link. The transcript's `navigator.row` is `null` while the
 cursor follows the current page.
 
-*As built.* Step 3 is reachable: the active tool of the
-focused canvas takes the keys of the `canvas` context (§4.4) and the pointer events (§4.5). A click on a link is now
+In step 3 the active tool of the
+focused canvas takes the keys of the `canvas` context (§4.4) and the pointer events (§4.5). A click on a link is
 the Select tool's `Follow` output; F stays the shell action `nav.follow` (above). **The Escape chain** runs in this
 order: a popup or dialog, then the link preview, then the tool's own step, then back to Select, then clearing the
 selection; with nothing open Escape reaches the tool through `ui.dismiss`. A click beside a floating overlay and its
-close button are `ui.dismiss` too ([16a](16a-design-language.md) §6.12, FT-1635). A busy tool is escaped (its overlay,
+close button are `ui.dismiss` too ([16a](16a-design-language.md) §6.12). A busy tool is escaped (its overlay,
 preview and link preview cleared) on any change of the focused group, tab or page. **The pointer rule:** the canvas
 takes the primary button's presses and releases from egui's pointer-button events in order, each with its own position
 and modifiers, so a press and a release in one frame (a touchpad tap, a slow frame) still click. A press counts as the
 tool's only when the canvas's widget response got the primary button (egui's widget hit test), so the splitter's grab
 area between two groups (about 5 points into each pane) never starts a band. The middle button and Space+drag still
 pan, and a primary press focuses its group first. A group hidden while a press is held (side by side turned off, or
-its last tab closed by keyboard) is not handled yet. The two FT-371 items above (mouse back and forward on the hovered group;
-the navigator row following jumps) are still open.
+its last tab closed by keyboard) is not handled.
 
 ### 4.3 Command palette
 
@@ -76,7 +74,7 @@ code editors.
 | `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (FR-UI-039) |
 | `?` | help topics and rule IDs | "?EW-POT-013" |
 
-*As built.* Without a prefix the search ("Search commands and devices") lists, after
+Without a prefix the search ("Search commands and devices") lists, after
 the actions, the devices, terminal strips and cables whose tag holds the query ("X1031" → -X1031); `>` keeps to the
 actions.
 
@@ -173,13 +171,11 @@ The tool host and the tools live in
 **`ew-viewmodel`**, toolkit-neutral and drivable headless; `ew-ui` only paints (the overlay, the status hint and the
 live region). The host keeps **one active tool per window**, acting on the focused group's canvas, not one per canvas:
 activating another tool cancels the current one, and focusing the other group sends Escape to a tool that is not in
-its first state. Two consequences amend the paragraph above: a tool's `Preview` is evaluated through `Session::preview`
+its first state. So a tool's `Preview` is evaluated through `Session::preview`
 on the UI thread after the pointer has rested 80 ms (the action `canvas.dwell`, so no timing lives in the model), and a
-fork job off the UI thread is not built; and tools receive the prepared page tables and no `World` (doc 06 §4.1). The
-shipped Select and Measure tools commit nothing: the shell stays a viewer until WP-S2.04.
+fork job off the UI thread is not built; and tools receive the prepared page tables and no `World` (doc 06 §4.1).
 
-*As built.* The host is in `ew-viewmodel` (the shell), with
-one active tool per window acting on the focused group's canvas; Select is the default tool. It handles the tool's
+Select is the default tool. The host handles the tool's
 output as follows: overlay items go to the canvas overlay, `Select` replaces the selection, `Follow` navigates the
 focused group, and a preview or commit goes to the session (one output per event). **Previews** run on the UI thread
 through `Session::preview_with`, once per changed command or revision, with the derived diff as the semantic ghost and
@@ -187,8 +183,7 @@ a stale state when the revision moves on; the fork job off the UI thread is not 
 through `Session::commit` of a fresh equal preview, else `Session::execute_with`; headless they go through
 `Session::run_script`, the `command.run` path, where a `HumanOnly` command is refused and `--record` holds the line. A
 commit is refused on a read-only project (`reason-read-only`). A tool's preview does run on a read-only project and
-shows as ready, since a preview is a read; only the commit is refused, and no extra badge shows. The
-shipped Select and Measure tools neither preview nor commit: the shell stays read-only until WP-S2.04.
+shows as ready, since a preview is a read; only the commit is refused, and no extra badge shows.
 
 The window measures the pointer's rest and sends the hidden action `canvas.dwell` after 80 ms and after 300 ms, so no
 timing lives in the model. At 300 ms over a link, while the tool wants hover (Select yes, Measure no), a preview popup of
@@ -206,32 +201,25 @@ only when its text changes. "<n> selected" wins in the same step and stays until
 (NFR-A11Y-01).
 
 **Preview chips.** The semantic ghost (the `before -> after` texts and the stale badge) shows as chips in the canvas's
-top-left corner, because the derived diff carries no positions. This is an interim rule: placing the chips by
-the tag's position once WP-S2.04's page tables exist is not built yet. The chips must not cover the statistics panel. The link
-preview popup has no AccessKit node yet (the status hint already names the target).
+top-left corner, because the derived diff carries no positions; placing them by the tag's position is not built. The
+chips must not cover the statistics panel. The link preview popup has no AccessKit node (the status hint names the
+target).
 
-*As built.* The first committing tools ship: **Place** (armed from the picker, a dashed outline with connection-point marks and a label with the variant letter, the target and, after the 80 ms preview, the predicted tag; it stays armed after a placement; Escape disarms), the **keyboard move** (M) and Select's **drag rows** (a ghost, rubber bands and the readout `dx … dy … mm`, in grid steps), the **transforms** and Delete on a selection, and **Change symbol** (the exchange ghost names the unmapped connection points from the command's notices, an interim rule). The **tool strip** above the canvas shows, as read-only text, the active tool's label and what it floats or drags as the transcript's `ghost` says it (Place: the symbol, the variant letter, the target, the letter or strip and the predicted tag; "(new strip)" until the first terminal prints a new strip's tag); the options themselves are set by keys and hidden actions, and nothing is shown for Select at rest. A **double click** finishes the active tool: its second press is sent as `tool.finish` and its release dropped, measured by the window on egui's input clock with egui's 0.5 s interval (not the platform's interval); no timing reaches the model. A pending move is cancelled when the selection, the revision or one of its representations changes, and Delete cancels it before deleting. Previews, commits and the read-only refusal are as above; a preview's chips stay in the top-left corner.
+The committing tools: **Place** (armed from the picker, a dashed outline with connection-point marks and a label with the variant letter, the target and, after the 80 ms preview, the predicted tag; it stays armed after a placement; Escape disarms), the **keyboard move** (M) and Select's **drag rows** (a ghost, rubber bands and the readout `dx … dy … mm`, in grid steps), the **transforms** and Delete on a selection, and **Change symbol** (the exchange ghost names the unmapped connection points from the command's notices). The **tool strip** above the canvas shows, as read-only text, the active tool's label and what it floats or drags as the transcript's `ghost` says it (Place: the symbol, the variant letter, the target, the letter or strip and the predicted tag; "(new strip)" until the first terminal prints a new strip's tag); the options themselves are set by keys and hidden actions, and nothing is shown for Select at rest. A **double click** finishes the active tool: its second press is sent as `tool.finish` and its release dropped, measured by the window on egui's input clock with egui's 0.5 s interval (not the platform's interval); no timing reaches the model. A pending move is cancelled when the selection, the revision or one of its representations changes, and Delete cancels it before deleting. Previews, commits and the read-only refusal are as above; a preview's chips stay in the top-left corner.
 
-*As built.* The **Wire tool** (W) snaps a connection point, a junction, a point on a wire segment or the grid (Alt suppresses object snaps), draws a dashed routed ghost with the length readout, fixes a bend on each grid click, removes the last bend with Backspace and commits exactly the ghost's route; it draws the page type's kind and is disabled where that kind is not built ([06](06-schematic-editor.md) §2.2). The live region announces "Wire: routing from <label>. Click a connection point; Backspace removes the last bend; Escape cancels". **Proposals** are dashed stubs on the Place ghost, Tab cycles them, and Alt (Ctrl+Enter from the keyboard) places without them; a move shows its proposals and never commits them. **Route edit** drags a segment or a bend of a selected connection by its round handles (rc.3: the keyboard's Edit route is gone; Tab and the arrow keys move a handle, and Route routes the selected wires anew); a moved first or last segment keeps a stub at its end. The **junction sequence editor** is a popup on exactly one selected junction. **Three rules from the window check:** a page or tab change ends Wire, a handle's drag, Place and Change symbol and Select takes over, the selection kept; the **tool strip's row is always reserved** (Select shows a hint there at rest), so the canvas is one row shorter at rest and never shifts under the pointer when a gesture starts; and a ready preview that changes no tag and no cross-reference text paints **no chip** (a route edit, a move, a wire that changes only potentials or wire numbers): the readout and the strip carry it. An undo or redo drops the tool's overlay and preview. A refused action writes its reason in the status bar (C, connect on move, FT-373), and Edit ▸ Junction sequence… says "Select exactly one junction" while disabled.
+The **Wire tool** (W) snaps a connection point, a junction, a point on a wire segment or the grid (Alt suppresses object snaps), draws a dashed routed ghost with the length readout, fixes a bend on each grid click, removes the last bend with Backspace and commits exactly the ghost's route; it draws the page type's kind and is disabled where that kind is not built ([06](06-schematic-editor.md) §2.2). The live region announces "Wire: routing from <label>. Click a connection point; Backspace removes the last bend; Escape cancels". **Proposals** are dashed stubs on the Place ghost, Tab cycles them, and Alt (Ctrl+Enter from the keyboard) places without them; a move shows its proposals and never commits them. **Route edit** drags a segment or a bend of a selected connection by its round handles (Tab and the arrow keys move a handle, and Route routes the selected wires anew); a moved first or last segment keeps a stub at its end. The **junction sequence editor** is a popup on exactly one selected junction. **Three rules from the window check:** a page or tab change ends Wire, a handle's drag, Place and Change symbol and Select takes over, the selection kept; the **tool strip's row is always reserved** (Select shows a hint there at rest), so the canvas is one row shorter at rest and never shifts under the pointer when a gesture starts; and a ready preview that changes no tag and no cross-reference text paints **no chip** (a route edit, a move, a wire that changes only potentials or wire numbers): the readout and the strip carry it. An undo or redo drops the tool's overlay and preview. A refused action writes its reason in the status bar, and Edit ▸ Junction sequence… says "Select exactly one junction" while disabled.
 
-*As built in rc.3; both replaced since by Route ([06a](06a-drafting.md) §7.1).* Draw ▸ Connect gains **Route page** and
-**Reroute** (rc.3, in place of Route selection and Edit route), with no default key. Reroute routes the selected wires,
-or the page, anew at once in one undo step, without a card. Route page shows
-its plan as a card in the Preview tab, "Route 3 wires on folio 101: 2 routed, 1 not routed.", with one row per wire
-left unrouted and its reason ("No route keeps clear of other wires: -101F1:2 → -101E55:L."), and Apply commits the
-routes in one undo step with the toast "Routed 2 wires on folio 101."; with nothing to route a toast says "Every wire
-on folio 101 has a route." and no card opens, and a plan that routes nothing opens no card and fails with its first
-line. The Wire tool's HUD says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
+Routing a page or a selection is Route ([06a](06a-drafting.md) §7.1). The Wire tool's HUD says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
 or route it later with Route." while its ghost is the
 unrouted dashed line, "Bend placed: click a connection point to end the wire." after a bend, and "This junction
-already joins three wires: end on a wire to make a new junction." over such a junction. **Connect on move** (C) is
-no longer refused: a drag of representations commits the proposals it shows with the move, C turns this off or on
+already joins three wires: end on a wire to make a new junction." over such a junction. **Connect on move** (C): a
+drag of representations commits the proposals it shows with the move, C turns this off or on
 for the session, and the move's HUD and the status bar say "C Connect on move: on" or "off", the key taken from the
 keymap; Alt held at a drag's release moves without them, and the keyboard move (M) follows the session's setting,
 since only a drag's release reads the modifier. On the release of a move the wires whose followed route would break
 a hard rule, bend more or stay unrouted are routed again in the same undo step.
 
-*As built.* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. Text edit uses F2/double click on a free text and refuses a read-only page; Tools ▸ Wire markers selects the checked project marker mode.
+Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every drawing tool. Text edit uses F2/double click on a free text and refuses a read-only page; Tools ▸ Wire markers selects the checked project marker mode.
 
 ### 4.6 Selection
 
@@ -245,13 +233,13 @@ a hard rule, bend more or stay unrouted are routed again in the same undo step.
 - The selection survives page switches. Undo restores the selection of its entry. Entities removed by undo or an
   external change are dropped with a status message.
 
-*As built.* Click selects, Shift adds and Ctrl toggles. A
+Click selects, Shift adds and Ctrl toggles. A
 left-to-right drag draws a solid band that selects what it encloses; a right-to-left drag draws a dashed band that
 selects what it touches. An entity with several rectangles is enclosed only if all of them are inside the band and
 touched if any is. A click on empty canvas clears the selection (Shift keeps it). Selected items carry a 2-pixel solid
 blue outline (#0072B2). The live region says `<n> selected`. Not built: the rich announcement above and undo
-restoring the selection; they are follow-ups of WP-S2.04 and WP-S2.05 (specification WP-S2.03 §12).
-*As built.* Ctrl+A in a navigator's table marks every row of the filtered table; on the canvas (Edit ▸ Select all)
+restoring the selection.
+Ctrl+A in a navigator's table marks every row of the filtered table; on the canvas (Edit ▸ Select all)
 it selects every object the page shown draws, as a band around the whole page would. A device or a function selected
 by its tag (the command search, `select.set tag:`) is outlined where the page draws it. The canvas's status field and
 HUD count a selection only when part of it is drawn on the page shown: a page chosen in the page list (its page
