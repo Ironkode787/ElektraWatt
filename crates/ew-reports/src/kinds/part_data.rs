@@ -11,7 +11,8 @@ use ew_derive::ew_schema::{Device, Enclosure, MountingSurface, ReportBlock};
 use ew_derive::layout::page_surface;
 use ew_derive::{DevicePartLines, LineSource, MainRep, PartLine, Q};
 
-use super::parts::{line_id, part_cells, tag_key};
+use super::conn::tag_key;
+use super::parts::{line_id, part_cells};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 

@@ -98,8 +98,13 @@ impl ReportKindDef for TerminalOverview {
                 .to_string();
             let set_columns = &set.columns;
             let mut cells = vec![Cell::Empty; set_columns.len()];
-            put(set_columns, &mut cells, "strip", ident(&short_tag(q, strip)));
-            put(set_columns, &mut cells, "location", ident(&location));
+            put(
+                set_columns,
+                &mut cells,
+                "strip",
+                Cell::ident(&short_tag(q, strip)),
+            );
+            put(set_columns, &mut cells, "location", Cell::ident(&location));
             put(
                 set_columns,
                 &mut cells,
@@ -178,12 +183,4 @@ fn placed_cell(q: &Q, order: &PageOrderV, rep: Id<Representation>) -> Option<Pla
         rep,
         text: format!("{folio}-{cell}"),
     })
-}
-
-fn ident(text: &str) -> Cell {
-    if text.is_empty() {
-        Cell::Empty
-    } else {
-        Cell::Ident(text.to_owned())
-    }
 }

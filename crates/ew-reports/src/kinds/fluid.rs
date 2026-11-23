@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, Unit};
-use ew_derive::ew_units::{Dec3, Nm};
+use ew_derive::ew_units::Nm;
 use ew_derive::{
     EndpointKey, MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
     langs, line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
@@ -19,14 +19,6 @@ use ew_derive::{
 use super::conn::put;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet};
-
-fn ident(text: &str) -> Cell {
-    if text.is_empty() {
-        Cell::Empty
-    } else {
-        Cell::Ident(text.to_owned())
-    }
-}
 
 fn text(t: MlText) -> Cell {
     if t.is_empty() { Cell::Empty } else { Cell::Text(t) }
@@ -37,13 +29,8 @@ fn end_cell(end: &TubeEnd) -> Cell {
     if matches!(end.at, EndpointKey::Junction(_)) {
         text(end.words())
     } else {
-        ident(&end.text)
+        Cell::ident(&end.text)
     }
-}
-
-/// A length in metres (millimetre precision), as the cable overview prints it.
-fn metres(n: Nm) -> Cell {
-    Cell::Qty(Dec3(n.0 / 1_000_000), QtyUnit::Unit(Unit::M))
 }
 
 /// The part number of a part copy; empty when the copy is absent.
@@ -114,7 +101,7 @@ impl ReportKindDef for TubeList {
 
 fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
-    put(columns, &mut cells, "tag", ident(&r.tag));
+    put(columns, &mut cells, "tag", Cell::ident(&r.tag));
     put(columns, &mut cells, "from", end_cell(&r.from));
     put(columns, &mut cells, "to", end_cell(&r.to));
     if let Some(role) = &r.from.role {
@@ -130,9 +117,9 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
         "line_kind",
         text(line_kind_text(&r.line_kind)),
     );
-    put(columns, &mut cells, "size", ident(&r.props.size_text()));
+    put(columns, &mut cells, "size", Cell::ident(&r.props.size_text()));
     if let Some(m) = &r.props.material {
-        put(columns, &mut cells, "material", ident(m.value.code()));
+        put(columns, &mut cells, "material", Cell::ident(m.value.code()));
     }
     if let Some(c) = &r.props.colour {
         put(columns, &mut cells, "colour", Cell::Colour(c.value.clone()));
@@ -141,14 +128,14 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
         columns,
         &mut cells,
         "part",
-        ident(&copy_number(q, r.props.part.as_ref().map(|p| p.value))),
+        Cell::ident(&copy_number(q, r.props.part.as_ref().map(|p| p.value))),
     );
     put(
         columns,
         &mut cells,
         "length",
         // No length: a short mark; the Source column says that it is missing.
-        r.length.map_or_else(|| ident("—"), metres),
+        r.length.map_or_else(|| Cell::ident("—"), Cell::metres),
     );
     put(
         columns,
@@ -160,20 +147,20 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
         columns,
         &mut cells,
         "fitting_a",
-        ident(&copy_number(q, r.from.fitting)),
+        Cell::ident(&copy_number(q, r.from.fitting)),
     );
     put(
         columns,
         &mut cells,
         "fitting_b",
-        ident(&copy_number(q, r.to.fitting)),
+        Cell::ident(&copy_number(q, r.to.fitting)),
     );
     if r.location_change() {
         put(
             columns,
             &mut cells,
             "location",
-            ident(&format!("{} → {}", r.from.location, r.to.location)),
+            Cell::ident(&format!("{} → {}", r.from.location, r.to.location)),
         );
     }
     if let Some(page) = r.page {
@@ -257,19 +244,19 @@ impl ReportKindDef for TubeCutList {
         let mut set = RowSet::new(columns);
         for ((material, size, _, part), (first, count, total, complete, sample)) in keyed {
             let mut cells = vec![Cell::Empty; set.columns.len()];
-            put(&set.columns, &mut cells, "material", ident(&material));
-            put(&set.columns, &mut cells, "size", ident(&size));
+            put(&set.columns, &mut cells, "material", Cell::ident(&material));
+            put(&set.columns, &mut cells, "size", Cell::ident(&size));
             if let Some(c) = &sample.props.colour {
                 put(&set.columns, &mut cells, "colour", Cell::Colour(c.value.clone()));
             }
-            put(&set.columns, &mut cells, "part", ident(&part));
+            put(&set.columns, &mut cells, "part", Cell::ident(&part));
             put(&set.columns, &mut cells, "count", Cell::Number(count));
             put(
                 &set.columns,
                 &mut cells,
                 "length",
                 if complete {
-                    metres(Nm(total))
+                    Cell::metres(Nm(total))
                 } else {
                     Cell::Missing(MissingReason::Length)
                 },
@@ -313,7 +300,7 @@ impl ReportKindDef for TubeLabels {
                 let label = if r.tag.is_empty() {
                     end_cell(other)
                 } else {
-                    ident(&r.tag)
+                    Cell::ident(&r.tag)
                 };
                 put(&set.columns, &mut cells, "text", label);
                 let id = RowId::entity(r.id).with(RowKey::Index(u32::try_from(i).unwrap_or(0)));
@@ -363,8 +350,13 @@ impl ReportKindDef for ValveTerminalConfig {
             if let Some(p) = r.module_position {
                 put(c, &mut cells, "module_position", Cell::Number(i64::from(p)));
             }
-            put(c, &mut cells, "module", ident(&short_tag(q, r.module)));
-            put(c, &mut cells, "module_part", ident(&part_number(q, r.module)));
+            put(c, &mut cells, "module", Cell::ident(&short_tag(q, r.module)));
+            put(
+                c,
+                &mut cells,
+                "module_part",
+                Cell::ident(&part_number(q, r.module)),
+            );
             let mut id = RowId::entity(r.module);
             if let Some(p) = r.position {
                 put(c, &mut cells, "position", Cell::Number(i64::from(p)));
@@ -385,10 +377,10 @@ impl ReportKindDef for ValveTerminalConfig {
                 put(c, &mut cells, "occupancy", text(occupancy));
             }
             if let Some(d) = r.device {
-                put(c, &mut cells, "valve", ident(&short_tag(q, d)));
-                put(c, &mut cells, "valve_part", ident(&part_number(q, d)));
+                put(c, &mut cells, "valve", Cell::ident(&short_tag(q, d)));
+                put(c, &mut cells, "valve_part", Cell::ident(&part_number(q, d)));
             }
-            put(c, &mut cells, "solenoids", ident(&r.solenoids.join(", ")));
+            put(c, &mut cells, "solenoids", Cell::ident(&r.solenoids.join(", ")));
             if let Some(a) = &r.addresses {
                 put(c, &mut cells, "address", Cell::Address(a.clone()));
             }
@@ -397,7 +389,7 @@ impl ReportKindDef for ValveTerminalConfig {
                 c,
                 &mut cells,
                 "process_tag",
-                ident(r.process_tag.as_deref().unwrap_or_default()),
+                Cell::ident(r.process_tag.as_deref().unwrap_or_default()),
             );
             let mut row = Row::data(id, cells);
             row.sources = r
@@ -446,7 +438,7 @@ impl ReportKindDef for MediumOverview {
             let c = &set.columns;
             let mut cells = vec![Cell::Empty; c.len()];
             put(c, &mut cells, "medium", text(m.name.clone()));
-            put(c, &mut cells, "sources", ident(&r.sources.join(", ")));
+            put(c, &mut cells, "sources", Cell::ident(&r.sources.join(", ")));
             put(
                 c,
                 &mut cells,
@@ -457,7 +449,7 @@ impl ReportKindDef for MediumOverview {
                 c,
                 &mut cells,
                 "quality",
-                ident(m.quality.as_ref().map(|x| x.as_str()).unwrap_or_default()),
+                Cell::ident(m.quality.as_ref().map(|x| x.as_str()).unwrap_or_default()),
             );
             put(c, &mut cells, "consumers", Cell::Range(r.consumers.clone()));
             put(
@@ -470,7 +462,7 @@ impl ReportKindDef for MediumOverview {
                 c,
                 &mut cells,
                 "default_tube",
-                ident(&tube_spec_text(q, &m.default_tube)),
+                Cell::ident(&tube_spec_text(q, &m.default_tube)),
             );
             let mut row = Row::data(RowId::entity(r.medium), cells);
             row.sources = vec![r.medium.cast()];

@@ -26,14 +26,6 @@ use super::conn::{put, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
-fn ident(text: &str) -> Cell {
-    if text.is_empty() {
-        Cell::Empty
-    } else {
-        Cell::Ident(text.to_owned())
-    }
-}
-
 fn text(t: &str) -> Cell {
     Cell::Text(MlText::neutral(t))
 }
@@ -73,16 +65,10 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .get(cable)
         .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
     {
-        Some(LengthSource::Manual(nm)) => {
-            text_cell(&format!("{} m", ew_derive::ew_units::Dec3(nm.0 / 1_000_000)))
-        }
+        Some(LengthSource::Manual(nm)) => text(&format!("{} m", ew_derive::ew_units::Dec3(nm.0 / 1_000_000))),
         Some(LengthSource::FromPart) => words_cell("from part", "uit artikel"),
         _ => Cell::Empty,
     }
-}
-
-fn text_cell(t: &str) -> Cell {
-    Cell::Text(MlText::neutral(t))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -128,16 +114,16 @@ impl ReportKindDef for PlcCardList {
             for m in q.get::<ModuleOrder>(cfg).iter() {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
                 let c = &set.columns;
-                put(c, &mut cells, "station", ident(&short_tag(q, m.station)));
+                put(c, &mut cells, "station", Cell::ident(&short_tag(q, m.station)));
                 put(
                     c,
                     &mut cells,
                     "slot",
-                    ident(&ew_derive::slot_text(m.slot).unwrap_or_default()),
+                    Cell::ident(&ew_derive::slot_text(m.slot).unwrap_or_default()),
                 );
-                put(c, &mut cells, "module", ident(&short_tag(q, m.module)));
+                put(c, &mut cells, "module", Cell::ident(&short_tag(q, m.module)));
                 if let Some((copy, _)) = module_part(q, m.module) {
-                    put(c, &mut cells, "part", ident(copy.item.part_number.as_str()));
+                    put(c, &mut cells, "part", Cell::ident(copy.item.part_number.as_str()));
                 }
                 let starts = *q.get::<ModuleStartOf>(m.module);
                 for r in module_io(q, m.module) {
@@ -246,12 +232,12 @@ impl ReportKindDef for NetworkAddressList {
             if let Some(NetMaster::External { ip, external }) = members.master {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
                 let c = &set.columns;
-                put(c, &mut cells, "net", ident(n.name.as_str()));
+                put(c, &mut cells, "net", Cell::ident(n.name.as_str()));
                 put(
                     c,
                     &mut cells,
                     "station",
-                    ident(&external_partner_text(q, external)),
+                    Cell::ident(&external_partner_text(q, external)),
                 );
                 put(c, &mut cells, "master", Cell::Bool(true));
                 put(c, &mut cells, "rate", rate.clone());
@@ -315,16 +301,21 @@ fn port_row(
     let mut cells = vec![Cell::Empty; columns.len()];
     let c = columns;
     if let Some(net) = net {
-        put(c, &mut cells, "net", ident(net));
+        put(c, &mut cells, "net", Cell::ident(net));
     }
     if let Some(d) = q.functions().get(f).and_then(|func| func.device) {
-        put(c, &mut cells, "station", ident(&short_tag(q, d)));
+        put(c, &mut cells, "station", Cell::ident(&short_tag(q, d)));
         let part = q.devices().get(d).and_then(|dev| {
             dev.parts
                 .first()
                 .and_then(|u| q.parts().get(u.part.copy).map(|p| p.item.part_number.to_string()))
         });
-        put(c, &mut cells, "device_type", ident(&part.unwrap_or_default()));
+        put(
+            c,
+            &mut cells,
+            "device_type",
+            Cell::ident(&part.unwrap_or_default()),
+        );
         let cfg = ew_derive::station_of(q, d)
             .and_then(|s| {
                 q.devices()
@@ -332,30 +323,35 @@ fn port_row(
                     .and_then(|x| x.aspects.plc_station.as_ref().map(|p| p.config_project))
             })
             .and_then(|c| q.table::<PlcConfigProject>().get(c).map(|c| c.name.to_string()));
-        put(c, &mut cells, "config_project", ident(&cfg.unwrap_or_default()));
+        put(
+            c,
+            &mut cells,
+            "config_project",
+            Cell::ident(&cfg.unwrap_or_default()),
+        );
     }
     match &port.address {
         AddrValue::Tbd => put(c, &mut cells, "address", Cell::Tbd),
         AddrValue::Value(NetAddress::Profinet(p)) => {
-            put(c, &mut cells, "address", ident(p.name.as_str()));
+            put(c, &mut cells, "address", Cell::ident(p.name.as_str()));
             put(
                 c,
                 &mut cells,
                 "ip",
-                ident(&p.ip.map(|ip| ip.to_string()).unwrap_or_default()),
+                Cell::ident(&p.ip.map(|ip| ip.to_string()).unwrap_or_default()),
             );
             put(
                 c,
                 &mut cells,
                 "mask",
-                ident(&p.mask.map(|m| m.to_string()).unwrap_or_default()),
+                Cell::ident(&p.mask.map(|m| m.to_string()).unwrap_or_default()),
             );
         }
         AddrValue::Value(a) => put(
             c,
             &mut cells,
             "address",
-            ident(&net_address_text(a).unwrap_or_default()),
+            Cell::ident(&net_address_text(a).unwrap_or_default()),
         ),
         _ => {}
     }
@@ -422,10 +418,10 @@ impl ReportKindDef for BusOverview {
             for m in &segment.members {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
                 let c = &set.columns;
-                put(c, &mut cells, "net", ident(&net));
+                put(c, &mut cells, "net", Cell::ident(&net));
                 let row_id = match m {
                     SegmentMember::Cable(cable) => {
-                        put(c, &mut cells, "cable", ident(&short_tag(q, *cable)));
+                        put(c, &mut cells, "cable", Cell::ident(&short_tag(q, *cable)));
                         put(c, &mut cells, "length", length_cell(q, *cable));
                         RowId::entity(*cable)
                     }
@@ -437,24 +433,31 @@ impl ReportKindDef for BusOverview {
                         put(c, &mut cells, "external", Cell::Bool(external));
                         match (func.and_then(|x| x.bus_port.clone()), func.and_then(|x| x.device)) {
                             (Some(p), Some(d)) if p.role == PortRole::Passive && !switch_port(q, d, &p) => {
-                                put(c, &mut cells, "connector", ident(&short_tag(q, d)));
+                                put(c, &mut cells, "connector", Cell::ident(&short_tag(q, d)));
                                 put(c, &mut cells, "termination", termination(&p.termination));
                             }
                             (Some(p), device) => {
                                 if let Some(d) = device {
-                                    put(c, &mut cells, "station", ident(&short_tag(q, d)));
+                                    put(c, &mut cells, "station", Cell::ident(&short_tag(q, d)));
                                 }
-                                put(c, &mut cells, "port", ident(p.interface.as_str()));
+                                put(c, &mut cells, "port", Cell::ident(p.interface.as_str()));
                                 let address = match &p.address {
                                     AddrValue::Tbd => Cell::Tbd,
-                                    AddrValue::Value(a) => ident(&net_address_text(a).unwrap_or_default()),
+                                    AddrValue::Value(a) => {
+                                        Cell::ident(&net_address_text(a).unwrap_or_default())
+                                    }
                                     _ => Cell::Empty,
                                 };
                                 put(c, &mut cells, "address", address);
                                 put(c, &mut cells, "termination", termination(&p.termination));
                             }
                             (None, _) => {
-                                put(c, &mut cells, "station", ident(&ew_derive::bus_end_label(q, *f)));
+                                put(
+                                    c,
+                                    &mut cells,
+                                    "station",
+                                    Cell::ident(&ew_derive::bus_end_label(q, *f)),
+                                );
                             }
                         }
                         RowId::entity(*f)
@@ -554,7 +557,7 @@ impl ReportKindDef for BusCableList {
                 .find_map(|f| functions.get(f).and_then(|x| x.bus_port.clone()));
             let mut cells = vec![Cell::Empty; set.columns.len()];
             let c = &set.columns;
-            put(c, &mut cells, "cable", ident(&short_tag(q, cable)));
+            put(c, &mut cells, "cable", Cell::ident(&short_tag(q, cable)));
             if let Some(p) = &port {
                 let bus = match &p.bus {
                     BusSystem::Unknown(_) => words_cell(bus_word(&p.bus), "overig"),
@@ -565,7 +568,7 @@ impl ReportKindDef for BusCableList {
                     .physical_net
                     .and_then(|n| q.table::<PhysicalNet>().get(n).map(|n| n.name.to_string()))
                 {
-                    put(c, &mut cells, "segment", ident(&net));
+                    put(c, &mut cells, "segment", Cell::ident(&net));
                 }
             }
             let part = q.devices().get(cable).and_then(|d| {
@@ -573,7 +576,7 @@ impl ReportKindDef for BusCableList {
                     .first()
                     .and_then(|u| q.parts().get(u.part.copy).map(|p| p.item.part_number.to_string()))
             });
-            put(c, &mut cells, "part", ident(&part.unwrap_or_default()));
+            put(c, &mut cells, "part", Cell::ident(&part.unwrap_or_default()));
             put(c, &mut cells, "length", length_cell(q, cable));
             let end = |f: Id<Function>, plug: Option<Id<Part>>| {
                 let words = ew_derive::bus_end_label(q, f);
@@ -582,7 +585,7 @@ impl ReportKindDef for BusCableList {
                         &format!("{words} \u{b7} plug {}", p.item.part_number),
                         &format!("{words} \u{b7} stekker {}", p.item.part_number),
                     ),
-                    None => ident(&words),
+                    None => Cell::ident(&words),
                 }
             };
             put(c, &mut cells, "from", end(a, plug_a));
@@ -645,7 +648,7 @@ impl ReportKindDef for IolinkPortList {
                     };
                     let mut cells = vec![Cell::Empty; set.columns.len()];
                     let c = &set.columns;
-                    put(c, &mut cells, "master", ident(&short_tag(q, m.module)));
+                    put(c, &mut cells, "master", Cell::ident(&short_tag(q, m.module)));
                     put(c, &mut cells, "port", Cell::Number(i64::from(w.number) + 1));
                     let mode = match w.mode {
                         PortMode::IoLink => text("IO-Link"),
@@ -660,8 +663,8 @@ impl ReportKindDef for IolinkPortList {
                         Some(PortClass::B) => "B",
                         _ => "",
                     };
-                    put(c, &mut cells, "class", ident(class_text));
-                    put(c, &mut cells, "device", ident(&short_tag(q, device)));
+                    put(c, &mut cells, "class", Cell::ident(class_text));
+                    put(c, &mut cells, "device", Cell::ident(&short_tag(q, device)));
                     if let Some(d) = iolink_device(q, device) {
                         if let Some(v) = d.vendor_id {
                             put(c, &mut cells, "vendor_id", Cell::Number(i64::from(v)));
@@ -687,7 +690,7 @@ impl ReportKindDef for IolinkPortList {
                         _ => None,
                     };
                     if let Some(cable) = cable {
-                        put(c, &mut cells, "cable", ident(&short_tag(q, cable)));
+                        put(c, &mut cells, "cable", Cell::ident(&short_tag(q, cable)));
                     }
                     set.rows.push(Row::data(
                         RowId::entity(w.channel).with(RowKey::Name("port".to_owned())),
@@ -761,16 +764,16 @@ impl ReportKindDef for SafetyIoList {
                             put(c, &mut cells, "f_source", Cell::Number(i64::from(a)));
                         }
                     }
-                    put(c, &mut cells, "module", ident(&short_tag(q, m.module)));
+                    put(c, &mut cells, "module", Cell::ident(&short_tag(q, m.module)));
                     put(c, &mut cells, "channel", Cell::Number(i64::from(ch.number)));
                     if let Some(p) = s.pair.and_then(|p| channels.get(p)) {
                         put(c, &mut cells, "pair", Cell::Number(i64::from(p.number)));
                     }
                     if let Some(d) = t.device {
-                        put(c, &mut cells, "target", ident(&short_tag(q, d)));
+                        put(c, &mut cells, "target", Cell::ident(&short_tag(q, d)));
                     }
                     if let Some(r) = &s.requirement {
-                        put(c, &mut cells, "requirement", ident(r.as_str()));
+                        put(c, &mut cells, "requirement", Cell::ident(r.as_str()));
                     }
                     if let Some(Endpoint::Cp(f, idx)) = &s.test_pulse {
                         let pin = q
@@ -785,7 +788,12 @@ impl ReportKindDef for SafetyIoList {
                             .and_then(|x| x.device)
                             .map(|d| short_tag(q, d))
                             .unwrap_or_default();
-                        put(c, &mut cells, "test_pulse", ident(&format!("{device}:{pin}")));
+                        put(
+                            c,
+                            &mut cells,
+                            "test_pulse",
+                            Cell::ident(&format!("{device}:{pin}")),
+                        );
                     }
                     set.rows.push(Row::data(
                         RowId::entity(ch.id).with(RowKey::Name("channel".to_owned())),

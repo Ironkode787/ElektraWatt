@@ -146,7 +146,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
             from_cp,
             to,
             to_cp,
-            text_ident(wires.potential_text(w)),
+            Cell::ident(&wires.potential_text(w)),
             colour_cell(rec.props.colour.as_ref().map(|p| &p.value)),
             csa_cell(rec.props.csa.as_ref().map(|p| &p.value)),
             source_text(&rec.props),
@@ -166,10 +166,6 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
         .map(|d: Id<Device>| d.cast())
         .collect();
     r
-}
-
-fn text_ident(s: String) -> Cell {
-    if s.is_empty() { Cell::Empty } else { Cell::Ident(s) }
 }
 
 fn bridge_row(q: &Q, b: &Bridge) -> Row {

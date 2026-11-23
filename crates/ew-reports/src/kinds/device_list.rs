@@ -79,7 +79,7 @@ impl ReportKindDef for DeviceList {
                 .map(|t| t.full.clone())
                 .unwrap_or_default();
             let mut cells = vec![Cell::Empty; columns.len()];
-            put(&columns, &mut cells, "tag", ident(&full));
+            put(&columns, &mut cells, "tag", Cell::ident(&full));
             if !dev.function_text.is_empty() {
                 put(
                     &columns,
@@ -88,7 +88,7 @@ impl ReportKindDef for DeviceList {
                     Cell::Text(dev.function_text.clone()),
                 );
             }
-            put(&columns, &mut cells, "parts", ident(&parts_text(q, id)));
+            put(&columns, &mut cells, "parts", Cell::ident(&parts_text(q, id)));
             put(
                 &columns,
                 &mut cells,
@@ -99,7 +99,7 @@ impl ReportKindDef for DeviceList {
                 .get::<StructureOf>(id)
                 .designation(|a| a.as_str() == "location")
                 .to_string();
-            put(&columns, &mut cells, "location", ident(&location));
+            put(&columns, &mut cells, "location", Cell::ident(&location));
             if let Some(cell) = main_rep_cell(q, id) {
                 put(&columns, &mut cells, "main_rep", cell);
             }
@@ -147,12 +147,4 @@ fn main_rep_cell(q: &Q, device: Id<Device>) -> Option<Cell> {
     let page = q.reps().get(rep)?.page;
     let cell = q.get::<RepAnchorCell>(rep).as_ref().clone()?;
     Some(Cell::CellRef(PageRef::Drawn(page), cell))
-}
-
-fn ident(text: &str) -> Cell {
-    if text.is_empty() {
-        Cell::Empty
-    } else {
-        Cell::Ident(text.to_owned())
-    }
 }

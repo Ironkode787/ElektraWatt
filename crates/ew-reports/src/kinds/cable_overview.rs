@@ -8,13 +8,12 @@ use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock, Unit};
-use ew_derive::ew_units::Dec3;
+use ew_derive::ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock};
 use ew_derive::{DevicePartLines, Q, short_tag};
 
 use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, text_cell, words_cell};
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey, RowKind, RowSet};
 
 /// The cable overview and the core lists.
 ///
@@ -139,7 +138,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .and_then(|d| d.aspects.cable.as_ref())
         .map(|c| &c.length)
     {
-        Some(LengthSource::Manual(nm)) => Cell::Qty(Dec3(nm.0 / 1_000_000), QtyUnit::Unit(Unit::M)),
+        Some(LengthSource::Manual(nm)) => Cell::metres(*nm),
         Some(LengthSource::FromPart) => words_cell("from part", "uit artikel"),
         Some(LengthSource::Missing) => Cell::Missing(MissingReason::Length),
         Some(LengthSource::Unknown(_)) | None => Cell::Empty,

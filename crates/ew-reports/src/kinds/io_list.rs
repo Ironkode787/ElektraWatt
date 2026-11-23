@@ -140,11 +140,11 @@ impl Station {
         let cpu = cfg
             .as_ref()
             .and_then(|c| c.cpu)
-            .map_or(Cell::Empty, |d| ident(&short_tag(q, d)));
+            .map_or(Cell::Empty, |d| Cell::ident(&short_tag(q, d)));
         Station {
             config_project,
             cpu,
-            station: ident(&short_tag(q, station)),
+            station: Cell::ident(&short_tag(q, station)),
             bus_address: bus_address(q, station),
         }
     }
@@ -160,14 +160,6 @@ fn bus_address(q: &Q, station: Id<Device>) -> Cell {
     }
 }
 
-fn ident(text: &str) -> Cell {
-    if text.is_empty() {
-        Cell::Empty
-    } else {
-        Cell::Ident(text.to_owned())
-    }
-}
-
 fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
     put(columns, &mut cells, "config_project", head.config_project.clone());
@@ -177,7 +169,12 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
     if let Some(slot) = ew_derive::slot_text(r.slot) {
         put(columns, &mut cells, "slot", Cell::Ident(slot));
     }
-    put(columns, &mut cells, "module", ident(&short_tag(q, r.module)));
+    put(
+        columns,
+        &mut cells,
+        "module",
+        Cell::ident(&short_tag(q, r.module)),
+    );
     let section = ew_derive::module_part(q, r.module);
     if let Some((copy, _)) = &section {
         put(
@@ -192,7 +189,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         columns,
         &mut cells,
         "designation",
-        ident(r.text.designation.as_deref().unwrap_or_default()),
+        Cell::ident(r.text.designation.as_deref().unwrap_or_default()),
     );
     put(columns, &mut cells, "kind", kind_text(&r.kind));
     put(columns, &mut cells, "address", address_cell(&r.address));
@@ -200,10 +197,10 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         columns,
         &mut cells,
         "symbol",
-        ident(r.text.symbol.as_deref().unwrap_or_default()),
+        Cell::ident(r.text.symbol.as_deref().unwrap_or_default()),
     );
     if let Some(t) = &r.data_type {
-        put(columns, &mut cells, "data_type", ident(t));
+        put(columns, &mut cells, "data_type", Cell::ident(t));
     }
     if let Some(comment) = q
         .table::<Channel>()
@@ -220,10 +217,10 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         columns,
         &mut cells,
         "process_tag",
-        ident(r.text.process_tag.as_deref().unwrap_or_default()),
+        Cell::ident(r.text.process_tag.as_deref().unwrap_or_default()),
     );
     if let Some(d) = r.target_device {
-        put(columns, &mut cells, "target", ident(&short_tag(q, d)));
+        put(columns, &mut cells, "target", Cell::ident(&short_tag(q, d)));
     }
     if let Some(cp) = r.target_pin {
         let pin = q
@@ -232,7 +229,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
             .find(|c| c.idx == cp.idx)
             .map(|c| c.designation.clone())
             .unwrap_or_default();
-        put(columns, &mut cells, "target_pin", ident(&pin));
+        put(columns, &mut cells, "target_pin", Cell::ident(&pin));
     }
     let links = page_cell(q, columns, &mut cells, r);
     put(columns, &mut cells, "state", state_text(r.state));

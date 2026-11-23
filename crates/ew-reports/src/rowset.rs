@@ -21,7 +21,7 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{
     AnyId, ColourSpec, Date, Device, Function, OrderUnit, Placement, Representation, Unit,
 };
-use ew_derive::ew_units::Dec3;
+use ew_derive::ew_units::{Dec3, Nm};
 use ew_derive::{PageRef, Rev};
 
 /// The frame-grid cell of a cross-reference target (`H16`), as `ew-derive` computes it.
@@ -507,6 +507,22 @@ pub enum Cell {
     Stale(Box<Cell>, Rev),
     /// No value.
     Empty,
+}
+
+impl Cell {
+    /// An identifier printed as is; [`Cell::Empty`] for an empty text.
+    pub fn ident(text: &str) -> Cell {
+        if text.is_empty() {
+            Cell::Empty
+        } else {
+            Cell::Ident(text.to_owned())
+        }
+    }
+
+    /// A length in metres to the millimetre, cut toward zero: the cable overview's and the fluid list's lengths.
+    pub fn metres(n: Nm) -> Cell {
+        Cell::Qty(Dec3(n.0 / 1_000_000), QtyUnit::Unit(Unit::M))
+    }
 }
 
 /// The unit of a [`Cell::Qty`].

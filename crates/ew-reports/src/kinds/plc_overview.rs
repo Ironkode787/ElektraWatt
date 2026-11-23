@@ -177,10 +177,7 @@ pub(super) fn state_text(s: EffectiveState) -> Cell {
 }
 
 fn ident(text: Option<&str>) -> Cell {
-    match text.filter(|t| !t.is_empty()) {
-        Some(t) => Cell::Ident(t.to_owned()),
-        None => Cell::Empty,
-    }
+    text.map_or(Cell::Empty, Cell::ident)
 }
 
 fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {

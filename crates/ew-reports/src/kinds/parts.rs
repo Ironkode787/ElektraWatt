@@ -7,13 +7,14 @@
 use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
+use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock, Representation};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
-    BomMode, BomRows, DevicePartLines, DeviceTag, PageRef, PartLine, Q, manufacturer_copy, manufacturer_name,
+    BomMode, BomRows, DevicePartLines, PageRef, PartLine, Q, manufacturer_copy, manufacturer_name,
 };
 
+use super::conn::tag_key;
 use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
 use crate::rowset::{
     Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet,
@@ -259,12 +260,6 @@ pub(super) fn line_id(prefix: RowId, lines: &[PartLine], i: usize) -> RowId {
 
 /// The sort key of a parts-list row: natural key of the full tag, device, line index.
 type LineKey = (NaturalKey, Id<Device>, usize);
-
-/// The natural key of a device's full tag (empty without a tag).
-pub(super) fn tag_key(q: &Q, device: Id<Device>) -> NaturalKey {
-    let tag = q.get::<DeviceTag>(device);
-    natural_key(tag.as_ref().as_ref().map(|t| t.full.as_str()).unwrap_or(""))
-}
 
 /// A quantity as a number: the order unit is the value of the Unit column next to it (doc 20 §14.1 prints
 /// "28" and "pc", not "28 pc" twice).
