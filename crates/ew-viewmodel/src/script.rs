@@ -57,7 +57,8 @@
 //! `{"kind": "paste", "records", "at_nm", "dropped"}`. the `ghost` may also be
 //! `{"kind": "text", …}`, `{"kind": "graphic", …}`, `{"kind": "marker", "connections", "text"}` or
 //! `{"kind": "structure_box", "outline"}`, and (part 5) `{"kind": "image", "asset"}`. Nothing in it depends on time, process or location: two runs of one
-//! script on equal inputs give equal bytes.
+//! script on equal inputs give equal bytes. A path under the run's working folder (an export's toast names its file's
+//! folder) is written relative to it, the folder itself as `.`.
 //!
 //! **Record IDs**. No UUID reaches a transcript line: every UUID of a step's line
 //! (`state`, `message`, `describe`, a buffer or an error) is printed as its alias `@n` ([`crate::alias`]), numbered in
@@ -1178,11 +1179,43 @@ pub fn run_step(
             members.push(member("describe", &Value::from(text)));
         }
     }
-    // Every UUID of the line becomes its alias `@n`, numbered in the order of first appearance in the output.
+    // Every UUID of the line becomes its alias `@n`, numbered in the order of first appearance in the output; a path
+    // under the run's working folder is written relative to it.
     StepResult {
-        line: shell.alias_text(&object(members)),
+        line: without_location(&shell.alias_text(&object(members))),
         ok: outcome == Outcome::Done,
     }
+}
+
+/// `line` with the run's working folder, wherever a path in it starts with that folder, written `.` (a toast of an
+/// export names the folder its file went to): a transcript names no location of the machine it ran on (the module
+/// text), so two runs in two folders give equal bytes and a transcript reads the same elsewhere. A path outside the
+/// working folder stays as it is; the root of a drive is no working folder to cut.
+fn without_location(line: &str) -> String {
+    let Some(folder) = std::env::current_dir()
+        .ok()
+        .filter(|d| d.parent().is_some())
+        .and_then(|d| serde_json::to_string(&d.display().to_string()).ok())
+    else {
+        return line.to_owned();
+    };
+    // The folder as the JSON line spells it (its backslashes escaped), without the quotes.
+    let folder = &folder[1..folder.len() - 1];
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    while let Some(at) = rest.find(folder) {
+        let after = &rest[at + folder.len()..];
+        // Only a whole folder: `C:\run\a` is not the start of `C:\run\ab`.
+        let whole = after
+            .chars()
+            .next()
+            .is_none_or(|c| !(c.is_alphanumeric() || c == '-' || c == '_'));
+        out.push_str(&rest[..at]);
+        out.push_str(if whole { "." } else { folder });
+        rest = after;
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Runs a parsed script: the header, then every step until one is refused or fails, or `app.quit` is done.

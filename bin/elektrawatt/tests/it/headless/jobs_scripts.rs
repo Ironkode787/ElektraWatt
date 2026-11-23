@@ -24,7 +24,8 @@ fn script(steps: &[(&str, Value)]) -> String {
     text
 }
 
-/// Runs `steps` in `run` (a folder with its own config directory), with `--record` into `record` when given.
+/// Runs `steps` in `run` (a folder with its own config directory, the run's working folder: the transcript writes a
+/// path in it relative to it), with `--record` into `record` when given.
 fn run(run: &Path, name: &str, steps: &[(&str, Value)], record: Option<&Path>) -> Output {
     let file = run.join(format!("{name}.uiscript"));
     std::fs::write(&file, script(steps)).unwrap();
@@ -33,7 +34,8 @@ fn run(run: &Path, name: &str, steps: &[(&str, Value)], record: Option<&Path>) -
     if let Some(r) = record {
         cmd.arg("--record").arg(r);
     }
-    cmd.env("EW_CONFIG_DIR", run.join("config"))
+    cmd.current_dir(run)
+        .env("EW_CONFIG_DIR", run.join("config"))
         .env_remove("SOURCE_DATE_EPOCH")
         .stdin(Stdio::null())
         .output()
@@ -158,7 +160,13 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_a
         assert_eq!(d.matches("\ntoast \"Exported out.pdf").count(), 1, "{d}");
         // No path, no time.
         let all = String::from_utf8_lossy(&out.stdout);
+        // As the JSON line spells it, too (its backslashes escaped): the toast's folder is written relative to the run.
+        let escaped = serde_json::to_string(&path(tmp.dir())).unwrap();
         assert!(!all.contains(&*path(tmp.dir())), "a path in the transcript");
+        assert!(
+            !all.contains(escaped.trim_matches('"')),
+            "a path in the transcript"
+        );
         assert!(!all.contains(".ew-part"), "the sibling is never named");
         assert!(!dir.join(".out.pdf.ew-part").exists());
         // The record replayed onto a fresh copy: the records of the saved project (the export changed none).
