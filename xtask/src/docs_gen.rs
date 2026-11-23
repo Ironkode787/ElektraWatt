@@ -1313,7 +1313,10 @@ fn cli_pages(
         header("the catalogue of `ew` and its result schemas"),
         entries.len(),
         repo_link(DOC_17, Some("31-conventions")),
-        repo_link("docs/design/17-scripting-sql-plugins.md", Some("11-api-stability-and-versioning")),
+        repo_link(
+            "docs/design/17-scripting-sql-plugins.md",
+            Some("11-api-stability-and-versioning")
+        ),
     );
     files.insert(format!("{CLI_DIR}/index.md"), page);
     Ok(items)
@@ -1501,7 +1504,10 @@ fn api_v1_text(snapshot: &Value) -> Result<String> {
          addition goes beyond the documented key columns of doc 17 §6.1. This reference lists the {} views.\n\n\
          | View | One row per | Columns |\n|---|---|---|\n{rows}\n{sections}",
         header("the `api_v1` views"),
-        repo_link("docs/design/17-scripting-sql-plugins.md", Some("6-read-only-sql-projection")),
+        repo_link(
+            "docs/design/17-scripting-sql-plugins.md",
+            Some("6-read-only-sql-projection")
+        ),
         str_of(snapshot, "api_status"),
         views.len(),
     ))
@@ -1926,10 +1932,7 @@ fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<(Summ
         header("the rule registry and the rule notes"),
         catalogue.rules.len(),
         repo_tree_link(RULE_NOTES),
-        repo_link(
-            "docs/design/15-rule-catalogue.md",
-            Some("4-rule-catalogue")
-        ),
+        repo_link("docs/design/15-rule-catalogue.md", Some("4-rule-catalogue")),
         schemes.join("\n"),
     );
     files.insert(format!("{RULES_DIR}/index.md"), page);
