@@ -46,7 +46,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, MARK_JOG, STEP, TEXT_CROSSED, TEXT_STEP,
+    BEND, CROSSING, HALF, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, MARK_JOG, STEP, TEXT_CROSSED, TEXT_STEP,
     TICKS_PER_STEP,
 };
 use crate::geom::{self, Seg};
@@ -215,12 +215,7 @@ pub fn measure(page: &DraftPage) -> Quality {
     let mut parts: Vec<_> = page.parts.iter().collect();
     parts.sort_by_key(|p| p.id);
     // Every pin: its point, its side, its part.
-    let mut pins: BTreeMap<PinId, (Pt, Option<Side>, PartId)> = BTreeMap::new();
-    for p in &parts {
-        for pin in &p.pins {
-            pins.insert(pin.id, (p.at.plus(pin.at), pin.side, p.id));
-        }
-    }
+    let pins = page.pins();
     let mut junctions: Vec<_> = page.junctions.iter().collect();
     junctions.sort_by_key(|j| j.id);
     let point_of = |e: End| match e {
@@ -259,7 +254,7 @@ pub fn measure(page: &DraftPage) -> Quality {
             distance += geom::length((*a, *b));
         }
         for (a, b) in geom::runs(&pts) {
-            let half = |v: i32| v.rem_euclid(TICKS_PER_STEP) == TICKS_PER_STEP / 2;
+            let half = |v: i32| v.rem_euclid(TICKS_PER_STEP) == HALF;
             if (a.x == b.x && half(a.x)) || (a.y == b.y && half(a.y)) {
                 c.half_grid += geom::length((a, b));
             }
@@ -325,7 +320,7 @@ pub fn measure(page: &DraftPage) -> Quality {
             let body = p.bounds();
             // An outline drawn round other parts: a wire between two points inside it is its own wiring, and a wire
             // leaves it straight out of any pin inside it.
-            let held = |q: Pt| body.x0 <= q.x && q.x <= body.x1 && body.y0 <= q.y && q.y <= body.y1;
+            let held = |q: Pt| body.contains(q);
             if p.frame_only
                 && l.pts.first().is_some_and(|q| held(*q))
                 && l.pts.last().is_some_and(|q| held(*q))
@@ -367,7 +362,7 @@ pub fn measure(page: &DraftPage) -> Quality {
     // C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2).
     let marks_pins: BTreeSet<PinId> = parts
         .iter()
-        .filter(|p| matches!(p.role, crate::model::Role::MarkIn | crate::model::Role::MarkOut))
+        .filter(|p| p.role.is_mark())
         .flat_map(|p| p.pins.iter().map(|pin| pin.id))
         .collect();
     let mut wires_at: BTreeMap<PinId, usize> = BTreeMap::new();

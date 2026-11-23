@@ -37,7 +37,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{BODY_GAP, STUB, TICKS_PER_STEP, TRACK_PITCH, TRACK_PITCH_NARROW};
-use crate::model::{PinId, Pt, Rect, Side, Tick};
+use crate::model::{Groups, PinId, Pt, Rect, Side, Tick, grid_up};
 
 /// How many tracks the stepping wires between a row of pins and the row they face will need (§4.5): each wire by the
 /// coordinates along the rows of the pin it leaves and of the pin it arrives at, the rows as far apart as need be. They
@@ -185,7 +185,7 @@ fn assign(lanes: &[Lane], pitch: Tick, accept: &mut dyn FnMut(usize, Tick) -> bo
             .filter_map(|p| tracks[*p])
             .map(|t| t + pitch)
             .fold(lane.from + TRACK_PITCH, Tick::max);
-        d = (d + TICKS_PER_STEP - 1).div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
+        d = grid_up(d);
         while d <= lane.last {
             let spaced = lanes.iter().zip(&tracks).all(|(other, t)| match t {
                 Some(t) => !other.meets(lane) || (d - t).abs() >= pitch,
@@ -217,25 +217,18 @@ fn pitch(lanes: &[Lane]) -> Tick {
 /// overlap; each channel in the order of its first lane, its lanes in order.
 fn channels(lanes: &[Lane]) -> Vec<Vec<usize>> {
     let n = lanes.len();
-    let mut root: Vec<usize> = (0..n).collect();
-    fn find(root: &[usize], mut k: usize) -> usize {
-        while root[k] != k {
-            k = root[k];
-        }
-        k
-    }
+    let mut groups = Groups::new(n);
     for i in 0..n {
         for j in i + 1..n {
             let (a, b) = (&lanes[i], &lanes[j]);
             if a.meets(b) && a.from <= b.last && b.from <= a.last {
-                let (x, y) = (find(&root, i), find(&root, j));
-                root[x.max(y)] = x.min(y);
+                groups.join(i, j);
             }
         }
     }
     let mut out: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for k in 0..n {
-        out.entry(find(&root, k)).or_default().push(k);
+        out.entry(groups.root(k)).or_default().push(k);
     }
     out.into_values().collect()
 }

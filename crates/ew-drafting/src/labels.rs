@@ -81,10 +81,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::consts::{LABEL_CLASH, LABEL_CLEAR, LABEL_RANK, TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP};
+use crate::consts::{HALF, LABEL_CLASH, LABEL_CLEAR, LABEL_RANK, TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP};
 use crate::geom::{self, Buckets, Seg};
 use crate::model::{
-    DraftPage, End, Label, LabelId, LabelKind, MarkId, Owner, Part, PartId, PinId, Places, Pt, Rect, Side,
+    DraftPage, Label, LabelId, LabelKind, MarkId, Owner, Part, PartId, PinId, Places, Pt, Rect, Side,
     Tick, WireId,
 };
 
@@ -136,32 +136,24 @@ struct Ground<'a> {
 impl<'a> Ground<'a> {
     fn of(page: &'a DraftPage) -> Ground<'a> {
         let mut parts = BTreeMap::new();
-        let mut pins = BTreeMap::new();
+        let pins = page.pins();
         let mut bodies = Vec::new();
         let mut body_grid = Buckets::default();
         let mut sorted: Vec<&Part> = page.parts.iter().collect();
         sorted.sort_by_key(|p| p.id);
         for p in sorted {
             parts.insert(p.id, p);
-            for pin in &p.pins {
-                pins.insert(pin.id, (p.at.plus(pin.at), pin.side, p.id));
-            }
             if !p.frame_only {
                 body_grid.insert(bodies.len(), p.bounds());
                 bodies.push((p.id, p.bounds()));
             }
         }
-        let mut wired = BTreeSet::new();
+        let wired = page.wired();
         let mut segs = Vec::new();
         let mut seg_grid = Buckets::default();
         let mut wires: Vec<_> = page.wires.iter().collect();
         wires.sort_by_key(|w| w.id);
         for w in wires {
-            for e in w.ends {
-                if let End::Pin(p) = e {
-                    wired.insert(p);
-                }
-            }
             for s in geom::segments(&geom::clean(&w.route)) {
                 seg_grid.insert(segs.len(), geom::seg_box(s));
                 segs.push((w.id, s));
@@ -389,8 +381,8 @@ fn corners(s: &Shape, (w, h): (Tick, Tick), (line, tag_top): (Tick, Tick)) -> Ve
         out.push(bx(b.x1, b.y0 - g - h, size));
         out.push(lower);
         // The upper corners half a step lower: clear of a wire that runs along the level of the upper pins.
-        out.push(bx(b.x0 - g - w, b.y0 + TICKS_PER_STEP / 2, size));
-        out.push(bx(s.right + g, b.y0 + TICKS_PER_STEP / 2, size));
+        out.push(bx(b.x0 - g - w, b.y0 + HALF, size));
+        out.push(bx(s.right + g, b.y0 + HALF, size));
         out
     } else {
         vec![

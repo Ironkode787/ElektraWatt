@@ -45,15 +45,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Uuid;
 
-use crate::consts::{BEND, PASSES, TICKS_PER_STEP, TRACK_PITCH};
+use crate::consts::{BEND, HALF, PASSES, TICKS_PER_STEP, TRACK_PITCH};
 use crate::geom;
 use crate::labels::settle_labels;
 use crate::measure::{Quality, TextRef, measure};
 use crate::model::{
     DraftPage, End, JunctionId, MarkId, Owner as LabelOwner, PartId, PinId, Pt, Rect, Side, Tick, WireId,
+    grid_down,
 };
 use crate::nets::{self, Line, Net};
-use crate::occupancy::{HALF, Occupancy, Text, node_of};
+use crate::occupancy::{Occupancy, Text, node_of};
 use crate::search::{self, Ask, Found, Owner, Relax, Tip, heading};
 use crate::{rounds, tracks};
 
@@ -299,16 +300,7 @@ impl Router {
 
     /// The occupancy built anew over the page as it stands with `texts`.
     fn rebuild(&mut self, texts: Vec<Text>) -> Option<()> {
-        let wired: BTreeSet<PinId> = self
-            .page
-            .wires
-            .iter()
-            .flat_map(|w| w.ends)
-            .filter_map(|e| match e {
-                End::Pin(p) => Some(p),
-                End::Junction(_) => None,
-            })
-            .collect();
+        let wired = self.page.wired();
         let mut occ = Occupancy::new(&self.page, texts, &|p| wired.contains(&p))?;
         let mut wires: Vec<_> = self.page.wires.iter().collect();
         wires.sort_by_key(|w| w.id);
@@ -713,11 +705,7 @@ impl Router {
                     .filter_map(|j| Some((*j, self.junction_at(*j)?)))
                     .collect();
                 let mut valid = places.values().all(|p| {
-                    area.x0 < p.x
-                        && p.x < area.x1
-                        && area.y0 < p.y
-                        && p.y < area.y1
-                        && !on_a_wire(&self.occ, *p)
+                    area.contains_strictly(*p) && !on_a_wire(&self.occ, *p)
                 });
                 for (j, p) in &places {
                     self.move_junction(*j, *p);
@@ -874,16 +862,7 @@ impl Router {
     /// rings, the pin nearest the corner innermost (a wire whose ring is not clear keeps its route), and the rings are
     /// kept where the page costs no more.
     fn rings(&mut self, nets: &[Net], searched: &[WireId]) {
-        let wired: BTreeSet<PinId> = self
-            .page
-            .wires
-            .iter()
-            .flat_map(|w| w.ends)
-            .filter_map(|e| match e {
-                End::Pin(p) => Some(p),
-                End::Junction(_) => None,
-            })
-            .collect();
+        let wired = self.page.wired();
         type Key = (PartId, Side, rounds::Corner);
         let mut groups: BTreeMap<Key, Vec<(Tick, WireId, rounds::Ask)>> = BTreeMap::new();
         for net in nets.iter().filter(|n| n.wires.len() == 1) {
@@ -993,7 +972,7 @@ impl Router {
             let area = self.page.area;
             let mut best: Option<(u64, usize, Pt)> = None;
             for (k, c) in nets::tap_points(present, &ends).into_iter().enumerate() {
-                if !(area.x0 < c.x && c.x < area.x1 && area.y0 < c.y && c.y < area.y1) {
+                if !area.contains_strictly(c) {
                     continue;
                 }
                 if c != present && (on_a_wire(&self.occ, c) || self.occ.bodies_at(node_of(c), false) > 0) {
@@ -1611,7 +1590,7 @@ fn marks_follow(page: &DraftPage, changed: &BTreeSet<WireId>) -> Vec<(MarkId, Pt
         let near = |wires: &[Vec<(i32, i32, i32)>]| -> Option<i32> {
             let step = TICKS_PER_STEP;
             let mut best: Option<(i32, i32)> = None;
-            let mut v = lo.div_euclid(step) * step;
+            let mut v = grid_down(lo);
             while v <= hi {
                 if fits(v, wires) {
                     let d = (v - along_c).abs();
@@ -1703,7 +1682,7 @@ fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>, bef
     let line = (a.at, b.at);
     let end = |p: Pt| p == a.at || p == b.at;
     let own = |id: Uuid| [a, b].iter().any(|t| t.part.is_some_and(|(o, _)| o == id));
-    let holds_end = |r: Rect| [a.at, b.at].iter().any(|p| r.holds(Rect::new(*p, *p)));
+    let holds_end = |r: Rect| [a.at, b.at].iter().any(|p| r.contains(*p));
     let mut points = page
         .parts
         .iter()

@@ -14,7 +14,7 @@
 //! whose pins face up). Any other wire is the search's.
 
 use crate::consts::TICKS_PER_STEP;
-use crate::model::{Pt, Rect, Side, Tick};
+use crate::model::{Pt, Rect, Side, Tick, grid_down, grid_up};
 
 /// A turn or mirror of the page that brings a pin's side up, and back.
 #[derive(Clone, Copy)]
@@ -86,18 +86,16 @@ impl Ask {
             t.side(self.other.1),
         );
         // The ring's lines on the grid, off the body's edges rounded outward to it.
-        let down = |v: Tick| v.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
-        let up = |v: Tick| -down(-v);
-        let out = down(a.y.min(b.y0)) - g;
+        let out = grid_down(a.y.min(b.y0)) - g;
         let (col, toward) = match corner {
-            Corner::First => (down(b.x0) - g, Side::Right),
-            Corner::Last => (up(b.x1) + g, Side::Left),
+            Corner::First => (grid_down(b.x0) - g, Side::Right),
+            Corner::Last => (grid_up(b.x1) + g, Side::Left),
         };
         let past = match corner {
             Corner::First => e.x < col,
             Corner::Last => e.x > col,
         };
-        let far = up(b.y1) + g;
+        let far = grid_up(b.y1) + g;
         let pts = if se == toward && past && e.y > a.y {
             vec![a, Pt::new(a.x, out), Pt::new(col, out), Pt::new(col, e.y), e]
         } else if se == Side::Up && e.y > far {

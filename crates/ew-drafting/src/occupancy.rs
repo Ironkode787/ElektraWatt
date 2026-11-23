@@ -21,12 +21,9 @@ use std::collections::BTreeMap;
 
 use ew_ids::Uuid;
 
-use crate::consts::{BODY_GAP, MAX_NODES, STUB, TICKS_PER_STEP};
+use crate::consts::{BODY_GAP, HALF, MAX_NODES, STUB};
 use crate::geom;
 use crate::model::{DraftPage, JunctionId, LabelId, PartId, PinId, Pt, Rect, Tick};
-
-/// Half a grid step in ticks: the spacing of the nodes.
-pub const HALF: Tick = TICKS_PER_STEP / 2;
 
 /// A node of the half grid by its indices: it stands at `(HALF·i, HALF·j)` ticks.
 pub type Node = (i32, i32);

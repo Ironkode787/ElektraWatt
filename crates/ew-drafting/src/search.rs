@@ -43,12 +43,12 @@ use std::collections::{BTreeMap, BinaryHeap};
 use ew_ids::Uuid;
 
 use crate::consts::{
-    BEND, BODY_GAP, CROSSING, HALF_STEP_EXTRA, LABEL_RANK, MAX_NODES, STEP, STUB, TEXT_CROSSED, TEXT_STEP,
+    BEND, BODY_GAP, CROSSING, HALF, HALF_STEP_EXTRA, LABEL_RANK, MAX_NODES, STEP, STUB, TEXT_CROSSED, TEXT_STEP,
     TICKS_PER_STEP, WINDOWS,
 };
 use crate::geom;
 use crate::model::{JunctionId, PinId, Pt, Rect, Side, Tick};
-use crate::occupancy::{HALF, Holder, Move, Node, Occupancy, node_of};
+use crate::occupancy::{Holder, Move, Node, Occupancy, node_of};
 
 /// A heading, in the rank order of the tie rule: right < down < left < up.
 const HEADINGS: [Side; 4] = [Side::Right, Side::Down, Side::Left, Side::Up];
@@ -59,15 +59,6 @@ fn rank(s: Side) -> usize {
         Side::Down => 1,
         Side::Left => 2,
         Side::Up => 3,
-    }
-}
-
-fn opposite(s: Side) -> Side {
-    match s {
-        Side::Right => Side::Left,
-        Side::Left => Side::Right,
-        Side::Up => Side::Down,
-        Side::Down => Side::Up,
     }
 }
 
@@ -223,7 +214,7 @@ impl<'a> Space<'a> {
         let g = if self.half() { HALF } else { BODY_GAP };
         let r = r.grown(g);
         let p = crate::occupancy::point_of(n);
-        r.x0 < p.x && p.x < r.x1 && r.y0 < p.y && p.y < r.y1
+        r.contains_strictly(p)
     }
 
     /// Whether the occupancy's node `n` is closed to the route.
@@ -557,7 +548,7 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
                 .frames
                 .iter()
                 .chain(rides.map(|(_, r, _)| r))
-                .filter(|r| r.x0 <= tip.at.x && tip.at.x <= r.x1 && r.y0 <= tip.at.y && tip.at.y <= r.y1)
+                .filter(|r| r.contains(tip.at))
                 .copied()
                 .collect()
         }),
@@ -567,7 +558,7 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
             .iter()
             .filter(|(_, r, pins)| {
                 let t = &ask.from;
-                let inside = r.x0 < t.at.x && t.at.x < r.x1 && r.y0 < t.at.y && t.at.y < r.y1;
+                let inside = r.contains_strictly(t.at);
                 // Reached over one of its pins, a step behind the bend: the person led the wire through the part.
                 let over_pin = ask.arrive.is_some_and(|h| {
                     let u = h.unit();
@@ -667,7 +658,7 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
     };
     match to.side {
         Some(d) => put(
-            state(goal, Some(opposite(d))),
+            state(goal, Some(d.opposite())),
             (0, 0),
             vec![to.at],
             &mut dist,
@@ -707,7 +698,7 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
             }
             let Some(g0) = first else { continue };
             for h in HEADINGS {
-                if h == opposite(g0) {
+                if h == g0.opposite() {
                     continue;
                 }
                 let turn = u32::from(h != g0);
@@ -758,7 +749,7 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
             Some(Side::Left),
             Some(Side::Up),
         ] {
-            if h == Some(opposite(m)) {
+            if h == Some(m.opposite()) {
                 continue;
             }
             let s1 = state(n1, h);
@@ -799,7 +790,7 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
             break tail.clone();
         }
         let next = HEADINGS.into_iter().find_map(|m| {
-            if heading == Some(opposite(m)) {
+            if heading == Some(m.opposite()) {
                 return None;
             }
             let q = (node.0 + m.unit().x, node.1 + m.unit().y);
@@ -999,13 +990,13 @@ pub fn clear(ask: &Ask<'_>, route: &[Pt]) -> bool {
     for (k, w) in pts.windows(2).enumerate() {
         let (a, b) = (w[0], w[1]);
         let Some(h) = heading(a, b) else { return false };
-        if before == Some(opposite(h)) {
+        if before == Some(h.opposite()) {
             return false;
         }
         if k == 0 && ask.from.side.is_some_and(|s| s != h) {
             return false;
         }
-        if k + 2 == n && ask.to.side.is_some_and(|s| opposite(s) != h) {
+        if k + 2 == n && ask.to.side.is_some_and(|s| s.opposite() != h) {
             return false;
         }
         before = Some(h);

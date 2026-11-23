@@ -9,6 +9,8 @@ use crate::model::Tick;
 
 /// The unit of the model: a grid step is 16 ticks, a half step 8 (§2.1).
 pub const TICKS_PER_STEP: Tick = 16;
+/// Half a grid step: the spacing of the router's nodes, the half grid (§2.1, §3.3).
+pub const HALF: Tick = TICKS_PER_STEP / 2;
 
 /// C1: a step of wire.
 pub const STEP: i64 = 1;

@@ -132,17 +132,17 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::consts::{
-    ANCHORS, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, LABEL_CLEAR, MARK_LEAD, MARK_PITCH, PASSES, REACH, ROW_GAP,
+    ANCHORS, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, HALF, LABEL_CLEAR, MARK_LEAD, MARK_PITCH, PASSES, REACH, ROW_GAP,
     ROW_PULL, STUB, TICKS_PER_STEP, TRACK_PITCH, TRACK_PITCH_NARROW, TRUNK_GAP,
 };
 use crate::labels::first_places;
 use crate::measure::measure;
 use crate::model::{
-    DraftPage, End, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side,
-    Tick, Wire, WireId,
+    DraftPage, End, Groups, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side,
+    Tick, Wire, WireId, grid_away, grid_down,
 };
 use crate::route::Scope;
-use crate::rules::{Wiring, across, beyond, opposite};
+use crate::rules::Wiring;
 
 /// How two related pins stand to each other, strongest first (module documentation).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -290,16 +290,6 @@ pub(super) enum Held {
     Sheet,
 }
 
-/// Rounds `v` ticks up (away from zero) to a whole step.
-fn whole_up(v: Tick) -> Tick {
-    let s = TICKS_PER_STEP;
-    if v >= 0 {
-        (v + s - 1).div_euclid(s) * s
-    } else {
-        -((-v + s - 1).div_euclid(s) * s)
-    }
-}
-
 /// `t` ticks along `s`.
 fn along_vec(s: Side, t: Tick) -> Pt {
     let u = s.unit();
@@ -317,7 +307,7 @@ fn across_vec(s: Side, t: Tick) -> Pt {
 
 /// How far `p` lies out along `s` from the page's origin.
 fn out(p: Pt, s: Side) -> Tick {
-    beyond(Pt::default(), p, s)
+    s.beyond(Pt::default(), p)
 }
 
 /// The extent of `r` across `s`.
@@ -339,7 +329,7 @@ fn kind_of(a: Option<Side>, b: Option<Side>) -> Option<Kind> {
     let (a, b) = (a?, b?);
     Some(if a == b {
         Kind::Level
-    } else if a == opposite(b) {
+    } else if a == b.opposite() {
         Kind::Facing
     } else {
         Kind::Corner
@@ -381,27 +371,16 @@ impl<'a> Sketch<'a> {
             })
             .collect();
         let n = w.parts.len();
-        let mut up: Vec<usize> = (0..n).collect();
-        fn root(up: &mut [usize], mut i: usize) -> usize {
-            while up[i] != i {
-                up[i] = up[up[i]];
-                i = up[i];
-            }
-            i
-        }
-        let join = |up: &mut Vec<usize>, a: usize, b: usize| {
-            let (ra, rb) = (root(up, a), root(up, b));
-            if ra != rb {
-                up[ra.max(rb)] = ra.min(rb);
-            }
-        };
+        let mut groups = Groups::new(n);
         // Units by number, the parts inside an outline drawn round other parts (but an actuator or a pressure source,
         // which is no part of a valve terminal: one set inside its outline is moved out as any other, FT-2097), and a
         // part on another's pin.
         let mut by_number: BTreeMap<u32, usize> = BTreeMap::new();
         for (i, p) in w.parts.iter().enumerate() {
             match by_number.get(&p.unit) {
-                Some(&j) => join(&mut up, i, j),
+                Some(&j) => {
+                    groups.join(i, j);
+                }
                 None => {
                     by_number.insert(p.unit, i);
                 }
@@ -412,7 +391,7 @@ impl<'a> Sketch<'a> {
                 for (j, p) in w.parts.iter().enumerate() {
                     let member = !matches!(p.role, Role::Actuator | Role::Source);
                     if i != j && member && f.bounds().holds(p.bounds()) {
-                        join(&mut up, i, j);
+                        groups.join(i, j);
                     }
                 }
             }
@@ -430,7 +409,7 @@ impl<'a> Sketch<'a> {
                 if w.parts[i].pins.len() == 1 {
                     for &j in here {
                         if j != i {
-                            join(&mut up, i, j);
+                            groups.join(i, j);
                         }
                     }
                 }
@@ -445,7 +424,7 @@ impl<'a> Sketch<'a> {
         let mut units: Vec<Unit> = Vec::new();
         let mut unit_of = vec![0; n];
         for (i, slot) in unit_of.iter_mut().enumerate() {
-            let r = root(&mut up, i);
+            let r = groups.root(i);
             let u = *roots.entry(r).or_insert_with(|| {
                 units.push(Unit {
                     parts: Vec::new(),
@@ -539,14 +518,14 @@ impl<'a> Sketch<'a> {
         let (h, f) = (self.pt(l.h), self.pt(l.f));
         let tree = self.subtree(u);
         let meets = |a: &[Rect], b: &[Rect]| a.iter().any(|x| b.iter().any(|y| x.grown(1).overlaps(*y)));
-        let first = (CHAIN_GAP_MIN - beyond(h, f, s)).max(0);
-        let area = self.w.page.area.grown(-TICKS_PER_STEP / 2);
+        let first = (CHAIN_GAP_MIN - s.beyond(h, f)).max(0);
+        let area = self.w.page.area.grown(-HALF);
         let reach = area.w().max(area.h()) / TICKS_PER_STEP;
         let host = self.bodies(l.host);
         let Some(bodies) = (0..=reach)
             .map(|k| {
                 let by =
-                    across_vec(s, across(h, s) - across(f, s)).plus(along_vec(s, first + k * TICKS_PER_STEP));
+                    across_vec(s, s.across(h) - s.across(f)).plus(along_vec(s, first + k * TICKS_PER_STEP));
                 tree.iter()
                     .flat_map(|t| self.bodies(*t))
                     .map(|b| b.moved(by))
@@ -729,7 +708,7 @@ impl<'a> Sketch<'a> {
                 under(p).iter().any(|part| {
                     let b = part.bounds();
                     let (lo, hi) = span_across(b, s);
-                    (lo..=hi).contains(&across(at, s)) && span_along(b, s).1 >= out(at, s) + TICKS_PER_STEP
+                    (lo..=hi).contains(&s.across(at)) && span_along(b, s).1 >= out(at, s) + TICKS_PER_STEP
                 })
             })
         };
@@ -783,7 +762,7 @@ impl<'a> Sketch<'a> {
                         .filter(|p| self.side(*p) == Some(s))
                         .collect()
                 };
-                let (one, others) = match (facing(first), facing(opposite(first))) {
+                let (one, others) = match (facing(first), facing(first.opposite())) {
                     (a, b) if a.len() == 1 && !b.is_empty() => (a[0], b),
                     (a, b) if b.len() == 1 && a.len() >= 2 => (b[0], a),
                     _ => continue,
@@ -801,11 +780,11 @@ impl<'a> Sketch<'a> {
                     .into_iter()
                     .filter(|p| {
                         self.unit_of_pin(*p) != hub
-                            && (anywhere || beyond(at, self.pt0(*p), s) >= CHAIN_GAP_MIN)
+                            && (anywhere || s.beyond(at, self.pt0(*p)) >= CHAIN_GAP_MIN)
                     })
                     .collect();
                 // The nearest across, where one is nearer than every other.
-                let skew = |p: &PinId| (across(self.pt0(*p), s) - across(at, s)).abs();
+                let skew = |p: &PinId| (s.across(self.pt0(*p)) - s.across(at)).abs();
                 let nearest = branches
                     .iter()
                     .copied()
@@ -861,15 +840,11 @@ impl<'a> Sketch<'a> {
         }
         // A level pair is overruled where more of the unit's mates face the same host than are wired to it out and
         // back: the unit stays in its row.
-        let mut row: Vec<usize> = (0..m).collect();
+        let mut rows = Groups::new(m);
         for (u, v) in &mates {
-            let (a, b) = (row[*u], row[*v]);
-            for r in &mut row {
-                if *r == a.max(b) {
-                    *r = a.min(b);
-                }
-            }
+            rows.join(*u, *v);
         }
+        let row = rows.roots();
         // A wire between two units of one row that runs across it asks nothing where one of them would have to leave
         // the row for it (two cards side by side, a pin on the upper edge of one wired to a pin on the lower edge of
         // the other): the row stays, and the wire is the router's.
@@ -878,7 +853,7 @@ impl<'a> Sketch<'a> {
             if matches!(r.kind, Kind::Facing | Kind::Tap)
                 && self.side(r.pa).is_some_and(|s| {
                     let line = &lines[usize::from(!s.vertical())];
-                    line[r.a] == line[r.b] && beyond(self.pt0(r.pa), self.pt0(r.pb), s) < CHAIN_GAP_MIN
+                    line[r.a] == line[r.b] && s.beyond(self.pt0(r.pa), self.pt0(r.pb)) < CHAIN_GAP_MIN
                 })
             {
                 r.kind = Kind::Overruled;
@@ -917,7 +892,7 @@ impl<'a> Sketch<'a> {
         let m = self.units.len();
         let mut rels = self.relations();
         let skew = |sk: &Self, r: &Rel| match (r.kind, sk.side(r.pa)) {
-            (Kind::Facing | Kind::Tap, Some(s)) => (across(sk.pt0(r.pa), s) - across(sk.pt0(r.pb), s)).abs(),
+            (Kind::Facing | Kind::Tap, Some(s)) => (s.across(sk.pt0(r.pa)) - s.across(sk.pt0(r.pb))).abs(),
             _ => 0,
         };
         rels.sort_by_key(|r| {
@@ -930,18 +905,10 @@ impl<'a> Sketch<'a> {
             )
         });
         // Every fixed unit is ground: index `m`.
-        let mut up: Vec<usize> = (0..=m).collect();
-        fn root(up: &mut [usize], mut i: usize) -> usize {
-            while up[i] != i {
-                up[i] = up[up[i]];
-                i = up[i];
-            }
-            i
-        }
+        let mut groups = Groups::new(m + 1);
         for u in 0..m {
             if self.units[u].fixed {
-                let (a, b) = (root(&mut up, u), root(&mut up, m));
-                up[a.max(b)] = a.min(b);
+                groups.join(u, m);
             }
         }
         let mut edges: Vec<Vec<Rel>> = vec![Vec::new(); m];
@@ -951,12 +918,12 @@ impl<'a> Sketch<'a> {
         let pairs: Vec<(usize, usize)> = mates.iter().map(|r| (r.a, r.b)).collect();
         // The trees the wires make.
         for r in wired {
-            let (a, b) = (root(&mut up, r.a), root(&mut up, r.b));
+            let (a, b) = (groups.root(r.a), groups.root(r.b));
             if a == b {
                 self.extra.push(r);
                 continue;
             }
-            up[a.max(b)] = a.min(b);
+            groups.join(a, b);
             edges[r.a].push(r);
             edges[r.b].push(r);
         }
@@ -967,7 +934,7 @@ impl<'a> Sketch<'a> {
         let mut heaviest: BTreeMap<usize, (i64, Tick, Tick, PartId)> = BTreeMap::new();
         let mut weight: BTreeMap<usize, i64> = BTreeMap::new();
         for u in 0..m {
-            let c = root(&mut up, u);
+            let c = groups.root(u);
             *weight.entry(c).or_default() += self.units[u].weight.max(1);
             let key = self.key(u);
             let old = heaviest.entry(c).or_insert(key);
@@ -977,14 +944,14 @@ impl<'a> Sketch<'a> {
             .map(|u| {
                 self.units[u].fixed
                     || heaviest
-                        .get(&root(&mut up, u))
+                        .get(&groups.root(u))
                         .is_some_and(|k| k.0 == -self.units[u].weight)
             })
             .collect();
         // Each unit's depth in its tree, from the tree's heaviest unit.
         let mut depth: Vec<usize> = vec![usize::MAX; m];
         let mut queue: VecDeque<usize> = (0..m)
-            .filter(|u| heaviest.get(&root(&mut up, *u)) == Some(&self.key(*u)))
+            .filter(|u| heaviest.get(&groups.root(*u)) == Some(&self.key(*u)))
             .collect();
         for u in &queue {
             depth[*u] = 0;
@@ -999,7 +966,7 @@ impl<'a> Sketch<'a> {
             }
         }
         let tree_weight: Vec<i64> = (0..m)
-            .map(|u| weight.get(&root(&mut up, u)).copied().unwrap_or(0))
+            .map(|u| weight.get(&groups.root(u)).copied().unwrap_or(0))
             .collect();
         mates.sort_by_key(|r| {
             let (near, far) = if (tree_weight[r.a], Reverse(r.a)) >= (tree_weight[r.b], Reverse(r.b)) {
@@ -1010,7 +977,7 @@ impl<'a> Sketch<'a> {
             (depth[near], depth[far], r.pa.min(r.pb), r.pa.max(r.pb))
         });
         for r in mates.into_iter().chain(overruled) {
-            let (a, b) = (root(&mut up, r.a), root(&mut up, r.b));
+            let (a, b) = (groups.root(r.a), groups.root(r.b));
             if a == b {
                 self.extra.push(r);
                 continue;
@@ -1022,13 +989,13 @@ impl<'a> Sketch<'a> {
             // two cards does not join the cards.)
             let (ka, kb) = (heaviest.get(&a).copied(), heaviest.get(&b).copied());
             for u in [r.a, r.b] {
-                let (own, other) = if root(&mut up, u) == a { (ka, kb) } else { (kb, ka) };
+                let (own, other) = if groups.root(u) == a { (ka, kb) } else { (kb, ka) };
                 if !self.units[u].fixed && own > other {
                     top[u] = false;
                 }
             }
             heaviest.insert(a.min(b), ka.min(kb).unwrap_or_else(|| self.key(r.a)));
-            up[a.max(b)] = a.min(b);
+            groups.join(a, b);
             edges[r.a].push(r);
             edges[r.b].push(r);
         }
@@ -1055,18 +1022,13 @@ impl<'a> Sketch<'a> {
     /// one number in the first list, those that stand one under another one number in the second.
     fn lines(&self, pairs: &[(usize, usize)]) -> [Vec<usize>; 2] {
         [true, false].map(|down| {
-            let mut of: Vec<usize> = (0..self.units.len()).collect();
+            let mut of = Groups::new(self.units.len());
             for (a, b) in pairs {
                 if self.mates(*a, *b, down) {
-                    let (x, y) = (of[*a], of[*b]);
-                    for o in &mut of {
-                        if *o == x.max(y) {
-                            *o = x.min(y);
-                        }
-                    }
+                    of.join(*a, *b);
                 }
             }
-            of
+            of.roots()
         })
     }
 
@@ -1117,7 +1079,7 @@ impl<'a> Sketch<'a> {
     /// that side, its tapped pins, its marks' pins and the line its junctions lie on (two at least), as [`out`]
     /// measures along the side.
     fn rails(&self) -> Vec<Rail> {
-        let mark = |p: &PinId| matches!(self.w.parts[self.w.pins[p].0].role, Role::MarkIn | Role::MarkOut);
+        let mark = |p: &PinId| self.w.parts[self.w.pins[p].0].role.is_mark();
         let mut rails = Vec::new();
         for net in &self.w.nets {
             let mut pins: Vec<PinId> = net.pins.clone();
@@ -1245,7 +1207,7 @@ impl<'a> Sketch<'a> {
                     .filter_map(|p| Some((p.id, self.pt(p.id), p.side?)))
                     .collect();
                 for s in [Side::Up, Side::Down, Side::Left, Side::Right] {
-                    let back = opposite(s);
+                    let back = s.opposite();
                     let (edge, (lo, hi)) = (span_along(body, back).1, span_across(body, s));
                     // The wires round each end, and the nearest of the parts they lead to.
                     let (mut ends, mut gap) = ([0; 2], None::<Tick>);
@@ -1260,7 +1222,7 @@ impl<'a> Sketch<'a> {
                                 continue;
                             };
                             let (o, qa) = (self.unit_of_pin(q), self.pt(q));
-                            let under = lo <= across(qa, s) && across(qa, s) <= hi && out(qa, back) > edge;
+                            let under = lo <= s.across(qa) && s.across(qa) <= hi && out(qa, back) > edge;
                             if hangs.contains(&o)
                                 || self.d[o] != Pt::default()
                                 || self.side(q) != Some(s)
@@ -1291,7 +1253,7 @@ impl<'a> Sketch<'a> {
                         && depth > 0
                         && g < (depth + 1) * TICKS_PER_STEP + STUB
                     {
-                        step = Some((s, whole_up((depth + 1) * TICKS_PER_STEP + STUB - g)));
+                        step = Some((s, grid_away((depth + 1) * TICKS_PER_STEP + STUB - g)));
                     }
                 }
             }
@@ -1438,7 +1400,7 @@ impl<'a> Sketch<'a> {
             .map(|r| r.w())
             .max()
             .unwrap_or(0);
-        let least = pitch.min(whole_up(width + ROW_GAP));
+        let least = pitch.min(grid_away(width + ROW_GAP));
         // The longest run in order (`room`: with room between each two), each as its last member's best length and
         // the member before it.
         let run = |room: bool| -> Vec<usize> {
@@ -1483,8 +1445,8 @@ impl<'a> Sketch<'a> {
                 .reduce(Rect::union)
         };
         let near = [
-            col(first) - reach(first).map_or(0, |r| whole_up((col(first) - r.x0).max(0))),
-            col(last) + reach(last).map_or(0, |r| whole_up((r.x1 - col(last) - width).max(0))),
+            col(first) - reach(first).map_or(0, |r| grid_away((col(first) - r.x0).max(0))),
+            col(last) + reach(last).map_or(0, |r| grid_away((r.x1 - col(last) - width).max(0))),
         ];
         let mut place: Vec<Tick> = (0..members.len())
             .map(|i| {
@@ -1502,7 +1464,7 @@ impl<'a> Sketch<'a> {
             let gaps = steps(b - a);
             for (i, at) in place.iter_mut().enumerate().take(b).skip(a + 1) {
                 let even = (col(b) - col(a)) * steps(i - a) / gaps;
-                *at = col(a) + even.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
+                *at = col(a) + grid_down(even);
             }
         }
         if !place.windows(2).all(|w| w[0] + least <= w[1]) {
@@ -1592,7 +1554,7 @@ impl<'a> Sketch<'a> {
 
     /// Whether the bodies of `u` lie in the drawing area, a step inside its edge.
     fn inside(&self, u: usize) -> bool {
-        let area = self.w.page.area.grown(-TICKS_PER_STEP / 2);
+        let area = self.w.page.area.grown(-HALF);
         self.bodies(u).iter().all(|b| area.holds(*b))
     }
 
@@ -1644,7 +1606,7 @@ impl<'a> Sketch<'a> {
         } else {
             Side::Down
         };
-        if self.units[u].fixed || facing(s) < 2 || facing(opposite(s)) > 0 {
+        if self.units[u].fixed || facing(s) < 2 || facing(s.opposite()) > 0 {
             return Pt::default();
         }
         let body = card.bounds();
@@ -1672,7 +1634,7 @@ impl<'a> Sketch<'a> {
                 }
             }
         }
-        let mut by = whole_up(left - body.x0);
+        let mut by = grid_away(left - body.x0);
         // The columns of a card's channels in use on `side`.
         let used = |part: &crate::model::Part, side: Side| -> Vec<Tick> {
             let mut xs: Vec<Tick> = part
@@ -1690,7 +1652,7 @@ impl<'a> Sketch<'a> {
             .parts
             .iter()
             .filter(|p| p.role == Role::Card && p.id != card.id && ahead(p.at))
-            .map(|p| (p, used(p, opposite(s))))
+            .map(|p| (p, used(p, s.opposite())))
             .find(|(_, xs)| !xs.is_empty());
         if let (Some((part, xs)), CardSteps::Columns, Some(&lo), Some(&hi)) =
             (other, steps, own.first(), own.last())
@@ -1703,7 +1665,7 @@ impl<'a> Sketch<'a> {
                 < (xs.len(), Reverse(part.at.x), Reverse(part.id));
             if fewer && lo + by <= them_hi && them_lo <= hi + by {
                 let spares = self.spares_between((*part, them_hi), (card, lo));
-                by = by.max(whole_up(them_hi + 2 * TICKS_PER_STEP + spares - lo));
+                by = by.max(grid_away(them_hi + 2 * TICKS_PER_STEP + spares - lo));
             }
         }
         let room = self.w.page.area.x1 - TICKS_PER_STEP - body.x1;
@@ -1953,10 +1915,10 @@ impl<'a> Sketch<'a> {
                     .max()
                     .unwrap_or(0);
                 let (by, step) = if down > 0 {
-                    (whole_up(down), TICKS_PER_STEP)
+                    (grid_away(down), TICKS_PER_STEP)
                 } else if rise > 0 {
                     units.extend(blocks[k + 1..].iter().flat_map(|o| self.subtree(*o)));
-                    (-whole_up(rise), -TICKS_PER_STEP)
+                    (-grid_away(rise), -TICKS_PER_STEP)
                 } else {
                     continue;
                 };
@@ -2013,7 +1975,7 @@ impl<'a> Sketch<'a> {
             for (s, members) in rows {
                 // The members that stand far beyond the nearest of the row wait until what hangs on the near ones is
                 // set: a device wired straight to a card does not take the place of the row over the terminals.
-                let dist = |sk: &Self, m: usize| sk.lead[m].map_or(0, |l| beyond(sk.pt(l.h), sk.pt(l.f), s));
+                let dist = |sk: &Self, m: usize| sk.lead[m].map_or(0, |l| s.beyond(sk.pt(l.h), sk.pt(l.f)));
                 let nearest = members
                     .iter()
                     .map(|m| dist(self, *m))
@@ -2087,7 +2049,7 @@ impl<'a> Sketch<'a> {
             }
         };
         let n = items.len();
-        let mut group: Vec<usize> = (0..n).collect();
+        let mut groups = Groups::new(n);
         let spans: Vec<(Tick, Tick)> = items
             .iter()
             .map(|(m, _)| span_along(extent(self, *m), s))
@@ -2095,15 +2057,11 @@ impl<'a> Sketch<'a> {
         for i in 0..n {
             for j in i + 1..n {
                 if spans[i].0 < spans[j].1 + ROW_GAP && spans[j].0 < spans[i].1 + ROW_GAP {
-                    let (a, b) = (group[i], group[j]);
-                    for g in &mut group {
-                        if *g == a.max(b) {
-                            *g = a.min(b);
-                        }
-                    }
+                    groups.join(i, j);
                 }
             }
         }
+        let group = groups.roots();
         let mut names: Vec<usize> = group.clone();
         names.sort_unstable();
         names.dedup();
@@ -2115,7 +2073,7 @@ impl<'a> Sketch<'a> {
                 .collect();
             let mut offset: Vec<Tick> = vec![0];
             for k in 1..of.len() {
-                let need = whole_up(edges[k - 1].1 + ROW_GAP - edges[k].0);
+                let need = grid_away(edges[k - 1].1 + ROW_GAP - edges[k].0);
                 offset.push(offset[k - 1] + need);
             }
             let want: Vec<Tick> = offset.iter().map(|o| -o).collect();
@@ -2125,7 +2083,7 @@ impl<'a> Sketch<'a> {
                 .map(|(k, v)| v + offset[k])
                 .collect();
             // (Stepped back into the drawing area as one where an end of it leaves it.)
-            let (first, last) = span_across(self.w.page.area.grown(-TICKS_PER_STEP / 2), s);
+            let (first, last) = span_across(self.w.page.area.grown(-HALF), s);
             let under = (0..of.len())
                 .map(|k| first - (edges[k].0 + middle[k]))
                 .max()
@@ -2134,10 +2092,10 @@ impl<'a> Sketch<'a> {
                 .map(|k| edges[k].1 + middle[k] - last)
                 .max()
                 .unwrap_or(0);
-            if under > 0 && over + whole_up(under) <= 0 {
-                middle.iter_mut().for_each(|by| *by += whole_up(under));
-            } else if over > 0 && under + whole_up(over) <= 0 {
-                middle.iter_mut().for_each(|by| *by -= whole_up(over));
+            if under > 0 && over + grid_away(under) <= 0 {
+                middle.iter_mut().for_each(|by| *by += grid_away(under));
+            } else if over > 0 && under + grid_away(over) <= 0 {
+                middle.iter_mut().for_each(|by| *by -= grid_away(over));
             }
             // Members that keep their places and their distances stay: none steps aside for a wire.
             if middle.iter().all(|by| *by == 0) && of.iter().all(|k| wished[*k] == 0) {
@@ -2185,7 +2143,7 @@ impl<'a> Sketch<'a> {
                     .enumerate()
                     .map(|(n, (k, b))| {
                         let l = items[*k].1;
-                        let (h, f) = (across(sk.pt(l.h), s), across(sk.pt(l.f), s) + b);
+                        let (h, f) = (s.across(sk.pt(l.h)), s.across(sk.pt(l.f)) + b);
                         risers.iter().filter(|r| h.min(f) < **r && **r < h.max(f)).count()
                             + usize::from(in_way(n, *b))
                     })
@@ -2228,7 +2186,7 @@ impl<'a> Sketch<'a> {
             .iter()
             .filter_map(|m| self.lead[*m].map(|l| (*m, l)))
             .collect();
-        items.sort_by_key(|(m, l)| (across(self.pt(l.h), s), across(self.pt(l.f), s), self.id(*m)));
+        items.sort_by_key(|(m, l)| (s.across(self.pt(l.h)), s.across(self.pt(l.f)), self.id(*m)));
         // The wires that leave the rank on this side and do not end at a pin of the row that faces the rank (a second
         // pole of a member is the row's own; a supply that passes the row to its far pins is not), but the rank's own
         // leads.
@@ -2247,7 +2205,7 @@ impl<'a> Sketch<'a> {
             .filter(|n| {
                 n.pins
                     .iter()
-                    .any(|p| mine.contains(&self.unit_of_pin(*p)) && self.side(*p) == Some(opposite(s)))
+                    .any(|p| mine.contains(&self.unit_of_pin(*p)) && self.side(*p) == Some(s.opposite()))
             })
             .flat_map(|n| n.pins.iter().copied())
             .chain(rank.iter().filter_map(|u| self.lead[*u].map(|l| l.f)))
@@ -2261,16 +2219,16 @@ impl<'a> Sketch<'a> {
             .filter(|pin| {
                 items
                     .iter()
-                    .any(|(_, l)| beyond(self.pt(l.h), self.pt(pin.id), s).abs() <= ROW_PULL)
+                    .any(|(_, l)| s.beyond(self.pt(l.h), self.pt(pin.id)).abs() <= ROW_PULL)
             })
-            .map(|pin| across(self.pt(pin.id), s))
+            .map(|pin| s.across(self.pt(pin.id)))
             .collect();
         // Across: in line, where the straight way between the two pins is then free (a part of another circuit on it
         // leaves the member where it stands).
         let mut wished: Vec<Tick> = Vec::with_capacity(items.len());
         for (m, l) in &items {
             let by = if l.inline {
-                across(self.pt(l.h), s) - across(self.pt(l.f), s)
+                s.across(self.pt(l.h)) - s.across(self.pt(l.f))
             } else {
                 0
             };
@@ -2290,7 +2248,7 @@ impl<'a> Sketch<'a> {
         for (k, (m, l)) in items.iter().enumerate() {
             let far = self.pt(l.f).plus(along_vec(
                 s,
-                (CHAIN_GAP - beyond(self.pt(l.h), self.pt(l.f), s)).max(0),
+                (CHAIN_GAP - s.beyond(self.pt(l.h), self.pt(l.f))).max(0),
             ));
             // (The row's other members are packed clear of it afterwards.)
             let mut own = self.subtree(*m);
@@ -2326,7 +2284,7 @@ impl<'a> Sketch<'a> {
         };
         let place = |sk: &Self, u: usize, moved: bool| {
             let at = sk.shape(u).map_or(0, |r| span_across(r, s).0);
-            if moved { at + across(sk.d[u], s) } else { at }
+            if moved { at + s.across(sk.d[u]) } else { at }
         };
         let binds = |sk: &Self, wished: &[Tick], k: usize| {
             let m = items[k].0;
@@ -2343,8 +2301,8 @@ impl<'a> Sketch<'a> {
             self.bound = true;
         }
         loop {
-            let at = |sk: &Self, k: usize| across(sk.pt(items[k].1.f), s);
-            let was = |sk: &Self, k: usize| across(sk.pt0(items[k].1.f), s);
+            let at = |sk: &Self, k: usize| s.across(sk.pt(items[k].1.f));
+            let was = |sk: &Self, k: usize| s.across(sk.pt0(items[k].1.f));
             let past = (0..items.len()).find(|k| {
                 wished[*k] != 0
                     && ((0..items.len()).any(|j| {
@@ -2360,10 +2318,10 @@ impl<'a> Sketch<'a> {
         }
         // Along: a keeper keeps its place; one that stood too near, or on the wrong side, takes the chain gap for now;
         // one its host left far behind keeps the distance it had.
-        let dist = |sk: &Self, l: &Lead| beyond(sk.pt(l.h), sk.pt(l.f), s);
+        let dist = |sk: &Self, l: &Lead| s.beyond(sk.pt(l.h), sk.pt(l.f));
         let mut movers: Vec<bool> = Vec::with_capacity(items.len());
         for (m, l) in &items {
-            let was = beyond(self.pt0(l.h), self.pt0(l.f), s);
+            let was = s.beyond(self.pt0(l.h), self.pt0(l.f));
             let now = dist(self, l);
             let (least, most) = (was.clamp(CHAIN_GAP_MIN, CHAIN_GAP), was.max(CHAIN_GAP) + ROW_PULL);
             let keeps = was >= CHAIN_GAP_MIN && now >= least && !self.meets(*m, l.host);
@@ -2438,7 +2396,7 @@ impl<'a> Sketch<'a> {
         let lanes: Vec<(Tick, Tick)> = items
             .iter()
             .filter(|(_, l)| l.inline)
-            .map(|(_, l)| (across(self.pt(l.h), s), across(self.pt(l.f), s)))
+            .map(|(_, l)| (s.across(self.pt(l.h)), s.across(self.pt(l.f))))
             .collect();
         let tracks = crate::tracks::tracks_needed(&lanes) as Tick;
         let room = tracks
@@ -2449,7 +2407,7 @@ impl<'a> Sketch<'a> {
             .saturating_mul(TRACK_PITCH_NARROW)
             .saturating_add(CHAIN_GAP_MIN);
         for (k, (_, l)) in items.iter().enumerate() {
-            let steps = l.inline && across(self.pt(l.h), s) != across(self.pt(l.f), s);
+            let steps = l.inline && s.across(self.pt(l.h)) != s.across(self.pt(l.f));
             if !movers[k] && steps && dist(self, l) < narrow {
                 movers[k] = true;
             }
@@ -2465,13 +2423,13 @@ impl<'a> Sketch<'a> {
         for (k, (m, l)) in items.iter().enumerate() {
             if movers[k] {
                 // (A chain opens by a row's pull at most, rule A5: its tracks then take the narrow pitch.)
-                let was = beyond(self.pt0(l.h), self.pt0(l.f), s);
+                let was = s.beyond(self.pt0(l.h), self.pt0(l.f));
                 let most = if was >= CHAIN_GAP_MIN {
                     was.max(CHAIN_GAP) + ROW_PULL
                 } else {
                     line
                 };
-                let by = whole_up(line.min(most) - dist(self, l));
+                let by = grid_away(line.min(most) - dist(self, l));
                 self.d[*m] = self.d[*m].plus(along_vec(s, by));
             }
         }
@@ -2483,7 +2441,7 @@ impl<'a> Sketch<'a> {
             if s.vertical() != (step.y != 0) {
                 continue;
             }
-            let by = beyond(Pt::default(), step, s) - beyond(Pt::default(), self.d[*m], s);
+            let by = s.beyond(Pt::default(), step) - s.beyond(Pt::default(), self.d[*m]);
             if by != 0 && dist(self, l) + by >= CHAIN_GAP_MIN {
                 self.d[*m] = self.d[*m].plus(along_vec(s, by));
             } else if by != 0 && must {
@@ -2590,7 +2548,7 @@ impl<'a> Sketch<'a> {
 
     /// A stack of corner followers on side `s` of `hosts`, their own pins facing `sf` (module documentation).
     fn stack(&mut self, hosts: &[usize], s: Side, sf: Side, members: &[usize]) {
-        let way = opposite(sf);
+        let way = sf.opposite();
         let mut blocks: Vec<Block> = members
             .iter()
             .filter_map(|m| {
@@ -2662,7 +2620,7 @@ impl<'a> Sketch<'a> {
         let short = |sk: &Self, entries: &[(PinId, PinId)]| {
             entries
                 .iter()
-                .map(|(h, f)| MARK_LEAD - beyond(sk.pt(*h), sk.pt(*f), way))
+                .map(|(h, f)| MARK_LEAD - way.beyond(sk.pt(*h), sk.pt(*f)))
                 .max()
                 .unwrap_or(0)
         };
@@ -2722,7 +2680,7 @@ impl<'a> Sketch<'a> {
             let single = units.len() == 1 && entries.len() == 1;
             let to_made = to_column(self, made);
             if made.is_some() && to_made >= lacks && (lacks > 0 || (single && to_made.abs() <= ROW_PULL)) {
-                self.shift(units, along_vec(way, whole_up(to_made)));
+                self.shift(units, along_vec(way, grid_away(to_made)));
             } else if lacks > 0 {
                 let to = to_column(self, near);
                 let by = if to >= lacks && to - lacks <= ROW_PULL {
@@ -2730,28 +2688,28 @@ impl<'a> Sketch<'a> {
                 } else {
                     lacks
                 };
-                self.shift(units, along_vec(way, whole_up(by)));
+                self.shift(units, along_vec(way, grid_away(by)));
             }
             // Along: beyond the blocks before it.
             let level = |sk: &Self| {
                 entries
                     .iter()
-                    .map(|(h, f)| beyond(sk.pt(*h), sk.pt(*f), s))
+                    .map(|(h, f)| s.beyond(sk.pt(*h), sk.pt(*f)))
                     .min()
                     .unwrap_or(0)
             };
             if level(self) < least {
-                let by = whole_up(floor - level(self));
+                let by = grid_away(floor - level(self));
                 self.shift(units, along_vec(s, by));
             }
             // Its place taken: the near column, where that is free; else further out.
             if on(self, &set) {
-                let to = whole_up(to_column(self, near));
+                let to = grid_away(to_column(self, near));
                 if to != 0 {
                     self.shift(units, along_vec(way, to));
                     let lead = entries
                         .iter()
-                        .map(|(h, f)| beyond(self.pt(*h), self.pt(*f), way))
+                        .map(|(h, f)| way.beyond(self.pt(*h), self.pt(*f)))
                         .min()
                         .unwrap_or(0);
                     if on(self, &set) || lead < MARK_LEAD {
@@ -2769,7 +2727,7 @@ impl<'a> Sketch<'a> {
             }
             let far = entries
                 .iter()
-                .map(|(h, f)| beyond(self.pt(*h), self.pt(*f), s))
+                .map(|(h, f)| s.beyond(self.pt(*h), self.pt(*f)))
                 .max()
                 .unwrap_or(floor);
             // The next block's wire runs beyond this block's bodies too.
@@ -2780,12 +2738,12 @@ impl<'a> Sketch<'a> {
                 .map(|b| span_along(b, s).1 - base + BODY_GAP)
                 .max()
                 .unwrap_or(0);
-            floor = (far + pitch).max(whole_up(bodies));
+            floor = (far + pitch).max(grid_away(bodies));
             least = floor;
             set.extend(units.iter().copied());
         }
         // A stack that leaves the drawing area slides back towards its hosts as far as its first block has room.
-        let edge = span_along(self.w.page.area.grown(-TICKS_PER_STEP / 2), s).1;
+        let edge = span_along(self.w.page.area.grown(-HALF), s).1;
         let over = set
             .iter()
             .flat_map(|u| self.bodies(*u))
@@ -2794,9 +2752,9 @@ impl<'a> Sketch<'a> {
             .unwrap_or(0);
         let slack = blocks
             .first()
-            .and_then(|(_, e)| e.iter().map(|(h, f)| beyond(self.pt(*h), self.pt(*f), s)).min())
+            .and_then(|(_, e)| e.iter().map(|(h, f)| s.beyond(self.pt(*h), self.pt(*f))).min())
             .map_or(0, |l| l - CHAIN_GAP_MIN);
-        let slide = whole_up(over).min(slack - slack.rem_euclid(TICKS_PER_STEP));
+        let slide = grid_away(over).min(grid_down(slack));
         if over > 0 && slide > 0 {
             self.shift(&set, along_vec(s, -slide));
             let on = set.iter().any(|u| {
@@ -2873,13 +2831,13 @@ impl<'a> Sketch<'a> {
             } else if sf == sh {
                 // Out, across and back: the router's to place.
                 continue;
-            } else if across(a, sf) == across(b, sf) {
+            } else if sf.across(a) == sf.across(b) {
                 vec![a, b]
             } else if sf.vertical() {
-                let y = (a.y + b.y).div_euclid(2 * TICKS_PER_STEP) * TICKS_PER_STEP;
+                let y = grid_down((a.y + b.y).div_euclid(2));
                 vec![a, Pt::new(a.x, y), Pt::new(b.x, y), b]
             } else {
-                let x = (a.x + b.x).div_euclid(2 * TICKS_PER_STEP) * TICKS_PER_STEP;
+                let x = grid_down((a.x + b.x).div_euclid(2));
                 vec![a, Pt::new(x, a.y), Pt::new(x, b.y), b]
             };
             mini.wires.push(Wire {
@@ -2946,7 +2904,7 @@ impl<'a> Sketch<'a> {
         self.bodies(o).iter().any(|b| {
             let (lo, hi) = span_across(*b, s);
             let (_, far) = span_along(*b, s);
-            lo - BODY_GAP < across(at, s) && across(at, s) < hi + BODY_GAP && far > out(at, s)
+            lo - BODY_GAP < s.across(at) && s.across(at) < hi + BODY_GAP && far > out(at, s)
         })
     }
 
@@ -2958,7 +2916,7 @@ impl<'a> Sketch<'a> {
             .iter()
             .filter_map(|m| self.lead[*m].map(|l| (*m, l)))
             .collect();
-        items.sort_by_key(|(m, l)| (across(self.pt(l.h), s), self.id(*m)));
+        items.sort_by_key(|(m, l)| (s.across(self.pt(l.h)), self.id(*m)));
         // The ones whose wire has no way out and back, by host.
         let mut stuck: BTreeMap<usize, Vec<(usize, Lead)>> = BTreeMap::new();
         for (m, l) in items {
@@ -2968,7 +2926,7 @@ impl<'a> Sketch<'a> {
                 stuck.entry(l.host).or_default().push((m, l));
             } else {
                 // On a bus page (rule B2) two stations whose ports face one side stand level.
-                let by = beyond(self.pt(l.f), self.pt(l.h), s);
+                let by = s.beyond(self.pt(l.f), self.pt(l.h));
                 if self.w.page.kind == PageKind::Bus && by != 0 {
                     self.shift(&units, along_vec(s, by));
                     if units.iter().any(|u| self.blocked(*u, &units)) {
@@ -2988,7 +2946,7 @@ impl<'a> Sketch<'a> {
             let (lo, hi) = span_across(self.hull(host), s);
             // One side for them all: the one their pins lie nearer to.
             let (to_lo, to_hi) = list.iter().fold((0i64, 0i64), |(a, b), (_, l)| {
-                let x = across(self.pt(l.h), s);
+                let x = s.across(self.pt(l.h));
                 (a + i64::from(x - lo), b + i64::from(hi - x))
             });
             let sides: [bool; 2] = if to_lo < to_hi {
@@ -3003,7 +2961,7 @@ impl<'a> Sketch<'a> {
                 // The pin nearest that side innermost.
                 let mut order = list.clone();
                 order.sort_by_key(|(m, l)| {
-                    let x = across(self.pt(l.h), s);
+                    let x = s.across(self.pt(l.h));
                     (if low { x } else { -x }, self.id(*m))
                 });
                 let mut edge = if low { lo } else { hi };
@@ -3012,7 +2970,7 @@ impl<'a> Sketch<'a> {
                 for (m, l) in &order {
                     let units = self.subtree(*m);
                     // Pins level.
-                    let by = beyond(self.pt(l.f), self.pt(l.h), s);
+                    let by = s.beyond(self.pt(l.f), self.pt(l.h));
                     self.shift(&units, along_vec(s, by));
                     let hull = units
                         .iter()
@@ -3021,9 +2979,9 @@ impl<'a> Sketch<'a> {
                         .unwrap_or_default();
                     let (a, b) = span_across(hull, s);
                     let by = if low {
-                        -whole_up(b + TRACK_PITCH - edge)
+                        -grid_away(b + TRACK_PITCH - edge)
                     } else {
-                        whole_up(edge + TRACK_PITCH - a)
+                        grid_away(edge + TRACK_PITCH - a)
                     };
                     self.shift(&units, across_vec(s, by));
                     let on = units
@@ -3088,7 +3046,7 @@ impl<'a> Sketch<'a> {
         let (host, own) = (bodies(self, &[l.host]), bodies(self, units));
         let ((h0, h1), (o0, o1)) = (span_along(host, s), span_along(own, s));
         let (lo, hi) = span_across(own, s);
-        let (h, f) = (across(self.pt(l.h), s), across(self.pt(l.f), s));
+        let (h, f) = (s.across(self.pt(l.h)), s.across(self.pt(l.f)));
         let clear = hi + BODY_GAP <= h || h <= lo - BODY_GAP;
         let beside = o0 < h1 && h0 < o1;
         let near = (h1 + CHAIN_GAP_MIN..=h1 + CHAIN_GAP + ROW_PULL).contains(&o0);
@@ -3100,17 +3058,17 @@ impl<'a> Sketch<'a> {
                 .parts
                 .iter()
                 .flat_map(|i| sk.w.parts[*i].pins.iter())
-                .filter(|p| p.side == Some(s) && p.id != l.h && (across(sk.pt(p.id), s) < h) == low)
+                .filter(|p| p.side == Some(s) && p.id != l.h && (s.across(sk.pt(p.id)) < h) == low)
                 .count()
         };
         let low = (pins(self, true), f > h) < (pins(self, false), f <= h);
-        let along = whole_up(h1 + CHAIN_GAP_MIN - o0);
+        let along = grid_away(h1 + CHAIN_GAP_MIN - o0);
         let start = self.d.clone();
         for low in [low, !low] {
             let by = if low {
-                -whole_up((hi + BODY_GAP - h).max(f + TRACK_PITCH - h))
+                -grid_away((hi + BODY_GAP - h).max(f + TRACK_PITCH - h))
             } else {
-                whole_up((h + BODY_GAP - lo).max(h + TRACK_PITCH - f))
+                grid_away((h + BODY_GAP - lo).max(h + TRACK_PITCH - f))
             };
             // (Further out where the texts of the two need it.)
             for more in 0..=ROW_PULL / TICKS_PER_STEP {

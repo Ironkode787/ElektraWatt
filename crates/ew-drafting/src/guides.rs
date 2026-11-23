@@ -19,9 +19,9 @@
 //!   in the same orientation), whose body shares the hanging part's height and whose origin is within [`GUIDE_SHOW`] of
 //!   the hanging part's level. Drawn at that part's level through its top pin and the hanging part's.
 
-use crate::consts::{GUIDE_CATCH, GUIDE_CATCH_PT, GUIDE_SHOW, TICKS_PER_STEP};
+use crate::consts::{GUIDE_CATCH, GUIDE_CATCH_PT, GUIDE_SHOW, HALF, TICKS_PER_STEP};
 use crate::geom;
-use crate::model::{DraftPage, End, Part, Pin, Pt, Rect, Side, Tick};
+use crate::model::{DraftPage, End, Part, Pin, Pt, Side, Tick};
 
 /// What a guide shows.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -92,17 +92,16 @@ pub fn guides(page: &DraftPage, ghost: &Part, pointer: Pt, points_per_step: f64)
     }
     let placed = Part { at, ..ghost.clone() };
     let body = placed.bounds();
-    let half = TICKS_PER_STEP / 2;
     let mut out: Vec<Guide> = in_line(page, &placed)
         .into_iter()
         .map(|f| {
             let v = f.side.unit();
             // Along the faced pin's side, past the far edge of the hanging part's body and its pin.
             let end = match f.side {
-                Side::Down => Pt::new(f.faced.x, body.y1.max(f.pin.y).saturating_add(half)),
-                Side::Up => Pt::new(f.faced.x, body.y0.min(f.pin.y).saturating_sub(half)),
-                Side::Right => Pt::new(body.x1.max(f.pin.x).saturating_add(half), f.faced.y),
-                Side::Left => Pt::new(body.x0.min(f.pin.x).saturating_sub(half), f.faced.y),
+                Side::Down => Pt::new(f.faced.x, body.y1.max(f.pin.y).saturating_add(HALF)),
+                Side::Up => Pt::new(f.faced.x, body.y0.min(f.pin.y).saturating_sub(HALF)),
+                Side::Right => Pt::new(body.x1.max(f.pin.x).saturating_add(HALF), f.faced.y),
+                Side::Left => Pt::new(body.x0.min(f.pin.x).saturating_sub(HALF), f.faced.y),
             };
             let in_line = if f.side.vertical() {
                 f.pin.x == f.faced.x
@@ -111,8 +110,8 @@ pub fn guides(page: &DraftPage, ghost: &Part, pointer: Pt, points_per_step: f64)
             };
             let tick = in_line.then(|| {
                 // Half a step from the hanging pin towards the faced one, a quarter step to each side.
-                let c = f.pin.minus(Pt::new(v.x * half, v.y * half));
-                let q = half / 2;
+                let c = f.pin.minus(Pt::new(v.x * HALF, v.y * HALF));
+                let q = HALF / 2;
                 let w = Pt::new(v.y.abs() * q, v.x.abs() * q);
                 (c.minus(w), c.plus(w))
             });
@@ -132,15 +131,14 @@ pub fn guides(page: &DraftPage, ghost: &Part, pointer: Pt, points_per_step: f64)
 /// How far from a guide's line the pointer takes it, in ticks: [`GUIDE_CATCH`], but never more than
 /// [`GUIDE_CATCH_PT`] screen points beyond the ordinary half step at `points_per_step`.
 fn catch(points_per_step: f64) -> Tick {
-    let half = TICKS_PER_STEP / 2;
     let extra = f64::from(GUIDE_CATCH_PT) * f64::from(TICKS_PER_STEP) / points_per_step;
     let extra = if extra.is_nan() {
         0
     } else {
         // Clamped to 0..=4 ticks before the cast.
-        extra.floor().clamp(0.0, f64::from(GUIDE_CATCH - half)) as Tick
+        extra.floor().clamp(0.0, f64::from(GUIDE_CATCH - HALF)) as Tick
     };
-    half + extra
+    HALF + extra
 }
 
 /// A pin of the hanging part and the pin of another part it faces, on the page.
@@ -151,21 +149,6 @@ struct Facing {
     faced: Pt,
     /// The faced pin's side.
     side: Side,
-}
-
-/// The opposite side.
-fn opposite(s: Side) -> Side {
-    match s {
-        Side::Up => Side::Down,
-        Side::Down => Side::Up,
-        Side::Left => Side::Right,
-        Side::Right => Side::Left,
-    }
-}
-
-/// Whether `p` lies inside the closed rectangle `r`.
-fn holds(r: Rect, p: Pt) -> bool {
-    r.holds(Rect::new(p, p))
 }
 
 /// Per pin of `ghost` at its place, the pin of another part it faces (module documentation), the nearest across, then
@@ -180,22 +163,22 @@ fn in_line(page: &DraftPage, ghost: &Part) -> Vec<Facing> {
     for h in &ghost.pins {
         let Some(hs) = h.side else { continue };
         let ph = ghost.at.plus(h.at);
-        if !holds(page.area, ph) {
+        if !page.area.contains(ph) {
             continue;
         }
         let mut best: Option<((Tick, i64, Pt), Facing)> = None;
         for part in page.parts.iter().filter(|p| p.id != ghost.id) {
             for o in &part.pins {
-                if o.side != Some(opposite(hs)) {
+                if o.side != Some(hs.opposite()) {
                     continue;
                 }
-                let side = opposite(hs);
+                let side = hs.opposite();
                 let po = part.at.plus(o.at);
                 let v = side.unit();
                 let d = ph.minus(po);
                 let along = i64::from(d.x) * i64::from(v.x) + i64::from(d.y) * i64::from(v.y);
                 let across = if side.vertical() { d.x } else { d.y }.saturating_abs();
-                if along <= 0 || across > GUIDE_SHOW || !holds(page.area, po) {
+                if along <= 0 || across > GUIDE_SHOW || !page.area.contains(po) {
                     continue;
                 }
                 // The faced pin's line up to the hanging pin's level, clear of every other part's body.
@@ -255,10 +238,9 @@ fn level(page: &DraftPage, ghost: &Part) -> Option<Guide> {
         })
         .min_by_key(|p| (p.at.x.abs_diff(ghost.at.x), p.at, p.id))?;
     let (a, b) = (other.at.plus(top), ghost.at.plus(top));
-    let half = TICKS_PER_STEP / 2;
     let (x0, x1) = (
-        a.x.min(b.x).saturating_sub(half),
-        a.x.max(b.x).saturating_add(half),
+        a.x.min(b.x).saturating_sub(HALF),
+        a.x.max(b.x).saturating_add(HALF),
     );
     Some(Guide {
         kind: GuideKind::Level,

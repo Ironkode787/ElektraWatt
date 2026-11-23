@@ -30,8 +30,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::consts::{TICKS_PER_STEP, TRUNK_GAP, TRUNK_PITCH};
-use crate::model::{End, JunctionId, Pt, Side, Tick, WireId};
+use crate::consts::{TRUNK_GAP, TRUNK_PITCH};
+use crate::model::{End, Groups, JunctionId, Pt, Side, Tick, WireId, grid_down, grid_up};
 
 /// A net job.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -67,30 +67,20 @@ pub fn nets(
         End::Junction(j) => movable(*j),
         End::Pin(_) => n >= 2,
     };
-    // Union-find by the smallest member.
-    let mut root: BTreeMap<WireId, WireId> = jobs.iter().map(|w| (*w, *w)).collect();
-    fn find(root: &BTreeMap<WireId, WireId>, mut x: WireId) -> WireId {
-        while let Some(&r) = root.get(&x) {
-            if r == x {
-                break;
-            }
-            x = r;
-        }
-        x
-    }
+    // Grouped by the smallest member: each wire by its place among the jobs.
+    let k = |w: &WireId| jobs.binary_search(w).unwrap_or_default();
+    let mut joined = Groups::new(jobs.len());
     for (e, ws) in &at {
         if !joins(e, ws.len()) {
             continue;
         }
         for w in &ws[1..] {
-            let (a, b) = (find(&root, ws[0]), find(&root, *w));
-            let (lo, hi) = (a.min(b), a.max(b));
-            root.insert(hi, lo);
+            joined.join(k(&ws[0]), k(w));
         }
     }
     let mut groups: BTreeMap<WireId, Vec<WireId>> = BTreeMap::new();
     for w in &jobs {
-        groups.entry(find(&root, *w)).or_default().push(*w);
+        groups.entry(jobs[joined.root(k(w))]).or_default().push(*w);
     }
     groups
         .into_values()
@@ -196,7 +186,6 @@ impl Line {
 /// rules, each line once.
 pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt)) -> Vec<Line> {
     let mut out: Vec<Line> = Vec::new();
-    let grid = |v: Tick| v.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
     for horizontal in [true, false] {
         let (lo, hi) = if horizontal {
             (bounds.0.y, bounds.1.y)
@@ -235,13 +224,13 @@ pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt
         };
         if let Some(min) = facing(before).min() {
             for k in 0..8 {
-                push(grid(min - TRUNK_GAP - k * TRUNK_PITCH), false);
+                push(grid_down(min - TRUNK_GAP - k * TRUNK_PITCH), false);
             }
         }
         if let Some(max) = facing(after).max() {
             for k in 0..8 {
                 push(
-                    grid(max + TRUNK_GAP + k * TRUNK_PITCH + TICKS_PER_STEP - 1),
+                    grid_up(max + TRUNK_GAP + k * TRUNK_PITCH),
                     false,
                 );
             }
@@ -252,7 +241,7 @@ pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt
         for a in &rows_after {
             for b in &rows_before {
                 if a < b {
-                    push(grid(a + (b - a) / 2), false);
+                    push(grid_down(a + (b - a) / 2), false);
                 }
             }
         }
@@ -264,7 +253,6 @@ pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt
 /// side with a line through another end along its side, on the grid, each once, the present place first.
 pub fn tap_points(present: Pt, ends: &[(Pt, Option<Side>)]) -> Vec<Pt> {
     let mut out = vec![present];
-    let grid = |v: Tick| v.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
     for (i, (a, sa)) in ends.iter().enumerate() {
         for (k, (b, sb)) in ends.iter().enumerate() {
             if i == k {
@@ -274,7 +262,7 @@ pub fn tap_points(present: Pt, ends: &[(Pt, Option<Side>)]) -> Vec<Pt> {
             let va = sa.is_none_or(Side::vertical);
             let hb = sb.is_none_or(|s| !s.vertical());
             if va && hb {
-                let p = Pt::new(grid(a.x), grid(b.y));
+                let p = Pt::new(grid_down(a.x), grid_down(b.y));
                 if !out.contains(&p) {
                     out.push(p);
                 }
@@ -287,16 +275,16 @@ pub fn tap_points(present: Pt, ends: &[(Pt, Option<Side>)]) -> Vec<Pt> {
         for (b, sb) in ends {
             let (Some(sa), Some(sb)) = (sa, sb) else { continue };
             let u = sa.unit();
-            let gap = (b.x - a.x) * u.x + (b.y - a.y) * u.y;
-            if *sb != crate::rules::opposite(*sa) || gap < 2 * TRUNK_GAP {
+            let gap = sa.beyond(*a, *b);
+            if *sb != sa.opposite() || gap < 2 * TRUNK_GAP {
                 continue;
             }
             for d in [TRUNK_GAP, gap / 2, gap - TRUNK_GAP] {
                 for (c, _) in ends {
                     let p = if sa.vertical() {
-                        Pt::new(grid(c.x), grid(a.y + u.y * d))
+                        Pt::new(grid_down(c.x), grid_down(a.y + u.y * d))
                     } else {
-                        Pt::new(grid(a.x + u.x * d), grid(c.y))
+                        Pt::new(grid_down(a.x + u.x * d), grid_down(c.y))
                     };
                     if !out.contains(&p) {
                         out.push(p);

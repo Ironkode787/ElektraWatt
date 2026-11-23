@@ -5,10 +5,67 @@
 //! grid position a multiple of 16, a half-grid position a multiple of 8 (§2.1). The adapters build it once from the
 //! stored page; no nanometre enters here.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use ew_ids::Uuid;
+
+use crate::consts::TICKS_PER_STEP;
 
 /// A coordinate in ticks.
 pub type Tick = i32;
+
+/// `v` rounded down to a whole step (towards negative infinity).
+pub(crate) fn grid_down(v: Tick) -> Tick {
+    v.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP
+}
+
+/// `v` rounded up to a whole step (towards positive infinity).
+pub(crate) fn grid_up(v: Tick) -> Tick {
+    (v + TICKS_PER_STEP - 1).div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP
+}
+
+/// `v` rounded away from zero to a whole step: up for a positive `v`, down for a negative one.
+pub(crate) fn grid_away(v: Tick) -> Tick {
+    let s = TICKS_PER_STEP;
+    if v >= 0 {
+        (v + s - 1).div_euclid(s) * s
+    } else {
+        -((-v + s - 1).div_euclid(s) * s)
+    }
+}
+
+/// Groups by union: members `0..n`, each group named by its smallest member.
+pub(crate) struct Groups(Vec<usize>);
+
+impl Groups {
+    /// `n` members, each its own group.
+    pub(crate) fn new(n: usize) -> Groups {
+        Groups((0..n).collect())
+    }
+
+    /// The smallest member of `i`'s group.
+    pub(crate) fn root(&mut self, mut i: usize) -> usize {
+        while self.0[i] != i {
+            self.0[i] = self.0[self.0[i]];
+            i = self.0[i];
+        }
+        i
+    }
+
+    /// Joins the groups of `a` and `b`; whether they were apart.
+    pub(crate) fn join(&mut self, a: usize, b: usize) -> bool {
+        let (ra, rb) = (self.root(a), self.root(b));
+        if ra != rb {
+            self.0[ra.max(rb)] = ra.min(rb);
+        }
+        ra != rb
+    }
+
+    /// Each member's group, by member.
+    pub(crate) fn roots(&mut self) -> Vec<usize> {
+        (0..self.0.len()).map(|i| self.root(i)).collect()
+    }
+}
 
 /// A point in ticks, y down.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
@@ -128,6 +185,16 @@ impl Rect {
     pub fn holds(self, o: Rect) -> bool {
         self.x0 <= o.x0 && o.x1 <= self.x1 && self.y0 <= o.y0 && o.y1 <= self.y1
     }
+
+    /// Whether `p` lies in `self`, edges included.
+    pub(crate) fn contains(self, p: Pt) -> bool {
+        self.x0 <= p.x && p.x <= self.x1 && self.y0 <= p.y && p.y <= self.y1
+    }
+
+    /// Whether `p` lies strictly inside `self`, edges excluded.
+    pub(crate) fn contains_strictly(self, p: Pt) -> bool {
+        self.x0 < p.x && p.x < self.x1 && self.y0 < p.y && p.y < self.y1
+    }
 }
 
 /// The side a wire leaves a pin on.
@@ -157,6 +224,27 @@ impl Side {
     /// Whether a wire leaves along the vertical.
     pub fn vertical(self) -> bool {
         matches!(self, Side::Up | Side::Down)
+    }
+
+    /// The opposite side.
+    pub(crate) fn opposite(self) -> Side {
+        match self {
+            Side::Up => Side::Down,
+            Side::Down => Side::Up,
+            Side::Left => Side::Right,
+            Side::Right => Side::Left,
+        }
+    }
+
+    /// How far `p` lies beyond `from` along the side.
+    pub(crate) fn beyond(self, from: Pt, p: Pt) -> Tick {
+        let u = self.unit();
+        (p.x - from.x) * u.x + (p.y - from.y) * u.y
+    }
+
+    /// The coordinate of `p` across the side (x for a vertical side, y for a horizontal one).
+    pub(crate) fn across(self, p: Pt) -> Tick {
+        if self.vertical() { p.x } else { p.y }
     }
 }
 
@@ -196,6 +284,13 @@ pub enum Role {
     /// Anything else.
     #[default]
     Other,
+}
+
+impl Role {
+    /// Whether the part is an interruption point or supply mark, incoming or outgoing.
+    pub(crate) fn is_mark(self) -> bool {
+        matches!(self, Role::MarkIn | Role::MarkOut)
+    }
 }
 
 /// A part: a representation on the page.
@@ -247,6 +342,33 @@ pub struct DraftPage {
     pub fixed_texts: Vec<FixedText>,
     /// The cable and wire marks that sit across wires.
     pub marks: Vec<Mark>,
+}
+
+impl DraftPage {
+    /// Every pin of the page by ID: its point, its side and its part (the parts taken in the order of their IDs).
+    pub(crate) fn pins(&self) -> BTreeMap<PinId, (Pt, Option<Side>, PartId)> {
+        let mut parts: Vec<&Part> = self.parts.iter().collect();
+        parts.sort_by_key(|p| p.id);
+        let mut out = BTreeMap::new();
+        for p in parts {
+            for pin in &p.pins {
+                out.insert(pin.id, (p.at.plus(pin.at), pin.side, p.id));
+            }
+        }
+        out
+    }
+
+    /// The pins a wire ends at.
+    pub(crate) fn wired(&self) -> BTreeSet<PinId> {
+        self.wires
+            .iter()
+            .flat_map(|w| w.ends)
+            .filter_map(|e| match e {
+                End::Pin(p) => Some(p),
+                End::Junction(_) => None,
+            })
+            .collect()
+    }
 }
 
 /// A part on the page.

@@ -44,7 +44,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{CHAIN_GAP, CHAIN_GAP_MIN, EARTH_REACH, ROW_PULL};
 use crate::measure::parts_on_parts;
-use crate::model::{DraftPage, End, JunctionId, PageKind, Part, PartId, PinId, Pt, Role, Side, Tick, WireId};
+use crate::model::{
+    DraftPage, End, Groups, JunctionId, PageKind, Part, PartId, PinId, Pt, Role, Side, Tick, WireId,
+};
 
 /// A rule of §1.6.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -127,28 +129,17 @@ impl<'a> Wiring<'a> {
                 keys.entry(e).or_insert(n);
             }
         }
-        let mut up: Vec<usize> = (0..keys.len()).collect();
-        fn root(up: &mut [usize], mut i: usize) -> usize {
-            while up[i] != i {
-                up[i] = up[up[i]];
-                i = up[i];
-            }
-            i
-        }
+        let mut groups = Groups::new(keys.len());
         for w in &wires {
-            let (a, b) = (keys[&w.ends[0]], keys[&w.ends[1]]);
-            let (ra, rb) = (root(&mut up, a), root(&mut up, b));
-            if ra != rb {
-                up[ra.max(rb)] = ra.min(rb);
-            }
+            groups.join(keys[&w.ends[0]], keys[&w.ends[1]]);
         }
         let mut by_root: BTreeMap<usize, Net> = BTreeMap::new();
         for w in &wires {
-            let r = root(&mut up, keys[&w.ends[0]]);
+            let r = groups.root(keys[&w.ends[0]]);
             by_root.entry(r).or_default().wires.push(w.id);
         }
         for (e, k) in &keys {
-            let r = root(&mut up, *k);
+            let r = groups.root(*k);
             let net = by_root.entry(r).or_default();
             match e {
                 End::Pin(p) if pins.contains_key(p) => net.pins.push(*p),
@@ -198,27 +189,6 @@ impl<'a> Wiring<'a> {
 
 /// A partner of a part's pin on one side: the pin's coordinate across that side, the partner pin's, the partner.
 type Partner = (Tick, Tick, usize);
-
-/// The opposite side.
-pub(crate) fn opposite(s: Side) -> Side {
-    match s {
-        Side::Up => Side::Down,
-        Side::Down => Side::Up,
-        Side::Left => Side::Right,
-        Side::Right => Side::Left,
-    }
-}
-
-/// How far `p` lies beyond `from` along `s`.
-pub(crate) fn beyond(from: Pt, p: Pt, s: Side) -> Tick {
-    let u = s.unit();
-    (p.x - from.x) * u.x + (p.y - from.y) * u.y
-}
-
-/// The coordinate of `p` across `s` (x for a vertical side, y for a horizontal one).
-pub(crate) fn across(p: Pt, s: Side) -> Tick {
-    if s.vertical() { p.x } else { p.y }
-}
 
 /// Whether the plan's page `after` keeps the rules of §1.6 against the page `before` it starts from (module
 /// documentation); else the rules it breaks, each with the parts that break it, in rule order.
@@ -335,13 +305,13 @@ fn a4(w: &Wiring<'_>) -> Vec<Broken> {
             // A row is of parts that face their pins: a wire that turns a corner nests with its neighbours, and one
             // that turns back lies inside or outside them (the order of such parts is the other way round).
             if let Some(s) = hs
-                && fs == Some(opposite(s))
+                && fs == Some(s.opposite())
             {
                 let body = w.parts[hp].body;
                 let line = if s.vertical() { ha.y } else { ha.x };
                 rows.entry(((body.w(), body.h()), s, line)).or_default().push((
-                    across(ha, s),
-                    across(fa, s),
+                    s.across(ha),
+                    s.across(fa),
                     fp,
                 ));
             }
@@ -368,13 +338,13 @@ fn a5(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTre
     for (p, q) in b.pairs() {
         let ((pi, pb, ps), (qi, qb, qs)) = (b.pins[&p], b.pins[&q]);
         let (Some(s), Some(t)) = (ps, qs) else { continue };
-        if t != opposite(s) {
+        if t != s.opposite() {
             continue;
         }
         let (Some(pa), Some(qa)) = (a.pins.get(&p), a.pins.get(&q)) else {
             continue;
         };
-        let (before, after) = (beyond(pb, qb, s), beyond(pa.1, qa.1, s));
+        let (before, after) = (s.beyond(pb, qb), s.beyond(pa.1, qa.1));
         let ids = [b.part_id(pi), b.part_id(qi)];
         // Closed up: nearer than the chain gap, or than it stood where it stood nearer. Spread: further than a row's
         // line takes a part beyond the chain gap, or beyond where it stood.
@@ -417,13 +387,13 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
         let taps: Vec<usize> = n
             .pins
             .iter()
-            .filter(|p| !matches!(w.parts[w.pins[*p].0].role, Role::MarkIn | Role::MarkOut))
+            .filter(|p| !w.parts[w.pins[*p].0].role.is_mark())
             .map(|p| w.pins[p].0)
             .collect();
         let sides: BTreeSet<Option<Side>> = n
             .pins
             .iter()
-            .filter(|p| !matches!(w.parts[w.pins[*p].0].role, Role::MarkIn | Role::MarkOut))
+            .filter(|p| !w.parts[w.pins[*p].0].role.is_mark())
             .map(|p| w.pins[p].2)
             .collect();
         let feeding = match sides.into_iter().collect::<Vec<_>>()[..] {
@@ -441,7 +411,7 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
             for (a, b) in &pairs {
                 let (pa, pb) = (w.pins[a].0, w.pins[b].0);
                 for (x, y) in [(pa, pb), (pb, pa)] {
-                    if x == i && !matches!(w.parts[y].role, Role::MarkIn | Role::MarkOut) && circuit.insert(y)
+                    if x == i && !w.parts[y].role.is_mark() && circuit.insert(y)
                     {
                         todo.push(y);
                     }
@@ -458,7 +428,7 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
 fn e2(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     let rails = rails(w);
-    let mark = |i: usize| matches!(w.parts[i].role, Role::MarkIn | Role::MarkOut);
+    let mark = |i: usize| w.parts[i].role.is_mark();
     for (line, feeding, circuit, _) in &rails {
         for i in circuit {
             let b = w.parts[*i].bounds();
@@ -527,13 +497,13 @@ fn e4(w: &Wiring<'_>) -> Vec<Broken> {
             if fs == Some(s) {
                 continue;
             }
-            if beyond(cp, fp, s) <= 0 {
+            if s.beyond(cp, fp) <= 0 {
                 out.push(broken_by(Rule::E4, vec![w.part_id(fi)]));
             }
             edges
                 .entry((ci, s))
                 .or_default()
-                .push((across(cp, s), across(fp, s), fi));
+                .push((s.across(cp), s.across(fp), fi));
         }
     }
     for (_, mut row) in edges {
@@ -705,7 +675,7 @@ fn b2(w: &Wiring<'_>) -> Vec<Broken> {
             .all(|x| matches!(w.parts[*x].role, Role::Station | Role::Controller));
         if let (true, Some(s), Some(t)) = (stations, sa, sb)
             && s == t
-            && beyond(pa, pb, s) != 0
+            && s.beyond(pa, pb) != 0
         {
             out.push(broken_by(Rule::B2, vec![w.part_id(i), w.part_id(j)]));
         }
