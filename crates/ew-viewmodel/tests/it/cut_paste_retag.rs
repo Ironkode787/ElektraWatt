@@ -28,7 +28,11 @@ fn terminals_cut_and_pasted_on_another_page_keep_their_strip_and_the_toast_names
     done(&mut shell, "pages.open", json!({"folio": "101"}));
     done(&mut shell, "edit.paste_in_place", json!({}));
     let toast = shell.toast().map(|t| t.text.clone()).unwrap_or_default();
-    assert!(toast.starts_with("-X1021 is now -X101"), "{toast}");
+    assert!(
+        toast.starts_with("Moved 8 terminals of -X101")
+            && toast.contains(" to page 101. -X1021 is now -X101"),
+        "{toast}"
+    );
     assert!(
         toast.contains("a tag follows the page its device is drawn on"),
         "{toast}"

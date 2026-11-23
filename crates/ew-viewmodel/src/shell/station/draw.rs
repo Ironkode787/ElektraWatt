@@ -904,6 +904,55 @@ impl ShellModel {
         (!pairs.is_empty()).then(|| strings::format(why, &[&pairs.join(", ")]))
     }
 
+    /// What a paste (`edit.paste` with `params`) that brought back the devices `back` a cut left unplaced moved, in
+    /// words for its toast: "Moved 12 terminals of -X1 to page 101." when its symbols are the terminals of one strip,
+    /// else "Moved 3 symbols to page 101."; `None` for a paste of no symbol or with no page on show.
+    pub(in crate::shell) fn moved_words(&self, back: &[Uuid], params: &Value) -> Option<String> {
+        let session = self.project_session()?;
+        let records: Vec<&Value> = params["fragment"]["records"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .collect();
+        let symbols = records.iter().filter(|r| r["$k"] == "representation").count();
+        if symbols == 0 {
+            return None;
+        }
+        let page = strings::format(key!("refusal-words-page"), &[&self.canvas()?.page().folio]);
+        let q = session.query();
+        let device = |id: &Uuid| id.to_string().parse().ok().and_then(|d| q.devices().get(d));
+        let strips: Vec<&Uuid> = back
+            .iter()
+            .filter(|d| device(d).is_some_and(|d| d.aspects.strip.is_some()))
+            .collect();
+        // Every device of the fragment a terminal (of a block of two levels too) or its strip.
+        let only_terminals = records
+            .iter()
+            .filter(|r| r["$k"] == "device")
+            .filter_map(|r| r["id"].as_str()?.parse::<Uuid>().ok())
+            .all(|d| strips.contains(&&d) || device(&d).is_some_and(|d| d.aspects.terminal.is_some()));
+        let n = symbols.to_string();
+        Some(match strips.as_slice() {
+            [strip] if only_terminals => {
+                let tag = session.device_tag(**strip).unwrap_or_default();
+                let key = if symbols == 1 {
+                    key!("toast-paste-moved-terminal")
+                } else {
+                    key!("toast-paste-moved-terminals")
+                };
+                strings::format(key, &[&n, &tag, &page])
+            }
+            _ => {
+                let key = if symbols == 1 {
+                    key!("toast-paste-moved-symbol")
+                } else {
+                    key!("toast-paste-moved")
+                };
+                strings::format(key, &[&n, "", &page])
+            }
+        })
+    }
+
     /// Of the tags `before` ([`ShellModel::redrawn_tags`]), those that changed: each device with its tag before and now.
     pub(in crate::shell) fn retagged(&self, before: &[(Uuid, String)]) -> Vec<(Uuid, String, String)> {
         let Some(session) = self.project_session() else {

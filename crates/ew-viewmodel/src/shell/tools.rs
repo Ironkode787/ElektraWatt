@@ -684,8 +684,10 @@ impl ShellModel {
                     .map(|j| self.redrawn_tags(cmd.name(), &j))
                     .unwrap_or_default();
                 // A paste that brings back what a cut left unplaced compares with the tags before the cut, once.
+                let mut moved_back = Vec::new();
                 if cmd.name() == "edit.paste" {
                     let cut = std::mem::take(&mut self.tools.cut_tags);
+                    moved_back = cut.iter().map(|(d, _)| *d).collect();
                     for (d, tag) in &mut retag {
                         if let Some((_, was)) = cut.iter().find(|(c, _)| c == d) {
                             tag.clone_from(was);
@@ -720,9 +722,15 @@ impl ShellModel {
                         )),
                         _ => None,
                     };
-                    let parts: Vec<String> = self
-                        .retagged_words(cmd.name(), &retag)
+                    // A paste that brings cut devices back says first what it moved, replacing the Cut's toast.
+                    let moved = cmd
+                        .to_json()
+                        .ok()
+                        .filter(|_| !moved_back.is_empty())
+                        .and_then(|j| self.moved_words(&moved_back, &j));
+                    let parts: Vec<String> = moved
                         .into_iter()
+                        .chain(self.retagged_words(cmd.name(), &retag))
                         .chain(notices)
                         .collect();
                     // A tag the paste changed can be kept as it read (frozen), beside Undo.

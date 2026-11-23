@@ -3009,6 +3009,10 @@ toast-retagged = { $p0 }: a device takes its tag from the page that draws its ow
 retag-pair = { $p0 } is now { $p1 }
 toast-paste-retagged = { $p0 }: a tag follows the page its device is drawn on, and the paste put the cut devices back on this one.
 toast-paste-notices = The paste: { $p0 }.
+toast-paste-moved-terminals = Moved { $p0 } terminals of { $p1 } to { $p2 }.
+toast-paste-moved-terminal = Moved 1 terminal of { $p1 } to { $p2 }.
+toast-paste-moved = Moved { $p0 } symbols to { $p2 }.
+toast-paste-moved-symbol = Moved 1 symbol to { $p2 }.
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.

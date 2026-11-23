@@ -80,8 +80,10 @@ fn a_moved_strip_says_its_tag_follows_the_page_and_keep_freezes_the_old_one() {
         .strip_prefix("Keep ")
         .expect("Keep names the old tag")
         .to_owned();
+    // It says first what it moved, in place of the Cut's toast.
     assert!(
-        toast.text.starts_with(&format!("{old} is now ")),
+        toast.text.starts_with("Moved 2 terminals of ")
+            && toast.text.contains(&format!(" to page 102. {old} is now ")),
         "{}",
         toast.text
     );
