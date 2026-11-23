@@ -1177,62 +1177,22 @@ The result equals step 6 of the Golden C fix script.
 
 ## 11. The reference project
 
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), whose page 201 draws a
+valve terminal with two used and two spare valves.
+
 ### 11.1 Folios 201–206 as data
 
-| Fact | Model |
-|---|---|
-| One manifold drawn over 201 and 202 | -201U1 with 11 children in manifold order; two overview segments with derived break marks; one identity (FR-DEV-022, D-41) |
-| 7 × VMPA1-FB-EMG-8 | -201U3 … -201U8, -202U2: `PlcModule` slots 1–7, 4 positions each, output bytes Q0 … Q6 |
-| 28 × 571334 | -201U3-Q1 … -202U2-Q4: 5/2 monostable valve function plus coil 14 (internal CP). 8 used (-201U3, -201U4), 20 spare (state Spare, valve fitted, ▲U-36) |
-| Order codes | `Assembly.configs`: 51E-F13GCQP-D+H2GG covers 195740 and 550208 of -201U1; 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS covers the rest (▲U-24) |
-| Process valves TA05-V-15, -33, -18, -17 (driven by -201U3-Q1 … Q4) and TA05-V-36, -38, -16, -37 (-201U4-Q1 … Q4) | -203Q1 … -203Q8 in +FIELD (▲U-07), supplied by others: process-valve and actuator functions, derived linkage, `Drives` from the valve |
-| Tubes | F1–F16, working lines from ports 2 and 4 to actuator ports A, B. No spec, no length (▲U-25) |
-| Supply, exhaust, medium | None as drawn (D-28) |
-
-**Derived texts on folio 203 and 204.**
-
-| Representation | Slot | Prints | Derivation |
-|---|---|---|---|
-| -201U3 (module aux rep, anchor 203-B4) | tag, xref | "-201U3", "(201-E4)" | Page-based tag from the 201 overview slot; main/aux reference (FR-XRF-016) |
-| -201U3-Q1 | `PlcAddress` | "Q0.1" | Coil 14 ← channel 1 of -201U3 (as drawn, 2p + 1 with p = 0) → module start Q0 → profile "Siemens TIA (international)" |
-| -201U3-Q1 | `FunctionText` with `ProcessTag` fallback | "TA05-V-15" | No manual text → `Drives` → -203Q1.process_tag |
-| -201U3-Q1 | port designations | 3, 1, 5 / 2, 4 | FnDef CpDefs; the positions come from the symbol |
-| -201U5-Q1 (204) | `PlcAddress`, `FunctionText` | "Q2.1", "Spare" | Binding; manual function text, state Spare |
-
-Changing -201U3's module start re-renders "Q0.1" in the same commit (FR-FLU-005). Golden B renumbering leaves
-"TA05-V-15" untouched (FR-DEV-012).
-
-**One value, one place.** The used valves carry no function text: TA05-V-15 … are stored once, as the field
-devices' process tags, and print on the valves through the `FunctionText` slot's `ProcessTag` fallback, as in
-the valve typical of [07](07-symbols-parts-macros.md) §9.3. The spare valves
-keep the manual function text "Spare". Reports keep function text and process tag as separate columns
-([10](10-plc-and-bus.md) §3.4).
+**One value, one place.** A used valve carries no function text: the process tag is stored once, on the field
+device, and prints on the valve through the `FunctionText` slot's `ProcessTag` fallback, as in the module typical of
+[07](07-symbols-parts-macros.md) §9.3. A spare valve keeps the manual function text "Spare". Reports keep function
+text and process tag as separate columns ([10](10-plc-and-bus.md) §3.4). Changing a module's start re-renders its
+valves' address texts in the same commit (FR-FLU-005); renumbering leaves process tags untouched (FR-DEV-012).
 
 ### 11.2 Expected results
 
-These were the expectations on the reference project (Golden A and A-R), retired at 0.3.5; each rule now keeps its
-own tests (the *As built* paragraph below).
-
-- **MVP check run.**
-  - EF-13: EW-FL-001, 20 warnings, one per spare valve, ports 2 and 4.
-  - EF-14: EW-FL-004, 20 infos.
-  - EW-FL-002, EW-FL-011 and EW-FL-013 report nothing.
-- **1.0 check run.**
-  - EF-20: EW-FL-010, 1 warning on -201U1, because gallery 1 is fed by nothing.
-  - EF-21: EW-FL-007, 16 warnings, F1–F16.
-  - EW-FL-005, EW-FL-006, EW-FL-009 and EW-FL-012 report 0.
-  - EW-FL-008 and EW-FL-014 are off.
-- **AC-32.** 28 valve children, overviews 201/202 generated with 4 valves on -202U2, break marks and "∞" references,
-  16 lines to 8 field devices, derived address texts. At 1.0 the tube list has 16 rows.
-- **Propagation test** (FR-FLU-009, FR-FLU-026) on the Golden A-R fluid overlay (▲U-25). The `MediumDef` "compressed air 6 bar [1:4:1]" at the air-supply point reaches -201U9:1 through the
-  supply line F17 and port 1 of all 28 valves through gallery 1. It reaches ports 3 and 5 as `Exhaust`, and F1–F16
-  as the medium. EF-20 clears. The default tube PU 6×4 BU clears EF-21, the plugs on the spare valves' ports 2 and 4
-  clear EF-13, and the tube list has 17 rows F1–F17 at 1,200 mm (`expected/fluid.csv`).
-
-*As built.* The fluid rules are tested on small models built in code: `crates/ew-checks/tests/it/fluid.rs`
-(EW-FL-001, -002, -004, -011, -013) and `fluid_media.rs` (EW-FL-005, -006, -007, -009, -010, -012). The sample
-project's page 201 draws a valve terminal with two used and two spare valves. EW-FL-004 counts in the release run
-(`o r`, §6).
+The fluid rules are tested on small models built in code: `crates/ew-checks/tests/it/fluid.rs` (EW-FL-001, -002,
+-004, -011, -013) and `fluid_media.rs` (EW-FL-005, -006, -007, -009, -010, -012). EW-FL-004 counts in the release
+run (`o r`, §6).
 
 ### 11.3 Defects prevented
 

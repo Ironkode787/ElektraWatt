@@ -1452,52 +1452,48 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 
 ## 10. The reference project
 
-### 10.1 Golden A pre-delivery findings with final rule IDs
+### 10.1 The named findings and their final rule IDs
 
-The reference project's expected findings named some rules by their FR. These are their final IDs, with the counts
-of the reference: **42 errors, 32 warnings, 31 infos, 1 waived** (AC-21). The reference was retired at 0.3.5, and the
-set is no longer checked as a whole: each rule keeps its own tests in `crates/ew-checks/tests/it/`, and the sample
-project is clean under the pre-delivery checks.
+The named findings EF-01 … EF-25 that tests and other documents cite, with their final rule IDs. Each rule keeps its
+own tests in `crates/ew-checks/tests/it/`, and the sample project is clean under the pre-delivery checks.
 
-| EF | Final rule | Code | Severity | Count | D |
-|---|---|---|---|---|---|
-| EF-01 | EW-POT-013 | 005013 | error | 2 (T55, S56) | D-13 |
-| EF-02 | EW-PLC-012 | 110012 | error | 28 (map H1) | D-26 |
-| EF-03 | EW-BUS-001 | 111001 | error | 1 (-201U1 `Tbd`) | D-15 |
-| EF-04 | EW-CORE-041 | 102041 | warning | 2 (S56, E56) | D-04 |
-| EF-05 | EW-LAY-001 | 130001 | error (release) | 5 (F55, E55, E56, S56, -201U9) | D-32 |
-| EF-06 | EW-POT-006 | 005006 | error | 1 (W6) | D-38 |
-| EF-07 | EW-CORE-034 | 003034 | warning | 1 (+J-E-206 → 1X1) | D-19 |
-| EF-08 | EW-CORE-033 | 003033 | error | 1 (-3W1) | D-19 |
-| EF-09 | EW-POT-009 | 005009 | warning | 2 (-102F2:13, :14) | D-23 |
-| EF-10 | EW-POT-003 | 005003 | warning | 2 (-201U1:3, -202U1:3) | D-16 |
-| EF-11 | EW-POT-005 | 005005 | warning | 2 (W36, W41) | — |
-| EF-12 | EW-CORE-061 | 104061 | warning | 2 (styles `cp.small`, `marker`) | D-31 |
-| EF-13 | EW-FL-001 | 120001 | warning | 20 | D-28 |
-| EF-14 | EW-FL-004 | 120004 | info | 20 | — |
-| EF-15 | EW-NUM-001 | 017101 | info | 10 (S51 … 1X1 and the three ▲U-34 frozen test inputs, listed apart) | D-03 |
-| EF-16 | EW-BUS-004 | 111004 | info | 1 | D-15 |
-| EF-17 | EW-CORE-043 | 102043 | error (release) | 4 | D-04 |
-| EF-18 | EW-RDS-003 | 017003 | warning | 1 (T55) | D-03 |
-| EF-19 | EW-CORE-041 | 102041 | none since rc.3 (-XPE is an earth connection); before it waived (W-1) | 0 | — |
-| EF-20 … 22 (1.0) | EW-FL-010, EW-FL-007, EW-PLC-013 (supersedes EF-10) | 120010, 120007, 110013 | warning | 1, 16, 2 | D-28, D-16 |
-| EF-23 … 25 (1.0) | EW-POT-007, EW-POT-018 with EW-PLC-014, EW-CORE-065 | 005007, 005018 / 110014, 104065 | — | 0 | D-21, D-25, D-35 |
+| EF | Final rule | Code | Severity | D |
+|---|---|---|---|---|
+| EF-01 | EW-POT-013 | 005013 | error | D-13 |
+| EF-02 | EW-PLC-012 | 110012 | error | D-26 |
+| EF-03 | EW-BUS-001 | 111001 | error | D-15 |
+| EF-04 | EW-CORE-041 | 102041 | warning | D-04 |
+| EF-05 | EW-LAY-001 | 130001 | error (release) | D-32 |
+| EF-06 | EW-POT-006 | 005006 | error | D-38 |
+| EF-07 | EW-CORE-034 | 003034 | warning | D-19 |
+| EF-08 | EW-CORE-033 | 003033 | error | D-19 |
+| EF-09 | EW-POT-009 | 005009 | warning | D-23 |
+| EF-10 | EW-POT-003 | 005003 | warning | D-16 |
+| EF-11 | EW-POT-005 | 005005 | warning | — |
+| EF-12 | EW-CORE-061 | 104061 | warning | D-31 |
+| EF-13 | EW-FL-001 | 120001 | warning | D-28 |
+| EF-14 | EW-FL-004 | 120004 | info | — |
+| EF-15 | EW-NUM-001 | 017101 | info | D-03 |
+| EF-16 | EW-BUS-004 | 111004 | info | D-15 |
+| EF-17 | EW-CORE-043 | 102043 | error (release) | D-04 |
+| EF-18 | EW-RDS-003 | 017003 | warning | D-03 |
+| EF-20 … 22 (1.0) | EW-FL-010, EW-FL-007, EW-PLC-013 (supersedes EF-10) | 120010, 120007, 110013 | warning | D-28, D-16 |
+| EF-23 … 25 (1.0) | EW-POT-007, EW-POT-018 with EW-PLC-014, EW-CORE-065 | 005007, 005018 / 110014, 104065 | — | D-21, D-25, D-35 |
 
-Waiver W-1 targets the fingerprint of EW-CORE-041 on -XPE, with the reason "PE stud is part of NSYPMM107". In Golden
-B, step B1 renumbers -XPE to -101X2. The fingerprint holds only the device UUID, so W-1 still matches and the waived
-count stays 1. *As built (rc.3):* -XPE is an earth connection and asked no part, so EF-19 holds no finding and W-1
-is not recorded; the waiver tests waive -203Q1's EW-CORE-041 finding instead (a valve supplied by others).
 
-### 10.2 Golden C: the migration report as a check run
+A waiver of EW-CORE-041 targets the finding's fingerprint, which holds only the device UUID, so the waiver still
+matches after the device is renumbered.
+
+### 10.2 The migration report as a check run
 
 `ew import qet` runs the `migration` scheme (§4.9): every enabled rule of `pre-delivery` at its pre-delivery
-severity, in lenient mode, so prevent violations become findings, plus the EW-IMP findings of the import run. Each
-golden MF row appeared exactly once (AC-25). The rows below are live rules; where an
-import code names the same condition (MF-02, MF-05, MF-11, MF-14, MF-26), it is the row's origin. MF-21 and MF-22
-exist only in the import run, so they are import findings; the remaining MF rows are import findings too, mapped
-in [14](14-interop.md) §15.2.
-
-*As built.* The scheme runs on imports: `ew_api::import::lenient_findings` runs the `migration` scheme on the imported model, and the lenient groups of the migration report are the engine's open findings per rule. This replaces the front-door duplicate checks; `ApplyImport`, the lenient validators, passes P1 to P7, proposals and the `ImportRun` record remain.
+severity, in lenient mode, so prevent violations become findings, plus the EW-IMP findings of the import run.
+`ew_api::import::lenient_findings` runs the scheme on the imported model, and the lenient groups of the migration
+report are the engine's open findings per rule; `ApplyImport`, the lenient validators, passes P1 to P7, proposals
+and the `ImportRun` record stay as [14](14-interop.md) §2 specifies. The rows below are live rules; where an import
+code names the same condition (MF-02, MF-05, MF-11, MF-14, MF-26), it is the row's origin. MF-21 and MF-22 exist
+only in the import run, so they are import findings; the remaining MF rows are import findings too, mapped in
+[14](14-interop.md) §15.2.
 
 | MF | Row | MF | Row | MF | Row |
 |---|---|---|---|---|---|
@@ -1507,28 +1503,22 @@ in [14](14-interop.md) §15.2.
 | MF-09 | EW-TERM-002 | MF-21 | EW-IMP-113 (import finding) | MF-26 | EW-CORE-063 |
 | MF-11 | EW-CORE-031 | MF-22 | EW-IMP-006 (import finding) | MF-27 | EW-CORE-034 |
 
-MF-04, the per-folio revision values "1", "V1.0", "V1" and "V2.0", is resolved by creating V1.0 (Released, historic,
-no archive) and V2.0 (Open). V2.0's page notes come from the folios that printed V2.0, so page change status gives
-101 and 106 → V2.0 and every other page → V1.0 (§5.6), as the reference printed.
+MF-04, per-folio revision values that differ (such as "1", "V1.0", "V1" and "V2.0"), is the import finding
+EW-IMP-104; a revision value that every folio shares becomes the label of the project's Open revision
+([14](14-interop.md) §4.9).
 
-### 10.3 Release of V2.0
+### 10.3 Refusing, approving and releasing a revision
 
-- **Golden A.** `ew revision release V2.0` is refused and lists exactly the 42 errors of §10.1 and EW-REL-001
-  "checker not set" (AC-23).
-- **Golden A-R.** The overlay clears every error-level finding: rewired T55 and S56, map H2, address 3, placements,
-  W6 at 2.5 mm², -3W1 at 10 m and test parts. `ew check --scheme pre-delivery`
-  then exits 0. The acceptance runner (until 0.3.5) next invoked the CLI subcommand
-  `ew revision approve --as <checker>` with `<checker>` ≠ `<engineer>`. It cannot be a step of the `.ewcmd`
-  overlay, because a replay may not run `HumanOnly` commands (§5.4), and a sign-off digest cannot be stored in a
-  static CSV, since it is bound to the content digest of the saved project. The terminal confirmation comes from
-  the test-build confirmation hook of [18](18-quality-security-release.md) §3.15. Release then succeeds:
-  - the archive verifies;
-  - the tag `ew/rev/V2.0` exists in a git fixture;
-  - `changed_pages(V2.0)` = {101, 106};
-  - folio 911 shows V2.0 Released.
-
-  The remaining warnings (EF-09 … EF-13, EF-18) do not block. The next content edit opens V3.0, and from 1.0 draft
-  exports carry "DRAFT V3.0" (FR-OUT-021).
+- **Refused.** `ew revision release` is refused while an error-level finding of the release scheme is open, and
+  lists them, with EW-REL-001 "checker not set" when no checker is set.
+- **Approval.** The approval is the CLI subcommand `ew revision approve --as <checker>` with `<checker>` ≠
+  `<engineer>`. It cannot be a line of a command log, because a replay may not run `HumanOnly` commands (§5.4), and
+  a sign-off digest cannot be stored ahead, since it is bound to the content digest of the saved project. In tests
+  the terminal confirmation comes from the test-build confirmation hook of
+  [18](18-quality-security-release.md) §3.15.
+- **Release.** The archive verifies; in a git project the tag `ew/rev/<label>` exists; `changed_pages` holds the
+  pages that changed; the revision overview shows the revision Released. Warnings do not block. The next content
+  edit opens the next revision, and from 1.0 draft exports carry "DRAFT <label>" (FR-OUT-021).
 
 ### 10.4 Defects prevented or detected by this area
 
@@ -1537,7 +1527,7 @@ C = detected by a check, A = assisted by a tool, not checked.
 
 | D | Mechanism here | Class |
 |---|---|---|
-| D-01 | Golden B and EW-RDS-008 structural (derived tags, one-transaction renumbering); EW-IMP-101 and EW-IMP-113 on import (MF-01, MF-21) | S, C |
+| D-01 | EW-RDS-008 structural (derived tags, one-transaction renumbering); EW-IMP-101 and EW-IMP-113 on import (MF-01, MF-21) | S, C |
 | D-03 | EW-NUM-001, EW-RDS-001/002/003/010; alias-merge quick fix | C |
 | D-04, D-36 | EW-CORE-041/042/043, BOM sync EW-CORE-048/049; EW-IMP-113 on import | C |
 | D-05 | One revision table, label format, EW-REL-004; MF-04 migration | S |

@@ -1302,56 +1302,7 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
 
 ## 16. The reference project
 
-### 16.1 Golden A (MVP, AC-33)
-
-1. One layout space for +J-E-2416. `CreateEnclosure{NSYPLA1074G}` creates -UC1 (test dimensions H 1000 × W 750 ×
-   D 420 mm ▲U-26) with the plate NSYPMM107 as child device, `pe_bond = true`.
-2. Ducts D1 … D5 as on folio 902 (top, left, right, middle, lower), 40×60 (D5 type ▲U-26; placeholder parts →
-   EF-17); rails R1 … R3, TS 35, `pe_bond = true`. Folio 902 draws no rails (RD §1.12;
-   [gaps-and-corrections](../research/gaps-and-corrections.md) §3.1): R1 between D1 and D4, R2 between D4 and D5
-   and R3 below D5 are test assumptions ▲ (20 §13).
-3. Placements in carrier order (20 §13): R1 -102G1, -101F1, -102F1, -102F2, T55, S51; R2 1X1, -X1031, -X1032 with 4
-   derived end brackets; R3 -201U1, -201U2, -201U3 … -201U8, -202U1, -202U2, -202U3 placed with `PlaceAssembly`
-   (the valve terminal on its rail-mounting kit, a test part of ▲U-27; Open question 15).
-4. Folio 902 is a PanelLayout page of the plate at 1:10 ▲, "Cabinet Layout · Scale 1:10" in the title block, the
-   PART DATA block bound to -UC1, the legend right of the plate. Labels: "T55" (not "T51"), "S51", "1X1",
-   "-X1031", "-X1032", "-201U3".
-5. EW-LAY-001 lists exactly F55, E55, E56, S56 and -201U9 (EF-05); -XPE, -3X1, the 28 valves and the field valves in
-   +FIELD are exempt (§2.7). No command can create a placement without a device (EW-LAY-002).
-6. Renaming T55 → T57 changes folios 101, 901, 902 and 910 in one commit and no layout file (20 §19, D-02).
-
-### 16.2 Golden A-R (1.0, AC-34, AC-36)
-
-- F55 is placed after S51 on R1; -201U9 is inserted between -201U8 and -202U1 in push mode, shifting -202U1 …
-  -202U3 by its width; E55 goes low on the plate; S56 and E56 go on the door frame (a Side surface near the door
-  opening, Open question 8), reached by a free-air routing path along the side wall. EW-LAY-001 is then 0.
-- 3D shows no EW-LAY-006 finding. `RouteWires` commits lengths for every internal wire (W4 … W34 with both ends in
-  +J-E-2416; W1–W3 come from +J-E-206); -106W1 and -106W2 route as cables with their part length of 2 m (▲, "K-2"
-  read as 2 m, *unverified*) checked by EW-LAY-014; folio 907 shows the wire lengths and folio 906 the cable lengths.
-  Moving -102G1 marks exactly its wires stale (EW-LAY-011) until re-routed.
-- PE continuity (EF-23): 1X1:PE and -X1032:1–5 are rail-bonded terminals on R2, rails R1–R3 and the plate declare
-  `pe_bond`, and -XPE is the plate's PE stud, so the continuity rule finds no isolated PE CP without a drawn wire
-  (FR-LAY-058, FR-CHK-029, D-21).
-- Thermal with the test losses (PM §6.12): PSU 14.5 W (efficiency model, 8 A × 24 V, η 0.93), three MCBs 6 W, MICO
-  3 W, 28 coils × 1 W × 0.5 = 14 W, wiring and terminals 5 W → **Q_V = 43 W**. A_e = 2.25 m² (wall-mounted);
-  with `k_w` = 3.5 W/(m²·K) for polyester *(unverified)* the mean rise is **5.5 K**. With t_i_max 45 °C and t_u_max
-  35 °C, Q_E = 43 − 3.5 × 2.25 × 10 = −35.8 W: no cooling needed. The heater requirement for +10 °C inside at
-  −10 °C outside is 3.5 × 2.25 × 20 = **158 W**; EW-THM-002 reports E55 if its part's heating power is lower
-  (U-14). With T55's actual setpoint of 15 °C as t_i_min the requirement would be 3.5 × 2.25 × 25 = 197 W; the
-  golden keeps the +10 °C test value of FR-THM-007.
-  With the synthetic TR set (x = 0.715, taken from STD §8.2; k = 0.374, c = 1.25, d = 1 invented to match the surface
-  method) Δt_0.5 = 5.5 K and Δt_1.0 = 6.9 K, so -102G1 at h_rel 0.8 sees 35 + 5.5 + 0.6 × 1.4 = 41.3 °C.
-- The coil term is PM §6.12's illustrative assumption (all 28 coils, 50 % on). The `PerChannel` model would count
-  only the 8 used positions of -201U3 and -201U4 (4 W, Q_V ≈ 33 W); `tables/thermal.csv` of AC-36 therefore pins
-  the test losses explicitly so that FR-THM-001's 43 W acceptance stays reproducible.
-
-### 16.3 Golden C (QET import of folio 902)
-
-The importer ([14](14-interop.md), FR-IMP-019) reads folio 902's rectangles and texts, infers a scale per object
-class, and proposes bindings in a review queue: "-102G1" → -102G1 exactly, "X1031" → -X1031 by location
-suppression, "T51" → T55 by fuzzy match within the "5x" group of folio 101 (R-902-5). Confirmed bindings become
-placements on a plate surface in the drawn order and rows; part data then replaces the drawn sizes, and the
-difference is listed. The "40x60" texts become duct carriers. Unmatched items stay layout-only graphics.
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`).
 
 ### 16.4 Defects prevented
 

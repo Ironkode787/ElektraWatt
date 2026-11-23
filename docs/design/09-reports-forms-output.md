@@ -204,11 +204,9 @@ and the row is where Follow reference from the device lands.
 - **`EmbedSpec`** is `{page, rect}`. It has no overflow member: an embedded block overflows by its cells' `Overflow`
   policy and the rule of §3.4.
 
-Golden A holds **11 page blocks** (TOC 2, BOM 901, 903, 904, 905, 906, 907, 908, 909, 910, 911) and **4 embedded
-blocks** (PART DATA on 201, 202 and 902, plus one `profile_tables` block on the cover whose form gives each group,
-colours, control sizes and mains sizes, its own region) ([domain model](03-domain-model.md) §20). Section dividers
-100, 200 and 900 are not blocks; they are generated from `Section.divider` (FR-PAG-009). The cover (folio 1) is a
-drawn `TitlePage` page whose frame is a `Cover` form, not a block.
+A cover's colour and size tables are one embedded `profile_tables` block whose form gives each group, colours,
+control sizes and mains sizes, its own region. Section dividers are not blocks; they are generated from
+`Section.divider` (FR-PAG-009). The cover is a drawn `TitlePage` page whose frame is a `Cover` form, not a block.
 
 **Block sets.** The company basic project carries the standard set of page blocks (EPLAN's report templates); the
 company-standard wizard copies it into new projects (FR-PRJ-010). Because pages are derived, there is no
@@ -1561,41 +1559,8 @@ title block, cover, divider and report forms reproduce the golden house style.
 
 ## 8. The reference project
 
-### 8.1 Generated and form-bound folios
-
-The golden page plan has 36 pages.
-
-| Folio | EW mechanism | Defects prevented |
-|---|---|---|
-| 1 | `cover` form bound to master data, parties by role, structured supply ("1 x 230 VAC + N + PE, 50 Hz"), embedded colour and size tables from the profiles | D-06, D-08, D-18 ("50hz"), D-30, D-37 (basis text from the profile) |
-| 2, 2.1 | `toc` block: 36 rows such as "101 · Power Supply 1 - Main Current · +J-E-2416", Location (+) from each page's structure, generated pages included (23 rows on 2, 13 on 2.1) | — (the QET TOC was already generated; EW adds generated pages and dividers, REF-012) |
-| all 36 | title block: "Revision: V2.0" everywhere, one description, Prev/Next from page order (911 Next empty) | D-05, D-06, D-30 |
-| 100, 200, 900 | dividers from `Section` ("=P01+J-E-2416 - Section 1 - Page 100 - 199 - Wiring Definition") | — |
-| 201, 202, 902 | embedded `part_data` blocks from the valve terminal's assembly configuration and -UC1's part lines; the same part lines feed 901 rows 22–23 | D-04 (enclosure and plate also in the BOM), D-36 |
-| 901, 901.1 | `parts_summary` component mode: 27 rows (23 on 901, 4 on 901.1); PT 2.5-TWIN once with quantity 20; -3W1 and -3X1 (not -4W1, -4X1); 571334 × 28 with a tag range; S56 and E56 without rows (no parts, listed in open items); descriptions from part data; rows in the BOM order of §2.4 (folio-3 rows first, layout objects last) | D-01, D-04, D-35, D-42 |
-| 903–905 | `terminal_diagram` per strip; terminals 1–20 with function texts "1+", "1-" as labels; clamps a/b with cable cores | D-09, D-11, D-12 |
-| 906 | `cable_overview_diagrams`: 3 cables, 13 cores; -3W1 "length missing"; BN instead of "BR" | D-09, D-17, D-19 |
-| 907–907.2 | `wire_list`: W1–W44 with effective size, colour and source, then a separate bridge block BR1–BR6 (bridges are never wire rows); W27 "0V ⇄ PE"; the wire-part column is empty at MVP (explicitly assigned parts only; profile-derived parts from 1.0, FR-CON-033) | D-08, D-09, D-22 |
-| 908–908.2 | `plc_overview` of -201U1: Q0.0 … Q6.7 with valve, printed function text (TA05-V-15 …, the driven device's process tag, [10](10-plc-and-bus.md) §3.4, or "Spare"), process tag in its own column, state and xref to 203–206; station address printed "TBD" | D-09, D-15, D-26 (made visible) |
-| 909 | `potential_overview`: 19 potentials plus bond B1, aliases (24VDC-1 = 24VDC-AIR1 … 4) as member counts | D-09, D-24 |
-| 910 | `structure_overview`: =P01, +J-E-2416, +J-E-206, +FIELD and 68 tags over 4 pages | D-03 (one spelling) |
-| 911 | `revision_overview`: V1.0, V2.0 with changed pages 101 and 106 | D-05 |
-| PDF | outline, 64 xref links (one per item of the 63 linked texts), `/PageLabels` = folios, subset fonts, real spaces, vector logo | D-07, D-33 |
-
-### 8.2 Scripted changes
-
-- Rename T55: folio 101, 901 (Tags column), 907 (wire ends), 910 and the 902 label change in one commit; 909
-  prints member counts and stays unchanged (AC-16).
-- Renumber folio 103 → 104: "103-A1" becomes "104-A1" on 102, the TOC row, BOM folio column and Prev/Next of 102 and
-  106 change (FR-PAG-007). The strips use the `{letter}{page}{counter}` rule (the formatter adds the "-" sign) and
-  are not frozen, so -X1031 and -X1032 become -X1041 and -X1042 everywhere: titles of 904 and 905, the BOM Tags
-  column, wire ends on 907, core targets on 906 and 910 ([08](08-connections-terminals-cables.md) §6.7); 909 prints
-  member counts and stays unchanged. The terminal-diagram rows keep their `RowId`s, so the XLSX `id` column and
-  revision deltas see a renamed strip, not new rows.
-- Add a part-carrying device to folio 102: the BOM gains one row (28 rows, still 901 and 901.1), and the TOC, the
-  BOM folio column and the device-tag overview update in the same commit (FR-REP-001). Prev/Next change only when a
-  page appears or disappears: the 47th BOM row would create 901.2, add a TOC row and shift Prev/Next of 901.1 and
-  902.
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), and each report
+kind is specified in §2.4 and §4.
 
 ---
 

@@ -34,7 +34,7 @@ points are decided in §7 and the tickets are listed in §5.
 **Inputs.**
 - The inventory: 81 distinct element types and their use counts over the three projects, 2,170 element uses in all.
 - The starter set as committed: 36 native symbols in `content/symbols/` and their 36 generated `@qet10` twins
-  ([07](07-symbols-parts-macros.md) §3.2 rule 2), the golden-project subset is mapped to folios in [07](07-symbols-parts-macros.md) §9.1.
+  ([07](07-symbols-parts-macros.md) §3.2 rule 2), listed in [07](07-symbols-parts-macros.md) §9.1.
 - The mapping rules of the QET importer ([14](14-interop.md) §4.3) and what `ew-import-qet` implements today: the
   built-in interruption-point FnDef, `kindInformations`, a category-path table and the generic black box of EW-IMP-119.
   The `symbol-map.csv` step is not implemented yet.
@@ -54,8 +54,8 @@ until ticket T-01 inspects the definition.
 | B | Black box: a vendor part or an unproven element, imported as `ew.gen.blackbox` with the embedded QET graphics kept in the project's "QET import" library (`foreign_terms`, FR-SYM-018) | EW-IMP-119 with the "map symbol" quick fix |
 | M | Missing: a generic symbol family that the starter set does not hold and that would be wrong to leave as a black box | black box until the family exists, then a symbol-map row |
 
-The black-box outcome is by design for vendor modules ([07](07-symbols-parts-macros.md) §9.1 draws -102G1, -102F2 and the
-CPX power blocks the same way, [14](14-interop.md) §8.4); it is not a gap there. A black box that is only an **L** guess is a
+The black-box outcome is by design for vendor modules ([07](07-symbols-parts-macros.md) §9.1: `ew.gen.blackbox` draws vendor
+modules from their part pattern, [14](14-interop.md) §8.4); it is not a gap there. A black box that is only an **L** guess is a
 gap in knowledge, not in the library.
 
 ```mermaid

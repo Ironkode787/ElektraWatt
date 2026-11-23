@@ -1544,37 +1544,8 @@ and any commercial edition needs a liability review first.
 
 ## 17. The reference project in the quality system
 
-| Pipeline element | How GP is used |
-|---|---|
-| Oracle and property tests | AC-16 edits: rename T55, move -102F2 one cell, renumber 103 → 104, change the 24 V DC colour. After each edit the 63 xref texts (64 targets), `device_tag` of every device, `wire_props_of(24VDC-1)`, `bom_rows` and `title_block` must equal a cold recomputation |
-| Engine statistics | A wire on folio 102 re-executes nothing keyed to folio 203; the 24 V colour change touches only the 24 V potentials and folio 1's table |
-| Determinism | SHA-256 of the GP PDF equal on Windows and Linux and across 1, 2 and 8 threads (AC-14) |
-| PDF structure | 64 xref link annotations (one per item of the 63 linked texts); folio labels ("101" on physical page 6); "SK 3110.000" with its space; no Tahoma; no "-4W1", "T51", "JE2416" or "BR" in the text layer (AC-06, AC-13) |
-| Performance | AC-17 on BM: open ≤ 0.5 s, full check ≤ 2 s, `ew export pdf` ≤ 3 s. Golden B is the seed of every synthetic fixture (§4.1) |
-| Network sandbox | Open GP, edit, check, export the PDF and print to file with zero non-local socket calls |
-| Crash scrubber (1.0) | A forced crash with GP open yields a payload without "J-E-2416", "-102G1", "TA05-V-15", `<engineer>`, the path or the user name (NFR-PRIV-04) |
-| Hostile corpus | A GP `.ewz` with an injected `../` entry; a GP copy with a symlinked page file; a QET file with a NaN coordinate |
-| Clean-VM test | The installed GP sample opens offline and passes its acceptance CSVs (AC-40) |
-
-**Defects whose prevention this pipeline guards.** The pipeline does not repair user projects. It keeps EW's
-prevention mechanisms from regressing.
-
-| Defect | Guard | Job |
-|---|---|---|
-| D-01 BOM -4W1/-4X1 vs page -3W1/-3X1 | Oracle; renumber-keeps-references property; AC-20 | CI-PR-02 |
-| D-02 T51 vs T55 | AC-06 text search; no placement without a device (fuzzer invariant) | CI-PR-02, CI-PR-06 |
-| D-04, D-36, D-42 BOM | AC-07 CSV comparison in both modes | CI-PR-02 |
-| D-05, D-06 title-block drift | Schema test: no per-page revision or free-text field; AC-04 | CI-PR-02 |
-| D-07, D-33 PDF navigation and labels | PDF structure checks (§3.9) | CI-PR-06 |
-| D-08 free-text wire rule | Provenance snapshot of W29 ("profile") and W20 ("CDP") | CI-PR-02 |
-| D-10, D-41 generated overviews | PNG of folio 202 (4 valves on -202U2); assembly snapshot | CI-PR-06 |
-| D-11, D-12 terminal designations | Invariant tests; the fuzzer never commits a violation in strict mode | CI-PR-02, CI-PR-08 |
-| D-14 "3-B0" | AC-02 anchor cells and AC-05 xref texts ("3-B2") | CI-PR-02 |
-| D-17 core colour "BR" | Strict CSV import rejects "BR"; lenient import reports it | CI-PR-02 |
-| D-29 tag text sizes | AC-02 text CSV sizes ±0.05 pt; every device tag in style `tag.main` | CI-PR-06 |
-| D-31 3.70 pt texts | EF-12 (two styles) in the finding comparison (AC-21, from M2) | CI-PR-02 |
-| D-34 author = checker | Release-invariant test | CI-PR-02 |
-| EW's own D-01 class (stale memos) and D-05 class across EW versions | Oracle; per-profile goldens (NFR-REL-09) | CI-PR-02, CI-N-02 |
+No reference project is used here: the tests open the sample project (`fixtures/sample/`), and each test layer of
+§3 says what it proves on it.
 
 ---
 

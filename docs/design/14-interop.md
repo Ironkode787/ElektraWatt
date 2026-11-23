@@ -2060,26 +2060,11 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
 
 ## 15. The reference project
 
-### 15.1 Walk-through of Golden C
+### 15.1 Walk-through
 
-| Folio | Source content | Import result |
-|---|---|---|
-| 1 | cover texts and tables as free texts | drawn page; the colour and size tables stay text until replaced by generated cover tables from the profile (REF-005); "50hz" and "0.75 mm ²" are reported by the description lint only from 1.0 (FR-CHK-040, D-18), so not in Golden C |
-| 2 | `graphics_table` on `project_summary_view` | TOC report block, first folio 2 |
-| 3 | -201U1 slave (bus port), -3X1, cable element -3W1, "Node TBD", "Switch to ON", report "DP", dashed box "To J-E-206 / JE-N1000-03" | aux function of -201U1; -3X1 and -3W1 derived from their formulas, stored -4X1/-4W1 reported (MF-01); cable inferred with length `Missing` (EW-CORE-033 belongs to the pre-delivery scheme, not to the migration report); `BusPort.address = Tbd` on the DP port (MF-18); termination On; IP "DP" with the proposal `external = +J-E-206 / JE-N1000-03` (§4.6) |
-| 100, 200, 900 | separator pages | drawn pages; generated dividers by fix step 4 |
-| 101 | S51, F55, T55, E55, S56, E56, 1X1; -101F1; markers "2.5 BK BU" below and above S51; reports L-1, N-1, PE-1.1; box "External Connection (J-E-206 / JE-N1000-03)" with J-E-206-L, -N, -PE | seven frozen tags (MF-03); -101F1 derived (letter F, counter 1); 2.5 mm² overrides on W4, W5, W7, W9 (part of MF-07); IP L-1 Source at 101-H16 → "102-A1"; PE-1.1 at 101-G15 → "103-G6"; three external points at 101-G0 (§4.6); description override "Control Cabinet Expansion" (MF-05); T55 and S56 switch only N (MF-23) |
-| 102 | -102G1 element with terminals L, N, PE, +, +, −, −; -102F1; -102F2 with 13-14; markers "1.5 DBU", "WH" below -102G1 and above -102F2; reports 0VDC, PE-0VDC, 24VDC-1 … 4 | black-box symbol in the "QET import" library with seven CPs; 1.5 mm² overrides on W20–W25 with colours left to the profile (rest of MF-07); 13 and 14 unconnected (MF-24); the PE-0VDC wire becomes MF-16 |
-| 103 | strips "+JE2416-X1031", "+JE2416-X1032", X1031 drawn at A3 and A10 | two structure nodes +J-E-2416 and +JE2416 with the merge proposal (MF-02); one strip -X1031 with two segments (MF-10); the empty 8th designation (MF-08) and the duplicate groups (MF-09) as lenient findings |
-| 106 | cables -106W1, -106W2 with cores BK, BU, GNYE, WH, BR | cables inferred with five cores; "BR" kept as `Foreign` with the proposal BN (MF-11); CPX pin 3 on PE stays as drawn (EW-POT-003 reports it in the pre-delivery scheme, EF-10, not in the migration report) |
-| 201, 202 | overview elements -201U1 … -202U3, "PART DATA" texts | masters of the modules; "∞ 203-B4" recomputed; 5 drawn valves on -202U2 against 4 (MF-14) |
-| 203–206 | 28 valve elements without tags; texts Q0.1 … Q6.7, TA05-V-15 …, "Spare", ports "3 1 5", "2", "4" | valves through `symbol-map.csv` (ports 1–5, coil 14); MF-20; 28 address texts pending binding (MF-19); 8 process tags; spare states |
-| 901 | `graphics_table` on `element_nomenclature_view` | BOM report block; table diff MF-21 (-4W1, -4X1 vanish) |
-| 902 | rectangles and texts "T51", "X1031", "-102G1" … | layout page; review queue T51 → T55, X1031 → -X1031, X1032 → -X1032 (MF-15) |
-
-All 18 folios import without a structural error, and the 63 cross-reference texts (64 targets) equal the reference as printed:
-the formula `%F-%l%c` yields "102-A1" where `%f` would yield "6-A1", and "3-B0" is reproduced through the
-element-origin anchor and reported (MF-13).
+No reference project is walked through here: the tests open the sample project (`fixtures/sample/`) and the QET
+corpus. The migration findings MF-01 … MF-27 below name the cases of a QET import that the importer and the
+migration report handle.
 
 ### 15.2 MF findings and their sources
 

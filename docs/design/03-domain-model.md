@@ -2560,27 +2560,8 @@ P005xxx connections, P017xxx numbering). QET: none beyond import warnings.
 
 ## 20. Golden project mapping
 
-Summary only; the reference project's own tables were retired with it at 0.3.5 (see the [glossary](glossary.md)), and
-[reference-drawing.md](../research/reference-drawing.md) §4 keeps the drawing's.
-
-| Model element | Golden content | Count |
-|---|---|---|
-| `Project` | object J-E-2416, project reference `<project ref>`, drawing id `<drawing id>`, parties `<customer>` and `<end user>` in separate roles, supply 1/N/PE AC 230 V 50 Hz (TN-S ▲), control 24 V DC, consumption 6 A, profiles "DBU/WH 24 V" and control 0.75 / mains 1.5 mm² | 1 |
-| `StructureNode` | =P01; +J-E-2416 (alias JE2416); +J-E-206; +FIELD ▲ | 4 |
-| `ExternalRef` | +J-E-206 / JE-N1000-03 (supply L, N, PE; PROFIBUS master) | 4 uses |
-| `Section`, `Page` | sections 1, 2, 9; 36 pages: 13 drawn (1, 3, 101–103, 106, 201–206, 902), 5 reproduced generated folios (2, 100, 200, 900, 901), the continuations 2.1 and 901.1, and 16 report pages (903–911 with their sub-pages) | 3; 36 |
-| `Device` | S51 … -202U3 (29 rows), 28 valve children -201U3-Q1 … -202U2-Q4, 8 field devices -203Q1 … -203Q8 (process tags TA05-V-xx), -XPE, -UC1 and plate, 3 strips with 3 + 20 + 5 terminals, 3 cables (4 with the A-R supply cable -101W1) | ≈ 100 |
-| Main/aux sets, IPs | 9 main/aux reference sets; 22 IP pairs; 4 external points | 22 pairs |
-| `Connection`, `Junction` | W1 … W44 plus bridges, junctions on 101–103 | 44 + bridges |
-| Potentials | L, N, L-S, N-S, L-1, N-1, L-55, N-55, N-55T, N-55S, PE, +24V, +24V-F, 24VDC-1 … -4, 0V, DP; one 0V–PE bond | 19 + 1 bond |
-| `Conductor` | -106W1, -106W2 (5 each), -3W1 (A, B, shield); A-R adds the supply cable -101W1 (3) ▲ | 13 (16 with the A-R supply cable) |
-| PLC | 1 configuration project, station -201U1, 7 modules, 56 channels (8 used, 20 spare, 28 deactivated) | 56 channels |
-| Bus | 1 logical net, 1 physical segment, -3X1 terminated, address `Tbd` | 1 |
-| Fluid | 28 valves with ports 1–5, 8 tube pairs F1–F16 ▲; medium, supply line and closures in A-R ▲ | 28 |
-| Layout | 1 space, -UC1, plate, 5 ducts, 3 rails ▲, placements in 3 rows | 1 |
-| `Revision` | V1.0 (2025-03-03, Released, historic, no archive), V2.0 (2025-04-14, Open, folios 101 and 106) | 2 |
-| `ReportBlock` | TOC, BOM 901, 903–911; embedded PART DATA boxes on 201, 202, 902 and the cover tables | 11 + 4 |
-| Frozen tags | S51, F55, T55, E55, S56, E56, 1X1 (Golden A); none in Golden B | 7 |
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), which its script
+draws, and [reference-drawing.md](../research/reference-drawing.md) §4 keeps the analysis of the reference drawing.
 
 ---
 

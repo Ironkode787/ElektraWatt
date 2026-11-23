@@ -2022,34 +2022,16 @@ status print typed `--json` results (`ew.import-plc-aml-result/1`, `ew.import-pl
 
 ## 9. The reference project
 
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`).
+
 ### 9.1 Folio by folio
 
-| Folio | EW model | Derived and printed | Requirement |
-|---|---|---|---|
-| 3 | -201U1's bus-port function (aux) on a BusTopology page; -3X1 bus connector with `termination = On`; `Bus` line with cable -3W1; external point "DP" with `ExternalRef` JE-N1000-03 in +J-E-206 | "-201U1 (201-E1)"; "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" from manufacturer, order code 1, part type and `address = Tbd`; "Switch to "ON"" from `termination`; "To J-E-206 / JE-N1000-03" from the ExternalRef | FR-BUS-001 … -006 |
-| 106 | the card power connector functions of -201U1 and -202U1 (aux) with typed pins 1–5 and FE; cables -106W1, -106W2 | potentials per pin; FE on PE reported (EF-10 at MVP, EF-22 at 1.0) | FR-PLC-024, FR-PLC-048 |
-| 201–202 | assembly overview generated from the children in manifold order | "∞ 203-B4" … "∞ 206-B4"; 4 valves on -202U2 | FR-DEV-023, FR-XRF-016 |
-| 203–206 | 28 valve representations, each drawing fluid function + coil function; 28 bindings | Q0.1 … Q6.7 from `channel_addresses`; TA05-V-xx from the driven device's process tag (used valves carry no function text), or the manual function text "Spare" | FR-PLC-011, FR-FLU-005 |
-| 908 (new) | `plc_overview` report block | 56 rows on 908–908.2 | FR-PLC-022 |
-
-**As built.** The coil addresses on folios 203–206 (Q0.1 … Q6.7) are printed (§3.6). Folio 908 is built (§5). Folio 3's "Node TBD" waits for the `BusPort` record (§3.8).
+The PLC and bus content of a page is specified in §2 and §3; no folio is mapped here.
 
 ### 9.2 Module -201U3 under H1 and H2
 
-| Ch | Bound to | Address | State | Function text | Symbol (1.0) | EW-PLC-012 H1 / H2 |
-|---|---|---|---|---|---|---|
-| 0 | — | Q0.0 | deactivated | — | — | — / — |
-| 1 | -201U3-Q1 coil 14 | Q0.1 | used | TA05-V-15 | TA05_V_15 | error (expects ch 0, Q0.0) / — |
-| 2 | — | Q0.2 | deactivated | — | — | — / — |
-| 3 | -201U3-Q2 coil 14 | Q0.3 | used | TA05-V-33 | TA05_V_33 | error / — |
-| 4 | — | Q0.4 | deactivated | — | — | — / — |
-| 5 | -201U3-Q3 coil 14 | Q0.5 | used | TA05-V-18 | TA05_V_18 | error / — |
-| 6 | — | Q0.6 | deactivated | — | — | — / — |
-| 7 | -201U3-Q4 coil 14 | Q0.7 | used | TA05-V-17 | TA05_V_17 | error / — |
-
--201U4 repeats the pattern on Q1 with TA05-V-36, -38, -16 and -37. -201U5 … -202U2 have spare valves on Q2 … Q6.
-Totals: 8 used, 20 spare, 28 deactivated; EW-PLC-012 gives 28 or 0 findings (AC-29, EF-02). At 1.0 the exports hold
-7 modules, 8 tags and 8 links (AC-30), and the bus checks give AC-31.
+The symbol of a used channel follows from the process tag of the device its valve drives (§3.4), and a binding
+that differs from the module's solenoid-position map is reported by EW-PLC-012 (§3.3).
 
 ### 9.3 Defects prevented
 

@@ -73,19 +73,18 @@ requirements are in [02c](02c-nonfunctional-requirements.md).
 
 ### 1.3 The golden project in acceptance criteria
 
-**The acceptance criteria and the reference project.** The criteria of this catalogue were stated on the reference
-project (the golden project, GP), which was retired at 0.3.5 with its design document 20 (see the
-[glossary](glossary.md), "Golden project"). They stay as they were written. A criterion is restated on the sample
-project in its milestone's file when that milestone is planned.
+**The acceptance criteria and the reference project.** Many criteria of this catalogue are stated on the
+reference drawing set held as an EW model (the golden project, GP; [reference analysis](../research/reference-drawing.md)
+§4), which no test opens any more (see the [glossary](glossary.md), "Golden project"). They stay as they are written
+and are read as the property they describe; a criterion is restated on the sample project (`fixtures/sample/`) in
+its milestone's file when that milestone is planned.
 
-"GP" is the reference project held as an EW model ([reference analysis](../research/reference-drawing.md) §4),
-reproduced in the faithful variant **Golden A** (the user's visible tags kept, S51, F55, T55, E55, S56, E56 and 1X1
-as frozen tags) unless an acceptance criterion names **Golden B** (all tags page-based, used to test renumbering),
-**Golden C** (the pilot's original QElectroTech file imported in lenient mode) or **Golden A-R** (Golden A plus the
-test values of the resolution overlay, used for release, layout and manufacturing tests); see
-golden project §2. GP has **36 pages** (golden project §5): the 18 reproduced folios, the
-continuation pages 2.1 and 901.1, and 16 generated report pages (folios 903–911 and their continuation pages). "The
-cross-reference table" means GP §4.13: 22 interruption-point pairs and 9 main/aux reference sets.
+The variants they name: **Golden A** (the user's visible tags kept, S51, F55, T55, E55, S56, E56 and 1X1 as frozen
+tags), **Golden B** (all tags page-based, for renumbering), **Golden C** (the pilot's original QElectroTech file
+imported in lenient mode) and **Golden A-R** (Golden A plus the test values of a resolution overlay, for release,
+layout and manufacturing). GP has **36 pages**: the 18 reproduced folios, the continuation pages 2.1 and 901.1, and
+16 generated report pages (folios 903–911 and their continuation pages); "the cross-reference table" has 22
+interruption-point pairs and 9 main/aux reference sets.
 
 ### 1.4 How the core areas relate
 

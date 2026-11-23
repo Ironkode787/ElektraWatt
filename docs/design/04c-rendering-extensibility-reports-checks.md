@@ -340,7 +340,6 @@ fields do not exist** (D-05, D-06, D-30).
 - `report_pages(block)` paginates rows into virtual pages, which `page_order()` merges with drawn pages. TOC,
   Prev/Next and the PDF outline therefore always include them.
 - There is no "update reports" button, because nothing can be outdated. A check guards folio collisions.
-- Golden folios 2, 901 and 903–911 are blocks.
 
 **Embedded report blocks** are page items bound to a filtered row source. Examples: the "PART DATA" boxes on 201,
 202 and 902, and the cover's colour and size tables generated from the active profile (REF-005, D-08).

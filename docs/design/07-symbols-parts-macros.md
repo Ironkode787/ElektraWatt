@@ -1413,130 +1413,75 @@ the plugin-signing infrastructure in 1.x.
 
 ## 9. The reference project
 
-### 9.1 Starter set mapped to the golden folios
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`). What stays are the
+starter set's keys, the sample's parts library and the rules of an assembly's macros.
 
-Golden A, whose pages sit on the QET 10 px grid, places the `@qet10` edition of each key (§3.2 rule 2); new
-native-grid projects place the native edition.
+### 9.1 The starter set
 
-| Symbol key | FnDef (CPs) | Golden use |
-|---|---|---|
-| `ew.iec.switch-2p-manual` | 2 poles, PassThrough{opens}, `switches_n_with_l` (1–2, 3–4) | S51, folio 101; dashed linkage derived from the link points `pole1` → `pole2` → `handle` (§3.2 rule 8) |
-| `ew.iec.mcb-1pn` | ProtectionOvercurrent, 1–2 and N–N pass-through (1, 2, N, N) | -101F1, F55 |
-| `ew.iec.mcb-1p` | 1–2 (1 alias L1, 2 alias T1 from part) | -102F1 |
-| `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12; text slots tag, technical data (the setpoint "15 °C") and part number ("SK 3110.000", D-33) | T55; splits N-55 into N-55T (EF-01) |
-| `ew.iec.position-switch-no` | NO 13–14 | S56 |
-| `ew.iec.lamp`, `ew.iec.heater` | loads (X1, X2), (L, N, PE) | E56, E55 |
-| `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one grid step apart along its axis, terminals shared out over the strip's segments ([08](08-connections-terminals-cables.md) §6.7) | 1X1 (three terminal symbols), -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
-| `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), not yet verified against the standard (like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
-| `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18) | -102G1, -102F2, CPX power blocks on 106 |
-| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
-| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14); the port's `manufacturer` and `order_code` slots (appended, slots 5 and 6) print "Festo" and order code 1 (doc 20 §11.1, D-36) |
-| `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
-| `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |
-| `ew.iso.cylinder-double-acting`, `ew.iso.process-valve-2way` | fluid; linkage points | TA05-V-15 … TA05-V-37 on 203 |
+A page on the QET 10 px grid places the `@qet10` edition of each key (§3.2 rule 2); a native-grid page places the
+native edition.
 
-Seven further symbols join the starter set for the pilot corpus (§2.3); they are not on the golden folios and have no row here.
+| Symbol key | FnDef (CPs) and rules |
+|---|---|
+| `ew.iec.switch-2p-manual` | 2 poles, PassThrough{opens}, `switches_n_with_l` (1–2, 3–4); the dashed linkage is derived from the link points `pole1` → `pole2` → `handle` (§3.2 rule 8) |
+| `ew.iec.mcb-1pn` | ProtectionOvercurrent, 1–2 and N–N pass-through (1, 2, N, N) |
+| `ew.iec.mcb-1p` | 1–2 (1 alias L1, 2 alias T1 from part) |
+| `ew.iec.thermostat-nc` | NC pass-through 5–3; text slots tag, technical data (the setpoint) and part number (D-33) |
+| `ew.iec.position-switch-no` | NO 13–14 |
+| `ew.iec.lamp`, `ew.iec.heater` | loads (X1, X2), (L, N, PE) |
+| `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one grid step apart along its axis, terminals shared out over the strip's segments ([08](08-connections-terminals-cables.md) §6.7) |
+| `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), not yet verified against the standard (like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment |
+| `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4); text slots tag, function text, cross-reference, part number and manufacturer (D-18) |
+| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) |
+| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort; the anchor at the graphics gives the printed cell (D-14); the port's `manufacturer` and `order_code` slots (appended, slots 5 and 6) print the maker and the order code (D-36) |
+| `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view |
+| `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring |
+| `ew.iso.cylinder-double-acting`, `ew.iso.process-valve-2way` | fluid; linkage points |
+
+Seven further symbols join the starter set for the pilot corpus (§2.3).
 
 ### 9.2 Parts and data
 
-**Starter catalogue part data used by Golden A:**
-- **-101F1.** A9P52610 has L0 data (Schneider Electric through the master), `ew:rated_current 10 A`,
-  `ew:characteristic C`, `ew:poles 1P+N` and template CPs 1, 2, N, N. The symbol slots print "Schneider
-  Electric", "A9P52610" and "C10" (▲U-32) from typed data, never from the description (D-35).
-- **-102G1.** 2904602 defines a PSU function with L, N, PE, +, +, −, −. The potential roles are + = L+, − = M and
-  PE = PE, so the 24 V potentials get their type from the part (FR-CON-011). The same pin list arrives from a vendor
-  EDZ at 1.0 (AC-38). The part description carries no rating; the output voltage lives in the technical data
- .
-- **-201U1.** 195740 + 550208: two part uses on one device. The 550208 pattern declares pin 3 as FE (▲U-18), so
-  FR-CHK-030 reports -201U1:3 on PE (EF-10, D-16).
-- **-106W1, -106W2.** NEBU-G78W5-K-2-N-LE5 has the cable cores BK, BU, GNYE, WH, BN. Conductors are generated from
-  them (FR-CBL-004). "BR" cannot be stored, and an imported "BR" is flagged (MF-11, D-17).
-- **The valve modules.** 533361 carries the PLC section: 8 DO channels, linear channel map, and solenoid-position
-  map H1 with confidence `test` (▲U-23). Choosing H1 or H2 is a part-data edit that turns EW-PLC-012 from 28
-  findings to none (AC-29, D-26).
-- **The valves.** 571334 declares solenoids `[14]` and the 5/2 valve model.
-- **The order codes.** Order code 2 (32P-VGL-R-…-28MS) is a configured product with components 552286, 533361 × 7,
-  571334 × 28 and 533354 × 2 (FR-PRT-006). The BOM prints the two order-code rows in assembly mode and the
-  components in component mode (AC-07, D-04, D-36).
-- **-X1031.** PT 2.5-TWIN has three clamps on level 1 (a, then b and c); the pattern counts physical terminals
-  (FR-TRM-005). Accessories at MVP: end brackets are derived from rail occupancy wherever strips are placed (one
-  group of abutting strips on one rail, k strips, needs k + 1 brackets; [12](12-panel-layout.md) §3.4); unplaced
-  strips and bridges use authored part uses, the bridge parts on their `BridgeSpec` connections
-  ([08](08-connections-terminals-cables.md) §2.3). Part-data accessory lists (FR-PRT-005) arrive at 1.0 and must
-  reproduce the same golden counts (EF-17, ▲U-27).
-- **1X1.** UK 5 N × 2 and USLKG 5 (▲U-17); the imported "UK5N / ULSKG5" is split (MF-12).
-- **-UC1.** NSYPLA1074G is an enclosure part and NSYPMM107 a mounting plate, with dimensions from the test value of
-  ▲U-26. Without dimensions they stay below "layout-ready" and folio 902 warns.
-- **S56, E56.** They have no parts, so FR-CHK-024 reports them (EF-04). Golden A-R assigns `TEST-DOORSW-1` and
-  `TEST-LAMP-1` with confidence `test`.
-- *As built.* **Manufacturer copies.** Golden A holds eight
-  project-local manufacturer copies, one per manufacturer name, and its 29 part copies name them with no `key`; the
-  readers take the name from the held copy and fall back to a legacy `key`, so a file written with the `key` alone derives
-  the same. Every exported output stayed byte-equal (▲U-45).
+- **The sample's parts.** The sample project's catalogue parts ship as the system library `ew-sample-parts`
+  (`content/libraries/ew-sample-parts.ewlib`, "Sample project parts", CC0-1.0), read by the installation's system
+  tier and not compiled in. A part whose device has functions on starter function definitions carries a function
+  template and a CP pattern from them; `meta.confidence` names each section (`part`, `mech`, `cp_pattern`,
+  `function_template` and each data section) as `test` or `unverified`, never `verified`.
+- **Manufacturer copies.** A project holds one manufacturer copy per manufacturer name, and its part copies name
+  them with no `key`; the readers take the name from the held copy and fall back to a legacy `key`, so a file
+  written with the `key` alone derives the same.
+- **Typed data, not descriptions.** The symbol slots print the maker, the part number and the rating from typed
+  data, never from the description (D-35); a PSU part's potential roles (+ = L+, − = M, PE = PE) type the 24 V
+  potentials (FR-CON-011); a pin declared FE in a part pattern is checked against PE (FR-CHK-030, D-16); a cable
+  part's cores generate its conductors (FR-CBL-004), and an imported "BR" is flagged (D-17); a valve module's
+  solenoid-position map, with its confidence, decides EW-PLC-012 (D-26); a configured product prints its order
+  code in assembly mode and its components in component mode (FR-PRT-006, D-04, D-36).
+- **Accessories.** End brackets are derived from rail occupancy wherever strips are placed (one group of abutting
+  strips on one rail, k strips, needs k + 1 brackets; [12](12-panel-layout.md) §3.4); unplaced strips and bridges
+  use authored part uses, the bridge parts on their `BridgeSpec` connections
+  ([08](08-connections-terminals-cables.md) §2.3). Part-data accessory lists (FR-PRT-005) arrive at 1.0.
 
-*As built.* The content versions after WP-S1.20, each checked against
-`main` before its bump: `ew.fn.valve-5-2-sol-spring` 0.2.0, `ew.fn.cylinder-double-acting` 0.1.1, the new
-`ew.fn.valve-solenoid` 0.1.0, `ew.iso.valve-5-2-sol-spring` 0.3.0 in both editions, `ew.ovw.module@qet10` 0.2.0,
-`EW-GEN-VLV-1` 0.2.0, `ew-starter-parts` 0.4.0 and the starter library 0.4.0; Golden A's 571334 declares solenoid 14.
+### 9.3 Macros of an assembly
 
-*As built.* The sample project's catalogue parts ship
-as the system library `ew-sample-parts` 0.1.0 (`content/libraries/ew-sample-parts.ewlib`, "Sample project parts",
-CC0-1.0), read by the installation's system tier and not compiled in: 23 parts and their 7 manufacturers, Golden A's 29
-less the four `TBD` test parts and the two configured order codes, written by the generator test `sample_parts` from
-Golden A's copies read as bytes, so Golden A keeps its project-local copies. Each part whose Golden A device has
-functions on starter function definitions gains a function template and a CP pattern from them (the cable's
-decoration function `ew.fn.graphic` left out; 550208's single template entry is its main one; 195740 takes the
-overview and the DP slave port), with the PLC and bus sections as Golden A holds them (550208's supply and earth kept
-as CP roles). `meta.confidence` names each section (`part`, `mech`, `cp_pattern`, `function_template` and each data
-section) as `test` where doc 20 gives the value as a test input and `unverified` otherwise; nothing is `verified`.
-
-### 9.3 Macros on the golden project
-
-- **PSU block.** -102G1, -102F1 and -102F2 with their wires and interruption points (L-1, N-1 incoming; 0VDC and
-  24VDC-1 … 4 outgoing) form one window macro. Inserted on folio 105, it yields -105G1, -105F1 and -105F2
-  (FR-MAC-003). The ghost lists the pairings: the incoming L-1/N-1 join 101's outgoing points, and the outgoing
-  24VDC-1 … 4 would become second sources next to folio 102's. The user sets the name-prefix variable before
-  commit.
-- **Heater group on folio 101** (F55, T55, E55, S56, E56). Saved as a macro, it inserts with derived tags, because
-  frozen tags are cleared (§3.5).
-- **Valve module typical** (window macro), following the reference project's device tree. It
-  contains:
-  - a module device with part 533361, parent `$assembly` (a `DeviceRef` bound at insertion), `position = $pos`
-    (manifold order) and `plc_module.slot = $slot`;
-  - four valve children with part 571334, positions 1–4, states `$state1 … $state4` (used, spare) and function
-    texts `$fn1 … $fn4`, which a value set fills only with the manual text "Spare" for spare valves: a used valve
-    carries no function text, and its FunctionText slot prints the automatic function text, else the process tag
-    of the device it drives through `DeviceLink{Drives}` ([11](11-fluid-power.md));
-  - each valve's coil bound to channel `2p + 1` for position index p = 0 … 3, as drawn; the part's solenoid map
-    decides whether that binding is right (EW-PLC-012, §9.2);
-  - a placeholder group `field`, included by `$has_field`: four field devices, each with a 2-way process-valve and
-    a double-acting actuator function joined by a linkage, process tags `$pt1 … $pt4`, a `DeviceLink{Drives}`
-    from its valve, and the fluid lines from valve ports 2 and 4;
-  - its aux module symbol and four valve symbols.
-- **Valve-manifold page** (page macro). It contains two module groups, A and B, and the variables `$has_b` and
-  `$has_field`. Four value sets reproduce folios 203–206 (FR-MAC-004); the texts are the field devices' process
-  tags on 203 (`$pt1 … $pt4` per group, printed by the valves that drive them) and the manual function text
-  "Spare" on 204–206:
-
-  | Value set | Folio | Group A | Group B | `$has_field` |
-  |---|---|---|---|---|
-  | 1 | 203 | slot 1 (-201U3): TA05-V-15, -33, -18, -17 | slot 2 (-201U4): TA05-V-36, -38, -16, -37 | true |
-  | 2 | 204 | slot 3 (-201U5): Spare × 4 | slot 4 (-201U6): Spare × 4 | false |
-  | 3 | 205 | slot 5 (-201U7): Spare × 4 | slot 6 (-201U8): Spare × 4 | false |
-  | 4 | 206 | slot 7 (-202U2): Spare × 4 | `$has_b = false` | false |
-
-  The addresses Q0.1 … Q6.7 are derived from slots and bindings. The overview on 201/202 regenerates from the new
-  children (D-10). The valves get child tags -201U3-Q1 … (D-27, D-41) and the field devices page-based tags
-  -203Q1 … -203Q8. At 1.0 the same typicals feed I/O-list generation from a 28-row CSV (B5, FR-MAC-017).
-- **The pilot basic project** from the wizard gives the QET-compatible frame, the text styles of
-  the built-in table, "DBU/WH 24 V", the strip rule, sections 1/2/9 and blocks 903–911. Golden A then
-  reproduces from defaults plus that basic project (NFR-UX-08).
-- **Golden C.** The QET import holds every element in the project's "QET import" library, for example the heater
-  element of E55 with its source name (FR-SYM-018). Step 3 of `c-fix.ewcmd` exchanges the elements for the
-  `@qet10` starter symbols through `symbol-map.csv`, keeping CPs by index, and step 5 assigns starter-catalogue
-  parts.
-
-*As built.* The valve-manifold page macro is saved from folio 203 with the groups A, B (`$has_b`) and `field` (`$has_field`). Because Golden A's modules use positional slots (`SlotPath::Positional`), each module group binds a position and a tag counter (`$a_pos`, `$a_counter`; the window macro `$pos`) instead of `$slot`, besides `$assembly`, the states, the function texts and the process tags: value set 1 places groups A and B at positions 2 and 3 (counters 3 and 4), value set 4 places -202U2 at position 10 (counter 2). Inserted four times into Golden A without folios 203 to 206, it rebuilds them with every report-row block equal (MC-4); the overview on 201 and 202 does not regenerate yet (FT-741). Golden A draws no fluid lines on 203 to 206, so the typical carries none.
+- **A module typical** (window macro) holds a module device with its part, parent `$assembly` (a `DeviceRef`
+  bound at insertion) and its place in the manifold: `position = $pos` and `plc_module.slot = $slot`, or, where
+  the modules use positional slots (`SlotPath::Positional`), a position and a tag counter variable instead of the
+  slot.
+  Its valve children carry positions, states (`$state1 …`: used, spare) and function texts (`$fn1 …`), which a
+  value set fills only with the manual text "Spare" for spare valves: a used valve carries no function text, and
+  its FunctionText slot prints the automatic function text, else the process tag of the device it drives through
+  `DeviceLink{Drives}` ([11](11-fluid-power.md)).
+- **Coil bindings** are stored as drawn; the part's solenoid map decides whether a binding is right (EW-PLC-012).
+- **A placeholder group** (`field`), included by a boolean variable (`$has_field`), holds field devices, each with
+  a 2-way process-valve and a double-acting actuator function joined by a linkage, process tags (`$pt1 …`), a
+  `DeviceLink{Drives}` from its valve, and the fluid lines from valve ports 2 and 4.
+- **A page macro** holds module groups and boolean variables (`$has_b`, `$has_field`); one value set fills one
+  page (FR-MAC-004).
+- **On insertion** the valves get child tags (D-27, D-41), the addresses are derived from slots and bindings, and
+  frozen tags are cleared (§3.5). The assembly's overview does not regenerate from the inserted children.
+- **A window macro of devices with interruption points** shows in its ghost how the points will pair (an incoming
+  point joins an existing outgoing one, an outgoing one may become a second source), and the user may set a
+  name-prefix variable before the commit (FR-MAC-003).
 
 ### 9.4 Defects prevented
 

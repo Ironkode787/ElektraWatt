@@ -251,18 +251,6 @@ A junction tells the shop **which CP is wired to which**. A dot or a bevel only 
   confirms it (PQ-27, Open question 7).
 - **Daisy chain versus junction.** Two connections on one CP are a daisy chain (FR-CON-006). Their order is the
   order in which the shop lands them on the clamp. It is ascending connection ID unless a junction sequence fixes it.
-  The bevels of the folio 101 top bus are daisy chains on -101F1:1 and -101F1:N#1 that the scene draws as bevels.
-
-| Junction (golden) | Style, wiring | Sequence (arm 1 first) | Physical wires |
-|---|---|---|---|
-| J1, folio 101 | Dot, Star | F55:2, E55:L, E56:X2 | W13 F55:2 → E55:L; W14 F55:2 → E56:X2 |
-| J2, folio 101 | Dot, Star | F55:N#2, T55:5, S56:13 | W15, W16 |
-| J3, folio 102 | Bevel, Chain | -102G1:+#1, -102F1:1, -102G1:+#2 | W20, W21: two conductors on -102F1:1 |
-| J4, folio 102 | Bevel, Chain | -102F2:24VDC#1, -102F1:2, -102F2:24VDC#2 | W24, W25: both start at -102F1:2 |
-| J5, folio 102 | Bevel, Star | -102G1:−#1, -102F2:GND#1, IP PE-0VDC | W22; W27 (the bond wire) |
-| J6, folio 102 | Bevel, Star | -102G1:−#2, -102F2:GND#2, IP 0VDC | W23; W26 |
-
-J5 and J6 are Bevel junctions set to Star, as drawn in the walkthrough of [06](06-schematic-editor.md) §9.2 step 10.
 
 *As built (D-20).* The wire list prints how a wire is joined in its Via column: the junction it passes by
 its place and effective wiring, "101-C11 star at F55:2" (Star: the entering CP) or "102-C6 chain on -102F1:1"
@@ -1599,19 +1587,8 @@ derivation profiles keep wire numbers and properties byte-identical across EW re
 
 ## 13. The reference project
 
-| Folio | What the model holds | What EW derives |
-|---|---|---|
-| 1 | colour profile "DBU/WH 24 V" (15 rows, basis "company convention"), size profile 0.75/1.5 | the cover tables and note (FR-REP-028); provenance for every rule-derived wire |
-| 101 | W1–W19, J1, J2, daisy chains on -101F1, CDPs 2.5 on W4, W5, W7, W9; definitions L, N, PE, L-S, N-S, L-55, N-55, N-55T, N-55S | L-1 and N-1 protected by -101F1; N-55T and N-55S switched → EW-POT-013 on T55 and S56 (EF-01); W6 1.5 mm² GNYE by the PE class rule → EW-POT-006 (EF-06); W1–W3 without cable → EW-CORE-034 (EF-07) |
-| 102 | W20–W32, J3–J6, CDPs 1.5 on W20–W25, bond B1 via W27, definitions +24V, +24V-F, 0V | two conductors on -102F1:1 (J3); 0V type M from the PSU role; W27 0.75 mm² GNYE by the bond rule; -102F2:13/:14 unconnected (EF-09) |
-| 103 | -X1031: 20 terminals, labels "1+" … "4-", groups, BR1–BR5, two segments. -X1032: 5 × PT 2.5-TWIN-PE, rail-bonded, BR6 | 24VDC-1 = 4 signals with aliases AIR1–AIR4; 0V with 0VDC, AIR1–AIR4; PE one potential through the location PE node; folios 904 and 905 |
-| 106 | -106W1 and -106W2 assigned by order, cores BK, BU, GNYE, WH, BN | W35–W44 as cores; BU cores on 0V → EW-POT-005 (EF-11); FE pin 3 on PE → EW-POT-003 (EF-10); cable diagrams on 906 |
-| 3 | -3W1 as a `Bus` line with cable, length Missing | EW-CORE-033 (EF-08), blocks release |
-
-Counts: 19 potentials plus bond B1, 44 physical wires, 6 bridges, 6 junctions, 3 strips with 3 + 20 + 5 terminals,
-and 13 conductors in Golden A (16 in A-R).
-
-**Defects prevented or detected:**
+No reference project is mapped here: the tests open the sample project (`fixtures/sample/`). The defects of the
+reference drawing set that this area prevents:
 
 | Defect | Class | Mechanism here |
 |---|---|---|

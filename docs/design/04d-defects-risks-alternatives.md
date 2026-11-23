@@ -59,17 +59,6 @@ and the window own are in the architecture itself; read this chapter by the sect
 | D-41 assembly tagged from two pages | S | Assembly-level tag with child numbering |
 | D-42 strip drawn twice | S | One strip device with several segment representations; one BOM row |
 
-**Reproducing the golden project (Golden A, until it was retired at 0.3.5).**
-- **Tags.** S51, F55, T55, E55, S56, E56 and 1X1 are kept as frozen tags and listed in the numbering report. Every
-  other tag is derived.
-- **Frame and xrefs.** The QET-compatible frame form has 17 columns starting at 0 and rows A–H. The xref format is
-  QET's `%F-%l%c` equivalent (C-15).
-- **Profiles.** The house colour profile "DBU/WH 24 V" and the size profile (0.75 / 1.5 mm²) generate folio 1's
-  tables.
-- **Generated pages.** Section dividers 100, 200 and 900 and report folios 2, 901 and 903–911 are generated.
-- **Expected check results.** `ew check --scheme pre-delivery` reports exactly the expected open items: D-13 unless
-  corrected, D-26, the TBD address, missing parts on S56 and E56, and unplaced devices.
-
 ---
 
 ## 15. Spine build order and parallel streams
@@ -93,7 +82,6 @@ The milestones and what each delivers are in the [roadmap](../../ROADMAP.md); th
 | 8 | **SQL projection becomes a fragile public contract or an attack surface** | Versioned `api_v1` tied to the format major; sandbox; trust prompt; fuzzing; SQL is never a write path |
 | 9 | **Semantic merge conflicts** after git merges | Record- and field-level merge driver; in-file conflict records; post-merge integrity check with quick fixes; branch-safe "next free" counters |
 | 10 | **Licence-boundary mistakes** (GPL code reaching permissive crates; ported QET code) | Closed permissive layer from the first commit; CI licence-boundary check; REUSE headers; DCO; QET-derived code only in `ew-import-qet` |
-| 11 | **Symbols and forms on the golden critical path** | Spine lane 2 from the start; starter symbol set; QET element reader |
 | 12 | **EPLAN users expect autoconnect semantics** | Autoconnect as an assistant that creates explicit connections with a ghost preview; usability test before M2 (ADR-0007) |
 
 **What we explicitly do NOT build in v1:**

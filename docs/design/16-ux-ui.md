@@ -1959,32 +1959,10 @@ where one needs Shift.
 
 ## 18. The reference project in the UI
 
-### 18.1 Walkthrough on Golden A
+### 18.1 Walkthrough
 
-1. **Open the sample.** Start page ▸ Open sample project. Golden A is S class, so folio 1 is interactive within
-   0.5 s. The page navigator shows 36 pages; the 23 generated ones (2, 2.1, 100, 200, 900, 901, 901.1 and
-   903 … 911) carry the generated badge.
-2. **Messages.** The status bar reads "E 42 W 32 I 28"; the panel lists no waived finding (EF-19's -XPE is an earth
-   connection, asked no part since rc.3). F8 jumps to EF-01, EW-POT-013 on T55 at folio 101; F1 opens the rule page; "Waive…" needs a reason.
-3. **Provenance.** Selecting W29 on folio 102 shows "0.75 mm² · potential 24VDC-1 · size profile '0.75/1.5' · class
-   control" and the colour "DBU · colour profile 'DBU/WH 24 V'" (AC-28); W20 shows "1.5 mm² · override (CDP) · derived would be 0.75 mm²"; S51 shows its frozen tag and the
-   rule value -101S1 (FR-NUM-010).
-4. **Navigation.** On folio 101, F on "102-A1" at L-1 (101-H16) opens folio 102 at A1; Alt+← returns with the
-   previous viewport (FR-UI-019, AC-28). Ctrl+G with "103-A1" opens folio 103 at A1, where 24VDC-1 from 102-H15
-   continues.
-5. **All representations.** Alt+D on -201U1 lists 201-E1, 3-B2, 106-G3 and the folio 902 placement (FR-DEV-019).
-6. **Highlight.** H on 24VDC-1 marks its wires on folios 102, 103 and 106 with the vermillion 45° hatch and a name
-   chip (FR-UI-018).
-7. **Strip editor.** -X1031 lists terminals 1 … 20 in natural order with function texts 1+ … 4- and bridges
-   BR1 … BR5; selecting the 12 spare rows (5–10, 15–20) and filling the function text "Reserve" is one command with
-   an undo toast and no preview (rule §7.5); undo restores "2+" … "4-".
-8. **PLC.** The PLC navigator shows station -201U1 with modules -201U3 … -201U8 and -202U2 (Q0 … Q6) and 56
-   channels (8 used, 20 spare, 28 deactivated); EW-PLC-012 reports 28 findings under map H1 (EF-02).
-9. **Unplaced devices.** The list shows F55, E55, E56, S56 and -201U9 (EF-05); dragging F55 onto rail 1 removes it.
-10. **Renumber.** Folio 106 → 104 through Page ▸ Renumber pages opens the preview of §7.6: 2 tags, 14 xrefs; Accept
-    is one undo step (AC-18).
-11. **Find and replace.** "Murr Elektronik" → "Murrelektronik" previews every affected field and commits once
-    (FR-UI-020, D-18).
+No walkthrough on a reference project is kept: the sample project (`fixtures/sample/`) opens from the start page,
+and each behaviour is specified in its own section of this document.
 
 ### 18.2 Defects prevented at the interface
 

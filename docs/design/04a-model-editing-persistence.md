@@ -395,7 +395,7 @@ Rules for the files:
   collisions and short paths (G1).
 - The app binary manifest sets `longPathAware` anyway.
 
-### 7.2 Directory layout (golden project example)
+### 7.2 Directory layout (an example)
 
 ```text
 J-E-2416.ew/                          # name chosen by the user; content is UUID-named
@@ -529,8 +529,8 @@ Library copies are one pretty-printed JSON document per item, because they are l
    kind and per step. They are never deleted.
 3. **Stamps and schemas.** `generator` and `min_reader` stamps. JSON Schemas are published from `ew-schema` for
    every kind and validated in CI.
-4. **Fixture corpus.** One fixture per released format: the golden project (format 0.1) and, for every later format,
-   the sample project (ADR-0011 amendment 7), plus the QET examples, opened by every build.
+4. **Fixture corpus.** One fixture per released format: the reference project as saved in format 0.1 (`fixtures/format/0.1/`)
+   and, for every later format, the sample project (ADR-0011 amendment 7), plus the QET examples, opened by every build.
 5. **Change policy** (the LibrePCB rule). Before 1.0, upgrade-on-read every release. After 1.0, format
    majors only in a yearly window, and development builds that write an unreleased format show a warning.
 6. **Schema steward rule.** Every PR that changes the format ships a migration, a fixture, the regenerated

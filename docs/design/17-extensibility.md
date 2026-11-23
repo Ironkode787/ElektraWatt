@@ -593,8 +593,8 @@ file)`; the `ew apply` subcommand is built (see Semantics).
   *Shared with the UI.* The resolver is public as `Session::resolve_reference`, and the shell's hidden action `select.set` uses it: `refs` takes the same `tag:`, `folio:`, `section:` and `id:` forms (`id:` once the record exists), `ids` takes bare UUIDs, and the result replaces the selection; a reference that names no record or several fails the step with the replay's message. The property grid's acceptance flows select through it (PG5 and PG6; the canvas picks by geometry), and both also take the alias `@n` that the headless output prints, resolved before this resolver (ID-630; as built in cycle 26 by FT-422: in `refs` an alias `@n` or `id:@n` stands for `id:<uuid>`, and a command's `{"ref": "@n"}` or `{"ref": "id:@n"}` inside `command.run` is rewritten to `{"ref": "id:<uuid>"}` before the replay sees it, so the record holds the UUID).
 - **Exposure.** Every line is looked up and checked against the command registry before the first line runs. A
   `HumanOnly` command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release,
-  waive or trust (§2.3, FR-EXT-030). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log
-  line ([15](15-checks-revisions-collaboration.md) §10.3).
+  waive or trust (§2.3, FR-EXT-030). A sign-off is therefore a terminal step after the log, not a log line
+  ([15](15-checks-revisions-collaboration.md) §10.3).
 - **Semantics** (as built). Each line commits as its own transaction with origin `CmdLog`, named `cmdlog:<file>`:
   interactive commands through `execute`, bulk lines as preview then commit, so one undo step takes back one line. *The Bulk rule as built:* a line runs as preview then commit whenever its cost **for those parameters** is `Bulk`, not only when the command is `Bulk` by its metadata: `edit.delete` and `fields.set_many` above 500 targets are refused by `execute` with `NeedsPreview` and are then previewed and committed by `run_script`, one undo step each. A log confirms nothing (the preview is not shown to anyone), so this is no widening: every `Destructive` command is `HumanOnly`, which the exposure check refuses before the first line, or guards itself. A
   failing line stops the replay and leaves earlier lines committed. Specified: `--preview` runs the whole log on a fork
@@ -1494,26 +1494,9 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 
 ### 17.1 Walk-through
 
-These scenarios were stated on the reference project, retired at 0.3.5 (see the [glossary](glossary.md)); the
-examples on the sample project are §3.4, and a scenario still ahead is restated on the sample in its milestone's file.
-
-| Scenario | Command or script | Expected result |
-|---|---|---|
-| CI gate on Golden A | `ew check --scheme pre-delivery --format junit` | Exit 1; 42 errors, 32 warnings, 31 infos, 1 waived (AC-21); EF-01 (EW-POT-013 on T55, S56), EF-02 (EW-PLC-012, 28 findings under map H1), EF-03 (station address Tbd) among them |
-| CI gate on Golden A-R | same, then `ew check --gate` after the person's sign-off | Exit 0 both times; after the person released V2.0, the release jobset (§3.6) writes PDF, BOM, wire list, terminal plans and the Komax CSV (FR-EXT-010) |
-| Explain a tag | `ew query device_tag -101F1 --explain` | Trail of §3.4: TagSpec F/1, folio 101, identifier set, structure =P01 +J-E-2416 (FR-EXT-005) |
-| Explain an address | `ew query channel_addresses -201U3 --explain` | Q0.0 … Q0.7: -201U3 is the first output module of station -201U1, so its `Auto` start is byte 0; part 533361's map gives 8 channels. The trail shows coil 14 of -201U3-Q1 bound to channel 1 (Q0.1) while map H1 assigns channel 0, which is why EW-PLC-012 fires (D-26, [10](10-plc-and-bus.md) §9.2) |
-| D-25 visible in SQL | report below | Four loads on 24VDC-1, all protected by -102F2 Out1 |
-| Terminal count | `ew sql "SELECT count(*) FROM api_v1_terminal"` | 28 |
-| Golden B | `ew apply golden/J-E-2416.ew variants/b1-page-based-tags.ewcmd --preview`, then `b2-renumber-pages.ewcmd` (as built through `Session::run_script` and `ew apply`) | Step 1: exactly the 10 tag changes of Golden B; step 2: 2 tags (-106W1/-106W2 → -104W1/-104W2) and 14 xref texts; undo restores bytes (AC-18) |
-| Golden C | `ew import qet <reference>.qet --report json`, then `ew apply … variants/c-fix.ewcmd` | MF-01 … MF-27 listed; C fixed ≡ Golden A (AC-25, AC-26) |
-| Spare texts | `ew script run mark-spares.rhai --param text=Reserve` (§5.5) | The 20 spare valves on Q2 … Q6 change function text "Spare" → "Reserve" in one undo step labelled "Mark spare valve positions"; folio 908 follows (FR-EXT-012) |
-| Company lint | `desc-rating.rhai` (§5.4) | None on Golden A (EF-25); on a migrated project with folio 901's descriptions, warnings on "10A C", "4A C", "16 B" and "20A" (D-35) |
-| Agent question | MCP `sql_query` with the D-25 report | Rows as below; the agent explains that valve and electronics supplies share one 6 A channel |
-| Agent edit | MCP `preview_command(numbering.renumber, strips on folio 103)`, then `commit_preview` | Diff lists -X1031 → -103X1 and -X1032 → -103X2; nothing changes until the person approves; one undo step tagged `mcp:<client>` |
-| Decoder plugin (1.x) | action `build-assembly-from-order-code` on -201U1 with a test decoder: order code 1 (51E-F13GCQP-D+H2GG) covers 195740 and 550208 of -201U1, order code 2 (32P-VGL-R-…-28MS) the MPA section | Slot-list proposal as a preview of -201U1's children; EW-FL-003 reports that the drawn MPA section holds the CPX block -202U1 (550208), which order code 2 does not contain (D-40, FR-FLU-022) |
-
-The D-25 report, as an SQL file in `reports/` (1.0) or as `ew sql` text (MVP):
+No reference project is walked through here: the command-line examples on the sample project are §3.4. One user
+report over the projection stays as the example of D-25, the 24 V loads per protective channel, as an SQL file in
+`reports/` (1.0) or as `ew sql` text (MVP):
 
 ```sql
 -- ew:report api = "v1"
@@ -1526,29 +1509,19 @@ WHERE p.ptype = 'L+' AND CAST(p.voltage AS REAL) = 24 AND c.role = 'load'
 ORDER BY channel COLLATE ew_natural, load COLLATE ew_natural, pin COLLATE ew_natural;
 ```
 
-The supply pins of -102F1 and -102F2 have the role `through` (protective devices pass the potential on), and
--102G1's `+` pins are `source`, so +24V and +24V-F contribute no rows.
-
-| potential | channel | load | pin |
-|---|---|---|---|
-| 24VDC-1 | -102F2:Out1 | -201U1 | 4 |
-| 24VDC-1 | -102F2:Out1 | -201U1 | 5 |
-| 24VDC-1 | -102F2:Out1 | -202U1 | 4 |
-| 24VDC-1 | -102F2:Out1 | -202U1 | 5 |
-
-Pins 4 and 5 are "24V El" and "24V Val" of the CPX terminals; the spare
-channels 24VDC-2 … 24VDC-4 feed only terminals and have no loads. A "total current per channel" column, as in the
-ARCH §11 wording of this report, needs a load current per pin: from 1.0 parts carry an optional load current per
-supply CP and `api_v1_cp.i_load` exposes it, so the 1.0 report adds `SUM(CAST(c.i_load AS REAL))` per channel
-(ADR-0017 amendment 3; open question 20). The built-in check against the 6 A rating of the MICO channel is
-EW-POT-018 (FR-CHK-041; EW-PLC-014 covers PLC module outputs, [15](15-checks-revisions-collaboration.md) §4.4).
-Until then the report lists the loads with their protective device and channel, without currents, as above.
+The supply pins of a protective device have the role `through` (it passes the potential on), and a power supply's
+`+` pins are `source`, so neither contributes rows. A "total current per channel" column needs a load current per
+pin: from 1.0 parts carry an optional load current per supply CP and `api_v1_cp.i_load` exposes it, so the 1.0
+report adds `SUM(CAST(c.i_load AS REAL))` per channel (ADR-0017 amendment 3). The built-in check against a
+channel's rating is EW-POT-018 (FR-CHK-041; EW-PLC-014 covers PLC module outputs,
+[15](15-checks-revisions-collaboration.md) §4.4). Until then the report lists the loads with their protective
+device and channel, without currents.
 
 ### 17.2 Defects this area prevents or exposes
 
 | Defect | Mechanism here |
 |---|---|
-| D-01 stale -4W1 / -4X1 | CI gate and `ew diff` / textconv show tag-level changes after a renumber; Golden B's `.ewcmd` proves no stale copy exists |
+| D-01 stale -4W1 / -4X1 | CI gate and `ew diff` / textconv show tag-level changes after a renumber |
 | D-02, D-04 layout and BOM out of sync | Exports and `api_v1_bom_*` read the same row sources as the printed folios; a CI job can diff them |
 | D-05, D-34 revisions, author = checker | `revision.release` and `revision.approve` are `HumanOnly`; jobsets cannot release |
 | D-07, D-33 no outline, links, page labels | `ew export pdf` in CI with structure assertions (AC-13) |
