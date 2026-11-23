@@ -237,7 +237,7 @@ fn library_dirs(path: &Path) -> Vec<PathBuf> {
 /// otherwise silently not there. Temporary files of a write, which the next write removes, are left out.
 fn unlisted_files(dir: &Path, m: &LibManifest) -> Vec<String> {
     let mut notes = Vec::new();
-    for rel_dir in std::iter::once(None).chain(crate::record::KIND_DIRS.iter().map(|(d, _)| Some(*d))) {
+    for rel_dir in std::iter::once(None).chain(crate::record::kind_dirs().into_iter().map(|(d, _)| Some(d))) {
         let at = rel_dir.map_or_else(|| dir.to_path_buf(), |d| dir.join(d));
         let Ok(entries) = std::fs::read_dir(&at) else {
             continue;
@@ -930,7 +930,7 @@ impl Registry {
         } else {
             let shards = lib.shards();
             let mut found = None;
-            let kinds = crate::record::KIND_DIRS.iter().map(|&(_, k)| k);
+            let kinds = crate::record::kind_dirs().into_iter().map(|(_, k)| k);
             for kind in kinds.chain([Kind::Manufacturer]) {
                 for p in shards.get(&ShardKey::of(kind, item)).into_iter().flatten() {
                     let (entries, _, _) = self.load_file(lib, p).map_err(LibraryError::Format)?;
@@ -1302,7 +1302,7 @@ impl Registry {
             }
         };
         scan(None);
-        for (d, _) in crate::record::KIND_DIRS {
+        for (d, _) in crate::record::kind_dirs() {
             scan(Some(d));
         }
         let mut removed = Vec::new();

@@ -15,15 +15,17 @@ use ew_format::ew_schema::{Kind, LibDocument, Sha256, normalize_nfc, parse_value
 use ew_ids::Uuid;
 use serde_json::{Map, Value};
 
-/// The record directories of a library and their kinds, in byte order of the names.
-pub(crate) const KIND_DIRS: [(&str, Kind); 6] = [
-    ("fndefs", Kind::Fndef),
-    ("forms", Kind::Form),
-    ("macros", Kind::Macro),
-    ("parts", Kind::Part),
-    ("plc-profiles", Kind::PlcProfile),
-    ("symbols", Kind::Symbol),
-];
+/// The record directories of a library and their kinds, in byte order of the names: the directory of each library
+/// kind's documents (`lib/<dir>/` of a project, [`ew_format::lib_dir`]), but for manufacturers, which have one file.
+pub(crate) fn kind_dirs() -> Vec<(&'static str, Kind)> {
+    let mut dirs: Vec<(&'static str, Kind)> = Kind::ALL
+        .into_iter()
+        .filter(|&k| k != Kind::Manufacturer)
+        .filter_map(|k| Some((ew_format::lib_dir(k)?, k)))
+        .collect();
+    dirs.sort();
+    dirs
+}
 
 /// The manufacturer master file's stem (`manufacturers.jsonl`, `manufacturers.<generation>.jsonl`).
 pub(crate) const MANUFACTURERS: &str = "manufacturers";
@@ -58,8 +60,8 @@ impl ShardKey {
 
 /// The directory of a record kind.
 pub(crate) fn kind_dir(kind: Kind) -> &'static str {
-    KIND_DIRS
-        .iter()
+    kind_dirs()
+        .into_iter()
         .find(|(_, k)| *k == kind)
         .map_or(MANUFACTURERS, |(d, _)| d)
 }
@@ -99,7 +101,7 @@ pub(crate) fn classify(path: &str) -> Result<PathRole, String> {
         return Ok(PathRole::Other);
     }
     if let Some((dir, name)) = path.split_once('/')
-        && let Some((_, kind)) = KIND_DIRS.iter().find(|(d, _)| *d == dir)
+        && let Some((_, kind)) = kind_dirs().into_iter().find(|(d, _)| *d == dir)
         && let Some(stem) = name.strip_suffix(".jsonl")
     {
         let (hex, generation) = match stem.split_once('.') {
@@ -110,7 +112,7 @@ pub(crate) fn classify(path: &str) -> Result<PathRole, String> {
         if hex_ok && generation.is_none_or(generation_ok) {
             let shard = u8::from_str_radix(hex, 16).map_err(|_| bad())?;
             return Ok(PathRole::Records(ShardKey {
-                kind: *kind,
+                kind,
                 shard: Some(shard),
             }));
         }
