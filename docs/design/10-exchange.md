@@ -23,8 +23,8 @@ A chapter of [PLC, I/O and fieldbus](10-plc-and-bus.md), whose table says where 
 Every exporter implements the permissive `Exporter` contract over an `ExportView` of a snapshot fork, never blocks
 editing and records the revision it reflects (FR-EXP-001). Release-mode exports refuse a stale Class II input.
 
-*As built (WP-S3.16).* AML export and import, the AR APC 1.2.0 variant, the TIA tag table, the PLCopen list and the
-instrument list are built. The crates: `ew-caex` (permissive) holds the image, the AML writer and the AML reader
+AML export and import, the AR APC 1.2.0 variant, the TIA tag table, the PLCopen list and the
+instrument list are in these crates: `ew-caex` (permissive) holds the image, the AML writer and the AML reader
 over quick-xml; `ew-plc` the projection of the image, the matching and merge, the tag table's rows, the PLCopen
 writer and the instrument list. No XLSX or PLCopen crate is taken: the tag workbook is written by the workbook
 writer of `ew-reports` (`plain_xlsx`, a sheet with fixed columns) and read by the workbook reader of the parts
@@ -61,7 +61,7 @@ pub struct XKey { pub foreign_id: Option<String>, pub ew_id: Option<Uuid> }
   [05](05-project-format-and-persistence.md) §2.2; included in the as-built archive). A separate file keeps it out
   of `project.jsonl` merges, travels through git, and lets a colleague merge a TIA re-export.
 
-*As built (WP-S3.16).* The image is `ExchangeImage {project, stations, tags, networks}` with serde and a JSON Schema,
+The image is `ExchangeImage {project, stations, tags, networks}` with serde and a JSON Schema,
 since it is the parameter of `plc.apply_exchange`. Every object carries one `id`, the ID the file gives it: an export
 writes the project's IDs there, an import keeps what the PLC software wrote, and the matching decides whether that is
 one of the project's IDs or a foreign one (no `XKey` with two members). A tag names its channel by that ID (`channel`)
@@ -87,7 +87,7 @@ whose object is gone snapshots nothing. The XLSX carries the channel ID in a hid
 | Channel ↔ symbol | `InternalLink` | RefPartnerSideA `<module ID>:Channel_DO_1`, RefPartnerSideB `<tag table ID>:TA05_V_15` |
 | Bus interface, port, node | `CommunicationInterface`, `CommunicationPort` (Label), `Node`/`NodeEthernet` | NetworkAddress, SubnetMask, IpProtocolSelection; PROFIBUS address names to be fixed from a real DP export |
 
-Golden A at 1.0, with the symbol template `{target.process_tag}`, shortened (role and attribute declarations
+The valve terminal -201U1 with the symbol template `{target.process_tag}`, shortened (role and attribute declarations
 omitted). The element nesting follows the TIA V21 sample (PBF §3.1); the tag table without a CPU sits under the
 `AutomationProject` element. Both are verified in the exchange test (SC-8):
 
@@ -130,7 +130,7 @@ ranges on CAx import. Writer-header dates come from the export's document date (
 (station order, slot, channel number), so the bytes are stable (FR-EXP-006). The personal-data option (FR-EXP-009)
 leaves no person fields in the file.
 
-*As built (WP-S3.16).* The writer follows the table and the example: the configuration project's `InternalElement`,
+The writer follows the table and the example: the configuration project's `InternalElement`,
 below it one per station (role `Device`) with its modules (`DeviceItem`, flat: a rack is not written as an item, a
 module's `PositionNumber` is its slot), the tag table (`TagTable`, under the project element) and
 the subnets, then the `InternalLink`s. Roles are `SupportedRoleClass` paths, attributes carry `AttributeDataType`,
@@ -150,8 +150,7 @@ person field with or without `--omit-personal-data`, which `ew` accepts for the 
 refused while EW-PLC-005 has a finding (FR-PLC-047). **Validation:** the published CAEX 2.15 schema file is not in the
 repository, because its licence for redistribution is not established; a test of `ew-caex` checks
 the written file against the schema's content model written from the standard (child order, required attributes,
-unique IDs, links that name interfaces), and AC-30's test reads Golden A's export back: 7 modules on Q0 … Q6, 56
-channels, 8 tags linked to their channels.
+unique IDs, links that name interfaces), and AC-30's test reads an export back.
 
 ### 4.4 AML import and the three-way merge
 
@@ -204,7 +203,7 @@ stations present in the file. A station missing from the file is untouched unles
 access, which queries never have, so FR-PLC-035 evaluates it in the exchange dialog and by `ew plc status <file>`
 only.
 
-*As built (WP-S3.16).* `ew_plc::merge` on the session's snapshot is the preview, and `plc.apply_exchange` runs the same
+`ew_plc::merge` on the session's snapshot is the preview, and `plc.apply_exchange` runs the same
 merge on its base, so what was previewed is applied; a stale preview is refused by the engine as for every Bulk
 command. **Matching** runs kind by kind (stations, modules, channels, nodes, tags), each below its matched parent, and
 in passes over every object of the kind, so a weaker key never takes an object that a stronger key gives to an object
@@ -222,7 +221,7 @@ a node's address (the PROFIBUS station address; the PROFINET name, IP address, m
 is listed as a rejected PLC change and cannot be accepted. **States** in a preview: `apply`, `rejected`, `kept`,
 `pending` (changed in the project only although the PLC owns it: export pending) and `conflict`; a resolution (`ours`,
 `theirs`) is keyed by `<object>/<record>/<field>`. `ew-plc` names each object kind, field and state by the key of
-its words (`object_key`, `FIELD_KEYS`, `State::key`; FT-2080): the window and Apply's notices render the key in the
+its words (`object_key`, `FIELD_KEYS`, `State::key`): the window and Apply's notices render the key in the
 window's language ("applied" for `apply`), and the command line prints an object's and a field's words in English;
 `ew import plc-aml` and `plc-xlsx` begin each change's line with the state's name above (`State::word`), as their
 `--json` gives it. Without a snapshot of the object (a first import of a project that
@@ -244,7 +243,7 @@ fields, and a PLCopen list, which never comes back, is not recorded at all. The 
 longer has, or the project no longer has, goes with its record. **Drift.** `ew plc
 status [<file>]` prints the stamp, the differing objects with their fields, and whether the file's SHA-256 is the
 stamp's; it does not read the file's content (`ew import plc-aml <file>` previews it). The affected folios are not
-part of the preview yet (WP-S2.13's dialog).
+part of the preview.
 
 ### 4.5 TIA "PLC Tags" XLSX
 
@@ -260,13 +259,14 @@ its round trip needs code. One row per channel with a determined symbol:
 - The path is `SymbolPolicy.tag_table`. HMI flags are a configuration-project setting; their TIA defaults are
   unverified.
 - The comment uses the export language chosen in the dialog. Other `MlText` languages are untouched on re-import.
-- Golden A at 1.0 exports 8 rows.
+@@@ END
+
 - **Import** matches by Name, then by Logical Address, and previews like §4.4 with the same snapshot. Tags without a
   channel are listed, never created.
 - Because the workbook carries absolute addresses, the export warns while the module-start field group is still
   owned by `Ecad` and the starts are `Auto`: "addresses not confirmed by the PLC configuration" (§8, item 1).
 
-*As built (WP-S3.16).* The rows are made and read in `ew-plc` (`tia`); the workbook is written and read at the host.
+The rows are made and read in `ew-plc` (`tia`); the workbook is written and read at the host.
 Addresses are always the exchange form of the built-in TIA profile (`%Q0.1`), whatever profile the project draws
 with. The three HMI flags are written `True`; there is no setting for them. The path is `SymbolPolicy.tag_table`,
 else `EW_IO`. The hidden column `EW ID` after the ten columns carries the channel's ID; the import matches by it,
@@ -300,7 +300,7 @@ One GVL `IO_ElektraWatt` per configuration project, with one variable per used c
 - The file declares the namespace `http://www.plcopen.org/xml/tc6_0201`.
 - CI parses the output with the `plcopen` crate as a test-only dependency.
 
-*As built (WP-S3.16).* The writer is `ew_plc::plcopen`: the file header, an empty `types` block and the list under
+The writer is `ew_plc::plcopen`: the file header, an empty `types` block and the list under
 `instances/configurations/configuration/resource/globalVars`; a data type the standard does not name is a `derived`
 type; the documentation is the function text and the signal pin. The `plcopen` crate is not taken as a test
 dependency (a low-adoption crate, never a runtime dependency): the test reads the written XML for its namespace, its variables
@@ -326,16 +326,16 @@ XLSX with a hidden `id` column and the hidden `_ew` and `_ew_base` sheets (FR-EX
 - **Excel safety.** Tags such as "-201U3" are string cells in XLSX. The CSV presets apply the formula guard of
   NFR-SEC-17 ([09](09-reports-forms-output.md) §4.6).
 
-Golden A: the default block exports 28 rows (§3.2). Editing three comments in Dutch Excel (`excel-nl`) and
-re-importing changes exactly three fields in one transaction, which is FR-PLC-038's criterion.
+Editing three comments in Dutch Excel (`excel-nl`) and re-importing changes exactly three fields in one transaction,
+which is FR-PLC-038's criterion.
 
 **Instrument-list import** (1.0, FR-PLC-050). Rows hold tag, description, signal type, range, field location and
 preferred station. They create placeholder field devices (state "supplied by others") with the process tag and
-pre-assign spare channels of the matching kind in station order. A 10-row list with 8 DO tags against the golden
-station assigns 8 spare channels of -201U5 and -201U6 and lists 2 tags as EW-PRC-002 open items. Generating whole
+pre-assign spare channels of the matching kind in station order; a tag without a spare channel is an EW-PRC-002 open
+item. Generating whole
 schematics from such a list is IDEA-025 in [07](07-symbols-parts-macros.md) and [17](17-extensibility.md).
 
-*As built (WP-S3.16).* `ew import instrument-list <file>` reads a CSV or the first sheet of a workbook with the
+`ew import instrument-list <file>` reads a CSV or the first sheet of a workbook with the
 columns `tag` and `signal type` (DI, DO, AI, AO) and, when present, `description`, `range`, `field location` and
 `preferred station` (found by header, without regard to case), and `plc.apply_instrument_list` (Bulk) applies the
 rows: a placeholder device per tag (a device that carries the process tag is reused) with the description as its
@@ -368,7 +368,7 @@ format has no "supplied by others" state; the placeholder is known by its record
 4. **Build.** The rack/slot editor (1.0, FR-PLC-028) places modules into slots, validated against `FixedInSlots`,
    `AllowedInSlots`, `Max_Module` and the maximum I/O lengths (EW-PLC-011). N1 then expands channels.
 
-A CPX-FB13 GSD gives the golden node its supported rates for EW-BUS-005. The ABB FENA GSDML V2.31 sample yields
+A CPX-FB13 GSD gives the -201U1 node its supported rates for EW-BUS-005. The ABB FENA GSDML V2.31 sample yields
 physical slots 0..2, fixed slot 0, port submodule 32769 and the F_Dest_Add range 1..65534 (FR-PLC-026). The Balluff
 IODD creates pins L+, Other, L−, C/Q with core colours BN, WH, BU, BK on the connecting M12 cable (FR-BUS-013).
 
@@ -383,7 +383,7 @@ IODD creates pins L+, Other, L−, C/Q with core colours BN, WH, BU, BK on the c
   Imported identifiers are NFC-normalised and confusable-checked (ARCH §4.5). An import never executes content and
   changes the model only through the previewed command.
 
-*As built (WP-S3.16).* The AML reader refuses a DOCTYPE and bounds the input size, the element depth, the nodes, the
+The AML reader refuses a DOCTYPE and bounds the input size, the element depth, the nodes, the
 attributes per element and per document, an attribute value and a text by the `Limits` of [14](14-interop.md) §2.1; a
 tag workbook and an instrument list are read by the table readers under the table limits; every read of foreign
 bytes runs inside `catch_unwind`. The cargo-fuzz workspace is cut until 1.0, so the AML reader, the tag workbook and
@@ -416,14 +416,12 @@ instrument-list tag and every used channel without a main representation. The SQ
 per protective channel" (ARCH §11, ADR-0017) reads `api_v1_cp` and `api_v1_potential`; from 1.0 it sums the load
 currents `api_v1_cp.i_load` per channel, which EW-PLC-014 compares with the channel rating (ADR-0017 amendment 3).
 
-Golden A, folio 908: 56 rows on 908, 908.1 and 908.2 (23 rows per page). Station address "TBD"; addresses Q0.0 …
-Q6.7; valve DTs; printed function texts TA05-V-15 … (the driven devices' process tags) or "Spare"; states 8 used,
-20 spare, 28 deactivated; one link per bound row to the valve on 203–206 (AC-29). The network address list has two
-rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
+@@@ END
 
-*As built (WP-S1.24).* The 1.0 kinds are built: `plc_card_list` (start as the profile's byte address, `QB0`, and
+
+The 1.0 kinds: `plc_card_list` (start as the profile's byte address, `QB0`, and
 lengths in bytes; the type ident column is the module part's number), `network_address_list` (an external master
-first, then every port with an address; Golden A: JE-N1000-03, master, and -201U1, `Tbd`), `bus_overview` (per
+first, then every port with an address), `bus_overview` (per
 logical net, then per segment member in A5's walk order; it is the generated bus topology overview of §3.6 and
 FR-BUS-007, a report block, not a drawn page), `bus_cable_list`, `iolink_port_list` (one row per port with a connected
 device; the IODD hash is 1.x) and `safety_io_list`. `io_list` prints the derived data type and the traced target pin;
@@ -431,11 +429,11 @@ the passed terminals, the signal range and the F-address are not columns, since 
 table's width (a 21st column overflows it at the 1.8 mm floor). The SQL view `api_v1_plc_channel` (doc 17 §6.1) has
 the `io_list` columns plus `id, station_id, module_id, target_id, address_source` and the signal range, and, last so
 that the earlier columns keep their places, the CPU, the station's bus address, the passed terminals (a JSON array of
-their tags) and the F-address (the module's F-destination); Golden A has 56 rows. `network_address_list` lists a port
+their tags) and the F-address (the module's F-destination). `network_address_list` lists a port
 with an address that names no logical net after the nets, with an empty net (FR-BUS-008). A cable length prints in
 metres to the millimetre without trailing zeros (`12.5 m`).
 
-**As built.** `plc_overview` is a report kind in `ew-reports` over `plc_rows(station)`. Folio 908 prints the column set of the table above (module, part, address, channel number, designation, kind, symbol, function text, process tag, target, state and the page cell), a superset of the table of doc 20 §11.3. Every row whose channel is bound to a coil (8 used and 20 spare) links with `LinkTarget::Cp` to the coil position, the "link to the main representation" of the table; the golden PDF has 92 link annotations, 64 cross-reference links plus these 28. The station address "TBD" is not printed, because there is no `BusPort` record yet. The station list is the block's manual selection of stations, else every station in natural tag order.
+`plc_overview` is a report kind in `ew-reports` over `plc_rows(station)`. Folio 908 prints the column set of the table above (module, part, address, channel number, designation, kind, symbol, function text, process tag, target, state and the page cell). Every row whose channel is bound to a coil links with `LinkTarget::Cp` to the coil position, the "link to the main representation" of the table. The station address is not a column. The station list is the block's manual selection of stations, else every station in natural tag order.
 
 ---
 
@@ -450,13 +448,13 @@ metres to the millimetre without trailing zeros (`12.5 m`).
   names are fixed in [17](17-extensibility.md) §3.3.
 - **Queries and SQL.** `ew query channel_addresses -201U3 --explain`;
   `ew sql "select address, symbol, state from api_v1_plc_channel"` (1.0).
-- **Gates.** `ew check --scheme pre-delivery` reports EF-02 and EF-03 on Golden A and exits 1.
+- **Gates.** `ew check --scheme pre-delivery` runs the PLC and bus rules of the pre-delivery scheme.
 - **MCP (off by default).** `ew mcp` reads the same queries (read tools from MVP, Could). From 1.0 an agent's
   re-addressing proposal is a `preview_command(plc.readdress, …)`, committed only through `commit_preview` after
   ask-first approval (ADR-0020, ARCH §10.5).
 - **Scripts.** rhai can call `plc.readdress` and read `plc_rows`, never write addresses as text.
 
-*As built (WP-S3.16).* `ew export plc-aml [<project>] --out <file> [--config <name>] [--apc 1.4.0|1.2.0] [--station
+`ew export plc-aml [<project>] --out <file> [--config <name>] [--apc 1.4.0|1.2.0] [--station
 <tag>]…`, `ew export plc-xlsx` (alias `plc-tags`) and `ew export plcopen`, each with `--lang` where it has a comment:
 the file is written whole or not at all, the exchange is recorded with `plc.record_exchange` and the project saved.
 `ew import plc-aml <file> [<project>]` and `ew import plc-xlsx` (alias `plc-tags`) print the preview (`--json` as
