@@ -111,7 +111,7 @@ fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>, bef
 }
 
 /// The Wire tool's route from `from` to `to` (§7.4): the straight line between them where it crosses nothing
-/// ([`crosses_nothing`]), else the search of [`route`] against the page as drawn, every routed wire fixed, a wire of
+/// ([`crosses_nothing`]), else the search of [`route`](super::route) against the page as drawn, every routed wire fixed, a wire of
 /// the same pin's run shared where that is the better way. `before` is the wire's own route so far, ending at a free
 /// first end (its fixed bends; empty for a wire from its start): the route goes on from the heading it arrived with and
 /// runs along none of it, so that it never runs back over itself (FT-2097). `None` where no route keeps free of faults.

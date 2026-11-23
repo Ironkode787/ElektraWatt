@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The occupancy of a page (docs/design/06a-drafting.md §3.3): one structure over the half grid of the page, built
-//! once per run and changed as wires are laid and lifted. The search ([`crate::search`]) and the structured phases of
+//! once per run and changed as wires are laid and lifted. The search (`crate::search`) and the structured phases of
 //! the router read it.
 //!
 //! A **node** is a point of the half grid, `(HALF·i, HALF·j)` ticks; a **move** joins a node to its neighbour on the
