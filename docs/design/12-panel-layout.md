@@ -29,8 +29,8 @@ releases contain.
 15. [Edge cases and pitfalls](#15-edge-cases-and-pitfalls)
 16. [The reference project](#16-the-reference-project)
 
-Conventions: "GP" is the golden project; ▲ marks a test value for an unknown of the
-reference (U-nn in 20 §23.1) or a shop-policy default still to be confirmed by the pilot (PQ-22, PQ-24); "DT" is a
+Conventions: ▲ marks a test value for an unknown of the
+reference (U-nn) or a shop-policy default still to be confirmed by the pilot (PQ-22, PQ-24); "DT" is a
 device tag; "CP" a connection point. Values marked *(unverified)* come from the research notes and ship as data,
 never as hard-coded constants (FR-CHK-046). Source abbreviations: ARCH/arch =
 [architecture](04-architecture.md); VIS = [vision](00-vision-and-scope.md); BS = [brainstorm](01-brainstorm.md);
@@ -187,8 +187,8 @@ fill, temperatures. Each is a query (§2.6).
 | Surface | — | the surface's own frame and usable polygon | — |
 
 The label "40×60" of folio 902 is generated from `width = 40 mm`, `height = 60 mm` (▲, the reference's order is
-ambiguous; PM §5.3). In Golden A all five ducts and the three rails carry the placeholder parts of BOM rows 24–25
-(▲U-27), which FR-CHK-034 reports as open items (EF-17); the unlabelled lower duct D5 additionally has a test type
+ambiguous; PM §5.3). In the example all five ducts and the three rails carry placeholder parts (▲U-27), which
+FR-CHK-034 reports as open items (EF-17); the unlabelled lower duct D5 additionally has a test type
 (▲U-26).
 
 ### 2.5 Part data the layout reads
@@ -254,18 +254,17 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `wire_length(wire)` | `LengthBreakdown`, source | I (reads committed) | committed route, policy, overrides |
 | `thermal(space)` | `ThermalResult` | II, job | placements, loss models, load model, enclosure, inputs, coefficient set |
 
-*As built.* The MVP's queries are in `ew_derive::layout` (D2: no
+The MVP's queries are in `ew_derive::layout` (D2: no
 `ew-panel` crate yet), and none is stored: a footprint, a label, the unplaced list and an occupancy are derived from
 the placement records and the part data each time. Values are integer nanometres in the mounting surface's frame
-(u right, v up), exact, since carriers are axis-parallel and turns are quarter turns. `mountable(dev)` (D8, cold; §2.7
-as built); `unplaced(space)` (memo): the mountable devices of the space's location without a placement, in natural
-order of their full tag, a device of another location never listed, `Session::unplaced` in the API (Golden A: F55,
-E55, E56, S56, -201U9); `placement_geometry(p)` (memo): the footprint and outline in the surface frame and the unknown
+(u right, v up), exact, since carriers are axis-parallel and turns are quarter turns. `mountable(dev)` (D8, cold; §2.7);
+`unplaced(space)` (memo): the mountable devices of the space's location without a placement, in natural
+order of their full tag, a device of another location never listed, `Session::unplaced` in the API; `placement_geometry(p)` (memo): the footprint and outline in the surface frame and the unknown
 flag only (no OBB, CP3D or keep-outs at the MVP): on a rail the clip point lies on the axis at u = `path[0].u` + s
 (-102G1 on R1: (101, 675)–(171, 805) mm), an unknown part is the 20 × 20 mm square about the pose, a strip is its
 terminals side by side, and a placement on a duct or a rail without a valid axis has none; `rail_occupancy(carrier)`
 (memo): intervals `(s0, s1, placement, device, locked, unknown)` in s along the rail, sorted, a strip one interval,
-overlaps kept for EW-LAY-006, no clearance padding and no group accessories yet (WP-S4.02); `layout_label(p, page, mode)`
+overlaps kept for EW-LAY-006, no clearance padding and no group accessories; `layout_label(p, page, mode)`
 (memo): the device's displayed tag on the page (abbreviated) or its full designation, so renumbering changes the label
 and no layout record; a placement of one function prints its device's label without D10's ":" suffix (functions
 carry no designation member in format 0.1); `carrier_geometry(carrier)` (cold): the axis check, length, rail axis and
@@ -277,7 +276,7 @@ packages. The four memo families are in `verify-derived`'s sweep.
 EW-LAY-001 and the unplaced list need one exact definition of "a device that must appear in the layout of its
 location":
 
-| Case | Result | GP example |
+| Case | Result | Example |
 |---|---|---|
 | Device location ≠ any layout space location, or device marked *supplied by others* (FR-DEV-037) | not considered | field valves -203Q1 … -203Q8 (TA05-V-15 …) in +FIELD ▲U-07 (20 §6.2) |
 | Part use with `mount_kind` ∉ {`None`, `OnParent`} | Mountable (primary part) | -102G1, -201U2, -201U9 |
@@ -288,8 +287,8 @@ location":
 | Enclosure and surface devices | Exempt: they are the layout | -UC1, NSYPMM107 plate |
 | Integral device (kind `PeStud`, no part, parent = a surface's device) | Exempt; its CPs take their 3D position from the parent part's CP3D (the plate's PE stud), so wires to it stay routable | -XPE (waiver W-1); W6 ends on the plate's PE stud |
 
-*As built.* `ew_derive::layout::Mountable`, first match wins: (1) a device
-whose location has no layout space is not considered (*supplied by others* waits for its attribute, FT-209); (2) the
+`ew_derive::layout::Mountable`, first match wins: (1) a device
+whose location has no layout space is not considered (*supplied by others* waits for its attribute); (2) the
 device of an enclosure or a surface is exempt; (3) a strip with terminals is mountable as one placement without a
 part; (4) a terminal of a strip, a cable and a device without functions are exempt; (5) a part use whose part has a
 mount kind other than `none` and `on_parent` is mountable, the first such use the primary part; (6) part uses that
@@ -310,7 +309,7 @@ unknown footprint. Assembly children are not exempt by being children: "with its
   box-shaped: plate, with door and gland templates read but used from 1.0 (FR-LAY-003). Dimensions are never typed on
   the page; changing the part re-derives the surfaces' usable polygons and reports placements that no longer fit
   (EW-LAY-010).
-  *As built (0.3.5, FT-1899).* The enclosure device and its plate take the **numbering scheme's tags, not frozen
+  The enclosure device and its plate take the **numbering scheme's tags, not frozen
   ones**: the enclosure letter `UC` with the lowest counter no `UC` tag holds, its tag printing no page since no page
   draws it (as a cable without a drawing, [03](03-domain-model.md) §8.2), so `-UC1`; the plate its child `U1`
   (`-UC1-U1`). A frozen tag is a person's or an import's fixed text, which EW-NUM-001 lists as deviating; one the
@@ -324,7 +323,7 @@ unknown footprint. Assembly children are not exempt by being children: "with its
   reads face exposure from it (§11.3), so "wall-mounted" is a fact of the scene, not a separate thermal input.
 - **Selection assistant (1.x, FR-LAY-038)** is a catalogue filter, not an optimiser: Σ(footprint + clearance) +
   duct area + reserve ≤ usable plate area, max(device depth + rail height) + door-device depth ≤ usable depth, and a
-  passing thermal result or a fitting climate device. With the golden device set and 25 % reserve it must list
+  passing thermal result or a fitting climate device. With the reference set's devices and 25 % reserve it must list
   NSYPLA1074G.
 
 ### 3.2 Rails and ducts
@@ -371,7 +370,7 @@ snap_on_rail(rail, device, cursor, mode):
 - **Bulk placement** (FR-LAY-016). `AutoFillRail{rail, devices, order: Dt | SchematicPosition}` fills greedily from
   the left with clearance gaps and stops at the rail end, listing what did not fit. Schematic order is (page order,
   row, column) of each device's main representation.
-  *As built (0.3.5, FT-1802).* **The person chooses the devices.** Auto-fill rail… (`layout.auto_fill_rail`) offers
+  **The person chooses the devices.** Auto-fill rail… (`layout.auto_fill_rail`) offers
   the cabinet's unplaced devices, then the devices without a location, each a row with a tick; Fill places the ticked
   ones, and a ticked device without a location takes the cabinet's location in the same undo step (a refused fill
   takes it back). The devices marked in Unplaced devices start ticked; without marks the **first guess** reads only
@@ -391,7 +390,7 @@ snap_on_rail(rail, device, cursor, mode):
   accessories, and recomputes on every strip change. Adding a terminal in the schematic lengthens the placed strip in
   the next derivation; if the rail overflows, EW-LAY-010 reports it. A strip may be split across carriers with
   `segment` ranges, and it stays one BOM row (D-42).
-  *As built.* A strip that grows by `terminal.insert` or by a new terminal
+  A strip that grows by `terminal.insert` or by a new terminal
   placed in the schematic shifts the items after it on its rail by the overlap, cascading as push does (§3.3), in the
   same transaction: free space after the strip is used first, a locked item stops the cascade (EW-LAY-010 then reports
   the overlap), and past the rail end the positions are written and EW-LAY-010 reports `bracket_outside`. The command
@@ -403,11 +402,11 @@ snap_on_rail(rail, device, cursor, mode):
   widths the transaction holds.
 - **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
   Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
-  run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
+  run end, so k abutting strips need k + 1 brackets. In the example rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
   brackets, as on folio 902 and in BOM row 26. Strips that are not placed, and
   bridges, use authored part uses (bridge parts on their `BridgeSpec` connections). From 1.0 the part-data accessory
   lists (`AccessoryRef{per: Group}`, [07](07-symbols-parts-macros.md) §2.5; FR-PRT-005, FR-REP-051) declare the
-  bracket part and must reproduce the same golden count.
+  bracket part and must reproduce the same count.
 - **Assemblies and PLC racks.** Children of one assembly (the valve terminal -201U1 … -202U3) or of one PLC station
   on one carrier are kept contiguous and in physical order (`Device.position`, module slot). `PlaceAssembly{device,
   carrier, at}` places all members abutting; inserting a missing member uses push mode. EW-LAY-016 (FR-LAY-061) reports
@@ -425,7 +424,7 @@ snap_on_rail(rail, device, cursor, mode):
 | Terminal added to a placed strip | strip length grows; EW-LAY-010 on overflow | rail auto-extension |
 | Part use removed that a placement names | EW-LAY-003; quick fix "realise the primary part" | silent retarget |
 
-*As built.* "Terminal added to a placed strip" now also moves the items after
+"Terminal added to a placed strip" also moves the items after
 the strip on its rail by the overlap, as §3.4's as-built note says; the strip's length still grows and EW-LAY-010 still
 reports an overflow, and the rail is still never extended.
 
@@ -490,7 +489,7 @@ unverified constant reports at most a warning (FR-CHK-046).
 A `PanelLayout` page ([06](06-schematic-editor.md) §2.2) shows one mounting surface (FR-LAY-010). It carries:
 
 - `Page.scale`: a ratio from the configured series (1:1, 1:2, 1:5, 1:10, 1:20, 1:50, 1:100, after ISO 5455) or
-  `NotToScale`; the title block binds it (FR-REP-033, REF-070); *as built:* a page still not to
+  `NotToScale`; the title block binds it (FR-REP-033, REF-070); a page still not to
   scale takes, with its first surface view, the first ratio of the series at which the surface's usable outline fits
   the drawing area (a chosen scale kept), a page without a frame form reading the default frame grid's area;
 - a `SurfaceView` page item **(add)** `{surface, side: Front | Back, datum_at: Pt2, clip: Rect?, label_mode:
@@ -500,13 +499,13 @@ A `PanelLayout` page ([06](06-schematic-editor.md) §2.2) shows one mounting sur
 - at 1.0, dimension items **(add)** and further `ModelView` items with their own scale (FR-PAG-003, FR-LAY-039).
 
 The page is an ordinary page of `page_order()`: its title block, Prev/Next and TOC entry are derived, so the layout
-page cannot drift in revision or description (D-05, D-06), and GP folio 902 gets Next = 903 from the generated
+page cannot drift in revision or description (D-05, D-06), and folio 902 gets Next = 903 from the generated
 report folios.
 
 **Projection.** A model point (u, v) of the surface maps to paper by
 `x = datum.x + u·num/den`, `y = datum.y − v·num/den` (paper y points down, 03 §3.1), computed in i128 nm with one
-rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26) occupies 75 × 100 mm on the A4 sheet.
-Changing the scale changes no stored pose (FR-LAY-002). **The plate takes the whole sheet** (0.3.5): a new view fits
+rounding to the nearest nm. At 1:10 the example's enclosure (W 750 × H 1000 mm ▲U-26) occupies 75 × 100 mm on the A4 sheet.
+Changing the scale changes no stored pose (FR-LAY-002). **The plate takes the whole sheet**: a new view fits
 its enclosure to the frame's whole drawing area at the first ratio of the series that holds it and centres it there;
 nothing is kept free for a legend, which is a list page of its own (§5.4). **Fit the layout to the sheet**
 (`layout.fit_sheet`, a panel page's context menu, Page ▸ Order and Enclosure's split on the Draw tab's layout
@@ -518,15 +517,15 @@ whole sheet already"), and so it is while a legend box still stands beside the l
 page's Properties at which the plate's usable outline runs over the drawing area says so in a toast whose action is
 Fit the layout to the sheet ("At 1:2 the layout runs over the frame's drawing area. Fit the layout to the sheet draws
 it at 1:5, centred."; `Session::layout_overruns`), and a ratio that is no scale (`1:4.5`, `2:9`) is refused in words
-("`1:4.5` is not a scale; type 1:n …") where it read "Not strict JSON" (a persona run).
+("`1:4.5` is not a scale; type 1:n …").
 
-*As built.* The page item `surface_view`
+The page item `surface_view`
 is typed with `surface`, `datum_at`, `label_mode` and `labels` (`tags`, the default; `item_numbers`; `both`: what each
 placement is labelled with, §5.3; added in 0.3, an older build keeps it and draws tags); `side`, `clip` and `layers` stay verbatim until typed
 ([03](03-domain-model.md) §6). `page.surface_view.set {page, surface, datum_at, label_mode?, labels?}` sets it on a
 `panel_layout` page and is refused on another kind (`labels` absent keeps the view's); a second set replaces the view in place; the view cascades with
 its surface. **The stated scale holds on paper:** the frame maps the page to the sheet at `scale_ppb` (0.986282578 on
-every frame of Golden A and the starters), so the projection divides by it too, `num/den = 10⁹ / (n · scale_ppb)`
+every QET-compatible frame and the starters), so the projection divides by it too, `num/den = 10⁹ / (n · scale_ppb)`
 (10⁹ without a map), i128, one rounding half away from zero; the datum stays in page coordinates. On 902 the
 enclosure measures 75.0 × 100.0 mm printed (76.043 mm on the page for its 750 mm edge). A page without a scale draws
 the surface at 1:1 on the page. The projection is built in `ew-scene`'s `panel` module from a view that `ew-api` fills
@@ -544,7 +543,7 @@ move rebuilds `placements` and `labels` only, never `frame` or `tables`.
 | `surface` | enclosure outline, plate outline, usable polygon (thin dashed) | ISO 128 visible / hidden |
 | `carriers` | rails (outline + axis chain line), ducts (outline, optional slot ticks), busbars | duct fill hatch optional |
 | `placements` | `front_2d` outline, else the footprint rectangle; from 1.0 silhouettes from 3D (FR-LAY-011, FR-LAY-039) | |
-| `labels` | `layout_label` lines; balloons at 1.0 | slot kind `layout.label`, bound in the golden to the style `xref.device` (1.83 mm em, 20 §17.5); paper height constant |
+| `labels` | `layout_label` lines; balloons at 1.0 | slot kind `layout.label`, bound by default to the style `xref.device` (1.83 mm em); paper height constant |
 | `features` | holes, cut-outs, centre marks (1.0) | |
 | `dims` | associative dimensions (1.0) | ISO 129-1 style *(unverified edition)* |
 | `tables` | PART DATA, legend | form |
@@ -554,10 +553,9 @@ move rebuilds `placements` and `labels` only, never `frame` or `tables`.
 Every item carries an `EntityRef` (placement, carrier, feature), so hit-testing, selection sync and "show all
 representations" work on folio 902 as on schematic pages (FR-UI-007).
 
-*As built.* The `surface`, `carriers`, `placements`
+The `surface`, `carriers`, `placements`
 and `labels` layers are drawn, each its own memo family (`page_display_list_surface`, `_carriers`, `_placements`,
-`_labels`); `features` and `dims` stay empty until 1.0, and the embedded blocks of a panel page are drawn by WP-S4.01
-part 4b. `surface`: the enclosure outline, the plate outline and the usable polygon thin dashed; `carriers`: per
+`_labels`); `features` and `dims` stay empty until 1.0, and the `tables` layer draws the embedded blocks of a panel page. `surface`: the enclosure outline, the plate outline and the usable polygon thin dashed; `carriers`: per
 carrier by ID its outline rectangles, a rail's axis as a chain line and a duct's "W×H" label in millimetres;
 `placements`: per placement by ID its `front_2d` outline, else its footprint rectangle (an unknown footprint dashed).
 Carrier outlines and duct labels carry the carrier's entity, footprints and labels the placement's; the surface
@@ -581,22 +579,22 @@ placed (a cut, not a paper-coloured fill), so the carriers layer reads the label
   paper. "-101F1" in `xref.device` (1.83 mm em, ink height ≈ 1.31 mm with the default font's cap height of 0.714 em,
   length ≈ 5.8 mm) does not fit horizontally but fits rotated: 1.31 + 0.2 = 1.51 mm ≤ 1.8 mm.
 
-*As built.* `layout.label` is a constant of
+`layout.label` is a constant of
 `ew-scene` bound to the `xref.device` style, not a slot kind of the symbol library. The ink box is estimated as the
 shaped text's advance + 0.2 mm by the face's cap height + 0.2 mm, plus the descent only when the text has a descender
 (a true ink-box query is not built), and compared with the footprint in page space; a label placed outside starts its
 leader 1.5 mm off the footprint, above it, or below when above leaves the surface. Balloons are built in 0.3 (below).
 A function's placement adds no ":" suffix, since functions carry no designation member.
 
-*As built (0.3, the owner's test of the first candidate: at 1:10 the tags of one rail ran into each other).*
+At 1:10 the tags of one rail would run into each other, so:
 - **What a label shows.** The view's `labels` chooses the tag, the item number or both. The **item number** is the
   placement's position in `layout_legend` (§5.4), read by the labels layer from the same query as the legend, so the
   two cannot disagree; it prints in a **balloon** (a circle in pen 0.18 around the number in the label style, 0.3 mm
   inside), centred in the footprint when it fits, else outside with its leader as a tag. With both, the balloon
   stands left of the tag in one label. The Properties row Labels sets it, and so does the page's menu (Labels: Tags,
-  Item numbers, Both, the current one checked; `layout.labels {show}`, rc.2); Add legend on a page that shows tags
+  Item numbers, Both, the current one checked; `layout.labels {show}`); Add legend on a page that shows tags
   answers with a toast whose Show item numbers switches it.
-- **Tags where they fit, balloons where they do not** (0.3.5, the owner's sketch; `labels: tags_or_numbers`, Labels:
+- **Tags where they fit, balloons where they do not** (`labels: tags_or_numbers`, Labels:
   Tags or numbers). A device prints its tag inside its footprint where the tag fits whole at the label size, across
   or turned (the fit test above, never shrunk); where it does not (a terminal, a small part) it prints its item
   number in a balloon instead, centred in the footprint where the balloon fits, else outside with its leader. Every
@@ -610,15 +608,14 @@ A function's placement adds no ":" suffix, since functions carry no designation 
   0.5 mm) further out on either side, up to four levels; a place other than the first must stay on the surface. The
   leader runs from the label to the footprint's edge. A row without collisions prints as before.
 - **The short form.** A page without a location of its own suppresses the location of the layout space its view
-  shows: on the cabinet's own layout "+CAB1-K1" prints "-K1". Since rc.2 this is one rule for every page
+  shows: on the cabinet's own layout "+CAB1-K1" prints "-K1". This is one rule for every page
   (`page_display_structure`, which the displayed tag, the layout labels, the legend's DT and the title block's
   `{page.location}` read): a page without a location of its own takes the cabinet its view shows, else the one location
   every device drawn on it has (a page whose devices have two locations, or none, takes none), so a schematic page of
   one cabinet prints "-102A1" and says "+CAB1" once in its title block. Devices still take their structure from the
   page's own slots only.
 - **A label can be moved.** A drag of a label (or balloon) that stands off its footprint moves it alone; one inside
-  its footprint moves alone once its placement is selected (rc.2: the persona tried to drag a balloon inside its
-  device), else it goes with its device's drag. With one placement selected its label shows a dashed box with a
+  its footprint moves alone once its placement is selected, else it goes with its device's drag. With one placement selected its label shows a dashed box with a
   handle, and the pointer over a label that drags alone is the grab hand
   (`layout.label_move {placement, at?}`); `Placement.label_at` (added in 0.3) stores the label's centre as an offset
   from the footprint's centre in the surface's frame, so it moves with the placement; a label off its footprint gets
@@ -629,7 +626,7 @@ A function's placement adds no ":" suffix, since functions carry no designation 
 ### 5.4 Legend and PART DATA
 
 `layout_legend(surface)` rows: position, DT, manufacturer, part number, description, quantity or length. A
-quantity that is not a count of pieces prints with its unit ("0.47 m" for a rail; FT-1938, 0.3.5), since a legend,
+quantity that is not a count of pieces prints with its unit ("0.47 m" for a rail), since a legend,
 in a box or as a page, is made without a Unit column; a count prints bare, and the CSV and XLSX write the number
 beside the Unit column. Order:
 enclosure and plate first, carriers (rails, ducts, busbars) next, then placements by DT in natural order, then
@@ -637,25 +634,23 @@ layout-only accessories. Positions are derived and renumber when rows are added;
 same query, so they cannot disagree. Rows come from the same `RowSet` as XLSX and CSV (FR-REP-030). The embedded
 PART DATA box of folio 902 is kept for fidelity with the reference and is bound to -UC1's part lines (REF-069).
 
-*As built.* The legend is the embedded report block
+The legend is the embedded report block
 `legend-902` of kind `enclosure_legend` on 902, rect 108.00–278.00 × 19.50–167.50 mm printed (doc 20 §17.3), drawn as
-a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows of 6.52 mm each (40 rows; Golden A's
-30 print as 20 + 10); printed columns position, DT, quantity and part number at weights
+a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows of 6.52 mm each (40 rows); printed columns position, DT, quantity and part number at weights
 10 : 22 : 16 : 35; the manufacturer, the description and the unit stay in the rows and the CSV, which `ew export
 report --block <its ID> --format csv` writes ([09](09-reports-forms-output.md) §2.2). PART DATA on 902 lists -UC1's
 part lines (NSYPLA1074G, NSYPMM107) and no carrier line: the source is the enclosure device of the surface the page's
 surface view shows, and carrier lines are left out. A `layout.move` rebuilds no `tables` family of 902.
 
-*As built (0.3).* **Add legend** (the page's right-click menu, Page ▸ Order ▸ Add legend; Select at rest says so over
+**Add legend** (the page's right-click menu, Page ▸ Order ▸ Add legend; Select at rest says so over
 the free spot) puts an embedded `enclosure_legend` block on a panel page that shows a surface and holds none: in the largest
 free part of the frame's drawing area right of, left of, below or above the layout (its enclosure's outline as
 projected), 10 mm off the layout and 5 mm inside the area, when that part is at least 60 × 40 mm and the legend prints
-every row and every text whole there (0.3.5); else it makes the legend page (below). Such a legend prints position, DT, quantity, part number and description through the block's own printed
-columns (`ReportBlock.columns`, added in 0.3: `{key, weight}` per column, absent means the kind's layout, which an older
-build prints). A block with its own columns is a **lookup table** (rc.2, the persona round: the legend stood over the
-frame's ruler as a narrow strip with every cell cut): one flow column across the block; each column as wide as its
+every row and every text whole there; else it makes the legend page (below). Such a legend prints position, DT, quantity, part number and description through the block's own printed
+columns (`ReportBlock.columns`: `{key, weight}` per column, absent means the kind's layout, which an older
+build prints). A block with its own columns is a **lookup table**: one flow column across the block; each column as wide as its
 widest text, the last taking the rest; the box ends under its last row, so the block's rectangle is the room it may
-take. **Where the block is narrower, the legend keeps its identifiers whole and wraps its prose** (FT-1782, 0.3.5): a
+take. **Where the block is narrower, the legend keeps its identifiers whole and wraps its prose**: a
 part number cut to "…" is worth nothing on paper, where no tooltip reads the rest, and a reader of a panel layout looks
 an item up by its position, its tag and its part number; the description only says what the item is. A column of text
 (the description) is prose, every other one (position, tag, quantity, part number, manufacturer) an identifier. In
@@ -672,12 +667,11 @@ reference's 2.61 mm shadow and its grey header. 100 mm wide, the starter's texts
 position, tag, quantity and part number stays whole. On
 its page Select picks the legend by its box, a drag moves it and, with the legend selected, a drag of one of its corners
 resizes it (`fields.set` of `embedded.rect`, on whole millimetres, at least 30 × 20 mm; a bottom corner sets where its
-room ends); Delete removes it. Golden A's block has no `columns` and prints its four columns in two flow columns as
-before. The legend keeps the order of `layout_legend`: the enclosure, the plate and the carriers stand together before
-the devices, since Golden A's legend holds that order and they are items a shop orders and cuts.
+room ends); Delete removes it. A block without `columns` prints its four columns in two flow columns. The legend keeps
+the order of `layout_legend`: the enclosure, the plate and the carriers stand together before the devices, since the
+reference set's legend holds that order and they are items a shop orders and cuts.
 
-*As built (0.3.5, the owner's sketch; FT-1920: beside the sample's plate the legend drew 21 of its 30 rows and cut every
-part number).* **The legend is a list page of its own, right after its layout page** (FR-REP-023 brought forward). A
+**The legend is a list page of its own, right after its layout page** (FR-REP-023 brought forward). A
 page block of kind `enclosure_legend` that names its layout page (`ReportBlock.layout_page`, [09](09-reports-forms-output.md)
 §2.2) lists the surface that page's view shows, and is a list like any other: it runs on over as many pages as its rows
 need, on the set's own frame (09 §3.8), with its own printed columns and caption (made with position, tag, quantity,
@@ -686,9 +680,9 @@ project's language, in the contents and the PDF outline, and `ew export report -
 folio, 902.1, or the layout page's number, 902, its `first_folio`) writes it as CSV or XLSX. Its pages follow the
 layout page, 902.1, 902.2 … after 902 (09 §3.2 says where those are taken). Its Properties show the layout page it
 follows (Layout page) and not its first folio and section, which it keeps for older builds and this build does not
-read (FT-2032). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
+read. Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
 `Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it); a legend page's
-Properties show the title as the page prints it, and the title row's explanation names `{layout}` (FT-2095). `ew export
+Properties show the title as the page prints it, and the title row's explanation names `{layout}`. `ew export
 report --kind enclosure_legend` writes the legend of every plate a layout page shows, in page order, each after a
 heading row "Layout 902" (09 §2.2), and a list block of the legend's kind that names no layout page (Output ▸ Reports ▸
 Report block… makes one) lists the same on its pages. Deleting the layout page deletes its legend list.
@@ -700,7 +694,7 @@ Report block… makes one) lists the same on its pages. Deleting the layout page
   its own: 902.1") and Add legend makes the legend page. A layout with a legend, on the page or as a page, is offered
   no second one ("This layout has its legend on a page of its own"), and `report_block.create` refuses a second legend
   list of one plate in words: the two would print the same folios.
-- **A legend belongs to the plate, not to the page** (FT-2031, 0.3.5). Its rows are the plate's and its positions are
+- **A legend belongs to the plate, not to the page.** Its rows are the plate's and its positions are
   the plate's balloons, the same on every layout page that shows it (a second page of one plate, a detail at another
   scale), so a second list would print the same rows twice. Of the layout pages that show the plate, the first in page
   order is the one the legend follows, whichever of them it was made from: its pages are that page's sub-pages, its
@@ -713,8 +707,7 @@ Report block… makes one) lists the same on its pages. Deleting the layout page
   step: the rows are the same surface's, and the printed columns are the box's own, or the five above for a box
   without its own.
 - **A layout made before keeps its datum and its scale as stored** (§5.1). To give such a page the whole sheet once
-  its legend has gone, **Fit the layout to the sheet** (the page's context menu and Page ▸ Order; `layout.fit_sheet`,
-  FT-2030) fits its view as a new view is fitted, in one undo step (§5.1).
+  its legend has gone, **Fit the layout to the sheet** (the page's context menu and Page ▸ Order; `layout.fit_sheet`) fits its view as a new view is fitted, in one undo step (§5.1).
 - **From the drawing to the row and back** (the cross-references' links and their resolution, 09 §4.2). A row's tag
   on the legend page links to the device's footprint on the layout, which is that link's target (`ew:pl`), so a click
   on it goes there, in the window and in the exported PDF. Back, Follow reference (F) over a device or its tag or
@@ -878,7 +871,7 @@ carrier, segment, index)`, so the graph is identical on every run.
 | Wiring holes | through-plate passages (1.x, FR-LAY-044) | front ↔ rear |
 
 A blocked stub (no line of sight to any of 9 candidates) becomes a direct free-air edge with cost factor 3 and is
-flagged; if even that intersects, the wire is EW-LAY-009. The golden graph has about 400 duct nodes and 150 stubs; a
+flagged; if even that intersects, the wire is EW-LAY-009. The reference set's graph has about 400 duct nodes and 150 stubs; a
 2,000-wire cabinet stays under 10,000 nodes.
 
 ### 8.2 What is routed
@@ -1028,7 +1021,7 @@ Source `Estimated`, flagged in the wire list and blocking only machine profiles 
 **Cable lengths** (FR-CBL-010). A shop-cut cable fully inside the space takes `Routed` from its committed route. A
 pre-assembled cable keeps `FromPart` (-106W1, -106W2: 2 m ▲); its route only feeds EW-LAY-014. For a cable that leaves
 the space, the routed internal part to the cable entry is added to the authored external length; the length source
-shows both (FR-CBL-020). On Golden A-R, -3W1's sum is the 10 m of U-21.
+shows both (FR-CBL-020).
 
 ---
 
@@ -1093,7 +1086,7 @@ IEC 61439-1 Annex H table (*verify table*); unrouted wires use estimated lengths
 covered by `wall_behind`, the top by `ceiling_above`, sides by bayed neighbours; the floor is not counted. The b
 factors are data *(secondary sources: exposed top 1.4, covered top 0.7, exposed side 0.9, covered side 0.5;
 verify)*. These factors reproduce the handbook's installation-type formulas, e.g. wall-mounted single:
-`1.4·W·(H+D) + 1.8·D·H`. GP: 1.4 × 0.75 × 1.42 + 1.8 × 0.42 × 1.0 = **2.25 m²**.
+`1.4·W·(H+D) + 1.8·D·H`. Example: 1.4 × 0.75 × 1.42 + 1.8 × 0.42 × 1.0 = **2.25 m²**.
 
 ### 11.4 Methods
 
@@ -1171,14 +1164,14 @@ The property grid of a placement shows device (link), realised part, carrier, s 
 and derived rows with provenance: label, footprint, clearance, findings. Selection is synchronised with the device
 navigator and with schematic pages ("show all representations", FR-UI-007).
 
-*As built (rc.2, the persona round: "The drop is refused; nothing changed" told nothing).* A refused drop writes in the
+A refused drop writes in the
 status bar the words its ghost's chip showed: a rail device beside every rail ("-102F1 sits on rail 1 and mounts on a
 TS 35×7.5 rail, so it moves along a rail only: drag it along rail 1 or onto another rail"; a device not placed yet: "F55
 mounts on a TS 35×7.5 rail; drop it on a rail."), a rail of another profile ("F55 mounts on a TS 35×7.5 rail and does
 not fit rail 4: drop it on a TS 35×7.5 rail."), else the command's own refusal ("No gap on rail 1 is wide enough for
 F55 (300 mm)."). The plain "The drop is refused; nothing changed" is left for a drop with no words.
 
-*As built (rc.2).* Auto-fill rail's dialog, with no device marked and none unplaced in the cabinet's space, says why:
+Auto-fill rail's dialog, with no device marked and none unplaced in the cabinet's space, says why:
 every device of the location is placed already, or no device has the location yet and N mountable devices have none
 (`ew_derive::layout::unlocated`: no location, mountable by steps 2 to 9 of §2.7, no placement). Its button "Give the N
 devices without a location +CAB1 and place them" sets their `structure.location` in one `fields.set` (its own undo
