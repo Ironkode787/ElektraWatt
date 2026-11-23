@@ -181,8 +181,10 @@ Three seams follow from the rules and are kept:
   permissive type: how a value is printed for a person and where a thing is drawn belong to `ew-derive` and
   `ew-scene`, not to the record.
 - **A thing both sides need lives on the permissive side and is written there.** Existing GPL code moves into a
-  permissive crate only with the consent of its copyright holders, named in the commit (ADR-0024). It is never
-  kept twice with a test between the copies.
+  permissive crate only with the consent of its copyright holders, named in the commit (ADR-0024). The project
+  owner has given his, for his own code, once and for the moves to come (2026-11-23): a commit that moves such
+  code says that it does so under that consent. Code that came from a third party under the GPL never moves.
+  A thing is never kept twice with a test between the copies.
 - `xtask` is permissive and links no GPL crate: it reads the committed parameter schemas and the rule catalogue's
   snapshot as files.
 
