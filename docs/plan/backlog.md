@@ -10,41 +10,13 @@ Step 13 of [m3.5.md](m3.5.md) takes these rows in this order. Each sub-heading i
 share a cause or the files they touch. A row that turns out to be a feature larger than a lane is designed first or
 moves to its milestone with a reason.
 
-### What the first production job found
-
-A real drawing set was brought in from QElectroTech, made to follow an end user's drawing specification and doubled
-for a second installation; almost everything that made it look like the source was done by scripts around the
-program. The groups follow the share of the job's time that each cost, largest first; the job's findings stand
-beside the lesson they belong to. What worked and is to be kept as it is: the project as plain line records with
-stable ids; `ew fmt` and the integrity check, which named every malformed record; the SQL views, whose wire view
-resolves through interruption points to the device at the far end; the cross-references, derived and right after
-every rebuild; the headless script; a save that rewrites only what changed.
-
-#### The source's typeface
-
-
-#### Lists and frames
-
-
-#### External points, earth and 0 V
-
-
-#### Files and the text interface
-
-
-#### Two drawing faults
-
-
 ### What a person at the window meets
 
 From the owner's tests of 0.3.0's candidates and the persona runs.
 
-#### Your own PLC and bus parts
-
-
 #### The station view and the PLC grid
 
-- FT-2142 `ew-commands, ew-viewmodel, ew-ui`: **Owner, 2026-11-23: Draw on a page puts each card of a station on a page of its own by default**, the station's head on the first; all on one page stays a choice (doc 10 §2.3). Today one `plc.draw_station` lays the head and every card on the page in front, inputs at its foot and outputs at its head, and a page with a CPU, two cards, their terminals and the field devices is more than a sheet reads and more than the placer orders (three persona runs drew such a page; their job sheets asked for it too). It needs the pages made in the station's section with titles from the cards, the choice in the Draw on a page list, and Draw on page of one card unchanged. Not in 0.3.5's third candidate, which is step 15's hygiene alone (owner); it waits with FT-2146.
+- FT-2142 `ew-commands, ew-viewmodel, ew-ui`: **Owner, 2026-11-23: Draw on a page puts each card of a station on a page of its own by default**, the station's head on the first; all on one page stays a choice (doc 10 §2.3; release notes 0.3.5, §7). It needs the pages made in the station's section with titles from the cards, the choice in the Draw on a page list, and Draw on page of one card unchanged. Not in 0.3.5's third candidate, which is step 15's hygiene alone (owner); it waits with FT-2146.
 - FT-2139 `ew-viewmodel, ew-ui`: In the station view's channel table, Enter after a refused function text opens the next row's cell and leaves two edit boxes on screen, and the error line above To do shifts the table by a row while it stands; `plc.module_goto` closes the rack tab after an Escape in the view; the rack bar's menu is not fitted to its widest entry as the other menus are (seen in fix lanes, 2026-11-23).
 - FT-2134 `ew-commands, ew-viewmodel`: Move to page (`plc.module_move`, built in lane P4 after a persona run) refuses a card whose wire to a device left behind would leave an end on the old page; doc 10 §6 asks for that wire kept as a pair of interruption points or dropped with a count in a preview. That is doc 06 §3.4's cross-page move, which `rep.move` rejects since v0 (FR-CON-043): build it there, with the preview card listing the pairs, and Move to page takes it.
 
@@ -57,38 +29,15 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
   click then placed a source. Not reproduced: the Interruption button of the Draw tab, a typed name, Enter, D, with the
   pointer on the tool strip and on the sheet, turned the direction each time (the window tests of the name field hold
   it too). A repeat needs the run's exact key and pointer order.
-- FT-2006 `ew-ui`: Two faults of FT-1761 not seen again on the sample at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ending the edit (Bus table, Wire: one click ends the edit and runs Wire), and the Properties header cut by its chips; each needs its repro (which grid, which selection) before a fix. Tried again in M3.5 step 13 (a window test on the sample's page 102, 1920 × 1080 and 1000 × 900, a cell of the Strips and of the Bus table opened by a double click and typed in, then one click on Wire): Wire arms at the first click; on the Bus table the cell's editor stays open beside the armed tool, which may be the fault seen. Tried once more in bundle F (2026-11-22, a window test not kept): the sample's page 105, the Bus table, the address cell of -104A1 DP opened by a double click and typed in, then one click on the ribbon's Wire: the typed value is committed (both rows read it), the cell's editor closes (three text fields become two), focus goes to the canvas and Wire is armed. Not fixed without the person's steps.
-
-#### Properties and the title block's words
-
-
-#### The layout page
-
-
-#### What a new item takes
-
-
-#### What the sample project's script met
-
-Faults met while `fixtures/sample/sample.uiscript` was written; each has its steps in the script's own words.
-
-
-#### What the tests met on the sample
-
-Faults met while the tests moved from the reference project to the sample (M3.5, step 9); each test took another way round its fault, so a fix adds the test that goes straight.
-
+- FT-2006 `ew-ui`: Two faults of FT-1761 not seen again on the sample at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ending the edit (Bus table, Wire: one click ends the edit and runs Wire), and the Properties header cut by its chips; each needs its repro (which grid, which selection) before a fix. Two window tests on the sample did not show it (Wire arms at the first click; once the Bus table's cell editor stayed open beside the armed tool). Not fixed without the person's steps.
 
 #### The page's drawing
 
-- FT-2135 `ew-commands, ew-viewmodel, ew-ui`: Moving symbols to another page loses their wires to what stays behind. A persona run cut a strip of twelve terminals, wired to sensors, a button and a lamp, and pasted it on a page of its own: a cut and its paste bring the same terminals back (doc 06 §3.6), but the fourteen wires went with the cut, and the devices on the first page stood unwired. What a draughtsman expects is a move: Move to page… for a selection, in which each wire that would cross pages becomes a pair of interruption points named by its potential (the source where the wire left, the target at the moved pin), listed in a preview before anything changes. It is the cross-page move of doc 06 §3.4 that `rep.move` rejects since v0 (FR-CON-043), and FT-2134 (a card's Move to page) waits for the same. Design first: the names of the points, where the marks stand on both pages, what a wire with a junction does, one undo step. Not in 0.3.5's third candidate, which is step 15's hygiene alone (owner); it waits with FT-2146.
-
+- FT-2135 `ew-commands, ew-viewmodel, ew-ui`: Moving symbols to another page loses their wires to what stays behind (release notes 0.3.5, §7). What a draughtsman expects is a move: Move to page… for a selection, in which each wire that would cross pages becomes a pair of interruption points named by its potential (the source where the wire left, the target at the moved pin), listed in a preview before anything changes. It is the cross-page move of doc 06 §3.4 that `rep.move` rejects (FR-CON-043), and FT-2134 (a card's Move to page) waits for the same. Design first: the names of the points, where the marks stand on both pages, what a wire with a junction does, one undo step. Not in 0.3.5's third candidate, which is step 15's hygiene alone (owner); it waits with FT-2146.
 
 #### A command's words
 
 - FT-2138 `ew-scene, ew-api`: A strip segment draws a terminal's side 1 at the top, a terminal drawn alone has side 1 at the bottom; and `props.set` on a plain wire's `connection/derived.csa` is refused in a cable's words ("The cable … sets this") where the override action works (seen in a fix lane, 2026-11-23).
-
-#### Work on the window's thread
-
 
 ### The placer and the router
 
@@ -97,7 +46,7 @@ where a real page shows it; each row says whether one is known. **Owner, 2026-11
 solution and needs a draughtsman's eye; these rows are cases, not work for a page at a time, and one is taken
 only as part of a change that holds on every page (doc 06a, "What Arrange and route is, and is not").
 
-- FT-2143 `ew-drafting`: Where a strip cannot open in its order, Arrange and route offers nothing for the whole page: the sensors and buttons that hang on the strip's terminals are not set over their terminals either, and the page stays as it was dropped (a persona run's mark for that page: 3 of 10, about 18 crossings left). It needs the rest of the page arranged with the strip held as it stands, each part judged against Route's plan. **Page:** a persona run's PLC page (2026-11-23): cards of eight inputs at the foot and eight outputs at the head, each in one row, a strip of twelve terminals at two steps between them with 24 V on terminal 1, 0 V on 2 and 3 and six signals through 4 to 9, wired to the inputs in another order than the terminals stand in, four sensors and two buttons over the strip.
+- FT-2143 `ew-drafting`: Where a strip cannot open in its order, Arrange and route offers nothing for the whole page: the sensors and buttons that hang on the strip's terminals are not set over their terminals either, and the page stays as it was dropped. It needs the rest of the page arranged with the strip held as it stands, each part judged against Route's plan. **Page:** a persona run's PLC page (2026-11-23): cards of eight inputs at the foot and eight outputs at the head, each in one row, a strip of twelve terminals at two steps between them with 24 V on terminal 1, 0 V on 2 and 3 and six signals through 4 to 9, wired to the inputs in another order than the terminals stand in, four sensors and two buttons over the strip.
 - FT-2144 `ew-drafting`: On a supply page the plan that sets the feeder in one column lays two wires through the 24V and 0V marks and the text "0V" (EW-CORE-069, EW-CORE-070), which the judge takes since the plan routes a wire Route leaves dashed (doc 06a §4.7); and the main switch, dropped near the left edge, ends 28 steps to the right. It needs the marks moved clear of the column's wires in the same plan, and the column set where its first part stood. **Page:** a persona run's supply page (2026-11-23): main switch, breaker and a 24 V supply as a box dropped in a row, supply marks at the left, 24V and 0V marks under the box.
 - FT-2136 `ew-drafting, ew-viewmodel`: What Arrange and route says of a part it leaves: a part that is the mate of a level neighbour gets the wrong side in its sentence, and "no room" is the fallback also where the place itself is clear and another reason held the plan back; the strip's sentence says "look at the terminals wired out of that order" without naming them, which needs the out-of-order terminals carried from the placer through `StripHeld` (seen by the lane that built the sentences, 2026-11-23).
 - FT-2137 `ew-drafting, ew-viewmodel`: Route on a selection gives no reason for a wire whose pin is blocked by a symbol standing on it; and the text block of a symbol keeps its tag right-aligned when the block moves to the symbol's right side (seen in a fix lane after a persona run, 2026-11-22).
