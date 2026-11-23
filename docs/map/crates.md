@@ -496,7 +496,6 @@ JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-wa
 | `src/order.rs` |  | The line order of a JSON Lines file (doc 05 §3.3). |
 | `src/path.rs` |  | Project-relative paths and what each path of a project directory is (doc 05 §2.1, §4 `files`, §15). |
 | `src/read.rs` | large | The project reader (doc 05 §3, §6): which files to read, and the records, kept lines, findings and rewrite set of a project's files. |
-| `src/since.rs` |  | The computed `min_reader` stamp (doc 05 §4, §10.1; ADR-0011): the lowest format a reader needs is the greatest format among the kinds, members and variants a project's files use, never below the format's major floor and never above the format itself. |
 | `src/version.rs` |  | The reader decisions of doc 05 §10.1 (ADR-0011). |
 | `src/write.rs` |  | Writing a whole project from records (doc 05 §2, §3, §4): the path of an importer's batch and of `ew import csv`. |
 
@@ -647,17 +646,16 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 
 ## ew-library
 
-`crates/ew-library` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-ids`, `ew-interop-api`, `ew-mltext`, `ew-schema` · used by `ew-api` · in tests by none
+`crates/ew-library` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-ids`, `ew-interop-api`, `ew-mltext`, `ew-schema`, `ew-store` · used by `ew-api` · in tests by none
 
 Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects.
 
 | File | Size | What it holds |
 |---|---|---|
 | `src/error.rs` |  | [`LibraryError`]: why a registry operation did not happen. |
-| `src/file.rs` |  | The one all-or-nothing file write of the program: the bytes go to a temporary file beside the target, are synced and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. |
 | `src/index.rs` | large | The derived per-user search index (doc 07 §4.3, §4.7): one SQLite file in the cache directory, never authoritative, rebuilt per library when its generation or a file hash changes, and from scratch when it is missing, unreadable or of another schema. |
 | `src/lib.rs` |  | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects. |
-| `src/lock.rs` |  | `library.lock`, the writer's lock of a `.ewlib` directory, with the project lock's record and stale rule (doc 05 §7.1, §7.4). |
+| `src/lock.rs` |  | `library.lock`, the writer's lock of a `.ewlib` directory: the project lock's record and protocol (`ew_store::lock`, doc 05 §7.1, §7.4) under the library's file names and rules ([`LIBRARY_LOCK`]), its outcomes as [`LibraryError`]s. |
 | `src/manifest.rs` |  | `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last. |
 | `src/record.rs` |  | Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2). |
 | `src/registry.rs` | large | [`Registry`]: the opened tiers, the one resolver and the search index (§7). |
@@ -969,7 +967,7 @@ Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natura
 
 ## ew-store
 
-`crates/ew-store` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-model`, `ew-zip` · used by `ew-api` · in tests by none
+`crates/ew-store` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-model`, `ew-zip` · used by `ew-api`, `ew-library` · in tests by none
 
 Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags.
 
@@ -980,15 +978,18 @@ Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.
 | `src/cloud.rs` |  | Cloud-synced folders (doc 05 §15 rows 7 to 11): whether a project lies in a folder that a sync client (OneDrive, Dropbox, iCloud Drive, Google Drive, Box) keeps, from environment variables and paths only, with the standard library. |
 | `src/ewz.rs` |  | `.ewz` transport (doc 05 §12): one verified generation of a project as a deterministic ZIP ([`crate::zip`]), its strict reader, and the all-or-nothing extract through the [`Vfs`] seam. |
 | `src/external.rs` |  | External change (doc 05 §9): a project that changes on disk while a session has it open, through a pull, a checkout or a sync client. |
+| `src/file.rs` |  | The one all-or-nothing file write of the program: the bytes go to a temporary file beside the target, are synced and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. |
 | `src/git.rs` | large | The git integration through the `git` executable: the release's commit of the project directory and its annotated tag `ew/rev/<label>` (doc 05 §14.1 steps 3 and 5), and the collaboration's git (doc 05 §9, §11): a git operation in progress, the commit checked out, the blobs of a revision, the merge driver's configuration, the managed `.gitattributes` and `.gitignore` blocks and the `post-merge` hook. |
 | `src/journal.rs` | large | The crash journal (doc 05 §8.1, ADR-0010): one JSON Lines segment per base generation in the OS state directory, never in the project. |
 | `src/lib.rs` |  | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags. |
-| `src/lock.rs` |  | The lock file `.~ew.lock` (doc 05 §7, ADR-0010 amendment 1, FR-COL-006, FR-COL-026). |
+| `src/lock.rs` |  | The lock files of the program (doc 05 §7, ADR-0010 amendment 1, FR-COL-006, FR-COL-026): the project's `.~ew.lock` ([`PROJECT_LOCK`]) and a library's `library.lock` (`ew-library`), one record and one protocol over the [`Vfs`] ([`Lock`]). |
 | `src/mem.rs` |  | An in-memory [`Vfs`] with fault injection (doc 05 §5.6). |
 | `src/rows.rs` |  | Rows of the model as the format sees them: their files, their canonical bytes, their JSON for the journal, and the anchors of doc 05 §2.2 answered from the model (`raw-read`, ADR-0001 amendment 2: the writer is one of the three readers of the untracked API). |
 | `src/store.rs` | large | The project store: open with roll-forward, save protocol, incremental saves, lock and journal (doc 05 §5–§8). |
 | `src/store/external.rs` |  | The store's half of an external change (doc 05 §9; see [`crate::external`]): the poll, the incoming read and the adoption of the incoming generation as the baseline. |
+| `src/store/open.rs` |  | The store's open (doc 05 §6.1): the lock, an interrupted save rolled forward or waited for, the manifest and the format decision, the files read, the model and its baseline, the journal. |
 | `src/store/purge.rs` |  | The asset purge (doc 05 §13.3): the explicit, previewed removal of asset files that nothing names. |
+| `src/store/save.rs` |  | The store's create and save (doc 05 §5): a new project's first generation, the save protocol with its commit point, a pending save completed, and the plan and the bytes a save writes. |
 | `src/vfs.rs` |  | The I/O seam of doc 05 §5.6: every file operation of `ew-store` goes through [`Vfs`], so that the fault-injection harness can number, fail and "power off" each call ([`crate::mem::MemVfs`]). |
 
 ## ew-testdir
