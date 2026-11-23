@@ -90,8 +90,10 @@ impl LibraryTiers {
 }
 
 /// An environment variable as a path, `None` when unset or empty.
-// Program boundary: the data and cache directories are read once when a front end builds its tiers.
-#[allow(clippy::disallowed_methods)]
+#[allow(
+    clippy::disallowed_methods,
+    reason = "program boundary: the data and cache directories are read once when a front end builds its tiers"
+)]
 fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name)
         .filter(|v| !v.is_empty())
