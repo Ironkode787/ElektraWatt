@@ -125,28 +125,27 @@ pub struct ReportBlock {
     pub added_rows: Vec<AddedRow>,           // + { cells: { key: MlText } }: rows the model does not hold (§3.8)
     pub layout_page: Option<Id<Page>>,       // + the panel layout page a legend list follows (below, §3.2)
     pub source_ref: Option<SourceRef>,       // import provenance (14 §2.3)
-    // later, appended (kept in `extra` until then): params, filter (WP-S3.03)
+    // later, appended (kept in `extra` until then): params, filter
 }
 ```
 
-**As built.** The cover block is the report kind `profile_tables` (`ew-reports`), drawn by the
+The cover block is the report kind `profile_tables` (`ew-reports`), drawn by the
 `embedded` module of `ew-scene` into the tables layer; its layout (proportions in 560ths of the block width, 24 rows) is
 hard-coded in `ew-scene` and provisional until it moves into the form's regions.
 
-**As built.** The report kind `enclosure_legend` is
+The report kind `enclosure_legend` is
 registered in `ew-reports` (`kinds/enclosure_legend.rs`) with its rows from `layout_legend(surface)`, plain functions
 in `ew-derive` (`layout/legend.rs`), not memo families: the enclosure, the plate (falling back to the enclosure's plate
 copy), one row per carrier (rails, then ducts, then carrier kinds the build does not know, each top to bottom then left
 to right by its first point; the DT cell empty; the length in metres as the quantity, "Missing" without one), then
 the placements by DT in natural order; positions 1 … n, derived; a row that is not a carrier has quantity 1. The
-block takes its surface from the page it is embedded on, or, as a list of its own (0.3.5), from the layout page it
+block takes its surface from the page it is embedded on, or, as a list of its own, from the layout page it
 names, so a block on a page without a surface view lists no rows; a block that names no page (the kind's whole-project
 rows, `ew export report --kind enclosure_legend`) lists every plate a layout page shows, in page order, each after a
-heading row that names its first layout page ("Layout 902"; FT-2095). Golden A has no `enclosure_legend` block yet: drawing embedded blocks of every kind, the legend on
-902 and its export are WP-S4.01 part 4b's. In the BOM, a layout object's line (the enclosure, the plate, the carrier
+heading row that names its first layout page ("Layout 902"). In the BOM, a layout object's line (the enclosure, the plate, the carrier
 part lines) prints the panel pages that view its surface in its Folios cell only.
 
-**As built.** Embedded blocks of every kind are drawn.
+Embedded blocks of every kind are drawn.
 A kind says what its embedded block prints through `ReportKindDef::embedded_layout` (`EmbeddedLayout`: the printed
 columns with relative weights, the box title, whether each flow column has a header row, the number of flow columns);
 the default prints every column at weight 1 under a header row, no title, one flow column. The layout is presentation
@@ -156,21 +155,19 @@ its source devices are the root ancestors of the devices drawn on the embedded p
 the surface the page's surface view shows; carrier lines (`LineSource::Carrier`) are left out, since the legend on
 the same page lists every carrier. `enclosure_legend` prints "LEGEND" in two flow columns, each with a header row:
 position, DT, quantity (with its unit unless it counts pieces, "0.47 m") and part number at weights 10 : 22 : 16 : 35; the manufacturer, the
-description and the unit stay in the rows and the CSV. Golden A's legend is the block `legend-902` on 902 (doc 20
-§17.3's "Legend box"). An embedded block has no first folio, so `ew export report --block` names it by its ID
-(WP-S4.01 D18); the default block of a kind-specific export is never an embedded one. A block with its own printed
+description and the unit stay in the rows and the CSV. An embedded block has no first folio, so `ew export report
+--block` names it by its ID; the default block of a kind-specific export is never an embedded one. A block with its own printed
 columns (`ReportBlock.columns`, the legend Add legend makes) prints as a lookup table: one flow column, columns sized
 to their texts and its box ending under its last row ([12](12-panel-layout.md) §5.4). **Where it has no room, a
-legend wraps; it does not ask for a wider box** (FT-1782): its identifiers (position, tag, quantity, part number)
+legend wraps; it does not ask for a wider box**: its identifiers (position, tag, quantity, part number)
 print whole, shrunk to the 1.8 mm cap height where they must be, and its description gives way first, wrapping at its
 words onto further lines while the block has the height for every row so grown, else cut in its row; only a block
 narrower than its identifiers at that size cuts one. The rule and its order are 12 §5.4's. A legend without its own
-columns (made before 0.3) prints the kind's four columns in two flow columns as before, until a person chooses its
-columns (§3.8, "In the window").
+columns prints the kind's four columns in two flow columns, until a person chooses its columns (§3.8, "In the window").
 
-**A legend as a list of its own** (0.3.5, [12](12-panel-layout.md) §5.4). `ReportBlock.layout_page` (an optional page
+**A legend as a list of its own** ([12](12-panel-layout.md) §5.4). `ReportBlock.layout_page` (an optional page
 ID, additive) names the panel layout page a page block of kind `enclosure_legend` lists: its rows are those of the
-surface that page's view shows. The legend belongs to that plate (doc 12 §5.4, FT-2031): it follows the first layout
+surface that page's view shows. The legend belongs to that plate (doc 12 §5.4): it follows the first layout
 page in page order that shows it (the named page where that shows no plate): its pages follow that page in folio and
 section (§3.2), its title's `{layout}` prints that page's folio, and its generated pages print the structure that page
 shows (`page_display_structure`: its tags and title block as the layout's). It is a link that
@@ -186,13 +183,11 @@ and the row is where Follow reference from the device lands.
 **Encodings and deferred members**:
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or
   `{"sql_query": {"api": "v1", "file": "<uuid>"}}`.
-- `params` (report-kind parameters) and `filter` (§3.3: a typed predicate or a pure rhai expression) are **deferred
-  to WP-S3.03**. They will be appended as top-level members of the block, not inside `source`, so adding them is
-  additive; a file that carries them keeps them in `extra` until then. *As built:*
-  typed filters (`Eq`, `Ne`, `Within`, `Present`, `Absent`) exist but none is persisted; the typed
-  `filter` and `params` encoding is a format decision of WP-S3.06 (FT-46), and `parts_summary` reads
-  `extra.params.mode` provisionally until then.
-- **Block titles are templates**. `title` may name `{n}`, `{count}` and `{group}` (§4.1) and, as built, `{strip}` and `{device}`, which `ew-reports` resolves at derivation, before pagination: `{device}` is the short tag of the first device of the block's manual selection, `{strip}` that of the first selected device that has a strip aspect, so renumbering a strip renames its folios and its TOC rows. A placeholder with no such device stays as written, and no title is exempt by its text prefix. `{n}` is the 1-based page number within the block, `{count}` the block's page count. The golden blocks use "Terminal Diagram {strip}" (903 to 905) and "PLC Overview {device} {n}" (908 and its sub-pages).
+- `params` (report-kind parameters) and `filter` (§3.3: a typed predicate or a pure rhai expression) are not typed.
+  They will be appended as top-level members of the block, not inside `source`, so adding them is additive; a file
+  that carries them keeps them in `extra`. Typed filters (`Eq`, `Ne`, `Within`, `Present`, `Absent`) exist but none is
+  persisted, and `parts_summary` reads `extra.params.mode`.
+- **Block titles are templates**. `title` may name `{n}`, `{count}` and `{group}` (§4.1) and `{strip}` and `{device}`, which `ew-reports` resolves at derivation, before pagination: `{device}` is the short tag of the first device of the block's manual selection, `{strip}` that of the first selected device that has a strip aspect, so renumbering a strip renames its folios and its TOC rows. A placeholder with no such device stays as written, and no title is exempt by its text prefix. `{n}` is the 1-based page number within the block, `{count}` the block's page count; for example "Terminal Diagram {strip}" and "PLC Overview {device} {n}".
 - **Group header and footer rows** are not a `GroupSpec` member. A block emits them when its form's data area has a
   `group_header` or `group_footer` template (§2.5), so `GroupSpec` is `{key, break}`.
 - **`first_folio`** is required for a page-oriented block (a structural invariant) and ignored when `embedded` is
@@ -209,7 +204,7 @@ company-standard wizard copies it into new projects (FR-PRJ-010). Because pages 
 "update reports" step: editing a block's filter, sort or form re-paginates on the next read.
 
 **Creating a block with its form.** `report_block.create` ([17](17-extensibility.md)
-§2.1) gains `form_copies: [libdoc]`: the library documents of the block's form and of the title block that form
+§2.1) takes `form_copies: [libdoc]`: the library documents of the block's form and of the title block that form
 names. A project holds a form as an embedded copy ([05](05-project-format-and-persistence.md) §13.2), and a form copy
 without its title block breaks EW-INV-001, so the two travel together. They are checked by the rules of
 `library.embed` (one shared check) and embedded in the same transaction through transaction lookups only, so the
@@ -218,15 +213,14 @@ reused, a copy of another version is refused with "update from library" (FR-PRT-
 and the copies it embedded; a reused held copy stays. A form of the project's own (its library ID the project's: a
 frame or title block made outside the program) is embedded as any other form, by `library.embed` and here;
 a block's form is set afterwards with `fields.set` path `form` (its Form row in Properties) to a form the
-project holds. Editing a form in the window is FT-1814. **The wizard's golden layout** (16 §9.2 step 9) is written
+project holds. Editing a form in the window is not built. **The wizard's standard layout** (16 §9.2 step 9) is written
 through this command: the contents page on folio 2, the parts list on 901, **one** terminal-diagram block at 903
 (over every strip; its pages continue as 903.1, 903.2), the cable overview at 906, the wire list at 907, the PLC
-overview at 908, the potential overview at 909, the device-tag overview at 910 and the revision overview at 911.
-Golden A's terminal diagrams on 903, 904 and 905 are three blocks, each selecting one strip; a basic project has no
-strip, so 904 and 905 are absent and one block covers all. A block title that names a strip or a device (`{strip}`,
+overview at 908, the potential overview at 909, the device-tag overview at 910 and the revision overview at 911; a basic project has no strip, so one terminal-diagram
+block covers all. A block title that names a strip or a device (`{strip}`,
 `{device}` above) would stay as written without a selection, so the wizard's titles count pages with `{n}` instead
 ("Terminal Diagram {n}", "Partlist {n}"). Not built: `report_block.delete` and `report_block.set`, and an editable
-block list in the wizard (FT-385, before G-PP); a block is created once and not changed or removed through a command.
+block list in the wizard; a block is created once and not changed or removed through a command.
 
 ### 2.3 `RowSet`: one row source for every consumer
 
@@ -255,16 +249,15 @@ pub enum Cell {
   hidden `id` column of the Excel round trip (FR-EXP-004), and revision deltas (FR-REV-015). Tags are never row keys.
 - **Links.** `LinkRef` names the destination of a cell: the main representation of a device, a CP anchor, a page.
   The PDF turns them into link annotations; the canvas turns them into jumps.
-- **`RowId` as built and its text form**. A `RowId` is an ordered list of
+- **`RowId` and its text form**. A `RowId` is an ordered list of
   `RowKey { Entity(uuid) | Index(u32) | Name(text) }`; its total order is the last tie-break of every sort. Its text
   form, which is also the hidden `id` column of the XLSX round trip (FR-EXP-004), joins typed, escaped components
   with "/": `e:<uuid>`, `i:<n>` and `n:<name>` with "%", "/" and ":" percent-escaped in the name, so it parses back
   without ambiguity. A `parts_list` row is keyed (device, part copy, variant, ordinal among equal parts)
   (FR-REP-048).
-- **Cells and sets as built**. `Cell::Folio` holds a `PageRef` (drawn page, divider or
+- **Cells and sets**. `Cell::Folio` holds a `PageRef` (drawn page, divider or
   generated page), so TOC rows can point at dividers and generated pages; `Cell::Number` (an integer such as a BOM
-  position) and `Cell::Folios` (several pages in page order) are added; `Cell::Address` holds text until
-  `ew-plcaddr` has an address type. `Row.sources` lists the entities a row covers (manual exclusion, back-links)
+  position) and `Cell::Folios` (several pages in page order) exist; `Cell::Address` holds text. `Row.sources` lists the entities a row covers (manual exclusion, back-links)
   and `RowSet.groups` the group ranges. `as_of` is `None` for Class I sources, which are always current (a revision
   inside a memoised value would defeat early cut-off), and `Some(rev)` for a Class II source such as the SQL
   projection. A `RowSet` also carries its status, `Derived` or `NotDerived(reason)` (§3.2).
@@ -375,8 +368,7 @@ recorded intrinsic size, or filling the inset area when the size is unknown ([05
 §13.3); a logo cell too small for its insets draws no image and reports an `Error` finding that carries the
 placeholder text.
 
-**`form_type`** (the placeholder set a form accepts, FR-REP-034) is **deferred to WP-S3.02**, which defines its
-encoding and appends it to `FormDef`. Until then placeholder validity is checked against `kind`
+**`form_type`** (the placeholder set a form accepts, FR-REP-034) is not typed; placeholder validity is checked against `kind`
 and, for a report form, the report kind of the block that uses it; a file that carries `form_type` keeps it in
 `extra`.
 
@@ -394,7 +386,7 @@ are rejected (FR-REP-034).
 
 **Unresolved placeholders render empty**. At lowering, a placeholder that yields no value
 renders as empty text, and the form finding `Binding` names the cell and the placeholder. This covers a valid path
-without a value (`{revision.current.checker.name}` while no checker is set, golden U-03) and anything that escaped
+without a value (`{revision.current.checker.name}` while no checker is set) and anything that escaped
 the load check: an unknown scope or path, a computed `{= …}` cell before the formula engine exists, or a malformed
 template. The raw `{…}` text is never printed; a form that wants a visible fallback writes `| default("—")`, which
 counts as a value. An unsupported filter passes the value through unfiltered and is reported. `{{` and `}}` print
@@ -404,7 +396,7 @@ literal braces. The rule covers every unresolvable placeholder (unbound, unresol
 |---|---|---|
 | `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle "Electrical Definition"), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}`; `{project.logo}`, the logo asset reference of the basic project's company data, which a cell draws as the image and prints no text for, and `{project.notice}`, the notice text of the same company data ([07](07-symbols-parts-macros.md) §2.8) | all |
 | `party.<role>` | `{party.customer.name}`, `{party.end_user.address.city}` (personal data, §7 pitfall 14) | all |
-| `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` (the current revision: below the table; while it names no author, `{revision.current.author.name}` prints the project's designer, the party of the role author, rc.3) | frame, title block, cover |
+| `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` (the current revision: below the table; while it names no author, `{revision.current.author.name}` prints the project's designer, the party of the role author) | frame, title block, cover |
 | `page` | `{page.folio}`, `{page.prev}`, `{page.next}`, `{page.title}` ("Power Supply 1 - Main Current"), `{page.description}` (override or project description, §2.7), `{page.function}` (`=P01`), `{page.location}` (`+J-E-2416`), `{page.scale}` ("1:10" on 902, FR-PAG-023), `{page.document_kind}` (`&EFS`, FR-PAG-028, 1.0), `{page.last_changed_in}` ([15](15-checks-revisions-collaboration.md) §5.6) | frame, title block |
 | `doc` | `{doc.page_index}`, `{doc.page_count}` (position in and length of `page_order`: folio 101 is page 6 of 36) | frame, title block |
 | `block`, `group` | `{block.title}`, `{block.page_index}`, `{block.page_count}`, `{block.as_of}`, `{group.key}`, `{group.strip.tag}`, `{group.cable.part}` | report |
@@ -420,15 +412,14 @@ writes. The frame defaults are `settings.extra.frames` = `{default?, per_page_ty
 for a page's frame is the one of §2.7: `Page.form`, else the entry of its page type, else `default`. A form or an entry
 that names a copy the project does not hold falls through to the next rule, identically in the cell grid and in the page
 output (`ew_derive::frame_form_of`). A page without its own form takes the frame defaults
-in the page output (`PageFrameOf`), as the cell grid already did. The golden project is unchanged: it sets no frame
-defaults.
+in the page output (`PageFrameOf`), as in the cell grid.
 
 **The logo.** `{project.logo}` reads the reference stored by
 `project.company.set` ([17](17-extensibility.md) §2.1): `Project.extra["ew.company"].logo` is
-`{sha256, format, size}` (the bare `"sha256:…"` form of cycle 22 is still read), and the bytes are an asset of the
+`{sha256, format, size}` (the bare `"sha256:…"` form of an older file is read), and the bytes are an asset of the
 project's asset store ([05](05-project-format-and-persistence.md) §13.3), at most 512 KiB (`MAX_LOGO_BYTES`). A title
 block's logo cell takes the image by that reference, and the display list places it (so the wizard's preview shows the
-logo on the sample's cover). *As built:* SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are not built yet; an SVG is
+logo on the sample's cover). SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are not built; an SVG is
 drawn only after `svg_hazard`'s checks (18 §11.1 TM-18), in usvg's drawn subset ([05](05-project-format-and-persistence.md)
 §13.3). A raster logo (PNG, JPEG) prints rasterised, an SVG as vectors. An image that an export cannot draw (a missing
 asset, or one the sniff refuses) is reported as `PageFinding::Image` in the export's findings, never dropped silently
@@ -436,8 +427,7 @@ asset, or one the sniff refuses) is reported as `PageFinding::Image` in the expo
 
 **The current revision** is the project's open revision; without one, its newest released revision. Withdrawn
 revisions and the `Withdrawn` records that point to them are ignored, and among several candidates of the same state
-the newest date wins, a revision without a date counting as the newest. Golden A's current
-revision is the open V2.0.
+the newest date wins, a revision without a date counting as the newest.
 
 Filters: `date` (project format, FR-PRJ-023), `supply` (structured supply → "1 x 230 VAC + N + PE, 50 Hz", D-18),
 `qty(unit, decimals)`, `tag(full | displayed)`, `ml(lang)` or `ml(stacked: [nl-NL, en-GB], sep: " / ")`
@@ -448,9 +438,9 @@ tracked reads only (FR-EXT-011).
 
 - **Frame forms** carry the grid (17 columns 0–16, rows A–H for the QET-compatible A4 frame, FR-PAG-015), grid and
   no-grid variants sharing one title block (FR-PAG-017), and ISO 5457 frames A4–A0 at 1.0 (FR-PAG-016). Assignment:
-  project default, page-type default, page override (FR-PAG-018; the stored shape and the fall-through rule are in §2.6). Golden folios 1, 2, 100, 200, 900, 901 and all
+  project default, page-type default, page override (FR-PAG-018; the stored shape and the fall-through rule are in §2.6). Title, contents and divider pages and all
   generated pages use the no-grid variant.
-- **Title-block cells are bindings** (FR-REP-033, FR-REP-037). The golden title block
+- **Title-block cells are bindings** (FR-REP-033, FR-REP-037). The QET-compatible title block
   binds: the large page-description cell → `page.title` ("Valve Manifold
   Overview 1"); "Project:" → `project.reference`; "Description:" → `page.description`; "Drawing:" →
   `project.drawing_id`; "Revision:" → `revision.current.label`; the `=` and `+` cells → `page.function`,
@@ -460,7 +450,7 @@ tracked reads only (FR-EXT-011).
   `project.notice`, the company assets of the basic project (§2.6). Every labelled cell prints label, one space and
   value (§2.5). This QET-compatible title block has **no scale cell**, by design: it reproduces the reference
   layout. FR-REP-037's scale cell binds `page.scale` in forms that declare one.
-- **Project properties name their rows as these cells** (FT-1803): Project, Drawing, Object, Saved and Author (in
+- **Project properties name their rows as these cells**: Project, Drawing, Object, Saved and Author (in
   Dutch Project, Tekening, Object, Opgeslagen, Getekend), and each row's explanation names the cell that prints it.
   `project.document_title` prints on the cover frame only, which its row says. The Checker row does not feed
   "Checked:": that cell is the sign-off and prints the checker who approves the current revision, empty until then.
@@ -471,7 +461,7 @@ tracked reads only (FR-EXT-011).
   Release exports take dates from the release context ([05](05-project-format-and-persistence.md) §14.1).
 - **"Revision"** prints the latest revision record. While V3.0 is open, draft exports print "V3.0" and the status
   mark (FR-OUT-021); after release every page prints the released label (FR-REV-003).
-- **Party cells bind roles** (FR-PRJ-003): the reference's "Customer:" cell showed the end user (D-30); the golden
+- **Party cells bind roles** (FR-PRJ-003): the reference's "Customer:" cell showed the end user (D-30); the shipped
   form labels it "End user:" and binds the end-user role until the pilot answers PQ-11 (U-01).
 - **ISO 7200 coverage.** The QET-compatible title block is the pilot's house style, not ISO 7200. The ISO 5457
   frames shipped at 1.0 (FR-PAG-016) carry an ISO 7200 title block whose mandatory fields bind as follows
@@ -491,25 +481,24 @@ tracked reads only (FR-EXT-011).
 
 ### 2.8 Text styles and fonts
 
-- Form cells reference **text styles held as model data** (FR-SYM-013). The golden styles (`text.normal` 8.88 pt,
-  `data.small` 6.66 pt, `pin` 5.92 pt, `xref.device` 5.18 pt …) are the built-in table's.
+- Form cells reference **text styles held as model data** (FR-SYM-013). The built-in styles (`text.normal` 8.88 pt,
+  `data.small` 6.66 pt, `pin` 5.92 pt, `xref.device` 5.18 pt …) are `crates/ew-text/src/style.rs`'s table.
 
-- **Project text styles as built** ([ADR-0032](../adr/0032-per-project-text-styles.md)): the styles are project data in `ProjectSettings.text_styles`, overrides of the built-in table of doc 20 §17.5. The effective table (the built-in rows with the overrides applied, then the keys only the project adds) is `ew-derive`'s memoised `text_styles` query; the scene, the forms, the report tables and the exports, EW-CORE-061 and EW-CORE-063 all read it, and only callers with no project use `ew_text::builtin()`. New projects write `cp.small` and `marker` at 7 px.
+- **Project text styles** ([ADR-0032](../adr/0032-per-project-text-styles.md)): the styles are project data in `ProjectSettings.text_styles`, overrides of the built-in table (`crates/ew-text/src/style.rs`). The effective table (the built-in rows with the overrides applied, then the keys only the project adds) is `ew-derive`'s memoised `text_styles` query; the scene, the forms, the report tables and the exports, EW-CORE-061 and EW-CORE-063 all read it, and only callers with no project use `ew_text::builtin()`. New projects write `cp.small` and `marker` at 7 px.
 - **Fonts** are resolved from the project's font set: the bundled default family, optional osifont, and a bundled
-  symbol fallback (§7, pitfall 8). Tahoma is never bundled or embedded (FR-IMP-020). Noto Sans is the interim
-  default while ADR-0028 is Proposed: the spine builds the forms and the golden PDFs and PNGs with it, and if the
-  project owner decides on another family, the goldens are regenerated once.
-- **The symbol fallback as built** (ADR-0028 amendment 1): Noto Sans Math Regular 3.000 (OFL-1.1)
+  symbol fallback (§7, pitfall 8). Tahoma is never bundled or embedded (FR-IMP-020). Noto Sans is the
+  default while ADR-0028 is Proposed; the forms and the expected PDFs and PNGs are built with it.
+- **The symbol fallback** (ADR-0028 amendment 1): Noto Sans Math Regular 3.000 (OFL-1.1)
   draws the characters the style's face lacks, for Latin, Greek and Cyrillic text only; a text line drawn with two
   faces is a group of glyph runs, one per face (§4.3 rule 5). Export reports only the characters no bundled face
   drew (FR-OUT-027, EW-CORE-066).
-- **The project's typeface as built** (§4.8): one font file of the user's, held in the project, prints every text of
+- **The project's typeface** (§4.8): one font file of the user's, held in the project, prints every text of
   the Standard typeface. System fonts are not used (NFR-REL-11 requires a project to export without them).
 - **Font versions are pinned** by the derivation profile (ADR-0028 recommendation 6): an EW release that updates a
   bundled font ships it as a new version, so line breaks and shrink-to-fit results of reopened projects do not
   shift.
 - Styles bound to slot kinds make every tag print at one height (D-29). The minimum printed-height rule
-  (FR-CHK-023, EW-CORE-061: printed cap height, golden minimum 1.2 mm) evaluates text at the sheet scale, including
+  (FR-CHK-023, EW-CORE-061: printed cap height, minimum 1.2 mm) evaluates text at the sheet scale, including
   the page-to-sheet transform, and the print dialog repeats it for scale-to-fit jobs (D-31).
 
 ### 2.9 Export schemes
@@ -563,7 +552,7 @@ page_order(q):
 ```
 
 - The sort key is numeric, never textual: 907 < 907.1 < 907.2 < 907.10 < 908 (FR-PAG-006, FR-NUM-018).
-- **Golden A:** 34 pages do not depend on the TOC, so n = ⌈34 / 22⌉ = 2 TOC pages; the confirming round counts 36
+- **Example:** 34 pages do not depend on the TOC, so n = ⌈34 / 22⌉ = 2 TOC pages; the confirming round counts 36
   pages, ⌈36 / 23⌉ = 2, and stops. Prev/Next: folio 1 Prev empty, 911 Next empty (FR-PAG-013).
 - **Closed form instead of iteration** (it replaces the earlier "initially 1, at most three rounds"). With a capacity below 2 rows the TOC could never list itself, so such a TOC form is an invalid layout
   (§3.2). When the confirming round still disagrees, the order is rebuilt with the larger count, so a page is never
@@ -606,10 +595,10 @@ report_pages(block):
   title(page n) = block.title with {n}, {count}, {group}   # "Partlist 1", "Partlist 2" (FR-PAG-011)
 ```
 
-- **Fixed-height rows are the default.** With the golden form a page holds 23 rows, so pages = ⌈rows / 23⌉: the wire
+- **Fixed-height rows are the default.** With the shipped form a page holds 23 rows, so pages = ⌈rows / 23⌉: the wire
   list's 50 rows (44 wires and the separate 6-row bridge block) give 907, 907.1, 907.2; the PLC overview's 56 rows
   give 908, 908.1, 908.2 (sub-page continuation, FR-PAG-030).
-- **A list never ends on a page of one or two rows** (FT-1842). The last page of a run (the list's last page, or the
+- **A list never ends on a page of one or two rows.** The last page of a run (the list's last page, or the
   last before a group that starts a page or a folio of its own) holds at least three data rows: where it would hold
   fewer, the page before it in the run ends that many data rows earlier, if it keeps three itself (a form of fewer rows
   is left as it is), so the rows move back; the page count stays ⌈rows / capacity⌉. Of 24 rows on the 23-row form, 21
@@ -660,7 +649,7 @@ report_pages(block):
 An embedded block (`embedded: {page, rect}`) renders its rows into a rectangle on an interactive page
 through the form's data area (FR-REP-028, FR-REP-029). It does not join the page order.
 
-| Golden block | Page | Rows | Source |
+| Block (example) | Page | Rows | Source |
 |---|---|---|---|
 | PART DATA | 201 | "Order Code 1:" 51E-F13GCQP-D+H2GG, "Order Code 2:" 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS | `AssemblyConfig` of the valve terminal (D-36; split per order code is U-24) |
 | PART DATA | 202 | the same two order codes (the reference repeats the box identically on 202) | same |
@@ -671,13 +660,13 @@ through the form's data area (FR-REP-028, FR-REP-029). It does not join the page
   finding with "n rows not shown". The rectangle never grows silently into the drawing.
 - Embedded blocks render in their own display-list layer `tables` (ARCH §6.4, ADR-0015 amendment 2), so a wire
   edit does not rebuild them. A profile edit rebuilds `tables`, and `labels` only on pages
-  whose wire markers print derived values (the golden marker mode prints explicit overrides only).
+  whose wire markers print derived values.
 - The reference sets each PART DATA entry as a label line ("Order Code 1:") above a centred value line; the
   `part_data` form reproduces this with a two-row template per entry.
 - Changing the 24 V DC colour in the profile updates the folio 1 table, every derived wire colour and folio 907 in
   one commit (AC-12).
 
-*As built.* An embedded PART DATA block lists the root ancestors of the devices drawn
+An embedded PART DATA block lists the root ancestors of the devices drawn
 on its page: their configured lines become "Order Code n" rows, otherwise their own lines plus those of descendants
 without a representation. The manufacturer text is the `LibRef`'s `extra.key` (a stopgap).
 
@@ -736,7 +725,7 @@ ORDER BY potential COLLATE ew_natural, load COLLATE ew_natural, pin COLLATE ew_n
 | `Tag` | full designation (`=P01+J-E-2416-102G1`) or displayed form, per column setting | frozen S51 (`sign: Hidden`) prints "S51" in displayed form and `=P01+J-E-2416-S51` in full form ([03](03-domain-model.md) §8) |
 | `Range` | compressed tag list (below) | "-201U3-Q1 … -202U2-Q4" |
 
-**Tag-range compression** (FR-REP-046, from the golden BOM):
+**Tag-range compression** (FR-REP-046):
 
 ```text
 compress(tags, all_tags_of_class):        # class = same letter code and same assembly root or strip
@@ -746,7 +735,7 @@ compress(tags, all_tags_of_class):        # class = same letter code and same as
   terminal runs ("-X1031:1 … 20")
 ```
 
-Golden results: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are consecutive); 533361 →
+Examples: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are consecutive); 533361 →
 "-201U3 … -201U8, -202U2" (-201U9 and -202U1 interrupt the run); UK 5 N → "1X1:1, 1X1:2".
 
 ### 3.7 Freshness and release
@@ -755,13 +744,12 @@ Golden results: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are 
 - Report layouts, built-in row definitions, title-block bindings and bundled font versions are part of the pinned
   derivation profile, so a project prints the same pages in later EW releases until its profile is upgraded by a
   previewed command (FR-PRJ-011, NFR-REL-09).
-- *As built.* The first shipped profile, `2027.1` (TOML data in `ew-derive`,
+- The first shipped profile, `2027.1` (TOML data in `ew-derive`,
   [ADR-0003](../adr/0003-freshness-contract.md) amendment 2), carries the numbering scheme, the cross-reference
   format, the title-block binding set (the placeholder paths that `title_block(page)` resolves), the identifier-set
   key and the TOC layout (23 data rows per page, which drives the page-count fixpoint of `page_order`). Report layouts
-  and font versions join the profile with WP-S3.03 and WP-S3.02. `project.control_voltage` and `project.consumption`
-  are in the binding set but stay unbound, and so render empty (§2.6), until `Quantity` has a text formatter (task
-  FT-28 of the work breakdown).
+  and font versions are not in the profile. `project.control_voltage` and `project.consumption`
+  are in the binding set but stay unbound, and so render empty (§2.6): `Quantity` has no text formatter.
 - Report outputs of a released revision are frozen into the as-built archive as `reports/<block id>.csv` plus the
   PDF ([05](05-project-format-and-persistence.md) §14.2, FR-REV-011). Re-rendering the archived project with its
   release context and derivation profile reproduces the page content (FR-REV-010).
@@ -772,9 +760,7 @@ Golden results: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are 
 
 A delivered set has its terminal lists, cable lists, parts list and contents on the set's own frame and title block,
 in its paper size, with the columns its maker chose under headings in the set's language, a caption, a legend line
-and now and then a row the model does not hold. Before, a list page printed the house table at fixed A4 places in
-every column of its kind under English headings, so the first production job wrote those pages with a script (an
-eighth of its time). Built (FT-1874, FT-1826, FT-1805):
+and now and then a row the model does not hold. The lists print so:
 
 **The frame of a list page.** A list page (a generated page of a page-oriented block) prints on its block's form
 (`ReportBlock.form`: its Form row in Properties, `fields.set` path `form`, §2.2), on the set's paper: when the set's
@@ -796,18 +782,15 @@ set's frame from its pages, however the set was made.
 
 **A list the set already has.** While a list of the kind chosen in Report block… already prints on pages of its own,
 the form says so under its Report field ("This set already has Cable overview and diagrams on page 906. Create adds
-another; …"), and after Create the toast names that page with Go to page beside Undo (a persona run made a second
-cable overview beside the one the company standard generates, and nothing said so). Another list of a kind is allowed.
+another; …"), and after Create the toast names that page with Go to page beside Undo. Another list of a kind is allowed.
 Output ▸ Parts list, the one list with a button of its own, opens the set's parts list and never makes one; its toast
 says so ("Opened the set's parts list on page 901; it makes no second one. Report… on the Output tab adds another
-list.", a persona re-test pressed it twice and could not tell). Where devices have no part, a second toast says how
+list."). Where devices have no part, a second toast says how
 many are left out of the list, with Select them (for Choose part…) and Type not known yet… (the same devices' part
-dialog on its description field), which lists them by a description (a persona run left a type open on purpose and
-found no way to list the device).
+dialog on its description field), which lists them by a description.
 
 **The form's Report field.** Report block… offers the parts list first, as the Output tab leads with its Parts list,
-and opens on it; the other kinds follow by their names (it opened on "Bus cable list", the first of the alphabet, a
-persona re-test). A kind may carry search words beside its name (`report-kind-<kind>-words`: "cable list" for Cable
+and opens on it; the other kinds follow by their names. A kind may carry search words beside its name (`report-kind-<kind>-words`: "cable list" for Cable
 overview and diagrams): the command search finds Report block… by them, and Report block… found by a list's name or
 search words rather than its own opens its form on that list.
 
@@ -818,24 +801,21 @@ nogrid"), a form of the project's own, which carries no name, by its kind, its p
 paper are in the window's language ("Kader A4 liggend, op 101, 102"), in English on the command line; the key's words of
 a starter form stay as the key has them. Typed, the row takes such a name or the form's ID and refuses anything else in
 words, listing the forms. A block's Form row stands in the open; a page's waits under Advanced, as a page without a form
-of its own takes the frame defaults, and such a page's row names the frame those defaults give it (FT-1915). The
-project's Frames row names the defaults the same way, "Default: …; Table of contents: …" (FT-1916), and so does the
-Pages navigator's Frame column, for every page the frame it prints on (it showed a starter form's key and nothing for a
-form of the project's own).
+of its own takes the frame defaults, and such a page's row names the frame those defaults give it. The
+project's Frames row names the defaults the same way, "Default: …; Table of contents: …", and so does the
+Pages navigator's Frame column, for every page the frame it prints on.
 
 **Frame of the lists.** The project's Properties have the row Frame of the lists in Main: the form every list (every
 page-oriented block) prints on, by name, or each named where the lists differ. A form chosen there is set as the Form of
 every list's block in one `fields.set` (one undo step), and a toast says so; the rule above still applies (a set of
 another paper size prints its lists on the set's frame). A generated page's Form row is read-only, as every row of a
-generated page is: an edit there is refused under the row with a button to Frame of the lists (a persona run looked
-for the lists' frame on a list page and found no way to change it). So does every other row of a list page, each with
+generated page is: an edit there is refused under the row with a button to Frame of the lists. So does every other row of a list page, each with
 the way to where it is changed: the printed columns, the caption and the legend line List columns… on the Output tab,
 the rows of one's own Rows of your own…, any other row Show report block (the list's block selected in Properties,
 where its rows are edited). The frame defaults keep no entry for report pages
 (EW-INV-012): a list's frame stays its block's Form. The generated table of contents is a list and follows Frame of the
 lists; a section divider is no list and keeps the frame defaults' entry. The toast and the help of the project's Frames
-row say so (a persona re-test set the lists' frame and read the Frames row's Table of contents entry unchanged): that
-entry frames a contents page drawn by hand.
+row say so: that entry frames a contents page drawn by hand.
 
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its
@@ -876,7 +856,7 @@ legend, the rows' texts, the terminal states, the title block's labels and multi
 the language's decimal sign unless the project sets its own separator. A project without a language prints English
 as before. The CSV and XLSX headers stay English.
 
-**The program's own words** (FT-1955). Every word the program writes into a cell itself has its English and its Dutch,
+**The program's own words.** Every word the program writes into a cell itself has its English and its Dutch,
 beside each other where the cell is made (`ew_derive::langs`, as the headings): a channel's state and kind, a
 potential's type and class, a bond, "(cable)", a structure's and a device's kind, a revision's state, a bridge's kind
 and its heading, where a wire's colour and size come from and how it is joined, "from part", a termination's on and
@@ -894,15 +874,14 @@ layout's titles ("Terminal Diagram {n}", "Klemmenschema {n}"); so the title bloc
 PDF outline print the program's title in the project's language. A title written before as one English text is a text
 like a person's and stays English.
 
-**The terminal diagram names the strip** (FT-1805): its first column, `strip`, prints each terminal's strip tag, so
+**The terminal diagram names the strip**: its first column, `strip`, prints each terminal's strip tag, so
 two strips' terminals 1 read apart; a block of one strip may leave the column out.
 
 **In the window.** On a page of a list, Output ▸ List columns… (the Output tab's Reports group) shows the caption, the
 legend and a row per column of the kind (its heading in the window's language): a tick to print it, a heading of its
 own, its width and its order; Apply writes them in one undo step (`fields.set_many`). **A legend takes the same
-choice** (FT-1772): with a legend selected on its panel page, List columns… (also in the legend's context menu) shows
-its table without the caption and the legend line, which a legend does not print; a legend without columns of its own
-(made before 0.3) shows the four it prints (position, DT, quantity, part number) ticked and the description among the
+choice**: with a legend selected on its panel page, List columns… (also in the legend's context menu) shows
+its table without the caption and the legend line, which a legend does not print; a legend without columns of its own shows the four it prints (position, DT, quantity, part number) ticked and the description among the
 others, and keeps printing them in two flow columns until Apply writes a choice, which makes it a lookup table (§2.2).
 Output ▸ Rows of your own…
 shows the printed columns and the list's own rows with three empty rows to fill; a row left empty is left out.
@@ -918,7 +897,7 @@ grid", which puts the drawn pages, the contents and the dividers on it (the cove
 --fit` (and the print dialog's Scale to fit) now scales each page to the whole paper up as well as down, so an A4 set
 prints on A3 at 141 %; a page scaled either way carries the stamp "scaled n %".
 
-**What it does not do.** Edit a form's drawing in the window (FT-1814). Placeholders in the caption or the legend.
+**What it does not do.** Edit a form's drawing in the window. Placeholders in the caption or the legend.
 Rows of a height of the maker's, wrapping cells, a column's alignment. Check a row of the block's own against the
 model, or link it anywhere. Print one list in several languages (one PDF per language is 1.0). An A3 cover, an A3
 frame without the grid, frames A2 to A0.
@@ -950,36 +929,36 @@ rebuilds its title block, and renumbering 103 → 104 rebuilds only the title bl
 `labels` layers that print "103-…" xrefs or the strip tags -X1031/-X1032, §8.2). The page-to-sheet transform of the
 frame form is applied once, identically, by every writer.
 
-*As built (ADR-0015 amendment 7).* `ew-scene` builds each layer as a
+`ew-scene` builds each layer (ADR-0015 amendment 7) as a
 pure function of a caller-filled `PageView` (records by reference, derived texts as slot values); each layer reads
 only its own inputs, records are taken in ID order, a CP's position comes from the representation with the smallest
 ID that draws it, and slot visibility is the override, else the arrangement, else the symbol default. The `revision`
 and `highlights` layers are empty so far; the `tables` layer draws the house report table of a generated page from a
 caller-filled `TableView` of printed texts (in its frame's list area, §3.8: x 16.31 to 277.27 mm on the starter A4
 frame; rows of 6.52 mm, header #C0C0C0, column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). A wire
-without a stored route is drawn as the unrouted dashed line. *As built:* the `Session`
+without a stored route is drawn as the unrouted dashed line. The `Session`
 export job (`ew_api::output`) owns the view's glue rules: a divider or a page without a form uses the no-grid frame,
 the wire-marker text is "csa colour" (both provisional), and the slots filled are the tag, the CP
 designation, the function text, the process tag, the cross-reference with its item links, the technical data, the
 manufacturer, the part number and the type designation. Each part of the view is a query family, and
 each layer is its own Memo + LRU family (`page_display_list_frame`, `_symbols`, `_wires`, `_labels`, `_tables`) over
 the parts it reads, so a wire edit re-runs no frame layer and a renumber re-runs exactly the frames whose title-block
-values change (tested on the golden project; the memo oracle compares every layer with its cold value). The labels
-knock out the wires on a schematic page (0.3.5, ADR-0034 amendment 3): the `wires` layer cuts a line round a text of
+values change (tested; the memo oracle compares every layer with its cold value). The labels
+knock out the wires on a schematic page (ADR-0034 amendment 3): the `wires` layer cuts a line round a text of
 the `labels` layer that it runs through, reading those texts' boxes through a family of their own (`page_knockouts`),
 so a renumber that moves no such text still re-runs no wires layer; it also draws a strip's bridges where their
 terminals stand in one row ([08](08-connections-terminals-cables.md) §6.5).
 
-*As built.* A PanelLayout page draws its
+A PanelLayout page draws its
 surface view through the `surface`, `carriers`, `placements` and `labels` layers of `ew-scene`'s `panel` module, each
 its own memo family (`page_display_list_surface`, `_carriers`, `_placements` and the shared `_labels`), from a view
 that `ew-api` fills from the layout queries; `features` and `dims` are empty until 1.0, and the `tables` layer of a
-panel page draws its embedded blocks only from WP-S4.01 part 4b. The projection divides by the frame's page-to-sheet
+panel page draws its embedded blocks as on any page. The projection divides by the frame's page-to-sheet
 factor, so the page's scale holds on paper; the title block's `page.title` on a page of scale 1:n reads "<title> ·
 Scale 1:n". A placement move rebuilds `placements`, `labels` and `carriers` (the labels knock out the carriers),
 never `frame` or `tables` ([12](12-panel-layout.md) §5.1 to §5.3).
 
-*As built.* The `tables` layer draws every embedded
+The `tables` layer draws every embedded
 block on its page through one path: `ew-api`'s `PageEmbeddedOf` fills a view per block with each cell rendered for
 that page; the cover (`profile_tables`) keeps its own variant `EmbeddedContent::Cover` (folio 1 byte-equal), and
 every other kind is a boxed table, `EmbeddedContent::Table`. House values in printed mm: a 2.61 mm drop shadow, the
@@ -994,7 +973,7 @@ beyond the capacity are not drawn and are reported (`TooManyRows`, FR-REP-039). 
 ### 4.2 PDF (krilla)
 
 Exports run as a job on an O(1) fork: global queries first, then per-page display lists in parallel (rayon), then
-sequential assembly in page order (FR-OUT-001, ARCH §2). *As built:* the page phase runs on `ew_export::par_map`, scoped `std` threads with a strided split and results collected by page index, instead of rayon; serial and parallel share one code path and their output is byte-identical (AC-14).
+sequential assembly in page order (FR-OUT-001, ARCH §2). The page phase runs on `ew_export::par_map`, scoped `std` threads with a strided split and results collected by page index, instead of rayon; serial and parallel share one code path and their output is byte-identical (AC-14).
 
 | IR item or document feature | PDF construct | Requirement |
 |---|---|---|
@@ -1018,24 +997,21 @@ sequential assembly in page order (FR-OUT-001, ARCH §2). *As built:* the page p
   on a panel layout `ew:pl:<placement uuid>` (its footprint) and its row on the layout's legend page `ew:lr:<placement
   uuid>` (0.3.5, [12](12-panel-layout.md) §5.4). Only targets
   referenced by a link get a destination, plus one per page, which bounds the file size at XL.
-- **As built (ADR-0015 amendment 5).** `/PageLabels` are krilla's own page labels.
+- `/PageLabels` are krilla's own page labels (ADR-0015 amendment 5).
   Glyphs map to text one char per glyph when the counts agree, else the run is one cluster (clusters in
-  `ShapedRun` follow); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
-  until assets reach the scene; links out of a partial export are plain text. The golden PDF has the
-  36 pages of the page order with their report tables and 246 link annotations (64 cross-reference items, 28 PLC overview rows and the report row links).
-  Glyph coverage as built: the font set holds Noto Sans Math Regular as its one symbol fallback face, only
+  `ShapedRun` follow); `.notdef` glyphs are dropped; link annotations use a rectangle; raster images are not drawn; links out of a partial export are plain text.
+  Glyph coverage: the font set holds Noto Sans Math Regular as its one symbol fallback face, only
   for characters the style's own face lacks in Latin, Greek and Cyrillic text; a text with such glyphs is one group
-  of one glyph run per face, so the golden PDF embeds both fonts and drops no `.notdef` glyph. A `.notdef` glyph
+  of one glyph run per face, so such a PDF embeds both fonts and drops no `.notdef` glyph. A `.notdef` glyph
   remains only for a character no bundled face drew, and only such a character is reported (FR-OUT-027).
-- **Golden A** gets exactly 64 xref link annotations (one per listed item: the 63 linked texts carry 64 link targets; a link covers the item's glyph span only, not the "∞ " prefix or the parentheses) plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
-  lands on cell G6 of folio 103.
+- **Links:** one xref link annotation per listed item (a link covers the item's glyph span only, not the "∞ " prefix
+  or the parentheses) plus report back-links (AC-13); "103-G6" lands on cell G6 of folio 103.
 - **Partial exports** print links to non-exported pages as plain text, or as remote links into a companion file
   named by the scheme (FR-OUT-020). A remote link is a GoTo-remote action to the companion's named destination,
   which PDF/A-2 permits; krilla's support for it is unverified, the fallback is a URI action
   `<file>.pdf#nameddest=<name>` (viewer-dependent).
 - **Status mark (1.0).** An unreleased revision gets "DRAFT V3.0" in the sheet margin outside the frame
-  (FR-OUT-021). The pilot basic project ships with the mark off until the pilot decides, and the golden text CSVs
-  exclude the margin.
+  (FR-OUT-021). The pilot basic project ships with the mark off until the pilot decides.
 - **Monochrome** maps every stroke and text to black and every non-white fill to its luminance grey; wire-colour
   codes stay as text (FR-OUT-011, G8).
 
@@ -1045,14 +1021,12 @@ The export input is the tuple (snapshot revision, export scheme, date, release c
 profile, font files by hash). Rules:
 
 1. **Dates.** PDF, XMP, XLSX and ZIP dates come from, in order: the release context, an explicit scheme date,
-   `SOURCE_DATE_EPOCH`, the model's edited date. Never the wall clock (FR-OUT-026, NFR-REL-07). *As built:* the export job takes the caller's date (`ew export` reads `SOURCE_DATE_EPOCH`; an unparsable value exits
-   2), else the model's edited date, else its created date, else 1980-01-01; release contexts and scheme dates do not
-   exist yet.
-2. **Identifiers.** The PDF document ID and XMP instance ID are hashes of the export input, not random. *As built
-  :* the document ID is krilla's hash of the text `ew-pdf/1 <project id> <derivation
+   `SOURCE_DATE_EPOCH`, the model's edited date. Never the wall clock (FR-OUT-026, NFR-REL-07). The export job takes the caller's date (`ew export` reads `SOURCE_DATE_EPOCH`; an unparsable value exits
+   2), else the model's edited date, else its created date, else 1980-01-01; release contexts and scheme dates do not exist.
+2. **Identifiers.** The PDF document ID and XMP instance ID are hashes of the export input, not random. The document ID is krilla's hash of the text `ew-pdf/1 <project id> <derivation
    profile> <date> <pages>[ mono] ew <EW version> sha256:<digest>`, `<pages>` being `all` or the selected folio
    labels, and `<digest>` the SHA-256 over every exported page (label, outline title and section, sheet size,
-   destination, sheet display list through its `Hash` order) and the pinned SHA-256 of every bundled font. The digest is computed through the std `Hash` order of the display lists today, which is not guaranteed stable across toolchains; moving it to sha2 over canonical bytes is not done yet. The pages
+   destination, sheet display list through its `Hash` order) and the pinned SHA-256 of every bundled font. The digest is computed through the std `Hash` order of the display lists, which is not guaranteed stable across toolchains; sha2 over canonical bytes is not built. The pages
    are derived values, so the ID is the same however the model was loaded (the bootstrapped tables, the saved
    project, a shuffled record order; AC-14, AC-15); it is per build target like the PNGs.
 3. **Order.** Pages in `page_order`; objects and resources in first-use order; maps are ordered (`BTreeMap`); parallel
@@ -1067,21 +1041,18 @@ profile, font files by hash). Rules:
    by one face stays one run (ADR-0015 amendment 8).
 6. **Images** are passed through or re-encoded with fixed encoder settings.
 
-GUI and CLI call the same exporter. CI exports Golden A on Windows and Linux and in a display-less Linux
+GUI and CLI call the same exporter. The release check exports the sample project on Windows and Linux and in a display-less Linux
 container (NFR-PLAT-04) and compares SHA-256 for PDF, SVG, XLSX and CSV (FR-OUT-019, FR-OUT-022) and PNGs within
 the dify tolerance (§4.4); veraPDF validates PDF/A-2b; hayro rasterises the PDF for the ±0.2 mm frame check
 (ARCH §13).
 
-*As built.* The application shell's File ▸ Export PDF and its headless
-`file.export_pdf` call `Session::export_pdf` with the default options, the exporter of `ew export pdf`: on Golden A the
-shell's PDF has the committed digest of `expected/pdf/sha256.txt` (a test of `bin/elektrawatt`). The export
-runs synchronously on the UI thread, with "Exporting PDF..." in the status bar; the export job with progress and
-cancel remains, with WP-S2.09.
+The application shell's File ▸ Export PDF and its headless
+`file.export_pdf` call `Session::export_pdf` with the default options, the exporter of `ew export pdf`, as a job with
+progress and cancel ([16](16-ux-ui.md) §8).
 
-**Budgets.** Paginating every block cold takes S/M ≤ 3 s, L ≤ 15 s and XL ≤ 60 s, golden 903–911 within 1 s
-(NFR-PERF-10).
+**Budgets.** Paginating every block cold takes S/M ≤ 3 s, L ≤ 15 s and XL ≤ 60 s (NFR-PERF-10).
 PDF export averages ≤ 50 ms per page, 500 pages in ≤ 10 s on a snapshot while editing continues, and
-`ew export pdf` of Golden A ≤ 3 s (NFR-PERF-11). The export never holds the UI thread for more than 100 ms and
+`ew export pdf` of the sample project ≤ 3 s (NFR-PERF-11); not measured. The export never holds the UI thread for more than 100 ms and
 cancels within 500 ms (NFR-PERF-19); it writes `<name>.tmp` and renames on success, so a cancelled export leaves no
 partial file (FR-UI-024).
 
@@ -1091,22 +1062,21 @@ partial file (FR-UI-024).
   text as `<text>` with the font subset embedded as `@font-face` data; element order equals IR order; `id`
   attributes from entity IDs in NCName form (`ew-r-<uuid>`: the PDF destination name with ":" replaced, because
   XML IDs may not contain colons); links as `<a href="103.svg#ew-r-<uuid>">`.
-  *As built (FR-OUT-013 partial: named fonts):* `ew_export::svg` writes one `<label>.svg` per page from the sheet display lists of the PDF:
+  `ew_export::svg` writes (FR-OUT-013, with named fonts) one `<label>.svg` per page from the sheet display lists of the PDF:
   `viewBox` and lengths in mm with at most 3 decimals from integer nm, element order = IR order, text as `<text>`
   with one `x` per character; ids are written for link targets only (`id="ew-r-<uuid>"`, once per page on the first drawn item of the target; links point at the first page that draws it), sources as `<a href="<file>#<id>">` (SVG 2 `href`, so the root carries no `version` attribute). The fonts are
   named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
   (open: it needs a `cmap`-keeping subsetter, the `@font-face` embedding above is the target). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
-  rayon; serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is not built yet (MVP). The `ew export svg` and `ew export pdf` subcommands are built over the `Session` export job, which runs `par_map` in the shipped export path; AC-14 tests that path. The `--out` directory of `ew export svg`, `ew export png` and `ew export dxf` is replaced as a whole through a sibling temporary directory, so no stale or partial set remains. A set leaves the file `.elektrawatt-export` in it, which names the set's kind and every file it wrote; the next export of the same kind replaces only a directory that is empty or holds just that file and the files it names, and refuses any other in words (exit 2), whatever the extensions of its files, leaving it as it was: a folder of a person's own pictures is never taken for an earlier export (a directory written by 0.3.0, which left no such file, is refused once). The PDF is written to `<file>.tmp`, synced and renamed.
+  rayon; serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is not built. The `ew export svg` and `ew export pdf` subcommands are built over the `Session` export job, which runs `par_map` in the shipped export path; AC-14 tests that path. The `--out` directory of `ew export svg`, `ew export png` and `ew export dxf` is replaced as a whole through a sibling temporary directory, so no stale or partial set remains. A set leaves the file `.elektrawatt-export` in it, which names the set's kind and every file it wrote; the next export of the same kind replaces only a directory that is empty or holds just that file and the files it names, and refuses any other in words (exit 2), whatever the extensions of its files, leaving it as it was: a folder of a person's own pictures is never taken for an earlier export (a directory written by 0.3.0, which left no such file, is refused once). The PDF is written to `<file>.tmp`, synced and renamed.
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
-  platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
-  to byte identity on the same platform (ADR-0015 amendment 3). *As built (ADR-0015 amendment 6):*
-  `ew-render-cpu` runs on vello_cpu's portable `Level::baseline()`, so PNGs are byte-identical per build target.
+  platforms; `ew-render-cpu` runs on vello_cpu's portable `Level::baseline()`, so PNGs are byte-identical per build
+  target (ADR-0015 amendments 3 and 6).
 - **DXF (1.0, FR-OUT-015).** AC1024 (§4.9), `$INSUNITS` = mm, layer mapping per scheme (default `EW-FRAME`,
   `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`); symbols as `BLOCK`/`INSERT` named by symbol and
   variant; Béziers flattened to polylines at 0.01 mm; dash patterns as `LTYPE`; texts as `TEXT` with a `STYLE` per
   face. Re-import as a graphic page within 0.01 mm (AC-37).
-  *As built (WP-S3.19, FT-1877):* `ew_export::dxf` is an own writer (no dxf crate, whose graph brings random GUIDs
+  `ew_export::dxf` is an own writer (no dxf crate, whose graph brings random GUIDs
   and clock-stamped headers) from the sheet display lists, one `<label>.dxf` per page, AutoCAD 2010 (`AC1024`) in
   UTF-8 (§4.9: the version, the type, the picture, the blocks and attributes, the links), `$EXTMIN`/`$EXTMAX` the
   sheet so a re-import puts the drawing back where it was. A fill is a solid `HATCH`, a colour other than black a
@@ -1133,10 +1103,10 @@ link:
 - **Print preview** renders the print PDF's display lists in the app. There is no macOS adapter: macOS is not a supported platform.
 - `ew print --pages 101-106 --printer <name>` uses the same adapters without a dialog (FR-EXT-009).
 
-*As built.* The print set (`ew_api::output::print`: `Paper`, `Fit::{Actual, ToPaper}`, `PrintOptions`,
+The print set (`ew_api::output::print`: `Paper`, `Fit::{Actual, ToPaper}`, `PrintOptions`,
 `Session::print_set`) places each page on its paper (`PagePlacement`, in `ew-render-cpu`); a set with no placement
 change is the export's PDF byte for byte. Fit scales each page to the whole paper, up as well as down (an A4 set on A3
-at 141 %, §3.8), and stamps "scaled <n> %" in the bottom margin (Golden A's section 1 on A5 read "scaled 70 %");
+at 141 %, §3.8), and stamps "scaled <n> %" in the bottom margin;
 without it a larger page is clipped and named in a notice. Ranges are
 folio labels and ranges (`--pages`) or section numbers (`--sections`). `ew-print`'s adapters form a chain with one
 fallback notice: on Linux the portal (ashpd 0.13.13 with `async-io`, no tokio), then `lp`, then the viewer; on
@@ -1179,10 +1149,10 @@ Every report block and navigator table exports from its `RowSet` with exactly th
   `RowSet` formatting with another display language (FR-I18N-005, 1.0). Identifiers never change (FR-I18N-002).
 - **Stacked texts.** Function texts may print "NL / EN" in one field via `ml(stacked: …)` (FR-I18N-004).
 - **Fallback.** A missing translation prints the source text and appears in the `untranslated` report.
-  *As built (`ew_derive::text_in`, every output's one rule):* a text prints in the project's language: its neutral
+  `ew_derive::text_in`, every output's one rule: a text prints in the project's language: its neutral
   text, else the string of that language (or of its language, `nl` for `nl-NL`), else English's, else the first
   language's in tag order. A text in many languages (a QElectroTech element's name: `ar`, `cs`, `de`, `en` …) thus
-  prints in English where the project names no language or the text lacks it, not in the first of them (FT-1877).
+  prints in English where the project names no language or the text lacks it, not in the first of them.
 - **Language-independent pagination.** With the default fixed-height rows (§3.2), every language yields the same
   page set, folios, TOC and links, so AC-42 holds: only translated texts differ. A block with wrapping enabled may
   paginate differently per language; the export then warns and lists the page-count differences (FR-REP-049).
@@ -1200,7 +1170,7 @@ Every report block and navigator table exports from its `RowSet` with exactly th
 
 A drawing set that must match an existing print in another typeface (a QElectroTech set printed in Liberation Sans)
 needs the program to print that typeface, and its texts to stand where that print has them whatever typeface prints
-them. Both are built (FT-1872).
+them. Both are built.
 
 **The setting.** `ProjectSettings.typeface` is an optional member of the project record: `{"asset":
 "sha256:<64 hex>", "name": "LiberationSans-Regular.ttf"}`, the font file as an asset of the project
@@ -1278,9 +1248,8 @@ keep Noto Sans.
   padding; no shipped form uses it.
 - The QElectroTech import writes it ([14](14-interop.md) §4.4.2, §4.10): a free text and an element's texts stand on
   QET's own baseline, so they keep their place in any typeface.
-- A project made by 0.3.0 has neither the member nor the alignments: every text prints where it did, to the
-  nanometre. Measured when it was built, the sample's PDF and DXF were byte for byte the build's before; a project
-  without the setting prints with the bundled faces only (`crates/ew-api/tests/it/typeface.rs`).
+- A project without the member and the alignments prints every text where an older build did, to the nanometre, with
+  the bundled faces only (`crates/ew-api/tests/it/typeface.rs`).
 
 **What it does not do.** No system fonts (NFR-REL-11 holds: the file is in the project). One file only: no second
 file for the bold or italic cut, no typeface for Narrow, Mono or Technical drawing, no font of a frame or title block
@@ -1291,10 +1260,9 @@ the typeface. A text placed with the Text tool keeps the middle anchor.
 
 A person who must deliver the drawing set as CAD files gets from `ew export dxf` one file per page that is the page of
 the PDF: the same texts in the same places and sizes, the title block with its picture, in a format AutoCAD 2010 and
-later open, and with the page's structure, so that the receiver can work with it (FT-1877). This row writes no DWG: a
+later open, and with the page's structure, so that the receiver can work with it. It writes no DWG: a
 DWG is made from the DXF by a converter (the ODA File Converter, which the import runs the other way, doc 14 §6.5; or
-the receiver's CAD program). The program's own DWG export comes after the DXF equals the PDF, as FT-1745 of the later
-backlog: the export runs the user's converter on this DXF. So the DXF is made to become a good DWG of the 2010 format
+the receiver's CAD program). The program's own DWG export, which would run the user's converter on this DXF, is not built. So the DXF is made to become a good DWG of the 2010 format
 (the choices marked *for the DWG* below).
 
 **The version: AutoCAD 2010 (`AC1024`).** It is the format AutoCAD 2010 to 2012 write, and every AutoCAD since opens
@@ -1397,7 +1365,7 @@ object works on Windows only and no converter keeps it), so:
   (`∞ 3-B2, 106-G3`) has no hyperlink: its items name them in words. A target outside the exported pages leaves the
   text without a link, as a partial PDF does. Every other text that links in the PDF (a row of the contents to its
   page) links so too. A link names `<label>.dxf`; with `ew export dxf --dwg-links` it names `<label>.dwg`, for a set
-  that a converter turns into DWG (a converter keeps a link as it is; FT-1745's export will set it itself).
+  that a converter turns into DWG (a converter keeps a link as it is).
 - *The frame and the title block* are entities on the frame layer, each page its own: a title block prints its page's
   values, so as a block it would be one per page. Its texts are `TEXT`s; its picture as above.
 
@@ -1406,15 +1374,15 @@ picture, the symbol inserts, the wires, the texts (the attributes among them: an
 insert on the symbols layer), the graphics, the tables and a printed underlay. A block's own content is on layer `0`,
 so it takes its insert's layer.
 
-**What it does not do.** It writes no DWG: that is FT-1745 of the later backlog, after this row (the export runs the
-user's converter on this DXF, as the DWG import runs it the other way). No font in the file: a text is a `TEXT` in a
+**What it does not do.** It writes no DWG (an export would run the user's converter on this DXF, as the DWG import
+runs it the other way). No font in the file: a text is a `TEXT` in a
 named face, never its outlines. No `MTEXT` and no attribute of more lines. No title block as a block with attributes,
 no named views (a link opens the page and the text names the cell), no external references between the page files,
 no paper-space layout of the sheet, no plot styles. A raster picture is never inside the file, and the rule that
 aligned a text is not written. The window's export writes the default layer names and `.dxf` links: `--layer` and
 `--dwg-links` are the command line's.
 
-**In the window** (FT-1960): Export DXF… stands on the Output tab and in the Output menu beside Export PDF… and
+**In the window**: Export DXF… stands on the Output tab and in the Output menu beside Export PDF… and
 Print…. It asks for a folder and writes the set there as a job (`file.export_dxf {dir}`), as `ew export dxf` does: the
 folder is replaced as a whole, so it must be empty or hold just what an earlier DXF export wrote there (by its file
 `.elektrawatt-export`, the rule of the command line's exports); a folder that holds any other file, whatever its extension, is refused
@@ -1425,8 +1393,7 @@ danger button); a script says `"confirm": true`, and without it the step fails i
 dxf|png|svg` replaces its own earlier set without a question, as its help says. Its end says "Exported the DXF set,
 one file per page, to <the folder's whole path>: <pages>, <size> KiB." with Open (the folder); a cancel before the
 folder is replaced writes nothing. A PDF's or a table's end names the file and the folder it is in ("Exported set.pdf:
-<pages>, <size> KiB, in <folder>.") with Open (the file) and Show in folder (a persona run could not tell where the
-files went or whether the DXF set is one file per page).
+<pages>, <size> KiB, in <folder>.") with Open (the file) and Show in folder.
 
 **Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on every page of
 the sample and on a small project of the test's own (a coil on one page and its contact on another, an input card
@@ -1434,7 +1401,7 @@ drawn as a black box, a terminal of a strip, a logo), every text of the PDF's di
 `ew-import-dxf` where the PDF has it, as high and with its characters; there a device's texts are the attributes of
 its insert under the names above, the coil's block is named by its symbol, each cross-reference links to the file of
 the other page, the logo is an `IMAGE` of the picture file written beside the pages, and the symbol wizard reads the
-coil's block with its tag slot. Measured on 2026-11-21: the largest distance between where the PDF starts a text and
+coil's block with its tag slot. Measured: the largest distance between where the PDF starts a text and
 where the DXF read back has it was 1 nm, on the sample's pages and on the test's own, the importer's rounding (the
 writer writes the PDF's coordinates to the nanometre); how long a CAD program draws a text depends on the faces it
 has. ezdxf 1.4.5 reads every page of the sample without an error and repairs nothing; drawn by its matplotlib add-on,
@@ -1457,7 +1424,7 @@ pages 101 and 104 show the PDF's drawing, texts and logo.
 | SQL report pages | "as of revision n" badge while the projection catches up | 1.0 |
 
 At MVP, forms are data files edited outside the GUI or produced by the wizard; the shipped QET-compatible frame,
-title block, cover, divider and report forms reproduce the golden house style.
+title block, cover, divider and report forms reproduce the reference set's house style.
 
 ---
 
@@ -1485,17 +1452,17 @@ title block, cover, divider and report forms reproduce the golden house style.
 2. **Folio collisions.** `NextFolio` continuation or group breaks push pages into folios used by drawn pages or other
    blocks (a fourth strip under a grouped terminal block would take 906). Sub-page continuation is the default; the
    collision check EW-CORE-022 reports the rest (FR-REP-041).
-3. **Report coverage.** With one block per strip (Golden A: 903, 904, 905), a new strip -X1033 has no terminal
+3. **Report coverage.** With one block per strip, a new strip -X1033 has no terminal
    diagram until a block is added. The coverage rule EW-CORE-026 reports strips, cables and stations without a block
    of their family (FR-REP-047, [15](15-checks-revisions-collaboration.md) §4.2). EW-CORE-024 and EW-EN60204-015
    check the documentation set against declared standards at block-kind level only.
 4. **Empty blocks.** Per-entity kinds omit their pages; list kinds such as open items print one "No entries" page,
    so the release documentation proves the list was empty.
 5. **Text that does not fit.** Fixed-height cells shrink to the minimum cap height and then ellipsise with a
-   warning (EW-CORE-062 from 1.0); never silent clipping (FR-REP-039). *As built (M3):* a report table's cell ellipsises at the floor
+   warning (EW-CORE-062 from 1.0); never silent clipping (FR-REP-039). A report table's cell ellipsises at the floor
    (two lines at the floor exceed its 6.52 mm row), so it never prints over its neighbour. Before that, a column whose
    text would be cut takes room from the columns with room to spare at the full size, and where that is not enough
-   (the I/O list's 20 columns, FT-1923) what it lacks at the floor from the room the others spare at the floor, so
+   (the I/O list's 20 columns) what it lacks at the floor from the room the others spare at the floor, so
    only a table whose texts do not all fit at the floor cuts one. The 35-character order code 2 in the 73 mm
    PART DATA box fits only on a value line of its own, as in the reference (estimate: ≈ 1.7 mm average advance per
    character at 8.88 pt gives ≈ 60 mm, while "Order Code 2: " plus the code needs ≈ 84 mm).
@@ -1528,7 +1495,7 @@ title block, cover, divider and report forms reproduce the golden house style.
 18. **Large-format Windows printing.** A0 at 600 dpi is about 20,000 × 28,000 px; banding keeps memory bounded, but
     spool size is large.
 19. **BOM position numbers.** `Pos` is the row index after sorting (§2.4), so inserting a part renumbers every later
-    position (a new device at the end of folio 102 takes golden row 13 and moves PT 2.5-TWIN to row 14). Purchasing
+    position. Purchasing
     lists of a released revision keep their positions through the frozen `reports/<block id>.csv` (§3.7); stored
     item numbers (EPLAN item numbering) are a 1.x candidate.
 20. **DXF and SVG identifiers.** PDF destination names contain ":" (`ew:r:…`), which is invalid in XML IDs; SVG
