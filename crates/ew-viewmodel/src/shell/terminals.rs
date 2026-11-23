@@ -832,6 +832,32 @@ impl ShellModel {
         if levels == 2 {
             self.join_row_in_pairs(first.as_deref());
         }
+        // The selection is the row's terminals and nothing else (a persona found every terminal of the page selected
+        // after a row, the placements' own selection being made a dispatch later against no page before).
+        self.tools.placed = false;
+        let laid: Vec<EntityRef> = self
+            .canvas()
+            .map(|c| Arc::clone(&c.page().tables))
+            .map(|now| {
+                now.reps
+                    .iter()
+                    .filter(|r| {
+                        !first
+                            .as_ref()
+                            .is_some_and(|b| b.reps.iter().any(|o| o.id == r.id))
+                    })
+                    .map(|r| EntityRef(r.id))
+                    .collect()
+            })
+            .unwrap_or_default();
+        if !laid.is_empty()
+            && self
+                .tools
+                .selection
+                .apply(&crate::tools::SelectionChange::Replace(laid))
+        {
+            self.announce_selection();
+        }
         self.tools.before_commit = first;
         self.tools.row_steps = start.zip(cursor(self));
         if let Some(select) = crate::tools::tool_named("select") {
