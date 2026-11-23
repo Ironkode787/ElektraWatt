@@ -223,7 +223,7 @@ fn toast(
                             // ellipsis; the whole text is the toast's tooltip.
                             let response = ui.add(
                                 egui::Label::new(line_job(
-                                    &n.text,
+                                    n.shown(),
                                     theme::font(&t.type_body_strong),
                                     t.text_primary.color32(),
                                     LINE_ROWS,
@@ -248,16 +248,17 @@ fn toast(
             });
         });
     // A `Group` node over the card, named "Notification" (its text is the live region inside).
-    // Hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut,
-    // unless a control inside shows its own tooltip.
+    // Hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut, or the toast
+    // shows a brief of it, unless a control inside shows its own tooltip.
     let text_w = text_width(t, width);
-    let cut = match n.lines() {
-        (title, Some(line)) => {
-            is_cut(ui, title, theme::font(&t.type_body_strong), TITLE_ROWS, text_w)
-                || is_cut(ui, &line, theme::font(&t.type_small), LINE_ROWS, text_w)
-        }
-        (_, None) => is_cut(ui, &n.text, theme::font(&t.type_body_strong), LINE_ROWS, text_w),
-    };
+    let cut = n.shown() != n.text
+        || match n.lines() {
+            (title, Some(line)) => {
+                is_cut(ui, title, theme::font(&t.type_body_strong), TITLE_ROWS, text_w)
+                    || is_cut(ui, &line, theme::font(&t.type_small), LINE_ROWS, text_w)
+            }
+            (shown, None) => is_cut(ui, shown, theme::font(&t.type_body_strong), LINE_ROWS, text_w),
+        };
     let mut node = ui.interact(
         frame.response.rect,
         ui.scope_id().with(("toast", n.serial)),
@@ -585,6 +586,38 @@ mod tests {
         });
         output.textures_delta.clear();
         assert_eq!(shown, (2, false, TITLE_ROWS, true, title.to_owned()));
+    }
+
+    /// Arrange and route's toast for a strip that stays as it stands, the usual thing in the way, reads whole in a
+    /// 1920-point window in English and in Dutch: a result's text split as `Notification::lines` splits it, its title
+    /// within the title's rows and its line, with what to look at, within the line's rows (a persona run read it cut
+    /// before "look at").
+    #[test]
+    fn the_toast_of_a_strip_that_stays_reads_whole() {
+        let ctx = egui::Context::default();
+        crate::fonts::install(&ctx);
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+        let mut cut = Vec::new();
+        for locale in ["en", "nl"] {
+            assert!(strings::set_locale(locale), "{locale}");
+            let held = strings::format(key!("arrange-held-worse"), &["-X1011:1"]);
+            let text = strings::format(key!("arrange-blocked"), &[&held]);
+            let (title, line) = text.split_once(": ").expect("a title and a line");
+            let line = strings::sentence_start(line).into_owned();
+            let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+                let t = theme::tokens(Theme::Light, Density::Comfortable);
+                let column = text_width(&t, toast_width(&t, 1920.0));
+                if is_cut(ui, title, theme::font(&t.type_body_strong), TITLE_ROWS, column)
+                    || is_cut(ui, &line, theme::font(&t.type_small), LINE_ROWS, column)
+                {
+                    cut.push(text.clone());
+                }
+            });
+            output.textures_delta.clear();
+        }
+        assert!(strings::set_locale("en"));
+        assert_eq!(cut, Vec::<String>::new());
     }
 
     /// The UI's faces carry the non-breaking hyphen, and a toast in a 1280-point window never breaks

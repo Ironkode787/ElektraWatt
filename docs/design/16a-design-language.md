@@ -1118,6 +1118,11 @@ narrower than `size.toast` (300 px) and never wider than the window. Its line wr
 word boundaries up to four rows, so a refusal's reason is never cut at one line; what does not fit in four rows ends
 in an ellipsis, with the whole text in the tooltip, the HUD and the log.
 
+*As built.* **A toast may show a brief of its text** (a persona run read Arrange and route's reasons cut before the
+one it could act on): where several reasons stack, the toast shows the first and how many more ("And 2 more: hover
+here, or see Notifications"), and its tooltip and the log show the whole text. Arrange and route's "Nothing to
+arrange" is a result toast: its title, then what stands in the way as its line.
+
 *As built.* **A toast fades out as it fades in:** its opacity rises from 0 to
 1 over `motion.base` from the frame that first paints it, stands at 1, and falls to 0 over the last `motion.base` of
 its 8 s, all on the window's frame clock; then it leaves. Hovering a toast still pauses it: its clock stands still

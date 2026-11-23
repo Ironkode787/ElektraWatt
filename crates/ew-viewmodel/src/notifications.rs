@@ -240,6 +240,9 @@ pub struct Notification {
     pub(crate) tone: Option<NoteTone>,
     /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
     pub(crate) keep: Option<String>,
+    /// What its toast shows where that is shorter than its text: the first of several reasons and how many more. The
+    /// toast's tooltip and the log show the whole text.
+    pub(crate) brief: Option<String>,
 }
 
 impl Notification {
@@ -279,16 +282,22 @@ impl Notification {
         }
     }
 
-    /// The title and the optional line of the toast (doc 16a §6.10): a toned result's text splits at its first `": "`
-    /// into the title ("Check") and the line of counts ("4 errors, 25 warnings"); any other text is the title alone.
-    /// The line stands on its own, so it starts with a capital ([`strings::sentence_start`]).
+    /// What its toast shows: its brief where it has one, else its text.
+    pub fn shown(&self) -> &str {
+        self.brief.as_deref().unwrap_or(&self.text)
+    }
+
+    /// The title and the optional line of the toast (doc 16a §6.10): a toned result's text ([`Self::shown`]) splits at
+    /// its first `": "` into the title ("Check") and the line of counts ("4 errors, 25 warnings"); any other text is the
+    /// title alone. The line stands on its own, so it starts with a capital ([`strings::sentence_start`]).
     pub fn lines(&self) -> (&str, Option<Cow<'_, str>>) {
+        let shown = self.shown();
         if self.tone.is_some()
-            && let Some((title, line)) = self.text.split_once(": ")
+            && let Some((title, line)) = shown.split_once(": ")
         {
             return (title, Some(strings::sentence_start(line)));
         }
-        (&self.text, None)
+        (shown, None)
     }
 
     /// The file an Open action opens.
@@ -360,6 +369,7 @@ impl NotificationLog {
             second: None,
             tone,
             keep: None,
+            brief: None,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {
@@ -383,6 +393,13 @@ impl NotificationLog {
             n.second = second;
         }
         serial
+    }
+
+    /// Sets what the toast of notification `serial` shows in place of its text ([`Notification::brief`]).
+    pub(crate) fn set_brief(&mut self, serial: u64, brief: String) {
+        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
+            n.brief = Some(brief);
+        }
     }
 
     /// Names the one tag the Keep of notification `serial` keeps, for its label.
@@ -524,6 +541,22 @@ mod tests {
             log.get(plain).map(Notification::lines),
             Some(("Placed -K1", None))
         );
+    }
+
+    /// A toast with a brief shows the brief, split as a result's text is, while the log keeps the whole text (Arrange
+    /// and route's first reason and how many more, doc 16a §6.10).
+    #[test]
+    fn a_toast_shows_its_brief_and_the_log_the_whole_text() {
+        let mut log = NotificationLog::default();
+        let whole = "Nothing to arrange: -K1: no room. -K2: no room. 1 fault stays on the page.";
+        let s = log.push_toned(whole.into(), "edit", None, Some(NoteTone::Info));
+        log.set_brief(s, "Nothing to arrange: -K1: no room. And 2 more.".into());
+        let n = log.get(s).expect("the toast");
+        assert_eq!(
+            n.lines(),
+            ("Nothing to arrange", Some("-K1: no room. And 2 more.".into()))
+        );
+        assert_eq!(log.entries().next().map(|n| n.text.as_str()), Some(whole));
     }
 
     /// The line under a toast's title starts with a capital where it started lowercase; the text

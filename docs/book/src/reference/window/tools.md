@@ -311,11 +311,12 @@ apply: every change of this preview is unticked." Apply stores it in one step, a
 moved and what was routed ("Arranged folio 102: 4 symbols moved, 9 wires routed."); one Undo takes all of it back. In
 the history the step is called Arrange and route, or Route wires when no symbol moved. When the card closes, a page
 that was shown whole is shown whole again. When nothing would make the page better, it says "Nothing to arrange: the
-page is already arranged as well as the rules allow." Where something stands in the way, it says "Nothing to arrange:
-no plan was better than the page as it stands." and names it: a symbol left against a rule, a terminal strip that does
-not open to its card's channels (its terminals wired to the channels in another order, too little room between the
-channels' columns, a symbol in the way, the edge of the drawing area, or more crossings in the strip's order than
-now), a wire without a route, the faults the page keeps.
+page is already arranged as well as the rules allow." Where something stands in the way, its toast is titled "Nothing
+to arrange" and names it: a symbol left against a rule, a terminal strip that stays as it stands (its terminals wired
+to the card in another order, too little room between the channels, a symbol in the way, the edge of the drawing
+area, or more crossings in the strip's order than now: then look at the terminals wired out of that order), a wire
+without a route, the faults the page keeps. Where several things stand in the way, the toast names the first and how
+many more; hover over it, or open Notifications in the status bar, to read them all.
 
 ## Interruption point
 

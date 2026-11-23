@@ -20,6 +20,7 @@ use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel};
 use crate::canvas::CanvasPage;
+use crate::notifications::NoteTone;
 use crate::properties::{ArrangeCard, ArrangeRow, Card, CardOrigin};
 use crate::strings;
 use crate::{count_key, key};
@@ -79,14 +80,24 @@ impl ShellModel {
         let Some(params) = plan.params.clone() else {
             self.props.card = None;
             let why = in_the_way(session, &folio, &plan);
-            let text = if !unticked.is_empty() {
-                strings::text(key!("toast-arrange-none-left")).to_owned()
+            if !unticked.is_empty() {
+                self.notify(strings::text(key!("toast-arrange-none-left")).to_owned(), false);
             } else if why.is_empty() {
-                strings::text(key!("toast-arrange-nothing")).to_owned()
+                self.notify_toned(
+                    strings::text(key!("toast-arrange-nothing")).to_owned(),
+                    NoteTone::Info,
+                );
             } else {
-                strings::format(key!("arrange-blocked"), &[&why.join(" ")])
-            };
-            self.notify(text, false);
+                // A result toast (doc 16a §6.10): "Nothing to arrange" its title, what stands in the way its line. Where
+                // several things do, the toast shows the first and how many more; its tooltip and the log show all.
+                let text = strings::format(key!("arrange-blocked"), &[&why.join(" ")]);
+                let serial = self.notes.push_toned(text, "edit", None, Some(NoteTone::Info));
+                if why.len() > 1 {
+                    let more = strings::format_count(count_key!("arrange-blocked-more"), why.len() - 1);
+                    let brief = strings::format(key!("arrange-blocked"), &[&format!("{} {more}", why[0])]);
+                    self.notes.set_brief(serial, brief);
+                }
+            }
             return Outcome::Done;
         };
         let card = arrange_card(session, &folio, scope, &plan, &unticked, &listed);
