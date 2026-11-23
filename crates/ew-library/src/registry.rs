@@ -7,15 +7,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use ew_format::Limits;
 use ew_format::ew_schema::{Kind, LibDocument, LibRef, semver_core};
+use ew_format::{FileHash, Limits};
 use ew_ids::Uuid;
 use rusqlite::Transaction;
 use serde_json::Value;
 
 use crate::index::{INDEX_FILE, Index, IndexState, LibState, MfrText, texts};
 use crate::lock::{self, LockPolicy};
-use crate::manifest::{LibManifest, MANIFEST, hash_matches};
+use crate::manifest::{LibManifest, MANIFEST};
 use crate::record::{
     Entry, Parsed, PathRole, ShardKey, classify, identity, join, parse_records, read_file, record_line,
     records_file,
@@ -699,7 +699,7 @@ impl Registry {
             .as_ref()
             .and_then(|m| m.files.get(path))
             .copied()
-            .filter(|h| hash_matches(h, &bytes))
+            .filter(|h| FileHash::Sha256(*h).matches(&bytes))
         else {
             return Err(format!(
                 "{path}: does not match its hash in library.json; skipped"

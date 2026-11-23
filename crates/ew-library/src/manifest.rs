@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use ew_format::ew_schema::{FORMAT, Sha256, parse_format_lenient};
-use ew_format::{FileHash, hash_text};
+use ew_format::{MAX_GENERATION, hash_text};
 use ew_ids::Uuid;
 use serde_json::{Map, Value};
 
@@ -86,7 +86,7 @@ impl LibManifest {
         let generation = match map.remove("generation") {
             Some(Value::Number(n)) => n
                 .as_u64()
-                .filter(|g| *g <= ew_format::ew_schema::MAX_SAFE_INTEGER as u64)
+                .filter(|g| *g <= MAX_GENERATION)
                 .ok_or_else(|| "library.json \"generation\" is not a safe non-negative integer".to_owned())?,
             _ => return Err("library.json \"generation\" is missing or not a number".to_owned()),
         };
@@ -176,11 +176,6 @@ impl LibManifest {
     }
 }
 
-/// Whether `bytes` hash to `hash`.
-pub(crate) fn hash_matches(hash: &[u8; 32], bytes: &[u8]) -> bool {
-    FileHash::Sha256(*hash).matches(bytes)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -251,12 +246,5 @@ mod tests {
         assert!(!m.readable());
         m.min_reader = "x".into();
         assert!(!m.readable());
-    }
-
-    #[test]
-    fn hashes_match_their_bytes() {
-        let h = ew_format::sha256(b"x");
-        assert!(hash_matches(&h, b"x"));
-        assert!(!hash_matches(&h, b"y"));
     }
 }
