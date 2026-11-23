@@ -166,7 +166,7 @@ derivation would not apply never reaches the model. It refuses:
 - `numbering` with no applicable scheme (counter scope `"page"`, formats with `{page}`, `{letter}`, `{counter}`), and a `default` that names no scheme;
 - unknown or unclosed format tokens;
 - a numbering format whose tokens are ambiguous without separators, such as `{page}{counter}{letter}`, where page 20
-  counter 16 and page 201 counter 6 both print "-2016U" (follow-up task FT-163, which also lists the harmless cases
+  counter 16 and page 201 counter 6 both print "-2016U" (a known limit, which also covers the harmless cases
   still accepted: duplicate scheme keys, an unknown rule aspect, an empty child separator, matrix 0, empty colour or
   size rows);
 - colour codes that are neither IEC 60757 nor company codes declared on an IEC 60757 base;
@@ -181,58 +181,11 @@ Only the project record changes; topology stays identical. The journal records i
 of the project record ([05](05-project-format-and-persistence.md) §8.1), so `set` and `was` carry the whole `settings`
 value (settings are small). `params_version` 1, stability `Preview`.
 
-**Two commands with an optional member** (as built). Both add an optional member, so a command log written before
-them replays unchanged.
-- **`report_block.create` gains `form_copies: [libdoc]`.** The block's form is a library item, and a project holds it
-  as an embedded copy ([05](05-project-format-and-persistence.md) §13.2). `form_copies` carries the library documents
-  (the `lib/` JSON form of `library.embed`) of the form **and of the title block the form names**: without the title
-  block the copy would break EW-INV-001. Each document is checked by the rules of `library.embed` through one shared
-  check (`check_copy`: kind form, the copy's identity, not a project-local item, the hash of its item, not listed
-  twice; errors at `/form_copies/i`), and `form` must be one of them (else invalid at `/form`). A copy the project does
-  not hold is embedded **in the same transaction** through the transaction's own lookups only, never a derived query
-  (kept); a held copy of the same version (the same `sha256`) is reused; another version is refused with a
-  message that names "update from library" (FR-PRT-014), a previewed command of its own. One undo step removes the
-  block and the copies it embedded; a reused held copy stays. The member is omitted when empty
-  (`skip_serializing_if`).
-- **`project.company.set` gains `logo`.** The base64 text (standard alphabet, padded) of an SVG, PNG or JPEG file;
-  an empty string removes the logo, an absent member keeps it. The bytes join the project's asset store
-  (05 §13.3) and `ew.company.logo` of the project row becomes the reference `{sha256, format, size}` (a bare hash from
-  before is still read). `MAX_LOGO_BYTES` is 512 KiB (`ew-schema`, re-exported by `ew-api`): the base64 string is
-  checked on its length before decoding and the bytes again after, and the string stays under `MAX_PARAM_STRING`
-  (1 MiB per string, the parameter limit at the end of this section) because 512 KiB is 699,052 characters in base64. A raster logo yields a notice that it prints
-  rasterised (D-07). The command stays `Edit`, `Bulk` and undoable in one step; undo keeps the asset in the store.
-  The renderers draw an SVG logo, and the CPU path a PNG one ([05](05-project-format-and-persistence.md) §13.3).
-
-**`project.assets.purge`** (as built): the 43rd
-command. Exposure **`HumanOnly`** (`Confirmation::Destructive` is metadata only, so as `Edit` it
-could have run from `ew apply`, MCP or a plugin), cost `Bulk`, a **non-undoable marker line** (ADR-0008 amendment 1);
-the file side runs in the `Session` (`purge_preview` lists, `purge_assets` deletes through the save protocol's removal
-list), which checks its own origin before touching any file (`PurgeError::HumanOnly`), under the rules of
-[05](05-project-format-and-persistence.md) §13.3. On the command line it is `ew project assets purge` (§3.3); the GUI
-step is not built yet. The builder DSL has no verb for it; the fuzzer keeps its arm (one arm per registered command), because
-the fuzz session submits as the GUI, which `HumanOnly` admits, as for `project.checks.set`.
-
-**The catalogue of WP-S2.04** adds these commands, all `Edit`: `rep.exchange_symbol`, `project.drawing.set` (the pattern of
-`project.settings.set`), `connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place` and
-`marker.place`, with additive members on `device.place`, `box.black`, `rep.move` (`steps`, `items`), `edit.delete` and
-`fields.set`. **Every new optional member is `skip_serializing_if`**, so the 609-command log of AC-15 and the golden
-bytes stayed unchanged. All eight are registered.
-
-*As built.* **`rep.exchange_symbol`** and **`project.drawing.set`** (with `crossings`) are both `Edit`, `Preview`, Interactive and undoable. The additive members `from_part` (`device.place`, `box.black`), `new_terminal` (`device.place`) and `steps` (`rep.move`) are built; every new optional member is `skip_serializing_if`, and AC-15's 609-command log and the golden bytes are unchanged. Each new command has its committed schema, its reference page, a DSL verb and a fuzzer arm ([06](06-schematic-editor.md) §3.1).
-
-*As built.* **`fields.set_many`** is registered: `{edits: [SetFields…]}`, every entry validated as `fields.set` with its pointer prefixed `/edits/<i>`, `Edit`, `Preview`, cost Interactive and `Bulk` when its targets exceed 500 in all (a cost that depends on the parameters, §3.5), undoable in one step; it has no optional member, so nothing is `skip_serializing_if`; its schema, reference page, DSL verb and fuzzer arm are committed.
-
-*As built.* Eight commands are registered: `connection.draw_to_ip`, `ip.arrange` and `box.reshape`, `box.structure`, `item.place` and `marker.place` (with additive amendments to `rep.move`, `edit.delete`, `fields.set` and `project.drawing.set`), `edit.paste` (`Bulk` above 500 records) and `parts.import` (`Bulk`, exposure `Edit`, so `ew apply` replays it).
-
-*As built.* **`page.reorder`** is registered (cost `Bulk`, so always previewed), with its committed schema, reference page, DSL verb `reorder_pages` and fuzzer arm. Placed actions (among them `view.command_tab` and `view.command_bar`) and the words of the describe vocabulary (the `commandbar` section and the `hud` line) are registered beside the commands. Each placed action carries a placement (tab, group, order, size, bar label) and an icon key, from which the command bar is drawn; the app menu is built by tab and group, Insert becomes Draw and Tools dissolves into the tabs' menus. The palette lists neither actions that need parameters nor model commands; they stay reachable through `command.run`.
-
-**`connection.draw_many`** is registered (`Edit`, `Preview`, Interactive, `Bulk` above 500 entries, undoable in one step: several `connection.draw` in one transaction, used by Bridge terminals (Draw tab) for a chain of bridges), with its committed schema, reference page, DSL verb `connect_many` and fuzzer arm.
-
-*As built.* **`terminal.insert`** (the following terminals, group bounds and accessory positions at or after the insertion point shift by the count, then the new terminals are inserted) and **`terminal.move`** (only the sequence values of the changed range are permuted; groups and accessories stay) are registered as `Edit` commands with their committed schemas, DSL verbs `terminal_insert` and `terminal_move` and fuzzer arms. `strip.accessories` joins `fields.set`'s settable fields. The strip editor adds six actions (`strip.edit`, `strip.insert`, `strip.delete_rows`, `strip.move`, `strip.add_accessory`, `strip.unbridge`).
-
-*As built.* **`part.assign`** (assign a part to devices, embedding the closure it carries; `append`, `replace_all` or `replace`; Bulk from 50 devices) and **`library.update`** (replace held copies by newer library versions with a CP mapping; always Bulk) are registered as `Edit` commands with their committed schemas, DSL verbs `assign_part` and `update_library` and fuzzer arms ([07](07-symbols-parts-macros.md) §3.3, §4.5). `place.join`, the chooser's actions `chooser.row`, `chooser.type` and `chooser.choose` and the describe word `chooser` are registered as well.
-
-*As built.* **`macro.insert`** (an `Edit` command over the insertion engine `edit.paste` shares, carrying the macro and the closure the project lacks) and the `HumanOnly` commands **`check.waive`** and **`check.unwaive`** (one undo step each, refused from scripts, replays, MCP and plugins). `device.place` and `box.black` gain the optional `copies` member (FT-656), and `library.update` its `embed` member.
+**A new optional member** of a command's parameters is `skip_serializing_if`, so a command log written before it
+replays unchanged. The commands with their exposure, cost and parameters are in the generated command reference and
+[the action map](../map/actions.md); a command's rules live with its subject (`report_block.create`'s `form_copies`,
+[09](09-reports-forms-output.md) §2.2; `project.company.set`'s logo, [03](03-domain-model.md) §5.1;
+`project.assets.purge`, [05](05-project-format-and-persistence.md) §13.3).
 
 **Parameter schemas are the client contract** (FR-EXT-015). They reject unknown tags of open
 enums, which records keep for forward compatibility (ARCH §7.6): a client learns of a new value from the catalogue,
@@ -284,7 +237,7 @@ plugin from waiving EW-POT-013 or demoting EW-PLC-012 to make a release gate pas
 **`HumanOnly` on the command line.** Only the dedicated subcommands (`ew revision approve|release|withdraw`,
 `ew waiver add|remove`, `ew trust grant|revoke|sign`, `ew plugin install|remove`) may submit a `HumanOnly`
 command, with origin `Cli{subcommand}`:
-1. The command's read-only part runs first. `ew revision release V2.0` on Golden A evaluates the gate and exits 1
+1. The command's read-only part runs first. `ew revision release V2.0` evaluates the gate and exits 1
    with its 42 errors and "checker not set" without asking anything.
 2. If the command can proceed, EW prints the change summary on the controlling terminal and asks the person to type
    the revision label, the rule ID of the waiver, or `trust` / `install`. There is no `--yes` flag.
@@ -328,21 +281,19 @@ origin and saves (exit 0); anything else exits 1 and changes nothing. There is n
 project unchanged) and drive the prompt with an injected reader and writer, the role of the test-build hook above. The GUI reaches the command through the wizard's confirmed step
 (`wizard.apply_check_scheme`, [16](16-ux-ui.md) §9.2).
 
-*v0*. The engine checks the exposure first, before `run`. Its `Origin` carries
+The engine checks the exposure first, before `run`. Its `Origin` carries
 the variants above with their identifying name only (file, script, client, plugin ID); the `sha256`, `session` and
-`version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 25 v0 commands (with `project.settings.set`, and `terminal.designate`) are
-`Edit` and `Preview`. So are the commands added since, among them
-`library.embed`, which writes library copies into the project only and is therefore not the `HumanOnly`
-`library.write`, and `project.supply.set`; none of them is an `ew` subcommand: the CLI runs them through `ew apply` (§3.5). `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
-or from a CLI origin with `confirmed` set (FR-EXT-030); the dedicated subcommands that set it
-after the typed confirmation above arrive with the CLI work package (WP-S1.22). *As built:* `parts.import` has exposure `Edit` (no scripted exposure class exists), so `ew apply` replays it, and the
-cost `Bulk`, so it runs as preview, then commit. `project.checks.set` and `project.assets.purge` are `HumanOnly`.
-The first `HumanOnly` command has shipped, and `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or
-Python origin (§4). The history step records the strictest exposure of its commands at commit, and `undo` and `redo` take the
+`version` members are not built. Most commands are `Edit` and `Preview`, among them `library.embed`, which writes
+library copies into the project only and is therefore not the `HumanOnly` `library.write`; a model command that is no
+`ew` subcommand runs on the command line through `ew apply` (§3.5). `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
+or from a CLI origin with `confirmed` set (FR-EXT-030), which the dedicated subcommands set after the typed
+confirmation above. `parts.import` has exposure `Edit` (no scripted exposure class exists), so `ew apply` replays it,
+and the cost `Bulk`, so it runs as preview, then commit. `project.checks.set`, `project.assets.purge`, `check.waive`
+and `check.unwaive` are `HumanOnly`. The history step records the strictest exposure of its commands at commit, and `undo` and `redo` take the
 caller's origin (`Session::undo(&Origin)`, `Session::redo(&Origin)`) and refuse a `HumanOnly` step from any origin but
 the GUI and a confirmed CLI subcommand. The rule is recorded in ADR-0008 (amendment 3's note).
 
-*As built:* closed as specified: `Transaction.exposure` records the strictest class at commit (Edit < Import < `HumanOnly` < Internal; a transparent `HumanOnly` marker step does not block), `undo(&Origin)` and `redo(&Origin)` refuse a `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`, and the shell refuses a headless `edit.undo` or `edit.redo` of such a step with `reason-human-only-history`; in memory only, no format change.
+`Transaction.exposure` records the strictest class at commit (Edit < Import < `HumanOnly` < Internal; a transparent `HumanOnly` marker step does not block), `undo(&Origin)` and `redo(&Origin)` refuse a `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`, and the shell refuses a headless `edit.undo` or `edit.redo` of such a step with `reason-human-only-history`; in memory only, no format change.
 
 ### 2.4 Project-resident extension content and trust
 
@@ -412,9 +363,9 @@ trust entry    = {project id, content_sha256, signer?, decision, decided_at (loc
 
 | Item | Rule |
 |---|---|
-| Binary | `ew` (GPL), a thin `clap` front-end over `ew-api`; same build and version as the GUI. As built: every subcommand and flag is declared once in a `clap` derive tree; the help, the usage and the CLI catalogue's paths and flags come from it, and a usage error prints clap's rendering and exits 2 |
-| Project argument | First positional argument, or `--project <dir \| .ewz>`, else the nearest ancestor of the working directory holding an EW `manifest.json`. As built: `ew export pdf\|svg` and `ew apply` take the first positional argument or the nearest ancestor; `--project` and `--json` are not built yet. As built: a reader takes an `.ewz` as its project and opens it read-only (`Session::open_ewz`: `check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`); every other subcommand refuses it with "an .ewz opens read-only; extract it first" ([05](05-project-format-and-persistence.md) §12) |
-| Locks | Readers (`check`, `export`, `query`, `sql`, `render`, `diff`, `review`, `jobs run`) take no lock and read one generation; while a save is in progress they retry for up to 5 s, then exit 2. Writers (`apply`, `import`, `fmt` (writing), `upgrade`, `recover`, `revision approve\|release\|withdraw`, `waiver add\|remove`, `merge resolve`, `script run`, `trust sign`, `mcp --writable`, and the GUI) take `.~ew.lock` or exit 2 naming the holder ([05](05-project-format-and-persistence.md) §6.4). As built: `ew check` opens read-only without the retry. As built: `ew apply` refuses a project whose crashed session left a journal (exit 2, naming `ew recover`); `ew recover`, listed among the writers, is not built |
+| Binary | `ew` (GPL), a thin `clap` front-end over `ew-api`; same build and version as the GUI. every subcommand and flag is declared once in a `clap` derive tree; the help, the usage and the CLI catalogue's paths and flags come from it, and a usage error prints clap's rendering and exits 2 |
+| Project argument | First positional argument, or `--project <dir \| .ewz>`, else the nearest ancestor of the working directory holding an EW `manifest.json`. `ew export pdf\|svg` and `ew apply` take the first positional argument or the nearest ancestor; `--project` and `--json` are not built. a reader takes an `.ewz` as its project and opens it read-only (`Session::open_ewz`: `check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `fmt --check`); every other subcommand refuses it with "an .ewz opens read-only; extract it first" ([05](05-project-format-and-persistence.md) §12) |
+| Locks | Readers (`check`, `export`, `query`, `sql`, `render`, `diff`, `review`, `jobs run`) take no lock and read one generation; while a save is in progress they retry for up to 5 s, then exit 2. Writers (`apply`, `import`, `fmt` (writing), `upgrade`, `recover`, `revision approve\|release\|withdraw`, `waiver add\|remove`, `merge resolve`, `script run`, `trust sign`, `mcp --writable`, and the GUI) take `.~ew.lock` or exit 2 naming the holder ([05](05-project-format-and-persistence.md) §6.4). `ew check` opens read-only without the retry. `ew apply` refuses a project whose crashed session left a journal (exit 2, naming `ew recover`); `ew recover`, listed among the writers, is not built |
 | Output | Results to stdout; diagnostics to stderr. `--json` prints one object with `"$schema": "ew.<command>-result/<n>"` (FR-EXT-024). Human-readable text is not an API |
 | Language | `--lang <BCP 47>` selects `MlText` output; machine formats (JSON, CSV for machines) are locale-independent |
 | Dates | Outputs take dates from the release context, `--as-of`, `SOURCE_DATE_EPOCH` or the model, never the wall clock ([09](09-reports-forms-output.md) §4.3) |
@@ -433,14 +384,14 @@ FR-EXT-002 fixes three codes for every subcommand:
 | 1 | Completed with a domain failure | unwaived errors (`check`); a failing gate step (`jobs run`); a prevented command (`apply`); conflict records written (`merge-driver`); differences found (`fmt --check`, `verify-derived`, `diff --exit-code`, `archive verify`); `ew import qet --strict` with lost connections or error findings (a lenient import exits 0 with its summary, [14](14-interop.md) §13) |
 | 2 | Could not complete | usage error; unreadable, locked or newer-major project; I/O error; content refused (untrusted, sandbox denial such as `ATTACH`); limit or deadline hit by the requested SQL or script; caught internal error (message plus local crash-report path) |
 
-As built, `ew check` counts the integrity findings of opening in its exit code: a JSON syntax error in a project file is EW-CORE-005 and exits 1.
+`ew check` counts the integrity findings of opening in its exit code: a JSON syntax error in a project file is EW-CORE-005 and exits 1.
 
 CI scripts should treat 2 as an infrastructure failure, not as "the drawing has errors".
 
 For `ew apply`, a command log exits 1 only for a line refused by a prevent rule or by the command's own domain rule,
 and 2 for everything else that stops it (§3.5).
 
-As built: `ew apply` exits 2 before any line runs when the project holds a crashed session's journal; `ew export svg` exits 2 when `--out` holds a file that is not an SVG file; `ew export pdf|svg` exit 2 for an unparsable `SOURCE_DATE_EPOCH`.
+`ew apply` exits 2 before any line runs when the project holds a crashed session's journal; `ew export svg` exits 2 when `--out` holds a file that is not an SVG file; `ew export pdf|svg` exit 2 for an unparsable `SOURCE_DATE_EPOCH`.
 
 **The one exception: `ew merge-driver`.** Git treats every exit code up to 128 as "conflicts remain", so the merge
 driver exits 0 (clean), 1 (conflict records written) or 129 for a caught internal error (any failure exits with
@@ -542,21 +493,21 @@ used by the macro recorder and the journal; the reference project's variants (`b
 `b2-renumber-pages.ewcmd`, `c-fix.ewcmd`) were such logs until 0.3.5.
 
 ```json
-{"$schema":"ew.cmdlog/1","label":"Golden B, steps B1 and B2"}
+{"$schema":"ew.cmdlog/1","label":"renumber and move a page"}
 {"cmd":"project.settings.set","params":{"member":"numbering","value":{"default":"page-based","schemes":[{"key":"page-based","format":"{page}{letter}{counter}","rules":[],"child_separator":"-"}]}}}
 {"cmd":"numbering.renumber","params":{"scope":"project","scheme":"page_based","include_frozen":true,"options":{"only_nonconforming":true}}}
 {"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,"keep_gaps":false}}
 ```
 
-Lines 2 and 3 are `variants/b1-page-based-tags.ewcmd` (step B1) and line 4 is `variants/b2-renumber-pages.ewcmd`
-(step B2); in the repository they are two files. Every line validates against the command schemas
-as built. A `fields.set` line takes `{"kind":"device","targets":[…],"path":"function_text","value":{…}}`; a `tag:`
-reference in `targets` names the device whose printed tag matches (see References below). Golden C's `variants/c-fix.ewcmd` uses `tag:` and `folio:` references.
+Lines 2 and 3 renumber the tags page-based and line 4 renumbers the pages.
+Every line validates against the command schemas
+A `fields.set` line takes `{"kind":"device","targets":[…],"path":"function_text","value":{…}}`; a `tag:`
+reference in `targets` names the device whose printed tag matches (see References below).
 
-**As built.** The replay engine is the library entry `Session::run_script(&CmdLog,
+The replay engine is the library entry `Session::run_script(&CmdLog,
 file)`; the `ew apply` subcommand is built (see Semantics).
 
-- **Header and lines** (as built). The first line is an object with `"$schema":"ew.cmdlog/1"` and an optional free
+- **Header and lines**. The first line is an object with `"$schema":"ew.cmdlog/1"` and an optional free
   `label`; other header members are advisory and ignored. Every further line is an object with exactly `cmd` (a command
   name or alias) and `params` (an object; empty when absent).
 - **References**. Any object `{"ref":"<kind>:<value>"}` inside `params` is
@@ -566,17 +517,17 @@ file)`; the `ew apply` subcommand is built (see Semantics).
   designation with its sign. `folio:<label>` resolves to the one drawn page with that folio label. Matching is exact
   against the then-current model. No match, or several matches, stops the replay with exit 2 (`CmdLogError::Reference`)
   and reports `committed`. `structure:<code>` is not built.
-  *Shared with the UI.* The resolver is public as `Session::resolve_reference`, and the shell's hidden action `select.set` uses it: `refs` takes the same `tag:`, `folio:`, `section:` and `id:` forms (`id:` once the record exists), `ids` takes bare UUIDs, and the result replaces the selection; a reference that names no record or several fails the step with the replay's message. The property grid's acceptance flows select through it (PG5 and PG6; the canvas picks by geometry), and both also take the alias `@n` that the headless output prints, resolved before this resolver (ID-630; as built in cycle 26 by FT-422: in `refs` an alias `@n` or `id:@n` stands for `id:<uuid>`, and a command's `{"ref": "@n"}` or `{"ref": "id:@n"}` inside `command.run` is rewritten to `{"ref": "id:<uuid>"}` before the replay sees it, so the record holds the UUID).
+  *Shared with the UI.* The resolver is public as `Session::resolve_reference`, and the shell's hidden action `select.set` uses it: `refs` takes the same `tag:`, `folio:`, `section:` and `id:` forms (`id:` once the record exists), `ids` takes bare UUIDs, and the result replaces the selection; a reference that names no record or several fails the step with the replay's message. The property grid's acceptance flows select through it (PG5 and PG6; the canvas picks by geometry), and both also take the alias `@n` that the headless output prints, resolved before this resolver (in `refs` an alias `@n` or `id:@n` stands for `id:<uuid>`, and a command's `{"ref": "@n"}` or `{"ref": "id:@n"}` inside `command.run` is rewritten to `{"ref": "id:<uuid>"}` before the replay sees it, so the record holds the UUID).
 - **Exposure.** Every line is looked up and checked against the command registry before the first line runs. A
   `HumanOnly` command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release,
   waive or trust (§2.3, FR-EXT-030). A sign-off is therefore a terminal step after the log, not a log line
   ([15](15-checks-revisions-collaboration.md) §10.3).
-- **Semantics** (as built). Each line commits as its own transaction with origin `CmdLog`, named `cmdlog:<file>`:
-  interactive commands through `execute`, bulk lines as preview then commit, so one undo step takes back one line. *The Bulk rule as built:* a line runs as preview then commit whenever its cost **for those parameters** is `Bulk`, not only when the command is `Bulk` by its metadata: `edit.delete` and `fields.set_many` above 500 targets are refused by `execute` with `NeedsPreview` and are then previewed and committed by `run_script`, one undo step each. A log confirms nothing (the preview is not shown to anyone), so this is no widening: every `Destructive` command is `HumanOnly`, which the exposure check refuses before the first line, or guards itself. A
+- **Semantics**. Each line commits as its own transaction with origin `CmdLog`, named `cmdlog:<file>`:
+  interactive commands through `execute`, bulk lines as preview then commit, so one undo step takes back one line. *The Bulk rule:* a line runs as preview then commit whenever its cost **for those parameters** is `Bulk`, not only when the command is `Bulk` by its metadata: `edit.delete` and `fields.set_many` above 500 targets are refused by `execute` with `NeedsPreview` and are then previewed and committed by `run_script`, one undo step each. A log confirms nothing (the preview is not shown to anyone), so this is no widening: every `Destructive` command is `HumanOnly`, which the exposure check refuses before the first line, or guards itself. A
   failing line stops the replay and leaves earlier lines committed. Specified: `--preview` runs the whole log on a fork
   and prints `diff_model` and `diff_query` (tags, xrefs, BOM, wires) without committing, and `--one-step` wraps the log
   into one composite command (one undo step).
-- **`ew apply` as built**. A writer: it opens the project with the lock (exit 2, naming the
+- **`ew apply`.** A writer: it opens the project with the lock (exit 2, naming the
   reason, when it opens read-only), replays the log with `Session::run_script`, saves once after the replay (the
   journal covers the lines in between) and releases the lock; the lines before a failing line are saved. `--preview`
   replays on a read-only session (no lock, no journal, never saved) and prints the changed records (`diff_model`
@@ -585,7 +536,7 @@ file)`; the `ew apply` subcommand is built (see Semantics).
   with one undo step is not built (the CLI has no undo, so the on-disk result is the same). The project is the first of
   two positional arguments, else the nearest ancestor with `manifest.json`. A project whose crashed session left a
   journal is refused with exit 2 before any line runs: the message points to `ew recover`, the
-  recovery subcommand of §3.1, which is not built yet, or to the GUI (composite undo FT-247).
+  recovery subcommand of §3.1, which is not built yet, or to the GUI (composite undo is not built).
 - **Exit codes** (library: `CmdLogError::exit_code()`; `ew apply` exits with it). 2 for a malformed log, an
   unresolvable reference, a refused command (unknown, exposure) and a failing line whose error is invalid parameters,
   a missing record, a bulk command without preview, or internal. 1 only for a line refused by a prevent rule or by the
@@ -685,7 +636,7 @@ impl Session {
 persistence, no threads and no queries yet: `new` and `from_records` (instead of `open`), `world`, `execute` and
 `execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`,
 `registry` (instead of `commands`), `mark_saved` and `is_dirty`. The session takes the engine's change feed at each commit for the memo store and the journal and keeps no copy for a front-end, which reads revision stamps. It also has `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write. The `_with` forms take the origin (the editor context and the coalescing key are specified; not built). `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
-`redo` a `Restored {rev, context, label}`; `preview` is synchronous until the job pool of WP-S1.05 returns a
+`redo` a `Restored {rev, context, label}`; `preview` is synchronous; a job pool would return a
 `JobHandle`, and a `Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. `ew-api` depends
 on `ew-commands`, `ew-model` without `raw-read`, and `ew-schema` (ARCH §3).
 
@@ -789,7 +740,7 @@ for line in device.parts {
 }
 ```
 
-On Golden A it reports nothing, because descriptions come from part data (EF-25). On a migrated project whose part descriptions still hold the folio 901 texts it
+On a migrated project whose part descriptions still hold the folio 901 texts it
 flags "10A C" (-101F1), "4A C" (F55), "16 B" (-102F1) and "20A" (-102G1)
 ([reference drawing](../research/reference-drawing.md) D-35). The shipped EW-CORE-065 description lint covers the
 same case from 1.0; the rhai rule gives a company the check at MVP without Rust. `matches` is a registered,
@@ -811,8 +762,8 @@ emit("spares.csv", table(spare, ["address", "target_tag"]));   // written into t
 ```
 
 Function texts live on the valves, never on channels ([10](10-plc-and-bus.md) §3.4), so the script edits the 20
-bound valve devices and folio 908, the I/O list and the AML comments follow in the same commit. On Golden A the
-spare valves already read "Spare", so the walk-through (§17.1) passes `--param text=Reserve`.
+bound valve devices and folio 908, the I/O list and the AML comments follow in the same commit. Where the
+spare valves already read "Spare", the walk-through (§17.1) passes `--param text=Reserve`.
 
 | Function | Semantics |
 |---|---|
@@ -857,7 +808,7 @@ views.
   `PE`, `DBU`); JSON arrays are text.
 - `prov_<field>` holds the provenance of a derived value ("potential 24VDC-1 via profile DBU/WH 24 V").
 
-| View | One row per | Key columns (abridged) | Golden rows | Rel |
+| View | One row per | Key columns (abridged) | Example rows | Rel |
 |---|---|---|---|---|
 | `api_v1_meta` | projection | `rev, generation, format, derivation_profile, ew_version, languages, as_of`; `api_status, preview_additions` (Preview addition) | 1 | MVP* |
 | `api_v1_device` | device | `id, tag, tag_full, letter, counter, frozen, kind, parent_id, structure_function, structure_location, function_text, process_tag, state, main_page_id, main_folio, main_cell, has_part, manufacturer, part_number, tech_data, aspects, placed`; `function_text_ml` (Preview addition) | — | MVP |
@@ -867,7 +818,7 @@ views.
 | `api_v1_wire` | physical wire or bridge | `id, number, kind, from_device_id, from_tag, from_cp, from_level, from_clamp, to_device_id, to_tag, to_cp, to_level, to_clamp, potential_id, potential_name, csa, csa_unit, colour, colour_iec, wire_part, length_nm, length_source, cable_id, cable_tag, core, pages, prov_csa, prov_colour` ([08](08-connections-terminals-cables.md) §10); `seq, from_end, from_side, from_ip, to_end, to_side, to_ip, conductor_id, bond_id, ips, junction_id, junction_style, junction_wiring, junction_cell, junction_cps, chain_cps, bridge_kind, csa_source, colour_source` (Preview addition; the junction and daisy-chain columns, D-20) | 50 | MVP |
 | `api_v1_terminal` | terminal | `id, strip_id, strip_tag, designation, printed, seq, part_number, levels, potential_id, potential_name, potential_type, state, rail_bonded, page_id, cell`; `tag, function_text, strip_group, bridge` (Preview addition) | 28 | MVP |
 | `api_v1_cable` | cable | `id, tag, part_number, cores, length_nm, length_source, from_location, to_location, external_end, shield, pages`; `tag_full, end_a, end_b` (Preview addition) | 3 | MVP |
-| `api_v1_conductor` | conductor | `id, cable_id, cable_tag, core, colour, colour_iec, csa, shield, wire_id`; `pair, csa_unit` (Preview addition); `bus_end_a, bus_end_b` (rc.5: the ends a bus cable's line gives a core no wire runs over) | 13 | MVP |
+| `api_v1_conductor` | conductor | `id, cable_id, cable_tag, core, colour, colour_iec, csa, shield, wire_id`; `pair, csa_unit` (Preview addition); `bus_end_a, bus_end_b` (the ends a bus cable's line gives a core no wire runs over) | 13 | MVP |
 | `api_v1_potential` | potential | `id, name, aliases, ptype, voltage, ac_dc, circuit_class, colour, default_csa, switched, protected_by_device_id, protected_by_tag, protected_by_cp, bond_ids, member_count, pages`; `colour_iec, default_csa_unit, bus_cable_ids` (Preview addition; `bus_cable_ids` is the JSON array of the cable UUIDs of the potential's bus lines, like `bond_ids`) | 19 | MVP |
 | `api_v1_bond` | bond between two potentials | `id, label, kind, a_potential_id, a_potential_name, b_potential_id, b_potential_name, wire_id, names, pages` ([08](08-connections-terminals-cables.md) §3.7) | 1 | MVP** |
 | `api_v1_bom_component` / `api_v1_bom_assembly` | BOM row per mode | `position, part_id, manufacturer, part_number, type, description, quantity, unit, tags, folios`; `configured, variant, description_ml` (Preview addition, both views); `assembly_tag, level` (assembly view only, built) | 27 rows on 901 | MVP |
@@ -883,17 +834,15 @@ personal-data minimisation (§7.4).
 
 \*\* `api_v1_bond` is a Preview addition beyond FR-EXT-007 and FR-EXT-032 (ADR-0017 amendment 2).
 
-**As built.** `ew-sqlview` builds fourteen views: the
-eleven of FR-EXT-007 (`api_v1_device`, `api_v1_function`, `api_v1_page`, `api_v1_wire`, `api_v1_terminal`,
+`ew-sqlview` builds the
+eleven views of FR-EXT-007 (`api_v1_device`, `api_v1_function`, `api_v1_page`, `api_v1_wire`, `api_v1_terminal`,
 `api_v1_cable`, `api_v1_conductor`, `api_v1_potential`, `api_v1_bom_component`, `api_v1_bom_assembly`,
-`api_v1_message`; the table above shows the two BOM views in one row), `api_v1_meta`, `api_v1_bond` and the 1.0 view
-`api_v1_plc_channel`. Every column
+`api_v1_message`; the table above shows the two BOM views in one row), `api_v1_meta`, `api_v1_bond` and the 1.0 views
+`api_v1_plc_channel`, `api_v1_fluid_line`, `api_v1_valve_position` and `api_v1_medium`. Every column
 listed above for a built view exists in the code; no listed column of a built view is missing.
 - **Not built.** `api_v1_cp` (with `role` and `i_load`), `api_v1_structure`, `api_v1_xref` and `api_v1_revision`
-  of FR-EXT-032. Of the 1.0 views, `api_v1_placement`, `api_v1_fluid_line`, `api_v1_valve_position` and
-  `api_v1_medium` are not built either; `api_v1_plc_channel` is (WP-S1.24): the `io_list` columns, the IDs, the
-  `address_source` and the signal range, then `cpu`, `bus_address`, `passed_terminals` and `f_address`, 56 rows on
-  Golden A.
+  of FR-EXT-032, and of the 1.0 views `api_v1_placement`. `api_v1_plc_channel` holds the `io_list` columns, the IDs,
+  the `address_source` and the signal range, then `cpu`, `bus_address`, `passed_terminals` and `f_address`.
 - **Preview additions.** The columns marked "(Preview addition)" in the table and the view `api_v1_bond` are
   additive Preview of `api_v1`. `ew sql schema` marks each of them `[preview addition]`, and
   `api_v1_meta` carries `api_status` (`preview`) and `preview_additions` (a JSON array of `view` or `view.column`
@@ -924,7 +873,7 @@ The sandbox is to be fuzzed with hostile SQL (recursive-CTE bombs, deep expressi
 NFR-SEC-03 and NFR-SEC-06; the fuzz target and the hostile-SQL corpus are not built. SQLite has no per-connection memory cap; memory is bounded indirectly by the length and
 row limits, the deadline and the projection's memory gate (NFR-PERF-13).
 
-**As built.** `ew-sqlview` uses rusqlite 0.40.2, bundled, with
+`ew-sqlview` uses rusqlite 0.40.2, bundled, with
 the features `functions`, `collation`, `hooks`, `limits` and `serialize`. Every connection is `SQLITE_OPEN_READONLY` on
 a read-only deserialised copy of the projection image, with `SQLITE_DBCONFIG_DEFENSIVE`, `trusted_schema = OFF`,
 triggers and the FTS3 tokenizer off and `query_only = 1`. The limits and result caps of the table are the values in the
@@ -1254,12 +1203,12 @@ Windows x64 and manylinux x86_64 (no macOS wheel: macOS is not a supported platf
 ```python
 import elektrawatt as ew
 
-with ew.open("golden/J-E-2416.ew") as s:                       # read-only by default
+with ew.open("J-E-2416.ew") as s:                       # read-only by default
     print(s.query("device_tag", s.find("-101F1")[0])["full"])  # =P01+J-E-2416-101F1
     for row in s.sql("SELECT tag FROM api_v1_device WHERE has_part = 0 AND structure_location = '+J-E-2416' "
                      "ORDER BY tag COLLATE ew_natural"):
         print(row["tag"])     # -XPE (an earth connection, no finding), E56, S56 (EF-04); field devices -203Q1 … -203Q8 are in +FIELD
-    s.export("pdf", out="out/J-E-2416.pdf")                     # golden PDF digest (FR-EXT-022)
+    s.export("pdf", out="out/J-E-2416.pdf")                     # the expected PDF digest (FR-EXT-022)
 
 with ew.open("work.ew", writable=True, trust="current") as s:
     p = s.preview("fields.set", targets=[s.find("-102F2")[0]], path="function_text", value={"en-GB": "24 V distribution"})
@@ -1326,7 +1275,7 @@ serves a permissive standalone tool and an EW plugin.
   when the session or manifest opts in.
 - **The guard.** A PR that changes any snapshot above in a breaking way fails unless it carries the `api-break`
   label, an ADR reference and a release-note entry (NFR-MAINT-10, run as the per-PR job CI-PR-14 of
-  [18](18-quality-security-release.md) §5.2; cargo-semver-checks stays **(verify)** until the M0 CI setup, WP-S0.01, pins it).
+  [18](18-quality-security-release.md) §5.2; cargo-semver-checks stays **(verify)** until it is pinned).
 
 ---
 
