@@ -170,7 +170,7 @@ copying one file.
 | Incremental saves after every step are byte-identical to a full save of the final model (NFR-REL-16) | GP; M nightly |
 | `merge(o, a, a) = a`; `merge(o, o, b) = b`; for disjoint edits `merge(o, a, b) = merge(o, b, a)` | GP branches |
 | preview + commit = execute; journal replay = live state | GP |
-| Renumbering keeps every `Id` reference; the tag map old → new is a bijection | Golden B steps |
+| Renumbering keeps every `Id` reference; the tag map old → new is a bijection | renumbering steps |
 | Re-importing the same source yields identical IDs and an empty diff (FR-IMP-002) | QET corpus |
 | A hit-test result lies in the item's bounding box; a routed length ≥ the Euclidean distance (1.0) | S, layout fixture |
 
@@ -179,7 +179,7 @@ delete-time rule EW-INV-021, which the edit path evaluates and the history path 
 (`Model::apply_history`) does not, because the state before the embedding is valid (ADR-0009 amendment 7;
 [architecture](04a-model-editing-persistence.md) §4.6, §5.3). The command fuzzer's undo-all oracle covers the case.
 
-*As built.* The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
+The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
 batches of steps over a fixture with named rows. **A step whose fixture row is gone is a no-op**: a generated step that
 names a fixture row (an FnDef copy, a page, a location node) which an earlier delete plan of the sequence removed is
 skipped, not issued, because the model rightly refuses it and the generator's "rejected unexpectedly" assertion would
@@ -233,7 +233,7 @@ after Session::commit(tx) in oracle mode:
   seeded source of `ew-testids` replaces in tests, and the allowlisted tracing wrapper), `rand::thread_rng`, `Uuid::new_v4`, `Uuid::now_v7`
   outside `ew-ids`, and `std::env::var` outside the settings module.
 
-*As built.* The two rules are workspace-wide, not limited to the output crates, and are part of the generated root
+The two rules are workspace-wide, not limited to the output crates, and are part of the generated root
 `clippy.toml` (`cargo xtask gen`; the lists are `DISALLOWED_TYPES` and `DISALLOWED_METHODS` in `xtask/src/raw_read.rs`).
 `disallowed-types` lists `std::collections::HashMap` and `HashSet`, `imbl::HashMap` and `HashSet`, and
 `std::hash::RandomState`; `hashbrown` is not listed, because no workspace crate names it. `disallowed-methods` lists,
@@ -268,7 +268,7 @@ enum FuzzCmd { Place { sym: u16, page: u8, x: i16, y: i16 }, Connect { a: u32, b
                InsertMacro { m: u8, page: u8 }, Undo, Redo, SaveReload, Import { batch: u8 } }
 
 fuzz_target!(|input: (u8, Vec<FuzzCmd>)| {
-    let mut s = Session::open(seed_fixture(input.0));         // GP, Golden B or S
+    let mut s = Session::open(seed_fixture(input.0));         // a seed project or S
     let d0 = s.world().digest();
     for c in input.1.iter().take(256) {
         if let Some(cmd) = c.resolve(&s.world()) { let _ = s.execute(cmd.as_ref()); }  // Err is fine, panic is a bug
@@ -284,7 +284,7 @@ fuzz_target!(|input: (u8, Vec<FuzzCmd>)| {
 The corpus starts from the sample project with a few records more. PR runs use no sanitizer,
 for throughput. Nightly runs use AddressSanitizer, because the dependency closure contains `unsafe` code.
 
-*As built.* The fuzzer is the test directory `crates/ew-testkit/tests/it/command_fuzz/`. A seeded SplitMix64 generator picks
+The fuzzer is the test directory `crates/ew-testkit/tests/it/command_fuzz/`. A seeded SplitMix64 generator picks
 its targets by index into the live records read through `Session::query` (so the no-op rule of §3.3 holds by
 construction) and drives the registered commands over the sample project with the oracle on: hand arms build well-formed steps
 and deep states, and a schema-driven arm builds a step for every registered command from its parameter schema. The
@@ -334,7 +334,7 @@ runs of both on a nightly toolchain pinned by date.
 | Metadata | XMP and Info dates from the model or `SOURCE_DATE_EPOCH`; document ID a hash of the export input | No wall-clock value (NFR-REL-07) |
 | Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**) | Pass |
 
-*As built:* `crates/ew-api/tests/it/pdf_output.rs` writes the sample project's PDF and reads it back with an in-repo
+`crates/ew-api/tests/it/pdf_output.rs` writes the sample project's PDF and reads it back with an in-repo
 reader (`crates/ew-api/tests/page_output/pdf_read.rs`: indirect objects, Flate streams, page tree, content streams,
 ToUnicode maps; test code only, no dependency), not hayro: the frame lines of a drawn page against its frame form's
 geometry within 0.2 mm (AC-01), the document's structure (AC-13), the text layer of a page against the glyph runs it
@@ -342,7 +342,7 @@ prints (AC-06, AC-13), and the same bytes for a shuffled record order and a para
 digest. hayro stays the candidate for the raster-parity row. `frame.json` lists the stroked lines of a form's own
 `graphics` too (the cover's rules and project data box, pinned by `crates/ew-scene/tests/it/forms_content.rs`).
 
-*As built:* the metadata row holds: the document ID is krilla's hash of `ew-pdf/1 <project id> <profile> <date> <pages>[ mono] ew <version> sha256:<digest>`, the digest covering every exported page's display list, label, titles, size and destination and the pinned SHA-256 of every bundled font, so a content change changes the ID and the same content loaded any way gives the same ID. The PDF is written to a temporary file, synced and renamed; `ew export svg` replaces its `--out` directory as a whole and refuses one that holds anything but SVG files.
+the metadata row holds: the document ID is krilla's hash of `ew-pdf/1 <project id> <profile> <date> <pages>[ mono] ew <version> sha256:<digest>`, the digest covering every exported page's display list, label, titles, size and destination and the pinned SHA-256 of every bundled font, so a content change changes the ID and the same content loaded any way gives the same ID. The PDF is written to a temporary file, synced and renamed; `ew export svg` replaces its `--out` directory as a whole and refuses one that holds anything but SVG files.
 
 veraPDF is a test tool run from a pinned container image with a checked digest. It is never distributed. No test
 requires it: krilla's PDF/A-2b validator (`Conformance::PdfA2b`) checks every export, and the veraPDF cross-check is
@@ -381,7 +381,7 @@ tasks of NFR-A11Y-01, Escape cancelling every tool for NFR-UX-07). This document
   pseudo-locale build (+35 % length); keymap reachability per layout; 300 % scale snapshots.
 - **Watchdog.** A `tracing` subscriber fails any test in which a UI-thread span exceeds 100 ms (NFR-PERF-19).
 
-*As built.* The shell's tests are ordinary nextest tests: `ew-viewmodel` (the registry invariants, the shell transitions on
+The shell's tests are ordinary nextest tests: `ew-viewmodel` (the registry invariants, the shell transitions on
 a copy of the sample, settings, the UI-script parser), `ew-ui` (kittest interaction flows without rendering, each followed
 by the accessible-name walker; the viewer flows; the census of every
 window surface, `tests/it/census.rs`, which opens each menu path, dialog, pane and navigator on a writable copy of
@@ -425,7 +425,7 @@ These harnesses are designed in 05 and run here:
   one inside an import job that expects a failed job, a crash record and a running session (§12.3, NFR-REL-12, PR);
 - a hostile STEP input that kills the worker and a non-terminating rhai script, each with an unchanged model digest
   (NFR-REL-12, PR);
-- release fault injection: `ew revision release V2.0` on Golden A-R, confirmed through the test-build confirmation
+- release fault injection: `ew revision release V2.0`, confirmed through the test-build confirmation
   hook (§3.15), is killed at random points of the six release steps of 05 §14.1; afterwards V2.0 is either Open with
   no archive or tag referenced, or Released with an archive that verifies (NFR-REL-15, N; one kill point per step on
   PR);
@@ -498,7 +498,7 @@ Rules that a local run on one OS cannot see:
 
 ### 3.17 Blind drafter (gate agent)
 
-**Purpose.** An outside view of large UI changes: an agent draws a cabinet with EW alone, as a user would, and reports what it could and could not do. The method is modelled on the blind player of a game-playtesting practice (the blind-player method): the player knows nothing the product does not teach, so every point where it gets lost is a finding. It gives early signals on NFR-UX-04, NFR-UX-05 and SC-9 and on product principle PR-13 of [00](00-vision-and-scope.md) §8 (the pilot's QET drawings are the content target, never the style or process target; designing a cabinet must become easier, faster and more fun than in QET). It does not replace the moderated rounds of WP-S2.12.
+**Purpose.** An outside view of large UI changes: an agent draws a cabinet with EW alone, as a user would, and reports what it could and could not do. The method is modelled on the blind player of a game-playtesting practice (the blind-player method): the player knows nothing the product does not teach, so every point where it gets lost is a finding. It gives early signals on NFR-UX-04, NFR-UX-05 and SC-9 and on product principle PR-13 of [00](00-vision-and-scope.md) §8 (the pilot's QET drawings are the content target, never the style or process target; designing a cabinet must become easier, faster and more fun than in QET). It does not replace the moderated usability rounds.
 
 - **What it may read.** Only user-facing material: the user documentation, the UI, the CLI help and the output of its harness. Never the design documents, the code or the tests.
 - **Run protocol.** The agent chooses its own task ("it can run whatever it wants") and writes a live note after every action. It keeps a patience score and a flow score; each has a quit rule. A step that fails twice is marked "broken" and the agent moves on. A run has a time cap and an action cap.
@@ -507,9 +507,9 @@ Rules that a local run on one OS cannot see:
 - **Harness.** `cargo xtask blind` with `start`, `do`, `note`, `stop` and `check`. One folder per run holds `drafter.md` (the notes), the replayable `.ewcmd`, the PDF and PNGs and the check report. The prompt is `tools/blind/BLIND_DRAFTER.md`, the personas are under `tools/blind/personas/`, and a compose script assembles the prompt of a run. `check` is
 `start --kind check`; the run folder lies outside the repository; the replayable artefact is the UI script, and the
 `.ewcmd` is kept as evidence; the reader reads the exported PDF instead of PNGs.
-- **When.** Never in the headless run (it is skipped while no editor exists) and never blocking. It runs only after a large UI change or a large feature implementation; G-PP and G-M2 are its natural occasions, and the first possible run is at M-PP, when the editor exists. It uses task sheets and placeholder data only, never customer data.
+- **When.** Never in the headless run and never blocking. It runs only after a large UI change or a large feature implementation, before a release candidate. It uses task sheets and placeholder data only, never customer data.
 - **Who.** The drafters run on Sonnet; an Opus lead reads the logs. Findings become follow-up tasks through the next design pass.
-- **Work package.** WP-S6.13 (harness, personas, prompt; about 1.6 pw PERT, M-PP).
+- **Parts.** The harness, the personas and the prompt.
 - **What it drives.** The shell's headless mode: `elektrawatt --headless --script -` reads a UI script
   (`ew.uiscript/1`) line by line from stdin and answers each step with a transcript line (`ew.uitranscript/1`);
   `ui.describe` gives the visible UI as text, `page.describe` the page's content as text, `view.snapshot` a PNG, and
@@ -539,8 +539,7 @@ Rules that a local run on one OS cannot see:
 `wgpu` features (rejected for the 13 packages they bring into the lock): egui-wgpu on `ew-render2d`'s headless
 device renders the window, and each image is compared with its blessed PNG within a channel tolerance of 4/255 and a
 small bound on differing pixels (at most 10 for the chrome images; at most one in 2,000 for the canvas images). It
-runs in every test run of `ew-ui` on Windows (WARP), with no feature to switch it on (until M2.5-Fix it was behind a
-feature that only `--all-features` set, so a plain `cargo nextest run -p ew-ui` passed without it); its Linux images
+runs in every test run of `ew-ui` on Windows (WARP), with no feature to switch it on; its Linux images
 are not blessed at present. The frames of a visual run (`--visual --frames`, the persona harness), which no gate
 compares, are painted on the default adapter instead: the GPU where there is one, as in the window.
 
@@ -564,7 +563,7 @@ performance baseline exists, and no performance claim is measured (§4.3). No be
 
 `ew-testkit gen --class <S|M|L|XL|XL-A> --seed 1` builds the fixtures of 02c §2.1 deterministically:
 
-1. **Base.** Golden B after step B1, so that every tag is derived.
+1. **Base.** A project with every tag derived.
 2. **Replicas.** r = ⌈class devices / base devices⌉ replicas. Each replica gets:
    - its own location node `+CAB-nnnn` and folio range;
    - IDs `v5("synthetic", class, replica, source id)`;
@@ -670,10 +669,9 @@ A change in these counts is a reviewed snapshot change, never a silent one.
   ≤ 300 MB, undo ≤ 256 MB and the projection ≤ 500 MB file-backed (NFR-PERF-13).
 - **Allocation counting.** The counting allocator of §3.12 checks the parser limits in the same job.
 
-### 4.7 As built: the nightly gate on the hosted runner (lane B)
+### 4.7 The nightly gate on the hosted runner
 
-*Not built; target.* `perf.yml`, `xtask perf`, `ci/ci-times.py`, the committed baseline `ci/perf-baseline.toml` and the
-`spike` and `cold_ops` benches are gone. A nightly gate on the hosted runner would be report-only (§4.3): it would run
+*Not built; target.* A nightly gate on the hosted runner would be report-only (§4.3): it would run
 class S, compare medians and memory estimates with a committed baseline, and fail the job, as an infrastructure
 failure and not as a performance verdict, when a bench cannot run.
 
@@ -700,7 +698,7 @@ flowchart LR
 
 The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration report flags the slowest jobs.
 
-*As built.* At 0.1.0 the release starts from a candidate tag `v<X.Y.Z>-rc.<n>`: `release.yml` builds and checks it, writes `SHA256SUMS` and creates a **draft prerelease** with those files; the go is a dispatch of the same workflow with `candidate` and `dry` (default `true`), which verifies the draft's files again and publishes them byte for byte as `v<X.Y.Z>` on the candidate's commit, never rebuilding and never moving a tag. A blocker is fixed on the release branch and the next candidate is cut. No CI run is read: `verify` checks the tag's version and the release notes only.
+At 0.1.0 the release starts from a candidate tag `v<X.Y.Z>-rc.<n>`: `release.yml` builds and checks it, writes `SHA256SUMS` and creates a **draft prerelease** with those files; the go is a dispatch of the same workflow with `candidate` and `dry` (default `true`), which verifies the draft's files again and publishes them byte for byte as `v<X.Y.Z>` on the candidate's commit, never rebuilding and never moving a tag. A blocker is fixed on the release branch and the next candidate is cut. No CI run is read: `verify` checks the tag's version and the release notes only.
 
 ### 5.2 Job catalogue
 
@@ -731,7 +729,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-N-07 reliability | Fault injection on ext4, NTFS, APFS; kill-and-replay loop | All | Release |
 | CI-N-08 locale | Locale and time-zone matrix (NFR-I18N-03) | Linux | Release |
 | CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. | Linux | Release |
-| CI-N-10 private | Golden C, pilot QET projects, migration verifier; public log shows pass/fail and anonymised diffs only | Private runner | Release |
+| CI-N-10 private | pilot QET projects, migration verifier; public log shows pass/fail and anonymised diffs only | Private runner | Release |
 | CI-N-11 corpora | QET corpus (24 examples at a pinned commit), DXF and EDZ corpora (14 §12) | Linux | Release |
 | CI-N-12 cli-artefact | The nightly `ew` CLI artefact. Today `package.yml` builds both programs by hand in the release profile and uploads the CLI archive. | Both hosted (Linux, Windows) | — |
 | CI-W-01 soak | 8 h on M (1.0) | Dedicated runner, idle window | Release |
@@ -965,7 +963,7 @@ gantt
 | Job | Content |
 |---|---|
 | CI-R-01 | From 1.0, verify the tag signature against `.github/allowed_signers` (the 0.1.0 tag is unsigned, because `allowed_signers` would carry a personal address); a clean tree and version consistency (Cargo, installers, About; from 1.0 the manifest); release and migration notes present (NFR-DOC-07; drafted with git-cliff, 19 §6, then edited) |
-| CI-R-02 | Collect gates: a green nightly on this commit (perf, memory, full oracle, fuzz with no open crash), acceptance of every reached milestone row, no unwaived high or critical advisory; from 1.0 the Golden A-R as-built archive passes `sha256sum -c` and veraPDF and validates with the permissive-only reader, and joins the fixture corpus (NFR-REL-10) |
+| CI-R-02 | Collect gates: a green nightly on this commit (perf, memory, full oracle, fuzz with no open crash), acceptance of every reached milestone row, no unwaived high or critical advisory; from 1.0 the sample project's as-built archive passes `sha256sum -c` and veraPDF and validates with the permissive-only reader, and joins the fixture corpus (NFR-REL-10) |
 | CI-R-03 | Hermetic build: `cargo fetch --locked`, then a network-less build on Linux (§10); `cargo auditable build --release --locked` for every target; the build fails if `ICU4X_DATA_DIR` is set (§3.5), or if `PKG_CONFIG` is not `false` or any `PKG_CONFIG_*` target override is set (§5.4, x11-dl) |
 | CI-R-04 | `ew-step-worker` per target with cached OCCT artefacts (1.0) |
 | CI-R-05 | Packaging (§8) |
@@ -978,7 +976,7 @@ gantt
 
 *0.1.x follows the slim workflow:* CI-R-01, CI-R-03 with a plain `cargo build`, CI-R-05 with one smoke test, CI-R-06 and CI-R-11 without provenance; the rest of this table, and of the as-built text below, is not run at 0.1.x ([`docs/release/README.md`](../release/README.md) §10).
 
-*As built, the jobs in 0.1.0's form.* `release.yml` runs on a candidate tag. **CI-R-01:** `ci/release-verify.py tag`
+The jobs in their pre-1.0 form: `release.yml` runs on a candidate tag. **CI-R-01:** `ci/release-verify.py tag`
 requires the tag's `X.Y.Z` to equal the workspace version and `docs/release-notes/<X.Y.Z>.md` to exist and not be empty.
 **CI-R-03:** `package.yml`'s release builds are `cargo build --release --locked`, with `ci/release-check.sh` around them.
 **CI-R-05:** the per-user setup, the AppImage and the CLI archives, after one smoke test of each staged tree.
@@ -1003,10 +1001,10 @@ The release checklist holds the items that a pipeline cannot prove:
 | RC-10 | Governance gates of [19](19-open-source-governance.md) §3.3 met before the first binary release: LG-1 (employer copyright statement). From 1.0 also LG-4 (steward, signing identity and repository organisation, NFR-COMP-08) and the steward checklist ST-01 … ST-10 of [19](19-open-source-governance.md) §3.10 complete with evidence (NFR-COMP-01); afterwards the checklist is re-reviewed every minor |
 | RC-11 | 1.0 only: the Accessibility Conformance Report against EN 301 549 clauses 11 and 12 is updated with known gaps (NFR-COMP-06) |
 
-*As built.* The checklist is the template
+The checklist is the template
 `docs/release/checklist.md` (RC-01 to RC-10 in their 0.1.0 form, each with its check, the evidence it asks for and
-who signs), which WP-S6.08 copies into the release dossier for each candidate; `docs/release/README.md` is the
-procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual checks.
+who signs), which is copied into the release dossier for each candidate; `docs/release/README.md` is the
+procedure around it. RC-01 holds the review line and RC-05 the manual checks.
 
 ### 7.5 Support policy
 
@@ -1158,7 +1156,7 @@ reason, the owner's handle and an expiry within 90 days, checked by hand at RC-0
 
 ### 11.1 Threat model
 
-*As built.* The maintained copy is `docs/security/threat-model.md` (NFR-SEC-01): the threats TM-01 to TM-19, each with its
+The maintained copy is `docs/security/threat-model.md` (NFR-SEC-01): the threats TM-01 to TM-19, each with its
 0.1.0 state (in force, not shipped, or another package's), the controls as built and the evidence that proves them. This
 section stays the design; where the two differ, the threat model states the release.
 
@@ -1214,7 +1212,7 @@ flowchart LR
 | TM-15 | Signing-key compromise (1.0: 0.1.0 has no signing key) | Incident runbook (§11.4) | Tabletop exercise |
 | TM-16 | User-configured external converter (ODA File Converter for DWG, 1.0) fed a hostile file, or a converter path planted by a received project | The converter path is a user setting, never read from a project; it runs as a separate process on a copy in a temporary directory with a 120 s timeout, and its output is parsed under the DXF limits (14 §11) | Hostile-corpus test with a stub converter that hangs and one that writes a DXF bomb |
 | TM-17 | Unexpected process spawn by a dependency: rfd 0.17.2 starts `zenity` from `PATH` when the XDG desktop portal call fails (no portal service, malformed response), so a same-user process that controls `PATH` or plants a `zenity` earlier on it runs code when the user opens a file dialog. Low risk: it needs same-user access, which already allows more | The portal first (the shell checks for a session bus before calling rfd); a future rfd feature set without the zenity fallback, or a check that the portal answers, removes the spawn. | Review |
-| TM-18 | A hostile SVG in the asset store (`assets/`, the company logo and later image items). *Sniffing is not sanitising:* `ew-schema` recognises an SVG by its root element and takes its size from the header (an 8 MiB limit, 512 KiB for the logo), but it does not parse or clean the document. A DOCTYPE with an internal subset (entity expansion, a billion-laughs variant), `<script>`, `on*` event attributes, `foreignObject` and external `href`s (a file, a network address) would reach whatever draws the file. Today the DOCTYPE case is refused only by accident of the sniffer (`svg_root` stops at the first `>`, which ends inside an internal subset, so such a root is not found), not by a rule | The renderers draw SVG logos, so the rule below is in force. **Before any renderer draws SVG** the file is rejected or normalised through `usvg` in `ew-scene` (default features off: no text, no system fonts; the tree becomes `ew-dl` paths; no `resvg`; admission through cargo-deny): DOCTYPE internal subsets, `<script>`, `on*` attributes, `foreignObject` and external hrefs are refused or dropped, and an SVG is never handed to a web view or an OS renderer | *As built:* `ew_schema::svg_hazard` runs inside `sniff` and refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject` and any `href` that is not `#…`, and, after the usvg audit, nesting deeper than 64, reference cycles, expansion past 200,000 elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`; the parse runs inside `catch_unwind`. Numeric character references and the five predefined entities are decoded before the checks, and reference chains are capped. Synthetic hostile SVGs test each refusal, and a corpus of real exporters' files (`crates/ew-schema/tests/fixtures/svg-exporters/`) fixes each verdict in a test. Refusals carry re-export advice (`SvgHazard::advice`). Performance not measured. |
+| TM-18 | A hostile SVG in the asset store (`assets/`, the company logo and later image items). *Sniffing is not sanitising:* `ew-schema` recognises an SVG by its root element and takes its size from the header (an 8 MiB limit, 512 KiB for the logo), but it does not parse or clean the document. A DOCTYPE with an internal subset (entity expansion, a billion-laughs variant), `<script>`, `on*` event attributes, `foreignObject` and external `href`s (a file, a network address) would reach whatever draws the file. Today the DOCTYPE case is refused only by accident of the sniffer (`svg_root` stops at the first `>`, which ends inside an internal subset, so such a root is not found), not by a rule | The renderers draw SVG logos, so the rule below is in force. **Before any renderer draws SVG** the file is rejected or normalised through `usvg` in `ew-scene` (default features off: no text, no system fonts; the tree becomes `ew-dl` paths; no `resvg`; admission through cargo-deny): DOCTYPE internal subsets, `<script>`, `on*` attributes, `foreignObject` and external hrefs are refused or dropped, and an SVG is never handed to a web view or an OS renderer | `ew_schema::svg_hazard` runs inside `sniff` and refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject` and any `href` that is not `#…`, and, after the usvg audit, nesting deeper than 64, reference cycles, expansion past 200,000 elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`; the parse runs inside `catch_unwind`. Numeric character references and the five predefined entities are decoded before the checks, and reference chains are capped. Synthetic hostile SVGs test each refusal, and a corpus of real exporters' files (`crates/ew-schema/tests/fixtures/svg-exporters/`) fixes each verdict in a test. Refusals carry re-export advice (`SvgHazard::advice`). Performance not measured. |
 | TM-19 | A hostile raster in the asset store (a PNG or JPEG logo or image item): a decompression bomb (a huge declared size), a truncated or corrupt stream, a decoder panic, a CMYK or progressive JPEG on an unexpected path, or a GIF or WebP disguised as an image item | The asset store's sniff admits PNG and JPEG as its only raster formats (`AssetFormat`, beside SVG of TM-18); `ew-render-cpu`'s `decode_image` is the one decoder of both paths: `MAX_IMAGE_PIXELS` (16 Mi pixels) checked before allocation, zune-jpeg in strict mode, the EOI marker required after the last scan, the decode inside `catch_unwind`, once per asset; the PDF and SVG writers embed an image only when that decode succeeds, and an undecodable one is the page finding `ImageProblem::Undecodable` with its bytes withdrawn from the export; krilla's GIF and WebP paths are disallowed methods; EXIF orientation is ignored and an ICC profile is embedded by krilla only (recorded limitations) | Hostile-input tests (truncated at every byte of the last 59, huge sizes, GIF and WebP bytes), the variant tests and the cross-platform decode hash; clippy's `disallowed-methods` for krilla's GIF and WebP paths; a corpus of real exporters' raster files (`crates/ew-export/tests/fixtures/raster-exporters/`) that pass the asset sniff, decode and print on a PDF/A-2b page. Real-exporter coverage of CMYK and YCCK JPEG, 16-bit, grey-and-alpha and interlaced PNG, a JPEG without its EOI marker and EXIF orientation is missing; orientation stays ignored. |
 
 ### 11.2 `unsafe` and native code
@@ -1230,7 +1228,7 @@ flowchart LR
   block has a `SAFETY:` comment, and CODEOWNERS requires a second maintainer's review from 1.0 (NFR-SEC-04).
 - **Native code.** It is limited to bundled SQLite in process and OCCT out of process.
 
-*As built.* Crate roots carry `#![forbid(unsafe_code)]` where they declare it. `ew-print` (`src/windows.rs`) uses
+Crate roots carry `#![forbid(unsafe_code)]` where they declare it. `ew-print` (`src/windows.rs`) uses
 `unsafe` for the Windows print adapters, each block with its `SAFETY:` comment, and `ew-testkit` holds the counting
 `GlobalAlloc` of the `hostile_corpus` test binary (`tests/hostile_corpus/alloc.rs`); the library keeps `forbid`. No lint
 checks that no other file uses `unsafe`.
@@ -1248,11 +1246,11 @@ checks that no other file uses `unsafe`.
 | Disclose | Publish the GitHub advisory; CVE through GitHub as CNA; RUSTSEC advisory for published crates; release notes | At release; embargo ≤ 90 days |
 | Learn | Post-mortem; threat-model update | Next minor |
 
-*As built.* `SECURITY.md` states the 0.1.0
+`SECURITY.md` states the 0.1.0
 process in full: reports through GitHub's private vulnerability reporting only (on), no role
-mailbox until the project has a domain (WP-S6.04 FP-5), the acknowledgement and triage deadlines above, the supported
+mailbox until the project has a domain, the acknowledgement and triage deadlines above, the supported
 versions (0.1.x until 0.2.0, the latest 0.x release only before 1.0), the disclosure by GitHub advisory
-with a CVE per fixed vulnerability, and the CRA notification by 1.0 (WP-S6.10).
+with a CVE per fixed vulnerability, and the CRA notification by 1.0.
 
 ### 11.4 Incident runbook: key or pipeline compromise
 
@@ -1304,7 +1302,7 @@ network rules by §12.2:
 There are no other flows: no telemetry or analytics, no install ID (NFR-PRIV-02), no font, symbol or part downloads,
 no licence check and no AI or translation service (NFR-PRIV-08). Changing this table requires an ADR (NFR-PRIV-07).
 
-*As built.* `PRIVACY.md` at the repository root exists, with the
+`PRIVACY.md` at the repository root exists, with the
 CC-BY-4.0 header of `SECURITY.md`, and the About dialog and the first-run privacy step each have a "Privacy
 (PRIVACY.md)" button that opens it. It has two tables. The network flows above are in it with an "In this version"
 column that says NOT IMPLEMENTED for every row (no flow is built: the update-check setting is stored and sends
@@ -1407,7 +1405,7 @@ payload := allowlisted fields only; anything else is dropped
 - Project-derived strings are logged through a `Sensitive<T>` wrapper that prints `<redacted:len>`. Help ▸
   Diagnostics can enable full text for the current session only. The setting resets on restart (NFR-PRIV-05).
 
-*As built, 0.1.0's form.* The panic hook of
+The panic hook of
 `bin/elektrawatt/src/crash.rs` logs **every** panic: it appends an entry (the lines L1 to L7: version, OS and architecture,
 time, thread, location, message and a forced backtrace) to one log per process in `<state>/crashes/`, and the end mark L8
 is written by `main` after its outer `catch_unwind`, which then exits 101; a panic caught in place (a rule run,
@@ -1437,7 +1435,7 @@ The statements of when the regulation applies below stand as written. This docum
   1.0 in February 2032. Every public release therefore ships under full application, as does everything after it. The
   pilot preview 0.0.x (M-PP, December 2028, handed to the pilot only) and the nightly CLI builds for the pilot also
   fall after the date; whether such pilot-only builds are "made available on the market" is a question for counsel
-  (global plan §5.3, WP-S6.04). Source tags and nightlies on the repository are not binary releases.
+  (global plan §5.3). Source tags and nightlies on the repository are not binary releases.
 - **Where obligations attach.** They attach to products made available on the market, so the role decision of
   ADR-0030 must be taken before the first public release.
 
@@ -1519,7 +1517,7 @@ and any commercial edition needs a liability review first.
 7. **Locale traps.** The Turkish dotless i and comma decimal separators break naive case folding and number
    formatting. The tr_TR job of CI-N-08 exists for this reason (NFR-I18N-03).
 8. **Rubber-stamped goldens.** A golden or snapshot update can hide a regression. The review rule of §3.7 requires a
-   second reviewer, and the golden owner when GP tags, xrefs or wire numbers change.
+   second reviewer, and the golden owner when expected tags, cross-references or wire numbers change.
 9. **UI upgrades touching drawings.** If a UI-stack upgrade changes a golden PNG or PDF, a dependency leaked across
    the `ew-dl` boundary. Step 4 of §6.3 catches this.
 10. **Minidumps hold memory.** A dump can contain project text, so it is never uploaded raw (§12.3).
