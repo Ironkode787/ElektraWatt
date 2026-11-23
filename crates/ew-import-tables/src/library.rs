@@ -4,7 +4,7 @@
 //! The built-in library the tables reference by key (doc 05 §13.2, doc 07 §9.1): starter symbols, FnDefs and
 //! forms as embedded copies. The host supplies the documents (`content/symbols/qet10`, `content/fndefs`,
 //! `content/forms`); the importer never reads files itself. Their `library_id` is
-//! [`ew_interop_api::SYSTEM_LIBRARY`], and the references the tables emit carry the documents' own
+//! [`ew_schema::starter::LIBRARY`], and the references the tables emit carry the documents' own
 //! `library_id`.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -215,8 +215,8 @@ fn caret(version: &str) -> String {
 mod tests {
     use super::{BuiltinLibrary, caret};
     use ew_ids::Uuid;
-    use ew_interop_api::SYSTEM_LIBRARY;
     use ew_schema::LibDocument;
+    use ew_schema::starter;
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -246,8 +246,8 @@ mod tests {
     }
 
     /// L1-5: the CSV bootstrap's built-in library (the `@qet10` symbols, the FnDefs and the forms)
-    /// lives in [`SYSTEM_LIBRARY`], and a FnDef reference the tables emit points at it with the item ID
-    /// `v5(SYSTEM_LIBRARY, key)`, as before the importer's own constant was dropped.
+    /// lives in [`starter::LIBRARY`], and a FnDef reference the tables emit points at it with the item ID
+    /// `v5(starter::LIBRARY, key)`, as before the importer's own constant was dropped.
     #[test]
     fn the_builtin_library_is_the_system_library() {
         let mut docs = content_docs("symbols/qet10");
@@ -273,10 +273,10 @@ mod tests {
                 other => panic!("unexpected starter document {:?}", other.kind()),
             };
             let key = key.expect("every starter document has a key").to_string();
-            assert_eq!(library, SYSTEM_LIBRARY, "{key}: library_id");
+            assert_eq!(library, starter::LIBRARY, "{key}: library_id");
             assert_eq!(
                 item,
-                ew_ids::v5::library_item_id(SYSTEM_LIBRARY, &key),
+                ew_ids::v5::library_item_id(starter::LIBRARY, &key),
                 "{key}: item_id"
             );
         }
@@ -284,8 +284,8 @@ mod tests {
         let r = lib
             .fndef_ref("ew.fn.coil")
             .expect("the coil FnDef is a starter document");
-        assert_eq!(r.library.as_uuid(), SYSTEM_LIBRARY);
-        assert_eq!(r.item.as_uuid(), Uuid::new_v5(&SYSTEM_LIBRARY, b"ew.fn.coil"));
+        assert_eq!(r.library.as_uuid(), starter::LIBRARY);
+        assert_eq!(r.item.as_uuid(), Uuid::new_v5(&starter::LIBRARY, b"ew.fn.coil"));
         assert_eq!(r.version_req, "^0.1");
         assert_eq!(r.extra["key"], "ew.fn.coil");
     }

@@ -15,7 +15,7 @@ use ew_api::eplan::{self, FndefMap};
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::{Session, SessionOptions};
 use ew_derive::ew_ids::{Id, Uuid};
-use ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY;
+use ew_schema::starter;
 use ew_schema::{LibDocument, LibRef};
 use serde_json::json;
 
@@ -474,8 +474,8 @@ fn the_function_definition_table_names_starter_items_and_reads_the_users_rows() 
     let reg = Registry::starter_only();
     for key in FndefMap::shipped().fndef_keys() {
         let r = LibRef {
-            library: Id::from_uuid(SYSTEM_LIBRARY),
-            item: Id::from_uuid(Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes())),
+            library: Id::from_uuid(starter::LIBRARY),
+            item: Id::from_uuid(Uuid::new_v5(&starter::LIBRARY, key.as_bytes())),
             version_req: "*".to_owned(),
             extra: Default::default(),
         };

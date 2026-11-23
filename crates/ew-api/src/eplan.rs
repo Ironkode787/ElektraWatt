@@ -18,7 +18,9 @@ use ew_commands::commands::library_copy_hash;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_import_catalog::ew_interop_api::pn_norm;
 use ew_import_eplan::{IMPORTER_ID, IMPORTER_VERSION};
-use ew_schema::{FreeProp, LibCopy, LibDocument, LibRef, Manufacturer, MechData, Part, PartKind, Sha256};
+use ew_schema::{
+    FreeProp, LibCopy, LibDocument, LibRef, Manufacturer, MechData, Part, PartKind, Sha256, starter,
+};
 
 pub use ew_import_eplan::{FndefMap, PartsRead, is_edz};
 
@@ -53,9 +55,9 @@ pub fn fndef_map(config_dir: Option<&Path>) -> Result<FndefMap, String> {
     }
 }
 
-/// The starter function definition `key` (`v5(SYSTEM_LIBRARY, key)`) of `reg`, if it holds one.
+/// The starter function definition `key` (`v5(starter::LIBRARY, key)`) of `reg`, if it holds one.
 fn starter_fndef(reg: &library::Registry, key: &str) -> Option<LibDocument> {
-    let library = ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY;
+    let library = ew_schema::starter::LIBRARY;
     reg.resolve(&LibRef {
         library: Id::from_uuid(library),
         item: Id::from_uuid(ew_derive::ew_ids::v5::library_item_id(library, key)),
@@ -283,10 +285,14 @@ pub fn report_batch(
 ) -> Result<crate::import::ImportBatch, crate::import::Refusal> {
     let limits = ew_import_catalog::table_limits();
     let reg = library::Registry::starter_only();
-    let fndefs: Vec<LibDocument> = ["ew.fn.terminal", "ew.fn.terminal-pe", "ew.fn.blackbox"]
-        .iter()
-        .filter_map(|k| starter_fndef(&reg, k))
-        .collect();
+    let fndefs: Vec<LibDocument> = [
+        starter::FN_TERMINAL,
+        starter::FN_TERMINAL_PE,
+        starter::FN_BLACKBOX,
+    ]
+    .iter()
+    .filter_map(|k| starter_fndef(&reg, k))
+    .collect();
     let sizes = [input.bytes().len() as u64];
     crate::import::front_door(input.name(), &sizes, &limits, None, || {
         let table = report_table(input, map)?;

@@ -115,7 +115,7 @@ impl<'a> P<'a> {
         }
         if let Some(f) = self.fndef {
             v["function_template"] =
-                json!([{"fndef": libref(starter::LIBRARY, starter_item(f), "^0.1"), "main": true}]);
+                json!([{"fndef": libref(ew_schema::starter::LIBRARY, starter_item(f), "^0.1"), "main": true}]);
         }
         LibDocument::from_value(v).unwrap()
     }
@@ -706,8 +706,8 @@ fn read_only_tiers_and_no_sqlite_outside_the_cache() {
             ("pack", Tier::Community, false),
         ]
     );
-    let doc = P::new(id(0x5_0001), "P1", id(SE), "x").doc(starter::LIBRARY);
-    assert_eq!(reg.write(starter::LIBRARY, &[doc]), Err(LibraryError::ReadOnly));
+    let doc = P::new(id(0x5_0001), "P1", id(SE), "x").doc(ew_schema::starter::LIBRARY);
+    assert_eq!(reg.write(ew_schema::starter::LIBRARY, &[doc]), Err(LibraryError::ReadOnly));
     let doc = P::new(id(0x5_0001), "P1", id(SE), "x").doc(id(0xabc));
     assert_eq!(reg.write(id(0xabc), &[doc]), Err(LibraryError::ReadOnly));
     assert_eq!(reg.take_over_stale(id(0xabc)), Err(LibraryError::ReadOnly));
@@ -837,7 +837,7 @@ fn the_fndef_ranks_the_same_function_before_the_same_category() {
             compatible_with: Some(FnCompat {
                 category: ["ProtectionOvercurrent".into(), "MCB".into()],
                 contact_kind: ContactKind::Pole,
-                fndef: Some((starter::LIBRARY, starter_item("ew.fn.mcb-1pn"))),
+                fndef: Some((ew_schema::starter::LIBRARY, starter_item("ew.fn.mcb-1pn"))),
             }),
             ..PartQuery::default()
         },
@@ -995,7 +995,7 @@ fn resolve_and_closure() {
     assert_eq!(reg.resolve(&r4), Err(LibraryError::NotFound));
     // A starter symbol's closure is the symbol and its FnDef.
     let sym = starter_item("ew.iec.mcb-1pn@qet10");
-    let r5: LibRef = serde_json::from_value(libref(starter::LIBRARY, sym, "^0.1")).unwrap();
+    let r5: LibRef = serde_json::from_value(libref(ew_schema::starter::LIBRARY, sym, "^0.1")).unwrap();
     let kinds: Vec<Option<Kind>> = reg.closure(&r5).unwrap().iter().map(LibDocument::kind).collect();
     assert_eq!(kinds, [Some(Kind::Symbol), Some(Kind::Fndef)]);
     // A part whose manufacturer no library holds has no closure.

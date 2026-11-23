@@ -597,7 +597,7 @@ fn a_save_into_a_read_only_library_is_refused() {
     let (_root, t, _lib) = user_library("ew-api-macro-ro");
     let mut s = sample(Some(t));
     assert_eq!(
-        s.save_macro(ew_api::library::starter::LIBRARY, &psu_spec(&s))
+        s.save_macro(ew_schema::starter::LIBRARY, &psu_spec(&s))
             .unwrap_err(),
         MacroError::Library(ew_api::library::LibraryError::ReadOnly)
     );

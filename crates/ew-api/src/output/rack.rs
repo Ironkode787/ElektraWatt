@@ -961,9 +961,9 @@ impl Session {
             // numbers.
             let grid = q.pages().get(page)?.grid;
             let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
-                "ew.ovw.module-wide@qet10"
+                ew_schema::starter::OVW_MODULE_WIDE_QET10
             } else {
-                "ew.ovw.module-wide"
+                ew_schema::starter::OVW_MODULE_WIDE
             };
             if let Some(symbol) = self.starter_symbol_copy(key) {
                 params["symbol"] = serde_json::json!(symbol.to_string());
@@ -1007,9 +1007,9 @@ impl Session {
         let (x, y) = (min.x.0 + gap, bottom.map_or(min.y.0 + 2 * gap, |b| b + 2 * gap));
         let grid = q.pages().get(page_id)?.grid;
         let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
-            "ew.gen.blackbox@qet10"
+            ew_schema::starter::GEN_BLACKBOX_QET10
         } else {
-            "ew.gen.blackbox"
+            ew_schema::starter::GEN_BLACKBOX
         };
         let symbol = self.starter_symbol_copy(key)?;
         // The station, then its modules in slot order, each that no electrical page draws yet or draws in part, with its

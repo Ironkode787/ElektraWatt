@@ -989,7 +989,9 @@ impl ShellModel {
                 };
                 // A black-box entry is a box drawn by the frame; a symbol of its own drawn for the entry's own FnDef (a
                 // power supply the user drew, not the generic black box's) draws it as any symbol does (FT-1865).
-                if f.black_box && (cat.symbols[i].black_box || f.fndef_key == "ew.fn.blackbox") {
+                if f.black_box
+                    && (cat.symbols[i].black_box || f.fndef_key == ew_api::output::starter::FN_BLACKBOX)
+                {
                     box_cps = Some(f.cps.clone());
                 }
                 (
@@ -1578,7 +1580,8 @@ impl ShellModel {
             }
             (_, PickerRow::Symbol(i)) if cat.symbols[i].placed_by == PlacedBy::InterruptionTool => {
                 self.tools.picker = None;
-                let incoming = cat.symbols[i].key.split('@').next() == Some("ew.gen.ip-target");
+                let incoming =
+                    cat.symbols[i].key.split('@').next() == Some(ew_api::output::starter::GEN_IP_TARGET);
                 let direction = if incoming { "target" } else { "source" };
                 match self.dispatch("tool.ip", &json!({})) {
                     Outcome::Done => self.dispatch("tool.ip_direction", &json!({ "direction": direction })),

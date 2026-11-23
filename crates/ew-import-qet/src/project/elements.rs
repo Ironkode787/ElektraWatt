@@ -1532,7 +1532,7 @@ fn map_reports(
     if reports.is_empty() {
         return;
     }
-    let Some(ip) = mx.inp.builtins.fndef(crate::IP_FNDEF_KEY).map(|c| c.id) else {
+    let Some(ip) = mx.inp.builtins.fndef(ew_schema::starter::FN_IP).map(|c| c.id) else {
         for (i, _) in reports {
             mx.drop_element(
                 &elems[i],
@@ -1541,7 +1541,7 @@ fn map_reports(
         }
         return;
     };
-    used.insert(crate::IP_FNDEF_KEY.to_owned());
+    used.insert(ew_schema::starter::FN_IP.to_owned());
     let is_source: BTreeMap<usize, Option<bool>> = reports.iter().copied().collect();
     // 1. Pairs, each report in at most one.
     let mut partner: BTreeMap<usize, usize> = BTreeMap::new();

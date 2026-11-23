@@ -18,8 +18,7 @@
 //! - [`ImportError`]: why a whole file was refused.
 //! - [`SourceRef`] (re-exported from `ew-schema`): the persisted `{lineage, key}` provenance.
 //! - [`check_archive_name`]: the name rule of an archive entry (doc 14 §11).
-//! - [`SYSTEM_LIBRARY`]: the library ID of the compiled-in starter library, which importers reference built-in
-//!   items by.
+//! - [`pn_norm`]: the normal form of a part number that a parts import dedupes on.
 //!
 //! # Differences from doc 14 §2.1 (decided)
 //!
@@ -77,15 +76,6 @@ pub use report::{
 };
 
 /// The library ID of EW's system library: the compiled-in starter `ew-starter`, the
-/// `library_id` of every starter document under `content/symbols`, `content/symbols/qet10`, `content/fndefs` and
-/// `content/forms`. A starter item's ID is `v5(SYSTEM_LIBRARY, meta.key)` and its copy ID
-/// `ew_ids::v5::lib_copy_id(SYSTEM_LIBRARY, item)` (doc 05 §13.2).
-///
-/// Importers that reference a built-in item by key (the QET importer's `ew.fn.ip`, the tables importer's
-/// starter documents) use this constant; it lives here, in the permissive contract crate, because importers
-/// may not depend on each other or on the library crate.
-pub const SYSTEM_LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
-
 /// `pn_norm` (doc 07 §4.3): upper case, without spaces, `-`, `.`, `/` and `_`. "SK 3110.000" gives "SK3110000";
 /// "5SY4 204-7" and "5SY4204-7" both give "5SY42047".
 pub fn pn_norm(s: &str) -> String {
@@ -97,7 +87,7 @@ pub fn pn_norm(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{SYSTEM_LIBRARY, pn_norm};
+    use super::pn_norm;
 
     #[test]
     fn pn_norm_follows_doc_07() {
@@ -107,12 +97,5 @@ mod tests {
         assert_eq!(pn_norm("a9p 52610"), "A9P52610");
         assert_eq!(pn_norm("PT 2,5/1P_x"), "PT2,51PX");
         assert_eq!(pn_norm(""), "");
-    }
-
-    /// L1-5: the constant is the decided value. That every starter document under `content/` carries it is
-    /// checked by `ew-import-tables`' integration test `system_library`, outside this permissive crate.
-    #[test]
-    fn system_library_is_the_decided_value() {
-        assert_eq!(SYSTEM_LIBRARY.to_string(), "7202fd8b-1024-4bf1-9e99-670772eaa589");
     }
 }

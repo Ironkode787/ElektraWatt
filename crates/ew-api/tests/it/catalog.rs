@@ -350,7 +350,7 @@ fn an_unknown_or_read_only_library_is_refused() {
         import_into_library(&mut reg, unknown, &input, &map(), None, false, false),
         Err(CatalogError::Library(LibraryError::NotFound))
     ));
-    let starter = ew_api::library::starter::LIBRARY;
+    let starter = ew_schema::starter::LIBRARY;
     assert!(matches!(
         import_into_library(&mut reg, starter, &input, &map(), None, false, false),
         Err(CatalogError::Library(LibraryError::ReadOnly))

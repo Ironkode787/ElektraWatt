@@ -36,20 +36,12 @@ fn session(libraries: Option<LibraryTiers>, lib: Vec<LibDocument>) -> Session {
     .unwrap()
 }
 
-/// The starter's compiled-in library ID is `ew_interop_api::SYSTEM_LIBRARY`: `ew-library` cannot name
-/// `ew-interop-api`, so the equality is asserted here, where both are visible.
+/// The starter parts' library ID is derived from the starter's.
 #[test]
-fn the_starter_library_is_the_system_library() {
-    assert_eq!(
-        library::starter::LIBRARY,
-        ew_import_qet::ew_interop_api::SYSTEM_LIBRARY
-    );
+fn the_starter_parts_library_is_derived_from_the_starter() {
     assert_eq!(
         library::starter_parts_library(),
-        Uuid::new_v5(
-            &ew_import_qet::ew_interop_api::SYSTEM_LIBRARY,
-            b"ew-starter-parts"
-        )
+        Uuid::new_v5(&ew_schema::starter::LIBRARY, b"ew-starter-parts")
     );
 }
 

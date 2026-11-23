@@ -205,7 +205,7 @@ fn fndef(key: &str) -> Value {
     // the caret requirement of the FnDef's version: `^0.2` for 0.2.0
     let minor = c.version.split('.').take(2).collect::<Vec<_>>().join(".");
     json!({
-        "library": starter::LIBRARY.to_string(),
+        "library": ew_schema::starter::LIBRARY.to_string(),
         "item": c.item_id.as_uuid().to_string(),
         "version_req": format!("^{minor}"),
         "key": key,
@@ -2390,7 +2390,7 @@ fn every_generic_part_is_usable() {
         );
         assert_eq!(p.function_template.iter().filter(|t| t.main).count(), 1, "{n}");
         for t in &p.function_template {
-            assert_eq!(t.fndef.library.as_uuid(), starter::LIBRARY, "{n}");
+            assert_eq!(t.fndef.library.as_uuid(), ew_schema::starter::LIBRARY, "{n}");
             for i in &t.cps {
                 assert!(p.cp_pattern.iter().any(|cp| cp.idx == *i), "{n}: CP {i}");
             }

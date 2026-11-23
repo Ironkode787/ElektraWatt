@@ -100,6 +100,7 @@ mod record;
 mod revision;
 mod schema;
 mod set;
+pub mod starter;
 mod template;
 mod text_style;
 mod track;

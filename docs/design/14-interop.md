@@ -134,8 +134,8 @@ digest); value types reach it through `ew-schema`'s records.
 API ([17](17-extensibility.md) §10); not built. The importers (`QetElementImporter`, `QetProjectImporter`,
 `TablesImporter`) have an inherent `import` method, and the host calls them through `ew_api::import::front_door`.
 What they share is in `ew-interop-api`: `ImportInput`, `ImportContext` (with `ImportMode` and `LineageInfo`), `Limits`,
-`ImportBatch`, `ImportReport` with its entries, codes and `SourceInfo`, `ImportError`, `SourceRef`, `SYSTEM_LIBRARY`
-and `check_archive_name`.
+`ImportBatch`, `ImportReport` with its entries, codes and `SourceInfo`, `ImportError`, `SourceRef`, `pn_norm`
+and `check_archive_name`; the system library's ID and the starter keys an importer names are in `ew_schema::starter`.
 
 ```rust
 pub trait Importer: Send + Sync {
@@ -670,9 +670,9 @@ Each distinct definition (identified by the hash of its canonical XML, not by it
 element name, path, UUID and definition version as provenance. The library's `library_id` is the target project's
 ID (`ImportCx.project`, §2.1) and its human key is `qet-import` ([05](05-project-format-and-persistence.md) §13.2).
 Built-in FnDefs that the importer references live in the system library, whose `library_id` is
-`ew_interop_api::SYSTEM_LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589, the starter content's ID). The importer has exactly one built-in FnDef,
-the interruption point `ew.fn.ip` of §4.6 (`BUILTIN_FNDEF_KEYS`), referenced by key in `LibRef.extra["key"]` with
-`version_req` `^0.1` (`BUILTIN_VERSION_REQ`), because every starter item is version 0.1.0; `ew.gen.ip` is its
+`ew_schema::starter::LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589, the starter content's ID). The importer has exactly one built-in FnDef,
+the interruption point `ew.fn.ip` of §4.6 (`starter::FN_IP`), referenced by key in `LibRef.extra["key"]` with
+`version_req` `^0.1` (`starter::VERSION_REQ`), because every starter function definition is version 0.1; `ew.gen.ip` is its
 *symbol* key ([07](07-symbols-parts-macros.md) §2.3). The generic black box of EW-IMP-119 is not
 a built-in: it is a generated FnDef in the "QET import" library at version 1.0.0, referenced with `^1`. Primitives
 map one to one:

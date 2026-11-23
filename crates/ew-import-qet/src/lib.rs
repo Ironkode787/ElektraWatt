@@ -110,27 +110,21 @@ pub const MAX_UNSUPPORTED_STYLE_PAIRS_KEPT: usize = 8;
 /// total. It bounds the size of the imported `SymbolDef` regardless of the number of primitives.
 pub const MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION: usize = 1_000;
 
-/// The key of the built-in interruption-point FnDef that `next_report` and `previous_report` elements
-/// reference instead of a generated one (doc 07 §2.3, doc 14 §4.3). The FnDef is `ew.fn.ip`; `ew.gen.ip` is the
-/// key of the interruption-point *symbol* and must not be used for a FnDef reference.
-pub const IP_FNDEF_KEY: &str = "ew.fn.ip";
-
-/// The `version_req` of a reference to a built-in FnDef. The starter content items are version `0.1.0`.
-pub const BUILTIN_VERSION_REQ: &str = "^0.1";
-
 #[cfg(test)]
 mod tests {
-    use super::IP_FNDEF_KEY;
-    use ew_interop_api::SYSTEM_LIBRARY;
+    use ew_schema::starter;
 
     /// L1-5: the built-in reference to `ew.fn.ip` points at the same library and item as before
-    /// the constant moved to `ew_interop_api::SYSTEM_LIBRARY` (the starter's `content/fndefs/ew.fn.ip.json`
+    /// the constant moved to `ew_schema::starter::LIBRARY` (the starter's `content/fndefs/ew.fn.ip.json`
     /// carries this `item_id`).
     #[test]
     fn the_builtin_references_are_unchanged_by_the_move_to_system_library() {
-        assert_eq!(SYSTEM_LIBRARY.to_string(), "7202fd8b-1024-4bf1-9e99-670772eaa589");
         assert_eq!(
-            ew_ids::v5::library_item_id(SYSTEM_LIBRARY, IP_FNDEF_KEY).to_string(),
+            starter::LIBRARY.to_string(),
+            "7202fd8b-1024-4bf1-9e99-670772eaa589"
+        );
+        assert_eq!(
+            ew_ids::v5::library_item_id(starter::LIBRARY, starter::FN_IP).to_string(),
             "71f84e74-578d-5835-9a77-cfdaf8057ecd"
         );
     }

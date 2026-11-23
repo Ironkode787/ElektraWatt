@@ -25,7 +25,7 @@ use ew_interop_api::ew_ids::{Id, Uuid, v5};
 use ew_interop_api::ew_schema::{
     Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra, FnRole, FrozenTag,
     Function, FunctionKind, ImportLineage, LevelSpec, LibDocument, LineageAnchor, MasterData, NumberSpec,
-    Project, Record, Side, Strip, TagSpec, Terminal, WireOverrides,
+    Project, Record, Side, Strip, TagSpec, Terminal, WireOverrides, starter,
 };
 use ew_interop_api::{
     Code, ImportBatch, ImportError, ImportReport, ReportEntry, Severity, SourceInfo, SourceLocation,
@@ -311,9 +311,9 @@ pub fn read_report(
                 line: None,
             })
     };
-    let (terminal, terminal_doc) = def("ew.fn.terminal")?;
-    let (terminal_pe, pe_doc) = def("ew.fn.terminal-pe")?;
-    let (blackbox, box_doc) = def("ew.fn.blackbox")?;
+    let (terminal, terminal_doc) = def(starter::FN_TERMINAL)?;
+    let (terminal_pe, pe_doc) = def(starter::FN_TERMINAL_PE)?;
+    let (blackbox, box_doc) = def(starter::FN_BLACKBOX)?;
     let namespace =
         v5::lineage_namespace(REPORT_IMPORTER_ID, &v5::LineageAnchor::Fixed(key)).map_err(|_| {
             ImportError::Malformed {

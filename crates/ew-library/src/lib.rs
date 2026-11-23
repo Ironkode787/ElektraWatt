@@ -48,12 +48,12 @@ pub use tiers::{LibraryTiers, Tier, default_cache_dir, default_data_dir};
 /// The key of the shipped system library of starter parts.
 pub const STARTER_PARTS_KEY: &str = "ew-starter-parts";
 
-/// The ID of the system library `ew-starter-parts`: `v5(SYSTEM_LIBRARY, "ew-starter-parts")`, the
+/// The ID of the system library `ew-starter-parts`: `v5(ew_schema::starter::LIBRARY, "ew-starter-parts")`, the
 /// directory `content/libraries/ew-starter-parts.ewlib` of the generic starter parts. It is compiled in
 /// beside the starter (D6), so every registry holds it; a directory library with this ID replaces the compiled-in
 /// one.
 pub fn starter_parts_library() -> ew_ids::Uuid {
-    ew_ids::v5::imported_id::<()>(starter::LIBRARY, STARTER_PARTS_KEY).as_uuid()
+    ew_ids::v5::imported_id::<()>(ew_schema::starter::LIBRARY, STARTER_PARTS_KEY).as_uuid()
 }
 
 /// The item ID of the manufacturer record "Generic" of `ew-starter-parts`, the maker of every generic starter part

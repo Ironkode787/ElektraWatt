@@ -8,8 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_ids::Uuid;
-use ew_import_qet::{BUILTIN_VERSION_REQ, IP_FNDEF_KEY};
-use ew_interop_api::SYSTEM_LIBRARY;
+use ew_schema::starter;
 use ew_schema::LibDocument;
 
 fn content_dir(sub: &str) -> PathBuf {
@@ -58,7 +57,7 @@ fn satisfies(version: &str, req: &str) -> bool {
 fn every_builtin_fndef_key_exists_in_the_content_with_the_expected_reference() {
     let fndefs = load("fndefs");
     let symbols = load("symbols");
-    for key in [IP_FNDEF_KEY] {
+    for key in [starter::FN_IP] {
         let found: Vec<_> = fndefs
             .iter()
             .filter_map(|(name, d)| match d {
@@ -76,14 +75,15 @@ fn every_builtin_fndef_key_exists_in_the_content_with_the_expected_reference() {
         let (name, copy) = found[0];
         assert_eq!(
             copy.item_id.as_uuid(),
-            Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes()),
-            "{name}: item_id is not v5(SYSTEM_LIBRARY, {key})"
+            Uuid::new_v5(&starter::LIBRARY, key.as_bytes()),
+            "{name}: item_id is not v5(starter::LIBRARY, {key})"
         );
-        assert_eq!(copy.library_id.as_uuid(), SYSTEM_LIBRARY, "{name}: library_id");
+        assert_eq!(copy.library_id.as_uuid(), starter::LIBRARY, "{name}: library_id");
         assert!(
-            satisfies(&copy.version, BUILTIN_VERSION_REQ),
-            "{name}: version {} does not satisfy {BUILTIN_VERSION_REQ}",
-            copy.version
+            satisfies(&copy.version, starter::VERSION_REQ),
+            "{name}: version {} does not satisfy {}",
+            copy.version,
+            starter::VERSION_REQ
         );
         // A symbol with the same key would share the FnDef's item id.
         for (sname, d) in &symbols {

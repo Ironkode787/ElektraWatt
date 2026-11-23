@@ -219,7 +219,7 @@ impl Session {
             p.sections.plc = Some(section);
             if pins_changed
                 && !cps.is_empty()
-                && let Some(LibDocument::Fndef(def)) = starter_doc("ew.fn.blackbox")
+                && let Some(LibDocument::Fndef(def)) = starter_doc(ew_schema::starter::FN_BLACKBOX)
             {
                 p.cp_pattern = ew_schema::KeyedList::from_vec(cps).map_err(|e| {
                     PartDraftError::Field(message(

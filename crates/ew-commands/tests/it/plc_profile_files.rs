@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use ew_ids::{Id, v5};
 use ew_schema::{LibDocument, Sha256};
 
-/// The starter library, which the built-in profiles belong to (`ew_interop_api::SYSTEM_LIBRARY`).
+/// The starter library, which the built-in profiles belong to (`ew_schema::starter::LIBRARY`).
 const STARTER: u128 = 0x7202fd8b_1024_4bf1_9e99_670772eaa589;
 
 fn dir() -> PathBuf {

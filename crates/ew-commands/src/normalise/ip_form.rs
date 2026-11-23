@@ -18,6 +18,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_model::AnyRow;
+use ew_schema::starter;
 use ew_schema::{Function, FunctionKind, IpDirection, Kind, LibCopy, LibItem, Representation, SymbolDef};
 use ew_units::Orient2;
 
@@ -28,10 +29,10 @@ use crate::tx::TxBuilder;
 
 /// EW's interruption-point forms: (source key, target key) per edition.
 pub const FORMS: [(&str, &str); 4] = [
-    ("ew.gen.ip", "ew.gen.ip-target"),
-    ("ew.gen.ip@qet10", "ew.gen.ip-target@qet10"),
-    ("ew.iso.ip", "ew.iso.ip-target"),
-    ("ew.iso.ip@qet10", "ew.iso.ip-target@qet10"),
+    (starter::GEN_IP, starter::GEN_IP_TARGET),
+    (starter::GEN_IP_QET10, starter::GEN_IP_TARGET_QET10),
+    (starter::ISO_IP, starter::ISO_IP_TARGET),
+    (starter::ISO_IP_QET10, starter::ISO_IP_TARGET_QET10),
 ];
 
 /// One of EW's interruption-point forms.

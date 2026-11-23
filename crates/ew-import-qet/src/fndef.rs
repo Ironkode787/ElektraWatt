@@ -7,7 +7,7 @@
 //! [`resolve`] decides, in this order:
 //!
 //! 0. **Link type.** `next_report` and `previous_report` reference the built-in interruption-point FnDef
-//!    ([`crate::IP_FNDEF_KEY`]); nothing is generated. `thumbnail` is a graphic: category
+//!    ([`ew_schema::starter::FN_IP`]); nothing is generated. `thumbnail` is a graphic: category
 //!    `Graphic / QET / Thumbnail`, black box, no finding. A `terminal` that is no terminal of a strip: in a
 //!    connections category (`114_connections`, QET's T junctions) `Junction / QET / Connection`, which the project
 //!    importer makes a junction; with one terminal and an earth name in its path (`terre`, `earth`, `ground`) an
@@ -285,7 +285,7 @@ pub fn resolve(
     terminals: usize,
 ) -> Resolution {
     if matches!(link_type, "next_report" | "previous_report") {
-        return Resolution::Builtin(crate::IP_FNDEF_KEY);
+        return Resolution::Builtin(ew_schema::starter::FN_IP);
     }
     if link_type == "thumbnail" {
         return Resolution::Generated(generated(

@@ -631,7 +631,7 @@ impl Session {
             if p.function_template.is_empty() {
                 if !pins.is_empty()
                     && let Some(ew_schema::LibDocument::Fndef(def)) =
-                        crate::part_new::starter_doc("ew.fn.blackbox")
+                        crate::part_new::starter_doc(ew_schema::starter::FN_BLACKBOX)
                 {
                     p.function_template = vec![TemplateFn {
                         fndef: crate::part_new::fndef_ref(&def),

@@ -189,6 +189,9 @@ pub use rows::{
     workbook_dump,
 };
 // The table round trip.
+/// The names of the starter content that the shell refers to, re-exported so that it names them without naming
+/// `ew-schema`.
+pub use ew_schema::starter::{self, A3_GRID_FRAME, COVER_FRAME, GRID_FRAME, NOGRID_FRAME, TITLE_BLOCK};
 pub use list_look::{ListColumn, ListLook};
 pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
@@ -202,9 +205,8 @@ pub use title_block_fields::TitleBlockFacts;
 pub use typeface::{DrawingFonts, ProjectFonts, ProjectFontsQ, TypefaceState, font_files, fonts};
 pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{
-    A3_GRID_FRAME, COVER_FRAME, FrameForms, GRID_FRAME, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf,
-    PageFrameOf, PageSlotsOf, PageTableOf, SHIPPED_FORMS, TITLE_BLOCK, page_destination, page_items,
-    page_plug_notes, page_uuid, page_valve_cells, page_valve_glyphs,
+    FrameForms, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf, SHIPPED_FORMS,
+    page_destination, page_items, page_plug_notes, page_uuid, page_valve_cells, page_valve_glyphs,
 };
 
 pub(crate) use panel::{LegendOfferOf, PageSurfaceView, ShapedText};

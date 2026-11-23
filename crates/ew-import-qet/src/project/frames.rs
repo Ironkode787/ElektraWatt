@@ -47,9 +47,6 @@ use super::items::ItemsOut;
 use super::model::{QetDiagram, QetProject, TbCell, TbTemplate};
 use crate::element::ITEM_VERSION;
 
-/// The key of the shipped title block that reproduces QET's default template.
-pub const QET_TITLEBLOCK_KEY: &str = "ew.titleblock.qet-a4";
-
 /// QET's `Diagram::margin`: the border's distance from the scene origin, px.
 const MARGIN_PX: i64 = 5;
 /// QET's header bands (`rows_header_width`, `columns_header_height`), px.
@@ -208,7 +205,7 @@ pub fn build(
         .rev()
         .map(|t| (t.name.as_str(), t))
         .collect();
-    let shipped = builtins.form(QET_TITLEBLOCK_KEY);
+    let shipped = builtins.form(ew_schema::starter::TITLE_BLOCK);
     for d in &project.diagrams {
         let b = &d.border;
         let (cols, ok1) = border_value(b.cols.map(i64::from), 17, MAX_COUNT);
@@ -258,7 +255,7 @@ pub fn build(
                 })
             }
             None => shipped.map(|c| {
-                used.insert(QET_TITLEBLOCK_KEY.to_owned());
+                used.insert(ew_schema::starter::TITLE_BLOCK.to_owned());
                 (c.id, c.item.sheet.height, None)
             }),
         };

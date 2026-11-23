@@ -15,7 +15,7 @@ use ew_mltext::{Ident, LangTag, MlText};
 use ew_schema::{
     AnchorPolicy, CpDef, Discipline, FnDef, FnFlags, ImportLineage, ItemMeta, KeyedList, LibCopy,
     LibDocument, LibItem, LibRef, Library, LineageAnchor, Project, Record, RepType, Set, Sha256, SymbolCp,
-    SymbolDef,
+    SymbolDef, starter,
 };
 use ew_units::Grid;
 use roxmltree::{Document, Node, ParsingOptions};
@@ -312,14 +312,13 @@ pub(crate) fn read_on_stack(
     let resolution = fndef::resolve(&link_type, &kind, src.path(), parsed.terminals.len());
     let (fndef_ref, fndef_copy) = match resolution {
         Resolution::Builtin(builtin) => {
-            let item: Id<LibItem> =
-                Id::from_uuid(v5::library_item_id(ew_interop_api::SYSTEM_LIBRARY, builtin));
+            let item: Id<LibItem> = Id::from_uuid(v5::library_item_id(starter::LIBRARY, builtin));
             let mut extra = BTreeMap::new();
             extra.insert("key".to_owned(), Value::String(builtin.to_owned()));
             let r = LibRef {
-                library: Id::from_uuid(ew_interop_api::SYSTEM_LIBRARY),
+                library: Id::from_uuid(starter::LIBRARY),
                 item,
-                version_req: crate::BUILTIN_VERSION_REQ.to_owned(),
+                version_req: starter::VERSION_REQ.to_owned(),
                 extra,
             };
             (r, None)
@@ -524,7 +523,7 @@ impl ElementImport {
         self.symbol.item.fndef = LibRef {
             library: Id::from_uuid(b.fndef.library_id.as_uuid()),
             item: Id::from_uuid(b.fndef.item_id.as_uuid()),
-            version_req: crate::BUILTIN_VERSION_REQ.to_owned(),
+            version_req: starter::VERSION_REQ.to_owned(),
             extra,
         };
         let list: Vec<String> = fn_cps.iter().map(u16::to_string).collect();

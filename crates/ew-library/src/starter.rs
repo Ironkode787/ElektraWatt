@@ -9,10 +9,6 @@
 //! The picker of the place tool lists the starter symbols a project has not embedded; choosing one embeds the symbol
 //! and its function definition through `library.embed` (the host's commit, an undo step of its own).
 
-/// The library ID of the starter, the system library `ew-starter`: equal to `ew_interop_api::SYSTEM_LIBRARY`
-/// (`ew-library` does not depend on `ew-interop-api`, so `ew-api`'s tests assert the equality).
-pub const LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
-
 /// The starter's library key.
 pub const KEY: &str = "ew-starter";
 
@@ -76,7 +72,12 @@ mod tests {
                 _ => panic!("{}: kind", i.key),
             };
             assert_eq!(key.as_ref().map(|k| k.as_str()), Some(i.key));
-            assert_eq!(lib, LIBRARY, "{}: names the starter library", i.key);
+            assert_eq!(
+                lib,
+                ew_schema::starter::LIBRARY,
+                "{}: names the starter library",
+                i.key
+            );
         }
         assert_eq!(
             item("ew.iec.mcb-1p@qet10").map(|i| i.kind),

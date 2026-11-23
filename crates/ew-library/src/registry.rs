@@ -540,7 +540,7 @@ impl Registry {
             starter_entries().into_iter().map(|e| (e.item, e.doc)).collect();
         let mut libs = vec![Lib {
             info: LibraryInfo {
-                id: starter::LIBRARY,
+                id: ew_schema::starter::LIBRARY,
                 key: starter::KEY.to_owned(),
                 name: "ElektraWatt starter library".to_owned(),
                 tier: Tier::System,
@@ -562,7 +562,7 @@ impl Registry {
             compiled: None,
             memory: None,
         }];
-        let mut seen: BTreeSet<Uuid> = BTreeSet::from([starter::LIBRARY]);
+        let mut seen: BTreeSet<Uuid> = BTreeSet::from([ew_schema::starter::LIBRARY]);
         // The system library of starter parts, compiled in: a new project reaches its parts with no
         // library configured. The same directory installed as a system library is the shipped copy of it.
         let compiled_parts = crate::starter_parts_library();

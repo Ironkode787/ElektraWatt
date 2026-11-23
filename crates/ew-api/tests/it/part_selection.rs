@@ -27,7 +27,7 @@ fn fndef(key: &str) -> Value {
     let LibDocument::Fndef(c) = LibDocument::from_json(starter::item(key).unwrap().json).unwrap() else {
         panic!("{key} is not a FnDef")
     };
-    json!({"library": starter::LIBRARY.to_string(), "item": c.item_id.as_uuid().to_string(), "version_req": "^0.1"})
+    json!({"library": ew_schema::starter::LIBRARY.to_string(), "item": c.item_id.as_uuid().to_string(), "version_req": "^0.1"})
 }
 
 fn fndef_category(key: &str) -> Value {

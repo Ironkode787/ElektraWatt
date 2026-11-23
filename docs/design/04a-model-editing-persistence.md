@@ -541,9 +541,9 @@ Library copies are one pretty-printed JSON document per item, because they are l
 - **Catalogues.** Libraries are canonical text at every tier (system, community, company, user): `.ewlib`
   directories in the project format, with the same writer, manifest-last save, lock and merge driver. They are fed
   from EDZ, BMEcat, ETIM or CSV. Published library versions are immutable. The system library is the compiled-in starter, whose ID is the
-  constant `ew_interop_api::SYSTEM_LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589), held in the permissive
-  contract crate because importers may depend neither on each other nor on `ew-library`; the QET and tables
-  importers reference built-in items through it. `ew-library` builds one derived SQLite
+  constant `ew_schema::starter::LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589), held in the permissive
+  record crate beside the other starter names that code refers to, because importers may depend neither on each
+  other nor on `ew-library`; the QET, EPLAN and tables importers reference built-in items through it. `ew-library` builds one derived SQLite
   FTS5 index per user in the local cache, rebuilt incrementally per library generation, for full-text search; no
   SQLite file is ever opened on a share ([symbols, parts and macros](07-symbols-parts-macros.md) §2.1–§2.2).
 - **Projects never read catalogues at render time.** They embed a `PartCopy`, and "update from library" is a

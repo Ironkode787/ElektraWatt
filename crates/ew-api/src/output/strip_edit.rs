@@ -815,7 +815,7 @@ fn insert(
 
 /// The project's held copy of the starter `ew.fn.terminal`, if it embeds it.
 fn starter_terminal_def(q: &Q) -> Option<Id<FnDef>> {
-    let item = ew_library::starter::item("ew.fn.terminal")?;
+    let item = ew_library::starter::item(ew_schema::starter::FN_TERMINAL)?;
     match LibDocument::from_json(item.json).ok()? {
         LibDocument::Fndef(c) if q.fndefs().contains(c.id) => Some(c.id),
         _ => None,

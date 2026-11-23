@@ -258,7 +258,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   `ew.gen.ip` with the FnDef `ew.fn.ip`. Every starter item is version 0.1.0 with status `draft`. Importers
   reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
   ([14](14-interop.md) §4.3). The starter content and the importer use the `library_id`
-  7202fd8b-1024-4bf1-9e99-670772eaa589, the system library's ID `ew_interop_api::SYSTEM_LIBRARY`.
+  7202fd8b-1024-4bf1-9e99-670772eaa589, the system library's ID `ew_schema::starter::LIBRARY`.
 - **Coverage of the pilot corpus** ([23](23-symbol-coverage-pilot-corpus.md)). Against the 81 QET element types that the
   pilot's three real projects use (2,170 placed elements), the 36-symbol starter set covers 37 types and 74 % of the uses,
   two more types (the nomenclature block and a mounting plate) are covered by report blocks and panel layout, 29 types

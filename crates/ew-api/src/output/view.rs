@@ -29,7 +29,7 @@
 //!   `v5(block, index)` (`GeneratedPage::id`); every PDF destination is unique.
 //! - **Frame form**: `Page.form`, else the frame defaults of the project settings (doc 03 §5.1 `FrameDefaults`,
 //!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`), else the
-//!   no-grid frame [`NOGRID_FRAME`] (the form of the project library with that key); a generated page's
+//!   no-grid frame [`NOGRID_FRAME`](ew_schema::starter::NOGRID_FRAME) (the form of the project library with that key); a generated page's
 //!   `GeneratedPage::form` (its block's form on the set's paper, `ew_reports::layout::list_frame`), else the no-grid
 //!   frame; a divider the frame defaults' `section_divider` entry, else the
 //!   no-grid frame. A frame-defaults form the project does not hold falls through to the next rule. The
@@ -147,17 +147,6 @@ fn bus_cable_text(q: &Q, c: &ew_schema::Connection) -> Option<String> {
     });
     (!drawn).then(|| super::properties::device_tag_text(q, cable))
 }
-
-/// The key of the frame form of dividers, and of pages without a form.
-pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";
-/// The key of the shipped frame with the column and row grid.
-pub const GRID_FRAME: &str = "ew.frame.qet-a4-landscape-grid";
-/// The key of the shipped cover frame.
-pub const COVER_FRAME: &str = "ew.frame.qet-a4-landscape-cover";
-/// The key of the shipped title block, which the shipped A4 frames name.
-pub const TITLE_BLOCK: &str = "ew.titleblock.qet-a4";
-/// The key of the shipped A3 frame with the grid (FT-1826), which names the A3 title block.
-pub const A3_GRID_FRAME: &str = "ew.frame.qet-a3-landscape-grid";
 
 /// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
 /// and without the grid, the cover frame and the title block they name; the A3 landscape frame with the grid and its
@@ -297,7 +286,7 @@ pub(crate) fn page_frame_id(q: &Q, key: &PageRef) -> Option<Id<FormDef>> {
                     .meta
                     .key
                     .as_ref()
-                    .is_some_and(|k| k.as_str() == NOGRID_FRAME)
+                    .is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
             })
             .map(|(id, _)| id)
     })
@@ -330,7 +319,7 @@ impl Query for PageFrameOf {
 pub(crate) fn new_page_map(q: &Q, kind: &PageType) -> ew_scene::forms::SheetMap {
     frame_form_of(q, None, kind, true)
         .and_then(|id| form(q, id))
-        .or_else(|| form_by_key(q, NOGRID_FRAME))
+        .or_else(|| form_by_key(q, ew_schema::starter::NOGRID_FRAME))
         .map_or(ew_scene::forms::SheetMap::IDENTITY, |f| {
             ew_scene::forms::SheetMap::of(&f)
         })
@@ -1969,7 +1958,9 @@ impl crate::Session {
     pub fn new_page_form(&self, from: Uuid, kind: &str) -> Option<Uuid> {
         let q = self.query();
         let kind: PageType = serde_json::from_value(serde_json::Value::String(kind.to_owned())).ok()?;
-        if frame_form_of(&q, None, &kind, true).is_some() || form_by_key(&q, NOGRID_FRAME).is_some() {
+        if frame_form_of(&q, None, &kind, true).is_some()
+            || form_by_key(&q, ew_schema::starter::NOGRID_FRAME).is_some()
+        {
             return None;
         }
         let own = q.pages().get(Id::from_uuid(from))?.form?;

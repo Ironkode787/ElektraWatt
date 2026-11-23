@@ -27,8 +27,8 @@ const FRAME_NOGRID_KEY: &str = "ew.frame.qet-a4-landscape-nogrid";
 const TITLE_BLOCK_A3_KEY: &str = "ew.titleblock.qet-a3";
 const FRAME_A3_KEY: &str = "ew.frame.qet-a3-landscape-grid";
 
-/// The provisional built-in library (decision), as in `ew-import-qet`.
-const BUILTIN_LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
+/// The built-in library.
+const BUILTIN_LIBRARY: Uuid = ew_schema::starter::LIBRARY;
 
 /// The style keys the text style table knows.
 const STYLE_KEYS: [&str; 14] = [

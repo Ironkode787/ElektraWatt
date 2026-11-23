@@ -253,6 +253,35 @@ fn the_shipped_content_passes_the_audit() {
     assert_eq!(audit(&repo()), Vec::<String>::new());
 }
 
+/// Every starter name that code refers to (`ew_schema::starter`) is a shipped document of the system library; a
+/// function definition at a version that a reference's requirement takes.
+#[test]
+fn every_starter_name_code_refers_to_is_shipped() {
+    use ew_schema::starter;
+    let root = repo().join("content");
+    let mut paths = Vec::new();
+    for dir in ["symbols", "fndefs", "forms"] {
+        files(&root.join(dir), &mut paths);
+    }
+    let docs: Vec<Value> = paths.iter().flat_map(|p| records(p)).collect();
+    for key in starter::KEYS {
+        let doc = docs
+            .iter()
+            .find(|d| d["meta"]["key"].as_str() == Some(key))
+            .unwrap_or_else(|| panic!("{key}: no starter document"));
+        assert_eq!(
+            doc["library_id"].as_str(),
+            Some(starter::LIBRARY.to_string().as_str()),
+            "{key}: library_id"
+        );
+        let version = doc["version"].as_str().unwrap_or_default();
+        assert!(
+            doc["$k"] != "fndef" || ew_library::version_matches(starter::VERSION_REQ, version),
+            "{key}: version {version}"
+        );
+    }
+}
+
 /// SC-2 (NFR-LIC-06): no shipped record names a vendor file: every source is the project's own (`ew.original`), a
 /// golden table row or a repository document.
 #[test]

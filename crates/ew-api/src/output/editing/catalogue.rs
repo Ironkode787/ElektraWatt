@@ -821,7 +821,9 @@ fn symbol_row(
     let placed_by = match def.as_ref().map(|d| d.item.category.0.as_str()) {
         Some("InterruptionPoint") => PlacedBy::InterruptionTool,
         Some("ExternalReference") => PlacedBy::Program,
-        Some("Graphic") if key.split('@').next() == Some("ew.gen.wire-marker") => PlacedBy::MarkerTool,
+        Some("Graphic") if key.split('@').next() == Some(ew_schema::starter::GEN_WIRE_MARKER) => {
+            PlacedBy::MarkerTool
+        }
         Some("Graphic") => PlacedBy::Program,
         _ => PlacedBy::Device,
     };

@@ -10,7 +10,7 @@ use ew_schema::{
     BoxCp, BoxSpec, Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, Dir4, FnRole,
     FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef,
     PartUse, PlcModule, PlcStation, Record, Representation, Side, SlotOverride, Strip, TagPrint, TagScheme,
-    TagSign, TagSpec, Terminal, TerminalGroup, pair_template_cps,
+    TagSign, TagSpec, Terminal, TerminalGroup, pair_template_cps, starter,
 };
 use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 
@@ -852,8 +852,8 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         // EW's arrow forms are their direction's (`ew.gen.ip` the source's outgoing arrow,
         // `ew.gen.ip-target` the target's incoming one, each with its `@qet10` edition).
         let target_form = match symbol.split('@').next() {
-            Some("ew.gen.ip") => Some(false),
-            Some("ew.gen.ip-target") => Some(true),
+            Some(starter::GEN_IP) => Some(false),
+            Some(starter::GEN_IP_TARGET) => Some(true),
             _ => None,
         };
         let wants = ip_fn

@@ -13,8 +13,9 @@
 use std::collections::BTreeMap;
 
 use ew_interop_api::ew_ids::v5;
+use ew_interop_api::ew_schema::starter;
 use ew_interop_api::{
-    Code, ImportError, ImportInput, Limits, PartDraft, ReportEntry, SYSTEM_LIBRARY, Severity, SourceLocation,
+    Code, ImportError, ImportInput, Limits, PartDraft, ReportEntry, Severity, SourceLocation,
 };
 use ew_mltext::{Ident, LangTag};
 use quick_xml::events::{BytesStart, Event};
@@ -37,12 +38,6 @@ const MAX_ENTRIES: usize = 1_000;
 /// not fit the 256 MB of doc 14 §11).
 const MAX_PINS: usize = 4_096;
 const MAX_PINS_TOTAL: usize = 262_144;
-
-/// The function definition of a template whose EPLAN definition is not mapped: EW's generic black box.
-const GENERIC_FNDEF: &str = "ew.fn.blackbox";
-
-/// The `version_req` of a reference to a starter function definition.
-const BUILTIN_VERSION_REQ: &str = "^0.1";
 
 // -------------------------------------------------------------------------------------------------------------------
 // The function-definition table
@@ -510,12 +505,12 @@ impl Notes {
     }
 }
 
-/// The reference to the starter function definition `key`: `v5(SYSTEM_LIBRARY, key)`.
+/// The reference to the starter function definition `key`: `v5(starter::LIBRARY, key)`.
 fn builtin(key: &str) -> Value {
     json!({
-        "library": SYSTEM_LIBRARY.hyphenated().to_string(),
-        "item": v5::library_item_id(SYSTEM_LIBRARY, key).hyphenated().to_string(),
-        "version_req": BUILTIN_VERSION_REQ,
+        "library": starter::LIBRARY.hyphenated().to_string(),
+        "item": v5::library_item_id(starter::LIBRARY, key).hyphenated().to_string(),
+        "version_req": starter::VERSION_REQ,
         "key": key,
     })
 }
@@ -559,7 +554,8 @@ fn pins(
                     Some(member),
                     Some(article.line),
                 );
-                (GENERIC_FNDEF.to_owned(), None)
+                // A template whose EPLAN definition is not mapped: EW's generic black box.
+                (starter::FN_BLACKBOX.to_owned(), None)
             }
         };
         let slot = match groups.iter().position(|g| g.0 == fndef) {
