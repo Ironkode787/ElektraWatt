@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A terminal placed where a terminal of its strip already stands lands two grid steps
-//! to the right. The ghost shows where it lands, not the click, and the "Placed" toast
+//! A terminal placed where a terminal of its strip already stands lands the strip's pitch on the page (three grid
+//! steps) to the right. The ghost shows where it lands, not the click, and the "Placed" toast
 //! says why it moved, in en-GB and nl-NL. On a writable copy of the sample's folio 103: terminal 70 of -X1031 at grid
 //! index (60, 28), then terminals 71 and 72 of -X1031 clicked on the same point.
 
@@ -69,9 +69,10 @@ fn a_terminal_moved_off_its_strip_s_terminal_shows_where_it_lands_and_says_why()
     placed(&mut s, "70", (60, 28));
     assert_eq!(toast(&s), "Placed -X1031 terminal 70 at 103-D9.");
 
-    // The click point is taken by terminal 70: the ghost stands two grid steps right, where the terminal lands.
+    // The click point is taken by terminal 70: the ghost stands the strip's pitch on 103 (three grid steps) right,
+    // where the terminal lands.
     hover(&mut s, "71", (60, 28));
-    let landing = page_of(&s, (62, 28));
+    let landing = page_of(&s, (63, 28));
     assert_eq!(ghost_at(&s), (Some(landing), Some(landing)));
     done(&mut s, "canvas.activate_alt", json!({}));
     done(&mut s, "tool.select", json!({}));
@@ -82,15 +83,15 @@ fn a_terminal_moved_off_its_strip_s_terminal_shows_where_it_lands_and_says_why()
     );
     assert_eq!(
         toast(&s),
-        "Placed -X1031 terminal 71 at 103-D10, 2 grid steps right: -X1031 has a terminal on the click point."
+        "Placed -X1031 terminal 71 at 103-D10, 3 grid steps right: -X1031 has a terminal on the click point."
     );
 
-    // Two terminals stand on the way: four steps, in Dutch.
+    // Two terminals stand on the way: six steps, in Dutch.
     language(&mut s, "nl");
     placed(&mut s, "72", (60, 28));
     assert_eq!(
         toast(&s),
-        "-X1031 klem 72 geplaatst op 103-D10, 4 rasterstappen naar rechts: -X1031 heeft een klem op het klikpunt."
+        "-X1031 klem 72 geplaatst op 103-D10, 6 rasterstappen naar rechts: -X1031 heeft een klem op het klikpunt."
     );
     language(&mut s, "en");
 

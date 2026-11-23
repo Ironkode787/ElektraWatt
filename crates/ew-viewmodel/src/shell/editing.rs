@@ -1313,11 +1313,17 @@ impl ShellModel {
             _ => 1,
         };
         let row = u32::try_from(row).unwrap_or(1).clamp(1, TERMINAL_ROW_MAX);
+        // The spacing Terminal… gave; else a strip drawn on the page keeps its pitch; else a pick's step.
+        let pitch = match &target {
+            PlaceTarget::Terminal { strip, .. } => self.strip_pitch(strip),
+            _ => None,
+        };
         let spacing = p
             .get("spacing")
             .and_then(Value::as_u64)
             .and_then(|s| u32::try_from(s).ok())
-            .unwrap_or(super::TERMINAL_SPACING_DEFAULT)
+            .or(pitch)
+            .unwrap_or(super::TERMINAL_PICK_STEPS)
             .clamp(1, TERMINAL_SPACING_MAX);
         self.activate_tool(Box::new(
             PlaceTool::new(shape, target)

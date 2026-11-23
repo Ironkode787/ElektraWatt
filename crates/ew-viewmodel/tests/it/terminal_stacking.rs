@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A terminal placed on a page point where a terminal of the same strip already
-//! sits moves to the next free point to the right, two grid steps along, as the terminals of
-//! one cell stand 20 QET px apart; a terminal of another strip is not moved.
+//! sits moves to the next free point to the right, the strip's pitch on the page along (three grid steps for -X1031
+//! on 103); a terminal of another strip is not moved.
 
 use crate::common;
 
@@ -42,13 +42,13 @@ fn place(s: &mut ShellModel, strip: &str, designation: &str, k: (i64, i64)) -> S
 }
 
 #[test]
-fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
+fn terminals_of_one_strip_on_one_point_stack_at_its_pitch() {
     let tmp = Tmp::new("ft622");
     let mut s = common::with_a_second_strip_on_103(&tmp);
     done(&mut s, "view.zoom_actual", json!({}));
     let k = (110, 30);
     let p = grid_point(&s, k);
-    // Two grid steps along per terminal already there, by grid index (QET's 10 px is a fractional step in nm).
+    // The strip's pitch along per terminal already there, by grid index (QET's 10 px is a fractional step in nm).
     for (i, d) in ["50", "51", "52"].into_iter().enumerate() {
         let toast = place(&mut s, "-X1031", d, k);
         assert!(
@@ -56,7 +56,7 @@ fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
             "{toast}"
         );
         let at = pos_of(&s, &format!("-X1031:{d}"));
-        assert_eq!(at, grid_point(&s, (k.0 + 2 * i as i64, k.1)), "-X1031:{d}");
+        assert_eq!(at, grid_point(&s, (k.0 + 3 * i as i64, k.1)), "-X1031:{d}");
     }
     // A terminal of another strip of folio 103 on the same point is not moved.
     let toast = place(&mut s, "-X1032", "60", k);

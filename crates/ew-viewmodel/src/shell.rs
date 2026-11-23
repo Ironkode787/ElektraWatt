@@ -679,8 +679,13 @@ struct Project {
     sections: Vec<(u16, String)>,
 }
 
-/// The spacing of a terminal row in grid steps until the user sets another.
-const TERMINAL_SPACING_DEFAULT: u32 = 2;
+/// The spacing of a terminal row in grid steps until the user sets another: three, the least pitch at which the
+/// terminals' numbers and the strip's designation stand clear of the neighbours' leads (three persona runs at two).
+const TERMINAL_SPACING_DEFAULT: u32 = 3;
+
+/// How far a single picked terminal steps off a terminal of its strip it would stand on, in grid steps, where the page
+/// shows no pitch of that strip: the sample's cells hold their terminals two steps apart.
+const TERMINAL_PICK_STEPS: u32 = 2;
 
 /// All state of the application shell.
 pub struct ShellModel {

@@ -277,7 +277,7 @@ impl ShellModel {
     /// `new`), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
     /// terminal part of the kinds: [`Self::terminal_part_proposal`] proposes one, and a part chosen sets its kind), how
     /// many and from which number (empty: the strip's next free one). Place then arms the Place tool with the first
-    /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
+    /// terminal floating; a click places the row, each terminal on the next free point the spacing right of the one
     /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
     /// out take the form's defaults. Spacing (`spacing`, grid steps, shown with their length) is how far apart the row's
     /// terminals stand, kept for the next row as the user setting `terminal_spacing` (FT-1791). Levels (`levels`, 1 or
@@ -532,6 +532,37 @@ impl ShellModel {
             .terminal_spacing
             .unwrap_or(super::TERMINAL_SPACING_DEFAULT)
             .clamp(1, TERMINAL_SPACING_MAX)
+    }
+
+    /// The pitch of strip `strip` (its device ID text) on the page shown, in grid steps: the least distance between two
+    /// of its terminals standing in one row there; `None` for a strip with fewer than two terminals in a row there (a
+    /// strip already drawn keeps its pitch when a terminal is added to it).
+    pub(super) fn strip_pitch(&self, strip: &str) -> Option<u32> {
+        let page = self.canvas()?.page();
+        let step = page.snapper.page_of_index(1).max(1);
+        let q = self.project_session()?.query();
+        let ours = |d: &Uuid| {
+            d.to_string()
+                .parse()
+                .ok()
+                .and_then(|d| q.devices().get(d))
+                .and_then(|d| d.aspects.terminal.as_ref())
+                .is_some_and(|t| t.strip.as_uuid().to_string() == strip)
+        };
+        let mut at: Vec<(i64, i64)> = page
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.terminal && r.device.as_ref().is_some_and(ours))
+            .map(|r| (r.pos.1, r.pos.0))
+            .collect();
+        at.sort_unstable();
+        at.windows(2)
+            .filter(|w| w[0].0 == w[1].0 && w[1].1 > w[0].1)
+            .map(|w| w[1].1 - w[0].1)
+            .min()
+            .and_then(|d| u32::try_from((d + step / 2) / step).ok())
+            .filter(|n| (1..=TERMINAL_SPACING_MAX).contains(n))
     }
 
     /// The Spacing field's choices: 1 to [`TERMINAL_SPACING_MAX`] grid steps, each with its length on the page shown
@@ -797,8 +828,8 @@ impl ShellModel {
     }
 
     /// FT-1695: after the first terminal of a Terminal… row the rest of the row, each by the Place tool's own commit at
-    /// the same point (it lands on the next free point two grid steps right of a terminal of its strip). Undo and Redo
-    /// take the row whole (`row_steps`), and Select takes over: one click places the count once (four clicks with
+    /// the same point (it lands on the next free point the row's spacing right of a terminal of its strip). Undo and
+    /// Redo take the row whole (`row_steps`), and Select takes over: one click places the count once (four clicks with
     /// How many 4 gave sixteen terminals).
     pub(super) fn place_terminal_row(&mut self) {
         let rest = |s: &mut Self| {
