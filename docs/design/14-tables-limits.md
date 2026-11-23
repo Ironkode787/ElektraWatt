@@ -20,7 +20,7 @@ Every report row source and navigator table exports as XLSX and CSV with the row
 Tags and locations are string cells, so Excel never evaluates "-101F1" or "+J-E-2416". The CSV dialects and the
 formula-injection guard of the Excel presets are [09](09-reports-forms-output.md) §4.6 (FR-EXP-003).
 
-*As built.* The workbook comes from `ew-reports`' own writer over `ew-zip` (inline strings), its `id` column always
+The workbook comes from `ew-reports`' own writer over `ew-zip` (inline strings), its `id` column always
 written; `_ew_base`'s SHA-256 is made in `ew-api` (`with_base_digest`), since `ew-reports` takes no hash. `ew export
 table <navigator>` writes a navigator's table unfiltered (`--strip` for one strip, the key `nav:strips/<uuid>`); its
 CSV defaults to the `ew` preset, which has no `id` column, so a round-trip CSV takes `excel-nl`, `excel-en` or
@@ -51,22 +51,21 @@ navigator in table mode as a job, the `id` column and the `_ew` sheets always ke
 Acceptance (FR-EXP-004): editing five function texts of -X1031 in the exported table and re-importing changes
 exactly five fields in one undo step; editing a row whose terminal was deleted in EW meanwhile is reported.
 
-*As built.*
-Step 1 reads an XLSX with WP-S3.08's own bounded reader (`ew_import_catalog::sheet`, `_ew` and `_ew_base` read whole),
+Step 1 reads an XLSX with the parts import's own bounded reader (`ew_import_catalog::sheet`, `_ew` and `_ew_base` read whole),
 not calamine, and a CSV with its table named (`--table`, or the window's view key) and its preset inferred from the
 separator. Rows match by ID, the I/O list's also by station, slot and channel; an unknown ID is reported
 (EW-IMP-303), never created. A value the column's parser refuses is a cell outcome, not a finding; EW-IMP-305
 applies the value with a warning; in three-way mode a read-only column has no base. Step 6 is one `fields.set_many`
 of the applied cells, not `table.apply_changes`: `ew import table` previews, and commits with `--apply`. The window's
-Import table… opens the import card in the Preview tab ([16](16-ux-ui.md) §7.7); a conflict keeps EW's value until
-the switch "Take the file's values" lands.
+Import table… opens the import card in the Preview tab ([16](16-ux-ui.md) §7.7); a conflict keeps EW's value (the
+switch "Take the file's values" is not built).
 
 ### 8.3 BOM for purchasing
 
 FR-EXP-005 is a column-map profile over `bom_component` or `bom_assembly`, like the machine profiles of
 [13](13-manufacturing-outputs.md): aggregated by part with quantity and unit, manufacturer, part number, type,
-description, ETIM or ECLASS class and DTs (compressed into ranges). The golden component export lists each -X1031
-terminal part once with its quantity and 571334 once with quantity 28 (D-04).
+description, ETIM or ECLASS class and DTs (compressed into ranges), so each part is listed once with its quantity
+(D-04).
 
 ### 8.4 CSV bootstrap
 
@@ -77,25 +76,22 @@ keeps the name of the reference project the bootstrap was built for, because a n
 ID. It runs in **strict** mode by default. Its tests run on the hand-written tables of `fixtures/tables/` (the
 importer's own and `bin/ew`'s `import csv` test).
 
-*As built.* `TablesImporter` (§2.1) reads the tables whose schemas `crates/ew-import-tables/src/schema.rs` gives:
-project, parties and structure, sections, pages and report blocks, parts, devices, terminals, functions,
-representations and the connectivity tables. PLC and bus, fluid, layout and the configured products were
-not covered at first, because their record kinds are reserved in schema v0, and
-`colour_profile`, `size_profile` and `revisions` are read but not emitted (one EW-IMP-004 each). The importer never
+`TablesImporter` (§2.1) reads the tables whose schemas `crates/ew-import-tables/src/schema.rs` gives, and its crate
+head names the records each table gives: project, parties and structure, sections, pages and report blocks, parts,
+devices, terminals, functions, representations, the connectivity tables, PLC and bus, assemblies, revisions, the
+colour and size profiles and the panel layout; fluid has no table. The importer never
 repairs a table: a malformed or duplicate row is dropped with EW-IMP-002, a row with an unresolved reference with
 EW-IMP-003, and a position or symbol anchor off the page's connection grid is an EW-IMP-002 error that drops the
 row, never a snap, because the grid rule binds every origin ([06](06-schematic-editor.md) §5.7); a key that is not in NFC is refused with EW-IMP-002 as well. A function is template-origin when its device carries a part whose template declares a function
 with the same FnDef (and role, if given); the part's CP pattern then defines its CP index space. A
-manufacturer is referenced by its name in a `LibRef`'s `extra.key` until a manufacturer library copy exists.
-Not covered at first: the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others", the -201U1:DP
-port, and the PLC, fluid, layout and configured-product tables.
+manufacturer is referenced by its name in a `LibRef`'s `extra.key`.
 
-*As built.* `ImportContext.mode` (`Strict`, the default, or `Lenient`) reaches the table readers, and `bootstrap_context()` is strict. A colour cell whose two-letter codes are IEC 60757 codes or aliases of §4.12, at least one of them an alias, holds a foreign code. A strict import refuses the row (EW-IMP-002, naming EW-CORE-031). A lenient one keeps `ColourCode::Foreign` and reports EW-IMP-008 with the quick fix "use BN" on conductors and connection overrides: a declarative `fields.set` with the alias mapped, which the session applies like any command (D-17). Cable cores and the colour profile get the finding without a fix. `assembly_configs.csv` emits the assembly aspect (doc 20 §14.2). The QET project import sets `Lenient`. `ew import csv <dir> --out <project>` takes `--strict` (the default: an import with error findings writes nothing and exits 1) and `--lenient` (it writes the project with them). The "GN/YE" alias of §4.12 is not yet accepted by the table reader (FT-259); EW-CORE-031 as a live check, which then owns the fix, is FT-261.
+`ImportContext.mode` (`Strict`, the default, or `Lenient`) reaches the table readers, and `bootstrap_context()` is strict. A colour cell whose two-letter codes are IEC 60757 codes or aliases of §4.12, at least one of them an alias, holds a foreign code. A strict import refuses the row (EW-IMP-002, naming EW-CORE-031). A lenient one keeps `ColourCode::Foreign` and reports EW-IMP-008 with the quick fix "use BN" on conductors and connection overrides: a declarative `fields.set` with the alias mapped, which the session applies like any command (D-17). Cable cores and the colour profile get the finding without a fix. `assembly_configs.csv` emits the assembly aspect. The QET project import sets `Lenient`. `ew import csv <dir> --out <project>` takes `--strict` (the default: an import with error findings writes nothing and exits 1) and `--lenient` (it writes the project with them). The "GN/YE" alias of §4.12 is not accepted by the table reader, and EW-CORE-031 as a live check, which would then own the fix, is not built.
 
-*As built.* A black box without drawn geometry gets its `Representation.box` from the
+A black box without drawn geometry gets its `Representation.box` from the
 part's CP pattern: the first ⌊n/2⌋ pattern CPs sit on the top edge leaving up, the rest on the bottom edge leaving
 down, at x = 1 + 2i grid steps, and the outline is 2·max(n_top, n_bottom, 5) × 6 grid steps, all on exact page-grid
-points. The representation table carries an `arrangement` column for the hidden tags of doc 20 §6.2.
+points. The representation table carries an `arrangement` column, a named slot set of the symbol.
 
 ### 8.5 Translation exchange: XLIFF 2.1 and CSV (1.0)
 
@@ -128,7 +124,7 @@ step.
 | QET `.qet` (FR-EXP-010) | `version="0.100.0"`; UUID conductor ends; EW symbols converted to embedded definitions; xref formula `%F-%l%c`; EW-only fields (process tag, channel, potential names) as folio `<properties>`; every lossy item listed in an export report | 1.x Could |
 | EPLAN-importable XML (FR-EXP-011) | not designed in v1 | Later |
 | Personal-data stripping (FR-EXP-009) | §2.2 | 1.0 |
-| Determinism (FR-EXP-006) | §2.2; CI compares SHA-256 of CSV, XLSX, AML, PLCopen, glTF and `.ewpp` of the golden project on Windows and Linux | MVP |
+| Determinism (FR-EXP-006) | §2.2; the SHA-256 of CSV, XLSX, AML, PLCopen, glTF and `.ewpp` are compared on Windows and Linux | MVP |
 
 ---
 
@@ -195,15 +191,15 @@ in lenient mode or refuses with a report, never violating a structural invariant
 QET DOM reaches the mapping code beyond the XML parser. Fuzz corpora live in the separate `ew-fuzz-corpus`
 repository; every crash becomes a committed regression input ([18](18-quality-security-release.md) §3.12).
 
-*As built.* The importer
+The importer
 targets that exist are `qet_project` (one `.qet` through the front door, then `ApplyImport` on an empty project),
 `qet_element` (one `.elmt` under `Limits::element_definition()`, through `QetElementImporter::import`),
-`golden_tables` and `parts_table` (a CSV or XLSX supplier table), with WP-S6.04's `table_round_trip` for the table
+`golden_tables` and `parts_table` (a CSV or XLSX supplier table), with `table_round_trip` for the table
 import's own read; each asserts no panic, a strict re-read of every emitted record and D3's contract. Their seeds are
 committed in the fuzz crate (`fuzz/corpus/<target>/`, generated by `seed_corpus` and kept current by settle), not in
 a separate corpus repository, and `fuzz/tests/replay.rs` runs them in CI. The other names above come with their
-importers. The DXF importer's hostile files (WP-S3.19) are the `dxf/` class of the hostile corpus
-(`crates/ew-testkit/hostile/`), each verdict asserted whole within the 256 MB rule. *As built (M2.5, WP-S3.16).* The
+importers. The DXF importer's hostile files are the `dxf/` class of the hostile corpus
+(`crates/ew-testkit/hostile/`), each verdict asserted whole within the 256 MB rule. The
 cargo-fuzz workspace is cut until 1.0; the AML reader, the TIA tag workbook and the instrument list have
 deterministic damage tests in their crates' test binaries instead (truncations and byte damage of a real file: read
 or refused in words, never a panic).
@@ -215,29 +211,29 @@ or refused in words, never a panic).
 | Format | Corpus | Storage | Assertions |
 |---|---|---|---|
 | QET | 24 examples of the QET mirror (0.80–0.200.1, C-14) | fetched at a pinned commit in CI, never committed | §4.15; zero lost connections; deterministic batches |
-| QET | pilot projects including the reference project (PQ-02); three received 2026-10-20 | private store outside the repository, private CI job (20 §3.5); agents read sanitised derived lists only, documents carry counts only | AC-25 … AC-27; 0 lost connections (§4.16) |
+| QET | pilot projects including the reference project (PQ-02) | private store outside the repository, private test runs; agents read sanitised derived lists only, documents carry counts only | AC-25 … AC-27; 0 lost connections (§4.16) |
 | QET | hostile set: NaN coordinates, shared UUIDs, unknown link types, billion-laughs DTD | committed in `tests/hostile/` (own files, CC0; [18](18-quality-security-release.md) §3.12) | EW-IMP-001/002, no crash |
 | QETZ | `.qetz` saved by QET 0.200.1-dev and its `.qet` export; a SQLite file with a view | fetched / generated | equal import; view rejected |
-| EDZ | own synthetic 7z and ZIP EDZ built from CC0 `part.xml` files; vendor EDZ for golden parts as available | committed / private | FR-IMP-025, AC-38 |
+| EDZ | own synthetic 7z and ZIP EDZ built from CC0 `part.xml` files; vendor EDZ for the reference set's parts as available | committed / private | FR-IMP-025, AC-38 |
 | Parts XML | synthetic 50-part export with variants and accessories | committed | FR-IMP-028 |
 | EPLAN tables | terminal-diagram XLSX in German and English layouts (from the pilot or EPLAN users, PQ-04) | private | FR-IMP-029 |
 | DXF | R12, 2000 and 2018 samples generated with open tools; EW's own DXF exports | committed (CC0) | FR-IMP-032, AC-37 |
 | DWG | DWG files with ODA-converted DXF twins | private until licence-clean samples exist | FR-IMP-036, FR-IMP-037 |
-| Tables | golden exports edited by script and by hand in Excel with nl-NL and en-US locales | committed | FR-EXP-003, FR-EXP-004 |
+| Tables | the sample project's exports edited by script and by hand in Excel with nl-NL and en-US locales | committed | FR-EXP-003, FR-EXP-004 |
 | STEP, AML | as in [12](12-panel-layout.md) and [10](10-plc-and-bus.md) | — | — |
 
-*As built (WP-S3.13).* The 26 `.qet` files of the QET mirror's `examples/` at commit
+The 26 `.qet` files of the QET mirror's `examples/` at commit
 `aff5edf3905d111289a9a9328d480e39f9591368` (a duplicate under an accented name left out) are fetched by hand into a
 scratch folder, never committed (GPL, 18 MB):
 `https://raw.githubusercontent.com/qelectrotech/qelectrotech-source-mirror/aff5edf3905d111289a9a9328d480e39f9591368/examples/<name>.qet`.
 The deep-run test `qet_examples` (`EW_QET_EXAMPLES=<folder> cargo nextest run -p ew-api --test it -E
 'test(/^qet_examples::/)' --run-ignored all`) imports each, expects at most two refusals, no lost connection in
-`photovoltaique` and `schema_indus`, and the same batch from a second import of each file. All 26 import, with no lost
-connection. The private pilot runs are `qet_private_corpus` and `golden_c` (`EW_PRIVATE_CORPUS`).
+`photovoltaique` and `schema_indus`, and the same batch from a second import of each file. The private pilot run is
+`qet_private_corpus` (`EW_PRIVATE_CORPUS`).
 
-*As built.* The committed hostile set is
+The committed hostile set is
 `crates/ew-testkit/hostile/`, not `tests/hostile/`: one folder per class (`qet`, `elmt`, `xlsx`, `ewz`, `jsonl`,
-`svg`, `raster` and FT-223's `sql`), each file named after what it tries, with the index `README.md` naming its parser
+`svg`, `raster` and `sql`), each file named after what it tries, with the index `README.md` naming its parser
 and the verdict, CC0-1.0 by the REUSE annotations. The test binary `hostile_corpus` reads each through its parser's
 public entry point (the importers through the front door, the `.elmt` files through `import_qet`), asserts the
 verdict whole and an extra peak allocation of at most 256 MiB; the large files are generated at each run, the small
@@ -259,11 +255,11 @@ are specified in [16](16-ux-ui.md).
 | **DXF import** | Units with an extents preview, layer list with visibility and mapping, model or paper space, target choice |
 | **DXF→symbol wizard** | Block list with thumbnails, attribute mapping, CP pick tool, grid-snap result with the scale proposal |
 | **Table round trip** | "Export table…" and "Import changes…" with a per-cell diff grid and conflict resolution |
-| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md] [--report-out <file>] [--strict]` (MVP; as built: `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]`); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0; as built also `--project <dir> [--apply]`, `--bump`, `--take-over`, `--as-of`, `--fndef-map`, and `ew import parts-xml` likewise, `ew import eplan-report <file> --map <map.toml>|--preset <name> --out <dir>`, `ew lib import qet-elements <library> <dir>`, WP-S3.18); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0; as built also `--as outline`, `--layout`, `--show-layer`, `--on <folio>`, `--embed`, `--library`, `--part`, with `ew import dwg <file> --converter <program>` and `ew import pdf <file> --on <folio> [--page n] [--embed]`, WP-S3.19); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports: a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
+| **CLI** (FR-EXT-008) | The subcommands `ew import qet`, `csv`, `edz`, `parts-xml`, `eplan-report`, `dxf`, `dwg`, `pdf` and `table`, `ew lib import qet-elements` and `ew verify-migration`, with their options in the generated command-line reference; the batch import `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0) and the proposal and lineage options of the review queue are not built. Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports: a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
 | **Concept glossary** | The wizard and the migration report link the QET ↔ EW glossary (element → symbol and FnDef, master/slave → main/auxiliary function, folio report → interruption point, conductor → connection; NFR-DOC-05) |
 
-The CLI default `--proposals pending` applies no proposal, so headless imports are reproducible and Golden C lists
-its findings unresolved; the GUI pre-ticks high-confidence proposals.
+Once proposals exist, the command line applies none by default, so headless imports are reproducible, and the window
+pre-ticks high-confidence proposals.
 
 ---
 
@@ -284,7 +280,7 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
    reported for review (EW-IMP-005); its key is the folio's (`qet:strip:folio:{folio key}`), never a line number,
    so it survives re-import (§4.11).
 6. **Duplicate designations used as function texts** ("1+" ×4): the quick fix renumbers 1–n and moves the old
-   designation into the terminal's function text, which is how Golden A prints "1+" ([08](08-connections-terminals-cables.md) §6.8).
+   designation into the terminal's function text, which is how the reference set's "1+" prints ([08](08-connections-terminals-cables.md) §6.8).
 7. **Excel damage:** dates made from "1-2", lost leading zeros, merged cells (refused per row), a deleted `id` column
    (the import refuses with a hint).
 8. **DXF with `$INSUNITS` 0** is common in EPLAN exports in mm; the prompt pre-selects mm when the extents fit a

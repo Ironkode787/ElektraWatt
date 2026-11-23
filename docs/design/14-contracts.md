@@ -27,10 +27,10 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
 | QET `.elmt` directory (the user's QET collection) | read | `ew-import-qet` (§4.3 mapper) into a user library | 1.0 ([07](07-symbols-parts-macros.md) §3.6) | FR-SYM-029 (07) |
 | Golden tables (CSV) | read | `csv` importer (report format `golden-csv`) in `ew-import-tables` (ARCH §3), the CSV bootstrap of ARCH §13, exposed as `ew import csv` and reused by `ew-testkit` | MVP | FR-IMP-022 |
 | Parts CSV/XLSX | read | `ew-import-catalog` column mapper into a user or company library ([07](07-symbols-parts-macros.md) §3.6) | MVP | FR-PRT-016 (07) |
-| EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.2, its own bounded ZIP reader, quick-xml 0.41.0; §5.2 as built) | 1.0 | FR-IMP-025 … FR-IMP-027 |
+| EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.2, its own bounded ZIP reader, quick-xml 0.41.0; §5.2) | 1.0 | FR-IMP-025 … FR-IMP-027 |
 | EPLAN parts XML | read | `ew-import-eplan` | 1.0 | FR-IMP-028 |
 | EPLAN report exports (XLSX/CSV) | read | `ew-import-eplan` for the mapping, the tables read by `ew-import-catalog`'s own bounded readers (not calamine) | 1.0 | FR-IMP-029 |
-| PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency since WP-S3.19 (ARCH §3) | 1.0 | FR-IMP-030 |
+| PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency (ARCH §3) | 1.0 | FR-IMP-030 |
 | EPLAN `.epj` project XML | read | experimental, behind a flag | Later | FR-IMP-031 |
 | DXF R12–2018 | read | `ew-import-dxf` (own reader, §6.1) | 1.0 | FR-IMP-032 … FR-IMP-035 |
 | DXF AC1024 pages | write | `ew-export` (own writer, §6.4) | 1.0 | FR-OUT-015 (09) |
@@ -44,10 +44,10 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
 | QET `.qet` 0.100 | write | `ew-export` | 1.x | FR-EXP-010 |
 | EPLAN-importable XML | write | — | Later | FR-EXP-011 |
 
-*As built.* **The parts import** (row "Parts CSV/XLSX") is in
+**The parts import** (row "Parts CSV/XLSX") is in
 `ew-import-catalog` behind `ew-interop-api`, which re-exports `ew_schema` and `ew_ids` so the importer keeps its one
 edge. It reads CSV (UTF-8 with or without a BOM, comma or semicolon from the header line, RFC 4180 quoting) and XLSX
-with an **own bounded reader** on `miniz_oxide` and `quick-xml`, not calamine, whose zip changed Golden A's PDF bytes
+with an **own bounded reader** on `miniz_oxide` and `quick-xml`, not calamine, whose zip would change the PDF bytes
 through flate2's backend. A saved column map per source key turns rows into part copies with item IDs
 `v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)` ([07](07-symbols-parts-macros.md) §3.6).
 `ew import parts --map` writes into a project, `ew lib import parts` (`--bump`, `--take-over`) into a user or company library; every row
@@ -170,7 +170,7 @@ importer may raise it explicitly under its own budget.
 `limits`); the other members arrive with the importers that need them.
 
 **Importer IDs, input sets and bootstrap importers** ([ADR-0021](../adr/0021-importers-emit-format-level-records.md)
-amendment 6; decision log ID-64, ID-65). The importer ID is the `<importer>` of the lineage names of §2.3, so the
+amendment 6). The importer ID is the `<importer>` of the lineage names of §2.3, so the
 golden CSV bootstrap's ID is `csv` (`csv␟fixed␟golden`); `golden-csv` is only the name of its report format. An
 importer may read a **set of inputs** instead of one `Source`: an `ImportInput` carries a file name (never a path),
 the bytes and their SHA-256, and `TablesImporter::import(&[ImportInput], &ImportContext)` reads a directory of tables
@@ -193,13 +193,13 @@ import is refused, and the batch is applied only into an empty project.
   match, a layout binding), the importer emits the conservative record and attaches a `Proposal` to a report
   entry (§2.4).
 
-*As built.* The batch is
+The batch is
 `ImportBatch {records, lib, report}`: no `provenance` vector, since each record's own `source_ref` member is its
-provenance, and no `assets` (with the first importer that emits an image). `ReportEntry` gains `targets`
-(the records an entry is about, `{kind, id}`). `Limits` gains `max_archive_entries` (100,000), `max_expanded_bytes`
+provenance, and no `assets`. `ReportEntry` has `targets`
+(the records an entry is about, `{kind, id}`). `Limits` has `max_archive_entries` (100,000), `max_expanded_bytes`
 (2 GiB), `max_entry_bytes` (512 MiB), `max_entry_ratio` (200), `max_input_files` (64), `max_table_rows` (1,000,000)
-and `max_table_columns` (1,024), which `stricter` covers; the crate constants they replace became reads of the
-context's limits, and the report and work caps stay constants. **One front door,** `ew_api::import::front_door`: every
+and `max_table_columns` (1,024), which `stricter` covers; the importers read them from the context, and the report
+and work caps are constants. **One front door,** `ew_api::import::front_door`: every
 host call of an importer (the CLI's imports, the window's QET import and parts import, the fuzz targets) goes through
 it; it refuses inputs over the size, total and file-count limits before the importer runs, runs the importer inside
 `catch_unwind` (a panic becomes a refusal with the model untouched, NFR-REL-12) and checks the batch's contract
@@ -237,7 +237,7 @@ pub struct ExportReport { pub rev: Rev, pub outputs: Vec<OutputMeta{name, sha256
   names or random IDs.
 - **Personal data** (FR-EXP-009, NFR-PRIV-06): `ExportContext.omit_personal_data` removes every field that
   `ew-schema` marks personal (engineer, checker, party persons, XMP authors) from XLSX, CSV, AML, `.ewpp` and
-  `.ewz`. The CI search of FR-EXP-009 runs over all outputs of the golden project.
+  `.ewz`.
 
 ### 2.3 Identity and lineage
 
@@ -296,7 +296,7 @@ Re-importing an edited file into the same lineage keeps the IDs of every item wh
 | Spreadsheet row | the hidden `id` column (§8) | stable |
 | Golden CSV | `{table}\|{row key}` in the lineage anchored `Fixed("golden")`, i.e. `v5(v5(NS_IMPORT, "csv␟fixed␟golden"), "{table}\|{row key}")` | stable |
 
-**As built.** The folio key of these keys is the printed folio label
+The folio key of these keys is the printed folio label
 (`qet:folio-order:{position}` for a repeated label). The lineage is anchored on the QET 0.200 project UUID where the
 file has one, else on `FirstImportSha256`. A conductor end that names a UUID repeated on its folio is resolved to the
 copy whose terminal position matches the conductor's route (its first or last point), through one terminal-position
@@ -307,10 +307,9 @@ neither line numbers nor document order where the source has identifiers, so an 
 IDs (FR-IMP-040).
 
 **Persisted provenance.** Every imported record carries `source_ref: {lineage, key}`. Locations (file, member,
-folio, cell, line) live only in the import run, which keeps entity files small. Golden C's equivalence test ignores
-the `id`, `source_ref` and provenance columns.
+folio, cell, line) live only in the import run, which keeps entity files small.
 
-*As built.* **Two hashes
+**Two hashes
 per record.** `ImportRun.record_hashes` maps each imported record's ID to `{source, ew?}`: `source` is the first
 128 bits of SHA-256 over the record's canonical line as the importer emitted it (`$k` first, the members in
 declaration order, as `ew-format` writes it) less its `source_ref` member, `ew` the same over the record as committed
@@ -349,15 +348,15 @@ pub enum Proposal { MergeStructure{from, into}, SetFields{target, fields}, BindT
   import-only facts such as "Tahoma substituted" or "custom SQL dropped" stay visible after the import (MF-22
   "stays as an info in the migration history").
 
-*As built.* `ImportRun` is typed within the
-unreleased format 0.1 (ADR-0011 amendment 4) with the members `id` (UUIDv7), `lineage` (a link; EW-CORE-008 when it
+`ImportRun` is typed within
+format 0.1 (ADR-0011 amendment 4) with the members `id` (UUIDv7), `lineage` (a link; EW-CORE-008 when it
 dangles, no cascade), `importer`, `importer_version`, `source` `{name, sha256, size, format, format_version?}`,
 `as_of?`, `mode` (`strict` or `lenient`), `entries` (each `{code, severity, defect?, message, location?, targets,
 fix?}`, a fix being `{label, command, params}`), `stats`, `record_hashes` and `extra`; no options digest and no
-`acknowledged` member (FT-1466). `ImportLineage.last_run` links the lineage's last run. A run is never changed after
-its transaction and no command deletes one. The QET project import writes a run; the golden CSV bootstrap, the parts
-table import and the table round trip write none, so Golden A stays byte-equal. Proposals are not built: an entry
-carries at most a quick fix, and the review queue is FT-1465.
+`acknowledged` member. `ImportLineage.last_run` links the lineage's last run. A run is never changed after
+its transaction and no command deletes one. The QET project import writes a run; the CSV bootstrap, the parts
+table import and the table round trip write none. Proposals and the review queue are not built: an entry
+carries at most a quick fix.
 
 ### 2.5 The migration report
 
@@ -368,10 +367,9 @@ The migration report of FR-IMP-003 is one check-run view over two sources:
 | **Import findings** `EW-IMP-nnn` from the `ImportRun` | Facts visible only at import: dropped, substituted, inferred, recognised, conflicting per-folio values | Persisted; acknowledged items turn into info |
 | **Lenient check findings** of the `migration` scheme on the candidate ([15](15-checks-revisions-collaboration.md) §10.2) | EW-TERM-001/002 (D-11, D-12), EW-RDS-010 (D-03), EW-CORE-023 (D-06), EW-CORE-031 (D-17), EW-POT-013 (D-13), EW-CORE-053 (D-14, FR-CHK-035) … | Live: they disappear when the model is fixed |
 
-**As built.** The import front door runs the `migration` scheme of `ew-checks` on the
+The import front door runs the `migration` scheme of `ew-checks` on the
 imported model (`ew_api::import::lenient_findings`): every `pre-delivery` rule that is built (EW-TERM-001/002/005,
-EW-RDS-004, EW-POT-001/008/011/012/014, EW-CORE-033/051/052/081), lenient. EW-TERM-002 skips the fallback strips `X?<page>`. The path through `ApplyImport`
-is still open; rules that are not built yet are not evaluated on an import.
+EW-RDS-004, EW-POT-001/008/011/012/014, EW-CORE-033/051/052/081), lenient. EW-TERM-002 skips the fallback strips `X?<page>`. Rules that are not built are not evaluated on an import.
 
 The panel filters both by lineage, sorts by folio and cell, and offers each quick fix as a previewed command
 (FR-CHK-010). `ew import … --report json|csv|md` writes the same list.
@@ -381,7 +379,7 @@ that is still in the model. Where both name the same targets and defect class (E
 +JE2416; EW-IMP-105 and EW-CORE-023 on folio 101; EW-IMP-114 and EW-CORE-063), the migration report shows one row
 under the live rule ID, with the import code as its origin and the import proposal as its quick fix. EW-IMP-110 has
 no live counterpart until the assembly exists; EW-CORE-046 (FR-CHK-022) takes over after the reconstruction step
-(§4.13). Golden C therefore lists each MF row exactly once (AC-25).
+(§4.13). A migration report therefore lists each condition once (AC-25).
 
 **Import finding catalogue.**
 
@@ -425,21 +423,21 @@ no live counterpart until the assembly exists; EW-CORE-046 (FR-CHK-022) takes ov
 | EW-IMP-25n | DXF and DWG: 251 units missing (prompted), 252 SHX substituted, 253 entity unsupported, 254 external reference not followed, 255 hatch pattern reduced to its boundary, 256 CP snapped, 257 DWG converted through ODA | info–warning | — | — |
 | EW-IMP-30n | Tables: 301 derived column edited, 302 row changed in EW since export, 303 unknown ID, 304 cell conflict, 305 lossy Excel conversion | info–warning | — | resolve |
 
-Golden C's MF-01 … MF-27 map onto these codes and live rules in §15.2. The `EW-IMP` family is registered with the
+The `EW-IMP` family is registered with the
 rule catalogue of [15](15-checks-revisions-collaboration.md) as message class 160 (EW-IMP-101 prints as `160101`)
 and documented per code like every rule (NFR-DOC-02).
 
 *Decided.* A strict import that meets a value a prevent rule would refuse drops only that row, under EW-IMP-002 with the rule in the message; no separate code is added, because the row is skipped exactly like a malformed one and the rule ID keeps the cause visible.
 
-*As built.* **The migration report is a check run.** The `EW-IMP` codes the
+**The migration report is a check run.** The `EW-IMP` codes the
 importers emit, with EW-IMP-010 and EW-IMP-011, are rows of `ew-checks`' catalogue, message class 160, each with a
 rule page; a run of the `migration` scheme (and of `full`) reads the run of each lineage's `last_run` and adds each
-entry as a finding at its severity, in words, with its targets and its quick fix (EW-IMP-103's is the one built), so the import goes through `ApplyImport`. **Folding:** an entry whose code forms a
+entry as a finding at its severity, in words, with its targets and its quick fix (EW-IMP-103's is the one built). **Folding:** an entry whose code forms a
 pair of the fixed list {EW-IMP-102 with EW-RDS-010, EW-IMP-105 with EW-CORE-023, EW-IMP-114 with EW-CORE-063} with a
 live finding on the same targets is not listed, and the live finding carries the import code as its origin. `ew import
 qet --report` renders the run of the candidate, `ew check --scheme migration` that of a saved project, and Messages
 offers "Migration report" beside the project's scheme while a lineage exists. Since only each lineage's last run is
-read, a re-import that writes a run drops the EW-IMP-010 row of a record removed at an earlier one (WP-S3.09 IC-12's note).
+read, a re-import that writes a run drops the EW-IMP-010 row of a record removed at an earlier one.
 
 ---
 
@@ -495,8 +493,7 @@ flowchart LR
 
 `ew import` takes the project lock like every writing command ([05](05-project-format-and-persistence.md) §6.4).
 
-*As built.*
-Steps 1 to 6 and 8 are built; step 7's review queue is not (FT-1465), and of the import passes only what the
+Steps 1 to 6 and 8 are built; step 7's review queue is not, and of the import passes only what the
 normalisers already did runs. The window runs the importer as a job on its own thread, while the transaction and the
 preview stay on the window thread, since a `Session` cannot move between threads. `ApplyImport` is one internal
 transaction, `import.apply` (origin `import`, not in the public command catalogue): it embeds the batch's library
@@ -509,8 +506,7 @@ connections), gives a verdict (everything imported; points worth a look; points 
 starter library, and lists the kinds of findings of the migration report under what they ask of the reader (Needs a
 fix, Worth a look, For your information), each kind with its count and the rule's title, the most frequent first.
 Its button is Create project, which is the confirmation (a script passes `confirm`), then the unsaved-changes
-question for whatever project is open then; Cancel writes nothing. (Until M2.5-Fix the card showed counts of
-errors, warnings and infos and a list of page numbers, its button was Apply, and a second dialog asked again.) **Re-import:** `ew import qet <file> --into <project>`
+question for whatever project is open then; Cancel writes nothing. **Re-import:** `ew import qet <file> --into <project>`
 prints the classes and writes nothing, `--apply` commits and saves; the window's re-import card lists the rows, and
 Apply is one undo step.
 
@@ -566,10 +562,10 @@ stateDiagram-v2
 - **Lineage detection.** QET 0.200 project UUID → automatic. Otherwise a proposal when the file name matches and at
   least 50 % of the batch's source keys exist in a lineage (threshold configurable).
 
-*As built.* The six classes are built as drawn, with the two hashes of §2.3's note; a conflict keeps EW's record and
+The six classes are as drawn, with the two hashes of §2.3's note; a conflict keeps EW's record and
 lists ours and theirs per changed member, with EW-IMP-011, and a removed record is kept with EW-IMP-010. A base record
 already deleted in EW stays deleted. Re-importing the identical file writes nothing, and a removed record carries no
 base hash in the run an applied re-import writes, so the same file again finds nothing to do. The 50 %
-threshold is fixed, not configurable, and import as a copy is not built (FT-1467). A project whose run was written
-before the canonical-line hash is imported afresh (WP-S3.09 D11's note).
+threshold is fixed, not configurable, and import as a copy is not built. A project whose run was written
+before the canonical-line hash is imported afresh.
 

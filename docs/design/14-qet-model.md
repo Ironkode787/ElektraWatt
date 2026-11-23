@@ -48,7 +48,7 @@ rejected (§14).
   ([06](06-schematic-editor.md) §2.5, where Mn mirrors about the symbol's vertical axis and then rotates by n). With
   QET 0.200 `mirror`, and assuming QET mirrors in the element frame before rotating: `horizontal` → M(90k),
   `vertical` → M(180 + 90k), `both` → R(180 + 90k), angles mod 360. The assumption is unverified and is fixed by
-  rendering mirrored corpus elements in QET and in EW. *As built:* QET 0.100, the pilot's
+  rendering mirrored corpus elements in QET and in EW. QET 0.100, the pilot's
   version, writes no `mirror` (the pilot's projects hold none), and the importer reads none, so an element a later
   QET mirrors arrives unmirrored.
 - **Grid-line positions.** On QET's default border (17 × 60 px columns,
@@ -56,18 +56,16 @@ rejected (§14).
   `next_report`/`previous_report`, a master or a slave) that lies exactly on an inner column or row line
   (x = 25 + k × 60, y = 25 + k × 80 px: the border sits 5 px from the scene origin) moves 2 nm left or up. QET's `convertPosition` takes the ceiling, so a line
   point belongs to the left column or upper row; EW's cell rule (floor, unchanged) would put it right or below, and
-  2 nm leave the cell rule's 1 nm snap window, so the printed cells are QET's (Golden C: 102-C15, 103-G6, (202-E1)).
+  2 nm leave the cell rule's 1 nm snap window, so the printed cells are QET's.
   Every other element (terminals, simple elements) keeps its exact position. This is an exception to FR-IMP-008's
   "0 nm deviation": the connection points of a nudged element are 2 nm off the 10 px grid (in the reference file:
   three masters and one slave). The proper home is a cell-boundary policy for imported pages (ADR-0027 open item), which would remove the nudge. The row "element position" of `crates/ew-import-qet/README.md` states the
   same rule.
 - **Pages.** Imported pages keep the 10 px grid permanently (ADR-0027, FR-PAG-021); "convert to native grid" is the
   previewed command of FR-PAG-022 (1.x).
-- **Frame.** A border of 17 × 60 px columns, 8 × 80 px rows and 20 px headers maps to the shipped QET-compatible
-  frame (FR-PAG-015) instead of a duplicate form; other borders become frame forms in the "QET import" library.
-  Column numbering keeps the source offset (the reference numbers 0–16). The form carries the page-to-sheet
-  transform of QET's fit-to-page export (FR-PAG-029: scale 0.986282578, offset
-  9.79 mm on the golden frame), so printed geometry matches the reference to ±0.2 mm (REF-096).
+- **Frame.** Each distinct border becomes a frame form of the project's import library (§4.9). The form carries the
+  page-to-sheet transform of QET's fit-to-page export (FR-PAG-029; on QET's default border scale 0.986282578, offset
+  9.79 mm), so printed geometry matches the reference to ±0.2 mm (REF-096).
 
 ---
 
@@ -103,7 +101,7 @@ map one to one:
   texts equal QET's, "3-B0" included (FR-IMP-038; [07](07-symbols-parts-macros.md) §3.6). The MF-13 quick fix sets
   the anchor policy "graphics" (a named anchor on the bus-port graphics), which gives "3-B2".
 - **Function semantics.** The generated FnDef is resolved in this order:
-  1. a `symbol-map.csv` row (element UUID or path → EW FnDef and CP map; generalises FR-IMP-018), as built for
+  1. a `symbol-map.csv` row (element UUID or path → EW FnDef and CP map; generalises FR-IMP-018), built for
      coils, contacts, terminals and interruption points (§4.17);
   2. `kindInformations`: master `coil|protection|commutator|plc`; slave `simple|power|delayOn|delayOff|delayOnOff`
      with `state` NO, NC or SW → a contact FnDef with `PassThrough{opens: true}` between its two terminals; terminal
@@ -111,12 +109,11 @@ map one to one:
   3. a shipped table from QET collection category paths (`10_electric/…/switches`) to EW categories;
   4. otherwise a generic black box (EW-IMP-119).
 
-  Rules such as EW-POT-013 need `PassThrough` semantics, so Golden C's MF-23 depends on steps 1–3 resolving T55's
-  and S56's elements.
+  Rules such as EW-POT-013 need `PassThrough` semantics, which steps 1–3 must resolve for a switch's element.
 - **Link type.** `simple` and `master` form devices; `slave` forms auxiliary functions; `next_report` and
   `previous_report` become interruption points (the built-in FnDef `ew.fn.ip`, §4.3, not generated); `terminal`
-  forms terminals; `thumbnail` becomes a graphic (as built in cycle 11 a thumbnail is not imported yet and is
-  reported with EW-IMP-004 until free graphics are, follow-up task FT-134; decision log ID-279).
+  forms terminals; `thumbnail` becomes a graphic (FnDef category `Graphic / QET / Thumbnail`, a black box, without a
+  finding).
 - **Coverage of the pilot corpus.** [23](23-symbol-coverage-pilot-corpus.md) maps the 81 element types of the pilot's
   three real projects to the starter set (§4.3 step 1) and lists the mapping entries for the project importer (M-01 to
   M-09): 37 types resolve to starter symbols, 29 stay black boxes (EW-IMP-119), 2 are replaced by report blocks or
@@ -154,15 +151,14 @@ map one to one:
 4. **Conforming** labels become derived `TagSpec{letter, counter, scheme}` with the counter taken from the label.
    **Non-conforming** labels become `FrozenTag{text, sign}`, with `sign: Hidden` when the label has no product sign
    (S51), and EW-IMP-103 lists them (FR-NUM-010).
-5. **As built.** The project importer applies one rule, R1 on the element's own
+5. The project importer applies one rule, R1 on the element's own
    folio: a label of the form `-{page}{letter}{counter}` whose page is the folio of the element, whose letters are
    upper case and whose counter has no leading zero becomes a derived `TagSpec{letter, counter}`. Every other label
    stays a `FrozenTag` that prints the source text unchanged, so a label EW would print differently (`-101K01`,
    `-101f1`) is frozen rather than re-derived, and EW-IMP-009 never fires for a tag. EW-IMP-103 lists the frozen
    labels, strips excepted. A label that several devices carry stays a `FrozenTag` on each, though it fits the
    rule: two derived tags with one counter would print as two numbers, where QET prints the label twice;
-   EW-IMP-103 says so, and EW-RDS-004 reports the duplicate. A structure prefix (`+…-X1`) is kept in `Device.extra` until structure nodes are created
-  . An element
+   EW-IMP-103 says so, and EW-RDS-004 reports the duplicate. A structure prefix (`+…-X1`) is kept in `Device.extra`. An element
    without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}` (numbered on import), so
    the device keeps an identity, and is reported once per folio as EW-IMP-122. Its tag is not printed, because QET prints none: the
    symbol's tag slot is hidden and only an element's own label text shows it (§4.4.2). Hiding the slot was taken
@@ -179,7 +175,7 @@ QET prints a placed element's own texts, not its definition's: since 0.7 an elem
 and an older one `<inputs>` with the values of the definition's texts. The definition's dynamic texts are only the
 templates new elements copy.
 
-*As built.* A definition read for a project gives a symbol whose texts from `dynamic_text` and `input` print
+A definition read for a project gives a symbol whose texts from `dynamic_text` and `input` print
 nothing: user texts and untagged inputs are left out, and every text slot is hidden, aligned `baseline_left` and named
 by its import style (§4.10). Each placed element then prints its own texts, each where QET draws it:
 
@@ -209,7 +205,7 @@ by its import style (§4.10). Each placed element then prints its own texts, eac
 - An element without its own texts prints none; an empty text prints nothing.
 
 The element information beyond the label stays in `Device.extra["qet.info"]` (EW-IMP-008), as before: it prints
-through the texts above, but parts, user properties and comments from it are not built yet (§4.16).
+through the texts above, but parts, user properties and comments from it are not built (§4.16).
 
 ---
 
@@ -222,7 +218,7 @@ through the texts above, but parts, user properties and comments from it are not
 - An orphan slave becomes a device whose single function is promoted to `Main` (EW-IMP-116); EW's "one main
   function per device" invariant holds by construction.
 - More slaves than the definition's `max_slaves` are kept and reported.
-- *As built.* The cross-references print where QET draws them, through a cross-reference slot the import adds
+- The cross-references print where QET draws them, through a cross-reference slot the import adds
   to the symbol (hidden, in QET's 5 pt) and shows on each representation. A master lists its slaves' positions
   one per line directly under its first label text (QET's `snapto="label"`); a linked slave prints its master's
   position under its label text, or above it for `xrefpos="AlignTop"`, `slave_offset` px away, as the `<xref>` of
@@ -255,21 +251,20 @@ importer reconstructs QET's pairs exactly:
    quick fix "rename the extra pairs".
 5. **Verify** (pass P3): the derived pairs must equal the QET pairs; every difference is an error finding.
 
-   *As built.* Step 2 takes one name per linked pair from the first non-empty of: the
+   Step 2 takes one name per linked pair from the first non-empty of: the
    source's first `UserText` dynamic text, the target's first `UserText`, the source's `label`, the target's
    `label`. The text comes first because it is the name QET prints: a report's label text prints its partner's
    position, so its `label` information can hold anything; both ends get that name and the other end's
    differing text is kept as an alias and reported in one EW-IMP-115 entry that quotes both texts. A pair without any
    name gets one synthesised name `IP-{folio}-{n}` for both ends (EW-IMP-115). Several pairs that share a name get
    `IpSpec.sort` 2i and 2i+1 and an EW-IMP-115 saying the project needs chain mode. The conductor `function` of the
-   specified step 2 is not read yet. On the third pilot project this pairing moved two pairs that only
-   shared a name into separate potentials (214 → 212 potentials), which is the correct result. When pairs
+   specified step 2 is not read. When pairs
    share a name the import sets the project's `ip_pairing` to chain mode, so that EW pairs exactly QET's links.
    An unlinked report keeps its own text as its name only when no other report has that name; otherwise it
    gets a name of its own (`IP-{folio}-{n}`, EW-IMP-115) and its text prints as written, so it stays
    unpaired, as in QET.
 
-   *As built, printing.* A report keeps its definition's drawing. The text QET binds to its `label` (which QET
+   *Printing.* A report keeps its definition's drawing. The text QET binds to its `label` (which QET
    fills with the partner's position by the report formula), as the label information or as a composite text of
    `%{label}` alone, shows the symbol's cross-reference slot, in that
    text's own style and place; a text that is the pair's name shows the function-text slot, which prints the
@@ -277,14 +272,11 @@ importer reconstructs QET's pairs exactly:
    representation. The position stored in the file is not read: EW derives it.
 6. **External ends.** A report whose partner is missing but which sits inside or next to a dashed external box with
    a target text gets the proposal `IpSpec.external = Some(ExternalRef)`, the reference parsed from the box text
-   (REF-018, FR-PRJ-021). Golden A has four external points: J-E-206-L, J-E-206-N and J-E-206-PE at 101-G0 (box
-   "External Connection (J-E-206 / JE-N1000-03)") and DP at 3-G15 (box "To J-E-206 / JE-N1000-03"), each printing
-   "+J-E-206 / JE-N1000-03". Each one drawn as an unpaired QET report gets the
+   (REF-018, FR-PRJ-021); such a point prints the reference ("+J-E-206 / JE-N1000-03"). Each one drawn as an unpaired QET report gets the
    proposal; one drawn as a plain element or text is listed for a manual conversion (which applies depends on the
    file, PQ-02).
 
-Cross-reference texts are recomputed, never imported (FR-IMP-009). The golden import yields the 22 IP pairs (44
-texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts with 64 targets, equal to the reference as printed.
+Cross-reference texts are recomputed, never imported (FR-IMP-009).
 
 ---
 
@@ -293,7 +285,7 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
 **End resolution**, per end independently (FR-IMP-007):
 
 1. If `element{i}` is present, look the element up by UUID. Unique → done; shared by copy-paste → candidates on
-   this folio only (EW-IMP-120), decided by the route position of the conductor's end (§2.3, as built: linear in the number of copies and conductors; ambiguous pairs beyond 16 probes bind the first copy with a finding).
+   this folio only (EW-IMP-120), decided by the route position of the conductor's end (§2.3: linear in the number of copies and conductors; ambiguous pairs beyond 16 probes bind the first copy with a finding).
 2. If `terminal{i}` is a UUID, find it among the candidate's terminals. If the definition has no terminal UUIDs or
    none matches, fall through.
 3. If `terminal{i}` is an integer, use the folio's map `terminal id → (element, definition index)` built from
@@ -308,7 +300,7 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
 - **Route.** Stored `<segment>`s are replayed from end 1 into `route` points. Conductors without segments get the
   path QET computes (ported profile algorithm), stored explicitly, so EW draws them exactly as QET did
   (FR-IMP-043).
-  *As built:* `<segment>`s are read directly under `<conductor>` (QET's form) and inside a `<segments>` wrapper.
+  `<segment>`s are read directly under `<conductor>` (QET's form) and inside a `<segments>` wrapper.
   Like QET, the importer sets stored segments aside when they do not end within 1 px of end 2 on both axes. QET's
   automatic path is QET's `Conductor::generateConductorPath`, rewritten: each terminal is extended 10 px in the
   direction it faces (its definition `orientation` turned with the element) and rounded onto the 10 px grid, and the
@@ -330,7 +322,7 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
 - **Junctions.** QET has no conductor-to-conductor joints. A junction element (one terminal, three or more
   conductors) becomes `Junction{style: Dot, wiring: Star}` with the conductors in document order and EW-IMP-118
   (08 §12 item 14). Bevelled corners where conductors overlap (D-20) are separate terminal-to-terminal conductors and
-  stay separate connections, so the topology is right. *As built:* QET files its own junction elements (the T
+  stay separate connections, so the topology is right. QET files its own junction elements (the T
   junctions of its connections category, `114_connections`) as terminals; such an element with three wires or more
   becomes a junction where its strokes meet, its origin, and the stroke to each of its terminals becomes part of the
   wire that ends there. One with fewer wires stays the element it
@@ -367,7 +359,7 @@ variable has an EW xref-format token (FR-XRF-003):
 - `formula` is kept next to the resolved label, and "convert to EW numbering rule" is offered (FR-IMP-010).
 - A project still on the default `%f-%l%c` prints "6-A1" for folio 102, exactly as QET did; EW-IMP-117 offers the
   switch to `{page}`.
-- *As built.* The import writes the project's `xref_format` when the file has a `<report>` or an `<xrefs>`
+- The import writes the project's `xref_format` when the file has a `<report>` or an `<xrefs>`
   (else the profile's format applies): `ip` is the report label, `aux_to_main` the `slave_label` and
   `main_to_aux` `{list}` with one item per line (matrix 1 per row, no limit), as QET draws its contact lists.
   QET's variables are EW tokens as written; what a file leaves out is QET's default (`%f-%l%c`,
@@ -383,8 +375,7 @@ variable has an EW xref-format token (FR-XRF-003):
   evaluated `folio` attribute; QET's default `%id/%total` would yield "6/18", so the importer takes `%id` as the
   label and reports it.
 - **Sections.** Proposed from numeric folio hundreds (1xx → section 1, 2xx → 2, 9xx → 9). Separator pages such as
-  100, 200 and 900 stay drawn pages; converting them to generated dividers is a later, previewed step
-  (step 4 of the Golden C fix script).
+  100, 200 and 900 stay drawn pages; converting them to generated dividers is a later, previewed step.
 - **Title-block templates** (FR-IMP-015) become title-block forms. Rows are absolute px. Columns are px, `tN%` (of the
   total width) or `rN%` (of the width left after absolute and `t` columns); they are resolved to nm for the
   diagram's actual width, producing one form per distinct width. Cells keep alignment, `hadjust` (shrink to fit),
@@ -406,7 +397,7 @@ variable has an EW xref-format token (FR-XRF-003):
 | `%version` | generator version (derived; QET's version is kept in the import run) | — |
 | `%{var}` (custom) | project property if equal on all folios, else page user property | EW-IMP-104/105 |
 
-- **As built.** The project importer lifts a title-block value or folio property to
+- The project importer lifts a title-block value or folio property to
   the project only when it is equal on **all** folios, in one linear pass; every other value stays on its page and
   differing `author`, `date` and `indexrev` values and properties are EW-IMP-104. The project property `savedfilepath` (a local path of the author's
   machine) is dropped and reported with EW-IMP-004; the import runs under the default `Limits` of §2.1.
@@ -417,7 +408,7 @@ variable has an EW xref-format token (FR-XRF-003):
   the reference); the history V1.0 → V2.0 is the MF-04 quick fix.
 - **Parties.** Cover texts and title-block cells naming parties stay text; EW-IMP-106 compares the title-block
   "Customer" value with the cover's and proposes role bindings (FR-PRJ-003, D-30).
-- **Frame, as built.** QET draws a diagram's border 5 px right of and below the scene origin
+- **Frame.** QET draws a diagram's border 5 px right of and below the scene origin
   (`Diagram::margin`), its 20 px header bands inside it, then `cols × colsize` and `rows × rowsize`. The importer
   keeps the scene origin as the page origin, so imported positions stay on the 10 px grid, and makes one frame form
   per distinct border in the project's import library: the header band counts from the origin (25 px) and the
@@ -428,7 +419,7 @@ variable has an EW xref-format token (FR-XRF-003):
   export maps the scene: the border's corner on the sheet's corner, scaled to fit the border and title block one
   pixel wider and higher. A title block QET draws at the right is drawn below. Counts and sizes outside 1 to 1000
   and 1 to 10 000 px keep QET's default border (reported).
-- **Title block, as built.** The diagram's template becomes a title-block form as wide as the border; equal forms
+- **Title block.** The diagram's template becomes a title-block form as wide as the border; equal forms
   are one copy, so the forms differ only where the folios' values differ. Columns resolve to whole px; QET's
   `rowspan` and `colspan` count the cells beyond the first. Every cell's edges are drawn once; the outline is the
   frame's. A field prints `label: value` when it shows its label, in the style `qet.<pt>` (a project text style
@@ -442,7 +433,7 @@ variable has an EW xref-format token (FR-XRF-003):
   `revision.current.label` (an open revision of that label), `%author` to `revision.current.author.name` (the designer,
   a party of the role author), `%filename` to `project.drawing_id`; `%projecttitle` binds to `project.description`
   and `%saveddate` (`-eu`, `-us`) to `project.edited`, set from the ISO `saveddate` or `saveddate-us`. A variable of the
-  person's own (`%{customer}`) and a value the folios do not share stay text: a field of one's own is FT-1814.
+  person's own (`%{customer}`) and a value the folios do not share stay text: a field of one's own is not built.
   Every other variable is filled with the diagram's value, from its
   title-block attributes (`date="null"` is empty), then the project's title (`%projecttitle`) and properties, then
   the diagram's properties, and an unknown variable stays as written, as in QET. `%projectpath`,

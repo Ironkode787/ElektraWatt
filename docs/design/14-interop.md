@@ -35,7 +35,7 @@ C-15 `%f` versus `%F`).
 | [§4.13 Tables, shapes, images and layout pages](14-qet-content.md#413-tables-shapes-images-and-layout-pages) | [QElectroTech: texts, terminals, tables, the verifier and the symbol map](14-qet-content.md) |
 | [§4.14 QETZ (1.x)](14-qet-content.md#414-qetz-1x) | [QElectroTech: texts, terminals, tables, the verifier and the symbol map](14-qet-content.md) |
 | [§4.15 Migration verifier and acceptance](14-qet-content.md#415-migration-verifier-and-acceptance) | [QElectroTech: texts, terminals, tables, the verifier and the symbol map](14-qet-content.md) |
-| [§4.16 The project importer as built](14-qet-content.md#416-the-project-importer-as-built) | [QElectroTech: texts, terminals, tables, the verifier and the symbol map](14-qet-content.md) |
+| [§4.16 The project importer](14-qet-content.md#416-the-project-importer) | [QElectroTech: texts, terminals, tables, the verifier and the symbol map](14-qet-content.md) |
 | [§4.17 The symbol map: elements bound to functions](14-qet-content.md#417-the-symbol-map-elements-bound-to-functions) | [QElectroTech: texts, terminals, tables, the verifier and the symbol map](14-qet-content.md) |
 | [§5. EPLAN data](14-eplan-dxf-step.md#5-eplan-data) | [EPLAN data, DXF and DWG, STEP and PLC exchange](14-eplan-dxf-step.md) |
 | [§6. DXF and DWG](14-eplan-dxf-step.md#6-dxf-and-dwg) | [EPLAN data, DXF and DWG, STEP and PLC exchange](14-eplan-dxf-step.md) |

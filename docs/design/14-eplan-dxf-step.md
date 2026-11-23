@@ -86,7 +86,7 @@ target_b = "Ziel 2"
   §6.3).
 - The result is a project without drawings that the user places from the navigators; the import is a batch with
   row-key lineage, so a newer export of the same list updates in place.
-- **Levels in a connection list** (0.3.5, FT-1985). A connection list names its ends `strip:designation`, which says
+- **Levels in a connection list.** A connection list names its ends `strip:designation`, which says
   no level. Its map has two optional members, `from_level` and `to_level`, the columns that hold each end's level (a
   number; mapped in the column mapper as From level and To level, no preset names them):
   - an end whose level column is absent or empty is level 1, as before: the terminal's own connection points;
@@ -99,7 +99,7 @@ target_b = "Ziel 2"
   - Not built: the levels of a device's connection points (a report gives no device connection points, below), and a
     level designation (`LevelSpec.designation`) from a report.
 
-*As built (WP-S3.18).* **Parts (§5.2, §5.3).** `ew_import_eplan::read_parts` reads an EDZ (the 7-Zip signature or `PK`;
+**Parts (§5.2, §5.3).** `ew_import_eplan::read_parts` reads an EDZ (the 7-Zip signature or `PK`;
 only `*.part.xml` members are opened, a 3D model or picture beyond the member limit that nobody reads does not refuse
 the archive; the archive limits are the older reader's, 32 MiB packed, 4 MiB a part file, 64 MiB unpacked, 200 : 1), an
 EPLAN parts XML or a bare part XML, streamed with quick-xml under `Limits` (a DOCTYPE refused), into `PartDraft`s of
@@ -114,8 +114,8 @@ function definition `functiondefcategory`, `functiondefgroup` and `functiondefid
 `<drillingPosition>`. Decisions: the pins of the first variant are the part's CPs, one template function per function
 definition, natural order within a group whose designations are all numbered and the template's order for lettered
 pins (L, N, PE, +, +, −, −); the further variants and the accessories stay in `extra` as `eplan.variants` and
-`eplan.accessories` (the part model has no member for either yet, doc 03 §7); the picture (a part holds none; libraries
-store no assets) and the drilling positions (no `FeaturePattern` before the panel work, FT-1738) are reported, not read;
+`eplan.accessories` (the part model has no member for either, doc 03 §7); the picture (a part holds none; libraries
+store no assets) and the drilling positions (there is no `FeaturePattern` record) are reported, not read;
 at most 4,096 pins a part and 262,144 a file. A part carries its provenance (`eplan.edz:<file>` or `eplan.parts-xml:<file>`,
 the file's SHA-256, the date), the licence `LicenseRef-vendor-terms` and `foreign_terms`. `fndef-map.toml`
 (`data/fndef-map.toml`, rows of category, group, id, `fndef` and an optional part `kind`) ships with a handful of rows
@@ -143,7 +143,7 @@ the table lacks (a required one refuses the file); a terminal listed twice in a 
 (taken as 1), are said; the part column of a terminal diagram is read (`eplan.part`, as a device's); the lineage is `eplan` anchored on the
 mapping's key, so a newer export keeps the IDs. EW-IMP-206 and -207 are rules of the EW-IMP pack. `ew import
 eplan-report` writes the new project; the window's File ▸ Import… offers the mappings that fit the file's headers and
-has the column mapper (FT-1742): the detected columns (the header row found below a title), a kind of report and a member per column, saved under the file's source key as `eplan-report-<key>.toml` in the configuration directory, which the next file of the scheme is offered first; `File ▸ Import…` is the one entry for every file (FT-1741): a csv or xlsx that no mapping fits and that reads as no parts table asks for the mapper or the parts import. **Not built:** the picture and the drilling positions
+has the column mapper: the detected columns (the header row found below a title), a kind of report and a member per column, saved under the file's source key as `eplan-report-<key>.toml` in the configuration directory, which the next file of the scheme is offered first; `File ▸ Import…` is the one entry for every file: a csv or xlsx that no mapping fits and that reads as no parts table asks for the mapper or the parts import. **Not built:** the picture and the drilling positions
 (above), device connection points from a report, a re-import of a report into an existing project, import as a copy
 (FR-IMP-045, Could). The fuzz targets `edz_7z`, `edz_zip`, `parts_xml` and `eplan_table` are the hostile corpus's
 `eplan/` class read by `eplan_part_inputs` (the repository has no fuzz crate).
@@ -159,7 +159,7 @@ engineering model reads. It is excluded from checks, reports and exports unless 
 The source file is embedded as an asset only when the user ticks "embed"; the dialog warns that a customer drawing
 may be confidential.
 
-*As built (WP-S3.19).* Both kinds are one typed page item, `underlay{asset, format pdf|dxf, name, page, layout, unit,
+Both kinds are one typed page item, `underlay{asset, format pdf|dxf, name, page, layout, unit,
 rect, opacity}` (an additive kind, ADR-0011 amendment 6); a DXF underlay is not imported into page items but
 converted again when drawn, so the project holds one item per underlay. `rect` replaces the transform: a PDF page
 covers the whole sheet, a DXF drawing is stretched uniformly over its rectangle, which is the drawing's extents in
@@ -196,15 +196,14 @@ Coordinates are `f64` in the file. Conversion is `round_half_even(v × unit_nm)`
 DXF y points up and sheet y down, so the importer flips y (`y_sheet = y_top − y`, with `y_top` the top of the
 imported extents) and leaves x as it is.
 INSERT rotations, bulge arcs and spline flattening use the deterministic helpers of `ew-dl`, its pure-Rust
-`libm`-style trigonometry (the `ew-import-dxf` → `ew-dl` edge is added with WP-S3.19;
-[09](09-reports-forms-output.md) §4.3), never platform `sin`/`cos` or fused multiply-add, so the result is the same
+`libm`-style trigonometry ([09](09-reports-forms-output.md) §4.3), never platform `sin`/`cos` or fused multiply-add, so the result is the same
 on every platform. The rotation angles of `TEXT`, `MTEXT` and `INSERT` entities that become free texts and graphics
 are stored as `Angle2` (10⁻³ degree, `round_half_even`, [03](03-domain-model.md) §3.1) with their DXF value
 unchanged: DXF counts counter-clockwise with y up, and after the importer's y flip the same value is
 counter-clockwise as seen on the sheet, which is `Angle2`'s sense (ADR-0005 amendment 2). Geometry inside a block
 that becomes a symbol is transformed into the symbol frame, whose placements keep `Orient2`.
 
-*As built (WP-S3.19).* The reader is the crate's own, not the dxf crate, whose dependency graph brings uuid's random
+The reader is the crate's own, not the dxf crate, whose dependency graph brings uuid's random
 v4 IDs and clock-stamped headers into the shipped graph (both refused by the dependency rules); `ew-import-dxf`
 stays MIT OR Apache-2.0. It reads ASCII and binary files (strings Windows-1252 before AC1021 whatever `$DWGCODEPAGE` names, UTF-8 from
 AC1021 on) and the coverage of the
@@ -241,14 +240,14 @@ second import of the same file is a copy (§2.3).
 
 A vendor block with ATTDEFs PIN1–PIN4 yields a symbol with four CPs on the native grid.
 
-*As built (WP-S3.19).* Steps 1 to 4, 6 and 7 run in `ew-import-dxf` for every named block; each block opens as a
+Steps 1 to 4, 6 and 7 run in `ew-import-dxf` for every named block; each block opens as a
 draft in the symbol editor (its Open takes a `.dxf`; `ew import dxf --as symbol --library <dir>` saves the drafts),
 whose connection-point tool is step 5 and whose save is step 8. A block that moves a CP more than 0.1 mm reports
 EW-IMP-256 with the uniform scale that would put the CP spacing on the grid, in the draft's details only (no shipped
 rule: a draft is no project). **Part
 outline:** `ew import dxf --as outline --library <dir> --part <number>` writes the drawing's lines as the part's
-`mech.front_2d`, as its next patch version. The drilling half waits for the `FeaturePattern` record
-([12](12-panel-layout.md) §10).
+`mech.front_2d`, as its next patch version. The drilling half needs the `FeaturePattern` record
+([12](12-panel-layout.md) §10), which is not built.
 
 ### 6.3 SHX and font substitution
 
@@ -256,7 +255,7 @@ SHX fonts are proprietary and never shipped. A data table maps SHX names to bund
 (`romans.shx`, `simplex.shx`, `isocp.shx` → osifont; `txt.shx`, `arial.shx` → Noto Sans); unknown SHX names use
 the default family. Each substitution is EW-IMP-252 (FR-IMP-033).
 
-*As built (WP-S3.19).* osifont is not bundled, so every SHX name maps to Noto Sans, the default family; the table
+osifont is not bundled, so every SHX name maps to Noto Sans, the default family; the table
 (`SHX_SUBSTITUTES` in `ew-import-dxf`) names the known ones, and EW-IMP-252 names each font substituted once per
 import. No width factor is applied: the factors are unverified.
 
@@ -266,19 +265,19 @@ DXF page export is specified in [09](09-reports-forms-output.md) §4.4 and §4.9
 export scheme (`EW-FRAME`, `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`), symbols as BLOCK/INSERT
 per symbol and variant, Béziers flattened at 0.01 mm. The interop requirement is the **round trip**: EW's own DXF of
 folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DXF per surface is FR-MFG-028.
-*As built (WP-S3.19, FT-1877):* `ew export dxf`, the writer as [09](09-reports-forms-output.md) §4.4 and §4.9 record
+`ew export dxf` is the writer as [09](09-reports-forms-output.md) §4.4 and §4.9 record
 it. The file is AutoCAD 2010's, UTF-8: a character is written as itself, and the importer reads it back as written
 (AC-37's test compares symbol inserts, turned and mirrored, and a text of `Ää°²` with its position). A device's texts
 are the attributes of its symbol's insert, which the importer draws where they stand, and a block's attribute
 definitions `TAG` and `FUNCTION_TEXT` are what the symbol wizard (§6.2) reads as the tag and function-text slots. The drawing is in sheet millimetres, so a page made of it takes its items through the inverse of the new
-page's page-to-sheet map (Golden A's frame and a QElectroTech import's fit their page to the sheet) and prints where it
-was drawn; AC-37's test re-imports folios 101 to 106 into Golden A and compares the printed drawn points and text
+page's page-to-sheet map (a frame may fit its page to the sheet, as a QElectroTech import's does) and prints where it
+was drawn; AC-37's test re-imports folios 101 to 106 and compares the printed drawn points and text
 baselines, and those of folio 101 as an underlay of 102, within 0.01 mm. A text takes the nearest built-in style and
 its own height as written (through the page-to-sheet map), so it prints at the size and on the baseline it was
-written at (a text of a height no built-in style has, a terminal's of 2.52 mm, stood 0.05 mm off before, FT-1921). A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
+written at. A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
 a control character or one of `< > / \ " : ; ? * | , = '`; two classes that share a name, or one named `0`, are one
 LAYER record. The AC1024 file has been read back by this importer and by ezdxf 1.4.5 (its audit finds no error and
-repairs nothing on the sample's pages, 2026-11-21); no CAD program has opened it yet (open).
+repairs nothing on the sample's pages); no CAD program has opened it.
 
 ### 6.5 DWG
 
@@ -290,14 +289,14 @@ repairs nothing on the sample's pages, 2026-11-21); no CAD program has opened it
   The 1.0 placement deviates from [vision](00-vision-and-scope.md) §9 and is raised in [02b](02b-requirements-extended.md)
   OQ 3.
 
-*As built (WP-S3.19).* `ew import dwg <file> --converter <program>` and the window's File ▸ Import… (which asks for
+`ew import dwg <file> --converter <program>` and the window's File ▸ Import… (which asks for
 the converter's program once and keeps it in the settings) copy the DWG into a fresh temporary folder, run
 `<converter> <in> <out> ACAD2018 DXF 0 1 *.DWG` for at most 120 s (stopped after that, with the processes it started: its own process group on Unix,
 `taskkill /T` on Windows), read the DXF it writes under the DXF input limit, remove the folder and import the DXF as a
 page, underlay or symbol drafts; EW-IMP-257 records the conversion. The folder has a random name and is readable by its
 user only, and a guard removes it on every way out and stops a converter still running. Without a converter the words
 of EW-IMP-257 say what it is and where to get it. The window runs this, the import's conversion and the dialog's probe
-in the action itself, on the window's thread: a long conversion holds the window (not yet a job).
+in the action itself, on the window's thread: a long conversion holds the window (it is no job).
 
 ---
 
@@ -335,8 +334,8 @@ AML, GSD, GSDML and IODD parsers follow the importer rules of §2.1 and §11 (pu
 in the permissive `ew-caex` and `ew-devdesc` crates of ARCH §3 ([10](10-plc-and-bus.md) §4.9); `ew-plc` keeps the
 exchange orchestration, merge and writers.
 
-*As built (WP-S3.16).* The rows of AML (both versions), the TIA tag table, PLCopen XML and the instrument list are
-built ([10](10-plc-and-bus.md) §4 has the as-built notes). The AML reader of `ew-caex` is pure, reads under the
+The rows of AML (both versions), the TIA tag table, PLCopen XML and the instrument list are
+built ([10](10-plc-and-bus.md) §4). The AML reader of `ew-caex` is pure, reads under the
 `Limits` of §2.1 and refuses a DOCTYPE; it returns the neutral exchange image, not an `ImportBatch`: an exchange is
 no import of records with a lineage, it is applied by `plc.apply_exchange` after the three-way merge. The hosts
 read exchange files through `Session::plc_import` and `Session::instrument_list`, inside `catch_unwind`, not

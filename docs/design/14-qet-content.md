@@ -20,18 +20,17 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
   styles are not bound to slot kinds (EW-IMP-114); "apply `tag.main`" restores one tag height (D-29).
 - Sizes stay in native points: QET 12 px → 9.00 pt native → 8.88 pt printed through the frame transform (20 §17.5);
   a size that is no whole number of px takes QET's whole px (below).
-- *As built.* The project import adds each import style the drawing names (symbol texts and slots, free texts) to
+- The project import adds each import style the drawing names (symbol texts and slots, free texts) to
   the project's text styles (`settings.text_styles`, ADR-0032): `qet.<size>` has the em height QET prints a font of
-  that many points at, bold for `.b`; italic is not a text-style property and is dropped. Without them every import
-  style was unknown and printed in `text.normal`, so texts of 4 to 6 pt printed at 9 pt.
-- *In whole pixels (FT-1941).* QET's own PDF shows that QElectroTech 0.100 prints its texts as Qt lays them out on
+  that many points at, bold for `.b`; italic is not a text-style property and is dropped.
+- *In whole pixels.* QET's own PDF shows that QElectroTech 0.100 prints its texts as Qt lays them out on
   its screen, at Qt's 96 dpi in whole pixels; the import follows it, so an imported text stands where QET's print has
   it in QET's face (a computer at another logical dpi rounds otherwise; the file does not say). A font of `size`
   points has `round(size × 4/3)` px to the em, halves up (7 pt is 9 px, 5 pt is 7 px, not 9⅓ and 6⅔), a px being
   `793,750 / 3` nm. A line's ascent and descent are each rounded up to a whole px, from the face QET's texts print in
   (Liberation Sans and Arial: 0.905 and 0.212 em): a free text's first baseline stands that ascent below its box's
   4 px margin, and its lines, an element's static texts and the box a cross-reference is placed under are that ascent
-  plus descent apart (8 px: 8 + 2; 12 px: 11 + 3), where 0.905 em and 1.15 em stood before. Each glyph's advance is a
+  plus descent apart (8 px: 8 + 2; 12 px: 11 + 3). Each glyph's advance is a
   whole px too; a title block's cells carry it as their `ew.cell.pixel` of one QET px
   ([09](09-reports-forms-output.md) §2.5), so a right-aligned or centred cell stands where QET's does. The drawing's
   free and element texts keep the face's own advances.
@@ -45,28 +44,23 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
   size unchanged and never to less than 1 em apart, until their box lies inside the cell, and scales the block down
   whole only where 1 em apart is still too high, so no line runs over a border; in QET's face they stand as QET's
   print has them.
-- *Measured (FT-1746, FT-1765).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), every
+- *On QET's baseline.* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), every
   imported text stands on QET's baseline (a free text with `anchor: baseline`, an element's texts `baseline_left`),
   so a project whose typeface is QET's face prints it where QET does; the dynamic texts and free texts of 4 to 9 pt
   stand within 0.3 mm. A title block's cell text has no inset (`ew.cell.inset` 0, [09](09-reports-forms-output.md)
-  §2.5): QET draws it on the cell's edges. With both, the texts in place went from 3,929 to 4,166 of about 4,800 and
-  the moved ones from 730 to 493.
-- *Measured (FT-1941)* with `ew import qet` and `ew verify-migration --json` against the same pilot set's own PDF,
-  with QET's whole pixels (above): in the default typeface 4,379 texts in place (4,170 before), 343 moved (552), 11
-  missing, 43 extra, 4 raster cells; with Liberation Sans, the face of that PDF, as the typeface 4,568 in place
-  (4,178), 154 moved (544), 11 missing, 43 extra, 4 raster cells (36). Each text still moved has a cause the import
-  does not decide:
-  - the folio list (92 moved, 100 in the default typeface; the 11 missing and 43 extra, two raster cells): EW draws
-    QET's folio list as its own table of contents (FT-1645);
-  - 39 rich texts in `Sans Serif` that QET's computer printed in Tahoma, 0.6 to 1.4 mm higher (Tahoma's ascent in
+  §2.5): QET draws it on the cell's edges.
+- *What still moves.* Against QET's own PDF (`ew verify-migration`), a text that still moves has a cause the
+  import does not decide:
+  - the folio list: EW draws QET's folio list as its own table of contents;
+  - rich texts in `Sans Serif` that QET's computer printed in Tahoma, 0.6 to 1.4 mm higher (Tahoma's ascent in
     whole px is about 1.0 em, Liberation Sans's 0.905): which face QET prints such a text in is its computer's
     substitution, which the file does not say. The project's typeface does not close it: with Tahoma as the typeface
-    the same 39 stand apart, because the import stands each text on the baseline QET's default face gives;
-  - 18 rows of two masters' contact lists (20 in the default typeface) and two raster cells of their contact
-    symbols: QET draws them with a contact symbol per row 10 px apart (§4.5, FT-1645);
-  - 5 texts QET prints turned to read downward or upside down, which EW turns to read from the bottom or the right
-    ([07](07-symbols-parts-macros.md) §4.1, [09](09-reports-forms-output.md) §4.8; FT-1905);
-  - in the default typeface, 179 title-block texts: Noto Sans's widths, and the four-line cell's lines closed up
+    they stand apart, because the import stands each text on the baseline QET's default face gives;
+  - masters' contact lists and their contact symbols: QET draws them with a contact symbol per row 10 px apart
+    (§4.5);
+  - texts QET prints turned to read downward or upside down, which EW turns to read from the bottom or the right
+    ([07](07-symbols-parts-macros.md) §4.1, [09](09-reports-forms-output.md) §4.8);
+  - in the default typeface, title-block texts: Noto Sans's widths, and the four-line cell's lines closed up
     to stay inside it, are not QET's face's; with that face as the typeface they stand where QET's do.
 
 ---
@@ -80,7 +74,7 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
   (EW-TERM-001/002, MF-08/09).
 - **Older projects:** terminal elements are grouped by label prefix (`X1031:1+` → strip X1031, designation "1+"),
   else by the strip header element on the same folio; each inferred strip is EW-IMP-005.
-- **As built.** A terminal element joins a strip by, in this order: (1) its label
+- A terminal element joins a strip by, in this order: (1) its label
   prefix, with an optional structure prefix (`+JE2416-X1031:1+`); (2) the strip header that heads its line, a header
   being an element labelled with a strip designation (optional structure prefix and sign, then digits, letters and
   digits: `X1031`, `-X1031`, `1X1`); lines are per folio, a column per x for elements turned a quarter, else a row
@@ -94,9 +88,8 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
   (FR-IMP-040). One designation drawn in several lines or folios is one strip (EW-IMP-109). A terminal's designation
   is its label suffix, else its first `UserText` dynamic text (where the reference set writes "1+" and "PE"), else a
   label that is not a strip designation, else its sequence number with EW-IMP-008, because an empty designation
-  cannot be stored (`Ident` is never empty; MF-08 needs a schema decision). The 0.100+ `<terminal_strips>`
-  data and its bridges are not read yet (EW-IMP-004). On the pilot's three projects the importer forms 22,
-  6 and 48 strips.
+  cannot be stored (`Ident` is never empty). The 0.100+ `<terminal_strips>`
+  data and its bridges are not read (EW-IMP-004).
 - **Segments.** Several drawn segments or header elements with one strip identity become one strip with several
   segment representations (D-42), reported as EW-IMP-109 with a "split" quick fix.
 - **Cables, 0.200:** `<cable>` → cable device (`designation` → tag, `length` → `LengthSource::Manual`, `type` →
@@ -104,7 +97,7 @@ A chapter of [Interoperability: import, export and migration](14-interop.md), wh
 - **Cables, older** (FR-IMP-014): a cable-marker element (label -106W1) crossing conductors becomes a cable whose
   cores are the crossed conductors in crossing order; colours from `conductor_color` or colour texts beside the
   crossing; EW-IMP-005 for review. "BR" is not an IEC 60757 code, so the core keeps the foreign code with the
-  proposal "BN" (§4.12, MF-11). *As built:* a mark is an element without terminals; one labelled with a
+  proposal "BN" (§4.12). A mark is an element without terminals; one labelled with a
   tag of the letter W heads a cable device (the `Cable` aspect) whose main function it draws, and the unlabelled
   marks of its definition in its row (the same y, for a row across) draw auxiliary functions of it, as do those of
   a folio without a cable mark of its own that continue the cable the folio before it heads last. Each wire a mark
@@ -137,10 +130,10 @@ the recognisers of FR-IMP-017:
   symbols. A mark whose value equals the crossed wire's derived cross-section is dropped. A mark whose value differs
   is dropped as well, the wire keeps its derived property, and EW-IMP-123 carries the mark's value with the quick fix
   "set the override to the mark's value", so nothing the mark said is lost and no override is created silently.
-  *As built:* not yet; a mark arrives as a placed element that prints its own texts (QET users write cable tags,
+  This is not built: a mark arrives as a placed element that prints its own texts (QET users write cable tags,
   part texts and core colours on it). It has no terminals, and EW-CORE-069 counts only the bodies of
   representations that draw a connection point, so the marks QET draws across their wires raise no "wire through
-  a symbol" (417 such findings on one pilot project before).
+  a symbol".
 - Converted texts are removed from the page in the same transaction and listed (EW-IMP-107), with a revert action.
   The conversion of the reference's four marker groups into ten CDPs is MF-07.
 - **Colour aliases.** The shipped table maps foreign colour notations to IEC 60757: BR → BN, SW → BK, BL → BU,
@@ -149,7 +142,7 @@ the recognisers of FR-IMP-017:
   `ColourCode::Foreign("BR")`, which only lenient imports can create (FR-IMP-044, EW-CORE-031, FR-CBL-005,
   FR-CHK-032; [03](03-domain-model.md) §3.4).
 - **Fluid symbols** (FR-IMP-018): QET's 5/2 valve has six unnamed generic terminals. A `symbol-map.csv` row maps
-  terminal positions to ports 1–5 and the coil 14 function, so the 28 golden valves import with ports and coils.
+  terminal positions to ports 1–5 and the coil 14 function, so the valves import with ports and coils.
 
 ---
 
@@ -161,7 +154,7 @@ the recognisers of FR-IMP-017:
   table becomes an embedded report block. Pass P5 compares QET's nomenclature rows, evaluated by the importer from
   element information, with the derived BOM (EW-IMP-113: on the reference, rows -4W1 and -4X1 disappear and missing
   parts appear).
-- **`graphics_table`, as built.** A table holding a query heads a chain; a table naming it as `previous_table`
+- **`graphics_table`.** A table holding a query heads a chain; a table naming it as `previous_table`
   continues it on another folio. The view the query reads gives the kind: `project_summary_view` → `toc`,
   `element_nomenclature_view` → `parts_list`, `wiring_list_view` → `wire_list`; any other query is not imported. The
   block lists EW's own columns in EW's table style (one EW-IMP-004). When every folio of the chain holds nothing
@@ -176,7 +169,7 @@ the recognisers of FR-IMP-017:
   negated as an `Angle2`, which counts counter-clockwise as seen on the sheet (ADR-0005 amendment 2): QET 90°
   becomes `Angle2(-90_000)`.
 
-  *As built* (`project/items.rs`). A free text is placed as an element's own text is (§4.4.2), one free text per
+  In `project/items.rs` a free text is placed as an element's own text is (§4.4.2), one free text per
   line; QET writes free texts as Qt rich text, whose paragraphs are the lines and whose first span or body sets the
   size. A line, rectangle and polygon map to their graphic shapes, a square ellipse to a circle; a rectangle with
   corner radii and any other ellipse become a polygon through 7 points per quarter (integer cosines, so the batch
@@ -187,7 +180,7 @@ the recognisers of FR-IMP-017:
   project assets, as `item.place` takes an image (at most 512 KiB, a known format, the pixel limit; else the image
   is left out with EW-IMP-002). What the records cannot carry is reported with EW-IMP-004 and the item kept: a pen
   colour other than black, a dash-dot-dot pen (drawn dash-dot), another brush pattern (drawn solid), an image's
-  rotation. A thumbnail element is still not imported (§4.3).
+  rotation. A thumbnail element becomes a graphic (§4.4).
 - **Layout pages** (FR-IMP-019): a page whose rectangles carry tag-like texts is offered as a layout page. Pass P6
   scores each text against derived tags: exact (-102G1), after identifier suppression ("X1031" → -X1031), and fuzzy
   within the same letter and number group (Levenshtein ≤ 1: "T51" → T55, folio 101's 5x group). Every binding is a
@@ -196,8 +189,7 @@ the recognisers of FR-IMP-017:
 - **Assemblies.** Elements of valve or module classes without a tag (the 28 valves on 203–206) are reported
   (EW-IMP-112). Drawn overview positions per module are counted against the slaves on the detail pages
   (EW-IMP-110: 5 drawn on -202U2 against 4). The assembly and its children are built after `ApplyImport` by the
-  valve-terminal reconstruction assistant of [11](11-fluid-power.md) (FR-IMP-039; Golden C fix step
-  6): -201U1 with its 11 children -201U2 … -202U3 and the 28 valves, bound to Q0.1 … Q6.7. EW-CORE-046
+  valve-terminal reconstruction assistant of [11](11-fluid-power.md) (FR-IMP-039): -201U1 with its 11 children -201U2 … -202U3 and the 28 valves, bound to Q0.1 … Q6.7. EW-CORE-046
   (FR-CHK-022) then takes over from EW-IMP-110.
 
 ---
@@ -224,35 +216,33 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
   transform, rasterises the matching page of a reference PDF with hayro, and compares (1) text runs (string and
   anchor within 0.5 mm) and (2) the raster per frame cell with text boxes masked, so font substitution does not
   swamp the result. Pages pair by folio label, the pages no label names by order (the reference PDF has physical page labels, D-33).
-  Expected deltas are declared per project. For Golden C they were the golden build-path items that
-  apply to an import (AC-27): the font substitution, and "3-B0" listed as flagged. "3-B0" matches the reference
-  because the import reproduces it (§4.3); MF-13 reports it. FR-IMP-021's criterion expects exactly these deltas. `ew verify-migration <project> --reference <pdf>` prints the deviations. The verifier makes
+  Expected deltas are declared per project (AC-27), such as a font substitution. `ew verify-migration <project> --reference <pdf>` prints the deviations. The verifier makes
   hayro a runtime dependency of the shipped `ew` binary (ARCH §3).
-- **Corpus acceptance** (SC-4, FR-IMP-006; SC-4 closes at gate G-M3 in the plan of record, [vision](00-vision-and-scope.md) §3.2): at least 22 of the 24 QET example projects (C-14) and every pilot
+- **Corpus acceptance** (SC-4, FR-IMP-006; [vision](00-vision-and-scope.md) §3.2): at least 22 of the 24 QET example projects (C-14) and every pilot
   project import without a structural error; `photovoltaique.qet` (31 of 64 wires with modern ends) and
   `schema_indus.qet` (integer ends only) lose no connection; pass P4 reports no print-equivalence deviation on the
   corpus except declared ones; each project's batch is byte-identical across platforms.
-- **Pilot acceptance:** Golden C (AC-25 … AC-27) and NFR-UX-06 (one hour from import to zero migration errors on a
+- **Pilot acceptance:** AC-25 … AC-27 and NFR-UX-06 (one hour from import to zero migration errors on a
   reference-size project).
 
-*As built (WP-S3.13).* The verifier is `ew_api::migration` (`ew verify-migration <project> --reference <pdf>
+The verifier is `ew_api::migration` (`ew verify-migration <project> --reference <pdf>
 [--expected <file.json>] [--json]`, `ew.verify-migration-result/1`). It lives in `ew-api` because it needs the session's
 page export, the frame cells of `Session::page_cells` and the CPU raster of `output::sheet_image`; a crate of its own
 would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the text runs, the page labels) sits in
-`ew-scene` beside `underlay`, the one place that uses hayro; hayro is not a new dependency.
+`ew-scene` beside `underlay`, the one place that uses hayro.
 
 - **Pairing.** Pages pair by folio label wherever the reference's `/PageLabels` name the folio; the project pages no
-  label claims take the reference pages no folio named, in order (FT-1748: a missing page leaves the labelled pages
+  label claims take the reference pages no folio named, in order (a missing page leaves the labelled pages
   after it where they are; a reference without labels pairs wholly by order). A page without a partner is a deviation (`page-not-in-reference`, `page-not-in-project`);
   pages whose sizes differ by more than 1 mm are `size-differs` and are not compared further.
 - **Text.** Both sides give texts with their anchor (the first glyph's origin), segmented by one rule
   (`ew_scene::pdf_text::Segmenter`): hayro draws a PDF page into a device that gives each glyph as a piece, the
   project's sheet gives each run of one font as a piece, and a piece joins the text before it when it continues that
   text's baseline at the pen (from 0.3 em before to 0.1 em after it, within 0.15 em across; a kerned `r,` or `r…` draws
-  its comma more than 0.15 em back, FT-1925), whatever its font. So
+  its comma more than 0.15 em back), whatever its font. So
   a text with a glyph of another font (², ∞, −, ⇄) is one text, a producer that draws every glyph by itself (Qt's PDF
   engine, which draws its spaces as glyphs) gives whole texts, and a gap splits: the texts of neighbouring cells stay
-  apart. Golden A against its own PDF gives no deviation (a deep-run test). White space is not compared (where a word
+  apart. White space is not compared (where a word
   breaks is the font's business).
   Per string the nearest pairs match; a pair within 0.5 mm is a match, a farther pair is `text-moved` (with the
   offset in words), what is left is `text-missing` (the reference has it) or `text-extra`.
@@ -262,65 +252,46 @@ would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the 
   below luminance 200; the boxes of every run of either side, padded 1 mm, are cleared; an ink pixel left with no ink
   within 0.5 mm on the other side, looked for before the boxes were cleared, counts for its frame cell (the page's
   frame grid; a page without one is a single cell). A
-  cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation. (A line that ran just
-  outside a text box on one side and just inside it on the other lost its partner when the cleared ink was looked in:
-  the pilot set's lines beside its texts were 32 such cells with QET's face as the typeface and 66 in Noto Sans,
-  FT-1941.)
+  cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation. The partner is looked for
+  before the boxes are cleared, so a line just outside a text box on one side and just inside it on the other keeps
+  its partner.
 - **Expected deltas** are a JSON file, an array of `{"kind", "page", "text", "cell"}` (the last three optional): a
   deviation one entry matches is reported as expected, an entry that matches none is reported as not found, and
   either way a clean exit needs every entry found and no other deviation. Font substitution needs no entry for the
   raster (the text boxes are masked) but moves texts by a font's side bearings and baseline, so a project with another
   font declares `{"kind": "text-moved"}`.
-- **PDF text map (FT-1747).** The PDF the program writes maps each glyph to the letters it stands for: a glyph per
+- **PDF text map.** The PDF the program writes maps each glyph to the letters it stands for: a glyph per
   character, a ligature (`fi`, `fl`, `ffi`) its letters, found by the font's `cmap`; a glyph's map is the same in every
-  run of the document, so a run's text no longer gives wrong letters to later runs that use its glyphs.
+  run of the document, so a run's text never gives wrong letters to later runs that use its glyphs.
 - **Limits.** A text a PDF draws as paths (outlined) has no text to compare; the raster still compares it unmasked.
   Instance symbols' own texts are part of the sheet list as the export gives it. The tolerances are constants of the
   module, not options.
 
 ---
 
-### 4.16 The project importer as built
+### 4.16 The project importer
 
-The lenient import of whole projects (`QetProjectImporter`, `ew import qet`) was
-pulled forward from lever (b) as a spike on the pilot's three projects. The sections above carry its rules as
-"As built" paragraphs: keys (§2.3), report statistics and the interim lenient checks (§2.4, §2.5), tags (§4.4.1),
-interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strips (§4.11) and cross-section marks
-(§4.12). What it does beyond them:
+The lenient import of whole projects (`QetProjectImporter`, `ew import qet`) is the front door (§2.1) plus
+`ApplyImport` into an empty project, so the import writes a run and its migration report is the check run of §2.5.
+Its rules are in the sections above: keys (§2.3), the report (§2.4, §2.5), tags (§4.4.1), interruption points (§4.6),
+conductor ends (§4.7), title blocks (§4.9), strips (§4.11) and cross-section marks (§4.12). Beyond them:
 
-- **Route into a session (interim).** The batch is opened through `Session::from_records`: no
-  `ApplyImport`, no lenient validators, no import passes P1 to P7, no proposals and no `ImportRun` record yet. The
-  front door `ew_api::import` runs the `migration` scheme of `ew-checks` on the imported model, every built
-  `pre-delivery` rule, lenient (§2.5). Definition findings are reported only for definitions that placed elements use, and a font substitution
-  once per family.
+- **Findings.** Definition findings are reported only for definitions that placed elements use, and a font
+  substitution once per family.
 - **Built-in documents.** The importer resolves `ew.fn.ip` and `ew.titleblock.qet-a4` in the starter content the
   host passes (`ew import qet --content`, the window's content directory). Without a content directory both take
   the documents compiled into the program (`StarterLibrary::compiled`: the starter symbols and FnDefs and that
   title block), so a folio report, and with it its connections, is never dropped for want of the content.
-- **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
- , rules R2/R3, the structure nodes of labels and EW-IMP-102 (a page's `=` and `+` of its title block are imported,
+- **Not imported** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101,
+  rules R2/R3, the structure nodes of labels and EW-IMP-102 (a page's `=` and `+` of its title block are imported,
   §4.9), parts from element information,
-  text-to-data recognisers, thumbnails, the cables of QET 0.200 (`<cables>`), conductor properties as potential
-  definitions and overrides,
-  chain mode and external points, `<terminal_strips>` and their bridges, empty terminal
+  text-to-data recognisers, the cables of QET 0.200 (`<cables>`), conductor properties as potential
+  definitions and overrides, external points, `<terminal_strips>` and their bridges, empty terminal
   designations, and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
   ([23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). The import detections EW-IMP-105, EW-IMP-106, EW-IMP-110 and EW-IMP-112,
-  EW-IMP-111, EW-IMP-114 and EW-IMP-121 are not built yet. A junction element is counted against the first
-  of several pasted copies (minor; no corpus file has one).
-- **Evidence.** All three pilot projects import, derive and export to PDF with no lost connection: 34 folios, 1,004
-  devices, 645 connections and 22 strips; 18, 110, 106 and 6 (the reference set, Golden C's source); 36, 734, 718
-  and 48. The import of each is byte-identical across runs. On the reference set the duplicate-designation check
-  reports exactly the 8 EW-TERM-002 groups that MF-09 expects; Golden C's
-  migration report and fix script are built. The synthetic fixture of golden
-  folios 101 to 103 imports its 50 wires as 50 connections; its differences (strips without a strip
-  representation, no drawn bridges, terminals with two CPs where Golden A's part has four) are limits of the QET
-  source, except the bridges that QET 0.100+ stores in `<terminal_strips>`.
-
-*As built.* The spike's route is
-gone: `import_qet` is the front door (§2.1's note) plus `ApplyImport` into an empty project, so the import writes a
-run and its migration report is the check run of §2.5's note. Golden C's corpus-gated tests run that
-path, and `c-migration-report.csv`'s counts are the run's counts per code. The "not imported yet" list above stands
-for the detections it names.
+  EW-IMP-111, EW-IMP-114 and EW-IMP-121 are not built. A junction element is counted against the first
+  of several pasted copies (no corpus file has one).
+- **Determinism.** The import of a file is byte-identical across runs.
 
 ---
 
