@@ -129,7 +129,8 @@ them.
 | window | `ew-ui`: the window, in egui |
 | programs | `ew`, the command line, and `elektrawatt`, the desktop program |
 
-Inside a tier the order of the list binds as well. Test code (a dev-dependency) is not bound by the order; the
+Inside a tier the order of the list binds as well. Beside these tiers the rule file places the workspace-hack
+crate first and the test-only crates and `xtask` last. Test code (a dev-dependency) is not bound by the order; the
 rule file lists what the tests of the shell and the window may use and keeps the test-only crates and features out
 of a shipped program.
 
