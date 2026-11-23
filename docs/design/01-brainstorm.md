@@ -31,7 +31,7 @@ it appears there, and every idea stays within the accepted [architecture](04-arc
 | **E** (effort) | **L** ≤ 2 developer-weeks; **M** 2–8; **H** > 8 (team of 2–4 with AI assistance) |
 | **Rel.** | **MVP**, **1.0**, **1.x**, **Later** as defined for the design set. Must/Should/Could is set in the requirement catalogues |
 | **Area** | Requirement area the idea lands in (`FR-<AREA>`) |
-| Class (§2) | Prevention class from [architecture §14](04-architecture.md#14-how-the-architecture-prevents-the-reference-defects): **S** structural, **I** invariant, **C** check, **A** assisted |
+| Class (§2) | Prevention class from [architecture §14](04d-defects-risks-alternatives.md#14-how-the-architecture-prevents-the-reference-defects): **S** structural, **I** invariant, **C** check, **A** assisted |
 
 Tags, folios and part numbers come from [reference-drawing.md](../research/reference-drawing.md). Where research
 notes conflict, [gaps-and-corrections.md](../research/gaps-and-corrections.md) wins.
