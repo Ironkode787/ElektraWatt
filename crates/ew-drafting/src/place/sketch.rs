@@ -138,8 +138,8 @@ use crate::consts::{
 use crate::labels::first_places;
 use crate::measure::measure;
 use crate::model::{
-    DraftPage, End, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side, Tick, Wire,
-    WireId,
+    DraftPage, End, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side,
+    Tick, Wire, WireId,
 };
 use crate::route::Scope;
 use crate::rules::{Wiring, across, beyond, opposite};
@@ -528,6 +528,42 @@ impl<'a> Sketch<'a> {
 
     pub fn fixed(&self, u: usize) -> bool {
         self.units[u].fixed
+    }
+
+    /// What stands in the place unit `u`, left against a rule, would take on the side its host's pin faces (§4.7): in
+    /// line with that pin, with what hangs on it, [`CHAIN_GAP_MIN`] beyond the pin at least and clear of the host.
+    /// `Some(Some(o))`: it lies on unit `o`; `Some(None)`: it leaves the drawing area; `None`: it is clear.
+    pub fn in_place(&self, u: usize) -> Option<Option<usize>> {
+        let l = self.lead[u]?;
+        let s = self.side(l.h)?;
+        let (h, f) = (self.pt(l.h), self.pt(l.f));
+        let tree = self.subtree(u);
+        let meets = |a: &[Rect], b: &[Rect]| a.iter().any(|x| b.iter().any(|y| x.grown(1).overlaps(*y)));
+        let first = (CHAIN_GAP_MIN - beyond(h, f, s)).max(0);
+        let area = self.w.page.area.grown(-TICKS_PER_STEP / 2);
+        let reach = area.w().max(area.h()) / TICKS_PER_STEP;
+        let host = self.bodies(l.host);
+        let Some(bodies) = (0..=reach)
+            .map(|k| {
+                let by =
+                    across_vec(s, across(h, s) - across(f, s)).plus(along_vec(s, first + k * TICKS_PER_STEP));
+                tree.iter()
+                    .flat_map(|t| self.bodies(*t))
+                    .map(|b| b.moved(by))
+                    .collect::<Vec<Rect>>()
+            })
+            .find(|b| !meets(b, &host))
+        else {
+            return Some(None);
+        };
+        let on = (0..self.units.len())
+            .filter(|o| !tree.contains(o))
+            .find(|o| meets(&bodies, &self.bodies(*o)));
+        match on {
+            Some(o) => Some(Some(o)),
+            None if !bodies.iter().all(|b| area.holds(*b)) => Some(None),
+            None => None,
+        }
     }
 
     pub fn unit_of_id(&self, id: PartId) -> Option<usize> {
@@ -1429,7 +1465,11 @@ impl<'a> Sketch<'a> {
         };
         let anchors = run(true);
         if anchors.len() < 2 {
-            return Err(if run(false).len() < 2 { Held::Order } else { Held::Room });
+            return Err(if run(false).len() < 2 {
+                Held::Order
+            } else {
+                Held::Room
+            });
         }
         let (first, last) = (anchors[0], anchors[anchors.len() - 1]);
         // The terminals outside the run stand beyond it at the strip's pitch, and beyond what hangs on the run's outer
@@ -3202,11 +3242,7 @@ impl<'a> Sketch<'a> {
                     }
                 }
                 // On a unit that is set (two of a row set down on each other), it steps away from its host.
-                let away = if was < 0 {
-                    -TICKS_PER_STEP
-                } else {
-                    TICKS_PER_STEP
-                };
+                let away = if was < 0 { -TICKS_PER_STEP } else { TICKS_PER_STEP };
                 let away = if down { Pt::new(away, 0) } else { Pt::new(0, away) };
                 let mut more = 0;
                 while more < 2 * ROW_PULL
@@ -3279,7 +3315,10 @@ impl<'a> Sketch<'a> {
     /// terminal passes another, in any step. Two that stood at one place along the row have no order to keep.
     pub fn order_kept(&self) -> bool {
         self.terminal_rows.iter().all(|(down, row)| {
-            let along = |u: usize, d: Pt| self.shape(u).map_or(0, |r| if *down { r.x0 + d.x } else { r.y0 + d.y });
+            let along = |u: usize, d: Pt| {
+                self.shape(u)
+                    .map_or(0, |r| if *down { r.x0 + d.x } else { r.y0 + d.y })
+            };
             row.iter().enumerate().all(|(i, &a)| {
                 row[i + 1..].iter().all(|&b| {
                     let (was, now) = (

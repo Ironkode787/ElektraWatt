@@ -17,7 +17,8 @@ use ew_derive::ew_units::Grid;
 pub use ew_drafting::Pt;
 pub use ew_drafting::consts::TICKS_PER_STEP;
 pub use ew_drafting::{
-    DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, StripHeld, WireId, measure, route as route_on,
+    DraftPage, InTheWay, Jobs, PartId, Plan, Quality, Reason, Side, StripHeld, WireId, measure,
+    route as route_on,
 };
 use ew_drafting::{JunctionId, PinId, WireEnd};
 /// The conversion of a page between nm and the layout's ticks, which the window's tools use too.
@@ -45,8 +46,8 @@ pub struct RoutePlan {
     /// The symbols Arrange and route moves, each by its move in ticks (whole grid steps); none for Route.
     pub moves: Vec<(PartId, Pt)>,
     /// The symbols Arrange and route leaves where they stand against a rule, each with the side of its host's pin
-    /// where it has no room; none for Route.
-    pub left: Vec<(PartId, Side)>,
+    /// where its place is and what was in the way of that place; none for Route.
+    pub left: Vec<(PartId, Side, InTheWay)>,
     /// The parameters of the `layout.apply` that stores it; `None` for a plan that changes nothing.
     pub params: Option<Value>,
     /// The page's routed wires a page-wide Route leaves alone as the person's (no `computed` mark, no fault), by ID;

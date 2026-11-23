@@ -6,7 +6,7 @@
 
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    Arranged, DraftPage, End, PageKind, PartId, Pt, Role, Rule, Scope, Side, Tick, arrange, geom, measure,
+    Arranged, DraftPage, End, InTheWay, PageKind, PartId, Pt, Role, Rule, Scope, Side, Tick, arrange, geom, measure,
     rules_kept,
 };
 
@@ -402,14 +402,36 @@ fn a_page_whose_parts_do_not_fit_names_each_part_it_leaves_and_has_no_part_on_a_
     assert!(!a.moves.is_empty());
     let done = after(&b.page, &a);
     assert!(measure(&done).findings.parts_on_parts.is_empty());
+    // Each with what was in the way of its place over the card: the edge of the drawing area.
     for n in ["B0", "B1", "B2"] {
         assert!(
-            a.left.iter().any(|(x, s)| *x == id(n) && *s == Side::Up),
+            a.left.contains(&(id(n), Side::Up, InTheWay::Edge)),
             "{n} named: {:?}",
             a.left
         );
         assert!(!a.moves.iter().any(|(x, _)| *x == id(n)));
     }
+}
+
+#[test]
+fn a_part_left_against_a_rule_names_the_part_that_stands_in_its_place() {
+    // E1 and §4.7: a box fed from the lower pin of a locked fuse stands beside the fuse, above that pin. Under the fuse
+    // a locked part fills the page's width, with too little room above it for the box: the box stays, and the plan
+    // names that part as what was in its place below the pin.
+    let mut b = Page::new(40, 16);
+    b.device("F1", p(10, 2));
+    b.part("G1", p(16, 2), (p(-1, 0), p(3, 4)), &[("1", p(0, 0), Side::Up)]);
+    b.wire("w", b.pin("F1", "2"), b.pin("G1", "1"), &[]);
+    let wall = b.part("U9", p(1, 9), (p(0, 0), p(38, 5)), &[]);
+    for part in b.page.parts.iter_mut().filter(|x| x.id == id("F1") || x.id == wall) {
+        part.locked = true;
+    }
+    let a = arrange(&b.page, Scope::Page, &[]);
+    assert!(
+        a.left.contains(&(id("G1"), Side::Down, InTheWay::Part(wall))),
+        "{:?}",
+        a.left
+    );
 }
 
 #[test]

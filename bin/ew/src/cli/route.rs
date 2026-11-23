@@ -8,7 +8,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::cli_results as results;
-use ew_api::routing::{Reason, RoutePlan, RouteScope};
+use ew_api::routing::{InTheWay, Reason, RoutePlan, RouteScope, Side};
 
 use super::{RouteArgs, open_for_writing, open_reader, project_dir, reader_dir};
 
@@ -100,8 +100,13 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         let mut page = page_result(&folio, &plan, words);
         let name = |id| session.symbol_name(id).unwrap_or_else(|| "a symbol".to_owned());
         page.moved = plan.moves.iter().map(|(p, _)| name(p.0)).collect();
-        page.left = plan.left.iter().map(|(p, _)| name(p.0)).collect();
-        text.push_str(&page_text(&page, &plan, a.dry_run));
+        page.left = plan.left.iter().map(|(p, _, _)| name(p.0)).collect();
+        let left: Vec<String> = plan
+            .left
+            .iter()
+            .map(|(p, side, why)| format!("{}: {}", name(p.0), left_words(*side, *why, name)))
+            .collect();
+        text.push_str(&page_text(&page, &plan, &left, a.dry_run));
         if !a.dry_run
             && let Some(params) = plan.params.clone()
         {
@@ -177,9 +182,9 @@ fn page_result(
 }
 
 /// The text of one page: its summary line (the page as `folio <label>`, as the window words it; with `--dry-run` what
-/// Route would do), then one line per wire left without a way and per wire across a text, and the number of wires a
-/// page-wide Route leaves as the person's.
-fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -> String {
+/// Route would do), then one line per symbol left against a rule (`left`, each with what was in its way), per wire
+/// left without a way and per wire across a text, and the number of wires a page-wide Route leaves as the person's.
+fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, left: &[String], dry_run: bool) -> String {
     let (routed, unrouted, kept) = (page.routed.len(), page.unrouted.len(), plan.kept.len());
     let moved = page.moved.len();
     let verb = if dry_run { "Would route" } else { "Routed" };
@@ -215,10 +220,8 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
             )
         }
     };
-    for symbol in &page.left {
-        out.push_str(&format!(
-            "  No better place for {symbol} on the side its pin faces: it is left where it stands.\n"
-        ));
+    for symbol in left {
+        out.push_str(&format!("  {symbol}; it is left where it stands.\n"));
     }
     for ((_, why), u) in plan.plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
@@ -237,6 +240,33 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
         )),
     }
     out
+}
+
+/// The words of a symbol left against a rule (docs/design/06a-drafting.md §4.7): what was in the way of its place on
+/// `side` of its host's pin, `name` naming a symbol by its ID.
+fn left_words(side: Side, why: InTheWay, name: impl Fn(ew_api::output::Uuid) -> String) -> String {
+    let place = match side {
+        Side::Up => "above its pin",
+        Side::Down => "below its pin",
+        Side::Left => "left of its pin",
+        Side::Right => "right of its pin",
+    };
+    match why {
+        InTheWay::Room => format!("no place {place} has room for it"),
+        InTheWay::Part(p) => format!("{} stands in its place {place}", name(p.0)),
+        InTheWay::Edge => format!("its place {place} lies outside the drawing area"),
+        InTheWay::Text(Some(p)) => format!(
+            "in its place {place} a wire would run through a text of {}",
+            name(p.0)
+        ),
+        InTheWay::Text(None) => format!("in its place {place} a wire would run through a text"),
+        InTheWay::Wire => {
+            format!("in its place {place} a wire would run through a connection point or along another wire")
+        }
+        InTheWay::Texts => format!("in its place {place} a text would lie on another text or a symbol"),
+        InTheWay::Crossings => format!("in its place {place} the wires would cross more than they do now"),
+        InTheWay::NoGain => format!("in its place {place} the page would be no better"),
+    }
 }
 
 #[cfg(test)]
@@ -263,7 +293,7 @@ mod tests {
         let words = |i: ew_api::output::Uuid| format!("-K{}:1 → -X1:{}", i.as_u128(), i.as_u128());
         let page = page_result("101", &plan, words);
         assert_eq!(
-            page_text(&page, &plan, false),
+            page_text(&page, &plan, &[], false),
             "Routed 1 wire on folio 101.\n  No way for -K2:1 → -X1:2: symbols are in its way.\n  No way for -K3:1 → \
              -X1:3: it would be a fourth arm at a junction.\n"
         );
@@ -277,7 +307,7 @@ mod tests {
             held: Vec::new(),
         };
         assert_eq!(
-            page_text(&page_result("102", &empty, words), &empty, false),
+            page_text(&page_result("102", &empty, words), &empty, &[], false),
             "Nothing to route on folio 102: no wire would run better.\n"
         );
         let his = RoutePlan {
@@ -285,7 +315,7 @@ mod tests {
             ..empty
         };
         assert_eq!(
-            page_text(&page_result("102", &his, words), &his, false),
+            page_text(&page_result("102", &his, words), &his, &[], false),
             "Nothing changed on folio 102.\n  2 wires keep the routes they have: name them with --selection to have \
              them routed anew.\n"
         );

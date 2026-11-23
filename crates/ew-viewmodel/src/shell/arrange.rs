@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use ew_api::output::Uuid;
-use ew_api::routing::{RoutePlan, RouteScope, Side, StripHeld};
+use ew_api::routing::{InTheWay, RoutePlan, RouteScope, Side, StripHeld};
 use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel};
@@ -261,13 +261,25 @@ fn move_words(d: ew_api::routing::Pt) -> String {
     parts.join(", ")
 }
 
-/// The words of a symbol left against a rule: no better place on `side` of its host's pin.
-fn no_room(side: Side) -> strings::Key<'static> {
-    match side {
-        Side::Up => key!("arrange-no-room-up"),
-        Side::Down => key!("arrange-no-room-down"),
-        Side::Left => key!("arrange-no-room-left"),
-        Side::Right => key!("arrange-no-room-right"),
+/// The words of a symbol left against a rule (doc 06a §4.7): what was in the way of its place on `side` of its host's
+/// pin, `name` naming a symbol by its ID.
+fn left_words(side: Side, why: InTheWay, name: impl Fn(Uuid) -> String) -> String {
+    let place = strings::text(match side {
+        Side::Up => key!("arrange-place-up"),
+        Side::Down => key!("arrange-place-down"),
+        Side::Left => key!("arrange-place-left"),
+        Side::Right => key!("arrange-place-right"),
+    });
+    match why {
+        InTheWay::Room => strings::format(key!("arrange-in-way-room"), &[place]),
+        InTheWay::Part(p) => strings::format(key!("arrange-in-way-part"), &[place, &name(p.0)]),
+        InTheWay::Edge => strings::format(key!("arrange-in-way-edge"), &[place]),
+        InTheWay::Text(Some(p)) => strings::format(key!("arrange-in-way-text-of"), &[place, &name(p.0)]),
+        InTheWay::Text(None) => strings::format(key!("arrange-in-way-text"), &[place]),
+        InTheWay::Wire => strings::format(key!("arrange-in-way-wire"), &[place]),
+        InTheWay::Texts => strings::format(key!("arrange-in-way-texts"), &[place]),
+        InTheWay::Crossings => strings::format(key!("arrange-in-way-crossings"), &[place]),
+        InTheWay::NoGain => strings::format(key!("arrange-in-way-no-gain"), &[place]),
     }
 }
 
@@ -283,10 +295,10 @@ fn in_the_way(session: &ew_api::Session, folio: &str, plan: &RoutePlan) -> Vec<S
     let mut out: Vec<String> = plan
         .left
         .iter()
-        .map(|(id, side)| {
+        .map(|(id, side, why)| {
             strings::format(
                 key!("arrange-blocked-symbol"),
-                &[&name(id.0), strings::text(no_room(*side))],
+                &[&name(id.0), &left_words(*side, *why, name)],
             )
         })
         .collect();
@@ -416,11 +428,11 @@ fn arrange_card(
             });
         }
     }
-    for (id, side) in &plan.left {
+    for (id, side, why) in &plan.left {
         left.push(ArrangeRow {
             id: id.0,
             name: name(id.0),
-            words: strings::text(no_room(*side)).to_owned(),
+            words: left_words(*side, *why, name),
             ticked: false,
             kept: false,
         });

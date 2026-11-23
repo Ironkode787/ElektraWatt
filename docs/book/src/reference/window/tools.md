@@ -297,8 +297,9 @@ The Preview tab shows what it would do: how many symbols move and how many of th
 are routed and how many of those you drew, the page's crossings and bends now and then, a ticked row per symbol that
 moves (the far moves first) with its move in grid steps, a ticked row per wire you drew that gets a new route, and what
 is left as it is: the symbols kept in place,
-with their pin, the symbols that stand against a rule of the drawing and found no better place on the side their pin
-faces, and the wires without a way. The page shows
+with their pin, the symbols that stand against a rule of the drawing with what was in the way of their place on the side
+their pin faces (a symbol standing there, the edge of the drawing area, a text a wire would run through, more
+crossings), and the wires without a way. The page shows
 it as it would become: the symbols that move tinted, their old places as faint outlines joined to the new ones by a
 dotted line. Hold B to see the page as it is.
 

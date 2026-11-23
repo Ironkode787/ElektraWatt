@@ -41,8 +41,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{BRANCHES, MOVE_PRICE, ROUNDS, TICKS_PER_STEP};
 use crate::marks::{draw_marks, mark_point, move_mark};
-use crate::measure::measure;
-use crate::model::{DraftPage, End, PartId, PinId, Pt, Side, WireId};
+use crate::measure::{TextRef, measure};
+use crate::model::{DraftPage, End, Owner, PartId, PinId, Pt, Side, WireId};
 use crate::route::{self, Jobs, Plan, Scope};
 use crate::rules::{broken, rules_kept};
 
@@ -56,14 +56,35 @@ pub struct Arranged {
     /// The parts that move, each by its move in ticks (whole grid steps), by ID.
     pub moves: Vec<(PartId, Pt)>,
     /// The parts that stand against a rule and stay where they stand (no room on the side their host's pin faces, or
-    /// the page no better with them there), by ID, with that side.
-    pub left: Vec<(PartId, Side)>,
+    /// the page no better with them there), by ID, with that side and what was in the way of the place they would take.
+    pub left: Vec<(PartId, Side, InTheWay)>,
     /// The routes, junctions and marks of the page as it would become (every wire with an end on a moved part
     /// included, an empty route for one without a way), and the page's quality before and after.
     pub plan: Plan,
     /// The strips of terminals over or under a card that could not open as one (§4.4, FT-2110), each by its first
     /// terminal, with what held it.
     pub held: Vec<(PartId, StripHeld)>,
+}
+
+/// What was in the way of the place a part left against a rule would take (§4.7, §4.9).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum InTheWay {
+    /// No place on that side had room for it with what hangs on it.
+    Room,
+    /// This part stands where it would go.
+    Part(PartId),
+    /// The drawing area ends there.
+    Edge,
+    /// A wire would then run through a text (of this part, where a part owns it).
+    Text(Option<PartId>),
+    /// A wire would then run through a connection point or along another wire.
+    Wire,
+    /// Its texts, or others, would then lie on a text or a part.
+    Texts,
+    /// The wires would then cross more than they do now.
+    Crossings,
+    /// The page would be no better, with the price of the moves.
+    NoGain,
 }
 
 /// What held a strip of terminals over or under a card from opening as one to the channels' columns (§4.4).
@@ -171,7 +192,7 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
         held: first.held.clone(),
         left: left
             .into_iter()
-            .filter(|(id, _)| !moves.iter().any(|(m, _)| m == id))
+            .filter(|(id, _, _)| !moves.iter().any(|(m, _)| m == id))
             .collect(),
         moves,
         plan,
@@ -318,7 +339,10 @@ fn arrange_try(
         }
     }
     let full = sk.d.clone();
+    let proposed = sk.moves();
     let mut seen: BTreeSet<Vec<(PartId, Pt)>> = BTreeSet::new();
+    // Why the judge refused the whole arrangement, for the parts it moved that stay (§4.9).
+    let mut refused: Option<InTheWay> = None;
     // A plan routed and judged (module documentation, 4).
     let mut judged = |sk: &mut Sketch<'_>, d: &[Pt]| -> Option<Taken> {
         sk.d = d.to_vec();
@@ -326,6 +350,7 @@ fn arrange_try(
         if moves.is_empty() || !seen.insert(moves.clone()) {
             return None;
         }
+        let whole = d == full.as_slice();
         // A row of terminals keeps the order it stands in: no plan sets one terminal past another (§4.4).
         if !sk.order_kept() {
             return None;
@@ -349,8 +374,30 @@ fn arrange_try(
         let score = (quality.faults, quality.unrouted, quality.cost + price);
         let crossed =
             quality.unrouted >= baseline.unrouted && quality.counts.crossings > baseline.counts.crossings;
-        if !bad.is_empty() || texts || quality.faults > baseline.faults || crossed || score >= baseline.key()
-        {
+        let why = if let Some(w) = bad.iter().next() {
+            Some(
+                quality
+                    .findings
+                    .across_texts
+                    .iter()
+                    .find(|x| x.0 == *w)
+                    .map_or(InTheWay::Wire, |x| InTheWay::Text(text_owner(page, &x.1))),
+            )
+        } else if texts {
+            Some(InTheWay::Texts)
+        } else if quality.faults > baseline.faults {
+            Some(InTheWay::Wire)
+        } else if crossed {
+            Some(InTheWay::Crossings)
+        } else if score >= baseline.key() {
+            Some(InTheWay::NoGain)
+        } else {
+            None
+        };
+        if let Some(why) = why {
+            if whole {
+                refused = Some(why);
+            }
             return None;
         }
         Some(Taken {
@@ -441,11 +488,17 @@ fn arrange_try(
             }
         }
     }
-    let left = |moves: &[(PartId, Pt)]| -> Vec<(PartId, Side)> {
+    // (The page the plan leaves, for what stands in the places of the parts left.)
+    sk.d = best
+        .as_ref()
+        .map_or_else(|| vec![Pt::default(); sk.len()], |t| t.d.clone());
+    let left = |moves: &[(PartId, Pt)]| -> Vec<(PartId, Side, InTheWay)> {
         // The parts that stood against a rule, stand against it still and did not move: named with the side their
-        // host's pin faces.
+        // host's pin faces and what was in the way: the judge's reason where the whole arrangement moved it, else what
+        // stands in its place on that side (a part, the drawing area's edge), else no room for it with what hangs on
+        // it.
         let (was, then) = (broken(page), broken(&moved(page, moves).0));
-        let mut out: BTreeSet<(PartId, Side)> = BTreeSet::new();
+        let mut out: BTreeSet<(PartId, Side, InTheWay)> = BTreeSet::new();
         for b in then.iter().filter(|b| was.contains(b)) {
             for id in &b.parts {
                 if moves.iter().any(|(m, _)| m == id) {
@@ -456,9 +509,18 @@ fn arrange_try(
                     .and_then(|u| sk.lead[u])
                     .and_then(|l| sk.side(l.h));
                 if let Some(s) = side
-                    && sk.unit_of_id(*id).is_some_and(|u| !sk.fixed(u))
+                    && let Some(u) = sk.unit_of_id(*id).filter(|u| !sk.fixed(*u))
                 {
-                    out.insert((*id, s));
+                    let why = if proposed.iter().any(|(m, _)| m == id) {
+                        refused.unwrap_or(InTheWay::NoGain)
+                    } else {
+                        match sk.in_place(u) {
+                            Some(Some(o)) => InTheWay::Part(sk.largest(o)),
+                            Some(None) => InTheWay::Edge,
+                            None => InTheWay::Room,
+                        }
+                    };
+                    out.insert((*id, s, why));
                 }
             }
         }
@@ -497,6 +559,21 @@ fn arrange_try(
         bound,
         opened,
     )
+}
+
+/// The part that owns a text, where a part of `page` does.
+fn text_owner(page: &DraftPage, text: &TextRef) -> Option<PartId> {
+    match text {
+        TextRef::Label(id) => page
+            .labels
+            .iter()
+            .find(|l| l.id == *id)
+            .and_then(|l| match l.owner {
+                Owner::Part(p) => Some(p),
+                _ => None,
+            }),
+        TextRef::Fixed(owner, _) => page.parts.iter().find(|p| p.id.0 == *owner).map(|p| p.id),
+    }
 }
 
 /// The jobs of Arrange and route (§3.2): every wire of the scope, whoever shaped it (the page's, or the selection's

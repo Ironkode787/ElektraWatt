@@ -1078,8 +1078,13 @@ where its lead leaves it the room (the coils of a control page on one line).
 7. **Again.** The run is made again on the page its plan leaves, until a run changes nothing (`ROUNDS`, 4, at
    most). The plan offered is the sum, so a second press finds nothing to do.
 
-A part that stays against a rule is named in the plan: "no better place below -F2; left where it stands" (it
-had no room there, or the page was no better with it there). The placer
+A part that stays against a rule is named in the plan with what was in the way of its place on the side its host's
+pin faces, so that the person knows what to move: "-K3 stands in its place below its pin", "its place below its pin
+lies outside the drawing area", or, where the arrangement moved it there and the judge refused the plan, the judge's
+reason ("in its place below its pin a wire would run through a text of -X11", "... the wires would cross more than
+they do now", "... the page would be no better"); "no place below its pin has room for it" where its place is clear
+but the arrangement found no room for it with its row and what hangs on it. Its place is the one in line with its
+host's pin, with what hangs on it, `CHAIN_GAP_MIN` beyond the pin at least and clear of the host. The placer
 does not close up or spread a circuit, does not turn a part to make it fit, and does not move a part to another
 page.
 
@@ -1145,7 +1150,7 @@ it may (§4.4), and where they stay behind it opens the rings' room (§3.5, FT-2
 ### 4.9 The plan
 
 `arrange(page, scope, fixed) -> Arranged`: the parts' moves, the parts left against a rule with the side their
-host's pin faces, and the plan of the page as it would become (the routes, junctions and marks, with the
+host's pin faces and what was in the way (§4.7), and the plan of the page as it would become (the routes, junctions and marks, with the
 quality before and after). The plan is empty when nothing better than the page as it is was found. The message
 says that the page is already arranged as well as the rules allow only where nothing stands in the way; else it says
 that no plan was better than the page as it stands and names what stands in the way: each part left against a rule
@@ -1213,7 +1218,7 @@ stand over its tag.
 | Name of a mark (interruption point, supply mark) | in line with the wire beyond the arrow: left of an incoming mark, right of an outgoing one; above the arrow | 3 |
 | Cross-reference of a mark | under the wire on the wire's side of the arrow; above the wire there; the same past the number of the pin the mark is set on (an interruption point on a contact's pin) | 3 |
 | Name of a terminal | right below the terminal's point; left below it | 1 |
-| Strip designation | left of the strip's first terminal, level with it; above it; above the terminal's name, where it stands over the terminal; above it, ending at its left edge | 4 |
+| Strip designation | left of the strip's first terminal, level with it; above it; above the terminal's name, where it stands over the terminal; above it, ending at its left edge; centred below it; right of it, level with it (where a wire comes to the terminal round its left and over its top) | 4 |
 | Wire number, tube tag | along the wire: on a vertical stretch right of the line, turned to read from the bottom; on a horizontal stretch above the line. Tried on each straight stretch at least the text's length plus two steps long: first level with the number of the parallel wire beside it that is already placed, then at the middle of the longest stretch, then at its quarters, then on the other side of the line | 5 |
 | Type text of a cable mark; the cable's tag | the type left of the row of ticks, the tag right of it; both right; both left | 5 |
 

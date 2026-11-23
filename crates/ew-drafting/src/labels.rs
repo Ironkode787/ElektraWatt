@@ -584,6 +584,10 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(c.x - half(w), name.min(b.y0) - g - h, unit.size),
                 // Above it, ending at its left edge: clear of a wire that leaves the terminal upward.
                 bx(b.x0 - g - w, b.y0 - g - h, unit.size),
+                // Centred below it, then right of it at its middle: where a wire comes to the terminal round its left
+                // and over its top, so that the wire need not run through the designation.
+                bx(c.x - half(w), b.y1 + g, unit.size),
+                bx(b.x1 + g, c.y - half(h), unit.size),
             ]
         }
         LabelKind::Tag
