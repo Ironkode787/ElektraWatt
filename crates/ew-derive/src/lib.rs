@@ -89,6 +89,7 @@ mod stitch;
 mod strip_bridges;
 mod structure;
 mod tag;
+mod text;
 mod text_frame;
 mod title_block;
 mod toc;
@@ -127,7 +128,7 @@ pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
 // Page items and structure boxes, derived.
 pub use items::{
     BINDABLE, CableMark, GroupMarker, IpStructure, MarkerMode, RepStructureBox, SYMBOL_BINDABLE, bound_text,
-    box_caption, cable_mark, cable_size_text, colour_text, connection_marker, connection_number, csa_text,
+    box_caption, cable_mark, cable_size_text, connection_marker, connection_number,
     effective_marker_text, explicit_marker_text, free_text, group_marker, grouped_connections,
     live_connections, marker_mode, neutral, outline_area2, outline_contains, shows_marker,
     stale_marker_notes, strips_named_on, symbol_bound_text,
@@ -225,6 +226,8 @@ pub use tag::{
     DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, level_short_tag,
     numbering_format, rep_level, rule_product, short_tag,
 };
+// How a value of the domain is printed.
+pub use text::{colour_text, csa_text};
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{
     TbValue, TitleBlock, TitleBlockValues, current_revision, last_changed_in, last_released_revision,

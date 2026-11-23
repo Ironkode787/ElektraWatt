@@ -39,7 +39,7 @@ use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_rds::RdsSyntax;
 use ew_schema::{
-    ColourSpec, Connection, ConnectionKind, Csa, Device, FreeText, Function, FunctionKind, Page, PageItem,
+    Connection, ConnectionKind, Csa, Device, FreeText, Function, FunctionKind, Page, PageItem,
     PageItemKind, Representation, Slot, StructureBox,
 };
 use ew_units::Pt2;
@@ -52,6 +52,7 @@ use crate::structure::{
     PAGE_ASPECTS, PageStructure, ResolvedSlot, ResolvedStructure, SlotSource, resolved_slot, slot,
 };
 use crate::tag::DisplayedTag;
+use crate::text::{colour_text, csa_text};
 use crate::title_block::{TbValue, TitleBlockValues};
 use crate::wire_props::{ConnWireProps, EffectiveProps};
 use crate::{Q, anchor_point};
@@ -388,27 +389,6 @@ impl MarkerMode {
     pub fn from_name(name: &str) -> Option<MarkerMode> {
         MarkerMode::ALL.into_iter().find(|m| m.name() == name)
     }
-}
-
-/// The printed text of a cross-section (`2.5`, `AWG18`, `250 kcmil`); `None` for a value of a newer format.
-pub fn csa_text(c: &Csa) -> Option<String> {
-    match c {
-        Csa::Mm2(d) => Some(d.to_string()),
-        Csa::Awg(n) => Some(format!("AWG{n}")),
-        Csa::Kcmil(d) => Some(format!("{d} kcmil")),
-        Csa::Unknown(_) => None,
-    }
-}
-
-/// The printed colour code of a colour specification: its codes in their file spelling, concatenated (`BU`,
-/// `GNYE`, `DBU`); `None` when a code has no text form (a value of a newer format).
-pub fn colour_text(c: &ColourSpec) -> Option<String> {
-    let mut out = String::new();
-    for code in c.codes() {
-        let v = serde_json::to_value(code).ok()?;
-        out.push_str(v.as_str()?);
-    }
-    Some(out)
 }
 
 /// The as-built marker text of a connection: its explicit cross-section and colour, joined by a space.
