@@ -40,11 +40,26 @@ flowchart LR
 | **`ew-step-worker`** | Out-of-process OCCT via occt-sys 7.8.1 + opencascade 0.3.0 (LGPL-2.1, C-5). Supervised with timeouts and restart. Results are cached by `sha256(file) + worker_version`. A crash or a pathological vendor file cannot touch the model |
 | **MCP** | `ew mcp` opens the project headless with the same `Session` API, read-only while the GUI holds the lock. A GUI "live bridge" with ask-first writes follows in v1.x (G10). Specified, not built: `ew` has no `mcp` subcommand yet |
 
-*As built.* No job pool exists. The page-output export of `ew-api` (`ew_api::output`) is synchronous in its core: phase 1 (page order, selection, the memoised layers of every page) runs on the session's thread because the `Session` is not `Send`, the page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index), and the writer follows with the bundled fonts of `ew-text` (a normal edge, like the one to `ew-dl`). The asynchronous export is the job of `ew-jobs` described next.
+The table is the process model as specified. **What is built:** the UI thread and the jobs of `ew-jobs`. There
+is no writer or watcher thread: the store saves by the protocol of §7.4 and appends the journal, synced per
+entry, on the session's thread, and it polls the manifest for an external change
+([05](05-project-format-and-persistence.md) §8.1, §9). The job pool, the plugin host, the STEP worker and MCP are
+not built.
 
-*As built (closed except the memo snapshot).* `ew-jobs` is a minimal runner: **one named `std` thread per job**, progress reports, a cancel flag checked at named checkpoints, a waker for the UI, `catch_unwind` (a panic fails the job and leaves the session untouched) and a test `Gate` whose hold is a breakpoint; **no rayon pool and no adopt-if-unchanged**, no new package or edge (`ew-api` re-exports it). `Session::export_job` carries the `World`, the report engine and the asset bytes to the job, which builds a **cold `Q`** on its thread and runs the export's phases (`export_pages_hooked`, shared with the synchronous export) with a checkpoint per page; its bytes equal `Session::export_pdf`'s. The memo snapshot in the fork, the job pool and adopt-if-unchanged are not built; they follow only if the release-phase measurement asks for them.
+- **The synchronous export.** The page-output export of `ew-api` (`ew_api::output`) is synchronous in its core:
+  phase 1 (page order, selection, the memoised layers of every page) runs on the session's thread because the
+  `Session` is not `Send`, the page phase runs on `ew_export::par_map` (scoped `std` threads, results by page
+  index), and the writer follows with the bundled fonts of `ew-text`.
+- **`ew-jobs`** is a minimal runner: **one named `std` thread per job**, progress reports, a cancel flag checked
+  at named checkpoints, a waker for the UI, `catch_unwind` (a panic fails the job and leaves the session
+  untouched) and a test `Gate` whose hold is a breakpoint; `ew-api` re-exports it. `Session::export_job` carries
+  the `World`, the report engine and the asset bytes to the job, which builds a **cold `Q`** on its thread and
+  runs the export's phases (`export_pages_hooked`, shared with the synchronous export) with a checkpoint per page;
+  its bytes equal `Session::export_pdf`'s.
+- **Not built:** the memo snapshot in the fork, the rayon job pool and adopt-if-unchanged. They follow only if
+  the release-phase measurement asks for them.
 
-**The job model has no memo merge-back.** This is deliberately simpler than proposal A.
+**Specified: the job model has no memo merge-back.**
 - **What a job receives.** A job gets the model plus a **read-only** snapshot of the memo store, both `imbl` and
   O(1).
 - **Where its results go.** Results the job verifies or computes go to a **job-local overlay**, which is dropped
@@ -116,7 +131,7 @@ pub struct Row<T>   { value: Arc<T>, changed_at: Rev }
   `reps_by_page`, `connections_by_endpoint`, `terminals_by_strip`, `channels_by_module`, `placements_by_device`.
   - `Op::apply` maintains them by delta.
   - Debug builds re-derive them and compare after every transaction.
-  - A generated field-mask exhaustiveness test (from D) fails when someone adds a link field without updating the
+  - A generated field-mask exhaustiveness test fails when someone adds a link field without updating the
     index declarations.
 
 ### 4.2 Entities
@@ -131,13 +146,13 @@ forms [09](09-reports-forms-output.md) §2.2 and §2.5: **where this summary dif
 | Structure | `StructureNode { aspect, code, parent, description: MlText, order }` | One canonical node for `+J-E-2416`. Spelling is a property of the node (D-03) |
 | Section, Page | `Section { number, folio_range, title }`; `Page { folio: Folio{section, number, label}, kind, structure, form, title: MlText, description_override: Option<MlText>, scale, grid, … }` | `title` is the page description; without `description_override` the title block prints the project description (D-06). No stored revision, prev/next or title-block text |
 | Device | `Device { tag: TagSpec, kind: Option<DeviceKind>, parent: Option<Id<Device>>, position, structure, parts: SmallVec<PartUse{part: PartRef{copy: Id<Part>, variant}, qty}>, function_text: MlText, process_tag, tech_data: [TechValue{key, value}], state, aspects: DeviceAspects, user_props, extra }` | `TagSpec { letter, counter, scheme, frozen: Option<FrozenTag> }`. The printed tag is derived. **Parts attach only to devices**, so the BOM aggregates one path |
-| Function | `Function { device: Option<Id<Device>>, def: Id<FnDef>, role: Main/Aux, kind: Normal/Ip(IpSpec)/BlackBox, cp_overrides: SmallVec<CpOverride{idx, designation, alias, description, unused}>, … }` | `device` is None if and only if the kind is `Ip`. **Connection points (CPs) are instantiated from the function definition** (symbol or part pin pattern). Only overrides are stored (from B). The internal `idx` keeps duplicate printed designations unique (REF-029) |
+| Function | `Function { device: Option<Id<Device>>, def: Id<FnDef>, role: Main/Aux, kind: Normal/Ip(IpSpec)/BlackBox, cp_overrides: SmallVec<CpOverride{idx, designation, alias, description, unused}>, … }` | `device` is None if and only if the kind is `Ip`. **Connection points (CPs) are instantiated from the function definition** (symbol or part pin pattern). Only overrides are stored. The internal `idx` keeps duplicate printed designations unique (REF-029) |
 | Representation | `Representation { functions, page, symbol: Id<SymbolDef>, variant: u8, pos: Pt2, orient, rep_type, pin_map, text_slots, arrangement, box }` | One function, many drawings: `rep_type` is MultiLine, SingleLine, Overview, Fluid, Topology, ContactImage, StripSegment or Graphic. An unplaced function simply has no representation. One strip drawn in two segments (D-42). **Panel fronts are not stored:** the query `panel_front_reps(dev)` derives them from placements, and a PanelLayout page hosts one `SurfaceView` (D-02) |
 | Connection | `Connection { a: Endpoint, b: Endpoint, page: Option<Id<Page>>, route: SmallVec<Pt2>, kind: Wire/Core(Id<Conductor>)/Bridge(BridgeSpec)/Fluid/Bus(BusLine)/Overview/Internal/SingleLine (1.0), overrides: WireOverrides, number: NumberSpec }` | `Endpoint = Cp{function, idx} \| Junction(id)`. Overview connections are excluded from nets. Strip-editor bridges and page-less internal links have no page and live in the shard of the device that owns endpoint `a` |
 | Junction | `Junction { page, at, style: Dot/Bevel{orient}, wiring: Option<Star/Chain>, sequence: SmallVec<Id<Connection>> }` | Explicit T-node order (REF-034, D-20). `wiring` decides the physical wires; absent, Dot means Star and Bevel means Chain |
 | Interruption point | A `Function` of kind `Ip(IpSpec { name, direction, star_source, sort, external })` without a device, with a representation; it lives in the page file of its representation | Pairing is derived: star or chain, by name within the scope set in `ProjectSettings.ip_pairing` |
 | Potential, net | `PotentialDef { at: Endpoint, name, ptype: Option, voltage, env, circuit_class: Option, props: WireProps }`; `NetDef { at, props }` (signal level); `Bond { a, b, kind, via }` | Potentials themselves are derived. Bonds link potentials without merging them (D-22) |
-| Terminal strip, terminal | Strip = `Device` with aspect `Strip`; terminal = `Device` with aspect `Terminal { strip, seq, designation, levels, rail_bonded }` | **A terminal is a device**, as in EPLAN. Its levels and clamps are CPs carrying level and side (`side1` or `side2`, from B; TWIN terminals). Designation rules: §4.6 |
+| Terminal strip, terminal | Strip = `Device` with aspect `Strip`; terminal = `Device` with aspect `Terminal { strip, seq, designation, levels, rail_bonded }` | **A terminal is a device**, as in EPLAN. Its levels and clamps are CPs carrying level and side (`side1` or `side2`; TWIN terminals). Designation rules: §4.6 |
 | Cable, conductor | Cable = `Device` with aspect `Cable { length: LengthSource, core_id_mode, pre_assembled }`; `Conductor { cable, core, colour: Option<ColourSpec>, csa: Option<Csa>, shield, pair }` | `ColourSpec` is one or two `ColourCode`s: the IEC 60757 enum plus profile-declared company codes (DBU), so "BR" cannot be stored in strict mode; imports keep it as a lenient-only foreign code (EW-CORE-031) (D-17). `Csa` keeps mm², AWG or kcmil in its original unit |
 | PLC | Station and module are device aspects `PlcStation`, `PlcModule { slot, type_ident, start: IoStarts{input, output}, part_use, … }`; `Channel { module, number, kind, data_type, address: Auto/Manual/Excluded/Tbd, state: Option, symbol, comment: MlText, binding: Option<Endpoint> }` | `Auto` addresses are derived from the module start and the address map of the part use (D-26). `Tbd` is a typed open item (D-15). Channel IDs are `v5(module, "channel", number)` |
 | Bus | `BusPort` aspect on functions; `LogicalNet`, `PhysicalNet` | Termination is a property, not free text (REF-061) |
@@ -145,11 +160,11 @@ forms [09](09-reports-forms-output.md) §2.2 and §2.5: **where this summary dif
 | Layout, 3D | `LayoutSpace`, `Enclosure`, `MountingSurface`, `Carrier { kind: Rail/Duct/Busbar/Surface, part, path }`, `Placement3D { device, function: Option, carrier, pose: Pose3, locked }`, `RouteOverride { connection, path }` | **No tag text is stored** (D-02). Poses are relative to the carrier. Overrides are keyed by connection ID, so they survive re-routing |
 | Library copies | `PartCopy`, `SymbolDef`, `FnDef`, `FormDef`, `MacroDef`, manufacturer, PLC-profile, machine-profile and label-profile copies, each with `{library_id, item_id, version, sha256}`; project records reference them by typed copy IDs (`Id<Part>`, `Id<SymbolDef>`, `Id<FnDef>`, `Id<FormDef>`) | The project opens without its libraries (G2). Copy IDs are item-based (§4.4) |
 | Revision | `Revision { label, date, author, checker: Option, description, state: Open/Released/Withdrawn, page_notes, sign_off: Option, release: Option<ReleaseRecord> }`; `ReleaseRecord { generation, approval, rule_packs, derivation_profile, archive, git_tag, content_digest, page_digests, changed_pages }` | One table, one format (D-05); four-eyes rule (D-34). Withdrawing a release adds a separate `Withdrawn` record that points to it (§7.8) |
-| Reports, notes | `ReportBlock { source: Kind(ReportKind)/SqlQuery{api, file}, manual, sort, group, form, section, first_folio: Option, continuation, title, empty, embedded: Option<EmbedSpec{page, rect}> }`; `Waiver`; `Comment`; `ExternalRef { project, location, device, connection }` | Report pages are derived (§11); `params` and `filter` arrive with WP-S3.03 ([09](09-reports-forms-output.md) §2.2). External connections to J-E-206 are typed (REF-018) |
+| Reports, notes | `ReportBlock { source: Kind(ReportKind)/SqlQuery{api, file}, manual, sort, group, form, section, first_folio: Option, continuation, title, empty, embedded: Option<EmbedSpec{page, rect}> }`; `Waiver`; `Comment`; `ExternalRef { project, location, device, connection }` | Report pages are derived (§11); `params` and `filter` are specified, not built ([09](09-reports-forms-output.md) §2.2). External connections to J-E-206 are typed (REF-018) |
 
 ### 4.3 Device aspects: one device, several roles
 
-Multi-role devices carry optional, typed aspects on one `Device` instead of subtypes (from B):
+Multi-role devices carry optional, typed aspects on one `Device` instead of subtypes:
 
 ```rust
 pub struct DeviceAspects {
@@ -189,7 +204,7 @@ Within a session, IDs are interned to dense `u32` values for union-find arrays a
   - Grids are rational: the QET 10 px grid is exactly `7_937_500/3` nm.
   - Snapping uses grid indices, never float equality.
   - f64 mm (glam `DVec3`) appears only in 3D maths, f32 only in GPU buffers.
-- **Electrical quantities.** Fixed-point `Dec3` (mm², A, V), from D, so no float noise reaches files, merges or
+- **Electrical quantities.** Fixed-point `Dec3` (mm², A, V), so no float noise reaches files, merges or
   checks.
 - **Multilingual text (G7).** `MlText = Neutral(String) | Langs(BTreeMap<LangTag, String>)`, with EPLAN's mutual
   exclusion.
@@ -201,11 +216,11 @@ Within a session, IDs are interned to dense `u32` values for union-find arrays a
 
 Invariants are evaluated **on the candidate snapshot at the end of the transaction**, limited to touched keys and
 their index neighbours. Transient states inside a transaction are therefore legal: swapping two terminal
-designations, or renumbering a strip, needs no two-phase rename. This fixes the flaw the domain judge found in C.
+designations, or renumbering a strip, needs no two-phase rename.
 
 | Class | Invariants | Behaviour |
 |---|---|---|
-| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D; the `forbid` of a `LibRef` link is the delete-time rule below); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
+| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (the `forbid` of a `LibRef` link is the delete-time rule below); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
 | **Delete-time** (always on, edits only; ADR-0009 amendment 7) | An edit does not remove an embedded library copy that a record names through a `LibRef` (EW-INV-021). A state without the copy is valid, so the rule judges a removal, not a state: `Model::apply_with` (every command) and the delete plan evaluate it; the history path of undo and redo (`Model::apply_history`) and the integrity check do not. Crash recovery onto a moved base reports a removal it would make as a collision | Reject the edit (`Referenced`) |
 | **Prevent** (rule-pack configurable) | Terminal designation non-empty (D-11) and unique per strip (D-12); device tag unique within its structure scope; PLC address unique per area; at most one star source per interruption-point name and scope, and in chain mode an even count ordered by sort key (unpaired and ambiguous points are check findings); conductor colours consistent with the cable part | **Strict mode** rejects the transaction. **Lenient mode** (imports, legacy projects) turns a violation into a check message. The migration report lists every message |
 
@@ -249,8 +264,8 @@ impl Session {
 **v0**. `execute` and `commit` return a `Receipt {rev, outcome, created, passes}`
 and `undo` and `redo` a `Restored {rev, context, label}`; both carry the `Rev` shown above. The `Outcome`'s notices
 (what a command or a normaliser dropped or adjusted instead of refusing) are texts by key, as a refusal is: the window
-words them in its language, the command line prints their English (FT-1819). `preview` runs
-synchronously and returns the `Preview` until the job pool of WP-S1.05 wraps it in a `JobHandle`, and a `Cost::Bulk`
+words them in its language, the command line prints their English. `preview` runs
+synchronously and returns the `Preview` (the `JobHandle` waits for the job pool of §2), and a `Cost::Bulk`
 command sent to `execute` is refused with `CmdError::NeedsPreview`. [Extensibility](17-extensibility.md) §4 lists the
 v0 facade.
 
@@ -265,12 +280,12 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
    `Q`** (ADR-0008 amendment 4): they describe committed snapshots, not the pending state. An
    index answer inside a transaction is a structural-index lookup on `TxBuilder` over the model's referrer index of a
    link (`channels_of_module` and `channels_at_cp`), with read-your-writes and recorded in the read set,
-   and a derived key is recomputed from the rows read; normalisers (step 2) follow the same rule. *Example
-  :* a command whose input depends on derived data takes it from the caller, so
+   and a derived key is recomputed from the rows read; normalisers (step 2) follow the same rule. *Example:* a
+   command whose input depends on derived data takes it from the caller, so
    `ip.arrange` receives the new order that the tool computed (by name or by derived potential name) and reads no
    memoised query. *Assets (ADR-0008 amendment 5):* a handler may add image bytes through
    `TxBuilder::put_asset`; they join the model's asset store with the ops at commit and are not ops.
-2. **Normalise** (from D). Deterministic normalisers may add ops to the same transaction, with at most three
+2. **Normalise.** Deterministic normalisers may add ops to the same transaction, with at most three
    productive passes plus one confirming pass; non-convergence is a bug (`CmdError::Internal`, ADR-0008
    amendment 2). The registry, with the order of the editor's normalisers, is
    [schematic editor](06-schematic-editor.md) §3.2. The normaliser families are:
@@ -322,25 +337,19 @@ Accept commits the prepared transaction after the rebase check (§2). Cancel dro
 re-addressing run and "update parts from library" are inspected the same way, including rendered pages of the
 candidate.
 
-*Specified.* The preview of an interactive canvas tool is the same
-mechanism at the smallest scale: `Session::preview` runs the command as a dry run on a fork and yields the
-`DerivedDiff` that draws the semantic ghost. The `Session` is not `Send`, so each tool preview runs on the UI thread,
-after the pointer has rested for 80 ms (the action `canvas.dwell`); a fork job off the UI thread is
-not built yet. The jobs above that run `preview` on the pool are unchanged.
+The preview of an interactive canvas tool is the same mechanism at the smallest scale: `Session::preview` runs
+the command as a dry run on a fork and yields the `DerivedDiff` that draws the semantic ghost. Every editing tool
+previews through the very command it would commit; there is no second preview model, and the autoconnect ghosts
+are overlay items until the commit (their hints reach the model only inside the committed `device.place`). The
+viewer and Measure run no preview.
 
-Every editing tool previews through `Session::preview` of the
-very command it would commit; there is no second preview model, and the autoconnect ghosts are overlay items until the
-commit (their hints reach the model only inside the committed `device.place`). The viewer runs no
-preview.
-
-*As built.* The tool host in `ew-viewmodel` runs a tool's
-`Preview` through `Session::preview_with` on the UI thread, once per changed command or revision, keeps it as
-`PreviewState` with the derived diff as the semantic ghost and marks it stale when the revision moves on; a commit in
-the window takes `Session::commit` of a fresh equal preview, else `Session::execute_with`, and headless the one-line
-command log of `Session::run_script`, so the exposure rules and `--record` apply unchanged. A preview also runs on a
-read-only project (a preview is a read; only the commit is refused). The fork job off the UI thread is not built yet; its
-cost is not measured. The shipped tools, Select and Measure, preview nothing; the probe that does is
-test-only (`ew-viewmodel` feature `testkit`).
+The tool host in `ew-viewmodel` runs a tool's `Preview` through `Session::preview_with` on the UI thread (the
+`Session` is not `Send`), once per changed command or revision and after the pointer has rested for 80 ms (the
+action `canvas.dwell`), keeps it as `PreviewState` with the derived diff as the semantic ghost and marks it stale when
+the revision moves on. A commit in the window takes `Session::commit` of a fresh equal preview, else
+`Session::execute_with`, and headless the one-line command log of `Session::run_script`, so the exposure rules
+and `--record` apply unchanged. A preview also runs on a read-only project (a preview is a read; only the commit
+is refused). A fork job off the UI thread is specified, not built; its cost is not measured.
 
 ### 5.5 Macros
 
@@ -349,16 +358,26 @@ test-only (`ew-viewmodel` feature `testkit`).
   remaps IDs, rebinds structure identifiers and lets the normalisers number the new devices. Folios 203–206 become
   one typical with four value sets.
 
-*Ruled.* **The project-fragment format of this section is the text
-format `#ew-fragment v1`** that the clipboard uses: a header line, then the records in the
-canonical JSONL of §7.3 with their library copies. Copy, cut, paste, duplicate and, later, WP-S1.19's window and page
-macros use this one format; macros extend it (value sets, parameters) within its version rules rather than define a
-second one. Within v1 unknown header members are ignored; another `format` or a record of another `$v` is refused
-until WP-S1.17's migration chain exists. `edit.paste` takes the whole fragment as its parameters, so a paste
-replays from the command log; references are remapped and judged by `ew_model::LINKS` and their delete policy.
-Trade-off: one format to keep stable across versions and instances, against a macro format free to diverge.
+**The project-fragment format of this section is the text format `#ew-fragment v1`** that the clipboard uses: a
+header line, then the records in the canonical JSONL of §7.3 with their library copies. Copy, cut, paste,
+duplicate and the window and page macros use this one format; macros extend it (value sets, parameters) within
+its version rules rather than define a second one. Within v1 unknown header members are ignored (the `$fragment`
+header is open, a `$node` line closed); another `format` or a record of another `$v` is refused until the
+migration chain exists. `edit.paste` takes the whole fragment as its parameters, so a paste replays from the
+command log; references are remapped and judged by `ew_model::LINKS` and their delete policy. Trade-off: one
+format to keep stable across versions and instances, against a macro format free to diverge.
 
-*As built.* The format is as ruled, with these settled points: the records follow in (kind rank, position, ID) order, not by ID; the fragment carries raw UUIDs as data (it is clipboard content, not the shell's machine text, so the alias `@n` does not apply); the `$fragment` header is open within v1 and a `$node` line closed; a leading byte-order mark is skipped; a record's import lineage (`source_ref`) is dropped; `edit.paste` mints in (kind rank, fragment order) and numbers the pasted devices in that order. The fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects. The exact text is [05](05-project-format-and-persistence.md) §12 and the WP-S2.05 specification's §8.1.
+- The records follow in (kind rank, position, ID) order, not by ID; `edit.paste` mints in (kind rank, fragment
+  order) and numbers the pasted devices in that order.
+- The fragment carries raw UUIDs as data (it is clipboard content, not the shell's machine text, so the alias
+  `@n` does not apply); a leading byte-order mark is skipped; a record's import lineage (`source_ref`) is dropped.
+- The fragment also carries page items and structure boxes (ranks 43 and 44); marker associations retain and
+  remap copied connections, empty markers and unknown variants are skipped and counted, and a cross-project paste
+  of a structure box clears `external`.
+- Copy tolerates a partial selection; Cut refuses an incomplete transfer of the selected page items before any
+  side effect.
+
+The exact text is [05](05-project-format-and-persistence.md) §12.
 
 ---
 
@@ -488,7 +507,7 @@ Library copies are one pretty-printed JSON document per item, because they are l
 - **Merge driver.** `ew merge-driver %O %A %B %L %P` (the four-argument form without `%L` is accepted too) merges
   three-way per `($k, id)` record, then per field.
   - Disjoint field edits on one record merge cleanly.
-  - A true conflict is written as a `{"$k":"conflict","id":…,"ours":…,"theirs":…}` record (from B). The file stays
+  - A true conflict is written as a `{"$k":"conflict","id":…,"ours":…,"theirs":…}` record. The file stays
     valid and loadable, git gets exit code 1, and EW shows a resolution panel.
   - A caught internal error exits 129, because git reads any code up to 128 as "conflicts written" (ADR-0012).
 - **Cross-file semantics.** Git calls drivers per file, so the post-merge hook and every open run
@@ -507,26 +526,24 @@ Library copies are one pretty-printed JSON document per item, because they are l
      back as its original line (ADR-0011).
    - A major bump refuses to open, or opens read-only.
 2. **Per-kind schema versions** (`"$v"`, omitted when 1). Migrations are pure `serde_json::Value` functions per
-   kind and per step (from B). They are never deleted.
+   kind and per step. They are never deleted.
 3. **Stamps and schemas.** `generator` and `min_reader` stamps. JSON Schemas are published from `ew-schema` for
    every kind and validated in CI.
 4. **Fixture corpus.** One fixture per released format: the golden project (format 0.1) and, for every later format,
    the sample project (ADR-0011 amendment 7), plus the QET examples, opened by every build.
-5. **Change policy** (from D, the LibrePCB rule). Before 1.0, upgrade-on-read every release. After 1.0, format
+5. **Change policy** (the LibrePCB rule). Before 1.0, upgrade-on-read every release. After 1.0, format
    majors only in a yearly window, and development builds that write an unreleased format show a warning.
-6. **Schema steward rule** (from C). Every PR that changes the format ships a migration, a fixture, the regenerated
+6. **Schema steward rule.** Every PR that changes the format ships a migration, a fixture, the regenerated
    schema and docs.
 
 ### 7.7 Libraries and catalogues
 
 - **Catalogues.** Libraries are canonical text at every tier (system, community, company, user): `.ewlib`
   directories in the project format, with the same writer, manifest-last save, lock and merge driver. They are fed
-  from EDZ, BMEcat, ETIM or CSV. Published library versions are immutable. *As built:* the system library is the compiled-in starter `ew-starter`, whose ID is the constant
-  `ew_interop_api::SYSTEM_LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589), held in the permissive contract crate
-  because importers may depend neither on each other nor on `ew-library` (rule 4). The QET and tables importers
-  reference built-in items through it; `ew-import-tables`' own constant is removed, and `ew-import-qet` keeps
-  `BUILTIN_LIBRARY` as an alias of `SYSTEM_LIBRARY` because tests outside WP-S1.19 part 1 still name
-  it. The value is the one the starter content already carried, so no copy ID moved. `ew-library` builds one derived SQLite
+  from EDZ, BMEcat, ETIM or CSV. Published library versions are immutable. The system library is the compiled-in starter, whose ID is the
+  constant `ew_interop_api::SYSTEM_LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589), held in the permissive
+  contract crate because importers may depend neither on each other nor on `ew-library`; the QET and tables
+  importers reference built-in items through it. `ew-library` builds one derived SQLite
   FTS5 index per user in the local cache, rebuilt incrementally per library generation, for full-text search; no
   SQLite file is ever opened on a share ([symbols, parts and macros](07-symbols-parts-macros.md) §2.1–§2.2).
 - **Projects never read catalogues at render time.** They embed a `PartCopy`, and "update from library" is a
@@ -534,8 +551,7 @@ Library copies are one pretty-printed JSON document per item, because they are l
   canonical compact JSON of the item's own fields. A cross-project paste of another version offers three choices:
   update the existing copy (previewed), adapt the pasted records to the existing copy, or keep both.
 - **Foreign SQLite files** (QETZ `project.sqlite`, third-party catalogues) are opened read-only with
-  `trusted_schema=OFF`, defensive mode and a schema check, because a hostile file can carry views or triggers (from
-  C).
+  `trusted_schema=OFF`, defensive mode and a schema check, because a hostile file can carry views or triggers.
 
 ### 7.8 Revisions and the as-built archive
 

@@ -312,7 +312,7 @@ PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange. **
 parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build for the pilot only) sits before the
 MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
 checks; it adds no release column, because it is a slice of MVP rows (global plan
-§5.3). The mapping to milestones is MVP = M2, 1.0 = M7 ([architecture](04-architecture.md) §15.2). The symbol editor is built (milestone **M2.5**) and shipped in release **0.1.0**.
+§5.3). The mapping to milestones is MVP = M2, 1.0 = M7 ([roadmap](../../ROADMAP.md)). The symbol editor is built (milestone **M2.5**) and shipped in release **0.1.0**.
 
 **Dates are not set here.** The calendar is the plan of record: see global plan
 §3.4 and §5.1 and milestones.csv. For the plan of record (three developers, lean scope,
@@ -395,7 +395,7 @@ the requirement rows carry the source "EPLAN feature inventory; scope-boundary d
 
 | ID | Constraint |
 |---|---|
-| K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output); its effort is in [architecture](04-architecture.md) §15.1, its calendar in the global plan |
+| K-1 | **Team:** 2–4 developers plus AI assistance. The milestones are in the [roadmap](../../ROADMAP.md) |
 | K-2 | **Rust:** core and application in Rust. FFI only where justified: OCCT in an out-of-process STEP worker, bundled SQLite |
 | K-3 | **Licences** (ADR-0024): application GPL-3.0-or-later with a plugin exception (wording pending, ADR-0025); a closed permissive layer; QET-derived code only in `ew-import-qet`; QET elements not merged into EW libraries |
 | K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, Ubuntu 22.04+ and Debian 12+ (macOS is not supported); GPU-less operation through DX12 WARP or the CPU renderer |

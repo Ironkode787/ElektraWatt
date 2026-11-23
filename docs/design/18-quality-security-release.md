@@ -178,6 +178,11 @@ copying one file.
 | Re-importing the same source yields identical IDs and an empty diff (FR-IMP-002) | QET corpus |
 | A hit-test result lies in the item's bounding box; a routed length ≥ the Euclidean distance (1.0) | S, layout fixture |
 
+The undo law holds for `library.embed` too: the keep-alive of an embedded copy that a `LibRef` names is the
+delete-time rule EW-INV-021, which the edit path evaluates and the history path of undo and redo
+(`Model::apply_history`) does not, because the state before the embedding is valid (ADR-0009 amendment 7;
+[architecture](04a-model-editing-persistence.md) §4.6, §5.3). The command fuzzer's undo-all oracle covers the case.
+
 *As built.* The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
 batches of steps over a fixture with named rows. **A step whose fixture row is gone is a no-op**: a generated step that
 names a fixture row (an FnDef copy, a page, a location node) which an earlier delete plan of the sequence removed is

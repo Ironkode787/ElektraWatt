@@ -827,8 +827,8 @@ generated from the tables above; IDs are unique and contiguous in every area.
 PLC data model (22), the CLI and extension surface (16), the device-bound 2D layout (14) and storage (13);
 manufacturing and thermal are entirely 1.0, matching [vision and scope](00-vision-and-scope.md) §9. The adoption
 pass added 17 MVP Musts and 24 MVP Shoulds, mostly import fidelity (lineage, numbering inference, colour aliases),
-PLC invariants, command-log and trust mechanics and UI conveniences. Streams S2 (interaction) and S3 (documents and
-migration) of [architecture](04-architecture.md) §15.2 carry most of that MVP load, and the thin layout slice of
+PLC invariants, command-log and trust mechanics and UI conveniences. The interaction and the documents and migration
+streams carry most of that MVP load, and the thin layout slice of
 BS OQ2 must be staffed explicitly. The global plan should check these counts against team capacity before freezing
 the MVP; the 44 MVP Shoulds are the first candidates to defer.
 

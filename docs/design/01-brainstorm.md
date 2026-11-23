@@ -152,7 +152,7 @@ Four root causes explain all 42 defects
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
 | IDEA-044 | Navigable PDF/A-2b: outline, a link per xref, `/PageLabels` = folios, subset fonts, real spaces | H | L | MVP | OUT | D-07, D-33 (ADR-0015) |
-| IDEA-045 | Report pack as derived pages: terminal diagrams 1X1/-X1031/-X1032, cable diagrams, wire list, PLC, potential, structure, revision overviews (903–911) | H | M | MVP | REP | D-09; spine target (architecture §15.1) |
+| IDEA-045 | Report pack as derived pages: terminal diagrams 1X1/-X1031/-X1032, cable diagrams, wire list, PLC, potential, structure, revision overviews (903–911) | H | M | MVP | REP | D-09; spine target ([roadmap](../../ROADMAP.md), M1) |
 | IDEA-046 | Verification checklists: EN 60204-1 cl. 18 (PE list, disconnect list, I/O list Q0.1 → TA05-V-15), IEC 61439 cl. 11 | M | M | 1.0 | REP | Typed by hand today |
 | IDEA-047 | User reports: SQL over `api_v1` plus a form ("24 V loads per MICO channel") | M | M | 1.0 | REP | Beyond fixed report types (ADR-0018) |
 | IDEA-048 | Form editor reproducing a house style to ±0.2 mm; bound fields only | H | M | MVP (engine) / 1.0 (editor) | REP | REF-096, REF-105 |
@@ -480,7 +480,7 @@ The twelve rows this document proposed (provisional IDs with `P`) are in the cat
    have a `Source` column (IDEA-nnn, REF-nnn, D-nn), but not every ★ idea is cited there yet. *Recommendation:*
    check in CI that every ★ idea maps to at least one Must requirement.
 2. **Folio 902 in the MVP.** The MVP must reproduce the reference set, which includes folio 902. The architecture
-   starts stream S4 (layout) after the 2D editor MVP for a team of two or three (architecture §15.2). The spine
+   starts stream S4 (layout) after the 2D editor MVP for a team of two or three ([roadmap](../../ROADMAP.md), M4). The spine
    renders 902 from bootstrapped data, but the pilot user must also *draw* new layouts. **Resolved:** a thin S4
    slice is MVP (IDEA-071: one mounting surface, rails and ducts as parametric rectangles, device-bound placements
    with `layout_label`, check EW-LAY-001; FR-LAY-006 … FR-LAY-017 in [02b](02b-requirements-extended.md)); STEP,

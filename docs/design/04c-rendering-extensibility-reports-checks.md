@@ -33,29 +33,30 @@ flowchart LR
 
 ### 8.2 Screen
 
-- **GPU path** (as built, ADR-0015 amendment 10). `ew-render2d` draws on the shared device into its own
+- **GPU path** (ADR-0015 amendment 10). `ew-render2d` draws on the shared device into its own
   offscreen texture, not inside an `egui_wgpu` paint callback:
   - symbols and groups are tessellated once per content key with lyon and drawn instanced;
   - lines are expanded to screen width in the vertex shader, so zoom never re-tessellates;
   - text is tessellated glyph outlines, one mesh per (font, glyph), drawn instanced like symbols; there is no glyph
     atlas.
-- **LOD.** Text under 2 px becomes a bar, hairlines clamp to 1 px, and overview zoom uses cached vello_cpu
-  thumbnails keyed by display-list hash.
-- **CPU path, always built and tested** (from D). `ew-render-cpu` renders the same IR into an image shown as an egui
+- **LOD.** Text under 2 px becomes a bar and hairlines clamp to 1 px. Overview thumbnails from vello_cpu keyed by
+  display-list hash are specified, not built.
+- **CPU path, always built and tested.** `ew-render-cpu` renders the same IR into an image shown as an egui
   texture. It is used where wgpu cannot get an adapter (some RDP and VDI hosts, after DX12 WARP has been tried), for
-  CI goldens and for thumbnails. The perf gate requires ≥ 30 fps for an A4 page on it (G6).
-- **Hit-testing.** `page_spatial_index(page)` is an rstar R*-tree, followed by exact kurbo picking.
+  the expected pictures of the tests and for `canvas.snapshot`. The perf gate requires ≥ 30 fps for an A4 page on
+  it (G6).
+- **Hit-testing.** The hover pick runs over the display list's entity boxes (`DisplayList::entity_bounds`): the
+  smallest box that contains the pointer wins. A spatial index (`page_spatial_index(page)`, an rstar R*-tree with
+  exact kurbo picking) is specified, not built.
 
-*As built.* The canvas exists on the CPU path only: the
-page's sheet display list is rastered by `ew-render-cpu::render_region` into a pyramid of 256-pixel tiles (levels
-6 × 2^k dpi, scaled down by at most 2 while moving, the exact resolution once the view has been still for 150 ms) on a
-pool of worker threads, and `ew-ui` shows them as egui textures, so they reach the screen through egui's own wgpu
-renderer; `render_region` of the full rectangle equals `render` byte for byte, and culling by `ItemBounds` never changes
-a pixel. The overlays (page bounds, the grid under the page-to-sheet map, the dashed hover outline over
-`DisplayList::entity_bounds`) are screen-space primitives of `ew-render2d`. Hit-testing is the hover placeholder over
-display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the LOD line are not built.
+**The CPU canvas.** The page's sheet display list is rastered by `ew-render-cpu::render_region` into a pyramid of
+256-pixel tiles (levels 6 × 2^k dpi, scaled down by at most 2 while moving, the exact resolution once the view has
+been still for 150 ms) on a pool of worker threads, and `ew-ui` shows them as egui textures, so they reach the
+screen through egui's own wgpu renderer; `render_region` of the full rectangle equals `render` byte for byte, and
+culling by `ItemBounds` never changes a pixel. The overlays (page bounds, the grid under the page-to-sheet map, the
+dashed hover outline over `DisplayList::entity_bounds`) are screen-space primitives of `ew-render2d`.
 
-*As built.* The GPU path is `ew_render2d::gpu`:
+**The GPU canvas** is `ew_render2d::gpu`:
 - **Scene and meshes.** The page's display list is walked once on a worker; every group with a transform or a clip is a
   mesh context (an instance of a mesh keyed by a 128-bit content key), every glyph an instance of a mesh keyed by
   (font, glyph), and the remaining paths form the page's static mesh. Meshes outlive scenes, so a second preparation of
@@ -67,7 +68,7 @@ display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the 
   into a pane-sized `Rgba8Unorm` texture, which egui-wgpu samples as gamma-space colour with nearest filtering, one
   texel per physical pixel, so authored sRGB bytes blend as the CPU renderer's u8 pipeline blends them (#0072B2 reads
   back within ±1). Uploads use `write_buffer` and `write_texture`; the only mapped view is in `GpuCanvas::read_back`
-  (the rule of ADR-0014's as-built note).
+  (ADR-0014).
 - **Translucency** is exact in paint order between instances and approximate inside one mesh.
 - **The switch rule** is the pure function `gpu::choose`, table-tested, evaluated at start and on a failure. The status
   bar labels are `GPU DX12`, `GPU Vulkan`, `GPU Metal` or `GPU GL`, `WARP` (a CPU-type adapter on DX12) and `CPU`. The
@@ -75,9 +76,9 @@ display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the 
   renderer for the canvas), without a wgpu render state (headless, kittest) and for a software adapter other than WARP;
   an initialisation failure, a device lost or an uncaptured error end on the CPU canvas with one banner. `--no-gpu`
   also asks eframe for a software adapter for the window (none: the default adapter, with a banner).
-- **Row 8 and the shared device.** There is one device (ADR-0014), so a real device loss also ends egui's window and the
-  fallback "CPU for the rest of the session" helps for uncaptured errors only; recovery is WP-S2.11
- . A pane beyond the device's limits (`GpuError::Limits`) ends the GPU path for the session with the banner; a
+- **The shared device.** There is one device (ADR-0014), so a real device loss also ends egui's window and the
+  fallback "CPU for the rest of the session" helps for uncaptured errors only; recovery from a device loss is not
+  built. A pane beyond the device's limits (`GpuError::Limits`) ends the GPU path for the session with the banner; a
   per-frame CPU fallback is not built yet.
 - **No adapter at all.** The window cannot open: `elektrawatt` writes one message to stderr (naming `elektrawatt
   --headless`, `ew` and, on Linux, Mesa's software drivers) and exits with code 3. Exit 3 follows an adapter-request
@@ -85,9 +86,8 @@ display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the 
   count honours `WGPU_BACKEND` while eframe's instance does not.
 - **The CPU path stays the golden reference.** `ew-render-cpu` and every golden byte are unchanged, `canvas.snapshot` is
   always a CPU image, and the GPU path is checked against the CPU canvas by a render-to-texture parity test under a
-  neighbourhood rule with a mean-difference bound and an edge-position check, never by bytes (WP-S2.02 §8, §10 B2).
-  Per-layer GPU buffers across a commit and the tile-scene digest are not built yet (WP-S2.04); mipmaps are deferred
- .
+  neighbourhood rule with a mean-difference bound and an edge-position check, never by bytes. Per-layer GPU
+  buffers across a commit, the tile-scene digest and mipmaps are not built.
 
 ### 8.3 Text and fonts
 
@@ -111,7 +111,7 @@ display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the 
   krilla has no optional content (layers, C-11), and v1 does not offer layers.
 - **SVG, DXF and PNG.** An own SVG writer; DXF (AC1024, layer mapping) via dxf 0.6.2; PNG through `ew-export` →
   `ew-render-cpu` (vello_cpu). PNGs are byte-identical per build target (vello_cpu `Level::baseline()`) and compare within the dify tolerance across targets (ADR-0015 amendment 6); PDF, SVG, XLSX, CSV, JSONL
-  and `.ewpp` stay byte-identical (ADR-0015). *As built:* `ew export pdf|svg` write through the export job; PNG export is FT-254.
+  and `.ewpp` stay byte-identical (ADR-0015). `ew export pdf|svg|png` write through the page output of `ew-api`.
 - **Printing.** PDF is the print master. Small adapters in `ew-print` hand it to the OS: the xdg Print portal or CUPS
   on Linux and `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the
   scale, folio ranges and monochrome mode are supported, and `ew print` prints from the CLI (G9).
@@ -125,7 +125,7 @@ display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the 
   - feature edges, a transparent enclosure, and CAD orthographic/perspective cameras.
 - **Reconciler.** Mutable acceleration structures (parry3d BVHs, GPU instance buffers) are kept in step by a
   reconciler. It diffs successive scene outputs by placement ID and applies insert, update and refit operations.
-  Debug read-tracking and the field-mask test guard it (from D).
+  Debug read-tracking and the field-mask test guard it.
 - **Picking and gizmo.** Picking is a CPU ray cast. The gizmo is transform-gizmo-egui 0.11.0, hosted by `ew-ui`
   over `ew-render3d`'s camera, pick and constraint API, because only `ew-ui` may know egui (§3 Rule 3).
 - **3D export.** `ew-panel` writes glTF (glb) and STL from `layout_scene`.
@@ -160,7 +160,7 @@ summarises its groups.
 | Inspect | `ew check [--scheme <s>] [--gate] [--integrity] [--format …\|sarif] [--baseline …]` (CI exit codes); `ew query <name> <key> [--json] [--explain]`; `ew verify-derived`; `ew find`; `ew sql <project> "<select>"`, `ew sql dump`, `ew sql schema`; `ew commands`, `ew queries`, `ew schema <name>` |
 | Output | `ew export pdf\|svg\|png\|dxf`, `bom`, `wires`, `terminals`, `cables`; `ew export report --block <name\|id>`; `ew export plc-aml\|plc-xlsx\|plcopen\|ewpp\|machine <profile>\|labels\|drilling\|tubes\|ewz`; `ew render --page 103 --png` (CPU backend: ideal for CI and agents); `ew print`; `ew review <base> <head>`. Every export that writes project content takes `--omit-personal-data` |
 | Import | `ew import qet\|csv\|io-list\|edz\|dxf\|plc-aml\|table`; `ew verify-migration <project> --reference <pdf>` |
-| Edit | `ew apply <project> <file.ewcmd>`; `ew script run`; `ew jobs run <file.ewjobs>` (KiCad-style jobsets, from D) |
+| Edit | `ew apply <project> <file.ewcmd>`; `ew script run`; `ew jobs run <file.ewjobs>` (KiCad-style jobsets) |
 | Format and VCS | `ew fmt [--check]`, `ew upgrade`, `ew recover`, `ew git setup [--global] [--hooks]`; `ew diff`, `ew diff --textconv`, `ew diff <a.ewpp> <b.ewpp> --wires`; `ew merge-driver %O %A %B %L %P`, `ew merge resolve` |
 | Revisions and waivers | `ew revision approve\|release\|withdraw`; `ew archive verify\|rebuild`; `ew waiver list\|add\|remove` |
 | Domain | `ew plc status`; `ew mfg …`; `ew lib lint\|render\|pack` |
@@ -172,7 +172,6 @@ subcommands, after an interactive terminal confirmation (§10.4).
 
 ### 10.2 The read-only SQL projection (`ew-sqlview`)
 
-C's best idea, made a derived artefact.
 - **What it is.** A job on a fork materialises the model and selected query results into an SQLite database: in
   memory up to L size, file-backed in the local cache directory at XL. Internal `t_*` tables sit behind
   **versioned public views** `api_v1_*`: device, function, page, wire, terminal, cable, conductor, potential,
@@ -194,8 +193,7 @@ C's best idea, made a derived artefact.
   `load_extension` and non-allowlisted functions. A `progress_handler` enforces a deadline and bounds the runtime;
   `SQLITE_LIMIT_*` limits apply, with `VDBE_OP` treated as a prepare-time program-size cap whose enforcement is
   **(verify)**. Result caps are 100,000 rows per report, 1,000 rows and 1 MiB per MCP response, and 1,000,000 rows
-  and 256 MiB for `ew sql` (ADR-0017). The feasibility judge verified these APIs in the rusqlite source. The
-  collation `ew_natural` (X2 < X10) and the function `ew_ml(text, lang)` are registered.
+  and 256 MiB for `ew sql` (ADR-0017). The collation `ew_natural` (X2 < X10) and the function `ew_ml(text, lang)` are registered.
 - **Trust.** SQL text that arrives inside a received project (user reports, rule packs) is treated like scripts:
   it does not run until the user trusts the project (§10.6). The built-in packs are trusted.
 - **Contract lifetime.** `api_v1` lives as long as format major 1. Stored queries declare `api = "v1"`. A new view
@@ -227,7 +225,7 @@ field needs no WIT change (ADR-0020).
 - `submit(command)`;
 - `preview(command) → diff`;
 - capability-scoped file handles;
-- **declarative forms**: dialogs the host renders, so plugins never touch the UI toolkit (from D).
+- **declarative forms**: dialogs the host renders, so plugins never touch the UI toolkit.
 
 **What a plugin can export:** importers, exporters, rules, report columns, machine profiles, decoders and actions.
 Actions only submit edit commands through preview and commit. Plugin rules are registered into the `ew-checks`
@@ -235,7 +233,7 @@ rule registry by `ew-api` (§12).
 
 **Data and controls:**
 - Plugin data lives under namespaced `plugin.<id>.*` keys. It is persisted, merged and undoable, and it survives
-  when the plugin is not installed (from B).
+  when the plugin is not installed.
 - Calls run under fuel or epoch deadlines and `StoreLimits`. Manifests are signed, capabilities are approved by the
   user at install, and the plugin's ID appears in the undo history.
 - **Secrets (v1.x, before the first connector plugin).** A host capability `secret-get(name)`, backed by the OS
@@ -255,6 +253,8 @@ rule registry by `ew-api` (§12).
 
 ### 10.6 Importer and exporter contracts, and the security model
 
+The contract as specified:
+
 ```rust
 // ew-interop-api (MIT OR Apache-2.0): no model, no GPL dependency
 pub trait Importer { fn sniff(&self, head: &[u8], path: &Path) -> Confidence;
@@ -267,7 +267,7 @@ pub struct TableImage { pub tables: BTreeMap<String, Vec<Vec<Cell>>> } // filled
 pub trait Exporter { fn export(&self, view: &ExportView, opts: &ExportOpts, sink: &mut dyn Sink) -> Result<ExportReport>; }
 ```
 
-**Importers are pure functions from bytes to records** (from B):
+**Importers are pure functions from bytes to records:**
 - they can be fuzzed without a model;
 - third parties can reuse them;
 - they can later move into a WASM sandbox or a separate process.
@@ -283,12 +283,13 @@ the migration report is the resulting check run.
   free text to a field); `ApplyImport` turns an accepted proposal into a command.
 - **Underlays (1.0).** A PDF or DXF page can be imported as a locked `Underlay` page item.
 
-*As built.* `ImportBatch` is `{records, lib,
-report}`: each record's `source_ref` is its provenance, so there is no `provenance` vector, and `assets` waits for the
-first importer that emits an image; `TableImage` and `Proposal` are not built yet, nor are the `Importer` and `Exporter` traits: the importers have an inherent `import` method. Every host call of an
-importer goes through one front door, `ew_api::import::front_door`, which applies the input limits, isolates a panic
+**What is built.** `ImportBatch` is `{records, lib, assets, report}`: each record's `source_ref` is its
+provenance, so there is no `provenance` vector, and `assets` holds the bytes of the image files the records name
+by their SHA-256, each once, which the host stores as project assets. `TableImage`,
+`Proposal` and the `Importer` and `Exporter` traits are not built: the importers have an inherent `import`
+method. Every host call of an importer goes through one front door, `ew_api::import::front_door`, which applies the input limits, isolates a panic
 and checks the batch's contract before `ApplyImport` (the internal transaction `import.apply`) commits it
-([14](14-interop.md) §2.1 and §3.1's notes). The CSV and XLSX table writers of `ew-reports` (`table_csv`, `xlsx`) are
+([14](14-interop.md) §2.1 and §3.1). The CSV and XLSX table writers of `ew-reports` (`table_csv`, `xlsx`) are
 called directly; `ew-reports` does not depend on `ew-interop-api`.
 
 | Threat (G10) | Control |
@@ -347,7 +348,7 @@ fields do not exist** (D-05, D-06, D-30).
 **One row source feeds the PDF, XLSX, CSV and `.ewpp`**, so the printed wire list and the machine file cannot
 disagree.
 
-**Machine-export profiles are data** (from C). A profile is TOML:
+**Machine-export profiles are data.** A profile is TOML:
 `{row_source (built-in query or api_v1 view), filter, column map, value transforms, limits, encoding, line endings, header}`.
 Two profile kinds share this machinery:
 - **machine profiles** (`ew.machine-profile/1`) for wire-processing machines: a generic CSV and XLSX wire list,
@@ -374,7 +375,7 @@ A rule is
 - classes mirror EPLAN: 001 terminals, 003 cables, 005 connections, 017 numbering;
 - EW adds classes for integrity, layout (EW-LAYOUT pack, EW-LAY-001 … EW-LAY-026), PLC, bus, fluid, thermal,
   manufacturing, EN 60204-1, import and the release gate;
-- `message` is a Fluent message ID `rule-<id>` with `.title` and `.hint` attributes (from B).
+- `message` is a Fluent message ID `rule-<id>` with `.title` and `.hint` attributes.
 
 ```toml
 [[rule]]
@@ -396,7 +397,7 @@ docs = "rules/ew-pot-013"
     Rust. `ew-sqlview` implements them, and `ew-plugin-host` implements plugin rules (v1.x). `ew-api` registers both
     at session start, so `ew-checks` never depends on either.
 - **Online rules are memoised queries** `checks(scope)`, so a wire edit re-evaluates only its page, potential and
-  strip. A rule that exceeds its 5 ms budget per commit is demoted to deferred and logged (from C).
+  strip. A rule that exceeds its 5 ms budget per commit is demoted to deferred and logged.
 - **Prevent rules** are commit validators (§4.6). **Offline rules** run as Class II jobs: PE continuity across
   rails, configurator validation, clearance. **Export rules** run on the exporter's fork before it writes, for
   example the manufacturing pre-flight.

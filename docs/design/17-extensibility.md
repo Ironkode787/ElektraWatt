@@ -1346,7 +1346,7 @@ serves a permissive standalone tool and an EW plugin.
 | Rule packs, derivation profiles | pack versions, `derivation_profile` | never removed (ADR-0003) | new version | golden per profile |
 
 - **Before 1.0** every surface except the format's migration guarantee is `Preview`: breaking changes are allowed
-  with release notes (NFR-DOC-07). Surfaces freeze with the 1.0 format freeze (ARCH §15.2).
+  with release notes (NFR-DOC-07). Surfaces freeze with the 1.0 format freeze ([roadmap](../../ROADMAP.md), M7).
 - **`Preview` items after 1.0** appear in catalogues with `"stability": "preview"`. MCP and plugins see them only
   when the session or manifest opts in.
 - **The guard.** A PR that changes any snapshot above in a breaking way fails unless it carries the `api-break`

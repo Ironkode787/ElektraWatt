@@ -441,7 +441,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 - **ADRs:** [ADR-0001](0001-core-model-persistent-maps.md), [ADR-0003](0003-freshness-contract.md),
   [ADR-0008](0008-transactions-undo-preview.md), [ADR-0015](0015-display-list-renderers-pdf.md), [ADR-0022](0022-platform-matrix-and-performance-budgets.md),
   [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md).
-- **Design:** [architecture](../design/04-architecture.md) §2, §6, §13, §15.1, §16 (risks 1–4), Appendix A;
+- **Design:** [architecture](../design/04-architecture.md) §2, §6, §13, §16 (risks 1–4), [roadmap](../../ROADMAP.md);
   [quality, security and release](../design/18-quality-security-release.md) §3–§4.
 - **Requirements:** FR-EXT-005, FR-UI-011, NFR-PERF-04, NFR-PERF-05, NFR-PERF-07, NFR-PERF-13, NFR-PERF-20,
   NFR-REL-08, NFR-MAINT-07.

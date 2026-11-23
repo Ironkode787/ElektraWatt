@@ -21,8 +21,7 @@ EW must also serve many concurrent readers of **one consistent state**: the canv
 checks, the SQL projection (ADR-0017) and the save writer thread. The writers are just as varied: GUI tools, the
 CLI, rhai, importers, WASM plugins and MCP agents.
 
-Four substrates were proposed and scored by a judge panel on feasibility, domain fit and longevity
-([architecture](../design/04-architecture.md) §17):
+Four substrates were proposed and scored by a judge panel on feasibility, domain fit and longevity:
 
 | Proposal | Substrate | Score |
 |---|---|---|
@@ -175,7 +174,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
   [ADR-0004](0004-identity-uuidv7-uuidv5.md), [ADR-0006](0006-function-device-representation-model.md),
   [ADR-0008](0008-transactions-undo-preview.md), [ADR-0009](0009-invariant-catalogue.md),
   [ADR-0010](0010-project-storage-jsonl-directory.md), [ADR-0017](0017-read-only-sql-projection-api-v1.md), [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md).
-- **Design:** [architecture](../design/04-architecture.md) §0, §1, §4, §14, §17;
+- **Design:** [architecture](../design/04-architecture.md) §0, §1, §4, §14;
   [domain model](../design/03-domain-model.md) §2, §4.
 - **Requirements:** FR-NUM-001, FR-XRF-001, FR-XRF-020, FR-CON-009, FR-CON-017, FR-PAG-013, FR-REP-001,
   FR-REP-035, FR-REP-036, FR-LAY-009, FR-COL-012, NFR-REL-04, NFR-REL-07, NFR-REL-08, NFR-MAINT-01.
