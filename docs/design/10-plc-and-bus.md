@@ -200,7 +200,7 @@ its head, [06a](06a-drafting.md) §7.5; any other device by the black box tool's
 under what the page draws, or where that would pass the drawing area's foot in the first clear place inside it from
 its head, as a module of outputs, and off the page's wires, FT-1907), and
 the command gives a device made without functions its part's template functions before it draws the black-box entry;
-a device drawn already is left alone, except a further box of a module drawn in parts. A
+a device drawn already is left alone, except a further box of a module drawn in parts. **Decided, not built (owner, 2026-11-23, FT-2142):** Draw on a page puts each card on a page of its own by default, the station's head on the first, and keeps all on one page as a choice: a page that holds a CPU, its cards, their terminals and the field devices is more than a sheet reads. A
 module row's Draw… draws that module the same way. N3 binds the channels of a module that gains its main function in
 the transaction, so a module drawn from the rack is bound to its pins as one drawn by hand; EW-PLC-018 reports a drawn
 module with every channel unbound (an earlier build's drawing), its fix `plc.bind_pins`.
