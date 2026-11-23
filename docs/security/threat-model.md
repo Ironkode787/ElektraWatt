@@ -12,7 +12,7 @@ SPDX-License-Identifier: CC-BY-4.0
 the threats TM-01 to TM-19 with their state in this release, the controls as built and the evidence that proves them,
 a row for every parser of external bytes and every extension point, and the review log that the release checklist's
 RC-01 reads. The design form of the model, the target of 1.0, stays in
-[doc 18 §11.1](../design/18-quality-security-release.md#111-threat-model); where the two differ, this file says what
+[doc 18 §11.1](../design/18-release-security.md#111-threat-model); where the two differ, this file says what
 the release does. Paths are relative to the repository root, with the line where the control stands.
 
 **Contents**
