@@ -6,8 +6,9 @@
 //!
 //! # The view
 //!
-//! `ew-scene` does not depend on `ew-derive` (ARCH §3 lists no such edge), so the caller, which holds the
-//! tracked read context `Q`, fills a [`PageView`]: the page's records by reference (representations,
+//! A page is drawn as a pure function of a view (ARCH §3.2, the seam of a page's view): `ew-scene` calls the
+//! derivation's pure rules (the order allows the edge to `ew-derive`) but holds no tracked read context `Q`, so the
+//! caller, which holds it, fills a [`PageView`]: the page's records by reference (representations,
 //! connections, junctions; ARCH §3 rule 5: the model entities are the schema records), the symbol copies
 //! they draw, the frame and title-block forms, the title-block bindings of `title_block(page)`, and the
 //! **derived** slot texts (device tags as `device_tag(dev).displayed(page)`, CP designations, cross-references
@@ -37,7 +38,8 @@
 //!
 //! - **Order.** Representations, connections and junctions are sorted by ID, whatever order the caller
 //!   gives them in, so a record shuffle never changes a display list (AC-14).
-//! - **CP positions** follow `ew-commands`' `rep_cps`: symbol CP `c` of a representation sits at
+//! - **CP positions** follow the rule of where a function CP is drawn, whose home is `ew-derive` (`cp_point`,
+//!   ARCH §3.4); this module computes them itself from the view: symbol CP `c` of a representation sits at
 //!   `pos + orient(c.pos)`, on the grid's own number where that lies within 1 nm of a position of the page's grid
 //!   (`Grid::settle_point`; this holds for every CP below), and draws the function CP of its `pin_map` entry, else `(functions[0], c.fn_cp)`;
 //!   when several representations on the page draw the same function CP, the smallest representation ID

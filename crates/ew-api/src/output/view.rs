@@ -4,7 +4,8 @@
 //! The glue rules of the page view (doc 09 §4.1): the parts
 //! of an [`ew_scene::page::PageView`] filled from the tracked read context `Q`.
 //!
-//! `ew-scene` has no `ew-derive` edge (ARCH §3 rule 7), so the session layer fills the view. Each part is its own
+//! A page is drawn as a pure function of a view (ARCH §3.2, the seam of a page's view): the session layer, which holds
+//! `Q`, fills the view, and `ew-scene` draws it. Each part is its own
 //! query family, so that the per-layer display lists of `layers.rs` read only what their layer draws:
 //!
 //! | Family (key) | Policy | Part | Read by the layers |

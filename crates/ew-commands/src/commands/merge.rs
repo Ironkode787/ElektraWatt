@@ -302,9 +302,9 @@ pub fn record_file_of(model: &ew_model::Model, record: &Record) -> Option<String
 }
 
 /// The project-relative file a record of the transaction lives in: doc 05 §2.2's rules as `ew_format::record_file`
-/// applies them over the model (`ew-commands` has no `ew-format` edge), `None` for a record of a kind without a rule
-/// here. A reference that does not resolve falls back to the shard of the referenced ID, as there. A test in `ew-api`
-/// pins the two together (`record_file_of`).
+/// applies them, restated over the model, `None` for a record of a kind without a rule here. The order allows
+/// `ew-commands` the edge to `ew-format`; this copy stands, and a test in `ew-api` pins the two together
+/// (`record_file_of`). A reference that does not resolve falls back to the shard of the referenced ID, as there.
 fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
     let page = |id: AnyId| format!("pages/{id}.jsonl");
     let shard = |id: AnyId| format!("devices/{}.jsonl", id.shard_name());

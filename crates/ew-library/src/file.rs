@@ -5,8 +5,8 @@
 //! and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. A set of
 //! files (the SVG, PNG and DXF exports' pages) replaces its directory as a whole the same way ([`write_file_set`]).
 //!
-//! It lives here because `ew-library` is the lowest crate that every writer reaches under `ci/dep-rules.toml` (the
-//! command-line program, the view model and `ew-api` through `ew_api::library`); the crates below it do no file I/O.
+//! The architecture gives the all-or-nothing write its home in `ew-store` (ARCH §3.4); it stands here, where the
+//! command-line program, the view model and `ew-api` (through `ew_api::library`) call it.
 //! Not here: the project save and the release archive (`ew-store`, through its `Vfs`, which never replace a file of
 //! another writer), and the backup and symbol exports of `ew-api` (written without replacing anything).
 

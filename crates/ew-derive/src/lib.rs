@@ -266,8 +266,9 @@ pub use xref_format::{
 /// The revision stamp of a snapshot (in this crate's public API through [`Tracker`]).
 pub use ew_model::Rev;
 
-// The crates whose types this crate's public API carries, re-exported for the crates above it that reach
-// the model's types through `ew-derive` alone (`ew-reports`, ARCH §3).
+// The crates whose types this crate's public API carries, re-exported; the crates above it name them through
+// here (`ew-api`, `ew-checks`, `ew-reports` and others), though each may depend on them by their own name (ARCH §3.2
+// rules 6 and 7).
 pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 
 // The PLC address types of `ChannelAddr` and `AddressUse` and the address profiles, for the PLC rules of `ew-checks`

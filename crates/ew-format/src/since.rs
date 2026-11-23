@@ -25,7 +25,8 @@ pub struct SinceTables<'a> {
     pub variants: &'a [VariantSince],
 }
 
-/// The tables of this build, from `ew-schema` (re-exported here: `ew-store` has no dependency edge to `ew-schema`).
+/// The tables of this build, from `ew-schema`, gathered for `ew-store` (which may also name them in `ew-schema`, a crate
+/// before it in the order).
 pub const SINCE: SinceTables<'static> = SinceTables {
     kinds: &ew_schema::KIND_SINCE,
     members: ew_schema::MEMBER_SINCE,

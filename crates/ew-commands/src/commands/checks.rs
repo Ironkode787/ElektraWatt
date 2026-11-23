@@ -23,8 +23,9 @@ use crate::tx::TxBuilder;
 /// `ProjectSettings.extra` until it is typed.
 pub const CHECKS_MEMBER: &str = "checks";
 
-/// The shipped check schemes a project can name, in name order (doc 15 §4.9, `ew_checks::scheme::SCHEMES`; an
-/// agreement test in `ew-api` keeps the two lists equal). Company and project schemes come with the scheme
+/// The shipped check schemes a project can name, in name order (doc 15 §4.9): a copy of the names of
+/// `ew_checks::scheme::SCHEMES`, which the order lets `ew-commands` call; an agreement test in `ew-api` keeps the two
+/// lists equal. Company and project schemes come with the scheme
 /// editor (doc 15 §3.2).
 pub const SHIPPED_CHECK_SCHEMES: &[&str] = &["drafting", "full", "migration", "pre-delivery"];
 
