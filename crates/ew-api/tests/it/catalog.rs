@@ -14,12 +14,12 @@ use ew_api::catalog::{
     read_input, save_column_map,
 };
 use ew_api::library::lock::LOCK;
-use ew_store::lock::Identity;
 use ew_api::library::{LibraryError, LibraryTiers, Registry};
 use ew_api::{Session, SessionOptions};
 use ew_ids::Uuid;
 use ew_import_catalog::ew_interop_api::Limits;
 use ew_schema::{Date, LibDocument, LibRef};
+use ew_store::lock::Identity;
 use serde_json::json;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;

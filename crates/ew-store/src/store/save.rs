@@ -624,7 +624,12 @@ impl Store {
 
     /// Step 3 of doc 05 §5.2: the bytes of every dirty file and the files to remove. With `discard` (a repair's save)
     /// the files that hold broken lines join the dirty files, rendered without those lines.
-    pub(super) fn plan(&self, model: &Model, changes: Changes<'_>, discard: bool) -> Result<SavePlan, SaveError> {
+    pub(super) fn plan(
+        &self,
+        model: &Model,
+        changes: Changes<'_>,
+        discard: bool,
+    ) -> Result<SavePlan, SaveError> {
         let closure: BTreeSet<AnyKey> = match changes {
             Changes::Keys(keys) => follow_closure(keys, &self.base, model),
             Changes::All => {
@@ -824,7 +829,10 @@ impl Store {
     }
 
     /// The record files and library documents of the plan with no changed record, with or without the broken lines.
-    pub(super) fn rewrite_plan(&self, discard: bool) -> Result<BTreeMap<FilePath, Option<Vec<u8>>>, SaveError> {
+    pub(super) fn rewrite_plan(
+        &self,
+        discard: bool,
+    ) -> Result<BTreeMap<FilePath, Option<Vec<u8>>>, SaveError> {
         let plan = self.plan(&self.base, Changes::Keys(&BTreeSet::new()), discard)?;
         let mut out: BTreeMap<FilePath, Option<Vec<u8>>> = plan
             .writes
