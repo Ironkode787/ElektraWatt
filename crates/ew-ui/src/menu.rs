@@ -85,6 +85,35 @@ pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) 
     }
 }
 
+/// Sets a right-click menu of `items` as wide as its widest entry: the icon column, the label, a gap and the
+/// shortcut, so that no label wraps and no entry or reason line stretches the menu (a persona run saw a terminal's
+/// menu about 550 px wide, a wide empty band before each shortcut; another wrapped its labels in 190 px). A greyed
+/// entry's reason wraps within that width.
+pub(crate) fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a ActionItem>) {
+    let t = crate::theme::current(ui.ctx());
+    let width = |text: egui::WidgetText, style: egui::TextStyle| {
+        text.into_galley(ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, style)
+            .size()
+            .x
+    };
+    let widest = items
+        .into_iter()
+        .map(|item| {
+            let label = width(item.label.as_str().into(), egui::TextStyle::Button);
+            let shortcut = if item.shortcut.is_empty() {
+                0.0
+            } else {
+                let keys = egui::RichText::new(keys::short_display(&item.shortcut))
+                    .font(crate::theme::font(&t.type_small));
+                t.space_6 + width(keys.into(), egui::TextStyle::Button)
+            };
+            label + shortcut
+        })
+        .fold(0.0_f32, f32::max);
+    let spacing = ui.spacing();
+    ui.set_width(t.icon_sm + spacing.icon_spacing + widest + 2.0 * spacing.button_padding.x);
+}
+
 /// [`item`], with the action's icon in the icon column only when `icons`; else the column holds the check alone, blank
 /// when the item is off (View ▸ Show's switches).
 fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>) {

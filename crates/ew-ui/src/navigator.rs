@@ -1386,6 +1386,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                 select_row(kind, &row.key, pages && row.openable, events);
             }
             crate::menu::row_context_menu(&response, |ui| {
+                crate::menu::fit_width(ui, &menu);
                 for item in &menu {
                     crate::menu::row_item(ui, item, events);
                 }

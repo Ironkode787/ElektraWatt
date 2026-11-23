@@ -2092,10 +2092,12 @@ impl CanvasHost {
         };
         popup.show(|ui| {
             // Over a connection point, Mark not used or Mark used first (FT-1649).
-            for item in cp
-                .iter()
-                .chain(&canvas_menu(shell, spot, self.views[group].menu_point))
-            {
+            let items: Vec<_> = cp
+                .into_iter()
+                .chain(canvas_menu(shell, spot, self.views[group].menu_point))
+                .collect();
+            crate::menu::fit_width(ui, &items);
+            for item in &items {
                 crate::menu::row_item(ui, item, events);
             }
         });

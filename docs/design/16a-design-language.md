@@ -90,7 +90,10 @@ least value in a small window.
 
 The navigator table re-fills its capped columns on a resize. **Exceptions, fixed on purpose:** the junction editor
 and the parts card keep `size.dialog.small`; the first-run screen keeps the reading measure `size.text_measure`
-(520), a line length that does not grow with the window. A menu's popup width is still a literal 160 px. What
+(520), a line length that does not grow with the window. A right-click menu (the canvas's, a navigator row's) is as
+wide as its widest entry: the icon column, the label, `space.6` and the shortcut, no label wrapping and a greyed
+entry's reason wrapping within it (a persona run saw a terminal's menu about 550 px wide; the sample's wrapped its
+labels). What
 remains of the look at 1920 (the ribbon's and the menu bar's empty middle, the right rail) is FT-798.
 
 *As built (W40a item 4).* **The macro card's value fields** follow a form dialog, not
