@@ -1,0 +1,357 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The texts of `ew-api` in en-GB: what the session refuses or names: the edits of a table, the part editor, the find
+# pane's fields, the symbol importers, the libraries' states. One message per key; `{ $p0 }`, `{ $p1 }`, ... are the
+# arguments, always strings. The source language and the fallback of every other.
+
+error-part-length = "{ $p0 }" is not a length: give millimetres, as 45 or 22.5.
+error-part-mass = "{ $p0 }" is not a mass: give whole grams, as 120.
+error-part-mount = "{ $p0 }" is not a way of mounting: choose one from the list.
+reason-no-terminal-def = The project has no terminal definition to insert
+reason-no-accessory-part = The project has no part for this accessory; embed one first
+refusal-strip-nothing = nothing to edit
+refusal-strip-no-accessory = the strip has no accessory { $p0 }
+refusal-strip-accessory-part = an accessory needs a part
+refusal-strip-accessory-kind = `{ $p0 }` is not one of { $p1 }
+refusal-strip-gesture-alone = an insert or a move is a gesture of its own
+refusal-strip-no-part = the project has no part `{ $p0 }` of kind { $p1 }
+refusal-strip-no-part-either = the project has no part `{ $p0 }` of kind { $p1 } or { $p2 }
+refusal-strip-not-strip = the device is not a terminal strip
+refusal-strip-not-terminal = the row is not a terminal
+refusal-strip-terminal-strip = the terminal's strip is not a strip
+refusal-strip-insert-count = insert at least one terminal
+refusal-strip-designation-one = a designation names one terminal
+table-accessory-row = accessory row
+table-pos-move = move rows with Alt+Up and Alt+Down
+table-no-bridge = the terminal has no bridge
+table-bridge-how = mark the rows of two or more terminals of the strip and press F2 in this column, or choose Bridge terminals in a terminal's menu on the page
+reason-swap-two-cores = Mark two cores of one cable
+reason-swap-cores-unwired = Neither core has a connection
+# A damaged copy written from its library, with the version written (C53-p4#4, ID-1491).
+refusal-words-copy-at-version = { $p0 } at version { $p1 }
+refusal-words-part-kind = { $p0 }
+refusal-words-junction-in = the junction in { $p0 }
+refusal-words-a-junction = a junction
+refusal-words-cp-other-page = a connection point of another page
+# The property grid's own parse errors (FT-1493): a typed value that is not one of its field's type.
+refusal-input-detail = { $p0 }
+refusal-input-scale = `{ $p0 }` is not a scale; type 1:n with n a whole number from 1 to 4294967295
+refusal-input-decimal = `{ $p0 }` is not a decimal number
+refusal-input-awg = `{ $p0 }` is not an AWG size
+refusal-input-mm = `{ $p0 }` is not a length: type millimetres (at most 6 decimals), or the length with its unit, such as 2 m or 35 cm
+refusal-input-rect = `{ $p0 }` is not a rectangle: type its place and its size in millimetres, such as 20, 15 mm · 60 × 40 mm
+refusal-input-colour-alias = `{ $p0 }` is not a colour code; did you mean { $p1 } { $p2 }? Accepted: { $p3 }
+refusal-input-colour = `{ $p0 }` is not a colour code; accepted: { $p1 }
+refusal-input-colour-none = give one or two colour codes
+refusal-input-colour-count = a colour has one or two codes
+refusal-input-text-control = a text has no line breaks or control characters
+refusal-input-yes-no = `{ $p0 }` is not yes or no
+refusal-input-whole = `{ $p0 }` is not a whole number
+refusal-input-bus-address = `{ $p0 }` is no bus address: type a station number, a PROFINET name with its IP address, pos and alias (EtherCAT), port and number (IO-Link), or TBD
+refusal-input-range = { $p0 } is outside { $p1 }..{ $p2 }
+refusal-input-no-unit = `{ $p0 }` has no unit; units: { $p1 }
+refusal-input-ac-dc = `{ $p0 }`: type the number and its unit alone, such as 24 V; DC or AC is a potential's type, set at its definition
+refusal-input-no-node = no structure node `{ $p0 }` of this aspect
+refusal-input-form = no form of the project is called "{ $p0 }"; its forms: { $p1 }
+library-form-frame = Frame
+library-form-title-block = Title block
+library-form-cover = Cover
+library-form-divider = Section divider
+library-form-report = Report page
+library-form-label = Label
+library-form-other = Form
+library-form-named = { $p0 } { $p1 }
+library-form-own-landscape = { $p0 } { $p1 } landscape, on { $p2 }
+library-form-own-portrait = { $p0 } { $p1 } portrait, on { $p2 }
+library-form-on-no-page = no page
+library-form-numbered = { $p0 } ({ $p1 })
+refusal-input-shown = this field is shown, not edited
+refusal-input-json = not strict JSON: { $p0 }
+refusal-input-no-part-copy = the project has no part copy `{ $p0 }`
+refusal-input-quantity = `{ $p0 }` is not a quantity above 0
+refusal-input-not-a-field = `{ $p0 }` is not a field of { $p1 }
+refusal-input-plc-address = give an address (for example Q0.1), auto, excluded or tbd
+refusal-input-plc-target = `{ $p0 }` names no device with a function to target
+refusal-ref-not-uuid = `{ $p0 }`: not a UUID
+refusal-ref-no-record = `{ $p0 }`: the project has no such record
+refusal-ref-section-number = `{ $p0 }`: a section number is a whole number
+refusal-ref-no-section = The project has no section { $p1 } yet: make it with New section… (the folder button over the Pages list, or Page ▸ New section…), then choose it here.
+refusal-ref-no-folio = `{ $p0 }`: no drawn page has this folio label
+refusal-ref-folio-many = `{ $p0 }`: { $p1 } matches (more than one drawn page has this folio label); use `id:<uuid>`
+refusal-ref-no-tag = `{ $p0 }`: no device prints this tag
+refusal-ref-no-tag-forms = `{ $p0 }`: no device prints this tag; a reference is a tag (`-101Q1`, a terminal as `-X1031:5`), `tag:<tag>`, `section:<number>`, `folio:<label>` or `id:<uuid>`
+refusal-ref-ambiguous = `{ $p0 }` is ambiguous: { $p1 } devices print this tag ({ $p2 }); name one by its full designation or its `id:<uuid>`
+refusal-ref-candidate = { $p0 } as `id:{ $p1 }`
+refusal-ref-not-text = `ref` is a text `<kind>:<value>`
+refusal-input-plc-slot = `{ $p0 }` is not a slot; give a number (3), <rack>.<slot> (1.3) or auto
+refusal-input-metres = `{ $p0 }` is not a length in metres (for example 12.5 m)
+refusal-input-too-long = `{ $p0 }` is too long a length
+# A clipboard fragment that does not read (FT-1488): its kind of failure and each line's reason.
+refusal-fragment-not = the clipboard holds no ElektraWatt fragment
+refusal-fragment-newer = copied from a newer ElektraWatt, which writes a newer format ({ $p0 })
+refusal-fragment-too-large = the fragment is too large: { $p0 }
+refusal-fragment-line = fragment line { $p0 }: { $p1 }
+refusal-fragment-bytes = { $p0 } bytes, at most { $p1 }
+refusal-fragment-line-bytes = line { $p0 } has { $p1 } bytes, at most { $p2 }
+refusal-fragment-line-depth = line { $p0 } nests deeper than { $p1 }
+refusal-fragment-records = more than { $p0 } records
+refusal-fragment-object = a line of a fragment is a JSON object
+refusal-fragment-header-line = line 2 is the `$fragment` header
+refusal-fragment-older = copied from an older ElektraWatt format; open and save that project with this version first
+refusal-fragment-kind = a record of kind { $p0 } is not pasted (only devices, functions, representations, connections, junctions, potential definitions, page items and structure boxes)
+refusal-fragment-id-twice = the record's ID is listed twice
+refusal-fragment-unknown-line = an unknown `$` line
+refusal-fragment-no-kind = a line without `$k` is no record
+refusal-fragment-no-header = the `$fragment` header is missing
+refusal-fragment-header-object = the `$fragment` header is an object
+refusal-fragment-header-member = the header has no `{ $p0 }`
+refusal-fragment-format-text = `format` is a text
+refusal-fragment-format-version = `format` { $p0 } is no version
+refusal-fragment-project = `project` is a UUID
+refusal-fragment-grid = `grid` is [num, den] of positive integers
+refusal-fragment-page-kind = `page_kind` is a text
+refusal-fragment-anchor = `anchor` is [x, y] in nm
+refusal-fragment-ghost = `ghost` is a list of [x0, y0, x1, y1]
+refusal-fragment-free = `free` is a list of indices of `ghost`'s rectangles
+refusal-fragment-node-object = `$node` is an object
+refusal-fragment-node-members = `$node` has the members id, aspect, path and aliases
+refusal-fragment-node-needs = `$node` needs an ID, an aspect and a path
+refusal-fragment-node-aliases = `aliases` is a list of texts
+refusal-page-copy-page-twice = the page is named twice
+refusal-page-copy-grids = the copied pages use different connection grids; copy the pages of each grid on their own
+refusal-page-copy-code = { $p0 } is not a structure code
+refusal-page-copy-ip-join = the copy's interruption points { $p0 } would join the points they were copied from; give them other names under Rename (for example { $p1 } = { $p1 }.2)
+refusal-macro-value-set-none = no value set `{ $p0 }`: the macro has none
+refusal-macro-value-set-unknown = no value set `{ $p0 }`: the macro has { $p1 }
+# revision.approve, revision.release and project.assets.purge: the refusals of ew-api's own (FT-1421).
+refusal-revision-approve-direct = the approval is recorded only by Approve revision… on the saved project, which runs the release gate first
+refusal-revision-release-direct = the release is written only by Release revision…, after the release gate, the as-built archive and the git tag
+refusal-purge-read-only = the project is open read-only; a purge needs a project open for editing
+refusal-purge-quarantined = the project has quarantined lines in { $p0 }; repair them before a purge
+refusal-purge-unsaved = the project has unsaved changes; save before a purge
+refusal-purge-recovery = a crashed session left unsaved changes in its journal; recover or discard them before a purge
+refusal-purge-incomplete = the last save is incomplete; it completes first
+refusal-purge-external = the project changed on disk; merge the change first
+refusal-purge-stale = { $p0 } of the listed images can no longer be purged; preview again; nothing was removed
+# C52-p5#5: the form for one image.
+refusal-purge-stale-one = 1 of the listed images can no longer be purged; preview again; nothing was removed
+refusal-purge-unreadable = a file of the project could not be read; nothing was removed
+refusal-purge-save = the save that removes the images failed: { $p0 }
+refusal-purge-human-only = the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed
+# Update from library of the damaged library copies: the refusals of ew-api's own (FT-1499, ID-1486).
+refusal-update-copies-no-library = no library on this computer holds a readable version of { $p0 }; nothing was written
+refusal-update-copies-misfit = the libraries' versions of the damaged copies do not fit the project, which would then not open; nothing was written
+refusal-update-copies-locked = another session holds the project; nothing was written
+refusal-update-copies-read-only = the project can only be opened read-only, for a reason other than its damaged library copies; nothing was written
+refusal-update-copies-findings = the project has other integrity findings, which keep it read-only; nothing was written
+refusal-update-copies-save = the update could not be written: { $p0 }
+saveerr-read-only = the project is read-only
+saveerr-lock-lost = the lock was taken over
+saveerr-external = the project changed on disk
+saveerr-failed = a file could not be written; nothing changed on disk
+saveerr-incomplete = the save is incomplete and completes on the next open
+saveerr-pending = an earlier save is still incomplete
+saveerr-generation-limit = this project has been saved the greatest number of times its format allows; save it to a new folder (Save as…), which starts the count again
+saveerr-other = the project could not be written
+props-position-number = Type a valve position, such as 2.
+props-position-no-terminal = The valve sits on no valve terminal: place it inside the valve terminal's box, or use Add valve on the valve terminal's menu.
+props-supply-no-mark = The point has no supply mark: right-click it and choose Supply comes in here… first.
+find-field-function-text = Function text
+find-field-tag = Tag
+find-field-property = Property
+find-field-title = Title
+find-field-description = Description
+find-field-process-tag = Process tag
+find-field-part-number = Part number
+# FT-1414: why a search cannot run, in words, never the parser's own text.
+find-error-regex = The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler
+find-error-too-long = The regular expression is longer than { $p0 } characters
+find-error-no-page = No page has the folio { $p0 }
+
+# FT-515/FT-535: a cell whose row has no record of the column's kind (a CP-only potential's definition cells).
+table-no-record = no record of this kind
+table-define-alone = a potential without a definition is defined on its own row alone
+
+# WP-S1.16 D4 (FT-577): Type or Voltage typed on a potential known only at its CPs, without a name.
+table-define-name-first = Name the potential first
+
+# The other read-only reasons of a table cell (`cell_reason`, §8.2's precedence; FT-535 follow-up).
+table-reason-derived = derived
+table-reason-generated = generated
+table-reason-no-command = not editable in this table
+table-reason-property-grid = edit in the property grid
+
+# WP-S3.08 D9 (ID-1174): a strip-editor or a potential's defining cell in a table round trip.
+table-reason-window = edit in the window
+
+# ID-1174 ruling 3: the texts of table mode's pure rule, which `ew-api` hands as keys (`output::table_edit`).
+table-same-record = same record as row { $p0 }
+table-same-bridge = same bridge as row { $p0 }
+table-gesture-edit = edit
+table-gesture-fill-down = fill down
+table-gesture-pattern-fill = pattern fill
+table-gesture-paste = paste
+table-gesture-clear = clear
+
+# The word of a navigator's table rows, singular and plural (the Messages pane's rows are findings).
+table-row-pages = page
+table-rows-pages = pages
+table-row-devices = device
+table-rows-devices = devices
+table-row-connections = connection
+table-rows-connections = connections
+table-row-strips = terminal
+table-rows-strips = terminals
+table-row-cables = conductor
+table-rows-cables = conductors
+table-row-plc = channel
+table-rows-plc = channels
+table-row-bus = port
+table-rows-bus = ports
+table-row-tubes = tube
+table-rows-tubes = tubes
+table-row-media = medium
+table-rows-media = media
+table-row-potentials = potential
+table-rows-potentials = potentials
+table-row-ips = interruption point
+table-rows-ips = interruption points
+table-row-structure = structure node
+table-rows-structure = structure nodes
+table-row-parts = part
+table-rows-parts = parts
+table-row-blocks = report block
+table-rows-blocks = report blocks
+table-row-unplaced = unplaced device
+table-rows-unplaced = unplaced devices
+table-row-macros = macro
+table-rows-macros = macros
+table-row-libraries = library item
+table-rows-libraries = library items
+table-row-messages = finding
+table-rows-messages = findings
+hint-address-profibus = PROFIBUS DP: the station address, 0 to 126, such as 3; TBD while it is open
+hint-address-profinet = PROFINET: the device name, a space and the IP address, such as plc1 192.168.0.1; TBD while it is open
+hint-address-ethercat = EtherCAT: pos and the position after the coupler, or alias and the alias, such as pos 2; TBD while it is open
+hint-address-io-link = IO-Link: port and the master's port, such as port 3; TBD while it is open
+hint-address-other = The address as its bus writes it; TBD while it is open, empty for none
+badge-source-missing = Only in this project
+badge-deprecated = Deprecated
+badge-local-fork = Local fork
+reason-part-edit-target = Select a device with a part, or a part in the Libraries navigator
+reason-part-no-manufacturer = A part needs a manufacturer
+reason-part-no-number = A part needs a part number
+reason-part-unit = Choose the unit: piece, m or set
+reason-part-unchanged = Nothing to save: the part is unchanged
+error-part-tech-value = { $p0 }: { $p1 }
+error-part-tech-twice = { $p0 } is given twice
+error-part-manufacturer = No manufacturer is called “{ $p0 }”; choose one from the list
+error-part-kind = “{ $p0 }” is not a part kind
+error-part-category = A category has three levels: category/group/definition
+error-part-value = { $p0 }
+error-part-field = The part editor has no field { $p0 }
+# FT-1766: a new part and its bus interfaces, made in the part editor (Edit ▸ New part…).
+error-part-bus-interface = An interface needs a name, such as X1 or DP
+error-part-bus-system = “{ $p0 }” is no bus system; choose one from the list
+error-part-bus-role = “{ $p0 }” is no port role; choose one from the list
+error-part-bus-ports = “{ $p0 }” is no number of ports: type a whole number from 1 to { $p1 }, such as 8
+error-part-bus-termination = “{ $p0 }” is no state of a termination switch: choose on, off or none
+error-part-bus-twice = Interface { $p0 } is listed twice; give each row its own interface or port label
+error-part-new-id = No new part could be made: the system gave no random number; try again
+error-part-exists = The project or your parts library has part { $p0 } of { $p1 } already; give the new part its own part number
+error-part-library = { $p0 } could not be written: { $p1 }
+reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
+reason-part-not-own = This part is not in your parts library: only a part of your own is taken out of it
+# FT-1766: the PLC section of a new part.
+error-part-plc-role = “{ $p0 }” is no PLC role; choose station or module
+error-part-plc-kind = “{ $p0 }” is no channel kind; choose one from the list
+error-part-plc-kind-missing = Choose the kind of the channels
+error-part-plc-count = “{ $p0 }” is no number of channels: type a whole number from 1 to { $p1 }, such as 8
+error-part-plc-count-missing = Type how many channels the part has, such as 8
+error-part-plc-supply = A supply has an L+ pin and an M pin; give both, or neither
+error-part-plc-supply-pairs = { $p0 } L+ pins, { $p1 } M pins: give one M pin, or one for each L+ pin
+error-part-plc-pin = “{ $p0 }” gives no pin for channel { $p1 }: write the pin of channel n with braces, such as {"{"}n+1{"}"} or X2:{"{"}n+1{"}"}
+error-part-plc-pin-twice = { $p0 } would be the pin of two channels; each channel needs its own pin
+error-part-plc-slots = “{ $p0 }” is no list of slots: type numbers and ranges, such as 1-8, 10
+error-part-plc-max = “{ $p0 }” is no number of modules: type a whole number, such as 32
+error-part-plc-kind2-way = The second kind is another than the first: inputs or outputs beside its channels, each of DI, DO, AI, AO or counter
+# FT-1378 (ID-1417): an image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
+banner-image-not-drawn = The image on folio { $p0 } is { $p1 } × { $p2 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
+banner-image-not-drawn-folios = The image on folios { $p0 } is { $p1 } × { $p2 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
+banner-logo-not-drawn = The company logo is { $p0 } × { $p1 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
+saveerr-external-collisions = the change on disk collides with your edits; choose yours or theirs first
+saveerr-external-unreadable = the project on disk changed and cannot be read; your edits are kept
+reason-cores-no-wires = Select the wires that become the cable's cores
+reason-cores-no-cable = The project has no cable yet; create one first
+error-cores-too-few = { $p0 } has { $p1 } free cores for { $p2 } wires: select fewer wires, or choose another cable.
+error-cable-type = "{ $p0 }" is not a cable type. Write it as 3G1.5 or 4x0.75, or give a cable part's number.
+error-cable-core-unknown = The cable has no core { $p0 }: its cores are { $p1 }.
+error-cable-core-twice = Core { $p0 } is given to two wires: give each wire its own core.
+symbol-input-limit = The symbol file exceeds the supported size or item limit.
+symbol-input-version = This symbol authoring format is not supported.
+symbol-invalid-key = Use a key with letters, numbers, dots, hyphens or underscores: { $p0 }.
+symbol-key-required = Give the symbol a key.
+symbol-unknown-member = The symbol has a field this version does not know: { $p0 }. Remove or rename it before saving.
+symbol-export-exists = A file with this name already exists. Choose another name.
+symbol-invalid-version = Use a version as major.minor.patch: { $p0 }.
+symbol-name-required = Give the symbol a name: { $p0 }.
+symbol-provenance-required = Add a licence and source for { $p0 }.
+symbol-grid-unsupported = Choose the native 4 mm or QET 10 px grid for { $p0 }.
+symbol-cp-off-grid = Connection point { $p0 } is off the connection grid. Move it onto the grid before saving.
+symbol-cp-mapping = Connection point { $p0 } needs a unique, matching function connection point.
+symbol-cp-direction = Choose an outward direction for connection point { $p0 }.
+symbol-slot-pin = The designation text refers to a missing connection point: { $p0 }.
+symbol-anchor-slot = The anchor refers to a missing text slot in { $p0 }.
+symbol-graphic-invalid = Graphic { $p0 } is empty or uses an unsupported drawing type.
+symbol-geometry-limit = The symbol geometry exceeds the supported coordinate or complexity limit.
+symbol-slot-arrangement = Text arrangement { $p0 } refers to a missing slot.
+symbol-function-changed = The assigned function definition changed. Assign it again before saving.
+symbol-function-required = Assign a function definition to this symbol.
+symbol-input-object = The symbol document is not valid.
+symbol-import-review = Review the imported geometry, connections and source terms before saving.
+symbol-graphics-required = Draw at least one graphic before saving.
+symbol-link-duplicate = Link point { $p0 } needs a unique name.
+symbol-extra-variants = Stored alternative drawings require separate review; fork the required drawing first.
+symbol-qet-review = The QElectroTech reader reported conversion limitations. Compare the draft with the source before use.
+eplan-input-limit = The EPLAN input exceeds the supported size or complexity.
+eplan-archive-path = The EPLAN archive has unsafe or duplicate member names.
+eplan-archive-invalid = The EPLAN archive is damaged, encrypted or unsupported.
+eplan-archive-method = This archive compression method is unsupported.
+eplan-binary-unsupported = This binary EPLAN library or macro is unsupported. Export a PXF XML macro or parts XML from EPLAN.
+eplan-xml-invalid = The EPLAN XML is malformed or contains forbidden declarations.
+eplan-geometry-invalid = The EPLAN drawing contains invalid coordinates.
+eplan-pxf-version = This EPLAN PXF version is unsupported; the reader supports revision 1.23.
+eplan-no-symbols = No supported symbol drawing or connection template was found.
+eplan-format-unsupported = This EPLAN document type is unsupported.
+symbol-import-stopped = The importer stopped on an internal error; nothing was imported.
+symbol-function-connections = The function contains an invalid internal connection. Check its pin indices and link kind.
+symbol-function-semantics = Unsupported electrical function data: { $p0 }. Choose a supported function or correct its connection data before saving.
+
+eplan-slk-invalid = The symbol-library database is damaged or has an unsupported record layout.
+eplan-slk-version = This EPLAN symbol-library database version is not supported.
+eplan-slk-encoding = This older SLK file uses an unsupported text encoding. UTF-16 and UTF-8 descriptors are supported.
+eplan-slk-companion = Keep the SLK file beside its complete .sdb folder, then open it again. A required drawing table is missing.
+eplan-slk-record-unsupported = The symbol-library database contains an unsupported record encoding.
+dxf-input-limit = The DXF file exceeds the supported size or complexity.
+dxf-input-invalid = The file is no DXF drawing this reader understands.
+dxf-no-unit = The drawing names no unit. Choose the unit it is drawn in.
+dxf-no-blocks = The drawing has no named block to make a symbol of.
+
+# A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
+refusal-input-date = `{ $p0 }` is not a date: type it as { $p1 }
+
+# The Libraries pane's states and its Update button in words (the owner's test of 0.3.0-rc.1).
+library-state-current = Current
+library-state-update = Update available ({ $p0 })
+error-part-pin-unknown = The part has no pin { $p0 }
+error-part-pin-name = Give the pin a name as the device prints it, such as 13 or L+
+error-part-pin-role = { $p0 } is no potential a pin can carry
+rack-channel-no-device = Nothing is wired to this channel yet: its function text will be that of the device wired to it. Until then the card prints the channel's symbol name in its cell: give it one.
+error-cable-section-cores = “{ $p0 }” is no number of cores: type a whole number from 1 to { $p1 }, such as 3
+error-cable-section-pe = A cable of one core has no protective conductor beside it: give it two cores or more, or untick the protective conductor
+error-cable-section-csa = “{ $p0 }” is no cross-section: type the square millimetres, such as 1.5
+error-cable-section-core = Core { $p0 } needs a name of its own (“{ $p1 }”), such as 1 or BN
+error-cable-section-colour = Core { $p0 }: “{ $p1 }” is no colour code; type one such as BK, BN or GNYE, or leave it empty
+part-misfit-cores = { $p0 } cores, too few for its { $p1 } wires
+part-misfit-pe = no protective conductor for its PE wire
