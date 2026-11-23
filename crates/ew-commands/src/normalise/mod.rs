@@ -4,13 +4,13 @@
 //! Normalisers (ARCH §5.2 step 2; the registry is doc 06 §3.2): deterministic passes that add ops to the
 //! transaction of the command that ran.
 //!
-//! The spine subset, in registry order within one pass ([`ORDER`], asserted by a test):
+//! The spine subset, in registry order within one pass ([`order`]):
 //!
 //! | # | ID | Effect |
 //! |---|---|---|
 //! | 1 | `valve_functions` | N-FL-1: a device that is new or whose parts changed and that has a valve part (a fluid section with solenoids) gets the valve function and one coil function per coil entry of the part's template; a coil function of an old part is removed, its channel unbound; the valve function is never replaced |
 //! | 0 | `plc_aspects` | N0: a device that gains a part with a PLC section and carries neither PLC aspect gets `plc_module` or `plc_station` from the section's role (a station whose part maps solenoids to valve positions is a valve terminal); the first station creates the configuration project `PLC<n>`, a module without a station is attached to the project's only station that is no valve terminal, and so are the modules that waited for one when the first station arrives (FT-823) |
-//! | 2 | `cp_instantiation` | No-op recorder: CPs are derived from the FnDef or part pattern and only overrides persist (doc 06 §3.2 row 2), so there is nothing to store |
+
 //! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs and the part's channel kind (doc 10 §3.3; surplus channels stay until `plc.set_module_part` removes them after its preview) |
 //! | 4 | `online_numbering` | Gives a placed numbered device without a counter the next free counter of its page scope, and a device whose page-based tag collides (after a move of its main representation) the next free one (FR-NUM-007, FR-NUM-029) |
 //! | 7 | `connection_split` | A new representation whose two CPs lie on one segment of a connection's route splits that connection (FR-CON-008, doc 06 §5.3) |
@@ -38,7 +38,7 @@ mod bus_nets;
 pub(crate) mod bus_ports;
 pub(crate) mod channel_instantiation;
 mod connection_split;
-mod cp_instantiation;
+
 mod drives_link;
 pub(crate) mod ip_form;
 mod junction_cleanup;
@@ -56,7 +56,7 @@ pub use bus_nets::BusNets;
 pub use bus_ports::BusPorts;
 pub use channel_instantiation::ChannelInstantiation;
 pub use connection_split::{ConnectionSplit, split_connection};
-pub use cp_instantiation::CpInstantiation;
+
 pub use drives_link::DrivesLink;
 pub use ip_form::IpForm;
 pub use junction_cleanup::JunctionCleanup;
@@ -82,26 +82,10 @@ pub trait Normaliser: Send + Sync {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError>;
 }
 
-/// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 17] = [
-    "valve_functions",
-    "plc_aspects",
-    "cp_instantiation",
-    "channel_instantiation",
-    "online_numbering",
-    "connection_split",
-    "junction_cleanup",
-    "wire_numbering",
-    "tube_tags",
-    "solenoid_binding",
-    "module_pin_binding",
-    "bus_ports",
-    "bus_nets",
-    "drives_link",
-    "ip_form",
-    "bound_texts",
-    "revision_ensure_open",
-];
+/// The registry order within one pass: the IDs of [`registry`], in its order.
+pub fn order() -> Vec<&'static str> {
+    registry().iter().map(|n| n.id()).collect()
+}
 
 /// The maximum number of productive passes (passes that change something); one confirming pass follows.
 pub const MAX_PASSES: usize = 3;
@@ -111,7 +95,6 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
     vec![
         Box::new(ValveFunctions),
         Box::new(PlcAspects),
-        Box::new(CpInstantiation),
         Box::new(ChannelInstantiation),
         Box::new(OnlineNumbering),
         Box::new(ConnectionSplit),

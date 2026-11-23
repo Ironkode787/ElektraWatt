@@ -14,7 +14,7 @@ use common::*;
 use ew_commands::commands::{
     AssignModeParam, AssignPart, JoinDevice, KindName, PlaceSymbol, PlaceTarget, SetFields,
 };
-use ew_commands::normalise::ORDER;
+use ew_commands::normalise::order;
 use ew_commands::{Engine, Receipt};
 use ew_ids::Id;
 use ew_model::Model;
@@ -268,15 +268,16 @@ fn dp_master() -> BusPort {
 
 #[test]
 fn bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open() {
+    let order = order();
     let at = |n: &str| {
-        ORDER
+        order
             .iter()
             .position(|o| *o == n)
-            .unwrap_or_else(|| panic!("{n} in {ORDER:?}"))
+            .unwrap_or_else(|| panic!("{n} in {order:?}"))
     };
-    assert_eq!(at("bus_ports"), at("module_pin_binding") + 1, "{ORDER:?}");
+    assert_eq!(at("bus_ports"), at("module_pin_binding") + 1, "{order:?}");
     // N-FL-4 `drives_link` runs between them.
-    assert!(at("revision_ensure_open") > at("bus_ports"), "{ORDER:?}");
+    assert!(at("revision_ensure_open") > at("bus_ports"), "{order:?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------

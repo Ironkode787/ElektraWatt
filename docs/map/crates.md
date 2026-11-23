@@ -315,7 +315,6 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/normalise/bus_ports.rs` |  | Normaliser #14a, bus ports from the part (N5; .2, D16; doc 06 §3.2 between rows 14 and 15). |
 | `src/normalise/channel_instantiation.rs` |  | Normaliser #3, channel instantiation (N1; doc 06 §3.2, doc 10 §2.4, §3.3). |
 | `src/normalise/connection_split.rs` |  | Normaliser #7, connection split (doc 06 §3.2 and §5.3, FR-CON-008), and the split itself, which `connection.draw` uses for an endpoint on an existing connection. |
-| `src/normalise/cp_instantiation.rs` |  | Normaliser #2, CP instantiation (doc 06 §3.2): a recorder only. |
 | `src/normalise/drives_link.rs` |  | Normaliser N-FL-4 `drives_link` (doc 06 §3.2 row 16, doc 11 §4.2, FR-FLU-029): the first line from a valve's working port to an actuator links the valve to the device it drives. |
 | `src/normalise/ip_form.rs` |  | Normaliser #18, the interruption point's form (doc 06 §3.2 row 18), and the checks the commands share. |
 | `src/normalise/junction_cleanup.rs` |  | Normaliser #8, junction clean-up (doc 06 §3.2, doc 08 §3.1 CI-04). |

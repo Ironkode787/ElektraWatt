@@ -74,7 +74,7 @@ and accepted only while its refusal is still under the field on the same revisio
 | # | Normaliser | Effect | Owner |
 |---|---|---|---|
 | 1 | **Valve functions from the part** (N-FL-1) | Creates or removes a valve's valve and coil functions per the part's `solenoids` | [11](11-fluid-power.md) §4.2 |
-| 2 | **CP instantiation** | Creates the CPs of new functions from FnDef or part pattern (FR-DEV-002); only overrides persist | this document; [07](07-symbols-parts-macros.md) §4.2 |
+| 2 | **CP instantiation** | No normaliser: a function's CPs are derived from its FnDef or part pattern (FR-DEV-002, `function_cps`) and only overrides persist, which the commands write themselves | this document; [07](07-symbols-parts-macros.md) §4.2 |
 | 3 | **Channel instantiation** (N1) | Creates a module's channels with v5 IDs from the part's `channels` | [10](10-plc-and-bus.md) §3.3 |
 | 4 | **Online numbering** | New devices get the next free counter in their scope (FR-NUM-007). Moving a main representation that makes a page-based tag collide assigns the next free counter in the same transaction (FR-NUM-029): -101F1 dragged to folio 102 becomes -102F3 | this document |
 | 5 | **Valve position and child counter** (N-FL-2) | Lowest free or requested position in the module; the child counter follows the position | [11](11-fluid-power.md) §4.2 |

@@ -10,7 +10,7 @@ use crate::common;
 
 use common::*;
 use ew_commands::commands::CreatePage;
-use ew_commands::normalise::{ORDER, registry};
+
 use ew_commands::{AnyCommand, CmdError, Command, Cost, Exposure, Origin, Submit};
 use ew_model::Entity;
 use ew_model::fixture::*;
@@ -21,12 +21,6 @@ fn create_after(after: ew_ids::Id<Page>) -> CreatePage {
     c.number = None;
     c.after = Some(after);
     c
-}
-
-#[test]
-fn normaliser_order_is_the_registry_order() {
-    let ids: Vec<&str> = registry().iter().map(|n| n.id()).collect();
-    assert_eq!(ids, ORDER);
 }
 
 #[test]

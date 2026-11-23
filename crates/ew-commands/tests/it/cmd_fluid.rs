@@ -614,7 +614,7 @@ fn a_working_line_to_two_cylinders_links_nothing() {
 /// D15: N-FL-4 runs after `bus_ports` and the bus nets that follow it (doc 06 §3.2 row 16).
 #[test]
 fn drives_link_runs_after_bus_ports() {
-    let order = ew_commands::normalise::ORDER;
+    let order = ew_commands::normalise::order();
     let at = |n: &str| {
         order
             .iter()

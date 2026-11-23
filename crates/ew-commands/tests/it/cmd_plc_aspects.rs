@@ -12,7 +12,7 @@ use common::*;
 use ew_commands::commands::{
     AttachChildren, ChildSpec, CreateDevice, CreatePlcConfigProject, KindName, LinkDevices, SetFields,
 };
-use ew_commands::normalise::ORDER;
+use ew_commands::normalise::order;
 use ew_commands::{CmdError, Engine, Origin, Receipt};
 use ew_ids::Id;
 use ew_model::Model;
@@ -137,10 +137,11 @@ fn invalid(r: Result<Receipt, CmdError>) -> (String, String) {
 /// N0 runs first after N-FL-1 (`valve_functions`), which gives valves their functions, and before N1.
 #[test]
 fn is_the_first_row_of_the_registry_before_n1() {
-    assert_eq!(ORDER[..2], ["valve_functions", "plc_aspects"]);
-    let n0 = ORDER.iter().position(|n| *n == "plc_aspects");
-    let n1 = ORDER.iter().position(|n| *n == "channel_instantiation");
-    assert!(n0 < n1, "{ORDER:?}");
+    let order = order();
+    assert_eq!(order[..2], ["valve_functions", "plc_aspects"]);
+    let n0 = order.iter().position(|n| *n == "plc_aspects");
+    let n1 = order.iter().position(|n| *n == "channel_instantiation");
+    assert!(n0 < n1, "{order:?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------
