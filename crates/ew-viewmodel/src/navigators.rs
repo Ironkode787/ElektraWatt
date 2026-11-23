@@ -135,6 +135,8 @@ pub struct Query {
     /// The sub-tokens of each typed plain word that splits into more than one (`24VDC-4` gives `24`, `vdc`, `4`):
     /// each such group must match within one cell of a row.
     pub words: Vec<Vec<String>>,
+    /// The typed numbers with points (a wire's number, `1.1`), case-folded: each must stand in one cell as typed.
+    pub numbers: Vec<String>,
     /// The plain text, case-folded and trimmed (the substring alternative).
     pub text: String,
 }
@@ -177,8 +179,16 @@ impl Query {
         }
         let text = plain.join(" ");
         q.tokens = ew_api::output::nav_tokens(&text);
+        // A number with points (a wire's number) matches as typed; any other word of several sub-tokens within a cell.
+        let number = |w: &str| w.contains('.') && w.chars().all(|c| c.is_numeric() || c == '.');
+        q.numbers = plain
+            .iter()
+            .filter(|w| number(w))
+            .map(|w| w.to_lowercase())
+            .collect();
         q.words = plain
             .iter()
+            .filter(|w| !number(w))
             .map(|w| ew_api::output::nav_tokens(w))
             .filter(|w| w.len() > 1)
             .collect();
@@ -193,8 +203,8 @@ impl Query {
 
     /// Whether a node with these tokens (sorted), facets, label and cells matches (doc 16 §5.3): every facet and flag
     /// holds, and either every query token is a prefix of one of the node's tokens, the sub-tokens of one typed word
-    /// all matching within one cell (the label or one column's value), or the plain text is a substring of
-    /// the label.
+    /// all matching within one cell (the label or one column's value) and a typed number with points standing in one
+    /// cell as typed, or the plain text is a substring of the label.
     pub fn matches(
         &self,
         tokens: &[String],
@@ -215,7 +225,8 @@ impl Query {
         }
         let prefixes = !self.tokens.is_empty()
             && self.tokens.iter().all(|t| has_prefix(tokens, t))
-            && (self.words.is_empty() || self.words_in_one_cell(label, cells));
+            && (self.words.is_empty() || self.words_in_one_cell(label, cells))
+            && (self.numbers.is_empty() || self.numbers_in_one_cell(label, cells));
         prefixes || (!self.text.is_empty() && label.to_lowercase().contains(&self.text))
     }
 
@@ -233,6 +244,21 @@ impl Query {
         self.words
             .iter()
             .all(|w| cell_tokens.iter().any(|c| w.iter().all(|t| has_prefix(c, t))))
+    }
+
+    /// Whether every typed number with points stands in one cell (the label or one cell) as typed, not right after a
+    /// letter or digit: a wire's number `1.1` matches "Wire 1.1 has" and "1.12", not "-1E1:X1" or "11.1" (a persona's
+    /// filter by the wire's number filtered nothing).
+    fn numbers_in_one_cell(&self, label: &str, cells: &[String]) -> bool {
+        self.numbers.iter().all(|n| {
+            std::iter::once(label)
+                .chain(cells.iter().map(String::as_str))
+                .any(|c| {
+                    let c = c.to_lowercase();
+                    c.match_indices(n.as_str())
+                        .any(|(at, _)| !c[..at].chars().next_back().is_some_and(char::is_alphanumeric))
+                })
+        })
     }
 }
 
@@ -922,5 +948,28 @@ mod tests {
         assert!(q.matches(&t2, &[], "24VDC-4", &[]));
         // The label substring alternative is unchanged.
         assert!(Query::parse("vdc-4").matches(&t2, &[], "24VDC-4", &c2));
+    }
+
+    /// A typed number with points matches as typed: a wire's number `1.1` finds the finding that names the wire, not
+    /// every message with two 1s in it (a persona's filter by the wire's number filtered nothing).
+    #[test]
+    fn a_wire_number_matches_as_typed() {
+        let q = Query::parse("1.1");
+        for other in [
+            "-1B2:BN has no wire.",
+            "-1E1:X1 has no wire.",
+            "-1S1:14 has no wire.",
+            "Wire 11.1 has none.",
+        ] {
+            let (t, c) = row("Warning", &[other]);
+            assert!(!q.matches(&t, &[], "Warning", &c), "{other}");
+        }
+        for named in [
+            "Wire 1.1 has its cross-section 0.75 mm² set by hand.",
+            "Wire 1.12 has none.",
+        ] {
+            let (t, c) = row("Warning", &[named]);
+            assert!(q.matches(&t, &[], "Warning", &c), "{named}");
+        }
     }
 }

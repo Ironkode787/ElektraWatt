@@ -1007,7 +1007,9 @@ per keystroke at XL (NFR-PERF-15; §15.2). Filters are saved per navigator insta
 
 *As built.* A row matches when every query token is a prefix
 of one of its tokens, in any order (so `-12k4` also matches -49K12), or when the whole case-folded query is a substring
-of its label; the facets are the closed list `page:`, `potential:`, `state:`, `kind:`, `part:` and the flags
+of its label; a typed number with points, a wire's number such as `1.1`, must stand in one cell as typed, not right
+after a letter or a digit (0.3.5: the Properties chip of a wire filtered Messages by its number and every message with
+two 1s matched); the facets are the closed list `page:`, `potential:`, `state:`, `kind:`, `part:` and the flags
 `unplaced` and `frozen` (`has:finding` waits for FT-488); always on the UI thread. Filters are not yet saved (FT-489).
 
 ### 5.4 Selection synchronisation
