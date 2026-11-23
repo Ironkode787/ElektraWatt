@@ -14,7 +14,7 @@
 //! a UTF-8 byte-order mark, CR LF), `excel-en` (`,`, a decimal point, a byte-order mark, CR LF) and `rfc4180` (`,`,
 //! CR LF, no byte-order mark, values verbatim). They write the `id` column first (a CSV has no hidden column; a
 //! heading row's is empty) and no `row` column, and quote a field exactly when it holds the delimiter, `"`, CR or LF
-//! (RFC 4180), quotes doubled. **The guard** (NFR-SEC-17, doc 09 OQ 8): in `excel-nl` and `excel-en` a text cell (and a
+//! (RFC 4180), quotes doubled. **The guard** (NFR-SEC-17, doc 09 §4.6): in `excel-nl` and `excel-en` a text cell (and a
 //! header) whose first character is `=`, `+`, `-`, `@`, tab or CR gets a leading apostrophe; a number cell never does;
 //! `ew` and `rfc4180` never alter a value. [`CsvOptions`] overrides the preset's byte-order mark and line end
 //! (FR-EXP-003); the encoding is UTF-8 only. The `ew` dialect stays the default ([`Preset::Ew`]): [`rows_csv`],

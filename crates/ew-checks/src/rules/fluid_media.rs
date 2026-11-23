@@ -600,7 +600,7 @@ fn load_supply(q: &Q, module: Id<Device>) -> Vec<CpRef> {
 /// EW-FL-009 (FR-FLU-019): a valve whose part's coil voltage differs from the voltage of a potential that feeds a
 /// coil, or whose coil's AC or DC differs from the potential's where both name one: at a physical coil, the potentials
 /// at its CPs; at an internal coil, the potential at the load supply pin of the module of the channel bound to it (or
-/// the first device above that module with one, the valve terminal's valve supply; doc 11 Open question 11). One
+/// the first device above that module with one, the valve terminal's valve supply; doc 11 §6). One
 /// finding per valve listing the feeding points; target the valve.
 #[derive(Clone, Copy, Debug)]
 pub struct CoilVoltage;

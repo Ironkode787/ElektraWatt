@@ -32,10 +32,6 @@ domain panels in their area documents; this document owns the shell they live in
 17. [Edge cases and pitfalls](#17-edge-cases-and-pitfalls)
 18. [The reference project in the UI](#18-the-reference-project-in-the-ui)
 19. [Usability test plan](#19-usability-test-plan)
-20. [Scope by release](#20-scope-by-release)
-21. [Dependencies](#21-dependencies)
-22. [Requirements covered](#requirements-covered)
-23. [Open questions](#open-questions)
 
 ---
 
@@ -318,7 +314,7 @@ Columns menu; each has a predicate and gives its reason while no table navigator
 - **Windows:** muda menu on the window's HWND, with Alt mnemonics from the Fluent labels (**verify** HWND access
   through eframe).
 - **Linux:** muda attaches only to GTK windows, which eframe/winit does not create (**verify**). EW draws the menu
-  bar with egui from the same registry (FR-UI-001; Open question 1).
+  bar with egui from the same registry (FR-UI-001; ADR-0014 amendment 1).
 - Enabled states update at most once per frame after a selection change. macOS menus show no tooltips, so the
   reason a command is disabled is shown in the palette.
 
@@ -695,7 +691,7 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 ```
 
 - **Presets.** "EW" and "KiCad-like" (M move, R rotate, W wire, E properties) at MVP (FR-UI-013); "EPLAN-like" at
-  1.0, once two EPLAN users confirm its bindings (FR-UI-014, 02b Open question 14). The canvas bindings are
+  1.0, once two EPLAN users confirm its bindings (FR-UI-014). The canvas bindings are
   [06](06-schematic-editor.md) §6. This document adds the shell set. In the macOS column the key display is kept in `ew-ui` for portability only: macOS is not a supported platform and this is not tested:
 
 | Action | EW preset | macOS |
@@ -1071,7 +1067,7 @@ Part           2904602    book library 'ew-parts' v3 · update available        
 | Authored | normal | none | edit, clear | A |
 | Inherited | italic, secondary text | "from colour profile 'DBU/WH 24 V'", "from company scheme" | override, go to source | A (scheme) |
 | Derived | italic, secondary text, `f` icon | `derived · <rule or source>` | override or freeze where allowed, Why? | D |
-| Overridden | normal, override marker | "override · derived would be …" | reset to derived; "move override to profile" when equal (06 OQ8) | A over D |
+| Overridden | normal, override marker | "override · derived would be …" | reset to derived; "move override to profile" when equal | A over D |
 | Frozen | normal, lock icon | "frozen · rule gives …" | unfreeze (previewed) | F |
 | Committed | normal, pin icon | "routed rev 212"; "stale" with hatched background when the input hash changed | re-route (previewed) | C |
 | Library | normal, book icon | "library … vN · update available" | update from library (previewed) | L |
@@ -1264,8 +1260,7 @@ History                                        oldest kept: step 1 · 12 MB of 2
 - **Bounds.** 500 steps or 256 MB (ARCH §5.3); the header shows the oldest step kept.
 - **Non-undoable operations** appear as marker lines. EW asks for confirmation only when such an operation
   destroys or overwrites data: library writes outside the project, overwriting an existing file, purging unused
-  library copies, and the import checkpoint into an empty project, as FR-UI-023, ARCH §5.3 and ADR-0008 now state
-  (Open question 3).
+  library copies, and the import checkpoint into an empty project, as FR-UI-023, ARCH §5.3 and ADR-0008 state.
 
 ### 8.2 Notification classes
 
@@ -1409,7 +1404,7 @@ sample project, rendered with the current choices on a fork by `ew-render-cpu`.
 | 7 Revisions | label format, first label | revision settings | "V{major}.{minor}", V1.0 | four-eyes release is always on (D-34) |
 | 8 Languages and formats | source language, date format, decimal separator; translation languages (1.0) | `ProjectLanguages`, `Formatting` | UI locale | en-GB, dd-mm-yyyy |
 | 9 Reports and checks | report blocks with folios; check scheme | `ReportBlock`s, `CheckSchemeRef` | the golden layout | TOC 2; BOM 901; 903–905 terminals; 906 cables; 907 wires; 908 PLC; 909 potentials; 910 tags; 911 revisions; pre-delivery |
-| 10 Manufacturing (1.0) | ferrule colour scheme, marking scheme, reserve length | `MfgSettings` | DIN, destination marking, 100 mm (02b OQ9) | pilot decision (PQ-22) |
+| 10 Manufacturing (1.0) | ferrule colour scheme, marking scheme, reserve length | `MfgSettings` | DIN, destination marking, 100 mm | pilot decision (PQ-22) |
 | 11 Review and create | summary, location of the basic project | basic project directory; default template in user settings | — | — |
 
 The wizard keeps a draft in the user configuration directory until it finishes. "Edit company standard" reopens
@@ -1660,7 +1655,7 @@ on automatically on the CPU renderer. No interaction has a time limit (NFR-A11Y-
 
 | Check | Requirement | Cadence |
 |---|---|---|
-| egui_kittest name enforcement, plus an EW tree walker that fails on any focusable node without a name (Open question 6) | NFR-A11Y-02 | PR |
+| egui_kittest name enforcement, plus an EW tree walker that fails on any focusable node without a name (ADR-0014 amendment 2) | NFR-A11Y-02 | PR |
 | The five core tasks on Golden A without pointer events | NFR-A11Y-01 | PR |
 | Every registered tool cancels with Escape and leaves the revision unchanged | NFR-UX-07 | PR |
 | CVD-simulated renders of folio 102 with 24VDC-1 highlighted and the message panel open (NFR-A11Y-03), and of folio 103 with every highlight slot in use (FR-UI-025); §15.6 | NFR-A11Y-03, FR-UI-025 | PR |
@@ -1716,7 +1711,7 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   in copied messages.
 - **Locales.** English is the source; Dutch is complete at MVP and German by 1.0 (FR-UI-032). A locale is listed as
   supported only with ≥ 95 % of strings and 100 % of core-flow strings translated (NFR-I18N-01). Translation runs
-  through Weblate, with a terminology glossary per locale (Open question 10).
+  through Weblate, with a terminology glossary per locale.
 - **Fallback.** nl-BE → nl → en, per message.
 - **CI.** A string-literal lint on `ew-ui` and `ew-checks`; a pseudo-locale `en-XA` (+35 % length, accented
   characters) runs the core kittest flows without truncation or overlap (NFR-I18N-02); a translation-completeness
@@ -1747,7 +1742,7 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   kind's chapter, never the documentation home.
 - **Opening.** Bundled pages open in the system browser through a local `file://` URL, as a user action with no
   network traffic (NFR-PRIV-01). Links to the online version are labelled as external. Sandboxed Linux packages
-  open them through the OpenURI portal (**verify**; Open question 4). *Exception:* the
+  open them through the OpenURI portal (**verify**). *Exception:* the
   "Privacy (PRIVACY.md)" button of About and of the first-run privacy step opens the repository's web address of
   `PRIVACY.md` instead, because no build bundles the file yet; on failure a banner shows the address, and a build that bundles
   `PRIVACY.md` with the user guide replaces the web address by the local `file://` copy (§3.9).
@@ -1992,9 +1987,8 @@ This is the protocol of SC-9 and NFR-UX-01 … NFR-UX-06.
 ### 19.1 Purpose
 
 The tests measure whether EPLAN and QET users can do the core work without help, and they decide open design
-choices: autoconnect defaults on placement and move (ADR-0007, 06 OQ5), variant letters A–H (06 OQ4), pending
-findings (06 OQ7), the EPLAN-like bindings (FR-UI-014), the glossary (NFR-DOC-05) and the dark-sheet preference
-(Open question 7).
+choices: autoconnect defaults on placement and move (ADR-0007), variant letters A–H, pending findings, the
+EPLAN-like bindings (FR-UI-014), the glossary (NFR-DOC-05) and the dark-sheet preference.
 
 ### 19.2 Rounds
 
@@ -2022,7 +2016,7 @@ any identity.
   after 2 minutes without progress or on request, and that counts as an assist. T6 runs without documentation
   (NFR-UX-04).
 - **Local session log.** The usability build writes the palette queries, commands and errors to a local file,
-  with consent. Nothing is sent anywhere (NFR-PRIV-01); the log is deleted with the recordings (Open question 9).
+  with consent. Nothing is sent anywhere (NFR-PRIV-01); the log is deleted with the recordings.
 
 ### 19.4 Tasks
 
@@ -2067,160 +2061,6 @@ completions are needed; at R2, ≥ 80 % of the core attempts and of the layout a
 ### 19.7 Pilot log
 
 The pilot user logs hours per project and activity (schematic, reports, checks, export) for three consecutive new
-production projects, against the QET baseline timed during M0–M1 (VIS OQ4). The pass conditions: no
+production projects, against the QET baseline timed in QET. The pass conditions: no
 hand-maintained report page and no slower than the baseline (NFR-UX-05, SC-3); a reference-size QET migration,
 including its migration report, resolved in ≤ 1 hour (NFR-UX-06).
-
----
-
-## 20. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Shell: menus (the app menu on Windows and Linux, ADR-0031), toolbar, docking, status bar, start page, Schematic workspace | ● | | | |
-| PLC, Fluid, Panel 3D and Manufacturing workspaces; second-monitor windows | | ● | | |
-| Navigators of §5.2 (pages, devices, connections, strips, cables, PLC, potentials, IPs, structure, messages, parts in use, unplaced devices, report blocks) | ● | | | |
-| Bus, fluid, layout and comment navigators | | ● | | |
-| Table mode, fill-down, pattern fill, Excel paste, Excel round trip | ● | | | |
-| Property grid with provenance chips, override, freeze, reset, `‹varies›` | ● | | | |
-| "Why this value?" trail | | ● | | |
-| Palette with modes, aliases and parameter forms | ● | | | |
-| Keymaps EW and KiCad-like with editor and conflict checks | ● | | | |
-| EPLAN-like keymap | | ● | | |
-| Bulk preview tab; history panel; notifications log; banners; jobs panel; stale badges | ● | | | |
-| History origin MCP | | ● | | |
-| History origin plugin | | | ● | |
-| OS notifications | | | ● | |
-| One project per window, second project in a new instance (§3.8) | ● | | | |
-| Several projects in one session (FR-PRJ-027) | | | ● | |
-| First run and company-standard wizard steps 1–10 | ● | | | |
-| Wizard step 10 (manufacturing defaults) | | ● | | |
-| Applying company-standard changes to existing projects | | | ● | |
-| Glossary panel, palette aliases, contextual tips | ● | | | |
-| AccessKit names, full keyboard, CVD-safe overlays, patterns, 300 %, high contrast | ● | | | |
-| Describe page; Accessibility Conformance Report | | ● | | |
-| Light, dark, high-contrast themes; print-true sheet; wire-colour view | ● | | | |
-| Dark-sheet view | | ● | | |
-| UI in English and Dutch; pseudo-locale CI | ● | | | |
-| UI in German | | ● | | |
-| F1, offline docs, rule pages, tutorials 1, 2, 4, 6 | ● | | | |
-| Tutorials 3 and 5 | | ● | | |
-| Agent proposals as ghosts (FR-EXT-018) | | | ● | |
-| Alternative chrome over `ew-viewmodel` (FR-UI-037) | | | | ● |
-| Usability rounds R0, R1 | ● | | | |
-| Usability round R2 | | ● | | |
-
----
-
-## 21. Dependencies
-
-| Depends on | For |
-|---|---|
-| [04-architecture](04-architecture.md) §1.2, §2, §5, §6.5, §8.2, §9, §16; ADR-0007, ADR-0008, ADR-0014, ADR-0015, ADR-0019, ADR-0020, ADR-0022, ADR-0026; ADR-0027, ADR-0028, ADR-0029 (still Proposed: grid label in the status bar, fonts, update-check and crash-upload wording) | Session API, jobs, freshness classes, renderers, shell decision, budgets |
-| [03-domain-model](03-domain-model.md) §1.1, §5, §8.2, §9.5, §10, §11 | kinds behind provenance; numbering and xref tokens; main representation; wire-property chain; terminal fields |
-| [05-project-format-and-persistence](05-project-format-and-persistence.md) §1, §7.3, §16 | per-user view-state location, read-only mode, status-bar save state, lock banner, recovery dialog, external-change toast, merge panel |
-| [06-schematic-editor](06-schematic-editor.md) §3.6, §3.7, §3.9, §3.10, §4, §6 | clipboard fragments, tools, canvas shortcuts, undo granularity, pending findings |
-| [14-interop](14-interop.md) §8, §13 | XLSX round-trip format and `table.apply_changes`; import wizard |
-| [07](07-symbols-parts-macros.md), [08](08-connections-terminals-cables.md), [09](09-reports-forms-output.md), [10](10-plc-and-bus.md), [11](11-fluid-power.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md), [14](14-interop.md) | domain panels and dialogs hosted by the shell |
-| [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) | rule IDs, remedies, waivers, revision compare |
-| [17-extensibility](17-extensibility.md) §2.1 | `CommandMeta` catalogue and schemas (FR-EXT-015), MCP live bridge |
-| [18-quality-security-release](18-quality-security-release.md) | CI jobs: kittest flows, accessibility walker, CVD renders, contrast lint, pseudo-locale, keymap reachability, docs anchors |
-| [19-open-source-governance](19-open-source-governance.md) | Weblate workflow and glossary, usability consent template |
-| Crates | egui and eframe 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, egui-wgpu 0.37.0, accesskit 0.25.1 (through egui), muda 0.21.2, rfd 0.17.2, arboard 3.7.0, fluent-bundle 0.16.0, icu 2.3.1, egui_kittest 0.37.0 |
-
-A licence-clean icon set is needed before the toolbar is built: a general set under MIT, Apache-2.0, OFL or
-CC-BY-4.0 plus EW's own ECAD icons under CC-BY-SA-4.0 like the symbols, all recorded in the third-party notices
-(Open question 12).
-
----
-
-## Requirements covered
-
-This document elaborates:
-- **UI:** FR-UI-001 … FR-UI-051 (all rows of [02b](02b-requirements-extended.md) §9; FR-UI-038 and FR-UI-050 are
-  shared with [18](18-quality-security-release.md)). The canvas-tool detail of FR-UI-015 … FR-UI-019 is in
-  [06](06-schematic-editor.md) §4 and §6, as are the clipboard and pending-finding rows FR-UI-040, FR-UI-041 and
-  FR-UI-051, and the 3D canvas of FR-UI-029 is in [12](12-panel-layout.md) §12.2; this document hosts them.
-- **A11Y and UX:** NFR-A11Y-01 … NFR-A11Y-04 and NFR-A11Y-06 (documentation, §13); NFR-UX-01 … NFR-UX-09,
-  including the protocol required by NFR-UX-01 and SC-9. NFR-A11Y-05 (tagged PDF) is owned by
-  [09](09-reports-forms-output.md).
-- **Touched here and owned elsewhere:** FR-PRJ-009, FR-PRJ-010 (wizard flow), FR-PRJ-011, FR-PRJ-018, FR-PRJ-027;
-  FR-PAG-024, FR-PAG-026; FR-SYM-026; FR-DEV-019, FR-DEV-031, FR-DEV-032; FR-NUM-007, FR-NUM-008, FR-NUM-010;
-  FR-XRF-013; FR-MAC-005; FR-CHK-008, FR-CHK-009, FR-CHK-010, FR-CHK-014, FR-CHK-015; FR-REV-007; FR-TRM-013;
-  FR-CBL-016; FR-PLC-014, FR-PLC-020, FR-PLC-021; FR-LAY-013; FR-REP-042; FR-EXP-004; FR-EXT-005, FR-EXT-015,
-  FR-EXT-018; FR-I18N-001, FR-I18N-002, FR-I18N-005, FR-I18N-009, FR-I18N-010, FR-I18N-011.
-- **Other non-functional rows:** NFR-PERF-02 … NFR-PERF-09, NFR-PERF-11, NFR-PERF-15, NFR-PERF-19; NFR-PLAT-03;
-  NFR-PRIV-01 … NFR-PRIV-04, NFR-PRIV-06, NFR-PRIV-07; NFR-I18N-01, NFR-I18N-02, NFR-I18N-06, NFR-I18N-07;
-  NFR-DOC-01 … NFR-DOC-06; NFR-COMP-04, NFR-COMP-06.
-
-### Proposed new requirements
-
-The twelve rows this document proposed are in the catalogues:
-- notifications log → **FR-UI-042** ([02b](02b-requirements-extended.md) §9);
-- print-true sheet in every theme, dark sheet as a 1.0 view transform → **FR-UI-043** (02b);
-- when a table edit opens the bulk preview → **FR-UI-044** (02b);
-- in-app glossary panel → **FR-UI-045** (02b);
-- "Describe page" → **FR-UI-046** (02b);
-- wire-colour view → **FR-UI-047** (02b);
-- connection and PLC navigators at MVP, 3 cables in the criterion → amendment of the existing **FR-UI-005** (02b);
-- contextual tips for EPLAN and QET users → **FR-UI-048** (02b);
-- versioned settings, keymap and workspace files → **FR-UI-049** (02b);
-- formative usability round R0 → **NFR-UX-09** ([02c](02c-nonfunctional-requirements.md));
-- native menus on macOS and Windows, egui menu bar on Linux → amendment of the existing **FR-UI-001** (02b);
-- marker lines for non-undoable operations, confirmation only for destructive ones → amendment of the existing
-  **FR-UI-023** (02b).
-
-The "go to page or cell" row is **FR-UI-039**, one row with [06](06-schematic-editor.md)'s proposal, and the
-About dialog of §13 is **FR-UI-038**.
-
-## Open questions
-
-1. **Menus on Linux.** muda attaches menus only to GTK windows, and eframe/winit creates none (**verify**).
-   **Resolved:** EW draws the menu bar with egui on Linux from the same action registry and keeps muda on macOS and
-   Windows, as amended FR-UI-001 and ADR-0014 (amendment 1) state.
-2. **Navigator rows of FR-UI-005/006.** FR-UI-006 placed the PLC navigator at 1.0 while FR-PLC-020 makes it MVP
-   Must; FR-UI-005 omitted the connection navigator that [08](08-connections-terminals-cables.md) §9 uses for the
-   wire list; its acceptance counted 4 cables, but Golden A has 3 (-3W1, -106W1, -106W2; -101W1 exists only in
-   Golden A-R). **Resolved:** FR-UI-005 now includes the connection navigator (wire list as table mode) and the PLC
-   navigator, its criterion lists W1–W44, the 56 channels of -201U1, 22 IP pairs, 3 strips and 3 cables, and
-   FR-UI-006 no longer lists PLC.
-3. **Confirming non-undoable operations.** ARCH §5.3 said such operations are "flagged and confirmed"; confirming
-   every export would train users to click through. **Resolved:** every non-undoable operation is a marker line in
-   the history and only destructive ones ask (library writes, overwriting files, purges, the empty-project import
-   checkpoint), as ARCH §5.3, ADR-0008 (amendment 1) and amended FR-UI-023 state (§8.1).
-4. **Help viewer.** Opening bundled HTML in the system browser is simple, but sandboxed Linux packages need the
-   OpenURI portal and lose the anchor on some desktops (**verify**). *Recommendation:* use the system browser at
-   MVP and reconsider an in-app viewer only if R1 shows friction.
-5. **EPLAN-like keymap in the M2 test.** FR-UI-014 ships the preset at 1.0, but R1 is the first chance to collect
-   bindings. *Recommendation:* a "preview" preset in the usability build only, built from R0 notes; record first
-   keys pressed (§19.5) and ship after two EPLAN users confirm at R2 (02b Open question 14).
-6. **Accessible-name enforcement.** egui_kittest 0.37 fails on unnamed *input* widgets; NFR-A11Y-02 requires all
-   interactive widgets. **Resolved:** an `ew-ui` test helper walks the AccessKit tree after every kittest flow and
-   fails on any focusable node without a name (ADR-0014 amendment 2; §10.5).
-7. **Dark canvas expectations.** Users of dark IDEs may expect a dark sheet; print-true is safer for colour codes.
-   *Recommendation:* print-true by default, the dark sheet as a 1.0 option, and ask in R1 and R2.
-8. **Table preview threshold.** The 500-entity limit and the identifier rule of §7.5 are judgement calls.
-   *Recommendation:* measure preview latency at the performance spike (gate G-SP) and observe in R1 whether users expect a preview for
-   smaller edits; adjust before MVP.
-9. **Recordings and consent.** Session recordings contain faces, voices and possibly employer projects.
-   *Recommendation:* keep recordings and session logs local to the moderator, delete them 90 days after the
-   report, publish only anonymised reports, and add a consent template to
-   [19](19-open-source-governance.md).
-10. **German terminology.** EPLAN's German UI terms (Betriebsmittel, BMK, Unterbrechungspunkt) are what German users
-    know (**verify** with translators). *Recommendation:* use EPLAN's German terms where they match IEC 81346
-    vocabulary, keep them in the Weblate glossary, and have two German EPLAN users review the core-flow strings
-    before 1.0.
-11. **Company workspace presets.** Workspaces are user settings, but a company may want one layout for all
-    engineers. *Recommendation:* exportable workspace files at MVP; a company settings folder read at start in 1.x;
-    never in project data.
-12. **Icon set.** No licence-clean ECAD icon set has been chosen. *Recommendation:* start from a permissively licensed
-    general icon set, draw ECAD-specific icons under CC-BY-SA-4.0 with the symbols, and record both in the
-    third-party notices before the M2 toolbar.
-13. **Pending findings in counters.** Showing pending findings separately keeps the error count stable while
-    drawing, but users may overlook them (06 OQ7). *Recommendation:* show "+n pending" next to the counters, keep
-    muted canvas icons, and measure in R1 whether participants notice them.
-14. **User identity for waivers and revisions.** Waiver authors and revision authors need a name, which is personal
-    data. *Recommendation:* ask for a display name on the first waiver or revision, keep it in user settings, match
-    it to or create a `Party{role: Author}` or `Party{role: Checker}` of the project ([03](03-domain-model.md) §5) so
-    that revisions and waivers reference a party rather than free text, mark the stored fields as personal data
-    (NFR-PRIV-06), and never derive the name from the OS account silently.

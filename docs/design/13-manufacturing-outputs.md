@@ -26,10 +26,6 @@ spreadsheet, the package and the machine file, so they cannot disagree.
 13. [Outputs](#13-outputs)
 14. [Edge cases and pitfalls](#14-edge-cases-and-pitfalls)
 15. [The reference project](#15-the-reference-project)
-16. [Scope by release](#16-scope-by-release)
-17. [Dependencies](#17-dependencies)
-18. [Requirements covered](#requirements-covered)
-19. [Open questions](#open-questions)
 
 ---
 
@@ -95,8 +91,7 @@ contract over an `ExportView` of a fork (FR-EXP-001). The queries of §2.5 are a
 catalogue. The `.ewpp` export job needs PDF, DXF and glTF rendering (`ew-scene`, `ew-export`, `ew-panel`), which
 `ew-mfg` does not depend on; the job is therefore composed in `ew-api`, and `ew-mfg` receives the rendered members
 as bytes. The permissive `ew-ewpp` crate holds the package record types, JSON Schemas, the reader, the writer and
-the package diff; the GPL `ew-viewer` crate and the small `ew-wiring-viewer` binary serve the shop floor (ARCH §3;
-Open questions 1 and 2).
+the package diff; the GPL `ew-viewer` crate and the small `ew-wiring-viewer` binary serve the shop floor (ARCH §3).
 
 ---
 
@@ -163,7 +158,7 @@ pub struct EndOverride {
 }
 ```
 
-- **Defaults** (02b Open question 9, PQ-22): destination marking, DIN 46228-4 colours, insulated ferrules on
+- **Defaults** (PQ-22): destination marking, DIN 46228-4 colours, insulated ferrules on
   fine-stranded wire, `TwoWirePolicy::PreferTwin`, fixed 100 mm reserve (the formula and its other terms belong to
   [12](12-panel-layout.md) §9).
 - **End overrides** live on the wire's carrier connection, next to its `NumberSpec`. The number-transfer normaliser
@@ -289,7 +284,7 @@ golden 10 mm); the committed `Route` keeps the unrounded calibrated length (FR-M
 `length_increment_mm` declares only the machine's resolution, and profiles never re-round: if the project
 increment is a multiple of it (10 mm on a 1 mm machine), the machine file carries the wire-list value unchanged,
 which is what keeps AC-35's "row-identical to folio 907" true. Otherwise EW-MFG-002 flags the row "length differs
-from the wire list" and moves it to the manual list (Open question 16).
+from the wire list" and moves it to the manual list.
 
 ### 3.4 Wire-list variants (FR-MFG-003)
 
@@ -343,7 +338,7 @@ the export targets a machine; and any `EndOverride`.
 Shipped as the default `treatment_rules` (FR-MFG-005, FR-MFG-008), editable in the basic project. Per-terminal
 acceptance is part data whose section confidence stays `unverified` for every vendor until checked
 ([07](07-symbols-parts-macros.md) §2.5); rules reading it report at most a warning (FR-CHK-046,
-[15](15-checks-revisions-collaboration.md); 02b Open question 7). The table follows PM §7.3; the IDC row is EW's
+[15](15-checks-revisions-collaboration.md)). The table follows PM §7.3; the IDC row is EW's
 assumption **(verify)**.
 
 | Clamp kind | Class 1/2 (solid, stranded) | Class 5/6 (fine-stranded) |
@@ -378,7 +373,7 @@ for each clamp k with wires W (n = |W| ≥ 2), wires sorted by (csa desc, wire i
 A twin ferrule counts as one conductor against `max_conductors`, which follows EN 60204-1 13.1.1 **(verify the
 clause; [standards](../research/standards.md) M-08 cites 13.1)**: more than one conductor only where the terminal is
 designed for it. This interprets FR-MFG-006: two wires on a clamp without twin permission are an error only if the
-clamp accepts one conductor; on a two-conductor clamp they get two single ferrules (Open question 6).
+clamp accepts one conductor; on a two-conductor clamp they get two single ferrules.
 
 ### 4.4 Part selection
 
@@ -417,7 +412,7 @@ The pre-flight rules EW-MFG-001 … 006 are fixed by FR-MFG-024; EW-MFG-007 … 
 the `manufacturing` scheme under FR-CHK-058. The final rows are those of the catalogue in
 [15](15-checks-revisions-collaboration.md) §4.5.5. They run in the `manufacturing` check scheme (`extends =
 "pre-delivery"` plus EW-MFG; [15](15-checks-revisions-collaboration.md) §4.9) and, as export pre-flight, in the
-`export` mode of [15](15-checks-revisions-collaboration.md) §3.1 (Open question 7). Rules 001 … 006 need the
+`export` mode of [15](15-checks-revisions-collaboration.md) §3.1. Rules 001 … 006 need the
 export's profile; a scheme run without a profile evaluates EW-MFG-001 against "routed, manual or from part" and
 skips 002, 003 and 006. EW-POT-015 supersedes EW-MFG-005 per target: duplicate wire numbers in the model are
 reported online by EW-POT-015, and EW-MFG-005 fires only for duplicates that the export mapping creates
@@ -513,7 +508,7 @@ line, one column for the marker part (the label stock), plus a code column when 
 
 | Preset | Output | Status |
 |---|---|---|
-| Weidmüller M-Print PRO | CSV or XLSX in the import wizard layout | preview until validated with a partner (02b Open question 8) |
+| Weidmüller M-Print PRO | CSV or XLSX in the import wizard layout | preview until validated with a partner |
 | Phoenix Contact MARKING system | CSV or XLSX | preview |
 | Brady Workstation | XLSX data import | preview (format unverified) |
 | Murrplastik marking software | CSV or XLSX | preview (format unverified) |
@@ -800,7 +795,7 @@ named in §15.
 | Working package | `ew export ewpp` at any revision; `mode = "draft"`; findings listed; not archived |
 | Personal data | The export dialog and `--omit-personal-data` omit the person fields that `ew-schema` marks personal (engineer, checker, party contacts; NFR-PRIV-06, FR-EXP-009); the manifest records the choice |
 | Vendor content | Meshes from vendor STEP only where the part's licence flag allows; boxes otherwise (FR-LAY-022, NFR-LIC-06) |
-| Specification | The package format is documented CC-BY-4.0; schemas and the reader crate are MIT OR Apache-2.0 (Open question 2) |
+| Specification | The package format is documented CC-BY-4.0; schemas and the reader crate are MIT OR Apache-2.0 (FR-MFG-046) |
 | Reading | Readers apply the `.ewz` limits of [05](05-project-format-and-persistence.md) §12 and NFR-SEC-02; packages carry no scripts, SQL or plugins |
 
 ---
@@ -938,7 +933,7 @@ The viewer opens a `.ewpp` on a machine without EW projects or catalogues.
 
 ### 11.2 Lookup codes (FR-MFG-014, 1.x)
 
-Payload (BS Open question 5, refined): `EW1:<pkg>:<key>`.
+Payload: `EW1:<pkg>:<key>`.
 - `pkg` is the 8-hex package ID (§8.2).
 - `key` is `W` plus 8 Crockford base32 characters (40 bits) of the wire UUID's bytes 8–15 (the random or hash part,
   ARCH §7.3); `C`, `T` and `B` prefixes identify cables, terminals and bundles. If two wires of one package share a
@@ -948,14 +943,14 @@ Payload (BS Open question 5, refined): `EW1:<pkg>:<key>`.
 - Example: `EW1:3F9A2C1D:W7K2M9QXA` (22 characters). Every character is in the QR alphanumeric set, and the payload
   fits a version 2 symbol at level M **(verify the capacity table)**. Data Matrix is offered for small wire markers.
 - EW writes the payload as text into the label set's code column; the marking software renders the symbol. EW's own
-  PDFs render no codes until an encoder crate is chosen (Open question 15).
+  PDFs render no codes until an encoder crate is chosen.
 - The code holds no URL by default; a per-company URL template is optional.
 - A code from an older package still resolves, because the wire key is stable. The viewer then reports "label
   printed from package 1A2B3C4D (V2.0); this wire changed since". This is how the shop detects stale labels after a
   rework.
 
 The wire key is used instead of the wire number because cores are unnumbered and numbers may change before they
-are frozen (Open question 5).
+are frozen.
 
 ### 11.3 Order folder and status log (FR-MFG-034, 1.x)
 
@@ -1104,160 +1099,3 @@ No reference project is mapped here: the tests open the sample project (`fixture
 | D-19 | EW-MFG-001 and the release refusal stop wires and cables without length |
 | D-21 | The 18.2.2 list traces PE through rails and plate |
 | D-22 | The bond wire W27 is listed as a wire, while 0V and PE stay separate potentials |
-
----
-
-## 16. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Wire list, terminal and cable diagrams as reports | ● (REP) | | | |
-| Production wire record, variants, change list | | ● | | |
-| Consumables summary (FR-MFG-049) | | ● (Should) | | |
-| Ferrule engine, twin ferrules, colour schemes, lugs | | ● | AWG keys | |
-| Marking schemes, label engine, marking presets | | ● | | direct printer drivers |
-| Lookup codes on labels, enclosure QR | | enclosure QR | wire, bundle and cable codes | |
-| Terminal assembly lists | | ● | configurator export | configurator re-import |
-| Machine profiles: generic, Komax TopConvert, Rittal WT, Weidmüller WPC | | ● | Schleuniger, more profiles | native WPCS, NC, RiPanel AML |
-| Pre-flight, manual list, release refusal | | ● | | |
-| Feedback import | | | ● | |
-| Drilling DXF, hole tables, cut lists | | ● | | |
-| EN 60204-1 cl. 18 and IEC 61439 cl. 11 checklists | | ● | filling in the viewer | instrument data import |
-| `.ewpp` with schemas and hashing | | ● | | |
-| Wiring viewer | | read-only | status log, scanner jump, completion report | WebAssembly tablet build |
-| As-built package, nameplate data, declaration forms | | ● | | |
-
-The release of every FR-MFG row follows [02b](02b-requirements-extended.md) §6: 42 rows at 1.0, seven at 1.x
-(009, 014, 017, 023, 026, 034, 045) and two Later (027, 035).
-
----
-
-## 17. Dependencies
-
-| On | For |
-|---|---|
-| [03](03-domain-model.md) §9, §11, §12, §16, §17 | Physical wires, terminals, cables, routes, manufacturing entities |
-| [05](05-project-format-and-persistence.md) §12, §14 | ZIP determinism, archive layout, profile storage (Open question 3) |
-| [07](07-symbols-parts-macros.md) §2.5 | Part data levels L1, L3, L6; ferrule, wire, marker part kinds; confidence flags |
-| [08](08-connections-terminals-cables.md) §3.8, §4, §5, §6 | Wire identity and orientation, effective properties, numbering, clamps, bridges |
-| [09](09-reports-forms-output.md) §2.3, §2.4, §4.3, §4.6 | `RowSet`, report kinds (`checklist_*`, `terminal_lineup`), export dates, XLSX/CSV dialects |
-| [10](10-plc-and-bus.md), [11](11-fluid-power.md) §8.2, §8.3 | PLC rows for 18.6; tube list, tube cut list and tube labels |
-| [12](12-panel-layout.md) | Routing, lengths, calibration, bundles, features, 3D CP positions |
-| [15](15-checks-revisions-collaboration.md) | Final rule IDs, the `manufacturing` scheme, release integration |
-| [16](16-ux-ui.md) | Manufacturing workspace layout, wizard step 10, usability task T11 (the viewer's own screens are §11.1 here) |
-| [17](17-extensibility.md) §3.3 | CLI catalogue (`ew export ewpp`, `machine`, `labels`, `drilling`; `ew mfg`) |
-| the golden project (retired at 0.3.5; [glossary](glossary.md)) | Golden A-R inputs; `tables/clamps.csv` and `expected/mfg/*.csv`, the 10 mm length increment, AC-35; restated on the sample when M4 is planned |
-
-| Crate | Use |
-|---|---|
-| `ew-mfg` | queries of §2.5, engine, label engine, profile interpreter, package writer |
-| `ew-reports`, `ew-derive` | `RowSet`, `physical_wires_of`, `wire_props_of`, `terminal_rows`, `plc_rows` |
-| `ew-panel` | committed routes, bundles, estimated lengths, CP positions (the `ew-mfg → ew-panel` edge of ARCH §3); the glb writer of `layout_scene` for the package's layout member |
-| `ew-export`, `ew-scene` | PDF/A of the drawing set and reports, DXF via dxf 0.6.2 |
-| `ew-api` | composes the `.ewpp` export job: data members from `ew-mfg`, rendered members from `ew-scene`, `ew-export` and `ew-panel` (ARCH §3) |
-| `ew-ewpp` (permissive, MIT OR Apache-2.0) | package records, JSON Schemas, reader, writer, package diff (FR-MFG-046) |
-| `ew-viewer` (1.0) and the `ew-wiring-viewer` binary | viewer UI over `ew-ui` widgets (3D through its canvas host) and `ew-render-cpu`; PDF snippets via hayro 0.8.0 after the fidelity check of Open question 12, with per-page SVG as the fallback **(verify)** |
-| zip 9.0.4, csv 1.4.0, rust_xlsxwriter 0.100.0 (ARCH §3 `ew-mfg` row); calamine 0.36.1 | ZIP, CSV and XLSX members and machine files; calamine reads Excel templates and machine feedback files, an addition to the ARCH §3 `ew-mfg` row. glb members come from `ew-panel` (gltf-json **(verify)**). No QR or Data Matrix encoder is evaluated yet (Open question 15) |
-
----
-
-## Requirements covered
-
-- **MFG (all rows):** FR-MFG-001 … FR-MFG-051. The 1.x rows (FR-MFG-009, -014, -017, -023, -026, -034, -045) and
-  the Later rows (FR-MFG-027, -035) are designed here so that 1.0 needs no schema break.
-- **Elaborated in part:** FR-REP-009, FR-REP-011, FR-REP-014, FR-REP-015, FR-REV-008, FR-REV-009, FR-REV-011,
-  FR-REV-015, FR-TRM-007, FR-TRM-016, FR-CBL-005, FR-CBL-009, FR-CBL-013, FR-CON-028, FR-CON-032, FR-CON-033,
-  FR-CHK-021, FR-CHK-034, FR-CHK-046, FR-CHK-058,
-  FR-PRT-008, FR-PRT-024, FR-NUM-011, FR-LAY-022, FR-LAY-050, FR-LAY-051, FR-LAY-052, FR-LAY-054, FR-FLU-013,
-  FR-PLC-036, FR-EXP-001, FR-EXP-006, FR-EXP-009, FR-EXT-003, FR-EXT-010, FR-EXT-019, FR-UI-003, FR-UI-024,
-  FR-UI-026, FR-THM-009.
-- **Non-functional:** NFR-REL-07, NFR-REL-10, NFR-SEC-02, NFR-SEC-03, NFR-SEC-05, NFR-PRIV-01, NFR-PRIV-06,
-  NFR-PRIV-07, NFR-LIC-06, NFR-LIC-09, NFR-COMP-04, NFR-COMP-05, NFR-PERF-19, NFR-PERF-24.
-
-### Proposed new requirements
-
-The thirteen rows this document proposed are in the catalogues:
-- per-end treatment overrides on the carrier connection → **FR-MFG-042** ([02b](02b-requirements-extended.md) §6);
-- the shop's two-wire policy as a project setting → **FR-MFG-043** (02b);
-- package content hash over data members, stamped members written afterwards, drawing PDF identical to the
-  archive → **FR-MFG-044** (02b);
-- immutable hand-off package with an order folder; `status/` only in as-built packages → **FR-MFG-045** (02b);
-- permissive package reader crate → **FR-MFG-046** (02b);
-- every referenced machine or label profile embedded as a library copy → **FR-MFG-047** (02b);
-- terminal markers print the unique designation → **FR-MFG-048** (02b);
-- the EW-MFG pack and the `manufacturing` scheme → **FR-CHK-058** ([02a](02a-requirements-core.md));
-- `.ewpp` export budget on the L fixture → **NFR-PERF-24** ([02c](02c-nonfunctional-requirements.md));
-- package, feedback and status-log readers under the parser limits and fuzz targets → covered by the existing
-  **NFR-SEC-02** (02c), with the fuzz targets of NFR-SEC-03;
-- consumables summary → **FR-MFG-049** (02b);
-- end treatments a machine makes, finishing tasks → **FR-MFG-050** (02b);
-- lengths rounded once to the project increment → **FR-MFG-051** (02b).
-
-## Open questions
-
-1. **Crates for the viewer and the panel edge.** [Vision](00-vision-and-scope.md) Open question 6 puts the viewer in
-   a Manufacturing workspace of `elektrawatt`; [brainstorm](01-brainstorm.md) Open question 4 and
-   [02b](02b-requirements-extended.md) Open question 6 propose a separate binary. ARCH §3 also lacked the edge
-   `ew-mfg → ew-panel` that wire records need for routes, bundles and CP positions, and `ew-mfg` depended only on
-   `ew-reports`, so it could not render the PDF, DXF and glTF members itself. ARCH §3 rule 3 also let only `ew-ui`
-   and the app binary know egui. **Resolved:** ARCH §3 adds the `ew-mfg → ew-panel` edge, composes `.ewpp` export jobs
-   in `ew-api`, and adds the `ew-viewer` crate (1.0) used by the small `ew-wiring-viewer` binary and by the
-   "Preview package" view of the Manufacturing workspace, with rule 3 amended to name `ew-viewer` and the viewer
-   binary.
-2. **Permissive package crate.** The package is a public hand-off, but ARCH §3 had no permissive crate for it.
-   **Resolved:** ARCH §3 adds the permissive `ew-ewpp` crate (record types, JSON Schemas, reader, writer and
-   package diff), through which the GPL `ew-mfg` writes; the requirement is FR-MFG-046.
-3. **Where profiles live in the project.** ARCH §7.2 had `rules/` and `reports/` but no place for embedded machine
-   and label profiles. **Resolved:** profiles are library copies at `lib/profiles/<copy_id>.toml`, kept in their
-   TOML source form so that the SHA-256 equals the published item, with the `schema` key telling machine and label
-   profiles apart ([05](05-project-format-and-persistence.md) §2.1; FR-MFG-047).
-4. **`status/` inside the package.** The 02b member list puts `status/*.jsonl (optional)` inside the ZIP, while
-   panel-manufacturing §7.7 puts it next to the package. **Resolved:** hand-off packages never contain it, the
-   order folder holds the logs and only as-built packages include `status/` (FR-MFG-045; the
-   [02b](02b-requirements-extended.md) §6 sketch is updated).
-5. **Code payload.** FR-MFG-014 says "package-hash prefix plus wire number". Cores have no numbers and numbers can
-   change before freezing. **Resolved:** FR-MFG-014 now reads "package ID plus stable wire key", as in §11.2.
-6. **Two wires on a two-conductor clamp.** FR-MFG-006 reads as "twin ferrule, else violation". Many clamps accept two
-   separate ferrules. *Recommendation:* adopt the §4.3 interpretation with policy `PreferTwin` as default; ask the
-   pilot (PQ-22) whether the shop forbids two single ferrules in one clamp.
-7. **EW-MFG in the shipped pack list.** [15](15-checks-revisions-collaboration.md) §4 and §4.9 adopt EW-MFG-001 …
-   011, the `manufacturing` scheme and the `export` mode, but ARCH §12, ADR-0019 and FR-CHK-005 omitted them (15
-   Open question 1). **Resolved:** ADR-0019 and FR-CHK-005 list EW-MFG among the shipped packs, the modes include
-   `export`, and FR-CHK-058 adds the pack and the `manufacturing` scheme; revision release runs the scheme only when
-   the release writes a package (1.0 default on), so MVP releases are unaffected.
-8. **Unverified formats and tables.** Komax TopConvert sheets, Rittal WT templates, WPC templates, marking-software
-   layouts and ferrule colour tables are unverified (02b Open questions 7 and 8; PQ-21). **Resolved:** the generic
-   profile ships as validated and the vendor profiles keep `status = "preview"` and their ▲ and **(verify)** marks
-   until a partner shop loads the golden files (PQ-21); the global plan ties that check to the 1.0 gate.
-9. **End overrides in the schema.** `WireOverrides` ([03](03-domain-model.md) §9) had no per-end fields.
-   **Resolved:** [03](03-domain-model.md) §9 adds `WireOverrides.ends: SmallVec<[EndOverride; 2]>` keyed by CP and
-   `WireOverrides.length`, and the number-transfer normaliser of [08](08-connections-terminals-cables.md) §5.1 moves
-   both with the wire number (FR-MFG-042).
-10. **Field wires.** Whether W1–W3 (and the A-R cable -101W1) are made in the shop or on site is unknown.
-    *Recommendation:* `field` by default (end outside the location), with a per-wire flag to include them, and ask
-    the pilot alongside PQ-17.
-11. **"Row-identical to folio 907" (AC-35).** Folio 907 has 44 wires and 6 bridges; machine files hold the 31 shop
-    wires. **Resolved:** AC-35 requires every machine row to equal the folio 907 row
-    with the same `RowId`, and the machine and manual lists together to cover W1–W44, with the expected rows in
-    `expected/mfg/*.csv` (§15.1).
-12. **PDF snippets in the viewer.** Rendering the PDF/A region needs a PDF rasteriser at runtime; ARCH uses hayro
-    only in tests. **Resolved:** ARCH §3 makes hayro a runtime dependency of `ew-viewer` after a fidelity check on
-    the golden PDF; if the check falls short, the package ships per-page SVG instead.
-13. **Personal data in status logs.** Technician actions are personal data. *Recommendation:* pseudonymous codes in
-    logs, the mapping kept outside packages, and the as-built export for customers dropping `by` unless the
-    customer contract requires names; note it in `PRIVACY.md` (NFR-PRIV-07).
-14. **Tube data in the package.** [11](11-fluid-power.md) §8.3 says the package carries the tube list; the 02b list
-    had no member for it. **Resolved:** the member list of §8.1, now also in the [02b](02b-requirements-extended.md)
-    §6 sketch, has `tubes.json` and tube rows in `cutlists.csv`.
-15. **QR and Data Matrix encoder.** No encoder crate is evaluated in the research, and the label CSVs only need the
-    payload text. **Resolved:** at 1.0 EW emits payloads as text for the marking software (enclosure QR,
-    FR-MFG-015); before EW renders codes into its own PDFs or the viewer, a pure-Rust encoder is evaluated against
-    the crate-adoption rule of [rust-ecosystem](../research/rust-ecosystem.md) §0 and the licence boundary
-    (ADR-0024), an item of the global plan's verification register.
-16. **Owner of rounding and reserve.** [12](12-panel-layout.md) §9 and [03](03-domain-model.md) §16 round lengths
-    "to the machine increment", which would make the wire list and each machine file disagree (AC-35); 03 §17 and
-    [16](16-ux-ui.md) wizard step 10 put the reserve in `MfgSettings`, while 12 keeps it in the layout policy.
-    **Resolved:** the committed `Route` stores the unrounded calibrated length; one project length increment
-    (default 10 mm) and the reserve policy live in `MfgSettings` ([03](03-domain-model.md) §17), 12's formula reads
-    them, rounding happens once when the wire record is built, and profiles only declare their resolution (§3.3,
-    FR-MFG-051).

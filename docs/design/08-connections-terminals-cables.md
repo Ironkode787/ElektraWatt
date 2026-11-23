@@ -29,8 +29,6 @@ not determine. EF-nn and MF-nn are expected findings. PQ-nn are questions for th
 11. [Performance and determinism](#11-performance-and-determinism)
 12. [Edge cases and pitfalls](#12-edge-cases-and-pitfalls)
 13. [The reference project](#13-the-reference-project)
-14. [Scope by release](#14-scope-by-release)
-15. [Dependencies](#15-dependencies)
 
 ---
 
@@ -123,8 +121,8 @@ flowchart LR
 ### 2.3 Detail and schema additions
 
 These refine [03](03-domain-model.md) without changing its concepts. They are part of the schema-steward batch
-(ARCH §7.6) that 03 §1.2 records before `ew-schema` v0 freezes; Open questions 2–6 and 15 keep the record of how
-they were decided, and `SingleLine` is the kind of [06](06-schematic-editor.md) OQ13 (FR-CON-044).
+(ARCH §7.6) that 03 §1.2 records before `ew-schema` v0 freezes; `SingleLine` is the connection kind of
+FR-CON-044.
 
 ```rust
 pub enum ConnectionKind {
@@ -133,7 +131,7 @@ pub enum ConnectionKind {
     Bridge(BridgeSpec),            // terminal bridge; joins potentials; never a wire
     Fluid(FluidLine),              // see 11
     Bus(BusLine),                  // single-line bus connection between bus-port CPs
-    Overview,                      // excluded from nets; MVP stand-in for single-line power lines (06 OQ13)
+    Overview,                      // excluded from nets; MVP stand-in for single-line power lines (FR-CON-044)
     Internal,                      // link between CPs of two functions of one part's template that no FnDef declares
     SingleLine { conductors: u8 }, // 1.0 (FR-CON-029): excluded from nets, mapped onto multi-line connections
 }
@@ -244,11 +242,11 @@ A junction tells the shop **which CP is wired to which**. A dot or a bevel only 
 - **Ambiguous feed.** An arm between two junctions must be the feed arm of exactly one of them. If it is the feed arm
   of both or of neither, EW roots the tree at the junction with the lowest ID and reports EW-POT-011 with the quick
   fix "reorder sequence".
-- **Defaults.** A Dot junction defaults to Star and a Bevel junction to Chain ([03](03-domain-model.md) OQ7). A
+- **Defaults.** A Dot junction defaults to Star and a Bevel junction to Chain (ADR-0007). A
   junction is created by ending a wire on another connection. Its default sequence lists the two parts of the split
   connection, the part nearer the potential's source first (flow distance, §3.6, with reading order as tie-break),
   and then appends the new branch. [06](06-schematic-editor.md) §3.5 uses the same rule, and the M2 usability test
-  confirms it (PQ-27, Open question 7).
+  confirms it (PQ-27).
 - **Daisy chain versus junction.** Two connections on one CP are a daisy chain (FR-CON-006). Their order is the
   order in which the shop lands them on the clamp. It is ascending connection ID unless a junction sequence fixes it.
 
@@ -296,7 +294,7 @@ drag uses `page_local_nets` only.
 | Potential | minimum `PotentialDef` ID among its definitions, else the minimum member CP ID | the same, plus adding or removing other members | its last definition is removed, or the potential is split away from it |
 | Physical wire | ID of its carrier connection (§3.8) | moves, route edits, renumbering, adding unrelated wires | the carrier connection is deleted or the decomposition changes (§5.1 moves its number) |
 
-This is the rule of [03](03-domain-model.md) §9.4 and the ARCH §6.4 `PotentialId` (Open question 4). Taking the
+This is the rule of [03](03-domain-model.md) §9.4 and the ARCH §6.4 `PotentialId`. Taking the
 minimum definition ID keeps the identity when a user adds a second, equal definition symbol. The IDs key the
 per-potential memos (`wire_props_of`), highlight state, `api_v1_potential` rows and finding fingerprints. A wire edit
 that leaves membership unchanged keeps every PotentialId, so dependent memos are backdated and stay green
@@ -494,7 +492,7 @@ potential_flow(potential):                              // memo per potential; t
   both named by an external reference and assigned by an own device or page is own).
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
   A rail-bonded terminal then joins PE only through a carrier and surface that both declare `pe_bond` (FR-LAY-058).
-  A difference between the two models is reported on migration ([03](03-domain-model.md) OQ10).
+  A difference between the two models is reported on migration.
 
 ### 3.8 Physical wires
 
@@ -1052,7 +1050,7 @@ The printed wire list (FR-REP-014) shows bridges as a separate block of rows of 
 `strip_bridges` (§2.3), its output byte-equal, and `bridge_groups` gives every bridge group of the project with its
 label `BR1`, `BR2` … (numbered over the strips in natural order of the strip tag, then group, then strip ID), which the
 Terminal strips navigator's Bridge column shows. Bridges are never wire rows, never wire records and never in machine files (FR-TRM-007,
-FR-TRM-026, FR-MFG-016; Open question 17). At 1.0
+FR-TRM-026, FR-MFG-016). At 1.0
 the strip editor proposes bridges between adjacent terminals of one potential (FR-TRM-008). On a copy of -X1032
 without BR6 it proposes one 5-pole plug-in bridge over 1–5. Strip segments draw the bridges as the familiar vertical
 bus with dots. That drawing is derived from the bridge connections.
@@ -1282,7 +1280,7 @@ on folio 3 is one line with its marker, from the In entry of -3X1 to the externa
 +J-E-206). Its cable diagram lists the cores A, B and shield from the part (Siemens 6XV1830-0EH10). A single-line
 cable's ends are the line's two endpoints, ordered by the rules of §3.8: -3X1 is end A and the external reference
 is end B (FR-CBL-015). Per-core pins are resolved only where a multi-line representation of the port exists. Port
-signal maps belong to [10](10-plc-and-bus.md) (Open question 5). Bus lines form no physical wires: they appear in
+signal maps belong to [10](10-plc-and-bus.md). Bus lines form no physical wires: they appear in
 cable rows and in the bus cable list (FR-BUS-008).
 
 ### 7.6 Lengths
@@ -1434,8 +1432,8 @@ BFS from main; every PE-typed CP not reached → error with the nearest reached 
   - at a terminal end, the line-type wires on the same side of the same strip;
   - at a device end, the line-type wires on the device's CPs.
 - **Rule.** The required PE csa comes from the sizing data pack (copper: equal up to 16 mm², then 16, then S/2;
-  IEC 60364-5-54 and EN 60204-1 8.2, values marked (verify), [02a](02a-requirements-core.md) OQ8). The default
-  parameter `line_types = [L, L1, L2, L3]` excludes L+ (Open question 8).
+  IEC 60364-5-54 and EN 60204-1 8.2, values marked (verify), unverified data). The default
+  parameter `line_types = [L, L1, L2, L3]` excludes L+.
 - **Golden.** W6 at 1X1:PE (internal side) has W4 at 2.5 mm² next to it and is reported. W3 at 1X1:PE (field side)
   has only the 1.5 mm² W1 next to it and is not.
 - *As built.* The table ships as rule data, `crates/ew-checks/data/pe_sizing.toml`, with
@@ -1448,7 +1446,7 @@ BFS from main; every PE-typed CP not reached → error with the nearest reached 
 - CPs of unplaced functions;
 - non-physical CPs;
 - CPs whose CpDef is optional (`CpDef.optional`, [07](07-symbols-parts-macros.md) §2.4), such as the outgoing
-  entry of a terminating bus connector or a parallel duplicate pin (Open question 6);
+  entry of a terminating bus connector or a parallel duplicate pin;
 - the pin of a PLC channel whose effective state is spare, reserved or deactivated ([10](10-plc-and-bus.md) §3.2):
   the channel's state already says that the pin stays free, so a card with one used channel gives no warning for the
   other seven.
@@ -1609,162 +1607,3 @@ reference drawing set that this area prevents:
 | D-37 profile basis | S | `basis` on every profile |
 | D-38 PE smaller than line | C | EW-POT-006 |
 | D-42 strip drawn twice | S | segments of one strip device (§6.7) |
-
----
-
-## 14. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Connection kinds Wire, Core, Bridge, Bus, Overview, Internal (Fluid: [11](11-fluid-power.md)); invariants CI-01 … CI-07 | ● | | | |
-| `SingleLine{conductors}` kind mapped onto multi-line connections (FR-CON-029) | | ● | | |
-| Junction style, wiring and sequence; nested feed semantics; daisy chains | ● | | | |
-| Nets, signals, potentials; stable IDs; names and aliases | ● | | | |
-| Potential flow: types, switched, protected by; circuit classes; bonds; PELV/SELV | ● | | | |
-| Rail bonding through the location PE node | ● | | | |
-| Rail bonding through carriers and surfaces | | ● | | |
-| Physical wires, IDs, orientation, wire-end locus | ● | | | |
-| Inheritance levels 1–3, 6, 7 with provenance; PE-class and bond rules | ● | | | |
-| Net definitions (levels 4–5, FR-CON-016) | | ● | | |
-| Profiles: company "DBU/WH 24 V", EN 60204-1, IEC 60445; company codes; cover tables | ● | | | |
-| NFPA 79 colour profile (data only) | | | ● | |
-| NFPA 79 / UL 508A rule packs | | | | ● |
-| Wire markers in four modes; quick fixes on overrides | ● | | | |
-| AWG/kcmil (FR-CON-032, EW-POT-019); wire part per profile (FR-CON-033); connection groups (FR-CON-030) | | ● | | |
-| Clamp data and clamp capacity (FR-CON-028, EW-POT-010) | | ● | | |
-| Wire numbering connection- and potential-oriented; online; "?"; frozen; number transfer | ● | | | |
-| Format groups, signal scope with net extension, sub-counters, rhai formats | | ● | | |
-| Strips, terminals, levels, twin, PE, groups, label mode, spares, segments, unique designations, strip editor | ● | | | |
-| Plug-in and wire bridges with groups | ● | | | |
-| Saddle bridges; bridge proposals (FR-TRM-008); accessories (FR-TRM-016); strip length (FR-TRM-024); plugs (FR-TRM-023); designation schemes (FR-NUM-024) | | ● | | |
-| Terminal-configurator export (FR-TRM-025) | | | ● | |
-| Cables, conductors from part, definition line, assignment by order, colour or manually, edit-cable table, shields, bus single-line, pre-assembled pin maps, external ends, lengths Manual/FromPart/Missing | ● | | | |
-| Routed and estimated lengths; cable catalogue; twisted pairs; automatic cable generation (FR-CBL-018, Could) | | ● | | |
-| Voltage drop on cables (EW-POT-020, FR-CHK-059) | | | ● | |
-| Checks EW-POT-001 … 006, 008, 009, 011 … 017; EW-TERM-001 … 005; EW-CORE-031 … 037 | ● | | | |
-| EW-POT-007 PE continuity; EW-POT-010 clamp capacity; EW-POT-018 load versus rating (FR-CHK-041, [15](15-checks-revisions-collaboration.md)); EW-POT-019 mixed units | | ● | | |
-| Reports: wire list, terminal diagrams, strip overview, cable reports, potential overview, numbering report | ● | | | |
-| Line-up diagram (FR-REP-011), device connection diagram (FR-REP-015), plug diagrams (FR-REP-024), load summary (FR-REP-026) | | ● | | |
-| Graphical terminal connection diagram (FR-REP-043) | | | ● | |
-
----
-
-## 15. Dependencies
-
-| Depends on | For |
-|---|---|
-| [04-architecture](04-architecture.md) §4, §5.2, §6.2–§6.7, §7.6, §12, §14; ADR-0001, ADR-0002, ADR-0003, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0017, ADR-0018, ADR-0019 | records, normalisers, queries, granularity, freshness, cost estimates, schema steward, invariants, previews, SQL projection, row sources, rule engine |
-| [03-domain-model](03-domain-model.md) §3.4, §8.7, §9, §11, §12, §16 | records, colour codes, chain, PE through carriers |
-| [05-project-format-and-persistence](05-project-format-and-persistence.md) §2.2 | where page-less bridges and connections are stored |
-| [06-schematic-editor](06-schematic-editor.md) §3.5, §4.4, §5.3, §5.5, §9 | wire tool, junction page, split rule, golden walkthrough |
-| [07-symbols-parts-macros](07-symbols-parts-macros.md) §2.4, §2.5 | FnDef links and flags, CP patterns, clamp and cable-core data |
-| [09-reports-forms-output](09-reports-forms-output.md) §2.4 | report kinds, forms and pagination for folios 903–909 |
-| [10-plc-and-bus](10-plc-and-bus.md) §2.7, §3.3, [11-fluid-power](11-fluid-power.md), [12-panel-layout](12-panel-layout.md), [13-manufacturing-outputs](13-manufacturing-outputs.md), [14-interop](14-interop.md) §4.7, §5.4, [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) §2.2, §4.4, §4.7, [16-ux-ui](16-ux-ui.md), [17-extensibility](17-extensibility.md) §6 | bus connectors and channel bindings, fluid lines, carriers and lengths, wire records, QET and EPLAN mapping, rule codes and packs, panels, `api_v1` columns |
-| Crates | `ew-schema`, `ew-model` (invariants CI-01 … CI-07), `ew-derive` (§3–§7 queries), `ew-commands` (normalisers, `NumberWires`, `FreezeNumbers`, `cable.assign`, strip-editor commands), `ew-checks` (§8), `ew-reports`, `ew-sqlview`, `ew-viewmodel` and `ew-ui` (tables of §9), `ew-import-qet`; at 1.0 `ew-panel` and `ew-mfg` |
-
----
-
-## Requirements covered
-
-- **CON:** FR-CON-001 … FR-CON-034, FR-CON-040, FR-CON-041, FR-CON-042, FR-CON-045, for their semantics. The
-  drawing interaction of FR-CON-003, FR-CON-007, FR-CON-008 and FR-CON-031 is in [06](06-schematic-editor.md).
-- **NUM (wire numbers and terminal designations):** FR-NUM-011, FR-NUM-016, FR-NUM-017, FR-NUM-018, FR-NUM-019,
-  FR-NUM-020, FR-NUM-021, FR-NUM-022, FR-NUM-023, FR-NUM-024, FR-NUM-026, FR-NUM-028, FR-NUM-031, FR-NUM-032.
-- **TRM:** FR-TRM-001 … FR-TRM-027.
-- **CBL:** FR-CBL-001 … FR-CBL-019.
-- **CHK (rule content):** FR-CHK-016, FR-CHK-018, FR-CHK-019, FR-CHK-020, FR-CHK-021, FR-CHK-028, FR-CHK-029,
-  FR-CHK-030, FR-CHK-031, FR-CHK-032, FR-CHK-033, FR-CHK-037, FR-CHK-055, FR-CHK-056, FR-CHK-057, FR-CHK-059.
-- **REP (row sources):** FR-REP-009, FR-REP-010, FR-REP-011, FR-REP-012, FR-REP-013, FR-REP-014, FR-REP-015,
-  FR-REP-016, FR-REP-022, FR-REP-026, FR-REP-028.
-- **02b:** FR-MFG-002, FR-MFG-016 (bridge rows), FR-LAY-050, FR-LAY-058, FR-IMP-012, FR-IMP-013, FR-IMP-014,
-  FR-UI-005, FR-UI-010, FR-UI-018, FR-UI-025, FR-EXT-003, FR-EXT-007, FR-I18N-002, FR-I18N-013.
-- **Non-functional ([02c](02c-nonfunctional-requirements.md)):** NFR-PERF-04, NFR-PERF-05, NFR-PERF-07,
-  NFR-PERF-09, NFR-PERF-10, NFR-REL-07, NFR-REL-08, NFR-REL-09, NFR-A11Y-03, NFR-COMP-05.
-- **Adopted from other documents and specified here:** FR-CON-035 (physical wires), FR-CON-036 (signals) and
-  FR-CON-037 (bond via) of [03](03-domain-model.md), and FR-CON-038 (PE circuit class at the ends, with this
-  document's terminal-end rule of §4.2) of the golden project's proposals.
-
-### Proposed new requirements
-
-The fifteen rows this document proposed are in [02a](02a-requirements-core.md):
-- From/To orientation by page order and flow distance → **FR-CON-040**;
-- arm 1 as feed arm, nested junctions, disagreeing feeds reported → **FR-CON-041**;
-- one multi-pole bridge group with one part → **FR-TRM-026**;
-- bond-wire colour and size from the bond rule → **FR-CON-042**;
-- exact-code colour checks and the export code of company codes → covered by the existing **FR-CON-019**, which now
-  carries the rule;
-- flow distance, protective device and switched flag per potential → covered by the existing **FR-CON-011**;
-- wire number stored on the carrier and moved with it → **FR-NUM-031**;
-- wire-counter order → covered by the existing **FR-NUM-028**;
-- page token of a strip without a segment → **FR-NUM-032**;
-- terminals take their strip's structure → **FR-TRM-027**;
-- PE island (EW-POT-008) → **FR-CHK-055**;
-- pre-assembled core on the wrong pin (EW-CORE-035) → **FR-CHK-056**;
-- physical-wire conflicts (EW-POT-014) → **FR-CHK-057**;
-- carrier, and so wire ID, chosen only from authored data → **FR-CON-045**;
-- cable voltage drop (EW-POT-020) → **FR-CHK-059**.
-
----
-
-## Open questions
-
-1. **Folio 101 top bus.** [03](03-domain-model.md) §9.2 modelled W7/W8 as a Bevel junction in Chain mode.
-   The golden junction table and [06](06-schematic-editor.md) §9.1 model it as daisy chains on the -101F1
-   CPs. The physical wires are identical. **Resolved:** daisy chains on the -101F1 CPs, as in 20.
-2. **`BridgeSpec{kind, group, shaft}`.** 03 had `Bridge(BridgeKind)` with the part in `overrides.wire_part`, which
-   cannot express one comb over four terminals. **Resolved:** `ConnectionKind::Bridge(BridgeSpec{kind, group,
-   shaft})` is part of the schema-steward batch before `ew-schema` v0 freezes (03 §9).
-3. **Group labels.** 03 §11 listed "Pneumatics" as a terminal function text; 20 §9 treats it as a group label.
-   **Resolved:** `Strip.groups` (group labels such as "Pneumatics" and "Spare") and `Strip.field_side` are added,
-   and the terminal's `function_text` keeps the printed label ("1+").
-4. **PotentialId with several definitions.** ARCH §6.4 and 03 §9.4 used "the definition point if exactly one, else
-   the minimum CP". **Resolved:** `PotentialId` is the minimum `PotentialDef` ID when the potential has one or more
-   definitions, else the minimum CP ID. It is more stable when users add a second definition symbol. 03 §9.4 and
-   the ARCH §6.4 row, which also lists `physical_wires_of(potential)` and `potential_flow(potential)`, read the same.
-5. **Single-line bus cables.** `Bus(BusLine{cable})` attaches -3W1 to its line. **Resolved:** adopted in the
-   schema batch; [10](10-plc-and-bus.md) defines the port signal maps that resolve per-core pins.
-6. **Optional CPs.** EW-POT-009 must skip CPs that may stay free by design (bus-connector Out entry, parallel
-   duplicate pins). **Resolved:** `CpDef.optional: bool`, `CpDef.source_output: bool` and the FnDef flag
-   `n_isolation` for neutral isolating terminals are added ([07](07-symbols-parts-macros.md) §2.4, 03 §7).
-7. **Default junction sequence.** An earlier draft of [06](06-schematic-editor.md) §3.5 ordered the two parts of a
-   split connection by reading order. This document puts the part nearer the source first and uses reading order
-   only as a tie-break. Both give the same defaults for J1–J6; they differ only on pages drawn bottom-up, where flow
-   matches the shop's wiring better. **Resolved:** the flow rule, now also in 06 §3.5; the M2 usability test confirms it (NFR-UX-01, PQ-27).
-8. **PE sizing scope.** Whether L+ counts as an associated line conductor changes results on DC devices, and the
-   NEBU core cross-sections are unknown (▲U-18). *Recommendation:* default `line_types = [L, L1, L2, L3]`, ship the
-   table as unverified data and confirm it against the licensed standard ([02a](02a-requirements-core.md) OQ8).
-9. **Unverified profile entries.** M colours in EN 60204-1 and IEC 60445, the L1–L3 colours and all NFPA 79 rows
-   are unverified. *Recommendation:* ship them with `verified = false` and decide the pilot's default together with
-   PQ-05.
-10. **Bond cut point.** The cut sits at the via connection. IPs on the bond path name the bond and still print their
-    xrefs. **Resolved:** kept; the bond-path naming rule of §3.5 is part of [03](03-domain-model.md) §9.6.
-11. **Vendor core colours under FR-CHK-031.** EF-11 reports the BU cores of the Festo cables on 0V.
-    *Recommendation:* keep the warning, allow a waiver per cable part, and let [15](15-checks-revisions-collaboration.md)
-    decide on an exemption for part-defined cores (golden OQ6).
-12. **Golden wire numbers.** 20 §8.2 had W indices but no derived number column (▲U-33). **Resolved:** 20 §8.2
-    has a derived wire-number column (connection-oriented `{page}.{counter}`, ordered as in §5.2), and
-    `expected/wires.csv` is generated from it; numbers are not printed on pages. The pilot's format is confirmed
-    together with [02a](02a-requirements-core.md) OQ10 (PQ-22).
-13. **NFPA 79 profile timing.** The vision puts NFPA 79 at Later. *Recommendation:* ship only the colour profile as
-    unverified data at 1.x, on top of the AWG support that lands at 1.0 (FR-CON-032), and keep the rule pack Later.
-14. **Location PE node versus carriers.** *Recommendation:* at 1.0 use carriers wherever a layout space exists for
-    the location, report every terminal whose PE membership differs between the two models, and confirm the shop's
-    rail bonding practice with the pilot (PQ-24).
-15. **Source output CPs.** `potential_flow` roots only the output CPs of source functions (§3.6), but `CpDef`
-    ([07](07-symbols-parts-macros.md) §2.4) could not say which CPs are outputs. Without that, -102G1:L would root
-    L-1 and hide -101F1 as its protective device. **Resolved:** `CpDef.source_output: bool` is added (03 §7, 07
-    §2.4), set on PSU +/− and transformer secondaries in the starter library. *As built:* the supply is a black box
-    whose CPs come from its part's pattern, so its FnDef `ew.fn.psu-ac-dc` (contact kind black box) declares the
-    seven CPs with + and − as source outputs, and the template pairs the pattern with them; EW-GEN-PSU-1 and Golden
-    A's -102G1 use it, so the flow reaches +24V and +24V-F from -102G1 (FT-682). The four outputs of -102F2 (MICO
-    4.10, a black box that declares no pass-through) stay unreached.
-16. **Override granularity of the golden markers.** This document, [06](06-schematic-editor.md) OQ8 and FR-IMP-012
-    store only the cross-section on W4, W5, W7, W9 and W20–W25, while earlier drafts of [03](03-domain-model.md)
-    §9.5, its D-08 test and the FR-CON-017 criterion read as if the colour were
-    explicit. **Resolved:** these wires carry a cross-section override only, and their colours stay at level 2, so
-    the markers print the effective colour and EW-POT-016 stays silent on Golden A (20 §8.1).
-17. **Bridge rows in the wire list.** FR-REP-014, [09](09-reports-forms-output.md) §2.4 and 20 §16 put 44 wires plus
-    6 bridge rows on folio 907, while the FR-TRM-007 and FR-MFG-016 criteria said the wire list has no bridge rows.
-    **Resolved:** folio 907 prints the 44 wires and a separate bridge block of 6 rows (what the shop checks against
-    the strip); bridges are never wire rows, never `WireRecord`s and never in machine files, as FR-TRM-007 and
-    FR-MFG-016 now read.

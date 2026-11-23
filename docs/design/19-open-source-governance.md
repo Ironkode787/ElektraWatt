@@ -31,10 +31,6 @@ interim rules of the Proposed ADRs (0025, 0029, 0030) apply.
 6. [Outputs](#6-outputs)
 7. [Edge cases and pitfalls](#7-edge-cases-and-pitfalls)
 8. [The reference project](#8-the-reference-project)
-9. [Scope by release](#9-scope-by-release)
-10. [Dependencies](#10-dependencies)
-11. [Requirements covered](#requirements-covered)
-12. [Open questions](#open-questions)
 
 ---
 
@@ -83,15 +79,15 @@ texts in `LICENSES/` are exempt, as the REUSE specification provides.
 | L3 | `ew-import-qet`, files containing ported QET code | `crates/ew-import-qet/src/qet_port/` | `GPL-2.0-or-later`, with the original QET notices kept verbatim | NFR-LIC-05 |
 | L4 | Permissive layer (the P rows of [04](04-architecture.md) §3) | `crates/ew-{units,ids,mltext,rds,schema,format,interop-api,dl,step-proto,memo,plcaddr,caex,devdesc,ewpp}/`; from 1.x `ew-plugin-wit`, `ew-plugin-sdk` ([17](17-extensibility.md), FR-EXT-036) | `MIT OR Apache-2.0` | ADR-0024, NFR-MAINT-02 |
 | L5 | JSON Schemas | `schemas/<format>/` | `MIT OR Apache-2.0` | [05](05-project-format-and-persistence.md) §10.4 |
-| L6 | Built-in rule packs, report packs and machine profiles: data files (TOML, rhai, SQL, Fluent) | `packs/` | `MIT OR Apache-2.0` | ADR-0024 decision 1 (answers [15](15-checks-revisions-collaboration.md) OQ16; open question 12) |
-| L7 | Symbols, FnDefs, frames, forms, page and report templates, macros, basic-project examples | system library in `content/`; repositories `elektrawatt-symbols`, `elektrawatt-macros` | `CC-BY-SA-4.0 WITH <design exception>` (§3.1, LR-07; open question 2) | ADR-0024, [07](07-symbols-parts-macros.md) §3.8 |
+| L6 | Built-in rule packs, report packs and machine profiles: data files (TOML, rhai, SQL, Fluent) | `packs/` | `MIT OR Apache-2.0` | ADR-0024 decision 1 |
+| L7 | Symbols, FnDefs, frames, forms, page and report templates, macros, basic-project examples | system library in `content/`; repositories `elektrawatt-symbols`, `elektrawatt-macros` | `CC-BY-SA-4.0 WITH <design exception>` (§3.1, LR-07) | ADR-0024, [07](07-symbols-parts-macros.md) §3.8 |
 | L8 | Project-authored part facts, the manufacturer master, example and tutorial projects, the sample project and the test fixtures, the hostile test corpus, the crates' own test fixtures | `elektrawatt-parts`, `examples/`, `fixtures/`, `fuzz/corpus/own/`, `crates/*/tests/fixtures/` | `CC0-1.0` | ADR-0024, NFR-DOC-04 |
 | L9 | Documentation: design docs, ADRs, RFCs, the mdBook, the format-specification prose, rule pages, the root prose files (`README.md`, `GOVERNANCE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`) | `docs/`, `rfcs/`, `book/`, root `*.md` except `LICENSE.md`, `tools/blind/` (the blind-drafter harness's guides, prompts and tasks) | `CC-BY-4.0` | ADR-0024; the generated command and rule reference pages of the user guide (`docs/book/src/reference/commands/`, `…/rules/`) are an exception: their text is the doc comments of the GPL crates `ew-commands` and `ew-checks`, so they keep `GPL-3.0-or-later` (owner ruling; `REUSE.toml`, `ci/licence-map.toml`); `CODE_OF_CONDUCT.md` is the other exception: the Contributor Covenant 3.0 text is `CC-BY-SA-4.0` and keeps the Covenant's copyright line (§2.3) |
 | L10 | UI translations (`.ftl`) and documentation translations (PO) | inside L1 crates; `book/po/` | the licence of the containing path (L1 or L9) | §3.7 |
 | L11 | Repository metadata and configuration without creative content: `.gitignore`, `.gitattributes`, `REUSE.toml`, `deny.toml`, workspace `Cargo.toml` and `Cargo.lock`, `rust-toolchain.toml`, `CODEOWNERS`, `FUNDING.yml`, issue and PR templates, `LICENSE.md` | `.github/` (except `workflows/`), root files | `CC0-1.0` | no creative content to protect |
 | L12 | CI workflows, scripts and tools | `.github/workflows/`, `ci/`, `xtask/` | `MIT OR Apache-2.0` | ADR-0024 ("CI scripts"); others may copy the gates |
 | L13 | Logo and wordmark artwork | `branding/` | `CC-BY-4.0`; use of the name and logo as marks is governed separately by `TRADEMARKS.md` (§3.3) | copyright licence and trademark are separate rights |
-| L14 | Bundled third-party assets | `assets/fonts/`, `assets/icons/`, `content/etim/` | their own licences: Noto Sans `OFL-1.1`; osifont if ADR-0028 adopts it (GPL-3, GPL-2 or LGPL-3, each with a font exception, gaps G14; **verify** the exact SPDX expression, e.g. a disjunction using `Font-exception-2.0`); ETIM model `ODC-By-1.0` with attribution ([07](07-symbols-parts-macros.md) §3.8); icon set MIT, OFL-1.1 or CC-BY-4.0 ([16](16-ux-ui.md) OQ12) | NFR-LIC-06, NFR-LIC-08; allowlist LR-10 |
+| L14 | Bundled third-party assets | `assets/fonts/`, `assets/icons/`, `content/etim/` | their own licences: Noto Sans `OFL-1.1`; osifont if ADR-0028 adopts it (GPL-3, GPL-2 or LGPL-3, each with a font exception, gaps G14; **verify** the exact SPDX expression, e.g. a disjunction using `Font-exception-2.0`); ETIM model `ODC-By-1.0` with attribution ([07](07-symbols-parts-macros.md) §3.8); icon set MIT, OFL-1.1 or CC-BY-4.0 | NFR-LIC-06, NFR-LIC-08; allowlist LR-10 |
 | L15 | Optional server components (parts sync, team server, web viewer) | separate repositories | `AGPL-3.0-or-later` | Later; [oss-landscape](../research/oss-landscape.md) §7.3 |
 
 *As built.* L9 holds the rule
@@ -139,7 +135,7 @@ Governance adds no record kind. It relies on fields other documents define:
 - **`RulePack.licence`** ([15](15-checks-revisions-collaboration.md) §2) is L6 for built-in packs; company packs
   choose freely. **Plugin manifests** carry `licence` and `publisher`, shown at install
   ([17](17-extensibility.md) §8.5).
-- **`Party.personal_data`** (FR-PRJ-024) and the proposed `confidential` marker ([17](17-extensibility.md) OQ7)
+- **`Party.personal_data`** (FR-PRJ-024) and the proposed `confidential` marker
   decide what becomes a placeholder in public fixtures.
 
 **Repository data, outside the EW model:**
@@ -232,7 +228,7 @@ prose files is NFR-DOC-08.
 | LR-08 | The plugin exception follows the technical scope of [17](17-extensibility.md) §12: WIT-world-only plugins, excluding EW modifications and every file without the exception (L2, L3). | Legal review; LR-04 |
 | LR-09 | Outputs are free of EW's copyleft. `LICENSE.md`, the About dialog and the docs say so in the same words. | Text assertion in CI (NFR-LIC-09) |
 | LR-10 | The bundled-asset allowlist (fonts, icons, data packs) is separate from the crate allowlist of NFR-LIC-04. A new asset licence needs maintainer consensus and a `NOTICE` entry. | REUSE lint over `assets/` and `content/` |
-| LR-11 | Fixtures from third parties (QET examples, vendor AML or GSDML samples) are fetched by CI at a pinned commit into the cache and never committed ([14](14-interop.md) OQ8). Own test files are CC0-1.0 (L8), including `crates/*/tests/fixtures/` inside GPL crates; the licence map gives that path its own, longer rule than the crate's row. | `.gitignore` plus the licence-map check (unknown files fail) |
+| LR-11 | Fixtures from third parties (QET examples, vendor AML or GSDML samples) are fetched by CI at a pinned commit into the cache and never committed. Own test files are CC0-1.0 (L8), including `crates/*/tests/fixtures/` inside GPL crates; the licence map gives that path its own, longer rule than the crate's row. | `.gitignore` plus the licence-map check (unknown files fail) |
 | LR-12 | Nothing confidential is committed: no customer or person identifiers, no reference PDF, no local paths. | Anonymisation guard (`ci/denylist.sha256`, NFR-PRIV-09, AC-39) |
 
 *Development-only crates*. NFR-LIC-04's allowlist governs the application's dependencies. A development-only cargo
@@ -268,7 +264,7 @@ that ships may not use the exception.
      FSF version. No one can move EW to a non-GPL licence, so dual licensing and open-core are closed off by
      construction. That is intended (§3.9).
   4. **An employer statement can grant more.** The statement of LG-1 can include standing consent from the pilot
-     panel builder for future moves of its staff's contributions into L4 (open question 6). That removes the
+     panel builder for future moves of its staff's contributions into L4. That removes the
      largest blocker, because the employer is likely the largest holder.
 
 ### 3.3 Legal and organisational gates
@@ -294,8 +290,8 @@ carry no binaries.
 | **LG-1 Employer copyright statement** | The pilot panel builder signs a statement. It (a) states who holds the rights in its staff's EW work (the employer as maker under Auteurswet art. 7, or the employee where agreed otherwise), (b) licenses all contributions since the first commit under §2.1, including both exceptions, (c) optionally gives standing consent to future L1→L4 moves (§3.2), (d) covers the repository owner's own work if it falls within their job, (e) names the authorised signatories (held privately). Every other employer whose staff contribute on company time signs an equivalent statement before their first merge. | Target M0. Hard gate before the first binary release (NFR-LIC-11) | Pilot user, counsel |
 | **LG-2 Exceptions adopted** | ADR-0025 is accepted. The plugin-exception text and the design-exception text are in `LICENSES/` and in the SPDX headers. | Before the first PR from a non-maintainer is merged (ADR-0025; NFR-LIC-12); this may fall before MVP. Until then, such PRs carry the label `blocked:LG-2` | Owner, counsel |
 | **LG-3 Trademark clearance** | Searches in TMview, EUIPO eSearch and the BOIP register for "ElektraWatt" and phonetic neighbours in Nice classes 9 and 42; a domain check. "Electra"-named ECAD products are a known confusion risk ([oss-landscape](../research/oss-landscape.md) §7.5, unverified lineage). With a conflict, the product is renamed before any logo or domain spend. | Before the first public announcement or binary release; the word mark is filed by 1.0 (NFR-LIC-13) | Steward |
-| **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation, ADR-0030; no Apple enrolment, since macOS is not a supported platform; the SignPath Foundation OSS programme is the documented Windows fallback, [18](18-quality-security-release.md) OQ4, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | The phase-1 identity holder is named and enrolment submitted in the first 90 days (PD-7a of the global plan §14; enrolment takes at least 12 months); ADR-0030 decided in full by gate G-M1 (PD-7; [18](18-quality-security-release.md) OQ4); hard gate before the first signed release (NFR-SEC-12), which is 1.0's, or earlier when the owner holds a signing identity | Owner |
-| **LG-5 Fixture publication consent** | The pilot panel builder consents in writing that the anonymised technical content of the reference project may be published as CC0: tags, part numbers, wiring and order codes, as in the design docs and, until 0.3.5, the reference project. If its customer contract requires it, the customer consents too. | **Now.** The public repository already contains this content in `docs/` (open question 4) | Pilot user |
+| **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation, ADR-0030; no Apple enrolment, since macOS is not a supported platform; the SignPath Foundation OSS programme is the documented Windows fallback, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | The phase-1 identity holder is named and enrolment submitted in the first 90 days (PD-7a of the global plan §14; enrolment takes at least 12 months); ADR-0030 decided in full by gate G-M1 (PD-7); hard gate before the first signed release (NFR-SEC-12), which is 1.0's, or earlier when the owner holds a signing identity | Owner |
+| **LG-5 Fixture publication consent** | The pilot panel builder consents in writing that the anonymised technical content of the reference project may be published as CC0: tags, part numbers, wiring and order codes, as in the design docs and, until 0.3.5, the reference project. If its customer contract requires it, the customer consents too. | **Now.** The public repository already contains this content in `docs/` | Pilot user |
 | **LG-6 Steward review** | Re-decide the steward form (§3.10) once there are more than 3 regular external contributors, more than €50k of income a year, or 1.0 is reached, whichever comes first. | Event-driven | Maintainers, steward |
 
 **Trademark policy** (`TRADEMARKS.md`, after the Rust, Mozilla and Blender models):
@@ -332,7 +328,7 @@ carry no binaries.
 | GV-01 | Normal decisions use lazy consensus with a 72-hour objection window. An objection must state a reason and an alternative. Unresolved objections go to an RFC or to the project lead's tie-break. |
 | GV-02 | No one approves their own PR. With two maintainers (from 1.0), each reviews the other's work. A single-maintainer merge is allowed only for a security release under embargo, and it is reviewed afterwards within 7 days. |
 | GV-03 | Before the first binary release, decisions are recorded as ADRs by the owner and maintainers. From the first binary release on, the RFC process applies to the matrix rows above (the RFC process is the ADR process, `GOVERNANCE.md`). |
-| GV-04 | **Schema-steward duties.** The steward reviews every PR labelled `format`. They decide minor versus major, check that the migration, fixture, regenerated JSON Schemas and docs are present ([04](04-architecture.md) §7.6), maintain the format changelog for the release notes (NFR-DOC-07), and check `api_v1` view changes against the `Preview` policy ([17](17-extensibility.md) OQ12). After 1.0 they run the yearly format window: they collect accepted format-major RFCs and freeze them one month before the major. The role rotates every quarter, together with the UI-stack upgrade of NFR-MAINT-04. |
+| GV-04 | **Schema-steward duties.** The steward reviews every PR labelled `format`. They decide minor versus major, check that the migration, fixture, regenerated JSON Schemas and docs are present ([04](04-architecture.md) §7.6), maintain the format changelog for the release notes (NFR-DOC-07), and check `api_v1` view changes against the `Preview` policy ([17](17-extensibility.md) §11). After 1.0 they run the yearly format window: they collect accepted format-major RFCs and freeze them one month before the major. The role rotates every quarter, together with the UI-stack upgrade of NFR-MAINT-04. |
 | GV-05 | Funded work keeps the normal review rules. A funder never receives merge rights, a veto or private roadmap influence. Funded items are labelled `funded:<source>` on the public roadmap. |
 | GV-06 | While one employer employs a majority of maintainers, licence, trademark and governance RFCs need an independent check in addition. **Phase 1** (the employer is itself the steward, §3.10, so no board exists): the FCP is 14 days, it is announced in Discussions and the release feed, and a reasoned objection from any maintainer or regular contributor not employed by that employer moves the decision to the phase-2 board, or blocks it until that board exists. **Phase 2:** the stichting board approves; it includes at least one member not employed by that employer. |
 | GV-07 | `ROADMAP.md` is generated from `docs/plan/` milestones and the GitHub Projects board, lists the non-goals of [vision](00-vision-and-scope.md) §4, and is reviewed at least quarterly. |
@@ -374,7 +370,7 @@ remedy key, a report, an importer, a machine profile and a migration (NFR-MAINT-
 non-programmers (§3.6, §3.7); the AI-use policy; and the confidentiality rules (LR-12): never attach customer
 drawings, and use the placeholders `<customer>`, `<project ref>` and so on.
 
-**Dependency audits** (resolved 2026-10-18, open question 18; target for 1.0: `cargo vet` is not in the repository during
+**Dependency audits** (ADR-0023 amendments 3 and 5; target for 1.0: `cargo vet` is not in the repository during
 the alpha, and a new dependency passes `cargo deny`). Every new crates.io dependency passes cargo-deny, cargo-vet 0.10.2
 and, if it has a build script, the build-script allowlist (ADR-0023). The `who` field of a cargo-vet audit is the
 contributor's GitHub handle, never a personal name or e-mail address (ADR-0023 amendment 3), and an audit an agent
@@ -391,7 +387,7 @@ repository holds no auditor name or e-mail address (ADR-0023 amendment 5).
 3. **Third-party and confidential content.** The QET element collection, EDZ or Data Portal content and standard
    texts are never used as training or fine-tuning data, and never pasted into AI tools to generate EW library
    content ([oss-landscape](../research/oss-landscape.md) §2.6, NFR-LIC-06). QET example projects are excluded from
-   any data set used with AI tools ([14](14-interop.md) OQ8). Confidential material (customer projects, the
+   any data set used with AI tools. Confidential material (customer projects, the
    reference drawing set) goes into an AI tool only with its owner's permission and with a configuration that
    excludes it from training.
 4. **No laundering.** Asking a tool to reproduce another project's code is porting. LR-05 applies, and QET-derived
@@ -414,8 +410,7 @@ ships." Before 1.0 only the latest 0.x is supported, and no LTS line exists ([18
 - **CRA notification.** The security response team prepares notifications of actively exploited vulnerabilities
   and severe incidents; the steward files them through the single reporting platform, following the 24 h / 72 h /
   14-day runbook of [18](18-quality-security-release.md) §13.2. Art. 14 reporting applies since 2026-09-11 (G11).
-  Whether Art. 24 extends it to a steward, and to which authority, is confirmed with counsel (**verify**,
-  [18](18-quality-security-release.md) OQ7); the runbook operates from the first public release either way
+  Whether Art. 24 extends it to a steward, and to which authority, is confirmed with counsel (**verify**); the runbook operates from the first public release either way
   (ADR-0030).
 - **Rehearsal.** A disclosure tabletop exercise takes place before 1.0.
 
@@ -454,7 +449,7 @@ map H1 behind the Q0.1 … Q6.7 addresses stays `test` until such a document exi
 - **Default licence of new library items.** Items created in the community repositories default to the pack
   licence (CC0-1.0 for part facts, CC-BY-SA-4.0 with the design exception for symbols and macros). Items a user
   creates in a user or company library default to `NOASSERTION`, or to the default set in the company basic
-  project, never silently to CC0 (open question 5).
+  project, never silently to CC0.
 
 ### 3.7 Community channels, translations and user research
 
@@ -486,12 +481,12 @@ accounts.
   - One terminology glossary per locale, seeded from the EPLAN ↔ EW and QET ↔ EW glossaries (NFR-DOC-05) and the
     UI vocabulary of IEC 81346.
   - For German, EPLAN's established terms are used where they match IEC 81346 (Betriebsmittel, BMK,
-    Unterbrechungspunkt; **verify** with translators, [16](16-ux-ui.md) OQ10).
+    Unterbrechungspunkt; **verify** with translators).
   - The same glossary feeds the palette aliases (NFR-UX-03).
 - **Machine translation.** Weblate's machine-translation add-ons are off for EW components, consistent with
   NFR-PRIV-08 for project data and with the AI-use policy.
 
-**Usability-test consent template** (requested by [16](16-ux-ui.md) OQ9, for NFR-UX-01 sessions). The form
+**Usability-test consent template** (for NFR-UX-01 sessions). The form
 records:
 1. **Purpose.** Evaluating EW's core tasks; the session protocol of [16](16-ux-ui.md) §19.
 2. **What is recorded.** Screen, audio and optionally camera; the local session log of palette queries, commands
@@ -520,11 +515,11 @@ EW's position is coordination, not competition:
 2. **Courtesy contact, then coordination.**
    - When the first ported file is published, send a short note to the QET maintainers with the attribution and an
      invitation to review.
-   - Coordination proper starts after MVP, as recommended in [vision](00-vision-and-scope.md) OQ3 and subject to
+   - Coordination proper starts after MVP, subject to
      PQ-34.
 3. **Shared knowledge.**
    - The `.qet` format facts EW discovers (version table, field lists, the `%F` versus `%f` xref variables of C-15)
-     are published as CC-BY-4.0 developer documentation ([14](14-interop.md) OQ7), useful to QET users as well.
+     are published as CC-BY-4.0 developer documentation, useful to QET users as well.
    - Bugs found in QET while building the corpus are reported upstream.
    - Security findings that affect both tools, such as a hostile `.qet` that crashes the importer, are disclosed
      privately to QET's security contact.
@@ -559,7 +554,7 @@ plan splits the NLnet milestones into three proposals (§13.3 there), because wi
 deliverables are years apart: proposal 1 covers the derivation engine, the SQL projection, `ew-memo`, the golden PDF
 and the published format specification with a permissive-only sample reader; proposal 2 the rule engine, `ew check`
 and the QET project import; proposal 3 the PLC, EDZ, DXF and machine-profile exchange. Each is typically €5k–€50k
-(amounts unverified, open question 14).
+(amounts unverified).
 
 ### 3.10 Legal steward and CRA role
 
@@ -571,7 +566,7 @@ manufacturer.
 
 | Option | CRA role | Signing identity | Trademark holder | Neutrality | Effort | Verdict |
 |---|---|---|---|---|---|---|
-| **A. Pilot panel builder (the company) as interim steward** | Steward of the community edition; manufacturer only if it sells EW builds or support | Eligible (EU organisation) | Yes, with a written transfer commitment to B | Low: single employer, so the phase-1 check of GV-06 applies; its name appears on every signed binary (open question 7) | None | **Phase 1** (M0 to 1.0) |
+| **A. Pilot panel builder (the company) as interim steward** | Steward of the community edition; manufacturer only if it sells EW builds or support | Eligible (EU organisation) | Yes, with a written transfer commitment to B | Low: single employer, so the phase-1 check of GV-06 applies; its name appears on every signed binary | None | **Phase 1** (M0 to 1.0) |
 | **B. Stichting ElektraWatt** (Dutch foundation, notarial deed, board, no members) | Steward | Eligible (**verify** the D-U-N-S details) | Yes | High: the board includes a member not employed by the main employer | Weeks; notary and bookkeeping costs (**verify**); optional ANBI status for tax-deductible gifts (**verify**) | **Phase 2 target** (LG-6) |
 | C. Fiscal host only (Open Collective Europe) | Unclear whether a host acts as steward (**verify**) | Not offered | No | Medium | Days | For donations only, alongside A or B |
 | D. Umbrella foundation (Linux Foundation, Software Freedom Conservancy, Eclipse AISBL) | The foundation | Yes | Yes | High | Months; Eclipse requires its contributor agreement instead of the DCO (unverified), which conflicts with ADR-0024 | Re-evaluate at LG-6 |
@@ -600,7 +595,7 @@ re-reviewed every minor release, like the policy files of [18](18-quality-securi
 | ST-05 | Contact for market-surveillance authorities | Role address in `SECURITY.md`, held by the steward |
 | ST-06 | Support-period table matches the published releases | NFR-COMP-03 |
 | ST-07 | Non-monetisation review: no paid offering under the name; yearly funding statement | NFR-COMP-02; NFR-COMP-07 |
-| ST-08 | Signing identity, release key custody and repository-organisation ownership | NFR-SEC-12; NFR-COMP-08; LG-4; [18](18-quality-security-release.md) OQ6 |
+| ST-08 | Signing identity, release key custody and repository-organisation ownership | NFR-SEC-12; NFR-COMP-08; LG-4 |
 | ST-09 | Employer statements and fixture consent on file | LG-1, LG-5 (held in `legal/`) |
 | ST-10 | Engineering-verification disclaimer in licence texts, About and release reports | NFR-COMP-04 |
 
@@ -613,7 +608,7 @@ re-reviewed every minor release, like the policy files of [18](18-quality-securi
 | Help ▸ About; `ew about --json` | Version and commit, render backend, the two-line licence summary of §2.1, the output statement (LR-09), the third-party notices, the engineering-verification disclaimer, `PRIVACY.md`, the steward as publisher, the support status of [18](18-quality-security-release.md) §14 | NFR-LIC-08, NFR-LIC-09, NFR-COMP-03, NFR-COMP-04; FR-UI-038 ([02b](02b-requirements-extended.md)) |
 | Help ▸ Report a problem | Copies a diagnostic block (version, OS, backend; no project data, paths or names) to the clipboard. Opens the issue template in the browser only on click | NFR-PRIV-01, NFR-PRIV-02 |
 | Help ▸ Security issue, Community, Contribute, Translate | The bundled `SECURITY.md`; links to Discussions, `CONTRIBUTING.md` and Weblate, opened only on click | NFR-SEC-14, NFR-PRIV-01 |
-| Part and symbol browser; library item editor | Licence, source, quality ladder, confidence per section, the "verified" mark where earned; the licence default of §3.6; a copied item keeps its licence, and a warning appears when someone changes the licence of an item derived from a CC-BY-SA one | FR-PRT-017, FR-PRT-021, NFR-LIC-07; open question 5 |
+| Part and symbol browser; library item editor | Licence, source, quality ladder, confidence per section, the "verified" mark where earned; the licence default of §3.6; a copied item keeps its licence, and a warning appears when someone changes the licence of an item derived from a CC-BY-SA one | FR-PRT-017, FR-PRT-021, NFR-LIC-07 |
 | Plugin install dialog (1.x) | Licence, publisher, key fingerprint, capabilities, registry countersignature | [17](17-extensibility.md) §8.5 |
 | Check panel, release dialog | The verification disclaimer; rule-pack versions | NFR-COMP-04 |
 | Development builds | Banner "unsigned development build" plus the format warning ("Development build: writes format 1.4-dev", [18](18-quality-security-release.md) §14; [04](04-architecture.md) §7.6) | NFR-REL-05 (d); ADR-0030 |
@@ -701,7 +696,7 @@ trademark line of the font's name table (name ID 7), which `NOTICE` gains for No
 
 | # | Situation | Handling |
 |---|---|---|
-| 1 | **The SPDX syntax for custom exceptions.** SPDX 2.3 allows only listed exception IDs after `WITH`; SPDX 3.0 introduced `AdditionRef-` for custom ones (**verify**). `WITH LicenseRef-…` may fail strict tools | Verify what reuse-tool and cargo-deny accept, and fix the identifier when ADR-0025 is accepted (open question 1) |
+| 1 | **The SPDX syntax for custom exceptions.** SPDX 2.3 allows only listed exception IDs after `WITH`; SPDX 3.0 introduced `AdditionRef-` for custom ones (**verify**). `WITH LicenseRef-…` may fail strict tools | Verify what reuse-tool and cargo-deny accept, and fix the identifier when ADR-0025 is accepted |
 | 2 | A downstream distributor removes the §7 plugin exception (GPL-3.0 §7 allows it) | Plugins rely on the project's own builds; `TRADEMARKS.md` reserves the name for builds that keep the project's licence terms |
 | 3 | CC-BY-SA-4.0 symbols compiled into the GPL binary | CC-BY-SA-4.0 is one-way compatible with GPL-3.0 (Creative Commons compatibility declaration, **verify**). GPL content must never flow into L7. Three generic symbols of `content/symbols/qet10` (junction dot, junction bevel, wire marker; CC-BY-SA-4.0 by `REUSE.toml`) are compiled into the GPL binary by `ew-api`, sealed by their SHA-256. Recorded as an owner and counsel item: Creative Commons declares CC BY-SA 4.0 one-way compatible with GPLv3, so the combination is expected to be permitted; counsel confirms it with the LG-2 brief, and the attribution of the compiled-in symbols is listed in `NOTICE` and assembled with the other non-crate notices |
 | 4 | A company modifies EW symbols in its company library | Internal use is free; distributing the modified library outside the company is CC-BY-SA-4.0. Projects using them stay covered by the design exception |
@@ -750,151 +745,3 @@ prevention from eroding and stops content defects at the library boundary:
 | D-37 (cites IEC 60757 for the DBU convention) | Standards are cited by number and clause on rule pages, never copied (NFR-COMP-05); the pilot's DBU/WH profile is shipped as a company convention, not as a standard |
 | D-30, D-34 (party roles; Author = Checker initials) | Person and party fields are personal data with placeholders in every public fixture (NFR-PRIV-06); the project's own two-reviewer rules mirror the four-eyes release EW enforces for users |
 | — (Tahoma) | Never bundled (LR-06, ADR-0028); the frame form contributed to L7 contains no notice text and no logo |
-
----
-
-## 9. Scope by release
-
-| Item | Pre-MVP (M0 to M-PP, first commit to the pilot preview) | MVP (first binary release) | 1.0 | 1.x | Later |
-|---|---|---|---|---|---|
-| Licences | `LICENSE.md`, `LICENSES/`, `REUSE.toml`, licence map, boundary check, DCO check; exceptions adopted (LG-2) before the first non-maintainer merge, which may come before MVP | Exceptions in place at the latest; notices in About and `ew about` | Legal review of all texts repeated | — | AGPL server components |
-| Legal gates | LG-1 signed (target M0); LG-5 now; ADR-0030 decided by M1 | LG-1 as hard gate; LG-3 clearance; LG-4 steward, signing identity, repository organisation | Word mark filed; LG-6 review | Services entity if budgeted | — |
-| Governance files | `CONTRIBUTING.md` with the AI policy, `CODE_OF_CONDUCT.md`, `SECURITY.md` with private reporting, ADRs 0001–0030, `CODEOWNERS` | `GOVERNANCE.md`, complete `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`; RFC process starts | `publiccode.yml`, OpenSSF badge, Accessibility Conformance Report | — | — |
-| Roles | 2 maintainers, project lead; schema-steward rotation; two owners per critical crate by M1 | Release-manager rotation; security team; conduct contacts | Library maintainers per pack; translation coordinators | Registry reviewers | Steward board for an umbrella |
-| Community | Issues; Discussions and Matrix open after gate G-M1 | Weblate (Dutch), mdBook | German; SC-13: ≥ 5 external contributors | Discourse; education kit (IDEA-109) | — |
-| Content | Starter symbols and parts (CC-BY-SA, CC0) | Golden sample (CC0) in every release; manufacturer outreach starts | Content repositories with the "verified" mark; first manufacturer-reviewed pack (non-gating 1.0 target, IDEA-091); permissive crates published (FR-EXT-023) | Community parts repository (FR-PRT-030); plugin registry (IDEA-095) | — |
-| QET | Attribution in `NOTICE` | Courtesy note sent | Coordination per PQ-34 | EW → QET exporter (FR-EXP-010) | Shared exchange subset |
-| Funding | WBSO; NLnet proposal 1; Sponsors and Open Collective once the steward holds the GitHub organisation | NLnet proposals 2 and 3 (milestones) | Manufacturer partnerships, sponsored profiles | Sponsor tiers | Services, LTS (after NFR-COMP-02) |
-
----
-
-## 10. Dependencies
-
-| Document or crate | Dependency |
-|---|---|
-| [04-architecture](04-architecture.md) §3, §7.6, §13, §15.2, §16; ADR-0023, ADR-0024, ADR-0025, ADR-0029, ADR-0030 | Licence layering, the format rule, CI gates, the schema-steward role, non-goals |
-| [00-vision-and-scope](00-vision-and-scope.md) §4, §7, §10; [01-brainstorm](01-brainstorm.md) PQ-31, PQ-32, PQ-34, IDEA-090, IDEA-091, IDEA-094, IDEA-095, IDEA-107, IDEA-108 | Positioning, constraints K-3, K-6, K-7, the pilot questions |
-| [02c](02c-nonfunctional-requirements.md) §10–§12 | The NFR rows elaborated here |
-| [07-symbols-parts-macros](07-symbols-parts-macros.md) §2.5, §3.4, §3.8, §6 | Metadata fields, quality levels, linter, content repositories |
-| [14-interop](14-interop.md) §4 | `ew-import-qet` and the QET corpus |
-| [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) §2, OQ16 | Rule-pack licence field and pack-data licence |
-| [16-ux-ui](16-ux-ui.md) §12, §19 | Localisation stack, usability protocol |
-| [17-extensibility](17-extensibility.md) §8.5, §12 | Plugin signing and the technical scope of the exception |
-| [18-quality-security-release](18-quality-security-release.md) | CI jobs for LR-01 … LR-04, LR-11 and LR-12 (CI-PR-09 supply-chain, CI-PR-10 legal-docs); release checklist item RC-10 for LG-1, LG-4 and the steward checklist ST-01 … ST-10; the notice assembly of §5.3 (CI-R-07) |
-| Tools | reuse-tool 6.2.0, cargo-deny 0.20.2, cargo-about 0.9.2, cargo-cyclonedx 0.5.9, git-cliff, mdbook-i18n-helpers, Weblate (hosted) ([oss-landscape](../research/oss-landscape.md) §7.3, [rust-ecosystem](../research/rust-ecosystem.md), gaps G10) |
-
----
-
-## Requirements covered
-
-This document elaborates:
-- **Licensing:** NFR-LIC-01, NFR-LIC-02, NFR-LIC-03, NFR-LIC-04, NFR-LIC-05, NFR-LIC-06, NFR-LIC-07, NFR-LIC-08,
-  NFR-LIC-09, NFR-LIC-10, NFR-LIC-11, NFR-LIC-12, NFR-LIC-13, NFR-LIC-14;
-- **Documentation:** NFR-DOC-01, NFR-DOC-02, NFR-DOC-03, NFR-DOC-04, NFR-DOC-05, NFR-DOC-06, NFR-DOC-07, NFR-DOC-08,
-  NFR-DOC-09 (their governance and licence aspects; the doc tooling is in [18](18-quality-security-release.md));
-- **Privacy:** NFR-PRIV-10 (usability-test consent);
-- **Regulatory readiness:** NFR-COMP-01, NFR-COMP-02, NFR-COMP-03, NFR-COMP-07, NFR-COMP-08.
-
-It relies on, and sets the process for:
-- **Non-functional:** NFR-COMP-04, NFR-COMP-05, NFR-COMP-06, NFR-SEC-12, NFR-SEC-13, NFR-SEC-14, NFR-REL-05,
-  NFR-MAINT-01, NFR-MAINT-02, NFR-MAINT-04, NFR-MAINT-05, NFR-MAINT-07, NFR-MAINT-08, NFR-PRIV-01, NFR-PRIV-02,
-  NFR-PRIV-06, NFR-PRIV-07, NFR-PRIV-08, NFR-PRIV-09, NFR-I18N-01, NFR-I18N-07, NFR-UX-01, NFR-UX-03;
-- **Functional:** FR-PRJ-024, FR-PRT-017, FR-PRT-021, FR-PRT-030, FR-PRT-031, FR-PRT-032, FR-SYM-008, FR-SYM-019, FR-SYM-020,
-  FR-MAC-007, FR-CHK-043 ([15](15-checks-revisions-collaboration.md) §2.2), FR-EXT-023, FR-EXT-036
-  ([17](17-extensibility.md)), FR-EXP-010, FR-UI-031, FR-UI-032, FR-UI-038, FR-COL-012.
-
-### Adopted proposals
-
-The requirement rows this document proposed are in [02c](02c-nonfunctional-requirements.md). Added to the catalogue
-as:
-- **LIC:** NFR-LIC-10 (collective copyright notice, §2.3), NFR-LIC-11 (employer copyright statements before the
-  first binary release, LG-1, LG-5), NFR-LIC-12 (exceptions in `LICENSES/` and the headers before the first
-  non-maintainer merge, LG-2), NFR-LIC-13 (trademark clearance and word mark, LG-3), NFR-LIC-14 (takedown of
-  shipped content, §3.6).
-- **DOC:** NFR-DOC-08 (governance files, §2.4), NFR-DOC-09 (RFC process, §3.4).
-- **PRIV:** NFR-PRIV-10 (usability-test consent, §3.7).
-- **COMP:** NFR-COMP-07 (yearly funding statement, §3.9), NFR-COMP-08 (repository organisation controlled by the
-  steward, LG-4, ST-08).
-
----
-
-## Open questions
-
-1. **SPDX identifier for the exceptions.** ADR-0025 and [17](17-extensibility.md) write
-   `GPL-3.0-or-later WITH LicenseRef-ElektraWatt-plugin-exception`. Strict SPDX 2.3 allows only listed exceptions
-   after `WITH`, while SPDX 3.0 has `AdditionRef-` for custom ones (**verify**). *Recommendation:* test reuse-tool
-   6.x and cargo-deny with both forms during M0, adopt the form both accept, and update ADR-0025 when it is
-   accepted. Keep the canonical text only in `LICENSES/LicenseRef-ElektraWatt-plugin-exception.txt`: ADR-0025
-   drops the separate `COPYING.EXCEPTION` of its initial summary, and the ADR index summarises it the same way.
-2. **Design-exception text.** *Recommendation:* use the SPDX-listed `KiCad-libraries-exception` verbatim (verify
-   that it is listed and that its "electronic designs" wording covers control-cabinet projects, machine files and
-   as-built archives). Draft a custom exception only if counsel finds a gap. A listed exception saves drafting and
-   is recognised by tools.
-3. **Naming the employer.** A collective copyright notice keeps the pilot panel builder anonymous in the repository
-   (K-7). The employer may still want public credit, for example as a sponsor. *Recommendation:* use the collective
-   notice by default and ask the pilot as part of PQ-31; any public credit is the employer's decision, made outside
-   the reference-project anonymisation.
-4. **Content already published.** The public repository's design docs already contain the anonymised technical
-   content of the reference project. *Recommendation:* obtain LG-5 now, in writing. If the pilot panel builder or
-   its customer objects, replace the affected tables with synthetic data of the same shape before any further
-   publication.
-5. **Default licence of user-created library items.** FR-PRT-017's earlier acceptance said "project-authored parts
-   default to CC0", which a reader could take to mean parts users create in their company libraries.
-   **Resolved:** FR-PRT-017's criterion now reads that items of EW's community library repositories default to CC0,
-   and user and company items to the basic project's licence setting, else `NOASSERTION` (§3.6).
-6. **Standing relicensing consent in LG-1.** *Recommendation:* ask the pilot panel builder to include one-way
-   consent (L1/L2 → MIT OR Apache-2.0) for its staff's contributions. It does not create a CLA for anyone else,
-   and it removes the main blocker for future permissive splits of GPL code (the splits known today, `ew-plcaddr`,
-   `ew-caex` and `ew-devdesc`, are permissive from their first line, [04](04-architecture.md) §3).
-7. **Interim steward.** ADR-0030 leaves the choice between a stichting and the pilot panel builder.
-   *Recommendation:* the company in phase 1, with a signed transfer commitment; a stichting at LG-6 or by 1.0. This
-   gives the signing identity in time for the first signed release (1.0, or earlier when the owner holds a signing identity) without the set-up delay of a foundation. The trade-off: an
-   Authenticode certificate shows the organisation's name on every binary, and the About dialog names the
-   steward as publisher, so phase 1 makes the pilot panel builder publicly visible as publisher. If it wants to stay
-   anonymous (open question 3), found the stichting before the first signed release instead.
-8. **Scope of the plugin exception beyond WIT.** [17](17-extensibility.md) OQ4 (Python programs) and OQ5
-   (interpreted inputs). **Resolved:** both go into the single counsel brief together with ADR-0025's exception
-   wording and the other legal points of this document (purpose paragraph), due before LG-2, so that one text and
-   one adoption event (LG-2) cover them; until counsel answers, the **(verify)** marks and the interim rules of the
-   Proposed ADRs apply.
-9. **DCO identity rule.** *Recommendation:* accept a name the contributor is commonly known by, not only a legal
-   name, and refuse anonymous contributions. This follows the direction projects such as the Linux kernel have
-   taken (**verify** the current wording).
-10. **Weblate and the DCO.** *Recommendation:* verify during M1 that hosted Weblate can show a contributor
-    agreement and add sign-offs. If it cannot, run Weblate commits through a bot account whose operator signs off
-    under DCO clause (b), with the translator's identity in the commit trailer.
-11. **Plugin-registry governance** (IDEA-095, [17](17-extensibility.md) OQ11). *Recommendation:* the steward runs
-    the 1.x registry. Two registry reviewers check the capability manifest, the declared licence, the publisher
-    key and a sandboxed test run before countersigning. Revocation lists ship with EW updates. Ed25519 stays the
-    1.x scheme, and Sigstore is decided at the registry launch.
-12. **Rule-pack data licence** ([15](15-checks-revisions-collaboration.md) OQ16). ADR-0024 licenses the TOML, rhai,
-    SQL and Fluent files of built-in rule packs, report packs and machine profiles as MIT OR Apache-2.0 (L6).
-    **Resolved:** 15 OQ16 is closed, and ADR-0024 decision 1 states that the Rust rule implementations inside
-    `ew-checks` stay in L1 (GPL-3.0-or-later), so company packs derived from built-in data files need no copyleft
-    review while the engine stays GPL.
-13. **QET contact timing.** The [vision](00-vision-and-scope.md) OQ3 recommends contact after MVP, but ported code
-    may be public from the spine (the QET element reader). *Recommendation:* send a short courtesy note
-    when the first ported file is merged, and start coordination proper after MVP, subject to PQ-34.
-14. **NLnet timing and scope.** Call schedules and NGI budgets after 2025 are unverified. *Recommendation:* check
-    the open calls at M0 and submit proposal 1 at the first call after LG-1 is signed (plan month 3), scoped to the
-    derivation engine, the SQL projection and the open format, with proposals 2 and 3 at gates G-M1 and G-M2 as in
-    the global plan §13.3.
-15. **Conduct contacts outside the core team.** A 2–4 person team rarely has them. *Recommendation:* recruit one
-    trusted external person, for example a user-community member or the future independent board member, before
-    the first binary release. Until then, a report about a maintainer goes to the steward's representative.
-16. **Neutrality during phase 1.** With the pilot panel builder as steward and majority employer, no board can give
-    the independent approval GV-06 asks for. *Recommendation:* use the phase-1 rule of GV-06 (14-day public FCP and
-    a blocking objection right for non-employed maintainers and regular contributors), and treat any such blocked
-    decision as an LG-6 trigger that brings the stichting forward.
-17. **Repository custody.** The public repository sits under a personal account, so admin rights, secrets and the
-    release environment depend on one person. *Recommendation:* create a GitHub organisation at M0 with two owners
-    from the core team, transfer the repository (GitHub keeps redirects), and hand organisation ownership to the
-    steward under LG-4; this is recorded as NFR-COMP-08.
-18. **cargo-vet attribution and audit imports.** cargo-vet records an auditor in each audit's `who` field, and
-    imported audit sets carry other organisations' auditor names and e-mail addresses into `imports.lock`.
-    **Resolved** (2026-10-18, project owner (delegated, 2026-10-18); ADR-0023 amendment 3): `who` is the
-    contributor's GitHub handle; no public audit sets are imported while the public-repository rule stands, which
-    costs reviewer time that imports would save (§3.5). Revisit when a steward exists, for example by importing
-    through a steward-held mirror that strips personal data. **Revised** (2026-10-22, lead programmer on the owner's
-    delegated direction; ADR-0023 amendment 5): the sets are imported and the personal data is stripped in the
-    repository itself, enforced by a `cargo xtask` check (target for 1.0).

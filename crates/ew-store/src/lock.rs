@@ -28,7 +28,7 @@ use ew_format::{LOCK, STALE_LOCK_PREFIX};
 
 /// The heartbeat interval (doc 05 §7.2).
 pub const HEARTBEAT: Duration = Duration::from_secs(5 * 60);
-/// The default stale age, `lock.stale_after` (doc 05 §7.4, open question 10).
+/// The default stale age, `lock.stale_after` (doc 05 §7.4).
 pub const STALE_AFTER: Duration = Duration::from_secs(60 * 60);
 /// The wait before a takeover re-reads its new lock (doc 05 §7.4 step 2).
 pub const TAKEOVER_SETTLE: Duration = Duration::from_secs(2);

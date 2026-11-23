@@ -29,8 +29,6 @@ project in its milestone's file when that milestone is planned.
 11. [DOC: documentation](#11-doc-documentation)
 12. [COMP: regulatory readiness](#12-comp-regulatory-readiness)
 13. [UX: learnability and usability](#13-ux-learnability-and-usability)
-14. [Requirements covered](#requirements-covered)
-15. [Open questions](#open-questions)
 
 ---
 
@@ -85,8 +83,8 @@ C-n, ARCH, VIS, ADR-00nn). This file adds:
 
 ### 2.1 Project-size classes
 
-The classes are assumptions (AS-2), to be recalibrated against the pilot user's three largest projects before
-the performance spike (G-SP; VIS open question 5). The page, device, connection and placement bounds are those of G6. The XL
+The classes are assumptions (AS-2); the pilot user's three largest projects all sit inside class S, so S is the
+pilot's working range and M to XL are engineering margins. The page, device, connection and placement bounds are those of G6. The XL
 device bound is raised from 40,000 to 50,000 to cover the ARCH §6.7 estimate case. The other columns use the
 ARCH §6.7 ratios: functions = 3 × devices, CPs = 2.5 × connections, terminals = 0.4 × devices, channels = 0.2 ×
 devices.
@@ -236,7 +234,7 @@ The default is "offline-first, zero by default" (ADR-0029, proposed; owner decid
 | NFR-PRIV-07 | `PRIVACY.md` shall list every data flow with its content and endpoint and is shown in the About dialog. Any change to it requires an ADR. | Must | MVP | ADR-0029; G12; FR-UI-038 | **A:** release checklist. |
 | NFR-PRIV-08 | EW shall send no project data to any AI or translation service. Agents connect through MCP by the user's choice, and machine translation is available only through a plugin with the user's own key. | Must | MVP | VIS §4; G7, G12; FR-I18N-015 | **N:** network sandbox; **A:** dependency review. |
 | NFR-PRIV-09 | CI shall reject any committed file that contains a word n-gram (n ≤ 3) whose SHA-256 is on the maintainers' confidential-token list. Only the hashes are committed. | Must | MVP | K-7; NFR-DOC-04; 20 §3.5 | **PR:** committing a fixture with a listed token fails CI; AC-39 passes. |
-| NFR-PRIV-10 | Usability-test participants shall consent in writing, on the template of 19 §3.7, before any recording. Recordings and session logs stay with the moderator and are deleted 90 days after the report; only anonymised findings are published. | Should | MVP | 19 §3.7; 16 OQ 9; NFR-UX-01; GDPR art. 6(1)(a) | **S:** a signed consent for every NFR-UX-01 and NFR-UX-09 session; **A:** the deletion log is reviewed at milestone exit. |
+| NFR-PRIV-10 | Usability-test participants shall consent in writing, on the template of 19 §3.7, before any recording. Recordings and session logs stay with the moderator and are deleted 90 days after the report; only anonymised findings are published. | Should | MVP | 19 §3.7; NFR-UX-01; GDPR art. 6(1)(a) | **S:** a signed consent for every NFR-UX-01 and NFR-UX-09 session; **A:** the deletion log is reviewed at milestone exit. |
 
 ---
 
@@ -260,7 +258,7 @@ are quality targets.
 
 | ID | Requirement | Prio | Release | Source | Acceptance criterion |
 |---|---|---|---|---|---|
-| NFR-I18N-01 | UI locales: English and Dutch at MVP, German by 1.0 (FR-UI-032). A locale is listed as supported only with ≥ 95 % of strings and 100 % of core-flow strings translated; others are labelled partial (new threshold). | Must | MVP / 1.0 | VIS OQ8, SC-13; ARCH §9 | **R:** the Weblate statistics gate. |
+| NFR-I18N-01 | UI locales: English and Dutch at MVP, German by 1.0 (FR-UI-032). A locale is listed as supported only with ≥ 95 % of strings and 100 % of core-flow strings translated; others are labelled partial (new threshold). | Must | MVP / 1.0 | SC-13; ARCH §9 | **R:** the Weblate statistics gate. |
 | NFR-I18N-02 | Every user-facing string (UI, check messages, built-in report headings, human-readable CLI output) shall come from a Fluent key. A pseudo-localised build (+35 % length, accented characters) passes the core kittest flows without truncation or overlap. | Must | MVP | ARCH §9, §12; G7 | **PR:** a string-literal lint on `ew-ui` and `ew-checks`; the pseudo-locale kittest job. |
 | NFR-I18N-03 | Project files, derived values and outputs shall not depend on the OS locale, time zone or keyboard layout. Number and date formats depend only on project settings and the display language (FR-I18N-009). | Must | MVP | G7; ARCH §1.2 (8) | **N:** GP files and PDF byte-identical under OS locales en-US, nl-NL, de-DE and tr-TR and time zones UTC−10 and UTC+14. |
 | NFR-I18N-04 | Project texts shall support full Unicode (NFC), with the identifier hygiene of FR-I18N-011 and natural sort (FR-I18N-010), in projects whose paths contain non-ASCII characters and spaces. | Must | MVP | G1, G7 | **PR:** GP opens, saves and exports from a directory named `Projecten Ü ñ 测试`. |
@@ -366,127 +364,3 @@ steward exists and what role it takes is ADR-0030 (proposed).
 | NFR-UX-07 | Every edit shall be undoable or flagged as a marker line in the history; destructive non-undoable operations (library writes outside the project, overwriting an existing file, purging library copies, the empty-project import checkpoint) are confirmed (ARCH §5.3). Every bulk command is previewable, no modal dialog blocks editing while a job runs, Escape cancels every tool, and every message states cause and remedy and carries its rule ID. | Must | MVP | ARCH §5.3, §5.4; ADR-0008; FR-UI-022, FR-UI-023 | **PR:** kittest cancels each registered tool with Escape; exporting the GP PDF to a new file asks nothing and adds a marker line, while exporting over an existing file asks once; a lint checks that every Fluent message of a rule has a remedy key. |
 | NFR-UX-08 | GP shall reproduce from the shipped defaults (EN 81346-2:2009 letter codes, QET-compatible frame, xref format) and the pilot's company basic project, with no further settings edits. | Must | MVP | ADR-0026; G13; FR-PRJ-009 | **PR:** the acceptance runner builds GP from the defaults and the basic project only. *As built:* the proof is `ew-viewmodel`'s test `golden_from_the_basic_project`: the wizard with the pilot's choices builds a basic project, `file.new` makes a project from it, and its effective conventions equal Golden A's; the test names its exclusions, each with its reason: the parties and master data, report blocks 903 to 905 (their selection names project records), the title-block cell mapping (FT-365), report block 908's title and the location nodes (project data). The shipped defaults are compiled in from `content/` and code, never read from Golden A. |
 | NFR-UX-09 | A formative usability round (R0) with at least two participants shall run as soon as the viewer and the place and wire tools exist, which the plan of record reaches with the pilot preview (M-PP; checkpoint CP-05 in gates §2.5); its findings are triaged before the R1 round and the M2 test. | Should | MVP | SC-9; ADR-0007; 16 §19.2 (round R0) | **S:** the round's report exists before the M2 test of NFR-UX-01 is scheduled. |
-
----
-
-## Requirements covered
-
-This catalogue **defines** NFR-PERF-01 … NFR-PERF-25, NFR-PLAT-01 … NFR-PLAT-08, NFR-REL-01 … NFR-REL-17,
-NFR-SEC-01 … NFR-SEC-21, NFR-PRIV-01 … NFR-PRIV-10, NFR-A11Y-01 … NFR-A11Y-06, NFR-I18N-01 … NFR-I18N-07,
-NFR-MAINT-01 … NFR-MAINT-13, NFR-LIC-01 … NFR-LIC-14, NFR-DOC-01 … NFR-DOC-09, NFR-COMP-01 … NFR-COMP-08 and
-NFR-UX-01 … NFR-UX-09 (147 rows; counts below).
-
-It sets the quality targets of these functional requirements: FR-PRJ-009, FR-PRJ-011, FR-PRJ-024, FR-OUT-002,
-FR-OUT-003, FR-OUT-009, FR-OUT-012, FR-OUT-019, FR-OUT-025, FR-CHK-013, FR-CHK-015, FR-REV-006, FR-UI-007,
-FR-UI-012, FR-UI-014, FR-UI-015, FR-UI-020, FR-UI-022 … FR-UI-028, FR-UI-030 … FR-UI-032, FR-UI-038, FR-EXP-003,
-FR-EXT-001, FR-EXT-014 … FR-EXT-017, FR-EXT-020, FR-EXT-026, FR-COL-003 … FR-COL-005, FR-COL-010, FR-COL-011,
-FR-COL-029, FR-IMP-003, FR-IMP-005, FR-I18N-009 … FR-I18N-011, FR-I18N-015.
-
-| Area | Elaborated in |
-|---|---|
-| PERF, MAINT, SEC, LIC (mechanics), COMP; PLAT-08, PRIV-04 | [18-quality-security-release](18-quality-security-release.md) |
-| REL (save, recovery, format, archive), PRIV-05, SEC-16 | [05-project-format-and-persistence](05-project-format-and-persistence.md), [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) |
-| A11Y, UX, I18N (UI) | [16-ux-ui](16-ux-ui.md) |
-| SEC-05 … SEC-08, MAINT-10 | [17-extensibility](17-extensibility.md) |
-| LIC, DOC, COMP-01 … COMP-03, COMP-07, COMP-08, PRIV-10 | [19-open-source-governance](19-open-source-governance.md) |
-| PERF fixtures, DOC-04, UX-08, PRIV-09, MAINT-11 | 20-golden-project (retired at 0.3.5); [18](18-quality-security-release.md) §3.10 |
-| PERF-16 … PERF-18, PERF-23 | [12-panel-layout](12-panel-layout.md) |
-| PERF-21 | [07-symbols-parts-macros](07-symbols-parts-macros.md) |
-| PERF-22 | [10-plc-and-bus](10-plc-and-bus.md) |
-| PERF-24, SEC-02 (package readers) | [13-manufacturing-outputs](13-manufacturing-outputs.md) |
-| PERF-25, SEC-18 | [14-interop](14-interop.md) |
-| SEC-17 | [09-reports-forms-output](09-reports-forms-output.md) |
-| REL-17 | [ADR-0028](../adr/0028-default-drawing-fonts.md) |
-
-### Counts
-
-| Area | Rows | Must | Should | Could | MVP | MVP / 1.0 | 1.0 | 1.x |
-|---|---|---|---|---|---|---|---|---|
-| PERF | 25 | 17 | 8 | 0 | 8 | 11 | 6 | 0 |
-| PLAT | 8 | 7 | 1 | 0 | 6 | 1 | 1 | 0 |
-| REL | 17 | 14 | 3 | 0 | 12 | 2 | 3 | 0 |
-| SEC | 21 | 16 | 4 | 1 | 16 | 2 | 1 | 2 |
-| PRIV | 10 | 6 | 4 | 0 | 9 | 1 | 0 | 0 |
-| A11Y | 6 | 4 | 2 | 0 | 4 | 0 | 2 | 0 |
-| I18N | 7 | 4 | 3 | 0 | 4 | 2 | 1 | 0 |
-| MAINT | 13 | 10 | 3 | 0 | 13 | 0 | 0 | 0 |
-| LIC | 14 | 11 | 3 | 0 | 12 | 1 | 1 | 0 |
-| DOC | 9 | 8 | 1 | 0 | 8 | 1 | 0 | 0 |
-| COMP | 8 | 5 | 3 | 0 | 6 | 1 | 1 | 0 |
-| UX | 9 | 5 | 4 | 0 | 6 | 3 | 0 | 0 |
-| **Total** | **147** | **107** | **39** | **1** | **104** | **25** | **16** | **2** |
-
-"MVP / 1.0" rows apply from MVP for S and M projects, or for the part named first (§1.1). No row is "Later".
-
-### Adopted proposals
-
-The provisional IDs proposed upstream map to these rows. "Merged" means the proposal refined an existing row.
-
-| Source | Proposal → row |
-|---|---|
-| [VIS](00-vision-and-scope.md) §11 | NFR-DOC-nn (golden sample) → NFR-DOC-04; NFR-COMP-nn (verification disclaimer) → NFR-COMP-04; NFR-UX-nn (usability test) → NFR-UX-01 |
-| [02a](02a-requirements-core.md) | NFR-REL-nn (atomic release) → NFR-REL-15; NFR-PERF-nn (online rule budget) → NFR-PERF-09 (merged); NFR-MAINT-nn (automated test per GP criterion) → NFR-MAINT-11 |
-| [02b](02b-requirements-extended.md) | NFR-PERF-nn (routing) → NFR-PERF-16; NFR-PERF-nn (collision) → NFR-PERF-17; NFR-PERF-nn (STEP) → NFR-PERF-18; NFR-REL-nn (determinism) → NFR-REL-07; NFR-SEC-nn (fuzzing) → NFR-SEC-03; NFR-LIC-nn (bundled content) → NFR-LIC-06; NFR-COMP-nn (thermal and verification disclaimers) → NFR-COMP-04 |
-| [05](05-project-format-and-persistence.md) | NFR-REL-nn (incremental save equals full save) → NFR-REL-16; NFR-REL-nn (atomic release) → NFR-REL-15, shared with 02a; NFR-SEC-nn (loader reads regular project files only) → NFR-SEC-16 |
-| [07](07-symbols-parts-macros.md) | NFR-PERF-nn (part search) → NFR-PERF-21 |
-| [09](09-reports-forms-output.md) | P09-12 → NFR-SEC-17 |
-| [10](10-plc-and-bus.md) | NFR-PERF-nn (j) → NFR-PERF-22 |
-| [12](12-panel-layout.md) | NFR-PERF-nn (thermal recalculation) → NFR-PERF-23 |
-| [13](13-manufacturing-outputs.md) | P13-9 → NFR-PERF-24; P13-10 → NFR-SEC-02 (merged; NFR-SEC-03 covers every parser of NFR-SEC-02) |
-| [14](14-interop.md) | NFR-SEC-nn (importers read only the selected source) → NFR-SEC-18; NFR-PERF-nn (QET import times) → NFR-PERF-25 |
-| [16](16-ux-ui.md) | P16-10 → NFR-UX-09 |
-| [17](17-extensibility.md) | NFR-MAINT-10 → same number |
-| [18](18-quality-security-release.md) | P18-1 → NFR-SEC-15 (merged); P18-2 → NFR-SEC-19; P18-3 → NFR-SEC-20; P18-4 → NFR-PRIV-04 (merged); P18-5 → NFR-MAINT-12; P18-6 → NFR-MAINT-13; P18-9 → NFR-SEC-21; P18-10 → NFR-PLAT-08 |
-| [19](19-open-source-governance.md) | P19-1 → NFR-LIC-10; P19-2 → NFR-LIC-11; P19-3 → NFR-LIC-12; P19-4 → NFR-LIC-13; P19-5 → NFR-DOC-08; P19-6 → NFR-DOC-09; P19-7 → NFR-PRIV-10; P19-8 → NFR-COMP-07; P19-9 → NFR-LIC-14; P19-10 → NFR-COMP-08 |
-| 20 | NFR-PRIV-nn (anonymisation guard) → NFR-PRIV-09; NFR-MAINT-nn (acceptance runner) → NFR-MAINT-11, shared with 02a |
-| [ADR-0028](../adr/0028-default-drawing-fonts.md) (recommendation 6) | NFR-REL-nn (pinned font versions) → NFR-REL-17 |
-
-### Rows proposed to 02a and 02b
-
-This file's own proposals for the functional catalogues were adopted as follows: FR-OUT-nnn (omit personal data) →
-FR-OUT-025; FR-REV-nnn (schemas and format specification in the archive) → not added, because NFR-REL-10 covers
-it; FR-CHK-nnn (rule `docs` reference) → FR-CHK-015 (existing); FR-COL-nnn (backup before a format-major rewrite)
-→ FR-COL-029; FR-EXT-nnn (MCP loopback token) → FR-EXT-026; FR-UI-nnn (About dialog) → FR-UI-038, which also
-carries the support status proposed by 18 [P18-8].
-
----
-
-## Open questions
-
-1. **XL bounds versus the architecture's estimate case.** G6 bounds XL at 40,000 devices, while ARCH §6.7 estimates
-   for 50,000 devices on 2,000 pages and 200,000 connections. This file takes the larger value of each source
-   (5,000 pages, 50,000 devices, 250,000 connections), so the XL fixture is about 25 % above the estimate case.
-   *Recommendation:* gate on the class bound, keep XL-A for comparison with the estimates, and recalibrate L and XL
-   from the pilot's largest projects before the performance spike (G-SP). Lower the bounds rather than relax the budgets.
-2. **Pure formulas in untrusted projects.** rhai formulas inside queries (tag and wire-number formats, title-block
-   formulas) are scripts, and without them an untrusted project cannot render. ARCH §10.6 says embedded scripts never
-   auto-run. *Recommendation:* evaluate pure formulas in untrusted projects, because they run with no I/O, under
-   operation limits and through tracked reads only (ARCH §10.3). Let trust gate automation scripts, SQL, rule packs
-   and plugins. Record the distinction in ADR-0020.
-3. **Windows 10.** Mainstream support for Windows 10 22H2 has ended, and extended updates are time-limited
-   (**verify** dates), but shop-floor PCs often run it or an LTSC edition (G6; gaps-and-corrections open question 2).
-   *Recommendation:* keep Windows 10 22H2 and LTSC 2021 Supported through 1.0, then review against the pilot's fleet.
-4. **macOS minimum version.** Rust's Tier 1 floor is macOS 11, which Apple no longer patches. *Recommendation:*
-   support the three most recent macOS major versions at each EW release, matching Apple's security-update window.
-   **Resolved:** moot; macOS is not a supported platform.
-5. **GPU-less Linux and 3D without an adapter.** wgpu on llvmpipe or lavapipe is unverified in wgpu's CI, and the
-   CPU renderer is 2D only. *Recommendation:* guarantee 2D through the CPU renderer, treat software Vulkan as best
-   effort for 3D, add a lavapipe CI job, and ask the pilot whether RDP users need the 3D view at all.
-6. **Per-PR performance signal.** The architecture gates timings nightly, so a regression is found a day late.
-   *Recommendation:* keep timings nightly on the dedicated runner, where they are not noisy, and assert the exact
-   engine-statistics counts per PR (NFR-PERF-20). Counts do not depend on runner speed.
-7. **Targets marked "new target".** These are L commit p99, bulk-preview, full-save, cancel, soak, fuzz durations,
-   advisory waivers, disclosure times, coverage, CI wall time, SUS and task times. *Recommendation:* confirm the
-   performance ones at the performance spike (G-SP), the usability ones at the M2 study and the security ones with the steward
-   (ADR-0030). Then remove the "new target" marks.
-8. **Pending owner decisions.** NFR-PRIV-04 (crash upload) depends on ADR-0029, and NFR-COMP-01 … 03,
-   NFR-COMP-07, NFR-COMP-08, NFR-LIC-11, NFR-LIC-13 (the steward's role) and NFR-SEC-12 (signing identity) depend
-   on ADR-0030. NFR-LIC-12 needs the exception wording of ADR-0025, and NFR-REL-17 assumes the bundled fonts of
-   ADR-0028. All four ADRs are proposed. *Recommendation:* ship local-only crash reports at MVP, and decide
-   ADR-0025 and ADR-0030 before the first non-maintainer PR and the first signed release (1.0, or earlier when the owner holds a signing identity), as VIS open question 9 proposes.
-9. **PDF/UA validation tool.** That veraPDF validates PDF/UA-1 is general knowledge, not verified in the research
-   notes. *Recommendation:* verify it during the spine, and fall back to the PDF Association's PAC checker as a
-   manual **M** test if needed.
-10. **EN 301 549 demand.** The European Accessibility Act most likely does not cover B2B ECAD (G8), so the report of
-    NFR-COMP-06 matters only for public-sector tenders. *Recommendation:* keep it at 1.0 Should, and promote it to
-    Must only if a public-sector user appears.

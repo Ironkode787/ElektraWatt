@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The column headers of EPLAN's report exports in the two shipped languages (doc 14 §5.4, Open question 9). A report
+# The column headers of EPLAN's report exports in the two shipped languages (doc 14 §5.4). A report
 # scheme is the customer's own, so these are starting points: the column mapper shows the headers of the file and the
 # user's own mapping, saved under a key, replaces a preset.
 

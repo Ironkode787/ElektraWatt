@@ -29,10 +29,6 @@ ADR-0020, ADR-0021 and ADR-0024.
 15. [Outputs](#15-outputs)
 16. [Edge cases and pitfalls](#16-edge-cases-and-pitfalls)
 17. [The reference project](#17-the-reference-project)
-18. [Scope by release](#18-scope-by-release)
-19. [Dependencies](#19-dependencies)
-20. [Requirements covered](#requirements-covered)
-21. [Open questions](#open-questions)
 
 ---
 
@@ -364,8 +360,8 @@ the GUI and a confirmed CLI subcommand. The rule is recorded in ADR-0008 (amendm
 | Required plugins | `project.plugins` (§8.5) | Listed as missing; never auto-installed | — |
 
 Pure formulas run in untrusted projects because a project cannot render without them and the formula profile has
-no I/O, deterministic operation limits and tracked reads only. This adopts [02c](02c-nonfunctional-requirements.md)
-open question 2 and [15](15-checks-revisions-collaboration.md) §3.9; ADR-0020 records it (amendment 3), together
+no I/O, deterministic operation limits and tracked reads only. This follows
+[15](15-checks-revisions-collaboration.md) §3.9; ADR-0020 records it (amendment 3), together
 with the gate on machine-profile `expr` columns.
 
 **The trust hash** ([05](05-project-format-and-persistence.md) §13.4) covers exactly the gated content:
@@ -739,7 +735,7 @@ host registers it, and enforces operation and depth limits ([rust-ecosystem](../
 
 | Profile | Used by | API | Writes | Trust | Rel |
 |---|---|---|---|---|---|
-| **Formula** | title-block and report cells `{= …}`, report-block filters, value-set variables (FR-MAC-015), tag and wire-number formats (FR-NUM-026), machine-profile `expr` columns | read-only context object of the call site | none; returns one value | runs untrusted (§2.4); machine-profile `expr` excepted | MVP (engine, cells, filters; FR-EXT-011) / 1.0 (formats FR-NUM-026, value sets FR-MAC-015; open question 17) |
+| **Formula** | title-block and report cells `{= …}`, report-block filters, value-set variables (FR-MAC-015), tag and wire-number formats (FR-NUM-026), machine-profile `expr` columns | read-only context object of the call site | none; returns one value | runs untrusted (§2.4); machine-profile `expr` excepted | MVP (engine, cells, filters; FR-EXT-011) / 1.0 (formats FR-NUM-026, value sets FR-MAC-015) |
 | **Rule** | `impl = "rhai"` rules ([15](15-checks-revisions-collaboration.md) §3.7) | scope object (`device`, `potential`, `strip`, `page`, `station`) and `finding(target, args)` | findings only | trust-gated for project packs | MVP |
 | **Automation** | `ew script run`, GUI script runner, exported macros | `query`, `find`, `sql`, `preview`, `submit`, `batch`, `emit`, `param` | commands | trust-gated; explicit run only | 1.0 |
 
@@ -1071,7 +1067,7 @@ channel and the recommended way to let an agent edit.
 - **Engine.** wasmtime on an **LTS line** (every 12th release, 24 months of security fixes,
   [gaps-and-corrections](../research/gaps-and-corrections.md) §3.3), with the Component Model and wit-bindgen
   0.63.0. Plugins run on the wasmtime LTS line current at plugin launch, and development runs on the 48.x LTS line
-  until then (ARCH §2, ADR-0020 amendment 2; open question 3). Moving LTS lines does not change the WIT world, so
+  until then (ARCH §2, ADR-0020 amendment 2). Moving LTS lines does not change the WIT world, so
   plugins need no rebuild.
 - **WASI.** WASI 0.2 **(verify)** with: an empty environment; pre-opened directories only for granted file
   capabilities; a monotonic clock for progress; a wall clock virtualised to the export `as_of` date; `wasi:random`
@@ -1082,8 +1078,7 @@ channel and the recommended way to let an agent edit.
 - **Code generation.** Cranelift compiles each component once at install; the compiled artefact is cached by
   `sha256(plugin.wasm) + wasmtime version + target` in the local cache and recompiled after an EW update. On macOS
   under the hardened runtime, executing generated code needs the `com.apple.security.cs.allow-jit` entitlement; the
-  alternative is wasmtime's portable interpreter, at a speed cost **(verify)**. Moot while macOS is not a supported platform. The choice is open question 19 and
-  [18](18-quality-security-release.md) open question 13.
+  alternative is wasmtime's portable interpreter, at a speed cost **(verify)**. Moot while macOS is not a supported platform.
 
 ### 8.2 WIT world `elektrawatt:plugin@1`
 
@@ -1166,7 +1161,7 @@ world plugin { include base;
   those; `plugin.toml` must declare the same set.
 - **JSON at the boundary.** Queries return JSON per their published schema, and records cross as canonical JSONL
   lines of `ew-schema` kinds. The WIT stays small and does not change when a format minor adds a field; the guest
-  SDK generates typed Rust bindings from the same JSON Schemas (ADR-0020 amendment 1; open question 1).
+  SDK generates typed Rust bindings from the same JSON Schemas (ADR-0020 amendment 1).
 - **Context restrictions.** In `rules` and `report-columns` calls, only `model` on the given snapshot and the
   logging and progress functions of `host` are usable; `edit`, `io` and `ui` return `denied` and `host.secret-get`
   returns `none`, which keeps rules pure and deterministic.
@@ -1367,8 +1362,8 @@ governance belong to [19](19-open-source-governance.md).
 | `ew` CLI invoked as a process; `ew mcp` | separate programs communicating by arguments, pipes, sockets | normally separate works (GPL FAQ, general knowledge) | no |
 | `ew-plugin-wit` and `ew-plugin-sdk` | WIT files and guest bindings, MIT OR Apache-2.0 (FR-EXT-036) | none: plugins contain no GPL code | no |
 | WASM component loaded through `elektrawatt:plugin@1` | same process, runtime linking by wasmtime | uncertain without a written permission | **yes, ADR-0025** |
-| rhai scripts, SQL, rule packs, machine profiles, forms | inputs interpreted by EW | generally not derivative; state it explicitly | clarifying sentence (open question 5) |
-| Python programs importing `elektrawatt` (`ew-py`) | in-process import of a GPL extension module | plausibly a combined work | not covered by a WIT-only exception (open question 4) |
+| rhai scripts, SQL, rule packs, machine profiles, forms | inputs interpreted by EW | generally not derivative; state it explicitly | clarifying sentence |
+| Python programs importing `elektrawatt` (`ew-py`) | in-process import of a GPL extension module | plausibly a combined work | not covered by a WIT-only exception |
 | Rust code linking `ew-api`, `ew-model` or other GPL crates | static linking | covered work | no exception; must be GPL-compatible |
 | `ew-import-qet` (ported GPL-2.0-or-later code) | GPL crate | — | excluded; unreachable from WIT (C-8, NFR-LIC-05) |
 
@@ -1531,186 +1526,3 @@ device and channel, without currents.
 | D-25 crossed supplies on one channel | SQL report over `api_v1_cp` and `api_v1_potential` (§17.1); the built-in load summary of [08](08-connections-terminals-cables.md) §10 at 1.0 |
 | D-26 odd-bit addresses | `ew query channel_addresses --explain` shows the map and binding behind each address |
 | D-40 CPX block inside the MPA section | Decoder plugin with vendor rules (1.x) |
-
----
-
-## 18. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later / never |
-|---|---|---|---|---|
-| CLI | check (text, JSON, JUnit; `--gate`, run scopes, `--packs-as-of`; `--baseline` Should), query/explain, verify-derived, find, sql, commands, export pdf/svg/png/bom/wires/terminals/cables/report, render, print (Should), import qet/csv, import io-list (Should), verify-migration, apply `.ewcmd`, diff/textconv, fmt, upgrade, recover, git setup, merge-driver (Should), revision approve/release/withdraw, waiver list, trust, about | export dxf and domain exports, import edz/dxf/plc-aml/table, import qet `--batch`, jobs run, script run, SARIF, review, archive verify/rebuild, waiver add/remove, plc status, mfg asbuilt, lib, trust sign | mfg feedback import, import-status; plugin subcommands; `ew mcp --attach` | `--yes` for `HumanOnly` subcommands: never |
-| Session API | `ew-api` for CLI and MCP | stable at the 1.0 freeze | Python wheel | — |
-| rhai | engine, formula profile (cells, filters), rule profile | tag and wire-number formats, value-set formulas, automation scripts, macro export | — | event hooks: not planned |
-| SQL | projection, sandbox, MVP views incl. `cp`, `structure`, `xref`, `revision`, `meta` (FR-EXT-032; `Preview` until 1.0) | user SQL reports, SQL rules, `plc_channel`, `placement`, fluid views, SQL console | — | write path: never |
-| Trust | content-hash trust store, banner, `--trust` | signer, diff against last trusted | — | — |
-| MCP | read-only headless (Could) | ask-first writes (Should) | GUI live bridge (Could) | non-loopback transport: never |
-| Plugins | — | — | WASM components, capabilities, signing, dialogs, plugin data, registry (IDEA-095), network capability | native dylib plugins: never |
-| Crates | permissive layer closed and CI-checked | published to crates.io (FR-EXT-023) | `ew-plugin-wit`, `ew-plugin-sdk` | — |
-
-These labels describe the full scope. The plan's lean variant, if PD-1 is adopted, moves the rhai automation scripts,
-jobsets and the ask-first MCP writes from 1.0 to 1.x ([vision](00-vision-and-scope.md) §9.1,
-global plan §14), and the headless read-only MCP server from the MVP to 1.0.
-
----
-
-## 19. Dependencies
-
-**Documents.**
-- **Inputs:** [04](04-architecture.md) §2, §3, §5, §6.8, §10, §16; ADR-0017, ADR-0019, ADR-0020, ADR-0021, ADR-0023,
-  ADR-0024, ADR-0025; [03](03-domain-model.md) (entities, origins of findings);
-  [gaps-and-corrections](../research/gaps-and-corrections.md) G10, G12, C-8;
-  [rust-ecosystem](../research/rust-ecosystem.md) §9; [oss-landscape](../research/oss-landscape.md) §3, §7.3.
-- **Uses and constrains:**
-  - [05](05-project-format-and-persistence.md): trust store and hash scope, `scripts/` and `jobs/`, `trust.sig`, `extra` maps;
-  - [06](06-schematic-editor.md), [10](10-plc-and-bus.md): command names;
-  - [07](07-symbols-parts-macros.md): `ew lib`, value-set formulas;
-  - [08](08-connections-terminals-cables.md), [11](11-fluid-power.md), [12](12-panel-layout.md): view columns;
-  - [09](09-reports-forms-output.md): user SQL reports, formulas, report export;
-  - [13](13-manufacturing-outputs.md): profile `expr` and `sql:` trust, `ew mfg`;
-  - [14](14-interop.md): contracts and import CLI;
-  - [15](15-checks-revisions-collaboration.md): rule packs, EW-CORE-083/084, SARIF, `HumanOnly` commands;
-  - [16](16-ux-ui.md): dialogs of §14;
-  - [18](18-quality-security-release.md): the tests of §13 and the API guard (CI-PR-14, NFR-MAINT-10);
-  - [19](19-open-source-governance.md): exception wording, registry policy;
-
-| Crate | Layer | Role here |
-|---|---|---|
-| `ew` (bin) | GPL | CLI, `ew mcp` (rmcp), merge driver, textconv, jobsets, terminal confirmation of `HumanOnly` subcommands |
-| `ew-api` | GPL | Session facade, query registry, origin assignment, trust state, registration of SQL and plugin rule implementations into `ew-checks` |
-| `ew-commands` | GPL | `CommandMeta` registry (names, schemas, exposure) and the exposure check in the commit pipeline (with [15](15-checks-revisions-collaboration.md) §12) |
-| `ew-rhai` | GPL | rhai engine configuration of §5.2 and the formula and rule profiles; below `ew-derive`, `ew-checks` and `ew-script` (ARCH §3) |
-| `ew-script` | GPL | rhai automation profile and its bindings over queries and commands, on the engine configuration of `ew-rhai` |
-| `ew-sqlview` | GPL | projection, `api_v1` views, statement gate and sandbox; executes SQL reports; implements the SQL rule implementations of the `ew-checks` registry (edge `ew-sqlview → ew-checks`) and projects findings into `api_v1_message` |
-| `ew-checks` | GPL | rule engine and scheduling; owns the `RuleImpl` trait and its registry and implements Rust and rhai rules itself (rule profile from `ew-rhai`); SQL and plugin rules are implemented by `ew-sqlview` and `ew-plugin-host` and registered by `ew-api` at session start, so `ew-checks` never depends on either (ARCH §3, §12) |
-| `ew-plugin-host` | GPL | wasmtime on the LTS line current at plugin launch (48.x in development), linker per capability, limits, signatures, compiled-component cache, dialogs bridge, the `secret-get` capability (1.x); implements plugin rules for the `ew-checks` registry (edge `ew-plugin-host → ew-checks`) |
-| `ew-py` (1.x) | GPL | pyo3 wheel |
-| `ew-interop-api` | P | importer and exporter contracts |
-| `ew-plugin-wit`, `ew-plugin-sdk` (1.x, ARCH §3) | P | WIT package, guest bindings generated from the JSON Schemas, adapters for `ew-interop-api` |
-
----
-
-## Requirements covered
-
-**Elaborated here:** FR-EXT-001 … FR-EXT-037; NFR-SEC-05, NFR-SEC-06, NFR-SEC-07, NFR-SEC-08; NFR-MAINT-10.
-
-**Also specified in part:** FR-CHK-006, FR-CHK-007 (rhai and SQL execution), FR-CHK-009 (`ew waiver`,
-`HumanOnly`), FR-CHK-013 (plugin rule demotion), FR-CHK-041 (D-25 load currents), FR-CHK-048, FR-CHK-053 (check
-options), FR-REP-031 (SQL side), FR-NUM-026, FR-MAC-015 (formula profile),
-FR-REV-005, FR-REV-006, FR-REV-007 (CLI side and `HumanOnly`), FR-COL-013, FR-COL-014, FR-COL-017 (CLI side),
-FR-PLC-038, FR-IMP-023 (import subcommands), FR-EXP-004 (table round trip from the CLI), FR-IMP-021
-(`ew verify-migration`), FR-MFG-004 (package diff), FR-FLU-022 (decoder role), FR-UI-023 (origins), FR-I18N-015
-(network capability), NFR-SEC-02, NFR-SEC-03 (plugin packages, SQL fuzzing), NFR-SEC-09, NFR-PLAT-04 (`ew` and
-`ew mcp` in a container), NFR-PLAT-08 (administrator policy for MCP and plugins),
-NFR-PERF-19 (cancellation), NFR-PRIV-01, NFR-PRIV-05, NFR-PRIV-06, NFR-PRIV-08, NFR-REL-07, NFR-REL-12,
-NFR-MAINT-04 (wasmtime LTS), NFR-LIC-05, NFR-LIC-08, NFR-LIC-09, NFR-DOC-02, NFR-DOC-06, NFR-DOC-07.
-
-### Proposed new requirements
-
-The fourteen rows this document proposed are in the catalogues with the numbers it suggested
-([02b](02b-requirements-extended.md) §10 and [02c](02c-nonfunctional-requirements.md)):
-- SARIF output of `ew check` → **FR-EXT-025** (one row with [15](15-checks-revisions-collaboration.md)'s proposal);
-- loopback `ew mcp` with a per-session token and an `Origin` check → **FR-EXT-026**;
-- `ew export report --block` → **FR-EXT-027** (one row with the proposal of [09](09-reports-forms-output.md));
-- `ew import table` → **FR-EXT-028** ([14](14-interop.md) §13);
-- `ew apply` replaying a command log → **FR-EXT-029**;
-- exposure classes and the `HumanOnly` rules → **FR-EXT-030**;
-- trust by content hash and signer → **FR-EXT-031**;
-- the further `api_v1` views, including the fluid views of [11](11-fluid-power.md) §8.3 → **FR-EXT-032**;
-- MCP data minimisation and response caps → **FR-EXT-033**;
-- the MCP `render_page` tool → **FR-EXT-034**;
-- signed `.ewplugin` packages and declared plugin dependencies → **FR-EXT-035**;
-- the permissive `ew-plugin-wit` and `ew-plugin-sdk` crates → **FR-EXT-036** (cited by
-  [19](19-open-source-governance.md));
-- record IDs of plugin importers minted and checked by the host → **FR-EXT-037**;
-- the API compatibility guard → **NFR-MAINT-10** (02c), run as CI-PR-14 of [18](18-quality-security-release.md).
-
----
-
-## Open questions
-
-1. **Typed WIT versus a JSON boundary.** ARCH §10.4 speaks of "typed read queries". Mirroring every query and
-   record kind as WIT records would duplicate `ew-schema` and force a WIT change for every additive format field.
-   **Resolved:** JSON stays at the boundary (queries per published schema, records as canonical JSONL), and
-   `ew-plugin-sdk` generates typed guest bindings from the same JSON Schemas (ADR-0020 amendment 1, §8.2).
-2. **Command logs and new subcommands.** ARCH §10.1 listed no `ew apply`, `ew trust`, `ew commands`, `ew find`,
-   `ew revision`, `ew waiver`, `ew about` or `ew plugin`, but Golden B and C already depend on `.ewcmd` files and
-   [15](15-checks-revisions-collaboration.md) on `ew revision approve`. **Resolved:** §3.3 is the authoritative CLI
-   catalogue and ARCH §10.1 summarises its groups; FR-EXT-029 … FR-EXT-031 are in 02b.
-3. **wasmtime LTS line for the plugin launch.** The 48.x LTS line (2026-08) is supported for 24 months, until
-   about 2028-08. In the plan of record 1.0 ships in January 2032 (global plan §5.1) and WASM plugins in 1.x (§6.4 there), so this line ends long before the plugin launch. **Resolved:** ARCH §2 and §3 and ADR-0020 (amendment 2)
-   now read "the wasmtime LTS line current at plugin launch" (by the every-12th rule 60.x from about 2027-08 or 72.x
-   from about 2028-08, **verify**), with development on 48.x until then; NFR-MAINT-04 already requires moving
-   before support ends.
-4. **Python and the plugin exception.** A WIT-only exception does not cover Python programs importing the GPL
-   `elektrawatt` module, although private use is unaffected because the GPL governs distribution.
-   *Recommendation:* ask counsel to extend the permission to programs that use only the documented Python API of
-   `elektrawatt`, for parity with WASM plugins; otherwise document that distributed Python tools must be
-   GPL-compatible.
-5. **Interpreted inputs.** Whether rhai scripts, SQL and rule packs run by EW could be argued to be covered works
-   is legally unclear. *Recommendation:* include point 4 of §12 in the exception text so companies can keep
-   proprietary rule packs and reports.
-6. **Headless approval channel.** MCP elicitation relies on the client application rendering the request to a
-   person; a malicious or buggy client could auto-accept. *Recommendation:* keep elicitation and terminal approval
-   for 1.0, document the residual risk, require `--writable` explicitly, and make the GUI live bridge (1.x) the
-   recommended channel for agent edits.
-7. **Confidential fields in MCP.** Which fields count as "confidential" (project reference, drawing id, parties)
-   beyond those already marked personal in `ew-schema`. *Recommendation:* add a `confidential` marker next to the
-   personal-data marker in `ew-schema`, defaulting to the reference project's anonymisation list, and reuse it for
-   `ew export ewz --omit-personal-data`.
-8. **Profile `expr` columns versus formulas.** Pure rhai runs untrusted as a formula, but [13](13-manufacturing-outputs.md)
-   §7 gates machine-profile `expr` columns. **Resolved:** the gate stays, since machine files leave the building and
-   nothing needs them to open or render a project; ADR-0020 amendment 3 states the exception together with the
-   formula rule (§2.4).
-9. **Plugin-defined record kinds.** Some plugins (a decoder's slot list, a vendor configurator state) need more
-   than 1 MiB of per-record data. The format already preserves unknown kinds verbatim (ARCH §7.6).
-   *Recommendation:* defer to 1.x+; if needed, allow namespaced kinds `plugin.<id>.<kind>` stored in their own
-   files, with the same merge and preservation rules, after an ADR.
-10. **Plugin rules in online mode.** Online plugin rules cost a component call per scope. *Recommendation:* allow
-    them with the fuel and epoch budgets of §8.4 and the usual demotion, and default plugin packs to offline and
-    release modes.
-11. **Plugin signing scheme.** Offline Ed25519 with trust on first use is simple but has weak revocation; Sigstore
-    bundles verify offline but need an identity provider for publishing. *Recommendation:* ship Ed25519 at 1.x,
-    decide on Sigstore countersignatures together with the registry (IDEA-095) in [19](19-open-source-governance.md).
-12. **`api_v1` before 1.0.** The views are a public contract from MVP while the format still upgrades on every
-    release before 1.0 (ARCH §7.6). **Resolved:** `api_v1` is `Preview` until the 1.0 freeze and the golden
-    acceptance SQL was its compatibility corpus until 0.3.5 (ADR-0017 amendment 2, ARCH §10.2); column renames after MVP are
-    release-note items (§11). **Settled:** the marking is built: `ew sql schema` flags every addition and
-    `api_v1_meta` carries `api_status` and `preview_additions` (§6.1).
-13. **Merge-driver argument list.** ARCH §7.5 and FR-COL-014 wrote `%O %A %B %P`, while
-    [05](05-project-format-and-persistence.md) §11.1 configures `%O %A %B %L %P`. **Resolved:** the canonical form is
-    `ew merge-driver %O %A %B %L %P` (`%L`, the marker size, is used for conflict rendering) and the four-argument
-    form stays accepted (ARCH §7.5); its exit codes are 0, 1 and 129 (§3.2).
-14. **Read-only MCP at MVP.** FR-EXT-016 is MVP Could although QET already ships an MCP server (VIS OQ10).
-    *Recommendation:* keep Could; the read tools are thin wrappers over `query`, `sql` and `check`, so promote to
-    Should if the spine finishes on time ([02b](02b-requirements-extended.md) OQ 15).
-15. **Plugin `actions` and `decoder` roles.** ARCH §10.4 lists importers, exporters, rules, report columns and
-    machine profiles as plugin exports; FR-FLU-022 and IDEA-026 need decoders and interactive actions.
-    **Resolved:** ADR-0020 amendment 4 and ARCH §10.4 add both roles, together with the `secret-get` capability of
-    §8.3; actions use only `Edit` commands through preview and commit, so the security model does not change.
-16. **Where the formula engine lives.** Formulas are evaluated inside queries in `ew-derive`, but ARCH §3 listed rhai
-    only under `ew-checks` and `ew-script`, and both sit above `ew-derive` in the crate graph. **Resolved:** ARCH §3
-    adds the GPL `ew-rhai` crate with the engine configuration of §5.2 and the formula and rule profiles, on which
-    `ew-derive`, `ew-checks` and `ew-script` depend; `ew-script` keeps only the automation profile (§19).
-17. **Release of rhai formats.** FR-EXT-011 (MVP) named tag and wire-number formats and tested a looping tag format,
-    while FR-NUM-026 and FR-MAC-015 put rhai formats and value-set formulas at 1.0. **Resolved:** the formula engine
-    and profile exist from MVP (title-block formulas, report filters, simple rule expressions), FR-EXT-011 now reads
-    "for the formula hosts of 17 §5.1 as their features land" and its criterion runs on a test-only tag format, and
-    the user-facing format formulas (FR-NUM-026) and value-set formulas (FR-MAC-015) stay at 1.0.
-18. **Releasing from a pipeline.** Some teams will want `ew revision release` as a CI step after a forge approval.
-    The terminal rule of §2.3 refuses it. *Recommendation:* keep the refusal for 1.0: [15](15-checks-revisions-collaboration.md)
-    §6.3 already releases on `main` by a person, and a forge approval is not an EW party. Revisit in 1.x together
-    with signed sign-off records.
-19. **wasmtime on hardened-runtime macOS.** **Moot** while macOS is not a supported platform. Generated code needs the JIT entitlement, which weakens the hardened
-    runtime for the whole application. *Recommendation:* measure wasmtime's portable interpreter on the sample
-    importer and rule plugins before the plugin launch; ship the interpreter on macOS if a rule scope stays within
-    the online budget of §8.4, otherwise add the entitlement with an ADR ([18](18-quality-security-release.md)
-    open question 13).
-20. **Load current for D-25.** ARCH §11 and ADR-0017 describe the D-25 report with "total current per MICO channel",
-    and [09](09-reports-forms-output.md) §3.5 sketched a `current` column, but no view column and no part field
-    held a load current per pin. **Resolved:** parts gain an optional electrical load current per supply CP
-    ([07](07-symbols-parts-macros.md)), exposed as `api_v1_cp.i_load` (decimal text, A, empty when unknown) at 1.0
-    together with the derived `role` of §6.1 (ADR-0017 amendment 3), sourced like the `load_summary` row source of
-    [08](08-connections-terminals-cables.md) §10; until then the report lists loads without currents, as in §17.1.
-21. **DXF export at MVP?** FR-EXT-003 listed `dxf` among the MVP exports, while FR-OUT-015 and
-    [09](09-reports-forms-output.md) §9 put DXF page output at 1.0. **Resolved:** DXF page export is 1.0, as §3.3
-    shows, and FR-EXT-003's MVP list is pdf, svg, png, bom, wires, terminals, cables and report.

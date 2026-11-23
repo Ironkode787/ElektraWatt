@@ -407,7 +407,7 @@ the requirement rows carry the source "EPLAN feature inventory; scope-boundary d
 
 | ID | Assumption | Validation |
 |---|---|---|
-| AS-1 | The pilot user's customers accept PDF documentation; no EPLAN project delivery is required | Ask the pilot (open question 2) |
+| AS-1 | The pilot user's customers accept PDF documentation; no EPLAN project delivery is required | Ask the pilot |
 | AS-2 | Project sizes follow the G6 classes (S ≤ 50 pages … XL ≤ 5,000); the reference project is S | The pilot's three largest recent projects |
 | AS-3 | Projects live on SMB shares, OneDrive or git, with one editor per project at a time | Pilot interview before M1 |
 | AS-4 | The pilot can supply the original `.qet` of the reference set and further projects for the corpus | Request at M0 |
@@ -435,58 +435,3 @@ These decisions are binding and are not re-litigated in any design document.
 **Decisions still open** (owner, with a recommendation in each ADR): plugin-exception wording (ADR-0025), native
 connection grid (ADR-0027: 4 mm recommended), default drawing font (ADR-0028: Noto Sans), network and crash-report
 policy (ADR-0029: zero by default), legal steward, CRA role and signing identity (ADR-0030).
-
----
-
-## Requirements covered
-
-This is a scope document. It does not elaborate individual requirements. It is normative for:
-- the **release column** (MVP / 1.0 / 1.x / Later) of every FR in [02a](02a-requirements-core.md) and
-  [02b](02b-requirements-extended.md), per area as in §9;
-- the **targets** quoted in §3.2 for the NFR areas PERF, PLAT, REL, SEC, PRIV, A11Y, LIC, DOC, COMP and UX in
-  [02c](02c-nonfunctional-requirements.md).
-
-### Proposed new requirements
-
-The five rows this document proposed are in the catalogues. Each one was merged into an existing row that carries
-its substance:
-- company-standard wizard that creates a basic project → **FR-PRJ-010** ([02a](02a-requirements-core.md));
-- QET migration report as a check run → **FR-IMP-003** ([02b](02b-requirements-extended.md));
-- anonymised golden project shipped as sample, tutorial basis and CI fixture → **NFR-DOC-04**
-  ([02c](02c-nonfunctional-requirements.md));
-- statement that EW checks do not replace engineering verification → **NFR-COMP-04**
-  ([02c](02c-nonfunctional-requirements.md));
-- moderated usability test before M2 and at 1.0 → **NFR-UX-01** ([02c](02c-nonfunctional-requirements.md)).
-
-## Open questions
-
-1. **Does the MVP need folio 902's 2D panel layout?** It is part of the reference set. **Resolved:** yes; the 2D
-   panel front bound to devices, its legend and the unplaced-device check are MVP (FR-LAY-006 … FR-LAY-017 in
-   [02b](02b-requirements-extended.md)), and 3D stays in 1.0.
-2. **Must the pilot ever deliver native EPLAN projects?** *Recommendation:* assume not (AS-1), collect evidence
-   during the pilot, keep EPLAN XML export at Later.
-3. **Compete with QET, or coordinate?** *Recommendation:* coordinate: publish the format specification, contact
-   the QET maintainers after MVP, consider an EW→QET exporter in 1.x only on demand.
-4. **What is the pilot's QET baseline for SC-3?** *Recommendation:* time two reference-size projects in QET during
-   M0–M1.
-5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
-   before the re-test of the performance spike (gate G-SP, global plan §14, PD-8).
-   G-SP was held on 2026-10-20 on the assumed bounds with the outcome Recycle (ADR-0002 amendment 4); the
-   recalibration (G-SP-08, CP-03) was an owner action due before the re-test. **Resolved**
-   2026-10-20: the pilot's three projects all sit inside class S, so the bounds stay; S is
-   the pilot's working range and M to XL remain engineering margins.
-6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** **Resolved:** THM runs as queries
-   in `ew-panel` ([12](12-panel-layout.md) §1.2); the viewer is the `ew-viewer` crate, used by a small
-   `ew-wiring-viewer` binary for shop PCs and by the "Preview package" view of the Manufacturing workspace
-   ([architecture](04-architecture.md) §3, [13](13-manufacturing-outputs.md)).
-7. **Golden A with or without D-13?** **Resolved:** Golden A keeps the wiring as drawn, with EW-POT-013 reported
-   (EF-01, acceptance criterion 8), and Golden A-R carries a rewired test variant
-   until the pilot confirms the real wiring (PQ-13).
-8. **UI languages at MVP?** *Recommendation:* English and Dutch at MVP, German by 1.0, via Weblate.
-9. **When must the open ADRs be decided?** *Recommendation:* ADR-0025 and ADR-0030 before the first external
-   contribution and the first signed release; ADR-0027 and ADR-0028 before spine lane 2 builds the symbol set
-   (PD-4 and PD-5, global plan §14).
-10. **Headless MCP in the MVP?** QET already ships one. **Resolved:** read-only `ew mcp` (query, SQL, checks) is
-    MVP Could (FR-EXT-016) and ask-first writes are 1.0 Should (FR-EXT-017), both in
-    [02b](02b-requirements-extended.md).
-11. **North American standards?** *Recommendation:* Later; confirm the pilot has no UL 508A or NFPA 79 work.

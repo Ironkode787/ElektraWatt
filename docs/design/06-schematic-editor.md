@@ -21,10 +21,6 @@ with a walkthrough that draws folios 101 and 102 of the reference project.
 8. [Edge cases and pitfalls](#8-edge-cases-and-pitfalls)
 9. [Walkthrough: drawing folios 101 and 102](#9-walkthrough-drawing-folios-101-and-102)
 10. [Reference defects this editor prevents](#10-reference-defects-this-editor-prevents)
-11. [Scope by release](#11-scope-by-release)
-12. [Dependencies](#12-dependencies)
-13. [Requirements covered](#requirements-covered)
-14. [Open questions](#open-questions)
 
 ---
 
@@ -181,10 +177,9 @@ text_slots}` ([03](03-domain-model.md) §6). The editor exposes three independen
    | `Orient2` | R0 | R90 | R180 | R270 | M0 | M90 | M180 | M270 |
 
    Rn rotates clockwise as seen on the sheet (y down), so QET's `orientation` steps 1–3 map to R90–R270 (the QET
-   importer's mapping, [14](14-interop.md) §4.2; QET's mirror order is still to be verified on rendered corpus pages,
-   14 Open question 12). M mirrors about the symbol's vertical axis before rotating. CP indices never change; a
-   mirror swaps positions, not designations. Whether EPLAN's letters use the same order is unverified (Open
-   question 4).
+   importer's mapping, [14](14-interop.md) §4.2; QET's mirror order is still to be verified on rendered corpus pages). M
+   mirrors about the symbol's vertical axis before rotating. CP indices never change; a
+   mirror swaps positions, not designations. Whether EPLAN's letters use the same order is unverified.
 2. **Symbol variant** for the same function: contact-image variant, CP variant (FR-SYM-004).
 3. **Representation type**: multi-line, overview, fluid … filtered by page type (§2.2) and by the FnDef's symbols
    (FR-SYM-006).
@@ -1078,7 +1073,7 @@ candidate snapshot, not as a memo scope.
 **Pending findings.** Completeness rules (unconnected CP, unpaired IP, missing part, missing cable) fire on every
 half-drawn circuit. On the page being edited they show in a muted "pending" style and do not raise the error
 counter until the user leaves the page or runs a check; they always appear at full severity in check runs, exports
-and the release gate (FR-UI-041, Open question 7). This is the `drafting` scheme of
+and the release gate (FR-UI-041). This is the `drafting` scheme of
 [15](15-checks-revisions-collaboration.md) §4.9. Safety and conflict rules are never muted. An online rule has a
 budget of 5 ms per commit (NFR-PERF-09); one that exceeds it three times in 100 commits is demoted to deferred for
 the session and logged (FR-CHK-013, 15 §3.1).
@@ -1100,7 +1095,7 @@ pub enum ToolOutput {
     Cancel,                       // Escape: drop overlay and preview; model revision unchanged
 }
 // `Command` (ARCH §5.1) has an associated const and serde supertraits, so it is not dyn-compatible.
-// `DynCommand` is its object-safe companion with a blanket impl (ARCH §5.1, Open question 15).
+// `DynCommand` is its object-safe companion with a blanket impl (ARCH §5.1).
 pub trait DynCommand: Send {
     fn name(&self) -> &'static str;
     fn cost(&self) -> Cost;
@@ -1350,8 +1345,7 @@ never by an autoconnected wire.
 
 - **On placement**, accepted proposals are committed by default; Alt suppresses them for one placement.
 - **On move**, proposals for free CPs are shown and committed with the move; Alt at the release suppresses them and
-  `C` turns the behaviour off or on for the session (FR-CON-004; Open question 5 asks the M2 usability test to
-  confirm this default, PQ-27).
+  `C` turns the behaviour off or on for the session (FR-CON-004).
 - **Cost:** one spatial-index ray per free CP, O(CPs · log n), well inside the frame budget.
 
 The proposals are computed in `ew-viewmodel` from the prepared page tables (not from a spatial index) and drawn as
@@ -1724,179 +1718,3 @@ through the window's own actions, and the tools are specified in §3 and §4.
 | D-39 IP order | "Arrange" sorts IP stacks |
 | D-41 assembly tagged from two pages | Folio 202 holds a continuation segment of -201U1's generated assembly view, so the drawing shows one assembly; child order is edited in the device navigator (`Device.position`), never by drawing on the generated segments (FR-DEV-022, FR-DEV-023) |
 | D-42 strip drawn twice | Strip segments and "paste as representation" draw one device in several places without a second tag or BOM row |
-
----
-
-## 11. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Page types and semantics; sparse folios; sections and generated dividers; sub-pages; page navigator; renumber preview | ● | | | |
-| QET-compatible frame (grid and no-grid); per-page grid badge | ● | | | |
-| ISO 5457 frames A4–A0 and A3 with 10 columns; frame editor; page layers | | ● | | |
-| Convert a QET-grid page to the native grid | | | ● | |
-| Canvas navigation, tabs, side by side, jump history, hover preview, go to cell | ● | | | |
-| Symbol placement with variants A–H, representation types, part-first placement | ● | | | |
-| Autoconnect assistant with two-stage ghosts; split on insert | ● | | | |
-| Explicit connections, orthogonal auto-route, route editing, crossings or hops | ● | | | |
-| Page router: Route, re-solve and connect on move, the unrouted dashed line, the layout rules | ● | | | |
-| Junctions with style, wiring and sequence editor | ● | | | |
-| Interruption points (star, chain, matrix, external), continue on page, arrange | ● | | | |
-| Xref formats and presets; main/aux and same-function xrefs; contact images | ● | | | |
-| Potential cross-reference list (FR-XRF-023) | | ● | | |
-| Pair cross-references (FR-DEV-035) | | | ● | |
-| Black boxes with device CPs; structure boxes | ● | | | |
-| Texts, graphics, images; property arrangements; path function texts | ● | | | |
-| Dimensions (FR-SYM-026) | | ● | | |
-| Wire markers (CDP) including groups | ● | | | |
-| Single-line pages drawn without net semantics | ● | | | |
-| Single-line conductor counts and multi-line mapping (FR-CON-029) | | ● | | |
-| Wire-number display, "?" placeholders, online wire numbering | ● | | | |
-| Property grid with provenance; multi-select; find and replace; display language per view | ● | | | |
-| "Why this value?" view (FR-UI-011) | | ● | | |
-| Copy and paste within and across projects (fragment as clipboard text); paste as representation | ● | | | |
-| Multi-format clipboard (fragment, TSV, PNG, vector flavour at once) | | ● | | |
-| Macro insertion with ghost and conflict list (FR-MAC-005) | ● | | | |
-| Macro placeholders with re-applicable value sets (FR-MAC-008) | | ● | | |
-| Keymaps "EW" and "KiCad-like" (FR-UI-013) | ● | | | |
-| Keymap "EPLAN-like" (FR-UI-014) | | ● | | |
-| Online checks with pending style | ● | | | |
-| Agent proposals as ghosts (FR-EXT-018) | | | ● | |
-| Symbol families (FR-SYM-027) | | | ● | |
-| IEC to NFPA symbol exchange (FR-SYM-028) | | | | ● |
-
----
-
-## 12. Dependencies
-
-| Depends on | For |
-|---|---|
-| [04-architecture](04-architecture.md) §5, §6, §8, §9; ADR-0001, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0014, ADR-0015, ADR-0019 | command pipeline, queries, display lists, egui shell, connection model, prevent rules |
-| [03-domain-model](03-domain-model.md) §6, §7, §9, §10 | records, anchor arithmetic, junction wiring, IP pairing |
-| [05-project-format-and-persistence](05-project-format-and-persistence.md) §1, §2.2 | page files and record ownership, `.ew/u-<hash>/` view state, journal |
-| [17-extensibility](17-extensibility.md) §2.1 | command registry, names, aliases, `AnyCommand` |
-| [07-symbols-parts-macros](07-symbols-parts-macros.md) | symbol and FnDef definitions, anchor policies, part templates, macro fragments |
-| [08-connections-terminals-cables](08-connections-terminals-cables.md) | wire properties and provenance, strip editor, cable definition lines |
-| [09-reports-forms-output](09-reports-forms-output.md) | frame forms, title block, page-to-sheet transform, PDF links |
-| [10-plc-and-bus](10-plc-and-bus.md), [11-fluid-power](11-fluid-power.md), [12-panel-layout](12-panel-layout.md) | topology, fluid and panel page tools |
-| [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) §2.3, §3.1, §4 | rule IDs and kinds, demotion, `drafting` scheme, waivers, page change status |
-| [16-ux-ui](16-ux-ui.md) | docking, navigators, keymap infrastructure, usability test protocol |
-| ADR-0027 (proposed) | native connection grid; QET-grid policy |
-
----
-
-## Requirements covered
-
-This document elaborates the interactive part of:
-- **PAG:** FR-PAG-001, FR-PAG-002, FR-PAG-005 … FR-PAG-010, FR-PAG-012 … FR-PAG-015, FR-PAG-017, FR-PAG-018,
-  FR-PAG-020, FR-PAG-021, FR-PAG-022, FR-PAG-024, FR-PAG-025.
-- **SYM (placement):** FR-SYM-004, FR-SYM-006, FR-SYM-009, FR-SYM-010, FR-SYM-011, FR-SYM-012, FR-SYM-013,
-  FR-SYM-014, FR-SYM-015, FR-SYM-018, FR-SYM-021, FR-SYM-022, FR-SYM-023, FR-SYM-024, FR-SYM-025, FR-SYM-026.
-- **DEV:** FR-DEV-001 … FR-DEV-009, FR-DEV-011, FR-DEV-013, FR-DEV-014, FR-DEV-016, FR-DEV-017, FR-DEV-018,
-  FR-DEV-019, FR-DEV-022, FR-DEV-023, FR-DEV-028 … FR-DEV-032, FR-DEV-035, FR-DEV-038, FR-DEV-039.
-- **NUM (editor side):** FR-NUM-001, FR-NUM-002, FR-NUM-004, FR-NUM-007, FR-NUM-008, FR-NUM-010, FR-NUM-012,
-  FR-NUM-016, FR-NUM-021, FR-NUM-022, FR-NUM-023, FR-NUM-028, FR-NUM-029.
-- **XRF:** FR-XRF-001 … FR-XRF-025.
-- **CON (drawing interaction; semantics in 08):** FR-CON-001 … FR-CON-008, FR-CON-010, FR-CON-012, FR-CON-014,
-  FR-CON-019, FR-CON-023, FR-CON-024, FR-CON-025, FR-CON-026, FR-CON-027, FR-CON-031, FR-CON-039, FR-CON-043,
-  FR-CON-044.
-- **PRJ, MAC:** FR-PRJ-019, FR-PRJ-020, FR-PRJ-021; FR-MAC-005.
-- **CHK (online display):** FR-CHK-008, FR-CHK-013, FR-CHK-017, FR-CHK-018, FR-CHK-019, FR-CHK-020,
-  FR-CHK-023, FR-CHK-024, FR-CHK-025, FR-CHK-026, FR-CHK-028, FR-CHK-033, FR-CHK-035.
-- **UI (canvas):** FR-UI-007, FR-UI-009, FR-UI-010, FR-UI-012, FR-UI-013, FR-UI-015, FR-UI-016, FR-UI-017,
-  FR-UI-018, FR-UI-019, FR-UI-020, FR-UI-021, FR-UI-022, FR-UI-023, FR-UI-025, FR-UI-026, FR-UI-028, FR-UI-033,
-  FR-UI-034, FR-UI-035, FR-UI-036, FR-UI-039, FR-UI-040, FR-UI-041, FR-UI-051.
-- **Non-functional:** NFR-PERF-04, NFR-PERF-05, NFR-PERF-06, NFR-PERF-08, NFR-PERF-09, NFR-PERF-19, NFR-REL-07,
-  NFR-REL-08, NFR-A11Y-01, NFR-A11Y-02, NFR-A11Y-03, NFR-UX-01, NFR-UX-03, NFR-UX-04, NFR-UX-07, NFR-UX-08.
-
-Referenced here and elaborated elsewhere: FR-PAG-003 ([12](12-panel-layout.md)); FR-PAG-004, FR-PAG-011,
-FR-PAG-016, FR-PAG-019, FR-PAG-023, FR-PAG-026, FR-PAG-027, FR-PAG-028, FR-PAG-029, FR-PAG-030, FR-REP-036,
-FR-REP-041, FR-OUT-001,
-FR-OUT-005, FR-OUT-007 ([09](09-reports-forms-output.md)); FR-SYM-003, FR-SYM-007, FR-SYM-016, FR-SYM-027,
-FR-SYM-028, FR-PRT-009, FR-MAC-008 ([07](07-symbols-parts-macros.md)); FR-CON-011, FR-CON-029, FR-NUM-009,
-FR-NUM-018, FR-NUM-019, FR-TRM-002, FR-CHK-021 ([08](08-connections-terminals-cables.md)); FR-CHK-038
-([15](15-checks-revisions-collaboration.md)); FR-FLU-002 ([11](11-fluid-power.md)); FR-PRJ-008, FR-PRJ-009
-([16](16-ux-ui.md) §9.2); FR-UI-011, FR-UI-014 ([16](16-ux-ui.md)); FR-IMP-038 ([14](14-interop.md));
-FR-EXT-015, FR-EXT-018 ([17](17-extensibility.md)); FR-I18N-001, FR-I18N-005.
-
-### Proposed new requirements
-
-The eleven rows this document proposed are in the catalogues:
-- joining an existing device by typing its tag → **FR-DEV-038** ([02a](02a-requirements-core.md));
-- black-box outline, device-CP positions and inner graphics on the representation → **FR-DEV-039** (02a);
-- one wire marker over a group of connections → **FR-CON-039** (02a);
-- split keeps UUID and number on the `a` part → covered by the existing **FR-CON-008** (02a), which now carries the
-  rule;
-- cross-page move keeps connectivity through IP pairs → **FR-CON-043** (02a);
-- single-line connections join no net → **FR-CON-044** (02a);
-- same-page cross-reference form → **FR-XRF-025** (02a);
-- "Go to" a folio or cell → **FR-UI-039** ([02b](02b-requirements-extended.md), one row with
-  [16](16-ux-ui.md)'s proposal);
-- fragment on the clipboard as text, "Copy tag list" and "Copy as image" → **FR-UI-040** (02b);
-- multi-format clipboard → **FR-UI-051** (02b);
-- pending completeness findings → **FR-UI-041** (02b).
-
-## Open questions
-
-1. **Black-box geometry in the model.** [Domain model](03-domain-model.md) §7 makes black boxes functions of kind
-   `BlackBox` but gave `Representation` no place for an outline, CP positions or inner graphics.
-   **Resolved:** the schema-steward batch (ARCH §7.6) adds `Representation.box: Option<BoxSpec{outline: Vec<Pt2>,
-   cps: Vec<(idx, Pt2, dir)>, inner: Vec<Primitive>}>` with the built-in symbol `ew.gen.blackbox` to 03 §6
-   (FR-DEV-039); part box macros fill it on placement, laying out the part's CP pattern on the outline in pattern
-   order ([07](07-symbols-parts-macros.md) §4.2).
-2. **Wire-marker groups.** `PageItem::WireMarker{connection, fields}` covered one connection; the reference draws
-   groups ("2.5 BK BU" across two conductors, "1.5 DBU DBU WH WH" across four). **Resolved:**
-   `PageItem::WireMarker{connections: Vec<Id<Connection>>, fields}`, with the order defining the printed order
-   (03 §6, FR-CON-039).
-3. **Path function texts.** FR-DEV-011 needs a free text that applies to a column range. **Resolved:** `FreeText`
-   has a role `Plain | PathFunction{columns}` (03 §6); the derived automatic function text reads it.
-4. **Variant letters.** The A–H mapping to `Orient2` (A–D rotations clockwise, E–H mirrored) is our choice; EPLAN's
-   letter order is unverified. *Recommendation:* keep the mapping as data in the keymap-independent symbol settings
-   and confirm it with two EPLAN users in the M2 test (PQ-27).
-5. **Autoconnect on move.** ADR-0007 requires validation before M2. This draft commits proposals on placement by
-   default and on move only with `C`. *Recommendation:* test both defaults with two EPLAN users and one QET user
-   (PQ-27, NFR-UX-01) and make the move default a user setting either way.
-6. **Grid for new pages in the pilot's projects.** FR-PAG-021 puts new pages on the native grid, while migrated
-   pages keep the QET grid, so one project mixes grids (pitfall 3). *Recommendation:* add a basic-project setting
-   "grid for new pages" restricted to the native grid or the QET 10 px grid, default native, and let the pilot
-   choose (PQ-06, ADR-0027).
-7. **Pending findings.** Muting completeness findings during editing reduces noise but could hide problems. The
-   pending style is adopted as FR-UI-041. *Recommendation:* measure in the M2 test whether users miss pending
-   findings; keep pending findings visible as muted icons on the canvas in any case.
-8. **Override granularity of the golden markers.** The golden wire table listed W4, W5,
-   W7, W9 and W20–W25 as "size, colour (CDP)", but each colour equals the profile value, which the redundant-override
-   rule EW-POT-016 ([08](08-connections-terminals-cables.md) §4.5) would report. **Resolved:** these wires carry
-   a cross-section override only, and their colours stay at level 2 (profile). Markers print the effective colour,
-   so the drawing is unchanged and EW-POT-016 stays silent on Golden A; 20 §8.1 and §8.2 read the same.
-9. **IP direction default.** The edge heuristic fits the reference but not every drawing style.
-   *Recommendation:* keep it as the default, add "direction from the potential's source" as an option, and revisit
-   after importing the QET corpus, whose folio reports carry explicit directions.
-10. **Contact-image default for native projects.** The pilot draws no contactors, so no house style exists.
-    *Recommendation:* "in path" with the EPLAN cell format ("13-14 /105.A3") for native basic projects; the QET style
-    in the pilot basic project.
-11. **Cross-page moves of connected symbols.** Turning cut connections into IP pairs invents names, but dropping
-    them would let a move change connectivity, which FR-CON-004 forbids. **Resolved** (FR-CON-043): a move
-    generates IP pairs by default, proposes names from the potential and lists them in the preview with "drop these
-    connections" as the explicit alternative; cut and paste stays delete plus paste.
-12. **Naming-only potential definitions.** The walkthrough names L-S … N-55S without fixing their types, so that
-    N-55T and N-55S stay "N, switched" by propagation. [03](03-domain-model.md) §9 gave `PotentialDef.ptype` no
-    "not set" value besides `Undefined`. **Resolved:** `ptype` is optional (`None` = name only); 03 §9.4 states that
-    a definition's type, when set, wins over propagation, while `switched` is always derived from opening
-    pass-through pairs.
-    *Status:* only N-55T and N-55S stay naming-only; L-S, N-S, L-1, N-1, L-55 and N-55 carry type,
-    voltage and class in the golden tables, which equals what propagation gives.
-13. **Single-line connection kind.** `ConnectionKind` ([03](03-domain-model.md) §9) had no single-line member, and
-    a `Wire` drawn on a single-line page would join nets and duplicate physical wires. **Resolved** (FR-CON-044):
-    at MVP single-line pages draw connections as kind `Overview` (no nets); 1.0 adds `SingleLine{conductors: u8}`,
-    excluded from nets and wire lists and mapped onto the multi-line connections by FR-CON-029
-    ([08](08-connections-terminals-cables.md) §2.3).
-14. **Command name for part-first placement.** [07](07-symbols-parts-macros.md) §5 and [16](16-ux-ui.md) §4.8 used
-    `device.place_from_part`; this document uses `device.place` with `target = FromPart`. **Resolved:** one command,
-    `device.place` (`PlaceSymbol` with `PlaceTarget`); `device.place_from_part` and `symbol.place` are registered in
-    its `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), so palette, CLI and MCP accept them and the journal
-    records `device.place`.
-15. **Object safety of `Command`.** Arch §5.1 declared `trait Command: Serialize + DeserializeOwned + Send` with a
-    `const NAME` and used `&dyn Command` in `Session::preview`; such a trait is not dyn-compatible in Rust.
-    **Resolved:** `Command` stays for typed handlers, and the object-safe `DynCommand` of §4.1 is added with a
-    blanket impl; `Session::preview`, `Session::execute` and the tools take `&dyn DynCommand` /
-    `Box<dyn DynCommand>`, and `AnyCommand` (17 §2.1) implements it after schema validation (ARCH §5.1).

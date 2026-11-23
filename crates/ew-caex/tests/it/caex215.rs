@@ -3,7 +3,7 @@
 
 //! The written file against the content model of CAEX 2.15 (IEC 62424:2008 Annex C), written from the standard:
 //! the published schema file is not in the repository, since its licence for redistribution is not established
-//! (doc 10, Open question 16). For every element the writer emits: its children come in the order of the schema's
+//! (doc 10 §4.3). For every element the writer emits: its children come in the order of the schema's
 //! sequence, it carries the attributes the schema requires and AutomationML adds (a unique `ID`), and every link
 //! names an interface that exists.
 

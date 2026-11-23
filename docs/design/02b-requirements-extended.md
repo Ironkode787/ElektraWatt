@@ -30,7 +30,6 @@ project in its milestone's file when that milestone is planned.
 11. [Storage, VCS and collaboration (COL)](#11-storage-vcs-and-collaboration-col)
 12. [Multilingual project data (I18N)](#12-multilingual-project-data-i18n)
 13. [Defect traceability](#13-defect-traceability)
-14. [Counts](#14-counts)
 
 ---
 
@@ -42,7 +41,7 @@ project in its milestone's file when that milestone is planned.
 - **Prio** is the priority within the row's release: **Must**, **Should**, **Could**.
 - **Release** is **MVP** (the pilot user stops using QElectroTech for new projects), **1.0** (full v1 scope), **1.x**
   (after 1.0) or **Later** (parked). Releases follow [vision and scope](00-vision-and-scope.md) §9; the one
-  deviation (DWG through the ODA converter at 1.0) is raised in Open question 3. Where a requirement is Should in
+  deviation is DWG through the ODA converter at 1.0. Where a requirement is Should in
   one release and Must in a later one, the row carries the earlier release and says so in its text.
 - **Acceptance criterion** is the test that closes the row. "Golden" means the reference project J-E-2416 as
   specified in [reference drawing](../research/reference-drawing.md) §4 and the golden project
@@ -78,7 +77,7 @@ of final rule IDs and six-digit codes; EW-PLC-006 is retired, because spare chan
 The rule engine, modes (online, offline, prevent, release), waivers, quick fixes and the core packs belong to the
 CHK area of [02a](02a-requirements-core.md). Rule constants that the research marks *unverified* (bus ranges,
 segment lengths, ferrule colour tables, clause values) ship as data with a `verified` flag and report at most a
-warning until verified (FR-CHK-046, Open question 7).
+warning until verified (FR-CHK-046).
 
 **Reports.** Rows here define the *row content* of domain reports (I/O list, tube list, terminal assembly list …).
 Forms, pagination, report blocks and the shared row source for PDF/XLSX/CSV are the REP area of 02a (ADR-0018).
@@ -89,7 +88,7 @@ Forms, pagination, report blocks and the shared row source for PDF/XLSX/CSV are 
 |---|---|---|
 | PLC, BUS | `ew-plc`, `ew-derive` (`channel_addresses`, `plc_rows`) | [10-plc-and-bus](10-plc-and-bus.md) |
 | FLU | `ew-model`, `ew-derive` (media propagation) | [11-fluid-power](11-fluid-power.md) |
-| LAY, THM | `ew-panel`, `ew-render3d`, `ew-step-worker` (THM placement per VIS OQ6) | [12-panel-layout](12-panel-layout.md) |
+| LAY, THM | `ew-panel`, `ew-render3d`, `ew-step-worker` | [12-panel-layout](12-panel-layout.md) |
 | MFG | `ew-mfg`, `ew-reports` | [13-manufacturing-outputs](13-manufacturing-outputs.md) |
 | IMP, EXP | `ew-interop-api`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-export` | [14-interop](14-interop.md) |
 | UI | `ew-ui`, `ew-viewmodel`, `elektrawatt` | [16-ux-ui](16-ux-ui.md) |
@@ -143,7 +142,7 @@ flowchart LR
 | FR-PLC-016 | Each channel shall carry a manual symbol (tag name) and a multilingual comment; symbols are unique per configuration project (EW-PLC-007). | Must | MVP | PBF §2.6, §13; EF §3.12 | Entering TA05_V_15 on two channels of one configuration project yields EW-PLC-007; the comment holds an en-GB and an nl-NL text. |
 | FR-PLC-017 | The system shall derive an automatic symbol from a template over the channel's tracked target (e.g. `{target.process_tag}` → TA05_V_15, or `{target.dt}_{pin}` → `_201U3_Q1_14`, the leading underscore keeping the IEC 61131-3 identifier rule, *to be verified*); a manual symbol wins; automatic symbols follow renumbering. | Must | 1.0 | PBF §2.1 (lessons), §2.6; EF §3.12 | Renumbering -201U3 to -201U4 changes the automatic symbol `_201U3_Q1_14` to `_201U4_Q1_14` everywhere; a manual symbol is unchanged. |
 | FR-PLC-018 | The system shall implement target tracking: follow the net from a channel's connection points (or its internal link) through connections, terminals, terminal levels and plug pins to the served field function (sensor, actuator, coil) and derive target DT, pin and location; optionally show the connected PLC address at terminals. | Must | 1.0 | PBF §2.1 (EPLAN 20449, 20854/20855), Impl. 3 | For a DI wired through -X1031 to a sensor, the I/O list shows the sensor DT and pin and "-X1031:n" as passed terminal; with the option set, terminal n shows the address. |
-| FR-PLC-019 | Channel states shall be used, spare, reserved, deactivated or `Tbd`. The effective state is derived: the explicit state, else `Tbd`, else the bound target device's state (used, spare or reserved; not fitted gives deactivated), else reserved when the position map claims the channel, else the part's unbound state. Spare channels may stay unplaced; reports count and list states, and I/O-list blocks default to the filter state ≠ deactivated. | Must | MVP | REF-065; PBF §2.4; D-15; 03 OQ9; 09 OQ9 | Golden A gives 8 used, 20 spare and 28 deactivated channels under H1 and under H2; folio 908 lists all 56 and the default I/O list 28. |
+| FR-PLC-019 | Channel states shall be used, spare, reserved, deactivated or `Tbd`. The effective state is derived: the explicit state, else `Tbd`, else the bound target device's state (used, spare or reserved; not fitted gives deactivated), else reserved when the position map claims the channel, else the part's unbound state. Spare channels may stay unplaced; reports count and list states, and I/O-list blocks default to the filter state ≠ deactivated. | Must | MVP | REF-065; PBF §2.4; D-15 | Golden A gives 8 used, 20 spare and 28 deactivated channels under H1 and under H2; folio 908 lists all 56 and the default I/O list 28. |
 | FR-PLC-020 | The PLC navigator shall show configuration project → station (role icon) → rack → module (slot) → channel, with bus ports under their station and unplaced channels marked; dragging a channel onto a schematic channel symbol or a fluid valve coil binds it. | Must | MVP | PBF §2.8, §12; EF §4 | Dragging channel 1 of -201U3 onto the coil of -201U3-Q1 on folio 203 creates the binding; the valve then shows the channel address as derived text. |
 | FR-PLC-021 | The PLC grid shall offer the columns of PBF §2.8 (station, rack, slot, module DT, channel number, designation, kind, address, symbol, data type, function text, process tag, state, safety, target DT, placed-on, signal range, comment), filters (unassigned, duplicate, spare, unplaced, safety, per bus, per configuration project, Tbd), fill-down, pattern fill (`TA05_V_{n:02}`) and Excel paste, each edit compiling to one command. | Should | MVP | PBF §2.8; BS IDEA-017 | Pasting 8 symbols from Excel into the golden grid is one undo step; the filter "spare" shows exactly 20 rows. |
 | FR-PLC-022 | The system shall generate a PLC overview per module or station listing all channels with address, symbol, function text and state, and a cross-reference to each bound channel's representation; every representation of a channel renders the same data. | Must | MVP | ARCH §14 (D-09); PBF §2.7; REF-060; RD §4.14 (folio 908) | Golden folio 908 lists Q0.0 … Q6.7 of -201U1 with references to folios 203–206; editing a function text on folio 203 changes folio 908 in the same commit. |
@@ -155,7 +154,7 @@ flowchart LR
 | FR-PLC-028 | A rack/slot editor shall build stations from device types or part data: drag modules into allowed slots, validate fixed and allowed slots, maximum module count and maximum I/O lengths (EW-PLC-011), and expand each module into a child device with channels and connection points; for valve terminals it edits the manifold position list next to the stored order code. | Must | 1.0 | PBF §4 (pipeline), §8.1, §12 | Dropping a module into a slot outside its allowed slots is refused with EW-PLC-011; building the golden manifold in the editor yields the 7 modules in RD §4.10 order. |
 | FR-PLC-029 | The system shall export a configuration project as AutomationML AR APC 1.4.0 on CAEX 2.15 (`AutomationMLVersion` 2.0, class libraries referenced by path): AutomationProject → Device → DeviceItem (rack, module, submodule) with PositionNumber, TypeName, `OrderNumber:` TypeIdentifier, FirmwareVersion, BuiltIn and an `Address` list {StartAddress, Length in bits, IoType}; channels as `Channel` interfaces {Type, IoType, Number, Length}; tags in TagTables {DataType, IoType, LogicalAddress, multilingual Comment}; `InternalLink`s channel ↔ tag; EW tags in `LocationIdentifier IEC` and `ProductDesignation IEC`. | Must | 1.0 | PBF §3.1; C-2, C-3; ADR-0021; SC-8 | The golden export validates against the CAEX 2.15 schema, holds 7 module DeviceItems with 8-bit output addresses and 8 tag links, and imports into TIA Portal V21 without errors. |
 | FR-PLC-030 | The AML writer shall offer AR APC 1.2.0 output, selectable per export, for older TIA Portal versions and EPLAN. | Should | 1.0 | PBF §3.1 (tests); IF §4.2; EF §3.12 | A 1.2.0 export of the golden station imports into an EPLAN AML import and a TIA V17 test installation per the exchange test protocol. |
-| FR-PLC-031 | AML export and import shall carry bus interfaces, ports and nodes (`CommunicationInterface`, `CommunicationPort` with Label, `Node` or `NodeEthernet` with NetworkAddress, SubnetMask, IpProtocolSelection) and PROFIBUS DP station addresses and subnets. | Must | 1.0 | PBF §3.1 (mapping), OQ4 | A PROFINET station exported and re-imported keeps IP, mask and port labels; the DP attribute names are fixed from a real TIA DP export before acceptance (Open question 12). |
+| FR-PLC-031 | AML export and import shall carry bus interfaces, ports and nodes (`CommunicationInterface`, `CommunicationPort` with Label, `Node` or `NodeEthernet` with NetworkAddress, SubnetMask, IpProtocolSelection) and PROFIBUS DP station addresses and subnets. | Must | 1.0 | PBF §3.1 (mapping), OQ4 | A PROFINET station exported and re-imported keeps IP, mask and port labels; the DP attribute names are fixed from a real TIA DP export before acceptance. |
 | FR-PLC-032 | The system shall import AML AR APC (CAEX 2.15 and 3.0) from TIA Portal CAx exports, creating or updating stations, racks, modules, channels and tags. Matching order: persisted foreign GUID, `ProductDesignation IEC`, (station, rack, slot, subslot, channel number), order number plus position. Unmatched foreign objects go to an unplaced "parking" list and are never placed on pages automatically. | Must | 1.0 | PBF §3.1, §3.7; C-2; ADR-0021 | Re-importing an unchanged export of the golden station yields an empty diff; a TIA module without IEC tag and with an unknown position appears in the parking list. |
 | FR-PLC-033 | Re-import shall run a three-way merge against the last exchanged snapshot stored in the project and apply per-field ownership (ECAD owns DTs, pins, wiring, function texts, parts and process tags; PLC owns addresses after the first import, firmware and IP addresses; symbol and comment configurable per configuration project), showing added, removed, changed and conflicting items per channel in a preview before one transaction. | Must | 1.0 | PBF §3.7; BS IDEA-067; VIS J4 | Renaming the symbol of the first used channel in TIA and its function text in EW merges both without conflict; renaming the same symbol on both sides yields one conflict row. |
 | FR-PLC-034 | The system shall import TIA Selection Tool AML (AR APC 1.4.0) to create stations and modules with order numbers, IEC tags and accessories (front connectors, memory cards) before the schematic exists; accessories feed the BOM. | Should | 1.x | PBF §3.1 (finding 6), §3.2 | A TST 2025 export creates its devices with the `-UF01`, `-K01` tags it carries and adds accessory lines to the BOM. |
@@ -214,7 +213,7 @@ carry the ordered segment of ports, connectors and cables (PBF §5.2). Terminati
 | FR-BUS-020 | EW-BUS-008 shall check the EtherCAT E-bus current budget (sum of terminal `EBusCurrent` ≤ coupler supply) from ESI data. | Should | 1.x | PBF §4, §13; FR-PLC-027 | 25 × EL1008 (90 mA each, 2,250 mA) behind a 2,000 mA coupler raises EW-BUS-008. |
 | FR-BUS-021 | EtherNet/IP (IP address, mask, RPI within the EDS range, DLR ring) and AS-Interface (addresses 1–31 and 1A–31B, A/B rules, AS-i power supply) shall be supported. | Could | 1.x | PBF §5.3, §15; VIS §9 | Two AS-i slaves at 5A on one network yield EW-BUS-001. |
 | FR-BUS-022 | CANopen (node-ID 1–127) and Modbus TCP/RTU (IP address plus unit ID) shall be supported. | Could | Later | PBF §5.3, §15; VIS §9 | Two CANopen nodes with node-ID 5 on one network yield EW-BUS-001. |
-| FR-BUS-023 | Bus-port part data shall define a signal map from bus signals (A, B, DGND, VP, shield; TD±, RD±) to connector pins, so that a multi-line port representation resolves per-core connections and the core colours of the bus cable. | Should | 1.0 | 08 OQ5; PBF §5.3 | With a multi-line representation of -3X1, the cores A and B of -3W1 land on pins 8 and 3 ▲ and take their colours from the cable part. |
+| FR-BUS-023 | Bus-port part data shall define a signal map from bus signals (A, B, DGND, VP, shield; TD±, RD±) to connector pins, so that a multi-line port representation resolves per-core connections and the core colours of the bus cable. | Should | 1.0 | PBF §5.3 | With a multi-line representation of -3X1, the cores A and B of -3W1 land on pins 8 and 3 ▲ and take their colours from the cable part. |
 | FR-BUS-024 | EW-BUS-010 shall report ports joined by bus connections that belong to different logical networks. | Should | 1.0 | PBF §5.2 | Moving -201U1:DP to a second logical network while -3W1 joins it to the master yields EW-BUS-010. |
 
 ---
@@ -283,7 +282,7 @@ specifications and the fluid reports. Valve terminals are one assembly with chil
 The layout model (`LayoutSpace`, `Enclosure`, `MountingSurface`, `Carrier`, `Placement3D`, `RouteOverride`) lives in
 `ew-panel` (ARCH §3, §4.2). Placements reference devices and store no tag text (D-02); 2D layout pages are
 projections of mounting surfaces through the 2D display list (ARCH §8.5). The MVP is the device-bound 2D plate of
-folio 902 (VIS OQ1, BS IDEA-071); 1.0 adds 3D, STEP, collision, routing and lengths. Routing is a Class II job whose
+folio 902 (BS IDEA-071); 1.0 adds 3D, STEP, collision, routing and lengths. Routing is a Class II job whose
 results are committed only by `RouteWires` (ADR-0003). Window macros carry no placements before FR-LAY-066 (1.x);
 until then an inserted macro adds its mountable devices to the unplaced-devices list.
 
@@ -366,9 +365,9 @@ flowchart LR
 | FR-LAY-061 | Placements of the children of one assembly or PLC station on one carrier shall stay contiguous and in physical order; inserting a missing member shall use push mode, and EW-L016 shall report gaps or order differences against `Device.position` or the module slot. | Should | MVP | D-10; 20 §13 (A-R); PBF §3.4 (EtherCAT order) | Inserting -201U9 between -201U8 and -202U1 shifts -202U1 … -202U3 by its width; swapping -201U3 and -201U4 on R3 raises EW-L016. |
 | FR-LAY-062 | Placement labels on layout pages shall keep the paper height of their text style; a label whose ink box (plus 0.1 mm per side) does not fit its footprint is rotated by 90°, then placed outside with a leader, then replaced by a balloon to the legend, and is never scaled. | Should | MVP | RD §1.12; D-29; D-31; 20 §17.5 | Every label on golden folio 902 at 1:10 prints in the style `xref.device` at 1.83 mm em without scaling; "-101F1" prints rotated inside its 1.8 mm-wide footprint. *As built:* the label keeps its paper height, turns by 90° when its padded ink box does not fit, then sits outside its footprint with a leader, and is never scaled; the balloon step with the legend positions is 1.0 (WP-S4.01 FP-3). |
 | FR-LAY-063 | A terminal strip may be placed in segments (terminal ranges by sequence) on several carriers and remains one device and one BOM row. | Could | 1.0 | D-42; PM §5.4 | -X1031 placed as 1–10 on R2 and 11–20 on R3 keeps one BOM row with quantity 20. |
-| FR-LAY-064 | The 3D view shall show each unrouted wire as a straight line between its two CP3D positions (the connection diagram of EPLAN's 3D layout), highlight it end to end on selection and replace it by the routed polyline once a route is committed. | Should | 1.0 | EF §15; 12 OQ17 | Before `RouteWires`, golden W29 shows as one straight line from -102F2:Out1 to -X1031:1/a; after accepting the routing preview the line is replaced by its routed path. |
-| FR-LAY-065 | Users shall save named 3D views of a layout space (camera, visibility, transparency and section settings) and reopen them. | Could | 1.x | EF §15; 12 OQ17 | A saved view "door open, isometric" of the golden cabinet restores its camera and visibility after the project is reopened. |
-| FR-LAY-066 | Window macros (FR-MAC-001) shall optionally carry layout placements relative to a carrier or surface, inserted together with the macro's devices. | Could | 1.x | 12 OQ17; FR-MAC-001 | Inserting the PSU macro of folio 102 with placements onto rail 1 of an empty plate places -102G1, -102F1 and -102F2 in their stored order. |
+| FR-LAY-064 | The 3D view shall show each unrouted wire as a straight line between its two CP3D positions (the connection diagram of EPLAN's 3D layout), highlight it end to end on selection and replace it by the routed polyline once a route is committed. | Should | 1.0 | EF §15 | Before `RouteWires`, golden W29 shows as one straight line from -102F2:Out1 to -X1031:1/a; after accepting the routing preview the line is replaced by its routed path. |
+| FR-LAY-065 | Users shall save named 3D views of a layout space (camera, visibility, transparency and section settings) and reopen them. | Could | 1.x | EF §15 | A saved view "door open, isometric" of the golden cabinet restores its camera and visibility after the project is reopened. |
+| FR-LAY-066 | Window macros (FR-MAC-001) shall optionally carry layout placements relative to a carrier or surface, inserted together with the macro's devices. | Could | 1.x | FR-MAC-001 | Inserting the PSU macro of folio 102 with placements onto rail 1 of an empty plate places -102G1, -102F1 and -102F2 in their stored order. |
 | FR-LAY-067 | The system shall model a topology: a routing-path network of nodes (cabinet entries, junction boxes, plant locations) and path segments with length, tray or conduit kind and fill, on which cables that leave a cabinet are routed, so that their external length is taken from the committed network route (FR-CBL-020) instead of being authored. | Could | 1.x | critic P3-13 / EPLAN feature inventory; EF §18 | A test project with two cabinets and three path segments routes one field cable between them and shows its external length as the sum of the segments; changing a segment marks the length stale. |
 
 ---
@@ -378,7 +377,7 @@ flowchart LR
 Thermal sizing is a calculation, not a simulation (PM §1 point 7): power loss from placed devices, effective surface
 from the 3D installation, the IEC 61439-1 10.10 and IEC TR 60890 methods (STD §8.2) and climate-device sizing.
 Copyrighted TR figures are not shipped; coefficients come as user or vendor data. Results are Class II
-(ARCH §6.5). The crate placement (queries in `ew-panel`) follows VIS OQ6.
+(ARCH §6.5). The queries live in `ew-panel`.
 
 | ID | Requirement | Prio | Release | Source | Acceptance criterion |
 |---|---|---|---|---|---|
@@ -530,7 +529,7 @@ flowchart LR
 | FR-IMP-037 | DWG shall be readable natively through `acadrust` (MPL-2.0) behind a feature flag once a DWG corpus test passes. | Should | 1.x | C-4; IF §3.3; VIS §9 | The DWG corpus imports with the same entity counts as its ODA-converted DXF. |
 | FR-IMP-038 | QET-import symbols shall keep QET's element-origin cross-reference anchor, so that imported cross-reference texts equal QET's, and FR-CHK-035 shall report those that point to empty cells. | Must | MVP | GC C-15; D-14; SC-4; 20 §20 | Golden C prints "3-B0" and reports MF-13. |
 | FR-IMP-039 | A reconstruction assistant shall propose a valve-terminal assembly from imported pages (children in overview order, valves grouped by module tag on the detail pages, bindings from recognised addresses) as one previewed command. | Should | MVP | 20 MF-14, MF-19, MF-20; FR-IMP-017 | On Golden C it proposes -201U1 with 11 children and 28 valves bound as drawn; accepting it resolves MF-14, MF-19 and MF-20 as step 6 of the Golden C fix script does. |
-| FR-IMP-040 | Imports shall belong to a lineage anchored on the QET project UUID or the first imported file's hash; re-importing an edited source into its lineage shall keep the IDs of unchanged source keys and preview a diff classed unchanged, source-changed, EW-changed, conflict, added and removed, never deleting silently. *As built:* the six classes with two hashes per record (14 §2.3 and §3.4's notes), `ew import qet --into` and `--apply`, and the window's re-import card; the lineage is proposed at a fixed 50 % of shared source keys. | Should | MVP | ADR-0004; Open question 5 | Re-importing the reference `.qet` after adding one terminal in QET adds one terminal and its connections, keeps a function-text edit made in EW and lists no other change. |
+| FR-IMP-040 | Imports shall belong to a lineage anchored on the QET project UUID or the first imported file's hash; re-importing an edited source into its lineage shall keep the IDs of unchanged source keys and preview a diff classed unchanged, source-changed, EW-changed, conflict, added and removed, never deleting silently. *As built:* the six classes with two hashes per record (14 §2.3 and §3.4's notes), `ew import qet --into` and `--apply`, and the window's re-import card; the lineage is proposed at a fixed 50 % of shared source keys. | Should | MVP | ADR-0004 | Re-importing the reference `.qet` after adding one terminal in QET adds one terminal and its connections, keeps a function-text edit made in EW and lists no other change. |
 | FR-IMP-041 | Each import shall persist an import run with its import-only findings, statistics and record hashes, shown together with the live lenient findings as the migration report. *As built:* `imports/<run-uuid>.jsonl`, read by the `migration` scheme after save and reopen; a re-import that writes a run drops the EW-IMP-010 row of a record removed at an earlier one (WP-S3.09 IC-12's note). | Must | MVP | FR-IMP-003; 20 MF-22 | After saving and reopening Golden C, MF-22 is still listed as an info. |
 | FR-IMP-042 | The QET importer shall infer numbering rules per letter class from formulas and labels, keep conforming tags derived with their source counters and freeze the rest, listing the inferred rules for confirmation. | Must | MVP | D-01; D-03; FR-IMP-010, FR-IMP-011 | Golden C derives -101F1, -3W1 and -X1031 and freezes exactly S51, F55, T55, E55, S56, E56 and 1X1. |
 | FR-IMP-043 | Conductors without stored segments shall receive the path QET computes for them, stored as an explicit route. | Must | MVP | IF §1.4; FR-IMP-021 | The migration verifier reports no conductor-path deviation on the QET corpus pages. |
@@ -571,7 +570,7 @@ defined in their areas.
 
 | ID | Requirement | Prio | Release | Source | Acceptance criterion |
 |---|---|---|---|---|---|
-| FR-UI-001 | The application shell shall place the canvas in the centre, navigators in a left dock, the property grid in a right dock and messages, search results and table editors in a bottom dock, with docking and tabbing and native file dialogs. Menus shall be generated from one action registry with identical entries, accelerators and enabled states on Windows and Linux (the app menu of ADR-0031; macOS is not supported). | Must | MVP | ARCH §9; ADR-0014 (pending amendment 1); GC G5; 16 OQ1 | A kittest flow opens the golden project, docks the terminal navigator as a tab next to the page navigator, and finds it there after a restart; a kittest flow on Linux and a manual check on Windows list the same File menu entries and accelerators. |
+| FR-UI-001 | The application shell shall place the canvas in the centre, navigators in a left dock, the property grid in a right dock and messages, search results and table editors in a bottom dock, with docking and tabbing and native file dialogs. Menus shall be generated from one action registry with identical entries, accelerators and enabled states on Windows and Linux (the app menu of ADR-0031; macOS is not supported). | Must | MVP | ARCH §9; ADR-0014 (pending amendment 1); GC G5 | A kittest flow opens the golden project, docks the terminal navigator as a tab next to the page navigator, and finds it there after a restart; a kittest flow on Linux and a manual check on Windows list the same File menu entries and accelerators. |
 | FR-UI-002 | Users shall save and switch named workspaces (dock layout, open panels); the Schematic workspace ships at MVP. | Must | MVP | ARCH §9 | Saving "My schematic", switching away and back restores the layout. |
 | FR-UI-003 | PLC, Fluid, Panel 3D and Manufacturing workspaces shall ship with their navigators, tables and canvases. | Must | 1.0 | ARCH §9; VIS §9 | Switching to Panel 3D shows the 3D canvas, the layout navigator, the unplaced-devices list and the wiring manager. |
 | FR-UI-004 | Panels and canvases shall be movable to a second monitor. | Should | 1.0 | ARCH §9; VIS §9 | A page canvas on monitor 1 and the 3D view on monitor 2 stay in selection sync. |
@@ -602,7 +601,7 @@ defined in their areas.
 | FR-UI-029 | The 3D canvas shall offer orbit, pan and zoom, orthographic and perspective cameras, standard views, enclosure transparency, picking, a gizmo with carrier snapping and rail-snap dragging, and show collision results on the violating sub-shape. | Must | 1.0 | ARCH §8.5; ADR-0016 | Dragging -102F1 along its rail in 3D pushes its neighbours as in 2D (FR-LAY-014) and reports collisions at drag end. |
 | FR-UI-030 | On first start the application shall offer the company-standard wizard (creating the basic project defined in the PRJ area of 02a), opening the golden sample project and importing a QET project, all offline. | Must | MVP | GC G13; VIS §6 (J1); BS IDEA-023 | A first start under the network sandbox completes the wizard and opens the golden sample with no connection attempt. |
 | FR-UI-031 | F1 shall open the documentation anchor of the current tool or dialog, tooltips shall show the shortcut and a "learn more" link, and check messages shall link to their rule page; the documentation is available offline. | Should | MVP | GC G13; BS IDEA-104 | F1 in the terminal-strip editor opens its page offline; EW-POT-013 links to its rule page. |
-| FR-UI-032 | The UI shall be translatable through Fluent, with English and Dutch complete at MVP and German by 1.0, switchable in the settings. | Must | MVP | ARCH §9; VIS OQ8; GC G13 | Switching to Dutch shows every string of the core flows translated (translation-completeness gate in CI). |
+| FR-UI-032 | The UI shall be translatable through Fluent, with English and Dutch complete at MVP and German by 1.0, switchable in the settings. | Must | MVP | ARCH §9; GC G13 | Switching to Dutch shows every string of the core flows translated (translation-completeness gate in CI). |
 | FR-UI-033 | User settings (keymap, theme, scale, workspaces, recent projects) shall live in the OS configuration directory, and per-project view state (open pages, viewports) in the git-ignored `.ew/` folder, never in project data. | Must | MVP | ARCH §7.2; GC G1 | Opening the golden project, changing the viewport and saving changes no tracked file. |
 | FR-UI-034 | A status bar shall show the cursor position in mm and as page cell (e.g. "103-A1"), grid and snap mode, selection count, render backend and running jobs. | Should | MVP | ARCH §8.2 | Hovering over the 24VDC-1 arrow on folio 103 shows "103-A1". |
 | FR-UI-035 | Several pages shall be open as tabs, and two pages shall be viewable side by side. | Should | MVP | EF §4 | Folios 102 and 103 side by side keep their own viewports. |
@@ -648,8 +647,8 @@ versioned extension surface.
 | FR-EXT-013 | The macro recorder shall export recorded commands as parameterisable rhai. | Should | 1.0 | ARCH §5.5 | Recording the placement of the heater group and replaying it on another folio with a folio parameter yields the same devices with new tags. |
 | FR-EXT-014 | Scripts, SQL reports and rule packs inside received projects shall not run until the user trusts the project; trust is remembered by project hash and signer; built-in packs are trusted. | Must | MVP | ARCH §10.2, §10.6; GC G10 | Opening a received project with a custom SQL report shows the trust prompt and renders the report only after acceptance. |
 | FR-EXT-015 | Every command shall have a stable dotted name (e.g. `device.place`, `numbering.renumber`) and a JSON Schema for its parameters, shared by palette, CLI, rhai, MCP and plugins. | Must | MVP | ARCH §5.1 | The generated command catalogue lists every command with its schema; renaming a command fails a CI compatibility test. |
-| FR-EXT-016 | `ew mcp` shall serve MCP over stdio or localhost only, never started implicitly, with the read tools `query`, `sql_query`, `find`, `run_checks` and `preview_command`; it is read-only while the GUI holds the lock. | Could | MVP | ARCH §10.5; ADR-0020; VIS OQ10 | An MCP client lists the tools and answers "24 V loads per MICO channel" through `sql_query`; no socket other than stdio or 127.0.0.1 is opened. |
-| FR-EXT-017 | MCP writes shall be ask-first: `commit_preview` applies a previewed command only after explicit user approval, as a journalled, undoable transaction tagged `origin=mcp`. | Should | 1.0 | ARCH §10.5; ADR-0020; BS OQ6 | An agent's proposed renumber shows its diff; declining leaves the project unchanged; accepting creates one undo step tagged mcp. |
+| FR-EXT-016 | `ew mcp` shall serve MCP over stdio or localhost only, never started implicitly, with the read tools `query`, `sql_query`, `find`, `run_checks` and `preview_command`; it is read-only while the GUI holds the lock. | Could | MVP | ARCH §10.5; ADR-0020 | An MCP client lists the tools and answers "24 V loads per MICO channel" through `sql_query`; no socket other than stdio or 127.0.0.1 is opened. |
+| FR-EXT-017 | MCP writes shall be ask-first: `commit_preview` applies a previewed command only after explicit user approval, as a journalled, undoable transaction tagged `origin=mcp`. | Should | 1.0 | ARCH §10.5; ADR-0020 | An agent's proposed renumber shows its diff; declining leaves the project unchanged; accepting creates one undo step tagged mcp. |
 | FR-EXT-018 | A GUI live bridge shall show agent-proposed commands as ghost previews with a model diff and apply them only on user acceptance. | Could | 1.x | BS FR-EXT-P01, IDEA-086; ARCH §2 | A proposed wire appears as a ghost on the open page until accepted or rejected. |
 | FR-EXT-019 | WASM component plugins (wasmtime LTS line, WIT world `elektrawatt:plugin@1`) shall read through typed queries and `sql-query`, write only through `submit` and `preview → diff`, use capability-scoped file handles and host-rendered declarative dialogs, and may export importers, exporters, rules, report columns and machine profiles. | Must | 1.x | ADR-0020; ARCH §10.4 | A sample exporter plugin writes a CSV through its granted file handle and fails to open any other path. |
 | FR-EXT-020 | Plugins shall declare capabilities approved at installation, carry signed manifests, run under fuel or epoch deadlines and store limits with WASI pre-opened directories only and no network by default, and appear by ID in the undo history. | Must | 1.x | ADR-0020; GC G10 | A plugin exceeding its fuel is stopped with a message; an unsigned plugin is refused unless the user overrides. |
@@ -660,7 +659,7 @@ versioned extension surface.
 | FR-EXT-025 | `ew check` shall offer SARIF 2.1.0 output with logical locations (page, entity) and a physical location (project file and line of the primary target's record). | Should | 1.0 | 15 §8; 17 §3.3 | GitHub code scanning shows the Golden A findings grouped by rule. |
 | FR-EXT-026 | `ew mcp` on loopback shall require a per-session random token shown to the user, validate the `Origin` header and offer no configuration that binds a non-loopback interface. | Must | MVP | NFR-SEC-08; ADR-0020; 17 §7.1 | A request without the token, or with a foreign `Origin`, is refused; no flag binds 0.0.0.0. |
 | FR-EXT-027 | `ew export report --block <name or id> --format <pdf, xlsx or csv> [--lang <tag>]` shall export any report block. | Should | MVP | FR-EXT-003; FR-REP-030; 09 | Exporting block 908 as XLSX gives the 56 rows of folios 908–908.2. |
-| FR-EXT-028 | `ew import table <xlsx> --project <p>` shall import a table round trip (FR-EXP-004) as a previewed command with the exit codes of FR-EXT-002. | Should | 1.0 | 14 OQ14, §8; FR-EXP-004 | Changing two function texts in an exported device table and importing it previews and commits exactly two field changes. |
+| FR-EXT-028 | `ew import table <xlsx> --project <p>` shall import a table round trip (FR-EXP-004) as a previewed command with the exit codes of FR-EXT-002. | Should | 1.0 | 14 §8; FR-EXP-004 | Changing two function texts in an exported device table and importing it previews and commits exactly two field changes. |
 | FR-EXT-029 | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` shall replay a JSONL command log with tag, ID and folio references resolved at run time. | Must | MVP | 17 §3.5; 20 §2.2 | `b-renumber.ewcmd --preview` on Golden A lists exactly the 10 + 2 tag changes and 14 cross-reference changes of AC-18. |
 | FR-EXT-030 | Every command shall declare an exposure class, checked in the commit pipeline; `HumanOnly` commands (approve, release, withdraw, waivers, scheme edits, pack enablement, strictness, project completion, trust, plugin install, library writes) shall be refused for command-log, jobset, script, MCP, plugin and Python origins, and on the CLI shall run only from their dedicated subcommands after a confirmation typed on a controlling terminal. | Must | MVP | 17 §2.3; D-34; FR-REV-007; 15 §2.5, §5.4 | An MCP `preview_command(check.waive)` and a plugin `submit(revision.release)` fail with an exposure error; a `.ewcmd` containing `revision.approve` exits 2 before its first line; `ew revision approve` with stdin redirected from `/dev/null` and no terminal exits 2. |
 | FR-EXT-031 | Trust (FR-EXT-014) shall cover exactly the gated content of 17 §2.4 (rules, reports, scripts, jobsets, machine profiles with expressions or SQL) by content hash; it shall lapse when that content changes outside the user's session, be grantable non-interactively per invocation (`--trust <sha256>`) and, from 1.0, by signer key. | Must | MVP | 17 §2.4; FR-EXT-014; 05 §13.4 | After a git pull that changes one rule file, the trust banner reappears listing that file; `ew check --trust <hash>` in CI runs the project pack. |
@@ -769,202 +768,3 @@ XRF, CHK, OUT, REV, PRJ).
 | D-34 | Author = checker | FR-EXT-030 |
 | D-36, D-40 | Order code vs components; CPX block inside MPA section | FR-FLU-014, FR-FLU-022, FR-PLC-028 |
 | D-42 | Strip drawn twice | FR-IMP-013, FR-LAY-063 |
-
----
-
-## 14. Counts
-
-The catalogue holds **434 requirements** (353 in v0.1, 79 adopted from the feature documents and 2 added for the scope boundaries of [vision and scope](00-vision-and-scope.md) §9.2). The counts are for the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted (vision §9.1, global plan §14). Counts are
-generated from the tables above; IDs are unique and contiguous in every area.
-
-**By area and priority**
-
-| Area | Must | Should | Could | Total |
-|---|---|---|---|---|
-| PLC | 37 | 16 | 3 | 56 |
-| BUS | 13 | 9 | 2 | 24 |
-| FLU | 15 | 13 | 6 | 34 |
-| LAY | 34 | 25 | 8 | 67 |
-| THM | 7 | 4 | 1 | 12 |
-| MFG | 31 | 13 | 7 | 51 |
-| IMP | 29 | 14 | 2 | 45 |
-| EXP | 6 | 2 | 4 | 12 |
-| UI | 30 | 17 | 4 | 51 |
-| EXT | 24 | 10 | 3 | 37 |
-| COL | 16 | 11 | 2 | 29 |
-| I18N | 10 | 4 | 2 | 16 |
-| **Total** | **252** | **138** | **44** | **434** |
-
-**By area and release**
-
-| Area | MVP | 1.0 | 1.x | Later | Total |
-|---|---|---|---|---|---|
-| PLC | 26 | 25 | 4 | 1 | 56 |
-| BUS | 9 | 12 | 2 | 1 | 24 |
-| FLU | 11 | 20 | 2 | 1 | 34 |
-| LAY | 21 | 36 | 9 | 1 | 67 |
-| THM | 0 | 10 | 1 | 1 | 12 |
-| MFG | 0 | 42 | 7 | 2 | 51 |
-| IMP | 29 | 13 | 2 | 1 | 45 |
-| EXP | 6 | 3 | 1 | 2 | 12 |
-| UI | 42 | 8 | 0 | 1 | 51 |
-| EXT | 22 | 7 | 8 | 0 | 37 |
-| COL | 19 | 6 | 3 | 1 | 29 |
-| I18N | 6 | 7 | 3 | 0 | 16 |
-| **Total** | **191** | **189** | **42** | **12** | **434** |
-
-**By release and priority**
-
-| Release | Must | Should | Could | Total |
-|---|---|---|---|---|
-| MVP | 143 | 44 | 4 | 191 |
-| 1.0 | 103 | 74 | 12 | 189 |
-| 1.x | 6 | 20 | 16 | 42 |
-| Later | 0 | 0 | 12 | 12 |
-| **Total** | **252** | **138** | **44** | **434** |
-
-**Observations for the plan.** Of the 143 MVP Musts in this catalogue, most fall in UI (27), QET import (23), the
-PLC data model (22), the CLI and extension surface (16), the device-bound 2D layout (14) and storage (13);
-manufacturing and thermal are entirely 1.0, matching [vision and scope](00-vision-and-scope.md) §9. The adoption
-pass added 17 MVP Musts and 24 MVP Shoulds, mostly import fidelity (lineage, numbering inference, colour aliases),
-PLC invariants, command-log and trust mechanics and UI conveniences. The interaction and the documents and migration
-streams carry most of that MVP load, and the thin layout slice of
-BS OQ2 must be staffed explicitly. The global plan should check these counts against team capacity before freezing
-the MVP; the 44 MVP Shoulds are the first candidates to defer.
-
----
-
-## Requirements covered
-
-This catalogue **defines** the following ranges; the feature documents elaborate them.
-
-| Range | Elaborated in |
-|---|---|
-| FR-PLC-001 … FR-PLC-056, FR-BUS-001 … FR-BUS-024 | [10-plc-and-bus](10-plc-and-bus.md); exchange formats also in [14-interop](14-interop.md) |
-| FR-FLU-001 … FR-FLU-047 | [11-fluid-power](11-fluid-power.md) |
-| FR-LAY-001 … FR-LAY-067, FR-THM-001 … FR-THM-012 | [12-panel-layout](12-panel-layout.md) |
-| FR-MFG-001 … FR-MFG-051 | [13-manufacturing-outputs](13-manufacturing-outputs.md) |
-| FR-IMP-001 … FR-IMP-045, FR-EXP-001 … FR-EXP-012 | [14-interop](14-interop.md) |
-| FR-UI-001 … FR-UI-051 | [16-ux-ui](16-ux-ui.md); FR-UI-038 and FR-UI-050 also in [18-quality-security-release](18-quality-security-release.md) |
-| FR-EXT-001 … FR-EXT-037 | [17-extensibility](17-extensibility.md) |
-| FR-COL-001 … FR-COL-029 | [05-project-format-and-persistence](05-project-format-and-persistence.md), [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) |
-| FR-I18N-001 … FR-I18N-016 | [09-reports-forms-output](09-reports-forms-output.md) (per-language output), [14-interop](14-interop.md) §8.5 (translation exchange format, XLIFF and CSV), [16-ux-ui](16-ux-ui.md) (translation UI) |
-
-### Adopted proposals
-
-The provisional IDs proposed upstream map to final rows as follows ("refined" marks an existing row whose text or
-criterion took the proposal's substance).
-- **From [00](00-vision-and-scope.md) §11:** FR-IMP-nnn (migration report) → FR-IMP-003.
-- **From [01](01-brainstorm.md):** FR-COL-P01 → FR-COL-017; FR-COL-P02 → FR-COL-018; FR-MFG-P01 → FR-MFG-033;
-  FR-MFG-P02 → FR-MFG-014; FR-IMP-P01 → FR-IMP-021; FR-IMP-P02 → FR-IMP-017; FR-EXT-P01 → FR-EXT-018; FR-UI-P01 →
-  FR-UI-011. FR-MAC-P01, FR-DEV-P01, FR-REP-P01 and FR-OUT-P01 belong to 02a.
-- **From [02a](02a-requirements-core.md):** FR-IMP-nnn (QET formulas and link data) → FR-IMP-009 (refined; formulas
-  in FR-IMP-010); FR-LAY-nnn (placements store no tag text) → FR-LAY-006 (refined); FR-PLC-nnn ("to be defined"
-  address) → FR-PLC-013 (refined); FR-PLC-nnn (derived and validated channel addresses) → FR-PLC-012 (refined, with
-  FR-PLC-045); FR-UI-nnn (back and forward history) → FR-UI-019.
-- **From [02c](02c-nonfunctional-requirements.md):** FR-COL-nnn (backup before a format-major rewrite) → FR-COL-029;
-  FR-EXT-nnn (MCP session token) → FR-EXT-026; FR-UI-nnn (About dialog) → FR-UI-038.
-- **From [05](05-project-format-and-persistence.md):** FR-COL-nnn `ew git setup` → FR-COL-024; git conflict
-  markers → FR-COL-025; lock refresh and loss → FR-COL-026; one generation per read → FR-COL-027; recovered undo
-  history → FR-COL-028; cross-file reconciliation after a merge → FR-COL-016 (refined and narrowed).
-- **From [06](06-schematic-editor.md):** FR-UI-nnn "Go to" → FR-UI-039; clipboard project fragment → FR-UI-040;
-  multi-format clipboard → FR-UI-051; pending completeness findings → FR-UI-041.
-- **From [09](09-reports-forms-output.md):** P09-10 → FR-EXT-027.
-- **From [10](10-plc-and-bus.md):** FR-PLC-nnn (a) → FR-PLC-019 (refined); (b) → FR-PLC-051; (c) → FR-PLC-052;
-  (d) → FR-PLC-053; (e) → FR-PLC-054; (f) → FR-PLC-055; (g) → FR-PLC-056; FR-BUS-nnn (h) → FR-BUS-023; (i) →
-  FR-BUS-024.
-- **From [11](11-fluid-power.md):** FR-FLU-nnn manifold galleries → FR-FLU-026; position prevent rule →
-  FR-FLU-027; port closure → FR-FLU-028; `Drives` normaliser → FR-FLU-029; fluid interruption points → FR-FLU-030;
-  physical tubes → FR-FLU-031; EW-FL-012 and EW-FL-014 → FR-FLU-032; assembly-overview pages → FR-FLU-033;
-  medium-zone highlight → FR-FLU-034; FR-IMP-nnn valve-terminal reconstruction → FR-IMP-039; the fluid SQL views →
-  FR-EXT-032.
-- **From [12](12-panel-layout.md):** FR-LAY-nnn part uses → FR-LAY-059; group accessories → FR-LAY-060;
-  contiguous assembly children → FR-LAY-061; label fitting → FR-LAY-062; strip segments → FR-LAY-063; unrouted
-  wires in 3D → FR-LAY-064; Open question 17 → FR-LAY-065 (saved 3D views) and FR-LAY-066 (placement-carrying
-  macros); FR-THM-nnn loss model → FR-THM-001 (refined); thermal findings → FR-THM-012. FR-CBL-nnn belongs to 02a.
-- **From [13](13-manufacturing-outputs.md):** P13-1 → FR-MFG-042; P13-2 → FR-MFG-043; P13-3 → FR-MFG-044; P13-4 →
-  FR-MFG-045; P13-5 → FR-MFG-046; P13-6 → FR-MFG-047; P13-7 → FR-MFG-048; P13-11 → FR-MFG-049; P13-12 → FR-MFG-050;
-  P13-13 → FR-MFG-051. P13-8 belongs to 02a, P13-9 and P13-10 to 02c.
-- **From [14](14-interop.md):** FR-IMP-nnn element-origin anchor → FR-IMP-038 (one row with 20's proposal); import
-  lineage → FR-IMP-040; persisted import run → FR-IMP-041; numbering-rule inference → FR-IMP-042; computed conductor
-  paths → FR-IMP-043; foreign colour aliases → FR-IMP-044; import as a copy → FR-IMP-045.
-- **From [15](15-checks-revisions-collaboration.md):** FR-COL-022, FR-COL-023 and FR-EXT-025 keep their numbers.
-- **From [16](16-ux-ui.md):** P16-1 → FR-UI-042; P16-2 → FR-UI-043; P16-3 → FR-UI-044; P16-4 → FR-UI-045; P16-5 →
-  FR-UI-046; P16-6 → FR-UI-047; P16-7 → FR-UI-005 (refined; FR-UI-006 drops PLC); P16-8 → FR-UI-048; P16-9 →
-  FR-UI-049; P16-11 → FR-UI-001 (refined); P16-12 → FR-UI-023 (refined). P16-10 belongs to 02c.
-- **From [17](17-extensibility.md):** FR-EXT-025 … FR-EXT-037 keep their numbers; FR-EXT-025 is one row with 15's,
-  FR-EXT-026 includes 02c's token row and FR-EXT-032 includes 11's fluid views.
-- **From [18](18-quality-security-release.md):** P18-7 → FR-UI-050; P18-8 → FR-UI-038 (one row with 02c's About
-  dialog).
-- **From 20:** FR-LAY-nnn (EW-L001 for devices without part) → FR-LAY-017 (refined);
-  FR-IMP-nnn (element-origin anchor) → FR-IMP-038.
-
-### Rows proposed to 02a and 02c
-
-Rows this catalogue depends on that belong to [02a](02a-requirements-core.md) or
-[02c](02c-nonfunctional-requirements.md), with their adoption:
-- FR-CHK-nnn (unverified rule constants as data with a `verified` flag) → FR-CHK-046, as worded in
-  [15](15-checks-revisions-collaboration.md).
-- FR-REP-nnn (built-in report kinds for the 02b domain row sources) → FR-REP-045, merged with 09 P09-1 (it adds the
-  PLC card list).
-- NFR-PERF-nn (`RouteWires` on a 2,000-wire cabinet) → NFR-PERF-16; NFR-PERF-nn (3D collision re-check) →
-  NFR-PERF-17; NFR-PERF-nn (STEP import and cache) → NFR-PERF-18.
-- NFR-REL-nn (deterministic routing, lengths, ferrules, bundles and exports) → NFR-REL-07.
-- NFR-SEC-nn (fuzz targets for every importer and device-description parser) → NFR-SEC-03.
-- NFR-LIC-nn (no bundled third-party engineering content; provenance per record) → NFR-LIC-06.
-- NFR-COMP-nn (method, sources and competent-person statement on thermal reports and checklists) → NFR-COMP-04.
-
----
-
-## Open questions
-
-1. **Configuration-project record.** [Architecture](04-architecture.md) §4.2 lists `PlcStation`, `PlcModule` and
-   `Channel` but no record for the configuration project that FR-PLC-002 needs (address profile, ownership,
-   exchange snapshot, foreign-ID map). *Recommendation:* add a `PlcConfigProject` record kind to `ew-schema`,
-   stored in `project.jsonl`, referenced by `PlcStation.config_project`; the exchange snapshot goes into its own
-   file under `exchange/` so that it does not bloat merges.
-2. **Festo address map for the golden test (D-26).** Whether VMPA1-FB-EMG-8 assigns coil 14 to the even or the odd
-   bit decides whether FR-PLC-045 reports 28 findings or none (PBF OQ1, BS PQ-15). *Recommendation:* ship the part
-   data marked unverified until the CPX/MPA manual or the pilot's PLC program confirms it; keep golden acceptance
-   criterion 8 expecting the EW-PLC-012 finding until then.
-3. **DWG in v1.** The user decision lists "DXF (DWG)" import in v1, while [vision and scope](00-vision-and-scope.md)
-   §9 places DWG at 1.x. *Recommendation:* the ODA-converter route (FR-IMP-036) at 1.0 Should, because it reuses
-   the DXF importer at little cost, and native `acadrust` reading (FR-IMP-037) at 1.x. **Adopted:** VIS §9 now reads this way.
-4. **QETZ timing.** FR-IMP-024 is 1.x because the pilot uses QET 0.100.0-dev. *Recommendation:* move it to MVP if
-   the pilot or their customers switch to QET 0.200 before migration (BS PQ-03); the effort is low because QETZ
-   re-joins into the `.qet` importer.
-5. **Re-import of a modified QET file.** *Resolved* by ADR-0004 pending amendment 1: the ID namespace is anchored
-   on an import lineage (the QET project UUID, or the SHA-256 of the lineage's first imported file), so that IDs
-   depend on the source key only (FR-IMP-002) and an edited `.qet` re-imports with a classified diff (FR-IMP-040).
-6. **Home of the wiring viewer and thermal code.** The architecture names no crate for either (VIS OQ6, BS OQ4).
-   *Recommendation:* thermal as queries in `ew-panel`; the viewer as a separate read-only binary (`ew-viewer`) that
-   shares `ew-render3d` and opens `.ewpp` only, because shop-floor PCs need no project tooling and a smaller binary
-   reduces the attack surface.
-7. **Unverified constants.** Bus ranges, segment lengths, IO-Link limits, ferrule colour tables, EN 60204-1 clause
-   values and IEC TR 60890 coefficients are unverified in the research. The `verified` flag is adopted as
-   FR-CHK-046 (warnings until verified) and EW-THM-004 (FR-THM-012). *Recommendation:* budget a verification pass
-   against the purchased standards and vendor manuals before 1.0.
-8. **Machine formats and partner shop.** FR-MFG-020, FR-MFG-021 and SC-7 can only be accepted with real
-   TopConvert specification sheets and Rittal WT templates (PM OQ2, BS PQ-21). *Recommendation:* obtain samples
-   under an agreement that permits an open implementation; until then ship the generic profile as the reference and
-   mark vendor profiles as preview.
-9. **Default shop policies.** Duct fill limits, reserve length, marking scheme, ferrule colour scheme and bundle size
-   are pilot decisions (PM OQ3, BS PQ-22). *Recommendation:* defaults of 60 % fill warning and 80 % error, 100 mm
-   reserve, destination marking and DIN ferrule colours, all configurable in the basic project.
-10. **Vendor mesh embedding.** Whether decimated vendor meshes may be embedded in shared projects needs a
-    per-vendor review (PM OQ4). *Recommendation:* default to hash plus re-download hint (FR-LAY-022) and maintain an
-    allowlist of vendors whose terms permit embedding.
-11. **Address ownership default.** FR-PLC-033 needs a default per configuration project (BS PQ-19).
-    *Recommendation:* ECAD owns addresses until the first TIA import, after which addresses become PLC-owned and
-    are protected; the setting is visible in the PLC navigator.
-12. **AR APC PROFIBUS attributes.** The verified TIA sample is PROFINET only (PBF OQ4). *Recommendation:* make a
-    TIA V21 export of a DP master system with a CPX-FB13 slave a precondition for accepting FR-PLC-031's DP part.
-13. **Permissive CAEX and GSDML parsers.** The research proposes publishing CAEX and GSDML crates (PBF Impl. 13),
-    but the architecture places AML and GSDML in the GPL `ew-plc`. *Recommendation:* split pure parsing and writing
-    into permissive `ew-caex` and `ew-gsdml` crates in the closed lower layer if a contributor owns them; otherwise
-    keep them in `ew-plc` and drop them from FR-EXT-023, as this draft does.
-14. **EPLAN-like keymap.** FR-UI-014 has no verified bindings (GC G5). *Recommendation:* collect them from the two
-    EPLAN users of the M2 usability test and ship the preset only after they confirm it.
-15. **Read-only MCP in the MVP.** FR-EXT-016 is MVP Could although QET already ships an MCP server
-    (VIS OQ10). *Recommendation:* keep Could; promote to Should if the spine finishes on time, since the read tools
-    reuse `ew query` and `ew sql`.

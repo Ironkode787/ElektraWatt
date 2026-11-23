@@ -17,7 +17,6 @@ it appears there, and every idea stays within the accepted [architecture](04-arc
 5. [Value/effort matrix](#5-valueeffort-matrix)
 6. [Wild and parked ideas](#6-wild-and-parked-ideas)
 7. [Questions for the pilot user](#7-questions-for-the-pilot-user)
-8. [Requirements covered](#requirements-covered) · [Open questions](#open-questions)
 
 ---
 
@@ -193,7 +192,7 @@ Four root causes explain all 42 defects
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
 | IDEA-070 ★ | **3D cabinet with deterministic routing and automatic wire lengths**, committed by an explicit `RouteWires` command | H | H | 1.0 | LAY | v1 brief item 3; lengths feed wire list and machines (ADR-0003, ADR-0016) |
-| IDEA-071 | Device-bound true-scale 2D plate layout (folio 902): live labels, legend, unplaced check | H | M | MVP | LAY | D-02, D-32 (Open question 2) |
+| IDEA-071 | Device-bound true-scale 2D plate layout (folio 902): live labels, legend, unplaced check | H | M | MVP | LAY | D-02, D-32 |
 | IDEA-072 | Box macros generated from part dimensions | H | L | 1.0 | LAY | 3D not blocked on vendor CAD |
 | IDEA-073 | STEP import in the OCCT worker, content-hash cache, two LODs | H | H | 1.0 | LAY | ADR-0016 |
 | IDEA-074 | Duct fill heat-map and fill warnings | M | M | 1.0 | LAY | 40x60 fill is a daily question |
@@ -449,59 +448,3 @@ changes. Until a question is answered, the documented defaults apply.
 | PQ-50 | Do you need the legend position numbers of a layout frozen at release, so revised drawings keep their numbers? | DEC-070; G-M4; WP-S4.01; default derived positions that renumber when devices change | plan/06 Part C |
 | PQ-51 | Which cross-reference style do you want on native pages ("/101.H16" EPLAN style or the QET style you use today), and how should contact images and interruption-point directions look in your house style? | DEC-050; G-M2; WP-S7.03, R0; default EPLAN style on native frames, QET style in the pilot basic project | plan/06 Part C |
 | PQ-52 | Do you estimate labour from the wire list? Which I/O-list typicals (per card or per device) could you share? | DEC-012; G-M6; WP-S3.15, WP-S1.29; default labour estimate as an example SQL report, flat I/O-list value sets | plan/06 Part C |
-
----
-
-## Requirements covered
-
-None directly. This document is upstream of the requirement catalogues and records candidate ideas, not
-requirements. Every FR area appears in the `Area` column of §3. The catalogues [02a](02a-requirements-core.md),
-[02b](02b-requirements-extended.md) and [02c](02c-nonfunctional-requirements.md) cite `IDEA-nnn`, `REF-nnn` and
-`D-nn` in their Source column, so that the trace from defect to idea to requirement stays complete.
-
-### Proposed new requirements
-
-The twelve rows this document proposed (provisional IDs with `P`) are in the catalogues:
-- Added to [02a](02a-requirements-core.md) as: FR-MAC-P01 (macro per I/O-list row) → **FR-MAC-017**;
-  FR-DEV-P01 (configurator decoders) → **FR-DEV-036**; FR-REP-P01 (labour estimate) → **FR-REP-044**.
-- Covered by an existing 02a row: FR-OUT-P01 (review copy) → **FR-OUT-025** (omit personal data), with the
-  watermark as the status mark of **FR-OUT-021**.
-- Covered by existing [02b](02b-requirements-extended.md) rows: FR-COL-P01 (visual comparison) → **FR-COL-017**;
-  FR-COL-P02 (entity-anchored comments) → **FR-COL-018**; FR-MFG-P01 (read-only wiring viewer) → **FR-MFG-033**;
-  FR-MFG-P02 (QR codes on labels) → **FR-MFG-014**; FR-IMP-P01 (migration verifier) → **FR-IMP-021**; FR-IMP-P02
-  (free text to typed data) → **FR-IMP-017**; FR-EXT-P01 (GUI live bridge for MCP) → **FR-EXT-018**; FR-UI-P01
-  ("why this value?" view) → **FR-UI-011**.
-
----
-
-## Open questions
-
-1. **Traceability.** §3 cites areas, not FR IDs, because it was written before 02a/02b/02c. The catalogues now
-   have a `Source` column (IDEA-nnn, REF-nnn, D-nn), but not every ★ idea is cited there yet. *Recommendation:*
-   check in CI that every ★ idea maps to at least one Must requirement.
-2. **Folio 902 in the MVP.** The MVP must reproduce the reference set, which includes folio 902. The architecture
-   starts stream S4 (layout) after the 2D editor MVP for a team of two or three ([roadmap](../../ROADMAP.md), M4). The spine
-   renders 902 from bootstrapped data, but the pilot user must also *draw* new layouts. **Resolved:** a thin S4
-   slice is MVP (IDEA-071: one mounting surface, rails and ducts as parametric rectangles, device-bound placements
-   with `layout_label`, check EW-LAY-001; FR-LAY-006 … FR-LAY-017 in [02b](02b-requirements-extended.md)); STEP,
-   collision and routing stay in 1.0, and the plan confirms the staffing.
-3. **Depth of I/O-list generation in 1.0.** *Recommendation:* flat value sets only (one macro per row,
-   placeholders). Conditional, Cogineer-like rules follow in 1.x, once real typicals are collected from the pilot
-   user.
-4. **Packaging of the wiring viewer.** **Resolved:** the `ew-viewer` crate opens `.ewpp` only and shares the 3D
-   renderer; a small `ew-wiring-viewer` binary serves shop PCs, and the Manufacturing workspace reuses it as
-   "Preview package" ([architecture](04-architecture.md) §3, [13](13-manufacturing-outputs.md)). A WebAssembly
-   tablet build stays a later option if PQ-23 shows iPads or phones.
-5. **QR payload.** **Resolved:** an opaque short code (package ID plus a stable wire key) that resolves offline,
-   with an optional per-company URL template that is off by default (FR-MFG-014,
-   [13](13-manufacturing-outputs.md) §11.2), so nothing leaves the shop and no links go dead within the retention
-   period.
-6. **AI as a non-bet.** *Recommendation:* keep IDEA-085's ask-first writes as a 1.0 Should for parity with QET
-   (FR-EXT-017; the read-only tools are MVP Could, FR-EXT-016). Decide on the live bridge (IDEA-086, FR-EXT-018)
-   after measuring use of the headless server in the 1.0 beta.
-7. **Thermal scope.** IDEA-076 is a question mark (M value, H effort) but in the v1 brief. *Recommendation:*
-   single compartment with user-supplied coefficients in 1.0; multi-compartment and vendor curves in 1.x.
-8. **Labour estimate.** *Recommendation:* ship IDEA-062 first as a user SQL report example and promote it to a
-   built-in report only if pilot users adopt it.
-9. **Scores are estimates.** *Recommendation:* re-score after the M0 performance spike and the answers to PQ-01,
-   PQ-21, PQ-23 and PQ-26, and update §5 before the 1.0 plan is frozen.

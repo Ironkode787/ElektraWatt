@@ -19,7 +19,7 @@ the palette aliases ([16](16-ux-ui.md) §9.3, FR-UI-045, NFR-DOC-05) are generat
 4. [Translation table: EPLAN, QElectroTech, ElektraWatt](#4-translation-table-eplan-qelectrotech-elektrawatt)
 5. [Abbreviations](#5-abbreviations)
 6. [Crates](#6-crates)
-7. [Maintenance and open questions](#7-maintenance-and-open-questions)
+7. [Maintenance](#7-maintenance)
 
 ---
 
@@ -561,7 +561,7 @@ The IEC 81346 prefixes that appear in tags:
 | SC | `SC-n` | Success criterion of the vision (SC-1 golden reproduction … SC-13 community) | [00](00-vision-and-scope.md) §3.2 |
 | PQ | `PQ-01` … `PQ-53` | Pilot question to be answered by the pilot user. PQ-01 … PQ-36 originate in the brainstorm, PQ-37 … PQ-52 were added by the consolidation and PQ-53 by the decision log; the list is [01](01-brainstorm.md) §7, the prioritised questionnaire is Part C of the decision log | [01](01-brainstorm.md) §7, plan/06 §4 |
 | IDEA | `IDEA-nnn` | Idea in the brainstorm backlog, starred when a differentiator | [01](01-brainstorm.md) |
-| OQ | `OQ<n>` | Open question numbered inside one document | each document's Open questions |
+| OQ | `OQ<n>` | Open question numbered inside one research note | each research note's Open questions |
 | ST | `ST-01` … `ST-10` | Steward checklist item (ST-01 cybersecurity policy published), checked by release-checklist item RC-10 | [19](19-open-source-governance.md) §3.10 |
 | RC | `RC-nn` | Release-checklist item (RC-02 open fuzz crash blocks the release, RC-10 governance gates) | [18](18-quality-security-release.md) |
 | LG | `LG-1` … `LG-6` | Legal gate (employer statement, exceptions, trademark, steward, fixture consent, steward review) | [19](19-open-source-governance.md) §3 |
@@ -822,14 +822,9 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | `ew-py` | GPL | The Python wheel of the headless core (1.x). | [04 §10.5](04-architecture.md) |
 | `elektrawatt, ew` | GPL | The GUI binary and the CLI binary. | [04 §3](04-architecture.md) |
 
-## 7. Maintenance and open questions
+## 7. Maintenance
 
 - **Maintenance.** A new term is added in the change that introduces it in a defining document. The entry copies the
   defining sentence and links the section; it does not add rules.
 - **Anonymisation.** The glossary follows the repository rules: no customer, end-user, panel-builder or personal names,
   no addresses, project or drawing numbers, and no confidentiality text.
-- **Open question 1.** The `%` Type sign of IEC 81346 is unverified ([03](03-domain-model.md) §5) and is marked as such.
-- **Open question 2.** The mapping of the brief's numbered user decisions to ADRs is only implicit (the documents do not
-  number them); a numbered decision register would let this glossary link them.
-- **Open question 3.** ADR-0027 (grid), ADR-0028 (fonts), ADR-0025 (plugin exception) and ADR-0030 (steward) are pending;
-  entries that depend on them may change.

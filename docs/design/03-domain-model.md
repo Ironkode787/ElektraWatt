@@ -33,8 +33,6 @@ J-E-2416) is the running example (Golden A, retired at 0.3.5 with its acceptance
 18. [Revisions and release](#18-revisions-and-release)
 19. [Checks](#19-checks)
 20. [Golden project mapping](#20-golden-project-mapping)
-21. [Requirements covered](#requirements-covered)
-22. [Open questions](#open-questions)
 
 ---
 
@@ -96,11 +94,11 @@ J-E-2416) is the running example (Golden A, retired at 0.3.5 with its acceptance
 | `DeviceLink` record | §7 | Functional links "valve drives actuator" (FR-DEV-028) |
 | `StructureBox`, `PageItem` (page items) | §5, §6 | Structure boxes (FR-PRJ-020), free graphics and texts (FR-SYM-023/024) |
 | `ReleaseRecord` value inside `Revision` | §18 | Checker approval stored with the release (FR-REV-020) |
-| `Page.title` + `Page.description_override` replacing `Page.description` | §6 | Two title-block cells (02a OQ1); D-06 check on the override |
+| `Page.title` + `Page.description_override` replacing `Page.description` | §6 | Two title-block cells; D-06 check on the override |
 | `Device.structure`, `Device.position` | §7 | Own structure assignment (FR-PRJ-019); physical order inside a parent (manifold order, valve position) |
 | `StructureNode.aliases` | §5 | Import spellings such as "JE2416" map to the one canonical node (D-03) |
 | `TagSpec.scheme = Child`, `FrozenTag.sign` | §8 | Child tags -201U3-Q1 (FR-NUM-013); frozen "S51" printed without the product sign |
-| `FnDef.internal` with `Short` and `PassThrough{opens}`; `FnFlags.switches_n_with_l` | §7, §9 | Potential-type propagation and EW-POT-013 (FR-CON-011, 02a OQ4, OQ9) |
+| `FnDef.internal` with `Short` and `PassThrough{opens}`; `FnFlags.switches_n_with_l` | §7, §9 | Potential-type propagation and EW-POT-013 (FR-CON-011) |
 | `Connection.page` optional | §9 | Strip-editor bridges and page-less internal links; a channel binds its coil directly, without a connection |
 | `Junction.wiring = Chain \| Star` | §9 | The physical wires behind a junction (FR-CON-005, D-20) |
 | `NetDef.scope = Signal \| Net`; `PotentialDef.props`, `PotentialDef.circuit_class` | §9 | The full property inheritance chain (FR-CON-016, FR-CON-017) |
@@ -1815,7 +1813,7 @@ classDiagram
 | Bridge: `Connection{kind: Bridge(BridgeSpec)}` | A; page-owned when drawn, else in the strip's shard | `BridgeSpec{kind: PlugIn \| Saddle \| Wire \| InterLevel, group: u16, shaft: u8}`; the connections of one group (a comb over consecutive `seq` on one shaft) are one bridge object, and only the first carries the part in `overrides.wire_part`, read as level-6 data | Joins signals into one potential (§9.3); appears in terminal diagrams and the BOM (once per group), never as a wire (FR-TRM-007) | S: both ends are terminal CPs. P: a group runs over consecutive `seq` on one shaft, and groups do not overlap |
 | `TerminalRow` | D | designation, level, function text, part, potential, internal and external targets (device, CP, cable and core), bridges, spare | `terminal_rows(strip)` feeds terminal diagrams (FR-REP-009) and assembly lists | — |
 
-**Golden -X1031.** 20 terminal devices, designations 1–20 (proposal ▲, 02a OQ5), function texts "1+" ×4, "2+" ×2, "3+"
+**Golden -X1031.** 20 terminal devices, designations 1–20 (proposal ▲), function texts "1+" ×4, "2+" ×2, "3+"
 ×2, "4+" ×2, "1-" ×4, "2-"/"3-"/"4-" ×2, `label_mode = FunctionText`, so the drawing looks as before while lists are
 unambiguous. `Strip.groups` carries the captions "Pneumatics" (1–4, 11–14) and "Spare" (5–10, 15–20). Bridges 1–2–3–4,
 5–6, 7–8, 9–10 and 11–20 are plug-in bridge groups defined in the strip editor (`page = None`); BR1, for example, is
@@ -2562,102 +2560,3 @@ P005xxx connections, P017xxx numbering). QET: none beyond import warnings.
 
 No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), which its script
 draws, and [reference-drawing.md](../research/reference-drawing.md) §4 keeps the analysis of the reference drawing.
-
----
-
-## Requirements covered
-
-This document elaborates the data model behind:
-
-- **PRJ:** FR-PRJ-001 … FR-PRJ-022, FR-PRJ-024, FR-PRJ-026, FR-PRJ-028, FR-PRJ-029.
-- **PAG:** FR-PAG-001, FR-PAG-002, FR-PAG-005, FR-PAG-006, FR-PAG-008, FR-PAG-009, FR-PAG-010, FR-PAG-012,
-  FR-PAG-013, FR-PAG-014, FR-PAG-015, FR-PAG-018, FR-PAG-020, FR-PAG-021, FR-PAG-023, FR-PAG-025, FR-PAG-029,
-  FR-PAG-030.
-- **SYM:** FR-SYM-001, FR-SYM-004, FR-SYM-005, FR-SYM-006, FR-SYM-009, FR-SYM-010, FR-SYM-011, FR-SYM-013,
-  FR-SYM-014, FR-SYM-016, FR-SYM-018, FR-SYM-023, FR-SYM-024, FR-SYM-030.
-- **DEV:** FR-DEV-001 … FR-DEV-030.
-- **NUM:** FR-NUM-001 … FR-NUM-016, FR-NUM-018, FR-NUM-019, FR-NUM-020, FR-NUM-021, FR-NUM-022, FR-NUM-023,
-  FR-NUM-024, FR-NUM-028, FR-NUM-029, FR-NUM-030.
-- **CON:** FR-CON-001, FR-CON-002, FR-CON-004 … FR-CON-006, FR-CON-009 … FR-CON-025, FR-CON-027, FR-CON-028,
-  FR-CON-029, FR-CON-032, FR-CON-034 … FR-CON-039, FR-CON-042, FR-CON-045.
-- **XRF:** FR-XRF-001 … FR-XRF-012, FR-XRF-014 … FR-XRF-017, FR-XRF-019, FR-XRF-020, FR-XRF-021, FR-XRF-024.
-- **TRM:** FR-TRM-001 … FR-TRM-007, FR-TRM-009 … FR-TRM-012, FR-TRM-015 … FR-TRM-018, FR-TRM-020 … FR-TRM-022,
-  FR-TRM-026, FR-TRM-027.
-- **CBL:** FR-CBL-001 … FR-CBL-007, FR-CBL-009, FR-CBL-010, FR-CBL-012 … FR-CBL-015, FR-CBL-019.
-- **PRT:** FR-PRT-001 … FR-PRT-010, FR-PRT-013, FR-PRT-018, FR-PRT-024, FR-PRT-026, FR-PRT-031, FR-PRT-034.
-- **MAC:** FR-MAC-001, FR-MAC-003, FR-MAC-004, FR-MAC-008, FR-MAC-013.
-- **REP:** FR-REP-001, FR-REP-003, FR-REP-005, FR-REP-006, FR-REP-027, FR-REP-028, FR-REP-032 … FR-REP-036, FR-REP-041.
-- **CHK:** FR-CHK-001 … FR-CHK-004, FR-CHK-009, FR-CHK-011, FR-CHK-019, FR-CHK-022, FR-CHK-028, FR-CHK-042,
-  FR-CHK-044 … FR-CHK-046, FR-CHK-050.
-- **REV:** FR-REV-001, FR-REV-002, FR-REV-004 … FR-REV-012, FR-REV-014, FR-REV-015, FR-REV-020 … FR-REV-023.
-- **PLC:** FR-PLC-001 … FR-PLC-005, FR-PLC-007, FR-PLC-008, FR-PLC-011 … FR-PLC-013, FR-PLC-016, FR-PLC-017,
-  FR-PLC-019, FR-PLC-033, FR-PLC-044, FR-PLC-045, FR-PLC-053, FR-PLC-054.
-- **BUS:** FR-BUS-001 … FR-BUS-005, FR-BUS-015, FR-BUS-016, FR-BUS-023.
-- **FLU:** FR-FLU-001 … FR-FLU-013, FR-FLU-026 … FR-FLU-028, FR-FLU-031.
-- **LAY:** FR-LAY-001, FR-LAY-002, FR-LAY-004 … FR-LAY-008, FR-LAY-010, FR-LAY-042, FR-LAY-043, FR-LAY-046,
-  FR-LAY-047, FR-LAY-051, FR-LAY-054, FR-LAY-056, FR-LAY-058, FR-LAY-059, FR-LAY-063.
-- **THM:** FR-THM-005.
-- **MFG:** FR-MFG-001, FR-MFG-002, FR-MFG-005 … FR-MFG-007, FR-MFG-010 … FR-MFG-012, FR-MFG-018, FR-MFG-025,
-  FR-MFG-031, FR-MFG-032, FR-MFG-042, FR-MFG-043.
-- **COL:** FR-COL-001, FR-COL-012, FR-COL-018.
-- **IMP:** FR-IMP-002, FR-IMP-040, FR-IMP-041, FR-IMP-044.
-- **I18N:** FR-I18N-001, FR-I18N-002, FR-I18N-003, FR-I18N-005, FR-I18N-009, FR-I18N-010, FR-I18N-011.
-- **Non-functional ([02c](02c-nonfunctional-requirements.md)):** NFR-REL-04, NFR-REL-07, NFR-REL-08, NFR-REL-10,
-  NFR-PRIV-06, NFR-I18N-03, NFR-I18N-04.
-
-### Proposed new requirements
-
-The seven rows this document proposed are in [02a](02a-requirements-core.md):
-- physical wires through junctions and interruption-point pairs, with the target-side ID → **FR-CON-035**;
-- signals and nets as levels of the potential partition → **FR-CON-036**;
-- a bond that references the physical wire realising it → **FR-CON-037**;
-- next free counter on a page-based tag collision, shown in the preview → **FR-NUM-029**;
-- frozen tags printed without the product-aspect sign → **FR-NUM-030**;
-- alternative spellings per structure node → **FR-PRJ-028**;
-- finding fingerprints and fingerprint waivers → **FR-CHK-044**.
-
-## Open questions
-
-1. **Page title and description override.** The title block has a page-description cell and a project-description
-   cell, which one `description: Option<MlText>` cannot carry. **Resolved:** `Page { title: MlText,
-   description_override: Option<MlText> }` is the schema (§6), and arch §4.2 summarises it; the D-06 check applies to
-   the override only.
-2. **Signal boundaries.** §9.3 places bridges between signals and potentials, which matches FR-NUM-020's acceptance
-   criterion but may not match EPLAN's exact semantics (EPLAN's potential also spans contacts and fuses).
-   *Recommendation:* keep the EW definition, document the EPLAN difference in the glossary, and validate it in the
-   usability test with two EPLAN users before M2 (ADR-0007).
-3. **Optional `Connection.page`.** Bridges defined in the strip editor and page-less internal links have no page.
-   **Resolved:** `page` is optional, and such rows live in the shard of the device that owns endpoint `a` (§9;
-   ADR-0007 amendment). A channel binds its coil directly (`Channel.binding`), without a connection.
-4. **Interruption-point uniqueness.** "Interruption-point name unique per scope and direction" forbade star mode
-   with several targets (FR-XRF-008). **Resolved:** the prevent rule reads "at most one star source per name and
-   scope; in chain mode an even count, ordered by sort key" (§10; ADR-0009 amendment), and the integrity check uses
-   the same wording.
-5. **IP functions without a device.** **Resolved:** `Function.device` is optional, with the structural invariant
-   "None if and only if kind = Ip" (§7; ADR-0006 and ADR-0009 amendments); IP functions live in the page file of
-   their representation.
-6. **Where the valve-terminal assembly lives.** The PLC research sketched a separate assembly device "-201U".
-   **Resolved:** `PlcStation` sits on the device that owns the bus port and the address window, `Assembly` on the
-   device that carries the order codes, with `AssemblyConfig.covers` mapping order codes to children; on the golden
-   project both are -201U1 ([10](10-plc-and-bus.md) §2.3).
-7. **Junction wiring default.** **Resolved:** Dot junctions default to Star from the first sequence member and
-   Bevel junctions to Chain (ADR-0007 amendment); golden J5 and J6 are set to Star.
-   The default sequence orders the parts of a split connection by flow distance from the source; the M2 usability
-   test confirms it (PQ-27), and QET imports, where only geometry is available, take the same defaults.
-8. **Strip tag format X1031.** Golden A needs letter-page-counter for strips but page-letter-counter elsewhere.
-   *Recommendation:* a numbering-scheme rule per device class in the pilot basic project, not frozen tags, so that
-   new strips follow the same convention; confirm with the pilot user.
-9. **Unbound valve-terminal channels.** Each 8-output module drives only 4 monostable valves, so 28 of the 56 golden
-   channels have no solenoid behind them. *Recommendation:* derive state `Deactivated` for channels that are neither
-   bound nor claimed by the part's position map, exclude them from I/O lists by default, and keep the D-26 decision
-   (even or odd bit for coil 14) in part data marked unverified until the pilot's PLC program or the vendor manual
-   confirms it.
-10. **PE rail bonding without modelled carriers.** *Recommendation:* at MVP, join all rail-bonded PE terminals of one
-    location through a virtual "location PE" node; from 1.0, trace actual carriers and surfaces with `pe_bond`, and
-    report a difference between the two as a finding during migration to a real layout.
-11. **Additions to `ew-schema`.** **Resolved:** the additions of §1.2, including the schema batches of the feature
-    documents, are accepted through the schema-steward rule (arch §7.6) before the spine's `ew-schema` v0 freezes
-    (spine lane 2); the revision record kinds freeze at M1. This document holds the field lists, and arch §4.2
-    summarises them.
-12. **Type aspect sign.** The `%` sign for IEC 81346-1:2022 is unverified. *Recommendation:* ship the aspect as
-    configurable data at 1.x and confirm the sign against a licensed copy of the standard first.

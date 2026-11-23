@@ -28,15 +28,11 @@ releases contain.
 14. [Outputs](#14-outputs)
 15. [Edge cases and pitfalls](#15-edge-cases-and-pitfalls)
 16. [The reference project](#16-the-reference-project)
-17. [Scope by release](#17-scope-by-release)
-18. [Dependencies](#18-dependencies)
-19. [Requirements covered](#requirements-covered)
-20. [Open questions](#open-questions)
 
 Conventions: "GP" is the golden project; ▲ marks a test value for an unknown of the
 reference (U-nn in 20 §23.1) or a shop-policy default still to be confirmed by the pilot (PQ-22, PQ-24); "DT" is a
 device tag; "CP" a connection point. Values marked *(unverified)* come from the research notes and ship as data,
-never as hard-coded constants (02b Open question 7). Source abbreviations: ARCH/arch =
+never as hard-coded constants (FR-CHK-046). Source abbreviations: ARCH/arch =
 [architecture](04-architecture.md); VIS = [vision](00-vision-and-scope.md); BS = [brainstorm](01-brainstorm.md);
 PM = [panel-manufacturing](../research/panel-manufacturing.md); STD = [standards](../research/standards.md);
 RD = [reference-drawing](../research/reference-drawing.md); EF = [eplan-features](../research/eplan-features.md);
@@ -64,7 +60,7 @@ PBF = [plc-bus-fluid](../research/plc-bus-fluid.md); C-nn and G-nn =
 
 | Crate | Layout responsibility |
 |---|---|
-| `ew-panel` | Layout queries, snapping engine, placement commands, collision reconciler, routing graph, negotiated-congestion router, lengths, duct fill, bundles, surface features, thermal queries (VIS OQ6, 02b OQ6), the 2D projection of surfaces (the geometry layers of PanelLayout display lists, §5.2, arch §3), and the glTF (glb) and STL writer for `layout_scene` (§14); MVP 2D overlap index on rstar 0.13.0, already a workspace dependency of `ew-scene` |
+| `ew-panel` | Layout queries, snapping engine, placement commands, collision reconciler, routing graph, negotiated-congestion router, lengths, duct fill, bundles, surface features, thermal queries, the 2D projection of surfaces (the geometry layers of PanelLayout display lists, §5.2, arch §3), and the glTF (glb) and STL writer for `layout_scene` (§14); MVP 2D overlap index on rstar 0.13.0, already a workspace dependency of `ew-scene` |
 | `ew-render3d` | wgpu 3D renderer: instancing, feature edges, transparency, CAD camera, CPU ray picking, and the toolkit-agnostic camera, pick and constraint API behind the gizmo |
 | `ew-ui` | The 3D gizmo (transform-gizmo-egui 0.11.0) over that API, because only `ew-ui` may know egui (arch §3 Rule 3, ADR-0016 amendment 1) |
 | `ew-step-proto` (permissive) | Worker IPC frames (postcard) and cache artefact formats (rkyv, glb) |
@@ -130,7 +126,7 @@ flowchart LR
 
 The authored records are those of 03 §16 and arch §4.2. They all live in `layout/<space-uuid>.jsonl` (05 §2, kind
 ranks 50–56, plus 57 `routing_path` and 58 `surface_feature`). Fields and kinds marked **(add)** are this document's
-additions to the first draft of 03 §16; the schema-steward batch adopted them (Open question 2).
+additions to the first draft of 03 §16; the schema-steward batch adopted them.
 
 | Record | Authored fields | Notes |
 |---|---|---|
@@ -139,7 +135,7 @@ additions to the first draft of 03 §16; the schema-steward batch adopted them (
 | `MountingSurface` | `enclosure`, `kind: Plate \| DoorInside \| DoorOutside \| Side \| Roof \| Floor \| Gland`, `device?` (plate NSYPMM107 as child of -UC1), `frame`, `usable: Vec<Pt2>`, `max_depth`, `pe_bond` | Created from the enclosure part's surface templates (FR-LAY-002/003) |
 | `Carrier` | `surface`, `kind: Rail \| Duct \| Busbar \| Surface`, `part?`, `path: Vec<Pt2>` (surface frame), `params` (§2.4), `pe_bond` | Layout-only part, counted in the BOM (FR-LAY-008) |
 | `Placement3D` | `device`, `function?`, `part: PartRef?` **(add)**, `segment: SeqRange?` **(add)**, `carrier: CarrierRef`, `pose`, `variant?`, `locked` | §2.3 |
-| `RouteOverride` | `connection` (physical wire ID, 08 §3.8), `path: Vec<RouteNodeRef>`, `pinned`, `bundle: Ident?` **(add)**, `seq: u32?` **(add)** | Survives re-routing (FR-LAY-047, FR-LAY-054). A manual length is not stored here but in `WireOverrides.length` **(add)** of the wire's carrier connection ([03](03-domain-model.md) §9, [13](13-manufacturing-outputs.md) §3.3), so that it also exists without a layout space (Open question 16) |
+| `RouteOverride` | `connection` (physical wire ID, 08 §3.8), `path: Vec<RouteNodeRef>`, `pinned`, `bundle: Ident?` **(add)**, `seq: u32?` **(add)** | Survives re-routing (FR-LAY-047, FR-LAY-054). A manual length is not stored here but in `WireOverrides.length` **(add)** of the wire's carrier connection ([03](03-domain-model.md) §9, [13](13-manufacturing-outputs.md) §3.3), so that it also exists without a layout space |
 | `committed_route` | `wire`, `path: Vec<RouteNodeRef>`, `len: LengthBreakdown` (ending in the unrounded calibrated length `L_cal`, §9), `input_hash` | `Committed<T>` without `rev` (05 §2); ID `v5(connection, "route")`; rounding happens once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md) §3.3) |
 | `RoutingPath` **(add)** | `space`, `kind: FreeAir \| Hinge{loop_allowance} \| WiringHole{feature} \| Guide`, `points: Vec<RouteAnchor>`, `class_set`, `cost_factor` | User routing paths (FR-LAY-043/044) |
 | `SurfaceFeature` **(add)** | `surface`, `side: Front \| Back`, `feature: Hole \| Thread \| Cutout \| Slot \| Keyhole \| Custom`, `at`, params | User-authored machining features (FR-LAY-056); all others are derived |
@@ -254,7 +250,7 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `route_status(wire)` | `Fresh \| Stale(fields) \| Unrouted` | I, cold | committed route, recomputed input hash |
 | `duct_fill(space)` | fill per edge | I, memo | committed routes, wire ODs, duct areas |
 | `bundle_sequence(space)` | bundle key and `seq` per wire, with overrides applied (§8.7) | I, memo | committed routes, strips, `RouteOverride.bundle/seq` (consumed by [13](13-manufacturing-outputs.md)) |
-| `panel_front_reps(dev)` | derived "panel front" representations for navigation and "show all representations" (arch §6.4; Open question 1) | I, cold | placements of the device, layout pages |
+| `panel_front_reps(dev)` | derived "panel front" representations for navigation and "show all representations" (arch §6.4; none is stored) | I, cold | placements of the device, layout pages |
 | `wire_length(wire)` | `LengthBreakdown`, source | I (reads committed) | committed route, policy, overrides |
 | `thermal(space)` | `ThermalResult` | II, job | placements, loss models, load model, enclosure, inputs, coefficient set |
 
@@ -943,7 +939,7 @@ report EW-LAY-008 for every edge still over its error limit
 Wire areas are integer µm² with π/4 ≈ 355/452. Wires are routed sequentially within an iteration, which keeps the
 algorithm faithful to PathFinder; graph construction and stub ray casts run on rayon. If the M4 benchmark misses
 NFR-PERF-16, the fallback routes each iteration in parallel against the occupancy at iteration start, followed by a
-sequential repair pass (Open question 11). Both are thread-count independent.
+sequential repair pass. Both are thread-count independent.
 
 ### 8.5 `RouteWires`, committed routes and staleness
 
@@ -966,7 +962,7 @@ sequential repair pass (Open question 11). Both are thread-count independent.
 default OD table *(unverified: H05V-K 0.75 ≈ 2.7 mm, H07V-K 1.5 ≈ 3.3 mm)* is flagged in every result. Inner area
 comes from the duct part, else 0.85 × nominal. Example: a 40×60 duct without inner data has 2,040 mm²; 30 H05V-K
 0.75 wires at the default 2.7 mm occupy 171.8 mm², a fill of 8.4 % with the "default OD" flag. Limits are shop
-policy, defaulting to 60 % warning and 80 % error (02b OQ9, PQ-22). The 3D view and the 2D page show the fill as a
+policy, defaulting to 60 % warning and 80 % error (PQ-22). The 3D view and the 2D page show the fill as a
 heat-map with numeric labels and pattern classes (§12.4).
 
 ### 8.7 Bundles and wiring sequence
@@ -1200,7 +1196,7 @@ step) and fills the rail.
   door items a free ring.
 - **Display:** enclosure transparency slider, door open/closed, layer filters (enclosure, carriers, devices, wires,
   keep-outs, routing graph), collision markers on the violating sub-shape, routed wires with the selected wire
-  highlighted end to end, unrouted wires as straight lines (Open question 17), duct fill heat-map.
+  highlighted end to end, unrouted wires as straight lines (FR-LAY-064), duct fill heat-map.
 - **Rendering:** forward pass with MSAA ×4, flat shading with a hemispheric light, B-rep feature edges as
   screen-space lines, weighted blended transparency for the enclosure shell, frustum culling and LOD by projected
   size (LOD1 below 40 px, box below 8 px).
@@ -1318,163 +1314,3 @@ No reference project is mapped here: the tests open the sample project (`fixture
 | D-29, D-31 shrunk label text | S + C | Paper-height label styles; rotate, leader or balloon, never shrink |
 | D-05, D-06 title-block drift on 902 | S | Layout pages are ordinary pages with bound title blocks |
 | D-10 overview vs layout order | S + C | Assembly members placed in `Device.position` order; EW-LAY-016 |
-
----
-
-## 17. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Layout space, enclosure and plate from part data | box enclosure, plate surface | door in/out, gland, side, roof surfaces; enclosure templates | bayed suites, frame punching lattice | — |
-| Rails, ducts | parametric, straight segments, BOM | busbar systems with straight bars | — | bent copper (FR-LAY-036) |
-| Placements | device-bound, part-derived footprints, live labels, rail snapping (free/push/swap), strip and assembly placement, auto-fill, group brackets | piggy-back mounting, door items | enclosure selection assistant | — |
-| 2D pages | folio 902 at scale, legend, PART DATA, label fitting | associative dimensions, hole-table drawings, model views (painter's) | OCCT HLR views | section views |
-| Checks | EW-LAY-001 … 004, 006 (2D), 010, 016 | EW-LAY-005 … 009, 011, 012, 014, 015, 020 … 026; EW-THM-001 … 007 | EW-LAY-013 door swing | — |
-| 3D | — | wgpu view, STEP worker, LODs, box macros, macro editor, CP3D, unrouted connection lines (FR-LAY-064) | CP suggestion from holes; saved views (FR-LAY-065); macros carrying placements (FR-LAY-066) | — |
-| Collision | 2D footprint overlap | BVH + hull + mesh, clearance, door closed | door swing | — |
-| Routing and lengths | — | graph, A\*, negotiated congestion, `RouteWires`, overrides, segregation, fill heat-map, cables as objects, lengths, calibration, estimates, bundles, wiring manager | wiring holes, tube routing, feedback calibration | robot-grade paths |
-| Features and machining | — | features, EW-LAY-012, DXF, hole tables, cut lists | — | Perforex/Steinhauer NC, RiPanel AML |
-| Thermal | — | single compartment, TR 60890 with user data, climate sizing, per-placement check, report | multi-compartment | forced-ventilation curves |
-| Exchange | — | glTF and STL, STEP AP242 (Could) | — | 3D PDF (FR-OUT-024) |
-
-The MVP slice is the thin S4 slice of BS OQ2 and VIS OQ1: 21 LAY rows (FR-LAY-001, -002, -004 … -018 and
--059 … -062). It must be staffed explicitly in the plan, because arch §15.2 starts stream S4 after the 2D editor MVP
-for small teams.
-
----
-
-## 18. Dependencies
-
-| Depends on | For |
-|---|---|
-| [03](03-domain-model.md) §16, [05](05-project-format-and-persistence.md) §2 | Records, file ownership, committed-route storage, record kinds 50–56 plus additions |
-| [07](07-symbols-parts-macros.md) §2.5 | `MechData`, `Model3dRef`, `Cp3d`, `FeaturePattern`, thermal and carrier sections, `AccessoryRef{per: Group}` |
-| [08](08-connections-terminals-cables.md) §3.7–§3.8, §6.3, §7.6 | Physical wires, clamp loci, rail-foot bonding, `LengthSource` |
-| [06](06-schematic-editor.md), [09](09-reports-forms-output.md) | PanelLayout page type, tools frame, embedded blocks, forms, legend row source |
-| [10](10-plc-and-bus.md), [11](11-fluid-power.md) | consume `carrier_order`; `RouteTubes` on the routing graph (1.x) |
-| [13](13-manufacturing-outputs.md) | consumes lengths, routes, bundles, features, glTF |
-| [14](14-interop.md) | QET folio 902 binding, EDZ drilling and CP patterns |
-| [15](15-checks-revisions-collaboration.md), [16](16-ux-ui.md), [18](18-quality-security-release.md) | rule registration; Panel 3D workspace; worker build, IPC fuzzing, determinism and 3D smoke jobs |
-| Crates (versions as pinned in arch §3) | parry3d 0.31.1 (not the yanked 0.31.0), glam 0.34.1, pathfinding 4.16.0, petgraph 0.8.3, rstar 0.13.0, meshopt 0.7.0, gltf 1.4.1, wgpu 30.0.1, transform-gizmo-egui 0.11.0, occt-sys 7.8.1, opencascade 0.3.0, postcard 1.1.3, rkyv 0.8.18, dxf 0.6.2, rayon 1.12.0 (marked **(verify)** in arch §2) |
-
----
-
-## Requirements covered
-
-- **LAY (02b §4):** FR-LAY-001 … FR-LAY-066.
-- **THM (02b §5):** FR-THM-001 … FR-THM-012.
-- **Shared with other areas:** FR-PAG-003 (model-view page), FR-PRT-010, FR-PRT-011 (part sections and dimensions
-  read by the layout), FR-PRT-005 (part-data accessories from 1.0), FR-REP-007, FR-REP-023, FR-REP-028 (layout
-  objects in the BOM, legend, PART DATA on 902), FR-CBL-010, FR-CBL-020 (routed and routed-plus-external cable
-  lengths), FR-DEV-037 (supplied by others), FR-TRM-016 (group accessories), FR-TRM-017 (rail bonding at 1.0),
-  FR-CHK-005 (EW-LAYOUT pack content), FR-CHK-029 (PE through carriers), FR-CHK-039 (unplaced devices), FR-CHK-046
-  (unverified constants), FR-IMP-019, FR-IMP-027 (layout migration, EDZ patterns), FR-EXP-007, FR-EXP-008
-  (glTF/STL, STEP), FR-MFG-025 (release gate on stale routes), FR-MFG-028, FR-MFG-029, FR-MFG-030 (surface DXF,
-  hole tables, cut lists, with 13), FR-MFG-051 (single rounding of lengths), FR-MFG-041 (thermal in the design
-  verification record), FR-FLU-024 (tube routing hook), FR-UI-003, FR-UI-006, FR-UI-007, FR-UI-022, FR-UI-024,
-  FR-UI-029 (Panel 3D workspace, layout navigator, "show all representations", routing preview, Class II staleness,
-  3D canvas).
-- **Non-functional (02c):** NFR-PERF-03, NFR-PERF-04, NFR-PERF-05, NFR-PERF-09, NFR-PERF-13, NFR-PERF-16,
-  NFR-PERF-17, NFR-PERF-18, NFR-PERF-20, NFR-PERF-23, NFR-REL-07, NFR-REL-12, NFR-PLAT-03, NFR-SEC-03, NFR-SEC-04,
-  NFR-LIC-06,
-  NFR-LIC-08, NFR-MAINT-09, NFR-COMP-04, NFR-A11Y-01 … NFR-A11Y-03.
-
-### Proposed new requirements
-
-The ten rows this document proposed are in the catalogues, together with two 1.x rows that Open question 17 asked
-for:
-- placement names the part use it realises (EW-LAY-003) → **FR-LAY-059** ([02b](02b-requirements-extended.md));
-- group accessories (end brackets) derived from rail occupancy → **FR-LAY-060** (02b, MVP);
-- contiguous assemblies and PLC racks on their carrier (EW-LAY-016) → **FR-LAY-061** (02b);
-- label fitting at paper height, never scaled → **FR-LAY-062** (02b);
-- terminal strips placed in segments → **FR-LAY-063** (02b);
-- unrouted wires as straight lines in 3D → **FR-LAY-064** (02b);
-- saved 3D views → **FR-LAY-065** (02b, 1.x Could; from Open question 17);
-- window macros that carry placements → **FR-LAY-066** (02b, 1.x Could; from Open question 17);
-- routed-plus-external length of cables leaving the layout space → **FR-CBL-020** ([02a](02a-requirements-core.md));
-- loss model per part → covered by the reworded existing **FR-THM-001** (02b);
-- thermal check set EW-THM-002 … 005 → **FR-THM-012** (02b);
-- thermal recalculation budget → **NFR-PERF-23** ([02c](02c-nonfunctional-requirements.md)).
-
----
-
-## Open questions
-
-1. **PanelFront representations.** Arch §4.2 listed "panel front" among `Representation` types and [06](06-schematic-editor.md)
-   §2.2 offered "PanelFront projections" on PanelLayout pages. Storing a positioned representation on folio 902 next
-   to a `Placement3D` would create two sources of truth for one physical position, the D-02 class again.
-   **Resolved:** no PanelFront representation rows are stored; `panel_front_reps(dev)` derives them from placements
-   for navigation and "show all representations" (arch §4.2, §6.4), a PanelLayout page hosts one `SurfaceView`, and
-   symbols may still carry `rep_type` PanelFront for their 2D front graphics.
-2. **Schema additions.** `Placement3D.part`, `Placement3D.segment`, `RouteOverride.bundle/seq`,
-   `WireOverrides.length`, `LayoutSpace.install`, record kinds `routing_path` and `surface_feature`, and page items
-   `SurfaceView`, `ModelView` and `Dimension` were not in arch §4.2, [03](03-domain-model.md) §16 or
-   [05](05-project-format-and-persistence.md) §2. **Resolved:** the schema-steward batch adds them to 03 §16 (with
-   `RouteNodeRef`, `LayoutSpace.thermal` and the carrier delete policy *forbid*), and 05 §2 adds the kinds
-   `routing_path` and `surface_feature` (ranks 57, 58 in `layout/<space>.jsonl`), the page items as `page_item`
-   variants and `assets/<sha256>.glb` for embeddable meshes (1.0).
-3. **Golden plate and rail geometry.** U-26 fixes the enclosure test size and the scale but not the plate's usable
-   area, the rail lengths or the gland plate. *Recommendation:* add test values to the golden layout
-   (for example a 650 × 900 mm usable plate and a bottom gland surface ▲) and confirm the real NSYPMM107 data with
-   the pilot (PQ-24). **Resolved:** the golden layout's
-   test geometry (▲U-50): the plate 650 × 900 mm, centred at plate frame (50, 50) mm in the 750 × 1000 × 420 mm
-   enclosure, the eight carriers in plate millimetres (rails 1.71 m, ducts 3.17 m) and the twenty placements; no gland
-   surface at the MVP; the real NSYPMM107 data stay a pilot question (PQ-24).
-4. **End brackets: per strip or per group.** Golden BOM row 26 has 4 brackets for 3 abutting strips, while
-   [07](07-symbols-parts-macros.md) OQ5 proposed authored part uses on strips at MVP, which would give 6 unless
-   hand-adjusted; FR-TRM-016 (1.0) already expects 4. **Resolved:** end brackets are derived from the rail occupancy
-   wherever strips are placed, from MVP (FR-LAY-060); unplaced strips and bridges use authored part uses, and the
-   part-data accessory lists of FR-PRT-005 (1.0) must reproduce the same golden counts (§3.4).
-5. **Two "k" values in FR-THM-004.** Its acceptance ("k = 3.5 W/(m²·K) … mean rise 5.5 K") is the surface-balance
-   method with the wall coefficient, not the TR 60890 enclosure constant read from its figures. **Resolved:**
-   FR-THM-004's first criterion uses the surface-balance method with k_w = 3.5 W/(m²·K) (5.5 K ± 0.1 K), its second
-   the synthetic TR coefficient set of §16.2, and the data model keeps k and k_w apart (FR-THM-007 writes k_w).
-6. **Loss law in FR-THM-001.** P_n·(I_b/I_n)² cannot produce the golden PSU loss of 14.5 W. **Resolved:** FR-THM-001
-   computes P_eff by the part's loss model (Quadratic default, Efficiency, Constant, PerChannel, Heater), which
-   absorbs the proposed loss-model row (§11.2).
-7. **Cables leaving the layout space.** FR-CBL-010's acceptance expected a routed length for -3W1, which runs to
-   +J-E-206. **Resolved:** FR-CBL-020 adds the routed-plus-external rule, and FR-CBL-010's criterion reads "-3W1 shows
-   routed internal plus external length (Golden A-R: 10 m, U-21); moving -201U1 marks it stale" (§9).
-8. **"Door frame" placements** for S56 and E56 in A-R. NSYPLA enclosures have no separate frame surface.
-   *Recommendation:* model them on a Side surface strip near the door opening for A-R; add a `Frame` surface kind only
-   with frame enclosures in 1.x; confirm the real positions with the pilot (PQ-24).
-9. **3D on GPU-less Linux hosts.** WARP covers Windows; lavapipe or llvmpipe under wgpu is unverified (G6).
-   *Recommendation:* add a lavapipe 3D smoke job at M4 ([18](18-quality-security-release.md)); keep the degraded mode
-   of §12.4 and the 2D pages as the guaranteed path (NFR-PLAT-03).
-10. **TR 60890 coefficient data.** The k and c curves are copyrighted figures (STD §8.2, PM OQ8). *Recommendation:*
-    accept user- or vendor-supplied sets with a `verified` flag, ship only the synthetic CI set, and ask enclosure
-    vendors for dissipation data per enclosure, which the 10.10.4.2 route needs anyway.
-11. **Router parallelism.** Sequential PathFinder iterations are estimated to meet NFR-PERF-16 (≈ 0.2 s per
-    iteration for 2,000 wires), but this is unmeasured. *Recommendation:* benchmark on the L fixture at M4 and switch
-    to the iteration-parallel variant of §8.4 only if the budget is missed; both are deterministic.
-12. **Shop policy defaults** (fill limits, reserve, loop allowance, bend allowance, increment, fixing pitch, bend
-    penalty). *Recommendation:* 60 % / 80 % fill, 100 mm reserve, 300 mm hinge loop, 2 × OD bend allowance, 10 mm
-    increment, 300 mm fixing pitch, configurable in the basic project; confirm with the pilot (PQ-22) and calibrate
-    on the first built panel (B8 proof at M4).
-13. **Rail-clip origin versus EPLAN and EDZ origins.** EDZ placement data uses EPLAN's macro origins *(unverified)*.
-    *Recommendation:* map them in the EDZ importer ([14](14-interop.md)) to the EW part frame, keep the source
-    transform, and validate with the first imported EDZ parts of the pilot's catalogue.
-14. **Label position numbers.** Derived legend positions renumber when devices are added, which some shops dislike
-    on revised drawings. *Recommendation:* keep them derived at MVP; offer frozen positions at release (like frozen
-    wire numbers) if the pilot asks for it.
-15. **How the valve terminal is mounted.** The golden layout put -201U1 … -202U3 on rail R3, and
-    EF-23 lets the CPX earth screws reach the plate through R1–R3, while FR-LAY-056's acceptance expects drilling
-    patterns of "screw-mounted modules -201U1 … -202U3". CPX/VMPA terminals can be wall-mounted or rail-mounted
-    with a mounting kit *(unverified)*. **Resolved:** the golden stays on R3 with a rail-mounting-kit test part
-    (▲U-27), and FR-LAY-056's criterion reads "the golden plate's feature list contains the rail and duct fixing
-    holes at the configured pitch and the pattern of one screw-mounted test part"; the real mounting is a pilot
-    question (PQ-24).
-16. **Where a manual wire length lives.** Neither [03](03-domain-model.md) nor 02b has a field for it; a field on
-    `RouteOverride` would live in the layout file, while [13](13-manufacturing-outputs.md) §3.3 reads it from the
-    carrier connection's overrides. **Resolved:** the schema-steward batch adds `WireOverrides.length: Option<Nm>` on
-    the carrier connection, next to the per-end overrides `WireOverrides.ends`, both moved by the number-transfer
-    normaliser ([03](03-domain-model.md) §9); `RouteOverride` keeps path, pin, bundle and sequence (§2.2).
-17. **Pro Panel parity items without a requirement.** EPLAN offers connection diagrams in the 3D layout (unrouted
-    connections as straight lines) and up to 10 saved 3D views (2026) (EF §15); macros that also carry
-    mounting-layout placements are common EPLAN practice *(unverified here)*. 02a/02b have no row for them, and
-    window macros (FR-MAC-001) carry no placements. **Resolved:** unrouted CP-to-CP lines are FR-LAY-064 (1.0,
-    Should); saved 3D views (FR-LAY-065) and window macros carrying placements (FR-LAY-066) are 1.x Could rows; until
-    then an inserted macro adds its devices to the unplaced list.
-18. **"One function, e.g. a terminal".** FR-LAY-006 and [03](03-domain-model.md) §16 described a single-terminal
-    placement as a function placement, but a terminal is a device (arch §4.2). **Resolved:** both read "one function
-    (e.g. a door handle) or one strip segment (e.g. a single terminal)", matching §2.3 and §5.3.

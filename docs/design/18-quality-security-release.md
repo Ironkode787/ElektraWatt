@@ -38,10 +38,6 @@ documents refer to "the CI job in 18": this document owns those pipelines.
 15. [Outputs](#15-outputs)
 16. [Edge cases and pitfalls](#16-edge-cases-and-pitfalls)
 17. [The reference project in the quality system](#17-the-reference-project-in-the-quality-system)
-18. [Scope by release](#18-scope-by-release)
-19. [Dependencies](#19-dependencies)
-20. [Requirements covered](#requirements-covered)
-21. [Open questions](#open-questions)
 
 ---
 
@@ -222,7 +218,7 @@ after Session::commit(tx) in oracle mode:
 |---|---|---|---|
 | Record order | The loader permutes lines within each file and the file order (seeded) | JSONL after save, findings, PDF/SVG/CSV digests | PR |
 | Threads and spawn order | `RAYON_NUM_THREADS` = 1, 2 and 8; job submission order shuffled | Export digests, routing (1.0), `.ewpp` (1.0) | PR |
-| Platform | Same commit on Windows and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (09 OQ 12; this relaxes the PNG part of NFR-REL-07 and FR-OUT-014, open question 9) | N; release gate (AC-14, FR-OUT-019) |
+| Platform | Same commit on Windows and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (ADR-0015 amendments 3 and 6; NFR-REL-07 and FR-OUT-014 say the same) | N; release gate (AC-14, FR-OUT-019) |
 | Locale, time zone | `LC_ALL` en_US, nl_NL, de_DE, tr_TR; `TZ` UTC−10 and UTC+14 | File and PDF digests | N |
 | Wall clock | Two runs with the clock faked 24 h apart; `SOURCE_DATE_EPOCH` unset | Output digests | PR |
 | Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout. Every release build of `elektrawatt` also asserts `PKG_CONFIG=false` and no target-specific `PKG_CONFIG_*` variable, so x11-dl's build script bakes no build-host library directory into the binary (§5.4) | The assertion itself | PR; release (CI-R-03) |
@@ -317,7 +313,7 @@ runs of both on a nightly toolchain pinned by date.
 ### 3.8 Visual goldens
 
 - **Rendering.** `ew render --page <folio> --png --dpi 150` (FR-EXT-004) runs in deterministic mode: the CPU
-  backend's scalar path if one exists (09 OQ 12), bundled fonts only, no system fonts.
+  backend's scalar path if one exists (ADR-0015 amendment 3), bundled fonts only, no system fonts.
 - **Comparison.** dify against the approved PNGs, failing above 0.5 % differing pixels. Per-symbol PNGs
   of the shipped library are rendered at 300 dpi.
 - **Artefacts** (target for 1.0). Diff images are uploaded as CI artefacts, and a bot comment links base, head and overlay.
@@ -336,7 +332,7 @@ runs of both on a nightly toolchain pinned by date.
 | Fonts | Embedded, subset (`ABCDEF+` prefix), no Tahoma | AC-13 |
 | Text | Extracted text keeps spaces | "SK 3110.000" (FR-OUT-008) |
 | Metadata | XMP and Info dates from the model or `SOURCE_DATE_EPOCH`; document ID a hash of the export input | No wall-clock value (NFR-REL-07) |
-| Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**, 02c OQ 9) | Pass |
+| Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**) | Pass |
 
 *As built:* `crates/ew-api/tests/it/pdf_output.rs` writes the sample project's PDF and reads it back with an in-repo
 reader (`crates/ew-api/tests/page_output/pdf_read.rs`: indirect objects, Flate streams, page tree, content streams,
@@ -654,7 +650,7 @@ red if any (over and gating) or regress
 
 ### 4.5 Engine statistics per PR
 
-Timings are nightly, but **counts are exact on every PR** (02c OQ 6). For each scripted GP edit, an insta snapshot
+Timings are nightly, but **counts are exact on every PR**. For each scripted GP edit, an insta snapshot
 records `{query family: (hits, verified, re-executed, cut-offs)}`. Examples of locked expectations:
 - drawing a wire on folio 102 re-executes no query keyed to folio 203;
 - the layer memos of unchanged display lists are backdated, so their GPU buffers stay;
@@ -727,7 +723,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan. | Linux | Release |
 | CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. | Linux (ClusterFuzzLite-style batch) | Release |
 | CI-N-04 digests | GP outputs from all three OSs compared (AC-14, FR-OUT-019, NFR-REL-07) | All | Release |
-| CI-N-05 gpu-less | Windows WARP flows and fps sample; lavapipe 3D smoke (from M4, 12 OQ 9) | Windows, Linux | Release |
+| CI-N-05 gpu-less | Windows WARP flows and fps sample; lavapipe 3D smoke (from M4) | Windows, Linux | Release |
 | CI-N-06 network | Network sandbox (§12.2) and listening-socket scan. | Linux | Release |
 | CI-N-07 reliability | Fault injection on ext4, NTFS, APFS; kill-and-replay loop | All | Release |
 | CI-N-08 locale | Locale and time-zone matrix (NFR-I18N-03) | Linux | Release |
@@ -1013,7 +1009,7 @@ procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual
 
 - **Rule** (NFR-COMP-03, ADR-0030 as proposed). The latest minor gets all fixes; each minor gets security and
   data-loss fixes for 6 months after its successor ships. With quarterly minors, up to two older lines can be in
-  that window at the same time, and security backports go to each of them (open question 14).
+  that window at the same time, and security backports go to each of them.
   Illustrative example (the real calendar is in the global plan §6.4): 1.1 (released 2028-06-20) receives all fixes until 1.2 ships (planned 2028-09-19) and security and
   data-loss fixes until 6 months later (2029-03-19).
 - **Majors.** After N.0, the last minor of N−1 gets the same 6-month window.
@@ -1031,7 +1027,7 @@ procedure around it. RC-01 holds WP-S6.05 D18's review line and RC-05 its manual
 **Tool choice.** cargo-packager 0.11.8 (2025-11-27) builds the installer formats from one configuration (0.1.0 uses NSIS and AppImage; the MSI through
 WiX and the deb are 1.0's; it also builds DMG/.app, which EW does not use). EW's own GitHub workflow drives it,
 because the pipeline needs custom signing, SBOM and attestation steps. cargo-dist 0.32.0 (2026-05-22) stays an alternative: it lost its company
-backing in 2025, and its 2026 maintenance status is unconfirmed (RE §10.1; open question 1).
+backing in 2025, and its 2026 maintenance status is unconfirmed (RE §10.1).
 
 | OS | Artefact | Scope | Notes |
 |---|---|---|---|
@@ -1040,7 +1036,7 @@ backing in 2025, and its 2026 maintenance status is unconfirmed (RE §10.1; open
 | | `ew-<v>-x86_64-pc-windows-msvc.zip` | Portable CLI | Includes `ew-step-worker` from 1.0 |
 | Linux x64 (arm64 best effort) | `.deb` for Ubuntu 22.04+ and Debian 12+ (1.0) | System | Built against glibc 2.35; depends on the Vulkan loader and xkbcommon; fonts bundled |
 | | `.AppImage` | User; the Linux package of 0.1.0 | Type-2 runtime; documents `--appimage-extract-and-run` where FUSE 2 is missing |
-| | Flatpak on Flathub | User | 1.0 Should; offline build with vendored crates; file and print portals (open question 11) |
+| | Flatpak on Flathub | User | 1.0 Should; offline build with vendored crates; file and print portals |
 | All (1.0) | `ew-wiring-viewer` in every installer, plus a portable archive per target | Shop PCs; per user, no administrator rights | The read-only `.ewpp` wiring viewer (ARCH §3, [13](13-manufacturing-outputs.md) §11); signed and covered by SBOM and provenance like `elektrawatt` |
 | All | CLI archives, split debug symbols (PDB, DWARF), SBOMs, notices | — | Symbols are public, so users can symbolicate their own crash dumps |
 
@@ -1071,7 +1067,7 @@ rows below apply from 1.0, or earlier when the owner holds a signing identity.
 | Git | Release tags signed with maintainers' SSH keys listed in `.github/allowed_signers`; CI-R-01 verifies | Maintainers |
 
 **No macOS signing.** macOS is not a supported platform, so there is no Developer ID, no
-notarisation and no entitlement question (open question 13 here is moot).
+notarisation and no entitlement question.
 
 ### 9.2 Provenance, sums and the release key
 
@@ -1083,8 +1079,7 @@ notarisation and no entitlement question (open question 13 here is moot).
 - **Key distribution** (1.0). The release key's public half is compiled into the binary, published on the web site and
   printed in `SECURITY.md`. The binary embeds the current key and the next one, so a yearly rotation needs no
   emergency release.
-- **Custody** (1.0). The private key lives only in the protected `release` environment, behind second-maintainer approval
-  (open question 6).
+- **Custody** (1.0). The private key lives only in the protected `release` environment, behind second-maintainer approval.
 
 *Target for 1.0; 0.1.x carries no build provenance (§7.4).* `actions/attest-build-provenance`, pinned by commit SHA,
 attests every release file, `SHA256SUMS` included, in the one job that holds `id-token: write`. Every check runs
@@ -1202,7 +1197,7 @@ flowchart LR
 | TM-01 | Hostile project or import file: memory exhaustion, decompression bombs, deep nesting, NaN geometry, panics. Also reached without a click through the git merge driver and textconv, which git runs on fetched content | Limits (NFR-SEC-02, FR-IMP-005, 14 §11); pure parsers that never execute content; lenient import | CI-PR-08, CI-N-03, hostile corpus |
 | TM-02 | Archive path traversal or symlinks (`.ewz`, EDZ, QETZ, XLSX) | Entry-name rules; symlinked and encrypted entries refused; loader follows no links (NFR-SEC-16) | Hostile corpus |
 | TM-03 | Hostile SQLite (QETZ, catalogues) with views or triggers | Read-only, `trusted_schema=OFF`, defensive mode, schema check (NFR-SEC-06) | CI-PR-02 |
-| TM-04 | Automation embedded in a received project: rhai scripts, SQL reports, rule packs | Trust gate keyed outside the project (05 §13.4, NFR-SEC-05). Pure formulas still evaluate: no I/O, operation limits, tracked reads (15 §3.9; 02c OQ 2) | CI-PR-02 trust fixture |
+| TM-04 | Automation embedded in a received project: rhai scripts, SQL reports, rule packs | Trust gate keyed outside the project (05 §13.4, NFR-SEC-05). Pure formulas still evaluate: no I/O, operation limits, tracked reads (15 §3.9) | CI-PR-02 trust fixture |
 | TM-05 | Resource exhaustion by formulas or SQL | rhai operation, depth and string limits; SQL deadline and `SQLITE_LIMIT_*` | CI-PR-02 |
 | TM-06 | Plugin exfiltration or tampering (1.x) | Capability manifest, WASI preopens, no network by default, signed manifests, fuel or epochs, `StoreLimits`, plugin ID in undo (NFR-SEC-07) | 17 tests in CI-PR-02 |
 | TM-07 | MCP misuse, including prompt injection through project text ("rename all devices…") | Off by default; stdio or loopback with a per-session token; ask-first writes with a diff; project-scoped access; `origin=mcp` in the journal (NFR-SEC-08) | CI-PR-02 |
@@ -1517,7 +1512,7 @@ and any commercial edition needs a liability review first.
 5. **glibc drift.** A Linux binary built on ubuntu-24.04 needs glibc 2.39 and fails on Ubuntu 22.04. Release builds
    run in a 22.04 container (§5.3).
 6. **SIMD paths in vello_cpu** can differ per CPU. Cross-platform PNG comparison uses the dify tolerance; byte
-   identity is required for PDF, SVG, CSV, XLSX and JSONL only (09 OQ 12).
+   identity is required for PDF, SVG, CSV, XLSX and JSONL only (ADR-0015 amendments 3 and 6).
 7. **Locale traps.** The Turkish dotless i and comma decimal separators break naive case folding and number
    formatting. The tr_TR job of CI-N-08 exists for this reason (NFR-I18N-03).
 8. **Rubber-stamped goldens.** A golden or snapshot update can hide a regression. The review rule of §3.7 requires a
@@ -1546,147 +1541,3 @@ and any commercial edition needs a liability review first.
 
 No reference project is used here: the tests open the sample project (`fixtures/sample/`), and each test layer of
 §3 says what it proves on it.
-
----
-
-## 18. Scope by release
-
-| Area | MVP | 1.0 | 1.x |
-|---|---|---|---|
-| Test layers | 1–14 on GP, S and M, without the soak test; kittest flows of the MVP tasks; usability study before M2 (NFR-UX-01) | Layers for PLC, fluid, 3D, routing and `.ewpp`; 8 h soak (NFR-REL-14); PDF/UA-1 | Plugin sandbox tests (NFR-SEC-07); mutation testing of `ew-memo` (Could) |
-| Performance gate | S/M gating; L/XL measured and reported | L/XL gating; routing, collision, STEP benchmarks | — |
-| Platforms and CI | Windows, Linux (macOS not supported); WARP and CPU-renderer jobs; best-effort Windows ARM64 and Linux arm64 artefacts built per release, non-gating (NFR-PLAT-01) | lavapipe 3D smoke (from M4) | — |
-| Packaging | Per-user setup, AppImage, CLI archives | MSI with its policy keys, `.deb`, Flathub; `ew-step-worker` and `ew-wiring-viewer` in every package, plus portable viewer archives | — |
-| Signing and provenance | SLSA provenance and unsigned `SHA256SUMS`; an unsigned tag and unsigned Windows binaries | Authenticode, the signed tag and signed `SHA256SUMS` (ADR-0030; earlier when the owner holds a signing identity); reproducible Linux builds (NFR-SEC-20) | — |
-| Updates | None: no update check | Opt-in check, signed manifest, browser download; in-app download with verification; policy mirror | — |
-| Supply chain | `cargo deny` and the repository rules today; the full §10 set is the target | crates.io trusted publishing | — |
-| Security | `SECURITY.md`, threat model, fuzzing, `unsafe` allowlist, per-PR security tests (§11.5) | CRA runbook; tabletop exercise; OSS-Fuzz application | Worker OS sandbox (NFR-SEC-21) |
-| Privacy | Zero network (no update check, no crash upload), network sandbox, a local crash log with the panic's backtrace, redacted logs | Local minidump; opt-in scrubbed upload if ADR-0029 creates an endpoint | — |
-| *Security, as built for 0.1.0* | `SECURITY.md` in full; `docs/security/threat-model.md` (TM-01 to TM-19 with their 0.1.0 state); the command-sequence fuzzer and the hostile corpus under its allocation bound as tests; `#![forbid(unsafe_code)]` outside `ew-print` and the test allocator; the engineering-verification disclaimer (S3) on the approve and release dialogs and the reports | — | — |
-| CRA | None: the steward's processes apply from 1.0 | Steward-grade processes (NFR-COMP-01); full application is already in force (2027-12-11 falls before 0.1.0 in the plan of record, §13.1); the 1.0 documentation set and the support-period declaration are complete | Manufacturer path only with a commercial decision |
-
----
-
-## 19. Dependencies
-
-- **Documents:**
-  - [02c](02c-nonfunctional-requirements.md): targets and verification codes;
-  - [04](04-architecture.md) §3, §6.8, §10.6, §13: crate rules, oracle, threat controls, CI list;
-  - [05](05-project-format-and-persistence.md): fault injection, fixture corpus, trust store, deterministic ZIP;
-  - [09](09-reports-forms-output.md) §4.3: output dates and IDs;
-  - [10](10-plc-and-bus.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md),
-    [14](14-interop.md): fuzz targets, corpora, worker isolation;
-  - [15](15-checks-revisions-collaboration.md): rule fixtures, `ew review`;
-  - [16](16-ux-ui.md): kittest flows, first run;
-  - [17](17-extensibility.md): trust, MCP and plugin tests;
-  - [19](19-open-source-governance.md): steward phases and the steward checklist ST-01 … ST-10 (§3.10), licence
-    texts, the LR-01 … LR-12 rules whose CI checks live here (CI-PR-09, CI-PR-10), gates LG-1 and LG-4 (§3.3, RC-10),
-    notice assembly (§5.3);
-- **ADRs:** ADR-0002, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0014, ADR-0015, ADR-0016,
-  ADR-0017, ADR-0019, ADR-0020, ADR-0021, ADR-0022, ADR-0023, ADR-0024, ADR-0028, ADR-0029, ADR-0030.
-- **Crates:**
-  - `ew-testkit`: the builder DSL, the command fuzzer, the hostile corpus;
-  - `fuzz/` (target; gone during the alpha): cargo-fuzz targets, not a workspace member;
-  - `xtask`: dependency rules, licence boundary, the other repository rules of `cargo xtask rules`. It is dev-only and never
-    published;
-  - `ew-testids` (the seeded ID source, dev-only); `ew-memo` statistics;
-  - the `ew` binary (`test-confirm` feature, §3.15);
-  - the app binary: crash monitor and update check (both 1.0), `--smoke`;
-  - the `ew-wiring-viewer` binary (1.0): packaging, signing and the clean-VM test.
-- **External tools** (never shipped):
-  - veraPDF; mermaid-cli (CI-PR-15);
-  - cargo-deny, cargo-audit, cargo-vet, cargo-about, cargo-auditable, cargo-cyclonedx, cargo-llvm-cov, cargo-insta,
-    cargo-nextest, cargo-fuzz;
-  - cargo-packager, strace, reuse-tool, git-cliff.
-
----
-
-## Requirements covered
-
-This document elaborates:
-- **Non-functional:**
-  - NFR-PERF-01 … NFR-PERF-25, NFR-PLAT-01 … NFR-PLAT-08, NFR-SEC-01 … NFR-SEC-16, NFR-SEC-19 … NFR-SEC-21,
-    NFR-PRIV-01 … NFR-PRIV-09, NFR-MAINT-01 … NFR-MAINT-13 and NFR-COMP-01 … NFR-COMP-06;
-  - the verification jobs of NFR-REL-01 … NFR-REL-05, NFR-REL-07 … NFR-REL-16, NFR-I18N-01 … NFR-I18N-04,
-    NFR-I18N-06, NFR-A11Y-01 … NFR-A11Y-04, NFR-UX-01 and NFR-UX-07;
-  - the mechanics of NFR-LIC-01 … NFR-LIC-06, NFR-LIC-08, NFR-LIC-10 and NFR-LIC-12, and the documentation gates
-    of NFR-DOC-01, NFR-DOC-02, NFR-DOC-04 and NFR-DOC-06 … NFR-DOC-09.
-- **Functional, for their CI and release aspects:** FR-EXT-001, FR-EXT-002, FR-EXT-004, FR-EXT-005, FR-EXT-015,
-  FR-EXT-023, FR-OUT-002, FR-OUT-004 … FR-OUT-009, FR-OUT-014, FR-OUT-018, FR-OUT-019, FR-OUT-022, FR-IMP-002,
-  FR-IMP-005, FR-EXT-026, FR-COL-012, FR-COL-013, FR-PRJ-024, FR-UI-028, FR-UI-038 and FR-UI-050.
-
-### Adopted proposals
-
-The requirement rows this document proposed are in the catalogues. Added to the catalogue as:
-- **[02c](02c-nonfunctional-requirements.md) SEC:** NFR-SEC-19 (CI hardening, §5.4), NFR-SEC-20 (reproducible Linux
-  builds, §16), NFR-SEC-21 (OS sandbox for `ew-step-worker`, TM-08); the signed manifest and `SHA256SUMS` with the
-  embedded current and next release key are covered by the existing NFR-SEC-15 (§9.2).
-- **02c PRIV:** the scrubbed crash-upload payload is covered by the existing NFR-PRIV-04 (§12.3).
-- **02c MAINT:** NFR-MAINT-12 (determinism lints, §3.5), NFR-MAINT-13 (no test retries, quarantine, §3.14).
-- **02c PLAT:** NFR-PLAT-08 (administrator policy for update check, mirror, crash upload, MCP, plugins and developer
-  mode, §8, §9.3).
-- **[02b](02b-requirements-extended.md) UI:** FR-UI-050 (crash dialog and Help ▸ Diagnostics, §14); FR-UI-038 (About
-  dialog with the support status and the end-of-support banner, merged with 02c's About-dialog proposal, §7.5, §14).
-
-Rows proposed by other documents and implemented here: NFR-MAINT-10 (API compatibility guard, CI-PR-14),
-NFR-MAINT-11 (acceptance per AC-nn and D-nn; the runner was retired at 0.3.5, §3.10), NFR-PRIV-09 (anonymisation
-guard, CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13).
-
-## Open questions
-
-1. **Packaging tool.** cargo-dist lost its company backing in 2025 and its 2026 maintenance is unconfirmed;
-   cargo-packager's last release (0.11.8) dates from 2025-11-27. Neither is a safe long-term bet.
-   *Recommendation:* use cargo-packager driven by EW's own workflow, keep the packaging configuration thin enough
-   that WiX, NSIS and appimagetool can be driven directly, prove all formats on the nightly CLI builds from M1 (no public release), and
-   re-evaluate only if packaging maintenance exceeds one day per release.
-2. **Dedicated performance runner.** Stable timings need bare metal of the BM class, and a self-hosted runner on a
-   public repository is a security risk. *Recommendation:* the steward owns one BM-class machine, isolated from
-   secrets, which runs only `main` and maintainer PRs labelled `perf` (§5.4). Gate on medians, and keep hosted-runner
-   timings informational.
-3. **Windows per-user installer format.** The candidates are NSIS, a dual-purpose MSI and MSIX. *Recommendation:*
-   NSIS through cargo-packager at MVP. Consider MSIX only if enterprise users ask for it.
-4. **Signing identity and steward timing** (ADR-0030, [brainstorm](01-brainstorm.md) PQ-31). *Update:* 0.1.0
-   ships unsigned, so this question is 1.0's, or earlier when the owner holds a signing identity. No Windows
-   release can be signed with Artifact Signing without an organisation (ADR-0030, 19 LG-4); macOS needs no Apple
-   enrolment, since it is not a supported platform. *Recommendation:* name the phase-1 identity holder in the first
-   90 days (PD-7a, WP-S0.05a of the global plan §14), because enrolment takes at least 12 months, and decide
-   ADR-0030 in full by gate G-M1 (PD-7), so that the phase-1 steward (the pilot panel builder's company) can enrol in time for the MVP. Until then publish only nightlies
-   labelled "unsigned development build" and no binary release (ADR-0023). Keep the SignPath Foundation OSS
-   programme as the documented Windows fallback that ADR-0023 names (2026 eligibility **verify**).
-5. **Crash endpoint** (ADR-0029, [brainstorm](01-brainstorm.md) PQ-33). *Recommendation:* local-only at MVP. At 1.0 the steward runs a self-hosted
-   GlitchTip only if a maintainer owns its operation and the GDPR record of processing. Otherwise the upload button
-   stays absent.
-6. **Release-key custody** (1.0: 0.1.0 has no release key). A CI-held key is convenient, while offline signing by a maintainer is safer.
-   *Recommendation:* keep the key in the protected `release` environment with second-maintainer approval, rotate it
-   yearly with the embedded next key, and move to a hardware-backed signer once one is available to the steward.
-   The release environment belongs to the steward's GitHub organisation with at least two owners (NFR-COMP-08;
-   [19](19-open-source-governance.md) ST-08, LG-4), so custody never depends on a personal account.
-7. **CRA reporting for stewards.** It is unclear whether Art. 24 brings the Art. 14 reporting duty from 2026-09-11
-   for a steward. *Recommendation:* confirm with counsel. Set up the single-reporting-platform account and operate
-   the 24 h / 72 h / 14-day runbook from the steward's processes (1.0) either way.
-8. **Fuzzing infrastructure.** *Recommendation:* run ClusterFuzzLite-style batches on GitHub Actions from MVP, which
-   needs no eligibility check, and apply to OSS-Fuzz after the first public release (eligibility **verify**,
-   RE §11).
-9. **Cross-platform PNG identity** (09 OQ 12). §3.5 and §3.8 accept the dify tolerance for PNG across platforms,
-   which contradicted the PNG part of NFR-REL-07 and FR-OUT-014's earlier criterion ("the same image on all CI
-   platforms"). **Resolved:** ADR-0015 as amended, NFR-REL-07 and FR-OUT-014 now require byte identity only for
-   PDF, SVG, CSV, XLSX, JSONL and `.ewpp`, and compare PNGs within the dify tolerance across platforms; if the performance
-   spike (G-SP) finds a deterministic scalar mode of vello_cpu, `ew render` and the CI goldens use it and PNG is
-   byte-identical again on the same platform.
-10. **Windows ARM64 artefacts.** *Recommendation:* build and sign them as separate best-effort artefacts that do not
-    gate a release. (Intel macOS was part of this question; macOS is not a supported platform, .)
-11. **Flatpak sandbox.** Projects on SMB shares and in arbitrary directories conflict with portal-only file access.
-    *Recommendation:* ship the AppImage at 0.1.0 and the `.deb` with it from 1.0. At 1.0 ship Flathub with `--filesystem=home` and documented
-    limits for network shares, tested through GVFS in CI-PR-11.
-12. **kittest image snapshots on CI.** Software adapters can change rendering with Mesa updates. *Recommendation:*
-    pin the Mesa version in the CI image and take image snapshots only on Linux (lavapipe) and Windows (WARP).
-13. **wasmtime on hardened-runtime macOS** (1.x). **Moot** while macOS is not a supported platform. This is the same question as [17](17-extensibility.md) open question 19, which owns it; §9.1 follows its outcome. JIT code generation needs an entitlement that weakens the
-    hardened runtime. *Recommendation (as in 17):* measure wasmtime's portable interpreter (**verify**) on the
-    sample importer and rule plugins before the plugin launch; ship the interpreter on macOS if a rule scope stays
-    within the online budget of [17](17-extensibility.md) §8.4, otherwise add the JIT entitlement with an ADR.
-14. **Backport load of the support window.** ADR-0030 gives every minor 6 months of security and data-loss fixes
-    after its successor ships, so with quarterly minors up to two older lines need backports, each on its own
-    pinned egui/wgpu stack. **Resolved:** the ADR-0030 rule stands (users on shop-floor PCs need 6 months to
-    upgrade), and NFR-COMP-03 now reads "the latest minor gets all fixes; each minor gets security and data-loss
-    fixes for 6 months after its successor ships"; every `release/N.m` branch stays buildable by running its CI-PR
-    set weekly while it is in the window (§7.5).

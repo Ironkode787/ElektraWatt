@@ -20,9 +20,6 @@ folios 3, 106 and 201–206.
 7. [CLI and automation](#7-cli-and-automation)
 8. [Edge cases and pitfalls](#8-edge-cases-and-pitfalls)
 9. [The reference project](#9-the-reference-project)
-10. [Scope by release](#10-scope-by-release)
-11. [Dependencies](#11-dependencies)
-12. [Requirements covered](#requirements-covered), [Open questions](#open-questions)
 
 ---
 
@@ -77,7 +74,7 @@ The **channel is the hub** (PBF §2.4). Its binding joins the electrical or inte
 process image, its symbol the PLC software, its target the field function and, through a `DeviceLink`, the process
 tag. Nothing a channel displays is stored as text anywhere else (ARCH §1.2, principle 1). Every record below is an
 `ew-schema` record. The fields marked *added* refine the first draft of [03](03-domain-model.md) §13–§14; the
-schema-steward batch (ARCH §7.6) adopted them, and 03 §13–§14 lists them (Open questions 3, 4, 6, 15 and 22).
+schema-steward batch (ARCH §7.6) adopted them, and 03 §13–§14 lists them.
 
 ### 2.2 Configuration project
 
@@ -109,7 +106,7 @@ pub enum Owner { Ecad, Plc, Shared }     // added (replaces EcadOwns | PlcOwns);
 | Symbols, comments | Shared | Shared | yes |
 | Firmware, IP addresses, PROFINET names, DP station addresses | Plc | Plc | no |
 
-The defaults follow [02b](02b-requirements-extended.md) Open question 11 and IDEA-067. `Shared` is the refinement
+The defaults follow IDEA-067. `Shared` is the refinement
 that makes FR-PLC-033's acceptance work: a symbol renamed in TIA and a function text changed in EW merge without a
 conflict, while the same symbol renamed on both sides gives one conflict row. Ownership drives the merge table of
 §4.4 from the first exchange on. **Protection** (§3.9) starts with the first applied PLC import and covers every
@@ -161,7 +158,7 @@ The `Assembly` aspect sits on the device that carries the configurator order cod
 whose bus interface is a separate module (an SI unit, a CPX-AP interface) carries `Assembly` on the head device and
 `PlcStation` plus `BusNode` on that module. A multi-pin valve terminal
 without a bus node has no station at all: its coils are wired through a multi-pin cable to physical channels of
-another module. [03](03-domain-model.md) §13 states the same rule (its Open question 6, resolved).
+another module. [03](03-domain-model.md) §13 states the same rule.
 
 **Slots.** `SlotPath::Rack` holds rack, slot and subslot for racks and remote I/O, authored or imported from TIA.
 `SlotPath::Positional` derives the slot as the 1-based rank of the module among the station's I/O-module descendants,
@@ -421,7 +418,7 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **Supply groups** type the card-supply CPs (FR-PLC-024) and say which channels they feed. EW-PLC-013 and EW-PLC-014
   read them (§3.10).
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It
-  answers [08](08-connections-terminals-cables.md) Open question 5 (FR-BUS-023).
+  is FR-BUS-023.
 
 **As built.** The part section is `sections.plc` (`PlcSection`): `role` (`station` or `module`), `io` (a list of `IoRange{dir, bits, class}`), `channels` (`ChannelSpec{count, kind, data_type, designation}`), `bit_of` and `unbound` (the state of channels neither bound nor claimed; absent: spare). `bit_of` is a `MapSpec`: `MapSpec::Expr` holds the expression text of the map language (`"n"`, `"16n"`, `"2p+1"`) and `MapSpec::List` an explicit list. The schema stores the text; `ew-plcaddr` (`MapExpr`) parses it and the derivation gives an unresolved address for a map it cannot parse. Not modelled yet, and kept in `extra`: the solenoid-position map `[plc.positions]` (typed below), the supply groups, the earth pin, the bus ports and the `meta` confidence. Golden A has one `part_plc` row, part 533361: module, `out:8`, 8 `do` channels, `Bool`, designation `{n}`, `bit_of = "n"`, `unbound = deactivated`.
 
@@ -597,7 +594,7 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
 - **Logical networks** carry addressing, rate and master (FR-BUS-002). Ports read the rate; they never copy it.
 - **Physical networks** are named records. Their **segments are derived** from `Bus` connections, connector
   through-links and plug-on links (`bus_segments`, §3.8). `order_hint` orders members that are not drawn on any
-  topology page. [03](03-domain-model.md) §14 derives them the same way (Open question 6): a stored member order
+  topology page. [03](03-domain-model.md) §14 derives them the same way: a stored member order
   would be a second copy of what the topology page already states.
 - **Bus connectors** are devices of kind `BusConnector` with a port function (role Passive). That function has an
   In entry (A1, B1), an Out entry (A2, B2, optional CPs), a device side and `termination`. -3X1 mates with -201U1's
@@ -1479,16 +1476,16 @@ whose object is gone snapshots nothing. The XLSX carries the channel ID in a hid
 | EW | CAEX element (role or interface class) | Attributes |
 |---|---|---|
 | Configuration project | `InternalElement` (`AutomationProject`) | Name = `PLC1` |
-| Station | `InternalElement` (`Device`) | TypeIdentifier (`System:Device.<family>` or `OrderNumber:<MLFB>` in the TIA sample; `OrderNumber:195740` for -201U1, unverified for GSD devices, Open question 9), `ProductDesignation IEC`, `LocationIdentifier IEC` |
+| Station | `InternalElement` (`Device`) | TypeIdentifier (`System:Device.<family>` or `OrderNumber:<MLFB>` in the TIA sample; `OrderNumber:195740` for -201U1, unverified for GSD devices), `ProductDesignation IEC`, `LocationIdentifier IEC` |
 | Rack, module, submodule | `InternalElement` (`DeviceItem`) | PositionNumber, TypeName, TypeIdentifier `OrderNumber:533361`, FirmwareVersion, BuiltIn, `Address` list {StartAddress, Length in bits, IoType}, IEC tags |
 | Channel | `ExternalInterface` (`…InterfaceClassLib/Channel`) | Type Digital/Analog, IoType, Number, Length |
-| Symbol | `ExternalInterface` (`…/Tag`) in a `TagTable` element (under the CPU `DeviceItem` in TIA; without a CPU see Open question 18) | DataType, IoType, LogicalAddress "0.1" (no area letter; the area follows from IoType), Comment with `aml-lang` per `MlText` language |
+| Symbol | `ExternalInterface` (`…/Tag`) in a `TagTable` element (under the CPU `DeviceItem` in TIA; without a CPU under the `AutomationProject` element) | DataType, IoType, LogicalAddress "0.1" (no area letter; the area follows from IoType), Comment with `aml-lang` per `MlText` language |
 | Channel ↔ symbol | `InternalLink` | RefPartnerSideA `<module ID>:Channel_DO_1`, RefPartnerSideB `<tag table ID>:TA05_V_15` |
-| Bus interface, port, node | `CommunicationInterface`, `CommunicationPort` (Label), `Node`/`NodeEthernet` | NetworkAddress, SubnetMask, IpProtocolSelection; PROFIBUS address names to be fixed from a real DP export (Open question 9) |
+| Bus interface, port, node | `CommunicationInterface`, `CommunicationPort` (Label), `Node`/`NodeEthernet` | NetworkAddress, SubnetMask, IpProtocolSelection; PROFIBUS address names to be fixed from a real DP export |
 
 Golden A at 1.0, with the symbol template `{target.process_tag}`, shortened (role and attribute declarations
-omitted). The element nesting follows the TIA V21 sample (PBF §3.1); the tag-table placement without a CPU is
-Open question 18. Both are verified in the exchange test (SC-8):
+omitted). The element nesting follows the TIA V21 sample (PBF §3.1); the tag table without a CPU sits under the
+`AutomationProject` element. Both are verified in the exchange test (SC-8):
 
 ```xml
 <CAEXFile FileName="PLC1.aml" SchemaVersion="2.15">
@@ -1531,7 +1528,7 @@ leaves no person fields in the file.
 
 *As built (WP-S3.16).* The writer follows the table and the example: the configuration project's `InternalElement`,
 below it one per station (role `Device`) with its modules (`DeviceItem`, flat: a rack is not written as an item, a
-module's `PositionNumber` is its slot), the tag table (`TagTable`, under the project element, Open question 18) and
+module's `PositionNumber` is its slot), the tag table (`TagTable`, under the project element) and
 the subnets, then the `InternalLink`s. Roles are `SupportedRoleClass` paths, attributes carry `AttributeDataType`,
 children come in the order of the CAEX 2.15 content model (attributes, interfaces, elements, the role, links), and the
 class libraries are referenced by path. A station's `TypeIdentifier` is `OrderNumber:` and the order number (else the
@@ -1541,13 +1538,13 @@ channel's, else the function text. Bus: one `CommunicationInterface` per interfa
 with a `Node` (`Type` `Profibus` or `Ethernet`, `NetworkAddress`, `SubnetMask`, `RouterAddress`, `PnDeviceName`) for
 the port with an address and one `CommunicationPort` (`Label`) per labelled port; a logical net is a `Subnet`, linked
 to its nodes through `LogicalEndPoint` interfaces. The node's attribute names, the `LogicalEndPoint` interface class
-and `PnDeviceName` are **unverified** against a TIA export (Open question 9), as is the tag table's place; EtherCAT
+and `PnDeviceName` are **unverified** against a TIA export, as is the tag table's place; EtherCAT
 and IO-Link ports are not written. The 1.2.0 variant (FR-PLC-030) is the same writer with a version table that so far
 differs in the declared version only: which attributes an older importer refuses is part of the exchange test (SC-8).
 The writer header's date is the document date (`SOURCE_DATE_EPOCH`, else the model's edited date). The file holds no
 person field with or without `--omit-personal-data`, which `ew` accepts for the PLC exports (FR-EXP-009). An export is
 refused while EW-PLC-005 has a finding (FR-PLC-047). **Validation:** the published CAEX 2.15 schema file is not in the
-repository, because its licence for redistribution is not established (Open question 16); a test of `ew-caex` checks
+repository, because its licence for redistribution is not established; a test of `ew-caex` checks
 the written file against the schema's content model written from the standard (child order, required attributes,
 unique IDs, links that name interfaces), and AC-30's test reads Golden A's export back: 7 modules on Q0 … Q6, 56
 channels, 8 tags linked to their channels.
@@ -1702,7 +1699,7 @@ One GVL `IO_ElektraWatt` per configuration project, with one variable per used c
 *As built (WP-S3.16).* The writer is `ew_plc::plcopen`: the file header, an empty `types` block and the list under
 `instances/configurations/configuration/resource/globalVars`; a data type the standard does not name is a `derived`
 type; the documentation is the function text and the signal pin. The `plcopen` crate is not taken as a test
-dependency (a low-adoption crate, Open question 14): the test reads the written XML for its namespace, its variables
+dependency (a low-adoption crate, never a runtime dependency): the test reads the written XML for its namespace, its variables
 and their addresses. Whether CODESYS imports the list is SC-8's. The export is not recorded as an exchange: the list
 never comes back, so it is no base of a merge (§4.4).
 
@@ -2048,182 +2045,3 @@ that differs from the module's solenoid-position map is reported by EW-PLC-012 (
 | D-36 order code vs components | order codes on the `Assembly` aspect; channels from component parts |
 | D-40 CPX block inside the MPA section | -202U1 carries no `PlcModule`, so addressing is unaffected; slot validation EW-FL-003 (1.x) |
 | D-41 assembly tagged from two pages | positional slots from `Device.position`, never from tags or pages |
-
----
-
-## 10. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Model | configuration project, station, module, channel; internal channels; card supply typing; bus ports, connectors, external partners | device types from GSD/GSDML/IODD; rack/slot editor; safety data; PROFINET, IO-Link, EtherCAT structure | ESI, EDS; EtherNet/IP, AS-i | CANopen, Modbus |
-| Addressing | profiles TIA intl and IEC; Auto, Manual, Excluded, Tbd; part maps; re-address preview (Should) | freeze; Rockwell rendering; ownership protection | further vendor profiles; slot-based allocation | — |
-| Texts | manual symbol and comment; function text from direct targets | automatic symbols; target tracking; process-tag scheme | structured (UDT) symbols; tags from PLC data (FR-NUM-027) | — |
-| Representations | channel pins, coil binding on fluid pages, assembly overview, PLC overview box (Should) | generated bus topology overview | — | — |
-| UI | PLC navigator, grid (Should), drag-bind | PLC workspace, bus navigator, exchange dialog, rack/slot editor | process-tag navigator | — |
-| Exchange | generic I/O list CSV/XLSX round trip (Should) | AML AR APC 1.4.0 (+1.2.0) export and import with 3-way merge; TIA tag XLSX; PLCopen GVL; instrument-list import | TST import; L5X; TwinCAT | TIA Openness bridge |
-| Checks | EW-PLC-001, -002, -003, -007, -008, -012, -015; EW-BUS-001, -004 | all other EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL rules | EW-BUS-008 | — |
-| Reports | `plc_overview`, `io_list`, open items | `plc_card_list`, bus reports, IO-Link and safety lists | — | — |
-
-The MVP column is what the golden acceptance criteria need: AC-31 at milestone M2 and AC-29 at the MVP release.
-AC-30 and the EW-PLC and EW-BUS part of AC-22 close at M3; SC-8 (the exchange test with real TIA and CODESYS
-installations) closes by 1.0 ([vision](00-vision-and-scope.md) §3.2).
-
----
-
-## 11. Dependencies
-
-| Crate | Role here |
-|---|---|
-| `ew-schema` | `PlcConfigProject`, aspects, `Channel`, bus records, exchange snapshot records |
-| `ew-plcaddr` (permissive, ARCH §3) | `PlcAddress`, profile data model, grammar engine, bit-interval arithmetic; used by `ew-derive`, `ew-plc` and the QET importer |
-| `ew-caex`, `ew-devdesc` (permissive, ARCH §3) | CAEX 2.15/3.0 read and write, `ExchangeImage`; GSD, GSDML, IODD (ESI, EDS at 1.x) |
-| `ew-derive` | the queries of §2.10 |
-| `ew-commands` | normalisers N1–N4; `plc.*` commands |
-| `ew-checks` | EW-PLC, EW-SAF, EW-PRC, EW-BUS and EW-IOL rules |
-| `ew-plc` | the exchange image's projection, matching and merge, the rows of the TIA "PLC Tags" table, the PLCopen writer, the instrument list (as built: below `ew-commands` and `ew-checks`, which call it; the commands that apply an exchange are in `ew-commands`, the file reading and writing in `ew-api`); L5X and rack/slot logic later |
-| `ew-reports`, `ew-scene` | row sources of §5; text slots and property arrangements |
-| `ew-viewmodel`, `ew-ui` | navigator, grid, dialogs |
-| `ew-import-qet` | emits `plc_*` element info and recognised "Q0.1" texts as pending channel bindings (FR-IMP-011, FR-IMP-017); it never sees `ew-model` (ARCH §3, rule 4). `ApplyImport` in `ew-commands` resolves them by A7 (§3.3) |
-
-| Document | Relation |
-|---|---|
-| [03](03-domain-model.md) | the records of §13–§14 with this document's refinements, adopted in the schema-steward batch (Open questions 3, 4, 6, 15, 22) |
-| [05](05-project-format-and-persistence.md) | kind ranks; the `exchange/` directory (ranks 70, 71) and the `plc_profile` library kind in `lib/plc-profiles/` (Open questions 2, 13) |
-| [06](06-schematic-editor.md) | page types, text slots, xref formats |
-| [07](07-symbols-parts-macros.md) | part sections L2, confidence, valve typical with `ChannelBinding` value sets |
-| [08](08-connections-terminals-cables.md) | `Bus` lines, cables, supply potentials, `Internal` connections |
-| [09](09-reports-forms-output.md) | blocks 908 and `io_list`, `_ew` and `_ew_base` sheets, CSV guard |
-| [11](11-fluid-power.md) | valve model, `ValveTerminal` aspect, N-FL-3 (= N2), EW-FL-002/003, valve-terminal configuration report |
-| [12](12-panel-layout.md) | EtherCAT rail order, placement of PLC hardware |
-| [14](14-interop.md) | generic import and export, QET and EDZ PLC mapping |
-| [15](15-checks-revisions-collaboration.md) | rule engine, configuration-project scope, release gate |
-| [16](16-ux-ui.md), [17](17-extensibility.md), [18](18-quality-security-release.md) | UI, CLI names, fuzzing and determinism jobs |
-
----
-
-## Requirements covered
-
-- **PLC:** FR-PLC-001 … FR-PLC-056.
-- **BUS:** FR-BUS-001 … FR-BUS-024.
-- **EXP (PLC exchange):** FR-EXP-001, FR-EXP-002, FR-EXP-003, FR-EXP-004, FR-EXP-006, FR-EXP-009.
-- **Core rows with a PLC or bus part (02a):** FR-DEV-012, FR-DEV-023, FR-DEV-024, FR-DEV-026, FR-DEV-028,
-  FR-DEV-034, FR-PRT-010, FR-REP-019, FR-REP-020, FR-REP-021, FR-REP-026, FR-REP-045, FR-CHK-005, FR-CHK-030,
-  FR-CHK-034, FR-CHK-037, FR-CHK-042, FR-CHK-045, FR-CHK-046, FR-XRF-016, FR-CBL-008, FR-MAC-004, FR-NUM-027.
-- **Other 02b rows touched:** FR-FLU-005, FR-IMP-011, FR-IMP-017, FR-UI-003, FR-UI-006, FR-UI-007, FR-UI-008,
-  FR-UI-010, FR-UI-011, FR-UI-021, FR-UI-022, FR-UI-025, FR-UI-026, FR-EXT-003, FR-EXT-007, FR-EXT-027.
-- **Non-functional:** NFR-REL-07, NFR-REL-09, NFR-REL-11, NFR-SEC-02, NFR-SEC-03, NFR-SEC-17, NFR-LIC-06,
-  NFR-PRIV-06, NFR-COMP-05, NFR-PERF-08, NFR-PERF-09, NFR-PERF-22, NFR-DOC-02, NFR-UX-03.
-
-### Proposed new requirements
-
-The ten rows this document proposed are in the catalogues:
-- derived effective channel state and the I/O-list default filter → covered by the existing **FR-PLC-019**
-  ([02b](02b-requirements-extended.md)), which now carries the derivation;
-- solenoid-binding normaliser (N2) → **FR-PLC-051** (02b);
-- PLC overview box → **FR-PLC-052** (02b);
-- v5 channel IDs and confirmed removal of surplus channels → **FR-PLC-053** (02b);
-- manual channel target → **FR-PLC-054** (02b);
-- renumbering never changes a derived PLC address → **FR-PLC-055** (02b);
-- EW identity in PLC exports → **FR-PLC-056** (02b);
-- bus-port signal map → **FR-BUS-023** (02b);
-- EW-BUS-010 for ports of different logical nets joined by bus connections → **FR-BUS-024** (02b);
-- AML export and import-preview budget → **NFR-PERF-22** ([02c](02c-nonfunctional-requirements.md)).
-
----
-
-## Open questions
-
-1. **Crate placement of the address grammar.** ARCH §3 puts address grammars in `ew-plc`, which depends on
-   `ew-commands`. `ew-derive` (rendering, `channel_addresses`) and the QET importer (parsing "Q0.1") cannot depend
-   on it. **Resolved:** ARCH §3 adds the permissive crates `ew-plcaddr` (`PlcAddress`, profiles, grammar engine, bit
-   intervals), `ew-caex` and `ew-devdesc`; `ew-plc` keeps exchange orchestration, merge, writers and rack/slot logic
-   (§11). *As built:* `ew-plc` depends on `ew-derive` and `ew-caex` only and sits below `ew-commands`, whose
-   `plc.apply_exchange` runs its merge.
-2. **Exchange snapshot storage.** No file in [05](05-project-format-and-persistence.md) held the merge base.
-   **Resolved:** 05 §2.2 adds `exchange/<config-project-uuid>.jsonl` (1.0) with the kinds `exchange_record` and
-   `foreign_id` (ranks 70, 71), included in the as-built archive; `PlcConfigProject.exchange` keeps only the stamp
-   (§4.2).
-3. **`PlcModule.start` per direction.** ARCH §4.2 has one `start`, but mixed modules need an input and an output
-   start, as AR APC's `Address` list shows. **Resolved:** the schema-steward batch adopts `IoStarts { input, output }`
-   ([03](03-domain-model.md) §13).
-4. **Station allocation order.** Auto allocation needs an order that does not depend on tags. **Resolved:**
-   `PlcStation.order: Option<u32>` is adopted, falling back to the UUIDv7 creation order, never tag, page or bus
-   address ([03](03-domain-model.md) §13).
-5. **Channel binding vs `Internal` connection.** [03](03-domain-model.md) and the golden project bind the
-   coil CP directly, while [08](08-connections-terminals-cables.md) §2.3 cites the channel-to-coil link as an
-   example of `Internal`. **Resolved:** `Channel.binding` only; `Internal` remains for other device-internal links
-   between CPs of one part's functions, and 08 §2.3 uses such a link as its example (§3.3).
-6. **Authored vs derived bus segments.** [03](03-domain-model.md) §14 stored `PhysicalNet.segments`, which
-   duplicates the topology drawing. **Resolved:** segments are derived by `bus_segments(pnet)`, and `PhysicalNet`
-   keeps only `order_hint` for undrawn members and `medium` (03 §14, §2.7).
-7. **The odd-bit question (D-26).** Whether VMPA1-FB-EMG-8 puts coil 14 on the even bit decides 28 findings or none
-   (PQ-15, U-23). *Recommendation:* keep H1 as the golden test input with confidence `test`; confirm from the
-   vendor manual or the pilot's PLC program before 1.0, then set `verified` with the source.
-8. **Ownership defaults.** *Recommendation:* the table of §2.2, including `Shared` for symbols and comments; confirm
-   with the pilot user's PLC programmers (PQ-19) and show the setting in the PLC navigator.
-9. **AR APC PROFIBUS attributes, CPX slot numbering and GSD type identifiers.** The verified TIA sample is PROFINET
-   only. How TIA numbers the CPX-FB13's GSD modules is unknown, and so is the `TypeIdentifier` TIA expects for a
-   non-Siemens GSD device (the sample shows only `System:Device.…` and `OrderNumber:…`; a GSD-based form is
-   plausible but unverified). *Recommendation:* make a TIA V21 export of a DP master system with a CPX-FB13 slave a
-   precondition for accepting FR-PLC-031's DP part and AC-30 (02b Open question 12), and take the station and module
-   `TypeIdentifier` forms from it.
-10. **Leading-digit symbols.** FR-PLC-017's example `201U3_Q1_14` broke FR-PLC-047's strict IEC rule (no leading
-    digit). **Resolved:** `ident()` prefixes `_`, and FR-PLC-017's example and criterion use `_201U3_Q1_14`; that
-    IEC 61131-3 Ed. 4 still allows a leading underscore before a digit stays to verify (§3.4).
-11. **I/O-list rows in FR-PLC-023.** Its criterion expected 56 golden rows; the default filter here gives 28.
-    **Resolved:** FR-PLC-023's criterion expects the same 28 rows in PDF and XLSX, 56 with the deactivated filter off
-    ([09](09-reports-forms-output.md) Open question 9).
-12. **"Foreign file newer" in EW-PLC-016.** Queries cannot read files. **Resolved:** FR-PLC-035 evaluates that
-    clause in the exchange dialog and in `ew plc status <file>` only (§4.4).
-13. **Storage of address profiles.** [05](05-project-format-and-persistence.md) §2.2 lists the library kinds part,
-    symbol, fndef, form and macro, but no address profile. **Resolved:** built-in profiles are versioned and never
-    removed, and a user profile is embedded as the library kind `plc_profile` in `lib/plc-profiles/<copy_id>.json`
-    (1.0; 05 §2.2, §3.4).
-14. **Low-adoption crates (C-9).** gsd-parser, plcopen, l5x, taktora-ethercat-esi and ioddengine are below the
-    adoption threshold. *Recommendation:* use plcopen and l5x in tests only; vendor gsd-parser and
-    taktora-ethercat-esi under a named owner, or write own parsers; never take them as unreviewed runtime
-    dependencies.
-15. **Manual target field.** `Channel.target` was not in [03](03-domain-model.md) §13. **Resolved:** adopted in the
-    schema-steward batch, with FR-PLC-054 as its requirement.
-16. **Exchange test installations.** SC-8 needs TIA Portal V21, an older TIA (V17) for AR APC 1.2.0, and CODESYS
-    3.5. The CAEX 2.15 XSD licence for CI validation is unverified. *Recommendation:* ask the pilot user for access
-    or sample exports (PQ-19); vendor the XSD only if its licence permits, else validate structurally in CI and with
-    the AutomationML editor in the exchange test. *As built:* the schema file is not vendored; the writer is checked
-    against the schema's content model written from the standard (§4.3).
-17. **Rule constants.** Bus ranges, segment lengths, IO-Link limits, PROFINET name rules and TIA's default analog
-    starts are unverified. **Resolved:** they ship with `verified = false` and report at most warnings (FR-CHK-046);
-    the verification pass against PI, IO-Link Community and vendor manuals is scheduled in the global plan's
-    verification register before 1.0.
-18. **Tag tables without a CPU.** In the TIA sample, `TagTable` elements sit under the CPU `DeviceItem`. Golden A has
-    `cpu: None` (the DP master is the external partner JE-N1000-03), so the AML has no CPU to hang the 8 tags on.
-    *Recommendation:* write the tag table under the `AutomationProject` element (as in §4.3) and test in SC-8 whether
-    TIA accepts it; if not, export the tags only through the TIA "PLC Tags" XLSX (§4.5) whenever `cpu` is `None`, and
-    say so in the export dialog.
-19. **Target tracking and bridges.** FR-PLC-018 says tracking follows "connections, terminals and bridges", while
-    §3.5 (and [03](03-domain-model.md) §9.3) stops at bridges, because a bridge joins potentials and would make a DI
-    "find" every load on a 24 V rail. **Resolved:** the signal-level rule stays, and FR-PLC-018 reads "through
-    connections, terminals, terminal levels and plug pins" (§3.5); 03 Open question 2 still collects EPLAN users'
-    feedback on signal boundaries.
-20. **Function texts in spreadsheet round trips.** FR-PLC-038's criterion edits 3 function texts in Excel, but a
-    channel's function text is derived from its target (§2.4, §4.7). **Resolved:** FR-PLC-038's criterion edits 3
-    comments (§4.7); an "apply to target" action for function-text cells has no requirement row and stays a
-    candidate for a later release.
-21. **Wording of FR-PLC-045 and FR-PLC-015.** FR-PLC-045's criterion speaks of "imported manual addresses Q0.1 …",
-    but A7 (§3.3) imports them as bindings with `Auto` addresses; FR-PLC-015's criterion changes "the address map of
-    571334", but the maps live on the module part 533361 (571334 declares only its solenoids). **Resolved:** both
-    criteria read "imported bindings" and "the solenoid-position map of 533361"; the finding counts stay 28 / 0.
-22. **Schema deltas against [03](03-domain-model.md) §13–§14.** Besides Open questions 3, 4, 6 and 15, this document
-    changes `PlcConfigProject.ownership` from `EcadOwns | PlcOwns` to an `Owner` per field group (adding `Shared`),
-    replaces `foreign_ids` and `last_exchange` by `exchange: ExchangeStamp` plus the `exchange/` file, adds
-    `allocation` and `symbols`, replaces `PlcModule.address_map` by `part_use`, makes `Channel.state` optional
-    (derived when absent) and adds `PlcModule.safety`, `Channel.signal_range`, `Channel.safety` and
-    `PhysicalNet.medium`. **Resolved:** one schema-steward batch adopts them before `ew-schema` v0 freezes, and
-    03 §13–§14 lists them (§2).
-23. **Direction of the golden bus segment.** FR-BUS-003 and [03](03-domain-model.md) §14 list the segment master
-    first (JE-N1000-03 → -3W1 → -3X1 → -201U1 DP); the golden bus table listed it from -201U1.
-    **Resolved:** master-first everywhere: A5 orders that way (§3.8), and 20 §11.1 lists the segment
-    JE-N1000-03 → -3W1 → -3X1 → -201U1:DP.
-24. **Auto allocation around Manual ranges.** A1 places Auto ranges at the first free range at or after the cursor,
-    which matches TIA's "next free address" behaviour as far as known (unverified). *Recommendation:* keep first-fit
-    with the stable cursor; confirm with the pilot user's PLC programmers (PQ-19) that inserted modules should take
-    the next free byte (Q7 in §3.9) rather than force a re-address of PLC-owned starts.

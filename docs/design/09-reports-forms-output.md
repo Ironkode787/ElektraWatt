@@ -20,10 +20,6 @@ the accepted [architecture](04-architecture.md) (§8, §10.2, §11; ADR-0015, AD
 6. [Outputs](#6-outputs)
 7. [Edge cases and pitfalls](#7-edge-cases-and-pitfalls)
 8. [The reference project](#8-the-reference-project)
-9. [Scope by release](#9-scope-by-release)
-10. [Dependencies](#10-dependencies)
-11. [Requirements covered](#requirements-covered)
-12. [Open questions](#open-questions)
 
 ---
 
@@ -107,7 +103,7 @@ flowchart LR
 ### 2.2 `ReportBlock`
 
 The [domain model](03-domain-model.md) §6 record, with the fields this document needs (fields marked + were added
-by the schema-steward batch, Open question 7):
+by the schema-steward batch):
 
 ```rust
 pub struct ReportBlock {
@@ -670,7 +666,8 @@ report_pages(block):
 
 - **Filters** are typed predicates over row columns or source entities (`location within +J-E-2416`,
   `state != Deactivated`, `has_part`) or a pure rhai expression. Manual include and exclude lists hold entity IDs and
-  survive renumbering (FR-REP-027). Example: a BOM block filtered to `+J-E-2416` omits the `+FIELD` process valves.
+  survive renumbering (FR-REP-027). The I/O list leaves out deactivated channels unless its block parameter
+  `include_deactivated` is true, while the PLC overview lists every channel. Example: a BOM block filtered to `+J-E-2416` omits the `+FIELD` process valves.
 - **Sorting** uses the specified natural order of `ew-mltext` (numeric runs by value; ADR-0005 amendment 3; ICU only for language-sensitive display sorting) in the project's *source* language, independent of OS locale
   and display language, so every language export sorts identically (FR-I18N-010, NFR-I18N-03). The reference BOM's
   ASCII order ("+" < "-" < digits) cannot occur.
@@ -1057,7 +1054,7 @@ sequential assembly in page order (FR-OUT-001, ARCH §2). *As built:* the page p
   `<file>.pdf#nameddest=<name>` (viewer-dependent).
 - **Status mark (1.0).** An unreleased revision gets "DRAFT V3.0" in the sheet margin outside the frame
   (FR-OUT-021). The pilot basic project ships with the mark off until the pilot decides, and the golden text CSVs
-  exclude the margin ([15](15-checks-revisions-collaboration.md) open question 9).
+  exclude the margin.
 - **Monochrome** maps every stroke and text to black and every non-white fill to its luminance grey; wire-colour
   codes stay as text (FR-OUT-011, G8).
 
@@ -1184,7 +1181,7 @@ Every report block and navigator table exports from its `RowSet` with exactly th
   entry dates follow §4.3 (verify that the rust_xlsxwriter API lets both be set explicitly).
 - **CSV** dialects (FR-EXP-003): `excel-nl` (`;`, decimal comma, UTF-8 BOM, CRLF), `excel-en` (`,`, decimal point,
   UTF-8 BOM, CRLF), `rfc4180` (`,`, CRLF, no BOM, values unaltered). The Excel presets apply the formula-injection
-  guard of NFR-SEC-17 (Open question 8); `rfc4180` and machine profiles never alter values.
+  guard of NFR-SEC-17; `rfc4180` and machine profiles never alter values.
 - *As built:* the default of the shipped exports is the `ew` dialect (`ew_reports::csv`: LF line ends, no BOM, header `row,<column labels>`); the presets above are taken with `--preset` (below); the FR-EXP-005 gaps are FT-242.
 - `ew export bom|wires|terminals|cables` (FR-EXT-003) and a generic `ew export report --block <name>` (FR-EXT-027,
   listed in [17](17-extensibility.md) §3.3) use the same code.
@@ -1547,7 +1544,7 @@ title block, cover, divider and report forms reproduce the golden house style.
     print carries it in the margin stamp next to the scale, so it is the one declared exception to FR-OUT-018's
     identical geometry.
 18. **Large-format Windows printing.** A0 at 600 dpi is about 20,000 × 28,000 px; banding keeps memory bounded, but
-    spool size is large (Open question 10).
+    spool size is large.
 19. **BOM position numbers.** `Pos` is the row index after sorting (§2.4), so inserting a part renumbers every later
     position (a new device at the end of folio 102 takes golden row 13 and moves PT 2.5-TWIN to row 14). Purchasing
     lists of a released revision keep their positions through the frozen `reports/<block id>.csv` (§3.7); stored
@@ -1561,167 +1558,3 @@ title block, cover, divider and report forms reproduce the golden house style.
 
 No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), and each report
 kind is specified in §2.4 and §4.
-
----
-
-## 9. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Report blocks, derived pages, page order, sub-page continuation | Must | — | — | — |
-| Built-in kinds | cover form, TOC, structure/tag overview, parts summary (both modes), parts list, device list, terminal diagram and overview, cable overview and diagrams, wire list, PLC overview, I/O list, potential overview, revision overview, open items, numbering report, check report | line-up, device connection, plug, PLC card list, safety I/O list, bus, enclosure legend and mounting list as pages, cable connection and assignment forms, fluid lists, load summary, order and manufacturer lists, thermal, checklists, hole table, cut list, terminal assembly list, untranslated texts | graphical reports (terminal connection diagram, nameplates), labour estimate, symbol overview and forms documentation | — |
-| Embedded blocks | PART DATA (`part_data`), cover tables (`profile_tables`), layout legend | every kind (FR-REP-029) | — | — |
-| User SQL reports | — | Must (FR-REP-031) | report packs | — |
-| Forms | shipped QET-compatible forms as data, wizard binding | forms and frame editor; ISO 5457 frames with an ISO 7200 title block | — | — |
-| PDF | PDF/A-2b, outline, links, named destinations, page labels, fonts, metadata, monochrome, partial links, mixed page sizes | tagged PDF/UA-1, per-language sets, status mark, revision clouds, PDF/A-3b or A-4f attachments | — | layers, 3D PDF |
-| Other page output | SVG, PNG, printing on all three platforms | DXF | — | DWG |
-| Tables | XLSX, CSV dialects, Excel round trip | — | — | — |
-| Languages | number/date formatting, natural sort, one language | stacked texts, PDF per language, colour names, overflow per language | CJK/RTL fallback fonts | — |
-
----
-
-## 10. Dependencies
-
-| Document | What this document needs from it |
-|---|---|
-| [03 domain model](03-domain-model.md) | `ReportBlock`, `FormDef`, `Page.title`/`description_override`, `PageItem`, `Revision`/`ReleaseRecord`, physical-wire identity |
-| [04 architecture](04-architecture.md) | §3 crates (`ew-text`, `ew-reports` → `ew-sqlview`, `ew-print`, `ew-export` → `ew-render-cpu`), §6.4 queries, §6.5 freshness, §8 rendering, §10.2 projection, §11 reports; ADR-0015, ADR-0017, ADR-0018, ADR-0028 (Proposed) |
-| [05 persistence](05-project-format-and-persistence.md) | edited date for "Saved" (FR-PRJ-029), release context, archive layout (`pdf/`, `reports/`) |
-| [06 schematic editor](06-schematic-editor.md) | frame grid semantics, link sources and targets, read-only generated pages |
-| [07 symbols, parts, macros](07-symbols-parts-macros.md) | form library storage, text styles, `device_part_lines` |
-| [08 connections, terminals, cables](08-connections-terminals-cables.md) | wire-list, terminal and cable row content, effective wire properties with provenance |
-| [10](10-plc-and-bus.md), [11](11-fluid-power.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) | domain row sources; 13 reuses `RowSet` for machine profiles and `.ewpp` |
-| [14 interop](14-interop.md) | QET title blocks → frame forms (FR-IMP-015), `graphics_table` → blocks (FR-IMP-016), Tahoma substitution (FR-IMP-020), the `_ew_base` round-trip sheet (§8.1) and the translation exchange format (§8.5) |
-| [15 checks, revisions](15-checks-revisions-collaboration.md) | check-report content, page change status, revision clouds in PDF (FR-REV-016) |
-| [16 UX](16-ux-ui.md), [17 extensibility](17-extensibility.md) | dialogs and panels; `api_v1` view schemas, CLI, rhai formulas |
-| [18 quality](18-quality-security-release.md) | veraPDF, cross-platform digests; the written PDF's frame, structure, text layer and determinism are `ew-api`'s `pdf_output.rs` tests on the sample project |
-
----
-
-## Requirements covered
-
-- **REP:** FR-REP-001 … FR-REP-051.
-- **OUT:** FR-OUT-001 … FR-OUT-027.
-- **PAG (output side):** FR-PAG-002, FR-PAG-006, FR-PAG-009, FR-PAG-010, FR-PAG-011, FR-PAG-013, FR-PAG-014,
-  FR-PAG-015, FR-PAG-016, FR-PAG-017, FR-PAG-018, FR-PAG-019, FR-PAG-023, FR-PAG-027, FR-PAG-028, FR-PAG-029,
-  FR-PAG-030.
-- **I18N (output side):** FR-I18N-002, FR-I18N-004, FR-I18N-005, FR-I18N-009, FR-I18N-010, FR-I18N-012,
-  FR-I18N-013, FR-I18N-016.
-- **Other areas, forms and output only:** FR-PRJ-003, FR-PRJ-008, FR-PRJ-010, FR-PRJ-011, FR-PRJ-023, FR-PRJ-024,
-  FR-PRJ-029, FR-SYM-013, FR-SYM-025, FR-NUM-018, FR-XRF-019, FR-CON-033, FR-CON-034, FR-CHK-014, FR-CHK-023,
-  FR-CHK-038, FR-REV-003, FR-REV-010, FR-REV-011, FR-REV-016, FR-EXP-001, FR-EXP-002, FR-EXP-003, FR-EXP-004,
-  FR-EXP-006, FR-EXP-009, FR-EXT-003, FR-EXT-004, FR-EXT-009, FR-EXT-011, FR-EXT-027, FR-UI-024, FR-UI-030.
-- **Domain row sources (page form and output side only; row content is elaborated in the owning documents):**
-  FR-PLC-022, FR-PLC-023, FR-PLC-041, FR-BUS-007, FR-BUS-008, FR-BUS-014, FR-FLU-012, FR-FLU-013, FR-FLU-015,
-  FR-FLU-016, FR-LAY-012, FR-THM-009, FR-MFG-016, FR-MFG-029, FR-MFG-030, FR-MFG-036, FR-MFG-037, FR-MFG-038.
-- **Non-functional:** NFR-PERF-10, NFR-PERF-11, NFR-PERF-13, NFR-PERF-19, NFR-REL-07, NFR-REL-09, NFR-REL-11,
-  NFR-PRIV-06, NFR-A11Y-05, NFR-I18N-03, NFR-I18N-05, NFR-SEC-05, NFR-SEC-17, NFR-COMP-04, NFR-PLAT-04,
-  NFR-LIC-09.
-
-### Proposed new requirements
-
-The thirteen rows this document proposed are in the catalogues:
-- domain row sources of 02b as built-in report kinds, including the PLC card list and the safety I/O list →
-  **FR-REP-045** ([02a](02a-requirements-core.md), one row with the proposal of
-  [02b](02b-requirements-extended.md));
-- tag-range compression in report columns → **FR-REP-046** (02a, one row with the golden project's
-  proposal);
-- report-coverage finding for strips, cables and PLC stations (rule EW-CORE-026) → **FR-REP-047** (02a);
-- stable row identity → **FR-REP-048** (02a);
-- fixed-height rows and language-independent pagination → **FR-REP-049** (02a);
-- ISO 7200 title block of the ISO 5457 frames → **FR-REP-050** (02a);
-- page-to-sheet transform of frame forms → **FR-PAG-029** (02a, one row with 20's proposal);
-- sub-page continuation of report blocks → **FR-PAG-030** (02a, one row with 20's proposal);
-- "omit personal data" for page, report and PDF export → **FR-OUT-025** (02a, one row with the proposal of
-  [02c](02c-nonfunctional-requirements.md));
-- output dates never from the wall clock → **FR-OUT-026** (02a);
-- missing-glyph finding and bundled fallback font (rule EW-CORE-066) → **FR-OUT-027** (02a);
-- `ew export report --block` → **FR-EXT-027** (02b, one row with the proposal of [17](17-extensibility.md));
-- spreadsheet formula-injection guard → **NFR-SEC-17** (02c).
-
----
-
-## Open questions
-
-1. **Sub-page numbering priority.** FR-PAG-006 is Should, but the golden page plan needs sub-pages (2.1, 901.1,
-   907.1, 908.1, 910.1 …). **Resolved:** FR-PAG-006 is Must at MVP together with the continuation rule FR-PAG-030
-   ([02a](02a-requirements-core.md)).
-2. **Page count in 02a.** FR-REV-003's criterion says "all 27 GP pages", 02a §1.3 mentions 903–911 only, while the
-   golden page plan has 36 pages. **Resolved:** FR-REV-003's criterion reads "all 36 GP pages (20 §5)", and
-   the golden page plan was the single count.
-3. **One block per strip or one grouped block.** Golden A uses three terminal-diagram blocks (903, 904, 905).
-   *Recommendation:* keep separate blocks in the pilot basic project for fixed folios, offer a grouped block with
-   `NewFolio` for projects that reserve a folio range, with the coverage check EW-CORE-026 (FR-REP-047). Answering
-   PQ-12 (folios in section 9 or separate documents) decides the default.
-4. **Text measurement across crates.** Pagination in `ew-reports` needs text measurement when rows wrap or shrink,
-   but shaping lived in `ew-scene`, which depends on `ew-reports` (ARCH §3). **Resolved:** fonts and the memoised
-   `shaped_text` query live in the GPL crate `ew-text` below both (ARCH §3, ADR-0015 amendment 1; §1.3).
-5. **Where print adapters and PNG export live.** Both `elektrawatt` and `ew print` need the print adapters, and the
-   Windows adapter needs `ew-render-cpu`, which `ew-export` does not depend on in ARCH §3; the same gap affects PNG
-   export, which ARCH §3 lists under `ew-export`. **Resolved:** ARCH §3 adds the GPL crate `ew-print` (per-OS
-   features, depending on `ew-export` and `ew-render-cpu`) and the edge `ew-export → ew-render-cpu` (ADR-0015
-   amendment 1; §1.3, §4.5).
-6. **SQL report pages in `page_order`.** The page count of a Class II SQL block is not a tracked model read.
-   **Resolved:** ADR-0017 amendment 1 adopts the session-held, revision-stamped last result per SQL block, with one
-   placeholder page before the first result and fresh computation on every export fork (§3.5).
-7. **`ReportBlock` and `FormDef` schema additions.** `manual`, `continuation`, `title`, `empty`,
-   `EmbedSpec.overflow`, `FormDef.page_to_sheet` and `FormDef.continuation` are not in ARCH §4.2 or
-   [03](03-domain-model.md) §6. In addition, 03 stores a user SQL report inline (`SqlQuery{api, sql}`), while
-   [05](05-project-format-and-persistence.md) §2.1 stores it as `reports/<uuid>.sql`. **Resolved:** the
-   schema-steward batch adds the fields and `SqlQuery{api, file}` referencing `reports/<uuid>.sql` to
-   [03](03-domain-model.md) §6 before `ew-schema` v0 freezes (§2.2, §2.5).
-8. **CSV formula guard versus identifiers.** Tags start with "-" and locations with "+", which Excel may evaluate
-   when opening a CSV ("-101F1" → "#NAME?"; Excel behaviour to verify). A guard prefix alters the data for other
-   consumers. **Resolved:** XLSX is the recommended format for Excel users; the `excel-*` presets apply the guard of
-   NFR-SEC-17 (OWASP apostrophe prefix), say so in the dialog, and the Excel round-trip import (FR-EXP-004) strips
-   exactly that prefix again, while `rfc4180` and machine profiles never alter values (the Excel behaviour itself
-   stays to verify).
-9. **I/O list default filter.** [03](03-domain-model.md) OQ 9 excludes deactivated channels from I/O lists by
-   default, while FR-PLC-023's criterion expected 56 golden rows. **Resolved:** the PLC overview (908) lists all 56
-   channels, new I/O-list blocks default to `state != Deactivated`, and FR-PLC-023's criterion expects the same 28
-   rows in PDF and XLSX (56 with the filter off).
-10. **Windows print path.** Banded raster printing is simple and exact but spools large jobs. *Recommendation:*
-    300 dpi colour and 600 dpi monochrome at MVP; evaluate the XPS Print API with vector output from the display
-    list for 1.0 if pilot printers or plotters struggle.
-11. **`/PageLabels` with literal prefixes.** One label range per page with a prefix and no numbering style is valid
-    PDF. krilla lists page labels among its features ([rust-ecosystem](../research/rust-ecosystem.md) §6), but
-    whether its API accepts a prefix-only label on every page (sparse folios 1, 2, 2.1, 3, 100 …) is unverified.
-    *Recommendation:* verify in spine lane 2 (weeks 6–9); fall back to a pdf-writer post-step.
-    **Resolved (2026-10-19):** krilla 0.8.2 writes them natively; no post-step (ADR-0015 amendment 5).
-12. **PNG byte identity.** vello_cpu may choose different SIMD paths per CPU. NFR-REL-07 lists PNG among the
-    byte-identical outputs and FR-OUT-014's criterion says "the same image on all CI platforms". **Resolved:**
-    ADR-0015 amendment 3: PNGs compare within the dify tolerance across platforms, byte identity stays for PDF, SVG,
-    XLSX, CSV, JSONL and `.ewpp`, and a deterministic scalar vello_cpu mode, if the performance spike (gate G-SP) finds one, restores PNG
-    byte identity on the same platform (§4.4). *Update (2026-10-19):* on vello_cpu's `Level::baseline()` PNGs are
-    byte-identical per build target (ADR-0015 amendment 6).
-13. **PDF/A level and embedding for customers.** PQ-29 asks which level is required and whether the native project
-    may be embedded. *Recommendation:* keep PDF/A-2b without attachments as the default; offer A-3b per scheme only
-    after the confidentiality confirmation (FR-OUT-003).
-14. **Bilingual output.** PQ-28 asks whether the pilot delivers stacked bilingual pages or one PDF per language.
-    *Recommendation:* support both from 1.0 and make one PDF per language the default; stacked text is a form
-    filter, not a separate code path.
-15. **User SQL reports and the crate graph.** ARCH §3 gives `ew-reports` the user SQL report adapter, but its only
-    edge was `ew-reports → ew-derive`, and rule 2 lets only `ew-sqlview` and `ew-library` link rusqlite.
-    **Resolved:** ARCH §3 adds the edge `ew-reports → ew-sqlview`; `ew-reports` calls the sandboxed query API and
-    never links rusqlite itself (§1.3).
-16. **Display-list key and layers.** ARCH §6.4 and ADR-0015 defined `page_display_list(page, layer)` with the layers
-    frame, symbols, wires, labels and highlights. This document adds the `tables` layer (embedded blocks, report
-    data areas) and the display language as a key (ARCH §4.5 makes it a query key, but the catalogue signature
-    omitted it). **Resolved:** ARCH §6.4 and ADR-0015 amendment 2 adopt `page_display_list(page, layer, lang)` with
-    the schematic layers frame, symbols, wires, labels, tables, revision and highlights and the panel-page layers of
-    [12](12-panel-layout.md) §5.2 (§4.1).
-17. **Release of personal-data omission.** NFR-PRIV-06 and the omission row (now FR-OUT-025) are MVP, while
-    FR-PRJ-024 (marking personal-data properties) and FR-EXP-009 (omission in XLSX, CSV, AML, `.ewpp`, `.ewz`) were
-    1.0. Omission at MVP needs the marking at MVP. **Resolved:** FR-PRJ-024 is MVP (Should) for the built-in person
-    fields, with user-defined properties from 1.0; FR-OUT-025 covers PDF, page text, report pages, XLSX/CSV report
-    tables, file names and `.ewz` at MVP; FR-EXP-009 stays 1.0 for AML and `.ewpp`; the flag is
-    `--omit-personal-data` everywhere.
-18. **Release of the enclosure legend.** FR-LAY-012 (legend per surface, replacing the PART DATA boxes) is Must
-    MVP and AC-33 gates it at MVP, while FR-REP-023 (enclosure legend and mounting list) is Must 1.0.
-    **Resolved:** the embedded legend on layout pages is MVP under FR-LAY-012, and FR-REP-023 covers only the
-    page-oriented legend report and the mounting list at 1.0.
-19. **Layout objects in the BOM.** FR-REP-007 (layout objects and accessories in the BOM) was 1.0, but golden folio
-    901 has rows 22–27 (enclosure NSYPLA1074G, plate NSYPMM107, DIN rail, ducts, end brackets, bridges) and AC-07
-    gates it at M1. 2D layout placements exist at MVP (FR-LAY-012, AC-33). **Resolved:** FR-REP-007 is Must at MVP
-    for the 2D layout objects (enclosure, plate, rails, ducts, end brackets), part accessories from part data are
-    FR-REP-051 (1.0), and AC-07 keeps 27 rows.

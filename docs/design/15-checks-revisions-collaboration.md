@@ -23,9 +23,6 @@ protocol, lock record, merge-driver internals, archive layout) stay in [05](05-p
 8. [Outputs](#8-outputs)
 9. [Edge cases and pitfalls](#9-edge-cases-and-pitfalls)
 10. [The reference project](#10-the-reference-project)
-11. [Scope by release](#11-scope-by-release)
-12. [Dependencies](#12-dependencies)
-13. [Requirements covered](#requirements-covered), [Open questions](#open-questions)
 
 ---
 
@@ -245,7 +242,8 @@ fingerprint = first 128 bits of SHA-256("ew-fp/1" ‖ rule_id ‖ sorted target 
   the author is optional too (the owner, 2026-11-12, FT-1705; the format's `reason` member stays required).
 - **Target.** The target is a finding fingerprint (MVP). From 1.0 it may also be a part `{library, item}`: such a
   waiver covers every finding of that rule whose primary target uses the part, for example a vendor cable whose BU
-  core carries 0 V (EF-11, open question 6).
+  core carries 0 V (EF-11); such cores get no exemption, because a BU core on 0 V is a real confusion risk at
+  the terminal (EN 60204-1 13.2.3).
 - **Safety rules.** Rules of kind `safety` (§4; for example EW-POT-013, EW-POT-006 and EW-POT-007) accept only
   fingerprint waivers. The checker acknowledges them individually at sign-off (§5.4).
 - **Expiry.** `expires` is `never`, `next_release` or a date. A bulk "legacy" waiver after a migration should use
@@ -665,7 +663,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-077 | Symbol on a symbol | A symbol with connection points or a drawn box lies on another one, or leaves the drawing area (06a F7); a symbol on another one's connection point and the valves in a valve terminal's cells are not reported | conflict | o r | warning | page | MVP | FR-CON-007 | EF-26 | 06a §1.2 |
 | EW-CORE-082 | Waiver expired | A waiver past its expiry date or release | hygiene | o r | warning | project | 1.0 | FR-CHK-049 | — | 15 |
 
-EW-CORE-047 implements the first half of [02a](02a-requirements-core.md) open question 7: a device without any
+EW-CORE-047 implements the first half of the rule on unplaced devices (FR-REV-007): a device without any
 schematic representation always blocks release. The layout half is EW-LAY-001, which counts only where a layout
 space exists for the device's location.
 
@@ -1089,7 +1087,7 @@ specification (NFR-REL-10).
 **Digests, not file ownership.** A page's printed content changes through rows the page does not own: a part
 changed in a device shard, an xref text that follows a moved target, a renumber. EW therefore compares rendered
 content rather than page files, and `diff_model` and `diff_query` stay for property comparison and deltas (§5.7).
-This settles [02a](02a-requirements-core.md) open question 6 (FR-REV-004, FR-REV-022):
+Page change status is MVP (FR-REV-004, FR-REV-022):
 
 ```text
 page_digest(p) = first 128 bits of SHA-256 over the canonical serialisation of page_display_list(p, layer, lang)
@@ -1250,7 +1248,7 @@ flowchart LR
     new unwaived errors (FR-CHK-048), so migrated projects with legacy findings still gate on regressions;
   - **visual review** (§6.6).
 - **Releases happen on `main` in a clean worktree.** The sign-off and release commits touch only the project
-  directory, and EW never pushes ([05](05-project-format-and-persistence.md) open question 7). The checker runs
+  directory, and EW never pushes. The checker runs
   `ew revision approve` locally (it is `HumanOnly`, so a CI job cannot run it).
 - **Revisions on branches.** Two branches that both open "V3.0" merge into two open revisions with one label.
   EW-CORE-013 offers to merge them, with the union of their page notes and the earlier record's author.
@@ -1426,7 +1424,7 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
    reports (§3.9).
 7. **Unverified constants.** From 1.0 an unverified table caps severity at warning, so EW-POT-006's table must be
    verified against a licensed copy, or EF-06 degrades; the global plan schedules that check before MVP for the
-   PE-sizing and colour values the MVP packs use (open question 7).
+   PE-sizing and colour values the MVP packs use.
 8. **Approval voided by trivia.** The content digest excludes comments, transmittals, revision notes and view state.
    It includes waivers on purpose.
 9. **Release with another writer.** Release needs the write lock ([05](05-project-format-and-persistence.md) §6.4).
@@ -1556,188 +1554,3 @@ C = detected by a check, A = assisted by a tool, not checked.
 | D-39 | No check: the "Arrange" tool sorts a page's IP stack by name or potential ([06](06-schematic-editor.md) §3, FR-XRF-013; ARCH §14); EW-CORE-052 catches only ambiguous pairing | A |
 | D-40 | EW-FL-003 configurator order-code validation (1.x, plugin) | C |
 | D-42 | EW-IMP-109 on import (MF-10); one strip with segments afterwards | S |
-
----
-
-## 11. Scope by release
-
-| Capability | MVP | 1.0 | 1.x |
-|---|---|---|---|
-| Rule engine: Rust and rhai rules; online, offline, prevent, release and export modes; demotion | ● | | |
-| SQL rules over `api_v1` | | ● | |
-| Packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT, EW-REL; MVP subsets of EW-PLC, EW-BUS, EW-FL, EW-LAYOUT | ● | | |
-| Complete EW-PLC, EW-BUS, EW-FL, EW-LAYOUT; EW-THM, EW-MFG, EW-EN60204 (opt-in) | | ● | |
-| Import findings EW-IMP: QET and tables / EDZ, EPLAN, DXF and DWG | ● | ● | |
-| Library lint EW-LIB (`ew lib lint`, editor lint panels, `ew lib pack`) | | ● | |
-| EW-POT-020, EW-BUS-008, EW-FL-003, EW-LAY-013, EW-MFG-011; company packs as WASM plugins; UL 508A / NFPA 79 packs (Later) | | | ● |
-| Schemes `drafting`, `pre-delivery`, `migration`, `full` / `manufacturing`, `machinery-en60204`, `assembly-iec61439` | ● | ● | |
-| Company scheme locks | | ● | |
-| Fingerprint waivers, orphan reporting / part waivers, expiry | ● | ● | |
-| Quick fixes (single and all-of-rule), Fluent messages en-GB and nl-NL, F1 rule pages | ● | | |
-| `ew check` text, JSON, JUnit; `--baseline` (Should) / SARIF | ● | ● | |
-| Revisions, labels, single print, auto-open, sign-off bound to the digest, gate (EW-REL gate-only, `ew check --gate`), archive, tag, withdrawal | ● | | |
-| Page change status by digest, page notes (Should) | ● | | |
-| Change list, deltas, rework list, clouds, overlay, completed project, purposes and transmittals; "DRAFT" status mark (FR-OUT-021) | | ● | |
-| EW-CORE-024 report-block completeness for declared standards | | ● | |
-| PDF annotation import | | | ● |
-| Lock and read-only sessions, external change, textconv, `ew diff`, integrity on open | ● | | |
-| Merge driver (Should at MVP, Must at 1.0); merge panel for external-change collisions / for conflict records | ● | ● | |
-| Branch-safe collision fix (EW-CORE-013, "renumber the newer") with CI merge-ref check | ● | | |
-| Cross-file reconciliation after merges (FR-COL-016) | | ● | |
-| `ew review` and in-app compare; review comments; work copies | | ● | |
-| Local history (gix); "Request edit" | | | ● |
-| Real-time co-editing | | | Later |
-
----
-
-## 12. Dependencies
-
-**Documents.**
-- [03](03-domain-model.md) §18–§19: the record kinds, amended in §2.1.
-- [04](04-architecture.md) §5.2, §6, §7.5, §7.8, §10.2, §12 and ADR-0003, 0008, 0009, 0012, 0013, 0017, 0019, 0020:
-  commit pipeline, memo engine, merge, archive, projection, rule engine.
-- [05](05-project-format-and-persistence.md) §6, §7, §9, §11, §14: integrity findings (EW-CORE-001 … 019), lock,
-  external change, driver, release sequence, archive.
-- [06](06-schematic-editor.md) §3.10: online display and pending style. [09](09-reports-forms-output.md): report
-  forms, status mark, export dates.
-- [07](07-symbols-parts-macros.md) §6.2, [08](08-connections-terminals-cables.md), [10](10-plc-and-bus.md),
-  [11](11-fluid-power.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md), [14](14-interop.md) §2.5:
-  rule content of the families of §2.2, library lint and import findings.
-- [16](16-ux-ui.md), [17](17-extensibility.md), [18](18-quality-security-release.md):
-  panels; CLI, SQL views and MCP `run_checks`; CI jobs.
-
-| Crate | Role |
-|---|---|
-| `ew-checks` | Engine, the `RuleImpl` trait and the rule registry (§2.2), packs, schemes, fingerprints, supersession, waivers, quick-fix providers, and the Rust and rhai rule implementations (toml 1.1.8; rhai through `ew-rhai`); fluent-bundle 0.16.0 (ARCH §9) for message rendering in headless runs; SHA-256 for fingerprints and digests via the `sha2` crate **(verify)**. It depends on neither `ew-sqlview` nor `ew-plugin-host` |
-| `ew-rhai` | rhai 1.26.1 engine configuration with the formula and rule profiles and their sandbox limits |
-| `ew-sqlview` | SQL rule implementations over `api_v1_*`, registered into the `ew-checks` registry (edge `ew-sqlview` → `ew-checks`); projects the findings into `api_v1_message` |
-| `ew-plugin-host` (1.x) | Plugin rule implementations, registered the same way (edge `ew-plugin-host` → `ew-checks`) |
-| `ew-api` | Registers the SQL and plugin rule implementations into the registry at session start |
-| `ew-model`, `ew-commands` | Prevent validators, normalisers (`revision.ensure_open`, comment re-anchoring), `revision.*`, `merge.resolve`, the `HumanOnly` exposure check |
-| `ew-derive`, `ew-memo` | `checks(scope)`, page digests; `ew-memo`'s generic reverse-dependency API per query family supplies the recorded read sets behind `rdeps` (§3.3; measured at the performance spike (gate G-SP)) |
-| `ew-library`, the importers | The library linter that runs EW-LIB (§4.11); the EW-IMP findings of an import run (§4.10) |
-| `ew-store`, `ew-format` | Integrity, the three-way merge core (driver and work copies), archive; `git:<rev>` reads through gix 0.89.0 (ARCH §7.5) |
-| `ew-scene`, `ew-render-cpu`, `ew-export` | Display-list diffs, clouds, review PNGs, report PDFs |
-| `ew-reports` | Check report, revision overview, change list |
-| `ew-viewmodel`, `ew-ui` | Panels of §7 |
-| `ew` (bin) | `ew check`, `ew revision`, `ew review`, `ew merge`, `ew archive` |
-| `ew-testkit` | Per-rule pass and fail fixtures, fingerprint property tests, golden finding CSVs |
-
----
-
-## Requirements covered
-
-- **CHK:** FR-CHK-001 … FR-CHK-061, all of them (engine §3, catalogue §4, golden expectations §10). FR-CHK-055 …
-  057 and 059 are the rows behind rules whose content [08](08-connections-terminals-cables.md) specifies, and
-  FR-CHK-058 is shared with [13](13-manufacturing-outputs.md).
-- **REV:** FR-REV-001 … FR-REV-024 (§5, §6.7); FR-REV-025 is specified in [05](05-project-format-and-persistence.md).
-- **COL (workflow):** FR-COL-006, FR-COL-007, FR-COL-013 … FR-COL-019, FR-COL-021, FR-COL-022, FR-COL-023 (§6),
-  and the workflow side of FR-COL-024 (git setup) and FR-COL-025 (conflict markers as conflict records);
-  FR-COL-020 is only scheduled here (§11) and specified in [05](05-project-format-and-persistence.md) §11.8.
-- **Related functional rows:** FR-UI-021, FR-UI-024, FR-UI-025, FR-UI-031, FR-UI-032; FR-EXT-002, FR-EXT-011,
-  FR-EXT-014, FR-EXT-015, FR-EXT-024, FR-EXT-025; FR-OUT-021; FR-REP-018, FR-REP-036; FR-IMP-003, FR-IMP-041;
-  FR-NUM-012; FR-PRJ-018; FR-THM-004, FR-THM-006, FR-THM-010; FR-PLC-045, FR-BUS-015, FR-LAY-017.
-- **Mapped to final rule IDs in §4** (rule content specified elsewhere): FR-NUM-001, FR-NUM-002, FR-NUM-008,
-  FR-NUM-019, FR-NUM-020, FR-PRJ-017, FR-PRJ-025, FR-TRM-002, FR-TRM-007, FR-TRM-009, FR-TRM-017, FR-CON-001,
-  FR-CON-005, FR-CON-012, FR-CON-020, FR-CON-025, FR-CON-032, FR-CON-041, FR-CBL-003, FR-CBL-007, FR-CBL-011,
-  FR-DEV-020, FR-SYM-013, FR-SYM-020, FR-PRT-032, FR-MAC-001, FR-REP-003, FR-REP-039, FR-REP-041, FR-REP-047,
-  FR-OUT-027, FR-I18N-011, FR-I18N-012, FR-COL-025, FR-XRF-013; FR-PLC-013, FR-PLC-016, FR-PLC-028, FR-PLC-035,
-  FR-PLC-038, FR-PLC-042 … FR-PLC-050; FR-BUS-009, FR-BUS-016 … FR-BUS-020, FR-BUS-024; FR-FLU-017 …
-  FR-FLU-022, FR-FLU-027, FR-FLU-029, FR-FLU-032; FR-LAY-014, FR-LAY-018, FR-LAY-027 … FR-LAY-031, FR-LAY-033,
-  FR-LAY-034, FR-LAY-045, FR-LAY-046, FR-LAY-048 … FR-LAY-050, FR-LAY-057, FR-LAY-059, FR-LAY-061; FR-THM-001,
-  FR-THM-007, FR-THM-012; FR-MFG-010, FR-MFG-011, FR-MFG-024 … FR-MFG-026, FR-MFG-036, FR-MFG-037, FR-MFG-042,
-  FR-MFG-043, FR-MFG-050, FR-MFG-051; FR-IMP-005, FR-IMP-007 … FR-IMP-017, FR-IMP-019 … FR-IMP-021, FR-IMP-025 …
-  FR-IMP-029, FR-IMP-032 … FR-IMP-034, FR-IMP-036, FR-IMP-039, FR-IMP-042, FR-IMP-044; FR-EXT-028.
-- **Non-functional:** NFR-PERF-09, NFR-PERF-13, NFR-REL-07, NFR-REL-08, NFR-REL-09, NFR-REL-10, NFR-SEC-05,
-  NFR-I18N-02, NFR-DOC-02, NFR-COMP-04, NFR-COMP-05, NFR-UX-07.
-
-### Adopted proposals
-
-The requirement rows this document proposed are adopted with the numbers it suggested:
-- **[02a](02a-requirements-core.md) CHK:** FR-CHK-043 … FR-CHK-054 (rule IDs and codes, fingerprints,
-  supersession, the `verified` cap, unevaluated rules, `--baseline`, part waivers and expiry, scheme locks, text
-  height per style, EN 60204-1 enablement, gate-only EW-REL, report-block completeness).
-- **02a REV:** FR-REV-021 … FR-REV-024 (sign-off bound to the content digest, page digests, purpose and
-  transmittals, open issues block release).
-- **[02b](02b-requirements-extended.md) COL and EXT:** FR-COL-022 (work copies), FR-COL-023 ("Request edit"),
-  FR-EXT-025 (SARIF output, one row shared with [17](17-extensibility.md)).
-
-Rules whose requirement rows other documents proposed cite the adopted IDs: EW-POT-008 → FR-CHK-055, EW-CORE-035 →
-FR-CHK-056, EW-POT-014 → FR-CHK-057, the EW-MFG pack and the `manufacturing` scheme → FR-CHK-058, EW-POT-020 →
-FR-CHK-059, EW-CORE-054 and EW-RDS-007 → FR-CHK-060, EW-CORE-055 and EW-CORE-056 → FR-CHK-061, EW-POT-011 →
-FR-CON-041, EW-CORE-026 → FR-REP-047, EW-CORE-066 → FR-OUT-027, EW-BUS-010 → FR-BUS-024, EW-FL-011 → FR-FLU-029,
-EW-FL-012 and EW-FL-014 → FR-FLU-032, EW-FL-013 → FR-FLU-027, EW-LAY-003 → FR-LAY-059, EW-LAY-016 → FR-LAY-061,
-EW-THM-002 … 004 → FR-THM-012.
-
----
-
-## Open questions
-
-1. **Packs and modes in the architecture.** **Resolved:** ADR-0019's pending amendments are accepted: the fifth mode
-   `export`, the packs EW-THM, EW-MFG and EW-EN60204 (§4.1), the six-digit code registry (FR-CHK-043) and Fluent
-   messages `rule-<id>`; the gate-only evaluation of EW-REL is FR-CHK-053.
-2. **Fluent key form.** **Resolved:** one message `rule-<id>` with `.title` and `.hint` attributes (§3.8).
-3. **FR-CHK-042 and EF naming.** **Resolved:** FR-CHK-042's criterion reads "reports on GP exactly the rows of
-   `findings_mvp.csv` (20 §18.1)", and the CSV carries the final rule IDs of §10.1.
-4. **EW-RDS-003 on frozen tags.** **Resolved:** warning for frozen and new tags alike, as ADR-0026 decides, with the
-   scheme parameter `frozen_severity` that lets a company lower it (§4.3); 02a OQ12 is closed.
-5. **FR-CHK-027 on Golden A.** **Resolved:** EW-RDS-002 runs in `drafting` and `full`, not in `pre-delivery`, and
-   FR-CHK-027's acceptance names scheme `full`. The canonical spelling of the location stays a pilot question
-   ([PQ-08](01-brainstorm.md)).
-6. **BU cores on vendor cables (EF-11).** *Recommendation:* no exemption, because a BU core on 0 V is a real
-   confusion risk at the terminal (EN 60204-1 13.2.3). Keep the warning and offer the 1.0 part-scoped waiver.
-7. **PE-sizing data.** **Resolved:** the table ships with `verified = false`, and the global plan's verification
-   register schedules the check against a licensed copy of IEC 60364-5-54 / EN 60204-1 before MVP for the PE-sizing
-   and colour values the MVP packs use, and before 1.0 for the rest. EF-06 stays an error only once `pe-sizing` is
-   verified, because the cap of FR-CHK-046 starts at 1.0.
-8. **Solo engineers.** D-34 suggests that the pilot draws and checks alone, and FR-REV-005 has no bypass (REF-077
-   only asked for an optional rule). *Recommendation:* keep the hard rule; unchecked deliveries go out as exports
-   of the open revision (from 1.0 with the "DRAFT" status mark; at MVP marked Open in folio 911). Ask who can act
-   as checker ([PQ-09](01-brainstorm.md)).
-9. **Status-mark default.** *Recommendation:* `auto` in the shipped default basic project, off in the pilot basic
-   project until the pilot decides. The golden text CSVs exclude the margin mark.
-10. **Page change status method.** **Resolved:** per-page display-list digests compared with the last release
-    (§5.6, `ReleaseRecord.page_digests` and `changed_pages`); `diff_model` and `diff_query` stay for property
-    comparison and deltas; ARCH §7.8 and ADR-0013 follow. Revision states are Open, Released and Withdrawn.
-11. **Duplicate rows.** FR-REV-018/FR-COL-018 and FR-REV-019/FR-COL-019 say the same. *Recommendation:* keep the
-    REV rows; mark the COL rows as referring to them, keeping their IDs. **Decided** 2026-10-18 as recommended:
-    the REV rows absorb the COL rows' detail, and the COL rows refer to them.
-12. **FR-CHK-012 (MVP) against FR-COL-016 (1.0).** **Resolved:** FR-CHK-012 owns EW-CORE-001 … 018 on open and after
-    merges at MVP, including EW-CORE-013's "renumber the newer" fix (§6.4); FR-COL-016 (1.0) is cross-file
-    reconciliation and the full conflict-panel flow.
-13. **Schema amendments.** **Resolved:** adopted before the revision record kinds freeze at M1: `Revision.purpose`,
-    `sign_off`, `withdraws` and `reason`; the three `ReleaseRecord` fields; `Waiver.target` as fingerprint or part
-    selector with `expires`; `Comment.kind`, `revision`, `parent` and `resolved`; `Project.completed`; the finding
-    state `possibly_resolved`; `Transmittal` records; `CheckSettings`; the rule scopes of §2.3.
-14. **Golden fixtures.** **Resolved:** the golden project added a synthetic `history/V1.0` (one ▲ test change
-    each on 101 and 106) and `expected/findings_en60204.csv`. The Golden A-R acceptance runner called
-    `ew revision approve --as <checker>` after the overlay, never as a `.ewcmd` line; the terminal confirmation
-    comes from the test-build confirmation hook of [18](18-quality-security-release.md) §3.15, which release builds
-    lack.
-15. **02a acceptance texts.** **Resolved:** FR-REV-003 counts the 36 pages of 20 §5; FR-REV-001's criterion is
-    "Golden A holds V1.0 (Released, historic, no archive) and V2.0 (Open); Golden A-R releases V2.0" (AC-23).
-16. **Licence of rule-pack content.** **Resolved:** ADR-0024 decision 1 decides it: the data files of built-in rule packs
-    (TOML, rhai, SQL, Fluent) are MIT OR Apache-2.0, so company packs derived from them need no GPL compliance; the
-    Rust rule implementations in `ew-checks` are GPL-3.0-or-later.
-17. **Released-number tombstones** (§6.4). Tombstones are never reused by "next free" numbering (FR-NUM-007).
-    *Recommendation:* read them from the `FreezeNumbers` committed computation ([04](04-architecture.md) §6.5)
-    rather than loading the archive; confirm with [06](06-schematic-editor.md)'s numbering design.
-18. **`rdeps` memory at XL** (≤ 40 MB estimated). **Resolved:** the generic "reverse dependencies of a query family"
-    API is part of `ew-memo`, which stays ECAD-agnostic; the performance spike (gate G-SP) measures it, and above budget the engine falls
-    back to coarse page and shard keys with re-verification of the matching scopes.
-19. **SARIF placement on GitHub.** GitHub code scanning places results by file and line; findings have no natural
-    file. *Recommendation:* emit the record's project file and line as `physicalLocation` plus page and entity as
-    `logicalLocations` (§8, FR-EXT-025), and verify the rendering on a sample repository before 1.0.
-20. **CLI catalogue alignment.** **Resolved:** [17](17-extensibility.md) §3.3 is the authoritative CLI catalogue. It
-    lists `ew revision approve --as <party>`, `ew revision withdraw <label> --reason <text>`, `ew waiver …`,
-    `ew check --gate`, the `--pages`/`--structure` run scopes, `--packs-as-of <label>` and the three `--baseline`
-    forms (git revision, `rev:<label>`, findings JSON), and §2.3 there defines the terminal confirmation of
-    `HumanOnly` subcommands.
-21. **Project rule-pack paths.** **Resolved:** project packs are `rules/<uuid>.toml` plus an optional `rules/<uuid>/`
-    directory for rhai, SQL, Fluent and doc files, with the human pack ID inside the TOML (§3.7); shipped and
-    company pack directories keep their own internal layout.
-22. **One rule-ID scheme in ADR-0019 and FR-CHK-043.** Earlier drafts of ADR-0019 decision 1 and FR-CHK-043
-    described per-family number widths and the fused layout form `EW-Lnnn`. **Resolved:** ADR-0019 records §2.2 as
-    an amendment (three digits for every family, the layout family EW-LAY, no aliases because nothing has shipped
-    with the earlier forms); FR-CHK-043 follows §2.2 ("`<OWNER>-<FAMILY>-<nnn>`, three digits, families and number
-    blocks from the registry"), and every document cites the final IDs of §4.

@@ -23,10 +23,6 @@ Its implementation and import compatibility scope are recorded in WP-S2.10.
 7. [Outputs](#7-outputs)
 8. [Edge cases and pitfalls](#8-edge-cases-and-pitfalls)
 9. [The reference project](#9-the-reference-project)
-10. [Scope by release](#10-scope-by-release)
-11. [Dependencies](#11-dependencies)
-12. [Requirements covered](#requirements-covered)
-13. [Open questions](#open-questions)
 
 ---
 
@@ -262,8 +258,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   `ew.gen.ip` with the FnDef `ew.fn.ip`. Every starter item is version 0.1.0 with status `draft`. Importers
   reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
   ([14](14-interop.md) §4.3). The starter content and the importer use the `library_id`
-  7202fd8b-1024-4bf1-9e99-670772eaa589, the system library's ID `ew_interop_api::SYSTEM_LIBRARY`
-  (open question 17, resolved by WP-S1.19 D4).
+  7202fd8b-1024-4bf1-9e99-670772eaa589, the system library's ID `ew_interop_api::SYSTEM_LIBRARY`.
 - **Coverage of the pilot corpus** ([23](23-symbol-coverage-pilot-corpus.md)). Against the 81 QET element types that the
   pilot's three real projects use (2,170 placed elements), the 36-symbol starter set covers 37 types and 74 % of the uses,
   two more types (the nomenclature block and a mounting plate) are covered by report blocks and panel layout, 29 types
@@ -311,7 +306,7 @@ This document adds the library rules.
 **Categories are data.** They form a native taxonomy with an optional ETIM class mapping, shipped in the system
 FnDef library. A category key has the three levels category / group / definition that FR-SYM-005 requires, for
 example `ProtectionOvercurrent / MCB / 1P+N` for -101F1 and F55. The identifier set and the part-compatibility
-filter read the first two levels; EDZ `functiondefcategory/group/id` triples map onto these keys (Open question 12).
+filter read the first two levels; EDZ `functiondefcategory/group/id` triples map onto these keys.
 
 **Designation precedence.** The printed designation of an instantiated CP is resolved from the highest level that
 sets it (lowest number wins):
@@ -356,7 +351,7 @@ sets it (lowest number wins):
 - An **MCB pole, switch or contact** declares `PassThrough{opens: true}`. The thermostat FnDef declares 5–3 as an
   NC pass-through, so the nets on folio 101 split at T55 (FR-SYM-005), and its derived potential is "N, switched"
   (D-13, EW-POT-013).
-- A **2-pole switch** that disconnects L and N sets `switches_n_with_l` (02a Open question 9).
+- A **2-pole switch** that disconnects L and N sets `switches_n_with_l`.
 - A **neutral isolating terminal** declares `PassThrough{opens: true}` and sets `n_isolation`, so EW-POT-013 reports
   it as info, not as an error ([08](08-connections-terminals-cables.md) §6.2, §8.2).
 - A **load** (lamp, heater) declares nothing, so its two sides stay separate potentials.
@@ -697,7 +692,7 @@ preview shows:
 
 ### 3.2 Symbol rules
 
-1. **Grid.** CPs of native symbols lie on the native connection grid (ADR-0027, proposed 4 mm; Open question 9).
+1. **Grid.** CPs of native symbols lie on the native connection grid (ADR-0027, proposed 4 mm, not yet decided).
    Graphics use a 0.5 mm and text slots a 1 mm fine grid (ADR-0027 recommendation 1, FR-SYM-009). The editor
    refuses an off-grid CP at save (FR-SYM-009). A symbol is placeable only on pages
    of its own grid: QET-import symbols keep their 10 px grid (`7_937_500/3` nm) and stay on QET-grid pages until
@@ -895,7 +890,7 @@ company library**, never directly into a project. A project then picks the resul
 | QET project elements | MVP | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user forks it; keeps QET's element-origin anchor so imported xrefs equal QET's (Golden C, MF-13); the library's `library_id` is the project ID and its key `qet-import` ([05](05-project-format-and-persistence.md) §13.2) |
 | QET element collection on demand | 1.0 (FR-SYM-029) | a user-selected directory of `.elmt` files (the user's QET installation) becomes a **user** library, `meta.licence = LicenseRef-QET-elements` with QET's `ELEMENTS.LICENSE` attached and the flag `foreign_terms` | QET's terms allow use in diagrams freely and redistribution under CC-BY 3.0 with a no-ML-training clause ([oss-landscape](../research/oss-landscape.md) §2.6). Those terms are incompatible with EW's CC-BY-SA-4.0 packs, so such items are never bundled, never merged into an EW pack (`ew lib pack` refuses `foreign_terms`), and never used for model training (NFR-LIC-06) |
 | `symbol-map.csv` | MVP | QET element UUID or path → EW symbol key + CP map; generalises the pneumatic table of FR-IMP-018 | used by FR-SYM-022 exchange; Golden C step 3 |
-| EDZ (7-Zip or ZIP) | 1.0 | `*.part.xml`: `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1/2` (`de_DE@…;en_US@…;` → `MlText`, FR-I18N-008); `<functiontemplate>` pins (`connectionDesignation`, `connectiondescription`, `terminalNr`, `functiondefinition`) → CP pattern and template FnDefs through the `functiondefcategory/group/id` mapping table (Open question 12); drilling positions, CP patterns and accessories where present (FR-IMP-025/027) | **terms notice** before the first EDZ import of a session (FR-IMP-026); `.ema` geometry never reproduced; `.e3d` ignored; pictures stored only in the user library; source file hash and import date recorded |
+| EDZ (7-Zip or ZIP) | 1.0 | `*.part.xml`: `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1/2` (`de_DE@…;en_US@…;` → `MlText`, FR-I18N-008); `<functiontemplate>` pins (`connectionDesignation`, `connectiondescription`, `terminalNr`, `functiondefinition`) → CP pattern and template FnDefs through the `functiondefcategory/group/id` mapping table; drilling positions, CP patterns and accessories where present (FR-IMP-025/027) | **terms notice** before the first EDZ import of a session (FR-IMP-026); `.ema` geometry never reproduced; `.e3d` ignored; pictures stored only in the user library; source file hash and import date recorded |
 | EPLAN parts XML | 1.0 | `partsmanagement` with variants, function templates, free properties, accessory lists, `length-unit` (FR-IMP-028) | into a company library |
 | BMEcat 2005, ETIM xChange | 1.x | product identification, ETIM or ECLASS feature blocks (feature system name, class, feature name, value, unit), order and price details (element names to verify against the specification) | FR-PRT-020; prices go to L4 with source and as-of date |
 | DXF blocks | 1.0 | DXF-to-symbol wizard (FR-IMP-034); vendor DXF as 2D front outline or drilling pattern (FR-IMP-035) | CPs snap to the target library's connection grid (FR-IMP-034) |
@@ -943,8 +938,7 @@ FR-EXT-019). Examples: Mouser, DigiKey, Nexar/Octopart, Farnell.
 - **Capabilities.** A connector holds a network capability granted at install time (NFR-SEC-07) and the user's own
   credentials (an API key, or an OAuth2 token for DigiKey, [interop-formats](../research/interop-formats.md) §9),
   kept in the OS credential store and read through the host capability `secret-get(name)`, which is granted per
-  plugin at install and never readable by other plugins (ADR-0020 amendment 4; 1.x, before the first connector;
-  Open question 15).
+  plugin at install and never readable by other plugins (ADR-0020 amendment 4; 1.x, before the first connector).
 - **When it runs.** Only on an explicit action ("fetch prices for this BOM"), as NFR-PRIV-01 requires.
 - **Where results go.** Results land in the user library's L4 section, with `source = connector id` and `as_of`, and
   are cached no longer than the provider's terms allow.
@@ -1503,191 +1497,3 @@ Seven further symbols join the starter set for the pilot corpus (§2.3).
 | D-36 | Configured product with order code and component BOM mode |
 | D-40 | Configurator validation as a 1.x decoder plugin (FR-DEV-036) |
 | D-42 | `ew.gen.strip-segment` draws one strip device in several places, so -X1031 is one BOM row |
-
----
-
-## 10. Scope by release
-
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Symbol model, variants A–H, text slots, arrangements, anchors, link points | ● | | | |
-| Starter set of about 40 symbols (FR-SYM-007), native edition and generated QET 10 px edition (FR-SYM-030) | ● | | | |
-| Full IEC 60617-style and ISO 1219 library; symbol lint in CI (FR-SYM-008, FR-SYM-020) | | ● | | |
-| Symbol editor (Should). Built (milestone M2.5) and shipped in release 0.1.0 | ● | | | |
-| QET project elements → "QET import" library; `symbol-map.csv` | ● | | | |
-| QET element collection conversion on demand (FR-SYM-029) | | ● | | |
-| Parametric symbol families | | | ● | |
-| IEC → NFPA symbol exchange | | | | ● |
-| Library directories, per-user FTS5 index, embed and update with semver classification, item status (FR-PRT-034), section confidence (FR-PRT-031) | ● | | | |
-| Part L0–L3 data, CP patterns, contact data, PLC and cable sections, configured products, alternatives | ● | | | |
-| Carrier part kinds: duct, rail, end bracket, enclosure, mounting plate (FR-PRT-024); end brackets derived from rail occupancy | ● | | | |
-| Accessory lists (FR-PRT-005), variants, ETIM pack and ECLASS/ETIM ids, quality levels, consumable kinds wire, ferrule, marker (FR-PRT-035), load current per supply CP | | ● | | |
-| L4 commercial and logistics, L5 3D, L6 3D CPs | | ● | | |
-| CSV/XLSX import | ● | | | |
-| EDZ and EPLAN parts XML import | | ● | | |
-| BMEcat/ETIM xChange import; community part packs; part comparison | | | ● | |
-| Distributor connectors (BYO key, plugins; FR-PRT-033) | | | ● | |
-| Online parts service | | | | ● |
-| Window and page macros, value sets, include flags, conflict ghost, basic project and wizard | ● | | | |
-| Placeholder re-apply, representation variants, macro update, symbol macros, value-set CSV, rhai formulas, macro projects | | ● | | |
-| I/O-list generation from typicals (FR-MAC-017) | | ● | | |
-| Rule-based project generation (FR-MAC-016) | | | ● | |
-| `ew lib lint` / `render` / `pack` (FR-PRT-032); community review pipeline | | ● | | |
-
----
-
-## 11. Dependencies
-
-| Depends on | For |
-|---|---|
-| [04-architecture](04-architecture.md) §3, §4.2, §5.4–§5.5, §6.2, §7.7, §10.3–§10.6; ADR-0004, ADR-0005, ADR-0008, ADR-0010, ADR-0012, ADR-0020, ADR-0021, ADR-0024, ADR-0026, ADR-0027 | identity, copies, previews, catalogue storage, sandboxing, licences, grid |
-| [03-domain-model](03-domain-model.md) §6, §7, §11–§13, §15 | SymbolDef, FnDef, PartCopy, MacroDef, terminals, cables, PLC and fluid records |
-| [05-project-format-and-persistence](05-project-format-and-persistence.md) §3.4, §13 | `lib/` file naming and copy metadata, copy identity, writer, manifest, merge driver reused for `.ewlib` |
-| [06-schematic-editor](06-schematic-editor.md) | placement, `PlaceTarget::FromPart`, paste of fragments, black-box geometry |
-| [08-connections-terminals-cables](08-connections-terminals-cables.md) | terminal CP patterns, cable cores |
-| [09-reports-forms-output](09-reports-forms-output.md) | FormDef, BOM, PART DATA blocks, text styles |
-| [10-plc-and-bus](10-plc-and-bus.md), [11-fluid-power](11-fluid-power.md), [12-panel-layout](12-panel-layout.md), [13-manufacturing-outputs](13-manufacturing-outputs.md) | owners of the part data sections L2, L5 and L6 |
-| [14-interop](14-interop.md) | QET, EDZ, parts XML, BMEcat and DXF importers |
-| [16-ux-ui](16-ux-ui.md), [17-extensibility](17-extensibility.md), [19-open-source-governance](19-open-source-governance.md) | dialogs and personas; `ew lib`, plugins, rhai; design-exception wording and repository governance |
-| Crates | `ew-schema`, `ew-format`, `ew-interop-api`, `ew-library`, `ew-commands`, `ew-derive`, `ew-scene`, `ew-render-cpu` (`ew lib render`), `ew-checks`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-catalog` (CSV/XLSX parts at MVP, BMEcat and ETIM xChange at 1.x; csv, calamine, quick-xml; behind `ew-interop-api`), `ew-script`, `ew-plugin-host`, `ew-api`, `ew-viewmodel`, `ew-ui`, `ew` |
-
----
-
-## Requirements covered
-
-**Elaborated:**
-- **SYM:** FR-SYM-001 … FR-SYM-014, FR-SYM-016 … FR-SYM-022, FR-SYM-027, FR-SYM-029, FR-SYM-030. Touched here and
-  elaborated in [06](06-schematic-editor.md): FR-SYM-015, FR-SYM-023, FR-SYM-024, FR-SYM-025, FR-SYM-026. Scope
-  only: FR-SYM-028 (Later).
-- **PRT:** FR-PRT-001 … FR-PRT-035.
-- **MAC:** FR-MAC-001 … FR-MAC-018.
-
-**Related rows:**
-- **PRJ, DEV:** FR-PRJ-008, FR-PRJ-009, FR-PRJ-010, FR-PRJ-026; FR-DEV-002, FR-DEV-006, FR-DEV-007, FR-DEV-008,
-  FR-DEV-010, FR-DEV-013, FR-DEV-015, FR-DEV-016, FR-DEV-017, FR-DEV-020, FR-DEV-033, FR-DEV-036.
-- **NUM, CON, CBL, TRM, XRF, CHK, REP:** FR-NUM-004; FR-CON-011; FR-CBL-004; FR-TRM-005; FR-XRF-017; FR-CHK-018,
-  FR-CHK-021, FR-CHK-024, FR-CHK-030, FR-CHK-035, FR-CHK-036; FR-REP-004, FR-REP-005.
-- **PAG, PLC, FLU, THM, LAY:** FR-PAG-021, FR-PAG-022; FR-PLC-011; FR-FLU-001, FR-FLU-022; FR-THM-001; FR-LAY-002,
-  FR-LAY-004, FR-LAY-005, FR-LAY-007, FR-LAY-022, FR-LAY-023, FR-LAY-026, FR-LAY-027, FR-LAY-053.
-- **IMP, EXP:** FR-IMP-001, FR-IMP-008, FR-IMP-018, FR-IMP-025, FR-IMP-026, FR-IMP-027, FR-IMP-028, FR-IMP-034,
-  FR-IMP-035; FR-EXP-005.
-- **UI, EXT, I18N:** FR-UI-017, FR-UI-025, FR-UI-030; FR-EXT-013, FR-EXT-019; FR-I18N-008.
-- **Non-functional:** NFR-LIC-01, NFR-LIC-03, NFR-LIC-06, NFR-LIC-07, NFR-LIC-09, NFR-REL-10, NFR-REL-11,
-  NFR-PRIV-01, NFR-PRIV-05, NFR-PRIV-07, NFR-SEC-02, NFR-SEC-06, NFR-SEC-07, NFR-MAINT-01, NFR-PLAT-06,
-  NFR-A11Y-02, NFR-UX-08, NFR-PERF-21.
-
-### Proposed new requirements
-
-The eleven rows this document proposed are in the catalogues:
-- library directories as the canonical catalogue form with a derived per-user SQLite FTS5 index → covered by the
-  reworded existing **FR-PRT-012**, with **FR-PRT-028** moved to MVP ([02a](02a-requirements-core.md));
-- confidence and source per part data section, marked findings, non-verified sections in the release report →
-  **FR-PRT-031** (02a);
-- library item status with successor → **FR-PRT-034** (02a);
-- `ew lib lint`, `render` and `pack` → **FR-PRT-032** (02a);
-- distributor data only through connector plugins with the user's own credentials → **FR-PRT-033** (02a);
-- generated QET 10 px edition of the starter library → **FR-SYM-030** (02a);
-- QET element collection converted on demand into a user library with `foreign_terms` → **FR-SYM-029** (02a);
-- boolean value-set variable that includes or omits a placeholder group → **FR-MAC-018** (02a);
-- macro instantiated once per row of a CSV/XLSX table → covered by the existing **FR-MAC-017** (02a, one row with
-  the [brainstorm](01-brainstorm.md) proposal);
-- configurator decoder extension point → covered by the existing **FR-DEV-036** (02a, one row with the brainstorm
-  proposal);
-- part search and index rebuild budgets → **NFR-PERF-21** ([02c](02c-nonfunctional-requirements.md)).
-
-## Open questions
-
-1. **Canonical catalogue form.** ARCH §7.7 said catalogues "are SQLite" and their git form is JSONL, and an
-   earlier draft of [05](05-project-format-and-persistence.md) §13.1 specified SQLite `.ewcat` tiers with a
-   versioned publication scheme on shares. This document makes JSONL library directories canonical at every tier
-   and SQLite a derived per-user index (§2.2), because company libraries live on SMB shares and in git, and
-   ADR-0010 rejected SQLite on shares. **Resolved:** this form is adopted. 05 §13.1 carries it as its tier table,
-   ARCH §7.7 states it, FR-PRT-012 is reworded to "libraries at system, company and user level with full-text
-   search through a derived index", and FR-PRT-028 moves to MVP.
-2. **Copy identity.** The first draft of this document used content-addressed copy IDs (`v5(sha256)`), which let
-   two versions coexist but make every update rewrite every referencing record. **Resolved** (ADR-0004
-   amendment 2; 05 §13.2): copies are `v5(NS_LIBCOPY, library_id ‖ item_id)`, and only an explicit "keep both"
-   after a cross-project paste mints `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` (§2.1). The hash excludes
-   `id`, `library` and the copy metadata. [06](06-schematic-editor.md) §3.6 step 4 offers the three paste choices.
-3. **Schema additions.** `MacroInstance`, `PlaceholderGroup`, the macro-box page item, `ItemMeta.status`, the
-   `foreign_terms` flag, `Part.free_props`, `Representation.arrangement` and a `lib/manufacturers/` copy kind were
-   not in ARCH §4.2 or [03](03-domain-model.md), and 03's `MacroDef` named value-set members `vars`.
-   **Resolved:** the schema-steward batch before `ew-schema` v0 freezes adds them to 03 §6–§7, together with
-   `CpDef.source_output`, `CpDef.optional` and `FnFlags.n_isolation` (§2.4); value sets name their members
-   `values`, and `MacroInstance` lives in the anchor page's file (rank 46 of 05 §2.2).
-4. **Carrier part kinds at MVP.** FR-PRT-024 (part kinds for enclosure, plate, rail, duct …) was 1.0, but the MVP
-   folio 902 (FR-LAY-002, FR-LAY-004, FR-LAY-005) needs enclosure, plate, rail and duct parts. **Resolved:**
-   FR-PRT-024 now holds the carrier kinds (duct, rail, end bracket, enclosure, mounting plate) at MVP, and
-   FR-PRT-035 the consumable kinds (wire, ferrule, marker) at 1.0.
-5. **Accessories at MVP.** Golden folio 901 lists bridges and end brackets (rows 24–25), while FR-PRT-005 is 1.0.
-   **Resolved:** at MVP, end brackets are derived from rail occupancy wherever strips are placed (k abutting
-   strips on one rail need k + 1 brackets, [12](12-panel-layout.md)); unplaced strips and bridges use authored
-   part uses, the bridge parts on their `BridgeSpec` connections. The part-data accessory lists of FR-PRT-005 stay
-   1.0 and must reproduce the same golden counts (§9.2).
-6. **ETIM redistribution.** ETIM's licence permits bundling with attribution, but ETIM asks that only one maintained
-   copy exist. *Recommendation:* ship ETIM as a separately versioned system data pack that replaces itself per ETIM
-   release, and confirm the arrangement with ETIM International before 1.0.
-7. **Library pack downloads.** NFR-PRIV-01 does not list library downloads as a permitted flow. *Recommendation:*
-   install packs from local files or git clones only at 1.0. A user-initiated "download pack" flow needs an ADR and
-   a PRIVACY.md entry (NFR-PRIV-07) in 1.x.
-8. **Address variables in value sets.** FR-MAC-015's example computed "Q{module}.{2*pos-1}", which bypasses derived
-   addresses and would hide D-26. **Resolved:** typicals bind channel numbers and module positions
-   ("channel = 2*pos+1, module = {slot}"), so addresses stay `Auto`; formula-computed `Address` variables are only
-   for projects with manual addressing. FR-MAC-015 carries the reworded example.
-9. **Native connection grid.** The starter set cannot be drawn until ADR-0027 (4 mm or 2.5 mm) is decided
-   (PQ-06). *Recommendation:* decide the connection grid before spine week 2, as 02a Open question 14 asks. The fine
-   grids are settled: 0.5 mm for graphics (arrow heads and small arcs of IEC 60617-style symbols need it) and 1 mm
-   for text slots (ADR-0027 recommendation 1, FR-SYM-009); only the connection grid stays open.
-10. **Starter catalogue legality.** Shipping facts about some 25 vendor parts as CC0 is low-risk under the EU
-    database right, but images, 3D models and descriptions copied from catalogues are not. *Recommendation:* author
-    the descriptions ourselves, record a datasheet reference per record, ship no vendor assets, and invite the
-    manufacturers of the reference set to review (IDEA-091, PQ-32).
-11. **Sharing converted QET elements.** QET's element licence allows redistribution outside diagrams under
-    CC-BY 3.0 with its no-ML-training clause ([oss-landscape](../research/oss-landscape.md) §2.6), so a company may
-    share a converted collection internally. Open is whether EW-converted geometry counts as an adaptation that
-    must keep those terms, and whether CC-BY 3.0 covers the EU database right. *Recommendation:* allow export to a
-    company library with `ELEMENTS.LICENSE` attached and the `foreign_terms` flag kept; never into EW packs; ask
-    QET's maintainers (PQ-34).
-12. **EDZ function-definition mapping.** EPLAN `functiondef` category/group/id values must map to EW FnDefs.
-    *Recommendation:* ship a mapping table as data; unknown IDs fall back to a generic black-box FnDef with a review
-    list in the import report. *Note (2026-10-18):* `ew-rds` ships its identifier sets as data
-    (`crates/ew-rds/data/identifier-sets.toml`) with 37 project-defined category keys, every row `verified = false`.
-    The category keys must be aligned with the FnDef library taxonomy when WP-S1.19a / WP-S7.02 define it, and the
-    IEC 60750 letters and several 2009/2019 rows await verification against the standards (PQ-08) before the pilot
-    preview. Nothing is decided about the taxonomy itself.
-13. **Quality profiles per category.** The criteria of §3.4 are EW defaults. *Recommendation:* ship them as
-    editable data per category and confirm the "production-ready" criteria with the pilot's shop policies (PQ-22).
-14. **QET-grid edition of the starter set.** Golden A is on the QET 10 px grid (20 §2.1), FR-SYM-007 requires it to
-    render from the starter library, and ADR-0027 lets symbols sit only on pages of their own grid, while G4 says
-    "never use the QET grid for new symbols". The generated `@qet10` edition of §3.2 rule 2 reconciles these: no
-    symbol is drawn on the QET grid, yet Golden A, Golden C step 3 and companies that keep QET-grid basic projects
-    (ADR-0027 recommendation 4) get starter symbols. Scaled graphics are about 0.66 times the native size at 4 mm
-    (1.06 at 2.5 mm), which matches QET's density by construction. **Resolved:** adopted as FR-SYM-030 and recorded
-    as ADR-0027 recommendation 8 (ADR-0027 itself stays Proposed until the owner decides the connection grid). The
-    edition is generated, never drawn by hand, linted like the native one and checked visually on the Golden A pages
-    before the starter set is frozen; only the starter set gets an edition, the full 1.0 library does not.
-15. **Secrets for connector plugins.** BYO-key distributor connectors (§3.7) need the user's API key or OAuth2
-    token, but the WIT world `elektrawatt:plugin@1` ([17](17-extensibility.md), ARCH §10.4) had no secret
-    capability. **Resolved** (ADR-0020 amendment 4): a host capability `secret-get(name)` backed by the OS
-    credential store, granted per plugin at install and never readable by other plugins, arrives at 1.x before the
-    first connector ships.
-16. **Crate for catalogue importers.** ARCH §3 assigned QET, EPLAN and DXF importers to crates but not the CSV/XLSX
-    parts importer (MVP) or BMEcat and ETIM xChange (1.x). **Resolved:** the GPL crate `ew-import-catalog` (csv,
-    calamine, quick-xml) behind `ew-interop-api` is added to ARCH §3, so that it obeys the importer rules of ARCH §3
-    rule 4 and NFR-MAINT-01.
-17. **System library identity.** Imported references to built-in items (the interruption-point FnDef that QET
-    folio reports map to, [14](14-interop.md) §4.3 and §4.6) need the system library's `library_id`, which no
-    document names yet; `ew-import-qet` uses a provisional constant (`BUILTIN_LIBRARY`). *Recommendation:*
-    WP-S1.19a mints the system library's fixed UUID, held by `ew-ids` beside `NS_LIBCOPY`, before format 0.1 is
-    released; the importer then switches to it, which changes the copy IDs of imported built-in references once,
-    while no released file exists. *Still open (2026-10-18):* the starter content of WP-S7.02
-    uses the same provisional UUID 7202fd8b-1024-4bf1-9e99-670772eaa589 for its symbols and FnDefs, so content and
-    importer switch together; the importer's one built-in FnDef key is `ew.fn.ip` with `version_req` `^0.1`
-   . **Resolved:** the system library is the
-    compiled-in starter `ew-starter`, and its ID is the constant `ew_interop_api::SYSTEM_LIBRARY`, held in the
-    permissive contract crate rather than in `ew-ids` because importers may depend neither on each other nor on the
-    library crate. The value is the provisional UUID above, so no copy ID moved. `ew-import-qet` and
-    `ew-import-tables` use it; `ew-import-tables` dropped its own constant, and `ew-import-qet` keeps
-    `BUILTIN_LIBRARY` for one cycle as an alias of `SYSTEM_LIBRARY` because tests outside that part still name it.
-    A test checks that every starter document carries `library_id` = `SYSTEM_LIBRARY` and `item_id` =
-    `v5(SYSTEM_LIBRARY, meta.key)`.

@@ -29,7 +29,7 @@ use crate::{Nm, Pt2};
 /// | `M270` | H | `( y,  x)` |
 ///
 /// The letters are the variant keys of doc 06 (A–D rotations clockwise, E–H mirrored); whether EPLAN uses
-/// the same order is unverified (doc 06 open question 4).
+/// the same order is unverified (doc 06 §2.5).
 ///
 /// Because every matrix entry is 0 or ±1, an offset that is a multiple of a grid step stays a multiple of
 /// it in all eight variants, with no rounding (doc 07 §4.1).

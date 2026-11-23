@@ -24,9 +24,6 @@ mapping, and the EW-FL rule pack. It elaborates the FLU area of [02b](02b-requir
 10. [Edge cases and pitfalls](#10-edge-cases-and-pitfalls)
 11. [The reference project](#11-the-reference-project)
 12. [Scope by release](#12-scope-by-release)
-13. [Dependencies](#13-dependencies)
-14. [Requirements covered](#requirements-covered)
-15. [Open questions](#open-questions)
 
 ---
 
@@ -240,7 +237,7 @@ defined twice). The derived keys carry their root medium only:
 *As built (rc.2, F26, F27).* New medium… starts from a usual medium (compressed air 6 bar, vacuum -0.9 bar, hydraulic
 oil 160 bar, cooling water 4 bar, lubricant 5 bar, inert gas 10 bar; `fluid.medium_new {preset}`), which fills the name
 and the pressure, both editable. Nothing reads `code` yet (the ISO 1219-2 line number, FR-FLU-023, is Later and the
-letters are unverified, Open question 12), so the form has no Letter field; the action still takes `code`. Every field
+letters are unverified), so the form has no Letter field; the action still takes `code`. Every field
 of New medium… and Fluid settings… (and of the symbol policy, the process-tag scheme, module safety and channel mode
 forms) says under it what it changes, with an example: the text `form-hint-<action>-<field>` of a form's field. The
 vacuum port is the one the ejector's part names (`transform`, §2.6); the shipped ejector `ew.fn.ejector` has ports 1
@@ -308,7 +305,7 @@ its PLC section's `plc.positions.count`, since `positions` is not typed here at 
 ### 2.7 Schema additions
 
 This document added the following to the first draft of [03](03-domain-model.md) §15; the schema-steward batch
-(ARCH §7.6) adopted them before `ew-schema` v0 freezes, and 03 §1.2 and §15 list them (Open questions 1–3):
+(ARCH §7.6) adopted them before `ew-schema` v0 freezes, and 03 §1.2 and §15 list them:
 
 | Addition | Reason |
 |---|---|
@@ -918,7 +915,7 @@ shipped schemes (doc 15 §4.1; FT-1728); on Golden A, EF-20 (EW-FL-010 on -201U1
 Scopes: EW-FL-009 and -010 per device, the others per project (no `fluid_net` scope kind). EW-FL-008 counts a line
 (a collector), a closure and a port of another role as treatment; a silencer device is a line's end. EW-FL-009 reads
 the feed at a physical coil's pins, and at an internal coil the load supply pin (`L+` of a `load` supply group) of
-the bound channel's module or of the first device above it with one (Open question 11). EW-FL-010 counts a junction
+the bound channel's module or of the first device above it with one. EW-FL-010 counts a junction
 as a member outside the terminal. EW-FL-012 skips a net without a line (a gallery alone); a working port into an
 inlet (port 1 of another valve or of a manifold, a quick-exhaust or shuttle valve's inlet) is a circuit, not a
 conflict, the ports of a component that is no valve never conflict but a supply plate's taps, which are on the
@@ -1212,158 +1209,6 @@ run (`o r`, §6).
 
 ## 12. Scope by release
 
-| Capability | MVP | 1.0 | 1.x | Later |
-|---|---|---|---|---|
-| Fluid CPs with roles 1–5, 12, 14, 82, 84, X; fluid lines with line kinds; Fluid page type; FI-01; fluid partition without galleries (for N-FL-4, tracked targets and EW-FL-011) | ● | | | |
-| Starter ISO 1219 symbols of the golden project (FR-SYM-007), own drawings with SPDX licence (§1 rule 6), plus a pilot-essentials set as Should (Open question 7) | ● | | | |
-| Solenoid valves with coil functions; internal coil CPs; channel binding; derived address and function texts | ● | | | |
-| Valve terminals: children, positions, occupancy, child tags, generated overview content in user-placed segments, PART DATA, FI-02/07 | ● | | | |
-| Field devices, `Drives` links, linkage, process tags on field devices (on valves only after import), N-FL-4 | ● | | | |
-| EW-FL-001, -002, -004, -011, -013 | ● | | | |
-| QET mapping table, text recognition, reconstruction assistant (Should, FR-IMP-039) | ● | | | |
-| Valve models in use; galleries; media and propagation; tube inheritance with provenance | | ● | | |
-| Tube list, cut list, labels, valve-terminal configuration, medium overview, fluid BOM lines | | ● | | |
-| EW-FL-005 … -010, -012, -014; fluid IPs (FR-FLU-030); physical tubes with tee fittings (FR-FLU-031) | | ● | | |
-| Full ISO 1219 pneumatic library (PBF §9.2 families), symbol lint | | ● | | |
-| ISO 1219-2 identification as a second identifier set (FR-FLU-023, Could) | | ● | | |
-| Fluid navigator and workspace; overview page generator; zone highlight (Could) | | ● | | |
-| Tube routing and routed lengths (FR-FLU-024) | | | ● | |
-| Configurator decoders and EW-FL-003 (FR-FLU-022) | | | ● | |
-| Hydraulics (FR-FLU-025) | | | ● | |
-| P&ID process symbols | | | | ● |
-
-*As built.* The MVP row is built (WP-S1.20). The 1.0 rows of this work package (WP-S1.25) are built as the *As
-built* notes of §2 to §8 say: valve models, galleries, media and propagation, tube inheritance with provenance, the
-tube list, cut list, labels, valve-terminal configuration, medium overview and fluid BOM lines, EW-FL-005 … -010, -012
-and -014, fluid interruption points and physical tubes with tees, `fluid.positions`, FI-06 as EW-INV-025 and the
-previewed in-place replacement of the valve function on a part change. The pneumatic library adds 33 symbols with
-their FnDefs over the PBF §9.2 families (directional valves 2/2, 3/2 NO, 5/2 bistable and piloted, 5/3 closed,
-exhausted and pressurised centre, 2×3/2, the on/off valve; single-acting cylinder, semi-rotary drive, gripper,
-ejector, suction cup, vacuum and pressure switches; filter, regulator, lubricator, service unit, gauge; throttle,
-one-way flow control, check, quick-exhaust, shuttle and two-pressure valves, silencer; plug, quick coupling,
-bulkhead; the air-supply point and the valve terminal's supply plate; the fluid interruption point's two forms),
-checked by the library's fluid symbol lint
-(`ew-library`, test `fluid_symbols`). Not built here: the flexible line's arc (a scene change of the window's,
-WP-S2.13), autoconnect and the line-kind picker (WP-S2.13), the navigator's fluid actions (WP-S2.13), and the
-ISO 1219-2 identifier set (FR-FLU-023, Could, Later). *As built (WP-S2.13).* The flexible line's arc, autoconnect,
-the line-kind picker and the navigator's fluid actions are built (§7).
-
----
-
-## 13. Dependencies
-
-| Depends on | For |
-|---|---|
-| [04-architecture](04-architecture.md) §3, §4.2–§4.6, §5.2, §6.3–§6.5, §10.2, §12; ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0007, ADR-0009, ADR-0017, ADR-0018, ADR-0019, ADR-0021, ADR-0024, ADR-0027 | Records, normalisers, granularity, freshness, invariants, rule engine, licences of the ISO 1219 drawings (own drawings, CC-BY-SA-4.0), QET grid |
-| [03-domain-model](03-domain-model.md) §6, §7, §8.5, §13, §15 | overview representations, `FnDef`, `CpDef`, `DeviceLink`, child tags, channels, fluid records |
-| [05-project-format-and-persistence](05-project-format-and-persistence.md) §2 | Storage of `medium_def`, page-less links |
-| [06-schematic-editor](06-schematic-editor.md) §2.2, §8 | Fluid page tools; refusal on overview pages |
-| [07-symbols-parts-macros](07-symbols-parts-macros.md) §2.3–§2.5, §3.6, §9 | Symbol and FnDef format, `symbol-map.csv`, starter symbols, valve-module typical, part sections |
-| [08-connections-terminals-cables](08-connections-terminals-cables.md) §3, §7.6 | CI-02, union-find conventions, `LengthSource` |
-| [10-plc-and-bus](10-plc-and-bus.md) | Address and solenoid maps, binding semantics, EW-PLC-012/-014, EW-PRC-001, target tracking |
-| [09](09-reports-forms-output.md) §2.4, [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) §5.3, §8.1, [14](14-interop.md) §4.12–§4.13, [15](15-checks-revisions-collaboration.md) §2.2–§2.3, §4.1, §4.5.3, [16](16-ux-ui.md), [17](17-extensibility.md) §3.3, §6.1, §18 | Report kinds, routing, labels and `.ewpp`, QET recognisers and assembly findings, rule IDs, codes and scopes, panels, CLI and SQL views, golden expectations |
-| Crates ([04](04-architecture.md) §3) | `ew-schema` (fluid records, part section), `ew-model` (FI-01 … FI-07), `ew-derive` (§5.6 queries), `ew-commands` (N-FL-1 … 5, §4.3 commands, the reconstruction assistant), `ew-checks` (EW-FL), `ew-reports` (fluid row sources), `ew-scene` (fluid pages, overview segments, PART DATA blocks), `ew-library` (fluid part sections), `ew-sqlview` (fluid views), `ew-import-qet` (mapping table, text recognisers; no model access), `ew-viewmodel` and `ew-ui`; at 1.0 `ew-mfg` (tube labels, `tubes.json`); at 1.x `ew-panel` (`RouteTubes`) |
-
----
-
-## Requirements covered
-
-- **FLU:** FR-FLU-001 … FR-FLU-034.
-- **02a, fluid part:**
-  - FR-PAG-001, FR-PAG-002 (Fluid and AssemblyOverview page types);
-  - FR-SYM-006, FR-SYM-007, FR-SYM-014, FR-SYM-018 (pneumatic elements in the "QET import" library);
-  - FR-DEV-012, FR-DEV-020 … FR-DEV-028, FR-DEV-037 (supplied by others);
-  - FR-NUM-013;
-  - FR-CON-002;
-  - FR-XRF-015, FR-XRF-016;
-  - FR-PRT-006, FR-PRT-010;
-  - FR-REP-005;
-  - FR-MAC-004 (the valve value sets, with [07](07-symbols-parts-macros.md));
-  - FR-CHK-005 (EW-FL pack content), FR-CHK-022.
-- **02b, other areas:**
-  - FR-PLC-006, FR-PLC-011, FR-PLC-017, FR-PLC-018, FR-PLC-019, FR-PLC-020, FR-PLC-023, FR-PLC-024, FR-PLC-049,
-    FR-PLC-051 (their fluid side);
-  - FR-IMP-017, FR-IMP-018, FR-IMP-039;
-  - FR-EXT-032 (the fluid views);
-  - FR-UI-003, FR-UI-006;
-  - FR-MFG-012 (tube labels as input);
-  - FR-EXP-002, FR-EXP-004.
-- **Non-functional ([02c](02c-nonfunctional-requirements.md)):** NFR-PERF-05, NFR-PERF-07, NFR-PERF-09,
-  NFR-REL-07, NFR-REL-08, NFR-A11Y-03, NFR-COMP-04, NFR-COMP-05, NFR-LIC-06, NFR-LIC-07.
-
-### Proposed new requirements
-
-The ten rows this document proposed, and its column definition of the fluid SQL views, are in the catalogues:
-- derived manifold galleries → **FR-FLU-026** ([02b](02b-requirements-extended.md));
-- prevent rule on valve and blanking-plate positions (EW-FL-013) → **FR-FLU-027** (02b);
-- port closures by plug, silencer or "blanked" mark → **FR-FLU-028** (02b);
-- `Drives` normaliser, process-tag fallback and EW-FL-011 → **FR-FLU-029** (02b);
-- fluid interruption points → **FR-FLU-030** (02b);
-- physical tubes across IP pairs and at tee fittings → **FR-FLU-031** (02b);
-- EW-FL-012 and EW-FL-014 online → **FR-FLU-032** (02b);
-- assembly-overview page generator → **FR-FLU-033** (02b);
-- medium-zone highlight and flow-path preview → **FR-FLU-034** (02b);
-- valve-terminal reconstruction assistant → **FR-IMP-039** (02b);
-- the three fluid SQL views with the columns of §8.3 → covered by **FR-EXT-032** (02b, one row with the views of
-  [17](17-extensibility.md) §6.1).
-
----
-
-## Open questions
-
-1. **Galleries are not in the domain model.** Neither ARCH §4.2 nor [03](03-domain-model.md) §15 named manifold
-   internals, yet FR-FLU-009's acceptance needs them, and whether -201U9 and -202U3 feed one zone is unknown
-   (▲U-24). **Resolved:** galleries are derived from position order and `PartCopy.sections.fluid` (§5.2, FR-FLU-026)
-   and never stored as page-less fluid connections (03 §15); 533354 ships without a separator and is marked
-   verified only after the order code is decoded (PQ-14).
-2. **Schema additions of §2.7.** `FluidPortRole` covers only valve numbering, so the actuator ports A/B of
-   FR-FLU-006 have no role, and 03's full `TubeSpec` on the line cannot express "override only the outer diameter"
-   with provenance. 03's `ValveModel` (one flow matrix per position plus left/right actuator lists) cannot say which
-   actuator selects which position, nor model a 2×3/2 body as one function, and 03's `FluidLine.tag?` duplicates
-   `Connection.number`. **Resolved:** the schema-steward batch adopts the roles `Pilot10`, `Consumer`, `Sensing` and
-   `Generic`, partial `TubeOverrides`, the sectioned `ValveModel` of §2.3, `Medium.code`, `line_kind_tubes` and the
-   tag-as-`Connection.number` rule (03 §15, §2.7); hydraulic letters follow with FR-FLU-025.
-3. **Blanking plates and closures.** **Resolved:** blanking plates are `BlankingPlate` child devices with a CP-less
-   FnDef, and port plugs and silencers are `CpOverride.closure` (FR-FLU-028), aggregated as accessory BOM lines of
-   their device (03 §15, §2.7); whether the pilot fits spare valves or blanks stays a pilot question (▲U-36, PQ-14).
-4. **FR-DEV-017 acceptance.** It says assigning 533361 "creates its four valve-position functions", which conflicts
-   with valves as child devices (FR-FLU-004). **Resolved:** FR-DEV-017's criterion reads "creates its PlcModule
-   aspect with 8 channels and 4 empty valve positions (the valves stay child devices)".
-5. **Function-text fallback and the golden data.** Printing the tracked process tag could be put into FR-DEV-011's
-   automatic function text. The golden data and [07](07-symbols-parts-macros.md) §9.3 instead stored
-   TA05-V-15 … as the used valves' manual function texts, duplicating the field devices' process tags, and
-   [10](10-plc-and-bus.md) §3.4 read "the valve's function text" for the I/O list. **Resolved:** FR-DEV-011 is
-   unchanged; used valves carry no function text, the `FunctionText` slot prints the automatic function text, else
-   the tracked process tag of the driven device, "Spare" stays a manual function text, and reports keep both columns
-   (§3.1, §11.1; 20 §6.2, 07 §9.3 and 10 §3.4 follow).
-6. **Default line-tag scheme.** *Recommendation:* no tags for imported projects; `{page}.{counter}` in the pilot
-   basic project only if the pilot labels tubes. Confirm with PQ-18.
-7. **MVP symbol breadth.** The golden needs only the 5/2 valve, the actuator, the process valve and the linkage.
-   *Recommendation:* add as MVP Should a pilot-essentials set (3/2 NC, 5/2 bistable, 5/3 closed centre,
-   single-acting and double-acting cylinders, silencer, plug, FRL service unit, on/off valve, one-way flow control,
-   pressure switch) and confirm it against the pilot's QET usage (PQ-18).
-8. **Golden A-R has no fluid overlay.** The golden variants resolved no fluid unknowns, so EF-20 and EF-21
-   could not clear and AC-32's tube list had no data. **Resolved:** 20 §2.4 and §12 add the U-25 test rows: medium
-   "compressed air 6 bar [1:4:1]" ▲ fed to -201U9:1 through the supply line F17, default tube PU 6×4 BU, 1,200 mm
-   manual lengths, silencers on the supply plates' ports 3/5 and plugs on the spare valves' ports 2/4 (§11.2).
-9. **QET terminal order.** The `cp_map` of the 5/2 element is an index guess (▲). *Recommendation:* derive it from
-   the element files of the corpus in CI, keep every shipped row `draft` until the Golden C import confirms it, and
-   let unmatched terminals produce review items rather than guesses.
-10. **Projection views.** ARCH §10.2's view list had no fluid views; [17](17-extensibility.md) §6.1 adds them at 1.0
-    and points to this document for the columns. **Resolved:** FR-EXT-032 and ADR-0017 amendment 2 add
-    `api_v1_fluid_line`, `api_v1_valve_position` and `api_v1_medium` with the columns of §8.3, ARCH §10.2 lists them,
-    and `api_v1` is Preview until the 1.0 freeze.
-11. **EW-FL-009 voltage source on valve terminals.** On a valve terminal the channel has no own supply pin.
-    *Recommendation:* compare the coil voltage with the potential at the module group's valve-supply pin (24V Val,
-    -201U1:5); [10](10-plc-and-bus.md) should define that pin as the channel group's supply (FR-PLC-024).
-12. **ISO 1219-2 code format.** The separator format is unverified (NFR-COMP-05). *Recommendation:* keep
-    FR-FLU-023 Could and ship it only after checking a licensed copy of ISO 1219-2:2012.
-13. **FR-FLU-017 acceptance vs FR-PLC-005.** FR-FLU-017 expects "binding a second channel to a single-solenoid valve
-    yields EW-FL-002", but FR-PLC-005 rejects a second binding of the same coil CP in strict mode and drag-bind clears
-    the previous binding ([10](10-plc-and-bus.md) §3.3). An excess binding can therefore only arise in lenient
-    (import) mode. **Resolved:** FR-FLU-017's criterion reads "importing a single-solenoid valve with two recognised
-    addresses yields EW-FL-002 (error) in the migration report, and in strict mode the second binding replaces the
-    first".
-14. **Line styles.** Whether ISO 1219-1:2012 still distinguishes pilot and drain lines by dash length is unverified
-    (§2.4). *Recommendation:* ship one dashed pattern for both with `verified = false`, and distinguish the kinds in
-    the property grid and hover text; revisit after checking a licensed copy.
+The milestones are in the [roadmap](../../ROADMAP.md); what is built is stated in §2 to §8. The shipped ISO 1219
+pneumatic library covers the families of PBF §9.2 and is checked by the library's fluid symbol lint (`ew-library`,
+test `fluid_symbols`).
