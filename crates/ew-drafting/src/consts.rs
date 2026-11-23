@@ -58,9 +58,25 @@ pub const ROW_PULL: Tick = 6 * TICKS_PER_STEP;
 /// The placer: what a move has to earn on the routed page, per part, in steps.
 pub const MOVE_PRICE: i64 = 2;
 /// The placer: how many steps a tree's root may step, each way, to find its tree room.
-pub const REACH: Tick = 24;
+pub const REACH: i32 = 24;
 /// The placer: the most units of a tree that are tried as its anchor.
 pub const ANCHORS: usize = 6;
+/// The placer: a unit's weight for each of its pins that has a wire (§4.2).
+pub const PIN_WEIGHT: i64 = 4;
+/// The placer: a unit's weight grows by one for each this many square steps of its bodies' area (§4.2).
+pub const AREA_PER_WEIGHT: i64 = 16;
+/// The placer: a tree's anchors are its units of at least this share of its heaviest unit's weight, as numerator and
+/// denominator (§4.2).
+pub const ANCHOR_SHARE: (i64, i64) = (3, 4);
+/// The placer: two units of one shape are mates where the nearer stands within this of the other (§4.2).
+pub const MATE_REACH: Tick = 2 * ROW_PULL;
+/// The placer: the pitches a stack of marks tries, the least first (§4.4).
+pub const MARK_PITCHES: [Tick; 3] = [MARK_PITCH, MARK_PITCH + TICKS_PER_STEP, 2 * MARK_PITCH];
+/// The placer: the trees are set again at most this many times after their first setting (§4.4).
+pub const RESETS: u32 = 2;
+/// The placer: on the page of a few parts the text placer is asked about, the wire of each of their other wired pins,
+/// straight out of the pin (§4.5).
+pub const TRIAL_STUB: Tick = 2 * TICKS_PER_STEP;
 /// The placer: the most trees, and the most branches, whose plans are routed one by one.
 pub const BRANCHES: usize = 8;
 /// The placer: the most runs one press makes (it stops at the first that changes nothing).
@@ -71,8 +87,29 @@ pub const EARTH_REACH: Tick = 8 * TICKS_PER_STEP;
 pub const LABEL_CLEAR: Tick = 2;
 /// The search areas round the two ends of a wire, before the drawing area.
 pub const WINDOWS: [Tick; 2] = [4 * TICKS_PER_STEP, 16 * TICKS_PER_STEP];
-/// Improvement passes of the router; text rounds.
+/// The router: its improvement passes (§3.6).
 pub const PASSES: u32 = 2;
+/// The router: its text rounds (§3.7).
+pub const TEXT_ROUNDS: u32 = 2;
+/// The router: the rounds in which a job takes its stored route back (§3.9).
+pub const TAKE_BACK_ROUNDS: u32 = 2;
+/// The router: the candidate trunk lines beyond the pins a trunk taps, each way (§3.4).
+pub const TRUNK_LINES: Tick = 8;
+/// The router: what a wire left to the search adds to its ends' distance where trunks are compared, two bends' worth
+/// of steps (§3.4). It is written apart from [`BEND`]: the two do not follow each other.
+pub const LEFT_TO_SEARCH: Tick = 8 * TICKS_PER_STEP;
+/// The router: the search takes the half grid where the grid's route is longer than this share of the city-block
+/// distance of the ends, or of the half grid's route, as numerator and denominator (§3.6).
+pub const DETOUR_MOST: (i64, i64) = (8, 5);
+/// The text placer: a stretch of a wire takes its number where it is the number's length and this more (§5.2).
+pub const NUMBER_ROOM: Tick = 2 * TICKS_PER_STEP;
+/// The text placer: a wire number stands level with the number of a parallel wire within this (§5.2).
+pub const NUMBER_LEVEL: Tick = 2 * TRACK_PITCH;
+/// The text placer: the places along a stretch a wire number tries after the level one, as shares of the stretch's
+/// length, numerator and denominator (§5.2).
+pub const NUMBER_AT: [(i64, i64); 3] = [(1, 2), (1, 4), (3, 4)];
+/// The text placer: the lines of a block of texts stand at most this far apart (§5.2).
+pub const LINE_GAP: Tick = TICKS_PER_STEP / 4;
 /// The search's bound on the nodes of its area.
 pub const MAX_NODES: usize = 262_144;
 /// Guides: a pin within this across of the line it would face shows the guide.

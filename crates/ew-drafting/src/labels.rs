@@ -81,11 +81,14 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::consts::{HALF, LABEL_CLASH, LABEL_CLEAR, LABEL_RANK, TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP};
+use crate::consts::{
+    HALF, LABEL_CLASH, LABEL_CLEAR, LABEL_RANK, LINE_GAP, NUMBER_AT, NUMBER_LEVEL, NUMBER_ROOM, TEXT_CROSSED,
+    TEXT_STEP, TICKS_PER_STEP,
+};
 use crate::geom::{self, Buckets, Seg};
 use crate::model::{
-    DraftPage, Label, LabelId, LabelKind, MarkId, Owner, Part, PartId, PinId, Places, Pt, Rect, Side,
-    Tick, WireId,
+    DraftPage, Label, LabelId, LabelKind, MarkId, Owner, Part, PartId, PinId, Places, Pt, Rect, Side, Tick,
+    WireId,
 };
 
 /// Where the text placer set a label.
@@ -704,7 +707,7 @@ fn along_wire(route: &[Pt], (w, h): (Tick, Tick), placed: &[(Rect, bool, Seg)]) 
         .enumerate()
         .collect();
     stretches.sort_by_key(|(i, s)| (-geom::length(*s), *i));
-    let need = i64::from(w) + 2 * i64::from(TICKS_PER_STEP);
+    let need = i64::from(w) + i64::from(NUMBER_ROOM);
     let long: Vec<Seg> = stretches
         .iter()
         .filter(|(_, s)| geom::length(*s) >= need)
@@ -745,10 +748,7 @@ fn along_wire(route: &[Pt], (w, h): (Tick, Tick), placed: &[(Rect, bool, Seg)]) 
                     let other = if vertical { pa.x } else { pa.y };
                     let gap = (other - line).abs();
                     let centre = if vertical { r.centre().y } else { r.centre().x };
-                    (gap > 0
-                        && gap <= 2 * crate::consts::TRACK_PITCH
-                        && centre - half(w) >= lo
-                        && centre + half(w) <= hi)
+                    (gap > 0 && gap <= NUMBER_LEVEL && centre - half(w) >= lo && centre + half(w) <= hi)
                         .then_some((gap, centre))
                 })
                 .collect();
@@ -763,7 +763,7 @@ fn along_wire(route: &[Pt], (w, h): (Tick, Tick), placed: &[(Rect, bool, Seg)]) 
                     c.clamp(lo + margin, hi - margin)
                 }
             };
-            for (n, d) in [(1, 2), (1, 4), (3, 4)] {
+            for (n, d) in NUMBER_AT {
                 let c = lo + Tick::try_from(i64::from(len) * n / d).unwrap_or(0);
                 out.push(place(s, clamp(c), far));
             }
@@ -1406,7 +1406,7 @@ fn units(ground: &Ground<'_>) -> Vec<Unit> {
                 None => true,
                 // Line under line: beside none of the block, under or over it with at most a quarter step between.
                 Some(u) => {
-                    let line = TICKS_PER_STEP / 4;
+                    let line = LINE_GAP;
                     !block.iter().any(|(_, b)| geom::texts_meet(*b, r))
                         && r.x0 < u.x1
                         && u.x0 < r.x1

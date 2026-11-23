@@ -207,6 +207,7 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | Name | Value | Used by |
 |---|---|---|
 | `TICKS_PER_STEP` | 16 | the unit of the model (§2.1) |
+| `HALF` | 8 ticks (half a step) | the half grid (§2.1, §3.3) |
 | `STEP`, `BEND`, `CROSSING` | 1, 4, 6 | the cost |
 | `TEXT_CROSSED`, `TEXT_STEP` | 12, 1 | the cost |
 | `LABEL_CLASH`, `LABEL_RANK` | 24, 1 | the cost |
@@ -216,17 +217,30 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `TRACK_PITCH` | 2 steps (1 where a channel is too narrow) | tracks, parallel wires |
 | `CHAIN_GAP` | 5 steps (never less than 2) | placer: between facing pins of two parts in line |
 | `TRUNK_GAP`, `TRUNK_PITCH` | 2 steps each | router: a trunk from the pins it taps; trunks side by side |
+| `TRUNK_LINES` | 8 | router: the candidate trunk lines beyond the pins, each way (§3.4) |
+| `LEFT_TO_SEARCH` | 8 steps | router: what a wire left to the search adds to its ends' distance where trunks are compared: two bends' worth, written apart from `BEND` (§3.4) |
 | `MARK_PITCH`, `MARK_LEAD` | 2 steps each | placer: marks in a stack; a mark before its drop |
 | `ROW_GAP` | 1 step | placer: between two footprints in a row |
 | `ROW_PULL` | 6 steps | placer: a part joins a common line when within this |
 | `MOVE_PRICE` | 2 per part | placer: what a move has to earn on the routed page (§4.7) |
 | `REACH` | 24 steps | placer: how far a tree's root may step, each way, to find its tree room (§4.7) |
 | `ANCHORS` | 6 | placer: the most units of a tree tried as its anchor (§4.2) |
+| `PIN_WEIGHT`, `AREA_PER_WEIGHT` | 4; 16 square steps | placer: a unit's weight per wired pin; its bodies' area per weight (§4.2) |
+| `ANCHOR_SHARE` | 3/4 | placer: an anchor's least share of its tree's heaviest weight (§4.2) |
+| `MATE_REACH` | 12 steps (twice `ROW_PULL`) | placer: the farthest mate (§4.2) |
+| `MARK_PITCHES` | 2, 3, 4 steps | placer: the pitches a stack of marks tries (§4.4) |
+| `RESETS` | 2 | placer: the most times the trees are set again after their first setting (§4.4) |
+| `TRIAL_STUB` | 2 steps | placer: a wire out of a pin on the page of a few parts the text placer is asked about (§4.5) |
 | `BRANCHES`, `ROUNDS` | 8; 4 | placer: the most trees, and branches, whose plans are routed one by one; the most runs of one press (§4.7) |
 | `EARTH_REACH` | 8 steps | placer: an earth symbol from the pin it earths |
 | `LABEL_CLEAR` | 2 ticks (1/8 step) | text placer |
+| `NUMBER_ROOM`, `NUMBER_LEVEL` | 2 steps; 4 steps (twice `TRACK_PITCH`) | text placer: a stretch long enough for a wire number, beyond its length; a parallel wire's number it stands level with (§5.2) |
+| `NUMBER_AT` | 1/2, 1/4, 3/4 | text placer: the places along a stretch a wire number tries after the level one (§5.2) |
+| `LINE_GAP` | 1/4 step | text placer: the most between the lines of a block of texts (§5.2) |
 | `WINDOWS` | 4 steps, 16 steps, the drawing area | search areas round the two ends |
-| `PASSES` | 2 | improvement passes; text rounds |
+| `PASSES` | 2 | router: improvement passes (§3.6) |
+| `TEXT_ROUNDS`, `TAKE_BACK_ROUNDS` | 2 each | router: text rounds (§3.7); the rounds in which a job takes its stored route back (§3.9) |
+| `DETOUR_MOST` | 8/5 | search: the longest grid route before the half grid is taken (§3.6) |
 | `MAX_NODES` | 262 144 | search area bound (kept) |
 | `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | 2 steps, 3/4 step, 8 screen points | guides (§6) |
 | `CARD_PIN_PITCH` | 8 steps | cards drawn from the station view (§7.5) |

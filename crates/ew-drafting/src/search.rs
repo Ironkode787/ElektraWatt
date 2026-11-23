@@ -43,8 +43,8 @@ use std::collections::{BTreeMap, BinaryHeap};
 use ew_ids::Uuid;
 
 use crate::consts::{
-    BEND, BODY_GAP, CROSSING, HALF, HALF_STEP_EXTRA, LABEL_RANK, MAX_NODES, STEP, STUB, TEXT_CROSSED, TEXT_STEP,
-    TICKS_PER_STEP, WINDOWS,
+    BEND, BODY_GAP, CROSSING, DETOUR_MOST, HALF, HALF_STEP_EXTRA, LABEL_RANK, MAX_NODES, STEP, STUB,
+    TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP, WINDOWS,
 };
 use crate::geom;
 use crate::model::{JunctionId, PinId, Pt, Rect, Side, Tick};
@@ -946,7 +946,7 @@ pub fn route(ask: &Ask<'_>) -> Option<Found> {
     let whole = search(ask, false);
     let length = |r: &[Pt]| -> i64 { geom::segments(r).iter().map(|s| geom::length(*s)).sum() };
     let direct = geom::length((ask.from.at, ask.to.at));
-    let far = |longer: i64, than: i64| longer * 5 > than * 8;
+    let far = |longer: i64, than: i64| longer * DETOUR_MOST.1 > than * DETOUR_MOST.0;
     let found = if whole.as_ref().is_some_and(|w| !far(length(&w.route), direct)) {
         whole
     } else {

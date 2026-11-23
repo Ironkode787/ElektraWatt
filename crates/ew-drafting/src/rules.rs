@@ -411,8 +411,7 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
             for (a, b) in &pairs {
                 let (pa, pb) = (w.pins[a].0, w.pins[b].0);
                 for (x, y) in [(pa, pb), (pb, pa)] {
-                    if x == i && !w.parts[y].role.is_mark() && circuit.insert(y)
-                    {
+                    if x == i && !w.parts[y].role.is_mark() && circuit.insert(y) {
                         todo.push(y);
                     }
                 }

@@ -30,7 +30,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::consts::{TRUNK_GAP, TRUNK_PITCH};
+use crate::consts::{TRUNK_GAP, TRUNK_LINES, TRUNK_PITCH};
 use crate::model::{End, Groups, JunctionId, Pt, Side, Tick, WireId, grid_down, grid_up};
 
 /// A net job.
@@ -223,16 +223,13 @@ pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt
                 .map(|(p, _)| across(*p))
         };
         if let Some(min) = facing(before).min() {
-            for k in 0..8 {
+            for k in 0..TRUNK_LINES {
                 push(grid_down(min - TRUNK_GAP - k * TRUNK_PITCH), false);
             }
         }
         if let Some(max) = facing(after).max() {
-            for k in 0..8 {
-                push(
-                    grid_up(max + TRUNK_GAP + k * TRUNK_PITCH),
-                    false,
-                );
+            for k in 0..TRUNK_LINES {
+                push(grid_up(max + TRUNK_GAP + k * TRUNK_PITCH), false);
             }
         }
         // The middle between two rows that face each other.

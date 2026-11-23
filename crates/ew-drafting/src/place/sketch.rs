@@ -57,7 +57,7 @@
 //!
 //! The trees are set one after another, the heaviest first, each as if the units of the trees after it will step
 //! aside. A unit that then kept its place where a moved unit came to stand is in the way from the start, and the
-//! trees are set again ([`PASSES`] times at most).
+//! trees are set again ([`RESETS`] times at most).
 //!
 //! A card that is the root of its tree steps along its edge first, clear of its supply's way and of another card's
 //! columns ([`CardSteps`]): the judge tries the arrangement with that step, with a part of it and without it.
@@ -104,7 +104,7 @@
 //!   each keeps its place when every one of its wires has its corner (the drop at least [`CHAIN_GAP_MIN`] long, its own
 //!   pin at least [`MARK_LEAD`] before the drop), it lies beyond the blocks before it and stands clear; else it takes
 //!   the nearest such place: in the column most single marks of the stack stand in, or in the column a mark's lead
-//!   before the nearest drop. The pitch is [`MARK_PITCH`], or the next larger one at which the text placer finds
+//!   before the nearest drop. The pitch is [`MARK_PITCH`](crate::consts::MARK_PITCH), or the next larger one at which the text placer finds
 //!   every text of the stack a place as clear as it had. A stack that leaves the drawing area slides back towards its
 //!   hosts.
 //! - **Level followers.** One whose wire has no way out and back (it stands under or over its host) is set beside the
@@ -132,14 +132,15 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::consts::{
-    ANCHORS, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, HALF, LABEL_CLEAR, MARK_LEAD, MARK_PITCH, PASSES, REACH, ROW_GAP,
-    ROW_PULL, STUB, TICKS_PER_STEP, TRACK_PITCH, TRACK_PITCH_NARROW, TRUNK_GAP,
+    ANCHOR_SHARE, ANCHORS, AREA_PER_WEIGHT, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, HALF, LABEL_CLEAR, MARK_LEAD,
+    MARK_PITCHES, MATE_REACH, PIN_WEIGHT, REACH, RESETS, ROW_GAP, ROW_PULL, STUB, TICKS_PER_STEP,
+    TRACK_PITCH, TRACK_PITCH_NARROW, TRIAL_STUB, TRUNK_GAP,
 };
 use crate::labels::first_places;
 use crate::measure::measure;
 use crate::model::{
-    DraftPage, End, Groups, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side,
-    Tick, Wire, WireId, grid_away, grid_down,
+    DraftPage, End, Groups, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role,
+    Side, Tick, Wire, WireId, grid_away, grid_down,
 };
 use crate::route::Scope;
 use crate::rules::Wiring;
@@ -450,7 +451,7 @@ impl<'a> Sketch<'a> {
             let unit = &mut units[u];
             unit.parts.push(i);
             unit.fixed |= fixed_part;
-            unit.weight += 4 * pins + area / 16;
+            unit.weight += PIN_WEIGHT * pins + area / AREA_PER_WEIGHT;
         }
         let m = units.len();
         let mut texts: Vec<Vec<Rect>> = vec![Vec::new(); n];
@@ -822,7 +823,7 @@ impl<'a> Sketch<'a> {
                     .filter_map(|v| {
                         let y = body(v)?;
                         let gap = if down { y.x0 - x.x1 } else { y.y0 - x.y1 };
-                        (0..=2 * ROW_PULL).contains(&gap).then_some((gap, self.id(v), v))
+                        (0..=MATE_REACH).contains(&gap).then_some((gap, self.id(v), v))
                     })
                     .min();
                 if let (Some((_, _, v)), Some(pa), Some(pb)) = (next, pin(u), next.and_then(|n| pin(n.2))) {
@@ -1155,9 +1156,9 @@ impl<'a> Sketch<'a> {
         self.loose = self.loose();
         // A tree is set as if the units of the trees after it will step aside. One that then kept its place where a
         // moved unit came to stand was counted on in vain: it is in the way from the start, and the trees are set
-        // again ([`PASSES`] times at most).
+        // again ([`RESETS`] times at most).
         let mut stay: BTreeSet<usize> = BTreeSet::new();
-        for _ in 0..=PASSES {
+        for _ in 0..=RESETS {
             self.d.fill(Pt::default());
             self.settled.clear();
             // What never moves is in the way from the start: the fixed units and the units without a relation.
@@ -1773,7 +1774,7 @@ impl<'a> Sketch<'a> {
         let mut units = self.subtree(root);
         units.sort_by_key(|u| self.key(*u));
         let most = units.iter().map(|u| self.units[*u].weight).max().unwrap_or(0);
-        units.retain(|u| 4 * self.units[*u].weight >= 3 * most);
+        units.retain(|u| ANCHOR_SHARE.1 * self.units[*u].weight >= ANCHOR_SHARE.0 * most);
         units.truncate(ANCHORS);
         units
     }
@@ -2566,7 +2567,7 @@ impl<'a> Sketch<'a> {
         let start = self.d.clone();
         let pitches: Vec<Tick> = match self.pitch.get(&key) {
             Some(p) => vec![*p],
-            None => vec![MARK_PITCH, MARK_PITCH + TICKS_PER_STEP, 2 * MARK_PITCH],
+            None => MARK_PITCHES.to_vec(),
         };
         let mut best: Option<(usize, Tick, Vec<Pt>)> = None;
         for pitch in pitches {
@@ -2868,7 +2869,7 @@ impl<'a> Sketch<'a> {
                     continue;
                 }
                 let at = part.at.plus(pin.at);
-                let end = at.plus(along_vec(s, 2 * TICKS_PER_STEP));
+                let end = at.plus(along_vec(s, TRIAL_STUB));
                 let j = JunctionId(pin.id.0);
                 mini.junctions.push(Junction { id: j, at: end });
                 mini.wires.push(Wire {

@@ -24,7 +24,7 @@
 //!    round one end of one body, two or more, laid again together as nested rings, kept where the page costs no more.
 //! 7. **Texts** (§3.7): the labels placed again against all wires; a job that still runs across a text is searched
 //!    once more with the texts it crosses at their full price, and the new route kept where the page's cost is
-//!    lower; at most [`PASSES`] rounds.
+//!    lower; at most [`TEXT_ROUNDS`] rounds.
 //! 8. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
 //!    among the others keeps them; and from the stored drawing, a net takes its new routes where they cost less. The
 //!    cheaper of the two pages stands. Then wire by wire: a job whose stored route still meets its ends takes it back
@@ -45,7 +45,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Uuid;
 
-use crate::consts::{BEND, HALF, PASSES, TICKS_PER_STEP, TRACK_PITCH};
+use crate::consts::{
+    BEND, HALF, LEFT_TO_SEARCH, PASSES, TAKE_BACK_ROUNDS, TEXT_ROUNDS, TICKS_PER_STEP, TRACK_PITCH,
+};
 use crate::geom;
 use crate::labels::settle_labels;
 use crate::measure::{Quality, TextRef, measure};
@@ -704,9 +706,9 @@ impl Router {
                     .keys()
                     .filter_map(|j| Some((*j, self.junction_at(*j)?)))
                     .collect();
-                let mut valid = places.values().all(|p| {
-                    area.contains_strictly(*p) && !on_a_wire(&self.occ, *p)
-                });
+                let mut valid = places
+                    .values()
+                    .all(|p| area.contains_strictly(*p) && !on_a_wire(&self.occ, *p));
                 for (j, p) in &places {
                     self.move_junction(*j, *p);
                 }
@@ -764,7 +766,7 @@ impl Router {
                             self.point(b).unwrap_or_default(),
                         );
                         cost += u64::try_from(geom::length((pa, pb))).unwrap_or(0)
-                            + 8 * u64::try_from(TICKS_PER_STEP).unwrap_or(16);
+                            + u64::try_from(LEFT_TO_SEARCH).unwrap_or(0);
                         kept.insert(*w, None);
                     }
                 }
@@ -1111,7 +1113,7 @@ impl Router {
 
     /// Phase 7: the text rounds (module documentation).
     fn text_rounds(&mut self) {
-        for _ in 0..PASSES {
+        for _ in 0..TEXT_ROUNDS {
             let q = measure(&self.page);
             let mut crossing: BTreeMap<WireId, Vec<TextRef>> = BTreeMap::new();
             for (w, t, _) in &q.findings.across_texts {
@@ -1238,12 +1240,12 @@ impl Router {
 
     /// Phase 8, wire by wire: a net's new routes are not all or nothing. A job whose stored route still meets its ends
     /// takes it back where the page costs no more and it keeps free of faults; in the order of the jobs' IDs, at most
-    /// [`PASSES`] rounds, until a round takes none back. Then a job without a stored route left with a fault is searched
+    /// [`TAKE_BACK_ROUNDS`] rounds, until a round takes none back. Then a job without a stored route left with a fault is searched
     /// again.
     fn weigh_wires(&mut self) {
         let mut q = measure(&self.page);
         let jobs: Vec<WireId> = self.jobs.iter().copied().collect();
-        for _ in 0..PASSES {
+        for _ in 0..TAKE_BACK_ROUNDS {
             let mut taken = false;
             for w in &jobs {
                 let Some(s) = self.stored.get(w).filter(|s| !s.is_empty()) else {
