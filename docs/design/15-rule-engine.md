@@ -362,7 +362,7 @@ or "checker ≠ author on release", are not rules and cannot be waived.
   refused only for violations it creates, and an edit that leaves an existing violation alone is allowed (the base-snapshot rule). The target for `Strict` projects is restore-on-touch: as with
   EW-CORE-012, the next interactive transaction that touches the key must restore the invariant (ADR-0009 amendment 5).
 
-`PreventHook::check(base, candidate, touched)` compares the base snapshot with the candidate. The implementer is ew-api's `ShippedPrevent`, installed by every session unless it names its own hook, because ew-commands may not depend on ew-checks. Only violations the batch creates are refused, as `CmdError::Prevented` with the duplicate set and the remedy. A violation the model already held, such as a lenient import or files on disk, does not block an edit that leaves it alone. The strictness setting and the import origin are not yet consulted.
+`PreventHook::check(base, candidate, touched)` compares the base snapshot with the candidate. The implementer is ew-api's `ShippedPrevent`, installed by every session unless it names its own hook. Only violations the batch creates are refused, as `CmdError::Prevented` with the duplicate set and the remedy. A violation the model already held, such as a lenient import or files on disk, does not block an edit that leaves it alone. The strictness setting and the import origin are not yet consulted.
 
 ### 3.6 Supersession and de-duplication
 
