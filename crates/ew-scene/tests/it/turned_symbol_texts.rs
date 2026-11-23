@@ -154,7 +154,8 @@ fn rep(
 
 /// A coil and a make contact, each turned a quarter either way on a page, print their tag, PLC address, technical
 /// data, cross-reference and pin numbers level, none on another and none on the symbol's drawing; a tag a person
-/// dragged stays where it was dropped.
+/// dragged stays where it was dropped. (Twenty steps apart, all on the A4 sheet of a page without a frame: a text
+/// never stands outside the drawing area.)
 #[test]
 fn turned_symbols_on_a_page_print_their_texts_apart() {
     let texts = [
@@ -172,7 +173,7 @@ fn turned_symbols_on_a_page_print_their_texts_apart() {
             reps.push(rep(
                 &s,
                 n,
-                30 * i64::try_from(n).unwrap(),
+                20 * i64::try_from(n).unwrap(),
                 orient,
                 &texts,
                 json!({}),
@@ -186,7 +187,7 @@ fn turned_symbols_on_a_page_print_their_texts_apart() {
     reps.push(rep(
         &coil,
         n,
-        30 * i64::try_from(n).unwrap(),
+        20 * i64::try_from(n).unwrap(),
         "r90",
         &texts,
         json!({"text_slots": [{"slot": 0, "pos": [moved.x.0, moved.y.0]}]}),

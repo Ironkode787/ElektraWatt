@@ -60,3 +60,17 @@ fn a_tag_that_leaves_the_area_is_not_moved_in_onto_its_own_symbol() {
         );
     }
 }
+
+/// A switch a step from the area's left edge on a strip of page too low for a text above or below it, a fuse beside
+/// it, and the switch's part number wider than the room left of it: no place of its kind is free, and the part number
+/// still stands inside the drawing area, never beyond its edge.
+#[test]
+fn a_text_without_a_free_place_stands_inside_the_drawing_area() {
+    let mut b = Page::new(30, 6);
+    let q1 = b.device("Q1", p(1, 1));
+    b.device("F1", p(5, 1));
+    let data = b.label(Owner::Part(q1), 1, LabelKind::Data, (95, 20), Places::At(Vec::new()));
+    let settled = settle_labels(&b.page);
+    let at = settled.iter().find(|s| s.id == data).expect("placed").rect;
+    assert!(b.page.area.holds(at), "the part number at {at:?} leaves the area {:?}", b.page.area);
+}

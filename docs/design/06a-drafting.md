@@ -1234,7 +1234,11 @@ text and every label placed before it, and inside the drawing area. A first plac
 tried next moved in to stand `LABEL_CLEAR` inside the area's line, but not where that sets it on its own part's body,
 which its author kept it off: the tag and data of a symbol placed near the area's edge stand at the places of their
 kind beside it, clear of the symbol and its pins' numbers (a persona run, 2026-11-22). A label with no clear place
-takes the place of least cost (C4, C5) and is then counted. One repair round follows: for each such label, each label
+takes the place of least cost (C4, C5) of those inside the drawing area, and is then counted: a text never stands
+outside the area (a persona run, 2026-11-23). Where every place of a label leaves the area, its places moved in, onto
+its own part's body too, are its places. There the first place of another text of the same symbol (its tag,
+cross-reference, data, contact list) not yet placed costs nothing, as that text moves on, and a neighbour's first place
+costs as a text: a symbol's texts stand by their own symbol before a neighbour's. One repair round follows: for each such label, each label
 it stands on that came later in the order is tried at its next clear place, and the change is kept when the page's
 cost is lower. The result does not depend on the order of the page's lists.
 

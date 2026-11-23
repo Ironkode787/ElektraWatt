@@ -71,7 +71,9 @@
 //! A label without a clear place takes its place of least cost ([`LABEL_CLASH`] for each text and body it lies on
 //! and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it or nearer
 //! than [`LABEL_CLEAR`],
-//! [`LABEL_RANK`] for each place down its list; ties to the earlier place). One repair round follows: for each such
+//! [`LABEL_RANK`] for each place down its list; ties to the earlier place) of those inside the drawing area: a text
+//! never stands outside it. Where every place leaves the area, its places moved in (onto its own part's body too) are
+//! its places. There a symbol's text does not count the first place of another text of its symbol against itself. One repair round follows: for each such
 //! label, each label it lies on is tried at each of its other clear places in turn, and that label then at its first
 //! clear place; the first change that lowers the labels' cost on the page is kept, and while the label still lies on
 //! another, the next one it lay on is tried. Every list is read in a fixed order, so the
@@ -846,13 +848,27 @@ pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
                 && labels_clear(&units, &placed, &grid, u, (*r, at_first))
                 && (at_first || reserved(&units, &placed, &firsts, u, *r) == 0)
         });
+        // Without a clear place, the place of least cost of those in the drawing area (§5.3): a text never stands
+        // outside it. For a symbol's text, the first place of another text of its symbol not yet placed costs nothing
+        // there (that text moves on): a symbol's texts stand by their own symbol before a neighbour's.
+        let inside: Vec<usize> = (0..list.len()).filter(|&k| ground.inside(list[k].0)).collect();
+        let pool = if inside.is_empty() {
+            (0..list.len()).collect()
+        } else {
+            inside
+        };
+        let own: Vec<usize> = (0..units.len())
+            .filter(|&v| {
+                units[v].owner == units[u].owner && symbol_text(units[v].kind) && symbol_text(units[u].kind)
+            })
+            .collect();
         let k = clear.unwrap_or_else(|| {
-            (0..list.len())
+            pool.into_iter()
                 .min_by_key(|&k| {
                     let taken = if authors(&units[u], k) {
                         0
                     } else {
-                        reserved(&units, &placed, &firsts, u, list[k].0)
+                        reserved_except(&units, &placed, &firsts, &own, list[k].0)
                     };
                     let cost = unit_cost(&ground, &units, &placed, &grid, u, list[k].0, k);
                     (cost + taken as i64 * LABEL_CLASH * i64::from(TICKS_PER_STEP), k)
@@ -1298,9 +1314,27 @@ fn candidates(ground: &Ground<'_>, unit: &Unit, numbers: &[(Rect, bool, Seg)]) -
         }
         Owner::Wire(_) => {}
     }
+    // Where every place leaves the drawing area, each moved in by the least distance, onto its own part's body too: a
+    // text never stands outside the area (§5.3).
+    if !list.iter().any(|(r, _)| ground.inside(*r)) {
+        let inward: Vec<(Rect, bool)> = list
+            .iter()
+            .filter(|(r, _)| r.w() + 2 * LABEL_CLEAR <= area.w() && r.h() + 2 * LABEL_CLEAR <= area.h())
+            .map(|(r, turned)| (into(*r), *turned))
+            .collect();
+        list.extend(inward);
+    }
     let mut seen: BTreeSet<(Rect, bool)> = BTreeSet::new();
     list.retain(|c| seen.insert(*c));
     list
+}
+
+/// Whether a kind is a symbol's text of the block rule: its tag, cross-reference, data or contact list.
+fn symbol_text(kind: LabelKind) -> bool {
+    matches!(
+        kind,
+        LabelKind::Tag | LabelKind::Xref | LabelKind::Data | LabelKind::ContactList
+    )
 }
 
 /// Whether a kind joins the block of its side of its part: every text of a part but a pin's number.
