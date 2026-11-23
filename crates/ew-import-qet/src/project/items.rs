@@ -28,13 +28,14 @@ use ew_schema::{
     Bounds, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LineDash, PageItem, PageItemKind,
     Record, Sha256, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, TextAlign, TextAnchor,
 };
+use ew_units::arith::div_round_ties_even;
 use ew_units::{Angle2, Nm, Pt2, Rect};
 use sha2::Digest;
 
 use super::cx::{Findings, Ids};
 use super::elements::orientation;
 use super::model::{QetDiagram, QetImage, QetShape, TextAt};
-use crate::decimal::{Decimal, div_round_half_even};
+use crate::decimal::Decimal;
 use crate::prims::text::{em_of, parse_qt_font, qt_ascent, qt_line, style_key, substitution};
 
 /// The margin QET's text items keep around their text (Qt's default document margin), px.
@@ -178,7 +179,7 @@ pub const ADVANCE_PER_MILLE: i128 = 550;
 pub(crate) fn line_place(width: Option<Decimal>) -> Option<(i128, TextAlign)> {
     match width {
         Some(width) => Some((
-            div_round_half_even(i128::from(width.px_to_nm().ok()?.0), 2),
+            div_round_ties_even(i128::from(width.px_to_nm().ok()?.0), 2),
             TextAlign::Centre,
         )),
         None => Some((margin_nm()?, TextAlign::Left)),
@@ -189,11 +190,11 @@ pub(crate) fn line_place(width: Option<Decimal>) -> Option<(i128, TextAlign)> {
 /// margin and half the longest line of `text` at [`ADVANCE_PER_MILLE`] of the em per character.
 pub(crate) fn box_middle(width: Option<Decimal>, text: &str, em: Nm) -> Option<i128> {
     if let Some(width) = width {
-        return Some(div_round_half_even(i128::from(width.px_to_nm().ok()?.0), 2));
+        return Some(div_round_ties_even(i128::from(width.px_to_nm().ok()?.0), 2));
     }
     let chars = text.lines().map(|l| l.chars().count()).max().unwrap_or(0);
     let chars = i128::try_from(chars).ok()?;
-    Some(margin_nm()? + div_round_half_even(i128::from(em.0) * ADVANCE_PER_MILLE * chars, 2000))
+    Some(margin_nm()? + div_round_ties_even(i128::from(em.0) * ADVANCE_PER_MILLE * chars, 2000))
 }
 
 /// Where QET draws the cross-reference of a master or slave whose label text item is `at` with `lines` lines
@@ -228,7 +229,7 @@ fn text_point(at: &TextAt, right: i128, down: i128) -> Option<(Pt2, Angle2)> {
     let x = at.x?.px_to_nm().ok()?;
     let y = at.y?.px_to_nm().ok()?;
     let rotation = at.rotation.unwrap_or(Decimal::ZERO).deg_to_angle().ok()?.0;
-    let quarters = u8::try_from(div_round_half_even(i128::from(rotation), 90_000).rem_euclid(4)).ok()?;
+    let quarters = u8::try_from(div_round_ties_even(i128::from(rotation), 90_000).rem_euclid(4)).ok()?;
     let offset = orientation(quarters).apply(Pt2::new(
         Nm(i64::try_from(right).ok()?),
         Nm(i64::try_from(down).ok()?),
@@ -516,7 +517,7 @@ pub(crate) fn rounded(r: Rect, rx: i64, ry: i64) -> Vec<Pt2> {
     let (rx, ry) = (i128::from(rx), i128::from(ry));
     let (x0, y0) = (i128::from(r.min().x.0), i128::from(r.min().y.0));
     let (x1, y1) = (i128::from(r.max().x.0), i128::from(r.max().y.0));
-    let s = |v: i128, f: i128| div_round_half_even(v * f, 1_000_000);
+    let s = |v: i128, f: i128| div_round_ties_even(v * f, 1_000_000);
     let mut out: Vec<Pt2> = Vec::with_capacity(28);
     for k in 0..4 {
         for i in 0..7 {

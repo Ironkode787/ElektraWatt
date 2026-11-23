@@ -27,7 +27,7 @@ use ew_derive::{PageRef, Q};
 use ew_dl::{Brush, Color, DisplayList, Item, Path, Stroke};
 use ew_import_dxf::ew_interop_api::{ImportError, ImportInput, ImportReport, SourceInfo};
 use ew_schema::{Page, PageItemKind, Underlay, UnderlayFormat};
-use ew_units::{Nm, Pt2, Rect};
+use ew_units::{Nm, Pt2, Rect, arith};
 
 use super::ExportAssets;
 use super::view::PageFrameOf;
@@ -233,7 +233,7 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
 fn ratio(v: i64, num: i64, den: i64) -> i64 {
     let n = i128::from(v) * i128::from(num);
     let d = i128::from(den);
-    let q = (n + n.signum() * d / 2) / d;
+    let q = arith::div_round_ties_away(n, d);
     i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
 }
 

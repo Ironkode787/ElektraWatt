@@ -6,7 +6,7 @@
 
 use ew_dl::Pen;
 use ew_schema::{FormDef, FrameGrid};
-use ew_units::{Grid, Nm, Pt2, Rect};
+use ew_units::{Grid, Nm, Pt2, Rect, arith};
 use serde_json::Value;
 
 /// `FrameGrid.extra` member: the width in nm of the generated frame lines (outer rectangle, header bands,
@@ -122,9 +122,7 @@ fn edge(header: Option<Grid>, step: Grid, k: i64) -> Nm {
     let (sn, sd) = (i128::from(step.num()), i128::from(step.den()));
     let num = hn * sd + i128::from(k) * sn * hd;
     let den = hd * sd;
-    let q = num / den;
-    let r = num % den;
-    let q = if 2 * r.abs() > den { q + num.signum() } else { q };
+    let q = arith::div_round_ties_toward_zero(num, den);
     Nm(i64::try_from(q).unwrap_or(i64::MAX))
 }
 

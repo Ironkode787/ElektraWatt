@@ -30,7 +30,7 @@ use ew_derive::Q;
 use ew_dl::{DisplayList, Item};
 use ew_export::{Parallelism, PdfPage, PdfReport};
 use ew_text::TextStyle;
-use ew_units::{Nm, Pt2};
+use ew_units::{Nm, Pt2, arith};
 
 pub use ew_export::PagePlacement;
 
@@ -238,13 +238,6 @@ fn percent((num, den): (u64, u64)) -> u32 {
     u32::try_from((200 * num + den) / (2 * den)).unwrap_or(u32::MAX)
 }
 
-fn gcd(mut a: u64, mut b: u64) -> u64 {
-    while b != 0 {
-        (a, b) = (b, a % b);
-    }
-    a.max(1)
-}
-
 /// The placement of a `width` × `height` sheet on `paper` with `fit`, and whether the sheet is clipped (D6).
 pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacement, bool) {
     let (pw, ph) = match paper.sides() {
@@ -261,7 +254,8 @@ pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacemen
             } else {
                 (ph, sh)
             };
-            let g = gcd(num, den);
+            // The divisor of two u64 is a u64.
+            let g = arith::gcd(u128::from(num), u128::from(den)).max(1) as u64;
             (num / g, den / g)
         }
         _ => (1, 1),

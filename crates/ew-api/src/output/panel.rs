@@ -38,6 +38,7 @@ use ew_schema::{
     SurfaceLabelMode,
 };
 use ew_text::{Shaped, TextStyle};
+use ew_units::arith::div_round_ties_away;
 
 use super::layers::text_style_table;
 use super::layout_edit::comma;
@@ -708,17 +709,6 @@ impl PanelTables {
     }
 }
 
-/// `a / b` rounded to the nearest integer, halves away from zero (`b > 0`).
-pub(super) fn div_round(a: i128, b: i128) -> i128 {
-    let q = a / b;
-    let r = a % b;
-    if r.saturating_mul(2).saturating_abs() >= b {
-        q + a.signum()
-    } else {
-        q
-    }
-}
-
 /// The surface point of the page point `p` by the inverse projection (D9): `u = (x − datum.x)·den/num`,
 /// `v = (datum.y − y)·den/num`, in i128 with one rounding to the nearest nm, halves away from zero.
 pub fn surface_of_page(projection: &Projection, p: (i64, i64)) -> (i128, i128) {
@@ -726,15 +716,15 @@ pub fn surface_of_page(projection: &Projection, p: (i64, i64)) -> (i128, i128) {
     let den = projection.den;
     let (dx, dy) = (i128::from(projection.datum.x.0), i128::from(projection.datum.y.0));
     (
-        div_round((i128::from(p.0) - dx).saturating_mul(den), num),
-        div_round((dy - i128::from(p.1)).saturating_mul(den), num),
+        div_round_ties_away((i128::from(p.0) - dx).saturating_mul(den), num),
+        div_round_ties_away((dy - i128::from(p.1)).saturating_mul(den), num),
     )
 }
 
 /// The page point of the surface point `(u, v)` by the projection (`Projection::point` in i128, saturating at the
 /// `i64` range).
 pub fn page_of_surface(projection: &Projection, (u, v): (i128, i128)) -> (i64, i64) {
-    let len = |l: i128| div_round(l.saturating_mul(projection.num), projection.den.max(1));
+    let len = |l: i128| div_round_ties_away(l.saturating_mul(projection.num), projection.den.max(1));
     let x = i128::from(projection.datum.x.0).saturating_add(len(u));
     let y = i128::from(projection.datum.y.0).saturating_sub(len(v));
     let sat = |n: i128| i64::try_from(n).unwrap_or(if n < 0 { i64::MIN } else { i64::MAX });

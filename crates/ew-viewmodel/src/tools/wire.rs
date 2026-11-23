@@ -54,11 +54,12 @@ use ew_api::output::Uuid;
 use ew_api::routing::{ToolEnd, route_wire, unrouted_line, wire_clear};
 use ew_dl::EntityRef;
 use ew_units::Rect;
+use ew_units::arith::div_round_ties_toward_zero;
 use serde_json::{Value, json};
 
 use super::{
     Anchor, Button, CP_SNAP_PT, CanvasEvent, MarkerKind, Mods, Overlay, OverlayItem, RouteInfo, Style, Token,
-    Tool, ToolCx, ToolKey, ToolOutput, div_round_toward_zero, segment_dist2,
+    Tool, ToolCx, ToolKey, ToolOutput, segment_dist2,
 };
 use crate::canvas::mm3;
 use crate::key;
@@ -272,12 +273,12 @@ impl PageGridMap {
 
     /// The grid index nearest to the page coordinate `v`.
     pub fn index(self, v: i64) -> i64 {
-        i64::try_from(div_round_toward_zero(i128::from(v) * self.den, self.num)).unwrap_or(0)
+        i64::try_from(div_round_ties_toward_zero(i128::from(v) * self.den, self.num)).unwrap_or(0)
     }
 
     /// The page coordinate of grid index `k`.
     pub fn coord(self, k: i64) -> i64 {
-        i64::try_from(div_round_toward_zero(i128::from(k) * self.num, self.den)).unwrap_or(0)
+        i64::try_from(div_round_ties_toward_zero(i128::from(k) * self.num, self.den)).unwrap_or(0)
     }
 
     /// One grid step, nm (rounded).

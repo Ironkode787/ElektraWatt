@@ -32,6 +32,7 @@ use std::collections::BTreeMap;
 
 use ew_dl::Color;
 use ew_dl::ew_units::Rect;
+use ew_dl::ew_units::arith::div_round_ties_away;
 use ew_render_cpu::{RgbaImage, SheetSize, pixel_size};
 
 use crate::view::{DrawTransform, PxRect, round_px};
@@ -874,16 +875,6 @@ fn clip_segment(a: (f64, f64), b: (f64, f64), lo: (f64, f64), hi: (f64, f64)) ->
     (t0 <= t1 && t0.is_finite() && t1.is_finite()).then_some((t0, t1))
 }
 
-/// `num / den` rounded to the nearest integer, halves away from zero (`den != 0`).
-fn div_round(num: i64, den: i64) -> i64 {
-    let (q, r) = (num / den, num % den);
-    if 2 * r.abs() >= den.abs() {
-        q + num.signum() * den.signum()
-    } else {
-        q
-    }
-}
-
 /// The pixels of the line from the screen point `a` to `b` (physical pixels, unrounded): from the pixel of `a` to
 /// the pixel of `b`, one square of `width` pixels per step along the major axis, the dash (`4s` steps on, as many
 /// off) or the dots (`s` on, `2s` off) counted from `a`, only the part within the pane walked and the result clipped to it.
@@ -932,7 +923,9 @@ fn line_px(
         let (x, y) = if n == 0 {
             (x0, y0)
         } else {
-            (x0 + div_round(dx * i, n), y0 + div_round(dy * i, n))
+            // |q| <= |numerator| for n >= 1, so the quotient is an i64 again.
+            let at = |d: i64| div_round_ties_away(i128::from(d * i), i128::from(n)) as i64;
+            (x0 + at(dx), y0 + at(dy))
         };
         push_run(&mut run, PxRect::new(x, y, x + width, y + width));
     }

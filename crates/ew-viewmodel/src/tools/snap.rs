@@ -12,8 +12,9 @@
 //! `offset + round(k × num × scale_ppb / (den × 10⁹))`, the point the grid overlay and the grid cursor use.
 
 use ew_api::output::{PageCp, PageGrid};
+use ew_units::arith::div_round_ties_away;
 
-use super::{clamp64, div_round_away};
+use super::clamp64;
 
 /// What a point snapped to.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -130,7 +131,7 @@ impl Snapper {
 
     /// The page coordinate of the sheet coordinate `s` on `axis` (0 x, 1 y).
     pub fn to_page(&self, s: i64, axis: usize) -> i64 {
-        clamp64(div_round_away(
+        clamp64(div_round_ties_away(
             (i128::from(s) - self.off(axis)) * 1_000_000_000,
             self.scale,
         ))
@@ -138,18 +139,19 @@ impl Snapper {
 
     /// The grid index of the page coordinate `p`.
     fn index(&self, p: i64) -> i64 {
-        clamp64(div_round_away(i128::from(p) * self.den, self.num))
+        clamp64(div_round_ties_away(i128::from(p) * self.den, self.num))
     }
 
     /// The page coordinate of grid index `k`: `round(k × num / den)`.
     pub fn page_of_index(&self, k: i64) -> i64 {
-        clamp64(div_round_away(i128::from(k) * self.num, self.den))
+        clamp64(div_round_ties_away(i128::from(k) * self.num, self.den))
     }
 
     /// The sheet coordinate of grid index `k` on `axis`.
     pub fn sheet_of_index(&self, k: i64, axis: usize) -> i64 {
         clamp64(
-            self.off(axis) + div_round_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000),
+            self.off(axis)
+                + div_round_ties_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000),
         )
     }
 
@@ -210,7 +212,7 @@ impl Snapper {
 
     /// The sheet coordinate of the page coordinate `p` on `axis`: `offset + round(p × scale_ppb / 10⁹)`.
     pub fn to_sheet(&self, p: i64, axis: usize) -> i64 {
-        clamp64(self.off(axis) + div_round_away(i128::from(p) * self.scale, 1_000_000_000))
+        clamp64(self.off(axis) + div_round_ties_away(i128::from(p) * self.scale, 1_000_000_000))
     }
 
     /// The sheet point of the page point `p`.
@@ -251,8 +253,8 @@ impl Snapper {
             }
         };
         let snap = |p: i64| {
-            clamp64(div_round_away(
-                div_round_away(i128::from(p) * den, num) * num,
+            clamp64(div_round_ties_away(
+                div_round_ties_away(i128::from(p) * den, num) * num,
                 den,
             ))
         };

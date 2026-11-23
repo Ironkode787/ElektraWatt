@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{Connection, Dir4, Endpoint, Function, Junction, LibCopy, Page, Representation, SymbolDef};
-use ew_units::{Grid, Nm, Pt2};
+use ew_units::{Grid, Nm, Pt2, arith};
 
 use crate::error::CmdError;
 use crate::text::{Text, TextArg, text};
@@ -1099,7 +1099,7 @@ pub fn route_defect(route: &[Pt2]) -> Option<RouteDefect> {
             let (ax, ay) = (i128::from(w[0].x.0), i128::from(w[0].y.0));
             let (bx, by) = (i128::from(w[1].x.0), i128::from(w[1].y.0));
             let (mut dx, mut dy) = (bx - ax, by - ay);
-            let g = gcd(dx.unsigned_abs(), dy.unsigned_abs()).max(1) as i128;
+            let g = arith::gcd(dx.unsigned_abs(), dy.unsigned_abs()).max(1) as i128;
             (dx, dy) = (dx / g, dy / g);
             if dx < 0 || (dx == 0 && dy < 0) {
                 (dx, dy) = (-dx, -dy);
@@ -1126,13 +1126,6 @@ pub fn route_defect(route: &[Pt2]) -> Option<RouteDefect> {
         }
     }
     None
-}
-
-fn gcd(mut a: u128, mut b: u128) -> u128 {
-    while b != 0 {
-        (a, b) = (b, a % b);
-    }
-    a
 }
 
 #[cfg(test)]

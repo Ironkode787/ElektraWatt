@@ -34,8 +34,8 @@ use ew_derive::{
     cp_point, render_item,
 };
 use ew_dl::{Destination, DisplayList, Item, ItemKind, Link, Transform};
+use ew_units::arith::div_round_ties_away;
 
-use super::panel::div_round;
 use super::view::{PageFrameOf, PageGridOf, PageTableOf, neutral, page_uuid};
 use super::{CpTargetsByPage, page_scene};
 use crate::Session;
@@ -120,13 +120,16 @@ impl Map {
     /// The page coordinate of the sheet coordinate `s` on axis `axis` (0 x, 1 y).
     fn to_page(self, s: i64, axis: usize) -> i64 {
         let off = if axis == 0 { self.offset.0 } else { self.offset.1 };
-        sat(div_round((i128::from(s) - off) * PPB_ONE, self.scale_ppb.max(1)))
+        sat(div_round_ties_away(
+            (i128::from(s) - off) * PPB_ONE,
+            self.scale_ppb.max(1),
+        ))
     }
 
     /// The sheet coordinate of the exact page coordinate `num / den` nm on `axis`, to the nearest nm.
     fn to_sheet(self, num: i128, den: i128, axis: usize) -> i64 {
         let off = if axis == 0 { self.offset.0 } else { self.offset.1 };
-        sat(off + div_round(num * self.scale_ppb, den * PPB_ONE))
+        sat(off + div_round_ties_away(num * self.scale_ppb, den * PPB_ONE))
     }
 }
 
@@ -271,7 +274,7 @@ impl PageCells {
     /// The column width and the row height on the sheet, rounded to nm.
     pub fn pitch_nm(&self) -> (i64, i64) {
         let len = |g: Grid| {
-            sat(div_round(
+            sat(div_round_ties_away(
                 i128::from(g.num()) * self.map.scale_ppb,
                 i128::from(g.den()) * PPB_ONE,
             ))
@@ -581,7 +584,7 @@ fn grid_index(p: i64, num: i128, den: i128) -> Option<i64> {
     if num <= 0 || den <= 0 {
         return None;
     }
-    let k = div_round(i128::from(p) * den, num);
+    let k = div_round_ties_away(i128::from(p) * den, num);
     ((k * num - i128::from(p) * den).abs() <= den).then(|| sat(k))
 }
 
@@ -1092,11 +1095,6 @@ mod tests {
 
     #[test]
     fn rounding_halves_away_from_zero() {
-        assert_eq!(div_round(5, 2), 3);
-        assert_eq!(div_round(-5, 2), -3);
-        assert_eq!(div_round(4, 3), 1);
-        assert_eq!(div_round(-4, 3), -1);
-        assert_eq!(div_round(0, 7), 0);
         let m = Map {
             scale_ppb: 986_282_578,
             offset: (9_790_000, 9_790_000),

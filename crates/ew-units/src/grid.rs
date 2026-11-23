@@ -107,20 +107,11 @@ impl TryFrom<GridRepr> for Grid {
             return Err(UnitsError::ZeroGrid);
         }
         let (num, den) = (num.unsigned_abs(), den.unsigned_abs());
-        if gcd(num, den) != 1 {
+        if arith::gcd(u128::from(num), u128::from(den)) != 1 {
             return Err(UnitsError::UnreducedGrid);
         }
         Grid::new(num, den)
     }
-}
-
-const fn gcd(mut a: u64, mut b: u64) -> u64 {
-    while b != 0 {
-        let t = a % b;
-        a = b;
-        b = t;
-    }
-    a
 }
 
 impl Grid {
@@ -148,7 +139,8 @@ impl Grid {
         if num == 0 || den == 0 {
             return Err(UnitsError::ZeroGrid);
         }
-        let g = gcd(num, den);
+        // The divisor of two u64 is a u64.
+        let g = arith::gcd(num as u128, den as u128) as u64;
         let (num, den) = (num / g, den / g);
         if num < den {
             return Err(UnitsError::GridTooFine);
@@ -188,7 +180,8 @@ impl Grid {
     /// Computed exactly in `i128`. Because the step is at least 1 nm, `|k| ≤ |x|`, so the result always
     /// fits.
     pub fn snap(self, x: Nm) -> i64 {
-        let k = arith::div_round(i128::from(x.0) * i128::from(self.den), i128::from(self.num));
+        let k =
+            arith::div_round_ties_toward_zero(i128::from(x.0) * i128::from(self.den), i128::from(self.num));
         // |k| <= |x| <= 2^63 (see above); i64::MIN maps to itself only for num == den == 1.
         i64::try_from(k).unwrap_or(if k < 0 { i64::MIN } else { i64::MAX })
     }
@@ -196,7 +189,7 @@ impl Grid {
     /// The coordinate of grid index `k`: `round(k × num / den)` nm, exact ties toward zero; `None` if it
     /// overflows `i64`. The error against the exact rational position is at most 0.5 nm.
     pub fn at(self, k: i64) -> Option<Nm> {
-        let v = arith::div_round(i128::from(k) * i128::from(self.num), i128::from(self.den));
+        let v = arith::div_round_ties_toward_zero(i128::from(k) * i128::from(self.num), i128::from(self.den));
         i64::try_from(v).ok().map(Nm)
     }
 
@@ -255,13 +248,19 @@ impl Grid {
     /// ```
     pub fn tick_of(self, x: Nm, per_step: u32) -> (i64, bool) {
         let (num, den, per) = (i128::from(self.num), i128::from(self.den), i128::from(per_step));
-        let half = arith::div_round(i128::from(x.0) * 2 * den, num);
-        let number = arith::div_round(half * num, 2 * den);
+        let half = arith::div_round_ties_toward_zero(i128::from(x.0) * 2 * den, num);
+        let number = arith::div_round_ties_toward_zero(half * num, 2 * den);
         let sat = |v: i128| i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX });
         if (number - i128::from(x.0)).abs() <= 1 && per % 2 == 0 {
             (sat(half * (per / 2)), true)
         } else {
-            (sat(arith::div_round(i128::from(x.0) * den * per, num)), false)
+            (
+                sat(arith::div_round_ties_toward_zero(
+                    i128::from(x.0) * den * per,
+                    num,
+                )),
+                false,
+            )
         }
     }
 
@@ -301,7 +300,7 @@ impl Grid {
         if per_step == 0 {
             return None;
         }
-        let v = arith::div_round(
+        let v = arith::div_round_ties_toward_zero(
             i128::from(t) * i128::from(self.num),
             i128::from(self.den) * i128::from(per_step),
         );
@@ -388,7 +387,7 @@ mod tests {
     fn constants_are_reduced_and_exact() {
         for g in [Grid::QET_10PX, Grid::QET_1PX, Grid::MM4] {
             assert_eq!(Grid::new(g.num(), g.den()), Ok(g));
-            assert_eq!(gcd(g.num(), g.den()), 1);
+            assert_eq!(arith::gcd(u128::from(g.num()), u128::from(g.den())), 1);
         }
         assert_eq!(Grid::QET_10PX.at(3), Some(Nm(7_937_500)));
         assert_eq!(Grid::QET_1PX.at(30), Some(Nm(7_937_500)));
@@ -532,7 +531,7 @@ mod tests {
             len in 0i64..64,
         ) {
             let (num, den) = (i128::from(g.num()), i128::from(g.den()));
-            let offset = |t: i64| Nm(arith::div_round(i128::from(t) * num, den * 16) as i64);
+            let offset = |t: i64| Nm(arith::div_round_ties_toward_zero(i128::from(t) * num, den * 16) as i64);
             let at = g.at(k).unwrap();
             let (a, b) = g.tick_span(at + offset(lo), at + offset(lo + len), 16);
             prop_assert_eq!((a - 16 * k, b - 16 * k), (lo, lo + len));

@@ -36,10 +36,11 @@ use std::sync::Arc;
 
 use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables, Uuid};
 use ew_dl::{Destination, DisplayList, EntityRef};
+use ew_units::arith::div_round_ties_away;
 use ew_units::{Nm, Rect};
 
 use crate::shell::natural_cmp;
-use crate::tools::{Snapper, clamp64, div_round_away};
+use crate::tools::{Snapper, clamp64};
 
 pub mod chip;
 
@@ -158,14 +159,14 @@ impl GridMap {
 
     /// The sheet coordinate of grid index `k` on `axis` (0 x, 1 y).
     pub fn point(&self, k: i64, axis: usize) -> i64 {
-        let v =
-            self.off(axis) + div_round_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000);
+        let v = self.off(axis)
+            + div_round_ties_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000);
         clamp64(v)
     }
 
     /// The grid index nearest to the sheet coordinate `s` on `axis`.
     pub fn index(&self, s: i64, axis: usize) -> i64 {
-        let v = div_round_away(
+        let v = div_round_ties_away(
             (i128::from(s) - self.off(axis)) * self.den * 1_000_000_000,
             self.num * self.scale,
         );

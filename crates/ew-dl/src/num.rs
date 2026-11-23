@@ -44,6 +44,7 @@
 
 use std::f64::consts::PI;
 
+use ew_units::arith::div_round_ties_even;
 use ew_units::{Angle2, Nm, Pt2};
 
 use crate::PathEl;
@@ -67,37 +68,6 @@ pub(crate) fn round_tz(v: f64) -> i64 {
     };
     // `as` saturates and maps NaN to 0.
     r as i64
-}
-
-/// `n / d` rounded to the nearest integer, exact ties toward zero. `d` must be non-zero.
-pub(crate) fn div_round_tz(n: i128, d: i128) -> i128 {
-    let q = n / d;
-    let r = n % d;
-    let (ar, ad) = (r.unsigned_abs(), d.unsigned_abs());
-    if ar > ad - ar {
-        if (n < 0) == (d < 0) { q + 1 } else { q - 1 }
-    } else {
-        q
-    }
-}
-
-/// `n / d` rounded to the nearest integer, exact ties to the even neighbour. `d` must be non-zero.
-fn div_round_even(n: i128, d: i128) -> i128 {
-    let q = n / d;
-    let r = n % d;
-    let (ar, ad) = (r.unsigned_abs(), d.unsigned_abs());
-    let away = if (n < 0) == (d < 0) { q + 1 } else { q - 1 };
-    match ar.cmp(&(ad - ar)) {
-        std::cmp::Ordering::Greater => away,
-        std::cmp::Ordering::Less => q,
-        std::cmp::Ordering::Equal => {
-            if q % 2 == 0 {
-                q
-            } else {
-                away
-            }
-        }
-    }
 }
 
 /// `(sin, cos)` of an angle given in 10⁻³ degree as f64. The quadrant is reduced first, so multiples of 90°
@@ -294,7 +264,7 @@ pub fn arc_to_cubics(center: Pt2, rx: Nm, ry: Nm, start: Angle2, sweep: Angle2) 
 /// ```
 pub fn nm_to_milli_pt(nm: Nm) -> i64 {
     // 72 / 25 400 = 9 / 3175.
-    div_round_even(i128::from(nm.0) * 9, 3175) as i64
+    div_round_ties_even(i128::from(nm.0) * 9, 3175) as i64
 }
 
 #[cfg(test)]
@@ -320,16 +290,6 @@ mod tests {
         assert_eq!(round_tz(-1.75), -2);
         assert_eq!(round_tz(f64::NAN), 0);
         assert_eq!(round_tz(1e300), i64::MAX);
-        assert_eq!(div_round_tz(5, 2), 2);
-        assert_eq!(div_round_tz(-5, 2), -2);
-        assert_eq!(div_round_tz(7, 4), 2);
-        assert_eq!(div_round_even(5, 2), 2);
-        assert_eq!(div_round_even(7, 2), 4);
-        assert_eq!(div_round_even(-5, 2), -2);
-        assert_eq!(div_round_even(-7, 2), -4);
-        assert_eq!(div_round_even(5, -2), -2);
-        assert_eq!(div_round_even(9, 4), 2);
-        assert_eq!(div_round_even(11, 4), 3);
     }
 
     #[test]
@@ -457,10 +417,10 @@ mod tests {
     /// odd. Half-to-even is still what doc 09 §4.3 rule 4 asks for, so the helper's ties are tested directly.
     #[test]
     fn milli_pt_tie_cases() {
-        assert_eq!(div_round_even(5, 2), 2);
-        assert_eq!(div_round_even(15, 2), 8);
-        assert_eq!(div_round_even(-15, 2), -8);
-        assert_eq!(div_round_even(-5, 2), -2);
+        assert_eq!(div_round_ties_even(5, 2), 2);
+        assert_eq!(div_round_ties_even(15, 2), 8);
+        assert_eq!(div_round_ties_even(-15, 2), -8);
+        assert_eq!(div_round_ties_even(-5, 2), -2);
         for nm in -20_000i64..20_000 {
             assert_ne!((i128::from(nm) * 18).rem_euclid(6350), 3175);
         }

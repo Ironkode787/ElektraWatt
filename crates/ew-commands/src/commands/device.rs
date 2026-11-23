@@ -15,7 +15,7 @@ use ew_schema::{
     Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType, Representation, SlotOverride,
     Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
-use ew_units::{Angle2, Dec3, Grid, Nm, Orient2, Pt2};
+use ew_units::{Angle2, Dec3, Grid, Nm, Orient2, Pt2, arith};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -699,9 +699,7 @@ pub struct HintCp {
 pub(crate) fn steps_nm(grid: Grid, k: i64) -> i64 {
     let num = i128::from(k) * i128::from(grid.num());
     let den = i128::from(grid.den());
-    let q = num / den;
-    let r = num % den;
-    let v = if 2 * r.abs() >= den { q + num.signum() } else { q };
+    let v = arith::div_round_ties_away(num, den);
     i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
 }
 

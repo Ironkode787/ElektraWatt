@@ -10,7 +10,7 @@
 //! `end1` sits at `(x1, y1)` and `end2` at `(x2, y2)`. For an end point `E` and the other end point `O`,
 //! let `d = E − O` (integer nm), `|d| = isqrt_round(dx² + dy²)` ([`crate::decimal::isqrt_round`]), `L` the
 //! marker length (`length1` / `length2` in px, default 1.5 px, converted), and define, all in `i128` with
-//! [`crate::decimal::div_round_half_even`]:
+//! [`ew_units::arith::div_round_ties_even`]:
 //!
 //! - `back(t) = E − round(d × t / |d|)` (the point `t` nm back along the line from `E`);
 //! - `side(p, t) = p + round(n × t / |d|)` with `n = (−dy, dx)` (the point `t` nm to one side of `p`).
@@ -34,11 +34,12 @@ use ew_schema::{
     ArcPrim, Bounds, CirclePrim, Colour, EllipsePrim, Extra, LinePrim, PolygonPrim, PolylinePrim, Primitive,
     RectPrim, Stroke,
 };
+use ew_units::arith::div_round_ties_even;
 use ew_units::{Nm, Pt2, Rect};
 use roxmltree::Node;
 
 use super::{ItemError, Parsed, PrimCtx};
-use crate::decimal::{Decimal, DecimalError, div_round_half_even, isqrt_round};
+use crate::decimal::{Decimal, DecimalError, isqrt_round};
 use crate::style::{StyleSpec, parse_style};
 use crate::{MAX_STYLE_PAIRS_PER_PRIMITIVE, MAX_UNSUPPORTED_STYLE_PAIRS_KEPT};
 
@@ -119,7 +120,7 @@ pub fn line(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Resu
 
 /// `E - round(d × t / |d|)` or `p + round(n × t / |d|)` helper: the component `v × t / len`, rounded.
 fn scaled(v: i128, t: i128, len: i128) -> i128 {
-    div_round_half_even(v * t, len)
+    div_round_ties_even(v * t, len)
 }
 
 /// An `i128` point back to a [`Pt2`].
@@ -618,11 +619,11 @@ mod tests {
         assert_eq!(len, 13_229_166);
         let l = i128::from(px("1.5").0);
         assert_eq!(l, 396_875);
-        let bx = dx - div_round_half_even(dx * l, len);
-        let by = dy - div_round_half_even(dy * l, len);
+        let bx = dx - div_round_ties_even(dx * l, len);
+        let by = dy - div_round_ties_even(dy * l, len);
         let h = l / 2;
-        let sx = |t: i128| bx + div_round_half_even(-dy * t, len);
-        let sy = |t: i128| by + div_round_half_even(dx * t, len);
+        let sx = |t: i128| bx + div_round_ties_even(-dy * t, len);
+        let sy = |t: i128| by + div_round_ties_even(dx * t, len);
         let Primitive::Polygon(m) = &out.graphics[1] else {
             panic!()
         };

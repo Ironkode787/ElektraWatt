@@ -8,7 +8,7 @@
 
 use std::fmt::Write as _;
 
-use ew_dl::ew_units::{Nm, Pt2};
+use ew_dl::ew_units::{Nm, Pt2, arith};
 use ew_dl::num::atan2_deg;
 use ew_dl::{Brush, ShapedRun, Transform};
 use skrifa::instance::{LocationRef, Size};
@@ -72,8 +72,7 @@ impl Placed {
 fn unscale(n: i64, scale_ppb: u32) -> i64 {
     let num = i128::from(n) * 1_000_000_000;
     let den = i128::from(scale_ppb.max(1));
-    let (q, r) = (num / den, num % den);
-    let q = if 2 * r.abs() > den { q + num.signum() } else { q };
+    let q = arith::div_round_ties_toward_zero(num, den);
     i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
 }
 

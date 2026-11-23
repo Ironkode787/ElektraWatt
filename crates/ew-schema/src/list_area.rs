@@ -18,7 +18,7 @@
 //! optional legend row and one row kept free (where the window marks a list that runs on). A page holds as many data
 //! rows as fit, at least one.
 
-use ew_units::Nm;
+use ew_units::{Nm, arith};
 
 use crate::library::{FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE};
 
@@ -91,7 +91,7 @@ impl FormDef {
             });
         // A page coordinate `num / den` nm on the sheet, along an axis with offset `off`.
         let printed = |num: i128, den: i128, off: i64| -> Nm {
-            let v = round(num * scale, den * 1_000_000_000);
+            let v = arith::div_round_ties_toward_zero(num * scale, den * 1_000_000_000);
             Nm(off.saturating_add(i64::try_from(v).unwrap_or(i64::MAX)))
         };
         let (left, right, top, bottom) = match &self.grid {
@@ -141,13 +141,6 @@ impl FormDef {
             rows: (fit - other).max(1),
         }
     }
-}
-
-/// `num / den` rounded to the nearest integer, exact ties toward zero (`den > 0`).
-fn round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() > den { q + num.signum() } else { q }
 }
 
 #[cfg(test)]

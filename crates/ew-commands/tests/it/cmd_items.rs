@@ -889,8 +889,7 @@ fn rep_move_moves_items_and_boxes() {
     let step = |k: i64| -> i64 {
         let num = i128::from(k) * i128::from(grid.num());
         let den = i128::from(grid.den());
-        let (q, r) = (num / den, num % den);
-        i64::try_from(if 2 * r.abs() >= den { q + num.signum() } else { q }).unwrap()
+        i64::try_from(ew_units::arith::div_round_ties_away(num, den)).unwrap()
     };
     e.execute(&MoveReps {
         routes: Vec::new(),

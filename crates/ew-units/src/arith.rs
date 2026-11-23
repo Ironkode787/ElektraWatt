@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Shared rounding helpers. Every rounding in this crate goes to the nearest integer with exact ties
-//! toward zero.
+//! Integer rounding with a named tie rule, and the greatest common divisor. Every rounding in this crate goes to
+//! the nearest integer with exact ties toward zero ([`div_round_ties_toward_zero`]); the other tie rules serve the
+//! crates whose output follows another convention.
 
 /// `n / d` rounded to the nearest integer, exact ties toward zero.
 ///
 /// `d` must be non-zero, and `(n, d)` must not be `(i128::MIN, -1)`; every caller keeps its operands far
 /// inside the `i128` range.
-pub(crate) fn div_round(n: i128, d: i128) -> i128 {
+pub fn div_round_ties_toward_zero(n: i128, d: i128) -> i128 {
     debug_assert!(d != 0, "division by zero");
     let q = n / d;
     let r = n % d;
@@ -20,6 +21,54 @@ pub(crate) fn div_round(n: i128, d: i128) -> i128 {
     } else {
         q
     }
+}
+
+/// `n / d` rounded to the nearest integer, exact ties away from zero (C's `round`, Qt's `qRound`).
+///
+/// `d` must be non-zero, and `(n, d)` must not be `(i128::MIN, -1)`.
+pub fn div_round_ties_away(n: i128, d: i128) -> i128 {
+    debug_assert!(d != 0, "division by zero");
+    let q = n / d;
+    let r = n % d;
+    let (ar, ad) = (r.unsigned_abs(), d.unsigned_abs());
+    // |r| >= |d| / 2 with r != 0, written without overflow.
+    if ar != 0 && ar >= ad - ar {
+        if (n < 0) == (d < 0) { q + 1 } else { q - 1 }
+    } else {
+        q
+    }
+}
+
+/// `n / d` rounded to the nearest integer, exact ties to the even neighbour.
+///
+/// `d` must be non-zero, and `(n, d)` must not be `(i128::MIN, -1)`.
+pub fn div_round_ties_even(n: i128, d: i128) -> i128 {
+    debug_assert!(d != 0, "division by zero");
+    let q = n / d;
+    let r = n % d;
+    let (ar, ad) = (r.unsigned_abs(), d.unsigned_abs());
+    let away = if (n < 0) == (d < 0) { q + 1 } else { q - 1 };
+    match ar.cmp(&(ad - ar)) {
+        std::cmp::Ordering::Greater => away,
+        std::cmp::Ordering::Less => q,
+        std::cmp::Ordering::Equal => {
+            if q % 2 == 0 {
+                q
+            } else {
+                away
+            }
+        }
+    }
+}
+
+/// The greatest common divisor of `a` and `b` (Euclid); `gcd(0, 0)` is 0.
+pub const fn gcd(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        let t = a % b;
+        a = b;
+        b = t;
+    }
+    a
 }
 
 /// `v` rounded to the nearest integer, exact ties toward zero. NaN and infinities pass through. Test helper.
@@ -74,8 +123,60 @@ mod tests {
             (-2, 3, -1),
             (0, 7, 0),
         ] {
-            assert_eq!(div_round(n, d), want, "{n} / {d}");
+            assert_eq!(div_round_ties_toward_zero(n, d), want, "{n} / {d}");
         }
+    }
+
+    #[test]
+    fn div_round_to_nearest_ties_away() {
+        for (n, d, want) in [
+            (5, 2, 3),
+            (-5, 2, -3),
+            (5, -2, -3),
+            (-5, -2, 3),
+            (4, 3, 1),
+            (-4, 3, -1),
+            (0, 7, 0),
+            (6, 4, 2), // 1.5 tie
+            (7, 4, 2),
+            (5, 4, 1),
+            (-7, 4, -2),
+        ] {
+            assert_eq!(div_round_ties_away(n, d), want, "{n} / {d}");
+        }
+    }
+
+    #[test]
+    fn div_round_to_nearest_ties_even() {
+        for (n, d, want) in [
+            (5, 2, 2),
+            (7, 2, 4),
+            (15, 2, 8),
+            (-5, 2, -2),
+            (-7, 2, -4),
+            (-15, 2, -8),
+            (5, -2, -2),
+            (-7, 3, -2),
+            (9, 4, 2),
+            (11, 4, 3),
+            (3, 2, 2),
+            (-3, 2, -2),
+            (1, 3, 0),
+            (2, 3, 1),
+            (0, 7, 0),
+        ] {
+            assert_eq!(div_round_ties_even(n, d), want, "{n} / {d}");
+        }
+    }
+
+    #[test]
+    fn gcd_by_euclid() {
+        assert_eq!(gcd(12, 18), 6);
+        assert_eq!(gcd(18, 12), 6);
+        assert_eq!(gcd(7, 3), 1);
+        assert_eq!(gcd(5, 0), 5);
+        assert_eq!(gcd(0, 5), 5);
+        assert_eq!(gcd(0, 0), 0);
     }
 
     #[test]
@@ -105,17 +206,22 @@ mod tests {
     }
 
     proptest! {
-        /// `div_round` agrees with an exact reference on the doubled numerator.
+        /// Each tie rule agrees with an exact reference on the doubled numerator.
         #[test]
         fn div_round_matches_reference(n in -1_000_000_000_000i128..1_000_000_000_000, d in 1i128..1_000_000) {
             for d in [d, -d] {
-                let q = div_round(n, d);
-                // |n/d - q| <= 1/2, i.e. |n - q·d| · 2 <= |d|, and a tie implies |q| <= |n/d|.
-                let err = (n - q * d).abs() * 2;
-                prop_assert!(err <= d.abs());
-                if err == d.abs() {
-                    prop_assert!(q.abs() * d.abs() <= n.abs());
-                }
+                // |n/d - q| <= 1/2, i.e. |n - q·d| · 2 <= |d|; a tie goes toward zero, away, or to even.
+                let tie = |q: i128| {
+                    let err = (n - q * d).abs() * 2;
+                    assert!(err <= d.abs(), "{n} / {d} -> {q}");
+                    err == d.abs()
+                };
+                let q = div_round_ties_toward_zero(n, d);
+                prop_assert!(!tie(q) || q.abs() * d.abs() <= n.abs());
+                let q = div_round_ties_away(n, d);
+                prop_assert!(!tie(q) || q.abs() * d.abs() >= n.abs());
+                let q = div_round_ties_even(n, d);
+                prop_assert!(!tie(q) || q % 2 == 0);
             }
         }
     }

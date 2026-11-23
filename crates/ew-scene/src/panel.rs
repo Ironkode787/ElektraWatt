@@ -78,7 +78,7 @@ use ew_dl::{DashPattern, Destination, EntityRef, Item, Link, Path, Pen, Stroke};
 use ew_ids::Id;
 use ew_schema::{Align, Carrier, Enclosure, MountingSurface, PageItem, Placement, Scale};
 use ew_text::{Shaped, TextStyle};
-use ew_units::{Angle2, Nm, Pt2, Rect};
+use ew_units::{Angle2, Nm, Pt2, Rect, arith};
 
 use crate::page::{Builder, PageView, TextSpec};
 
@@ -100,21 +100,6 @@ pub struct Projection {
     pub num: i128,
     /// The denominator of the scale (positive).
     pub den: i128,
-}
-
-/// `a / b` rounded to the nearest integer, halves away from zero (`b > 0`).
-fn div_round(a: i128, b: i128) -> i128 {
-    let q = a / b;
-    let r = a % b;
-    if 2 * r.abs() >= b { q + a.signum() } else { q }
-}
-
-/// The greatest common divisor of two positive numbers.
-fn gcd(mut a: i128, mut b: i128) -> i128 {
-    while b != 0 {
-        (a, b) = (b, a % b);
-    }
-    a.max(1)
 }
 
 impl Projection {
@@ -143,7 +128,8 @@ impl Projection {
             }
             _ => (1, 1),
         };
-        let g = gcd(num, den);
+        // Both terms are positive, so the divisor is at least 1 and fits them.
+        let g = arith::gcd(num.unsigned_abs(), den.unsigned_abs()).max(1) as i128;
         Projection {
             datum,
             num: num / g,
@@ -153,7 +139,7 @@ impl Projection {
 
     /// A length of the surface on the page, rounded once.
     pub fn length(&self, l: i128) -> i128 {
-        div_round(l * self.num, self.den.max(1))
+        arith::div_round_ties_away(l * self.num, self.den.max(1))
     }
 
     /// The page point of the surface point `(u, v)`; `None` outside the `Nm` range.

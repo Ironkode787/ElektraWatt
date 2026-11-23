@@ -19,6 +19,7 @@ use ew_schema::{
     Connection, ConnectionKind, Dir4, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec,
     WireOverrides,
 };
+use ew_units::arith::div_round_ties_away;
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
 
@@ -465,17 +466,11 @@ struct Coord {
     cpx: i64,
 }
 
-/// `n / d` rounded half away from zero (C's `std::round` and Qt 6's `qRound`), `d > 0`.
-fn div_round(n: i64, d: i64) -> i64 {
-    let (q, r) = (n / d, n % d);
-    if 2 * r.abs() >= d { q + n.signum() } else { q }
-}
-
 impl Coord {
     /// A page coordinate: exact in nm, in hundredths of a px rounded.
     fn of(v: Nm) -> Coord {
         let n = i128::from(v.0) * 300;
-        let q = (n + n.signum() * 793_750 / 2) / 793_750;
+        let q = div_round_ties_away(n, 793_750);
         Coord {
             nm: v,
             // |q| ≤ |v|: always fits.
@@ -493,17 +488,18 @@ impl Coord {
 
     /// `std::round((self ± 10 px) / 10) × 10`: QET's `Conductor::extendTerminal`.
     fn extended(self, by: i64) -> Option<Coord> {
-        Coord::grid(div_round(self.cpx.checked_add(by * 100)?, 1000))
+        Coord::grid(div_round_ties_away(i128::from(self.cpx.checked_add(by * 100)?), 1000) as i64)
     }
 
     /// QET's whole px of this coordinate (`qRound`).
     fn px(self) -> i64 {
-        div_round(self.cpx, 100)
+        div_round_ties_away(i128::from(self.cpx), 100) as i64
     }
 
     /// The bridge line between `self` and `other`: `qRound(self + other) / 2`, then down to a multiple of 10 px.
     fn bridge(self, other: Coord) -> Option<Coord> {
-        let mid = div_round(self.cpx.checked_add(other.cpx)?, 100) / 2;
+        // The quotient of an i64 by 100 is an i64 again.
+        let mid = div_round_ties_away(i128::from(self.cpx.checked_add(other.cpx)?), 100) as i64 / 2;
         Coord::grid(mid.div_euclid(10))
     }
 }

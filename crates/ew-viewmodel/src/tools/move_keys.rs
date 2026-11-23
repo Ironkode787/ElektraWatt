@@ -20,9 +20,10 @@ use ew_api::AnyCommand;
 use ew_api::output::{PageTables, TableEnd};
 use ew_dl::EntityRef;
 use ew_units::Rect;
+use ew_units::arith::div_round_ties_toward_zero;
 use serde_json::json;
 
-use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx, clamp64, div_round_toward_zero};
+use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx, clamp64};
 use crate::canvas::mm3;
 use crate::key;
 use crate::strings;
@@ -162,8 +163,8 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
 /// computes it (ties toward zero), so a dog-leg drawn here lands where the command puts it.
 pub fn grid_point_of(grid: (i64, i64), v: i64) -> i64 {
     let (num, den) = (i128::from(grid.0.max(1)), i128::from(grid.1.max(1)));
-    let k = div_round_toward_zero(i128::from(v) * den, num);
-    let p = div_round_toward_zero(k * num, den);
+    let k = div_round_ties_toward_zero(i128::from(v) * den, num);
+    let p = div_round_ties_toward_zero(k * num, den);
     clamp64(p)
 }
 

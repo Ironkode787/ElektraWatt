@@ -186,7 +186,7 @@ impl Dec3 {
     /// assert_eq!(Dec3(750).checked_mul(Dec3(1_500)), Some(Dec3(1_125)));
     /// ```
     pub fn checked_mul(self, rhs: Dec3) -> Option<Dec3> {
-        let v = arith::div_round(i128::from(self.0) * i128::from(rhs.0), 1_000);
+        let v = arith::div_round_ties_toward_zero(i128::from(self.0) * i128::from(rhs.0), 1_000);
         i64::try_from(v).ok().map(Dec3)
     }
 
@@ -204,7 +204,7 @@ impl Dec3 {
         if rhs.0 == 0 {
             return None;
         }
-        let v = arith::div_round(i128::from(self.0) * 1_000, i128::from(rhs.0));
+        let v = arith::div_round_ties_toward_zero(i128::from(self.0) * 1_000, i128::from(rhs.0));
         i64::try_from(v).ok().map(Dec3)
     }
 }
@@ -456,7 +456,7 @@ mod tests {
             let sign = if v < 0 { "-" } else { "" };
             let s = format!("{sign}{}.{:03}{:04}", a / 1000, a % 1000, extra);
             let exact = (i128::from(a) * 10_000 + i128::from(extra)) * if v < 0 { -1 } else { 1 };
-            let expected = arith::div_round(exact, 10_000);
+            let expected = arith::div_round_ties_toward_zero(exact, 10_000);
             prop_assert_eq!(Dec3::parse_lenient(&s), Ok(Dec3(expected as i64)));
         }
 

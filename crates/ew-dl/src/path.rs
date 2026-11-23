@@ -3,10 +3,11 @@
 
 //! `Path`: integer Bézier paths, a builder and the shape helpers.
 
+use ew_units::arith::div_round_ties_toward_zero;
 use ew_units::{Angle2, Nm, Pt2, Rect};
 
 use crate::Transform;
-use crate::num::{self, div_round_tz};
+use crate::num;
 
 /// One element of a [`Path`], in nm on the sheet (or in a symbol's own frame).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -74,7 +75,7 @@ pub const KAPPA_DEN: i64 = 10_000_000_000;
 /// assert_eq!(kappa_handle(Nm(-1_000_000)), Nm(-552_285));
 /// ```
 pub fn kappa_handle(r: Nm) -> Nm {
-    Nm(div_round_tz(i128::from(r.0) * i128::from(KAPPA_NUM), i128::from(KAPPA_DEN)) as i64)
+    Nm(div_round_ties_toward_zero(i128::from(r.0) * i128::from(KAPPA_NUM), i128::from(KAPPA_DEN)) as i64)
 }
 
 /// `r` as a `kurbo::Rect` in f64 nm, for renderers (as [`Path::to_kurbo`] for paths).

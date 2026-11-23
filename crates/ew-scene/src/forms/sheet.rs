@@ -11,7 +11,7 @@ use ew_dl::{
     Transform,
 };
 use ew_schema::FormDef;
-use ew_units::{Nm, Pt2, Rect};
+use ew_units::{Nm, Pt2, Rect, arith};
 
 /// Parts per 10⁹ of scale 1.
 pub const PPB_ONE: u32 = 1_000_000_000;
@@ -64,9 +64,7 @@ impl SheetMap {
     pub fn scale_len(self, n: Nm) -> Nm {
         let num = i128::from(n.0) * i128::from(self.scale_ppb);
         let den = i128::from(PPB_ONE);
-        let q = num / den;
-        let r = num % den;
-        let q = if 2 * r.abs() > den { q + num.signum() } else { q };
+        let q = arith::div_round_ties_toward_zero(num, den);
         Nm(i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX }))
     }
 
@@ -75,9 +73,7 @@ impl SheetMap {
     pub fn unscale_len(self, n: Nm) -> Nm {
         let num = i128::from(n.0) * i128::from(PPB_ONE);
         let den = i128::from(self.scale_ppb.max(1));
-        let q = num / den;
-        let r = num % den;
-        let q = if 2 * r.abs() > den { q + num.signum() } else { q };
+        let q = arith::div_round_ties_toward_zero(num, den);
         Nm(i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX }))
     }
 

@@ -11,7 +11,7 @@
 //! smallest `t` with the segment that gives it. The arithmetic is exact in `i128`; a segment whose orientation or `t`
 //! leaves it does not count, two keys that cannot be compared order by the tables' connection order, and a crossing
 //! point that leaves it is the segment's start point. The crossing point rounds halves away from zero
-//! (`div_round_away`). The crossings are sorted by `t`, ties by the tables' connection order.
+//! (`div_round_ties_away`). The crossings are sorted by `t`, ties by the tables' connection order.
 //!
 //! **The states.** All points are page nm, exact: the crossing ends are the exact page points of the pointer or of
 //! the grid cursor, never snapped; upon release the marker point is the crossing line's midpoint, fine-snapped with
@@ -41,11 +41,12 @@ use crate::key;
 use ew_api::AnyCommand;
 use ew_api::output::PageTables;
 use ew_dl::EntityRef;
+use ew_units::arith::div_round_ties_away;
 use serde_json::{Map, Value, json};
 
 use super::{
     Anchor, Button, CanvasEvent, FineKind, Ghost, MarkerKind, Overlay, OverlayItem, Style, Token, Tool,
-    ToolCx, ToolKey, ToolOutput, clamp64, div_round_away,
+    ToolCx, ToolKey, ToolOutput, clamp64,
 };
 
 /// `a × b` in the plane, in `i128`; `None` when a product or the difference overflows.
@@ -136,8 +137,8 @@ fn crossings(tables: &PageTables, from: (i64, i64), to: (i64, i64)) -> Vec<Cross
             // The crossing point `A + t·d`; a coordinate that leaves `i128` uses the segment's start point.
             let at = match (num.checked_mul(d.0), num.checked_mul(d.1)) {
                 (Some(nx), Some(ny)) => match (
-                    a.0.checked_add(div_round_away(nx, den)),
-                    a.1.checked_add(div_round_away(ny, den)),
+                    a.0.checked_add(div_round_ties_away(nx, den)),
+                    a.1.checked_add(div_round_ties_away(ny, den)),
                 ) {
                     (Some(x), Some(y)) => (clamp64(x), clamp64(y)),
                     _ => start,

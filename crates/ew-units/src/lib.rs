@@ -64,7 +64,7 @@
 #![deny(missing_docs)]
 
 mod angle;
-mod arith;
+pub mod arith;
 mod dec3;
 mod error;
 mod grid;

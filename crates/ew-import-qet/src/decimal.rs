@@ -23,6 +23,7 @@
 
 use std::fmt;
 
+use ew_units::arith::div_round_ties_even;
 use ew_units::{Angle2, MAX_SAFE_INTEGER, Nm};
 
 /// Nanometres per QET pixel, numerator: 25.4 mm / 96 = 793 750 / 3 nm.
@@ -292,7 +293,7 @@ impl Decimal {
         if self.exp >= 0 {
             let p = 10i128.checked_pow(u32::try_from(self.exp).ok()?)?;
             let n = self.mantissa.checked_mul(num)?.checked_mul(p)?;
-            Some(div_round_half_even(n, den))
+            Some(div_round_ties_even(n, den))
         } else {
             let k = self.exp.unsigned_abs();
             let n = self.mantissa.checked_mul(num)?;
@@ -301,7 +302,7 @@ impl Decimal {
                 return Some(0);
             }
             let d = den.checked_mul(10i128.pow(k))?;
-            Some(div_round_half_even(n, d))
+            Some(div_round_ties_even(n, d))
         }
     }
 
@@ -419,26 +420,6 @@ impl Digits {
     }
 }
 
-/// `n / d` rounded to the nearest integer, exact ties to the even neighbour; `d` must be positive.
-///
-/// ```
-/// # use ew_import_qet::decimal::div_round_half_even;
-/// assert_eq!(div_round_half_even(5, 2), 2);
-/// assert_eq!(div_round_half_even(7, 2), 4);
-/// assert_eq!(div_round_half_even(-5, 2), -2);
-/// assert_eq!(div_round_half_even(-7, 3), -2);
-/// ```
-pub fn div_round_half_even(n: i128, d: i128) -> i128 {
-    debug_assert!(d > 0);
-    let q = n.div_euclid(d);
-    let r = n.rem_euclid(d);
-    match (2 * r).cmp(&d) {
-        std::cmp::Ordering::Greater => q + 1,
-        std::cmp::Ordering::Equal if q % 2 != 0 => q + 1,
-        _ => q,
-    }
-}
-
 /// The integer nearest to `√n` (never a tie, as `√n` is never `k + ½` for an integer `n`).
 ///
 /// ```
@@ -552,10 +533,6 @@ mod tests {
 
     #[test]
     fn helpers() {
-        assert_eq!(div_round_half_even(3, 2), 2);
-        assert_eq!(div_round_half_even(-3, 2), -2);
-        assert_eq!(div_round_half_even(1, 3), 0);
-        assert_eq!(div_round_half_even(2, 3), 1);
         for n in 0u128..2_000 {
             let r = isqrt_round(n);
             // r is the integer nearest to √n: (r − ½)² ≤ n < (r + ½)², i.e. 4r² − 4r + 1 ≤ 4n < 4r² + 4r + 1.

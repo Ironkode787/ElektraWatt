@@ -13,6 +13,7 @@ use common::{
 };
 use ew_api::output::TableItem;
 use ew_dl::EntityRef;
+use ew_units::arith::div_round_ties_away;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::graphic::round_distance;
 use serde_json::{Value, json};
@@ -51,18 +52,11 @@ fn assert_graphic_commit(s: &ShellModel, page: &str, shape: Value, before: &[Str
     assert_eq!(fresh[0].kind, "graphic");
 }
 
-/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
-fn div_round(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() >= den { q + num.signum() } else { q }
-}
-
 /// The fine grid's point nearest to `p` on a QET page: `793_750/3` nm per axis, halves away from zero.
 fn fine_snap(p: (i64, i64)) -> (i64, i64) {
     let coord = |v: i64| {
-        let k = div_round(i128::from(v) * 3, 793_750);
-        i64::try_from(div_round(k * 793_750, 3)).expect("the page coordinate is in range")
+        let k = div_round_ties_away(i128::from(v) * 3, 793_750);
+        i64::try_from(div_round_ties_away(k * 793_750, 3)).expect("the page coordinate is in range")
     };
     (coord(p.0), coord(p.1))
 }

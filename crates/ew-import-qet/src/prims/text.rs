@@ -73,6 +73,7 @@
 use ew_interop_api::{Code, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{Align, Extra, Primitive, SlotKind, TextPrim, TextSlot, TextStyleSpec, TextWeight};
+use ew_units::arith::div_round_ties_even;
 use ew_units::{Angle2, Grid, Nm, Pt2};
 use roxmltree::Node;
 
@@ -301,21 +302,21 @@ const QT_UNITS_PER_EM: i128 = 2048;
 /// The whole pixels of `units` of the face at an em of `em` ([`em_of`]): Qt rounds a line's ascent and descent up
 /// to a whole pixel at 96 dpi.
 fn qt_metric_px(em: Nm, units: i128) -> i128 {
-    let ppem = crate::decimal::div_round_half_even(i128::from(em.0) * 3, 793_750);
+    let ppem = div_round_ties_even(i128::from(em.0) * 3, 793_750);
     (ppem * units + QT_UNITS_PER_EM - 1).div_euclid(QT_UNITS_PER_EM)
 }
 
 /// From the top of a QET text line to its baseline, nm: Qt's ascent of the face, rounded up to a whole pixel
 /// (8 px for 6 pt, 11 px for 9 pt).
 pub fn qt_ascent(em: Nm) -> i128 {
-    crate::decimal::div_round_half_even(qt_metric_px(em, QT_ASCENT_UNITS) * 793_750, 3)
+    div_round_ties_even(qt_metric_px(em, QT_ASCENT_UNITS) * 793_750, 3)
 }
 
 /// From one baseline of a QET text to the next, nm: Qt's ascent and descent of the face, each rounded up to a whole
 /// pixel (10 px for 6 pt, 14 px for 9 pt), as QET's rich and plain texts space their lines.
 pub fn qt_line(em: Nm) -> i128 {
     let px = qt_metric_px(em, QT_ASCENT_UNITS) + qt_metric_px(em, QT_DESCENT_UNITS);
-    crate::decimal::div_round_half_even(px * 793_750, 3)
+    div_round_ties_even(px * 793_750, 3)
 }
 
 /// The project text style an import style key stands for (doc 14 §4.10): the inverse of [`style_key`],
@@ -409,9 +410,7 @@ pub fn static_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) 
     // QET writes the baseline of the first line; each further line stands one line spacing lower in the text's
     // own frame. One text per line keeps that spacing, as a page's free texts do; each stands on its baseline.
     let spacing = qt_line(node_em(node));
-    let quarters =
-        u8::try_from(crate::decimal::div_round_half_even(-i128::from(angle.0), 90_000).rem_euclid(4))
-            .unwrap_or(0);
+    let quarters = u8::try_from(div_round_ties_even(-i128::from(angle.0), 90_000).rem_euclid(4)).unwrap_or(0);
     let turn = crate::project::elements::orientation(quarters);
     for (i, line) in node.attribute("text").unwrap_or("").split('\n').enumerate() {
         let down = i64::try_from(spacing * i128::try_from(i).unwrap_or(i128::MAX))
@@ -689,7 +688,7 @@ mod tests {
         // Its ascent and descent each rounded up to a whole px (Liberation Sans: 0.905 and 0.212 em), as the lines of
         // QET's texts stand in its print: 8 + 2 px at 8 px, 11 + 3 px at 12 px.
         let em = |px: i64| Grid::QET_1PX.at(px).unwrap();
-        let nm = |px: i128| crate::decimal::div_round_half_even(px * 793_750, 3);
+        let nm = |px: i128| div_round_ties_even(px * 793_750, 3);
         for (px, ascent, line) in [(7, 7, 9), (8, 8, 10), (9, 9, 11), (12, 11, 14), (16, 15, 19)] {
             assert_eq!(qt_ascent(em(px)), nm(ascent), "{px} px");
             assert_eq!(qt_line(em(px)), nm(line), "{px} px");

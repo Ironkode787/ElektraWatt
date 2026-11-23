@@ -7,7 +7,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use ew_dl::{Brush, FontKey, Glyph, ShapedRun, Transform};
-use ew_units::{Nm, Pt2, Rect};
+use ew_units::{Nm, Pt2, Rect, arith};
 use parley::{
     Alignment, AlignmentOptions, FontFamily, FontStyle, FontWeight, Layout, LineHeight, PositionedLayoutItem,
     StyleProperty,
@@ -370,7 +370,7 @@ pub fn units_to_nm(v: f32, size_nm: i64, upem: u16) -> i64 {
         }
         den <<= s;
     }
-    let q = div_round_toward_zero(num, den);
+    let q = arith::div_round_ties_toward_zero(num, den);
     let q = if negative { -q } else { q };
     i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
 }
@@ -383,13 +383,6 @@ fn nm_to_units_floor(w: Nm, size_nm: i64, upem: u16) -> f32 {
     }
     let u = (i128::from(w.0.max(0)) * i128::from(upem)).div_euclid(i128::from(size_nm));
     u.min(1 << 24) as f32
-}
-
-/// `n / d` (d > 0) rounded to the nearest integer, exact ties toward zero.
-pub(crate) fn div_round_toward_zero(n: i128, d: i128) -> i128 {
-    let q = n / d;
-    let r = n % d;
-    if 2 * r.abs() > d { q + n.signum() } else { q }
 }
 
 #[cfg(test)]

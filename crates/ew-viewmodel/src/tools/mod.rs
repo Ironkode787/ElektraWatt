@@ -883,20 +883,6 @@ pub fn tool_named(name: &str) -> Option<Box<dyn Tool>> {
     }
 }
 
-/// `num / den` rounded to the nearest integer, exact ties toward zero (`den > 0`): `ew_units::Grid`'s rule.
-pub(crate) fn div_round_toward_zero(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() > den { q + num.signum() } else { q }
-}
-
-/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
-pub(crate) fn div_round_away(num: i128, den: i128) -> i128 {
-    let q = num / den;
-    let r = num % den;
-    if 2 * r.abs() >= den { q + num.signum() } else { q }
-}
-
 /// An `i128` as an `i64`, saturating.
 pub(crate) fn clamp64(v: i128) -> i64 {
     i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
