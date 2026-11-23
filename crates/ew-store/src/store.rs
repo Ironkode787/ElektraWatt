@@ -1948,6 +1948,97 @@ impl Store {
         drop: &BTreeSet<FilePath>,
         discard: bool,
     ) -> Result<SaveReport, SaveError> {
+        let on_disk = self.pre_check()?;
+
+        // Step 3: serialise the dirty files.
+        let mut plan = self.plan(model, changes, discard)?;
+        let drop: BTreeSet<FilePath> = drop
+            .iter()
+            .filter(|p| self.opaque.contains_key(*p) && !plan.writes.contains_key(*p))
+            .cloned()
+            .collect();
+        plan.removes.extend(drop.iter().cloned());
+        // The rest of step 2: every file this save replaces or removes still holds the bytes we loaded or
+        // wrote, else it changed outside the session and nothing is written. Before any temp and any move-aside.
+        let changed = self.changed_targets(&plan)?;
+        if !changed.is_empty() {
+            return Err(SaveError::ExternalChange { files: changed });
+        }
+        let g = self.generation;
+        let g1 = g.saturating_add(1);
+        let (manifest, manifest_same) = self.next_manifest(model, &plan, &drop, g1, on_disk.as_ref());
+        if plan.writes.is_empty() && plan.removes.is_empty() && manifest_same {
+            self.adopt(model, plan.contents, plan.disk, discard);
+            return Ok(SaveReport {
+                generation: g,
+                findings: std::mem::take(&mut self.notes),
+                ..SaveReport::default()
+            });
+        }
+        // The manifest's ceiling: a generation above it is one the next open refuses, so a save that would
+        // write one is refused here, beside D5's pre-check and before any temp or move-aside. A save with nothing to
+        // write (above) stays allowed.
+        if g1 > ew_format::MAX_GENERATION {
+            return Err(SaveError::GenerationLimit);
+        }
+        let manifest_text = manifest.to_text();
+        let vfs = Arc::clone(&self.opts.vfs);
+
+        let dirs = self.write_temps(&plan, g1, &manifest_text)?;
+        let mut report = SaveReport {
+            generation: g1,
+            written: plan.writes.keys().cloned().collect(),
+            removed: Vec::new(),
+            manifest_written: true,
+            leftovers: Vec::new(),
+            journal_error: None,
+            findings: Vec::new(),
+            unstable: manifest.unstable,
+        };
+        let removes: Vec<FilePath> = plan.removes.iter().cloned().collect();
+        if let Some(j) = &mut self.journal {
+            if let Err(e) = j.save_begin(g1, plan.writes.len(), &removes) {
+                report.journal_error = Some(e.to_string());
+            }
+        }
+        // Commit point: generation g1 is decided.
+        let manifest_hash = sha256(manifest_text.as_bytes());
+        self.opaque.retain(|p, _| !drop.contains(p));
+        self.opaque.extend(plan.assets);
+        self.adopt(model, plan.contents, plan.disk, discard);
+        self.manifest = Some(manifest);
+        self.manifest_hash = Some(manifest_hash);
+        self.manifest_bytes = Some(manifest_text.into_bytes());
+        self.migrated = None;
+        self.generation = g1;
+        self.pending = Some(g1);
+        self.pending_removes.clone_from(&removes);
+
+        self.rename_into_place(&plan.writes, &dirs, g1)?;
+        self.pending = None;
+        self.pending_removes.clear();
+        // Step 8: removals.
+        for path in removes {
+            match vfs.remove_file(&join(&self.root, path.as_str())) {
+                Ok(()) => report.removed.push(path),
+                Err(e) if e.kind() == io::ErrorKind::NotFound => report.removed.push(path),
+                Err(_) => report.leftovers.push(path),
+            }
+        }
+        // Step 9: bookkeeping.
+        if let Some(j) = &mut self.journal {
+            if let Err(e) = j.save_done(g1, &manifest_hash) {
+                report.journal_error = Some(e.to_string());
+            }
+        }
+        report.findings = std::mem::take(&mut self.notes);
+        Ok(report)
+    }
+
+    /// What a save checks before it writes anything (doc 05 §5.2 step 2): the session may write and has no save
+    /// still pending, the lock holds our session, and the manifest is what we last loaded or wrote. Gives the SHA-256
+    /// of the manifest on disk (`None`: absent).
+    fn pre_check(&mut self) -> Result<Option<[u8; 32]>, SaveError> {
         if let Access::ReadOnly(reason) = &self.access {
             return Err(SaveError::ReadOnly(reason.clone()));
         }
@@ -2000,23 +2091,20 @@ impl Store {
                 files: FilePath::new(MANIFEST).into_iter().collect(),
             });
         }
+        Ok(on_disk)
+    }
 
-        // Step 3: serialise the dirty files.
-        let mut plan = self.plan(model, changes, discard)?;
-        let drop: BTreeSet<FilePath> = drop
-            .iter()
-            .filter(|p| self.opaque.contains_key(*p) && !plan.writes.contains_key(*p))
-            .cloned()
-            .collect();
-        plan.removes.extend(drop.iter().cloned());
-        // The rest of step 2: every file this save replaces or removes still holds the bytes we loaded or
-        // wrote, else it changed outside the session and nothing is written. Before any temp and any move-aside.
-        let changed = self.changed_targets(&plan)?;
-        if !changed.is_empty() {
-            return Err(SaveError::ExternalChange { files: changed });
-        }
-        let g = self.generation;
-        let g1 = g.saturating_add(1);
+    /// The manifest of generation `g1` for the files of `plan` (doc 05 §4): the stamps (a newer minor keeps its own),
+    /// the members a migration or the previous manifest carries, every file without `drop`, and the base the save
+    /// replaces. Also whether it equals the manifest on disk but for the generation, the generator and the base.
+    fn next_manifest(
+        &self,
+        model: &Model,
+        plan: &SavePlan,
+        drop: &BTreeSet<FilePath>,
+        g1: u64,
+        on_disk: Option<&[u8; 32]>,
+    ) -> (Manifest, bool) {
         let mut manifest = Manifest::new(
             FORMAT,
             &self.opts.identity.app_version,
@@ -2065,28 +2153,24 @@ impl Store {
         });
         // The raw bytes this save is based on, for the base check of a roll-forward:
         // absent when there is no manifest.
-        if let Some(h) = &on_disk {
+        if let Some(h) = on_disk {
             manifest
                 .extra
                 .insert(BASE_MEMBER.to_owned(), serde_json::Value::from(hash_text(h)));
         }
-        if plan.writes.is_empty() && plan.removes.is_empty() && manifest_same {
-            self.adopt(model, plan.contents, plan.disk, discard);
-            return Ok(SaveReport {
-                generation: g,
-                findings: std::mem::take(&mut self.notes),
-                ..SaveReport::default()
-            });
-        }
-        // The manifest's ceiling: a generation above it is one the next open refuses, so a save that would
-        // write one is refused here, beside D5's pre-check and before any temp or move-aside. A save with nothing to
-        // write (above) stays allowed.
-        if g1 > ew_format::MAX_GENERATION {
-            return Err(SaveError::GenerationLimit);
-        }
-        let manifest_text = manifest.to_text();
-        let vfs = Arc::clone(&self.opts.vfs);
+        (manifest, manifest_same)
+    }
 
+    /// Steps 4 and 5 of the save (doc 05 §5.2): the temps of `plan`'s files and the intent `manifest_text` of
+    /// generation `g1`, synced with their directories; a file the baseline does not list is moved aside first. Any
+    /// failure deletes our temps; the generation on disk stays intact. Gives the directories the save writes in.
+    fn write_temps(
+        &mut self,
+        plan: &SavePlan,
+        g1: u64,
+        manifest_text: &str,
+    ) -> Result<BTreeSet<PathBuf>, SaveError> {
+        let vfs = Arc::clone(&self.opts.vfs);
         // Steps 4 and 5: temps, intent, directory syncs. Any failure deletes our temps; g stays intact.
         let mut created: Vec<PathBuf> = Vec::new();
         let mut moved: Vec<Finding> = Vec::new();
@@ -2158,37 +2242,21 @@ impl Store {
             let _ = vfs.sync_dir(&self.root);
             return Err(SaveError::Failed { step, path, error });
         }
-        let mut report = SaveReport {
-            generation: g1,
-            written: plan.writes.keys().cloned().collect(),
-            removed: Vec::new(),
-            manifest_written: true,
-            leftovers: Vec::new(),
-            journal_error: None,
-            findings: Vec::new(),
-            unstable: manifest.unstable,
-        };
-        let removes: Vec<FilePath> = plan.removes.iter().cloned().collect();
-        if let Some(j) = &mut self.journal {
-            if let Err(e) = j.save_begin(g1, plan.writes.len(), &removes) {
-                report.journal_error = Some(e.to_string());
-            }
-        }
-        // Commit point: generation g1 is decided.
-        let manifest_hash = sha256(manifest_text.as_bytes());
-        self.opaque.retain(|p, _| !drop.contains(p));
-        self.opaque.extend(plan.assets);
-        self.adopt(model, plan.contents, plan.disk, discard);
-        self.manifest = Some(manifest);
-        self.manifest_hash = Some(manifest_hash);
-        self.manifest_bytes = Some(manifest_text.into_bytes());
-        self.migrated = None;
-        self.generation = g1;
-        self.pending = Some(g1);
-        self.pending_removes.clone_from(&removes);
+        Ok(dirs)
+    }
 
+    /// Steps 6 and 7 of the save (doc 05 §5.2), after its commit point: the temps of `writes` renamed over their
+    /// files, the directories `dirs` synced, then the intent renamed over the manifest and the root synced.
+    fn rename_into_place(
+        &self,
+        writes: &BTreeMap<FilePath, Vec<u8>>,
+        dirs: &BTreeSet<PathBuf>,
+        g1: u64,
+    ) -> Result<(), SaveError> {
+        let vfs = &*self.opts.vfs;
+        let manifest_path = join(&self.root, MANIFEST);
         // Step 6: renames.
-        for path in plan.writes.keys() {
+        for path in writes.keys() {
             let temp = join(&self.root, &path.temp(g1));
             let target = join(&self.root, path.as_str());
             if let Err(error) = self.rename_retrying(&temp, &target) {
@@ -2227,24 +2295,7 @@ impl Store {
                 error,
             });
         }
-        self.pending = None;
-        self.pending_removes.clear();
-        // Step 8: removals.
-        for path in removes {
-            match vfs.remove_file(&join(&self.root, path.as_str())) {
-                Ok(()) => report.removed.push(path),
-                Err(e) if e.kind() == io::ErrorKind::NotFound => report.removed.push(path),
-                Err(_) => report.leftovers.push(path),
-            }
-        }
-        // Step 9: bookkeeping.
-        if let Some(j) = &mut self.journal {
-            if let Err(e) = j.save_done(g1, &manifest_hash) {
-                report.journal_error = Some(e.to_string());
-            }
-        }
-        report.findings = std::mem::take(&mut self.notes);
-        Ok(report)
+        Ok(())
     }
 
     /// Completes a save that passed its commit point (doc 05 §5.4: retried every 5 s by the caller).
