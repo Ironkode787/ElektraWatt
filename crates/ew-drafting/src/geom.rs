@@ -8,6 +8,8 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
+use ew_units::arith::{div_round_ties_away, gcd};
+
 use crate::model::{Pt, Rect, Tick};
 
 /// A segment from its first point to its second.
@@ -111,15 +113,6 @@ impl Ord for Frac {
     }
 }
 
-/// `n / d` rounded to the nearest integer, halves away from zero, `d > 0`.
-fn div_round(n: i128, d: i128) -> i128 {
-    if n >= 0 {
-        (2 * n + d) / (2 * d)
-    } else {
-        -((-2 * n + d) / (2 * d))
-    }
-}
-
 fn tick(v: i128) -> Tick {
     Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
 }
@@ -132,8 +125,8 @@ pub fn at((a, b): Seg, t: Frac) -> Pt {
         (n, d) = (n >> 1, d >> 1);
     }
     Pt::new(
-        tick(a.0 + div_round((b.0 - a.0) * n, d)),
-        tick(a.1 + div_round((b.1 - a.1) * n, d)),
+        tick(a.0 + div_round_ties_away((b.0 - a.0) * n, d)),
+        tick(a.1 + div_round_ties_away((b.1 - a.1) * n, d)),
     )
 }
 
@@ -229,7 +222,8 @@ pub fn crosses(s: Seg, r: Rect) -> bool {
 /// The direction of a segment with a length, reduced (a unit step on a horizontal or vertical one).
 pub fn direction((a, b): Seg) -> (i64, i64) {
     let (dx, dy) = (i64::from(b.x) - i64::from(a.x), i64::from(b.y) - i64::from(a.y));
-    let g = gcd(dx, dy).max(1);
+    let g = gcd(u128::from(dx.unsigned_abs()), u128::from(dy.unsigned_abs()));
+    let g = i64::try_from(g).unwrap_or(i64::MAX).max(1);
     (dx / g, dy / g)
 }
 
@@ -249,14 +243,6 @@ pub(crate) fn arms<L: AsRef<[Pt]>>(at: Pt, lines: impl IntoIterator<Item = L>, s
         }
     }
     dirs.len()
-}
-
-fn gcd(a: i64, b: i64) -> i64 {
-    let (mut a, mut b) = (a.unsigned_abs(), b.unsigned_abs());
-    while b != 0 {
-        (a, b) = (b, a % b);
-    }
-    i64::try_from(a).unwrap_or(i64::MAX)
 }
 
 /// The vertices of a cleaned route where it changes direction (a reversal is one), in order.

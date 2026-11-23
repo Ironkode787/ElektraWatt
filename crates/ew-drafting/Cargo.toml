@@ -17,6 +17,8 @@ workspace = true
 [dependencies]
 # The IDs of the page's records (docs/design/06a-drafting.md §2.7: `ew-units` and `ew-ids` only).
 ew-ids = { path = "../ew-ids" }
+# The rounding with a named tie rule and gcd (`ew_units::arith`).
+ew-units = { path = "../ew-units" }
 ew-hack = { version = "0.3", path = "../ew-hack" }
 
 [dev-dependencies]
