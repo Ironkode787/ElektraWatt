@@ -237,7 +237,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
 - **Text slots** are typed. The kinds are:
   - Tag, FunctionText, TechData, Manufacturer, PartNumber, TypeDesignation;
   - CpDesignation(idx), Xref, PlcAddress, ProcessTag, UserProp(key), ContactImage;
-  - OrderCode: the order code of the device's first assembly config (doc 20 §11.1, D-36).
+  - OrderCode: the order code of the device's first assembly config (D-36).
 
   A slot prints only with `"visible": true`: `visible` is `false` when absent, and the canonical form leaves `false`
   out (`ew fmt` rewrites a written `"visible": false` to its absence).

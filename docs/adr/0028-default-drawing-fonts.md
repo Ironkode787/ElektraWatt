@@ -14,7 +14,7 @@
 - **Small sizes and special glyphs.**
   - The reference prints text down to 3.70 pt (D-31). The golden text styles are 8.88 pt normal text, 6.66 pt
     small data, 5.92 pt pin designations and 5.18 pt device cross-references
-    ([20](../design/20-golden-project.md) §17.5).
+    (doc 20 §17.5).
   - Cross-reference texts use "∞" and "⇄", which a text font may not cover.
 - **Languages.** Dutch, English and German come first. CJK and right-to-left fallbacks follow later (FR-I18N-016,
   1.x).
@@ -177,7 +177,7 @@ switch to Noto Sans or osifont). It is due before spine lane 2 builds the text s
   [ADR-0027](0027-native-symbol-grid-and-qet-grid-policy.md).
 - **Design:** [04 architecture](../design/04-architecture.md) §8.3; [09 reports, forms and output](../design/09-reports-forms-output.md)
   §2.8, §4.3; [14 interop](../design/14-interop.md) §4.10; [19 open-source governance](../design/19-open-source-governance.md)
-  §2.1 (L14); [20 golden project](../design/20-golden-project.md) §17.5;
+  §2.1 (L14); 20 golden project §17.5;
   [gaps-and-corrections](../research/gaps-and-corrections.md) G14.
 - **Requirements:** FR-SYM-013, FR-OUT-008, FR-OUT-009, FR-OUT-027, FR-IMP-020, FR-IMP-033, FR-CHK-023, FR-I18N-016,
   FR-PRJ-011; NFR-REL-07, NFR-REL-11, NFR-REL-17, NFR-LIC-04, NFR-LIC-06, NFR-LIC-08, NFR-PLAT-06.

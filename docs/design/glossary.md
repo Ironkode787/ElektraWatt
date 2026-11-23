@@ -799,7 +799,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | `ew-store` | GPL | Save protocol, lock file, journal, recovery, `.ewz` transport, archive and git commits. | [05](05-project-format-and-persistence.md) |
 | `ew-text` | GPL | Fonts and the shared shaped-text query for screen, pagination and paper. | [09 §2.8](09-reports-forms-output.md) |
 | `ew-reports` | GPL | Built-in report queries, user SQL reports, pagination and XLSX/CSV tables. | [09](09-reports-forms-output.md) |
-| `ew-scene` | GPL | Model-to-display-list conversion, forms engine, spatial index and hit-testing. | [09 §4.1](09-reports-forms-output.md) |
+| `ew-scene` | GPL | Model-to-display-list conversion and the forms engine; an item drawn for an entity carries it, and the window's hover picking reads the entity boxes (no spatial index). | [09 §4.1](09-reports-forms-output.md) |
 | `ew-render2d` | GPL | The wgpu 2D renderer. | [04 §8.2](04-architecture.md) |
 | `ew-render-cpu` | GPL | The vello_cpu renderer for thumbnails, PNG export and banded printing. | [04 §8.2](04-architecture.md) |
 | `ew-export` | GPL | PDF (PDF/A-2b), SVG, DXF and PNG writers. | [09 §4](09-reports-forms-output.md) |

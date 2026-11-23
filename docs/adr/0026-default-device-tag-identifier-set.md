@@ -66,7 +66,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 
 1. **Valve letter and accepted alternatives in the shipped 2009 set** (2026-10-18;
    [07 symbols, parts and macros](../design/07-symbols-parts-macros.md),
-   [20 golden project](../design/20-golden-project.md)). The shipped EN 81346-2:2009 set maps directional valves to
+   20 golden project). The shipped EN 81346-2:2009 set maps directional valves to
    **Q**, with QM listed as an accepted alternative (no EW-RDS-003 finding). The golden valves are therefore
    -201U3-Q1 … -202U2-Q4, and their PLC symbols read `_201U3_Q1_14` and so on. The same mapping accepts **S** for
    S51 and S56 and **U** for the valve-terminal assemblies and modules -201U1 … -201U9 and -202U1 … -202U3; these
@@ -121,7 +121,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
   [ADR-0021](0021-importers-emit-format-level-records.md).
 - **Design:** [03 domain model](../design/03-domain-model.md) §8.3; [07 symbols, parts and macros](../design/07-symbols-parts-macros.md);
   [14 interop](../design/14-interop.md) §4.4; [15 checks](../design/15-checks-revisions-collaboration.md) §4.3;
-  [16 UX/UI](../design/16-ux-ui.md) (company-standard wizard); [20 golden project](../design/20-golden-project.md);
+  [16 UX/UI](../design/16-ux-ui.md) (company-standard wizard); 20 golden project;
   [standards](../research/standards.md) §1.4–§1.6.
 - **Requirements:** FR-NUM-001, FR-NUM-003, FR-NUM-004, FR-NUM-005, FR-NUM-013, FR-NUM-014, FR-NUM-016, FR-PRJ-010,
   FR-PRJ-011, FR-CHK-025, FR-CHK-026; NFR-UX-08, NFR-COMP-05, NFR-REL-09.

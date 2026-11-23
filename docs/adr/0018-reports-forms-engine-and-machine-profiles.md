@@ -44,7 +44,7 @@
    - header, data and footer areas;
    - a row height and continuation forms. The reference's house form has a 6.52 mm header and rows, a header
      fill of `#C0C0C0`, 0.183 mm lines, 8.88 pt text and 23 data rows per page, so pages = ⌈rows / 23⌉ (REF-100;
-     [20](../design/20-golden-project.md) §16);
+     doc 20 §16);
    - static graphics, including drop-shadow boxes;
    - group breaks: one terminal diagram per strip is EPLAN's "function-related" report;
    - cells with **typed placeholders** bound to row fields, project or page properties, party roles or derived
@@ -183,7 +183,7 @@ these entries refine it.
   [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md).
 - **Design:** [04 architecture](../design/04-architecture.md) §3, §6.4, §11; [09 reports](../design/09-reports-forms-output.md);
   [10 PLC and bus](../design/10-plc-and-bus.md) §4.5; [13 manufacturing](../design/13-manufacturing-outputs.md) §5.4,
-  §7; [20 golden project](../design/20-golden-project.md).
+  §7; 20 golden project.
 - **Requirements:** FR-REP-001, FR-REP-002, FR-REP-003, FR-REP-004, FR-REP-005, FR-REP-009, FR-REP-012, FR-REP-014,
   FR-REP-019, FR-REP-021, FR-REP-028, FR-REP-030, FR-REP-031, FR-REP-032, FR-REP-033, FR-REP-035, FR-REP-036,
   FR-REP-038, FR-REP-041, FR-REP-042; FR-MFG-018, FR-MFG-019, FR-MFG-020, FR-MFG-021, FR-MFG-022, FR-MFG-024, FR-MFG-025, FR-MFG-027,

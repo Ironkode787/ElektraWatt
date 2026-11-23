@@ -231,7 +231,7 @@ applied and accepted as amendment 10.
   [ADR-0014](0014-gui-toolkit-egui.md), [ADR-0016](0016-3d-renderer-wgpu-and-out-of-process-step-worker.md), [ADR-0018](0018-reports-forms-engine-and-machine-profiles.md), [ADR-0022](0022-platform-matrix-and-performance-budgets.md), [ADR-0028](0028-default-drawing-fonts.md).
 - **Design:** [architecture](../design/04-architecture.md) §3, §6.4, §8.1–§8.4, §13;
   [reports, forms and output](../design/09-reports-forms-output.md) §4, §6;
-  [golden project](../design/20-golden-project.md) §17.
+  golden project §17.
 - **Requirements:** FR-OUT-001, FR-OUT-002, FR-OUT-003, FR-OUT-004, FR-OUT-005, FR-OUT-006, FR-OUT-007, FR-OUT-008,
   FR-OUT-009, FR-OUT-010, FR-OUT-011, FR-OUT-012, FR-OUT-013, FR-OUT-014, FR-OUT-015, FR-OUT-016, FR-OUT-017,
   FR-OUT-018, FR-OUT-019, FR-OUT-020, FR-OUT-021, FR-OUT-022, FR-OUT-023, FR-OUT-024, FR-PAG-019, FR-UI-028, NFR-PLAT-02, NFR-PLAT-03, NFR-PERF-06, NFR-PERF-11, NFR-REL-07, NFR-A11Y-05.

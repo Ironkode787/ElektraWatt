@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page items and structure boxes drawn: graphics and structure-box outlines in
-//! [`Layer::Symbols`](ew_dl::Layer::Symbols), free texts, wire-marker groups and captions in
-//! [`Layer::Labels`](ew_dl::Layer::Labels); no new layer, so the permissive display-list crate is unchanged. The PDF
+//! [`ew_dl::Layer::Symbols`], free texts, wire-marker groups and captions in
+//! [`ew_dl::Layer::Labels`]; no new layer, so the permissive display-list crate is unchanged. The PDF
 //! writes the same display list.
 //!
 //! | Item | Drawn as |

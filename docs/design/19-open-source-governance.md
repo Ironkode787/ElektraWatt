@@ -30,7 +30,7 @@ interim rules of the Proposed ADRs (0025, 0029, 0030) apply.
 5. [Algorithms](#5-algorithms)
 6. [Outputs](#6-outputs)
 7. [Edge cases and pitfalls](#7-edge-cases-and-pitfalls)
-8. [The reference project](#8-the-reference-project)
+8. [The sample project and the frozen reference](#8-the-sample-project-and-the-frozen-reference)
 
 ---
 

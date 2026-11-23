@@ -132,7 +132,7 @@ The owner's test of 0.3.0-rc.2 found the styles unreachable and their names unkn
 ## Sources
 
 - Requirements: FR-SYM-013, FR-PRJ-009; checks: EW-CORE-061, EW-CORE-063, EW-CORE-007.
-- [Golden project](../design/20-golden-project.md) §17.5, §18.1 (EF-12, U-31); [reports and forms](../design/09-reports-forms-output.md)
+- Golden project §17.5, §18.1 (EF-12, U-31); [reports and forms](../design/09-reports-forms-output.md)
   §2.1, §2.8; [domain model](../design/03-domain-model.md) §5.1; [symbols](../design/07-symbols-parts-macros.md) §2.3.
 - Decision log ID-334, ID-825, ID-833; FT-648, FT-662, FT-669.
 - [ADR-0003](0003-freshness-contract.md), [ADR-0011](0011-format-versioning-and-migration.md),

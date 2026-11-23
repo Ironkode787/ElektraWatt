@@ -40,7 +40,7 @@ graphics and 1 mm text grids, and QET-grid pages kept permanently, so the output
 The pilot user and two EPLAN users confirm it at G-M0; a different pilot decision re-baselines the starter symbols
 and goldens once. Independent of the outcome:
 - symbol definitions carry their grid (`SymbolDef.grid`), so code paths do not depend on the choice;
-- the golden project is reproduced on the QET 10 px grid (ADR-0005; [20](../design/20-golden-project.md) §2.1);
+- the golden project is reproduced on the QET 10 px grid (ADR-0005; doc 20 §2.1);
 - imported QET pages keep their grid (FR-PAG-021).
 
 ## Recommendation
@@ -131,6 +131,6 @@ It is due before spine lane 2 draws the starter symbol set, that is by week 2 of
 - **Design:** [06 schematic editor](../design/06-schematic-editor.md) §2.4, OQ6;
   [07 symbols, parts and macros](../design/07-symbols-parts-macros.md) §3.2, OQ9;
   [14 interop](../design/14-interop.md) §4.2; [16 UX/UI](../design/16-ux-ui.md);
-  [20 golden project](../design/20-golden-project.md); [gaps-and-corrections](../research/gaps-and-corrections.md) G4.
+  20 golden project; [gaps-and-corrections](../research/gaps-and-corrections.md) G4.
 - **Requirements:** FR-PAG-020, FR-PAG-021, FR-PAG-022, FR-PAG-031, FR-SYM-007, FR-SYM-009, FR-SYM-015, FR-SYM-018, FR-SYM-020, FR-SYM-030, FR-XRF-021,
   FR-IMP-008, FR-IMP-021, FR-UI-015, FR-UI-018, FR-UI-034; NFR-UX-01, NFR-UX-08.

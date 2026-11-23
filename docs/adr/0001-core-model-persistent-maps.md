@@ -165,7 +165,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
   generated field-mask test fails when a link field is added without an index declaration.
 - CI enforces the access rules of [architecture](../design/04-architecture.md) §3 (NFR-MAINT-01).
 - `load(save(m)) = m`, byte-stable (NFR-REL-04).
-- Defect regression tests D-01 … D-42 run on the golden project ([golden project](../design/20-golden-project.md)
+- Defect regression tests D-01 … D-42 run on the golden project (golden project
   §19).
 
 ## Related

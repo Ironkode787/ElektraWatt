@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Panel-layout pages (doc 12 §5.1 to §5.3): the surface view of a `panel_layout` page
-//! drawn into the panel layers of [`Layer::PANEL`](ew_dl::Layer::PANEL).
+//! drawn into the panel layers of [`ew_dl::Layer::PANEL`].
 //!
 //! The caller (`ew-api`, which holds `Q`) fills a [`PanelView`] from the derived layout queries, in the frame of the
 //! mounting surface (`u` right, `v` up, nanometres): the surface's outlines, each carrier's outline from

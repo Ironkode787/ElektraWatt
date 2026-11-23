@@ -149,7 +149,7 @@ canonical forms of [15](../design/15-checks-revisions-collaboration.md) §2.2 an
 - **Incremental panel.** The message panel updates incrementally: a commit re-evaluates only the scopes it touched,
   and online checks are queries, so they are fresh when read (ADR-0003).
 - **Shared expected findings.** On Golden A, `ew check --scheme pre-delivery` reports exactly the rows of
-  `expected/findings_mvp.csv` ([20](../design/20-golden-project.md) §18.1: 42 errors, 32 warnings, 31 infos,
+  `expected/findings_mvp.csv` (doc 20 §18.1: 42 errors, 32 warnings, 31 infos,
   1 waived) and exits 1. The headline items are those of FR-CHK-042: EW-POT-013 on T55 and S56 (D-13, kept as
   drawn), 28 odd-bit coil bindings Q0.1 … Q6.7 (EW-PLC-012, D-26), the `Tbd` DP address (EW-BUS-001, D-15), S56
   and E56 without parts (FR-CHK-024) and five unplaced devices (EW-LAY-001, D-32). This is a CI fixture that the
@@ -188,7 +188,7 @@ canonical forms of [15](../design/15-checks-revisions-collaboration.md) §2.2 an
 - **Design:** [04 architecture](../design/04-architecture.md) §3, §4.6, §12, §14;
   [05 project format](../design/05-project-format-and-persistence.md) §2.1;
   [15 checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §2–§4;
-  [20 golden project](../design/20-golden-project.md).
+  20 golden project.
 - **Requirements:** FR-CHK-001, FR-CHK-002, FR-CHK-003, FR-CHK-004, FR-CHK-005, FR-CHK-006, FR-CHK-007, FR-CHK-008,
   FR-CHK-009, FR-CHK-010, FR-CHK-011, FR-CHK-012, FR-CHK-013, FR-CHK-014, FR-CHK-015, FR-CHK-019, FR-CHK-020,
   FR-CHK-024, FR-CHK-029, FR-CHK-033, FR-CHK-034, FR-CHK-042, FR-CHK-043, FR-CHK-046, FR-CHK-052, FR-CHK-053;

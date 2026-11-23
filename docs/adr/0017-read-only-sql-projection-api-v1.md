@@ -161,7 +161,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
   [ADR-0019](0019-rule-engine-and-rule-packs.md), [ADR-0020](0020-extensibility-tiers-and-security-model.md).
 - **Design:** [04 architecture](../design/04-architecture.md) §3, §6.8, §10.2, §13;
   [17 extensibility](../design/17-extensibility.md) §6, §11; [09 reports](../design/09-reports-forms-output.md)
-  §3.5; [11 fluid power](../design/11-fluid-power.md) §8.3; [20 golden project](../design/20-golden-project.md).
+  §3.5; [11 fluid power](../design/11-fluid-power.md) §8.3; 20 golden project.
 - **Requirements:** FR-EXT-006, FR-EXT-007, FR-EXT-014, FR-EXT-016, FR-REP-031, FR-CHK-007, FR-CHK-041, FR-MFG-018,
   FR-I18N-010, FR-EXT-032;
   NFR-PERF-13, NFR-PERF-14, NFR-SEC-03, NFR-SEC-05, NFR-SEC-06, NFR-MAINT-01, NFR-REL-07.
