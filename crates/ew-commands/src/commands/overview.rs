@@ -22,7 +22,6 @@ use crate::commands::page::{CreatePage, printed_folio};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{MlTextS, NmS, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `valve_terminal.generate_overview` (`GenerateOverview`, doc 11 §5.5, FR-FLU-033): lays out the overview of an

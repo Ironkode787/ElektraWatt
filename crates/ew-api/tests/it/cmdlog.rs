@@ -98,7 +98,7 @@ fn command_log_errors_print_the_command_error_text() {
     let error = CmdError::invalid_params(
         "project.company.set",
         "/logo",
-        ew_api::Text::checked_by_macro("refusal-params-detail", vec!["m".into()]),
+        ew_commands::text!("refusal-params-detail", "m"),
     );
     assert_eq!(
         CmdLogError::Failed {

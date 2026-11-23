@@ -65,28 +65,33 @@
 //! session.undo(&ew_api::Origin::Gui).unwrap();
 //! assert!(!session.is_dirty());
 //! ```
+//!
+//! # Texts
+//!
+//! What the session refuses or names beyond the commands is a [`Text`] of this crate's text files
+//! (`texts/<language>/<area>.ftl`, architecture §18), and a key it hands the window is checked as well. Code names a
+//! key with `text!` or `key!`, checked when the code is built:
+//!
+//! ```
+//! assert_eq!(ew_api::key!("table-no-record"), "table-no-record");
+//! let refused = ew_api::text!("refusal-update-copies-save", "the disk is full");
+//! assert_eq!(refused.to_string(), "the update could not be written: the disk is full");
+//! ```
+//!
+//! A key the files lack fails the build:
+//!
+//! ```compile_fail
+//! let _ = ew_api::text!("refusal-update-copies-saev", "the disk is full");
+//! ```
+//!
+//! ```compile_fail
+//! let _ = ew_api::key!("table-no-recrod");
+//! ```
 
 #![forbid(unsafe_code)]
 
-/// The keyed [`Text`] of a refusal of `ew-api`'s own, as `ew-commands`' own `text!` gives one: a key that
-/// [`TEXTS`] lacks, or a wrong number of arguments, fails the build.
-macro_rules! api_text {
-    ($k:literal $(, $a:expr)* $(,)?) => {
-        $crate::Text::checked_by_macro(
-            const {
-                let Some(template) = ew_commands::text_english($k) else {
-                    panic!(concat!("unknown text key: ", $k));
-                };
-                assert!(
-                    ew_commands::text_arity(template) == <[&str]>::len(&[$(stringify!($a)),*]),
-                    concat!("the wrong number of arguments for ", $k)
-                );
-                $k
-            },
-            vec![$($crate::TextArg::from($a)),*],
-        )
-    };
-}
+// `TEXTS`, `text_english`, `text!` and `key!`, before the modules that name a key.
+ew_l10n::texts!(crate);
 
 // The CSV and XLSX parts import with its column maps (D11).
 pub mod catalog;
@@ -272,12 +277,13 @@ pub use ew_commands::{
 pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
 /// A command's refusal by key: the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
-    TEXTS, Text, TextArg, asset_error_text, comma_joined, ident_error_text, path_error_text,
-    schema_error_text, serde_error_text,
+    asset_error_text, comma_joined, ident_error_text, path_error_text, schema_error_text, serde_error_text,
 };
 /// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
 /// ([`SessionOptions::ids`]).
 pub use ew_derive::ew_ids::{EntropyError, UnixTime};
+/// A text by key: the window renders it in its language, the CLI prints its English.
+pub use ew_l10n::{Text, TextArg};
 
 use ew_commands::commands::PurgeAssets;
 use ew_commands::{Command as _, Engine, EngineOptions};
@@ -554,17 +560,17 @@ const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
 /// the window's save refusals and the details of the purge's and the update's (FT-1570).
 pub fn save_error_text(e: &SaveError) -> Text {
     match e {
-        SaveError::ReadOnly(_) => api_text!("saveerr-read-only"),
-        SaveError::LockLost(_) => api_text!("saveerr-lock-lost"),
-        SaveError::ExternalChange { .. } => api_text!("saveerr-external"),
-        SaveError::Failed { .. } => api_text!("saveerr-failed"),
-        SaveError::Incomplete { .. } => api_text!("saveerr-incomplete"),
-        SaveError::PendingIncomplete { .. } => api_text!("saveerr-pending"),
-        SaveError::GenerationLimit => api_text!("saveerr-generation-limit"),
+        SaveError::ReadOnly(_) => text!("saveerr-read-only"),
+        SaveError::LockLost(_) => text!("saveerr-lock-lost"),
+        SaveError::ExternalChange { .. } => text!("saveerr-external"),
+        SaveError::Failed { .. } => text!("saveerr-failed"),
+        SaveError::Incomplete { .. } => text!("saveerr-incomplete"),
+        SaveError::PendingIncomplete { .. } => text!("saveerr-pending"),
+        SaveError::GenerationLimit => text!("saveerr-generation-limit"),
         // A held external change.
-        SaveError::ExternalCollisions => api_text!("saveerr-external-collisions"),
-        SaveError::ExternalUnreadable => api_text!("saveerr-external-unreadable"),
-        _ => api_text!("saveerr-other"),
+        SaveError::ExternalCollisions => text!("saveerr-external-collisions"),
+        SaveError::ExternalUnreadable => text!("saveerr-external-unreadable"),
+        _ => text!("saveerr-other"),
     }
 }
 
@@ -572,21 +578,21 @@ pub fn save_error_text(e: &SaveError) -> Text {
 /// [`PurgeError`]'s.
 pub fn purge_refusal(e: &PurgeError) -> Text {
     match e {
-        PurgeError::ReadOnly(_) => api_text!("refusal-purge-read-only"),
-        PurgeError::Quarantined(files) => api_text!(
+        PurgeError::ReadOnly(_) => text!("refusal-purge-read-only"),
+        PurgeError::Quarantined(files) => text!(
             "refusal-purge-quarantined",
             files.iter().map(|f| f.as_str()).collect::<Vec<_>>().join(", ")
         ),
-        PurgeError::Unsaved => api_text!("refusal-purge-unsaved"),
-        PurgeError::Recovery => api_text!("refusal-purge-recovery"),
-        PurgeError::Incomplete(_) => api_text!("refusal-purge-incomplete"),
-        PurgeError::ExternalChange => api_text!("refusal-purge-external"),
+        PurgeError::Unsaved => text!("refusal-purge-unsaved"),
+        PurgeError::Recovery => text!("refusal-purge-recovery"),
+        PurgeError::Incomplete(_) => text!("refusal-purge-incomplete"),
+        PurgeError::ExternalChange => text!("refusal-purge-external"),
         // One image has its own form.
-        PurgeError::Stale(hashes) if hashes.len() == 1 => api_text!("refusal-purge-stale-one"),
-        PurgeError::Stale(hashes) => api_text!("refusal-purge-stale", hashes.len().to_string()),
-        PurgeError::Io { .. } => api_text!("refusal-purge-unreadable"),
-        PurgeError::Save { error, .. } => api_text!("refusal-purge-save", save_error_text(error)),
-        PurgeError::HumanOnly => api_text!("refusal-purge-human-only"),
+        PurgeError::Stale(hashes) if hashes.len() == 1 => text!("refusal-purge-stale-one"),
+        PurgeError::Stale(hashes) => text!("refusal-purge-stale", hashes.len().to_string()),
+        PurgeError::Io { .. } => text!("refusal-purge-unreadable"),
+        PurgeError::Save { error, .. } => text!("refusal-purge-save", save_error_text(error)),
+        PurgeError::HumanOnly => text!("refusal-purge-human-only"),
     }
 }
 
@@ -813,17 +819,12 @@ impl Session {
         for image in self.undrawn_images() {
             let (w, h) = (image.width.to_string(), image.height.to_string());
             if image.logo {
-                notices.push(api_text!("banner-logo-not-drawn", &w, &h));
+                notices.push(text!("banner-logo-not-drawn", &w, &h));
             }
             match image.folios.len() {
                 0 => {}
-                1 => notices.push(api_text!(
-                    "banner-image-not-drawn",
-                    image.folios.join(", "),
-                    &w,
-                    &h
-                )),
-                _ => notices.push(api_text!(
+                1 => notices.push(text!("banner-image-not-drawn", image.folios.join(", "), &w, &h)),
+                _ => notices.push(text!(
                     "banner-image-not-drawn-folios",
                     image.folios.join(", "),
                     &w,
@@ -1517,12 +1518,12 @@ impl Session {
                 Ok(_) => {
                     keys.insert((kind, copy));
                     done.updated
-                        .push(api_text!("refusal-words-copy-at-version", words, version));
+                        .push(text!("refusal-words-copy-at-version", words, version));
                 }
                 // The library's version breaks a record of the project (an invariant or a prevent rule of the
                 // engine's own check): the misfit, nothing written.
                 Err(ew_commands::CmdError::Model(..) | ew_commands::CmdError::Prevented { .. }) => {
-                    return Err(api_text!("refusal-update-copies-misfit"));
+                    return Err(text!("refusal-update-copies-misfit"));
                 }
                 Err(_) => done.not_updated.push(words),
             }
@@ -1530,25 +1531,25 @@ impl Session {
         let (Some(p), false) = (self.persistence.as_mut(), keys.is_empty()) else {
             let all = ew_commands::comma_joined(done.not_updated.clone());
             return all.map_or(Ok(done), |all| {
-                Err(api_text!("refusal-update-copies-no-library", all))
+                Err(text!("refusal-update-copies-no-library", all))
             });
         };
         // The project must open after it: every violation left is one the copies still damaged explain.
         let missing: BTreeSet<AnyKey> = dropped.iter().filter(|k| !keys.contains(*k)).copied().collect();
         if ew_model::unexplained_by_dropped_copies(&engine.model().integrity_violations(), &missing).is_some()
         {
-            return Err(api_text!("refusal-update-copies-misfit"));
+            return Err(text!("refusal-update-copies-misfit"));
         }
         match p.store.update_damaged_copies(engine.model(), &keys) {
             Ok(_) => Ok(done),
             Err(ew_store::SaveError::ReadOnly(ReadOnlyReason::LockedBy(_))) => {
-                Err(api_text!("refusal-update-copies-locked"))
+                Err(text!("refusal-update-copies-locked"))
             }
             Err(ew_store::SaveError::ReadOnly(ReadOnlyReason::Integrity)) => {
-                Err(api_text!("refusal-update-copies-findings"))
+                Err(text!("refusal-update-copies-findings"))
             }
-            Err(ew_store::SaveError::ReadOnly(_)) => Err(api_text!("refusal-update-copies-read-only")),
-            Err(e) => Err(api_text!("refusal-update-copies-save", save_error_text(&e))),
+            Err(ew_store::SaveError::ReadOnly(_)) => Err(text!("refusal-update-copies-read-only")),
+            Err(e) => Err(text!("refusal-update-copies-save", save_error_text(&e))),
         }
     }
 
@@ -1846,7 +1847,7 @@ impl Session {
             CmdError::invalid_params(
                 PurgeAssets::NAME,
                 "",
-                api_text!("refusal-params-detail", e.to_string()),
+                text!("refusal-params-detail", e.to_string()),
             )
         })?;
         let listed = cmd.listed()?;

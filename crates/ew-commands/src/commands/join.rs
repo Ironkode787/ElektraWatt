@@ -19,8 +19,8 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// Whether the first part use of `device` whose part has bus ports has one that no function of the device carries (by
 /// interface and port label), as normaliser N5 pairs them (FT-841).
@@ -187,7 +187,7 @@ pub(super) fn dropped_function_members(function: &Function) -> Vec<Text> {
 
 /// Member names in a sentence (`a`, `a and b`, `a, b and c`), and whether they take a plural verb: more than one, or
 /// one whose name is a plural.
-pub(super) fn listed(items: Vec<Text>) -> (crate::text::TextArg, bool) {
+pub(super) fn listed(items: Vec<Text>) -> (ew_l10n::TextArg, bool) {
     let plural = items.len() > 1
         || items.iter().any(|t| {
             matches!(

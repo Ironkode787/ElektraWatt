@@ -12,7 +12,6 @@ use ew_units::Pt2;
 use crate::error::CmdError;
 use crate::geometry::{locate, rep_cps, split_route};
 use crate::normalise::Normaliser;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// Splits connection W (A → B) into W′ (A → `first_end`) and W″ (`second_end` → B) (doc 06 §5.3):

@@ -28,8 +28,8 @@ use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::normalise::channel_instantiation::{binding_words, module_section};
 use crate::proxy::{IdentS, UuidS};
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target
 /// PLC-software project that scopes address and symbol uniqueness (doc 10 §2.2, FR-PLC-002).

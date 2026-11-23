@@ -40,8 +40,8 @@ use crate::commands::assign::embed_closure;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{IdentS, NmS, Pose3S, SurfacePt2S, UuidS};
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// The layout deletes are `Bulk` when they remove or rehome more than this many placements (D6).
 pub const LAYOUT_BULK_ABOVE: usize = 200;

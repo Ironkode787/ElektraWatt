@@ -66,7 +66,7 @@ impl std::fmt::Display for LayoutEditError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LayoutEditError::Invalid(m) => f.write_str(m),
-            LayoutEditError::Refused(key) => f.write_str(ew_commands::text_english(key).unwrap_or(key)),
+            LayoutEditError::Refused(key) => f.write_str(crate::text_english(key).unwrap_or(key)),
         }
     }
 }
@@ -963,9 +963,7 @@ impl Session {
             // §3.5: an address alone, or a far end not known).
             ("function", "supply_place" | "supply_device") => {
                 let Some((place, device)) = self.supply_source(&[edit.target]) else {
-                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
-                        "props-supply-no-mark"
-                    )));
+                    return Err(LayoutEditError::Refused(key!("props-supply-no-mark")));
                 };
                 let (location, device) = if name == "supply_place" {
                     (text.to_owned(), device)
@@ -1034,14 +1032,10 @@ impl Session {
             // refuses a position another child holds in words.
             ("device", "position") => {
                 let Some(position) = text.parse::<u32>().ok().filter(|p| *p > 0) else {
-                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
-                        "props-position-number"
-                    )));
+                    return Err(LayoutEditError::Refused(key!("props-position-number")));
                 };
                 let Some(parent) = q.devices().get(Id::from_uuid(edit.target)).and_then(|d| d.parent) else {
-                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
-                        "props-position-no-terminal"
-                    )));
+                    return Err(LayoutEditError::Refused(key!("props-position-no-terminal")));
                 };
                 command(
                     "assembly.attach",

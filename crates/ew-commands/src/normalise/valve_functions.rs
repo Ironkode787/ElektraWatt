@@ -44,7 +44,6 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -211,7 +210,7 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             .collect();
         bound.sort();
         bound.dedup();
-        let unbound: Vec<(Id<ew_schema::Channel>, crate::text::Text)> =
+        let unbound: Vec<(Id<ew_schema::Channel>, ew_l10n::Text)> =
             bound.iter().map(|c| (*c, words::channel(tx, *c))).collect();
         for c in bound {
             tx.update::<ew_schema::Channel>(c, |c| c.binding = None)?;
@@ -294,7 +293,7 @@ fn replace_valve(
     tx: &mut TxBuilder<'_>,
     f: &Function,
     def: Id<FnDef>,
-    name: &crate::text::TextArg,
+    name: &ew_l10n::TextArg,
 ) -> Result<(), CmdError> {
     let old_def = tx.require::<LibCopy<FnDef>>(f.def)?;
     let new_def = tx.require::<LibCopy<FnDef>>(def)?;
@@ -367,7 +366,7 @@ fn replace_valve(
         .collect();
     defs.sort_by_key(|(idx, d)| (*idx, d.id));
     let mut defined: BTreeSet<u16> = BTreeSet::new();
-    let mut notices: Vec<crate::text::Text> = Vec::new();
+    let mut notices: Vec<ew_l10n::Text> = Vec::new();
     for (idx, d) in defs {
         match map(idx) {
             // Two old ports of one designation become one new port: it keeps one definition (FI-04).

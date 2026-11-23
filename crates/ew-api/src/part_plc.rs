@@ -261,73 +261,61 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
         |m: &str, key: &'static str, args: &[&str]| out.push(message(&format!("plc.{m}"), key, args));
     let word_ok = |t: &str, words: &[String]| words.iter().any(|w| w == t);
     if !word_ok(role, &plc_role_words()) {
-        say("role", ew_commands::text_key!("error-part-plc-role"), &[role]);
+        say("role", key!("error-part-plc-role"), &[role]);
     }
     let kind = rows.kind.trim();
     let count = rows.count.trim();
     if !kind.is_empty() && !word_ok(kind, &channel_kind_words()) {
-        say("kind", ew_commands::text_key!("error-part-plc-kind"), &[kind]);
+        say("kind", key!("error-part-plc-kind"), &[kind]);
     }
     match count.parse::<u16>() {
         _ if count.is_empty() => {}
         Ok(n) if (1..=MAX_CHANNELS).contains(&n) => {
             if kind.is_empty() {
-                say("kind", ew_commands::text_key!("error-part-plc-kind-missing"), &[]);
+                say("kind", key!("error-part-plc-kind-missing"), &[]);
             }
         }
         _ => say(
             "count",
-            ew_commands::text_key!("error-part-plc-count"),
+            key!("error-part-plc-count"),
             &[count, &MAX_CHANNELS.to_string()],
         ),
     }
     if !kind.is_empty() && count.is_empty() {
-        say(
-            "count",
-            ew_commands::text_key!("error-part-plc-count-missing"),
-            &[],
-        );
+        say("count", key!("error-part-plc-count-missing"), &[]);
     }
     // A second kind of channels (FT-1766): checked as the first, and going the other way.
     let (kind2, count2) = (rows.kind2.trim(), rows.count2.trim());
     if !kind2.is_empty() && !word_ok(kind2, &channel_kind_words()) {
-        say("kind2", ew_commands::text_key!("error-part-plc-kind"), &[kind2]);
+        say("kind2", key!("error-part-plc-kind"), &[kind2]);
     }
     match count2.parse::<u16>() {
         _ if count2.is_empty() => {}
         Ok(n) if (1..=MAX_CHANNELS).contains(&n) => {
             if kind2.is_empty() {
-                say(
-                    "kind2",
-                    ew_commands::text_key!("error-part-plc-kind-missing"),
-                    &[],
-                );
+                say("kind2", key!("error-part-plc-kind-missing"), &[]);
             }
         }
         _ => say(
             "count2",
-            ew_commands::text_key!("error-part-plc-count"),
+            key!("error-part-plc-count"),
             &[count2, &MAX_CHANNELS.to_string()],
         ),
     }
     if !kind2.is_empty() && count2.is_empty() {
-        say(
-            "count2",
-            ew_commands::text_key!("error-part-plc-count-missing"),
-            &[],
-        );
+        say("count2", key!("error-part-plc-count-missing"), &[]);
     }
     // Either way, only not the first kind again (FT-1970).
     if !kind2.is_empty() && word_ok(kind2, &channel_kind_words()) {
         match (way(kind), way(kind2)) {
             (Some(_), Some(_)) if kind2 != kind => {}
-            _ => say("kind2", ew_commands::text_key!("error-part-plc-kind2-way"), &[]),
+            _ => say("kind2", key!("error-part-plc-kind2-way"), &[]),
         }
     }
     if rows.all_channels().is_some_and(|n| n > MAX_CHANNELS) {
         say(
             "count2",
-            ew_commands::text_key!("error-part-plc-count"),
+            key!("error-part-plc-count"),
             &[count2, &MAX_CHANNELS.to_string()],
         );
     }
@@ -335,30 +323,22 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
     if !t.is_empty()
         && let Err(e) = Ident::from_input(t)
     {
-        say(
-            "data_type",
-            ew_commands::text_key!("error-part-value"),
-            &[&e.to_string()],
-        );
+        say("data_type", key!("error-part-value"), &[&e.to_string()]);
     }
     // The supply pins are lists (FT-2132): each name a pin of its own.
     let (l_plus, m) = (rows.supply_list("l_plus"), rows.supply_list("m"));
     for (member, pins) in [("l_plus", &l_plus), ("m", &m)] {
         if let Some(e) = pins.iter().find_map(|p| Ident::from_input(p).err()) {
-            say(
-                member,
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            );
+            say(member, key!("error-part-value"), &[&e.to_string()]);
         }
     }
     if l_plus.is_empty() != m.is_empty() {
         let missing = if l_plus.is_empty() { "l_plus" } else { "m" };
-        say(missing, ew_commands::text_key!("error-part-plc-supply"), &[]);
+        say(missing, key!("error-part-plc-supply"), &[]);
     } else if rows.supply_pairs().is_none() {
         say(
             "m",
-            ew_commands::text_key!("error-part-plc-supply-pairs"),
+            key!("error-part-plc-supply-pairs"),
             &[&l_plus.len().to_string(), &m.len().to_string()],
         );
     }
@@ -370,19 +350,11 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
             for c in 0..n {
                 match channel_pin(&map, c) {
                     None => {
-                        say(
-                            "pin_of",
-                            ew_commands::text_key!("error-part-plc-pin"),
-                            &[pattern, &c.to_string()],
-                        );
+                        say("pin_of", key!("error-part-plc-pin"), &[pattern, &c.to_string()]);
                         break;
                     }
                     Some(p) if seen.contains(&p) => {
-                        say(
-                            "pin_of",
-                            ew_commands::text_key!("error-part-plc-pin-twice"),
-                            &[&p],
-                        );
+                        say("pin_of", key!("error-part-plc-pin-twice"), &[&p]);
                         break;
                     }
                     Some(p) => seen.push(p),
@@ -391,19 +363,11 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
         }
     }
     if slots_of(rows.slots.trim()).is_none() {
-        say(
-            "slots",
-            ew_commands::text_key!("error-part-plc-slots"),
-            &[rows.slots.trim()],
-        );
+        say("slots", key!("error-part-plc-slots"), &[rows.slots.trim()]);
     }
     let max = rows.max_modules.trim();
     if !max.is_empty() && max.parse::<u16>().map_or(true, |n| n == 0) {
-        say(
-            "max_modules",
-            ew_commands::text_key!("error-part-plc-max"),
-            &[max],
-        );
+        say("max_modules", key!("error-part-plc-max"), &[max]);
     }
     out
 }

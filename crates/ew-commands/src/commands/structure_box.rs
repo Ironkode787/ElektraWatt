@@ -18,7 +18,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{MlTextS, Pt2S, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The line style of a structure box.

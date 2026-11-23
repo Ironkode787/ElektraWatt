@@ -17,7 +17,6 @@ use crate::error::CmdError;
 use crate::geometry::{RepCp, drawn_cp, rep_cps};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `terminal.face_card` (`FaceCard`): puts each wire between a PLC card's channel pin and a terminal on the terminal's

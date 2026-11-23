@@ -56,10 +56,33 @@
 //! assert_eq!(engine.world().rev.0, 3);
 //! assert!(engine.history().can_redo());
 //! ```
+//!
+//! # Texts
+//!
+//! A refusal, a notice and a record in words are an [`ew_l10n::Text`] of this crate's text files
+//! (`texts/<language>/<area>.ftl`, architecture §18): the command line prints its English, the window renders it in
+//! its language. Code names a key with `text!`, checked when the code is built:
+//!
+//! ```
+//! assert_eq!(ew_commands::text!("refusal-words-page", "101").to_string(), "page 101");
+//! ```
+//!
+//! A key the files lack fails the build, in `text!` as in `key!`:
+//!
+//! ```compile_fail
+//! let _ = ew_commands::text!("refusal-words-paeg", "101");
+//! ```
+//!
+//! ```compile_fail
+//! let _ = ew_commands::key!("refusal-words-paeg");
+//! ```
 
 #![forbid(unsafe_code)]
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
+
+// `TEXTS`, `text_english`, `text!` and `key!`, before the modules that name a key.
+ew_l10n::texts!(crate);
 
 mod command;
 pub mod commands;
@@ -81,7 +104,6 @@ pub mod rows;
 #[cfg(not(feature = "testkit"))]
 #[allow(dead_code)] // the dumps serve the tests (feature `testkit`); the crate uses a part of them
 mod rows;
-mod text;
 mod transaction;
 mod tx;
 mod words;
@@ -103,10 +125,37 @@ pub use jsonschema::{
 };
 pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin, Stability};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
-pub use text::{TEXTS, Text, TextArg, arity as text_arity, english as text_english};
 pub use transaction::{Submit, Transaction};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
 pub use words::{comma_joined, damaged_copy as damaged_copy_words};
 
 /// The ID source trait of `ew-ids`, re-exported for crates that inject one into an [`Engine`].
 pub use ew_ids::IdSource;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A text writes its arguments in place, a text argument in English; the table is sorted, so each key is found.
+    #[test]
+    fn a_text_writes_its_arguments_in_english() {
+        let t = text!("refusal-words-page", "101");
+        assert_eq!(t.to_string(), "page 101");
+        let t = text!(
+            "refusal-connection-start-on-other-page",
+            text!("refusal-words-page", "2"),
+            text!("refusal-words-page", "3")
+        );
+        assert_eq!(
+            t.to_string(),
+            "the wire's start is drawn on page 2, not on page 3; start the wire on page 3"
+        );
+        assert!(TEXTS.windows(2).all(|w| w[0].0 < w[1].0), "sorted, no key twice");
+        assert!(TEXTS.iter().all(|(k, t)| text_english(k) == Some(*t)));
+        // A literal brace of the text file is a brace here.
+        assert_eq!(
+            text_english("refusal-fields-master-cp"),
+            Some("a master is a CP: {\"cp\": [function, index]}")
+        );
+    }
+}

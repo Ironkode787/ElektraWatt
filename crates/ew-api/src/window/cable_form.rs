@@ -311,7 +311,7 @@ impl Session {
         let wires: Vec<Uuid> = self.cable_wires(cable).into_iter().map(|(w, _)| w).collect();
         if cores.len() < wires.len() {
             return Some(CableRefused {
-                key: ew_commands::text_key!("part-misfit-cores"),
+                key: key!("part-misfit-cores"),
                 args: vec![cores.len().to_string(), wires.len().to_string()],
             });
         }
@@ -319,7 +319,7 @@ impl Session {
             .iter()
             .any(|c| serde_json::to_value(&c.colour).ok() == Some(json!(["GN", "YE"])));
         (!green_yellow && self.wires_say_pe(&wires)).then(|| CableRefused {
-            key: ew_commands::text_key!("part-misfit-pe"),
+            key: key!("part-misfit-pe"),
             args: Vec::new(),
         })
     }
@@ -425,7 +425,7 @@ impl Session {
         let refused = |key: &'static str, args: Vec<String>| CableRefused { key, args };
         let Some((cores, part)) = self.cable_type(type_text) else {
             return Err(refused(
-                ew_commands::text_key!("error-cable-type"),
+                key!("error-cable-type"),
                 vec![type_text.trim().to_owned()],
             ));
         };
@@ -438,15 +438,12 @@ impl Session {
             if !known(core) {
                 let all: Vec<&str> = cores.iter().map(|c| c.core.as_str()).collect();
                 return Err(refused(
-                    ew_commands::text_key!("error-cable-core-unknown"),
+                    key!("error-cable-core-unknown"),
                     vec![core.clone(), all.join(", ")],
                 ));
             }
             if !seen.insert(core.clone()) {
-                return Err(refused(
-                    ew_commands::text_key!("error-cable-core-twice"),
-                    vec![core.clone()],
-                ));
+                return Err(refused(key!("error-cable-core-twice"), vec![core.clone()]));
             }
         }
         let wires_of = |core: &str| -> Vec<String> {

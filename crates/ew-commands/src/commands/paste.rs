@@ -29,8 +29,8 @@ use crate::error::CmdError;
 use crate::geometry::{OutOfRange, point_in_range, point_on_grid, rep_cps_checked, sub};
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{Pt2S, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 mod insertion;
 mod motion;

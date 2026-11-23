@@ -26,7 +26,6 @@ use crate::geometry::rep_cps_checked;
 use crate::meta::CommandMeta;
 use crate::normalise::bus_ports::{bus_part, is_bus_port_function, seeded, suits};
 use crate::proxy::{IdentS, Pt2S, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `bus.place_ports` (`PlacePortBoxes`, doc 10 §2.7): draws interfaces of a device on a bus-topology page, one box

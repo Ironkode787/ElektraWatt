@@ -28,8 +28,8 @@ use crate::geometry::{require_on_grid, require_route, require_split_point};
 use crate::meta::CommandMeta;
 use crate::normalise::split_connection;
 use crate::proxy::{Dec3S, IdentS, Orient2S, Pt2S, UuidS};
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// Resolves one end of `connection.draw` to a record endpoint. A point on a connection W creates a
 /// junction there (the bevel form, or with `dot` the dot) and splits W at it, and the junction joins `made`; an

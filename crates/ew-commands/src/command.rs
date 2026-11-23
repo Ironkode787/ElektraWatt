@@ -11,8 +11,8 @@ use serde::de::DeserializeOwned;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::registry::AnyCommand;
-use crate::text::Text;
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// What a command reports besides its ops.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]

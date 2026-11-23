@@ -23,8 +23,8 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{GridS, IdentS, MlTextS, Pt2S, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 fn multi_line() -> PageType {
     PageType::MultiLine

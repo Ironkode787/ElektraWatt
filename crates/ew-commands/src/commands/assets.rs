@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Confirmation, Exposure};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `project.assets.purge` (`PurgeAssets`): deletes the project's asset files (`assets/<sha256>.<ext>`) that nothing

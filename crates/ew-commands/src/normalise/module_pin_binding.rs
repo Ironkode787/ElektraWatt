@@ -43,7 +43,6 @@ use ew_schema::{Channel, Device, Endpoint, FnDef, FnRole, Function, Kind, LibCop
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::normalise::channel_instantiation::{channels_by_number, module_part_copy, module_section};
-use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 

@@ -19,7 +19,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{AspectS, IdentS, MlTextS, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `structure.create_node`: one identifier in one aspect tree (doc 03 §5, FR-PRJ-017).

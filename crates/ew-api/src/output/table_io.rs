@@ -914,18 +914,18 @@ impl Merge<'_> {
         if let (Some(nav), Some(&i)) = (&self.current.nav, self.current.nodes.get(r)) {
             let node: &NavNode = &nav.nodes[i as usize];
             if strip_route(nav, node, c).is_some() {
-                return Err(ew_commands::text_key!("table-reason-window"));
+                return Err(key!("table-reason-window"));
             }
             if let Some(reason) = cell_reason_key(nav, node, c) {
                 return Err(reason);
             }
             let Some((kind, path)) = nav.columns[c].route.clone() else {
-                return Err(ew_commands::text_key!("table-reason-no-command"));
+                return Err(key!("table-reason-no-command"));
             };
             let targets = row_targets(node, &kind);
             if targets.is_empty() || define_point(node, &kind, &path).is_some() {
                 // A potential's defining cell is defined in the window.
-                return Err(ew_commands::text_key!("table-reason-window"));
+                return Err(key!("table-reason-window"));
             }
             return Ok(((kind, path), targets));
         }
@@ -945,8 +945,8 @@ impl Merge<'_> {
             (Some((_, kind, path)), Some(channel)) => {
                 Ok((((*kind).to_owned(), (*path).to_owned()), vec![channel]))
             }
-            (Some(_), None) => Err(ew_commands::text_key!("table-no-record")),
-            (None, _) => Err(ew_commands::text_key!("table-reason-derived")),
+            (Some(_), None) => Err(key!("table-no-record")),
+            (None, _) => Err(key!("table-reason-derived")),
         }
     }
 
@@ -1152,7 +1152,7 @@ fn is_lossy(file: &str, exported: &str) -> bool {
 /// The English words of a read-only reason key, as the CLI prints a round trip's findings: the key's text of the
 /// window's en-GB locale file.
 pub fn reason_words(key: &str) -> &'static str {
-    ew_commands::text_english(key).unwrap_or("not editable in this table")
+    crate::text_english(key).unwrap_or("not editable in this table")
 }
 
 #[cfg(test)]

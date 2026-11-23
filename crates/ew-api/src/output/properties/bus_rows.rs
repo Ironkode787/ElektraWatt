@@ -78,12 +78,7 @@ pub(super) fn bus_address_input(text: &str) -> Option<Result<ParsedInput, InputE
             notes: Vec::new(),
         }))
     };
-    let bad = || {
-        Some(Err(InputError::Invalid(api_text!(
-            "refusal-input-bus-address",
-            t
-        ))))
-    };
+    let bad = || Some(Err(InputError::Invalid(text!("refusal-input-bus-address", t))));
     if t.is_empty() {
         return done(Value::String("not_applicable".to_owned()));
     }

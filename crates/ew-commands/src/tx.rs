@@ -17,7 +17,7 @@ use ew_schema::{
 use sha2::Digest;
 
 use crate::error::CmdError;
-use crate::text::Text;
+use ew_l10n::Text;
 
 /// An index read of a transaction: which base index was asked for which key. The read set stores the
 /// IDs the base index answered, and the rebase check asks again.
@@ -887,7 +887,7 @@ impl<'a> TxBuilder<'a> {
     }
 
     /// A refusal by the current command or normaliser, by key: `return tx.reject(text!("refusal-…", …))`.
-    pub fn reject<T>(&self, text: crate::text::Text) -> Result<T, CmdError> {
+    pub fn reject<T>(&self, text: ew_l10n::Text) -> Result<T, CmdError> {
         Err(CmdError::rejected(self.source, text))
     }
 

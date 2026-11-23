@@ -402,14 +402,10 @@ impl Session {
         match rows.count() {
             None => out.push(message(
                 "cable.cores",
-                ew_commands::text_key!("error-cable-section-cores"),
+                key!("error-cable-section-cores"),
                 &[rows.cores.trim(), &MAX_CORES.to_string()],
             )),
-            Some(1) if rows.pe => out.push(message(
-                "cable.pe",
-                ew_commands::text_key!("error-cable-section-pe"),
-                &[],
-            )),
+            Some(1) if rows.pe => out.push(message("cable.pe", key!("error-cable-section-pe"), &[])),
             Some(_) => {}
         }
         let bus_words = crate::part_editor::bus_words();
@@ -418,23 +414,19 @@ impl Session {
             .split_whitespace()
             .find(|w| !bus_words.iter().any(|b| b == w))
         {
-            out.push(message(
-                "cable.bus",
-                ew_commands::text_key!("error-part-bus-system"),
-                &[word],
-            ));
+            out.push(message("cable.bus", key!("error-part-bus-system"), &[word]));
         }
         if rows.size().is_none() && (rows.needs_size() || !rows.csa.trim().is_empty()) {
             out.push(message(
                 "cable.csa",
-                ew_commands::text_key!("error-cable-section-csa"),
+                key!("error-cable-section-csa"),
                 &[rows.csa.trim()],
             ));
         }
         if !CABLE_MARKINGS.contains(&rows.marking.as_str()) {
             out.push(message(
                 "cable.marking",
-                ew_commands::text_key!("error-part-value"),
+                key!("error-part-value"),
                 &[&rows.marking],
             ));
         }
@@ -447,7 +439,7 @@ impl Session {
                 if core.is_empty() || ew_mltext::Ident::from_input(core).is_err() || twice {
                     out.push(message(
                         &format!("cable.core.{i}"),
-                        ew_commands::text_key!("error-cable-section-core"),
+                        key!("error-cable-section-core"),
                         &[&(i + 1).to_string(), core],
                     ));
                 }
@@ -455,7 +447,7 @@ impl Session {
                 if !known {
                     out.push(message(
                         &format!("cable.colour.{i}"),
-                        ew_commands::text_key!("error-cable-section-colour"),
+                        key!("error-cable-section-colour"),
                         &[&(i + 1).to_string(), colour.trim()],
                     ));
                 }
@@ -503,13 +495,8 @@ impl Session {
         if rows.shield {
             cores.push(json!({ "core": "SHIELD", "shield": true }));
         }
-        serde_json::from_value(Value::Array(cores)).map_err(|e| {
-            message(
-                "cable.cores",
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            )
-        })
+        serde_json::from_value(Value::Array(cores))
+            .map_err(|e| message("cable.cores", key!("error-part-value"), &[&e.to_string()]))
     }
 }
 

@@ -15,7 +15,6 @@ use serde_json::Value;
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `library.embed` (`EmbedLibraryCopies`): embeds library items into the project, each as a copy that

@@ -23,8 +23,8 @@ use crate::commands::layout::push_after_growth;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// One terminal of `terminal.add`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

@@ -85,14 +85,13 @@ pub(crate) fn tier_word(t: Tier) -> &'static str {
 /// that "Source missing" would name.
 pub(crate) fn copy_state(s: &CopyState) -> (&'static str, crate::Text) {
     match s {
-        CopyState::Current => ("", api_text!("library-state-current")),
-        CopyState::UpdateAvailable { version, .. } => (
-            "update_available",
-            api_text!("library-state-update", version.clone()),
-        ),
-        CopyState::Deprecated { .. } => ("deprecated", api_text!("badge-deprecated")),
-        CopyState::SourceMissing => ("source_missing", api_text!("badge-source-missing")),
-        CopyState::LocalFork => ("local_fork", api_text!("badge-local-fork")),
+        CopyState::Current => ("", text!("library-state-current")),
+        CopyState::UpdateAvailable { version, .. } => {
+            ("update_available", text!("library-state-update", version.clone()))
+        }
+        CopyState::Deprecated { .. } => ("deprecated", text!("badge-deprecated")),
+        CopyState::SourceMissing => ("source_missing", text!("badge-source-missing")),
+        CopyState::LocalFork => ("local_fork", text!("badge-local-fork")),
     }
 }
 
@@ -137,13 +136,13 @@ fn index_word(s: &IndexState) -> String {
 /// A form kind in words, in the reader's language.
 fn form_kind_word(k: &FormKind) -> crate::Text {
     match k {
-        FormKind::Frame => api_text!("library-form-frame"),
-        FormKind::TitleBlock => api_text!("library-form-title-block"),
-        FormKind::Cover => api_text!("library-form-cover"),
-        FormKind::Divider => api_text!("library-form-divider"),
-        FormKind::Report => api_text!("library-form-report"),
-        FormKind::Label => api_text!("library-form-label"),
-        _ => api_text!("library-form-other"),
+        FormKind::Frame => text!("library-form-frame"),
+        FormKind::TitleBlock => text!("library-form-title-block"),
+        FormKind::Cover => text!("library-form-cover"),
+        FormKind::Divider => text!("library-form-divider"),
+        FormKind::Report => text!("library-form-report"),
+        FormKind::Label => text!("library-form-label"),
+        _ => text!("library-form-other"),
     }
 }
 
@@ -169,7 +168,7 @@ fn form_name(kind: &FormKind, key: Option<&str>) -> crate::Text {
     if words.is_empty() {
         word
     } else {
-        api_text!("library-form-named", word, words.join(" "))
+        text!("library-form-named", word, words.join(" "))
     }
 }
 
@@ -218,15 +217,15 @@ fn own_form_name(q: &Q, id: Id<FormDef>, form: &FormDef) -> crate::Text {
         .map(|e| e.folio.as_str())
         .collect();
     let on: crate::TextArg = match folios.as_slice() {
-        [] => api_text!("library-form-on-no-page").into(),
+        [] => text!("library-form-on-no-page").into(),
         [a, b, c, _, ..] => format!("{a}, {b}, {c} …").into(),
         some => some.join(", ").into(),
     };
     let kind = form_kind_word(&form.kind);
     if w > h {
-        api_text!("library-form-own-landscape", kind, paper, on)
+        text!("library-form-own-landscape", kind, paper, on)
     } else {
-        api_text!("library-form-own-portrait", kind, paper, on)
+        text!("library-form-own-portrait", kind, paper, on)
     }
 }
 
@@ -263,7 +262,7 @@ pub(crate) fn frame_forms(q: &Q) -> Vec<(Uuid, crate::Text)> {
             *n += 1;
             match *n {
                 1 => (id, name),
-                n => (id, api_text!("library-form-numbered", name, n.to_string())),
+                n => (id, text!("library-form-numbered", name, n.to_string())),
             }
         })
         .collect()

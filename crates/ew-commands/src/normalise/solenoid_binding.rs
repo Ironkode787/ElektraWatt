@@ -48,7 +48,6 @@ use crate::commands::is_on_module;
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::normalise::channel_instantiation::{binding_words, channels_by_number, module_section};
-use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 

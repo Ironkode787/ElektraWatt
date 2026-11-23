@@ -9,7 +9,7 @@ A crate depends (normal and build dependencies) only on crates before it: in an 
 | Tier | Crates |
 |---|---|
 | build | `ew-hack` |
-| values | `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-plcaddr`, `ew-memo`, `ew-zip`, `ew-jobs`, `ew-dl` |
+| values | `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-plcaddr`, `ew-memo`, `ew-zip`, `ew-jobs`, `ew-l10n`, `ew-dl` |
 | records | `ew-schema`, `ew-format`, `ew-interop-api`, `ew-caex` |
 | importers | `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables` |
 | project | `ew-model`, `ew-derive`, `ew-plc` |
@@ -72,7 +72,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 
 ## ew-api
 
-`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-library`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
+`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
 
 The `Session` facade shared by every front-end.
 
@@ -242,7 +242,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-commands
 
-`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-format`, `ew-ids`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
 `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`.
 
@@ -334,7 +334,6 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/proxy.rs` |  | JSON Schema stand-ins for the value types of the foundation crates in command parameters. |
 | `src/registry.rs` |  | The command registry (doc 17 §2.1): the single list of commands with their metadata and parameter schemas, and the untyped [`AnyCommand`] of scripts, plugins and MCP. |
 | `src/rows.rs` |  | Kind-erased rows as JSON: the canonical record bytes compared by the algebraic tests (undo restores the exact bytes of every record, preview + commit = execute) and the field paths of the preview diff. |
-| `src/text.rs` |  | A command's refusal by key: the key of the window's text files and its arguments. |
 | `src/transaction.rs` |  | The `Transaction` layer of ADR-0008: the ops of one command with its journal metadata. |
 | `src/tx.rs` | large | [`TxBuilder`]: the scratch snapshot with read-your-writes that a command and the normalisers write through (ADR-0008, ARCH §5.2), and the [`ReadSet`] it records for the optimistic rebase of previews. |
 | `src/words.rs` |  | Records named in words for a command's refusal (doc 16a): a refusal reaches the window's toast (`error-command`), so it names a record by its tag, page folio or label, never by its ID. |
@@ -646,6 +645,17 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 | File | Size | What it holds |
 |---|---|---|
 | `src/lib.rs` |  | The job runner: one named `std` thread per job, a progress cell, a cancel flag checked at checkpoints, a waker for the window, `catch_unwind` and a test gate. |
+
+## ew-l10n
+
+`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-viewmodel` · in tests by none
+
+A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too.
+
+| File | Size | What it holds |
+|---|---|---|
+| `src/build.rs` |  | The one generator of the key tables (architecture §18 point 5): the build script of every crate that owns a text folder calls [`generate`], and the crate reads what it writes through [`texts!`](crate::texts) or `include!`. |
+| `src/lib.rs` |  | A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too. |
 
 ## ew-library
 
@@ -1141,7 +1151,7 @@ Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`,
 
 ## ew-viewmodel
 
-`crates/ew-viewmodel` · GPL-3.0-or-later · tier shell · depends on `ew-api`, `ew-dl`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by `ew-viewmodel`
+`crates/ew-viewmodel` · GPL-3.0-or-later · tier shell · depends on `ew-api`, `ew-dl`, `ew-l10n`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by `ew-viewmodel`
 
 Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command mapping, property-grid rows with provenance and message lists, each with a revision stamp; and the model of the application shell.
 

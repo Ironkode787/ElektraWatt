@@ -57,7 +57,6 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// Normaliser #0.

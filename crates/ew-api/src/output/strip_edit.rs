@@ -289,7 +289,7 @@ impl Session {
                     params,
                 });
             }
-            [] => return Err(StripEditError::Invalid(api_text!("refusal-strip-nothing"))),
+            [] => return Err(StripEditError::Invalid(text!("refusal-strip-nothing"))),
             _ => {}
         }
         let sheet = SheetCx::new(&q);
@@ -316,7 +316,7 @@ impl Session {
                 StripEdit::AccessoryPart { strip, index, part } => {
                     let list = accessories_of(&q, &mut work, *strip)?;
                     let entry = list.get_mut(*index as usize).ok_or_else(|| {
-                        StripEditError::Invalid(api_text!("refusal-strip-no-accessory", index.to_string()))
+                        StripEditError::Invalid(text!("refusal-strip-no-accessory", index.to_string()))
                     })?;
                     let kind = entry
                         .get("kind")
@@ -324,7 +324,7 @@ impl Session {
                         .unwrap_or_default()
                         .to_owned();
                     if part.trim().is_empty() {
-                        return Err(StripEditError::Invalid(api_text!("refusal-strip-accessory-part")));
+                        return Err(StripEditError::Invalid(text!("refusal-strip-accessory-part")));
                     }
                     let copy = resolve(&cx, part, accessory_part_kinds(&kind))?;
                     entry["part"] = json!({ "copy": copy });
@@ -336,7 +336,7 @@ impl Session {
                     part,
                 } => {
                     if !ACCESSORY_KINDS.contains(&kind.as_str()) {
-                        return Err(StripEditError::Invalid(api_text!(
+                        return Err(StripEditError::Invalid(text!(
                             "refusal-strip-accessory-kind",
                             kind,
                             ACCESSORY_KINDS.join(", ")
@@ -363,7 +363,7 @@ impl Session {
                     let list = accessories_of(&q, &mut work, *strip)?;
                     let n = list.len();
                     if let Some(bad) = indexes.iter().find(|i| **i as usize >= n) {
-                        return Err(StripEditError::Invalid(api_text!(
+                        return Err(StripEditError::Invalid(text!(
                             "refusal-strip-no-accessory",
                             bad.to_string()
                         )));
@@ -377,7 +377,7 @@ impl Session {
                     *list = keep;
                 }
                 StripEdit::Insert { .. } | StripEdit::Move { .. } => {
-                    return Err(StripEditError::Invalid(api_text!("refusal-strip-gesture-alone")));
+                    return Err(StripEditError::Invalid(text!("refusal-strip-gesture-alone")));
                 }
             }
         }
@@ -421,10 +421,10 @@ fn resolve(cx: &dyn ParseCx, text: &str, kinds: &[&str]) -> Result<String, Strip
         Ok(id) => Ok(id),
         Err(PartMiss::Unknown(t)) => {
             // A part kind by its own key, so the window names it in words.
-            let kind = |k: &str| api_text!("refusal-words-part-kind", k);
+            let kind = |k: &str| text!("refusal-words-part-kind", k);
             Err(StripEditError::Invalid(match kinds {
-                [a, b] => api_text!("refusal-strip-no-part-either", t, kind(a), kind(b)),
-                _ => api_text!("refusal-strip-no-part", t, kind(&kinds.join(", "))),
+                [a, b] => text!("refusal-strip-no-part-either", t, kind(a), kind(b)),
+                _ => text!("refusal-strip-no-part", t, kind(&kinds.join(", "))),
             }))
         }
         Err(PartMiss::Invalid(m)) => Err(StripEditError::Invalid(m)),
@@ -452,9 +452,7 @@ fn only_part(cx: &dyn ParseCx, kinds: &[&str]) -> Result<String, StripEditError>
         .collect();
     fits.sort_by(part_order);
     match fits.len() {
-        0 => Err(StripEditError::Refused(ew_commands::text_key!(
-            "reason-no-accessory-part"
-        ))),
+        0 => Err(StripEditError::Refused(key!("reason-no-accessory-part"))),
         1 => Ok(fits.remove(0).id),
         _ => Err(StripEditError::Ambiguous(choices(fits))),
     }
@@ -488,7 +486,7 @@ fn accessories_of<'w>(q: &Q, work: &'w mut Work, strip: Uuid) -> Result<&'w mut 
         .devices()
         .get(id)
         .and_then(|d| d.aspects.strip.clone())
-        .ok_or_else(|| StripEditError::Invalid(api_text!("refusal-strip-not-strip")))?;
+        .ok_or_else(|| StripEditError::Invalid(text!("refusal-strip-not-strip")))?;
     let list: Vec<Value> = aspect
         .accessories
         .iter()
@@ -504,8 +502,8 @@ fn accessories_of<'w>(q: &Q, work: &'w mut Work, strip: Uuid) -> Result<&'w mut 
 fn group_label(q: &Q, work: &mut Work, terminals: &[Uuid], label: &str) -> Result<(), StripEditError> {
     let mut by_strip: Vec<(Id<Device>, Vec<u32>)> = Vec::new();
     for t in terminals {
-        let (strip, seq) = terminal_of(q, *t)
-            .ok_or_else(|| StripEditError::Invalid(api_text!("refusal-strip-not-terminal")))?;
+        let (strip, seq) =
+            terminal_of(q, *t).ok_or_else(|| StripEditError::Invalid(text!("refusal-strip-not-terminal")))?;
         match by_strip.iter_mut().find(|(s, _)| *s == strip) {
             Some((_, seqs)) => seqs.push(seq),
             None => by_strip.push((strip, vec![seq])),
@@ -521,7 +519,7 @@ fn group_label(q: &Q, work: &mut Work, terminals: &[Uuid], label: &str) -> Resul
                     .devices()
                     .get(strip)
                     .and_then(|d| d.aspects.strip.as_ref().map(|a| a.groups.clone()))
-                    .ok_or_else(|| StripEditError::Invalid(api_text!("refusal-strip-terminal-strip")))?;
+                    .ok_or_else(|| StripEditError::Invalid(text!("refusal-strip-terminal-strip")))?;
                 work.order.push((0, work.groups.len()));
                 work.groups.push((strip, groups));
                 work.groups.len() - 1
@@ -642,7 +640,7 @@ fn bridge_part(
     for t in terminals {
         let id: Id<Device> = Id::from_uuid(*t);
         let Some((_, _, g)) = groups.iter().find(|(_, _, g)| g.terminals.contains(&id)) else {
-            return Err(StripEditError::Refused(ew_commands::text_key!("table-no-bridge")));
+            return Err(StripEditError::Refused(key!("table-no-bridge")));
         };
         let carrier = g.carrier.as_uuid();
         match work.carriers.iter_mut().find(|(c, _)| *c == carrier) {
@@ -742,15 +740,13 @@ fn insert(
         .get(strip_id)
         .is_some_and(|d| d.aspects.strip.is_some())
     {
-        return Err(StripEditError::Invalid(api_text!("refusal-strip-not-strip")));
+        return Err(StripEditError::Invalid(text!("refusal-strip-not-strip")));
     }
     if count == 0 {
-        return Err(StripEditError::Invalid(api_text!("refusal-strip-insert-count")));
+        return Err(StripEditError::Invalid(text!("refusal-strip-insert-count")));
     }
     if designation.is_some() && count != 1 {
-        return Err(StripEditError::Invalid(api_text!(
-            "refusal-strip-designation-one"
-        )));
+        return Err(StripEditError::Invalid(text!("refusal-strip-designation-one")));
     }
     let terminals = strip_terminals(q, strip_id);
     let reference = before
@@ -761,9 +757,7 @@ fn insert(
         .and_then(|f| q.functions().get(f).map(|f| f.def))
         .or_else(|| starter_terminal_def(q));
     let Some(fndef) = fndef else {
-        return Err(StripEditError::Refused(ew_commands::text_key!(
-            "reason-no-terminal-def"
-        )));
+        return Err(StripEditError::Refused(key!("reason-no-terminal-def")));
     };
     let parts: Vec<Value> = reference
         .and_then(|r| q.devices().get(r))

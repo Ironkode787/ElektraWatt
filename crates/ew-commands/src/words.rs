@@ -12,8 +12,8 @@ use ew_schema::{
     Connection, Device, Function, FunctionKind, Junction, Kind, Page, PageType, RepType, Representation,
 };
 
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// A device's printed tag (`-102G1`): the derived short tag of the transaction's base model, else, for a device
 /// the transaction made, its letter and counter (`-K1`; `-K` before online numbering gives it a counter).

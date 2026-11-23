@@ -25,8 +25,8 @@ use crate::commands::common::KindName;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::UuidS;
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// The settable field paths per kind: dotted JSON member paths of the record's serde form (device aspects
 /// are flattened, so `strip.label_mode` is the strip aspect's member). Identity, links that commands own

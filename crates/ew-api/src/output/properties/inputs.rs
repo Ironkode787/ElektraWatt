@@ -58,7 +58,7 @@ impl Session {
         }
         let q = self.query();
         let ty = row_type(kind, row_path)
-            .ok_or_else(|| InputError::Invalid(api_text!("refusal-input-not-a-field", row_path, kind)))?;
+            .ok_or_else(|| InputError::Invalid(text!("refusal-input-not-a-field", row_path, kind)))?;
         let member = last_member(row_path);
         let cx = match offers_library_parts(kind, &member, &ty) {
             true => SheetCx::new(&q).with_library_parts(self),
@@ -118,7 +118,7 @@ impl Session {
             // `auto`, `excluded`, `tbd` or an address text (`I4.0`); `fields.set` reads it by the channel's profile and
             // refuses a text that does not parse with the profile's example.
             ("channel", "address") if !t.is_empty() => plain(Value::String(t.to_owned())),
-            ("channel", "address") => Some(Err(InputError::Invalid(api_text!("refusal-input-plc-address")))),
+            ("channel", "address") => Some(Err(InputError::Invalid(text!("refusal-input-plc-address")))),
             // `auto`, `excluded`, `tbd` or a start text (`Q10`): `plc.set_start` reads it.
             ("device", "plc_module.start.input" | "plc_module.start.output") if !t.is_empty() => {
                 plain(Value::String(t.to_owned()))
@@ -131,10 +131,7 @@ impl Session {
                     Ok(id) => id,
                     // The script references' resolver words its reasons by key (`cmdlog`), in the window's language.
                     Err(reason) => {
-                        return Some(Err(InputError::Invalid(api_text!(
-                            "refusal-input-detail",
-                            reason
-                        ))));
+                        return Some(Err(InputError::Invalid(text!("refusal-input-detail", reason))));
                     }
                 };
                 if q.functions().get(Id::from_uuid(id)).is_some() {
@@ -147,7 +144,7 @@ impl Session {
                     .and(*q.get::<ew_derive::MainFunction>(device))
                 {
                     Some(f) => plain(Value::String(f.as_uuid().to_string())),
-                    None => Some(Err(InputError::Invalid(api_text!("refusal-input-plc-target", t)))),
+                    None => Some(Err(InputError::Invalid(text!("refusal-input-plc-target", t)))),
                 }
             }
             _ => None,
@@ -171,7 +168,7 @@ pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
         Ok([rack, slot]) => serde_json::json!({"rack": rack, "slot": slot}),
         Ok([rack, slot, sub]) => serde_json::json!({"rack": rack, "slot": slot, "subslot": sub}),
         _ => {
-            return Err(InputError::Invalid(api_text!("refusal-input-plc-slot", t)));
+            return Err(InputError::Invalid(text!("refusal-input-plc-slot", t)));
         }
     };
     Ok(ParsedInput {
@@ -208,7 +205,7 @@ fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
     }
     let (whole, frac) = number.split_once('.').unwrap_or((number, ""));
     if whole.is_empty() || frac.contains('.') || frac.len() > 9 {
-        return Some(Err(InputError::Invalid(api_text!("refusal-input-metres", t))));
+        return Some(Err(InputError::Invalid(text!("refusal-input-metres", t))));
     }
     let nm = whole
         .parse::<i64>()
@@ -220,7 +217,7 @@ fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
         });
     match nm {
         Some(nm) => plain(LengthSource::Manual(Nm(nm))),
-        None => Some(Err(InputError::Invalid(api_text!("refusal-input-too-long", t)))),
+        None => Some(Err(InputError::Invalid(text!("refusal-input-too-long", t)))),
     }
 }
 

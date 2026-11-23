@@ -3201,7 +3201,7 @@ pub(super) mod tests {
         let err = CmdError::invalid_params(
             "fields.set",
             "/targets/1",
-            ew_api::Text::checked_by_macro("refusal-params-detail", vec!["refused".into()]),
+            ew_commands::text!("refusal-params-detail", "refused"),
         );
         let labels: Vec<String> = section
             .targets
@@ -3227,7 +3227,7 @@ pub(super) mod tests {
                 &CmdError::invalid_params(
                     "fields.set",
                     "/value",
-                    ew_api::Text::checked_by_macro("refusal-params-detail", vec!["bad".into()]),
+                    ew_commands::text!("refusal-params-detail", "bad"),
                 ),
                 &|_| String::new()
             ),

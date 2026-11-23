@@ -25,7 +25,6 @@ use crate::commands::terminal::CreateCable;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, NmS, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `bus.logical_net.create` (`CreateLogicalNet`): a logical bus network, the scope of address uniqueness with its

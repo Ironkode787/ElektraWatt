@@ -756,9 +756,9 @@ impl Session {
                     s.parse::<Ident>().ok().filter(known).ok_or_else(|| {
                         let names: Vec<&str> = copy.item.value_sets.iter().map(|v| v.name.as_str()).collect();
                         let text = if names.is_empty() {
-                            api_text!("refusal-macro-value-set-none", s)
+                            text!("refusal-macro-value-set-none", s)
                         } else {
-                            api_text!("refusal-macro-value-set-unknown", s, names.join(", "))
+                            text!("refusal-macro-value-set-unknown", s, names.join(", "))
                         };
                         crate::ApiError::Cmd(crate::CmdError::invalid_params(
                             <InsertMacro as ew_commands::Command>::NAME,

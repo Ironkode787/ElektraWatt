@@ -13,7 +13,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::LangTagS;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `project.languages.set` (`SetProjectLanguages`): sets the project's languages and its printed formats as one

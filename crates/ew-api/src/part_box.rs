@@ -459,21 +459,18 @@ impl PartDraft {
     ) -> Result<(), PartDraftError> {
         let refuse = |key, arg: &str| PartDraftError::Field(message("pins", key, &[arg]));
         let Some(pin) = self.pins.iter_mut().find(|p| p.idx == idx) else {
-            return Err(refuse(
-                ew_commands::text_key!("error-part-pin-unknown"),
-                &idx.to_string(),
-            ));
+            return Err(refuse(key!("error-part-pin-unknown"), &idx.to_string()));
         };
         if let Some(name) = name {
             let name = name.trim();
             if name.is_empty() || Ident::from_input(name).is_err() {
-                return Err(refuse(ew_commands::text_key!("error-part-pin-name"), name));
+                return Err(refuse(key!("error-part-pin-name"), name));
             }
             name.clone_into(&mut pin.name);
         }
         if let Some(role) = role {
             if !role.is_empty() && !pin_roles().iter().any(|r| r == role) {
-                return Err(refuse(ew_commands::text_key!("error-part-pin-role"), role));
+                return Err(refuse(key!("error-part-pin-role"), role));
             }
             role.clone_into(&mut pin.role);
         }
@@ -593,13 +590,7 @@ impl Session {
             }
             return Ok(());
         }
-        let bad = |why: String| {
-            PartDraftError::Field(message(
-                "pins",
-                ew_commands::text_key!("error-part-value"),
-                &[&why],
-            ))
-        };
+        let bad = |why: String| PartDraftError::Field(message("pins", key!("error-part-value"), &[&why]));
         if draft.pins != pin_rows(&draft.original) {
             let mut pattern = Vec::with_capacity(draft.pins.len());
             for row in &draft.pins {

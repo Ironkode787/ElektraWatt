@@ -251,15 +251,15 @@ fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::
                 .iter()
                 .find(|cp| cp.function == *function && cp.idx == *idx)
                 .map_or_else(
-                    || api_text!("refusal-words-cp-other-page").into(),
+                    || text!("refusal-words-cp-other-page").into(),
                     |cp| cp_text(q, cp).into(),
                 ),
             TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
                 Some(j) => match cell_text(q, page, j.at) {
-                    c if c.is_empty() => api_text!("refusal-words-a-junction").into(),
-                    c => api_text!("refusal-words-junction-in", c).into(),
+                    c if c.is_empty() => text!("refusal-words-a-junction").into(),
+                    c => text!("refusal-words-junction-in", c).into(),
                 },
-                None => api_text!("refusal-words-a-junction").into(),
+                None => text!("refusal-words-a-junction").into(),
             },
         }
     };
@@ -267,7 +267,7 @@ fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::
         .connections
         .iter()
         .find(|c| c.id == id)
-        .map(|c| api_text!("refusal-words-connection", end(&c.a), end(&c.b)))
+        .map(|c| text!("refusal-words-connection", end(&c.a), end(&c.b)))
 }
 
 /// The owner `id` of a body or a text box of `tables` in words: a representation's device tag as the page prints it,

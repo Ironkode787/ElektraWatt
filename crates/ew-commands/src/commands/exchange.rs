@@ -23,7 +23,6 @@ use crate::error::CmdError;
 use crate::geometry::{follow_ends, rep_cps_checked, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// One entry of an explicit CP map of [`ExchangeSymbol`]: a CP of the new symbol and the function CP it draws.

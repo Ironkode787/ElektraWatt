@@ -14,7 +14,6 @@ use serde_json::{Value, json};
 use crate::command::{Command, DynCommand, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 type ParseFn = fn(Value) -> Result<Box<dyn DynCommand>, serde_json::Error>;

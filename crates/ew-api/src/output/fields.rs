@@ -1275,7 +1275,7 @@ fn scale_input(text: &str) -> Option<Result<Value, InputError>> {
     }
     Some(match n.parse::<u32>() {
         Ok(k) if k > 0 && one == "1" => Ok(serde_json::json!({ "one_to": k })),
-        _ => Err(invalid(api_text!("refusal-input-scale", t))),
+        _ => Err(invalid(text!("refusal-input-scale", t))),
     })
 }
 
@@ -1334,7 +1334,7 @@ fn rect_input(text: &str) -> Option<Result<Value, InputError>> {
     let place = place.strip_suffix("mm").unwrap_or(place);
     let (x, y) = place.split_once(", ")?;
     let (w, h) = size.split_once(['×', 'x'])?;
-    let bad = || invalid(api_text!("refusal-input-rect", t));
+    let bad = || invalid(text!("refusal-input-rect", t));
     let nm = |s: &str| parse_nm(s).ok().and_then(|v| v.as_i64());
     Some(match (nm(x), nm(y), nm(w), nm(h)) {
         (Some(x), Some(y), Some(w), Some(h)) if w > 0 && h > 0 => {
@@ -1485,9 +1485,9 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
         let int: String = t[..t.len() - 4].to_owned();
         let frac: String = t[t.len() - 3..].to_owned();
         let decimal = Dec3::parse_lenient(&format!("{int}.{frac}"))
-            .map_err(|e| invalid(api_text!("refusal-input-detail", e.to_string())))?;
+            .map_err(|e| invalid(text!("refusal-input-detail", e.to_string())))?;
         let thousands = Dec3::parse_lenient(&format!("{int}{frac}"))
-            .map_err(|e| invalid(api_text!("refusal-input-detail", e.to_string())))?;
+            .map_err(|e| invalid(text!("refusal-input-detail", e.to_string())))?;
         return Err(InputError::Ambiguous {
             choices: vec![
                 (
@@ -1503,7 +1503,7 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
     }
     Dec3::parse_lenient(t)
         .map(|d| wrap(dec3_text(d)))
-        .map_err(|_| invalid(api_text!("refusal-input-decimal", t)))
+        .map_err(|_| invalid(text!("refusal-input-decimal", t)))
 }
 
 /// A cross-section: `0.75`, `0.75 mm²`, `AWG 18`, `18 AWG`, `AWG 2/0`, `250 kcmil`.
@@ -1514,17 +1514,15 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
         let value = if let Some(zeros) = n.strip_suffix("/0") {
             let k: i64 = zeros
                 .parse()
-                .map_err(|_| invalid(api_text!("refusal-input-awg", n)))?;
+                .map_err(|_| invalid(text!("refusal-input-awg", n)))?;
             if !(1..=4).contains(&k) {
-                return Err(invalid(api_text!("refusal-input-awg", n)));
+                return Err(invalid(text!("refusal-input-awg", n)));
             }
             1 - k
         } else {
-            let k: i64 = n
-                .parse()
-                .map_err(|_| invalid(api_text!("refusal-input-awg", n)))?;
+            let k: i64 = n.parse().map_err(|_| invalid(text!("refusal-input-awg", n)))?;
             if !(1..=40).contains(&k) {
-                return Err(invalid(api_text!("refusal-input-awg", n)));
+                return Err(invalid(text!("refusal-input-awg", n)));
             }
             k
         };
@@ -1551,7 +1549,7 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
 /// cm`), as whole nanometres.
 fn parse_nm(text: &str) -> Result<Value, InputError> {
     let typed = text.trim();
-    let bad = || invalid(api_text!("refusal-input-mm", typed));
+    let bad = || invalid(text!("refusal-input-mm", typed));
     let lower = typed.to_ascii_lowercase();
     // The unit's fraction digits down to the nanometre, and its size in nanometres.
     let (t, places, unit) = if lower.ends_with("mm") {
@@ -1608,14 +1606,14 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
             .find(|(a, _)| a.eq_ignore_ascii_case(code))
             .map(|(_, iec)| iec.as_str());
         match alias {
-            Some(iec) => invalid(api_text!(
+            Some(iec) => invalid(text!(
                 "refusal-input-colour-alias",
                 code,
                 iec,
                 iec_name(iec),
                 accepted()
             )),
-            None => invalid(api_text!("refusal-input-colour", code, accepted())),
+            None => invalid(text!("refusal-input-colour", code, accepted())),
         }
     };
     let mut tokens: Vec<String> = t
@@ -1624,7 +1622,7 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
         .map(str::to_uppercase)
         .collect();
     if tokens.is_empty() {
-        return Err(invalid(api_text!("refusal-input-colour-none")));
+        return Err(invalid(text!("refusal-input-colour-none")));
     }
     if tokens.len() == 1 && !known(&tokens[0]) {
         // Without a separator: split into two known codes (`GNYE`, `DBUWH`).
@@ -1645,7 +1643,7 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
         }
     }
     if tokens.len() > 2 {
-        return Err(invalid(api_text!("refusal-input-colour-count")));
+        return Err(invalid(text!("refusal-input-colour-count")));
     }
     for code in &tokens {
         if !known(code) {
@@ -1689,7 +1687,7 @@ pub(crate) fn parse_input(
         }
         FieldType::Text => {
             if text.chars().any(char::is_control) {
-                return Err(invalid(api_text!("refusal-input-text-control")));
+                return Err(invalid(text!("refusal-input-text-control")));
             }
             plain(Value::String(text.to_owned()))
         }
@@ -1703,7 +1701,7 @@ pub(crate) fn parse_input(
         }
         FieldType::MlText => {
             if text.chars().any(char::is_control) {
-                return Err(invalid(api_text!("refusal-input-text-control")));
+                return Err(invalid(text!("refusal-input-text-control")));
             }
             if text.is_empty() {
                 plain(Value::Null)
@@ -1714,15 +1712,13 @@ pub(crate) fn parse_input(
         FieldType::Bool => match text.trim().to_ascii_lowercase().as_str() {
             "true" | "yes" | "1" => plain(Value::Bool(true)),
             "false" | "no" | "0" => plain(Value::Bool(false)),
-            _ => Err(invalid(api_text!("refusal-input-yes-no", text.trim()))),
+            _ => Err(invalid(text!("refusal-input-yes-no", text.trim()))),
         },
         FieldType::Int { min, max } => {
             let t = text.trim();
-            let n: i64 = t
-                .parse()
-                .map_err(|_| invalid(api_text!("refusal-input-whole", t)))?;
+            let n: i64 = t.parse().map_err(|_| invalid(text!("refusal-input-whole", t)))?;
             if min.is_some_and(|m| n < m) || max.is_some_and(|m| n > m) {
-                return Err(invalid(api_text!(
+                return Err(invalid(text!(
                     "refusal-input-range",
                     n.to_string(),
                     min.map_or_else(String::new, |m| m.to_string()),
@@ -1758,11 +1754,11 @@ pub(crate) fn parse_input(
                             .is_some_and(|end| end.eq_ignore_ascii_case(w))
                 });
                 if current {
-                    return Err(invalid(api_text!("refusal-input-ac-dc", t)));
+                    return Err(invalid(text!("refusal-input-ac-dc", t)));
                 }
                 // The units by their symbols.
                 let units: Vec<&str> = ew_schema::Unit::ALL.iter().map(ew_schema::Unit::symbol).collect();
-                return Err(invalid(api_text!("refusal-input-no-unit", t, units.join(", "))));
+                return Err(invalid(text!("refusal-input-no-unit", t, units.join(", "))));
             };
             let number = t[..t.len() - spelling.len()].trim();
             parse_dec3(number, &|d| serde_json::json!({ "value": d, "unit": unit })).map(|value| {
@@ -1785,7 +1781,7 @@ pub(crate) fn parse_input(
             let format = cx.date_format();
             match format.parse(text) {
                 Ok(d) => plain(Value::String(d.to_string())),
-                Err(_) => Err(invalid(api_text!(
+                Err(_) => Err(invalid(text!(
                     "refusal-input-date",
                     text.trim(),
                     format.example()
@@ -1831,10 +1827,10 @@ pub(crate) fn parse_input(
                     let names = forms.into_iter().rev().fold(None, |tail, (_, name)| {
                         Some(match tail {
                             None => crate::TextArg::from(name),
-                            Some(tail) => api_text!("refusal-words-list", name, tail).into(),
+                            Some(tail) => text!("refusal-words-list", name, tail).into(),
                         })
                     });
-                    Err(invalid(api_text!(
+                    Err(invalid(text!(
                         "refusal-input-form",
                         t,
                         names.unwrap_or_else(|| "".into())
@@ -1865,10 +1861,10 @@ pub(crate) fn parse_input(
                     value: Value::String(id.clone()),
                     notes: vec![format!("resolved through alias '{t}'")],
                 }),
-                None => Err(invalid(api_text!("refusal-input-no-node", t))),
+                None => Err(invalid(text!("refusal-input-no-node", t))),
             }
         }
-        FieldType::Uuid | FieldType::Link { .. } => Err(invalid(api_text!("refusal-input-shown"))),
+        FieldType::Uuid | FieldType::Link { .. } => Err(invalid(text!("refusal-input-shown"))),
         FieldType::List(_) if ty.is_part_uses() && !text.trim_start().starts_with('[') => {
             parse_part_uses(cx, text)
         }
@@ -1877,7 +1873,7 @@ pub(crate) fn parse_input(
                 value,
                 notes: Vec::new(),
             })
-            .map_err(|e| invalid(api_text!("refusal-input-json", crate::schema_error_text(&e)))),
+            .map_err(|e| invalid(text!("refusal-input-json", crate::schema_error_text(&e)))),
     }
 }
 
@@ -1933,7 +1929,7 @@ pub(crate) fn find_part(cx: &dyn ParseCx, text: &str, kinds: Option<&[&str]>) ->
     if let Some(id) = t.strip_prefix("id:") {
         return match copies.iter().find(|c| c.id == id) {
             Some(c) => Ok(c.id.clone()),
-            None => Err(PartMiss::Invalid(api_text!("refusal-input-no-part-copy", id))),
+            None => Err(PartMiss::Invalid(text!("refusal-input-no-part-copy", id))),
         };
     }
     let mut hits: Vec<&PartCopyText> = copies
@@ -1988,7 +1984,7 @@ fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputErr
                 let qty = Dec3::parse_lenient(q)
                     .ok()
                     .filter(|d| d.0 > 0)
-                    .ok_or_else(|| invalid(api_text!("refusal-input-quantity", q)))?;
+                    .ok_or_else(|| invalid(text!("refusal-input-quantity", q)))?;
                 (p.trim(), dec3_text(qty))
             }
             None => (item, "1".to_owned()),

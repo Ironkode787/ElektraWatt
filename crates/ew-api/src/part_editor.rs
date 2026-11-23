@@ -108,9 +108,9 @@ fn check_size(field: &str, t: &str) -> Result<(), DraftMessage> {
         return Ok(());
     }
     let key = match field {
-        "mech.mount_kind" => ew_commands::text_key!("error-part-mount"),
-        "mech.mass" => ew_commands::text_key!("error-part-mass"),
-        _ => ew_commands::text_key!("error-part-length"),
+        "mech.mount_kind" => key!("error-part-mount"),
+        "mech.mass" => key!("error-part-mass"),
+        _ => key!("error-part-length"),
     };
     Err(message(field, key, &[t]))
 }
@@ -342,37 +342,21 @@ pub fn role_words() -> Vec<String> {
 /// The check of one bus member's text: the member's message, if it does not parse.
 fn check_bus_member(field: &str, m: &str, t: &str) -> Result<(), DraftMessage> {
     let ident = |t: &str| {
-        Ident::from_input(t).map(|_| ()).map_err(|e| {
-            message(
-                field,
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            )
-        })
+        Ident::from_input(t)
+            .map(|_| ())
+            .map_err(|e| message(field, key!("error-part-value"), &[&e.to_string()]))
     };
     match m {
-        "interface" if t.is_empty() => Err(message(
-            field,
-            ew_commands::text_key!("error-part-bus-interface"),
-            &[],
-        )),
+        "interface" if t.is_empty() => Err(message(field, key!("error-part-bus-interface"), &[])),
         "interface" => ident(t),
         "port_label" if t.is_empty() => Ok(()),
         "port_label" => ident(t),
         "bus" => match serde_json::from_value::<BusSystem>(Value::String(t.to_owned())) {
-            Ok(BusSystem::Unknown(_)) | Err(_) => Err(message(
-                field,
-                ew_commands::text_key!("error-part-bus-system"),
-                &[t],
-            )),
+            Ok(BusSystem::Unknown(_)) | Err(_) => Err(message(field, key!("error-part-bus-system"), &[t])),
             Ok(_) => Ok(()),
         },
         "role" => match serde_json::from_value::<PortRole>(Value::String(t.to_owned())) {
-            Ok(PortRole::Unknown(_)) | Err(_) => Err(message(
-                field,
-                ew_commands::text_key!("error-part-bus-role"),
-                &[t],
-            )),
+            Ok(PortRole::Unknown(_)) | Err(_) => Err(message(field, key!("error-part-bus-role"), &[t])),
             Ok(_) => Ok(()),
         },
         "ports" if t.is_empty() => Ok(()),
@@ -380,17 +364,13 @@ fn check_bus_member(field: &str, m: &str, t: &str) -> Result<(), DraftMessage> {
             Ok(n) if (1..=MAX_PORTS).contains(&n) => Ok(()),
             _ => Err(message(
                 field,
-                ew_commands::text_key!("error-part-bus-ports"),
+                key!("error-part-bus-ports"),
                 &[t, &MAX_PORTS.to_string()],
             )),
         },
         "termination" => match t {
             "" | "on" | "off" => Ok(()),
-            _ => Err(message(
-                field,
-                ew_commands::text_key!("error-part-bus-termination"),
-                &[t],
-            )),
+            _ => Err(message(field, key!("error-part-bus-termination"), &[t])),
         },
         _ => Ok(()),
     }
@@ -602,7 +582,7 @@ impl PartDraft {
             if twice && self.message(&field).is_none() {
                 self.messages.push(message(
                     &field,
-                    ew_commands::text_key!("error-part-bus-twice"),
+                    key!("error-part-bus-twice"),
                     &[self.bus[i].interface.trim()],
                 ));
             }
@@ -919,9 +899,7 @@ impl Session {
         let t = text.trim();
         if let Some(m) = crate::part_plc::plc_field(field) {
             let Some(slot) = draft.plc.slot(m).filter(|_| draft.new || draft.own) else {
-                return Err(PartDraftError::Refused(ew_commands::text_key!(
-                    "error-part-field"
-                )));
+                return Err(PartDraftError::Refused(key!("error-part-field")));
             };
             *slot = text.to_owned();
             draft
@@ -935,9 +913,7 @@ impl Session {
         }
         if let Some(f) = crate::part_cable::cable_field(field) {
             if !draft.new && !draft.own {
-                return Err(PartDraftError::Refused(ew_commands::text_key!(
-                    "error-part-field"
-                )));
+                return Err(PartDraftError::Refused(key!("error-part-field")));
             }
             let found = self.set_cable_field(&mut draft.cable, &mut draft.tech, f, text);
             draft.messages.retain(|x| {
@@ -965,9 +941,7 @@ impl Session {
                 .filter(|_| draft.new || draft.own)
                 .and_then(|r| r.slot(m))
             else {
-                return Err(PartDraftError::Refused(ew_commands::text_key!(
-                    "error-part-field"
-                )));
+                return Err(PartDraftError::Refused(key!("error-part-field")));
             };
             *slot = text.to_owned();
             if m == "bus" {
@@ -986,9 +960,7 @@ impl Session {
             self.set_tech(draft, key, t)
         } else {
             if !DRAFT_FIELDS.contains(&field) {
-                return Err(PartDraftError::Refused(ew_commands::text_key!(
-                    "error-part-field"
-                )));
+                return Err(PartDraftError::Refused(key!("error-part-field")));
             }
             draft.set_text(field, text);
             self.check_field(draft, field, t)
@@ -1007,22 +979,12 @@ impl Session {
 
     fn check_field(&self, draft: &mut PartDraft, field: &str, t: &str) -> Result<(), DraftMessage> {
         let ident = |t: &str| {
-            Ident::from_input(t).map_err(|e| {
-                message(
-                    field,
-                    ew_commands::text_key!("error-part-value"),
-                    &[&e.to_string()],
-                )
-            })
+            Ident::from_input(t).map_err(|e| message(field, key!("error-part-value"), &[&e.to_string()]))
         };
         match field {
             "manufacturer" => {
                 if t.is_empty() {
-                    return Err(message(
-                        field,
-                        ew_commands::text_key!("reason-part-no-manufacturer"),
-                        &[],
-                    ));
+                    return Err(message(field, key!("reason-part-no-manufacturer"), &[]));
                 }
                 // A new part names any manufacturer: Save finds the record by its name or makes one.
                 if draft.new {
@@ -1033,19 +995,14 @@ impl Session {
                 draft.manufacturer = if current.eq_ignore_ascii_case(t) {
                     (draft.original.manufacturer.clone(), Vec::new())
                 } else {
-                    self.find_manufacturer(&q, t).ok_or_else(|| {
-                        message(field, ew_commands::text_key!("error-part-manufacturer"), &[t])
-                    })?
+                    self.find_manufacturer(&q, t)
+                        .ok_or_else(|| message(field, key!("error-part-manufacturer"), &[t]))?
                 };
                 Ok(())
             }
             "part_number" => {
                 if t.is_empty() {
-                    return Err(message(
-                        field,
-                        ew_commands::text_key!("reason-part-no-number"),
-                        &[],
-                    ));
+                    return Err(message(field, key!("reason-part-no-number"), &[]));
                 }
                 ident(t).map(|_| ())
             }
@@ -1057,9 +1014,7 @@ impl Session {
                 }
             }
             "kind" => match serde_json::from_value::<PartKind>(Value::String(t.to_owned())) {
-                Ok(PartKind::Unknown(_)) | Err(_) => {
-                    Err(message(field, ew_commands::text_key!("error-part-kind"), &[t]))
-                }
+                Ok(PartKind::Unknown(_)) | Err(_) => Err(message(field, key!("error-part-kind"), &[t])),
                 Ok(_) => Ok(()),
             },
             "category" => {
@@ -1072,13 +1027,13 @@ impl Session {
                         .iter()
                         .any(|l| Ident::from_input(l).is_err() || l.is_empty())
                 {
-                    return Err(message(field, ew_commands::text_key!("error-part-category"), &[]));
+                    return Err(message(field, key!("error-part-category"), &[]));
                 }
                 Ok(())
             }
             "unit" => match t {
                 "piece" | "m" | "set" => Ok(()),
-                _ => Err(message(field, ew_commands::text_key!("reason-part-unit"), &[])),
+                _ => Err(message(field, key!("reason-part-unit"), &[])),
             },
             _ => Ok(()),
         }
@@ -1089,7 +1044,7 @@ impl Session {
         if Ident::from_input(key).is_err() || key.trim().is_empty() || key != key.trim() {
             return Err(message(
                 &field,
-                ew_commands::text_key!("error-part-tech-value"),
+                key!("error-part-tech-value"),
                 &[key, "not a key"],
             ));
         }
@@ -1102,11 +1057,7 @@ impl Session {
             .iter()
             .any(|(k, _)| k != key && k.eq_ignore_ascii_case(key))
         {
-            return Err(message(
-                &field,
-                ew_commands::text_key!("error-part-tech-twice"),
-                &[key],
-            ));
+            return Err(message(&field, key!("error-part-tech-twice"), &[key]));
         }
         match draft.tech.iter_mut().find(|(k, _)| k == key) {
             Some(slot) => slot.1 = t.to_owned(),
@@ -1133,27 +1084,14 @@ impl Session {
                         .collect::<Vec<_>>()
                         .join(" or "),
                 };
-                message(
-                    &field,
-                    ew_commands::text_key!("error-part-tech-value"),
-                    &[key, &why],
-                )
+                message(&field, key!("error-part-tech-value"), &[key, &why])
             })?;
-            serde_json::from_value(parsed).map_err(|e| {
-                message(
-                    &field,
-                    ew_commands::text_key!("error-part-tech-value"),
-                    &[key, &e.to_string()],
-                )
-            })
+            serde_json::from_value(parsed)
+                .map_err(|e| message(&field, key!("error-part-tech-value"), &[key, &e.to_string()]))
         } else {
-            Ident::from_input(t).map(TechVal::Ident).map_err(|e| {
-                message(
-                    &field,
-                    ew_commands::text_key!("error-part-tech-value"),
-                    &[key, &e.to_string()],
-                )
-            })
+            Ident::from_input(t)
+                .map(TechVal::Ident)
+                .map_err(|e| message(&field, key!("error-part-tech-value"), &[key, &e.to_string()]))
         }
     }
 
@@ -1226,11 +1164,7 @@ impl Session {
             }
         }
         p.tech_data = ew_schema::KeyedList::from_vec(tech).map_err(|e| {
-            PartDraftError::Field(message(
-                "tech",
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            ))
+            PartDraftError::Field(message("tech", key!("error-part-value"), &[&e.to_string()]))
         })?;
         Ok((p, check.manufacturer.1))
     }
@@ -1251,9 +1185,7 @@ impl Session {
             self.apply_pins(draft, &mut part)?;
         }
         if part == draft.original {
-            return Err(PartDraftError::Refused(ew_commands::text_key!(
-                "reason-part-unchanged"
-            )));
+            return Err(PartDraftError::Refused(key!("reason-part-unchanged")));
         }
         let cmd = EditPartCopy {
             copy: Id::from_uuid(draft.copy),
@@ -1261,13 +1193,8 @@ impl Session {
             fork: draft.fork.then(|| Id::from_uuid(self.next_fork_item(draft.copy))),
             copies,
         };
-        AnyCommand::of(&cmd).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            ))
-        })
+        AnyCommand::of(&cmd)
+            .map_err(|e| PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()])))
     }
 
     /// [`Session::part_edit_command`] with what the card shows (D20): the field diff, the devices that use the copy
@@ -1284,9 +1211,7 @@ impl Session {
             .parts()
             .get(Id::from_uuid(draft.copy))
             .map(|c| (**c).clone())
-            .ok_or(PartDraftError::Refused(ew_commands::text_key!(
-                "reason-part-edit-target"
-            )))?;
+            .ok_or(PartDraftError::Refused(key!("reason-part-edit-target")))?;
         let mut edited = held.clone();
         edited.item = serde_json::from_value(command.params["part"].clone()).expect("the draft's part");
         let fields = classify_update(&LibDocument::Part(held.clone()), &LibDocument::Part(edited)).fields;
@@ -1305,11 +1230,7 @@ impl Session {
             },
         );
         let preview = engine.preview(&command).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            ))
+            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
         })?;
         let after = self.query_over(preview.candidate());
         let (bom_removed, bom_added, bom_changed) = bom_changes(&q, &after);

@@ -36,7 +36,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Confirmation, Exposure};
 use crate::proxy::{IdentS, MlTextS, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The rule ID of the label format and order rule (doc 15 §4.8), whose prevent half `revision.create` applies.
@@ -230,7 +229,7 @@ fn refuse_label_out_of_order(
     let opening = *state == RevisionState::Open;
     let current = || revisions.iter().filter(|r| !r.is_withdrawal());
     // The finding by key, its English the one the CLI prints.
-    let next = || -> crate::text::TextArg {
+    let next = || -> ew_l10n::TextArg {
         let n = if opening {
             format.next_after(
                 taken
@@ -246,7 +245,7 @@ fn refuse_label_out_of_order(
             |n| text!("refusal-rel-label-next", n.to_string()).into(),
         )
     };
-    let prevented = |text: crate::text::Text, keys| CmdError::Prevented {
+    let prevented = |text: ew_l10n::Text, keys| CmdError::Prevented {
         rule: LABEL_ORDER_RULE.into(),
         finding: text.to_string(),
         keys,

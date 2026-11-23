@@ -25,7 +25,6 @@ use ew_schema::{Extra, Revision, RevisionState, is_content_kind};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// How often the ID formula is chained when its result is taken before the normaliser gives up (with a notice).

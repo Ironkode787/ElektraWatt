@@ -156,9 +156,9 @@ impl FindError {
     /// The text key.
     pub fn key(&self) -> &'static str {
         match self {
-            FindError::TooLong => ew_commands::text_key!("find-error-too-long"),
-            FindError::Regex => ew_commands::text_key!("find-error-regex"),
-            FindError::NoPage(_) => ew_commands::text_key!("find-error-no-page"),
+            FindError::TooLong => key!("find-error-too-long"),
+            FindError::Regex => key!("find-error-regex"),
+            FindError::NoPage(_) => key!("find-error-no-page"),
         }
     }
 
@@ -493,7 +493,7 @@ impl Session {
                         }),
                         ..base(
                             ml_path("function_text", lang.as_deref()),
-                            ew_commands::text_key!("find-field-function-text"),
+                            key!("find-field-function-text"),
                             text,
                         )
                     });
@@ -502,11 +502,7 @@ impl Session {
             if wants(FindField::Tag) && !subject.is_empty() {
                 let tag = q.get::<DeviceTag>(d);
                 let text = ew_mltext::to_nfc(&subject).into_owned();
-                let mut c = base(
-                    "derived.tag".to_owned(),
-                    ew_commands::text_key!("find-field-tag"),
-                    text,
-                );
+                let mut c = base("derived.tag".to_owned(), key!("find-field-tag"), text);
                 match tag.as_ref().as_ref() {
                     Some(t) if matches!(t.source, TagSource::Frozen) => {
                         c.row_path = "tag.frozen.text".to_owned();
@@ -536,7 +532,7 @@ impl Session {
                         Some(Value::String(v)) => {
                             let text = ew_mltext::to_nfc(&format!("{key}={v}")).into_owned();
                             let prefix = ew_mltext::to_nfc(&format!("{key}=")).len();
-                            let mut c = base(row_path, ew_commands::text_key!("find-field-property"), text);
+                            let mut c = base(row_path, key!("find-field-property"), text);
                             c.span = (prefix.min(c.text.len()), c.text.len());
                             c.target = Some(Target::TechValue(i));
                             candidates.push(c);
@@ -544,7 +540,7 @@ impl Session {
                         Some(v @ Value::Object(_)) => {
                             let shown = format_field_value(&FieldType::Quantity, v);
                             let text = ew_mltext::to_nfc(&format!("{key}={shown}")).into_owned();
-                            let mut c = base(row_path, ew_commands::text_key!("find-field-property"), text);
+                            let mut c = base(row_path, key!("find-field-property"), text);
                             c.fixed = Some("a quantity: edit it in the property grid");
                             candidates.push(c);
                         }
@@ -560,11 +556,7 @@ impl Session {
                     target: Some(Target::Plain {
                         member: "process_tag",
                     }),
-                    ..base(
-                        "process_tag".to_owned(),
-                        ew_commands::text_key!("find-field-process-tag"),
-                        text,
-                    )
+                    ..base("process_tag".to_owned(), key!("find-field-process-tag"), text)
                 });
             }
             if wants(FindField::PartNumber)
@@ -585,11 +577,7 @@ impl Session {
                         ew_derive::manufacturer_name(&q, &p.item.manufacturer)
                     ))
                     .into_owned();
-                    let mut c = base(
-                        format!("parts[{i}].part"),
-                        ew_commands::text_key!("find-field-part-number"),
-                        text,
-                    );
+                    let mut c = base(format!("parts[{i}].part"), key!("find-field-part-number"), text);
                     c.fixed = Some("library copy: update from library");
                     candidates.push(c);
                 }
@@ -615,11 +603,8 @@ impl Session {
                     .map_or("", |(_, t)| t.as_str());
                 let subject = format!("{folio} {shown}").trim_end().to_owned();
                 for (member, label_key) in [
-                    ("title", ew_commands::text_key!("find-field-title")),
-                    (
-                        "description_override",
-                        ew_commands::text_key!("find-field-description"),
-                    ),
+                    ("title", key!("find-field-title")),
+                    ("description_override", key!("find-field-description")),
                 ] {
                     for (lang, text) in ml_strings(json.get(member)) {
                         let text = ew_mltext::to_nfc(&text).into_owned();

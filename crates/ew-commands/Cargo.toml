@@ -39,6 +39,8 @@ ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
 ew-rds = { path = "../ew-rds" }
+# A refusal, a notice and a record in words as a text by key (architecture §18).
+ew-l10n = { path = "../ew-l10n" }
 serde.workspace = true
 # Command parameters as JSON (`AnyCommand`, the journal form of a transaction), the field paths of
 # `fields.set` and of `diff_model`.
@@ -51,6 +53,10 @@ sha2.workspace = true
 # §4.8): the version and features of ew-text's edge, already in the graph.
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+
+[build-dependencies]
+# The generator of the key table that `build.rs` writes.
+ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true

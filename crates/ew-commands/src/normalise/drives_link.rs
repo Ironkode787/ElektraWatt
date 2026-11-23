@@ -26,7 +26,6 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -87,7 +86,7 @@ fn chain(tx: &TxBuilder<'_>, device: Id<Device>) -> Vec<Id<Device>> {
 }
 
 /// Devices in words: "-A", "-A and -B", "-A, -B and -C".
-fn listed(tx: &TxBuilder<'_>, devices: &[Id<Device>]) -> crate::text::TextArg {
+fn listed(tx: &TxBuilder<'_>, devices: &[Id<Device>]) -> ew_l10n::TextArg {
     words::and_list(devices.iter().map(|d| words::device(tx, *d)).collect())
 }
 

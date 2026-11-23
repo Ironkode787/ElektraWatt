@@ -121,23 +121,23 @@ impl Session {
     pub fn copy_pages(&self, spec: &PageCopySpec) -> Result<PageCopyPlan, CmdError> {
         let q = self.query();
         if spec.pages.is_empty() {
-            return Err(refused("/fragment/pages", api_text!("refusal-page-copy-no-page")));
+            return Err(refused("/fragment/pages", text!("refusal-page-copy-no-page")));
         }
         let mut pages: Vec<Id<Page>> = Vec::new();
         for (i, p) in spec.pages.iter().enumerate() {
             let at = format!("/fragment/pages/{i}");
             let Some(page) = q.pages().get(Id::from_uuid(*p)) else {
-                return Err(refused(&at, api_text!("refusal-params-page-gone")));
+                return Err(refused(&at, text!("refusal-params-page-gone")));
             };
             if pages.contains(&page.id) {
-                return Err(refused(&at, api_text!("refusal-page-copy-page-twice")));
+                return Err(refused(&at, text!("refusal-page-copy-page-twice")));
             }
             if pages
                 .first()
                 .and_then(|f| q.pages().get(*f))
                 .is_some_and(|f| f.grid != page.grid)
             {
-                return Err(refused(&at, api_text!("refusal-page-copy-grids")));
+                return Err(refused(&at, text!("refusal-page-copy-grids")));
             }
             pages.push(page.id);
         }
@@ -151,7 +151,7 @@ impl Session {
                     to: code.trim().parse().map_err(|_| {
                         refused(
                             &format!("/structure/{i}/to"),
-                            api_text!("refusal-page-copy-code", code.as_str()),
+                            text!("refusal-page-copy-code", code.as_str()),
                         )
                     })?,
                 })
@@ -168,7 +168,7 @@ impl Session {
         let (mut fragment, _) = self
             .macro_fragment(&MacroScope::Pages(spec.pages.clone()))
             .map_err(|e| match e {
-                MacroError::Copy(_) => refused("/fragment/pages", api_text!("refusal-page-copy-no-page")),
+                MacroError::Copy(_) => refused("/fragment/pages", text!("refusal-page-copy-no-page")),
                 other => CmdError::internal(other.to_string()),
             })?;
         widen(&q, &pages, &mut fragment);
@@ -176,7 +176,7 @@ impl Session {
         if let Some(first) = joins.first() {
             return Err(refused(
                 "/rename",
-                api_text!("refusal-page-copy-ip-join", joins.join(", "), first.as_str()),
+                text!("refusal-page-copy-ip-join", joins.join(", "), first.as_str()),
             ));
         }
         let swapped: BTreeSet<Id<StructureNode>> = structure.iter().map(|s| s.from).collect();

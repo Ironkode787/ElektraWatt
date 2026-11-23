@@ -39,8 +39,8 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// Normaliser N5.
 #[derive(Clone, Copy, Debug, Default)]

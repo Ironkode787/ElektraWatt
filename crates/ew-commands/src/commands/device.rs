@@ -31,8 +31,8 @@ use crate::geometry::{
 };
 use crate::meta::CommandMeta;
 use crate::proxy::{Angle2S, IdentS, MlTextS, Orient2S, Pt2S, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// `device.create`: a device without a representation (FR-DEV-001), optionally with its main function.
 ///

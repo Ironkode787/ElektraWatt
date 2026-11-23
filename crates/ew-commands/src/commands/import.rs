@@ -23,8 +23,8 @@ use serde_json::Value;
 use crate::command::{DynCommand, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost, Exposure, Stability};
-use crate::text::{TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::TextArg;
 
 /// `import.apply` (`ApplyImport`): see the module documentation.
 #[derive(Clone, Debug)]

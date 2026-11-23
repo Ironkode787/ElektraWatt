@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-l10n"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "A text for a person by key and arguments, the key tables of the crates that say something, and the one renderer over Fluent."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-hack = { version = "0.3", path = "../ew-hack" }

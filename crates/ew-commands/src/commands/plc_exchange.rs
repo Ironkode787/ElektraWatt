@@ -30,8 +30,8 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 // ---------------------------------------------------------------------------------------------------------
 // The protection of PLC-owned fields (doc 10 §2.2, §3.9)
@@ -551,7 +551,7 @@ impl Command for ApplyExchange {
                 field_text(&c.object, &c.field),
                 side(&c.ours),
                 side(&c.theirs),
-                Text::checked_by_macro(c.state.key(), Vec::new()),
+                plc_words(c.state.key()),
                 if choice == Choice::Theirs {
                     text!("notice-plc-exchange-taken")
                 } else {
@@ -669,14 +669,20 @@ impl Command for ApplyExchange {
 /// The kind of an exchanged object in words, by its key (`ew_plc::object_key`): the window renders it in its language,
 /// the command line prints its English.
 pub fn object_text(object: &ExchangeObject) -> Text {
-    Text::checked_by_macro(ew_plc::object_key(object), Vec::new())
+    plc_words(ew_plc::object_key(object))
+}
+
+/// The words of a key that `ew-plc` names (`ew_plc::object_key`, `State::key`, `ew_plc::field_name`), with its English
+/// from this crate's table: `ew-plc` writes the key and cannot check it, so it is looked up when the text is made.
+fn plc_words(key: &'static str) -> Text {
+    Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
 }
 
 /// A field of an exchanged object in words, by its key (`ew_plc::field_name`): a comment in a language with the
 /// language, a field this version does not name as it is written.
 pub fn field_text(object: &ExchangeObject, field: &str) -> TextArg {
     match ew_plc::field_name(object, field) {
-        FieldName::Key(key) => Text::checked_by_macro(key, Vec::new()).into(),
+        FieldName::Key(key) => plc_words(key).into(),
         FieldName::Comment(lang) => text!("plc-field-comment-in", lang).into(),
         FieldName::Unknown(field) => field.into(),
     }

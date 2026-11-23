@@ -1324,6 +1324,7 @@ dependencies = [
  "ew-import-qet",
  "ew-import-tables",
  "ew-jobs",
+ "ew-l10n",
  "ew-library",
  "ew-mltext",
  "ew-model",
@@ -1390,6 +1391,7 @@ dependencies = [
  "ew-format",
  "ew-hack",
  "ew-ids",
+ "ew-l10n",
  "ew-mltext",
  "ew-model",
  "ew-plc",
@@ -1645,6 +1647,13 @@ dependencies = [
 
 [[package]]
 name = "ew-jobs"
+version = "0.3.5"
+dependencies = [
+ "ew-hack",
+]
+
+[[package]]
+name = "ew-l10n"
 version = "0.3.5"
 dependencies = [
  "ew-hack",
@@ -1952,6 +1961,7 @@ dependencies = [
  "ew-commands",
  "ew-dl",
  "ew-hack",
+ "ew-l10n",
  "ew-testdir",
  "ew-testkit",
  "ew-units",

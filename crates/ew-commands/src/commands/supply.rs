@@ -13,7 +13,6 @@ use crate::command::{Command, Outcome};
 use crate::commands::fields::set_member;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The member paths of the supply that `project.supply.set` edits (the `SupplySpec` JSON form): its electrical

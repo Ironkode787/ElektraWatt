@@ -24,8 +24,8 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// The record kinds the fragment of a copy of pages carries besides its page records: a page macro's, and a cable's
 /// conductors, the bonds between copied ends and the report blocks embedded on copied pages.

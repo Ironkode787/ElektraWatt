@@ -89,7 +89,7 @@ impl Session {
     /// [`PartDraftError::Refused`] (`error-part-new-id`) when no new item ID can be drawn (no entropy).
     pub fn new_part_draft(&self) -> Result<PartDraft, PartDraftError> {
         let item = Id::<()>::try_new_v7()
-            .map_err(|_| PartDraftError::Refused(ew_commands::text_key!("error-part-new-id")))?
+            .map_err(|_| PartDraftError::Refused(key!("error-part-new-id")))?
             .as_uuid();
         let original: Part = serde_json::from_value(json!({
             "manufacturer": {"library": Uuid::nil(), "item": Uuid::nil(), "version_req": "*"},
@@ -144,11 +144,9 @@ impl Session {
     /// [`PartDraftError::Refused`] (`reason-part-symbol-unsaved`) when no installed library holds that symbol;
     /// as [`Session::new_part_draft`].
     pub fn new_part_draft_for_symbol(&self, address: &str) -> Result<PartDraft, PartDraftError> {
-        let symbol =
-            self.installed_symbol(address)
-                .ok_or(PartDraftError::Refused(ew_commands::text_key!(
-                    "reason-part-symbol-unsaved"
-                )))?;
+        let symbol = self
+            .installed_symbol(address)
+            .ok_or(PartDraftError::Refused(key!("reason-part-symbol-unsaved")))?;
         let mut draft = self.new_part_draft()?;
         let name = symbol
             .item
@@ -223,11 +221,7 @@ impl Session {
                 && let Some(LibDocument::Fndef(def)) = starter_doc(ew_schema::starter::FN_BLACKBOX)
             {
                 p.cp_pattern = ew_schema::KeyedList::from_vec(cps).map_err(|e| {
-                    PartDraftError::Field(message(
-                        "plc.pin_of",
-                        ew_commands::text_key!("error-part-value"),
-                        &[&e.to_string()],
-                    ))
+                    PartDraftError::Field(message("plc.pin_of", key!("error-part-value"), &[&e.to_string()]))
                 })?;
                 p.function_template = vec![TemplateFn {
                     fndef: fndef_ref(&def),
@@ -324,7 +318,7 @@ impl Session {
         let exists = || {
             PartDraftError::Field(message(
                 "part_number",
-                ew_commands::text_key!("error-part-exists"),
+                key!("error-part-exists"),
                 &[&number, &maker],
             ))
         };
@@ -401,24 +395,20 @@ impl Session {
         self.libraries_mut().write(lib, &written).map_err(|e| {
             PartDraftError::Field(message(
                 "part",
-                ew_commands::text_key!("error-part-library"),
+                key!("error-part-library"),
                 &[&name, &e.to_string()],
             ))
         })?;
         let docs = self.closure_docs(&[lib_ref(lib, item)]).map_err(|e| {
             PartDraftError::Field(message(
                 "part",
-                ew_commands::text_key!("error-part-library"),
+                key!("error-part-library"),
                 &[&name, &e.to_string()],
             ))
         })?;
         let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
         let command = AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            ))
+            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
         })?;
         Ok(NewPart {
             command,
@@ -444,28 +434,19 @@ impl Session {
     ) -> Result<crate::library_ops::UpdatePlan, PartDraftError> {
         let item = self.sectioned_item(draft)?;
         if item == draft.original {
-            return Err(PartDraftError::Refused(ew_commands::text_key!(
-                "reason-part-unchanged"
-            )));
+            return Err(PartDraftError::Refused(key!("reason-part-unchanged")));
         }
         let held = {
             let q = self.query();
             q.parts()
                 .get(Id::from_uuid(draft.copy))
                 .map(|c| (**c).clone())
-                .ok_or(PartDraftError::Refused(ew_commands::text_key!(
-                    "reason-part-edit-target"
-                )))?
+                .ok_or(PartDraftError::Refused(key!("reason-part-edit-target")))?
         };
         let lib = held.library_id.as_uuid();
         let name = draft.library.clone().unwrap_or_default();
-        let failed = |e: String| {
-            PartDraftError::Field(message(
-                "part",
-                ew_commands::text_key!("error-part-library"),
-                &[&name, &e],
-            ))
-        };
+        let failed =
+            |e: String| PartDraftError::Field(message("part", key!("error-part-library"), &[&name, &e]));
         // The library's own version of the item: a later one written meanwhile is the base of the next.
         let current = self
             .libraries()
@@ -533,16 +514,14 @@ impl Session {
             .into_iter()
             .find(|l| l.id == library && l.key == crate::eplan::USER_PARTS_KEY && l.writable);
         let (Some(mine), Some(number)) = (mine, self.own_part_number(library, item)) else {
-            return Err(PartDraftError::Refused(ew_commands::text_key!(
-                "reason-part-not-own"
-            )));
+            return Err(PartDraftError::Refused(key!("reason-part-not-own")));
         };
         self.libraries_mut()
             .remove(library, Kind::Part, &[item])
             .map_err(|e| {
                 PartDraftError::Field(message(
                     "part",
-                    ew_commands::text_key!("error-part-library"),
+                    key!("error-part-library"),
                     &[&mine.name, &e.to_string()],
                 ))
             })?;
@@ -568,7 +547,7 @@ impl Session {
     pub fn new_part_draft_from(&self, copy: Uuid) -> Result<PartDraft, PartDraftError> {
         let held = self
             .part_draft(copy)
-            .map_err(|_| PartDraftError::Refused(ew_commands::text_key!("reason-part-edit-target")))?;
+            .map_err(|_| PartDraftError::Refused(key!("reason-part-edit-target")))?;
         self.new_part_draft_copying(&held)
     }
 
@@ -636,11 +615,7 @@ impl Session {
             serde_json::to_value(LibDocument::Part(copy)).expect("a part has a JSON form"),
         );
         let command = AnyCommand::of(&ImportParts { copies }).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                ew_commands::text_key!("error-part-value"),
-                &[&e.to_string()],
-            ))
+            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
         })?;
         Ok(NewPart {
             command,
@@ -677,7 +652,7 @@ fn new_maker(library: Uuid, name: &str) -> Result<LibCopy<Manufacturer>, PartDra
     let key = Ident::from_input(name).map_err(|e| {
         PartDraftError::Field(message(
             "manufacturer",
-            ew_commands::text_key!("error-part-value"),
+            key!("error-part-value"),
             &[&e.to_string()],
         ))
     })?;

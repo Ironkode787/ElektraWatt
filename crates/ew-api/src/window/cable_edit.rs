@@ -27,10 +27,10 @@ impl Session {
         let q = self.query();
         let (ia, ib): (Id<Conductor>, Id<Conductor>) = (Id::from_uuid(a), Id::from_uuid(b));
         let (Some(ca), Some(cb)) = (q.conductors().get(ia), q.conductors().get(ib)) else {
-            return Err(ew_commands::text_key!("reason-swap-two-cores"));
+            return Err(key!("reason-swap-two-cores"));
         };
         if a == b || ca.cable != cb.cable {
-            return Err(ew_commands::text_key!("reason-swap-two-cores"));
+            return Err(key!("reason-swap-two-cores"));
         }
         let of = |core: Id<Conductor>| {
             let mut ids: Vec<_> = q
@@ -53,7 +53,7 @@ impl Session {
             })
             .collect();
         if edits.is_empty() {
-            return Err(ew_commands::text_key!("reason-swap-cores-unwired"));
+            return Err(key!("reason-swap-cores-unwired"));
         }
         Ok(AnyCommand {
             name: "fields.set_many".into(),
@@ -183,10 +183,7 @@ impl Session {
         let refused = |key: &'static str, args: Vec<String>| CoresRefused { key, args };
         let cable_id: Id<ew_derive::ew_schema::Device> = Id::from_uuid(cable);
         let Some(device) = q.devices().get(cable_id).filter(|d| d.aspects.cable.is_some()) else {
-            return Err(refused(
-                ew_commands::text_key!("reason-cores-no-cable"),
-                Vec::new(),
-            ));
+            return Err(refused(key!("reason-cores-no-cable"), Vec::new()));
         };
         let connections = q.connections();
         let usable = !wires.is_empty()
@@ -196,10 +193,7 @@ impl Session {
                     .is_some_and(|c| matches!(c.kind, ConnectionKind::Wire | ConnectionKind::Core(_)))
             });
         if !usable {
-            return Err(refused(
-                ew_commands::text_key!("reason-cores-no-wires"),
-                Vec::new(),
-            ));
+            return Err(refused(key!("reason-cores-no-wires"), Vec::new()));
         }
         let order: Vec<_> = device
             .parts
@@ -240,7 +234,7 @@ impl Session {
         if free.len() < wires.len() {
             let tag = self.device_tag(cable).unwrap_or_default();
             return Err(refused(
-                ew_commands::text_key!("error-cores-too-few"),
+                key!("error-cores-too-few"),
                 vec![tag, free.len().to_string(), wires.len().to_string()],
             ));
         }

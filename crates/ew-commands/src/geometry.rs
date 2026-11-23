@@ -17,8 +17,8 @@ use ew_schema::{Connection, Dir4, Endpoint, Function, Junction, LibCopy, Page, R
 use ew_units::{Grid, Nm, Pt2, arith};
 
 use crate::error::CmdError;
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// The largest coordinate magnitude a record can hold: 2⁵³ − 1 nm (ADR-0005).
 pub const MAX_COORD: i64 = ew_units::MAX_SAFE_INTEGER;

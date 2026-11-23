@@ -22,7 +22,6 @@ use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::rows::row_json;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The side of a conflict a choice takes.

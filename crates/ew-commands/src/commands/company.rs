@@ -16,8 +16,8 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::MlTextS;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// The project-row member that holds the company data of a basic project until `Project` types it: an object
 /// `{"logo": <AssetRef>, "notice": <MlText>}` (the provisional source `title_block(page)` reads, doc 09 §2.6;

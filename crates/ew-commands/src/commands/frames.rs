@@ -16,7 +16,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The `ProjectSettings` member that holds the frame defaults (doc 03 §5.1), kept in `ProjectSettings.extra`

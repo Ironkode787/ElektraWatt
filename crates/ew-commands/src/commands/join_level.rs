@@ -17,7 +17,6 @@ use super::common::function_cp_levels;
 use super::join::{dropped_device_members, dropped_function_members, listed, move_attached};
 use crate::command::Outcome;
 use crate::error::CmdError;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The command whose parameters the refusals point into.

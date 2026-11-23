@@ -13,8 +13,8 @@ use skrifa::raw::TableProvider;
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// The longest file name the setting keeps, in characters.
 pub const MAX_TYPEFACE_NAME: usize = 255;

@@ -18,8 +18,8 @@ use crate::error::CmdError;
 use crate::geometry::{OutOfRange, add, on_grid, on_segment, point_in_range, require_on_grid, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::{Pt2S, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// `box.reshape` (`ReshapeBox`, FR-DEV-039): replaces the outline of a black box (a representation with a `box`),
 /// and its connection points with `cps`, or re-projects them onto the new outline.

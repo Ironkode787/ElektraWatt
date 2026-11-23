@@ -18,7 +18,6 @@ use crate::commands::library::check_copy;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{Dec3S, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// From this many devices on, `part.assign` is `Bulk` (interactive below 50 devices).

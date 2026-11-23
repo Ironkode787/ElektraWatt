@@ -24,8 +24,8 @@ use ew_units::Orient2;
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// EW's interruption-point forms: (source key, target key) per edition.
 pub const FORMS: [(&str, &str); 4] = [

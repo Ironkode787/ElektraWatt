@@ -23,9 +23,9 @@ use crate::commands::library_update::{apply_remap, pin_moves};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 use ew_format::library_copy_hash;
+use ew_l10n::Text;
 
 /// The members of a part that `part.edit_copy` edits (D20); every other member must equal the copy's.
 pub const PART_EDITABLE: [&str; 10] = [
@@ -441,7 +441,7 @@ mod tests {
         };
         assert_eq!(text.to_string(), format!("not a technical value: {serde}"));
         match text.args() {
-            [crate::text::TextArg::Text(t)] => assert_eq!(t.key(), "refusal-serde-invalid-type"),
+            [ew_l10n::TextArg::Text(t)] => assert_eq!(t.key(), "refusal-serde-invalid-type"),
             other => panic!("{other:?}"),
         }
     }

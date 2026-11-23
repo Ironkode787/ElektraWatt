@@ -38,8 +38,8 @@ use ew_units::Pt2;
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::normalise::connection_split::same_endpoint;
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// Normaliser #8.
 #[derive(Clone, Copy, Debug, Default)]

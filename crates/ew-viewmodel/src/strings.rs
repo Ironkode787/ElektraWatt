@@ -20,7 +20,7 @@ use std::sync::{OnceLock, PoisonError, RwLock};
 use fluent_bundle::concurrent::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 
-/// The key list that `build.rs` writes from the en-GB locale file.
+/// The key list that `build.rs` writes from the en-GB text files.
 mod keys {
     include!(concat!(env!("OUT_DIR"), "/keys.rs"));
 }
@@ -69,10 +69,10 @@ impl CountKey {
 /// sorted list, because the compiler runs it once for every key the code names.
 pub const fn has_key(key: &str) -> bool {
     let wanted = key.as_bytes();
-    let (mut low, mut high) = (0, keys::SORTED_KEYS.len());
+    let (mut low, mut high) = (0, KEYS.len());
     while low < high {
         let mid = low + (high - low) / 2;
-        let candidate = keys::SORTED_KEYS[mid].as_bytes();
+        let candidate = KEYS[mid].as_bytes();
         let mut i = 0;
         while i < candidate.len() && i < wanted.len() && candidate[i] == wanted[i] {
             i += 1;

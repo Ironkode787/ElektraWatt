@@ -16,7 +16,6 @@ use ew_units::{Nm, Orient2, Pt2};
 use crate::commands::common::function_cp_indices;
 use crate::commands::connection::follow_moved_cps;
 use crate::error::CmdError;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The boxes of the devices that use part copy `part`, after the part changed in this transaction: each black box

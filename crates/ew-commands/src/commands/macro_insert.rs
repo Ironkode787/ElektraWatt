@@ -31,8 +31,8 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, Orient2S, Pt2S, UuidS};
-use crate::text::{Text, text};
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// The record kinds a macro fragment may carry (ADR-0011 amendment 5): those of a paste, PLC channels and device
 /// links; a page macro's page records come in the fragment's `pages`.

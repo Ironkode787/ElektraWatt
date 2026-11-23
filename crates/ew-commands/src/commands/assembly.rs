@@ -26,7 +26,6 @@ use crate::commands::device::insert_function;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// One child of [`AttachChildren`].

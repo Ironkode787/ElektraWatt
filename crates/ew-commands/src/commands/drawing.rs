@@ -12,7 +12,6 @@ use serde_json::{Map, Value};
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The member of `ProjectSettings.extra` that holds the drawing settings: an object, such as `{"crossings": "hops"}`.

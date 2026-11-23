@@ -18,7 +18,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::UuidS;
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// `part.placeholder` (`AssignPlaceholder`): gives devices a placeholder part, a part that belongs to them and whose

@@ -396,22 +396,22 @@ impl Session {
         match text.split_once(':') {
             Some(("id", uuid)) => {
                 let id: AnyId = serde_json::from_value(Value::String(uuid.to_owned()))
-                    .map_err(|_| api_text!("refusal-ref-not-uuid", text))?;
+                    .map_err(|_| text!("refusal-ref-not-uuid", text))?;
                 if !ew_commands::holds_record(&self.world().model, id) {
-                    return Err(api_text!("refusal-ref-no-record", text));
+                    return Err(text!("refusal-ref-no-record", text));
                 }
                 Ok(id)
             }
             Some(("section", number)) => {
                 let number: u16 = number
                     .parse()
-                    .map_err(|_| api_text!("refusal-ref-section-number", text))?;
+                    .map_err(|_| text!("refusal-ref-section-number", text))?;
                 let q = self.query();
                 q.sections()
                     .iter()
                     .find(|(_, s)| s.number == number)
                     .map(|(id, _)| id.cast())
-                    .ok_or_else(|| api_text!("refusal-ref-no-section", text, number.to_string()))
+                    .ok_or_else(|| text!("refusal-ref-no-section", text, number.to_string()))
             }
             Some(("tag", tag)) => self.tag_target(tag, text),
             Some(("folio", label)) => {
@@ -422,17 +422,17 @@ impl Session {
                     _ => None,
                 });
                 let Some(first) = pages.next() else {
-                    return Err(api_text!("refusal-ref-no-folio", text));
+                    return Err(text!("refusal-ref-no-folio", text));
                 };
                 match pages.count() {
                     0 => Ok(first.cast()),
-                    more => Err(api_text!("refusal-ref-folio-many", text, (more + 1).to_string())),
+                    more => Err(text!("refusal-ref-folio-many", text, (more + 1).to_string())),
                 }
             }
             // A bare tag (`-101Q1`, a CP as `-X1031:5`) stands for `tag:<tag>` when one device prints it.
             _ => self.tag_target(text, text).map_err(|reason| {
                 if reason.key() == "refusal-ref-no-tag" {
-                    api_text!("refusal-ref-no-tag-forms", text)
+                    text!("refusal-ref-no-tag-forms", text)
                 } else {
                     reason
                 }
@@ -454,7 +454,7 @@ impl Session {
             })
             .collect();
         match matches.len() {
-            0 => Err(api_text!("refusal-ref-no-tag", text)),
+            0 => Err(text!("refusal-ref-no-tag", text)),
             1 => Ok(matches.remove(0).0),
             n => {
                 // Each candidate by its full designation and its ID, so a duplicate designation still names
@@ -462,13 +462,13 @@ impl Session {
                 matches.sort_by(|a, b| (&a.1, a.0.as_uuid()).cmp(&(&b.1, b.0.as_uuid())));
                 let names = matches
                     .into_iter()
-                    .map(|(id, full)| api_text!("refusal-ref-candidate", full, id.as_uuid().to_string()))
+                    .map(|(id, full)| text!("refusal-ref-candidate", full, id.as_uuid().to_string()))
                     .collect();
-                Err(api_text!(
+                Err(text!(
                     "refusal-ref-ambiguous",
                     text,
                     n.to_string(),
-                    ew_commands::comma_joined(names).unwrap_or_else(|| api_text!("refusal-serde-other", ""))
+                    ew_commands::comma_joined(names).unwrap_or_else(|| text!("refusal-serde-other", ""))
                 ))
             }
         }
@@ -480,15 +480,13 @@ impl Session {
         match params {
             Value::Object(map) if map.len() == 1 && map.contains_key("ref") => {
                 let Some(text) = map["ref"].as_str() else {
-                    return Err(api_text!("refusal-ref-not-text"));
+                    return Err(text!("refusal-ref-not-text"));
                 };
                 let id = self.reference_target(text)?;
                 match text.split_once(':') {
                     // An `id:` reference stands for its own text, as written.
                     Some(("id", uuid)) => Ok(Value::String(uuid.to_owned())),
-                    _ => {
-                        serde_json::to_value(id).map_err(|e| api_text!("refusal-serde-other", e.to_string()))
-                    }
+                    _ => serde_json::to_value(id).map_err(|e| text!("refusal-serde-other", e.to_string())),
                 }
             }
             Value::Object(map) => map

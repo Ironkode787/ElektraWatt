@@ -25,8 +25,8 @@ use crate::error::CmdError;
 use crate::geometry::{RepCp, rep_cps, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// The class of a library copy's change (doc 07 §4.5), whatever its declared version says. Ordered: `Patch` <
 /// `Minor` < `Major`.

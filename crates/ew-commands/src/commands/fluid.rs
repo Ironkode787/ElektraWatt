@@ -27,8 +27,8 @@ use crate::commands::connection::cp_fluid_class;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::{Dec3S, IdentS, MlTextS, NmS, UuidS};
-use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
+use ew_l10n::{Text, TextArg};
 
 /// The state of a valve set by [`SetValveOccupancy`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

@@ -17,7 +17,6 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Exposure};
 use crate::proxy::{IdentS, MlTextS, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The names of the shipped check schemes a project can name ([`SCHEMES`], doc 15 §4.9), in name order, as a refusal

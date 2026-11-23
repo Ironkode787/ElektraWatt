@@ -8,7 +8,7 @@ use std::fmt;
 use ew_model::{AnyKey, ModelError};
 
 use crate::meta::{Exposure, Origin};
-use crate::text::{Text, text};
+use ew_l10n::Text;
 
 /// Why a command was not committed. A failed command leaves the session unchanged.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -205,10 +205,7 @@ impl std::error::Error for CmdError {}
 /// A model error by key, its records named by `name`: a record a forbid link still names, a stale
 /// step, a duplicate, an invariant by its code; `None` for an error only a defect reaches, and for a prevent rule or a
 /// missing record, which [`CmdError`] carries as their own errors.
-pub(crate) fn model_error_text(
-    e: &ModelError,
-    name: &dyn Fn(AnyKey) -> crate::text::TextArg,
-) -> Option<Text> {
+pub(crate) fn model_error_text(e: &ModelError, name: &dyn Fn(AnyKey) -> ew_l10n::TextArg) -> Option<Text> {
     Some(match e {
         ModelError::Referenced { target, referrer, .. } => {
             text!("refusal-model-referenced", name(*target), name(*referrer))
@@ -342,7 +339,7 @@ fn serde_message_text(m: &str) -> Text {
 }
 
 /// What serde got (its `Unexpected`), in words where it is a plain kind.
-fn serde_got(got: &str) -> crate::text::TextArg {
+fn serde_got(got: &str) -> ew_l10n::TextArg {
     let value = |prefix: &str| got.strip_prefix(prefix).map(str::to_owned);
     if let Some(v) = value("string ") {
         return text!("refusal-serde-got-string", v).into();
@@ -365,7 +362,7 @@ fn serde_got(got: &str) -> crate::text::TextArg {
 }
 
 /// What serde expected, in words where it is a plain kind.
-fn serde_want(want: &str) -> crate::text::TextArg {
+fn serde_want(want: &str) -> ew_l10n::TextArg {
     match want {
         "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64" | "i128" | "isize" => {
             text!("refusal-serde-want-whole", want).into()

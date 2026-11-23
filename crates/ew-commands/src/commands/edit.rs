@@ -17,7 +17,6 @@ use crate::command::{Command, Outcome};
 use crate::commands::common::TargetRef;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// Deletions that remove more than this many records (the targets and everything their delete plan

@@ -20,7 +20,6 @@ use crate::error::CmdError;
 use crate::geometry::{rep_body as body, require_on_grid};
 use crate::meta::CommandMeta;
 use crate::proxy::{Orient2S, Pt2S, UuidS};
-use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The most entries of each list one `layout.apply` takes.
