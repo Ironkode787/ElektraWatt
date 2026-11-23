@@ -29,6 +29,9 @@ use crate::strings;
 use crate::strings::Key;
 use crate::{count_key, key};
 
+/// The key of a placement's toast that names the wires it made ([`ShellModel::notify_wired`]).
+const WIRED: &str = "wired";
+
 /// A `uint` parameter: `Ok(None)` when absent, `Err` when present with another type.
 fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u64>, Outcome> {
     match p.get(name) {
@@ -214,6 +217,21 @@ impl ShellModel {
     pub(super) fn notify_with(&mut self, text: String, key: &'static str, undo: bool) {
         let action = if undo { self.undo_action() } else { None };
         self.notes.push(text, key, action);
+    }
+
+    /// Shows a placement's `text` that names the wires it made, with Undo, as a toast of key `wired`: the next
+    /// placement's toast (key `edit`) leaves it up, and the next placement that made wires adds its sentence to it,
+    /// so no wire made goes unsaid (a persona run placed five devices in a row and read only the last one's toast).
+    /// `without` is its last sentence, the way to place without wires, said once at the end.
+    pub(super) fn notify_wired(&mut self, made: &str, without: &str) {
+        let text = match self.notes.visible().iter().find(|n| n.key == WIRED) {
+            Some(earlier) => {
+                let earlier = earlier.text.strip_suffix(without).unwrap_or(&earlier.text).trim_end();
+                format!("{earlier} {made} {without}")
+            }
+            None => format!("{made} {without}"),
+        };
+        self.notify_with(text, WIRED, true);
     }
 
     /// Undo of the step just committed, valid while it is the next undo step.

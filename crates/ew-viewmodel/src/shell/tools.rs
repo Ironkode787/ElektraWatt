@@ -749,6 +749,16 @@ impl ShellModel {
                     && let Ok(json) = cmd.to_json()
                     && let (Some(x), Some(y)) = (json["pos"][0].as_i64(), json["pos"][1].as_i64())
                 {
+                    // A Terminal… row places its terminals in one dispatch and names the last: the wires of the
+                    // terminals before it are said too (a persona run read only the last terminal's placement).
+                    let connects = match (self.tools.result_note.take(), connects) {
+                        (Some(ResultNote::Placed { wires: Some((t, mut earlier)), .. }), now) => {
+                            let (tubes, list) = now.unwrap_or((t, Vec::new()));
+                            earlier.extend(list);
+                            Some((tubes && t, earlier))
+                        }
+                        (_, now) => now,
+                    };
                     self.tools.result_note = Some(ResultNote::Placed {
                         pos: (x, y),
                         wires: connects,
@@ -1101,10 +1111,6 @@ impl ShellModel {
         })
     }
 
-    /// For a `device.place` with autoconnect hints (`connect`): the number of wires it draws as words (`1 wire`,
-    /// `2 wires`; `1 tube` where every hint joins a fluid port) and the proposals the ghost showed
-    /// (`"2" -> "-101F2:2"`), from the Place tool's ghost; `None` for any other command or a placement without hints
-    /// (Alt, or no proposal).
     /// The far autoconnect hits a `device.place` does not join, offered by its toast; none at its point moved or with
     /// Alt (a placement without its proposals' hints although it has some). Not inlined: the dispatch's frame stays as
     /// it was (the main thread's stack is small).
@@ -1129,7 +1135,11 @@ impl ShellModel {
         }
     }
 
-    fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(String, String)> {
+    /// The wires (or tubes, the `bool`) a placement's autoconnect hints draw, each as its own pin and the pin it goes
+    /// to in words: the ghost's pin designation, or for a terminal its strip and designation as the ghost names them
+    /// (`-X??:1` before the strip has a tag; the toast names the terminal by the placed strip's tag), since a row of
+    /// terminals names its last; `None` without hints.
+    fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(bool, Vec<(String, String)>)> {
         if cmd.name() != "device.place" {
             return None;
         }
@@ -1151,28 +1161,23 @@ impl ShellModel {
                 })
             })
         });
-        let Some(crate::tools::Ghost::Place { proposals, .. }) = self.tools.tool.ghost() else {
+        let Some(crate::tools::Ghost::Place {
+            proposals, strip, ..
+        }) = self.tools.tool.ghost()
+        else {
             return None;
         };
-        let list: Vec<String> = proposals
+        let list: Vec<(String, String)> = proposals
             .iter()
             // A shared pin designation reads by its position in words in the sentence, not as `-#2`.
             .filter_map(|(cp, target)| {
+                let own = strip.clone().unwrap_or_else(|| cp.trim_matches('"').to_owned());
                 target
                     .as_ref()
-                    .map(|t| format!("{cp} -> \"{}\"", crate::describe::pin_in_sentence(t)))
+                    .map(|t| (own, crate::describe::pin_in_sentence(t)))
             })
             .collect();
-        let count = strings::format(
-            match (tubes, hints == 1) {
-                (true, true) => key!("count-tube"),
-                (true, false) => key!("count-tubes"),
-                (false, true) => key!("count-wire"),
-                (false, false) => key!("count-wires"),
-            },
-            &[&hints.to_string()],
-        );
-        Some((count, list.join(", ")))
+        Some((tubes, list))
     }
 
     /// After a committed placement of the schematic Place tool (FT-900): the representations the page tables

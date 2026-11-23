@@ -335,6 +335,18 @@ impl ShellModel {
                 let tag = crate::describe::rep_tag(rep, &cps)
                     .or_else(|| rep.device.and_then(|d| self.project_session()?.device_tag(d)))
                     .unwrap_or_else(|| rep.symbol_key.clone());
+                // A row's terminal that made a wire is named on the placed terminal's strip (its ghost named a strip
+                // without a tag `-X??`): "-X1501 terminal 1".
+                let strip = rep.terminal.then(|| tag.rsplit_once(':').map(|(s, _)| s.to_owned())).flatten();
+                let wires = wires.map(|(tubes, list)| {
+                    let own = |o: String| match (&strip, o.rsplit_once(':')) {
+                        (Some(strip), Some((_, number))) => {
+                            crate::describe::terminal_in_sentence(&format!("{strip}:{number}"))
+                        }
+                        _ => o,
+                    };
+                    (tubes, list.into_iter().map(|(o, to)| (own(o), to)).collect::<Vec<_>>())
+                });
                 // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3".
                 let tag = if rep.terminal {
                     crate::describe::terminal_in_sentence(&tag)
@@ -356,18 +368,32 @@ impl ShellModel {
                     .connections
                     .iter()
                     .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
+                // The wires it made, after what it placed: the one by its two pins, two or more by their count and the
+                // first; then the way to place without them, its key from the keymap as the interruption point's
+                // toast takes it (a persona run did not see that a placement had drawn a wire).
+                let wires = wires.filter(|(_, list)| !list.is_empty());
+                let without = wires.is_some().then(|| {
+                    strings::format(
+                        key!("toast-place-without-wires"),
+                        &[&crate::command_bar::key_name(self, "canvas.activate_alt")],
+                    )
+                });
                 let text = match wires {
-                    // The way to place without the wires takes its key from the keymap, as the
-                    // interruption point's toast does.
-                    Some((count, list)) => strings::format(
-                        key!("toast-autoconnect"),
-                        &[
-                            strings::without_stop(&placed),
-                            &count,
-                            &list,
-                            &crate::command_bar::key_name(self, "canvas.activate_alt"),
-                        ],
-                    ),
+                    Some((tubes, list)) => {
+                        let placed = strings::without_stop(&placed);
+                        let (own, to) = &list[0];
+                        match list.len() {
+                            1 => strings::format(key!("toast-placed-connected-one"), &[placed, own, to]),
+                            n => {
+                                let count = strings::format(
+                                    if tubes { key!("count-tubes") } else { key!("count-wires") },
+                                    &[&n.to_string()],
+                                );
+                                let more = (n - 1).to_string();
+                                strings::format(key!("toast-placed-connected"), &[placed, &count, own, to, &more])
+                            }
+                        }
+                    }
                     None if in_wire => {
                         strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)])
                     }
@@ -388,9 +414,16 @@ impl ShellModel {
                     None => text,
                 };
                 // A far autoconnect hit is offered, not drawn, with Connect.
-                match far.first().and_then(|f| far_offer(f, &cps, now)) {
-                    Some((question, wire)) => self.notify_connect_offer(format!("{text} {question}"), wire),
-                    None => self.notify(text, true),
+                match (far.first().and_then(|f| far_offer(f, &cps, now)), without) {
+                    (Some((question, wire)), without) => {
+                        let text = match without {
+                            Some(w) => format!("{text} {w} {question}"),
+                            None => format!("{text} {question}"),
+                        };
+                        self.notify_connect_offer(text, wire);
+                    }
+                    (None, Some(without)) => self.notify_wired(&text, &without),
+                    (None, None) => self.notify(text, true),
                 }
             }
             // An interruption point dropped on a pin says where it stands, what it connects to and the way

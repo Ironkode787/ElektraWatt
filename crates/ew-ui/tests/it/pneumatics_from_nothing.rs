@@ -1704,7 +1704,7 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     place_turned(&mut d, (1400 + two.0 - a.0, 450));
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
     assert_eq!(tubes(&mut d), 1, "{toast}");
-    assert!(toast.contains("and connected 1 tube: \"A\" -> "), "{toast}");
+    assert!(toast.contains("and connected A to "), "{toast}");
     d.shell_mut().shutdown();
 }
 

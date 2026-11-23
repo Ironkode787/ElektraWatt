@@ -242,13 +242,13 @@ pub(crate) type DrawOffers = ((u64, u64, &'static str), Vec<super::DrawPart>);
 /// A commit's result line, said in the toast once the page tables show the result.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ResultNote {
-    /// A `device.place` at the insertion point `pos` (page nm), with the wires its autoconnect hints draw: their
-    /// count and their list in words (item 3), or `None` for a placement without wires.
+    /// A `device.place` at the insertion point `pos` (page nm), with the wires its autoconnect hints draw (item 3), or
+    /// `None` for a placement without wires.
     Placed {
         /// The insertion point.
         pos: (i64, i64),
-        /// The wires' count and list.
-        wires: Option<(String, String)>,
+        /// Whether they are tubes, and each wire's own pin and the pin it goes to, in words.
+        wires: Option<(bool, Vec<(String, String)>)>,
         /// Why the placement left the click point, as the Place tool's HUD said it (a terminal moved off a
         /// terminal of its strip); `None` when it stands on the click point.
         moved: Option<String>,

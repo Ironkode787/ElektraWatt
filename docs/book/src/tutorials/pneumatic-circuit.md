@@ -89,7 +89,7 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
 19. Choose **Draw ▸ Place ▸ Symbol…**, choose **air-supply**, then **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`),
     so that its port 1 points up, and click under the left end of the terminal. Choose **Draw ▸ Select**.
     The supply point -2X2 stands under the terminal, joined by a tube to its supply port 1: the toast says "Placed
-    -2X2 and connected 1 tube".
+    -2X2 … and connected 1 to …", with the terminal's port.
 20. Click -2X2. In Properties, open the **Medium** row and choose **Compressed air**.
     The air reaches the terminal's supply gallery, and through it port 1 of every valve on the terminal.
 21. Choose **Draw ▸ Place ▸ Device from part…**, choose **Cylinder double-acting, bore 32 mm, stroke 100 mm**

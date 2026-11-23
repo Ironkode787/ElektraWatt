@@ -440,7 +440,7 @@ fn the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
     let t = toast(&s);
     assert!(t.starts_with("Placed -102K"), "{t}");
     assert!(t.contains(" and connected "), "{t}");
-    assert!(t.contains(" -> \"-102K"), "{t}");
+    assert!(t.contains(" to -102K"), "{t}");
 
     assert!(
         t.ends_with("Alt+Click or Ctrl+Enter places without connecting."),

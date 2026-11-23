@@ -1429,7 +1429,13 @@ draft); when nothing is left to apply the card closes with `toast-arrange-none-l
   derived), and a wire drawn to a pin that already has a wire may share that wire's run (§3.4). A route found between two clicks is marked `computed`; one with a fixed bend is the person's. A wire that ends
   on a wire is joined in the bevel form (§7.6).
 - **Connecting on placement and on a move** stays as it is: straight wires between pins in line, shown before the
-  part is set down, never changing a connection. It needs no router.
+  part is set down, never changing a connection. It needs no router. The placement's toast names the wires it made
+  after what it placed, "Placed -101K2 at 101-E4 and connected 13 to -101K1:14", two or more by their count and the
+  first ("… and connected 3 wires: 13 to -101K1:14 and 2 more"), a terminal's by the terminal, and ends with the way
+  to place without them ("Alt+Click or Ctrl+Enter places without connecting"); a Terminal… row names the wires of
+  all its terminals. That toast has a key of its own, so the next placement's toast leaves it up, and the next
+  placement that made wires adds its sentence to it (persona runs placed a row of parts and read only the last
+  toast, while earlier ones had drawn wires).
 - **A move by hand** keeps its re-solve at release: wires follow their ends, and those left broken or with more
   bends are routed (§3.2) and stored with the move. It uses `route` with those jobs.
 - **`ew route`** on the command line runs Route for a page or a selection (`--arrange` runs Arrange and route);

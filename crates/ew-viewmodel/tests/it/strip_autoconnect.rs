@@ -130,10 +130,14 @@ fn a_terminal_of_another_strip_in_that_line_is_proposed_and_connected() {
             pair("-X1031:70/a", "-X1032:90/b"),
         ]
     );
-    assert_eq!(
-        toast(&s),
-        "Placed -X1032 terminal 90 at 103-E9 and connected 1 wire: \"2\" -> \"-X1031:70/a\". Alt+Click or Ctrl+Enter \
-         places without connecting."
+    // After the toast of the feed's terminal, still up: a placement's wires are said until read.
+    let t = toast(&s);
+    assert!(
+        t.ends_with(
+            " Placed -X1032 terminal 90 at 103-E9 and connected -X1032 terminal 90 to -X1031:70/a. Alt+Click or \
+             Ctrl+Enter places without connecting."
+        ),
+        "{t}"
     );
 }
 

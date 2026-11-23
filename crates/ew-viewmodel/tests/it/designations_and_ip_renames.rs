@@ -336,9 +336,13 @@ fn the_ghost_lists_the_wires_and_the_strip_says_how_to_place_without_them() {
     );
     assert!(h.prompt.ends_with("Esc done"), "{}", h.prompt);
     done(&mut s, "canvas.activate", json!({}));
+    // The toast names the first wire by its two pins, and the count of the others.
     let t = toast(&s);
-    assert!(
-        t.contains(&format!("and connected {count}: {}.", wires.join(", "))),
-        "{t} / {wires:?}"
-    );
+    let (own, to) = wires[0].split_once(" -> ").expect("a wire");
+    let first = format!("{} to {}", own.trim_matches('"'), to.trim_matches('"'));
+    let said = match wires.len() {
+        1 => format!("and connected {first}."),
+        n => format!("and connected {count}: {first} and {} more.", n - 1),
+    };
+    assert!(t.contains(&said), "{t} / {wires:?}");
 }
