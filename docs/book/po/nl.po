@@ -779,13 +779,6 @@ msgstr ""
 "klemmenstrook. Die krijgt haar kenmerk zodra de eerste klem is geplaatst."
 
 #: src/tutorials/terminal-strip-and-cable.md:19
-#, fuzzy
-#| msgid ""
-#| "Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
-#| "of strips, choose the new strip. Click twice, to the right of -1E2 and level "
-#| "with it, to place two terminals side by side. Choose **Draw ▸ Select**. The "
-#| "terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
-#| "clamp a, at the bottom and its field side, clamp b, at the top."
 msgid ""
 "Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
 "of strips, choose the new strip. Click twice, to the right of -1E2 and level "
@@ -800,7 +793,10 @@ msgstr ""
 "van -1E2 en op dezelfde hoogte, om twee klemmen naast elkaar te plaatsen. "
 "Kies **Tekenen ▸ Selecteren**. De klemmen -1X1:1 en -1X1:2 staan op de "
 "pagina. Elke klem heeft zijn kastzijde, klemaansluiting a, aan de onderkant "
-"en zijn veldzijde, klemaansluiting b, aan de bovenkant."
+"en zijn veldzijde, klemaansluiting b, aan de bovenkant. Klik op een klem: de "
+"letters a en b staan aan zijn twee uiteinden. Het symbool ziet er een halve "
+"slag gedraaid hetzelfde uit, dus na **R** laten de letters zien welk "
+"uiteinde welk is."
 
 #: src/tutorials/terminal-strip-and-cable.md:24
 msgid ""
