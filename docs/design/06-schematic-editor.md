@@ -1195,7 +1195,9 @@ they are built.
 three states: idle, pressed and rubber-band. A click (press and release within 3 points) selects the entity under the
 pointer, Shift adds it and Ctrl toggles it. A left-to-right drag draws a solid band that selects what it encloses, a
 right-to-left drag a dashed band that selects what it touches; an entity with several rectangles is enclosed only if all
-of them are inside the band and touched if any one is. A click on empty canvas clears the selection (Shift keeps it).
+of them are inside the band and touched if any one is. The enclosing band reads an entity's drawing without its texts
+(0.3.5: a terminal printing the strip's designation beside it was left out of a band over its row); an entity that
+draws texts only is enclosed by them. A click on empty canvas clears the selection (Shift keeps it).
 A click on a link follows it (the `Follow` output; the 3-point slope above), which replaces the shell action `nav.follow` for the pointer; F stays the shell's action. Activate (Enter, `canvas.activate`) is
 a press and a release at the grid cursor, so a keyboard user selects as the pointer does. Escape leaves the band, then
 returns to Select, then clears the selection (the chain is in doc 16 §4.2). The drag-move rows are not built: they

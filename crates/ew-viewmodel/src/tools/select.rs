@@ -21,7 +21,7 @@
 //! | pressed (movable) | move beyond 3 points | dragging | `Transient`: the ghost of the moved entities' rectangles offset by the step displacement, rubber bands and the readout; the moved set is the selection's movable entities when the pressed entity is selected, else the pressed entity alone, each with the other boxes of its device's interfaces on a bus page |
 //! | pressed (other) | move beyond 3 points | rubber-band | `Transient` |
 //! | rubber-band | move | rubber-band | `Transient`: solid while the drag goes right (encloses), dashed left (touches) |
-//! | rubber-band | release | idle | `Select`: left to right the entities inside the band, right to left those that touch it; Shift adds |
+//! | rubber-band | release | idle | `Select`: left to right the entities whose drawing lies inside the band (their texts left out), right to left those that touch it; Shift adds |
 //! | dragging | move | dragging | `Transient`; steps `k = round(page displacement × den / num)` per axis; one symbol moved shows its guides and takes a guide's line within three quarters of a step of it, unless Alt is held (docs/design/06a-drafting.md §6) |
 //! | dragging | `Dwell { ms ≥ 80 }` | dragging | `Preview(rep.move {reps, items, steps})` when the steps are not zero |
 //! | dragging | release | idle | `Commit(rep.move {reps, items, steps})` when the steps are not zero, else `Select` (as a click) |
@@ -1127,9 +1127,30 @@ impl SelectTool {
         })
     }
 
-    /// A finished band.
+    /// A finished band. Left to right it encloses what a symbol draws, its texts left out: a terminal printing the
+    /// strip's designation beside it was left out of a band over the whole row. An entity that draws texts only (a
+    /// free text) is enclosed by its texts.
     fn finish_band(from: (i64, i64), to: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
-        let picked = band_selection(&cx.page.entities, rect_of(from, to), to.0 >= from.0);
+        let encloses = to.0 >= from.0;
+        let picked = if encloses {
+            let mut drawn = cx
+                .page
+                .list
+                .entity_bounds_where(|i| !matches!(i.kind, ew_dl::ItemKind::Glyphs(_)));
+            let has_drawing: std::collections::BTreeSet<ew_api::output::Uuid> =
+                drawn.iter().map(|(e, _)| e.0).collect();
+            let texts_only: Vec<(EntityRef, Rect)> = cx
+                .page
+                .entities
+                .iter()
+                .filter(|(e, _)| !has_drawing.contains(&e.0))
+                .copied()
+                .collect();
+            drawn.extend(texts_only);
+            band_selection(&drawn, rect_of(from, to), true)
+        } else {
+            band_selection(&cx.page.entities, rect_of(from, to), false)
+        };
         ToolOutput::Select(if mods.shift {
             SelectionChange::Add(picked)
         } else {

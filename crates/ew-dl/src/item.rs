@@ -309,7 +309,14 @@ impl DisplayList {
     /// assert_eq!(dl.entity_bounds(), vec![(e, Rect::from_points(p(100, 0), p(110, 5)))]);
     /// ```
     pub fn entity_bounds(&self) -> Vec<(EntityRef, Rect)> {
+        self.entity_bounds_where(|_| true)
+    }
+
+    /// [`entity_bounds`](DisplayList::entity_bounds) of the items `keep` holds to (an editor's rubber band leaves a
+    /// symbol's texts out).
+    pub fn entity_bounds_where(&self, keep: impl Fn(&Item) -> bool) -> Vec<(EntityRef, Rect)> {
         self.placed()
+            .filter(|p| keep(p.item))
             .filter_map(|p| {
                 let entity = p.item.entity?;
                 let mut acc = None;
