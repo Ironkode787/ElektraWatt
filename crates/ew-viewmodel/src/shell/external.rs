@@ -683,7 +683,7 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        if let Err(e) = ew_api::library::file::write_replacing(&path, &export.bytes) {
+        if let Err(e) = ew_api::file::write_replacing(&path, &export.bytes) {
             let message = strings::format(key!("error-export-ewz"), &[&e.to_string()]);
             self.banner = Some(message.clone());
             return Outcome::Failed { message };

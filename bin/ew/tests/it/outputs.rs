@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Output;
 
 use crate::support::{EwTmp, SAMPLE, Tmp, args, stderr, stdout};
-use ew_api::library::file::FILE_SET_MARK;
+use ew_api::file::FILE_SET_MARK;
 
 /// The pixel size of a PNG (its IHDR chunk).
 fn png_size(bytes: &[u8]) -> (u32, u32) {

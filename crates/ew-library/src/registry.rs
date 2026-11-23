@@ -13,7 +13,7 @@ use ew_ids::Uuid;
 use rusqlite::Transaction;
 use serde_json::Value;
 
-use crate::file::{Staged, temp_beside, write_replacing};
+use ew_store::file::{Staged, temp_beside, write_replacing};
 use crate::index::{INDEX_FILE, Index, IndexState, LibState, MfrText, texts};
 use crate::lock::{self, Identity, LockPolicy};
 use crate::manifest::{LibManifest, MANIFEST, hash_matches};

@@ -9,7 +9,7 @@
 //! removes the sibling on every other way out of the body, a cancel at the checkpoint before the rename, a failure,
 //! a panic (the guard drops while the panic unwinds), so no partial file remains; after the rename the export is done.
 //! The cause of a failure is a fixed English text by the I/O error's kind, never a path. A DXF set (doc 09 §4.9)
-//! replaces its folder as a whole after the same checkpoint ([`ew_api::library::file::write_file_set`]).
+//! replaces its folder as a whole after the same checkpoint ([`ew_api::file::write_file_set`]).
 //!
 //! **Determinism.** Nothing here prints a progress number, an elapsed time or a path; the window keeps its own clock
 //! for the elapsed time and the 200 ms rule. The entries are numbered from 1 per shell; the last [`MAX_JOBS`] are kept.
@@ -20,7 +20,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
-use ew_api::library::file::{FileSetError, Staged, write_file_set};
+use ew_api::file::{FileSetError, Staged, write_file_set};
 use ew_api::output::{CsvOptions, DXF_SET_EXTENSIONS, DxfExportJob, ExportJob, Table, WorkbookMeta};
 
 use crate::key;

@@ -870,14 +870,14 @@ pub fn user_only_options() -> std::fs::OpenOptions {
     options
 }
 
-/// Writes `bytes` as the file `path` all or nothing ([`ew_api::library::file`]), its temporary file created user-only
+/// Writes `bytes` as the file `path` all or nothing ([`ew_api::file`]), its temporary file created user-only
 /// ([`user_only_options`]).
 ///
 /// # Errors
 ///
 /// The I/O error of the first step that failed.
 pub fn write_user_only(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    use ew_api::library::file::{Staged, temp_beside};
+    use ew_api::file::{Staged, temp_beside};
     Staged::write(temp_beside(path), path, bytes, &user_only_options())?.commit()
 }
 

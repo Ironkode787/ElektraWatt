@@ -508,7 +508,7 @@ pub(crate) fn keep_source(sha: &[u8; 32], format: &UnderlayFormat, bytes: &[u8])
     if path.is_file() {
         return Ok(());
     }
-    ew_library::file::write_replacing(&path, bytes).map_err(|_| refused())
+    ew_store::file::write_replacing(&path, bytes).map_err(|_| refused())
 }
 
 #[cfg(test)]

@@ -18,6 +18,8 @@ workspace = true
 [dependencies]
 ew-schema = { path = "../ew-schema" }
 ew-format = { path = "../ew-format" }
+# The program's one all-or-nothing file write, and the lock record and protocol of `library.lock` (doc 05 §7).
+ew-store = { path = "../ew-store" }
 # The copy IDs `v5(NS_LIBCOPY, library ‖ item)` and new library IDs (ADR-0004: ew-ids owns the formulas).
 ew-ids = { path = "../ew-ids" }
 # A part hit's description in its languages (FT-2066).

@@ -60,6 +60,7 @@ pub mod clock;
 pub mod cloud;
 pub mod ewz;
 pub mod external;
+pub mod file;
 pub mod git;
 pub mod journal;
 pub mod lock;

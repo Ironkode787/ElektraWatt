@@ -1660,6 +1660,7 @@ dependencies = [
  "ew-interop-api",
  "ew-mltext",
  "ew-schema",
+ "ew-store",
  "ew-testdir",
  "rusqlite",
  "serde",

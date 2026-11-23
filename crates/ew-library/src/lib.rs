@@ -14,8 +14,6 @@
 //!   fails is skipped with a finding.
 //! - **The lock** ([`lock`]): `library.lock` with the project lock's record and stale rule; a stale lock is taken
 //!   over only after the user confirmed ([`Registry::take_over_stale`]).
-//! - **The file write** ([`file`]): the program's one all-or-nothing write, here as the lowest crate every writer
-//!   reaches.
 //! - **The index**: one SQLite file per user in the cache directory ([`INDEX_FILE`]), never on a share, never
 //!   authoritative, reindexed per library when its generation or a file hash changes.
 //! - **Search** ([`PartQuery`], [`ItemQuery`]): the rank tiers of doc 07 §4.3 and the tie-breaks of D6.
@@ -26,7 +24,6 @@
 #![forbid(unsafe_code)]
 
 mod error;
-pub mod file;
 mod index;
 pub mod lock;
 mod manifest;

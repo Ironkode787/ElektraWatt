@@ -652,7 +652,7 @@ pub(super) fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Re
 }
 
 /// Writes a set of files with the extensions `exts` (`svg`; `png`; `dxf` with its pictures; `kind` names the export:
-/// `SVG`) into the directory `out` as a whole ([`ew_api::library::file::write_file_set`]): `out` holds exactly this
+/// `SVG`) into the directory `out` as a whole ([`ew_api::file::write_file_set`]): `out` holds exactly this
 /// export, a failure leaves the earlier set as it was, and a directory that holds a file no earlier export of the kind
 /// wrote there is refused, whatever its extension (`ew export svg`, `ew export png`, `ew export dxf`).
 pub(super) fn write_file_set(
@@ -661,8 +661,8 @@ pub(super) fn write_file_set(
     kind: &str,
     files: &[(&str, &[u8])],
 ) -> Result<(), String> {
-    use ew_api::library::file::FileSetError;
-    ew_api::library::file::write_file_set(out, exts, files).map_err(|e| match e {
+    use ew_api::file::FileSetError;
+    ew_api::file::write_file_set(out, exts, files).map_err(|e| match e {
         FileSetError::Foreign(name) => format!(
             "{}: the directory holds {name}, which no earlier {kind} export wrote there; choose an empty directory or \
              one an earlier {kind} export wrote",

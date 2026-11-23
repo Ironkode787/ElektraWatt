@@ -920,7 +920,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-export-into-project"));
         }
         if !matches!(
-            ew_api::library::file::foreign_entry(&dir, &ew_api::output::DXF_SET_EXTENSIONS),
+            ew_api::file::foreign_entry(&dir, &ew_api::output::DXF_SET_EXTENSIONS),
             Ok(None)
         ) {
             return Outcome::refused(key!("reason-export-dxf-folder"));
@@ -929,7 +929,7 @@ impl ShellModel {
         // (doc 16a §6.12), a script says `confirm`.
         let files = std::fs::read_dir(&dir).map_or(0, |d| {
             d.flatten()
-                .filter(|e| e.file_name() != ew_api::library::file::FILE_SET_MARK)
+                .filter(|e| e.file_name() != ew_api::file::FILE_SET_MARK)
                 .count()
         });
         if files > 0 && !confirm {

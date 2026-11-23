@@ -812,10 +812,10 @@ fn read_bounded(path: &Path, limit: u64) -> std::io::Result<Vec<u8>> {
     Ok(bytes)
 }
 
-/// Writes `bytes` to `path` all or nothing ([`ew_api::library::file::write_replacing`]), so a failed export leaves no
+/// Writes `bytes` to `path` all or nothing ([`ew_api::file::write_replacing`]), so a failed export leaves no
 /// partial file (doc 09 section 4.3).
 fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    ew_api::library::file::write_replacing(path, bytes)
+    ew_api::file::write_replacing(path, bytes)
 }
 
 fn json_text(v: serde_json::Result<serde_json::Value>) -> String {

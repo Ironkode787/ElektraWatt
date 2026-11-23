@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::common::{Tmp, done, refused};
-use ew_api::library::file::FILE_SET_MARK;
+use ew_api::file::FILE_SET_MARK;
 use ew_api::output::PageSelection;
 use ew_viewmodel::shell::Outcome;
 use ew_viewmodel::strings;
