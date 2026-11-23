@@ -756,7 +756,7 @@ fn a_cold_q_evaluates_every_query_once() {
     let session = session(MemoMode::Off);
     let model = session.world().model;
     let recorder = Rc::new(RecordingTracker::new());
-    let q = Q::with_tracker(&model, Box::new(Rc::clone(&recorder)));
+    let q = Q::with_recorder(&model, Rc::clone(&recorder));
     let part = q.get::<PotentialPartition>(());
     let evaluated = recorder.evaluated();
     let count = |family: &str| evaluated.iter().filter(|(f, _)| *f == family).count();

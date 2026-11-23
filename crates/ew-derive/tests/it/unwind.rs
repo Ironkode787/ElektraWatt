@@ -71,7 +71,7 @@ fn model() -> ew_model::Model {
 fn a_panicking_query_can_be_evaluated_again() {
     let m = model();
     let rec = Rc::new(RecordingTracker::new());
-    let mut q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let mut q = Q::with_recorder(&m, Rc::clone(&rec));
     PLAIN_ARMED.store(true, Ordering::SeqCst);
     assert!(catch_unwind(AssertUnwindSafe(|| q.get::<Plain>(7))).is_err());
     assert_eq!(q.diagnostics().cached("unwind_plain"), 0);
@@ -93,7 +93,7 @@ fn a_panicking_query_can_be_evaluated_again() {
 fn a_panicking_inner_query_unwinds_both_levels() {
     let m = model();
     let rec = Rc::new(RecordingTracker::new());
-    let mut q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let mut q = Q::with_recorder(&m, Rc::clone(&rec));
     INNER_ARMED.store(true, Ordering::SeqCst);
     assert!(catch_unwind(AssertUnwindSafe(|| q.get::<Outer>(5))).is_err());
     assert_eq!(q.diagnostics().cached("unwind_outer"), 0);

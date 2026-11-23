@@ -828,7 +828,7 @@ mod tests {
     /// [`stamp`] reproduces every observed stamp.
     fn assert_stamps_agree(m: &Model) -> usize {
         let rec = Rc::new(RecordingTracker::new());
-        let q = Q::with_tracker(m, Box::new(Rc::clone(&rec)));
+        let q = Q::with_recorder(m, Rc::clone(&rec));
 
         let keys = all_keys(m);
         for kind in TABLE_KINDS {

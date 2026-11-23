@@ -17,7 +17,7 @@
 //!
 //! Phase 1 is **cold** (ADR-0002 decision 2): every family is computed on demand and cached only for the
 //! lifetime of one [`Q`]. Each family declares its initial [`Policy`] (ARCH §6.4) for the memo engine of
-//! the next phase, and every read goes through a [`Tracker`] — a no-op [`ColdTracker`] now — so that
+//! the next phase, and every read is reported (to the memo store, and to a [`RecordingTracker`] when one is given), so that
 //! `ew-memo` can record dependencies without any change to query code.
 //!
 //! # How "an untracked read does not compile" is kept (ARCH §3 rule 1, ADR-0002 amendment 2)
@@ -102,41 +102,37 @@ mod xref;
 mod xref_format;
 
 pub use assembly::{
-    AssemblyBreakMarks, BreakMark, BreakSide, assembly_members, device_descendants, order_code_part,
-    order_code_text, overview_rep, overview_start_page,
+    AssemblyBreakMarks, BreakSide, assembly_members, device_descendants, order_code_part, order_code_text,
+    overview_rep, overview_start_page,
 };
-pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
+pub use bom::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
-    Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
-    anchor_point, anchor_point_of, cell_in_grid, default_frame_grid, frame_form_from_settings, frame_form_of,
-    frame_grid,
+    Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, RepAnchorCell, anchor_point,
+    anchor_point_of, cell_in_grid, default_frame_grid, frame_form_from_settings, frame_form_of, frame_grid,
 };
-pub use channel_index::{ChannelKeyed, ChannelsByCp, ChannelsByModule, ModuleChannelIds};
-pub use cp_point::{RepDrawnCp, cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps};
+pub use channel_index::{ChannelsByCp, ChannelsByModule, ModuleChannelIds};
+pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps};
 pub use cps::{Cp, FunctionCps};
 pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,
-    read_route, stored_path,
+    stored_path,
 };
 // The derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
 // pairing split out of the stitch graph.
 pub use index::{
-    BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, IpFunctions, Link, PageIds, PagelessLinks,
-    PagelessLinksV, RailTerminals,
+    BondIndex, BondVias, DefPoints, Index, IpFunctions, Link, PageIds, PagelessLinks, RailTerminals,
 };
-pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
+pub use ip::{IpInfoOf, IpNotes, IpPairing, IpPairingQ};
 // Page items and structure boxes, derived.
 pub use items::{
-    BINDABLE, CableMark, GroupMarker, IpStructure, MarkerMode, RepStructureBox, SYMBOL_BINDABLE, bound_text,
-    box_caption, cable_mark, cable_size_text, connection_marker, connection_number, effective_marker_text,
-    explicit_marker_text, free_text, group_marker, grouped_connections, live_connections, marker_mode,
-    neutral, outline_area2, outline_contains, shows_marker, stale_marker_notes, strips_named_on,
-    symbol_bound_text,
+    BINDABLE, CableMark, IpStructure, RepStructureBox, SYMBOL_BINDABLE, bound_text, box_caption, cable_mark,
+    cable_size_text, connection_marker, connection_number, effective_marker_text, free_text, group_marker,
+    grouped_connections, live_connections, marker_mode, neutral, outline_contains, shows_marker,
+    stale_marker_notes, strips_named_on,
 };
-pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
+pub use joins::{JoinWiring, cp_label, wire_join};
 pub use links::{
-    BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
-    RailLocation, RailTerminal, RailTerminalOf, device_location,
+    BondPathsQ, DeclaredLink, FunctionLinksOf, RailBondsQ, RailLocation, RailTerminalOf, device_location,
 };
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
@@ -152,75 +148,62 @@ pub use bus::{
 };
 // The endpoint type of a carrier's ends (and of a component's members), for the crates above this one.
 pub use ew_model::EndpointKey;
-pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
+pub use flow::{Flow, FlowBfs, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
-    FluidNet, FluidNets, FluidPartition, FluidTube, FluidTubes, GALLERIES, Galleries, GallerySegment,
-    ValvePort, ValveSlot, ValveSlots, ValveSlotsV, is_fitting, is_fluid, is_valve_terminal,
-    open_working_ports, parent_chain, positions_of, reached_device, tracked_process_tag, tracked_target,
-    valve_functions, valve_positions,
+    FluidNets, FluidTube, FluidTubes, Galleries, ValvePort, ValveSlot, ValveSlots, is_fitting, is_fluid,
+    is_valve_terminal, open_working_ports, parent_chain, positions_of, reached_device, tracked_process_tag,
+    tracked_target, valve_functions, valve_positions,
 };
-pub use fluid_media::{
-    Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,
-    TubeSource, node_net,
-};
+pub use fluid_media::{Effective, MediumKey, MediumOrigin, MediumZones, TubePropsOf, TubeSource, node_net};
 pub use fluid_rows::{
-    MediumRow, MediumRows, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtRow, VtSlot, is_blanking_plate,
-    langs, line_kind_text, line_tag, location_text, medium_text, part_number, port_role_text, tube_spec_text,
-    valve_channels, valve_function,
+    MediumRows, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, is_blanking_plate, langs,
+    line_kind_text, line_tag, location_text, medium_text, part_number, port_role_text, tube_spec_text,
+    valve_function,
 };
 pub use names::{
     AttrConflict, DefAttr, PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text,
-    def_text, potential_named, ranked_defs,
+    potential_named, ranked_defs,
 };
-pub use nets::{
-    CpRef, EarthKind, EarthWire, IpNet, LocalNet, LocalNets, NetId, NetMember, PageIpNets, PageLocalNets,
-    ZeroVoltIps, joins_net,
-};
+pub use nets::{CpRef, NetId, PageIpNets, PageLocalNets, ZeroVoltIps};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
-pub use numbering::{NumberedWire, WireNumber, WireNumbers, WireNumbersV, orient_wire};
+pub use numbering::{WireNumber, WireNumbers, orient_wire};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
-    SectionStructure, folio_label, map_ml, print_language, report_pages, text_in,
+    SectionStructure, folio_label, map_ml, print_language, text_in,
 };
 pub use part_text::{main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text};
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
-    AddressIndex, AddressIndexV, AddressUse, ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates,
-    ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, ChannelsByTarget, EffectiveState, ModuleOrder,
-    ModuleStart, ModuleStartOf, ModuleStarts, OrderedModule, PlcAddressText, PlcAddressTexts, PlcRow,
-    PlcRows, PortWindow, Slot, SolenoidPositions, SolenoidSlot, Start, TargetSource, TargetedChannels,
-    address_profile, address_profile_named, auto_address, builtin_profiles, canonical, channel_data_type,
-    channel_kind_word, channel_pin, coil_cp, coil_host, default_profile, driven_device, eval_map, iec_ident,
-    iolink_device, is_iec_ident, module_io, module_part, not_a_module, parse_plc_address, parse_plc_start,
-    pin_pattern_error, pinned_profile, port_windows, process_tag_parts, process_tag_scheme, profile_of,
-    profiles_at_hand, solenoid_channel, solenoid_coil, start_example, station_of, station_tree, stations,
-    stored, symbol_from_template, symbol_template_error, unreadable_profile, valve_solenoids,
+    AddressIndex, AddressUse, ChannelAddr, ChannelAddresses, ChannelStates, ChannelTargets, ChannelTexts,
+    ChannelsByTarget, EffectiveState, ModuleOrder, ModuleStart, ModuleStartOf, ModuleStarts, PlcAddressText,
+    PlcAddressTexts, PlcRow, PlcRows, Slot, SolenoidPositions, SolenoidSlot, Start, address_profile,
+    address_profile_named, auto_address, builtin_profiles, canonical, channel_data_type, channel_kind_word,
+    channel_pin, coil_cp, coil_host, default_profile, driven_device, iec_ident, iolink_device, is_iec_ident,
+    module_io, module_part, not_a_module, parse_plc_address, parse_plc_start, pin_pattern_error,
+    pinned_profile, port_windows, process_tag_parts, process_tag_scheme, profile_of, profiles_at_hand,
+    solenoid_channel, solenoid_coil, start_example, station_of, station_tree, stations, stored,
+    symbol_template_error, unreadable_profile, valve_solenoids,
 };
 pub use potentials::{
-    Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
-    PotentialName, PotentialPartition, Signal, bonds_of_potential, bus_line_cables, bus_line_pages,
-    potential_id_at, potential_part,
+    Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialId, PotentialPartition,
+    Signal, bonds_of_potential, bus_line_cables, bus_line_pages, potential_id_at, potential_part,
 };
 pub use profile::{
-    CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,
-    ProfileStatus, RuleSelect, TitleBlockBindings, TocLayout, XrefFormat, XrefMatrix,
+    CounterScope, NumberingScheme, NumberingSettingsOf, ProfileStatus, XrefFormat,
     by_version as profile_by_version, numbering_settings, scheme_for, shipped as shipped_profiles,
 };
-pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
+pub use q::{Cycle, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
 pub use settings::{
-    DrawingSettings, DrawingSettingsQ, Member, SettingsMember, TextStyles,
-    check_member as check_settings_member, company_codes, text_styles,
+    DrawingSettingsQ, Member, SettingsMember, TextStyles, check_member as check_settings_member,
+    company_codes, text_styles,
 };
-pub use stitch::{
-    EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
-    StitchNode,
-};
+pub use stitch::{EdgeKind, IpInfo, Level, PairMode, ShortSource, StitchGraph, StitchGraphQ};
 pub use strip_bridges::{BridgeGroup, StripBridges};
 pub use structure::{
-    DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageDisplayStructure, PageStructure,
-    ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath, would_print_location,
+    DevicesByStructure, PageDisplayStructure, PageStructure, ResolvedSlot, ResolvedStructure, SlotSource,
+    StructureOf, StructurePath, would_print_location,
 };
 pub use tag::{
     DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, level_short_tag,
@@ -238,39 +221,32 @@ pub use title_block::{
     open_revision, recorded_changed_pages, revision_label_key,
 };
 pub use toc::{TocRow, TocRows};
-pub use tracker::{ColdTracker, DepKey, Recorded, RecordingTracker, Tracker};
+pub use tracker::{DepKey, Recorded, RecordingTracker};
 pub use valve_cells::{
-    BAND_TOP, CELL_STEPS, END_STEPS, GALLERY_PORTS, HEIGHT_STEPS, PlugPin, SlotFrame, ValveCell, box_frame,
-    device_fits_terminal, fits_terminal, graphics_x_extent, is_fluid_terminal, is_multipin_terminal,
-    is_supply_def, plug_pins, solenoid_pin, terminal_cells, terminal_supply, wired_solenoid_channel,
+    CELL_STEPS, GALLERY_PORTS, PlugPin, SlotFrame, box_frame, device_fits_terminal, fits_terminal,
+    graphics_x_extent, is_fluid_terminal, is_multipin_terminal, is_supply_def, plug_pins, solenoid_pin,
+    terminal_cells, terminal_supply, wired_solenoid_channel,
 };
 pub use wire_profile::{
-    Attrs, ColourProfile, ProfileKey, ProfileRow, ProfileRowFor, SizeProfile, WireDefaultProps,
-    WireProfileNotes, WireProfiles, WireProfilesQ, csa_short_of, current_table_basis,
+    Attrs, ColourProfile, ProfileKey, ProfileRowFor, SizeProfile, WireDefaultProps, WireProfileNotes,
+    WireProfilesQ, csa_short_of, current_table_basis,
 };
 pub use wire_props::{
     ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, WirePropsMap,
     WirePropsOf, pick, unfed_protection, wire_props_below_overrides, wire_rating,
 };
-pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
+pub use wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 
 // The report-pages provider hook of `page_order` and the drawn-page order.
 pub use pages::{DrawnPageOrder, ReportPagesProvider};
 
 // The constituent behind each level-7 wire value.
-pub use wires::OverrideSources;
 
 // Cross-references (relations, formats, texts) and the format token engine.
-pub use xref::{
-    SamePage, StructureRule, TargetRole, XrefKind, XrefLink, XrefRelation, XrefRelationOf, XrefSettings,
-    XrefSettingsOf, XrefTarget, XrefText, XrefTextOf,
-};
-pub use xref_format::{
-    ItemOptions, ItemValues, Rendered, XrefToken, names_structure, parse_format, render_item, render_list,
-    render_wrapper,
-};
+pub use xref::{TargetRole, XrefKind, XrefRelationOf, XrefSettingsOf, XrefTarget, XrefText, XrefTextOf};
+pub use xref_format::{ItemOptions, ItemValues, Rendered, XrefToken, parse_format, render_item, render_list};
 
-/// The revision stamp of a snapshot (in this crate's public API through [`Tracker`]).
+/// The revision stamp of a snapshot (in this crate's public API through [`Recorded`]).
 pub use ew_model::Rev;
 
 // The crates whose types this crate's public API carries, re-exported; the crates above it name them through

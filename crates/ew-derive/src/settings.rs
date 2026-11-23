@@ -108,7 +108,7 @@ impl Member {
 pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
     match member {
         Member::Numbering => {
-            let settings = serde_json::from_value::<crate::NumberingSettings>(value.clone())
+            let settings = serde_json::from_value::<crate::profile::NumberingSettings>(value.clone())
                 .map_err(|e| e.to_string())?;
             // A default that names no scheme falls back to the profile's scheme.
             if !settings.schemes.iter().any(|s| s.key == settings.default) {

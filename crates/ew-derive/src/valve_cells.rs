@@ -382,7 +382,7 @@ pub fn solenoid_pin(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<(Id<Devi
             .iter()
             .find(|e| e.solenoid.as_str() == solenoid)?
             .clone();
-        crate::eval_map(&entry.pin, ew_plcaddr::MapVar::P, index)
+        crate::plc::eval_map(&entry.pin, ew_plcaddr::MapVar::P, index)
     })?;
     Some((terminal, pin.to_string()))
 }
@@ -433,7 +433,7 @@ pub fn plug_pins(q: &Q, terminal: Id<Device>) -> Vec<(String, PlugPin)> {
             _ => None,
         };
         for e in &fluid.pins {
-            if let Some(pin) = crate::eval_map(&e.pin, ew_plcaddr::MapVar::P, p - 1) {
+            if let Some(pin) = crate::plc::eval_map(&e.pin, ew_plcaddr::MapVar::P, p - 1) {
                 out.push((
                     pin.to_string(),
                     PlugPin::Solenoid {

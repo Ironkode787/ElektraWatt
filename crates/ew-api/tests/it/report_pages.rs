@@ -342,8 +342,7 @@ fn installing_the_report_engine_discards_values_cached_without_it() {
 fn the_page_order_reads_only_through_tracked_queries() {
     let s = common::sample();
     let rec = Rc::new(RecordingTracker::new());
-    let q =
-        Q::with_tracker(&s.world().model, Box::new(Rc::clone(&rec))).with_report_pages(ew_reports::engine());
+    let q = Q::with_recorder(&s.world().model, Rc::clone(&rec)).with_report_pages(ew_reports::engine());
     let order = q.get::<PageOrder>(());
     assert!(order.len() > PAGES_WITHOUT_REPORTS);
     let reads = rec.reads();

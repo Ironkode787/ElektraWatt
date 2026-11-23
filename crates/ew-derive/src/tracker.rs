@@ -4,8 +4,8 @@
 //! The dependency-recording hook of [`Q`](crate::Q) (ADR-0002 decisions 1, 2 and 4).
 //!
 //! Every tracked accessor of `Q` reports what it read as a [`DepKey`] together with the revision stamp it
-//! observed (`changed_at` of the row, index key or table; ARCH §6.2). The default [`ColdTracker`] drops the
-//! reports; the [`RecordingTracker`] keeps them for the tests. The memo engine of `ew-memo` receives the same reads
+//! observed (`changed_at` of the row, index key or table; ARCH §6.2). A `Q` without a recorder drops the
+//! reports; one with a [`RecordingTracker`] keeps them for the tests. The memo engine of `ew-memo` receives the same reads
 //! through the memo store a `Q` carries, beside this hook; query code calls only `Q`'s accessors either way.
 //!
 //! **Verifier contract.** A memo engine re-validates a value by re-reading every recorded [`DepKey`] and
@@ -43,39 +43,6 @@ pub enum DepKey {
     Reserved,
 }
 
-/// Receives the reads of a [`Q`](crate::Q).
-///
-/// `enter` and `exit` bracket the evaluation of one query, so that an engine can attribute the reads in
-/// between to that query (nested evaluations nest). Every value a query obtains from another query,
-/// cached or fresh, is also reported as [`Tracker::query_read`].
-pub trait Tracker {
-    /// A tracked read of `dep`, which carried revision `observed`.
-    fn read(&self, dep: DepKey, observed: Rev);
-
-    /// The evaluation of `family` for `key` starts.
-    fn enter(&self, family: &'static str, key: &dyn fmt::Debug) {
-        let _ = (family, key);
-    }
-
-    /// The evaluation of `family` ends.
-    fn exit(&self, family: &'static str) {
-        let _ = family;
-    }
-
-    /// The value of `family` for `key` was read (by a query or by the caller of `Q::get`).
-    fn query_read(&self, family: &'static str, key: &dyn fmt::Debug) {
-        let _ = (family, key);
-    }
-}
-
-/// The phase-1 tracker: records nothing (ADR-0002 decision 2).
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ColdTracker;
-
-impl Tracker for ColdTracker {
-    fn read(&self, _dep: DepKey, _observed: Rev) {}
-}
-
 /// One read recorded by [`RecordingTracker`].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recorded {
@@ -87,7 +54,9 @@ pub struct Recorded {
     pub observed: Rev,
 }
 
-/// A tracker that keeps every read, for tests and `--explain` style diagnostics.
+/// The optional recorder of a [`Q`](crate::Q) (`Q::with_recorder`): it keeps every read, with the query evaluating
+/// at the time, and every query evaluation, for the tests and `--explain` style diagnostics. `enter` and `exit`
+/// bracket the evaluation of one query, so that the reads in between are attributed to it (nested evaluations nest).
 #[derive(Debug, Default)]
 pub struct RecordingTracker {
     reads: RefCell<Vec<Recorded>>,
@@ -110,40 +79,22 @@ impl RecordingTracker {
     pub fn evaluated(&self) -> Vec<(&'static str, String)> {
         self.evaluated.borrow().clone()
     }
-}
 
-impl Tracker for RecordingTracker {
-    fn read(&self, dep: DepKey, observed: Rev) {
+    /// A tracked read of `dep`, which carried revision `observed`.
+    pub(crate) fn read(&self, dep: DepKey, observed: Rev) {
         let query = self.stack.borrow().last().copied();
         self.reads.borrow_mut().push(Recorded { query, dep, observed });
     }
 
-    fn enter(&self, family: &'static str, key: &dyn fmt::Debug) {
+    /// The evaluation of `family` for `key` starts.
+    pub(crate) fn enter(&self, family: &'static str, key: &dyn fmt::Debug) {
         self.stack.borrow_mut().push(family);
         self.evaluated.borrow_mut().push((family, format!("{key:?}")));
     }
 
-    fn exit(&self, family: &'static str) {
+    /// The evaluation of `family` ends.
+    pub(crate) fn exit(&self, family: &'static str) {
         let top = self.stack.borrow_mut().pop();
         debug_assert_eq!(top, Some(family), "unbalanced query evaluation");
-    }
-}
-
-/// Lets a shared recorder be handed to a `Q` while the caller keeps a handle on it.
-impl<T: Tracker + ?Sized> Tracker for std::rc::Rc<T> {
-    fn read(&self, dep: DepKey, observed: Rev) {
-        (**self).read(dep, observed);
-    }
-
-    fn enter(&self, family: &'static str, key: &dyn fmt::Debug) {
-        (**self).enter(family, key);
-    }
-
-    fn exit(&self, family: &'static str) {
-        (**self).exit(family);
-    }
-
-    fn query_read(&self, family: &'static str, key: &dyn fmt::Debug) {
-        (**self).query_read(family, key);
     }
 }

@@ -48,7 +48,7 @@ fn small() -> Fx {
 fn reads_are_reported_with_their_stamps() {
     let m = small().build();
     let rec = Rc::new(RecordingTracker::new());
-    let q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let q = Q::with_recorder(&m, Rc::clone(&rec));
     let tag = q.get::<DeviceTag>(id(0x1000));
     assert_eq!(tag.as_ref().as_ref().unwrap().full, "+J-E-2416-101F1");
     let reads = rec.reads();
@@ -73,7 +73,7 @@ fn reads_are_reported_with_their_stamps() {
 fn absent_rows_are_reported_against_the_table() {
     let m = small().build();
     let rec = Rc::new(RecordingTracker::new());
-    let q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let q = Q::with_recorder(&m, Rc::clone(&rec));
     assert!(q.pages().get(id::<Page>(0x999)).is_none());
     let r = rec.reads();
     assert_eq!(r.len(), 1);
@@ -85,7 +85,7 @@ fn absent_rows_are_reported_against_the_table() {
 fn each_key_is_evaluated_once_per_q() {
     let m = small().build();
     let rec = Rc::new(RecordingTracker::new());
-    let mut q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let mut q = Q::with_recorder(&m, Rc::clone(&rec));
     let a = q.get::<DeviceTag>(id(0x1000));
     let b = q.get::<DeviceTag>(id(0x1000));
     assert!(Arc::ptr_eq(&a, &b));
@@ -214,7 +214,7 @@ fn bump_counter(m: &ew_model::Model, counter: u32, rev: Rev) -> ew_model::Model 
 fn reads_report_non_zero_stamps_after_a_commit() {
     let m = bump_counter(&small().build(), 7, Rev(3));
     let rec = Rc::new(RecordingTracker::new());
-    let q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let q = Q::with_recorder(&m, Rc::clone(&rec));
     assert_eq!(
         q.get::<DeviceTag>(id(0x1000)).as_ref().as_ref().unwrap().full,
         "+J-E-2416-101F7"
@@ -278,7 +278,7 @@ impl Query for EveryAccessor {
 fn query_bodies_see_only_tracked_accessors() {
     let m = small().build();
     let rec = Rc::new(RecordingTracker::new());
-    let q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+    let q = Q::with_recorder(&m, Rc::clone(&rec));
     // 1 device, 1 page, 1 function, 1 rep on the page, 1 function of the device, no connected CP,
     // 1 symbol and 1 fndef, the profile pin, no waiver, the tag.
     assert_eq!(*q.get::<EveryAccessor>(()), 9);

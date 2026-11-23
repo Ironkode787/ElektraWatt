@@ -340,7 +340,7 @@ fn pe_rule_reads_each_strip_once() {
 fn wire_props_reads_no_project_row() {
     let model = fixture().build();
     let rec = Rc::new(RecordingTracker::new());
-    let q = Q::with_tracker(&model, Box::new(Rc::clone(&rec)));
+    let q = Q::with_recorder(&model, Rc::clone(&rec));
     let ps = potentials(&q);
     let maps = read_all(&q, &ps);
     assert!(maps.iter().all(|m| !m.wires.is_empty()));

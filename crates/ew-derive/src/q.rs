@@ -22,16 +22,16 @@ use crate::memo_store::{self, MemoOf};
 use crate::note::{DeriveNote, NoteFrame, NoteSet};
 use crate::profile::{self, DerivationProfile, ProfileStatus};
 use crate::query::{Cache, Lookup, Policy, Query};
-use crate::tracker::{ColdTracker, DepKey, Tracker};
+use crate::tracker::{DepKey, RecordingTracker};
 
 /// The memo store a `Q` from a [`MemoStore`](crate::MemoStore) reads through (ADR-0002 amendment 4).
 pub(crate) type DeriveStore = ew_memo::Store<Q>;
 
-/// The tracked-read context: one model snapshot, a tracker and the request-scoped cache.
+/// The tracked-read context: one model snapshot, an optional recorder and the request-scoped cache.
 ///
 /// A query receives `&Q` and nothing else. `Q` owns its snapshot (a `Model` clone is O(1)) and never
 /// hands it out: no method returns the `Model`, a raw `Table` or a raw index, and the fields are private.
-/// Every accessor reports its read to the [`Tracker`] with the revision stamp it observed, so a memo
+/// Every accessor reports its read with the revision stamp it observed (to the memo store and the optional recorder), so a memo
 /// engine can verify the value later (ADR-0002 decisions 1 and 4).
 ///
 /// `Q` is request-scoped: build one per top-level evaluation (a frame, a command preview, an export
@@ -65,7 +65,7 @@ pub(crate) type DeriveStore = ew_memo::Store<Q>;
 /// ```
 pub struct Q {
     model: Model,
-    tracker: Box<dyn Tracker>,
+    recorder: Option<Rc<RecordingTracker>>,
     /// The request-scoped caches: the request's, then one per memo execution in progress.
     cache: RefCell<Vec<Cache>>,
     /// The notes: the request's, then the notes of each memo execution in progress (own notes, and the
@@ -92,7 +92,7 @@ impl fmt::Debug for Q {
 }
 
 /// Undoes `start` and `enter` when a query panics: the slot is removed (so a later `get` evaluates again
-/// instead of reporting a false cycle), the note frame of a capturing evaluation is popped and the tracker
+/// instead of reporting a false cycle), the note frame of a capturing evaluation is popped and the recorder
 /// stack is balanced. Disarmed on the normal path.
 struct UnwindGuard<'q, Qy: Query> {
     q: &'q Q,
@@ -115,7 +115,9 @@ impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
             {
                 notes.pop();
             }
-            self.q.tracker.exit(Qy::FAMILY);
+            if let Some(r) = &self.q.recorder {
+                r.exit(Qy::FAMILY);
+            }
         }
     }
 }
@@ -190,13 +192,18 @@ impl Diagnostics<'_> {
 }
 
 impl Q {
-    /// A cold context over `model` (phase 1: the [`ColdTracker`]).
+    /// A cold context over `model`, without a recorder.
     pub fn new(model: &Model) -> Q {
-        Q::with_tracker(model, Box::new(ColdTracker))
+        Q::of(model, None)
     }
 
-    /// A context whose reads go to `tracker`.
-    pub fn with_tracker(model: &Model, tracker: Box<dyn Tracker>) -> Q {
+    /// A context whose reads and query evaluations `recorder` keeps.
+    pub fn with_recorder(model: &Model, recorder: Rc<RecordingTracker>) -> Q {
+        Q::of(model, Some(recorder))
+    }
+
+    /// A context whose reads go to `recorder`, if any.
+    fn of(model: &Model, recorder: Option<Rc<RecordingTracker>>) -> Q {
         let model = model.clone();
         let (profile, profile_status) = profile::resolve(model.project().derivation_profile.as_str());
         let mut notes = BTreeSet::new();
@@ -210,7 +217,7 @@ impl Q {
         }
         Q {
             model,
-            tracker,
+            recorder,
             cache: RefCell::new(vec![Cache::default()]),
             notes: RefCell::new(vec![NoteFrame::with(notes)]),
             profile,
@@ -249,7 +256,7 @@ impl Q {
     }
 
     /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache and note frame, the
-    /// tracker bracket; returns the value and the execution's note set (its own notes and, by reference,
+    /// recorder bracket; returns the value and the execution's note set (its own notes and, by reference,
     /// those of the memoised values it read; `None` without notes) with whether that set is a new allocation,
     /// and whether the body declared changed parts ([`Q::changed_parts`]). A panic in `body` unwinds the
     /// frames.
@@ -275,7 +282,9 @@ impl Q {
                     if let Ok(mut d) = self.q.parts_declared.try_borrow_mut() {
                         d.pop();
                     }
-                    self.q.tracker.exit(self.family);
+                    if let Some(r) = &self.q.recorder {
+                        r.exit(self.family);
+                    }
                 }
             }
         }
@@ -286,7 +295,9 @@ impl Q {
             producer: Qy::PRODUCER,
             family: Qy::FAMILY,
         });
-        self.tracker.enter(Qy::FAMILY, key);
+        if let Some(r) = &self.recorder {
+            r.enter(Qy::FAMILY, key);
+        }
         let mut frames = Frames {
             q: self,
             family: Qy::FAMILY,
@@ -294,7 +305,9 @@ impl Q {
         };
         let value = body();
         frames.armed = false;
-        self.tracker.exit(Qy::FAMILY);
+        if let Some(r) = &self.recorder {
+            r.exit(Qy::FAMILY);
+        }
         self.cache.borrow_mut().pop();
         let declared = self.parts_declared.borrow_mut().pop().is_some_and(|f| f.declared);
         let frame = self.notes.borrow_mut().pop().unwrap_or_default();
@@ -358,7 +371,6 @@ impl Q {
         if Qy::POLICY != Policy::Cold
             && let Some(store) = self.memo_store()
         {
-            self.tracker.query_read(Qy::FAMILY, &key);
             return match memo_store::get_part::<Qy>(self, store, &key, part) {
                 Ok(v) => v,
                 Err(cycle) => panic!("{cycle}"),
@@ -424,7 +436,6 @@ impl Q {
     ///
     /// When two query types share one family name.
     pub fn try_get<Qy: Query>(&self, key: Qy::Key) -> Result<Arc<Qy::Value>, Cycle> {
-        self.tracker.query_read(Qy::FAMILY, &key);
         if Qy::POLICY != Policy::Cold
             && let Some(store) = self.memo_store()
         {
@@ -457,7 +468,9 @@ impl Q {
                 if capture {
                     self.notes.borrow_mut().push(NoteFrame::default());
                 }
-                self.tracker.enter(Qy::FAMILY, &key);
+                if let Some(r) = &self.recorder {
+                    r.enter(Qy::FAMILY, &key);
+                }
                 let mut guard = UnwindGuard::<Qy> {
                     q: self,
                     key: Some(key.clone()),
@@ -465,7 +478,9 @@ impl Q {
                 };
                 let value = Qy::run(self, &key);
                 guard.key = None;
-                self.tracker.exit(Qy::FAMILY);
+                if let Some(r) = &self.recorder {
+                    r.exit(Qy::FAMILY);
+                }
                 let notes = if capture {
                     let frame = self.notes.borrow_mut().pop().unwrap_or_default();
                     frame.into_set()
@@ -763,7 +778,9 @@ impl Q {
     }
 
     fn read(&self, dep: DepKey, observed: Rev) {
-        self.tracker.read(dep, observed);
+        if let Some(r) = &self.recorder {
+            r.read(dep, observed);
+        }
         if let Some(store) = self.memo_store() {
             let input = MemoInput::Read(dep);
             let durability = memo_keys::durability(&input);

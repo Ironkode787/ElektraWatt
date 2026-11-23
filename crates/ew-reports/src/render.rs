@@ -442,7 +442,7 @@ mod tests {
     fn tag_class_members_is_evaluated_once_for_many_ranges() {
         let m = model();
         let rec = Rc::new(RecordingTracker::new());
-        let mut q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+        let mut q = Q::with_recorder(&m, Rc::clone(&rec));
         for _ in 0..5 {
             assert_eq!(
                 compress_range(&q, &[dev(0x11), dev(0x12), dev(0x13)]),

@@ -23,10 +23,10 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
 - **The trait.** `ew-derive` declares each family through the trait
   `Query { type Key; type Value; const FAMILY: &str; const POLICY: Policy /* Cold | Memo */; fn run(q: &Q, key: &Key) -> Arc<Value> }`.
   `Q` owns a model snapshot (an O(1) clone), its request-scoped cache (one typed map per family; a second query type
-  with the same family name, or a re-entrant key, panics) and a `Tracker` that sees every read as a `DepKey`
-  (project, row, table, index key, whole index, reserved records) with its observed stamp. A cold `Q` uses the
-  no-op `ColdTracker`; `RecordingTracker` serves tests and `--explain`; in a `Session` the memo store of §6.2
-  stands behind the tracker, so a query body is the same in both. No accessor of `Q` returns the model, a table,
+  with the same family name, or a re-entrant key, panics) and reports every read as a `DepKey`
+  (project, row, table, index key, whole index, reserved records) with its observed stamp: to the memo store of §6.2
+  in a `Session`, and to an optional `RecordingTracker` (`Q::with_recorder`) for tests and `--explain`; a cold `Q`
+  reports to neither, and a query body is the same in every case. No accessor of `Q` returns the model, a table,
   an index or an `Op` (a `compile_fail` doctest guards it). What a derivation cannot express as a value (an
   unknown pinned profile, a numbering scheme not applied, the built-in default frame used, a malformed shim) goes
   to a request-scoped note channel, `DeriveNote`, which `ew-api`'s `Session` surfaces as findings.
