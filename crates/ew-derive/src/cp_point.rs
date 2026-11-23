@@ -82,10 +82,7 @@ pub fn rep_cp_end(
         Some((grid.settle_point(point), oriented_dir(dir, rep.orient)))
     };
     let by_symbol = symbol.cps.as_slice().iter().find_map(|cp| {
-        let (f, i) = match rep.pin_map.as_slice().iter().find(|p| p.symbol_cp == cp.idx) {
-            Some(p) => (p.function, p.idx),
-            None => (*rep.functions.first()?, cp.fn_cp),
-        };
+        let (f, i) = rep.fn_cp_of(cp)?;
         ((f, i) == (function, idx))
             .then(|| placed(cp.pos, &cp.dir))
             .flatten()

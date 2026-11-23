@@ -603,10 +603,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
         .as_slice()
         .iter()
         .filter_map(|cp| {
-            let (function, idx) = match rep.pin_map.get(&cp.idx) {
-                Some(p) => (p.function, p.idx),
-                None => (*rep.functions.first()?, cp.fn_cp),
-            };
+            let (function, idx) = rep.fn_cp_of(cp)?;
             Some(placed(cp.pos).map(|pos| RepCp {
                 symbol_cp: cp.idx,
                 function,

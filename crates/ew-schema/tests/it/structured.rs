@@ -888,6 +888,28 @@ fn a_library_documents_envelope_and_item() {
     assert!(unknown.copy_meta().is_none() && unknown.item_json().is_none());
 }
 
+/// A symbol CP stands for its `pin_map` entry, else for its own `fn_cp` of the representation's first function.
+#[test]
+fn the_function_cp_a_symbol_cp_stands_for() {
+    let (f1, f2) = ("3e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e", "4e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e");
+    let rep = |functions: Value| -> ew_schema::Representation {
+        serde_json::from_value(json!({
+            "id": "6f03d8a5-c912-5e7b-8a40-1d5b39e2f7c6", "functions": functions,
+            "page": "8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a", "symbol": "2c7e9b40-5a18-5f63-9d2c-b8a1e07f4396",
+            "pos": [0, 0], "pin_map": [{"symbol_cp": 1, "function": f2, "idx": 7}]
+        }))
+        .unwrap()
+    };
+    let cp = |idx: u16| -> ew_schema::SymbolCp {
+        serde_json::from_value(json!({"idx": idx, "fn_cp": 3, "pos": [0, 0], "dir": "left"})).unwrap()
+    };
+    let id = |s: &str| s.parse().unwrap();
+    assert_eq!(rep(json!([f1])).fn_cp_of(&cp(0)), Some((id(f1), 3)));
+    assert_eq!(rep(json!([f1])).fn_cp_of(&cp(1)), Some((id(f2), 7)));
+    assert_eq!(rep(json!([])).fn_cp_of(&cp(0)), None);
+    assert_eq!(rep(json!([])).fn_cp_of(&cp(1)), Some((id(f2), 7)));
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Doc additions
 

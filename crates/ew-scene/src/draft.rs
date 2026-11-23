@@ -1187,10 +1187,7 @@ const STRIP_TAG: u32 = 1 << 16;
 /// The pin of a representation that slot `CpDesignation(idx)` names: its symbol CP `idx`'s function CP.
 fn designated_pin(rep: &ew_schema::Representation, def: &ew_schema::SymbolDef, idx: u16) -> Option<PinId> {
     let cp = def.cps.iter().find(|c| c.idx == idx)?;
-    let (function, fn_idx) = match rep.pin_map.iter().find(|p| p.symbol_cp == idx) {
-        Some(p) => (p.function, p.idx),
-        None => (*rep.functions.first()?, cp.fn_cp),
-    };
+    let (function, fn_idx) = rep.fn_cp_of(cp)?;
     Some(pin_id(function, fn_idx))
 }
 

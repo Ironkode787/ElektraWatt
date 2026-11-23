@@ -919,12 +919,8 @@ fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
                 .or_insert((pos, dir, rep.id.as_uuid()));
         };
         for cp in def.cps.iter() {
-            let (function, idx) = match rep.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
-                Some(p) => (p.function, p.idx),
-                None => match rep.functions.first() {
-                    Some(f) => (*f, cp.fn_cp),
-                    None => continue,
-                },
+            let Some((function, idx)) = rep.fn_cp_of(cp) else {
+                continue;
             };
             put(function, idx, cp.pos, &cp.dir);
         }

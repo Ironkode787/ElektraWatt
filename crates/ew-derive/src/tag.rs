@@ -305,10 +305,7 @@ pub fn rep_level(q: &Q, rep: &Representation) -> Option<u8> {
     let symbols = q.symbols();
     let symbol = symbols.get(rep.symbol)?;
     symbol.item.cps.iter().find_map(|cp| {
-        let (f, i) = match rep.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
-            Some(p) => (p.function, p.idx),
-            None => (*rep.functions.first()?, cp.fn_cp),
-        };
+        let (f, i) = rep.fn_cp_of(cp)?;
         q.get::<crate::FunctionCps>(f)
             .iter()
             .find(|c| c.idx == i)

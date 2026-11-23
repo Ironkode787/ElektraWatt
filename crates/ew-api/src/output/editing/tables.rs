@@ -549,12 +549,8 @@ fn drawn_cps(q: &Q, page: Id<Page>) -> DrawnCps {
         };
         let placed = |offset: Pt2| rep.pos.checked_add(rep.orient.checked_apply(offset)?);
         for cp in def.cps.iter() {
-            let (function, idx) = match rep.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
-                Some(p) => (p.function, p.idx),
-                None => match rep.functions.first() {
-                    Some(f) => (*f, cp.fn_cp),
-                    None => continue,
-                },
+            let Some((function, idx)) = rep.fn_cp_of(cp) else {
+                continue;
             };
             put(function, idx, placed(cp.pos), orient_dir(o, dir_of(&cp.dir)));
         }

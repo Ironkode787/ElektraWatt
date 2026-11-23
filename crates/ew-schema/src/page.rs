@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
-use crate::library::{AnchorPolicy, Dir4, FormDef, Primitive, RepType, SymbolDef};
+use crate::library::{AnchorPolicy, Dir4, FormDef, Primitive, RepType, SymbolCp, SymbolDef};
 use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, NmS, Orient2S, Pt2S, UuidS};
 use crate::set::{KeyedList, Set, keyed};
 use crate::track::open_enum;
@@ -212,6 +212,17 @@ pub struct Representation {
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+impl Representation {
+    /// The function CP `(function, idx)` that the symbol CP `cp` of this representation's symbol stands for: its
+    /// `pin_map` entry, else CP `cp.fn_cp` of the first function; `None` when neither names a function.
+    pub fn fn_cp_of(&self, cp: &SymbolCp) -> Option<(Id<Function>, u16)> {
+        match self.pin_map.get(&cp.idx) {
+            Some(p) => Some((p.function, p.idx)),
+            None => Some((*self.functions.first()?, cp.fn_cp)),
+        }
+    }
 }
 
 /// One pin-map entry: symbol CP `symbol_cp` draws CP `idx` of `function`.
