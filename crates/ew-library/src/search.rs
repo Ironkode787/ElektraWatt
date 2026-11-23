@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Part and item search: the queries, the hits, `pn_norm` and the order of D6 (doc 07 §4.3).
+//! Part and item search: the queries, the hits and the order of D6 (doc 07 §4.3).
 //!
 //! **Order** (deterministic and without a clock):
 //! 1. with a compatibility filter, compatible parts before the others (doc 07 §4.3: "offers MCB 1P+N parts first");
@@ -20,15 +20,6 @@ use ew_format::ew_schema::{CategoryKey, ContactKind, ItemStatus, Kind, PartKind}
 use ew_ids::Uuid;
 
 use crate::Tier;
-
-/// `pn_norm` (doc 07 §4.3): upper case, without spaces, `-`, `.`, `/` and `_`. "SK 3110.000" gives "SK3110000";
-/// "5SY4 204-7" and "5SY4204-7" both give "5SY42047".
-pub fn pn_norm(s: &str) -> String {
-    s.chars()
-        .filter(|c| !c.is_whitespace() && !matches!(c, '-' | '.' | '/' | '_'))
-        .flat_map(char::to_uppercase)
-        .collect()
-}
 
 /// The function a part is chosen for (doc 07 §4.3, FR-PRT-015 at MVP): a part is compatible when its function
 /// template has a function whose FnDef has the same first two category levels and the same contact kind.
@@ -227,16 +218,6 @@ mod tests {
         assert_eq!(item_kind("manufacturer"), Some(Kind::Manufacturer));
         assert_eq!(item_kind("device"), None, "a project kind");
         assert_eq!(item_kind("frobnicator"), None);
-    }
-
-    #[test]
-    fn pn_norm_follows_doc_07() {
-        assert_eq!(pn_norm("SK 3110.000"), "SK3110000");
-        assert_eq!(pn_norm("5SY4 204-7"), "5SY42047");
-        assert_eq!(pn_norm("5SY4204-7"), "5SY42047");
-        assert_eq!(pn_norm("a9p 52610"), "A9P52610");
-        assert_eq!(pn_norm("PT 2,5/1P_x"), "PT2,51PX");
-        assert_eq!(pn_norm(""), "");
     }
 
     #[test]

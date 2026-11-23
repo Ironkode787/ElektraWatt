@@ -11,6 +11,7 @@ use ew_interop_api::ew_ids::{Id, Uuid};
 use ew_interop_api::ew_schema::{
     Date, LibCopy, LibDocument, LibItem, Library, Manufacturer, Part, Sha256, Unit, normalize_nfc,
 };
+use ew_interop_api::pn_norm;
 use ew_interop_api::{
     Code, ImportError, ImportInput, ImportReport, Limits, PartDraft, ReportEntry, Severity, SourceInfo,
     SourceLocation,
@@ -30,15 +31,6 @@ pub const IMPORTER_VERSION: &str = "1";
 
 /// The version of a part or manufacturer the target does not hold yet.
 pub const FIRST_VERSION: &str = "1.0.0";
-
-/// `pn_norm` (doc 07 §4.3), the rule `ew_library::pn_norm` follows: upper case, without white space, `-`, `.`, `/`
-/// and `_`. Parts are deduplicated on the manufacturer key and this form.
-pub fn pn_norm(s: &str) -> String {
-    s.chars()
-        .filter(|c| !c.is_whitespace() && !matches!(c, '-' | '.' | '/' | '_'))
-        .flat_map(char::to_uppercase)
-        .collect()
-}
 
 /// The namespace of the item IDs a parts import mints for library `library` (ADR-0004 amendment 4): the lineage of
 /// importer [`IMPORTER_ID`] anchored on the library ID, so a re-import of a list updates its items in place.

@@ -1656,6 +1656,7 @@ dependencies = [
  "ew-format",
  "ew-hack",
  "ew-ids",
+ "ew-interop-api",
  "ew-mltext",
  "ew-schema",
  "ew-testdir",

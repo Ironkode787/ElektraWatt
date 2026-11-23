@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 
 use ew_format::ew_schema::{ItemStatus, Kind, LibDocument, Part, PartKind};
 use ew_ids::Uuid;
+use ew_interop_api::pn_norm;
 use rusqlite::config::DbConfig;
 use rusqlite::types::Value as Sql;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, params, params_from_iter};
@@ -23,7 +24,7 @@ use serde_json::Value;
 use crate::LibraryError;
 use crate::record::Entry;
 use crate::search::{
-    FnCompat, ItemHit, ItemQuery, OrderKey, PartHit, PartQuery, active, pn_norm, quantise, sort_by_order,
+    FnCompat, ItemHit, ItemQuery, OrderKey, PartHit, PartQuery, active, quantise, sort_by_order,
 };
 use crate::tiers::Tier;
 

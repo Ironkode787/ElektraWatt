@@ -86,9 +86,28 @@ pub use report::{
 /// may not depend on each other or on the library crate.
 pub const SYSTEM_LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 
+/// `pn_norm` (doc 07 §4.3): upper case, without spaces, `-`, `.`, `/` and `_`. "SK 3110.000" gives "SK3110000";
+/// "5SY4 204-7" and "5SY4204-7" both give "5SY42047".
+pub fn pn_norm(s: &str) -> String {
+    s.chars()
+        .filter(|c| !c.is_whitespace() && !matches!(c, '-' | '.' | '/' | '_'))
+        .flat_map(char::to_uppercase)
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::SYSTEM_LIBRARY;
+    use super::{SYSTEM_LIBRARY, pn_norm};
+
+    #[test]
+    fn pn_norm_follows_doc_07() {
+        assert_eq!(pn_norm("SK 3110.000"), "SK3110000");
+        assert_eq!(pn_norm("5SY4 204-7"), "5SY42047");
+        assert_eq!(pn_norm("5SY4204-7"), "5SY42047");
+        assert_eq!(pn_norm("a9p 52610"), "A9P52610");
+        assert_eq!(pn_norm("PT 2,5/1P_x"), "PT2,51PX");
+        assert_eq!(pn_norm(""), "");
+    }
 
     /// L1-5: the constant is the decided value. That every starter document under `content/` carries it is
     /// checked by `ew-import-tables`' integration test `system_library`, outside this permissive crate.

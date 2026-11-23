@@ -14,7 +14,7 @@
 //!   formula's cached value; every unpacked entry capped, the shared strings bounded by the loader limits),
 //!   told apart by content ([`SourceFormat::detect`]).
 //! - **[`parse_parts`]**: the rows into part documents of a target library (a writable library, or the project for
-//!   project-local copies), deduplicated on (manufacturer key, [`pn_norm`]), the manufacturer resolved through the
+//!   project-local copies), deduplicated on (manufacturer key, [`pn_norm`](ew_interop_api::pn_norm)), the manufacturer resolved through the
 //!   master list it is given (aliases and brands reported), with a row report of new, updated, unchanged, duplicate
 //!   and rejected rows. "A / B" part numbers give two flagged candidates (FR-PRT-004).
 //!
@@ -38,7 +38,7 @@ pub use ew_interop_api;
 pub use map::{ColumnMap, MapError, Member, check_source_key};
 pub use parts::{
     CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, Placer, RowCounts, RowOutcome,
-    RowStatus, bump_patch, manufacturer_item, namespace, parse_parts, part_item, pn_norm,
+    RowStatus, bump_patch, manufacturer_item, namespace, parse_parts, part_item,
 };
 /// The readers of the parts import as the table round trip uses them: a
 /// table of a CSV or an XLSX sheet as header and cell texts ([`sheet::read_sheet`]), every record of one whole, without a

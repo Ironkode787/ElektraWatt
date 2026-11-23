@@ -42,7 +42,7 @@ pub use index::{INDEX_FILE, IndexState};
 pub use lock::LockPolicy;
 pub use manifest::{FORMAT, LibManifest, MANIFEST};
 pub use registry::{LibraryInfo, Registry, WriteFault, WriteReport, version_matches};
-pub use search::{FnCompat, ItemHit, ItemQuery, PartHit, PartQuery, item_kind, pn_norm, quantise};
+pub use search::{FnCompat, ItemHit, ItemQuery, PartHit, PartQuery, item_kind, quantise};
 pub use tiers::{LibraryTiers, Tier, default_cache_dir, default_data_dir};
 
 /// The key of the shipped system library of starter parts.

@@ -23,7 +23,7 @@ use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part};
 
 pub use ew_import_catalog::{
     CatalogTarget, ColumnMap, IMPORTER_ID, MapError, Member, PartsImport, RowCounts, RowOutcome, RowStatus,
-    SourceFormat, TableColumn, check_source_key, parse_parts, pn_norm, table_columns, table_limits,
+    SourceFormat, TableColumn, check_source_key, parse_parts, table_columns, table_limits,
 };
 
 use crate::import::PARTS_IMPORT;

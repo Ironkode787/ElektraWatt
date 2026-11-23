@@ -13,6 +13,7 @@ use std::collections::BTreeSet;
 use ew_commands::commands::{AssignModeParam, AssignPart, AssignPlaceholder};
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid, v5};
+use ew_import_catalog::ew_interop_api::pn_norm;
 use ew_schema::{Device, FnDef, ItemStatus, LibDocument, LibRef, Part, PartKind};
 use ew_units::Dec3;
 
@@ -228,8 +229,8 @@ fn held_rank(text: &str, part: &Part, manufacturer: &str, purpose: bool) -> Opti
     if text.is_empty() {
         return Some(0);
     }
-    let n = crate::library::pn_norm(text);
-    let pn = crate::library::pn_norm(part.part_number.as_str());
+    let n = pn_norm(text);
+    let pn = pn_norm(part.part_number.as_str());
     if !n.is_empty() {
         if pn == n {
             return Some(1);

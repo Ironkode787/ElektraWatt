@@ -8,12 +8,11 @@
 use std::collections::BTreeMap;
 
 use ew_import_catalog::{
-    CatalogTarget, ColumnMap, PartsImport, RowStatus, SourceFormat, manufacturer_item, parse_parts,
-    part_item, pn_norm,
+    CatalogTarget, ColumnMap, PartsImport, RowStatus, SourceFormat, manufacturer_item, parse_parts, part_item,
 };
 use ew_interop_api::ew_ids::Uuid;
 use ew_interop_api::ew_schema::{Date, LibCopy, LibDocument, Manufacturer, Part, PartKind};
-use ew_interop_api::{Code, ImportError, ImportInput, Limits, Severity};
+use ew_interop_api::{Code, ImportError, ImportInput, Limits, Severity, pn_norm};
 use serde_json::json;
 
 /// A library of the master list, and the target library.

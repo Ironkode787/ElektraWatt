@@ -22,6 +22,8 @@ ew-format = { path = "../ew-format" }
 ew-ids = { path = "../ew-ids" }
 # A part hit's description in its languages (FT-2066).
 ew-mltext = { path = "../ew-mltext" }
+# The part number's normal form of the index (`pn_norm`, doc 07 §4.3), which the parts import dedupes on too.
+ew-interop-api = { path = "../ew-interop-api" }
 # ARCH §3 rule 2: the derived per-user search index (FTS5 with the trigram tokenizer, doc 07 §4.3). The same pin as
 # ew-sqlview; `bundled` compiles the vendored SQLite with FTS5.
 rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
