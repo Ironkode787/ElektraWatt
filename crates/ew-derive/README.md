@@ -23,7 +23,7 @@ EW-CORE-018), a numbering scheme not applied, the default frame, a malformed shi
 request-scoped: a set in canonical order, read by the owner of the `Q` through `Q::diagnostics()` (not reachable
 from a query body). `ew-api`'s `Session` surfaces them as findings. An unknown pinned profile is never silent
 (ADR-0003): display uses the newest shipped profile, the note is an error, and profile-dependent commands are
-refused in WP-S1.11 (not yet implemented).
+refused (not built).
 
 ## Provisional shims
 
@@ -32,12 +32,12 @@ package types the data in `ew-schema`:
 
 | Shim | Reads | Replaced by |
 |---|---|---|
-| Numbering settings | `ProjectSettings.extra["numbering"]` in the JSON shape of doc 03 §5.1 | the typed `ProjectSettings.numbering` (WP-S1.11) |
-| Frame defaults | `ProjectSettings.extra["frames"]` (doc 03 §5.1 `FrameDefaults`); a malformed member falls back to the default and is noted; with no frame configured the built-in QET-compatible A4 frame geometry (17 × 8 cells) applies and is noted | the typed member (WP-S3.02) |
+| Numbering settings | `ProjectSettings.extra["numbering"]` in the JSON shape of doc 03 §5.1 | the typed `ProjectSettings.numbering` |
+| Frame defaults | `ProjectSettings.extra["frames"]` (doc 03 §5.1 `FrameDefaults`); a malformed member falls back to the default and is noted; with no frame configured the built-in QET-compatible A4 frame geometry (17 × 8 cells) applies and is noted | the typed member |
 | Company logo and notice | `Project.extra["ew.company"]` = `{"logo": "sha256:…", "notice": <MlText>}` for `project.logo` and `project.notice` | typed company data of the basic project (doc 07 §2.8) |
 | Revisions | reserved `revision` records, read leniently (`label`, `date`, `state`, `author`, `checker` as party roles); also `page_notes` and `release.changed_pages` for `page.last_changed_in` (the no-digest branch of doc 15 §5.6) | the typed `Revision` record (doc 03 §18) |
 
-## Connectivity (WP-S1.07)
+## Connectivity
 
 `page_local_nets(page)` → `stitch_graph()` → `potential_partition()` (doc 08 §3.3) give nets, signals and
 potentials; `physical_wires_of(potential)`, `potential_flow(potential)` and `wire_props_of(potential)` build on
@@ -70,7 +70,7 @@ where the documents leave the data open:
 - **Rail bonds (D5).** Rail bonding joins only CPs with clamp rail foot or role PE or PEN, chained per location. A
   rail-bonded terminal without such a CP joins nothing (EW-TERM-005); one without a location joins the only own
   location, or the implicit main location when there is none, and is skipped (EW-POT-008) only when the project has
-  two or more own locations (cycle 33).
+  two or more own locations.
 - **External names (D6).** An external source IP may name an undefined potential: the name is the first definition,
   else the first non-external source IP, else the first external source IP, else the `<tag>:<designation>` fallback.
 - **Conflicts.** Nothing merges silently: differing type, voltage, environment or class between definitions, and a
@@ -87,7 +87,7 @@ where the documents leave the data open:
 |---|---|---|
 | Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) and are noted | the typed `ProjectSettings` members (doc 03 §5.1, decision log ID-17) |
 
-## Cross-references (WP-S1.08)
+## Cross-references
 
 `xref_text(rep)` (Memo by policy, cold in phase 1) prints the cross-reference of a representation from
 `xref_relation(rep)` (cold) and `xref_format()` (cold); nothing is stored (FR-XRF-001, ADR-0003 class I).
@@ -129,12 +129,12 @@ where the documents leave the data open:
 
 `device_tag` takes the main representation by the rule of `ew_commands::numbering` (the smallest-ID
 representation of the smallest-ID main function), so that tags are unique wherever the command layer's counters
-are. The richer rule of doc 03 §8.2 step 4 must replace both rules together (WP-S1.11); `ew-commands`'
+are. The richer rule of doc 03 §8.2 step 4 must replace both rules together; `ew-commands`'
 `tests/it/agreement.rs` pins the agreement.
 
 The main representation excludes contact images in both layers (doc 03 §5.1). Only schemes the command layer
 numbers are applied (counter scope `page`, format and rules containing `{page}`, `{letter}` and `{counter}`); a
-scheme the command layer does not number falls back to the profile's default scheme, with a note, until WP-S1.11.
+scheme the command layer does not number falls back to the profile's default scheme, with a note.
 An unknown named key still resolves to the project's default scheme, else the profile's.
 
 ## Limits

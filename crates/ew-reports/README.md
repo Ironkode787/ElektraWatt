@@ -3,8 +3,8 @@
 
 # ew-reports
 
-Report row queries, pagination into generated pages, and (later) XLSX and CSV tables: doc 09 §1.3, §2.3, §3.2–§3.4,
-ADR-0018. Work package WP-S3.03.
+Report row queries, pagination into generated pages, and XLSX and CSV tables: doc 09 §1.3, §2.3, §3.2–§3.4,
+ADR-0018.
 
 ## Pipeline
 
@@ -41,15 +41,15 @@ ADR-0018. Work package WP-S3.03.
 | `toc` | derived | `toc_rows()` (page order) |
 | `parts_summary` | derived | `bom_rows(component)`, or `assembly` mode |
 | `parts_list` | derived | `device_part_lines` per device |
-| `part_data` | derived (embedded) | part lines of the root devices drawn on the embedded page and of the enclosure device of the surface its surface view shows, carrier lines left out; printed as "PART DATA", label and part number at 3 : 10 (WP-S4.01 D16) |
+| `part_data` | derived (embedded) | part lines of the root devices drawn on the embedded page and of the enclosure device of the surface its surface view shows, carrier lines left out; printed as "PART DATA", label and part number at 3 : 10 |
 | `structure_overview` | derived | structure nodes and device tags |
 | `terminal_diagram`, `cable_overview_diagrams`, `wire_list`, `potential_overview` | derived | the Derivation II connectivity queries (`potential_partition`, `physical_wires_of`, `wire_props_of`), which read the drawn page order, so these kinds derive inside the pagination too |
 | `plc_overview` | derived | the `plc_rows` query (channel records, module aspects, the part's PLC section) |
 | `profile_tables` | derived | the colour and size profiles of the project settings (the cover's tables) |
 | `numbering_report` | derived | frozen tags (`TagSpec.frozen`) and frozen wire numbers with their rule-derived values (`rule_product`, `wire_numbers`; FR-REP-022) |
-| `revision_overview` | derived | `revision_rows` (FT-207): the revision records in label order, a withdrawal record after the revision it withdraws, the changed pages they record; `ew-api` completes the pages from the page digests at draw time (WP-S1.18 part 2) |
-| `enclosure_legend` | derived (embedded; drawn as "LEGEND" in two flow columns of position, DT, quantity and part number, WP-S4.01 D17) | `layout_legend(surface)` of the surface the embedded page's `surface_view` shows: the enclosure, the plate, one row per carrier (rails, then ducts; the length in metres as the quantity), then the placements by designation |
-| `io_list` | derived | the `plc_rows` query per station (FR-PLC-023, WP-S1.21 part 5); deactivated channels only with the block parameter `include_deactivated` |
+| `revision_overview` | derived | `revision_rows`: the revision records in label order, a withdrawal record after the revision it withdraws, the changed pages they record; `ew-api` completes the pages from the page digests at draw time |
+| `enclosure_legend` | derived (embedded; drawn as "LEGEND" in two flow columns of position, DT, quantity and part number) | `layout_legend(surface)` of the surface the embedded page's `surface_view` shows: the enclosure, the plate, one row per carrier (rails, then ducts; the length in metres as the quantity), then the placements by designation |
+| `io_list` | derived | the `plc_rows` query per station (FR-PLC-023); deactivated channels only with the block parameter `include_deactivated` |
 | `device_list` | derived | the device rows of `structure_overview` (one shared predicate: every device that is not a terminal), natural order of the full tag; parts from the device's own part lines, the main representation's cell (FR-REP-008, WP-S3.06 D5) |
 | `terminal_overview` | derived | one row per strip in `terminal_diagram`'s strip order: the terminal counts by `terminal_diagram`'s one state rule, the terminal parts, the segment cells (FR-REP-010, WP-S3.06 D6) |
 | `open_items`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
@@ -61,7 +61,7 @@ their first result). Other schema kinds are not registered and report `NotDerive
 
 ## Block parameters
 
-A block's `params` member (WP-S3.06 D9) is a top-level JSON object kept in the block's `extra` (no schema member):
+A block's `params` member is a top-level JSON object kept in the block's `extra` (no schema member):
 snake_case keys, JSON scalar values. A kind declares the keys it reads through `ReportKindDef::params()` (key, type
 `Bool` or `Choice`, default; none by default), and reads the block's values through `kind_params(q, block)`, one value
 per declared key in declaration order. A value outside its kind (another JSON type, a word the choice does not list,
@@ -73,11 +73,11 @@ params.mode`). Declared now: `parts_summary` `mode` ("component", the default, o
 ## The export by kind
 
 `ew-api`'s `row_export(q, &RowExport::Kind(kind), None)` (`ew export report --kind <kind>`) writes `project_rows(q,
-kind, None)`, the kind's whole-project rows in its default order with no block arrangement, in the `ew` CSV dialect
-(WP-S3.06 D4). Every kind's rows on the sample project are `ew-api`'s `tests/expected/kinds/<kind>.csv`.
+kind, None)`, the kind's whole-project rows in its default order with no block arrangement, in the `ew` CSV dialect.
+Every kind's rows on the sample project are `ew-api`'s `tests/expected/kinds/<kind>.csv`.
 
 ## Not yet
 
-XLSX and CSV writers (rust_xlsxwriter, csv), user SQL reports (1.0), the persisted encoding of a block's `filter`
-member and the typing of `filter` and `params` (FT-385's `report_block.set`), and opt-in row wrapping from form data (the schema's `WrapPolicy` has no wrapping variant
+User SQL reports (1.0), the persisted encoding of a block's `filter`
+member and the typing of `filter` and `params`, and opt-in row wrapping from form data (the schema's `WrapPolicy` has no wrapping variant
 yet; `RowLines` is the measurement hook).

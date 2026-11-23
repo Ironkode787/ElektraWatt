@@ -33,9 +33,6 @@ the crates above `ew-commands` keep reading records through tracked queries (ARC
 
 ## Known gaps
 
-Prevent rules are not wired yet: the engine's prevent hook defaults to `NoPrevent`, so no prevent rule (for
-example a duplicate terminal designation on one strip, D-12) rejects a transaction until WP-S1.15 plugs in
-`ew-checks`. `tests/known_gaps.rs` pins this.
-
-The full numbering engine (WP-S1.11), persistence and the journal (WP-S1.09) and the job pool for previews
-(WP-S1.05) are not in v0.
+The engine's prevent hook defaults to `NoPrevent`: the session plugs in `ew-checks`' hook (doc 15 §3.4), so the
+engine alone rejects no transaction for a prevent rule. Numbering applies only page-scoped schemes (doc 03 §8.2), and
+previews run on the window's thread: there is no job pool for them.

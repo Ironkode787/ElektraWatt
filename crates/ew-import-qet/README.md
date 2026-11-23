@@ -9,7 +9,7 @@ QElectroTech importer behind `ew-interop-api` (doc 14 §4): standalone element d
 entry is `ew_api::import::import_qet`. A lenient import that completes exits 0; `--strict` exits 1 when a
 connection was lost or an error finding exists. With the report on stdout, the summary goes to stderr.
 
-## Project import (spike, cycle 11)
+## Project import
 
 The project importer reads the whole `<project>` under the project limits of `ImportContext::limits` (doc 14
 §11: input size, depth, node, attribute and text limits apply to the whole file; the per-definition caps of
@@ -79,11 +79,11 @@ category-path table, else a generic black box (EW-IMP-119, once per used definit
 graphics (`src/symbol_map.rs`, doc 14 §4.17); exchanging QET-import symbols for starter-library `@qet10` symbols is
 not part of this importer yet.
 
-### Gaps (spike)
+### Not imported
 
 Formula evaluation and EW-IMP-101; rule inference R2/R3 and `AdoptRule`; structure nodes and EW-IMP-102;
-parts from element information; text-to-data recognisers (EW-IMP-107/108); `graphics_table` → report blocks;
-thumbnails; QET 0.200 `<cables>`; conductor properties → potential definitions and overrides; external connection points; title-block template forms; QET 0.100
+parts from element information; text-to-data recognisers (EW-IMP-107/108);
+QET 0.200 `<cables>`; conductor properties → potential definitions and overrides; external connection points; QET 0.100
 `terminal_strips` data; empty terminal designations (MF-08 needs an empty designation, which `Ident` cannot
 hold); the starter-symbol exchange.
 

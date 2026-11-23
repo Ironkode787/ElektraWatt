@@ -10,18 +10,8 @@ the per-kind schema versions and the generated JSON Schemas (`schemas/<format>/`
 crate (MIT OR Apache-2.0): third parties read and write EW files with it without linking GPL code
 (FR-COL-012). `ew-model` wraps these structs in tables and never defines a second data type (ADR-0001).
 
-v0 (WP-S1.02) holds the implemented kinds: `project`, `import_lineage`, `structure_node`, `section`,
-`external_ref`, `page`, `device` (aspects `strip`, `terminal`, `cable`), `function`, `representation`,
-`connection`, `junction`, `conductor`, `potential_def`, `bond`, `report_block`, and the library documents
-`part`, `symbol`, `fndef` and `form`. Cycle 13 (FT-111, additive within format 0.1) adds the PLC kinds
-`plc_config_project` (rank 11: `name`, `profile` = `id@version`, `cpu`), `channel` (rank 37, shard of
-`module`, ID `v5(module, "channel", number)`: `number`, `designation`, `kind`, `address` = `AddrSpec`,
-`state`, `symbol`, `comment`, `binding`, `target`) and `device_link` (rank 42, shard of `from`: `from`, `to`,
-`kind` = `drives` | `linkage`), the device aspects `plc_station` (`config_project`, `role`, `order`) and
-`plc_module` (`slot` = `SlotPath`, `start` = `IoStarts`, `part_use`, `integrated`), and the part section
-`sections.plc` (`role`, `io`, `channels`, `bit_of` = `MapSpec`, `unbound`): the subset of doc 10 §2.2–§2.6
-the implemented kinds need; the other members of doc 10 stay in `extra` until their work packages. Every other
-kind of doc 05 §2.2 is in the registry as reserved.
+The kinds the crate types are those its kind registry marks `KindStatus::Implemented`, with the library documents;
+every other kind of doc 05 §2.2 is in the registry as reserved, and its records are kept verbatim.
 
 Field-level truth: `docs/design/03-domain-model.md`. Encoding: `docs/design/05-project-format-and-persistence.md`
 §3. Versioning: ADR-0011 and doc 05 §10.
@@ -131,30 +121,12 @@ A new enum variant is additive in the same way: append it before `Unknown`. A va
 payload gets a payload struct with `extra`, never an inline struct variant. A list whose order carries no
 meaning is a `Set` or a `KeyedList`, never a `Vec`.
 
-## Format change log
+## Aspect order
 
-Format 0.1 is unreleased; these entries record what changed since the first subset (WP-S1.02).
-
-| Change | Since | Notes |
-|---|---|---|
-| `MasterData.document_title: MlText` appended after `edited` | 0.1 | The cover subtitle (doc 03 §5, doc 20 §4.1) |
-| `ReportBlock.first_folio` optional | 0.1 | Required for page-oriented blocks, ignored when `embedded` is set (doc 09 §2.2, ID-16) |
-| `OrderUnit::Metre` written `"m"` (was `"metre"`), 2026-10-18 | 0.1 | One spelling with `Unit::M` (doc 05 §3.2). The pre-release spelling `metre` is **not** read as an alias; it now loads as `Unknown` |
-| `Set` sort key | 0.1 | The compact JSON text of the element, in byte order: `"ab!"` precedes `"ab"` because `!` sorts before the closing `"` |
-| `StructureNode.aspect` rejects `product` | 0.1 | The product aspect is the device tree (doc 03 §5); the strict reader fails with `MalformedVariant` at `/aspect`, `load` reports it and keeps the value |
-| `ExtraVariant.cps` is a `KeyedList` by `idx`, `Arrangement.slots` a `Set` | 0.1 | Unsorted or repeated input is rejected; the schemas gain `uniqueItems` for `slots` |
-| `normalize_nfc` returns `true` on a key collision | 0.1 | A non-NFC name remains, so the file is non-canonical |
-| `LineageAnchor::Copy.of` holds the original lineage's **namespace** | 0.1 | As `ew_ids::v5::LineageAnchor::Copy` and ADR-0004 amendment 4 |
-| Object payloads of enum variants carry `extra` | 0.1 | No change on the wire |
-| Sets and keyed lists are enforced on read | 0.1 | Files that were unsorted were never canonical |
-| The `assembly` aspect is typed (cycle 15, D-41) | 0.1 | `Assembly{configs, bom_basis}`, `AssemblyConfig{label, order_code, part, covers}` (doc 03 §7): additive because the aspect was reserved (ID-334); its links (`configs[].part.copy` forbids, `configs[].covers[]` unlinks) have semantics, which after a format release would raise `min_reader`. `covers` is a `Set` |
-| `SlotKind::OrderCode` appended | 0.1 | The order code of the device's first assembly config (doc 20 §11.1) |
-
-Aspect order (cycle 13, decision log ID-337): `strip`, `terminal`, `cable`, `assembly`, `plc_station`,
-`plc_module` are written in doc 05 §3.1's order. `assembly` was held verbatim in its own slot so that it kept
-its place before `plc_station`, and it has been typed since cycle 15. Known limitation: `bus_node` and `valve_terminal`, not yet implemented, are kept in
-`extra` and therefore written in byte-wise key order after the typed aspects, which equals doc 05's order for these
-two; until they are implemented an untouched record keeps its original line.
+The aspects are written in doc 05 §3.1's order: `strip`, `terminal`, `cable`, `assembly`, `plc_station`,
+`plc_module`. `bus_node` and `valve_terminal`, which are not typed, are kept in `extra` and therefore written in
+byte-wise key order after the typed aspects, which equals doc 05's order for these two; an untouched record keeps
+its original line.
 
 ## How to add a kind
 
