@@ -834,7 +834,7 @@ The 2D canvas renderer: the CPU tile path and the wgpu path over one display lis
 
 `crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-zip` · used by `ew-api` · in tests by none
 
-Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`, pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]).
+Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0), pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]).
 
 | File | Size | What it holds |
 |---|---|---|
@@ -864,7 +864,7 @@ Built-in report row queries, user SQL reports through the sandboxed query API of
 | `src/kinds/toc.rs` |  | `toc`: the table of contents (FR-REP-003; folio 2 of the standard layout). |
 | `src/kinds/wire_list.rs` |  | `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout). |
 | `src/layout.rs` |  | The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5, §3.2), the set's own frame a new list starts on and the frame a list's pages print on (§3.8). |
-| `src/lib.rs` |  | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`, pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]). |
+| `src/lib.rs` |  | Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0), pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]). |
 | `src/paginate.rs` |  | Pagination of an arranged row set into generated pages (doc 09 §3.2, FR-REP-002, FR-PAG-011, FR-PAG-030). |
 | `src/queries.rs` |  | The query families of the report engine: a block's arranged rows and its generated pages. |
 | `src/render.rs` |  | Value rendering rules (doc 09 §3.6): the display formatting of typed cells, applied late (FR-I18N-009), so the same [`Cell`] prints "0.75 mm²" in an English PDF and "0,75 mm²" in an nl-NL one while XLSX keeps the number. |
@@ -876,7 +876,7 @@ Built-in report row queries, user SQL reports through the sandboxed query API of
 
 `crates/ew-scene` · GPL-3.0-or-later · tier drawing · depends on `ew-derive`, `ew-dl`, `ew-drafting`, `ew-ids`, `ew-mltext`, `ew-schema`, `ew-text`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`
 
-Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index and hit-testing.
+A page as display lists per layer ([`page`]), the forms engine (frames, title blocks, report forms), text through `ew-text`. An item drawn for an entity carries it, which the window's hit-testing reads; the crate keeps no spatial index.
 
 | File | Size | What it holds |
 |---|---|---|
@@ -891,7 +891,7 @@ Model to display lists per page and layer, forms engine (frames, title blocks, r
 | `src/images.rs` |  | Image items resolved for drawing: the display lists place an image by its asset's hash with **empty bytes** (the forms layer, symbol images); the export job, which is not a memoised query, resolves them here from the bytes the project holds before any renderer reads the list ([`resolve_images`]). |
 | `src/items.rs` |  | Page items and structure boxes drawn: graphics and structure-box outlines in [`Layer::Symbols`](ew_dl::Layer::Symbols), free texts, wire-marker groups and captions in [`Layer::Labels`](ew_dl::Layer::Labels); no new layer, so the permissive display-list crate is unchanged. |
 | `src/knockout.rs` |  | A text a wire runs through stays readable (FT-1786, ADR-0034 amendment 3): the wires layer leaves out the stretch of every line that runs through the box of a text of the labels layer, and [`KNOCKOUT_GAP`] on each side of it along the line. |
-| `src/lib.rs` |  | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index and hit-testing. |
+| `src/lib.rs` |  | A page as display lists per layer ([`page`]), the forms engine (frames, title blocks, report forms), text through `ew-text`. |
 | `src/page.rs` | large | Page display lists per layer (doc 09 §4.1, ARCH §6.4 `page_display_list(page, layer, lang)`, ADR-0015 decision 1 and amendment 2). |
 | `src/panel.rs` | large | Panel-layout pages (doc 12 §5.1 to §5.3): the surface view of a `panel_layout` page drawn into the panel layers of [`Layer::PANEL`](ew_dl::Layer::PANEL). |
 | `src/pdf_text.rs` |  | The text of a PDF page as the migration verifier reads it (doc 14 §4.15, FR-IMP-021): every run of glyphs a page draws, with its string, the anchor of its first glyph and its box, in millimetres from the top left of the page; and the page labels of the file. |
