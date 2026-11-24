@@ -134,7 +134,7 @@ pub(super) fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
             print!(
                 "{}",
                 results::to_text(&results::SqlDumpResult {
-                    schema: results::SQL_DUMP.to_owned(),
+                    schema: results::SqlDumpResult::SCHEMA.to_owned(),
                     out: a.out.display().to_string(),
                 })
             );

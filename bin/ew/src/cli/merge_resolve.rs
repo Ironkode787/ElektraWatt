@@ -86,7 +86,7 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
     {
         Ok(_) if a.json => {
             let result = ew_api::cli_results::MergeResolveResult {
-                schema: ew_api::cli_results::MERGE_RESOLVE.to_owned(),
+                schema: ew_api::cli_results::MergeResolveResult::SCHEMA.to_owned(),
                 resolved: count,
                 take: take.to_owned(),
             };

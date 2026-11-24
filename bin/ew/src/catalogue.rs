@@ -108,12 +108,12 @@ pub const TABLE: &[Row] = &[
             ),
             USAGE_ETC,
         ],
-        Some(ew_api::cli_results::IMPORT_QET),
+        Some(ew_api::cli_results::ImportQetResult::SCHEMA),
     ),
     row(
         &["import", "parts"],
         &[exit(0, "imported and saved"), USAGE_ETC],
-        Some(ew_api::cli_results::IMPORT_PARTS),
+        Some(ew_api::cli_results::ImportPartsResult::SCHEMA),
     ),
     row(
         &["import", "csv"],
@@ -128,7 +128,7 @@ pub const TABLE: &[Row] = &[
                 "usage, starter content, an unreadable table, an `--out` that holds something, write errors",
             ),
         ],
-        Some(ew_api::cli_results::IMPORT_CSV),
+        Some(ew_api::cli_results::ImportCsvResult::SCHEMA),
     ),
     row(
         &["import", "table"],
@@ -139,7 +139,7 @@ pub const TABLE: &[Row] = &[
                 "usage, open, read and save errors, a file without a table or of another project",
             ),
         ],
-        Some(ew_api::cli_results::IMPORT_TABLE),
+        Some(ew_api::cli_results::ImportTableResult::SCHEMA),
     ),
     row(
         &["import", "dxf"],
@@ -219,7 +219,7 @@ pub const TABLE: &[Row] = &[
                 "usage, open, read and save errors, a file that is no AML file, a refused choice",
             ),
         ],
-        Some(ew_api::cli_results::IMPORT_PLC_AML),
+        Some(ew_api::cli_results::ImportPlcResult::AML),
     ),
     row(
         &["import", "plc-xlsx"],
@@ -230,13 +230,13 @@ pub const TABLE: &[Row] = &[
                 "usage, open, read and save errors, a workbook without a tag table, a refused choice",
             ),
         ],
-        Some(ew_api::cli_results::IMPORT_PLC_XLSX),
+        Some(ew_api::cli_results::ImportPlcResult::XLSX),
     ),
     row(&["import", "instrument-list"], &[OK, USAGE_ETC], None),
     row(
         &["plc", "status"],
         &[exit(0, "the status printed"), exit(2, "usage and open errors")],
-        Some(ew_api::cli_results::PLC_STATUS),
+        Some(ew_api::cli_results::PlcStatusResult::SCHEMA),
     ),
     row(
         &["check"],
@@ -255,23 +255,23 @@ pub const TABLE: &[Row] = &[
     row(
         &["sql", "dump"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::SQL_DUMP),
+        Some(ew_api::cli_results::SqlDumpResult::SCHEMA),
     ),
     row(&["sql", "schema"], &[OK], None),
     row(
         &["export", "cables"],
         &[OK, ROW_EXPORT_ERRORS],
-        Some(ew_api::cli_results::EXPORT_CABLES),
+        Some(ew_api::cli_results::ExportRowsResult::CABLES),
     ),
     row(
         &["export", "bom"],
         &[OK, ROW_EXPORT_ERRORS],
-        Some(ew_api::cli_results::EXPORT_BOM),
+        Some(ew_api::cli_results::ExportRowsResult::BOM),
     ),
     row(
         &["export", "wires"],
         &[OK, ROW_EXPORT_ERRORS],
-        Some(ew_api::cli_results::EXPORT_WIRES),
+        Some(ew_api::cli_results::ExportRowsResult::WIRES),
     ),
     row(
         &["export", "terminals"],
@@ -282,7 +282,7 @@ pub const TABLE: &[Row] = &[
                 "usage and open errors, a project without the block, an unknown or wrong block, an unknown strip",
             ),
         ],
-        Some(ew_api::cli_results::EXPORT_TERMINALS),
+        Some(ew_api::cli_results::ExportTerminalsResult::SCHEMA),
     ),
     row(
         &["export", "report"],
@@ -293,7 +293,7 @@ pub const TABLE: &[Row] = &[
                 "usage, open, I/O and writer errors, an unknown block, a block without rows or pages",
             ),
         ],
-        Some(ew_api::cli_results::EXPORT_REPORT),
+        Some(ew_api::cli_results::ExportReportResult::SCHEMA),
     ),
     row(
         &["export", "table"],
@@ -304,27 +304,27 @@ pub const TABLE: &[Row] = &[
                 "usage, open, I/O and writer errors, an unknown navigator or strip",
             ),
         ],
-        Some(ew_api::cli_results::EXPORT_TABLE),
+        Some(ew_api::cli_results::ExportTableResult::SCHEMA),
     ),
     row(
         &["export", "pdf"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::EXPORT_PDF),
+        Some(ew_api::cli_results::ExportPdfResult::SCHEMA),
     ),
     row(
         &["export", "svg"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::EXPORT_SVG),
+        Some(ew_api::cli_results::ExportSvgResult::SCHEMA),
     ),
     row(
         &["export", "png"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::EXPORT_PNG),
+        Some(ew_api::cli_results::ExportPngResult::SCHEMA),
     ),
     row(
         &["export", "dxf"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::EXPORT_DXF),
+        Some(ew_api::cli_results::ExportDxfResult::SCHEMA),
     ),
     row(&["export", "plc-aml"], &[OK, USAGE_ETC], None),
     row(&["export", "plc-xlsx"], &[OK, USAGE_ETC], None),
@@ -338,7 +338,7 @@ pub const TABLE: &[Row] = &[
                 "usage, open and write errors, a project changed on disk or one that cannot be packed",
             ),
         ],
-        Some(ew_api::cli_results::EXPORT_EWZ),
+        Some(ew_api::cli_results::ExportEwzResult::SCHEMA),
     ),
     row(
         &["extract"],
@@ -349,7 +349,7 @@ pub const TABLE: &[Row] = &[
                 "usage, an unreadable or refused archive, an existing folder, write errors",
             ),
         ],
-        Some(ew_api::cli_results::EXTRACT),
+        Some(ew_api::cli_results::ExtractResult::SCHEMA),
     ),
     row(
         &["print"],
@@ -360,7 +360,7 @@ pub const TABLE: &[Row] = &[
                 "usage, open, I/O and writer errors, an unknown folio or section, a refusal of the adapter",
             ),
         ],
-        Some(ew_api::cli_results::PRINT),
+        Some(ew_api::cli_results::PrintResult::SCHEMA),
     ),
     row(
         &["render"],
@@ -368,7 +368,7 @@ pub const TABLE: &[Row] = &[
             OK,
             exit(2, "usage, open, I/O and writer errors, an unknown folio"),
         ],
-        Some(ew_api::cli_results::RENDER),
+        Some(ew_api::cli_results::RenderResult::SCHEMA),
     ),
     row(
         &["apply"],
@@ -380,7 +380,7 @@ pub const TABLE: &[Row] = &[
                 "usage, a malformed log, an unresolvable reference, a refused command, open, lock and save errors",
             ),
         ],
-        Some(ew_api::cli_results::APPLY),
+        Some(ew_api::cli_results::ApplyResult::SCHEMA),
     ),
     row(
         &["fmt"],
@@ -397,7 +397,7 @@ pub const TABLE: &[Row] = &[
                  stay)",
             ),
         ],
-        Some(ew_api::cli_results::FMT),
+        Some(ew_api::cli_results::FmtResult::SCHEMA),
     ),
     row(
         &["recover"],
@@ -409,7 +409,7 @@ pub const TABLE: &[Row] = &[
             ),
             exit(2, "usage, no controlling terminal, lock, open and save errors"),
         ],
-        Some(ew_api::cli_results::RECOVER),
+        Some(ew_api::cli_results::RecoverResult::SCHEMA),
     ),
     row(
         &["upgrade"],
@@ -451,7 +451,7 @@ pub const TABLE: &[Row] = &[
             exit(1, "differences"),
             exit(2, "usage and open errors"),
         ],
-        Some(ew_api::cli_results::VERIFY_DERIVED),
+        Some(ew_api::cli_results::VerifyDerivedResult::SCHEMA),
     ),
     row(
         &["verify-migration"],
@@ -460,7 +460,7 @@ pub const TABLE: &[Row] = &[
             exit(1, "other deviations, or an expected delta not found"),
             exit(2, "usage, open and read errors"),
         ],
-        Some(ew_api::cli_results::VERIFY_MIGRATION),
+        Some(ew_api::cli_results::VerifyMigrationResult::SCHEMA),
     ),
     row(
         &["query"],
@@ -471,9 +471,13 @@ pub const TABLE: &[Row] = &[
                 "usage, an unknown query, open errors, a key that names no record or one of another kind",
             ),
         ],
-        Some(ew_api::cli_results::QUERY),
+        Some(ew_api::cli_results::QueryResult::SCHEMA),
     ),
-    row(&["queries"], &[OK], Some(ew_api::cli_results::QUERIES)),
+    row(
+        &["queries"],
+        &[OK],
+        Some(ew_api::cli_results::QueriesResult::SCHEMA),
+    ),
     row(
         &["route"],
         &[
@@ -484,7 +488,7 @@ pub const TABLE: &[Row] = &[
                 "usage, open, an unknown folio, a refused command and save errors",
             ),
         ],
-        Some(ew_api::cli_results::ROUTE),
+        Some(ew_api::cli_results::RouteResult::SCHEMA),
     ),
     row(
         &["layout"],
@@ -492,32 +496,32 @@ pub const TABLE: &[Row] = &[
             exit(0, "measured"),
             exit(2, "usage and open errors, a folio that names no drawn page"),
         ],
-        Some(ew_api::cli_results::LAYOUT),
+        Some(ew_api::cli_results::LayoutResult::SCHEMA),
     ),
     row(
         &["lib", "list"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LIB_LIST),
+        Some(ew_api::cli_results::LibListResult::SCHEMA),
     ),
     row(
         &["lib", "search"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LIB_SEARCH),
+        Some(ew_api::cli_results::LibSearchResult::SCHEMA),
     ),
     row(
         &["lib", "index"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LIB_INDEX),
+        Some(ew_api::cli_results::LibIndexResult::SCHEMA),
     ),
     row(
         &["lib", "create"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LIB_CREATE),
+        Some(ew_api::cli_results::LibCreateResult::SCHEMA),
     ),
     row(
         &["lib", "import", "parts"],
         &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LIB_IMPORT_PARTS),
+        Some(ew_api::cli_results::LibImportPartsResult::SCHEMA),
     ),
     row(
         &["lib", "import", "qet-elements"],
@@ -525,9 +529,13 @@ pub const TABLE: &[Row] = &[
             exit(0, "converted and written, files that cannot be converted listed"),
             USAGE_ETC,
         ],
-        Some(ew_api::cli_results::LIB_IMPORT_QET_ELEMENTS),
+        Some(ew_api::cli_results::LibImportQetElementsResult::SCHEMA),
     ),
-    row(&["commands"], &[OK], Some(ew_api::cli_results::COMMANDS)),
+    row(
+        &["commands"],
+        &[OK],
+        Some(ew_api::cli_results::CommandsResult::SCHEMA),
+    ),
     row(&["schema"], &[OK, exit(2, "usage, an unknown schema name")], None),
     row(
         &["merge", "resolve"],
@@ -542,7 +550,7 @@ pub const TABLE: &[Row] = &[
                 "usage (no conflict record selected), open, lock, a crashed session's journal and save errors",
             ),
         ],
-        Some(ew_api::cli_results::MERGE_RESOLVE),
+        Some(ew_api::cli_results::MergeResolveResult::SCHEMA),
     ),
     row(
         &["merge-driver"],
@@ -571,7 +579,7 @@ pub const TABLE: &[Row] = &[
             exit(1, "the sides differ, with `--exit-code`"),
             exit(2, "usage and open errors, a git side that cannot be read"),
         ],
-        Some(ew_api::cli_results::DIFF),
+        Some(ew_api::cli_results::DiffResult::SCHEMA),
     ),
     row(
         &["git", "setup"],

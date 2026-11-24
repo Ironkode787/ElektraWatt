@@ -11,8 +11,9 @@ use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, human_only, is_terminal, journal_refusal, older_format, open_editing,
-    open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word, warn_unread,
+    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, human_only, is_terminal, journal_refusal, older_format,
+    open_editing, open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word,
+    warn_unread,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -93,7 +94,7 @@ fn run_fmt_with(
         let _ = writeln!(err, "{text}");
         if a.check && a.json {
             let result = results::FmtResult {
-                schema: results::FMT.to_owned(),
+                schema: results::FmtResult::SCHEMA.to_owned(),
                 check: true,
                 files: Vec::new(),
                 kept: Vec::new(),
@@ -149,7 +150,7 @@ fn run_fmt_with(
         print!(
             "{}",
             results::to_text(&results::FmtResult {
-                schema: results::FMT.to_owned(),
+                schema: results::FmtResult::SCHEMA.to_owned(),
                 check: a.check,
                 files: files
                     .iter()
@@ -406,7 +407,7 @@ fn repair_result(repaired: &Repaired, kept: &[KeptLine]) -> results::FmtRepairRe
 /// kept lines that stay: no line discarded, no file written, nothing wrong.
 fn backup_result(backup: Option<&Backup>, generation: u64, kept: &[KeptLine]) -> results::FmtRepairResult {
     results::FmtRepairResult {
-        schema: results::FMT_REPAIR.to_owned(),
+        schema: results::FmtRepairResult::SCHEMA.to_owned(),
         discarded: Vec::new(),
         backup: backup.map(|b| results::BackupRow {
             path: b.path.display().to_string(),
@@ -583,7 +584,7 @@ fn run_recover_with(
     let generation = opened.generation;
     let result = |journal: Option<&ew_api::RecoveryInfo>, replayed: bool, generation: u64| {
         results::to_text(&results::RecoverResult {
-            schema: results::RECOVER.to_owned(),
+            schema: results::RecoverResult::SCHEMA.to_owned(),
             action: if a.action == RecoverAction::Replay {
                 results::RecoverAction::Replay
             } else {

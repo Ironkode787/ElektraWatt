@@ -120,7 +120,7 @@ fn the_query_list_names_the_registry_with_its_output_schemas() {
         std::fs::write(dir.join("queries.json"), &generated).unwrap();
     }
     let value: Value = serde_json::from_str(&generated).unwrap();
-    assert_eq!(value["$schema"], results::QUERIES);
+    assert_eq!(value["$schema"], results::QueriesResult::SCHEMA);
     let names: Vec<&str> = value["queries"]
         .as_array()
         .unwrap()

@@ -55,7 +55,7 @@ pub(super) fn run_query(a: &QueryArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::QueryResult {
-                schema: results::QUERY.to_owned(),
+                schema: results::QueryResult::SCHEMA.to_owned(),
                 query: answer.query.to_owned(),
                 key: answer.key.clone(),
                 rev: answer.rev,

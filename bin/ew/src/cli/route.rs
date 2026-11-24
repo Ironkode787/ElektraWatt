@@ -133,7 +133,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::RouteResult {
-                schema: results::ROUTE.to_owned(),
+                schema: results::RouteResult::SCHEMA.to_owned(),
                 pages,
                 saved,
             })

@@ -128,7 +128,7 @@ pub(super) struct RowsSummary {
 pub(super) fn rows_json(kind: &ExportKind, s: RowsSummary) -> String {
     match kind {
         ExportKind::Terminals(_) => results::to_text(&results::ExportTerminalsResult {
-            schema: results::EXPORT_TERMINALS.to_owned(),
+            schema: results::ExportTerminalsResult::SCHEMA.to_owned(),
             rows: s.rows,
             strips: s.strips,
             out: s.out,
@@ -139,9 +139,9 @@ pub(super) fn rows_json(kind: &ExportKind, s: RowsSummary) -> String {
         }),
         kind => results::to_text(&results::ExportRowsResult {
             schema: match kind {
-                ExportKind::Cables => results::EXPORT_CABLES,
-                ExportKind::Bom(_) => results::EXPORT_BOM,
-                _ => results::EXPORT_WIRES,
+                ExportKind::Cables => results::ExportRowsResult::CABLES,
+                ExportKind::Bom(_) => results::ExportRowsResult::BOM,
+                _ => results::ExportRowsResult::WIRES,
             }
             .to_owned(),
             rows: s.rows,
@@ -232,7 +232,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
         let json = match &a.kind {
             ExportKind::Report { .. } | ExportKind::ReportKind(_) => {
                 results::to_text(&results::ExportReportResult {
-                    schema: results::EXPORT_REPORT.to_owned(),
+                    schema: results::ExportReportResult::SCHEMA.to_owned(),
                     block: file.blocks.first().cloned().unwrap_or_default(),
                     kind: file.kind.clone(),
                     format: format_name.to_owned(),
@@ -339,7 +339,7 @@ pub(super) fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::ExportTableResult {
-                schema: results::EXPORT_TABLE.to_owned(),
+                schema: results::ExportTableResult::SCHEMA.to_owned(),
                 table: table.key.clone(),
                 format: format.to_owned(),
                 preset: preset.map(str::to_owned),
@@ -416,7 +416,7 @@ pub(super) fn finish_export_report_csv(
         print!(
             "{}",
             results::to_text(&results::ExportReportResult {
-                schema: results::EXPORT_REPORT.to_owned(),
+                schema: results::ExportReportResult::SCHEMA.to_owned(),
                 block: r.blocks.first().cloned().unwrap_or_default(),
                 kind: r.kind.clone(),
                 format: "csv".to_owned(),
@@ -479,7 +479,7 @@ pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, b
         print!(
             "{}",
             results::to_text(&results::ExportReportResult {
-                schema: results::EXPORT_REPORT.to_owned(),
+                schema: results::ExportReportResult::SCHEMA.to_owned(),
                 block: id.to_string(),
                 kind: ew_api::output::block_kind(&b).to_owned(),
                 format: "pdf".to_owned(),
@@ -579,7 +579,7 @@ pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::ExportEwzResult {
-                schema: results::EXPORT_EWZ.to_owned(),
+                schema: results::ExportEwzResult::SCHEMA.to_owned(),
                 out: a.out.display().to_string(),
                 generation: packed.generation,
                 files: packed.files,
@@ -625,7 +625,7 @@ pub(super) fn run_extract(a: &ExtractArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::ExtractResult {
-                schema: results::EXTRACT.to_owned(),
+                schema: results::ExtractResult::SCHEMA.to_owned(),
                 into: into.display().to_string(),
                 generation: archive.generation(),
                 files,
@@ -717,7 +717,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 print!(
                     "{}",
                     results::to_text(&results::ExportPdfResult {
-                        schema: results::EXPORT_PDF.to_owned(),
+                        schema: results::ExportPdfResult::SCHEMA.to_owned(),
                         out: a.out.display().to_string(),
                         pages: pdf.pages,
                         links: pdf.report.links,
@@ -751,7 +751,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 print!(
                     "{}",
                     results::to_text(&results::ExportSvgResult {
-                        schema: results::EXPORT_SVG.to_owned(),
+                        schema: results::ExportSvgResult::SCHEMA.to_owned(),
                         out: a.out.display().to_string(),
                         files: svg.files.iter().map(|f| f.name.clone()).collect(),
                         findings: svg.findings.len(),
@@ -785,7 +785,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 print!(
                     "{}",
                     results::to_text(&results::ExportDxfResult {
-                        schema: results::EXPORT_DXF.to_owned(),
+                        schema: results::ExportDxfResult::SCHEMA.to_owned(),
                         out: a.out.display().to_string(),
                         files: dxf.files.iter().map(|f| f.name.clone()).collect(),
                         pictures: dxf.pictures.iter().map(|p| p.name.clone()).collect(),
@@ -828,7 +828,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 print!(
                     "{}",
                     results::to_text(&results::ExportPngResult {
-                        schema: results::EXPORT_PNG.to_owned(),
+                        schema: results::ExportPngResult::SCHEMA.to_owned(),
                         out: a.out.display().to_string(),
                         dpi: a.dpi,
                         files: png.files.iter().map(|f| f.name.clone()).collect(),
@@ -889,7 +889,7 @@ pub(super) fn run_render(a: &RenderArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::RenderResult {
-                schema: results::RENDER.to_owned(),
+                schema: results::RenderResult::SCHEMA.to_owned(),
                 page: file.folio.clone(),
                 out: out.display().to_string(),
                 dpi: a.dpi,

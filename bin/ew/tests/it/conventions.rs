@@ -335,14 +335,14 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let dump: results::SqlDumpResult = json_twice(
         &t,
         &args([&"sql", &"dump", &p, &sqlite, &"--json"]),
-        results::SQL_DUMP,
+        results::SqlDumpResult::SCHEMA,
         0,
     );
     assert_eq!(dump.out, sqlite.display().to_string());
     let cables: results::ExportRowsResult = json_twice(
         &t,
         &args([&"export", &"cables", &p, &"--json"]),
-        results::EXPORT_CABLES,
+        results::ExportRowsResult::CABLES,
         0,
     );
     assert!(cables.csv.is_some() && cables.out.is_none());
@@ -350,7 +350,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let bom: results::ExportRowsResult = json_twice(
         &t,
         &args([&"export", &"bom", &p, &"--out", &bom_file, &"--json"]),
-        results::EXPORT_BOM,
+        results::ExportRowsResult::BOM,
         0,
     );
     assert!(bom.csv.is_none() && bom.rows > 0);
@@ -364,7 +364,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         &args([
             &"export", &"pdf", &p, &"--out", &pdf, &"--pages", &"101-102", &"--json",
         ]),
-        results::EXPORT_PDF,
+        results::ExportPdfResult::SCHEMA,
         0,
     );
     assert_eq!(r.pages, 2);
@@ -374,7 +374,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         &args([
             &"export", &"svg", &p, &"--out", &svg, &"--pages", &"101-102", &"--json",
         ]),
-        results::EXPORT_SVG,
+        results::ExportSvgResult::SCHEMA,
         0,
     );
     assert_eq!(r.files, ["101.svg", "102.svg"]);
@@ -382,21 +382,21 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let wires: results::ExportRowsResult = json_twice(
         &t,
         &args([&"export", &"wires", &p, &"--json"]),
-        results::EXPORT_WIRES,
+        results::ExportRowsResult::WIRES,
         0,
     );
     assert!(wires.csv.is_some() && wires.rows > 0);
     let terminals: results::ExportTerminalsResult = json_twice(
         &t,
         &args([&"export", &"terminals", &p, &"--json"]),
-        results::EXPORT_TERMINALS,
+        results::ExportTerminalsResult::SCHEMA,
         0,
     );
     assert_eq!(terminals.strips, ["-X1011", "-X1021", "-X1031"]);
     let report: results::ExportReportResult = json_twice(
         &t,
         &args([&"export", &"report", &p, &"--block", &"908", &"--json"]),
-        results::EXPORT_REPORT,
+        results::ExportReportResult::SCHEMA,
         0,
     );
     assert_eq!(
@@ -410,7 +410,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let by_kind: results::ExportReportResult = json_twice(
         &t,
         &args([&"export", &"report", &p, &"--kind", &"device_list", &"--json"]),
-        results::EXPORT_REPORT,
+        results::ExportReportResult::SCHEMA,
         0,
     );
     assert_eq!(
@@ -438,7 +438,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
             &report_pdf,
             &"--json",
         ]),
-        results::EXPORT_REPORT,
+        results::ExportReportResult::SCHEMA,
         0,
     );
     assert_eq!(
@@ -451,7 +451,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         &args([
             &"export", &"png", &p, &"--out", &png_dir, &"--pages", &"101-102", &"--dpi", &"72", &"--json",
         ]),
-        results::EXPORT_PNG,
+        results::ExportPngResult::SCHEMA,
         0,
     );
     assert_eq!(
@@ -464,7 +464,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         &args([
             &"render", &p, &"--page", &"103", &"--png", &"--out", &png, &"--json",
         ]),
-        results::RENDER,
+        results::RenderResult::SCHEMA,
         0,
     );
     assert_eq!((r.page.as_str(), r.dpi), ("103", 150));
@@ -472,7 +472,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let preview: results::ApplyResult = json_twice(
         &t,
         &args([&"apply", &p, &log, &"--preview", &"--json"]),
-        results::APPLY,
+        results::ApplyResult::SCHEMA,
         0,
     );
     let changes = preview.preview.expect("the preview's changes");
@@ -487,21 +487,21 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let verify: results::VerifyDerivedResult = json_twice(
         &t,
         &args([&"verify-derived", &tiny, &"--json"]),
-        results::VERIFY_DERIVED,
+        results::VerifyDerivedResult::SCHEMA,
         0,
     );
     assert!(verify.differences.is_empty() && verify.oracle.is_empty());
     let migration: results::VerifyMigrationResult = json_twice(
         &t,
         &args([&"verify-migration", &tiny, &"--reference", &tiny_pdf, &"--json"]),
-        results::VERIFY_MIGRATION,
+        results::VerifyMigrationResult::SCHEMA,
         0,
     );
     assert!(migration.deviations.is_empty() && migration.unmet.is_empty() && migration.pages > 0);
     let layout: results::LayoutResult = json_twice(
         &t,
         &args([&"layout", &p, &"--page", &"101", &"--json"]),
-        results::LAYOUT,
+        results::LayoutResult::SCHEMA,
         0,
     );
     assert_eq!(layout.pages[0].folio, "101");
@@ -509,12 +509,12 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let index: results::LibIndexResult = json_twice(
         &t,
         &args([&"lib", &"index", &"--rebuild", &"--json"]),
-        results::LIB_INDEX,
+        results::LibIndexResult::SCHEMA,
         0,
     );
     assert!(index.parts > 0);
     let list: results::LibListResult =
-        json_twice(&t, &args([&"lib", &"list", &"--json"]), results::LIB_LIST, 0);
+        json_twice(&t, &args([&"lib", &"list", &"--json"]), results::LibListResult::SCHEMA, 0);
     assert!(list.libraries.iter().any(|l| l.key == "ew-starter"));
     let hits: results::LibSearchResult = json_twice(
         &t,
@@ -526,7 +526,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
             &"fndef",
             &"--json",
         ]),
-        results::LIB_SEARCH,
+        results::LibSearchResult::SCHEMA,
         0,
     );
     assert!(
@@ -537,28 +537,28 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let parts: results::LibSearchResult = json_twice(
         &t,
         &args([&"lib", &"search", &"", &"--limit", &"1", &"--json"]),
-        results::LIB_SEARCH,
+        results::LibSearchResult::SCHEMA,
         0,
     );
     assert!(
         matches!(parts.hits.first(), Some(results::LibHit::Part(_))),
         "{parts:?}"
     );
-    let fmt: results::FmtResult = json_twice(&t, &args([&"fmt", &p, &"--check", &"--json"]), results::FMT, 0);
+    let fmt: results::FmtResult = json_twice(&t, &args([&"fmt", &p, &"--check", &"--json"]), results::FmtResult::SCHEMA, 0);
     assert_eq!(
         (fmt.check, fmt.files.len(), fmt.kept.len()),
         (true, 0, 0),
         "{fmt:?}"
     );
     let commands: results::CommandsResult =
-        json_twice(&t, &args([&"commands", &"--json"]), results::COMMANDS, 0);
+        json_twice(&t, &args([&"commands", &"--json"]), results::CommandsResult::SCHEMA, 0);
     assert!(!commands.commands.is_empty());
     let qet = t.0.join("t.qet");
     std::fs::write(&qet, QET).unwrap();
     let import: results::ImportQetResult = json_twice(
         &t,
         &args([&"import", &"qet", &qet, &"--json"]),
-        results::IMPORT_QET,
+        results::ImportQetResult::SCHEMA,
         0,
     );
     assert_eq!((import.source.as_str(), import.counts.pages), ("t.qet", 1));
@@ -582,7 +582,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         let p = t.sample(name);
         let o = t.ew(&args([&"apply", &p, &log, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::ApplyResult = assert_result(&stdout(&o), results::APPLY);
+        let r: results::ApplyResult = assert_result(&stdout(&o), results::ApplyResult::SCHEMA);
         assert_eq!(
             (r.lines, r.committed, r.saved, r.preview.is_none()),
             (1, 1, true, true)
@@ -603,7 +603,7 @@ fn every_writing_json_result_validates_and_round_trips() {
             &"--json",
         ]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::ImportPartsResult = assert_result(&stdout(&o), results::IMPORT_PARTS);
+        let r: results::ImportPartsResult = assert_result(&stdout(&o), results::ImportPartsResult::SCHEMA);
         assert!(r.created > 0 && r.rows.is_none(), "{r:?}");
         outs.push(stdout(&o));
     }
@@ -623,7 +623,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         &"--json",
     ]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let r: results::LibCreateResult = assert_result(&stdout(&o), results::LIB_CREATE);
+    let r: results::LibCreateResult = assert_result(&stdout(&o), results::LibCreateResult::SCHEMA);
     assert!(r.listed && r.key == "std", "{r:?}");
     let list = t.0.join("supplier.csv");
     let map = t.0.join("supplier.toml");
@@ -653,7 +653,7 @@ fn every_writing_json_result_validates_and_round_trips() {
     };
     let o = import("--json");
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let r: results::LibImportPartsResult = assert_result(&stdout(&o), results::LIB_IMPORT_PARTS);
+    let r: results::LibImportPartsResult = assert_result(&stdout(&o), results::LibImportPartsResult::SCHEMA);
     assert_eq!((r.library.as_str(), r.rows.new), ("std", 1), "{r:?}");
     assert!(r.written.is_some_and(|w| w.added > 0), "{r:?}");
     // `fmt` on two copies with the same two lines swapped.
@@ -667,7 +667,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();
         let o = t.ew(&args([&"fmt", &p, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::FmtResult = assert_result(&stdout(&o), results::FMT);
+        let r: results::FmtResult = assert_result(&stdout(&o), results::FmtResult::SCHEMA);
         assert_eq!((r.check, r.files.len(), r.generation), (false, 1, g + 1), "{r:?}");
         outs.push(stdout(&o));
     }
@@ -681,7 +681,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         with_a_broken_line(&p, saved);
         let o = t.ew(&args([&"fmt", &p, &"--repair", &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
+        let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FmtRepairResult::SCHEMA);
         assert_eq!(
             (r.discarded.len(), r.files.len(), r.kept.len(), r.generation),
             (1, 1, 0, g + 1),
@@ -698,7 +698,7 @@ fn every_writing_json_result_validates_and_round_trips() {
     assert_eq!(outs[0], outs[1]);
     let o = t.ew(&args([&"fmt", &t.0.join("r1.ew"), &"--repair", &"--json"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
+    let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FmtRepairResult::SCHEMA);
     assert_eq!(
         (r.discarded.len(), r.backup, r.generation),
         (0, None, g + 1),
@@ -726,7 +726,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         drop(crashed);
         let o = t.ew(&args([&"recover", &p, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::RecoverResult = assert_result(&stdout(&o), results::RECOVER);
+        let r: results::RecoverResult = assert_result(&stdout(&o), results::RecoverResult::SCHEMA);
         assert_eq!(
             (r.action, r.replayed, r.generation),
             (results::RecoverAction::Summary, false, g),
@@ -734,7 +734,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         );
         let o = t.ew(&args([&"recover", &p, &"--replay", &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::RecoverResult = assert_result(&stdout(&o), results::RECOVER);
+        let r: results::RecoverResult = assert_result(&stdout(&o), results::RecoverResult::SCHEMA);
         assert_eq!(
             r.journal,
             Some(results::JournalSummary {
@@ -758,7 +758,7 @@ fn every_writing_json_result_validates_and_round_trips() {
     let r: results::ExportEwzResult = json_twice(
         &t,
         &args([&"export", &"ewz", &packed, &"--out", &ewz, &"--json"]),
-        results::EXPORT_EWZ,
+        results::ExportEwzResult::SCHEMA,
         0,
     );
     // Every file of the project is in the archive, however many the sample has.
@@ -770,7 +770,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         let _ = std::fs::remove_dir_all(&into);
         let o = t.ew(&args([&"extract", &ewz, &"--into", &into, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::ExtractResult = assert_result(&stdout(&o), results::EXTRACT);
+        let r: results::ExtractResult = assert_result(&stdout(&o), results::ExtractResult::SCHEMA);
         assert_eq!((r.generation, r.files), (g, files), "{r:?}");
         outs.push(stdout(&o));
     }
@@ -785,7 +785,7 @@ fn every_writing_json_result_validates_and_round_trips() {
             true,
         );
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        let r: results::ImportCsvResult = assert_result(&stdout(&o), results::IMPORT_CSV);
+        let r: results::ImportCsvResult = assert_result(&stdout(&o), results::ImportCsvResult::SCHEMA);
         assert!(
             r.written && r.records > 0 && r.mode == results::ImportCsvMode::Strict,
             "{r:?}"

@@ -192,7 +192,7 @@ fn ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
         OsStr::new("--json"),
     ]);
     let typed: ew_api::cli_results::DiffResult =
-        super::conventions::assert_result(&String::from_utf8_lossy(&json.stdout), ew_api::cli_results::DIFF);
+        super::conventions::assert_result(&String::from_utf8_lossy(&json.stdout), ew_api::cli_results::DiffResult::SCHEMA);
     assert!(!typed.equal);
     assert_eq!(typed.changes.len(), 1);
     assert_eq!(typed.changes[0].label, "-101F1");

@@ -78,7 +78,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                 print!(
                     "{}",
                     results::to_text(&results::LibListResult {
-                        schema: results::LIB_LIST.to_owned(),
+                        schema: results::LibListResult::SCHEMA.to_owned(),
                         libraries,
                     })
                 );
@@ -220,7 +220,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                 print!(
                     "{}",
                     results::to_text(&results::LibSearchResult {
-                        schema: results::LIB_SEARCH.to_owned(),
+                        schema: results::LibSearchResult::SCHEMA.to_owned(),
                         hits: rows.into_iter().map(|(j, _)| j).collect(),
                     })
                 );
@@ -245,7 +245,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                         print!(
                             "{}",
                             results::to_text(&results::LibIndexResult {
-                                schema: results::LIB_INDEX.to_owned(),
+                                schema: results::LibIndexResult::SCHEMA.to_owned(),
                                 parts,
                                 items,
                             })
@@ -273,7 +273,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                     print!(
                         "{}",
                         results::to_text(&results::LibCreateResult {
-                            schema: results::LIB_CREATE.to_owned(),
+                            schema: results::LibCreateResult::SCHEMA.to_owned(),
                             key: key.clone(),
                             id: id.to_string(),
                             dir: dir.display().to_string(),
@@ -322,7 +322,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                         print!(
                             "{}",
                             results::to_text(&results::LibImportQetElementsResult {
-                                schema: results::LIB_IMPORT_QET_ELEMENTS.to_owned(),
+                                schema: results::LibImportQetElementsResult::SCHEMA.to_owned(),
                                 library: key.clone(),
                                 symbols: done.symbols,
                                 not_converted: done.refused.len(),
@@ -423,7 +423,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                         print!(
                             "{}",
                             results::to_text(&results::LibImportPartsResult {
-                                schema: results::LIB_IMPORT_PARTS.to_owned(),
+                                schema: results::LibImportPartsResult::SCHEMA.to_owned(),
                                 library: target.1.clone(),
                                 source: input.name().to_string(),
                                 rows: row_counts(&done.import),

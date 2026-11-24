@@ -2435,8 +2435,8 @@ impl Cli {
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
             Top::Plc(PlcCli::Status(a)) => Command::PlcStatus(a),
-            Top::Import(Import::PlcAml(a)) => plc_import(ew_api::cli_results::IMPORT_PLC_AML, a),
-            Top::Import(Import::PlcXlsx(a)) => plc_import(ew_api::cli_results::IMPORT_PLC_XLSX, a),
+            Top::Import(Import::PlcAml(a)) => plc_import(ew_api::cli_results::ImportPlcResult::AML, a),
+            Top::Import(Import::PlcXlsx(a)) => plc_import(ew_api::cli_results::ImportPlcResult::XLSX, a),
             Top::Import(Import::InstrumentList(a)) => Command::InstrumentList(a),
             Top::Extract(a) => Command::Extract(a),
             Top::Print(PrintCli {

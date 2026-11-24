@@ -386,7 +386,7 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
     };
     if a.json {
         let result = results::PlcStatusResult {
-            schema: results::PLC_STATUS.to_owned(),
+            schema: results::PlcStatusResult::SCHEMA.to_owned(),
             config: status.config.clone(),
             exchange: status.stamp.as_ref().map(|s| results::PlcStatusExchange {
                 format: word(serde_json::json!(s.format)),

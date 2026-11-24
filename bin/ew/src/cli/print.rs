@@ -49,7 +49,7 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
         eprintln!("notice: {n}");
     }
     let result = |adapter: &str, out: Option<String>| results::PrintResult {
-        schema: results::PRINT.to_owned(),
+        schema: results::PrintResult::SCHEMA.to_owned(),
         adapter: adapter.to_owned(),
         printer: a.printer.clone().unwrap_or_default(),
         pages: folios.clone(),

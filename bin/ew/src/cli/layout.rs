@@ -34,7 +34,7 @@ pub(super) fn run_layout(a: &LayoutArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::LayoutResult {
-                schema: results::LAYOUT.to_owned(),
+                schema: results::LayoutResult::SCHEMA.to_owned(),
                 pages,
             })
         );

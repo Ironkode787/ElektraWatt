@@ -35,11 +35,11 @@ fn result_schema(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
 /// `deny_unknown_fields`, byte-equal after the round trip.
 fn assert_query_result(out: &str) -> results::QueryResult {
     assert!(
-        out.starts_with(&format!("{{\n  \"$schema\": \"{}\"", results::QUERY)),
+        out.starts_with(&format!("{{\n  \"$schema\": \"{}\"", results::QueryResult::SCHEMA)),
         "{out}"
     );
     let value: Value = serde_json::from_str(out).unwrap_or_else(|e| panic!("{e}: {out}"));
-    let (schemas, index) = result_schema(results::QUERY);
+    let (schemas, index) = result_schema(results::QueryResult::SCHEMA);
     if let Err(e) = schemas.validate(&value, index) {
         panic!("the output does not validate against its schema: {e:#}\n{out}");
     }
@@ -207,7 +207,7 @@ fn queries_prints_the_committed_registry() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(stdout(&o), results::to_text(&results::queries()));
     let value: Value = serde_json::from_str(&stdout(&o)).unwrap();
-    let (schemas, index) = result_schema(results::QUERIES);
+    let (schemas, index) = result_schema(results::QueriesResult::SCHEMA);
     schemas.validate(&value, index).unwrap();
     let typed: results::QueriesResult = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(results::to_text(&typed), stdout(&o));

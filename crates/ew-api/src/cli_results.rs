@@ -70,97 +70,19 @@ pub(crate) fn schema_of<T: JsonSchema>() -> Value {
         .to_value()
 }
 
-/// `ew import qet --json`.
-pub const IMPORT_QET: &str = "ew.import-qet-result/1";
-/// `ew import csv --json`.
-pub const IMPORT_CSV: &str = "ew.import-csv-result/1";
-/// `ew fmt --json`.
-pub const FMT: &str = "ew.fmt-result/1";
-/// `ew fmt --repair --json`.
-pub const FMT_REPAIR: &str = "ew.fmt-repair-result/1";
-/// `ew recover --json`.
-pub const RECOVER: &str = "ew.recover-result/1";
-/// `ew import parts --json`.
-pub const IMPORT_PARTS: &str = "ew.import-parts-result/1";
-/// `ew check --json`.
+// The schema name of every result type of this module is a constant of the type (`ApplyResult::SCHEMA`; the rows
+// of `export cables`, `bom` and `wires` share one type, as do the two PLC imports). The two results built in another
+// crate keep its constant, named here:
+
+/// `ew check --json` ([`CheckResult`]).
 pub const CHECK: &str = ew_checks::report::JSON_SCHEMA;
-/// `ew sql --json`.
+/// `ew sql --json` ([`SqlResult`]).
 pub const SQL: &str = ew_sqlview::SQL_RESULT_SCHEMA;
-/// `ew sql dump --json`.
-pub const SQL_DUMP: &str = "ew.sql-dump-result/1";
-/// `ew export cables --json`.
-pub const EXPORT_CABLES: &str = "ew.export-cables-result/1";
-/// `ew export bom --json`.
-pub const EXPORT_BOM: &str = "ew.export-bom-result/1";
-/// `ew export pdf --json`.
-pub const EXPORT_PDF: &str = "ew.export-pdf-result/1";
-/// `ew export ewz --json`.
-pub const EXPORT_EWZ: &str = "ew.export-ewz-result/1";
-/// `ew diff --json`.
-pub const DIFF: &str = "ew.diff-result/1";
-/// `ew extract --json`.
-pub const EXTRACT: &str = "ew.extract-result/1";
-/// `ew merge resolve --json`.
-pub const MERGE_RESOLVE: &str = "ew.merge-resolve-result/1";
-/// `ew export svg --json`.
-pub const EXPORT_SVG: &str = "ew.export-svg-result/1";
-/// `ew export png --json`.
-pub const EXPORT_PNG: &str = "ew.export-png-result/1";
-/// `ew export dxf --json`.
-pub const EXPORT_DXF: &str = "ew.export-dxf-result/1";
-/// `ew export wires --json`.
-pub const EXPORT_WIRES: &str = "ew.export-wires-result/1";
-/// `ew export terminals --json`.
-pub const EXPORT_TERMINALS: &str = "ew.export-terminals-result/1";
-/// `ew export report --json`.
-pub const EXPORT_REPORT: &str = "ew.export-report-result/1";
-/// `ew export table --json`.
-pub const EXPORT_TABLE: &str = "ew.export-table-result/1";
-/// `ew import table --json`.
-pub const IMPORT_TABLE: &str = "ew.import-table-result/1";
-/// `ew import plc-aml --json`.
-pub const IMPORT_PLC_AML: &str = "ew.import-plc-aml-result/1";
-/// `ew import plc-xlsx --json`.
-pub const IMPORT_PLC_XLSX: &str = "ew.import-plc-xlsx-result/1";
-/// `ew plc status --json`.
-pub const PLC_STATUS: &str = "ew.plc-status-result/1";
-/// `ew render --json`.
-pub const RENDER: &str = "ew.render-result/1";
-/// `ew print --json`.
-pub const PRINT: &str = "ew.print-result/1";
-/// `ew apply --json`.
-pub const APPLY: &str = "ew.apply-result/1";
-/// `ew verify-derived --json`.
-pub const VERIFY_DERIVED: &str = "ew.verify-derived-result/1";
-/// `ew verify-migration --json`.
-pub const VERIFY_MIGRATION: &str = "ew.verify-migration-result/1";
-/// `ew lib list --json`.
-pub const LIB_LIST: &str = "ew.lib-list-result/1";
-/// `ew lib search --json`.
-pub const LIB_SEARCH: &str = "ew.lib-search-result/1";
-/// `ew lib index --rebuild --json`.
-pub const LIB_INDEX: &str = "ew.lib-index-result/1";
-/// `ew lib create --json`.
-pub const LIB_CREATE: &str = "ew.lib-create-result/1";
-/// `ew lib import parts --json`.
-pub const LIB_IMPORT_PARTS: &str = "ew.lib-import-parts-result/1";
-/// `ew lib import qet-elements --json`.
-pub const LIB_IMPORT_QET_ELEMENTS: &str = "ew.lib-import-qet-elements-result/1";
-/// `ew commands --json`.
-pub const COMMANDS: &str = "ew.commands-result/1";
-/// `ew query --json`.
-pub const QUERY: &str = "ew.query-result/1";
-/// `ew queries --json`.
-pub const QUERIES: &str = "ew.queries-result/1";
-/// `ew layout --json`.
-pub const LAYOUT: &str = "ew.layout-result/1";
-/// `ew route --json`.
-pub const ROUTE: &str = "ew.route-result/1";
 
 /// Every published result schema, in name order.
 pub const RESULTS: &[ResultSchema] = &[
     ResultSchema {
-        name: APPLY,
+        name: ApplyResult::SCHEMA,
         command: "apply",
         flag: None,
         schema: schema_of::<ApplyResult>,
@@ -172,229 +94,229 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<CheckResult>,
     },
     ResultSchema {
-        name: COMMANDS,
+        name: CommandsResult::SCHEMA,
         command: "commands",
         flag: None,
         schema: schema_of::<CommandsResult>,
     },
     ResultSchema {
-        name: DIFF,
+        name: DiffResult::SCHEMA,
         command: "diff",
         flag: None,
         schema: schema_of::<DiffResult>,
     },
     ResultSchema {
-        name: EXPORT_BOM,
+        name: ExportRowsResult::BOM,
         command: "export bom",
         flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
-        name: EXPORT_CABLES,
+        name: ExportRowsResult::CABLES,
         command: "export cables",
         flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
-        name: EXPORT_DXF,
+        name: ExportDxfResult::SCHEMA,
         command: "export dxf",
         flag: None,
         schema: schema_of::<ExportDxfResult>,
     },
     ResultSchema {
-        name: EXPORT_EWZ,
+        name: ExportEwzResult::SCHEMA,
         command: "export ewz",
         flag: None,
         schema: schema_of::<ExportEwzResult>,
     },
     ResultSchema {
-        name: EXPORT_PDF,
+        name: ExportPdfResult::SCHEMA,
         command: "export pdf",
         flag: None,
         schema: schema_of::<ExportPdfResult>,
     },
     ResultSchema {
-        name: EXPORT_PNG,
+        name: ExportPngResult::SCHEMA,
         command: "export png",
         flag: None,
         schema: schema_of::<ExportPngResult>,
     },
     ResultSchema {
-        name: EXPORT_REPORT,
+        name: ExportReportResult::SCHEMA,
         command: "export report",
         flag: None,
         schema: schema_of::<ExportReportResult>,
     },
     ResultSchema {
-        name: EXPORT_SVG,
+        name: ExportSvgResult::SCHEMA,
         command: "export svg",
         flag: None,
         schema: schema_of::<ExportSvgResult>,
     },
     ResultSchema {
-        name: EXPORT_TABLE,
+        name: ExportTableResult::SCHEMA,
         command: "export table",
         flag: None,
         schema: schema_of::<ExportTableResult>,
     },
     ResultSchema {
-        name: EXPORT_TERMINALS,
+        name: ExportTerminalsResult::SCHEMA,
         command: "export terminals",
         flag: None,
         schema: schema_of::<ExportTerminalsResult>,
     },
     ResultSchema {
-        name: EXPORT_WIRES,
+        name: ExportRowsResult::WIRES,
         command: "export wires",
         flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
-        name: EXTRACT,
+        name: ExtractResult::SCHEMA,
         command: "extract",
         flag: None,
         schema: schema_of::<ExtractResult>,
     },
     ResultSchema {
-        name: FMT_REPAIR,
+        name: FmtRepairResult::SCHEMA,
         command: "fmt",
         flag: Some("--repair"),
         schema: schema_of::<FmtRepairResult>,
     },
     ResultSchema {
-        name: FMT,
+        name: FmtResult::SCHEMA,
         command: "fmt",
         flag: None,
         schema: schema_of::<FmtResult>,
     },
     ResultSchema {
-        name: IMPORT_CSV,
+        name: ImportCsvResult::SCHEMA,
         command: "import csv",
         flag: None,
         schema: schema_of::<ImportCsvResult>,
     },
     ResultSchema {
-        name: IMPORT_PARTS,
+        name: ImportPartsResult::SCHEMA,
         command: "import parts",
         flag: None,
         schema: schema_of::<ImportPartsResult>,
     },
     ResultSchema {
-        name: IMPORT_PLC_AML,
+        name: ImportPlcResult::AML,
         command: "import plc-aml",
         flag: None,
         schema: schema_of::<ImportPlcResult>,
     },
     ResultSchema {
-        name: IMPORT_PLC_XLSX,
+        name: ImportPlcResult::XLSX,
         command: "import plc-xlsx",
         flag: None,
         schema: schema_of::<ImportPlcResult>,
     },
     ResultSchema {
-        name: IMPORT_QET,
+        name: ImportQetResult::SCHEMA,
         command: "import qet",
         flag: None,
         schema: schema_of::<ImportQetResult>,
     },
     ResultSchema {
-        name: IMPORT_TABLE,
+        name: ImportTableResult::SCHEMA,
         command: "import table",
         flag: None,
         schema: schema_of::<ImportTableResult>,
     },
     ResultSchema {
-        name: LAYOUT,
+        name: LayoutResult::SCHEMA,
         command: "layout",
         flag: None,
         schema: schema_of::<LayoutResult>,
     },
     ResultSchema {
-        name: LIB_CREATE,
+        name: LibCreateResult::SCHEMA,
         command: "lib create",
         flag: None,
         schema: schema_of::<LibCreateResult>,
     },
     ResultSchema {
-        name: LIB_IMPORT_PARTS,
+        name: LibImportPartsResult::SCHEMA,
         command: "lib import parts",
         flag: None,
         schema: schema_of::<LibImportPartsResult>,
     },
     ResultSchema {
-        name: LIB_IMPORT_QET_ELEMENTS,
+        name: LibImportQetElementsResult::SCHEMA,
         command: "lib import qet-elements",
         flag: None,
         schema: schema_of::<LibImportQetElementsResult>,
     },
     ResultSchema {
-        name: LIB_INDEX,
+        name: LibIndexResult::SCHEMA,
         command: "lib index",
         flag: None,
         schema: schema_of::<LibIndexResult>,
     },
     ResultSchema {
-        name: LIB_LIST,
+        name: LibListResult::SCHEMA,
         command: "lib list",
         flag: None,
         schema: schema_of::<LibListResult>,
     },
     ResultSchema {
-        name: LIB_SEARCH,
+        name: LibSearchResult::SCHEMA,
         command: "lib search",
         flag: None,
         schema: schema_of::<LibSearchResult>,
     },
     ResultSchema {
-        name: MERGE_RESOLVE,
+        name: MergeResolveResult::SCHEMA,
         command: "merge resolve",
         flag: None,
         schema: schema_of::<MergeResolveResult>,
     },
     ResultSchema {
-        name: PLC_STATUS,
+        name: PlcStatusResult::SCHEMA,
         command: "plc status",
         flag: None,
         schema: schema_of::<PlcStatusResult>,
     },
     ResultSchema {
-        name: PRINT,
+        name: PrintResult::SCHEMA,
         command: "print",
         flag: None,
         schema: schema_of::<PrintResult>,
     },
     ResultSchema {
-        name: QUERIES,
+        name: QueriesResult::SCHEMA,
         command: "queries",
         flag: None,
         schema: schema_of::<QueriesResult>,
     },
     ResultSchema {
-        name: QUERY,
+        name: QueryResult::SCHEMA,
         command: "query",
         flag: None,
         schema: schema_of::<QueryResult>,
     },
     ResultSchema {
-        name: RECOVER,
+        name: RecoverResult::SCHEMA,
         command: "recover",
         flag: None,
         schema: schema_of::<RecoverResult>,
     },
     ResultSchema {
-        name: RENDER,
+        name: RenderResult::SCHEMA,
         command: "render",
         flag: None,
         schema: schema_of::<RenderResult>,
     },
     ResultSchema {
-        name: ROUTE,
+        name: RouteResult::SCHEMA,
         command: "route",
         flag: None,
         schema: schema_of::<RouteResult>,
     },
     ResultSchema {
-        name: SQL_DUMP,
+        name: SqlDumpResult::SCHEMA,
         command: "sql dump",
         flag: None,
         schema: schema_of::<SqlDumpResult>,
@@ -406,13 +328,13 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<SqlResult>,
     },
     ResultSchema {
-        name: VERIFY_DERIVED,
+        name: VerifyDerivedResult::SCHEMA,
         command: "verify-derived",
         flag: None,
         schema: schema_of::<VerifyDerivedResult>,
     },
     ResultSchema {
-        name: VERIFY_MIGRATION,
+        name: VerifyMigrationResult::SCHEMA,
         command: "verify-migration",
         flag: None,
         schema: schema_of::<VerifyMigrationResult>,
@@ -490,6 +412,11 @@ pub struct ImportQetResult {
     pub report_out: Option<String>,
 }
 
+impl ImportQetResult {
+    /// The schema name of `ew import qet --json`.
+    pub const SCHEMA: &str = "ew.import-qet-result/1";
+}
+
 /// The record counts of an [`ImportQetResult`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -530,6 +457,11 @@ pub struct ImportPartsResult {
     pub rows: Option<RowCounts>,
     /// The report of a mapped import, one entry per finding; empty for the `ew` dialect.
     pub report: Vec<ReportRow>,
+}
+
+impl ImportPartsResult {
+    /// The schema name of `ew import parts --json`.
+    pub const SCHEMA: &str = "ew.import-parts-result/1";
 }
 
 /// The row counts of a mapped parts import.
@@ -585,6 +517,11 @@ pub struct SqlDumpResult {
     pub out: String,
 }
 
+impl SqlDumpResult {
+    /// The schema name of `ew sql dump --json`.
+    pub const SCHEMA: &str = "ew.sql-dump-result/1";
+}
+
 /// `ew export cables|bom --json` ([`EXPORT_CABLES`], [`EXPORT_BOM`]): the CSV in the result, or the file it went to.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -606,6 +543,17 @@ pub struct ExportRowsResult {
     pub rev: Option<u64>,
 }
 
+impl ExportRowsResult {
+    /// The schema name of `ew export cables --json`.
+    pub const CABLES: &str = "ew.export-cables-result/1";
+
+    /// The schema name of `ew export bom --json`.
+    pub const BOM: &str = "ew.export-bom-result/1";
+
+    /// The schema name of `ew export wires --json`.
+    pub const WIRES: &str = "ew.export-wires-result/1";
+}
+
 /// `ew export ewz --json` ([`EXPORT_EWZ`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -623,6 +571,11 @@ pub struct ExportEwzResult {
     pub bytes: u64,
 }
 
+impl ExportEwzResult {
+    /// The schema name of `ew export ewz --json`.
+    pub const SCHEMA: &str = "ew.export-ewz-result/1";
+}
+
 /// `ew diff --json` ([`DIFF`]): the records that differ between the two sides.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -634,6 +587,11 @@ pub struct DiffResult {
     pub equal: bool,
     /// The records that differ, in kind and ID order.
     pub changes: Vec<DiffChange>,
+}
+
+impl DiffResult {
+    /// The schema name of `ew diff --json`.
+    pub const SCHEMA: &str = "ew.diff-result/1";
 }
 
 /// One record of [`DiffResult`].
@@ -681,6 +639,11 @@ pub struct ExtractResult {
     pub files: usize,
 }
 
+impl ExtractResult {
+    /// The schema name of `ew extract --json`.
+    pub const SCHEMA: &str = "ew.extract-result/1";
+}
+
 /// `ew merge resolve --json` ([`MERGE_RESOLVE`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -692,6 +655,11 @@ pub struct MergeResolveResult {
     pub resolved: usize,
     /// The side taken: `ours` or `theirs`.
     pub take: String,
+}
+
+impl MergeResolveResult {
+    /// The schema name of `ew merge resolve --json`.
+    pub const SCHEMA: &str = "ew.merge-resolve-result/1";
 }
 
 /// `ew export pdf --json` ([`EXPORT_PDF`]).
@@ -709,6 +677,11 @@ pub struct ExportPdfResult {
     pub links: usize,
     /// The number of page findings.
     pub findings: usize,
+}
+
+impl ExportPdfResult {
+    /// The schema name of `ew export pdf --json`.
+    pub const SCHEMA: &str = "ew.export-pdf-result/1";
 }
 
 /// `ew print --json` ([`PRINT`]).
@@ -734,6 +707,11 @@ pub struct PrintResult {
     pub out: Option<String>,
 }
 
+impl PrintResult {
+    /// The schema name of `ew print --json`.
+    pub const SCHEMA: &str = "ew.print-result/1";
+}
+
 /// `ew export svg --json` ([`EXPORT_SVG`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -747,6 +725,11 @@ pub struct ExportSvgResult {
     pub files: Vec<String>,
     /// The page findings.
     pub findings: usize,
+}
+
+impl ExportSvgResult {
+    /// The schema name of `ew export svg --json`.
+    pub const SCHEMA: &str = "ew.export-svg-result/1";
 }
 
 /// `ew export dxf --json` ([`EXPORT_DXF`]).
@@ -765,6 +748,11 @@ pub struct ExportDxfResult {
     pub pictures: Vec<String>,
     /// The page findings.
     pub findings: usize,
+}
+
+impl ExportDxfResult {
+    /// The schema name of `ew export dxf --json`.
+    pub const SCHEMA: &str = "ew.export-dxf-result/1";
 }
 
 /// `ew export terminals --json` ([`EXPORT_TERMINALS`]).
@@ -788,6 +776,11 @@ pub struct ExportTerminalsResult {
     pub preset: Option<String>,
     /// The session revision the rows were read at.
     pub rev: Option<u64>,
+}
+
+impl ExportTerminalsResult {
+    /// The schema name of `ew export terminals --json`.
+    pub const SCHEMA: &str = "ew.export-terminals-result/1";
 }
 
 /// `ew export report --json` ([`EXPORT_REPORT`]).
@@ -817,6 +810,11 @@ pub struct ExportReportResult {
     pub rev: Option<u64>,
 }
 
+impl ExportReportResult {
+    /// The schema name of `ew export report --json`.
+    pub const SCHEMA: &str = "ew.export-report-result/1";
+}
+
 /// `ew export table --json` ([`EXPORT_TABLE`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -840,6 +838,11 @@ pub struct ExportTableResult {
     pub csv: Option<String>,
     /// The session revision the table was read at.
     pub rev: u64,
+}
+
+impl ExportTableResult {
+    /// The schema name of `ew export table --json`.
+    pub const SCHEMA: &str = "ew.export-table-result/1";
 }
 
 /// One cell of `ew import table --json` ([`ImportTableResult::cells`]).
@@ -956,6 +959,14 @@ pub struct ImportPlcResult {
     pub applied: bool,
 }
 
+impl ImportPlcResult {
+    /// The schema name of `ew import plc-aml --json`.
+    pub const AML: &str = "ew.import-plc-aml-result/1";
+
+    /// The schema name of `ew import plc-xlsx --json`.
+    pub const XLSX: &str = "ew.import-plc-xlsx-result/1";
+}
+
 /// The last exchange of `ew plc status --json` ([`PlcStatusResult::exchange`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1001,6 +1012,11 @@ pub struct PlcStatusResult {
     pub same_file: Option<bool>,
 }
 
+impl PlcStatusResult {
+    /// The schema name of `ew plc status --json`.
+    pub const SCHEMA: &str = "ew.plc-status-result/1";
+}
+
 /// `ew import table --json` ([`IMPORT_TABLE`]): the preview, and whether it was applied.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1038,6 +1054,11 @@ pub struct ImportTableResult {
     pub rev: u64,
 }
 
+impl ImportTableResult {
+    /// The schema name of `ew import table --json`.
+    pub const SCHEMA: &str = "ew.import-table-result/1";
+}
+
 /// `ew export png --json` ([`EXPORT_PNG`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1053,6 +1074,11 @@ pub struct ExportPngResult {
     pub files: Vec<String>,
     /// The page findings.
     pub findings: usize,
+}
+
+impl ExportPngResult {
+    /// The schema name of `ew export png --json`.
+    pub const SCHEMA: &str = "ew.export-png-result/1";
 }
 
 /// `ew render --json` ([`RENDER`]).
@@ -1076,6 +1102,11 @@ pub struct RenderResult {
     pub findings: usize,
 }
 
+impl RenderResult {
+    /// The schema name of `ew render --json`.
+    pub const SCHEMA: &str = "ew.render-result/1";
+}
+
 /// `ew apply --json` ([`APPLY`]): the replay's counts, and with `--preview` the changes.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1091,6 +1122,11 @@ pub struct ApplyResult {
     pub saved: bool,
     /// The changes of `--preview`; `null` without it.
     pub preview: Option<ApplyChanges>,
+}
+
+impl ApplyResult {
+    /// The schema name of `ew apply --json`.
+    pub const SCHEMA: &str = "ew.apply-result/1";
 }
 
 /// The changes `ew apply --preview` reports.
@@ -1148,6 +1184,11 @@ pub struct VerifyDerivedResult {
     pub oracle: Vec<OracleMismatch>,
 }
 
+impl VerifyDerivedResult {
+    /// The schema name of `ew verify-derived --json`.
+    pub const SCHEMA: &str = "ew.verify-derived-result/1";
+}
+
 /// `ew verify-migration --json` ([`VERIFY_MIGRATION`]).
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1167,6 +1208,11 @@ pub struct VerifyMigrationResult {
     pub expected: Vec<crate::migration::Deviation>,
     /// The declared deltas that matched no deviation.
     pub unmet: Vec<crate::migration::Expected>,
+}
+
+impl VerifyMigrationResult {
+    /// The schema name of `ew verify-migration --json`.
+    pub const SCHEMA: &str = "ew.verify-migration-result/1";
 }
 
 /// One mismatch of the memo oracle.
@@ -1194,6 +1240,11 @@ pub struct LayoutResult {
     pub pages: Vec<crate::output::PageLayout>,
 }
 
+impl LayoutResult {
+    /// The schema name of `ew layout --json`.
+    pub const SCHEMA: &str = "ew.layout-result/1";
+}
+
 /// `ew route --json` ([`ROUTE`]): the plan of each page routed.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1205,6 +1256,11 @@ pub struct RouteResult {
     pub pages: Vec<RoutePageResult>,
     /// Whether the routes were saved (`false` with `--dry-run` or when nothing was routed).
     pub saved: bool,
+}
+
+impl RouteResult {
+    /// The schema name of `ew route --json`.
+    pub const SCHEMA: &str = "ew.route-result/1";
 }
 
 /// One page of [`RouteResult`].
@@ -1252,6 +1308,11 @@ pub struct LibListResult {
     pub libraries: Vec<LibraryRow>,
 }
 
+impl LibListResult {
+    /// The schema name of `ew lib list --json`.
+    pub const SCHEMA: &str = "ew.lib-list-result/1";
+}
+
 /// One library of [`LibListResult`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1289,6 +1350,11 @@ pub struct LibSearchResult {
     pub schema: String,
     /// The hits, parts first.
     pub hits: Vec<LibHit>,
+}
+
+impl LibSearchResult {
+    /// The schema name of `ew lib search --json`.
+    pub const SCHEMA: &str = "ew.lib-search-result/1";
 }
 
 /// One hit of [`LibSearchResult`]: a part or another library item.
@@ -1370,6 +1436,11 @@ pub struct LibIndexResult {
     pub items: u64,
 }
 
+impl LibIndexResult {
+    /// The schema name of `ew lib index --rebuild --json`.
+    pub const SCHEMA: &str = "ew.lib-index-result/1";
+}
+
 /// `ew lib create --json` ([`LIB_CREATE`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1385,6 +1456,11 @@ pub struct LibCreateResult {
     pub dir: String,
     /// Whether it lies in a library tier (else pass it as `--company`).
     pub listed: bool,
+}
+
+impl LibCreateResult {
+    /// The schema name of `ew lib create --json`.
+    pub const SCHEMA: &str = "ew.lib-create-result/1";
 }
 
 /// `ew lib import parts --json` ([`LIB_IMPORT_PARTS`]).
@@ -1406,6 +1482,11 @@ pub struct LibImportPartsResult {
     pub written: Option<LibWrite>,
 }
 
+impl LibImportPartsResult {
+    /// The schema name of `ew lib import parts --json`.
+    pub const SCHEMA: &str = "ew.lib-import-parts-result/1";
+}
+
 /// `ew lib import qet-elements --json` ([`LIB_IMPORT_QET_ELEMENTS`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1423,6 +1504,11 @@ pub struct LibImportQetElementsResult {
     pub report: Vec<ReportRow>,
     /// What the library write did; `null` when there was nothing to write.
     pub written: Option<LibWrite>,
+}
+
+impl LibImportQetElementsResult {
+    /// The schema name of `ew lib import qet-elements --json`.
+    pub const SCHEMA: &str = "ew.lib-import-qet-elements-result/1";
 }
 
 /// The library write of [`LibImportPartsResult`].
@@ -1448,6 +1534,11 @@ pub struct CommandsResult {
     pub schema: String,
     /// The commands in name order.
     pub commands: Vec<CommandEntry>,
+}
+
+impl CommandsResult {
+    /// The schema name of `ew commands --json`.
+    pub const SCHEMA: &str = "ew.commands-result/1";
 }
 
 /// One command of [`CommandsResult`].
@@ -1497,6 +1588,11 @@ pub struct ImportCsvResult {
     pub report: Vec<TableReportRow>,
 }
 
+impl ImportCsvResult {
+    /// The schema name of `ew import csv --json`.
+    pub const SCHEMA: &str = "ew.import-csv-result/1";
+}
+
 /// The mode of `ew import csv`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -1544,6 +1640,11 @@ pub struct FmtResult {
     /// exits 1 with no file listed and `ew fmt` refuses. Absent for a project of this version's format.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub older_format: Option<String>,
+}
+
+impl FmtResult {
+    /// The schema name of `ew fmt --json`.
+    pub const SCHEMA: &str = "ew.fmt-result/1";
 }
 
 /// One file of [`FmtResult`].
@@ -1603,6 +1704,11 @@ pub struct FmtRepairResult {
     pub save_error: Option<String>,
 }
 
+impl FmtRepairResult {
+    /// The schema name of `ew fmt --repair --json`.
+    pub const SCHEMA: &str = "ew.fmt-repair-result/1";
+}
+
 /// One discarded line of [`FmtRepairResult`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1645,6 +1751,11 @@ pub struct RecoverResult {
     pub replayed: bool,
     /// The generation on disk afterwards.
     pub generation: u64,
+}
+
+impl RecoverResult {
+    /// The schema name of `ew recover --json`.
+    pub const SCHEMA: &str = "ew.recover-result/1";
 }
 
 /// What `ew recover` did.
@@ -1690,6 +1801,11 @@ pub struct QueryResult {
     pub explain: Option<QueryExplain>,
 }
 
+impl QueryResult {
+    /// The schema name of `ew query --json`.
+    pub const SCHEMA: &str = "ew.query-result/1";
+}
+
 /// The explanation of a query's value (`ew query --explain`, D12): the memo's policy and state, its dependencies and
 /// the property row's provenance. No wall-clock time: revisions are the session's.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1724,6 +1840,11 @@ pub struct QueriesResult {
     pub queries: Vec<QueryEntry>,
 }
 
+impl QueriesResult {
+    /// The schema name of `ew queries --json`.
+    pub const SCHEMA: &str = "ew.queries-result/1";
+}
+
 /// One query of [`QueriesResult`].
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1745,7 +1866,7 @@ pub struct QueryEntry {
 /// The query registry as [`QueriesResult`] ([`crate::queries::REGISTRY`], in name order).
 pub fn queries() -> QueriesResult {
     QueriesResult {
-        schema: QUERIES.to_owned(),
+        schema: QueriesResult::SCHEMA.to_owned(),
         queries: crate::queries::REGISTRY.iter().map(|q| q.entry()).collect(),
     }
 }
@@ -1764,7 +1885,7 @@ pub fn commands() -> CommandsResult {
     }
     let commands = serde_json::from_str::<Index>(index).map_or_else(|_| Vec::new(), |i| i.commands);
     CommandsResult {
-        schema: COMMANDS.to_owned(),
+        schema: CommandsResult::SCHEMA.to_owned(),
         commands,
     }
 }
@@ -1818,7 +1939,7 @@ mod tests {
     #[test]
     fn to_text_sorts_members_with_the_schema_first() {
         let r = SqlDumpResult {
-            schema: SQL_DUMP.into(),
+            schema: SqlDumpResult::SCHEMA.into(),
             out: "p.sqlite".into(),
         };
         assert_eq!(

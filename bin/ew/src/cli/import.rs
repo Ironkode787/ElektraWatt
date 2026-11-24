@@ -148,7 +148,7 @@ pub(super) fn import_table_text(import: &ew_api::output::TableImport, apply: boo
 pub(super) fn import_table_json(import: &ew_api::output::TableImport, applied: bool) -> String {
     let c = import.counts();
     results::to_text(&results::ImportTableResult {
-        schema: results::IMPORT_TABLE.to_owned(),
+        schema: results::ImportTableResult::SCHEMA.to_owned(),
         table: import.table.clone(),
         three_way: import.three_way,
         notices: import.notices.clone(),
@@ -322,7 +322,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
         print!(
             "{}",
             results::to_text(&results::ImportPartsResult {
-                schema: results::IMPORT_PARTS.to_owned(),
+                schema: results::ImportPartsResult::SCHEMA.to_owned(),
                 source: input.name().to_string(),
                 created,
                 skipped,
@@ -393,7 +393,7 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::ImportPartsResult {
-                schema: results::IMPORT_PARTS.to_owned(),
+                schema: results::ImportPartsResult::SCHEMA.to_owned(),
                 source: parts.source.to_string(),
                 created,
                 skipped,
@@ -736,7 +736,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::ImportQetResult {
-                schema: results::IMPORT_QET.to_owned(),
+                schema: results::ImportQetResult::SCHEMA.to_owned(),
                 source: name.clone(),
                 counts: results::QetCounts {
                     pages: c.pages,
@@ -964,7 +964,7 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::ImportCsvResult {
-                schema: results::IMPORT_CSV.to_owned(),
+                schema: results::ImportCsvResult::SCHEMA.to_owned(),
                 tables: inputs.iter().map(|i| i.name().to_owned()).collect(),
                 mode: if a.lenient {
                     results::ImportCsvMode::Lenient

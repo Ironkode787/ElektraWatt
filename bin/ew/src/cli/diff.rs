@@ -45,7 +45,7 @@ pub(super) fn run_diff(a: &DiffArgs) -> i32 {
     };
     if a.json {
         let result = ew_api::cli_results::DiffResult {
-            schema: ew_api::cli_results::DIFF.to_owned(),
+            schema: ew_api::cli_results::DiffResult::SCHEMA.to_owned(),
             equal: entries.is_empty(),
             changes: entries
                 .iter()

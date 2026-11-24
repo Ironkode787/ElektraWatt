@@ -36,7 +36,7 @@ pub(super) fn run_apply(a: &ApplyArgs) -> i32 {
             print!(
                 "{}",
                 results::to_text(&results::ApplyResult {
-                    schema: results::APPLY.to_owned(),
+                    schema: results::ApplyResult::SCHEMA.to_owned(),
                     lines: log.len(),
                     committed,
                     saved,
@@ -214,7 +214,7 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
         print!(
             "{}",
             results::to_text(&results::ApplyResult {
-                schema: results::APPLY.to_owned(),
+                schema: results::ApplyResult::SCHEMA.to_owned(),
                 lines: log.len(),
                 committed,
                 saved: false,

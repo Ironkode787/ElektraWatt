@@ -34,7 +34,7 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     let o = t.ew(&["layout", &p, "--page", "101", "--json"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let json: results::LayoutResult = serde_json::from_str(&stdout(&o)).unwrap();
-    assert_eq!(json.schema, results::LAYOUT);
+    assert_eq!(json.schema, results::LayoutResult::SCHEMA);
     let [page] = json.pages.as_slice() else {
         panic!("{json:?}");
     };
@@ -135,7 +135,7 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     let o = t.ew(&["route", &p, "--page", "105", "--json"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let json: results::RouteResult = serde_json::from_str(&stdout(&o)).unwrap();
-    assert_eq!(json.schema, results::ROUTE);
+    assert_eq!(json.schema, results::RouteResult::SCHEMA);
     assert_eq!(
         (json.pages.len(), json.pages[0].routed.len(), json.saved),
         (1, 0, false)

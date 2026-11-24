@@ -25,7 +25,10 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     if !is_terminal() {
         eprintln!(
             "{}",
-            human_only("`project checks set` is confirmed by typing the scheme name", "changed")
+            human_only(
+                "`project checks set` is confirmed by typing the scheme name",
+                "changed"
+            )
         );
         return 2;
     }
@@ -135,7 +138,7 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::VerifyDerivedResult {
-                schema: results::VERIFY_DERIVED.to_owned(),
+                schema: results::VerifyDerivedResult::SCHEMA.to_owned(),
                 families: report.keys.iter().map(|(f, n)| ((*f).to_owned(), *n)).collect(),
                 keys: report.total_keys(),
                 differences: report.differences.clone(),
@@ -223,7 +226,7 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
         print!(
             "{}",
             results::to_text(&results::VerifyMigrationResult {
-                schema: results::VERIFY_MIGRATION.to_owned(),
+                schema: results::VerifyMigrationResult::SCHEMA.to_owned(),
                 pages: report.pages,
                 texts_matched: report.texts_matched,
                 cells: report.cells,
