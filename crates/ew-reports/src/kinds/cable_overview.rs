@@ -72,6 +72,7 @@ impl ReportKindDef for CableOverview {
             return set;
         }
         set.rows.push(heading(
+            set.columns.len(),
             "overview",
             crate::words::in_languages(&text!("cell-cable-overview")),
         ));
@@ -86,6 +87,7 @@ impl ReportKindDef for CableOverview {
                 format!("{} {part}", short_tag(q, *cable))
             };
             set.rows.push(heading(
+                set.columns.len(),
                 &format!("cable/{}", cable.as_uuid()),
                 MlText::neutral(&title),
             ));
@@ -108,8 +110,9 @@ impl ReportKindDef for CableOverview {
     }
 }
 
-fn heading(key: &str, text: MlText) -> Row {
-    let mut cells = vec![Cell::Empty; 8];
+/// A heading row of `width` cells, `text` in the first.
+fn heading(width: usize, key: &str, text: MlText) -> Row {
+    let mut cells = vec![Cell::Empty; width];
     cells[0] = Cell::Text(text);
     Row {
         id: RowId(vec![
