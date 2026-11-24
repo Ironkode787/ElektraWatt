@@ -79,7 +79,9 @@ For the orchestrator:
   resume <run>                                a lost session: replay and go on
   compose --kind <k> --task <t> [--senses text|visual] [--persona <p>] [--folios <a,b>] --run <id>
   bless <run> --as <name> [--replay check|none]
-  replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]
+  replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>] [--until <step>]
+                                              with --until: the run played to its step <step> (after the prelude)
+                                              in a kept folder, for a builder to look at where the persona was
   rescore <recording> [--bin <dir>] [--write] a recording scored again with the current scoring
   selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
   selftest-visual [--no-build] [--bin <dir>] [--out <dir>] [--keep]
@@ -623,9 +625,18 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let out = f.take_value("--out")?;
             let twice = f.take_flag("--twice");
             let frames = f.take_value("--frames")?.map(PathBuf::from);
+            let until = match f.take_value("--until")? {
+                Some(n) => Some(
+                    n.parse::<usize>()
+                        .ok()
+                        .filter(|n| *n > 0)
+                        .with_context(|| format!("--until takes a step number from 1, not `{n}`"))?,
+                ),
+                None => None,
+            };
             let args = f.rest();
             let [what] = args.as_slice() else {
-                bail!("replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]");
+                bail!("replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>] [--until <step>]");
             };
             let recording = replay::recordings_dir(root).join(what);
             let dir = if recording.join("run.json").is_file() {
@@ -645,6 +656,14 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let exe = bin
                 .unwrap_or_else(|| root.join("target/debug"))
                 .join(format!("elektrawatt{}", std::env::consts::EXE_SUFFIX));
+            if let Some(step) = until {
+                let name = dir.file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+                let at = root.join("target/blind-until").join(format!("{name}-{step}"));
+                let _ = std::fs::remove_dir_all(&at);
+                let (lines, text) = replay::replay_until(root, &exe, inputs, step, &at)?;
+                println!("{text}");
+                return Ok(lines >= step);
+            }
             let report = replay::replay(root, &exe, &inputs, twice)?;
             print!("{}", replay::replay_text(&report));
             Ok(report.ok())

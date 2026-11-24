@@ -256,6 +256,40 @@ pub fn replay_command(exe: &Path, inputs: &Inputs, dir: &Path) -> Command {
     command
 }
 
+/// The run of `inputs` played through `elektrawatt` to its step `step` after the prelude, in the folder `at`, which is
+/// kept: its project (`work/project`), its script and, for a visual run, its frames (`frames/`), for a builder to look at
+/// the state a persona was stuck in. Returns the steps the replay wrote and the text that says where it stands, its
+/// last transcript line among it.
+///
+/// # Errors
+///
+/// The product does not start.
+pub fn replay_until(root: &Path, exe: &Path, mut inputs: Inputs, step: usize, at: &Path) -> Result<(usize, String)> {
+    let total = inputs.steps.len();
+    inputs.steps.truncate(step);
+    inputs.outcomes.truncate(step);
+    inputs.epilogue_range = None;
+    inputs.transcript = None;
+    if inputs.visual && inputs.paint_into.is_none() {
+        inputs.paint_into = Some(at.join("frames"));
+    }
+    let replayed = replay_in(root, exe, &inputs, at)?;
+    let written = replayed.lines.len().saturating_sub(inputs.prelude.len());
+    let mut text = format!(
+        "the run at its step {step} of {}: {} (the project in work/project, the script replay.uiscript{})",
+        total,
+        at.display(),
+        if inputs.visual { ", the frames in frames/" } else { "" }
+    );
+    if let Some(last) = replayed.raw.last() {
+        text.push_str(&format!("\nits last line: {last}"));
+    }
+    for problem in &replayed.r1 {
+        text.push_str(&format!("\n{problem}"));
+    }
+    Ok((written, text))
+}
+
 /// Runs the combined script of `inputs` through `elektrawatt` in `dir` (its `work` folder the product's) and compares;
 /// the folder is kept.
 ///
