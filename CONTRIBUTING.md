@@ -20,6 +20,7 @@ Three commands, run from the repository root:
 
 ```sh
 cargo xtask check -p <crate> [-p <crate>]...   # format, lint and test what you changed, then the repository rules
+cargo xtask check --deep                        # the same with the tests of the deep run, the whole workspace
 cargo xtask gen                                 # regenerate the generated files
 cargo xtask rules                               # the repository rules alone, in seconds
 ```
@@ -31,13 +32,22 @@ cargo xtask rules                               # the repository rules alone, in
   `cargo xtask check -p <crate> -- <filter>` narrows the tests to nextest's filter (a name substring, or
   `-E '<expression>'`) and leaves the doctests out; format, lint and rules still run in full, and the summary says
   the tests were narrowed. The last check of a change runs without a filter.
+
+  What a change needs beyond its crates' tests follows from the paths it touches (those that differ from `main` and
+  those not committed): a change of the persona harness (`tools/blind/`), the content (`content/`) or `xtask` builds
+  `elektrawatt` and `ew`, writes the action list and replays every brief of `tools/blind/tasks/` (the step
+  `briefs`), and fails where something is missing. A check that passes writes down the tree it passed on, in the git
+  folder that every worktree shares; `check` on the same tree with a scope it covers says so and runs nothing, so a
+  gate does not run again what a lane ran.
 - **`gen`** rewrites every file that is generated from code or data. Run it after you change a command, a check
   rule, a text key, a keymap, an icon or a library symbol, and commit what it changed with your change.
   `cargo xtask gen-maps` alone, in seconds, after you add, move or delete an action, a handler's file, a text key, a
   source file or a crate, or change a file's head comment: the maps under `docs/map/` follow, and `rules` fails
   until they do.
 - **`rules`** checks the order of the crates and the licence boundary, test-only features, raw reads of the model,
-  confidential tokens, and that the generated files xtask writes are current. It builds nothing.
+  confidential tokens, a word written into the window, a control the window greys without saying why, history in a
+  design document, the Dutch guide's tutorials translated, a source file over the size ceiling, and that the
+  generated files xtask writes are current. It builds nothing.
 - **`outline <path>...`** prints a Rust file's items (or each file's under a directory) with their line spans and
   first doc sentence; **`where <name>...`** a name's definitions with their spans, then its uses as line numbers by
   file. Before you open a file you do not know, outline it and read the span you need; before you grep for a name,
@@ -59,14 +69,11 @@ There is no continuous integration until 1.0. `check` is the check.
   repository). One file: `cargo mutants -p <crate> -f <path> --test-tool nextest -j 2 -o target/mutants -- --fail-fast`.
   The router's never-worse rule hides a wrong route as an unrouted wire, so a router test asks for the route too.
 - A test that is too slow for every change is `#[ignore = "deep run: …"]`: the oracle on every read, the long
-  fuzz. The deep run takes them all, at
-  the end of a milestone and before a release:
-
-  ```sh
-  cargo nextest run --workspace --all-features --run-ignored only
-  ```
-
+  fuzz. The deep run takes them all, at the end of a milestone and before a release: `cargo xtask check --deep`.
   The tests of the private corpus are among them and skip without `EW_PRIVATE_CORPUS`.
+- A test waits on an event, never on the wall clock: a job's end (`finish_jobs`, a job waker of the test), the page's
+  tiles (the window tests run on the frame clock, where a frame takes the tiles the frame before asked for), a file
+  time it set. In every test build the model's structural check runs after each changing command.
 
 ### One place for every item
 

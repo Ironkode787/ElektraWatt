@@ -16,6 +16,7 @@ mod anonymise;
 mod api_guard;
 mod blind;
 mod book_po;
+mod ceiling;
 mod check;
 mod code_map;
 mod crate_map;
@@ -240,6 +241,7 @@ const RULES: &[(&str, Rule)] = &[
     ("greyed", |root, _| greyed::check(root)),
     ("design-docs", |root, _| design_docs::check(root)),
     ("translations", |root, _| translations::check(root)),
+    ("size-ceiling", |_, ws| Ok(ceiling::check(&ws.files))),
 ];
 
 /// `rules`: every repository rule, then `gen --check`. Prints one line per rule and each violation.

@@ -337,14 +337,17 @@ full is [18](18-quality-security-release.md) §3.
 `cargo xtask check -p <crate>…` formats, lints, runs the tests of the named crates and then the repository rules.
 What a change needs beyond those tests is chosen by the paths it touches, not remembered: a change of the persona
 harness, the content or `xtask` builds the programs, writes the actions and replays every brief, and fails where
-something is missing; a change of a text file runs the translation status. `--deep` runs the tests marked for the
-deep run. The check writes down the tree it passed on, and a gate runs it again only for a tree that differs.
+something is missing; a change of a text file needs nothing more, as the translation status is a rule. `--deep` runs
+the tests marked for the deep run. The check writes down the tree it passed on, and a gate runs it again only for a
+tree that differs.
 
 The rules of `cargo xtask rules`, each with what it catches: the order of the crates and the licence boundary;
 test-only features and crates in a shipped program; raw reads of the model; the licence of every path;
-confidential tokens; a literal text in the window; a generated file that is stale; **a source file over the size
-ceiling**, with no list of exceptions; **an action that can be greyed without a reason in words**; history in a
-design document (§19).
+confidential tokens; a literal text with a letter in the window; a generated file that is stale; **a source file over
+the size ceiling** of 3,000 lines (a file a generator writes is not bound), with no list of exceptions but the one file
+whose split waits for an item of the owner's list; **a control the window greys without a reason in words** (an action
+of the registry cannot be greyed without one: its check returns its reason's key); history in a design document
+(§19); the Dutch guide's tutorials untranslated.
 
 No test asserts a time. There is no continuous integration until 1.0: `check` is the check.
 

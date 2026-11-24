@@ -1100,50 +1100,6 @@ mod tests {
         }
     }
 
-    /// The usability tasks (`tools/blind/tasks/brief-ut-*`), however many there are.
-    fn usability_tasks(root: &Path) -> Vec<String> {
-        let mut out: Vec<String> = std::fs::read_dir(root.join("tools/blind/tasks"))
-            .unwrap()
-            .flatten()
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.starts_with("brief-ut-"))
-            .collect();
-        out.sort();
-        out
-    }
-
-    /// UR-8 and §9.3 item 1: every committed usability task is runnable on the build, every hard item met by its
-    /// reference solution from its start project. Needs `elektrawatt` and `ew` built in `target/debug` and the action
-    /// list written (the workspace's `check` does both); without them the test says so and checks nothing.
-    #[test]
-    fn the_usability_tasks_replay_on_the_build() {
-        let root = crate::workspace_root();
-        let bin = root.join("target/debug");
-        let built = ["elektrawatt", "ew"]
-            .iter()
-            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file())
-            && root.join(ACTIONS).is_file();
-        if !built {
-            eprintln!(
-                "ur8: elektrawatt and ew are not built in target/debug, or {ACTIONS} is not written; the replay is not checked"
-            );
-            return;
-        }
-        let tmp = ew_testdir::Tmp::new("ur8-check");
-        for task in usability_tasks(&root) {
-            let c = check_brief_in(&root, &task, &bin, &tmp.0).unwrap();
-            assert!(c.runnable(), "{}", c.text(&task));
-            assert!(
-                c.items
-                    .iter()
-                    .filter(|(_, k, _)| k == "hard")
-                    .all(|(_, _, d)| d == "met"),
-                "{}",
-                c.text(&task)
-            );
-        }
-    }
-
     /// Two checks of one brief never share a scratch folder, in one process or under one parent.
     #[test]
     fn every_check_gets_its_own_scratch_folder() {
@@ -1153,40 +1109,4 @@ mod tests {
         assert_eq!(a.parent(), Some(parent));
     }
 
-    /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
-    /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves`, whose
-    /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot
-    /// (the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
-    /// The other is `brief-plc-io`.
-    /// Needs `elektrawatt` and `ew` built in `target/debug` and the action list written (the workspace's `check` does
-    /// both); without them the test says so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
-    /// run shares none of them.
-    #[test]
-    fn check_brief_replays_the_reference_solutions() {
-        let root = crate::workspace_root();
-        let bin = root.join("target/debug");
-        let built = ["elektrawatt", "ew"]
-            .iter()
-            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file())
-            && root.join(ACTIONS).is_file();
-        if !built {
-            eprintln!(
-                "bv9: elektrawatt and ew are not built in target/debug, or {ACTIONS} is not written; the replay is not checked"
-            );
-            return;
-        }
-        let tmp = ew_testdir::Tmp::new("bv9-check");
-        for brief in ["brief-valve-switch", "brief-relays-valves", "brief-plc-io"] {
-            let c = check_brief_in(&root, brief, &bin, &tmp.0).unwrap();
-            assert!(c.runnable(), "{}", c.text(brief));
-            assert!(
-                c.items
-                    .iter()
-                    .filter(|(_, k, _)| k == "hard")
-                    .all(|(_, _, d)| d == "met"),
-                "{}",
-                c.text(brief)
-            );
-        }
-    }
 }
