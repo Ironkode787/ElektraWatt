@@ -40,7 +40,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_dl::{EntityRef, Item, Link, Path};
-use ew_drafting::consts::TICKS_PER_STEP;
+use ew_drafting::consts::{CABLE_TEXT_GAP, CABLE_TICK, MARKER_GAP, MARKER_REACH, TICKS_PER_STEP};
 use ew_drafting::{
     Anchor, DraftPage, End, FixedText, Follow, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkAt,
     MarkId, Owner, Part, PartId, Piece, Pin, PinId, Places, Role, Settled, Side, Tick, Wire, WireClass,
@@ -53,8 +53,7 @@ use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
 
 use crate::forms::FrameGeometry;
 use crate::page::{
-    Builder, CABLE_KIND_STYLE, CABLE_TAG_STYLE, CABLE_TEXT_GAP, CABLE_TICK, ItemLink, MARKER_GAP,
-    MARKER_REACH, MARKER_STYLE, MarkerText, PageFinding, PageView, SlotTextBox, TextSpec, bottom_align,
+    Builder, CABLE_KIND_STYLE, CABLE_TAG_STYLE, ItemLink, MARKER_STYLE, MarkerText, PageFinding, PageView, SlotTextBox, TextSpec, bottom_align,
     cp_owners, crossing_of, drawing_area, layout_bounds, marker_point, page_rect, pin_texts, polyline_of,
     sorted_connections, sorted_reps, up_by, wire_stroke,
 };

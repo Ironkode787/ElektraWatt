@@ -139,6 +139,10 @@
 //!   style [`CABLE_TAG_STYLE`] (it was too small to read).
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
+//!
+//! [`MARKER_REACH`]: ew_drafting::consts::MARKER_REACH
+//! [`MARKER_GAP`]: ew_drafting::consts::MARKER_GAP
+//! [`CABLE_TICK`]: ew_drafting::consts::CABLE_TICK
 
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -204,23 +208,11 @@ pub const DEFAULT_SHEET: (Nm, Nm) = (Nm(297_000_000), Nm(210_000_000));
 /// The text style of wire-marker texts (doc 20 §17.5).
 pub const MARKER_STYLE: &str = "marker";
 
-/// How far a wire marker's line reaches past its outer wires (FT-1706).
-pub const MARKER_REACH: Nm = Nm(1_500_000);
-
-/// The gap between a wire marker's line and its text (FT-1706).
-pub const MARKER_GAP: Nm = Nm(1_000_000);
-
 /// The text style of a cable mark's tag: the device tag's.
 pub const CABLE_TAG_STYLE: &str = "tag.main";
 
 /// The text style of a cable mark's type line.
 pub const CABLE_KIND_STYLE: &str = "data.small";
-
-/// Half the run of a cable mark's slanted stroke on a core, along and across the line.
-pub const CABLE_TICK: Nm = Nm(1_000_000);
-
-/// The gap between a cable mark's stroke or line and the texts beside them.
-pub const CABLE_TEXT_GAP: Nm = Nm(500_000);
 
 /// Where a wire marker's text stands beyond its line (FT-1706).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

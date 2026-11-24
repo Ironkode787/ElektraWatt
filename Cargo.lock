@@ -1387,6 +1387,7 @@ dependencies = [
  "ew-checks",
  "ew-commands",
  "ew-derive",
+ "ew-drafting",
  "ew-format",
  "ew-hack",
  "ew-ids",

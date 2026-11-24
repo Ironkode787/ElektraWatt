@@ -35,6 +35,8 @@ ew-schema = { path = "../ew-schema" }
 ew-format = { path = "../ew-format" }
 # The shipped check schemes a project can name and the settings member that holds them (`project.checks.set`).
 ew-checks = { path = "../ew-checks" }
+# The drawing distances the commands place by, beside the drafting numbers they must agree with.
+ew-drafting = { path = "../ew-drafting" }
 ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
