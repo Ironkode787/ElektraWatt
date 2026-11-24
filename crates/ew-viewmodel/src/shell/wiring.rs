@@ -629,9 +629,7 @@ impl ShellModel {
         else {
             return Outcome::refused(key!("reason-drop-on-cp"));
         };
-        let Some(pr) = self.project.as_ref() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let pr = or_return!(crate::shell::gated(&self.project));
         // (where the channel binds, the device wired to that card pin, the attachment: device, tag, card, card tag,
         // position)
         type Attach = (ew_api::output::Uuid, String, ew_api::output::Uuid, String, u32);

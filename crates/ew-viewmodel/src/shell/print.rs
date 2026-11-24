@@ -386,9 +386,7 @@ impl ShellModel {
     /// `file.print {range?, sections?, pages?, paper?, fit?, mono?, wait?}` (Output ▸ Print…, Ctrl+P): opens the
     /// print pre-dialog with these options and starts its build.
     pub(crate) fn act_file_print(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let sections = ew_api::output::print::sections(&project.session.query())
             .into_iter()
             .map(|(number, title)| PrintSection {

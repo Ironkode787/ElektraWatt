@@ -34,9 +34,7 @@ impl ShellModel {
             Some(_) => Some(or_return!(self.record_param(p, "card"))),
             None => None,
         };
-        let Some(project) = self.project.as_ref() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         // A card dropped on a station's row: one that cannot go there says why.
         let station_tag = project.session.device_tag(station).unwrap_or_default();
         if !project
@@ -286,9 +284,7 @@ impl ShellModel {
             Ok(None) => None,
             Err(e) => return e,
         };
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let config = session.plc_config_projects().first().map(|(c, _)| *c);
         let out = self.open_station(StationTab {
             draft: Some(StationDraft {
@@ -998,9 +994,7 @@ impl ShellModel {
                 strings::text(key!("rack-choose-head")).to_owned(),
             );
         };
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let mut copies: Vec<Value> = Vec::new();
         for part in std::iter::once(&head).chain(&d.modules) {
             for doc in session.module_part_copies(*part) {

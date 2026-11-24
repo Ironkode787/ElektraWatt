@@ -691,9 +691,7 @@ impl ShellModel {
             (Ok(r), Ok(w)) => (r, w),
             (Err(e), _) | (_, Err(e)) => return e,
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
         };
@@ -746,9 +744,7 @@ impl ShellModel {
             (Ok(w), Ok(c)) => (w, c),
             (Err(e), _) | (_, Err(e)) => return e,
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(name) = dir.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["dir"]);
         };
@@ -791,9 +787,7 @@ impl ShellModel {
         if matches!(&self.dialog, Some(Dialog::ConfirmReplaceDxf { .. })) {
             self.dialog = None;
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let rev = project.session.world().rev.0;
         let epoch = project.epoch;
         let job = project.session.export_dxf_job(&ExportOptions::default());

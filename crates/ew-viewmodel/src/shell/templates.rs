@@ -834,9 +834,7 @@ impl ShellModel {
             );
         }
         let store = self.store_options();
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let written = project
             .session
             .save_as_basic(&dir, !pages, !pages, store)

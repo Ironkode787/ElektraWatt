@@ -683,9 +683,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-human-only"));
         }
         let confirm = or_return!(super::jobs::bool_param(p, "confirm", false));
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         if !confirm {
             let plan = match project.session.purge_preview() {
                 Ok(plan) => plan,

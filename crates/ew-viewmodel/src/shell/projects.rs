@@ -864,9 +864,7 @@ impl ShellModel {
             Err(why) => return failed(key!("error-import"), &[&name, &why]),
         };
         let accept = flag(p, "accept");
-        let Some(project) = self.project.as_ref() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let epoch = project.epoch;
         let lineages = match project.session.qet_lineages() {
             Ok(l) => l,
@@ -1601,9 +1599,7 @@ impl ShellModel {
             Ok(None) => return self.need_path("file.save_as", Prompt::NewFolder, "dir", p),
         };
         let store = self.store_options();
-        let Some(project) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         match project.session.create(&dir, store) {
             Ok(()) => {
                 let unstable = project.session.store().is_some_and(|s| s.writes_unstable());

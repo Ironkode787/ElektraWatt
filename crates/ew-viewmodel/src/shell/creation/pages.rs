@@ -249,9 +249,7 @@ impl ShellModel {
             }
         }
         let [number, title, first, last] = <[String; 4]>::try_from(v).expect("four fields");
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let q = project.session.query();
         let found = number.parse::<u16>().ok().and_then(|n| {
             q.sections()

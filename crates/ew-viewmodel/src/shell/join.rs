@@ -276,9 +276,7 @@ impl ShellModel {
         }) else {
             return Outcome::refused(key!("reason-join-not-auxiliary"));
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let candidates = project.session.join_candidates(fndef);
         let mut rows = vec![ChooserRow {
             name: strings::text(key!("chooser-new-device")).to_owned(),

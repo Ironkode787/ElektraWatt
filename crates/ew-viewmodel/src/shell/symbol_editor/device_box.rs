@@ -557,9 +557,7 @@ impl ShellModel {
     /// `part.box_details` (Part data… in the device box editor): the part editor on the box's draft, with its pins
     /// and box as they are now; its Save saves the part, and Pins and box… returns here.
     pub(crate) fn act_part_box_details(&mut self) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.take()) else {
             return Outcome::refused(key!("reason-no-device-box"));
         };
@@ -1168,9 +1166,7 @@ impl ShellModel {
             Ok(None) => return Outcome::refused(key!("reason-part-edit-target")),
             Err(e) => return e,
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let boxes: Vec<Value> = project
             .session
             .boxes_of_part(copy)

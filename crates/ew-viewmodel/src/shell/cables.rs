@@ -96,9 +96,7 @@ impl ShellModel {
     /// ID), with its cores, then the toast naming the new cable. A project with no cable part, here or in an installed
     /// library, is refused in words.
     pub(crate) fn act_cable_new(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let offers = project.session.layout_part_offers("cable");
         if offers.is_empty() {
             return Outcome::refused(key!("reason-no-cable-part"));
@@ -222,9 +220,7 @@ impl ShellModel {
         if wires.is_empty() {
             return Outcome::refused(key!("reason-cores-no-wires"));
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let cables = project.session.cables();
         if cables.is_empty() {
             return Outcome::refused(key!("reason-cores-no-cable"));
@@ -432,9 +428,7 @@ impl ShellModel {
         if wires.is_empty() {
             return Outcome::refused(key!("reason-cores-no-wires"));
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let form = project.session.cable_form(&wires);
         let proposed = match form.cable {
             Some(_) => Some(form.tag.clone()),

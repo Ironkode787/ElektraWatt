@@ -484,9 +484,7 @@ impl ShellModel {
 
     /// `text_styles.standard`: every style's height to what a new project has; typefaces and bold stay.
     pub(crate) fn act_text_styles_standard(&mut self) -> Outcome {
-        let Some(p) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let p = or_return!(crate::shell::gated(&self.project));
         let styles: Vec<EffectiveStyle> =
             ew_api::effective_text_styles(&p.session.query().project().settings)
                 .into_iter()

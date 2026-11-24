@@ -66,9 +66,7 @@ impl ShellModel {
         let Some(position) = p.get("position").and_then(Value::as_u64) else {
             return failed(key!("error-missing-param"), &["position"]);
         };
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let Some(part) = session.fluid_menu(module).valve_part else {
             return Outcome::refused(key!("reason-valve-no-part"));
         };
@@ -146,9 +144,7 @@ impl ShellModel {
     /// supply ports 1, 3 and 5 at its left end; a toast says so.
     pub(crate) fn act_fluid_draw_valves(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = or_return!(self.record_param(p, "terminal"));
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let tag = session.device_tag(terminal).unwrap_or_default();
         let params = draw_valves_params(session, terminal);
         let out = self.run_logged("valve_terminal.draw_valves".to_owned(), params);
@@ -508,9 +504,7 @@ impl ShellModel {
     pub(crate) fn act_fluid_set_medium(&mut self, p: &Map<String, Value>) -> Outcome {
         let line = or_return!(self.record_param(p, "line"));
         let medium = or_return!(self.record_param(p, "medium"));
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let Some((function, idx)) = session.line_end_cp(line) else {
             return Outcome::refused(key!("reason-line-no-port"));
         };

@@ -211,9 +211,7 @@ impl ShellModel {
                 None => return failed(key!("error-table-preset"), &[name]),
             },
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
         };

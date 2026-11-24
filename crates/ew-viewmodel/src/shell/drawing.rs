@@ -389,9 +389,7 @@ impl ShellModel {
                 return failed(key!("error-image-refused"), &[&name, &why]);
             }
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let held = project.session.asset(&reference.sha256).is_some();
         let asset = ImageAsset {
             hash: reference.sha256.to_string(),
@@ -434,9 +432,7 @@ impl ShellModel {
         let Ok(sha256) = text.parse::<ew_api::Sha256>() else {
             return failed(key!("error-bad-param"), &["asset"]);
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some((reference, _)) = project.session.asset(&sha256) else {
             return failed(key!("error-image-asset-missing"), &[text]);
         };

@@ -573,9 +573,7 @@ impl ShellModel {
     /// `ew git setup` writes them (D28).
     pub(crate) fn act_git_setup(&mut self, p: &Map<String, Value>) -> Outcome {
         let confirm = or_return!(bool_param(p, "confirm", false));
-        let Some(project) = self.project.as_ref() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let dir = project.dir.clone();
         let Ok(Some(root)) = ew_api::git::worktree_root(&ew_api::OsVfs, &dir) else {
             return Outcome::refused(key!("reason-not-in-git"));
@@ -668,9 +666,7 @@ impl ShellModel {
             }
         };
         let replace = or_return!(bool_param(p, "replace", false));
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         if super::jobs::inside(&project.dir, &path) {
             return Outcome::refused(key!("reason-export-into-project"));
         }

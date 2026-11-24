@@ -716,9 +716,7 @@ impl ShellModel {
         let Some(fix) = finding.fix.clone() else {
             return Outcome::refused(key!("reason-no-fix"));
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let rule = finding.rule.to_owned();
         let targets = finding.targets.len();
         let params = fix_params(&project.session, &fix);
@@ -830,9 +828,7 @@ impl ShellModel {
             .unwrap_or_default();
         let migration = self.messages_shows_migration();
         let submit = Submit::from(self.origin());
-        let Some(project) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let report = if migration {
             project
                 .session

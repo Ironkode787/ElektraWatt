@@ -901,6 +901,22 @@ fn dir_name(dir: &Path) -> String {
         .map_or_else(|| "project".to_owned(), |n| n.to_string_lossy().into_owned())
 }
 
+/// The open project of a handler whose every action the gate lets run only with a project open (each of their
+/// enable checks begins with `actions::enabled::project_open`, as `writable` does): no path reaches it without one,
+/// and the refusal it would give is the gate's.
+fn gated(project: &Option<Project>) -> Result<&Project, Outcome> {
+    project
+        .as_ref()
+        .ok_or(Outcome::refused(key!("reason-no-project")))
+}
+
+/// [`gated`] for a handler that changes the project.
+fn gated_mut(project: &mut Option<Project>) -> Result<&mut Project, Outcome> {
+    project
+        .as_mut()
+        .ok_or(Outcome::refused(key!("reason-no-project")))
+}
+
 fn failed(key: Key<'_>, args: &[&str]) -> Outcome {
     Outcome::Failed {
         message: strings::format(key, args),

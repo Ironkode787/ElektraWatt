@@ -277,9 +277,7 @@ impl ShellModel {
     /// popup that Escape closes.
     pub(crate) fn act_history_changes(&mut self, p: &Map<String, Value>) -> Outcome {
         let index = or_return!(self.history_entry(p));
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let records = project.session.history_entities(index);
         self.history.changes = Some((index, records));
         Outcome::Done

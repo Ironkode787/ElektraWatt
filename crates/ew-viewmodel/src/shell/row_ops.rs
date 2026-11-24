@@ -282,9 +282,7 @@ impl ShellModel {
             .map(|n| n.label.clone())
             .unwrap_or_default();
         let (la, lb) = (a.label.clone(), b.label.clone());
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let cmd = match project.session.swap_cores(*ca, *cb) {
             Ok(cmd) => cmd,
             Err(reason_key) => {

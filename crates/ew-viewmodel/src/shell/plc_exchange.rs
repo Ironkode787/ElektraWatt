@@ -52,9 +52,7 @@ impl ShellModel {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         let bytes = or_return!(read_exchange_file(&path, &file));
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let config = config.to_string();
         let cmd = match session.instrument_list(Some(&config), &bytes) {
             Ok(cmd) => cmd,
@@ -325,9 +323,7 @@ impl ShellModel {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         let complete = p.get("complete").and_then(Value::as_bool).unwrap_or(false);
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let options = ew_api::plc_exchange::PlcOptions {
             complete,
             ..Default::default()

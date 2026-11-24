@@ -1182,9 +1182,7 @@ impl ShellModel {
         let Some((device, tag)) = device else {
             return Outcome::refused(key!("reason-row-no-link"));
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         // The device's row of the Devices navigator (a terminal's of the Strips navigator) knows its main page and
         // its drawings there (main function first, then page order).
         let open = [ew_api::output::NavKind::Devices, ew_api::output::NavKind::Strips]

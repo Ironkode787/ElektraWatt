@@ -1256,9 +1256,7 @@ impl ShellModel {
             };
         };
         let page = self.focused_page_id();
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let locations = project.session.layout_locations();
         let named = |text: &str| {
             locations
@@ -1307,9 +1305,7 @@ impl ShellModel {
                 return self.draw_enclosure(ACTION, new_page, &tag, &code, surface);
             }
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let offer = project
             .session
             .layout_part_offers("enclosure")
@@ -2019,9 +2015,7 @@ impl ShellModel {
         let Some(panel) = self.panel_tables() else {
             return Outcome::refused(key!("reason-no-panel-page"));
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let candidates = project.session.unlocated_drawn_devices();
         let locations = project.session.layout_locations();
         let location = match string_param(p, "location") {
