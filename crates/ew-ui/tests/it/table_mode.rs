@@ -16,15 +16,11 @@ use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
-use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
+use support::{Tmp, done, settle};
 
 /// The window on a writable copy of the sample.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h: Harness<'static, App> = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    h
+    support::on_sample_first_page(tmp)
 }
 
 /// The Terminal strips navigator in table mode, filtered to the strip -X1021, sorted by Terminal, with the focus.

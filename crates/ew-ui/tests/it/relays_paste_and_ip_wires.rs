@@ -46,12 +46,7 @@ pub(crate) fn starting_with(d: &Driver, prefix: &str) -> (i64, i64) {
 
 /// A driver over a new project from the built-in template, on its first page.
 pub(crate) fn new_project(tmp: &Tmp) -> Driver {
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
-    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
-    d.settle();
-    d
+    crate::support::driver_on_new_project(tmp, tmp.config())
 }
 
 /// The tags of the Devices navigator's device rows (its labels start with the tag).

@@ -20,12 +20,7 @@ use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    support::on_sample_first_page(tmp)
 }
 
 /// A drag with the primary button from `from` to `to` in steps, one frame each.

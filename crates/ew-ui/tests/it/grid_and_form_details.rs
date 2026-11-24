@@ -54,13 +54,7 @@ fn the_columns_button_keeps_space_4_from_the_pane_edge() {
 
 /// The main window on a writable copy of the sample, folio 101 shown.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let shell = ShellModel::new(Mode::Gui, tmp.config());
-    let mut h: Harness<'static, App> = harness_with(shell, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1920.0, 1080.0));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    h
+    support::on_sample_first_page(tmp)
 }
 
 /// The value of field `name` of the open form dialog.

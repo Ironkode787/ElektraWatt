@@ -14,7 +14,7 @@ use ew_ui::app::App;
 use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::shell::Outcome;
 use serde_json::json;
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use support::{Tmp, settle};
 
 /// The script's wheel steps: `(dx, dy)` in lines, as the driver's `scroll` takes them (positive: right, down).
 const STEPS: [(i64, i64); 4] = [(0, 3), (0, -3), (3, 0), (-3, 0)];
@@ -87,19 +87,7 @@ fn change(before: (f64, (i64, i64)), after: (f64, (i64, i64))) -> Change {
 }
 
 fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    let out = h
-        .state_mut()
-        .shell_mut()
-        .dispatch("page.goto", &json!({"folio": "101"}));
-    assert_eq!(out, Outcome::Done);
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    support::on_sample(tmp, "101")
 }
 
 fn view(h: &Harness<'_, App>) -> (f64, (i64, i64)) {

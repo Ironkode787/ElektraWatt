@@ -58,12 +58,7 @@ fn press_starting(d: &mut Driver, start: &str) {
 
 /// A driver on a new project from the built-in template, on its first page, with its accessibility tree.
 fn new_project(tmp: &Tmp) -> Driver {
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
-    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
-    d.settle();
-    d
+    crate::support::driver_on_new_project(tmp, tmp.config())
 }
 
 /// A driver with the symbol editor open on a new draft named "Drawn".

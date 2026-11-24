@@ -14,7 +14,7 @@ use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
 use ew_viewmodel::shell::Outcome;
 use serde_json::json;
-use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
+use support::{Tmp, dispatch, settle};
 
 /// The window on a writable copy of the sample, folio 103, the canvas focused, with `settings` and `keymap` written to
 /// the settings directory first.
@@ -25,14 +25,7 @@ fn on_sample(tmp: &Tmp, settings: &str, keymap: Option<&str>) -> Harness<'static
     if let Some(k) = keymap {
         std::fs::write(config.join("keymap.toml"), k).unwrap();
     }
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": "103" }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
+    let mut h = support::on_sample(tmp, "103");
     h.state_mut().shell_mut().set_dispatch_log(true);
     h
 }

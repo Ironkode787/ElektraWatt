@@ -21,12 +21,7 @@ fn click(at: (i64, i64)) -> Input {
 
 /// A driver over a new project from the built-in template, at 1920 × 1080.
 fn new_project(tmp: &Tmp) -> Driver {
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
-    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
-    d.settle();
-    d
+    crate::support::driver_on_new_project(tmp, tmp.config())
 }
 
 /// The action IDs the command search lists for `query`.

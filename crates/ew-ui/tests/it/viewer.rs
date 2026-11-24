@@ -15,15 +15,10 @@ use ew_ui::app::App;
 use ew_viewmodel::navigator::RowKind;
 use ew_viewmodel::shell::{Focus, Outcome};
 use serde_json::json;
-use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
+use support::{Tmp, dispatch, settle, wait_for_page};
 
 fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    support::on_sample_first_page(tmp)
 }
 
 fn folio(h: &Harness<'_, App>) -> String {

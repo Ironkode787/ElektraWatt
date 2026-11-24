@@ -45,13 +45,7 @@ fn dutch_at(h: &mut Harness<'_, App>, scale: f32) {
 
 /// The sample open on folio 101 in the window, in Dutch at `scale` (the setup of `place.rs`).
 fn on_sample(tmp: &Tmp, scale: f32) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": "101" }));
-    settle(&mut h);
-    wait_for_page(&mut h);
+    let mut h = support::on_sample(tmp, "101");
     dutch_at(&mut h, scale);
     h
 }

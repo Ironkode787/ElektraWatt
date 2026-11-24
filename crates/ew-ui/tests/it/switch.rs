@@ -13,22 +13,11 @@ use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::Outcome;
 use serde_json::json;
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use support::{Tmp, settle, wait_for_page};
 
 /// A harness with a copy of the sample open on folio 103, its canvas drawn.
 fn on_103(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    assert_eq!(
-        h.state_mut()
-            .shell_mut()
-            .dispatch("page.goto", &json!({"folio": "103"})),
-        Outcome::Done
-    );
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    support::on_sample(tmp, "103")
 }
 
 fn vulkan() -> AdapterSummary {

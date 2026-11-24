@@ -10,7 +10,6 @@ use crate::support;
 
 use egui::{Modifiers, PointerButton};
 use ew_ui::visual::{Driver, Input, parse_chord};
-use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::Tmp;
 
@@ -35,26 +34,12 @@ fn typed(text: &str) -> Input {
 
 /// A driver on a new project from the built-in template, with its accessibility tree.
 fn new_project(tmp: &Tmp) -> Driver {
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
-    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
-    d.settle();
-    d
+    crate::support::driver_on_new_project(tmp, tmp.config())
 }
 
 /// A driver over a copy of the sample on folio 101.
 fn sample_on_101(tmp: &Tmp) -> Driver {
-    let sample = tmp.sample("s.ew");
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let opened = d
-        .shell_mut()
-        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
-    assert_eq!(opened, Outcome::Done);
-    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
-    d.settle();
-    d
+    crate::support::driver_on_sample(tmp, "101")
 }
 
 /// Whether the left rail shows the panel of `word`.

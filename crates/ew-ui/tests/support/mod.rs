@@ -19,6 +19,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::clock::Clock;
+use ew_ui::visual::Driver;
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 
@@ -339,6 +340,47 @@ pub fn edit_toast(harness: &mut Harness<'_, App>) {
         "props.set",
         serde_json::json!({"row": "device/function_text", "value": "Spare"}),
     );
+}
+
+/// The window on a writable copy of the sample project on the page it opens on, settled, its image arrived, settled.
+pub fn on_sample_first_page(tmp: &Tmp) -> Harness<'static, App> {
+    let mut h = harness(tmp, Scripted::default(), Some(tmp.sample("s.ew")));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    h
+}
+
+/// A visual driver of the window with its settings in `tmp`'s `config` (`config`, the same or with more) and its
+/// accessibility tree on.
+pub fn driver(tmp: &Tmp, config: ShellConfig) -> Driver {
+    let mut d = Driver::in_folder(config, None, tmp.0.to_path_buf()).expect("the visual driver");
+    d.enable_accesskit();
+    d
+}
+
+/// A visual driver on a new project `p.ew` in `tmp` from the built-in template, settled.
+pub fn driver_on_new_project(tmp: &Tmp, config: ShellConfig) -> Driver {
+    let mut d = driver(tmp, config);
+    let project = serde_json::json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
+    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
+    d.settle();
+    d
+}
+
+/// A visual driver on a writable copy of the sample project with folio `folio` on show, settled.
+pub fn driver_on_sample(tmp: &Tmp, folio: &str) -> Driver {
+    let sample = tmp.sample("s.ew");
+    let mut d = driver(tmp, tmp.config());
+    let opened = d
+        .shell_mut()
+        .dispatch("file.open", &serde_json::json!({"dir": sample.to_string_lossy()}));
+    assert_eq!(opened, Outcome::Done);
+    let _ = d
+        .shell_mut()
+        .dispatch("page.goto", &serde_json::json!({ "folio": folio }));
+    d.settle();
+    d
 }
 
 /// The window on a writable copy of the sample project with folio `folio` on show and its image arrived.

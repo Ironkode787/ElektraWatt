@@ -13,7 +13,6 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::clock::Clock;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, edit_toast, harness, settle};
 
@@ -583,12 +582,7 @@ fn a_greyed_commands_toast_title_stands_whole() {
     const TITLE: &str = "A panel layout page takes no symbols or wires";
     let tmp = Tmp::new();
     let dir = tmp.sample("s.ew");
-    let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
-    let app = App::new(shell, Box::new(Scripted::default()), Some(dir), Clock::Wall);
-    let mut h = Harness::builder()
-        .with_size(egui::Vec2::new(1920.0, 1080.0))
-        .with_context_setup(ew_ui::app::setup)
-        .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
+    let mut h = support::harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     support::wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "902"}));

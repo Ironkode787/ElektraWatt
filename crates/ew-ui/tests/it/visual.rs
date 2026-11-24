@@ -102,15 +102,7 @@ fn key(chord: &str) -> Input {
 
 /// A driver over a copy of the sample on folio 101, settled, with its accessibility tree.
 fn sample_on_101(tmp: &Tmp) -> Driver {
-    let sample = tmp.sample("s.ew");
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let opened = d
-        .shell_mut()
-        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
-    assert_eq!(opened, ew_viewmodel::shell::Outcome::Done);
-    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
-    d.settle();
+    let mut d = crate::support::driver_on_sample(tmp, "101");
     let _ = actions(&mut d);
     d
 }

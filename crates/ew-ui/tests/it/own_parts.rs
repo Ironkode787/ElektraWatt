@@ -18,12 +18,7 @@ use serde_json::{Value, json};
 /// (My parts is made there).
 pub(crate) fn new_project(tmp: &Tmp) -> Driver {
     let tiers = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
-    let mut d = Driver::in_folder(tmp.config().with_libraries(Some(tiers)), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
-    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
-    d.settle();
-    d
+    crate::support::driver_on_new_project(tmp, tmp.config().with_libraries(Some(tiers)))
 }
 
 /// Clicks the last widget named `name` (a dialog is painted over the window, so its widgets come last: the dialog's

@@ -20,16 +20,7 @@ use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
 /// The main window on a copy of the sample at 1920 by 1080, folio 101 on show.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let shell = ShellModel::new(Mode::Gui, tmp.config());
-    let mut h = harness_with(shell, Scripted::default(), Some(dir));
-    h.set_size(Vec2::new(1920.0, 1080.0));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    support::on_sample(tmp, "101")
 }
 
 fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
