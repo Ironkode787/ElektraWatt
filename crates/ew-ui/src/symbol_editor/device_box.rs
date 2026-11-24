@@ -58,7 +58,7 @@ impl EditorView {
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
             if bar_command(
                 ui,
-                "symbol-start",
+                key!("symbol-start"),
                 "file-plus",
                 CommandSize::Large,
                 [false, true, false],
@@ -72,7 +72,7 @@ impl EditorView {
             divider(ui);
             bar_command(
                 ui,
-                "symbol-select",
+                key!("symbol-select"),
                 "pointer",
                 CommandSize::Large,
                 [true, true, false],
@@ -81,7 +81,7 @@ impl EditorView {
             );
             if bar_command(
                 ui,
-                "box-add-pin",
+                key!("box-add-pin"),
                 "plus",
                 CommandSize::Large,
                 [false, editable, false],
@@ -103,7 +103,7 @@ impl EditorView {
                     .unwrap_or_default();
                 if bar_command(
                     ui,
-                    "symbol-save",
+                    key!("symbol-save"),
                     "device-floppy",
                     CommandSize::Large,
                     [false, true, false],
@@ -118,7 +118,7 @@ impl EditorView {
                     ui.with_layout(Layout::top_down(Align::Max), |ui| {
                         if bar_command(
                             ui,
-                            "symbol-scratch",
+                            key!("symbol-scratch"),
                             "eye",
                             CommandSize::Small,
                             [false, true, false],
@@ -131,7 +131,7 @@ impl EditorView {
                         }
                         if bar_command(
                             ui,
-                            "box-part-data",
+                            key!("box-part-data"),
                             "package",
                             CommandSize::Small,
                             [false, true, false],

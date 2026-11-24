@@ -143,38 +143,38 @@ pub(crate) fn toolbar_height(t: &theme::Tokens) -> f32 {
 
 /// The drawing tools of the bar: the action's word, the caption's key and the icon. Each has `symbol-tip-<word>`,
 /// what it does and how.
-const TOOLS: [(&str, &str, &str); 13] = [
-    ("select", "symbol-select", "pointer"),
-    ("line", "symbol-line", "ew-shape-line"),
-    ("rectangle", "symbol-rectangle", "ew-shape-rectangle"),
-    ("circle", "symbol-circle", "ew-shape-circle"),
-    ("ellipse", "symbol-ellipse", "ew-shape-ellipse"),
-    ("arc", "symbol-arc", "ew-shape-arc"),
-    ("polyline", "symbol-polyline", "ew-shape-polyline"),
-    ("polygon", "symbol-polygon", "ew-shape-polygon"),
-    ("text", "symbol-text", "typography"),
-    ("cp", "symbol-cp", "plug-connected"),
-    ("slot", "symbol-slot", "text-size"),
-    ("anchor", "symbol-anchor", "current-location"),
-    ("link", "symbol-link", "link"),
+const TOOLS: [(&str, strings::Key<'static>, &str); 13] = [
+    ("select", key!("symbol-select"), "pointer"),
+    ("line", key!("symbol-line"), "ew-shape-line"),
+    ("rectangle", key!("symbol-rectangle"), "ew-shape-rectangle"),
+    ("circle", key!("symbol-circle"), "ew-shape-circle"),
+    ("ellipse", key!("symbol-ellipse"), "ew-shape-ellipse"),
+    ("arc", key!("symbol-arc"), "ew-shape-arc"),
+    ("polyline", key!("symbol-polyline"), "ew-shape-polyline"),
+    ("polygon", key!("symbol-polygon"), "ew-shape-polygon"),
+    ("text", key!("symbol-text"), "typography"),
+    ("cp", key!("symbol-cp"), "plug-connected"),
+    ("slot", key!("symbol-slot"), "text-size"),
+    ("anchor", key!("symbol-anchor"), "current-location"),
+    ("link", key!("symbol-link"), "link"),
 ];
 
 /// A command of the editor's bar, with the main bar's sizing, painting and accessible name; `how` is one line on
 /// what it does, under its name in the tooltip.
 fn bar_command(
     ui: &mut Ui,
-    key: &'static str,
+    key: strings::Key<'static>,
     icon: &'static str,
     size: CommandSize,
     [checked, enabled, menu]: [bool; 3],
     shortcut: String,
     how: Option<&str>,
 ) -> egui::Response {
-    let name = label(strings::Key::run_time(key));
+    let name = label(key);
     crate::command_bar::inline_command(
         ui,
         &CommandButton {
-            id: key,
+            id: key.as_str(),
             label: how.map_or_else(|| name.to_owned(), |how| format!("{name}\n{how}")),
             bar_label: name.to_owned(),
             icon,
@@ -307,7 +307,7 @@ impl EditorView {
                 // The ways in: another symbol, a copy, a device box, an import.
                 if bar_command(
                     ui,
-                    "symbol-start",
+                    key!("symbol-start"),
                     "file-plus",
                     CommandSize::Large,
                     [false, true, false],
@@ -329,7 +329,7 @@ impl EditorView {
                     let more = ["ellipse", "arc", "polyline", "polygon"];
                     let menu = bar_command(
                         ui,
-                        "symbol-more-shapes",
+                        key!("symbol-more-shapes"),
                         "category",
                         CommandSize::Small,
                         [more.contains(&editor.tool), true, true],
@@ -355,7 +355,7 @@ impl EditorView {
                     let more = ["anchor", "link"];
                     let menu = bar_command(
                         ui,
-                        "symbol-more-marks",
+                        key!("symbol-more-marks"),
                         "dots",
                         CommandSize::Small,
                         [more.contains(&editor.tool), true, true],
@@ -388,7 +388,7 @@ impl EditorView {
                     .unwrap_or_default();
                 if bar_command(
                     ui,
-                    "symbol-save",
+                    key!("symbol-save"),
                     "device-floppy",
                     CommandSize::Large,
                     [false, true, false],
@@ -403,7 +403,7 @@ impl EditorView {
                     ui.with_layout(Layout::top_down(Align::Max), |ui| {
                         if bar_command(
                             ui,
-                            "symbol-scratch",
+                            key!("symbol-scratch"),
                             "eye",
                             CommandSize::Small,
                             [false, shell.has_project(), false],
@@ -417,7 +417,7 @@ impl EditorView {
                         }
                         let menu = bar_command(
                             ui,
-                            "symbol-draft-menu",
+                            key!("symbol-draft-menu"),
                             "dots",
                             CommandSize::Small,
                             [false, true, true],
@@ -582,15 +582,15 @@ impl EditorView {
                             // A page on another connection grid offers a new page with the symbol's grid: the
                             // published symbol placed there, or a test copy.
                             let (text, offer) = if editor.published().is_some() {
-                                ("symbol-place-new-page", "symbol.new_page")
+                                (key!("symbol-place-new-page"), "symbol.new_page")
                             } else {
-                                ("symbol-scratch", "symbol.scratch")
+                                (key!("symbol-scratch"), "symbol.scratch")
                             };
                             if editor.offer_new_page
                                 && components::button(
                                     ui,
                                     Kind::Secondary,
-                                    label(strings::Key::run_time(text)),
+                                    label(text),
                                     shell.has_project(),
                                     0.0,
                                 )
@@ -745,35 +745,35 @@ impl EditorView {
                 components::card_frame(&t).show(ui, |ui| {
                     ui.set_max_width(canvas.width() - 2.0 * t.space_3);
                     ui.horizontal(|ui| {
-                        let field = |ui: &mut Ui, key: &str, value: &mut String, width: f32| {
-                            let caption = ui.label(label(strings::Key::run_time(key)));
+                        let field = |ui: &mut Ui, key: strings::Key<'_>, value: &mut String, width: f32| {
+                            let caption = ui.label(label(key));
                             ui.add(egui::TextEdit::singleline(value).desired_width(width))
                                 .labelled_by(caption.id);
                         };
                         match editor.tool {
                             "cp" => {
-                                field(ui, "symbol-designation", &mut self.designation, 3.0 * t.size_row);
+                                field(
+                                    ui,
+                                    key!("symbol-designation"),
+                                    &mut self.designation,
+                                    3.0 * t.size_row,
+                                );
                                 // The first follows the lead the point ends (a point always faced left).
                                 let words = [
-                                    "symbol-direction-lead",
-                                    "symbol-up",
-                                    "symbol-right",
-                                    "symbol-down",
-                                    "symbol-left",
+                                    key!("symbol-direction-lead"),
+                                    key!("symbol-up"),
+                                    key!("symbol-right"),
+                                    key!("symbol-down"),
+                                    key!("symbol-left"),
                                 ];
                                 let caption = ui.label(label(key!("symbol-direction")));
                                 crate::components::choice(
                                     ui,
-                                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(
-                                        strings::Key::run_time(words[self.direction.min(4)]),
-                                    )),
+                                    egui::ComboBox::from_id_salt("symbol-cp-direction")
+                                        .selected_text(label(words[self.direction.min(4)])),
                                     |ui| {
                                         for (i, k) in words.iter().enumerate() {
-                                            ui.selectable_value(
-                                                &mut self.direction,
-                                                i,
-                                                label(strings::Key::run_time(k)),
-                                            );
+                                            ui.selectable_value(&mut self.direction, i, label(*k));
                                         }
                                     },
                                 )
@@ -802,7 +802,7 @@ impl EditorView {
                                 .response
                                 .labelled_by(caption.id);
                             }
-                            "link" => field(ui, "symbol-name", &mut self.link_name, 5.0 * t.size_row),
+                            "link" => field(ui, key!("symbol-name"), &mut self.link_name, 5.0 * t.size_row),
                             _ => {}
                         }
                         ui.label(

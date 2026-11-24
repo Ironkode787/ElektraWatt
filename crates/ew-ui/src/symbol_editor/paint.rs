@@ -111,12 +111,12 @@ pub(super) fn paint(
 
 /// SM25#11: a slot previews as the words of its kind, not one placeholder for all.
 fn slot_placeholder(kind: &symbols::schema::SlotKind) -> String {
-    label(strings::Key::run_time(match kind {
-        symbols::schema::SlotKind::FunctionText => "symbol-function-text",
-        symbols::schema::SlotKind::TechData => "symbol-tech-data",
-        symbols::schema::SlotKind::Xref => "symbol-xref",
-        _ => "symbol-text",
-    }))
+    label(match kind {
+        symbols::schema::SlotKind::FunctionText => ew_viewmodel::key!("symbol-function-text"),
+        symbols::schema::SlotKind::TechData => ew_viewmodel::key!("symbol-tech-data"),
+        symbols::schema::SlotKind::Xref => ew_viewmodel::key!("symbol-xref"),
+        _ => ew_viewmodel::key!("symbol-text"),
+    })
     .to_owned()
 }
 
