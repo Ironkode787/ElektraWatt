@@ -94,7 +94,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
         let last = LAST_ENTRY_WORDS
             .iter()
             .find(|(entry, _)| last.eq_ignore_ascii_case(entry))
-            .map_or(*last, |(_, word)| *word);
+            .map_or(*last, |(_, word)| crate::text_english(word).unwrap_or(word));
         let mut chars = last.chars();
         let last: String = chars
             .next()
@@ -111,37 +111,82 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
 
 /// The display words of FnDef categories by their last two entries (FT-723), where the generic rule of [`kind_text`]
 /// reads poorly ("Generic decoration", "Point ip 1"): the entry before the last, the last entry, the words in sentence
-/// case, and whether the CP designations follow. Display text only: the FnDef keeps its category. English only for
-/// now: this table is what the shell's Fluent tables localise (FT-752).
+/// case as the key of the session's text, and whether the CP designations follow. Display text only: the FnDef keeps its
+/// category. The names print in English here; the window words them in its language by the same keys (FT-752).
 const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
-    ("Decoration", "Generic", "Decoration", false),
-    ("Overview", "Generic", "Overview", false),
-    ("BlackBox", "Generic", "Black box", false),
-    ("Ip", "Point", "Interruption point", true),
-    ("Arrow", "Point", "External reference", true),
-    ("ProtectiveEarth", "Point", "Earth connection", true),
-    ("FunctionalEarth", "Point", "Functional earth connection", true),
-    ("BusConnector", "Profibus", "PROFIBUS connector", true),
-    ("BusPort", "Profibus", "PROFIBUS port", true),
-    ("PlugPin", "Single", "Plug pin", true),
-    ("Strip", "Segment", "Terminal strip segment", false),
-    ("FeedThrough", "1Level", "Feed-through terminal", true),
-    ("PE", "1Level", "PE terminal", true),
-    ("MCB", "1P", "1P MCB", true),
-    ("MCB", "1P+N", "1P+N MCB", true),
-    ("ManualSwitch", "1P", "1P manual switch", true),
-    ("ManualSwitch", "2P", "2P manual switch", true),
-    ("PositionSwitch", "NO", "NO position switch", true),
-    ("SelectorSwitch", "NO", "NO selector switch", true),
-    ("EnclosureHeater", "1P", "Enclosure heater", true),
-    ("DoubleActing", "Cylinder", "Double-acting cylinder", true),
-    ("ProcessValve", "TwoWay", "Two-way process valve", true),
-    ("Valve52", "SolenoidSpring", "5/2 valve", true),
+    ("Decoration", "Generic", key!("kind-words-decoration"), false),
+    ("Overview", "Generic", key!("kind-words-overview"), false),
+    ("BlackBox", "Generic", key!("kind-words-black-box"), false),
+    ("Ip", "Point", key!("kind-words-interruption-point"), true),
+    ("Arrow", "Point", key!("kind-words-external-reference"), true),
+    (
+        "ProtectiveEarth",
+        "Point",
+        key!("kind-words-earth-connection"),
+        true,
+    ),
+    (
+        "FunctionalEarth",
+        "Point",
+        key!("kind-words-functional-earth-connection"),
+        true,
+    ),
+    (
+        "BusConnector",
+        "Profibus",
+        key!("kind-words-profibus-connector"),
+        true,
+    ),
+    ("BusPort", "Profibus", key!("kind-words-profibus-port"), true),
+    ("PlugPin", "Single", key!("kind-words-plug-pin"), true),
+    (
+        "Strip",
+        "Segment",
+        key!("kind-words-terminal-strip-segment"),
+        false,
+    ),
+    (
+        "FeedThrough",
+        "1Level",
+        key!("kind-words-feed-through-terminal"),
+        true,
+    ),
+    ("PE", "1Level", key!("kind-words-pe-terminal"), true),
+    ("MCB", "1P", key!("kind-words-1p-mcb"), true),
+    ("MCB", "1P+N", key!("kind-words-1p-n-mcb"), true),
+    ("ManualSwitch", "1P", key!("kind-words-1p-manual-switch"), true),
+    ("ManualSwitch", "2P", key!("kind-words-2p-manual-switch"), true),
+    (
+        "PositionSwitch",
+        "NO",
+        key!("kind-words-no-position-switch"),
+        true,
+    ),
+    (
+        "SelectorSwitch",
+        "NO",
+        key!("kind-words-no-selector-switch"),
+        true,
+    ),
+    ("EnclosureHeater", "1P", key!("kind-words-enclosure-heater"), true),
+    (
+        "DoubleActing",
+        "Cylinder",
+        key!("kind-words-double-acting-cylinder"),
+        true,
+    ),
+    (
+        "ProcessValve",
+        "TwoWay",
+        key!("kind-words-two-way-process-valve"),
+        true,
+    ),
+    ("Valve52", "SolenoidSpring", key!("kind-words-5-2-valve"), true),
 ];
 
 /// The word of a category's last entry where the generic rule of [`kind_text`] spells it out (`CO` reads
 /// "changeover"); in the same localisation as [`KIND_WORDS`].
-const LAST_ENTRY_WORDS: &[(&str, &str)] = &[("CO", "changeover")];
+const LAST_ENTRY_WORDS: &[(&str, &str)] = &[("CO", key!("kind-segment-changeover"))];
 
 /// The display words of a FnDef category by its last two entries ([`KIND_WORDS`]), with whether the CP designations
 /// follow; `None` for every other category, which keeps the generic rule.
@@ -149,7 +194,7 @@ fn kind_words(before: &str, last: &str) -> Option<(&'static str, bool)> {
     KIND_WORDS
         .iter()
         .find(|(b, l, _, _)| *b == before && *l == last)
-        .map(|(_, _, words, with_cps)| (*words, *with_cps))
+        .map(|(_, _, words, with_cps)| (crate::text_english(words).unwrap_or(words), *with_cps))
 }
 
 /// A function's kind in the navigators' own words, without its CP designations ("Interruption point"): the

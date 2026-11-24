@@ -370,3 +370,42 @@ error-cable-section-core = Ader { $p0 } heeft een eigen naam nodig (“{ $p1 }�
 error-cable-section-colour = Ader { $p0 }: “{ $p1 }” is geen kleurcode; typ er een zoals BK, BN of GNYE, of laat het leeg
 part-misfit-cores = { $p0 } aders, te weinig voor zijn { $p1 } draden
 part-misfit-pe = geen beschermingsleiding voor zijn PE-draad
+
+# The navigators' group rows (output::navigators): the bus navigator's nets and ports, the PLC navigator's modules without a station.
+nav-bus-logical = Logische netten
+nav-bus-physical = Fysieke netten
+nav-bus-no-net = Poorten zonder net
+nav-bus-undrawn = Poorten nog niet getekend
+nav-bus-segment = Segment { $p0 }
+nav-plc-no-cpu = Modules zonder station
+
+# A library's index in the Libraries navigator (output::navigators::libraries).
+lib-index-fresh = Index actueel
+lib-index-rebuilt = Index opnieuw opgebouwd
+lib-index-failed = Index mislukt: { $p0 }
+
+# The names of function kinds by their FnDef category (output::navigators::function_kind), and the spelt-out last entry of a changeover's category.
+kind-words-decoration = Decoratie
+kind-words-overview = Overzicht
+kind-words-black-box = Black box
+kind-words-interruption-point = Onderbrekingspunt
+kind-words-external-reference = Externe verwijzing
+kind-words-earth-connection = Aardverbinding
+kind-words-functional-earth-connection = Functionele aardverbinding
+kind-words-profibus-connector = PROFIBUS-connector
+kind-words-profibus-port = PROFIBUS-poort
+kind-words-plug-pin = Stekkerpen
+kind-words-terminal-strip-segment = Klemmenstrooksegment
+kind-words-feed-through-terminal = Doorgangsklem
+kind-words-pe-terminal = PE-klem
+kind-words-1p-mcb = 1P-installatieautomaat
+kind-words-1p-n-mcb = 1P+N-installatieautomaat
+kind-words-1p-manual-switch = 1P-handschakelaar
+kind-words-2p-manual-switch = 2P-handschakelaar
+kind-words-no-position-switch = NO-positieschakelaar
+kind-words-no-selector-switch = NO-keuzeschakelaar
+kind-words-enclosure-heater = Kastverwarming
+kind-words-double-acting-cylinder = Dubbelwerkende cilinder
+kind-words-two-way-process-valve = Tweewegprocesklep
+kind-words-5-2-valve = 5/2-ventiel
+kind-segment-changeover = wissel

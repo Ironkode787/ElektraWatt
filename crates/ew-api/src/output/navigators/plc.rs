@@ -184,7 +184,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                 None,
                 NavRole::Section,
                 "cards:none",
-                "Modules without a station".to_owned(),
+                text!("nav-plc-no-cpu").to_string(),
             );
             for (card, tag) in cards {
                 let drawables = device_drawables(q, &folios, card);

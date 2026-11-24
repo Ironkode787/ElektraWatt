@@ -146,7 +146,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "nets:logical",
-            "Logical nets".to_owned(),
+            text!("nav-bus-logical").to_string(),
         );
         for (_, id) in ranked_l {
             let Some(net) = lnets.get(id) else { continue };
@@ -198,7 +198,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "nets:physical",
-            "Physical nets".to_owned(),
+            text!("nav-bus-physical").to_string(),
         );
         for (_, id) in ranked_p {
             let Some(net) = pnets.get(id) else { continue };
@@ -219,7 +219,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                     Some(node),
                     NavRole::Segment,
                     &format!("segment:{}", i + 1),
-                    format!("Segment {}", i + 1),
+                    text!("nav-bus-segment", (i + 1).to_string()).to_string(),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -307,7 +307,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "ports:none",
-            "Ports without a net".to_owned(),
+            text!("nav-bus-no-net").to_string(),
         );
         for (_, f) in loose {
             port_row(b, g, f, Vec::new());
@@ -345,7 +345,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "ports:undrawn",
-            "Ports not drawn yet".to_owned(),
+            text!("nav-bus-undrawn").to_string(),
         );
         for (_, id, tag, label) in undrawn {
             let n = b.push(

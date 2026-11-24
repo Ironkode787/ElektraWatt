@@ -95,9 +95,6 @@ lib-tier-community = Community
 lib-tier-company = Company
 lib-tier-user = User
 lib-access-writable = Writable
-lib-index-fresh = Index up to date
-lib-index-rebuilt = Index rebuilt
-lib-index-failed = Index failed: { $p0 }
 lib-profile-unreadable = the address profile { $p0 } cannot be read: { $p1 }
 card-failed-rule = Rule { $p0 }
 

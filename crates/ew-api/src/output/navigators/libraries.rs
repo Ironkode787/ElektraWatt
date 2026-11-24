@@ -127,9 +127,9 @@ fn text(t: &MlText) -> String {
 /// The words of a library's index state.
 fn index_word(s: &IndexState) -> String {
     match s {
-        IndexState::Fresh => "Index up to date".to_owned(),
-        IndexState::Rebuilt => "Index rebuilt".to_owned(),
-        IndexState::Failed(m) => format!("Index failed: {m}"),
+        IndexState::Fresh => text!("lib-index-fresh").to_string(),
+        IndexState::Rebuilt => text!("lib-index-rebuilt").to_string(),
+        IndexState::Failed(m) => text!("lib-index-failed", m.as_str()).to_string(),
     }
 }
 

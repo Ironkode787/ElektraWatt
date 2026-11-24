@@ -381,3 +381,42 @@ error-cable-section-core = Core { $p0 } needs a name of its own (“{ $p1 }”),
 error-cable-section-colour = Core { $p0 }: “{ $p1 }” is no colour code; type one such as BK, BN or GNYE, or leave it empty
 part-misfit-cores = { $p0 } cores, too few for its { $p1 } wires
 part-misfit-pe = no protective conductor for its PE wire
+
+# The navigators' group rows (output::navigators): the bus navigator's nets and ports, the PLC navigator's modules without a station.
+nav-bus-logical = Logical nets
+nav-bus-physical = Physical nets
+nav-bus-no-net = Ports without a net
+nav-bus-undrawn = Ports not drawn yet
+nav-bus-segment = Segment { $p0 }
+nav-plc-no-cpu = Modules without a station
+
+# A library's index in the Libraries navigator (output::navigators::libraries).
+lib-index-fresh = Index up to date
+lib-index-rebuilt = Index rebuilt
+lib-index-failed = Index failed: { $p0 }
+
+# The names of function kinds by their FnDef category (output::navigators::function_kind), and the spelt-out last entry of a changeover's category.
+kind-words-decoration = Decoration
+kind-words-overview = Overview
+kind-words-black-box = Black box
+kind-words-interruption-point = Interruption point
+kind-words-external-reference = External reference
+kind-words-earth-connection = Earth connection
+kind-words-functional-earth-connection = Functional earth connection
+kind-words-profibus-connector = PROFIBUS connector
+kind-words-profibus-port = PROFIBUS port
+kind-words-plug-pin = Plug pin
+kind-words-terminal-strip-segment = Terminal strip segment
+kind-words-feed-through-terminal = Feed-through terminal
+kind-words-pe-terminal = PE terminal
+kind-words-1p-mcb = 1P MCB
+kind-words-1p-n-mcb = 1P+N MCB
+kind-words-1p-manual-switch = 1P manual switch
+kind-words-2p-manual-switch = 2P manual switch
+kind-words-no-position-switch = NO position switch
+kind-words-no-selector-switch = NO selector switch
+kind-words-enclosure-heater = Enclosure heater
+kind-words-double-acting-cylinder = Double-acting cylinder
+kind-words-two-way-process-valve = Two-way process valve
+kind-words-5-2-valve = 5/2 valve
+kind-segment-changeover = changeover
