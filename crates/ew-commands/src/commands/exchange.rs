@@ -20,7 +20,7 @@ use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
 use crate::commands::device::check_rep_type;
 use crate::error::CmdError;
-use crate::geometry::{follow_ends, rep_cps_checked, sub};
+use crate::geometry::{RepCp, follow_ends, rep_cps_checked, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::tx::TxBuilder;
@@ -157,90 +157,13 @@ impl Command for ExchangeSymbol {
             symbol.item.fndef.item.as_uuid(),
         );
         let symbol_cps: Vec<(u16, u16)> = symbol.item.cps.iter().map(|c| (c.idx, c.fn_cp)).collect();
-        let mut pin_map: Vec<PinMapEntry> = Vec::new();
-        match &self.pin_map {
-            Some(entries) => {
-                let mut seen = BTreeSet::new();
-                for (i, e) in entries.iter().enumerate() {
-                    if !symbol_cps.iter().any(|(s, _)| *s == e.symbol_cp) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/pin_map/{i}/symbol_cp"),
-                            text!("refusal-exchange-no-symbol-cp", e.symbol_cp.to_string()),
-                        ));
-                    }
-                    if !own_cps.iter().any(|(c, _)| *c == e.function_cp) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/pin_map/{i}/function_cp"),
-                            text!("refusal-exchange-no-function-cp", e.function_cp.to_string()),
-                        ));
-                    }
-                    if !seen.insert(e.symbol_cp) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/pin_map/{i}/symbol_cp"),
-                            text!("refusal-exchange-symbol-cp-twice"),
-                        ));
-                    }
-                    pin_map.push(PinMapEntry {
-                        symbol_cp: e.symbol_cp,
-                        function: function_id,
-                        idx: e.function_cp,
-                        extra: Extra::new(),
-                    });
-                }
-                // A symbol CP the map leaves out keeps its index default, which must name no CP of the function
-                // (the rule of the derived map).
-                for (symbol_cp, fn_cp) in &symbol_cps {
-                    if !seen.contains(symbol_cp) && own_cps.iter().any(|(c, _)| c == fn_cp) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            "/pin_map",
-                            text!(
-                                "refusal-exchange-cp-unmapped",
-                                symbol_cp.to_string(),
-                                fn_cp.to_string()
-                            ),
-                        ));
-                    }
-                }
-            }
+        let pin_map = match &self.pin_map {
+            Some(entries) => given_pin_map(entries, function_id, &own_cps, &symbol_cps)?,
             None => {
-                let new_cps: BTreeMap<u16, String> = tx
-                    .get::<LibCopy<FnDef>>(new_def)
-                    .map(|d| {
-                        d.item
-                            .cps
-                            .iter()
-                            .map(|c| (c.idx, c.designation.as_str().to_owned()))
-                            .collect()
-                    })
-                    .unwrap_or_default();
-                let own: Vec<(u16, &str)> = own_cps.iter().map(|(c, d)| (*c, d.as_str())).collect();
-                let symbol: Vec<(u16, u16, Option<&str>)> = symbol_cps
-                    .iter()
-                    .map(|(s, f)| (*s, *f, new_cps.get(f).map(String::as_str)))
-                    .collect();
-                match derive_pin_map(&own, new_def == function.def, &symbol) {
-                    Ok(entries) => {
-                        pin_map.extend(entries.into_iter().flatten().map(|(symbol_cp, idx)| PinMapEntry {
-                            symbol_cp,
-                            function: function_id,
-                            idx,
-                            extra: Extra::new(),
-                        }));
-                    }
-                    Err((symbol_cp, fn_cp)) => {
-                        return tx.reject(text!(
-                            "refusal-exchange-no-counterpart",
-                            symbol_cp.to_string(),
-                            fn_cp.to_string()
-                        ));
-                    }
-                }
+                let same_def = new_def == function.def;
+                derived_pin_map(tx, function_id, new_def, same_def, &own_cps, &symbol_cps)?
             }
-        }
+        };
         let mut next = (*old).clone();
         next.symbol = self.symbol;
         next.variant = 0;
@@ -257,74 +180,196 @@ impl Command for ExchangeSymbol {
         let (Ok(before), Ok(after)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &next)) else {
             return tx.reject(text!("refusal-exchange-out-of-range"));
         };
-        // Function CPs drawn before and not now: refused when connected on this page, else a notice.
-        let now: BTreeSet<(Id<Function>, u16)> = after.iter().map(|c| (c.function, c.idx)).collect();
-        for b in &before {
-            if now.contains(&(b.function, b.idx)) {
-                continue;
-            }
-            let connected = tx.connections_of_function(b.function).into_iter().any(|cid| {
-                tx.get::<Connection>(cid).is_some_and(|c| {
-                    c.page == Some(old.page)
-                        && [&c.a, &c.b]
-                            .into_iter()
-                            .any(|e| matches!(e, Endpoint::Cp(f, i) if *f == b.function && *i == b.idx))
-                })
-            });
-            if connected {
-                return tx.reject(text!("refusal-exchange-cp-connected", b.idx.to_string()));
-            }
-            notices.push(text!("notice-exchange-cp-not-drawn", b.idx.to_string()));
-        }
-        // Routes follow each CP's displacement.
-        let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
-        for a in &after {
-            let Some(b) = before.iter().find(|b| b.function == a.function && b.idx == a.idx) else {
-                continue;
-            };
-            let Ok(d) = sub(a.pos, b.pos) else {
-                return tx.reject(text!("refusal-exchange-too-far"));
-            };
-            if d != Pt2::ORIGIN {
-                moves.entry((a.function, a.idx)).or_insert(d);
-            }
-        }
-        let functions: BTreeSet<Id<Function>> = moves.keys().map(|(f, _)| *f).collect();
-        let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
-        for f in functions {
-            connections.extend(tx.connections_of_function(f));
-        }
-        for cid in connections {
-            let c = tx.require::<Connection>(cid)?;
-            if c.page != Some(old.page) {
-                continue;
-            }
-            let end = |e: &Endpoint| match e {
-                Endpoint::Cp(f, idx) => moves.get(&(*f, *idx)).copied(),
-                _ => None,
-            };
-            let (da, db) = (end(&c.a), end(&c.b));
-            if da.is_none() && db.is_none() {
-                continue;
-            }
-            let mut route = c.route.clone();
-            let followed = follow_ends(&mut route, page.grid, da, db);
-            if followed.is_err() {
-                return tx.reject(text!(
-                    "refusal-exchange-route-out-of-range",
-                    crate::words::wire(tx, cid)
-                ));
-            }
-            if route != c.route {
-                let mut changed = (*c).clone();
-                changed.route = route;
-                tx.put(changed);
-            }
-        }
+        check_lost_cps(tx, old.page, &before, &after, &mut notices)?;
+        follow_routes(tx, &page, &before, &after)?;
         tx.put(next);
         Ok(Outcome {
             notices,
             ..Outcome::primary((Kind::Representation, self.rep.cast()))
         })
     }
+}
+
+/// The pin map the parameters give: each entry names a CP of the new symbol and one of the function, a symbol CP
+/// once; a symbol CP the map leaves out keeps its index default, which must name no CP of the function.
+fn given_pin_map(
+    entries: &[ExchangePin],
+    function_id: Id<Function>,
+    own_cps: &[(u16, String)],
+    symbol_cps: &[(u16, u16)],
+) -> Result<Vec<PinMapEntry>, CmdError> {
+    let mut pin_map: Vec<PinMapEntry> = Vec::new();
+    let mut seen = BTreeSet::new();
+    for (i, e) in entries.iter().enumerate() {
+        if !symbol_cps.iter().any(|(s, _)| *s == e.symbol_cp) {
+            return Err(CmdError::invalid_params(
+                ExchangeSymbol::NAME,
+                format!("/pin_map/{i}/symbol_cp"),
+                text!("refusal-exchange-no-symbol-cp", e.symbol_cp.to_string()),
+            ));
+        }
+        if !own_cps.iter().any(|(c, _)| *c == e.function_cp) {
+            return Err(CmdError::invalid_params(
+                ExchangeSymbol::NAME,
+                format!("/pin_map/{i}/function_cp"),
+                text!("refusal-exchange-no-function-cp", e.function_cp.to_string()),
+            ));
+        }
+        if !seen.insert(e.symbol_cp) {
+            return Err(CmdError::invalid_params(
+                ExchangeSymbol::NAME,
+                format!("/pin_map/{i}/symbol_cp"),
+                text!("refusal-exchange-symbol-cp-twice"),
+            ));
+        }
+        pin_map.push(PinMapEntry {
+            symbol_cp: e.symbol_cp,
+            function: function_id,
+            idx: e.function_cp,
+            extra: Extra::new(),
+        });
+    }
+    // A symbol CP the map leaves out keeps its index default, which must name no CP of the function
+    // (the rule of the derived map).
+    for (symbol_cp, fn_cp) in symbol_cps {
+        if !seen.contains(symbol_cp) && own_cps.iter().any(|(c, _)| c == fn_cp) {
+            return Err(CmdError::invalid_params(
+                ExchangeSymbol::NAME,
+                "/pin_map",
+                text!(
+                    "refusal-exchange-cp-unmapped",
+                    symbol_cp.to_string(),
+                    fn_cp.to_string()
+                ),
+            ));
+        }
+    }
+    Ok(pin_map)
+}
+
+/// The pin map derived without one in the parameters ([`derive_pin_map`]: by index for the same FnDef, else by
+/// designation against the new FnDef `new_def`); refused when a symbol CP has no counterpart.
+fn derived_pin_map(
+    tx: &TxBuilder<'_>,
+    function_id: Id<Function>,
+    new_def: Id<FnDef>,
+    same_def: bool,
+    own_cps: &[(u16, String)],
+    symbol_cps: &[(u16, u16)],
+) -> Result<Vec<PinMapEntry>, CmdError> {
+    let new_cps: BTreeMap<u16, String> = tx
+        .get::<LibCopy<FnDef>>(new_def)
+        .map(|d| {
+            d.item
+                .cps
+                .iter()
+                .map(|c| (c.idx, c.designation.as_str().to_owned()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let own: Vec<(u16, &str)> = own_cps.iter().map(|(c, d)| (*c, d.as_str())).collect();
+    let symbol: Vec<(u16, u16, Option<&str>)> = symbol_cps
+        .iter()
+        .map(|(s, f)| (*s, *f, new_cps.get(f).map(String::as_str)))
+        .collect();
+    match derive_pin_map(&own, same_def, &symbol) {
+        Ok(entries) => Ok(entries
+            .into_iter()
+            .flatten()
+            .map(|(symbol_cp, idx)| PinMapEntry {
+                symbol_cp,
+                function: function_id,
+                idx,
+                extra: Extra::new(),
+            })
+            .collect()),
+        Err((symbol_cp, fn_cp)) => tx.reject(text!(
+            "refusal-exchange-no-counterpart",
+            symbol_cp.to_string(),
+            fn_cp.to_string()
+        )),
+    }
+}
+
+/// Function CPs drawn before and not now: refused when connected on this page, else a notice.
+fn check_lost_cps(
+    tx: &TxBuilder<'_>,
+    page: Id<Page>,
+    before: &[RepCp],
+    after: &[RepCp],
+    notices: &mut Vec<ew_l10n::Text>,
+) -> Result<(), CmdError> {
+    let now: BTreeSet<(Id<Function>, u16)> = after.iter().map(|c| (c.function, c.idx)).collect();
+    for b in before {
+        if now.contains(&(b.function, b.idx)) {
+            continue;
+        }
+        let connected = tx.connections_of_function(b.function).into_iter().any(|cid| {
+            tx.get::<Connection>(cid).is_some_and(|c| {
+                c.page == Some(page)
+                    && [&c.a, &c.b]
+                        .into_iter()
+                        .any(|e| matches!(e, Endpoint::Cp(f, i) if *f == b.function && *i == b.idx))
+            })
+        });
+        if connected {
+            return tx.reject(text!("refusal-exchange-cp-connected", b.idx.to_string()));
+        }
+        notices.push(text!("notice-exchange-cp-not-drawn", b.idx.to_string()));
+    }
+    Ok(())
+}
+
+/// Routes on the page follow each CP's displacement.
+fn follow_routes(
+    tx: &mut TxBuilder<'_>,
+    page: &Page,
+    before: &[RepCp],
+    after: &[RepCp],
+) -> Result<(), CmdError> {
+    let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
+    for a in after {
+        let Some(b) = before.iter().find(|b| b.function == a.function && b.idx == a.idx) else {
+            continue;
+        };
+        let Ok(d) = sub(a.pos, b.pos) else {
+            return tx.reject(text!("refusal-exchange-too-far"));
+        };
+        if d != Pt2::ORIGIN {
+            moves.entry((a.function, a.idx)).or_insert(d);
+        }
+    }
+    let functions: BTreeSet<Id<Function>> = moves.keys().map(|(f, _)| *f).collect();
+    let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
+    for f in functions {
+        connections.extend(tx.connections_of_function(f));
+    }
+    for cid in connections {
+        let c = tx.require::<Connection>(cid)?;
+        if c.page != Some(page.id) {
+            continue;
+        }
+        let end = |e: &Endpoint| match e {
+            Endpoint::Cp(f, idx) => moves.get(&(*f, *idx)).copied(),
+            _ => None,
+        };
+        let (da, db) = (end(&c.a), end(&c.b));
+        if da.is_none() && db.is_none() {
+            continue;
+        }
+        let mut route = c.route.clone();
+        let followed = follow_ends(&mut route, page.grid, da, db);
+        if followed.is_err() {
+            return tx.reject(text!(
+                "refusal-exchange-route-out-of-range",
+                crate::words::wire(tx, cid)
+            ));
+        }
+        if route != c.route {
+            let mut changed = (*c).clone();
+            changed.route = route;
+            tx.put(changed);
+        }
+    }
+    Ok(())
 }
