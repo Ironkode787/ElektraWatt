@@ -434,9 +434,7 @@ pub fn lower_table(
     if view.columns.is_empty() {
         return out;
     }
-    let style = styles
-        .resolve(DEFAULT_STYLE_KEY)
-        .unwrap_or(TextStyle::regular(Nm(3_175_000)));
+    let style = styles.resolve_or_default(DEFAULT_STYLE_KEY);
     let (left, right, top) = (area.left, area.right, area.header_top());
 
     let edges: Vec<Nm> = widened(

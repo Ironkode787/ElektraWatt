@@ -88,4 +88,6 @@ pub use fonts::{
 #[cfg(feature = "bundled-fonts")]
 pub use fonts::{bundled, bundled_sources, typeface_file, typeface_set};
 pub use shape::{FaceSpan, LineSpan, Shaped, TextStyle, VerticalMetrics, units_to_nm};
-pub use style::{DEFAULT_STYLE_KEY, StyleDef, StyleRow, TextStyleTable, builtin, builtin_rows};
+pub use style::{
+    DEFAULT_STYLE_KEY, FALLBACK_STYLE, StyleDef, StyleRow, TextStyleTable, builtin, builtin_rows,
+};

@@ -1825,18 +1825,13 @@ impl Builder<'_> {
                 entity: entity.0,
                 key: key.to_owned(),
             });
-            self.styles
-                .resolve(DEFAULT_STYLE_KEY)
-                .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+            self.styles.resolve_or_default(DEFAULT_STYLE_KEY)
         })
     }
 
     /// [`style`](Builder::style) without the report: the style of `key`, else the default style.
     pub(crate) fn style_quiet(&self, key: &str) -> TextStyle {
-        self.styles
-            .resolve(key)
-            .or_else(|| self.styles.resolve(DEFAULT_STYLE_KEY))
-            .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+        self.styles.resolve_or_default(key)
     }
 
     /// Shapes `spec.text` and places it at `spec.at` with its alignment and angle, as form graphics do.

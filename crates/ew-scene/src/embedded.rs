@@ -54,7 +54,7 @@
 //! Only the rows given are drawn, so the table ends below its last row.
 
 use ew_dl::{Brush, Color, Item, Link, Path, Stroke};
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
+use ew_text::{DEFAULT_STYLE_KEY, FALLBACK_STYLE, FontSet, TextStyle, TextStyleTable};
 use ew_units::{MAX_SAFE_INTEGER, Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, SheetMap, lay_out, min_size};
@@ -244,9 +244,7 @@ pub fn boxed_box(
 
 /// The style of a boxed table's header and rows.
 fn text_style(styles: &TextStyleTable) -> TextStyle {
-    styles
-        .resolve(DEFAULT_STYLE_KEY)
-        .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+    styles.resolve_or_default(DEFAULT_STYLE_KEY)
 }
 
 /// How a lookup table stands in its box: its column edges and the rows it draws, each with its lines and its height.
@@ -460,7 +458,7 @@ fn lower_boxed(
     styles: &TextStyleTable,
 ) -> LoweredTable {
     let mut out = LoweredTable::default();
-    let style = |key: &str| styles.resolve(key).unwrap_or(TextStyle::regular(Nm(3_175_000)));
+    let style = |key: &str| styles.resolve(key).unwrap_or(FALLBACK_STYLE);
     let text_style = style(DEFAULT_STYLE_KEY);
     // Printed coordinates of the box.
     let r = sheet.apply_rect(boxed_box(rect, t, sheet, fonts, styles));
@@ -859,10 +857,7 @@ impl Painter<'_> {
         if s.is_empty() {
             return;
         }
-        let style = self
-            .styles
-            .resolve(style_key)
-            .unwrap_or(TextStyle::regular(Nm(3_175_000)));
+        let style = self.styles.resolve(style_key).unwrap_or(FALLBACK_STYLE);
         let rect = Rect::from_points(Pt2::new(x0, y0), Pt2::new(x1, y1));
         push_cell(&mut self.out, self.fonts, &style, self.sheet, rect, s, at, &[]);
     }

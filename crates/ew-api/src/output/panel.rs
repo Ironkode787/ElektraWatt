@@ -332,11 +332,7 @@ fn bracket_draws(q: &Q, surface: Id<MountingSurface>) -> Vec<BracketDraw> {
 
 /// The label style of the project's text-style table ([`LAYOUT_LABEL_STYLE`]).
 pub(crate) fn label_style(q: &Q) -> TextStyle {
-    let table = text_style_table(q);
-    table
-        .resolve(LAYOUT_LABEL_STYLE)
-        .or_else(|| table.resolve(ew_text::DEFAULT_STYLE_KEY))
-        .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+    text_style_table(q).resolve_or_default(LAYOUT_LABEL_STYLE)
 }
 
 /// The labels of a surface's placements on `page` (`layout_label`), each shaped by [`ShapedText`], with its item number

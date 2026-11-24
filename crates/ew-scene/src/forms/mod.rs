@@ -233,9 +233,7 @@ impl Lowerer<'_> {
                 site,
                 key: key.to_owned(),
             });
-            self.styles
-                .resolve(DEFAULT_STYLE_KEY)
-                .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+            self.styles.resolve_or_default(DEFAULT_STYLE_KEY)
         })
     }
 

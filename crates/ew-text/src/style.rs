@@ -21,6 +21,10 @@ use crate::{Family, TextStyle, Weight};
 /// The style key used when a key is unknown or absent (`text.normal`, doc 20 §17.5).
 pub const DEFAULT_STYLE_KEY: &str = "text.normal";
 
+/// The style a text prints in when its table holds neither its key nor [`DEFAULT_STYLE_KEY`]: regular, 3.175 mm (the
+/// built-in `text.normal`).
+pub const FALLBACK_STYLE: TextStyle = TextStyle::regular(Nm(3_175_000));
+
 /// One row of the built-in table ([`builtin_rows`]), in QET pixels.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct StyleDef {
@@ -232,6 +236,13 @@ impl TextStyleTable {
     /// The text style of `key`.
     pub fn resolve(&self, key: &str) -> Option<TextStyle> {
         self.get(key).map(StyleRow::text_style)
+    }
+
+    /// The text style of `key`, else that of [`DEFAULT_STYLE_KEY`], else [`FALLBACK_STYLE`].
+    pub fn resolve_or_default(&self, key: &str) -> TextStyle {
+        self.resolve(key)
+            .or_else(|| self.resolve(DEFAULT_STYLE_KEY))
+            .unwrap_or(FALLBACK_STYLE)
     }
 }
 
