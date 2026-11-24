@@ -491,7 +491,7 @@ impl ShellModel {
                 .then(|| self.project.as_ref().map(|p| p.epoch))
                 .flatten()
                 .map(|epoch| {
-                    (
+                    crate::notifications::Offer::new(
                         crate::notifications::NoteAction::ShowMessages,
                         crate::notifications::Validity::Session {
                             epoch,
@@ -499,8 +499,11 @@ impl ShellModel {
                         },
                     )
                 });
-            self.notes
-                .push_toned(check_summary(c, before), "edit", action, Some(check_tone(c)));
+            self.notes.push(
+                crate::notifications::Note::new("edit", check_summary(c, before))
+                    .offering([action])
+                    .toned(check_tone(c)),
+            );
             self.messages.check_toast = self
                 .messages
                 .checked

@@ -786,7 +786,7 @@ impl ShellModel {
         });
         // A legend beside devices that show their tags offers their numbers.
         if out == Outcome::Done && !self.panel_view_shows_numbers() {
-            self.notify_item_numbers(strings::text(key!("toast-legend-tags")).to_owned());
+            self.notify_offer(strings::text(key!("toast-legend-tags")).to_owned(), crate::notifications::NoteAction::ItemNumbers, Vec::new());
         }
         out
     }

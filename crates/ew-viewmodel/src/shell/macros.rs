@@ -1263,11 +1263,10 @@ impl ShellModel {
         };
         self.macros.variables.clear();
         self.libraries_changed();
-        self.notes.push(
-            strings::format(key!("note-macro-saved"), &[&name, &saved.version, &target_name]),
+        self.notes.push(crate::notifications::Note::new(
             "library",
-            None,
-        );
+            strings::format(key!("note-macro-saved"), &[&name, &saved.version, &target_name]),
+        ));
         self.save_done(Outcome::Done)
     }
 }

@@ -366,7 +366,7 @@ impl ShellModel {
             .filter(|_| here.as_ref().is_none_or(|h| !pages.contains(h)))
             .and_then(|f| PageRow::by_folio(self.page_rows(), f).map(|r| r.id));
         match elsewhere {
-            Some(page) => self.notify_go_to(text, page),
+            Some(page) => self.notify_offer(text, crate::notifications::NoteAction::GoTo, vec![page]),
             None => self.notify_with(text, "edit", false),
         }
     }

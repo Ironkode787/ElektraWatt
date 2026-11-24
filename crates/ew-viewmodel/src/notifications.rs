@@ -24,151 +24,94 @@ pub const MAX_VISIBLE: usize = 3;
 /// The most entries the log keeps.
 pub const MAX_LOG: usize = 100;
 
-/// The action a notification offers.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum NoteAction {
+/// Declares [`NoteAction`] from one line per action: its variant, its word (in the describe text and in
+/// `notifications.run`'s `action`) and the key of its button's label.
+macro_rules! note_actions {
+    ($($(#[$doc:meta])* $name:ident = $word:literal, $label:literal;)*) => {
+        /// The action a notification offers.
+        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+        pub enum NoteAction {
+            $($(#[$doc])* $name,)*
+        }
+
+        impl NoteAction {
+            /// Every action, in the order of their declaration.
+            pub const ALL: &[NoteAction] = &[$(NoteAction::$name),*];
+
+            /// The word in the describe text and in `notifications.run`'s `action`.
+            pub fn word(self) -> &'static str {
+                match self {
+                    $(NoteAction::$name => $word,)*
+                }
+            }
+
+            /// The key of the button's label in [`crate::strings`].
+            pub fn label_key(self) -> Key<'static> {
+                match self {
+                    $(NoteAction::$name => key!($label),)*
+                }
+            }
+        }
+    };
+}
+
+note_actions! {
     /// Undo the step the notification reports.
-    Undo,
+    Undo = "undo", "toast-undo";
     /// Open the file the job wrote (Open PDF).
-    Open,
+    Open = "open", "toast-open";
     // The actions of the one-time tips.
     /// Tip 1's Convert to connection: undo the line the tip reports and arm the Wire tool.
-    Convert,
+    Convert = "convert", "toast-convert";
     /// Tip 2's Renumber devices….
-    Renumber,
+    Renumber = "renumber", "action-devices-renumber";
     /// Tip 3's Show report block: the block selected, in Properties.
-    ShowBlock,
+    ShowBlock = "show_block", "toast-show-block";
     /// Open the history at the step the notification reports, with its changes (an external change's Show changes).
-    ShowChanges,
+    ShowChanges = "show_changes", "toast-show-changes";
     /// Back to the symbol editor and its kept draft, after a test placement.
-    BackToEditor,
+    BackToEditor = "edit", "toast-back-to-editor";
     /// The rack dialog of the station a placed module joined.
-    Rack,
+    Rack = "rack", "action-plc-rack-editor";
     /// New station…, for a module placed while the project has no station.
-    NewStation,
+    NewStation = "new_station", "action-plc-new-station";
     /// Show the folder a practice project was made in, in the system's file manager.
-    ShowFolder,
+    ShowFolder = "show_folder", "toast-show-folder";
     /// Swap two valves' positions on their valve terminal, after a typed position another valve holds.
-    Swap,
+    Swap = "swap", "action-fluid-swap";
     /// The layout page's devices labelled with item numbers, after a legend was added beside their tags.
-    ItemNumbers,
+    ItemNumbers = "item_numbers", "layout-show-item-numbers";
     /// Select the devices the parts list leaves out because they have no part, for Choose part….
-    SelectUnlisted,
+    SelectUnlisted = "select_unlisted", "note-action-select-unlisted";
     /// Type not known yet… for the devices the parts list leaves out, so they are listed by a description.
-    ListUnlisted,
+    ListUnlisted = "list_unlisted", "action-part-placeholder";
     /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it.
-    Connect,
+    Connect = "connect", "note-action-connect";
     /// Redraw the boxes of a part whose device box was changed: each as the part lays it out now.
-    RedrawBoxes,
+    RedrawBoxes = "redraw_boxes", "box-redraw";
     /// The Cable form of a bus line just drawn (no cable was asked for).
-    ChooseCable,
+    ChooseCable = "choose_cable", "note-action-choose-cable";
     /// Go to the page an Undo or a Redo changed, when it is not the page on show.
-    GoTo,
+    GoTo = "go_to", "note-action-go-to-page";
     /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's.
-    RouteHis,
+    RouteHis = "route_his", "note-action-route-his";
     /// The Messages list, after a check that found something (FT-1761: the check's toast had no way to it).
-    ShowMessages,
+    ShowMessages = "show_messages", "note-action-show-messages";
     /// The mouse wheel scrolls the page (View ▸ Mouse wheel scrolls on), after its first zoom (FT-1830).
-    WheelScrolls,
+    WheelScrolls = "wheel_scrolls", "note-action-wheel-scrolls";
     /// Fit the layout to the sheet, after a scale at which the layout runs over the frame's drawing area.
-    FitSheet,
+    FitSheet = "fit_sheet", "action-layout-fit-sheet";
     /// Remove from the project the terminals a delete left drawn nowhere (beside the delete's Undo).
-    RemoveUndrawn,
+    RemoveUndrawn = "remove_undrawn", "note-action-remove-undrawn";
     /// Keep the tags a paste changed (a moved strip's tag follows the page): each frozen as it read before (beside the
     /// paste's Undo).
-    KeepTag,
+    KeepTag = "keep_tag", "note-action-keep-tags";
 }
 
 impl NoteAction {
-    /// The word in the describe text and in `notifications.run`'s `action`.
-    pub fn word(self) -> &'static str {
-        match self {
-            NoteAction::Undo => "undo",
-            NoteAction::Open => "open",
-            NoteAction::Convert => "convert",
-            NoteAction::Renumber => "renumber",
-            NoteAction::ShowBlock => "show_block",
-            NoteAction::ShowChanges => "show_changes",
-            NoteAction::BackToEditor => "edit",
-            NoteAction::Rack => "rack",
-            NoteAction::NewStation => "new_station",
-            NoteAction::ShowFolder => "show_folder",
-            NoteAction::Swap => "swap",
-            NoteAction::ItemNumbers => "item_numbers",
-            NoteAction::SelectUnlisted => "select_unlisted",
-            NoteAction::ListUnlisted => "list_unlisted",
-            NoteAction::Connect => "connect",
-            NoteAction::RedrawBoxes => "redraw_boxes",
-            NoteAction::ChooseCable => "choose_cable",
-            NoteAction::GoTo => "go_to",
-            NoteAction::RouteHis => "route_his",
-            NoteAction::ShowMessages => "show_messages",
-            NoteAction::WheelScrolls => "wheel_scrolls",
-            NoteAction::FitSheet => "fit_sheet",
-            NoteAction::RemoveUndrawn => "remove_undrawn",
-            NoteAction::KeepTag => "keep_tag",
-        }
-    }
-
     /// The action of a word.
     pub fn from_word(word: &str) -> Option<NoteAction> {
-        match word {
-            "undo" => Some(NoteAction::Undo),
-            "open" => Some(NoteAction::Open),
-            "convert" => Some(NoteAction::Convert),
-            "renumber" => Some(NoteAction::Renumber),
-            "show_block" => Some(NoteAction::ShowBlock),
-            "show_changes" => Some(NoteAction::ShowChanges),
-            "edit" => Some(NoteAction::BackToEditor),
-            "rack" => Some(NoteAction::Rack),
-            "new_station" => Some(NoteAction::NewStation),
-            "show_folder" => Some(NoteAction::ShowFolder),
-            "swap" => Some(NoteAction::Swap),
-            "item_numbers" => Some(NoteAction::ItemNumbers),
-            "select_unlisted" => Some(NoteAction::SelectUnlisted),
-            "list_unlisted" => Some(NoteAction::ListUnlisted),
-            "connect" => Some(NoteAction::Connect),
-            "redraw_boxes" => Some(NoteAction::RedrawBoxes),
-            "choose_cable" => Some(NoteAction::ChooseCable),
-            "go_to" => Some(NoteAction::GoTo),
-            "route_his" => Some(NoteAction::RouteHis),
-            "show_messages" => Some(NoteAction::ShowMessages),
-            "wheel_scrolls" => Some(NoteAction::WheelScrolls),
-            "fit_sheet" => Some(NoteAction::FitSheet),
-            "remove_undrawn" => Some(NoteAction::RemoveUndrawn),
-            "keep_tag" => Some(NoteAction::KeepTag),
-            _ => None,
-        }
-    }
-
-    /// The key of the button's label in [`crate::strings`].
-    pub fn label_key(self) -> Key<'static> {
-        match self {
-            NoteAction::Undo => key!("toast-undo"),
-            NoteAction::Open => key!("toast-open"),
-            NoteAction::Convert => key!("toast-convert"),
-            NoteAction::Renumber => key!("action-devices-renumber"),
-            NoteAction::ShowBlock => key!("toast-show-block"),
-            NoteAction::ShowChanges => key!("toast-show-changes"),
-            NoteAction::BackToEditor => key!("toast-back-to-editor"),
-            NoteAction::Rack => key!("action-plc-rack-editor"),
-            NoteAction::NewStation => key!("action-plc-new-station"),
-            NoteAction::ShowFolder => key!("toast-show-folder"),
-            NoteAction::Swap => key!("action-fluid-swap"),
-            NoteAction::ItemNumbers => key!("layout-show-item-numbers"),
-            NoteAction::SelectUnlisted => key!("note-action-select-unlisted"),
-            NoteAction::ListUnlisted => key!("action-part-placeholder"),
-            NoteAction::Connect => key!("note-action-connect"),
-            NoteAction::RedrawBoxes => key!("box-redraw"),
-            NoteAction::ChooseCable => key!("note-action-choose-cable"),
-            NoteAction::GoTo => key!("note-action-go-to-page"),
-            NoteAction::RouteHis => key!("note-action-route-his"),
-            NoteAction::ShowMessages => key!("note-action-show-messages"),
-            NoteAction::WheelScrolls => key!("note-action-wheel-scrolls"),
-            NoteAction::FitSheet => key!("action-layout-fit-sheet"),
-            NoteAction::RemoveUndrawn => key!("note-action-remove-undrawn"),
-            NoteAction::KeepTag => key!("note-action-keep-tags"),
-        }
+        NoteAction::ALL.iter().copied().find(|a| a.word() == word)
     }
 }
 
@@ -224,18 +167,96 @@ pub(crate) enum Validity {
     SymbolDraft,
 }
 
+/// An action a notification offers: the action, what keeps it valid, and the parameters of the command it runs where
+/// the offer fixed them (Connect's wire, Keep's edits, Remove's terminals), spent by its first run.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct Offer {
+    /// The action.
+    pub(crate) action: NoteAction,
+    /// What keeps it valid.
+    pub(crate) validity: Validity,
+    /// The parameters it runs with; `None` for an action that reads what it acts on when it runs.
+    pub(crate) params: Option<serde_json::Value>,
+}
+
+impl Offer {
+    /// The action `action`, valid while `validity` holds, with no parameters of its own.
+    pub(crate) fn new(action: NoteAction, validity: Validity) -> Offer {
+        Offer {
+            action,
+            validity,
+            params: None,
+        }
+    }
+}
+
+/// A notification before it is shown: its sentences, which the log joins with a space in their order, its key, the
+/// actions it offers (at most two), the tone a result sets, and what its toast shows of it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct Note {
+    /// The sentences, in their order; each ends with its own full stop (doc 16a §8 item 5).
+    pub(crate) sentences: Vec<String>,
+    /// The key: a toast of a key that is visible replaces that one.
+    pub(crate) key: &'static str,
+    /// The actions it offers, in their order.
+    pub(crate) offers: Vec<Offer>,
+    /// The tone a result set (the check's worst severity); `None` for every other notification.
+    pub(crate) tone: Option<NoteTone>,
+    /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
+    pub(crate) keep: Option<String>,
+    /// What its toast shows where that is shorter than its text ([`Notification::shown`]).
+    pub(crate) brief: Option<String>,
+    /// Whether it stays on screen until it is dismissed, replaced or the next command commits ([`Notification::stays`]).
+    pub(crate) stays: bool,
+}
+
+impl Note {
+    /// The notification of key `key` that says `text`, with no action.
+    pub(crate) fn new(key: &'static str, text: String) -> Note {
+        Note::of(key, vec![text])
+    }
+
+    /// The notification of key `key` that says `sentences`, with no action.
+    pub(crate) fn of(key: &'static str, sentences: Vec<String>) -> Note {
+        Note {
+            sentences,
+            key,
+            offers: Vec::new(),
+            tone: None,
+            keep: None,
+            brief: None,
+            stays: false,
+        }
+    }
+
+    /// The same notification offering `offers` (none where an offer is `None`), in their order.
+    #[must_use]
+    pub(crate) fn offering(mut self, offers: impl IntoIterator<Item = Option<Offer>>) -> Note {
+        self.offers.extend(offers.into_iter().flatten());
+        self
+    }
+
+    /// The same notification in the tone `tone`.
+    #[must_use]
+    pub(crate) fn toned(mut self, tone: NoteTone) -> Note {
+        self.tone = Some(tone);
+        self
+    }
+}
+
 /// One notification: a toast while visible, an entry of the log always.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Notification {
     /// Counted from 1 per shell.
     pub serial: u64,
-    /// The text (no path, no time, no UUID).
+    /// The text (no path, no time, no UUID): its sentences joined with a space.
     pub text: String,
     /// The key: a toast of a key that is visible replaces that one (`edit`, `export`, `recovery`).
     pub key: &'static str,
-    pub(crate) action: Option<(NoteAction, Validity)>,
-    /// A second action (an external change's Show changes beside its Undo).
-    pub(crate) second: Option<(NoteAction, Validity)>,
+    /// The sentences its text joins.
+    pub(crate) sentences: Vec<String>,
+    /// The actions it offers, in their order.
+    pub(crate) offers: Vec<Offer>,
     /// The tone a result set (the check's worst severity); `None` for every other notification.
     pub(crate) tone: Option<NoteTone>,
     /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
@@ -264,26 +285,25 @@ impl Notification {
 
     /// The action it offers, valid or not.
     pub fn action(&self) -> Option<NoteAction> {
-        self.action.as_ref().map(|(a, _)| *a)
+        self.offers.first().map(|o| o.action)
     }
 
     /// Every action it offers, in their order (the first is [`Notification::action`]).
     pub fn actions(&self) -> Vec<NoteAction> {
-        self.action.iter().chain(&self.second).map(|(a, _)| *a).collect()
+        self.offers.iter().map(|o| o.action).collect()
     }
 
     /// The validity of its action `action`.
     pub(crate) fn validity(&self, action: NoteAction) -> Option<&Validity> {
-        self.action
+        self.offers
             .iter()
-            .chain(&self.second)
-            .find(|(a, _)| *a == action)
-            .map(|(_, v)| v)
+            .find(|o| o.action == action)
+            .map(|o| &o.validity)
     }
 
     /// The tone of its icon: the tone the result set, else success for a toast with an action, else info.
     pub fn tone(&self) -> NoteTone {
-        match (self.tone, &self.action) {
+        match (self.tone, self.offers.first()) {
             (Some(tone), _) => tone,
             (None, Some(_)) => NoteTone::Success,
             (None, None) => NoteTone::Info,
@@ -338,24 +358,8 @@ pub struct NotificationLog {
 }
 
 impl NotificationLog {
-    /// Adds a notification as the newest toast and log entry; returns its serial.
-    pub(crate) fn push(
-        &mut self,
-        text: String,
-        key: &'static str,
-        action: Option<(NoteAction, Validity)>,
-    ) -> u64 {
-        self.push_toned(text, key, action, None)
-    }
-
-    /// [`Self::push`] with the tone a result sets (the check's worst severity).
-    pub(crate) fn push_toned(
-        &mut self,
-        text: String,
-        key: &'static str,
-        action: Option<(NoteAction, Validity)>,
-        tone: Option<NoteTone>,
-    ) -> u64 {
+    /// Adds `note` as the newest toast and log entry; returns its serial.
+    pub(crate) fn push(&mut self, note: Note) -> u64 {
         self.serials += 1;
         let serial = self.serials;
         let entries = &self.entries;
@@ -363,7 +367,7 @@ impl NotificationLog {
             entries
                 .iter()
                 .find(|n| n.serial == *s)
-                .is_none_or(|n| n.key != key)
+                .is_none_or(|n| n.key != note.key)
         });
         self.visible.push(serial);
         if self.visible.len() > MAX_VISIBLE {
@@ -371,14 +375,14 @@ impl NotificationLog {
         }
         self.entries.push_back(Notification {
             serial,
-            text,
-            key,
-            action,
-            second: None,
-            tone,
-            keep: None,
-            brief: None,
-            stays: false,
+            text: note.sentences.join(" "),
+            key: note.key,
+            sentences: note.sentences,
+            offers: note.offers,
+            tone: note.tone,
+            keep: note.keep,
+            brief: note.brief,
+            stays: note.stays,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {
@@ -388,42 +392,18 @@ impl NotificationLog {
         serial
     }
 
-    /// Adds a notification with two actions (an external change's Undo and Show changes); returns its
-    /// serial.
-    pub(crate) fn push_two(
-        &mut self,
-        text: String,
-        key: &'static str,
-        first: Option<(NoteAction, Validity)>,
-        second: Option<(NoteAction, Validity)>,
-    ) -> u64 {
-        let serial = self.push(text, key, first);
-        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
-            n.second = second;
-        }
-        serial
-    }
-
-    /// Sets what the toast of notification `serial` shows in place of its text ([`Notification::brief`]).
-    pub(crate) fn set_brief(&mut self, serial: u64, brief: String) {
-        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
-            n.brief = Some(brief);
-        }
-    }
-
-    /// Makes notification `serial` stay on screen until dismissed, replaced or the next commit
-    /// ([`Notification::stays`]).
-    pub(crate) fn set_stays(&mut self, serial: u64) {
-        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
-            n.stays = true;
-        }
-    }
-
-    /// Names the one tag the Keep of notification `serial` keeps, for its label.
-    pub(crate) fn set_keep(&mut self, serial: u64, tag: String) {
-        if let Some(n) = self.entries.iter_mut().rev().find(|n| n.serial == serial) {
-            n.keep = Some(tag);
-        }
+    /// Takes the parameters of the offer of `action` that notification `serial` holds: an offer's parameters are
+    /// spent by its first run.
+    pub(crate) fn take_params(&mut self, serial: u64, action: NoteAction) -> Option<serde_json::Value> {
+        self.entries
+            .iter_mut()
+            .rev()
+            .find(|n| n.serial == serial)?
+            .offers
+            .iter_mut()
+            .find(|o| o.action == action)?
+            .params
+            .take()
     }
 
     /// The log, newest first.
@@ -496,17 +476,17 @@ mod tests {
     #[test]
     fn three_toasts_at_most_and_a_visible_key_is_replaced() {
         let mut log = NotificationLog::default();
-        log.push("a".into(), "edit", None);
-        log.push("b".into(), "export", None);
-        log.push("c".into(), "recovery", None);
+        log.push(Note::new("edit", "a".into()));
+        log.push(Note::new("export", "b".into()));
+        log.push(Note::new("recovery", "c".into()));
         let texts =
             |log: &NotificationLog| -> Vec<String> { log.visible().iter().map(|n| n.text.clone()).collect() };
         assert_eq!(texts(&log), ["a", "b", "c"]);
         // A toast of a visible key replaces that one; the others keep their order.
-        log.push("d".into(), "export", None);
+        log.push(Note::new("export", "d".into()));
         assert_eq!(texts(&log), ["a", "c", "d"]);
         // A fourth key pushes out the oldest.
-        log.push("e".into(), "other", None);
+        log.push(Note::new("other", "e".into()));
         assert_eq!(texts(&log), ["c", "d", "e"]);
         assert_eq!(log.newest_visible().map(|n| n.text.as_str()), Some("e"));
         assert_eq!(log.len(), 5, "the log keeps them all");
@@ -521,7 +501,7 @@ mod tests {
     fn the_log_keeps_the_last_hundred() {
         let mut log = NotificationLog::default();
         for i in 1..=101 {
-            log.push(format!("n{i}"), "edit", None);
+            log.push(Note::new("edit", format!("n{i}")));
         }
         assert_eq!(log.len(), MAX_LOG);
         assert!(log.get(1).is_none(), "the 101st drops the first");
@@ -533,18 +513,12 @@ mod tests {
     #[test]
     fn the_tone_is_the_result_s_else_success_with_an_action_else_info() {
         let mut log = NotificationLog::default();
-        let plain = log.push("Placed -K1".into(), "edit", None);
-        let open = log.push(
-            "Exported PDF".into(),
-            "export",
-            Some((NoteAction::Open, Validity::Open { path: PathBuf::new() })),
-        );
-        let checked = log.push_toned(
-            "Check: 1 error, 0 warnings".into(),
-            "edit",
-            None,
-            Some(NoteTone::Error),
-        );
+        let plain = log.push(Note::new("edit", "Placed -K1".into()));
+        let open = log.push(Note::new("export", "Exported PDF".into()).offering([Some(Offer::new(
+            NoteAction::Open,
+            Validity::Open { path: PathBuf::new() },
+        ))]));
+        let checked = log.push(Note::new("edit", "Check: 1 error, 0 warnings".into()).toned(NoteTone::Error));
         let tone = |s| log.get(s).map(Notification::tone);
         assert_eq!(tone(plain), Some(NoteTone::Info));
         assert_eq!(tone(open), Some(NoteTone::Success));
@@ -566,8 +540,10 @@ mod tests {
     fn a_toast_shows_its_brief_and_the_log_the_whole_text() {
         let mut log = NotificationLog::default();
         let whole = "Nothing to arrange: -K1: no room. -K2: no room. 1 fault stays on the page.";
-        let s = log.push_toned(whole.into(), "edit", None, Some(NoteTone::Info));
-        log.set_brief(s, "Nothing to arrange: -K1: no room. And 2 more.".into());
+        let s = log.push(Note {
+            brief: Some("Nothing to arrange: -K1: no room. And 2 more.".into()),
+            ..Note::new("edit", whole.into()).toned(NoteTone::Info)
+        });
         let n = log.get(s).expect("the toast");
         assert_eq!(
             n.lines(),
@@ -582,7 +558,7 @@ mod tests {
     fn a_toasts_line_starts_with_a_capital() {
         let mut log = NotificationLog::default();
         let mut line = |text: &str| {
-            let s = log.push_toned(text.into(), "edit", None, Some(NoteTone::Warning));
+            let s = log.push(Note::new("edit", text.into()).toned(NoteTone::Warning));
             log.get(s)
                 .map(|n| (n.lines().0.to_owned(), n.lines().1.map(Cow::into_owned)))
         };

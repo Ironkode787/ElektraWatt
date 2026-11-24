@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel};
 use crate::canvas::CanvasPage;
-use crate::notifications::NoteTone;
+use crate::notifications::{Note, NoteTone};
 use crate::properties::{ArrangeCard, ArrangeRow, Card, CardOrigin};
 use crate::strings;
 use crate::{count_key, key};
@@ -91,12 +91,14 @@ impl ShellModel {
                 // A result toast (doc 16a §6.10): "Nothing to arrange" its title, what stands in the way its line. Where
                 // several things do, the toast shows the first and how many more; its tooltip and the log show all.
                 let text = strings::format(key!("arrange-blocked"), &[&why.join(" ")]);
-                let serial = self.notes.push_toned(text, "edit", None, Some(NoteTone::Info));
-                if why.len() > 1 {
+                let brief = (why.len() > 1).then(|| {
                     let more = strings::format_count(count_key!("arrange-blocked-more"), why.len() - 1);
-                    let brief = strings::format(key!("arrange-blocked"), &[&format!("{} {more}", why[0])]);
-                    self.notes.set_brief(serial, brief);
-                }
+                    strings::format(key!("arrange-blocked"), &[&format!("{} {more}", why[0])])
+                });
+                self.notes.push(Note {
+                    brief,
+                    ..Note::new("edit", text).toned(NoteTone::Info)
+                });
             }
             return Outcome::Done;
         };

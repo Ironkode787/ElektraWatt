@@ -25,6 +25,7 @@ use serde_json::{Map, Value, json};
 use super::terminals::{TERMINAL_DESIGNATION, TERMINAL_ROW_MAX, TERMINAL_SPACING_MAX, terminal_designation};
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::key;
+use crate::notifications::{Note, NoteAction, Offer};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{
@@ -250,7 +251,7 @@ impl ShellModel {
                 .unwrap_or_default();
             let text = strings::format(key!("toast-card-joined"), &[&tag, &at, &slot]);
             self.last_station = Some(station);
-            self.notify_rack(text, station);
+            self.notify_offer(text, crate::notifications::NoteAction::Rack, vec![station]);
             return;
         }
         let Some((card, tag)) = waits.into_iter().next() else {
@@ -259,7 +260,7 @@ impl ShellModel {
         match stations.len() {
             0 => {
                 let text = strings::format(key!("toast-card-waits-cpu"), &[&tag]);
-                self.notify_new_station(text);
+                self.notify_offer(text, crate::notifications::NoteAction::NewStation, Vec::new());
             }
             1 => {
                 let text = strings::format(key!("toast-card-waits"), &[&tag]);
@@ -425,25 +426,30 @@ impl ShellModel {
                     None => text,
                 };
                 // A valve dropped into a valve terminal's box says where it sits now.
-                let text = match rep.device.filter(|_| into).and_then(|d| self.seat_words(d)) {
-                    Some(seat) => format!("{text} {seat}"),
-                    None => text,
-                };
-                let text = match rep.black_box.as_ref().filter(|b| !b.cells.is_empty()) {
-                    Some(b) => self.terminal_placed_words(text, rep.device, &b.cells),
-                    None => text,
-                };
-                // A far autoconnect hit is offered, not drawn, with Connect.
+                let mut sentences: Vec<String> = std::iter::once(text)
+                    .chain(rep.device.filter(|_| into).and_then(|d| self.seat_words(d)))
+                    .collect();
+                if let Some(b) = rep.black_box.as_ref().filter(|b| !b.cells.is_empty()) {
+                    sentences = self.terminal_placed_words(sentences.join(" "), rep.device, &b.cells);
+                }
+                // A far autoconnect hit is offered, not drawn, with Connect: its Undo and Connect are valid while the
+                // placement is the next undo step.
                 match (far.first().and_then(|f| far_offer(f, &cps, now)), without) {
                     (Some((question, wire)), without) => {
-                        let text = match without {
-                            Some(w) => format!("{text} {w} {question}"),
-                            None => format!("{text} {question}"),
-                        };
-                        self.notify_connect_offer(text, wire);
+                        sentences.extend(without);
+                        sentences.push(question);
+                        let connect = self.undo_offer(NoteAction::Connect).map(|o| Offer {
+                            params: Some(wire),
+                            ..o
+                        });
+                        let undo = self.undo_offer(NoteAction::Undo);
+                        self.notes.push(Note::of("edit", sentences).offering([undo, connect]));
                     }
-                    (None, Some(without)) => self.notify_wired(&text, &without),
-                    (None, None) => self.notify(text, true),
+                    (None, Some(without)) => self.notify_wired(sentences, without),
+                    (None, None) => {
+                        let undo = self.undo_offer(NoteAction::Undo);
+                        self.notes.push(Note::of("edit", sentences).offering([undo]));
+                    }
                 }
             }
             // An interruption point dropped on a pin says where it stands, what it connects to and the way
@@ -478,15 +484,9 @@ impl ShellModel {
                     ),
                 };
                 // A renamed point says why first; where its partner is, last.
-                let text = match taken {
-                    Some(taken) => format!("{taken} {text}"),
-                    None => text,
-                };
-                let text = match placed {
-                    Some(placed) => format!("{text} {placed}"),
-                    None => text,
-                };
-                self.notify(text, true);
+                let sentences = taken.into_iter().chain([text]).chain(placed).collect();
+                let undo = self.undo_offer(NoteAction::Undo);
+                self.notes.push(Note::of("edit", sentences).offering([undo]));
             }
             ResultNote::Deleted {
                 names,
@@ -524,20 +524,32 @@ impl ShellModel {
                 let terminals = (!undrawn.is_empty()).then(|| {
                     strings::format_count(crate::count_key!("toast-terminals-undrawn"), undrawn.len())
                 });
-                let text: Vec<String> = ips
+                let sentences: Vec<String> = ips
                     .into_iter()
                     .chain(others)
                     .chain(unplaced)
                     .chain(terminals)
                     .collect();
-                if text.is_empty() {
+                if sentences.is_empty() {
                     return;
                 }
-                // Each sentence ends with its own full stop.
+                // Each sentence ends with its own full stop. Remove them from the project, beside the delete's Undo,
+                // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
+                // nothing); terminals that stay in the project are a consequence the person may not want, so the
+                // toast stays.
+                let undo = self.undo_offer(NoteAction::Undo);
                 if undrawn.is_empty() {
-                    self.notify(text.join(" "), true);
+                    self.notes.push(Note::of("edit", sentences).offering([undo]));
                 } else {
-                    self.notify_remove_undrawn(text.join(" "), undrawn.iter().map(|e| e.0).collect());
+                    let terminals: Vec<String> = undrawn.iter().map(|e| e.0.to_string()).collect();
+                    let remove = self.undo_offer(NoteAction::RemoveUndrawn).map(|o| Offer {
+                        params: Some(json!(terminals)),
+                        ..o
+                    });
+                    self.notes.push(Note {
+                        stays: true,
+                        ..Note::of("edit", sentences).offering([undo, remove])
+                    });
                 }
             }
             // A cut says what it took and the wires it removed with it; the paste brings the cut items back.
@@ -555,17 +567,17 @@ impl ShellModel {
                     .iter()
                     .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
                     .count();
-                let text = std::iter::once(strings::format_count(what, symbols))
+                let sentences = std::iter::once(strings::format_count(what, symbols))
                     .chain(
                         (gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)),
                     )
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                self.notify(text, true);
+                    .collect();
                 // Wires a cut removed are a consequence the person may not want: the toast stays.
-                if gone > 0 {
-                    self.notes.set_stays(self.notes.newest_serial());
-                }
+                let undo = self.undo_offer(NoteAction::Undo);
+                self.notes.push(Note {
+                    stays: gone > 0,
+                    ..Note::of("edit", sentences).offering([undo])
+                });
             }
         }
     }
@@ -2120,8 +2132,12 @@ impl ShellModel {
                     .as_ref()
                     .is_some_and(|p| p.session.bus_cable_form(&[*id]).cable.is_none())
             });
+        // A bus line drawn without a cable says so, with Choose cable… opening its Cable form (no cable was asked
+        // for, and the person looked for it in Properties). A toast, not a form, so drawing several lines goes on.
         if let Some(line) = drawn {
-            self.notify_bus_line(line);
+            let choose = self.session_offer(NoteAction::ChooseCable, vec![line]);
+            let text = strings::text(key!("toast-bus-line-no-cable")).to_owned();
+            self.notes.push(Note::new("bus_line", text).offering([choose]));
         }
         // Supply marks placed: their Potential panel (H9).
         self.after_supply_marks(&before, &now);

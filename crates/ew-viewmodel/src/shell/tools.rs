@@ -329,7 +329,7 @@ impl ShellModel {
     /// stacking.
     pub fn explain_disabled(&mut self, text: String) {
         self.notes
-            .push_toned(text, DISABLED, None, Some(crate::notifications::NoteTone::Info));
+            .push(crate::notifications::Note::new(DISABLED, text).toned(crate::notifications::NoteTone::Info));
     }
 
     /// The reason [`ShellModel::explain_disabled`] shows while its toast is on screen: the status line says it too.
@@ -710,7 +710,12 @@ impl ShellModel {
                         .collect();
                     if !new.is_empty() {
                         let text = strings::format(key!("toast-wire-error"), &[&new.join("; ")]);
-                        self.notify_error(text);
+                        let undo = self.undo_offer(crate::notifications::NoteAction::Undo);
+                        self.notes.push(
+                            crate::notifications::Note::new("edit", text)
+                                .offering([undo])
+                                .toned(crate::notifications::NoteTone::Error),
+                        );
                     }
                 }
                 if out == Outcome::Done {

@@ -24,7 +24,7 @@ use super::{
 };
 use crate::jobs::{ExportDone, JobKind, JobStatus, JobsState};
 use crate::layout::PaneKind;
-use crate::notifications::{NoteAction, NoteTone, Notification, NotificationLog, Validity};
+use crate::notifications::{Note, NoteAction, NoteTone, Notification, NotificationLog, Offer, Validity};
 use crate::strings;
 use crate::strings::Key;
 use crate::{count_key, key};
@@ -215,197 +215,83 @@ impl ShellModel {
     /// Shows `text` as a toast of `key` and logs it (the toasts of edits map to key `edit`); `undo` offers Undo of the step
     /// just committed, valid while it is the next undo step.
     pub(super) fn notify_with(&mut self, text: String, key: &'static str, undo: bool) {
-        let action = if undo { self.undo_action() } else { None };
-        self.notes.push(text, key, action);
+        let undo = if undo { self.undo_offer(NoteAction::Undo) } else { None };
+        self.notes.push(Note::new(key, text).offering([undo]));
     }
 
-    /// Shows a placement's `text` that names the wires it made, with Undo, as a toast of key `wired`: the next
-    /// placement's toast (key `edit`) leaves it up, and the next placement that made wires adds its sentence to it,
+    /// Shows a placement's sentences `made` that name the wires it made, with Undo, as a toast of key `wired`: the next
+    /// placement's toast (key `edit`) leaves it up, and the next placement that made wires adds its sentences to it,
     /// so no wire made goes unsaid (a persona run placed five devices in a row and read only the last one's toast).
     /// `without` is its last sentence, the way to place without wires, said once at the end.
-    pub(super) fn notify_wired(&mut self, made: &str, without: &str) {
-        let text = match self.notes.visible().iter().find(|n| n.key == WIRED) {
+    pub(super) fn notify_wired(&mut self, made: Vec<String>, without: String) {
+        let mut sentences = match self.notes.visible().iter().find(|n| n.key == WIRED) {
             Some(earlier) => {
-                let earlier = earlier
-                    .text
-                    .strip_suffix(without)
-                    .unwrap_or(&earlier.text)
-                    .trim_end();
-                format!("{earlier} {made} {without}")
+                let mut earlier = earlier.sentences.clone();
+                if earlier.last() == Some(&without) {
+                    earlier.pop();
+                }
+                earlier
             }
-            None => format!("{made} {without}"),
+            None => Vec::new(),
         };
-        self.notify_with(text, WIRED, true);
+        sentences.extend(made);
+        sentences.push(without);
+        let undo = self.undo_offer(NoteAction::Undo);
+        self.notes.push(Note::of(WIRED, sentences).offering([undo]));
     }
 
-    /// Undo of the step just committed, valid while it is the next undo step.
-    fn undo_action(&self) -> Option<(NoteAction, Validity)> {
+    /// What keeps an action offered on the step just committed valid: while that step is the next undo step.
+    fn undo_validity(&self) -> Option<Validity> {
         self.project.as_ref().and_then(|p| {
             let h = p.session.history();
             let cursor = h.cursor();
             let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
-            Some((
-                NoteAction::Undo,
-                Validity::Undo {
-                    epoch: p.epoch,
-                    cursor,
-                    rev,
-                },
-            ))
+            Some(Validity::Undo {
+                epoch: p.epoch,
+                cursor,
+                rev,
+            })
         })
     }
 
-    /// Shows `text`, the error findings the step just committed brought, as a toast of key `edit` in the error's tone,
-    /// with Undo of that step.
-    pub(super) fn notify_error(&mut self, text: String) {
-        let action = self.undo_action();
-        self.notes.push_toned(text, "edit", action, Some(NoteTone::Error));
+    /// `action` offered on the step just committed (Undo of it, an action beside its Undo), valid while that step is
+    /// the next undo step.
+    pub(super) fn undo_offer(&self, action: NoteAction) -> Option<Offer> {
+        self.undo_validity().map(|v| Offer::new(action, v))
     }
 
-    /// Shows `text` as a toast of key `edit` whose action opens the rack of `station`.
-    pub(super) fn notify_rack(&mut self, text: String, station: ew_api::output::Uuid) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::Rack,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: vec![station],
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
+    /// `action` offered while the open project session lasts; `select` the records it acts on.
+    pub(super) fn session_offer(&self, action: NoteAction, select: Vec<ew_api::output::Uuid>) -> Option<Offer> {
+        self.project.as_ref().map(|p| Offer::new(action, Validity::Session { epoch: p.epoch, select }))
     }
 
-    /// Shows `text` as a toast of key `edit` whose action, Route these too…, previews Route over the wires a page-wide
-    /// Route left as the person's on page `page` (its row's ID).
-    pub(super) fn notify_route_his(&mut self, text: String, page: ew_api::output::Uuid) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::RouteHis,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: vec![page],
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
+    /// Shows `text` as a toast of key `edit` whose action `action` acts on `select` while the project session is open:
+    /// the rack of a station, Route these too… on a page, Go to page, Swap two valves, Show item numbers, Fit the
+    /// layout to the sheet, New station….
+    pub(super) fn notify_offer(&mut self, text: String, action: NoteAction, select: Vec<ew_api::output::Uuid>) {
+        let offer = self.session_offer(action, select);
+        self.notes.push(Note::new("edit", text).offering([offer]));
     }
 
     /// Shows `text` as a toast of key `edit` with Undo (the step just made) and Go to page `page`.
     pub(super) fn notify_undo_or_go_to(&mut self, text: String, page: ew_api::output::Uuid) {
-        let Some(p) = &self.project else {
+        if self.project.is_none() {
             return;
-        };
-        let h = p.session.history();
-        let cursor = h.cursor();
-        let undo = cursor.checked_sub(1).and_then(|i| h.entries().get(i)).map(|e| {
-            (
-                NoteAction::Undo,
-                Validity::Undo {
-                    epoch: p.epoch,
-                    cursor,
-                    rev: e.rev().0,
-                },
-            )
-        });
-        let go_to = (
-            NoteAction::GoTo,
-            Validity::Session {
-                epoch: p.epoch,
-                select: vec![page],
-            },
-        );
-        self.notes.push_two(text, "edit", undo, Some(go_to));
-    }
-
-    /// Shows `text` as a toast of key `edit` whose action goes to page `page` (its row's ID), the page an Undo or a
-    /// Redo changed.
-    pub(super) fn notify_go_to(&mut self, text: String, page: ew_api::output::Uuid) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::GoTo,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: vec![page],
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
-    }
-
-    /// Shows `text` as a toast of key `edit` whose action swaps the positions of valves `device` and `holder`.
-    pub(super) fn notify_swap(
-        &mut self,
-        text: String,
-        device: ew_api::output::Uuid,
-        holder: ew_api::output::Uuid,
-    ) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::Swap,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: vec![device, holder],
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
-    }
-
-    /// Shows `text` as a toast of key `edit` whose action is Show item numbers (the layout page's Labels).
-    pub(super) fn notify_item_numbers(&mut self, text: String) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::ItemNumbers,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: Vec::new(),
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
-    }
-
-    /// Shows `text` as a toast of key `edit` whose action is Fit the layout to the sheet on the panel page `page`.
-    pub(super) fn notify_fit_sheet(&mut self, text: String, page: ew_api::output::Uuid) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::FitSheet,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: vec![page],
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
-    }
-
-    /// Shows `text` as a toast of key `edit` whose action is New station….
-    pub(super) fn notify_new_station(&mut self, text: String) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::NewStation,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: Vec::new(),
-                },
-            )
-        });
-        self.notes.push(text, "edit", action);
+        }
+        let undo = self.undo_offer(NoteAction::Undo);
+        let go_to = self.session_offer(NoteAction::GoTo, vec![page]);
+        self.notes.push(Note::new("edit", text).offering([undo, go_to]));
     }
 
     /// Shows `text` as a toast of key `key` with Show in folder, which opens `folder` in the system's file manager.
     pub(super) fn notify_folder(&mut self, text: String, key: &'static str, folder: PathBuf) {
-        self.notes.push(
-            text,
-            key,
-            Some((NoteAction::ShowFolder, Validity::Open { path: folder })),
-        );
+        let offer = Offer::new(NoteAction::ShowFolder, Validity::Open { path: folder });
+        self.notes.push(Note::new(key, text).offering([Some(offer)]));
     }
 
     /// Shows a result's `text` as a toast of key `edit` whose icon follows `tone` (the check's worst severity).
     pub(super) fn notify_toned(&mut self, text: String, tone: NoteTone) {
-        self.notes.push_toned(text, "edit", None, Some(tone));
+        self.notes.push(Note::new("edit", text).toned(tone));
     }
 
     /// `notifications.show {on?}` (View ▸ Notifications, the status bar's field): the log popup.
@@ -617,7 +503,11 @@ impl ShellModel {
             }
             // The terminals a delete left drawn nowhere, removed from the project too.
             Some(NoteAction::RemoveUndrawn) => {
-                let terminals = std::mem::take(&mut self.tools.offered_removal);
+                let terminals: Vec<ew_api::output::Uuid> = self
+                    .notes
+                    .take_params(entry.serial, action)
+                    .and_then(|v| serde_json::from_value(v).ok())
+                    .unwrap_or_default();
                 let Some(params) = self.removal_command(&terminals) else {
                     return Outcome::refused(key!("reason-action-expired"));
                 };
@@ -626,7 +516,7 @@ impl ShellModel {
             }
             // The tags a paste changed, each frozen as it read before.
             Some(NoteAction::KeepTag) => {
-                let Some(params) = self.tools.offered_keep.take() else {
+                let Some(params) = self.notes.take_params(entry.serial, action) else {
                     return Outcome::refused(key!("reason-action-expired"));
                 };
                 self.notes.dismiss(entry.serial);
@@ -634,7 +524,7 @@ impl ShellModel {
             }
             // The wire a placement offered instead of drawing it.
             Some(NoteAction::Connect) => {
-                let Some(params) = self.tools.offered_wire.take() else {
+                let Some(params) = self.notes.take_params(entry.serial, action) else {
                     return Outcome::refused(key!("reason-action-expired"));
                 };
                 self.notes.dismiss(entry.serial);
@@ -642,39 +532,6 @@ impl ShellModel {
             }
             None => Outcome::refused(key!("reason-no-toast")),
         }
-    }
-
-    /// Shows a placement's `text` with its Undo and Connect, which draws `wire` (`connection.draw`'s parameters), both
-    /// valid while the placement is the next undo step (a far autoconnect hit is offered, not drawn).
-    #[inline(never)]
-    pub(super) fn notify_connect_offer(&mut self, text: String, wire: Value) {
-        let validity = self.project.as_ref().and_then(|p| {
-            let h = p.session.history();
-            let cursor = h.cursor();
-            let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
-            Some(Validity::Undo {
-                epoch: p.epoch,
-                cursor,
-                rev,
-            })
-        });
-        self.tools.offered_wire = Some(wire);
-        self.notes.push_two(
-            text,
-            "edit",
-            validity.clone().map(|v| (NoteAction::Undo, v)),
-            validity.map(|v| (NoteAction::Connect, v)),
-        );
-    }
-
-    /// Shows a delete's `text` with its Undo and Remove them from the project, which removes the terminals
-    /// `terminals` the delete left drawn nowhere (and a strip that keeps no terminal and draws nothing), both valid while
-    /// the delete is the next undo step.
-    pub(super) fn notify_remove_undrawn(&mut self, text: String, terminals: Vec<ew_api::output::Uuid>) {
-        self.tools.offered_removal = terminals;
-        // Terminals that stay in the project are a consequence the person may not want: the toast stays.
-        let serial = self.notify_undo_and(text, NoteAction::RemoveUndrawn);
-        self.notes.set_stays(serial);
     }
 
     /// Shows a paste's `text` with its Undo and Keep, which freezes each tag of `kept` (a device and its tag before the
@@ -696,32 +553,17 @@ impl ShellModel {
             self.notify(text, true);
             return;
         }
-        self.tools.offered_keep = Some(serde_json::json!({ "edits": edits }));
-        let serial = self.notify_undo_and(text, NoteAction::KeepTag);
-        if let [(_, tag)] = kept {
-            self.notes.set_keep(serial, tag.clone());
-        }
-    }
-
-    /// Pushes `text` with Undo and `action`, both valid while the step just committed is the next undo step; returns
-    /// its serial.
-    fn notify_undo_and(&mut self, text: String, action: NoteAction) -> u64 {
-        let validity = self.project.as_ref().and_then(|p| {
-            let h = p.session.history();
-            let cursor = h.cursor();
-            let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
-            Some(Validity::Undo {
-                epoch: p.epoch,
-                cursor,
-                rev,
-            })
+        let keep = self.undo_offer(NoteAction::KeepTag).map(|o| Offer {
+            params: Some(serde_json::json!({ "edits": edits })),
+            ..o
         });
-        self.notes.push_two(
-            text,
-            "edit",
-            validity.clone().map(|v| (NoteAction::Undo, v)),
-            validity.map(|v| (action, v)),
-        )
+        self.notes.push(Note {
+            keep: match kept {
+                [(_, tag)] => Some(tag.clone()),
+                _ => None,
+            },
+            ..Note::new("edit", text).offering([self.undo_offer(NoteAction::Undo), keep])
+        });
     }
 
     /// The `edit.delete` of the terminals `terminals` and of each strip that would keep none of its terminals and draws
@@ -759,25 +601,6 @@ impl ShellModel {
         (!targets.is_empty()).then(|| serde_json::json!({ "targets": targets }))
     }
 
-    /// Shows that a bus line was drawn without a cable, with Choose cable… opening its Cable form (no cable was
-    /// asked for, and the person looked for it in Properties). A toast, not a form, so drawing several lines goes on.
-    pub(super) fn notify_bus_line(&mut self, line: ew_api::output::Uuid) {
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::ChooseCable,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: vec![line],
-                },
-            )
-        });
-        self.notes.push(
-            strings::text(key!("toast-bus-line-no-cable")).to_owned(),
-            "bus_line",
-            action,
-        );
-    }
-
     /// Shows the toast that the parts list leaves out the devices without a part, when there are any:
     /// how many, with Select them and Type not known yet….
     #[inline(never)]
@@ -793,19 +616,15 @@ impl ShellModel {
             1 => strings::text(key!("toast-parts-unlisted-one")).to_owned(),
             n => strings::format(key!("toast-parts-unlisted"), &[&n.to_string()]),
         };
-        let validity = self.project.as_ref().map(|p| Validity::Session {
-            epoch: p.epoch,
-            select: devices.iter().map(|d| d.as_uuid()).collect(),
-        });
+        let select: Vec<ew_api::output::Uuid> = devices.iter().map(|d| d.as_uuid()).collect();
         // Its own key, so it stands beside the toast of the step that added the list (with its Undo). Beside Select
         // them, Type not known yet… lists them by a description (a persona run had left a type open on purpose and
         // found no way to list the device).
-        self.notes.push_two(
-            text,
-            "unlisted",
-            validity.clone().map(|v| (NoteAction::SelectUnlisted, v)),
-            validity.map(|v| (NoteAction::ListUnlisted, v)),
-        );
+        let offers = [
+            self.session_offer(NoteAction::SelectUnlisted, select.clone()),
+            self.session_offer(NoteAction::ListUnlisted, select),
+        ];
+        self.notes.push(Note::new("unlisted", text).offering(offers));
     }
 
     /// `toast.undo`: the newest visible toast's Undo (the registry's undo); the toast goes.
@@ -1072,7 +891,10 @@ impl ShellModel {
                 // already names as exported says "again", so a second export visibly changes the toast it replaces.
                 let again = self.notes.entries().any(|n| {
                     n.key == "export"
-                        && matches!(&n.action, Some((NoteAction::Open, Validity::Open { path })) if *path == entry.path)
+                        && n.offers.first().is_some_and(|o| {
+                            o.action == NoteAction::Open
+                                && matches!(&o.validity, Validity::Open { path } if *path == entry.path)
+                        })
                 });
                 // A table has no pages; its end says the size only.
                 let table = entry.kind == JobKind::Table;
@@ -1109,14 +931,15 @@ impl ShellModel {
                         &[&entry.name, &kib.to_string(), &place],
                     ),
                 };
-                let open = (
+                let open = Offer::new(
                     NoteAction::Open,
                     Validity::Open {
                         path: entry.path.clone(),
                     },
                 );
                 // A file's toast shows its folder too; a DXF set's Open opens its folder already.
-                let show_folder = (!dxf).then_some((NoteAction::ShowFolder, Validity::Open { path: folder }));
+                let show_folder =
+                    (!dxf).then(|| Offer::new(NoteAction::ShowFolder, Validity::Open { path: folder }));
                 (
                     JobStatus::Done {
                         pages: (!table).then_some(done.pages),
@@ -1170,14 +993,11 @@ impl ShellModel {
         if matches!(outcome, Outcome::Failed { .. }) {
             entry.unseen_failure = Some(text.clone());
         }
-        match action {
-            Some((open, second)) => {
-                self.notes.push_two(text, "export", Some(open), second);
-            }
-            None => {
-                self.notes.push(text, "export", None);
-            }
-        }
+        let offers = match action {
+            Some((open, second)) => [Some(open), second],
+            None => [None, None],
+        };
+        self.notes.push(Note::new("export", text).offering(offers));
         if let Some(m) = marker {
             self.markers.push(m);
         }

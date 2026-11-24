@@ -1521,7 +1521,7 @@ impl ShellModel {
                 key!("toast-layout-overruns"),
                 &[&now.to_string(), &fit.to_string()],
             );
-            self.notify_fit_sheet(said, *page);
+            self.notify_offer(said, crate::notifications::NoteAction::FitSheet, vec![*page]);
         }
         out
     }
@@ -1725,7 +1725,7 @@ impl ShellModel {
             );
             self.props.edit = None;
             self.props.error = None;
-            self.notify_swap(text, target, holder);
+            self.notify_offer(text, crate::notifications::NoteAction::Swap, vec![target, holder]);
             return Outcome::Done;
         }
         // A new layout view gets its legend page (doc 12 §5.4).

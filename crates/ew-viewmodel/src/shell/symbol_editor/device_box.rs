@@ -8,7 +8,7 @@
 //! part as the project's own copy), and offers to redraw the boxes of it that are drawn already.
 
 use super::{Outline, OutlineGroup, RowValue, Sheet, SheetRow, SymbolEditor, Todo, role_words, words};
-use crate::notifications::{NoteAction, NoteTone, Validity};
+use crate::notifications::{Note, NoteAction, NoteTone, Offer, Validity};
 use crate::shell::{Dialog, Outcome, ShellModel};
 use crate::{key, strings};
 use ew_api::output::Uuid;
@@ -751,7 +751,8 @@ impl ShellModel {
             change(draft)
         };
         if let (Ok(_), Some((typed, stands))) = (&result, taken.get()) {
-            self.notes.push(
+            self.notes.push(Note::new(
+                "part",
                 strings::format(
                     key!("box-pin-on-step"),
                     &[
@@ -760,9 +761,7 @@ impl ShellModel {
                         &super::sheet::trim_mm(typed),
                     ],
                 ),
-                "part",
-                None,
-            );
+            ));
         }
         match result {
             Ok(_) => Outcome::Done,
@@ -1138,25 +1137,24 @@ impl ShellModel {
             editor.box_sources = parts;
         }
         if drawn > 0 {
+            let redraw = Offer::new(
+                NoteAction::RedrawBoxes,
+                Validity::Session {
+                    epoch,
+                    select: vec![copy],
+                },
+            );
             self.notes.push(
-                strings::format(key!("box-saved-redraw"), &[&number, &drawn.to_string()]),
-                "part",
-                Some((
-                    NoteAction::RedrawBoxes,
-                    Validity::Session {
-                        epoch,
-                        select: vec![copy],
-                    },
-                )),
+                Note::new(
+                    "part",
+                    strings::format(key!("box-saved-redraw"), &[&number, &drawn.to_string()]),
+                )
+                .offering([Some(redraw)]),
             );
         } else {
             // A later Save, or Redraw them, says what is true then: its toast takes this one's place.
-            self.notes.push_toned(
-                strings::format(key!("box-saved"), &[&number]),
-                "part",
-                None,
-                Some(NoteTone::Success),
-            );
+            self.notes
+                .push(Note::new("part", strings::format(key!("box-saved"), &[&number])).toned(NoteTone::Success));
         }
         Ok(())
     }
@@ -1190,11 +1188,8 @@ impl ShellModel {
                 return out;
             }
         }
-        self.notes.push_toned(
-            strings::format(key!("box-redrawn"), &[&count.to_string()]),
-            "part",
-            None,
-            Some(NoteTone::Success),
+        self.notes.push(
+            Note::new("part", strings::format(key!("box-redrawn"), &[&count.to_string()])).toned(NoteTone::Success),
         );
         Outcome::Done
     }
@@ -1237,11 +1232,9 @@ impl ShellModel {
             editor.shown = true;
         }
         placed?;
-        self.notes.push(
-            strings::format(key!("box-test-armed"), &[&number]),
-            "symbol",
-            Some((NoteAction::BackToEditor, Validity::SymbolDraft)),
-        );
+        let back = Offer::new(NoteAction::BackToEditor, Validity::SymbolDraft);
+        self.notes
+            .push(Note::new("symbol", strings::format(key!("box-test-armed"), &[&number])).offering([Some(back)]));
         Ok(())
     }
 }

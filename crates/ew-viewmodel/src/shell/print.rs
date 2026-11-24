@@ -363,7 +363,7 @@ impl ShellModel {
             }
             PrintEnd::Unavailable => strings::text(key!("print-unavailable")).to_owned(),
         };
-        self.notes.push(text, "print", None);
+        self.notes.push(crate::notifications::Note::new("print", text));
     }
 
     /// Cancels the running build and forgets the built set (the dialog closes).

@@ -851,7 +851,7 @@ impl ShellModel {
                 .join(" ");
             let page = PageRow::by_folio(self.page_rows(), &folio).map(|r| r.id);
             match page.filter(|_| gain) {
-                Some(page) => self.notify_route_his(text, page),
+                Some(page) => self.notify_offer(text, crate::notifications::NoteAction::RouteHis, vec![page]),
                 None => self.notify(text, false),
             }
             return Outcome::Done;

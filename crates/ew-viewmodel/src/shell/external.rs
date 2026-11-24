@@ -27,7 +27,7 @@ use serde_json::{Map, Value, json};
 use super::jobs::bool_param;
 use super::{Dialog, Outcome, Prompt, RecordedCommand, ShellModel, failed, string_param};
 use crate::key;
-use crate::notifications::{NoteAction, Validity};
+use crate::notifications::{Note, NoteAction, Offer, Validity};
 use crate::strings;
 
 /// One colliding field in the collision dialog (D24).
@@ -325,7 +325,7 @@ impl ShellModel {
         }
         let (undo, show) = match entry {
             Some((index, rev)) => (
-                Some((
+                Some(Offer::new(
                     NoteAction::Undo,
                     Validity::Undo {
                         epoch,
@@ -333,7 +333,7 @@ impl ShellModel {
                         rev,
                     },
                 )),
-                Some((
+                Some(Offer::new(
                     NoteAction::ShowChanges,
                     Validity::History {
                         epoch,
@@ -344,7 +344,7 @@ impl ShellModel {
             ),
             None => (None, None),
         };
-        self.notes.push_two(text, "external", undo, show);
+        self.notes.push(Note::new("external", text).offering([undo, show]));
     }
 
     /// Opens the collision dialog with every colliding field, mine chosen (D24).
@@ -608,7 +608,7 @@ impl ShellModel {
         }
         self.collab.driver_missing = driver_missing(&dir);
         self.notes
-            .push(strings::text(key!("toast-git-setup")).to_owned(), "edit", None);
+            .push(Note::new("edit", strings::text(key!("toast-git-setup")).to_owned()));
         Outcome::Done
     }
 
@@ -693,7 +693,7 @@ impl ShellModel {
         } else {
             strings::format(key!("toast-ewz"), &[&name])
         };
-        self.notes.push(text, "export", None);
+        self.notes.push(Note::new("export", text));
         Outcome::Done
     }
 

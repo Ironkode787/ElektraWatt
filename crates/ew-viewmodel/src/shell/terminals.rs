@@ -107,17 +107,17 @@ fn offer_part(cat: &PlaceCatalogue, options: &mut Vec<(String, String)>, copy: O
 impl ShellModel {
     /// A valve terminal placed as its positions: the result line `text` with how many positions it has and how
     /// many are empty, then, while another valve terminal of the project is drawn on no fluid page (made as a station
-    /// first), that one and how to draw it.
+    /// first), that one and how to draw it: the sentences, in their order.
     pub(super) fn terminal_placed_words(
         &self,
         text: String,
         device: Option<Uuid>,
         cells: &[ew_api::output::SlotCell],
-    ) -> String {
+    ) -> Vec<String> {
         let empty = cells.iter().filter(|c| c.holder.is_none() && !c.blank).count();
         let (n, e) = (cells.len().to_string(), empty.to_string());
         let placed = strings::without_stop(&text);
-        let mut text = if empty == cells.len() {
+        let text = if empty == cells.len() {
             strings::format(key!("toast-placed-positions-empty"), &[placed, &n])
         } else {
             strings::format(key!("toast-placed-positions"), &[placed, &n, &e])
@@ -130,14 +130,9 @@ impl ShellModel {
             .filter(|(t, _)| Some(*t) != device)
             .map(|(_, tag)| tag)
             .collect();
-        if !undrawn.is_empty() {
-            text.push(' ');
-            text.push_str(&strings::format(
-                key!("toast-terminal-undrawn"),
-                &[&undrawn.join(", ")],
-            ));
-        }
-        text
+        let undrawn = (!undrawn.is_empty())
+            .then(|| strings::format(key!("toast-terminal-undrawn"), &[&undrawn.join(", ")]));
+        std::iter::once(text).chain(undrawn).collect()
     }
 
     /// `strip.new {letter?, tag?, dialog?}`: a host commit of `device.create` with the strip aspect. While the

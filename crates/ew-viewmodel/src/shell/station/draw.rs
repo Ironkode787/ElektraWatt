@@ -568,7 +568,7 @@ impl ShellModel {
         match out {
             Outcome::Done => {
                 if let Some(text) = self.retagged_words("plc.draw_station", &retag) {
-                    self.notify_rack(text, station);
+                    self.notify_offer(text, crate::notifications::NoteAction::Rack, vec![station]);
                 }
                 // A card wider than the drawing area: its first box is drawn, the toast says where the rest is drawn.
                 let rest: Vec<String> = self.project_session().map_or_else(Vec::new, |s| {
@@ -578,13 +578,14 @@ impl ShellModel {
                         .collect()
                 });
                 if !rest.is_empty() {
-                    self.notify_rack(
+                    self.notify_offer(
                         strings::format(key!("rack-card-rest"), &[&rest.join(", ")]),
-                        station,
+                        crate::notifications::NoteAction::Rack,
+                        vec![station],
                     );
                 }
                 if !left.is_empty() {
-                    self.notify_rack(no_room, station);
+                    self.notify_offer(no_room, crate::notifications::NoteAction::Rack, vec![station]);
                 }
                 Outcome::Done
             }

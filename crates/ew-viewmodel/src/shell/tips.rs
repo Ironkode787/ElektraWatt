@@ -23,7 +23,7 @@ use serde_json::{Value, json};
 
 use super::{Outcome, ShellModel};
 use crate::key;
-use crate::notifications::{NoteAction, NoteTone, Notification, Validity};
+use crate::notifications::{Note, NoteAction, NoteTone, Notification, Offer, Validity};
 use crate::properties::{PropRow, Provenance, SheetSection};
 use crate::strings::{self, Key};
 
@@ -140,11 +140,11 @@ impl ShellModel {
         self.settings.tips_seen.push(tip.word().to_owned());
         self.save_settings();
         // A tip informs: the info icon, not the check of a finished outcome.
-        self.notes.push_toned(
-            strings::text(tip.text_key()).to_owned(),
-            "tip",
-            Some(action),
-            Some(NoteTone::Info),
+        let (action, validity) = action;
+        self.notes.push(
+            Note::new("tip", strings::text(tip.text_key()).to_owned())
+                .offering([Some(Offer::new(action, validity))])
+                .toned(NoteTone::Info),
         );
     }
 
