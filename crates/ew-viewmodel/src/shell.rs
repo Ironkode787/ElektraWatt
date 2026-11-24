@@ -141,12 +141,15 @@ mod keymaps;
 mod revision;
 // The one-time tips (D17), the glossary pane (D16) and the wire-colour view (D18).
 mod glossary;
+/// The start-up offer after a crash.
+pub mod startup;
 mod tips;
 mod wire_colours;
-// The start-up offer after a crash.
-pub mod startup;
+// The file dialogs' prompts.
+mod prompts;
 pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
+pub use prompts::{PickKind, PromptSpec};
 pub use station::{rack_position_text, rack_positions_text, rack_slot_text};
 pub use tips::Tip;
 

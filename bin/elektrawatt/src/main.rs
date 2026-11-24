@@ -43,7 +43,7 @@ use ew_ui::visual::Geometry;
 use ew_ui::window_memory::{Display, FirstFrameStep};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::print::{PrintEnd, PrintRequest, PrintVia};
-use ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, PickKind, Prompt, Resources, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
 use ew_viewmodel::window::{MonitorArea, WindowGeometry};
 
@@ -189,14 +189,6 @@ fn session_bus_present(address: Option<PathBuf>, runtime_dir: Option<PathBuf>) -
     address.is_some() || runtime_dir.is_some_and(|d| d.join("bus").exists())
 }
 
-/// How a dialog of `rfd` is shown: what it asks for.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum DialogKind {
-    Folder,
-    File,
-    Save,
-}
-
 impl RfdPlatform {
     /// The dialogs of the window `cc` was made for. On Windows the window is their owner, so it takes no input while
     /// a dialog is open, as when the dialog ran on the window's thread; elsewhere they have no parent, as
@@ -217,146 +209,26 @@ impl RfdPlatform {
             || session_bus_present(env_path("DBUS_SESSION_BUS_ADDRESS"), env_path("XDG_RUNTIME_DIR"))
     }
 
-    /// The dialog of `prompt`, built on the window's thread (its texts are the window's).
-    fn dialog(&self, prompt: Prompt) -> (rfd::FileDialog, DialogKind) {
-        let base = self.base.clone();
-        match prompt {
-            Prompt::OpenFolder => (
-                base.set_title(strings::text(key!("prompt-open-title"))),
-                DialogKind::Folder,
-            ),
-            Prompt::NewFolder => (
-                base.set_title(strings::text(key!("prompt-save-as-title"))),
-                DialogKind::Folder,
-            ),
-            Prompt::OpenQet => (
-                base.set_title(strings::text(key!("prompt-open-qet-title")))
-                    .add_filter("QElectroTech", &["qet"]),
-                DialogKind::File,
-            ),
-            Prompt::OpenPartsTable => (
-                base.set_title(strings::text(key!("prompt-open-parts-title")))
-                    .add_filter("CSV", &["csv"]),
-                DialogKind::File,
-            ),
-            Prompt::OpenImage => (
-                base.set_title(strings::text(key!("prompt-open-image-title")))
-                    .add_filter("Images", &["svg", "png", "jpg", "jpeg"]),
-                DialogKind::File,
-            ),
-            Prompt::OpenFont => (
-                base.set_title(strings::text(key!("prompt-open-font-title")))
-                    .add_filter("TrueType, OpenType", &["ttf", "otf"]),
-                DialogKind::File,
-            ),
-            Prompt::SavePdf => (
-                base.set_title(strings::text(key!("prompt-export-title")))
-                    .set_file_name(strings::text(key!("prompt-pdf-name")))
-                    .add_filter("PDF", &["pdf"]),
-                DialogKind::Save,
-            ),
-            // Output ▸ Export DXF…: the folder the set goes into.
-            Prompt::SaveDxf => (
-                base.set_title(strings::text(key!("prompt-export-dxf-title"))),
-                DialogKind::Folder,
-            ),
-            // The keymap editor's Import… and Export….
-            Prompt::OpenKeymap => (
-                base.set_title(strings::text(key!("prompt-open-keymap-title")))
-                    .add_filter("TOML", &["toml"]),
-                DialogKind::File,
-            ),
-            Prompt::SaveKeymap => (
-                base.set_title(strings::text(key!("prompt-save-keymap-title")))
-                    .set_file_name(strings::text(key!("prompt-keymap-name")))
-                    .add_filter("TOML", &["toml"]),
-                DialogKind::Save,
-            ),
-            // A navigator table's Export table… and Import table….
-            Prompt::SaveTable => (
-                base.set_title(strings::text(key!("prompt-export-table-title")))
-                    .set_file_name(strings::text(key!("prompt-table-name")))
-                    .add_filter("XLSX", &["xlsx"])
-                    .add_filter("CSV", &["csv"]),
-                DialogKind::Save,
-            ),
-            Prompt::OpenTable => (
-                base.set_title(strings::text(key!("prompt-open-table-title")))
-                    .add_filter("XLSX", &["xlsx"])
-                    .add_filter("CSV", &["csv"]),
-                DialogKind::File,
-            ),
-            // File ▸ Export .ewz… and Open .ewz….
-            Prompt::SaveEwz => (
-                base.set_title(strings::text(key!("prompt-export-ewz-title")))
-                    .set_file_name(strings::text(key!("prompt-ewz-name")))
-                    .add_filter("EWZ", &["ewz"]),
-                DialogKind::Save,
-            ),
-            Prompt::OpenEwz => (
-                base.set_title(strings::text(key!("prompt-open-ewz-title")))
-                    .add_filter("EWZ", &["ewz"]),
-                DialogKind::File,
-            ),
-            // The chosen format's file: its extension names the file and its one filter.
-            Prompt::SavePlcExchange(extension) => (
-                base.set_title(strings::text(key!("prompt-plc-export-title")))
-                    .set_file_name(format!("plc.{extension}"))
-                    .add_filter(extension.to_uppercase(), &[extension]),
-                DialogKind::Save,
-            ),
-            Prompt::OpenPlcExchange => (
-                base.set_title(strings::text(key!("prompt-plc-import-title")))
-                    .add_filter("AutomationML", &["aml"])
-                    .add_filter("XLSX", &["xlsx"]),
-                DialogKind::File,
-            ),
-            // File ▸ Import…: a QElectroTech project or a project archive, both offered at once.
-            Prompt::OpenImport => (
-                base.set_title(strings::text(key!("prompt-import-title")))
-                    .add_filter(
-                        strings::text(key!("prompt-import-filter")),
-                        &ShellModel::import_extensions(),
-                    ),
-                DialogKind::File,
-            ),
-            // A DWG import's converter: any program file.
-            Prompt::OpenConverter => (
-                base.set_title(strings::text(key!("prompt-converter-title"))),
-                DialogKind::File,
-            ),
-            // The symbol editor's file and library folder.
-            Prompt::OpenSymbol => (
-                base.set_title(strings::text(key!("prompt-open-symbol-title")))
-                    .add_filter(
-                        strings::text(key!("prompt-symbol-filter")),
-                        &ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS,
-                    ),
-                DialogKind::File,
-            ),
-            Prompt::SaveSymbol => (
-                base.set_title(strings::text(key!("prompt-save-symbol-title")))
-                    .set_file_name(strings::text(key!("prompt-symbol-name")))
-                    .add_filter("JSON", &["json"]),
-                DialogKind::Save,
-            ),
-            Prompt::Folder => (
-                base.set_title(strings::text(key!("prompt-folder-title"))),
-                DialogKind::Folder,
-            ),
-            Prompt::LibraryFolder => (
-                base.set_title(strings::text(key!("prompt-library-folder-title"))),
-                DialogKind::Folder,
-            ),
+    /// The dialog of `prompt`, built on the window's thread (its texts are the window's) from the shell's table of
+    /// prompts ([`Prompt::spec`]).
+    fn dialog(&self, prompt: Prompt) -> (rfd::FileDialog, PickKind) {
+        let spec = prompt.spec();
+        let mut dialog = self.base.clone().set_title(spec.title);
+        if let Some(name) = spec.file_name {
+            dialog = dialog.set_file_name(name);
         }
+        for (name, extensions) in &spec.filters {
+            dialog = dialog.add_filter(name, extensions);
+        }
+        (dialog, spec.kind)
     }
 
     /// Shows `dialog` and waits for the user, on the calling thread.
-    fn run(dialog: rfd::FileDialog, kind: DialogKind) -> Pick {
+    fn run(dialog: rfd::FileDialog, kind: PickKind) -> Pick {
         let picked = match kind {
-            DialogKind::Folder => dialog.pick_folder(),
-            DialogKind::File => dialog.pick_file(),
-            DialogKind::Save => dialog.save_file(),
+            PickKind::Folder => dialog.pick_folder(),
+            PickKind::File => dialog.pick_file(),
+            PickKind::Save => dialog.save_file(),
         };
         picked.map_or(Pick::Cancelled, Pick::Path)
     }
