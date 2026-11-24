@@ -25,6 +25,62 @@ pub const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtur
 /// The content tree of the source tree: the starter library and the templates.
 pub const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 
+/// The test tables of the source tree: the parts table and the project tables the importers read.
+pub const TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables");
+
+/// The data rows of the test table `name` in [`TABLES`]: its lines but the header.
+///
+/// # Panics
+///
+/// When the table cannot be read.
+pub fn table_rows(name: &str) -> usize {
+    let path = Path::new(TABLES).join(name);
+    let text =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    text.lines().skip(1).filter(|l| !l.trim().is_empty()).count()
+}
+
+/// What the sample project holds, counted from its files: the totals a test compares a printed one with, so that a
+/// change of the sample is not written again in the tests.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SampleFacts {
+    /// Its terminals: the devices of kind `terminal`.
+    pub terminals: usize,
+    /// Its PLC channels.
+    pub channels: usize,
+}
+
+/// The [`SampleFacts`] of [`SAMPLE`], read from its record files (one record a line, its kind first in `"$k"`).
+///
+/// # Panics
+///
+/// When a file of the sample cannot be read.
+pub fn sample_facts() -> SampleFacts {
+    fn lines(dir: &Path, out: &mut Vec<String>) {
+        let entries = std::fs::read_dir(dir).unwrap_or_else(|e| panic!("cannot read {}: {e}", dir.display()));
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                lines(&path, out);
+            } else if path.extension().is_some_and(|x| x == "jsonl") {
+                let text = std::fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+                out.extend(text.lines().map(str::to_owned));
+            }
+        }
+    }
+    let mut records = Vec::new();
+    lines(Path::new(SAMPLE), &mut records);
+    let of = |kind: &str| format!("{{\"$k\":\"{kind}\"");
+    SampleFacts {
+        terminals: records
+            .iter()
+            .filter(|r| r.starts_with(&of("device")) && r.contains("\"kind\":\"terminal\""))
+            .count(),
+        channels: records.iter().filter(|r| r.starts_with(&of("channel"))).count(),
+    }
+}
+
 /// A fresh temporary directory ([`fresh_dir`]), removed on drop.
 pub struct Tmp(pub PathBuf);
 
@@ -131,7 +187,12 @@ pub fn compare_or_bless(path: &Path, actual: impl AsRef<[u8]>) {
     if expected != actual {
         match (std::str::from_utf8(&expected), std::str::from_utf8(actual)) {
             (Ok(expected), Ok(actual)) => {
-                assert_eq!(actual, expected, "{} differs (EW_BLESS=1 rewrites it)", path.display());
+                assert_eq!(
+                    actual,
+                    expected,
+                    "{} differs (EW_BLESS=1 rewrites it)",
+                    path.display()
+                );
             }
             _ => panic!("{} differs (EW_BLESS=1 rewrites it)", path.display()),
         }

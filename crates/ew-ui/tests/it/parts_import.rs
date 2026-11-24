@@ -98,9 +98,12 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     assert!(h.state().shell().parts_map().is_none());
     // The read's outcome once, in the toast; the Preview tab shows the card with its title and buttons, and
     // neither a strip over the tab title nor the tab repeats the counts.
+    let rows = ew_testdir::table_rows("parts.csv");
     assert_eq!(
-        toast(&h).as_deref(),
-        Some("Read parts.csv: 29 new, 0 already in the project, 0 rejected.")
+        toast(&h),
+        Some(format!(
+            "Read parts.csv: {rows} new, 0 already in the project, 0 rejected."
+        ))
     );
     assert_eq!(
         h.state()
@@ -112,7 +115,10 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
         1,
         "one toast"
     );
-    assert!(h.query_by_label_contains("parts.csv: 29 created").is_none());
+    assert!(
+        h.query_by_label_contains(&format!("parts.csv: {rows} created"))
+            .is_none()
+    );
     assert!(h.query_by_label_contains("Preview open").is_none());
     assert!(h.query_by_label_contains("part copies").is_none());
     assert!(h.state().shell().banner().is_none());
@@ -137,15 +143,15 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     assert!(h.state().shell().can_undo());
     assert!(h.state().shell().banner().is_none(), "a toast, not a banner");
     assert_eq!(
-        toast(&h).as_deref(),
-        Some("Imported 29 parts from parts.csv (0 skipped).")
+        toast(&h),
+        Some(format!("Imported {rows} parts from parts.csv (0 skipped)."))
     );
-    // Saved, closed and read back: the 29 part copies.
+    // Saved, closed and read back: a part copy per row.
     let shell = h.state_mut().shell_mut();
     assert_eq!(shell.dispatch("file.save", &Value::Null), Outcome::Done);
     assert_eq!(shell.dispatch("file.close", &Value::Null), Outcome::Done);
     let (reopened, _) = Session::open_read_only(&dir, "0.0.0-test").unwrap();
-    assert_eq!(reopened.query().parts().iter().count(), 29);
+    assert_eq!(reopened.query().parts().iter().count(), rows);
 }
 
 #[test]

@@ -644,10 +644,12 @@ fn sql(query: &str) -> Output {
 /// read leaves no lock behind.
 #[test]
 fn sql_inline_query_may_start_with_a_comment() {
-    // The sample's 18 terminals: 5 on -X1011, 8 on -X1021, 5 on -X1031.
     let o = sql("-- the sample's terminals\nSELECT count(*) AS n FROM api_v1_terminal");
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), "n\n18\n");
+    assert_eq!(
+        stdout(&o),
+        format!("n\n{}\n", ew_testdir::sample_facts().terminals)
+    );
     assert!(stderr(&o).contains("1 rows"), "{}", stderr(&o));
     assert!(!std::path::Path::new(SAMPLE).join(".~ew.lock").exists());
 }
@@ -1891,7 +1893,7 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
     out
 }
 
-/// `ew import parts` creates a part copy per row of the test tables' `parts.csv` (29), and the recorded command
+/// `ew import parts` creates a part copy per row of the test tables' `parts.csv`, and the recorded command
 /// replays through `ew apply` to the same bytes.
 #[test]
 fn import_parts_creates_a_copy_per_row_and_replays_through_apply() {
@@ -1907,12 +1909,13 @@ fn import_parts_creates_a_copy_per_row_and_replays_through_apply() {
         a.as_os_str(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let rows = ew_testdir::table_rows("parts.csv");
     assert_eq!(
         stdout(&o),
-        "imported parts.csv: 29 created, 0 skipped, 0 errors; saved\n"
+        format!("imported parts.csv: {rows} created, 0 skipped, 0 errors; saved\n")
     );
     let mine = tree(&a.join("lib/parts"));
-    assert_eq!(mine.len(), 29);
+    assert_eq!(mine.len(), rows);
 
     let parts = {
         let (session, _) = ew_api::Session::open_reader(&b, "test", "test").expect("the copy opens");
@@ -1953,9 +1956,10 @@ fn a_second_import_parts_skips_every_key() {
     let before = tree(&a.join("lib"));
     let o = run();
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let rows = ew_testdir::table_rows("parts.csv");
     assert_eq!(
         stdout(&o),
-        "imported parts.csv: 0 created, 29 skipped, 0 errors; saved\n"
+        format!("imported parts.csv: 0 created, {rows} skipped, 0 errors; saved\n")
     );
     assert!(
         tree(&a.join("lib")) == before,
@@ -2008,7 +2012,7 @@ fn import_parts_refusals_name_line_and_column() {
 }
 
 /// `ew import parts` with a `parts.csv` and sibling tables that a spreadsheet
-/// saved with a byte-order mark creates the same 29 part copies as the test tables without it.
+/// saved with a byte-order mark creates the same part copies as the test tables without it.
 #[test]
 fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
     let t = Tmp::new("ew-cli-test");
@@ -2041,12 +2045,13 @@ fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
     let bom = parts_target(&t, "parts-bom.ew");
     let o = import(&marked.join("parts.csv"), &bom);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let rows = ew_testdir::table_rows("parts.csv");
     assert_eq!(
         stdout(&o),
-        "imported parts.csv: 29 created, 0 skipped, 0 errors; saved\n"
+        format!("imported parts.csv: {rows} created, 0 skipped, 0 errors; saved\n")
     );
     assert!(stderr(&o).is_empty(), "{}", stderr(&o));
-    assert_eq!(tree(&bom.join("lib/parts")).len(), 29);
+    assert_eq!(tree(&bom.join("lib/parts")).len(), rows);
     assert_eq!(
         comparable_parts(&bom.join("lib/parts")),
         comparable_parts(&plain.join("lib/parts")),

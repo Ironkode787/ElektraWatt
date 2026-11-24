@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The test tables' parts table (`fixtures/tables/`) read through `read_parts_tables` and dispatched as `parts.import`
-//! into a new project: its 29 part copies, project-local, the starter FnDefs resolved; a second import skips
+//! into a new project: a part copy per row, project-local, the starter FnDefs resolved; a second import skips
 //! every key; the picker lists the parts with a function template.
 
 use std::path::Path;
@@ -46,11 +46,12 @@ fn import(s: &mut Session) -> ew_api::Receipt {
 fn the_parts_table_imports_into_a_new_project_once() {
     let mut s = session();
     let r = import(&mut s);
-    assert_eq!(r.outcome.note.as_deref(), Some("created 29, skipped 0"));
-    assert_eq!(s.query().parts().iter().count(), 29);
+    let rows = ew_testdir::table_rows("parts.csv");
+    assert_eq!(r.outcome.note, Some(format!("created {rows}, skipped 0")));
+    assert_eq!(s.query().parts().iter().count(), rows);
     let r = import(&mut s);
-    assert_eq!(r.outcome.note.as_deref(), Some("created 0, skipped 29"));
-    assert_eq!(s.query().parts().iter().count(), 29);
+    assert_eq!(r.outcome.note, Some(format!("created 0, skipped {rows}")));
+    assert_eq!(s.query().parts().iter().count(), rows);
     let folio = s.page_labels().first().cloned().unwrap();
     let cat = s.place_catalogue(&folio).expect("a drawn page");
     assert!(
@@ -124,7 +125,7 @@ fn a_bom_prefixed_parts_table_imports_the_same_copies() {
     std::fs::remove_dir_all(&dir).unwrap();
     let marked = marked.expect("the BOM-prefixed tables read");
     assert_eq!(marked.siblings, plain.siblings);
-    assert_eq!(marked.copies.len(), 29);
+    assert_eq!(marked.copies.len(), ew_testdir::table_rows("parts.csv"));
     assert_eq!(marked.copies, plain.copies, "the same part copies");
     // The bootstrap's reader keeps refusing the mark.
     let strict = ew_import_tables::csv::parse(
@@ -142,5 +143,6 @@ fn a_bom_prefixed_parts_table_imports_the_same_copies() {
         .preview_with(&cmd, ew_api::Submit::from(ew_api::Origin::Gui))
         .unwrap();
     let r = s.commit(preview).unwrap();
-    assert_eq!(r.outcome.note.as_deref(), Some("created 29, skipped 0"));
+    let rows = ew_testdir::table_rows("parts.csv");
+    assert_eq!(r.outcome.note, Some(format!("created {rows}, skipped 0")));
 }

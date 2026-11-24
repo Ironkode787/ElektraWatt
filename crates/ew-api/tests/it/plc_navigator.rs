@@ -121,7 +121,7 @@ fn each_facet_on_the_sample() {
     assert_eq!(with(&t, "spare", "").len(), 13, "FR-PLC-021");
     assert_eq!(with(&t, "unplaced", "").len(), 4);
     let config = t.nodes[0].label.clone();
-    assert_eq!(with(&t, "config", &config).len(), 24);
+    assert_eq!(with(&t, "config", &config).len(), ew_testdir::sample_facts().channels);
     assert!(with(&t, "unassigned", "").is_empty());
     assert!(with(&t, "tbd", "").is_empty());
     assert!(with(&t, "duplicate", "").is_empty());

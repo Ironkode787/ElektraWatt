@@ -144,7 +144,7 @@ fn include_deactivated_lists_24_rows_in_place() {
     let s = sample_with_block(with_params(block.clone(), json!({"include_deactivated": true})));
     let q = s.query();
     let rows = printed(&q, block.id);
-    assert_eq!(rows.len(), 24);
+    assert_eq!(rows.len(), ew_testdir::sample_facts().channels);
     let deactivated: Vec<&str> = rows
         .iter()
         .filter(|r| r[19] == "deactivated")

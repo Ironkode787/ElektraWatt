@@ -91,18 +91,24 @@ fn the_table_parts_table_imports_through_the_card_once() {
         "a Bulk command is previewed through the host"
     );
     assert!(!shell.can_undo(), "the card waits for Apply");
+    let rows = ew_testdir::table_rows("parts.csv");
     let text = shell.describe();
     assert!(
-        text.contains("card ready \"parts.import\" created 29 skipped 0 errors 0"),
+        text.contains(&format!(
+            "card ready \"parts.import\" created {rows} skipped 0 errors 0"
+        )),
         "{text}"
     );
     let card = &common::state(&shell)["card"];
     assert_eq!(card["command"], "parts.import");
     assert_eq!(card["origin"], "import");
     assert_eq!(card["state"], "ready");
-    // The preview says what it imports in words, not "29 records".
+    // The preview says what it imports in words, not a count of records.
     let summary = shell.preview_summary().expect("a summary");
-    assert_eq!(summary, "29 new parts \u{b7} 0 already in the project");
+    assert_eq!(
+        summary,
+        format!("{rows} new parts \u{b7} 0 already in the project")
+    );
     // The card is the import's own: Apply and Cancel need neither the grid nor the find pane.
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.can_undo(), "one undo step");
@@ -110,14 +116,14 @@ fn the_table_parts_table_imports_through_the_card_once() {
     assert_eq!(shell.banner(), None);
     assert_eq!(
         common::state(&shell)["toast"]["text"],
-        "Imported 29 parts from parts.csv (0 skipped)."
+        format!("Imported {rows} parts from parts.csv (0 skipped).")
     );
     assert!(shell.properties().card().is_none());
-    // Saved, closed and read back: 29 project-local part copies.
+    // Saved, closed and read back: a project-local part copy per row.
     done(&mut shell, "file.save", json!({}));
     done(&mut shell, "file.close", json!({}));
     let (reopened, _) = Session::open_read_only(&dir, VERSION).unwrap();
-    assert_eq!(reopened.query().parts().iter().count(), 29);
+    assert_eq!(reopened.query().parts().iter().count(), rows);
     // A second import skips every key.
     new_project(&mut shell, &tmp.0.join("again.ew"));
     done(
@@ -135,7 +141,9 @@ fn the_table_parts_table_imports_through_the_card_once() {
     done(&mut shell, "parts.map_import", json!({}));
     let text = shell.describe();
     assert!(
-        text.contains("card ready \"parts.import\" created 0 skipped 29 errors 0"),
+        text.contains(&format!(
+            "card ready \"parts.import\" created 0 skipped {rows} errors 0"
+        )),
         "{text}"
     );
     done(&mut shell, "preview.cancel", json!({}));
@@ -203,8 +211,13 @@ fn the_transcript_is_byte_identical_across_runs_and_has_no_uuid() {
     let b = run_flow("parts-det-b");
     assert_eq!(a, b);
     assert_eq!(ew_viewmodel::alias::find_uuid(&a), None, "{a}");
-    assert!(a.contains("card ready \"parts.import\" created 29 skipped 0 errors 0"));
-    assert!(a.contains("card ready \"parts.import\" created 0 skipped 29 errors 0"));
+    let rows = ew_testdir::table_rows("parts.csv");
+    assert!(a.contains(&format!(
+        "card ready \"parts.import\" created {rows} skipped 0 errors 0"
+    )));
+    assert!(a.contains(&format!(
+        "card ready \"parts.import\" created 0 skipped {rows} errors 0"
+    )));
 }
 
 #[test]

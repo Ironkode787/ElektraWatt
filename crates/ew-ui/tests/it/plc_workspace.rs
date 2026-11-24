@@ -71,8 +71,9 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     // The workspace's grid makes the canvas shorter: the page fits it again, whole.
     let canvas = h.state().shell().canvas().expect("the canvas");
     assert!(canvas.is_fitted() && !canvas.is_first_view(), "Fit page");
-    // The sample's 24 channels: the CPU's input and output cards, eight each, and the valve terminal's eight outputs.
-    assert_eq!(grid_rows(&h), 24);
+    // The sample's channels: the CPU's input and output cards and the valve terminal's outputs.
+    let channels = ew_testdir::sample_facts().channels;
+    assert_eq!(grid_rows(&h), channels);
     // FT-776: the Address header grows by its sort icon when sorted, so its word is not cut.
     let width = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, label: &str| {
         h.get_by_label_contains(label).rect().width()
@@ -83,7 +84,11 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     assert!(width(&h, "Sort by Address, sorted") > before);
     // FT-738: the grid's filter takes the net of the station's bus port and the safety flag.
     grid_filter(&mut h, "bus:profibus-dp");
-    assert_eq!(grid_rows(&h), 24, "every channel of the PROFIBUS DP stations");
+    assert_eq!(
+        grid_rows(&h),
+        channels,
+        "every channel of the PROFIBUS DP stations"
+    );
     grid_filter(&mut h, "safety");
     assert_eq!(grid_rows(&h), 0, "the sample has no safety data");
     h.state_mut().shell_mut().shutdown();
@@ -835,8 +840,11 @@ fn the_plc_exchange_exports_and_previews_an_import() {
         .toast()
         .map(|t| t.text.clone())
         .unwrap_or_default();
+    let channels = ew_testdir::sample_facts().channels;
     assert!(
-        toast.starts_with("Exported plc.aml: 2 stations, 3 modules, 24 channels"),
+        toast.starts_with(&format!(
+            "Exported plc.aml: 2 stations, 3 modules, {channels} channels"
+        )),
         "{toast}"
     );
     // The project's own file read back: nothing differs from the exchange just recorded.
