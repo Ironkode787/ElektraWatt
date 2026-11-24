@@ -545,37 +545,6 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
     )
 }
 
-/// The page point of the tag text `rep` prints with `def`, by the scene's rules (`ew_scene::page`'s
-/// labels): the first tag slot, visible by the representation's override, else by its named arrangement, else by the
-/// slot's default; the override's position, else the slot's place (`ew_scene::symbol::slot_places`), in the
-/// representation's text frame (`ew_derive::text_frame`: on a half-turned black box, as on the box unturned). With it
-/// the em height (nm)
-/// of the slot's text style in the project's table `styles`.
-fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyleTable) -> Option<(Pt2, i64)> {
-    let (i, slot) = def
-        .text_slots
-        .iter()
-        .enumerate()
-        .find(|(_, s)| matches!(s.kind, ew_derive::ew_schema::SlotKind::Tag))?;
-    let index = u16::try_from(i).ok()?;
-    let ov = rep.text_slots.iter().find(|o| o.slot == index);
-    let visible = ew_derive::slot_shown(rep, def, index);
-    let (style, _) = ew_scene::symbol::slot_style_key(def, slot, styles);
-    let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
-    let frame = ew_derive::text_frame(rep, def);
-    let at = match ov.and_then(|o| o.pos) {
-        Some(pos) => frame.place(pos)?,
-        None if ov.and_then(|o| o.angle).is_some() => frame.place(slot.pos)?,
-        // Where the symbol puts it: on a symbol turned a quarter, placed anew round its body.
-        None => frame.origin.checked_add(
-            ew_scene::symbol::slot_places(def, frame.orient, |n| n == i)
-                .swap_remove(i)
-                .0,
-        )?,
-    };
-    visible.then_some((at, em))
-}
-
 /// The body of a shape under orientation `o`, translated to `pos`.
 pub(super) fn placed_body(body: [i64; 4], o: u8, pos: (i64, i64)) -> [i64; 4] {
     let a = orient_point(o, (body[0], body[1]));
@@ -706,7 +675,7 @@ impl Session {
                 .then(|| {
                     q.symbols()
                         .get(rep.symbol)
-                        .and_then(|s| tag_anchor(&rep, &s.item, &styles))
+                        .and_then(|s| ew_scene::page::tag_anchor(&rep, &s.item, &styles))
                 })
                 .flatten()
                 .map(|(p, em)| {

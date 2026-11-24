@@ -974,6 +974,37 @@ pub fn drawn_cps(grid: Grid, reps: &[RepView]) -> BTreeMap<(Uuid, u16), (Pt2, Di
     map
 }
 
+/// The page point of the tag text `rep` prints with `def`, by the scene's rules (the labels
+/// layer's): the first tag slot, visible by the representation's override, else by its named arrangement, else by the
+/// slot's default; the override's position, else the slot's place (`symbol::slot_places`), in the
+/// representation's text frame (`ew_derive::text_frame`: on a half-turned black box, as on the box unturned). With it
+/// the em height (nm)
+/// of the slot's text style in the project's table `styles`.
+pub fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &TextStyleTable) -> Option<(Pt2, i64)> {
+    let (i, slot) = def
+        .text_slots
+        .iter()
+        .enumerate()
+        .find(|(_, s)| matches!(s.kind, ew_schema::SlotKind::Tag))?;
+    let index = u16::try_from(i).ok()?;
+    let ov = rep.text_slots.iter().find(|o| o.slot == index);
+    let visible = ew_derive::slot_shown(rep, def, index);
+    let (style, _) = symbol::slot_style_key(def, slot, styles);
+    let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
+    let frame = ew_derive::text_frame(rep, def);
+    let at = match ov.and_then(|o| o.pos) {
+        Some(pos) => frame.place(pos)?,
+        None if ov.and_then(|o| o.angle).is_some() => frame.place(slot.pos)?,
+        // Where the symbol puts it: on a symbol turned a quarter, placed anew round its body.
+        None => frame.origin.checked_add(
+            symbol::slot_places(def, frame.orient, |n| n == i)
+                .swap_remove(i)
+                .0,
+        )?,
+    };
+    visible.then_some((at, em))
+}
+
 pub(crate) fn polyline_of(view: &PageView, cps: &CpMap, c: &Connection, page: Rect) -> Option<Vec<Pt2>> {
     let junction_at = |j: Id<Junction>| {
         view.junctions
