@@ -941,6 +941,37 @@ impl Tool for BlackBoxTool {
         }
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        let json = cmd.to_json().ok();
+        let ports = cmd.name() == "bus.place_ports";
+        super::Follows {
+            // A valve terminal drawn as its positions answers as a placement does, with what its positions hold.
+            placed: (cmd.name() == "box.black"
+                && json.as_ref().is_some_and(|j| j["box"].get("slots").is_some()))
+            .then(super::Placement::default),
+            // A station placed first on a bus page takes the tag of the page its box is drawn on now, which the toast
+            // says (FT-1766).
+            retag: true,
+            drew_existing: ports && json.as_ref().is_some_and(|j| j["target"].get("device").is_some()),
+            // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with
+            // one tag appeared "unexplained".
+            boxes: json
+                .as_ref()
+                .filter(|_| ports)
+                .and_then(|j| j["boxes"].as_array().map(Vec::len))
+                .filter(|n| *n > 1),
+            // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way to
+            // Select (a second click placed a second terminal on the first). So does a station put on a bus page: its
+            // interfaces are all drawn there now, and the tool kept taking it ("-3A1 DP is drawn on this page
+            // already"). So does a PLC part's box placed with Place here: the part is drawn now, and a second click
+            // was refused.
+            gives_way: self.one_click()
+                || matches!(self.target(), BoxTarget::Ports { target, .. } if target.get("device").is_some())
+                || matches!(self.target(), BoxTarget::Station { .. }),
+            ..super::Follows::default()
+        }
+    }
+
     fn status_hint(&self) -> super::Hint {
         match self.state {
             State::Armed { .. } if self.dropped => {

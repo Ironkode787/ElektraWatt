@@ -30,12 +30,13 @@ use super::navigation::bump;
 use super::{Focus, Mode, Outcome, RecordedCommand, ShellModel, failed, flag};
 use crate::canvas::{CanvasModel, CanvasPage, PageId, reading_key};
 use crate::key;
+use crate::notifications::{Note, NoteAction, NoteTone};
 use crate::properties::SheetSection;
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{
-    Button, CanvasEvent, LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, MarkerKind, Mods, Overlay,
-    PreviewInfo, PreviewState, PreviewStatus, ResultNote, Selection, SelectionChange, Tool, ToolCx,
+    Button, CanvasEvent, Follows, LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, MarkerKind, Mods,
+    Overlay, PreviewInfo, PreviewState, PreviewStatus, ResultNote, Selection, SelectionChange, Tool, ToolCx,
     ToolOutput, tool_label, tool_named,
 };
 use ew_dl::EntityRef;
@@ -328,8 +329,9 @@ impl ShellModel {
     /// tooltip ends with), as an information toast of key `disabled`, so a second click replaces it rather than
     /// stacking.
     pub fn explain_disabled(&mut self, text: String) {
-        self.notes
-            .push(crate::notifications::Note::new(DISABLED, text).toned(crate::notifications::NoteTone::Info));
+        self.notes.push(
+            crate::notifications::Note::new(DISABLED, text).toned(crate::notifications::NoteTone::Info),
+        );
     }
 
     /// The reason [`ShellModel::explain_disabled`] shows while its toast is on screen: the status line says it too.
@@ -644,308 +646,8 @@ impl ShellModel {
             ToolOutput::Host(crate::tools::HostStep::PinForWire { rep, pin }) => self.pin_for_wire(rep, pin),
             ToolOutput::Commit(cmd) => {
                 let cmd = self.with_terminal(self.without_held_copies(cmd));
-                // A drop into a valve terminal's box says where the device sits now.
-                let into = cmd.to_json().is_ok_and(|j| j.get("into").is_some());
-                self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
-                // The wires a placement draws by its autoconnect hints, said in the toast.
-                let connects = self.autoconnect_words(cmd.as_ref());
-                // The pin the IP tool's point connects to, as its ghost named it before the commit.
-                let ip_pin = match self.tools.tool.ghost() {
-                    Some(crate::tools::Ghost::Ip { connects, .. })
-                        if cmd.name() == "connection.draw_to_ip" =>
-                    {
-                        connects
-                    }
-                    _ => None,
-                };
-                // The IP tool's "0V is taken, so this point is 0V-1.", said again by the placement's toast.
-                let taken = match cmd.name() {
-                    "ip.place" | "connection.draw_to_ip" => self.tools.tool.proposal_note(),
-                    _ => None,
-                };
-                // A point placed beside a pin without joining it says so.
-                let beside = match cmd.name() {
-                    "ip.place" => self.tools.tool.commit_note(),
-                    _ => None,
-                };
-                // A terminal moved off a terminal of its strip, said again by the placement's toast.
-                let moved = match cmd.name() {
-                    "device.place" => self.tools.tool.proposal_note(),
-                    _ => None,
-                };
-                let far = self.far_offers(cmd.as_ref());
-                self.tools.put_down = true;
-                self.tools.drew_existing = cmd.name() == "bus.place_ports"
-                    && cmd.to_json().is_ok_and(|j| j["target"].get("device").is_some());
-                // The tags of the devices a box placement draws again: a station placed first on a bus page takes
-                // the tag of the page its box is drawn on now, which the toast says (FT-1766).
-                let mut retag = cmd
-                    .to_json()
-                    .map(|j| self.redrawn_tags(cmd.name(), &j))
-                    .unwrap_or_default();
-                // A paste that brings back what a cut left unplaced compares with the tags before the cut, once.
-                let mut moved_back = Vec::new();
-                if cmd.name() == "edit.paste" {
-                    let cut = std::mem::take(&mut self.tools.cut_tags);
-                    moved_back = cut.iter().map(|(d, _)| *d).collect();
-                    for (d, tag) in &mut retag {
-                        if let Some((_, was)) = cut.iter().find(|(c, _)| c == d) {
-                            tag.clone_from(was);
-                        }
-                    }
-                }
-                // A drawn wire that brings an error says so at once, in the finding's words (a persona run joined L
-                // and N by two missed clicks and nothing said so). The online report is memoised per revision.
-                let wire = matches!(cmd.name(), "connection.draw" | "connection.draw_many");
-                let errors_before = if wire { self.open_errors() } else { Vec::new() };
-                // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
-                // replaces it.
-                let out = self.run_commit(cmd.as_ref());
-                if out == Outcome::Done && wire {
-                    let new: Vec<String> = self
-                        .open_errors()
-                        .into_iter()
-                        .filter(|(f, _)| !errors_before.iter().any(|(b, _)| b == f))
-                        .map(|(_, message)| message.trim_end_matches('.').to_owned())
-                        .collect();
-                    if !new.is_empty() {
-                        let text = strings::format(key!("toast-wire-error"), &[&new.join("; ")]);
-                        let undo = self.undo_offer(crate::notifications::NoteAction::Undo);
-                        self.notes.push(
-                            crate::notifications::Note::new("edit", text)
-                                .offering([undo])
-                                .toned(crate::notifications::NoteTone::Error),
-                        );
-                    }
-                }
-                if out == Outcome::Done {
-                    // A paste also says what it did besides: the wires it removed with the devices it brought back.
-                    let notices = match cmd.name() {
-                        "edit.paste" if !self.tools.commit_notices.is_empty() => Some(strings::format(
-                            key!("toast-paste-notices"),
-                            &[&self.tools.commit_notices.join("; ")],
-                        )),
-                        _ => None,
-                    };
-                    // A paste that brings cut devices back says first what it moved, replacing the Cut's toast.
-                    let moved = cmd
-                        .to_json()
-                        .ok()
-                        .filter(|_| !moved_back.is_empty())
-                        .and_then(|j| self.moved_words(&moved_back, &j));
-                    let parts: Vec<String> = moved
-                        .into_iter()
-                        .chain(self.retagged_words(cmd.name(), &retag))
-                        .chain(notices)
-                        .collect();
-                    // A tag the paste changed can be kept as it read (frozen), beside Undo.
-                    let kept: Vec<(ew_api::output::Uuid, String)> = match cmd.name() {
-                        "edit.paste" => self
-                            .retagged(&retag)
-                            .into_iter()
-                            .map(|(d, was, _)| (d, was))
-                            .collect(),
-                        _ => Vec::new(),
-                    };
-                    if !kept.is_empty() {
-                        self.notify_keep_tags(parts.join(" "), &kept);
-                    } else if !parts.is_empty() {
-                        self.notify(parts.join(" "), true);
-                    }
-                }
-                // A refused interruption point keeps its ghost where it was and says why.
-                let (out, keep_ghost) = self.ip_commit_refused(out);
-                // Tip 1, a Line segment of the Graphic tool ending on a connection point.
-                if out == Outcome::Done
-                    && self.tools.tool.name() == "graphic"
-                    && let Ok(json) = cmd.to_json()
-                    && super::tips::line_ends_on_cp(&json, self.tools.before_commit.as_deref())
-                {
-                    self.offer_tip(super::Tip::LineOnCp, Vec::new());
-                }
-                // Every placement answers with its result line (the tag and the cell, and the wires it drew),
-                // said at the end of the dispatch, once the page tables show it.
-                // A valve terminal drawn as its positions answers the same way, with what its positions hold.
-                if out == Outcome::Done
-                    && (cmd.name() == "device.place"
-                        || (cmd.name() == "box.black"
-                            && cmd.to_json().is_ok_and(|j| j["box"].get("slots").is_some())))
-                    && let Ok(json) = cmd.to_json()
-                    && let (Some(x), Some(y)) = (json["pos"][0].as_i64(), json["pos"][1].as_i64())
-                {
-                    // A Terminal… row places its terminals in one dispatch and names the last: the wires of the
-                    // terminals before it are said too (a persona run read only the last terminal's placement).
-                    let connects = match (self.tools.result_note.take(), connects) {
-                        (
-                            Some(ResultNote::Placed {
-                                wires: Some((t, mut earlier)),
-                                ..
-                            }),
-                            now,
-                        ) => {
-                            let (tubes, list) = now.unwrap_or((t, Vec::new()));
-                            earlier.extend(list);
-                            Some((tubes && t, earlier))
-                        }
-                        (_, now) => now,
-                    };
-                    self.tools.result_note = Some(ResultNote::Placed {
-                        pos: (x, y),
-                        wires: connects,
-                        moved,
-                        into,
-                        far,
-                    });
-                }
-                // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with
-                // one tag appeared "unexplained".
-                if out == Outcome::Done
-                    && cmd.name() == "bus.place_ports"
-                    && let Ok(json) = cmd.to_json()
-                    && let Some(boxes) = json["boxes"].as_array().map(Vec::len).filter(|n| *n > 1)
-                {
-                    let text = strings::format(key!("toast-placed-boxes"), &[&boxes.to_string()]);
-                    self.notify(text, true);
-                }
-                if out == Outcome::Done
-                    && let Some(pin) = ip_pin
-                    && let Ok(json) = cmd.to_json()
-                    && let (Some(x), Some(y)) = (json["ip"]["pos"][0].as_i64(), json["ip"]["pos"][1].as_i64())
-                {
-                    self.tools.result_note = Some(ResultNote::IpConnected {
-                        pos: (x, y),
-                        name: json["ip"]["name"].as_str().unwrap_or_default().to_owned(),
-                        pin,
-                        external: !json["ip"]["external"].is_null(),
-                        taken,
-                        // What it pairs with, as a point placed free says it (a point dropped on a pin said
-                        // nothing of its partner).
-                        placed: self.ip_placed_text(&json["ip"]),
-                    });
-                } else if out == Outcome::Done && (taken.is_some() || cmd.name() == "ip.place") {
-                    // A point placed free says what it became and where its partner is, after the reason
-                    // of a renamed point: a click made without reading the pointer's label still tells.
-                    let placed = match cmd.name() {
-                        "ip.place" => cmd.to_json().ok().and_then(|json| self.ip_placed_text(&json)),
-                        _ => None,
-                    };
-                    let text: Vec<String> = taken.into_iter().chain(placed).chain(beside).collect();
-                    if !text.is_empty() {
-                        self.notify(text.join(" "), true);
-                    }
-                }
-                self.tools.tool.on_commit(out == Outcome::Done);
-                if !keep_ghost {
-                    self.tools.overlay = Overlay::default();
-                }
-                self.tools.preview = None;
-                // A committed paste returns to Select with the pasted representations selected.
-                self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
-                self.tools.paste_fit = self
-                    .tools
-                    .pasted
-                    .then(|| cmd.to_json().ok())
-                    .flatten()
-                    .and_then(|json| self.paste_fit_of(&json));
-                // FT-900: what a placement made is the selection, replacing it: the schematic Place tool's
-                // representations (the tool stays armed) and a layout drop's placement, at the end of the dispatch.
-                self.tools.placed = out == Outcome::Done && self.tools.tool.name() == "place";
-                if out == Outcome::Done
-                    && cmd.name() == "layout.place"
-                    && let Ok(params) = cmd.to_json()
-                {
-                    self.tools.placed_device = params["device"].as_str().and_then(|s| s.parse().ok());
-                }
-                // The pick stack under the drop point is the dropped item and what it sits on; the HUD says
-                // nothing of it until the pointer moves on.
-                if out == Outcome::Done && matches!(cmd.name(), "layout.place" | "layout.move") {
-                    self.tools.quiet_stack_at = self.canvas().and_then(CanvasModel::pointer);
-                }
-                // The IP tool's memory and its next name.
-                if out == Outcome::Done {
-                    self.after_ip_commit();
-                }
-                // A dragged placement is selected after its move; the layout place tool, its device
-                // placed, gives way to Select.
-                self.tools.layout_announce |= out == Outcome::Done && cmd.name().starts_with("layout.");
-                if out == Outcome::Done
-                    && cmd.name() == "layout.move"
-                    && let Ok(params) = cmd.to_json()
-                    && let Some(id) = params["placement"].as_str().and_then(|s| s.parse().ok())
-                    && self
-                        .tools
-                        .selection
-                        .apply(&SelectionChange::Replace(vec![EntityRef(id)]))
-                {
-                    self.announce_selection();
-                }
-                // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way
-                // to Select too (a second click placed a second terminal on the first).
-                // So does a station put on a bus page: its interfaces are all drawn there now, and the tool kept taking
-                // it ("-3A1 DP is drawn on this page already"). So does a PLC part's box placed
-                // with Place here: the part is drawn now, and a second click was refused.
-                let gives_way = self
-                    .tools
-                    .tool
-                    .as_any_mut()
-                    .and_then(|t| t.downcast_ref::<crate::tools::black_box::BlackBoxTool>())
-                    .is_some_and(|t| {
-                        t.one_click()
-                            || matches!(t.target(), crate::tools::BoxTarget::Ports { target, .. }
-                                if target.get("device").is_some())
-                            || matches!(t.target(), crate::tools::BoxTarget::Station { .. })
-                    });
-                if out == Outcome::Done
-                    && (self.tools.tool.name() == "layout_place" || gives_way)
-                    && let Some(select) = tool_named("select")
-                {
-                    self.tools.tool = select;
-                    self.tool_epoch = self.tool_epoch.wrapping_add(1);
-                    self.announce_tool();
-                }
-                // After Select commits a move or a transform, the selection is the moved representations (one
-                // selection change, no command).
-                if out == Outcome::Done
-                    && into
-                    && cmd.name() == "rep.move"
-                    && let Ok(params) = cmd.to_json()
-                    && let Some(device) = params["reps"][0].as_str().and_then(|r| {
-                        self.canvas()?
-                            .page()
-                            .tables
-                            .reps
-                            .iter()
-                            .find(|x| x.id.to_string() == r)?
-                            .device
-                    })
-                    && let Some(text) = self.seat_words(device)
-                {
-                    self.notify(text, true);
-                }
-                if out == Outcome::Done
-                    && self.tools.tool.name() == "select"
-                    && matches!(cmd.name(), "rep.move" | "rep.transform")
-                    && let Ok(params) = cmd.to_json()
-                {
-                    let reps: Vec<EntityRef> = params["reps"]
-                        .as_array()
-                        .into_iter()
-                        .flatten()
-                        .filter_map(|v| {
-                            let id = v.as_str()?;
-                            self.canvas()?
-                                .page()
-                                .entities
-                                .iter()
-                                .find(|(e, _)| e.0.to_string() == id)
-                                .map(|(e, _)| *e)
-                        })
-                        .collect();
-                    if !reps.is_empty() && self.tools.selection.apply(&SelectionChange::Replace(reps)) {
-                        self.announce_selection();
-                    }
-                }
-                out
+                let follows = self.tools.tool.follows(cmd.as_ref());
+                self.commit_tool(cmd.as_ref(), follows)
             }
             ToolOutput::Cancel => {
                 self.tools.overlay = Overlay::default();
@@ -996,6 +698,300 @@ impl ShellModel {
                 self.tools.overlay = Overlay::default();
                 self.follow_dest(dest)
             }
+        }
+    }
+
+    /// The host's commit of a tool's command `cmd` with what the tool said follows it ([`Tool::follows`], architecture
+    /// §9.2): what the toast and the selection need of the page before it changes is read, the command is committed,
+    /// and each part of `follows` is applied, for whichever tool set it.
+    fn commit_tool(&mut self, cmd: &dyn DynCommand, follows: Follows) -> Outcome {
+        let json = cmd.to_json().ok();
+        // A drop into a valve terminal's box says where the device sits now.
+        let into = json.as_ref().is_some_and(|j| j.get("into").is_some());
+        self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
+        // The wires a placement draws by its autoconnect hints, said in the toast, and the far hits it offers.
+        let (connects, far) = match &follows.placed {
+            Some(p) if p.autoconnect => (self.autoconnect_words(cmd), self.far_offers(cmd)),
+            _ => (None, Vec::new()),
+        };
+        self.tools.put_down = true;
+        self.tools.drew_existing = follows.drew_existing;
+        let (retag, moved_back) = self.tags_before_commit(cmd, json.as_ref(), &follows);
+        // The online report is memoised per revision.
+        let errors_before = if follows.wire_errors {
+            self.open_errors()
+        } else {
+            Vec::new()
+        };
+        // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit` replaces it.
+        let out = self.run_commit(cmd);
+        let done = out == Outcome::Done;
+        if done && follows.wire_errors {
+            self.say_wire_errors(&errors_before);
+        }
+        if done {
+            self.say_retagged(cmd, json.as_ref(), &follows, &retag, &moved_back);
+        }
+        // A refused interruption point keeps its ghost where it was and says why.
+        let (out, keep_ghost) = match follows.ip {
+            Some(_) => self.ip_commit_refused(out),
+            None => (out, false),
+        };
+        let done = out == Outcome::Done;
+        if done
+            && follows.line_tip
+            && let Some(json) = &json
+            && super::tips::line_ends_on_cp(json, self.tools.before_commit.as_deref())
+        {
+            self.offer_tip(super::Tip::LineOnCp, Vec::new());
+        }
+        if done && let (Some(placed), Some(json)) = (follows.placed, &json) {
+            self.note_placement(json, placed, connects, into, far);
+        }
+        if done && let Some(boxes) = follows.boxes {
+            let text = strings::format(key!("toast-placed-boxes"), &[&boxes.to_string()]);
+            self.notify(text, true);
+        }
+        if let Some(ip) = follows.ip.clone() {
+            self.note_ip(done, ip, json.as_ref());
+        }
+        self.tools.tool.on_commit(done);
+        if !keep_ghost {
+            self.tools.overlay = Overlay::default();
+        }
+        self.tools.preview = None;
+        // A committed paste returns to Select with the pasted representations selected.
+        self.tools.pasted = done && follows.paste;
+        self.tools.paste_fit = self
+            .tools
+            .pasted
+            .then_some(json.as_ref())
+            .flatten()
+            .and_then(|json| self.paste_fit_of(json));
+        // FT-900: what a placement made is the selection, replacing it, at the end of the dispatch.
+        self.tools.placed = done && follows.select_placed;
+        self.layout_committed(done, &follows.layout);
+        // The IP tool's memory and its next name.
+        if done && follows.ip.is_some() {
+            self.after_ip_commit();
+        }
+        if done
+            && follows.gives_way
+            && let Some(select) = tool_named("select")
+        {
+            self.tools.tool = select;
+            self.tool_epoch = self.tool_epoch.wrapping_add(1);
+            self.announce_tool();
+        }
+        if done && let Some(moved) = follows.moved {
+            self.after_reps_moved(&moved, into);
+        }
+        out
+    }
+
+    /// The tags of the devices a commit draws again, before it ([`ShellModel::redrawn_tags`]); a paste that brings
+    /// back what a cut left unplaced compares with the tags before the cut, once, and names the devices it brings back.
+    fn tags_before_commit(
+        &mut self,
+        cmd: &dyn DynCommand,
+        json: Option<&Value>,
+        follows: &Follows,
+    ) -> (Vec<(ew_api::output::Uuid, String)>, Vec<ew_api::output::Uuid>) {
+        let mut retag = match json {
+            Some(j) if follows.retag => self.redrawn_tags(cmd.name(), j),
+            _ => Vec::new(),
+        };
+        let mut moved_back = Vec::new();
+        if follows.paste {
+            let cut = std::mem::take(&mut self.tools.cut_tags);
+            moved_back = cut.iter().map(|(d, _)| *d).collect();
+            for (d, tag) in &mut retag {
+                if let Some((_, was)) = cut.iter().find(|(c, _)| c == d) {
+                    tag.clone_from(was);
+                }
+            }
+        }
+        (retag, moved_back)
+    }
+
+    /// A drawn wire that brought an error finding says so at once, in the finding's words, with Undo, in the error's
+    /// tone: the findings that were not open before it (`before`).
+    fn say_wire_errors(&mut self, before: &[(String, String)]) {
+        let new: Vec<String> = self
+            .open_errors()
+            .into_iter()
+            .filter(|(f, _)| !before.iter().any(|(b, _)| b == f))
+            .map(|(_, message)| message.trim_end_matches('.').to_owned())
+            .collect();
+        if !new.is_empty() {
+            let text = strings::format(key!("toast-wire-error"), &[&new.join("; ")]);
+            let undo = self.undo_offer(NoteAction::Undo);
+            self.notes
+                .push(Note::new("edit", text).offering([undo]).toned(NoteTone::Error));
+        }
+    }
+
+    /// A commit that changed tags says so: a paste first what it moved back from a cut, then the tags it changed, then
+    /// what it did besides (the wires it removed with the devices it brought back), and offers to keep the tags it
+    /// changed as they read, beside Undo; another commit the tags its boxes changed.
+    fn say_retagged(
+        &mut self,
+        cmd: &dyn DynCommand,
+        json: Option<&Value>,
+        follows: &Follows,
+        retag: &[(ew_api::output::Uuid, String)],
+        moved_back: &[ew_api::output::Uuid],
+    ) {
+        let notices = (follows.paste && !self.tools.commit_notices.is_empty()).then(|| {
+            strings::format(
+                key!("toast-paste-notices"),
+                &[&self.tools.commit_notices.join("; ")],
+            )
+        });
+        let moved = json
+            .filter(|_| !moved_back.is_empty())
+            .and_then(|j| self.moved_words(moved_back, j));
+        let parts: Vec<String> = moved
+            .into_iter()
+            .chain(self.retagged_words(cmd.name(), retag))
+            .chain(notices)
+            .collect();
+        let kept: Vec<(ew_api::output::Uuid, String)> = if follows.paste {
+            self.retagged(retag)
+                .into_iter()
+                .map(|(d, was, _)| (d, was))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        if !kept.is_empty() {
+            self.notify_keep_tags(parts.join(" "), &kept);
+        } else if !parts.is_empty() {
+            self.notify(parts.join(" "), true);
+        }
+    }
+
+    /// Every placement answers with its result line (the tag and the cell, and the wires it drew), said at the end of
+    /// the dispatch once the page tables show it. A Terminal… row places its terminals in one dispatch and names the
+    /// last: the wires of the terminals before it are said too (a persona run read only the last terminal's
+    /// placement).
+    fn note_placement(
+        &mut self,
+        json: &Value,
+        placed: crate::tools::Placement,
+        connects: Option<(bool, Vec<(String, String)>)>,
+        into: bool,
+        far: Vec<((i64, i64), String, ew_api::output::Uuid, u16)>,
+    ) {
+        let (Some(x), Some(y)) = (json["pos"][0].as_i64(), json["pos"][1].as_i64()) else {
+            return;
+        };
+        let connects = match (self.tools.result_note.take(), connects) {
+            (
+                Some(ResultNote::Placed {
+                    wires: Some((t, mut earlier)),
+                    ..
+                }),
+                now,
+            ) => {
+                let (tubes, list) = now.unwrap_or((t, Vec::new()));
+                earlier.extend(list);
+                Some((tubes && t, earlier))
+            }
+            (_, now) => now,
+        };
+        self.tools.result_note = Some(ResultNote::Placed {
+            pos: (x, y),
+            wires: connects,
+            moved: placed.moved,
+            into,
+            far,
+        });
+    }
+
+    /// The IP tool's point after its commit (`done`): one dropped on a pin says where it stands and what it connects
+    /// to at the end of the dispatch; one placed free says what it became and where its partner is, after the reason
+    /// of a renamed point, so a click made without reading the pointer's label still tells.
+    fn note_ip(&mut self, done: bool, ip: crate::tools::IpCommit, json: Option<&Value>) {
+        if done
+            && let Some(pin) = ip.pin
+            && let Some(json) = json
+            && let (Some(x), Some(y)) = (json["ip"]["pos"][0].as_i64(), json["ip"]["pos"][1].as_i64())
+        {
+            self.tools.result_note = Some(ResultNote::IpConnected {
+                pos: (x, y),
+                name: json["ip"]["name"].as_str().unwrap_or_default().to_owned(),
+                pin,
+                external: !json["ip"]["external"].is_null(),
+                taken: ip.taken,
+                // What it pairs with, as a point placed free says it (a point dropped on a pin said nothing of its
+                // partner).
+                placed: self.ip_placed_text(&json["ip"]),
+            });
+        } else if done && (ip.taken.is_some() || ip.free) {
+            let placed = json
+                .filter(|_| ip.free)
+                .and_then(|json| self.ip_placed_text(json));
+            let text: Vec<String> = ip.taken.into_iter().chain(placed).chain(ip.beside).collect();
+            if !text.is_empty() {
+                self.notify(text.join(" "), true);
+            }
+        }
+    }
+
+    /// After a committed command of the layout (`done`): the device it placed, the quiet pick stack under the drop
+    /// point, the layout's announcement, and a moved placement selected.
+    fn layout_committed(&mut self, done: bool, layout: &crate::tools::LayoutCommit) {
+        if done && layout.place {
+            self.tools.placed_device = layout.device;
+        }
+        if done && layout.quiet_stack {
+            self.tools.quiet_stack_at = self.canvas().and_then(CanvasModel::pointer);
+        }
+        self.tools.layout_announce |= done && layout.announce;
+        if done
+            && let Some(id) = layout.select
+            && self
+                .tools
+                .selection
+                .apply(&SelectionChange::Replace(vec![EntityRef(id)]))
+        {
+            self.announce_selection();
+        }
+    }
+
+    /// After Select moved or turned representations: a move dropped into a valve terminal's box (`into`) says where its
+    /// device sits now; the moved representations are the selection (one selection change, no command).
+    fn after_reps_moved(&mut self, moved: &crate::tools::MovedReps, into: bool) {
+        if into
+            && moved.seat
+            && let Some(device) = moved.reps.first().and_then(|r| {
+                self.canvas()?
+                    .page()
+                    .tables
+                    .reps
+                    .iter()
+                    .find(|x| x.id.to_string() == *r)?
+                    .device
+            })
+            && let Some(text) = self.seat_words(device)
+        {
+            self.notify(text, true);
+        }
+        let reps: Vec<EntityRef> = moved
+            .reps
+            .iter()
+            .filter_map(|id| {
+                self.canvas()?
+                    .page()
+                    .entities
+                    .iter()
+                    .find(|(e, _)| e.0.to_string() == *id)
+                    .map(|(e, _)| *e)
+            })
+            .collect();
+        if !reps.is_empty() && self.tools.selection.apply(&SelectionChange::Replace(reps)) {
+            self.announce_selection();
         }
     }
 
@@ -1146,9 +1142,6 @@ impl ShellModel {
     /// it was (the main thread's stack is small).
     #[inline(never)]
     fn far_offers(&self, cmd: &dyn DynCommand) -> Vec<((i64, i64), String, ew_api::output::Uuid, u16)> {
-        if cmd.name() != "device.place" {
-            return Vec::new();
-        }
         let Some(crate::tools::Ghost::Place {
             far, hints, at_nm, ..
         }) = self.tools.tool.ghost()
@@ -1170,9 +1163,6 @@ impl ShellModel {
     /// (`-X??:1` before the strip has a tag; the toast names the terminal by the placed strip's tag), since a row of
     /// terminals names its last; `None` without hints.
     fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(bool, Vec<(String, String)>)> {
-        if cmd.name() != "device.place" {
-            return None;
-        }
         let json = cmd.to_json().ok()?;
         let connect = json["connect"].as_array().cloned().unwrap_or_default();
         let hints = connect.len();

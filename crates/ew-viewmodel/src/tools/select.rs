@@ -1716,6 +1716,28 @@ impl Tool for SelectTool {
         }
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        let name = cmd.name();
+        // After a move or a transform, the selection is the moved representations (one selection change, no
+        // command); a move into a valve terminal's box says where the device sits now.
+        let moved = matches!(name, "rep.move" | "rep.transform").then(|| super::MovedReps {
+            reps: cmd
+                .to_json()
+                .ok()
+                .and_then(|j| j["reps"].as_array().cloned())
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_owned))
+                .collect(),
+            seat: name == "rep.move",
+        });
+        super::Follows {
+            layout: super::layout::layout_follows(cmd),
+            moved,
+            ..super::Follows::default()
+        }
+    }
+
     fn status_hint(&self) -> super::Hint {
         match self.state {
             State::Grip { held: true, .. } => {

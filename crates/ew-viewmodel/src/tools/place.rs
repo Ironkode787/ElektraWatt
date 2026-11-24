@@ -889,6 +889,19 @@ impl Tool for PlaceTool {
         }
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        super::Follows {
+            // A terminal moved off a terminal of its strip, said again by the placement's toast.
+            placed: (cmd.name() == "device.place").then(|| super::Placement {
+                moved: self.proposal_note(),
+                autoconnect: true,
+            }),
+            // FT-900: what a placement made is the selection, replacing it; the tool stays armed.
+            select_placed: true,
+            ..super::Follows::default()
+        }
+    }
+
     fn on_commit(&mut self, done: bool) {
         // The designation advances only after the host committed: a refused commit keeps it.
         if !done {

@@ -1173,6 +1173,27 @@ impl Tool for IpTool {
         }
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        let name = cmd.name();
+        super::Follows {
+            ip: Some(super::IpCommit {
+                // The pin the point connects to, as its ghost named it before the commit.
+                pin: match self.ghost() {
+                    Some(super::Ghost::Ip { connects, .. }) if name == "connection.draw_to_ip" => connects,
+                    _ => None,
+                },
+                // "0V is taken, so this point is 0V-1.", said again by the placement's toast.
+                taken: matches!(name, "ip.place" | "connection.draw_to_ip")
+                    .then(|| self.proposal_note())
+                    .flatten(),
+                // A point placed beside a pin without joining it says so.
+                beside: (name == "ip.place").then(|| self.commit_note()).flatten(),
+                free: name == "ip.place",
+            }),
+            ..super::Follows::default()
+        }
+    }
+
     fn on_commit(&mut self, done: bool) {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {

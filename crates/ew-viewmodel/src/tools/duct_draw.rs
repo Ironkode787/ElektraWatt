@@ -267,6 +267,13 @@ impl Tool for DuctDrawTool {
         })
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        super::Follows {
+            layout: super::layout::layout_follows(cmd),
+            ..super::Follows::default()
+        }
+    }
+
     fn on_commit(&mut self, done: bool) {
         if done {
             self.points.clear();

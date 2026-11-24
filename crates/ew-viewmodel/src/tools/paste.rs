@@ -338,6 +338,17 @@ impl Tool for PasteTool {
         }
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        let _ = cmd;
+        // A paste brings back what a cut left unplaced and says what it did; a committed paste returns to Select with
+        // the pasted representations selected.
+        super::Follows {
+            paste: true,
+            retag: true,
+            ..super::Follows::default()
+        }
+    }
+
     fn status_hint(&self) -> super::Hint {
         super::Hint::new(key!("hint-paste"), &[super::ENTER, super::ESCAPE])
     }

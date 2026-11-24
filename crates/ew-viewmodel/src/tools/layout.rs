@@ -1218,6 +1218,30 @@ pub fn track_output(g: &mut LayoutGesture) -> ToolOutput {
     }
 }
 
+/// What follows a committed command of the layout ([`super::Follows::layout`]), whichever tool committed it: a
+/// placement's device is selected, the pick stack under a drop point stays quiet, the layout's announcement is made,
+/// and a moved placement is selected.
+pub(crate) fn layout_follows(cmd: &dyn super::DynCommand) -> super::LayoutCommit {
+    let name = cmd.name();
+    let params = cmd.to_json().ok();
+    let id = |member: &str| {
+        params
+            .as_ref()
+            .and_then(|p| p[member].as_str())
+            .and_then(|s| s.parse().ok())
+    };
+    super::LayoutCommit {
+        place: name == "layout.place" && params.is_some(),
+        device: id("device"),
+        // The pick stack under the drop point is the dropped item and what it sits on; the HUD says nothing of it
+        // until the pointer moves on.
+        quiet_stack: matches!(name, "layout.place" | "layout.move"),
+        announce: name.starts_with("layout."),
+        // A dragged placement is selected after its move.
+        select: (name == "layout.move").then(|| id("placement")).flatten(),
+    }
+}
+
 impl Tool for LayoutPlaceTool {
     fn name(&self) -> &'static str {
         "layout_place"
@@ -1300,6 +1324,15 @@ impl Tool for LayoutPlaceTool {
         let g = self.gesture.as_mut()?;
         g.on_preview(info);
         Some(g.overlay())
+    }
+
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        // Its device placed, the layout place tool gives way to Select.
+        super::Follows {
+            layout: layout_follows(cmd),
+            gives_way: true,
+            ..super::Follows::default()
+        }
     }
 
     fn on_commit(&mut self, done: bool) {

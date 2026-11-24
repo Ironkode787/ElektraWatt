@@ -490,6 +490,15 @@ impl Tool for GraphicTool {
         }
     }
 
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        let _ = cmd;
+        // Tip 1, a Line segment ending on a connection point.
+        super::Follows {
+            line_tip: true,
+            ..super::Follows::default()
+        }
+    }
+
     fn status_hint(&self) -> super::Hint {
         match self.state {
             State::Armed { .. } => {

@@ -344,7 +344,8 @@ impl ShellModel {
             ),
             None => (None, None),
         };
-        self.notes.push(Note::new("external", text).offering([undo, show]));
+        self.notes
+            .push(Note::new("external", text).offering([undo, show]));
     }
 
     /// Opens the collision dialog with every colliding field, mine chosen (D24).
@@ -607,8 +608,10 @@ impl ShellModel {
             return Outcome::Failed { message };
         }
         self.collab.driver_missing = driver_missing(&dir);
-        self.notes
-            .push(Note::new("edit", strings::text(key!("toast-git-setup")).to_owned()));
+        self.notes.push(Note::new(
+            "edit",
+            strings::text(key!("toast-git-setup")).to_owned(),
+        ));
         Outcome::Done
     }
 

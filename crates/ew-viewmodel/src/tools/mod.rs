@@ -472,6 +472,84 @@ pub enum HostStep {
     },
 }
 
+/// What follows the commit of a tool's command ([`Tool::follows`]): what the toast says, what is selected after it
+/// and whether the tool gives way to Select. The host gathers and applies each part that is set, for any tool.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Follows {
+    /// A placement that answers with its result line (the tag and the cell, the wires it drew), said at the end of
+    /// the dispatch once the page tables show it.
+    pub placed: Option<Placement>,
+    /// The IP tool's point: what its toast says, and its memory and next name after the commit.
+    pub ip: Option<IpCommit>,
+    /// A paste: the tags of what a cut left unplaced compared once, what it did besides said, the tags it changed
+    /// offered to keep, and the pasted representations selected after it.
+    pub paste: bool,
+    /// The tags of the devices the command draws again are compared after it, and a changed tag is said.
+    pub retag: bool,
+    /// A drawn wire: an error finding it brings is said at once.
+    pub wire_errors: bool,
+    /// The Graphic tool's shape: tip 1 when it is a line ending on a connection point.
+    pub line_tip: bool,
+    /// A box placement on a bus page that draws a device which exists already.
+    pub drew_existing: bool,
+    /// The boxes a device placed on a bus page got, said when it got more than one.
+    pub boxes: Option<usize>,
+    /// The Place tool's: what the placement made becomes the selection at the end of the dispatch.
+    pub select_placed: bool,
+    /// A command of the layout.
+    pub layout: LayoutCommit,
+    /// Select's move or turn of representations: they are the selection after it.
+    pub moved: Option<MovedReps>,
+    /// Whether the tool gives way to Select after its commit.
+    pub gives_way: bool,
+}
+
+/// A placement's part of [`Follows`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Placement {
+    /// The sentence the toast ends with (the Place tool's terminal moved off its click point).
+    pub moved: Option<String>,
+    /// Whether the wires its autoconnect hints draw are said and its far hits offered (the Place tool's ghost).
+    pub autoconnect: bool,
+}
+
+/// The IP tool's part of [`Follows`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct IpCommit {
+    /// The pin the point connects to, as its ghost named it (a point dropped on a pin).
+    pub pin: Option<String>,
+    /// Why the point was renamed ("0V is taken, so this point is 0V-1.").
+    pub taken: Option<String>,
+    /// A point placed beside a pin without joining it says so.
+    pub beside: Option<String>,
+    /// A point placed free (`ip.place`): its toast says what it became and where its partner is.
+    pub free: bool,
+}
+
+/// A layout command's part of [`Follows`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct LayoutCommit {
+    /// A device placed on the layout: what it placed (the device, when the command names one) is selected.
+    pub place: bool,
+    /// The device a placement placed.
+    pub device: Option<ew_api::output::Uuid>,
+    /// The HUD keeps quiet about the pick stack under the drop point until the pointer moves on.
+    pub quiet_stack: bool,
+    /// The layout tools' announcement is made at the end of the dispatch.
+    pub announce: bool,
+    /// The placement a move moved, selected after it.
+    pub select: Option<ew_api::output::Uuid>,
+}
+
+/// Select's part of [`Follows`] for a move or a turn of representations.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct MovedReps {
+    /// The representations it moved, by their ID texts.
+    pub reps: Vec<String>,
+    /// A move: where the first one's device sits now is said when it was dropped into a box.
+    pub seat: bool,
+}
+
 impl std::fmt::Debug for ToolOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -584,6 +662,14 @@ pub trait Tool {
     fn on_preview(&mut self, info: &PreviewInfo) -> Option<Overlay> {
         let _ = info;
         None
+    }
+
+    /// What follows the commit of `cmd`, the command this tool answered (architecture §9.2): stated from the tool's
+    /// own state before the host commits it; the host gathers what it names, commits, and applies it. Most tools:
+    /// nothing.
+    fn follows(&self, cmd: &dyn DynCommand) -> Follows {
+        let _ = cmd;
+        Follows::default()
     }
 
     /// The host committed the tool's command (`done`) or the commit failed.

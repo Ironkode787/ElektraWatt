@@ -1564,6 +1564,15 @@ impl Tool for WireTool {
     /// wire starts: a wire just ended on a wire left the pointer on the junction it made, and the hint read as a
     /// refusal of that wire, FT-1660); once a click placed a bend, that a bend is placed; while no clear route is
     /// found, and after a wire drawn so until the next one starts, that the wire stays unrouted (not a refusal).
+    fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
+        // A drawn wire that brings an error says so at once, in the finding's words (a persona run joined L and N by
+        // two missed clicks and nothing said so).
+        super::Follows {
+            wire_errors: matches!(cmd.name(), "connection.draw" | "connection.draw_many"),
+            ..super::Follows::default()
+        }
+    }
+
     fn status_hint(&self) -> super::Hint {
         if self.full_junction && matches!(self.state, State::Routing { .. }) {
             return super::Hint::plain(key!("hint-wire-full-junction"));

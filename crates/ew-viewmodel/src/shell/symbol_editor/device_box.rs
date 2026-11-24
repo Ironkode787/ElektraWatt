@@ -1153,8 +1153,9 @@ impl ShellModel {
             );
         } else {
             // A later Save, or Redraw them, says what is true then: its toast takes this one's place.
-            self.notes
-                .push(Note::new("part", strings::format(key!("box-saved"), &[&number])).toned(NoteTone::Success));
+            self.notes.push(
+                Note::new("part", strings::format(key!("box-saved"), &[&number])).toned(NoteTone::Success),
+            );
         }
         Ok(())
     }
@@ -1189,7 +1190,11 @@ impl ShellModel {
             }
         }
         self.notes.push(
-            Note::new("part", strings::format(key!("box-redrawn"), &[&count.to_string()])).toned(NoteTone::Success),
+            Note::new(
+                "part",
+                strings::format(key!("box-redrawn"), &[&count.to_string()]),
+            )
+            .toned(NoteTone::Success),
         );
         Outcome::Done
     }
@@ -1233,8 +1238,9 @@ impl ShellModel {
         }
         placed?;
         let back = Offer::new(NoteAction::BackToEditor, Validity::SymbolDraft);
-        self.notes
-            .push(Note::new("symbol", strings::format(key!("box-test-armed"), &[&number])).offering([Some(back)]));
+        self.notes.push(
+            Note::new("symbol", strings::format(key!("box-test-armed"), &[&number])).offering([Some(back)]),
+        );
         Ok(())
     }
 }
