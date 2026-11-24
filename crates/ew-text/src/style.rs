@@ -14,6 +14,7 @@
 
 use std::sync::LazyLock;
 
+use ew_schema::{BUILTIN_TEXT_STYLES, TextWeight};
 use ew_units::{Grid, Nm};
 
 use crate::{Family, TextStyle, Weight};
@@ -90,92 +91,29 @@ pub struct TextStyleTable {
     rows: Vec<StyleRow>,
 }
 
-const ROWS: &[StyleDef] = &[
-    StyleDef {
-        key: "cover.title",
-        qet_px: 48,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "section.id",
-        qet_px: 37,
-        weight: Weight::Bold,
-    },
-    StyleDef {
-        key: "section.subtitle",
-        qet_px: 29,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "cover.subtitle",
-        qet_px: 27,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "box.title",
-        qet_px: 21,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "cover.table",
-        qet_px: 16,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "tag.main",
-        qet_px: 13,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "text.normal",
-        qet_px: 12,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "field.label",
-        qet_px: 11,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "data.small",
-        qet_px: 9,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "pin",
-        qet_px: 8,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "xref.device",
-        qet_px: 7,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "cp.small",
-        qet_px: 5,
-        weight: Weight::Regular,
-    },
-    StyleDef {
-        key: "marker",
-        qet_px: 5,
-        weight: Weight::Regular,
-    },
-    // The terminal's number, out of `tag.main` at its size (ADR-0032 amendment).
-    StyleDef {
-        key: "terminal",
-        qet_px: 13,
-        weight: Weight::Regular,
-    },
-];
+/// The rows of `ew_schema::BUILTIN_TEXT_STYLES` (doc 20 §17.5), in its order.
+static ROWS: LazyLock<Vec<StyleDef>> = LazyLock::new(|| {
+    BUILTIN_TEXT_STYLES
+        .iter()
+        .map(|(key, qet_px, weight, _)| StyleDef {
+            key,
+            qet_px: *qet_px,
+            weight: if *weight == TextWeight::Bold {
+                Weight::Bold
+            } else {
+                Weight::Regular
+            },
+        })
+        .collect()
+});
 
 static BUILTIN: LazyLock<TextStyleTable> = LazyLock::new(|| {
     TextStyleTable::from_rows(ROWS.iter().map(|r| (r.key, r.em(), r.weight, Family::Default)))
 });
 
-/// The rows of the built-in table in QET pixels, in table order (doc 20 §17.5).
+/// The rows of the built-in table in QET pixels, in table order (doc 20 §17.5): `ew_schema::BUILTIN_TEXT_STYLES`.
 pub fn builtin_rows() -> &'static [StyleDef] {
-    ROWS
+    &ROWS
 }
 
 /// The built-in table.

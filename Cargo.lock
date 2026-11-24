@@ -1916,6 +1916,7 @@ version = "0.3.5"
 dependencies = [
  "ew-dl",
  "ew-hack",
+ "ew-schema",
  "ew-units",
  "fontique",
  "insta",

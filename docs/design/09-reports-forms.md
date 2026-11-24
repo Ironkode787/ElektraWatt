@@ -465,7 +465,7 @@ tracked reads only (FR-EXT-011).
 - Form cells reference **text styles held as model data** (FR-SYM-013). The built-in styles (`text.normal` 8.88 pt,
   `data.small` 6.66 pt, `pin` 5.92 pt, `xref.device` 5.18 pt …) are `crates/ew-text/src/style.rs`'s table.
 
-- **Project text styles** ([ADR-0032](../adr/0032-per-project-text-styles.md)): the styles are project data in `ProjectSettings.text_styles`, overrides of the built-in table (`crates/ew-text/src/style.rs`). The effective table (the built-in rows with the overrides applied, then the keys only the project adds) is `ew-derive`'s memoised `text_styles` query; the scene, the forms, the report tables and the exports, EW-CORE-061 and EW-CORE-063 all read it, and only callers with no project use `ew_text::builtin()`. New projects write `cp.small` and `marker` at 7 px.
+- **Project text styles** ([ADR-0032](../adr/0032-per-project-text-styles.md)): the styles are project data in `ProjectSettings.text_styles`, overrides of the built-in table (`ew_schema::BUILTIN_TEXT_STYLES`, from which `ew_text::builtin()` is built). The effective table (the built-in rows with the overrides applied, then the keys only the project adds) is `ew-derive`'s memoised `text_styles` query; the scene, the forms, the report tables and the exports, EW-CORE-061 and EW-CORE-063 all read it, and only callers with no project use `ew_text::builtin()`. New projects write `cp.small` and `marker` at 7 px.
 - **Fonts** are resolved from the project's font set: the bundled default family, optional osifont, and a bundled
   symbol fallback (§7, pitfall 8). Tahoma is never bundled or embedded (FR-IMP-020). Noto Sans is the
   default while ADR-0028 is Proposed; the forms and the expected PDFs and PNGs are built with it.

@@ -164,8 +164,8 @@ pub enum TextStyleGroup {
 
 /// The built-in text-style table of doc 20 §17.5 as `(key, size in QET px, weight, group)`, in table order: the base
 /// every project's overrides apply to (ADR-0032 decision 4: part of the derivation profile; a change of a row is a
-/// derivation-profile change). `ew_text::builtin()` holds the same rows for callers without a project, and a test in
-/// `ew-scene` keeps the two equal. `terminal`, the terminal's number, came out of `tag.main` and keeps its size, so a
+/// derivation-profile change). `ew_text::builtin()` is built from these rows for callers without a project.
+/// `terminal`, the terminal's number, came out of `tag.main` and keeps its size, so a
 /// project that sets neither prints as before.
 pub const BUILTIN_TEXT_STYLES: &[(&str, u16, TextWeight, TextStyleGroup)] = &[
     ("cover.title", 48, TextWeight::Regular, TextStyleGroup::Cover),
