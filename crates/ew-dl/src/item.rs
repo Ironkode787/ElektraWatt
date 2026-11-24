@@ -38,19 +38,10 @@ pub struct SymbolGeomId {
     pub extra: Option<u16>,
 }
 
-/// Resolves a [`SymbolGeomId`] to its geometry. Renderers, writers and picking get one from `ew-scene`;
-/// `None` means the geometry is unavailable (a missing library symbol), which writers draw as their
-/// placeholder.
-pub trait GeometryResolver {
-    /// The geometry for `id`, in the symbol's own frame (symbol origin at `(0, 0)`).
-    fn geometry(&self, id: SymbolGeomId) -> Option<Arc<DisplayList>>;
-}
-
-impl GeometryResolver for BTreeMap<SymbolGeomId, Arc<DisplayList>> {
-    fn geometry(&self, id: SymbolGeomId) -> Option<Arc<DisplayList>> {
-        self.get(&id).cloned()
-    }
-}
+/// The geometry of each [`SymbolGeomId`] that a display list's instances name, in the symbol's own frame (symbol
+/// origin at `(0, 0)`). Renderers, writers and picking get it from `ew-scene`; a key it lacks is a geometry that is
+/// unavailable (a missing library symbol), which writers draw as their placeholder.
+pub type GeometryMap = BTreeMap<SymbolGeomId, Arc<DisplayList>>;
 
 /// A stroked and/or filled path. With neither stroke nor fill the item draws nothing (it may still carry a
 /// link or an entity for picking).
@@ -281,7 +272,7 @@ impl DisplayList {
 
     /// Like [`bounds`](DisplayList::bounds), but instances contribute their resolved geometry under their
     /// transform (to [`MAX_INSTANCE_DEPTH`] levels); an unresolved instance contributes its anchor.
-    pub fn bounds_with(&self, resolver: &dyn GeometryResolver) -> Option<Rect> {
+    pub fn bounds_with(&self, resolver: &GeometryMap) -> Option<Rect> {
         let mut acc = None;
         collect(&self.items, &|p| p, Some(resolver), 0, &mut acc);
         acc
@@ -460,7 +451,7 @@ fn intersect(a: Rect, b: Rect) -> Option<Rect> {
 fn collect(
     items: &[Item],
     map: &dyn Fn(Pt2) -> Pt2,
-    resolver: Option<&dyn GeometryResolver>,
+    resolver: Option<&GeometryMap>,
     depth: usize,
     acc: &mut Option<Rect>,
 ) {
@@ -472,7 +463,7 @@ fn collect(
             ItemKind::Instance(inst) => {
                 let geom = resolver
                     .filter(|_| depth < MAX_INSTANCE_DEPTH)
-                    .and_then(|r| r.geometry(inst.symbol));
+                    .and_then(|r| r.get(&inst.symbol).cloned());
                 match geom {
                     Some(dl) => {
                         let t = inst.transform;

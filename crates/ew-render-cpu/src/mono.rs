@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use ew_dl::{
-    Brush, Color, DisplayList, GeometryResolver, GroupItem, Item, ItemKind, MAX_INSTANCE_DEPTH, PathItem,
+    Brush, Color, DisplayList, GeometryMap, GroupItem, Item, ItemKind, MAX_INSTANCE_DEPTH, PathItem,
 };
 
 use crate::fonts::FontResolver;
@@ -78,14 +78,14 @@ fn mono_item(item: &Item) -> Item {
 
 /// `items` with every resolvable instance replaced by a group holding its geometry under the
 /// instance transform (recursively up to [`MAX_INSTANCE_DEPTH`]). Unresolved instances stay.
-fn inline_instances(items: &[Item], geometry: &dyn GeometryResolver, depth: usize) -> Vec<Item> {
+fn inline_instances(items: &[Item], geometry: &GeometryMap, depth: usize) -> Vec<Item> {
     items
         .iter()
         .map(|item| {
             let kind = match &item.kind {
                 ItemKind::Instance(inst) => {
                     let geom = if depth < MAX_INSTANCE_DEPTH {
-                        geometry.geometry(inst.symbol)
+                        geometry.get(&inst.symbol).cloned()
                     } else {
                         None
                     };
@@ -118,7 +118,7 @@ pub fn render_monochrome(
     sheet: SheetSize,
     options: &RenderOptions,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> Result<(RgbaImage, RenderReport), RenderError> {
     let inlined;
     let source = match geometry {

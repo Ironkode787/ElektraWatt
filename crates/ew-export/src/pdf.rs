@@ -42,8 +42,8 @@ use std::sync::Arc;
 use ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_dl::num::nm_to_milli_pt;
 use ew_dl::{
-    Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, Item, ItemKind,
-    Join, Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
+    Brush, Cap, Destination, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, Item, ItemKind, Join,
+    Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
 use ew_render_cpu::{FontResolver, decode_image, jpeg_is_cmyk, monochrome};
 
@@ -271,7 +271,7 @@ pub fn pdf(
     pages: &[PdfPage],
     options: &PdfOptions,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> Result<PdfOutput, PdfError> {
     write(pages, options, fonts, geometry, true)
 }
@@ -281,7 +281,7 @@ fn write(
     pages: &[PdfPage],
     options: &PdfOptions,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
     compress: bool,
 ) -> Result<PdfOutput, PdfError> {
     if pages.is_empty() {
@@ -617,7 +617,7 @@ fn anchor(item: &Item) -> Option<Pt2> {
 }
 
 /// The box of a link source in its own coordinates: a run's layout quad, else its control points.
-fn source_quad(item: &Item, geometry: Option<&dyn GeometryResolver>) -> Vec<Pt2> {
+fn source_quad(item: &Item, geometry: Option<&GeometryMap>) -> Vec<Pt2> {
     match &item.kind {
         ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
         _ => {
@@ -635,7 +635,7 @@ fn source_quad(item: &Item, geometry: Option<&dyn GeometryResolver>) -> Vec<Pt2>
 
 struct Scan<'a> {
     page: usize,
-    geometry: Option<&'a dyn GeometryResolver>,
+    geometry: Option<&'a GeometryMap>,
     /// The page's placement: target anchors are sheet points, placed on the paper.
     placement: Option<&'a PagePlacement>,
     targets: &'a mut BTreeMap<Destination, (usize, Point)>,
@@ -665,7 +665,7 @@ impl Scan<'_> {
                     self.items(&g.items, &s, depth);
                 }
                 ItemKind::Instance(inst) if depth < MAX_INSTANCE_DEPTH => {
-                    if let Some(geom) = self.geometry.and_then(|g| g.geometry(inst.symbol)) {
+                    if let Some(geom) = self.geometry.and_then(|g| g.get(&inst.symbol).cloned()) {
                         let mut s = stack.to_vec();
                         s.push(inst.transform);
                         self.items(&geom.items, &s, depth + 1);
@@ -679,7 +679,7 @@ impl Scan<'_> {
 
 struct Writer<'a> {
     fonts: &'a dyn FontResolver,
-    geometry: Option<&'a dyn GeometryResolver>,
+    geometry: Option<&'a GeometryMap>,
     font_cache: &'a mut BTreeMap<FontKey, Option<Font>>,
     /// The krilla images of this export by content hash (`None`: not drawable), so a logo repeated on every page is
     /// decoded once and embedded once.
@@ -709,7 +709,7 @@ impl Writer<'_> {
                 ItemKind::Image(img) => self.image(surface, img),
                 ItemKind::Instance(inst) => {
                     let geom = (depth < MAX_INSTANCE_DEPTH)
-                        .then(|| self.geometry.and_then(|g| g.geometry(inst.symbol)))
+                        .then(|| self.geometry.and_then(|g| g.get(&inst.symbol).cloned()))
                         .flatten();
                     match geom {
                         Some(geom) => {

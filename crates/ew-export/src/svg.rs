@@ -47,8 +47,8 @@ use std::sync::Arc;
 
 use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
-    Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, Item, ItemKind,
-    Join, Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
+    Brush, Cap, Destination, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, Item, ItemKind, Join,
+    Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
 use ew_render_cpu::{decode_image, monochrome};
 
@@ -203,7 +203,7 @@ pub fn svg_id(d: &Destination) -> String {
 pub fn svg(
     pages: &[PdfPage],
     options: &SvgOptions,
-    geometry: Option<&(dyn GeometryResolver + Sync)>,
+    geometry: Option<&GeometryMap>,
     parallelism: Parallelism,
 ) -> Result<SvgOutput, SvgError> {
     if pages.is_empty() {
@@ -280,7 +280,7 @@ struct Ctx<'a> {
     targets: &'a BTreeMap<Destination, (usize, bool)>,
     files: &'a [String],
     faces: &'a BTreeMap<FontKey, SvgFace>,
-    geometry: Option<&'a (dyn GeometryResolver + Sync)>,
+    geometry: Option<&'a GeometryMap>,
     /// Whether the PNG or JPEG bytes of an asset decode ([`drawable_rasters`]).
     rasters: &'a BTreeMap<[u8; 32], bool>,
     /// Whether the pages embed their font subsets (not in the probe pass, which keeps only the ids).
@@ -415,7 +415,7 @@ impl PageWriter<'_> {
             ItemKind::Image(img) => self.image(img, &id),
             ItemKind::Instance(inst) => {
                 let geom = (depth < MAX_INSTANCE_DEPTH)
-                    .then(|| self.ctx.geometry.and_then(|g| g.geometry(inst.symbol)))
+                    .then(|| self.ctx.geometry.and_then(|g| g.get(&inst.symbol).cloned()))
                     .flatten();
                 match geom {
                     Some(geom) => {

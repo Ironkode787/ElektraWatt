@@ -8,8 +8,8 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
-    Cap, Color, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, ItemKind, Join,
-    MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathItem, ShapedRun, Stroke, Transform, kurbo_rect,
+    Cap, Color, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, ItemKind, Join, MAX_GROUP_DEPTH,
+    MAX_INSTANCE_DEPTH, MITER_LIMIT, PathItem, ShapedRun, Stroke, Transform, kurbo_rect,
 };
 use vello_cpu::kurbo::{self, Affine, Shape};
 use vello_cpu::peniko::{Blob, Fill, FontData};
@@ -202,7 +202,7 @@ pub fn render(
     sheet: SheetSize,
     options: &RenderOptions,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> Result<(RgbaImage, RenderReport), RenderError> {
     let (w, h) = pixel_size(sheet, options.dpi);
     let degenerate = sheet.width.0 <= 0 || sheet.height.0 <= 0 || options.dpi == 0;
@@ -246,7 +246,7 @@ pub fn render_placed(
     placement: &PagePlacement,
     options: &RenderOptions,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> Result<(RgbaImage, RenderReport), RenderError> {
     let (pw, ph) = paper_pixels(placement, options.dpi)?;
     let k = f64::from(options.dpi) / NM_PER_INCH as f64;
@@ -281,7 +281,7 @@ pub fn render_placed_band(
     first_row: u32,
     rows: u32,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> Result<(RgbaImage, RenderReport), RenderError> {
     let (pw, ph) = paper_pixels(placement, options.dpi)?;
     let band = u32::from(ph).saturating_sub(first_row).min(rows);
@@ -412,7 +412,7 @@ pub fn render_region(
     sheet: SheetSize,
     options: &RegionOptions,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> Result<(RgbaImage, RenderReport), RenderError> {
     let region_side = |v: u32| {
         u16::try_from(v)
@@ -503,7 +503,7 @@ struct Reach {
 
 impl ItemBounds {
     /// The bounds of every top-level item of `list`, resolving instances through `geometry` as [`render`] does.
-    pub fn of(list: &DisplayList, geometry: Option<&dyn GeometryResolver>) -> ItemBounds {
+    pub fn of(list: &DisplayList, geometry: Option<&GeometryMap>) -> ItemBounds {
         ItemBounds {
             items: list
                 .items
@@ -544,7 +544,7 @@ fn reach_of(
     cur: Affine,
     depth: usize,
     inst_depth: usize,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
     acc: &mut Acc,
 ) {
     for item in items {
@@ -580,7 +580,7 @@ fn reach_of(
             ItemKind::Instance(inst) => {
                 let geom = geometry
                     .filter(|_| inst_depth < MAX_INSTANCE_DEPTH)
-                    .and_then(|g| g.geometry(inst.symbol));
+                    .and_then(|g| g.get(&inst.symbol).cloned());
                 if let Some(dl) = geom {
                     let t = cur * inst.transform.to_affine();
                     reach_of(&dl.items, t, depth, inst_depth + 1, geometry, acc);
@@ -635,7 +635,7 @@ fn paint(
     passes: &[Pass<'_>],
     canvas: Canvas,
     fonts: &dyn FontResolver,
-    geometry: Option<&dyn GeometryResolver>,
+    geometry: Option<&GeometryMap>,
 ) -> (RgbaImage, RenderReport) {
     let Canvas {
         width: pw,
@@ -758,7 +758,7 @@ struct Painter<'a> {
     /// Pixels per nm.
     scale: f64,
     fonts: &'a dyn FontResolver,
-    geometry: Option<&'a dyn GeometryResolver>,
+    geometry: Option<&'a GeometryMap>,
     /// The font data per key for this call (`None`: the resolver did not have it).
     font_cache: BTreeMap<FontKey, Option<FontData>>,
     missing: BTreeSet<FontKey>,
@@ -781,7 +781,7 @@ impl Painter<'_> {
                     let geom = self
                         .geometry
                         .filter(|_| inst_depth < MAX_INSTANCE_DEPTH)
-                        .and_then(|g| g.geometry(inst.symbol));
+                        .and_then(|g| g.get(&inst.symbol).cloned());
                     match geom {
                         Some(dl) => {
                             let t = cur * inst.transform.to_affine();

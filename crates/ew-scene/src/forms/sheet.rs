@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use ew_dl::{
-    DisplayList, GeometryResolver, GroupItem, ImageItem, Item, ItemKind, Path, PathItem, ShapedRun, Stroke,
+    DisplayList, GeometryMap, GroupItem, ImageItem, Item, ItemKind, Path, PathItem, ShapedRun, Stroke,
     Transform,
 };
 use ew_schema::FormDef;
@@ -163,17 +163,13 @@ impl SheetMap {
     /// contents scale without offset. A symbol instance that `resolver` resolves is inlined as a group of
     /// its scaled geometry; an unresolved instance keeps its key with its translation mapped and its
     /// geometry unscaled, so a writer that cannot scale instances must pass a resolver.
-    pub fn apply_display_list(
-        self,
-        list: &DisplayList,
-        resolver: Option<&dyn GeometryResolver>,
-    ) -> DisplayList {
+    pub fn apply_display_list(self, list: &DisplayList, resolver: Option<&GeometryMap>) -> DisplayList {
         DisplayList {
             items: list.items.iter().map(|i| self.item(i, resolver)).collect(),
         }
     }
 
-    fn item(self, item: &Item, resolver: Option<&dyn GeometryResolver>) -> Item {
+    fn item(self, item: &Item, resolver: Option<&GeometryMap>) -> Item {
         let kind = match &item.kind {
             ItemKind::Path(p) => ItemKind::Path(PathItem {
                 path: self.path(&p.path),
@@ -185,7 +181,7 @@ impl SheetMap {
                 image: img.image.clone(),
                 rect: self.apply_rect(img.rect),
             }),
-            ItemKind::Instance(inst) => match resolver.and_then(|r| r.geometry(inst.symbol)) {
+            ItemKind::Instance(inst) => match resolver.and_then(|r| r.get(&inst.symbol).cloned()) {
                 Some(geom) => ItemKind::Group(GroupItem {
                     transform: Some(self.transform(inst.transform)),
                     clip: None,

@@ -19,7 +19,7 @@
 //!   [`Brush`] and [`Color`].
 //! - [`ShapedRun`]: glyphs positioned by `ew-text`, keyed by font file hash ([`FontKey`]).
 //! - [`Transform`] (orientation variant, angle, translation) and the symbol geometry key [`SymbolGeomId`]
-//!   with its [`GeometryResolver`].
+//!   with its [`GeometryMap`].
 //! - [`Layer`]: the schematic and panel-layout layers.
 //! - [`num`]: the deterministic numerics (rotations, arcs, DXF bulges, nm → milli-pt).
 //! - [`canonical`]: the canonical byte encoding of a display list, the input of the page
@@ -106,8 +106,8 @@ mod transform;
 
 pub use canonical::{CANONICAL_VERSION, Canonical};
 pub use item::{
-    DisplayList, GeometryResolver, GroupItem, ImageData, ImageFormat, ImageItem, InstanceItem, Item,
-    ItemKind, MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, PathItem, Placed, PlacedItems, SymbolGeomId,
+    DisplayList, GeometryMap, GroupItem, ImageData, ImageFormat, ImageItem, InstanceItem, Item, ItemKind,
+    MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, PathItem, Placed, PlacedItems, SymbolGeomId,
 };
 pub use layer::Layer;
 pub use link::{Destination, EntityRef, Link};

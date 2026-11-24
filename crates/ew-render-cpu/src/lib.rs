@@ -8,7 +8,7 @@
 //! (non-zero) then stroke with their true widths (hairlines are anti-aliased, never clamped), glyph
 //! runs draw their outlines from the font bytes a [`FontResolver`] supplies (unhinted; never system
 //! fonts), groups transform and clip, and instances are drawn through a
-//! [`GeometryResolver`](ew_dl::GeometryResolver). What it had to skip (missing fonts, unresolved
+//! [`GeometryMap`](ew_dl::GeometryMap). What it had to skip (missing fonts, unresolved
 //! instances, images) comes back in the [`RenderReport`], never as a panic.
 //!
 //! The rasteriser runs single-threaded on the `Level::baseline` u8 pipeline, so the same list, fonts
