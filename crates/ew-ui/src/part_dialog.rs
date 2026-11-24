@@ -29,7 +29,7 @@ use serde_json::json;
 
 use crate::app::Event;
 use crate::theme;
-use crate::theme::shares::PART_LIST_SHARE;
+use crate::theme::shares::{PART_FORM_SHARE, PART_LIST_SHARE};
 
 fn active_id() -> egui::Id {
     egui::Id::unique("part-choose-active")
@@ -672,7 +672,11 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     // Doc 16a §2: the form takes the window's height as it grows, sixteen rows at the floor. It keeps that height and
     // its width while one types (it would grow after the first key and move up under the
     // pointer): the body scrolls inside it.
-    let height = crate::dialog::grown(t.size_row * 16.0, 0.6, ui.ctx().content_rect().height());
+    let height = crate::dialog::grown(
+        t.size_row * 16.0,
+        PART_FORM_SHARE,
+        ui.ctx().content_rect().height(),
+    );
     let mut area = ScrollArea::vertical()
         .id_salt("part-edit-scroll")
         .auto_shrink([false, false])

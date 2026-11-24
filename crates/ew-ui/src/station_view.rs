@@ -36,7 +36,7 @@ use serde_json::{Value, json};
 use crate::app::Event;
 use crate::components::{self, Kind, Tip};
 use crate::icons::{self, IconId};
-use crate::theme::shares::CATALOGUE_MIN;
+use crate::theme::shares::{CATALOGUE_MAX, CATALOGUE_MIN, CATALOGUE_MOST_SHARE, CATALOGUE_SHARE};
 use crate::theme::{self, Tokens, TypeToken};
 
 /// A module dragged by its card to another slot.
@@ -249,9 +249,9 @@ fn section(ui: &mut Ui, t: &Tokens, title: &str) {
 /// The part of a station view's pane `full` that holds the rack and its lists: the pane without the catalogue, which
 /// takes a quarter of it at the right, within what its rows need and what a wide window gives.
 pub(crate) fn lists_rect(full: Rect) -> Rect {
-    let catalogue = (full.width() * 0.26)
-        .clamp(CATALOGUE_MIN, 460.0)
-        .min(full.width() * 0.5);
+    let catalogue = (full.width() * CATALOGUE_SHARE)
+        .clamp(CATALOGUE_MIN, CATALOGUE_MAX)
+        .min(full.width() * CATALOGUE_MOST_SHARE);
     Rect::from_min_max(full.min, pos2(full.right() - catalogue, full.bottom()))
 }
 

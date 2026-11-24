@@ -1050,8 +1050,12 @@ impl EditorView {
     ) {
         let t = theme::current(ui.ctx());
         // A third of a wide window: the lists of parts and symbols use the room of 2560 points.
-        let width = crate::dialog::grown(t.size_dialog_form, 1.0 / 3.0, full.width())
-            .min(full.width() - 2.0 * t.space_6);
+        let width = crate::dialog::grown(
+            t.size_dialog_form,
+            crate::theme::shares::SYMBOL_CARD_SHARE,
+            full.width(),
+        )
+        .min(full.width() - 2.0 * t.space_6);
         let card = Rect::from_min_size(
             Pos2::new(full.center().x - width / 2.0, full.top() + t.space_7),
             Vec2::new(width, full.height() - 2.0 * t.space_7),

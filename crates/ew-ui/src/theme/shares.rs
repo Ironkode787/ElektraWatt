@@ -20,8 +20,7 @@ pub(crate) const PREVIEW_SHARE: f32 = 0.65;
 /// grows with the space it has).
 pub(crate) const TOAST_SHARE: f32 = 0.22;
 
-/// The width of `text` in `font`.
-/// The share of the tab row the command search takes once that is wider than `size.search.width` (FT-798).
+// The share of the tab row the command search takes once that is wider than `size.search.width` (FT-798).
 pub(crate) const SEARCH_SHARE: f32 = 0.2;
 
 /// The share of the window the command palette and the place picker take once that is wider than `size.palette`
@@ -36,5 +35,22 @@ pub(crate) const PART_LIST_SHARE: f32 = 0.35;
 /// up to a share of the window, so it grows at 1920 × 1080).
 pub(crate) const KEYMAP_LIST_SHARE: f32 = 0.5;
 
+/// The share of the window's height the part editor's form takes once that is more than sixteen rows (doc 16a §2).
+pub(crate) const PART_FORM_SHARE: f32 = 0.6;
+
+/// The share of the symbol editor's canvas the start card takes once that is wider than `size.dialog.form`: a third
+/// of a wide window, so the lists of parts and symbols use the room of 2560 points.
+pub(crate) const SYMBOL_CARD_SHARE: f32 = 1.0 / 3.0;
+
+/// The share of a station view's pane the catalogue takes at its right, within [`CATALOGUE_MIN`] and
+/// [`CATALOGUE_MAX`] and never more than [`CATALOGUE_MOST_SHARE`].
+pub(crate) const CATALOGUE_SHARE: f32 = 0.26;
+
 /// The catalogue's narrowest width.
 pub(crate) const CATALOGUE_MIN: f32 = 280.0;
+
+/// The catalogue's widest width.
+pub(crate) const CATALOGUE_MAX: f32 = 460.0;
+
+/// The most of a station view's pane the catalogue takes.
+pub(crate) const CATALOGUE_MOST_SHARE: f32 = 0.5;
