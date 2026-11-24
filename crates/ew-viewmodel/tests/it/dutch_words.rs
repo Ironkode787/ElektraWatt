@@ -487,7 +487,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         report
             .findings
             .iter()
-            .any(|f| messages::render(f, "nl-NL") != f.message),
+            .any(|f| messages::render(f, "nl-NL") != f.message()),
         "a Dutch message to show"
     );
     // The chip of a record with an open finding.
@@ -497,7 +497,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         .find(|f| {
             f.state == ew_api::checks::FindingState::Open
                 && !f.targets.is_empty()
-                && messages::render(f, "nl-NL") != f.message
+                && messages::render(f, "nl-NL") != f.message()
         })
         .expect("an open finding with a Dutch message on a record");
     let target = f.targets[0].id;

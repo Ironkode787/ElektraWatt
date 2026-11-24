@@ -180,7 +180,7 @@ impl Model {
                     rule: v.rule,
                     message: v.message,
                     keys: v.keys,
-                    args: v.args.into_boxed_slice(),
+                    text: v.text.map(Box::new),
                 })?;
         }
         Ok(m)

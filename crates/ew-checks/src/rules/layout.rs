@@ -213,6 +213,7 @@ fn inside_usable(usable: &[Pt2], r: Rect) -> Option<bool> {
 /// (FR-LAY-017, FR-CHK-039; EF-05).
 pub const UNPLACED_DEVICE: RuleMeta = RuleMeta {
     id: "EW-LAY-001",
+    message: key!("rule-ew-lay-001"),
     code: "130001",
     title: "Unplaced device",
     kind: RuleKind::Completeness,
@@ -254,10 +255,6 @@ impl Rule for UnplacedDevice {
                         [Target::new(Kind::Device, *device)],
                         "unplaced",
                         name.clone(),
-                        format!(
-                            "{name} is not placed in the layout of {location}; place it on a rail or on the mounting \
-                             plate"
-                        ),
                     )
                     .arg("device", name)
                     .arg("location", location.clone()),
@@ -275,6 +272,7 @@ impl Rule for UnplacedDevice {
 /// (FR-LAY-017, FR-LAY-059).
 pub const PART_NOT_ON_DEVICE: RuleMeta = RuleMeta {
     id: "EW-LAY-003",
+    message: key!("rule-ew-lay-003"),
     code: "130003",
     title: "Part use not on the device",
     kind: RuleKind::Conflict,
@@ -316,24 +314,14 @@ impl Rule for PartNotOnDevice {
             }
             let name = device_name(q, pl.device);
             let part_text = part_name(q, part);
-            let f = Finding::new(
-                &PART_NOT_ON_DEVICE,
-                placement_targets(pl),
-                "part",
-                name.clone(),
-                format!(
-                    "the placement of {name} realises part {part_text}, which the device no longer uses; place the \
-                     device with one of its parts, or give it the part back"
-                ),
-            )
-            .arg("device", name)
-            .arg("part", part_text);
+            let f = Finding::new(&PART_NOT_ON_DEVICE, placement_targets(pl), "part", name.clone())
+                .arg("device", name)
+                .arg("part", part_text);
             // Realise the device's primary part again (`layout.move {part}`) at the same pose; no fix
             // when the device has no primary part (a strip, no mountable part).
             let f = match primary_part(q, device) {
                 Some(primary) => f.with_fix(QuickFix {
-                    label: "Realise the primary part".to_owned(),
-                    key: Some("fix-realise-primary-part"),
+                    label: text!("fix-realise-primary-part"),
                     command: "layout.move".to_owned(),
                     params: serde_json::json!({
                         "placement": pl.id.to_string(),
@@ -355,6 +343,7 @@ impl Rule for PartNotOnDevice {
 /// EW-LAY-004 "Location mismatch" (doc 15 §4.5.4): conflict, o r, warning, space (as built: project) (FR-LAY-018).
 pub const LOCATION_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-LAY-004",
+    message: key!("rule-ew-lay-004"),
     code: "130004",
     title: "Location mismatch",
     kind: RuleKind::Conflict,
@@ -402,29 +391,15 @@ impl Rule for LocationMismatch {
             }
             let name = device_name(q, pl.device);
             let space_text = location_text(q, space.location);
-            let (own_text, message) = match own {
-                Some(node) => {
-                    let t = location_text(q, node);
-                    let m = format!(
-                        "{name} is in {t} but is placed in the layout of {space_text}; move it to the layout of its \
-                         location, or correct its location"
-                    );
-                    (t, m)
-                }
-                None => (
-                    "none".to_owned(),
-                    format!(
-                        "{name} has no location but is placed in the layout of {space_text}; move it to the layout \
-                         of its location, or correct its location"
-                    ),
-                ),
+            let own_text = match own {
+                Some(node) => location_text(q, node),
+                None => "none".to_owned(),
             };
             let f = Finding::new(
                 &LOCATION_MISMATCH,
                 placement_targets(pl),
                 "location",
                 name.clone(),
-                message,
             )
             .arg("device", name)
             .arg("location", own_text)
@@ -442,6 +417,7 @@ impl Rule for LocationMismatch {
 /// so the catalogue's offline mode, the 3D half of 1.0, is not set) (FR-LAY-018).
 pub const COLLISION: RuleMeta = RuleMeta {
     id: "EW-LAY-006",
+    message: key!("rule-ew-lay-006"),
     code: "130006",
     title: "Collision",
     kind: RuleKind::Conflict,
@@ -665,10 +641,6 @@ fn crowded_finding(q: &Q, surface: Id<MountingSurface>) -> Finding {
         [Target::new(Kind::MountingSurface, surface)],
         "overlap_limit",
         enclosure.clone(),
-        format!(
-            "more footprints overlap on the mounting plate of {enclosure}; the first {OVERLAPS_PER_SURFACE} overlaps \
-             are listed"
-        ),
     )
     .arg("form", "limit")
     .arg("enclosure", enclosure)
@@ -752,7 +724,6 @@ impl Rule for Collision {
                                 .chain([Target::new(Kind::Placement, py.id)]),
                             "overlap",
                             name.clone(),
-                            format!("two placements of {name} overlap; move one of them"),
                         )
                         .arg("form", "same")
                         .arg("device", name);
@@ -768,7 +739,6 @@ impl Rule for Collision {
                         placement_targets(px).into_iter().chain(placement_targets(py)),
                         "overlap",
                         nx.clone(),
-                        format!("{nx} overlaps {ny}; move one of them"),
                     )
                     .arg("form", "placements")
                     .arg("device", nx)
@@ -787,7 +757,6 @@ impl Rule for Collision {
                             .chain([Target::new(Kind::Carrier, d)]),
                         "overlap",
                         name.clone(),
-                        format!("{name} overlaps the duct at {at}; move the device or the duct"),
                     )
                     .arg("form", "duct")
                     .arg("device", name)
@@ -804,7 +773,6 @@ impl Rule for Collision {
                         [Target::new(Kind::Carrier, r), Target::new(Kind::Carrier, d)],
                         "overlap",
                         subject,
-                        format!("the rail at {rail} overlaps the duct at {duct}; move the rail or the duct"),
                     )
                     .arg("form", "rail")
                     .arg("rail", rail)
@@ -824,6 +792,7 @@ impl Rule for Collision {
 /// EW-LAY-010 "Carrier incompatible" (doc 15 §4.5.4): conflict, o r, error, carrier (as built: project) (FR-LAY-014).
 pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
     id: "EW-LAY-010",
+    message: key!("rule-ew-lay-010"),
     code: "130010",
     title: "Carrier incompatible",
     kind: RuleKind::Conflict,
@@ -885,23 +854,16 @@ impl Rule for CarrierIncompatible {
 }
 
 /// A placement finding of EW-LAY-010 with its form and arguments.
-fn lay010(q: &Q, pl: &Placement, form: &'static str, message: String) -> Finding {
+fn lay010(q: &Q, pl: &Placement, form: &'static str) -> Finding {
     let name = device_name(q, pl.device);
-    let f = Finding::new(
-        &CARRIER_INCOMPATIBLE,
-        placement_targets(pl),
-        form,
-        name.clone(),
-        message,
-    )
-    .arg("form", form)
-    .arg("device", name);
+    let f = Finding::new(&CARRIER_INCOMPATIBLE, placement_targets(pl), form, name.clone())
+        .arg("form", form)
+        .arg("device", name);
     shown(f, q, placement_surface(q, pl))
 }
 
 /// The placement cases of EW-LAY-010.
 fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
-    let name = device_name(q, pl.device);
     let part = realised_part(q, pl);
     let (mount, copy) = mount_of(q, part.as_ref());
     let confidence = copy.as_ref().map(|c| part_confidence(c, "mech"));
@@ -920,15 +882,7 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             match carrier.kind {
                 CarrierKind::Duct => {
                     let at = carrier_at(carrier);
-                    out.push(
-                        lay010(
-                            q,
-                            pl,
-                            "on_duct",
-                            format!("{name} is placed on the duct at {at}, which carries no devices; place it on a rail"),
-                        )
-                        .arg("duct", at),
-                    );
+                    out.push(lay010(q, pl, "on_duct").arg("duct", at));
                     return;
                 }
                 CarrierKind::Unknown(_) => return,
@@ -941,34 +895,12 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             let at = carrier_at(carrier);
             if let Err(e) = check_pose(PoseOn::Rail(axis), &pl.pose) {
                 let f = match e {
-                    PoseError::OffRail(s, l) => lay010(
-                        q,
-                        pl,
-                        "off_rail",
-                        format!(
-                            "{name} is placed at {} mm on the rail at {at}, outside its 0.0 to {} mm; move it onto \
-                             the rail",
-                            ew_derive::mm_tenth(s),
-                            ew_derive::mm_tenth(l)
-                        ),
-                    )
-                    .arg("rail", at)
-                    .arg("s", ew_derive::mm_tenth(s))
-                    .arg("length", ew_derive::mm_tenth(l)),
-                    PoseError::RailTurn => lay010(
-                        q,
-                        pl,
-                        "rail_turn",
-                        format!("{name} is turned on the rail at {at} by an angle other than 0° or 180°; turn it back"),
-                    )
-                    .arg("rail", at),
-                    _ => lay010(
-                        q,
-                        pl,
-                        "off_axis",
-                        format!("{name} is placed beside the axis of the rail at {at}; move it onto the rail"),
-                    )
-                    .arg("rail", at),
+                    PoseError::OffRail(s, l) => lay010(q, pl, "off_rail")
+                        .arg("rail", at)
+                        .arg("s", ew_derive::mm_tenth(s))
+                        .arg("length", ew_derive::mm_tenth(l)),
+                    PoseError::RailTurn => lay010(q, pl, "rail_turn").arg("rail", at),
+                    _ => lay010(q, pl, "off_axis").arg("rail", at),
                 };
                 out.push(f);
                 return;
@@ -979,18 +911,10 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             if fits_rail(mount.as_ref(), &params.profile) == Fit::DoesNotFit {
                 let profile = profile_text(&params.profile);
                 out.push(mark(
-                    lay010(
-                        q,
-                        pl,
-                        "profile",
-                        format!(
-                            "{name} (part {part_text}) does not fit the rail at {at} ({profile}); place it on a rail \
-                             it fits"
-                        ),
-                    )
-                    .arg("part", part_text.clone())
-                    .arg("rail", at.clone())
-                    .arg("profile", profile),
+                    lay010(q, pl, "profile")
+                        .arg("part", part_text.clone())
+                        .arg("rail", at.clone())
+                        .arg("profile", profile),
                 ));
             }
             Some((*c, axis, at))
@@ -998,39 +922,14 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
         CarrierRef::Surface(_) => {
             if let Err(e) = check_pose(PoseOn::Surface, &pl.pose) {
                 let f = match e {
-                    PoseError::SurfaceTurn => lay010(
-                        q,
-                        pl,
-                        "surface_turn",
-                        format!(
-                            "{name} is turned on the mounting plate by an angle other than a multiple of 90°; turn \
-                             it back"
-                        ),
-                    ),
-                    _ => lay010(
-                        q,
-                        pl,
-                        "off_surface",
-                        format!(
-                            "{name} is placed off the plane of the mounting plate; place it on the plate"
-                        ),
-                    ),
+                    PoseError::SurfaceTurn => lay010(q, pl, "surface_turn"),
+                    _ => lay010(q, pl, "off_surface"),
                 };
                 out.push(f);
                 return;
             }
             if fits_surface(mount.as_ref()) == Fit::DoesNotFit {
-                out.push(mark(
-                    lay010(
-                        q,
-                        pl,
-                        "surface",
-                        format!(
-                            "{name} (part {part_text}) does not mount on the plate itself; place it on a rail"
-                        ),
-                    )
-                    .arg("part", part_text.clone()),
-                ));
+                out.push(mark(lay010(q, pl, "surface").arg("part", part_text.clone())));
             }
             None
         }
@@ -1048,21 +947,11 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
         && (o.s0 < 0 || o.s1 > axis.length)
     {
         out.push(
-            lay010(
-                q,
-                pl,
-                "overflow",
-                format!(
-                    "{name} occupies {} to {} mm on the rail at {at}, beyond its 0.0 to {} mm; shorten it or move it",
-                    ew_derive::mm_tenth(o.s0),
-                    ew_derive::mm_tenth(o.s1),
-                    ew_derive::mm_tenth(axis.length)
-                ),
-            )
-            .arg("rail", at)
-            .arg("from", ew_derive::mm_tenth(o.s0))
-            .arg("to", ew_derive::mm_tenth(o.s1))
-            .arg("length", ew_derive::mm_tenth(axis.length)),
+            lay010(q, pl, "overflow")
+                .arg("rail", at)
+                .arg("from", ew_derive::mm_tenth(o.s0))
+                .arg("to", ew_derive::mm_tenth(o.s1))
+                .arg("length", ew_derive::mm_tenth(axis.length)),
         );
     }
     // borrowed, not cloned per placement
@@ -1071,12 +960,7 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
         .get(geom.surface)
         .map_or(&[], |s| s.usable.as_slice());
     if inside_usable(usable, geom.footprint) == Some(false) {
-        out.push(lay010(
-            q,
-            pl,
-            "outside",
-            format!("{name} lies outside the usable area of the mounting plate; move it inside"),
-        ));
+        out.push(lay010(q, pl, "outside"));
     }
 }
 
@@ -1143,14 +1027,12 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
             continue;
         };
         let name = device_name(q, b.strip);
-        let this = format!("The end bracket {} {name}", side(i));
-        let finding = |form: &'static str, message: String| {
+        let finding = |form: &'static str| {
             let f = Finding::new(
                 &CARRIER_INCOMPATIBLE,
                 placement_targets(pl),
                 format!("{form}:{}:{}", side(i), b.s0),
                 name.clone(),
-                message,
             )
             .arg("form", form)
             .arg("device", name.clone())
@@ -1186,13 +1068,10 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
                 let other = device_name(q, x.strip);
                 let other_side = side(j);
                 out.push(
-                    finding(
-                        "bracket_overlap",
-                        format!("{this} overlaps the end bracket {other_side} {other} on {rail}."),
-                    )
-                    .arg("other_kind", "bracket")
-                    .arg("other_side", other_side)
-                    .arg("other", other),
+                    finding("bracket_overlap")
+                        .arg("other_kind", "bracket")
+                        .arg("other_side", other_side)
+                        .arg("other", other),
                 );
             }
             Some(Overlapped::Placement(p)) => {
@@ -1200,7 +1079,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
                     .get(p)
                     .map_or_else(|| "a placement".to_owned(), |o| device_name(q, o.device));
                 out.push(
-                    finding("bracket_overlap", format!("{this} overlaps {other} on {rail}."))
+                    finding("bracket_overlap")
                         .arg("other_kind", "placement")
                         .arg("other_side", "after")
                         .arg("other", other),
@@ -1217,14 +1096,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
         };
         if let Some((edge, by)) = outside {
             let by = ew_derive::mm_tenth_short(by);
-            out.push(
-                finding(
-                    "bracket_outside",
-                    format!("{this} passes the {edge} of {rail} by {by} mm."),
-                )
-                .arg("edge", edge)
-                .arg("by", by),
-            );
+            out.push(finding("bracket_outside").arg("edge", edge).arg("by", by));
         }
     }
 }
@@ -1245,20 +1117,10 @@ fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     let target = [Target::new(Kind::Carrier, id)];
     let subject = format!("the {noun} at {at}");
     if geom.path_error.is_some() {
-        let what = match c.kind {
-            CarrierKind::Rail => "two points on one horizontal or vertical line",
-            _ => "a line of horizontal and vertical segments",
-        };
-        let f = Finding::new(
-            &CARRIER_INCOMPATIBLE,
-            target,
-            "path",
-            subject,
-            format!("the path of the {noun} at {at} is not {what}; edit its path"),
-        )
-        .arg("form", "path")
-        .arg("carrier", word)
-        .arg("at", at);
+        let f = Finding::new(&CARRIER_INCOMPATIBLE, target, "path", subject)
+            .arg("form", "path")
+            .arg("carrier", word)
+            .arg("at", at);
         out.push(shown(f, q, Some(c.surface)));
         return;
     }
@@ -1272,16 +1134,10 @@ fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
         .iter()
         .any(|r| inside_usable(usable, *r) == Some(false))
     {
-        let f = Finding::new(
-            &CARRIER_INCOMPATIBLE,
-            target,
-            "outside",
-            subject,
-            format!("the {noun} at {at} lies outside the usable area of the mounting plate; move it inside"),
-        )
-        .arg("form", "carrier_outside")
-        .arg("carrier", word)
-        .arg("at", at);
+        let f = Finding::new(&CARRIER_INCOMPATIBLE, target, "outside", subject)
+            .arg("form", "carrier_outside")
+            .arg("carrier", word)
+            .arg("at", at);
         out.push(shown(f, q, Some(c.surface)));
     }
 }
@@ -1302,7 +1158,6 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
                 [Target::new(Kind::LayoutSpace, id)],
                 "spaces",
                 location.clone(),
-                format!("{location} has a second layout space; a location has one layout space; remove it"),
             )
             .arg("form", "spaces")
             .arg("location", location),
@@ -1324,10 +1179,6 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
                 [Target::new(Kind::Enclosure, id)],
                 "enclosures",
                 enclosure.clone(),
-                format!(
-                    "the layout of {location} has a second enclosure, {enclosure}; a layout space has one enclosure; \
-                     remove it"
-                ),
             )
             .arg("form", "enclosures")
             .arg("location", location)
@@ -1348,9 +1199,6 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
             [Target::new(Kind::MountingSurface, id)],
             "plates",
             enclosure.clone(),
-            format!(
-                "the enclosure {enclosure} has a second mounting plate; an enclosure has one mounting plate; remove it"
-            ),
         )
         .arg("form", "plates")
         .arg("enclosure", enclosure);
@@ -1364,6 +1212,7 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
 /// EW-LAY-016 "Assembly order" (doc 15 §4.5.4): hygiene, o r, warning, carrier (as built: project) (FR-LAY-061).
 pub const ASSEMBLY_ORDER: RuleMeta = RuleMeta {
     id: "EW-LAY-016",
+    message: key!("rule-ew-lay-016"),
     code: "130016",
     title: "Assembly order",
     kind: RuleKind::Hygiene,
@@ -1440,21 +1289,12 @@ impl Rule for AssemblyOrder {
                 let f = if let Some(p) = wrong {
                     let (late, early) = (&members[p[0].1].0, &members[p[1].1].0);
                     let (early, late) = (early.0.clone(), late.0.clone());
-                    Finding::new(
-                        &ASSEMBLY_ORDER,
-                        targets,
-                        "order",
-                        assembly.clone(),
-                        format!(
-                            "the members of {assembly} on the rail at {at} are out of order: {early} belongs before \
-                             {late}; place the parent first, then the members by position"
-                        ),
-                    )
-                    .arg("form", "order")
-                    .arg("assembly", assembly)
-                    .arg("rail", at.clone())
-                    .arg("early", early)
-                    .arg("late", late)
+                    Finding::new(&ASSEMBLY_ORDER, targets, "order", assembly.clone())
+                        .arg("form", "order")
+                        .arg("assembly", assembly)
+                        .arg("rail", at.clone())
+                        .arg("early", early)
+                        .arg("late", late)
                 } else {
                     let (lo, hi) = (along[0].0, along[along.len() - 1].0);
                     let inside: BTreeSet<usize> = along.iter().map(|(i, _)| *i).collect();
@@ -1462,20 +1302,11 @@ impl Rule for AssemblyOrder {
                         continue;
                     };
                     let other = device_name(q, occ[intruder].device);
-                    Finding::new(
-                        &ASSEMBLY_ORDER,
-                        targets,
-                        "between",
-                        assembly.clone(),
-                        format!(
-                            "{other} is placed between members of {assembly} on the rail at {at}; keep the members \
-                             together"
-                        ),
-                    )
-                    .arg("form", "between")
-                    .arg("assembly", assembly)
-                    .arg("rail", at.clone())
-                    .arg("other", other)
+                    Finding::new(&ASSEMBLY_ORDER, targets, "between", assembly.clone())
+                        .arg("form", "between")
+                        .arg("assembly", assembly)
+                        .arg("rail", at.clone())
+                        .arg("other", other)
                 };
                 out.push(shown(f, q, Some(c.surface)));
             }

@@ -183,7 +183,7 @@ fn core047(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-CORE-047")
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect()
 }
 

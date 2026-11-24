@@ -698,7 +698,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     assert!(!s.merge_evidence());
     let rds = findings(&s, "EW-RDS-004");
     assert_eq!(rds.len(), 1);
-    assert_eq!(rds[0].message, "`+CAB-102F2` is printed by 2 devices");
+    assert_eq!(rds[0].message(), "`+CAB-102F2` is printed by 2 devices");
     assert!(findings(&s, "EW-CORE-013").is_empty(), "no merge evidence");
     assert!(online(&s).is_empty());
 
@@ -718,12 +718,12 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     assert_eq!(collisions.len(), 1);
     let f = &collisions[0];
     assert_eq!(
-        f.message,
+        f.message(),
         "`+CAB-102F2` is printed by 2 devices after a merge; the oldest record keeps it, and the other must change"
     );
     // The inner uniqueness finding is worded by EW-RDS-004's own pattern in each language.
     use ew_api::checks::messages::{format, render};
-    assert_eq!(format(f, "en-GB").as_deref(), Some(f.message.as_str()));
+    assert_eq!(format(f, "en-GB").as_deref(), Some(f.message().as_str()));
     assert_eq!(
         render(f, "nl-NL"),
         "`+CAB-102F2` wordt afgedrukt door 2 apparaten na samenvoegen; het oudste record behoudt het, en het andere \
@@ -731,7 +731,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     );
     let rds = findings(&s, "EW-RDS-004");
     let rds = &rds[0];
-    assert_eq!(format(rds, "en-GB").as_deref(), Some(rds.message.as_str()));
+    assert_eq!(format(rds, "en-GB").as_deref(), Some(rds.message().as_str()));
     assert_eq!(
         render(rds, "nl-NL"),
         "`+CAB-102F2` wordt afgedrukt door 2 apparaten"

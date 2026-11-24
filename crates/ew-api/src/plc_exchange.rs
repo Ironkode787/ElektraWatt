@@ -314,7 +314,7 @@ impl Session {
             let findings = ew_checks::rules::plc_wiring::InvalidSymbol.run(&q, &ew_checks::Scope::Cfg(cfg));
             if !findings.is_empty() {
                 return Err(PlcExchangeError::InvalidSymbols(
-                    findings.into_iter().map(|f| f.message).collect(),
+                    findings.into_iter().map(|f| f.message()).collect(),
                 ));
             }
         }

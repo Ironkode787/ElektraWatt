@@ -9,11 +9,10 @@ use std::collections::BTreeSet;
 
 use common::*;
 use ew_checks::messages::{
-    self, DEFAULT_LANGUAGE, LANGUAGES, format, has, hint, message_id, render, resource_errors, title,
+    self, DEFAULT_LANGUAGE, LANGUAGES, format, has, hint, render, resource_errors, title,
 };
 use ew_checks::rules;
 use ew_checks::rules::core::INTEGRITY;
-use serde_json::json;
 
 const SOURCES: [(&str, &str); 2] = [
     ("en-GB", include_str!("../../texts/en-GB/rules.ftl")),
@@ -29,12 +28,16 @@ fn ids(source: &str) -> Vec<&str> {
         .collect()
 }
 
-/// P5-1 (NFR-I18N-02): every registered rule has its message with `.title` and `.hint` in en-GB, and the title is the
-/// catalogue's; nl-NL's missing messages and attributes are listed as warnings until 1.0, never a failure.
+/// P5-1 (NFR-I18N-02): every registered rule has its message `rule-<id in lower case>` (ADR-0019 amendment 4) with
+/// `.title` and `.hint` in en-GB, and the title is the catalogue's; nl-NL's missing messages and attributes are listed
+/// as warnings until 1.0, never a failure.
 #[test]
 fn every_rule_has_its_message_title_and_hint_in_en_gb() {
     assert!(resource_errors().is_empty(), "{:#?}", resource_errors());
     let mut missing = Vec::new();
+    for m in rules().iter().map(|r| r.meta()).chain(INTEGRITY) {
+        assert_eq!(m.message, format!("rule-{}", m.id.to_ascii_lowercase()), "{}", m.id);
+    }
     for r in rules() {
         let id = r.meta().id;
         for attr in [None, Some("title"), Some("hint")] {
@@ -207,7 +210,7 @@ fn every_message_names_a_registered_rule_once() {
         .iter()
         .map(|r| r.meta())
         .chain(INTEGRITY)
-        .map(|m| message_id(m.id))
+        .map(|m| m.message.to_owned())
         .collect();
     for (lang, source) in SOURCES {
         let list = ids(source);
@@ -244,14 +247,14 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
     // EW-TERM-002: its pattern words the duplicate in each language.
     let m = model(vec![strip(1, 1), terminal(2, 1, 1, "1"), terminal(3, 1, 2, "1")]);
     let dup = one(&m, "EW-TERM-002");
-    assert_eq!(dup.message, "designation 1 is used by 2 terminals of -?X1");
-    assert_eq!(render(&dup, DEFAULT_LANGUAGE), dup.message);
+    assert_eq!(dup.message(), "designation 1 is used by 2 terminals of -?X1");
+    assert_eq!(render(&dup, DEFAULT_LANGUAGE), dup.message());
     assert_eq!(
         render(&dup, "nl-NL"),
         "aanduiding 1 wordt gebruikt door 2 klemmen van -?X1"
     );
     // An unknown language falls back to en-GB.
-    assert_eq!(render(&dup, "fr-FR"), dup.message);
+    assert_eq!(render(&dup, "fr-FR"), dup.message());
     assert_eq!(
         title("EW-TERM-002", "fr-FR").as_deref(),
         Some("Duplicate designation")
@@ -281,7 +284,7 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
              twee met de snelle oplossing, of teken er een draad naartoe.",
         ),
     ] {
-        let f = ew_checks::Finding::new(rule, [], "13", "-K1:13", en)
+        let f = ew_checks::Finding::new(rule, [], "13", "-K1:13")
             .arg("cp", "-K1:13")
             .arg("cp_shared", "no")
             .arg("unused", unused)
@@ -295,19 +298,19 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
     // A pin whose designation the device shares is named in words with its position, in each
     // language's ordinal, never by the label's `#n`.
     for (nth, en, nl) in [
-        ("2", "-1A4 pin − (2nd)", "-1A4 pen − (2e)"),
-        ("12", "-1A4 pin − (12th)", "-1A4 pen − (12e)"),
-        ("21", "-1A4 pin − (21st)", "-1A4 pen − (21e)"),
-        ("3", "-1A4 pin − (3rd)", "-1A4 pen − (3e)"),
+        (2, "-1A4 pin − (2nd)", "-1A4 pen − (2e)"),
+        (12, "-1A4 pin − (12th)", "-1A4 pen − (12e)"),
+        (21, "-1A4 pin − (21st)", "-1A4 pen − (21e)"),
+        (3, "-1A4 pin − (3rd)", "-1A4 pen − (3e)"),
     ] {
         let message =
             format!("{en} has no wire. Draw one to it, or right-click it and choose Mark not used.");
-        let f = ew_checks::Finding::new(rule, [], "13", "-1A4:−#2", message.clone())
+        let f = ew_checks::Finding::new(rule, [], "13", "-1A4:−#2")
             .arg("cp", "-1A4:−#2")
             .arg("cp_shared", "yes")
             .arg("cp_tag", "-1A4")
             .arg("cp_pin", "−")
-            .arg("cp_nth", nth)
+            .arg("cp_nth", ew_l10n::TextArg::Number(nth))
             .arg("unused", "no")
             .arg("near", "no")
             .arg("mark", "");
@@ -316,9 +319,9 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
         assert!(dutch.starts_with(&format!("{nl} heeft geen draad")), "{dutch}");
         assert!(!dutch.contains('#'), "{dutch}");
     }
-    // A missing argument is an error in the pattern: the en-GB message is kept.
-    let partial = ew_checks::Finding::new(rule, [], "13", "-K1:13", "the en-GB text").arg("unused", "no");
-    assert_eq!(render(&partial, "nl-NL"), "the en-GB text");
+    // A missing argument is an error in the pattern: the language falls back to the en-GB message.
+    let partial = ew_checks::Finding::new(rule, [], "13", "-K1:13").arg("unused", "no");
+    assert_eq!(render(&partial, "nl-NL"), render(&partial, DEFAULT_LANGUAGE));
     assert_eq!(
         messages::title("EW-POT-013", "nl-NL").as_deref(),
         Some("Schakelen in de nulleider")
@@ -328,7 +331,7 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
 /// A finding of `rule` built by hand with `args`, its en-GB message `en`: the en-GB pattern renders `en` byte for byte.
 fn by_hand(rule: &str, discriminator: &str, en: &str, args: &[(&'static str, &str)]) -> ew_checks::Finding {
     let meta = ew_checks::rule(rule).expect("registered").meta();
-    let mut f = ew_checks::Finding::new(meta, [], discriminator, "", en);
+    let mut f = ew_checks::Finding::new(meta, [], discriminator, "");
     for (k, v) in args {
         f = f.arg(k, *v);
     }
@@ -665,64 +668,9 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     );
     // A conflict of another shape keeps the en-GB message.
     let meta = ew_checks::rule("EW-POT-001").expect("registered").meta();
-    let odd = ew_checks::Finding::new(meta, [], "attrs", "", "something else")
+    let odd = ew_checks::Finding::new(meta, [], "attrs", "")
         .arg("form", "attrs")
         .arg("conflict_list", "something else")
         .arg("more", "none");
     assert_eq!(render(&odd, "nl-NL"), "something else");
-}
-
-// Every quick fix a rule offers names its key beside its English label; the key's en-GB message
-/// is that label byte for byte (the CLI's text), nl-NL words it in Dutch, and a fix without a key keeps its label.
-#[test]
-fn every_quick_fix_label_has_its_key_in_both_languages() {
-    let sources = [
-        include_str!("../../src/rules/core.rs"),
-        include_str!("../../src/rules/imp.rs"),
-        include_str!("../../src/rules/layout.rs"),
-        include_str!("../../src/rules/plc.rs"),
-        include_str!("../../src/rules/pot.rs"),
-    ];
-    let mut pairs = Vec::new();
-    for source in sources {
-        let lines: Vec<&str> = source.lines().map(str::trim).collect();
-        for w in lines.windows(2) {
-            if let (Some(label), Some(key)) = (
-                w[0].strip_prefix("label: \"")
-                    .and_then(|l| l.strip_suffix("\".to_owned(),")),
-                w[1].strip_prefix("key: Some(\"")
-                    .and_then(|k| k.strip_suffix("\"),")),
-            ) {
-                pairs.push((label.to_owned(), key.to_owned()));
-            }
-        }
-    }
-    assert!(pairs.iter().any(|(l, _)| l == "Renumber the newer"), "{pairs:#?}");
-    for (label, key) in pairs {
-        let key: &'static str = Box::leak(key.into_boxed_str());
-        let fix = |key: Option<&'static str>| ew_checks::QuickFix {
-            label: label.clone(),
-            key,
-            command: String::new(),
-            params: json!(null),
-        };
-        assert_eq!(
-            messages::fix_label(&fix(Some(key)), DEFAULT_LANGUAGE),
-            label,
-            "{key}"
-        );
-        assert_ne!(
-            messages::fix_label(&fix(Some(key)), "nl-NL"),
-            label,
-            "{key} has its nl-NL text"
-        );
-        assert_eq!(messages::fix_label(&fix(None), "nl-NL"), label);
-    }
-    let unfreeze = ew_checks::QuickFix {
-        label: "Unfreeze the tag".to_owned(),
-        key: Some("fix-unfreeze-tag"),
-        command: String::new(),
-        params: json!(null),
-    };
-    assert_eq!(messages::fix_label(&unfreeze, "nl-NL"), "Kenmerk losmaken");
 }

@@ -250,7 +250,7 @@ fn ac29_ew_plc_012_follows_the_part_map() {
         .iter()
         .find(|f| on_channel(f, 0))
         .expect("a finding on -201K1:0");
-    assert!(first.message.contains("-201K1:1"), "{}", first.message);
+    assert!(first.message().contains("-201K1:1"), "{}", first.message());
     assert_eq!(
         all_texts(&s2.query()),
         all_texts(&s.query()),

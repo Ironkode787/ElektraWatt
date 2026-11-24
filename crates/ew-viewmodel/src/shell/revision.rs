@@ -1381,7 +1381,7 @@ mod tests {
     /// A finding of EW-REL-001 ("Four eyes") on `subject`.
     fn finding(subject: &str) -> Finding {
         let meta = ew_api::checks::rule("EW-REL-001").expect("a shipped rule").meta();
-        Finding::new(meta, std::iter::empty::<Target>(), "d", subject, "a message")
+        Finding::new(meta, std::iter::empty::<Target>(), "d", subject)
     }
 
     /// A report whose one finding, on `subject`, is waived by `waiver`.

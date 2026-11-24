@@ -61,6 +61,30 @@ impl SchemeIssue {
     }
 }
 
+/// What a [`Connectivity`](DeriveNote::Connectivity) note found, as the facts a rule reads; the note's `detail` says it
+/// in English for a log.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[non_exhaustive]
+pub enum NoteFact {
+    /// A fact no rule reads beyond the note's code and subject.
+    Other,
+    /// The connection closes a ring in the drawing graph and forms no physical wire (`EW-POT-012`).
+    Ring,
+    /// A constituent of a physical wire names another conductor than the one that applies (`EW-POT-014`).
+    Conductor,
+    /// A constituent of a physical wire overrides a value the wire already has; the first value applies
+    /// (`EW-POT-014`).
+    Override,
+    /// A rail-bonded terminal without a location, in a project with `locations` own locations, joins no location PE
+    /// node (`EW-POT-008`).
+    RailWithoutLocation {
+        /// The project's own locations.
+        locations: usize,
+    },
+    /// A rail-bonded terminal without a PE connection point joins no location PE node (`EW-TERM-005`).
+    RailWithoutPe,
+}
+
 /// One derivation note.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[non_exhaustive]
@@ -125,6 +149,8 @@ pub enum DeriveNote {
     Connectivity {
         /// The finding code of the catalogue (doc 08 §8.1, doc 06 §6), such as `"EW-POT-017"`.
         code: &'static str,
+        /// What was found, as the facts a rule reads.
+        fact: NoteFact,
         /// The subject: the record IDs or names concerned.
         subject: String,
         /// What happened and which fallback applied, in English.
@@ -268,6 +294,7 @@ impl fmt::Display for DeriveNote {
                 code,
                 subject,
                 detail,
+                ..
             }
             | DeriveNote::Xref {
                 code,
@@ -415,6 +442,7 @@ mod tests {
     fn connectivity(code: &'static str) -> DeriveNote {
         DeriveNote::Connectivity {
             code,
+            fact: NoteFact::Other,
             subject: "x".into(),
             detail: "y".into(),
         }

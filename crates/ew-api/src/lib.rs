@@ -398,10 +398,10 @@ impl PreventHook for ShippedPrevent {
             None => Ok(()),
             Some(f) => Err(ew_model::PreventViolation {
                 rule: f.rule.to_owned(),
-                message: f.message,
+                message: f.message(),
                 keys: f.targets.iter().map(|t| (t.kind, t.id)).collect(),
-                // The window renders the rule's message from them in its language.
-                args: f.args,
+                // The window renders the rule's message from it in its language.
+                text: Some(f.text),
             }),
         }
     }

@@ -1238,8 +1238,10 @@ fn wire_props_of(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
 /// The words of a medium text for the CLI: its English form, else its neutral or first form.
 fn medium_words(t: &ew_derive::ew_mltext::MlText) -> String {
     let en = "en-GB".parse().expect("a language tag");
-    t.text_for(&en)
-        .map_or_else(|| ew_derive::neutral(t), str::to_owned)
+    t.text_for(&en).map_or_else(
+        || t.neutral_or_first().unwrap_or_default().to_owned(),
+        str::to_owned,
+    )
 }
 
 fn medium_zones(cx: &Cx<'_>, _key: &str) -> Result<Answer, String> {

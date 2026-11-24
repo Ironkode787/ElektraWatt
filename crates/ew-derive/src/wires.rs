@@ -32,7 +32,7 @@ use ew_schema::{
 use crate::ip::{IpPairing, IpPairingQ};
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, Dsu, ends};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteFact};
 use crate::pages::PageOrderV;
 use crate::potentials::{Partition, PotentialId, PotentialPartition};
 use crate::query::{Policy, Query};
@@ -233,6 +233,7 @@ impl Query for PhysicalWiresOf {
             edges.remove(id);
             notes.insert(DeriveNote::Connectivity {
                 code: "EW-POT-012",
+                fact: NoteFact::Ring,
                 subject: id.to_string(),
                 detail:
                     "the connection closes a ring in the drawing graph; it is the highest ID of the ring \
@@ -611,6 +612,7 @@ impl Drawing<'_> {
             let [feed] = self.drawn_at(scp.key()) else {
                 notes.insert(DeriveNote::Connectivity {
                     code: "EW-POT-011",
+                    fact: NoteFact::Other,
                     subject: source.to_string(),
                     detail: format!(
                         "it is unclear which wire feeds interruption point group {}: its source has {} wires where \
@@ -766,6 +768,7 @@ impl Drawing<'_> {
                     .map_or_else(String::new, |&h| self.hubs[h].key.to_string());
                 notes.insert(DeriveNote::Connectivity {
                     code: "EW-POT-011",
+                    fact: NoteFact::Other,
                     subject,
                     detail: "it is unclear which wire feeds these junctions: a wire between two of them feeds \
                              both or neither, or no wire reaches them from a device; the wires are numbered from \
@@ -960,9 +963,10 @@ impl FinishCtx<'_> {
             .collect();
         let carrier_row = rows.iter().find(|(id, _)| *id == w.carrier).map(|(_, c)| *c)?;
         let carrier = w.carrier;
-        let note14 = |notes: &mut BTreeSet<DeriveNote>, detail: String| {
+        let note14 = |notes: &mut BTreeSet<DeriveNote>, fact: NoteFact, detail: String| {
             notes.insert(DeriveNote::Connectivity {
                 code: "EW-POT-014",
+                fact,
                 subject: carrier.to_string(),
                 detail,
             });
@@ -985,6 +989,7 @@ impl FinishCtx<'_> {
                 if *k != core {
                     note14(
                         notes,
+                        NoteFact::Conductor,
                         format!("constituent {id} names conductor {k}; conductor {core} applies"),
                     );
                 }
@@ -1032,6 +1037,7 @@ impl FinishCtx<'_> {
         if let Some(id) = conflict {
             note14(
                 notes,
+                NoteFact::Override,
                 format!(
                     "constituent {id} overrides a value that the wire already has; the first value applies"
                 ),

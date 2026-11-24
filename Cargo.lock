@@ -1413,6 +1413,7 @@ dependencies = [
  "automod",
  "ew-hack",
  "ew-ids",
+ "ew-l10n",
  "ew-memo",
  "ew-mltext",
  "ew-model",
@@ -1656,6 +1657,7 @@ name = "ew-l10n"
 version = "0.3.5"
 dependencies = [
  "ew-hack",
+ "ew-mltext",
  "fluent-bundle",
  "fluent-syntax",
  "unic-langid",
@@ -1706,6 +1708,7 @@ version = "0.3.5"
 dependencies = [
  "ew-hack",
  "ew-ids",
+ "ew-l10n",
  "ew-mltext",
  "ew-rds",
  "ew-schema",

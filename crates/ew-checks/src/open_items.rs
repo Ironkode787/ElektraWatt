@@ -167,14 +167,14 @@ mod tests {
     #[test]
     fn open_item_of_matches_the_rule_and_the_discriminator() {
         let meta = rule("EW-BUS-001").expect("registered").meta();
-        let address = Finding::new(meta, [], "address", "-201U1:DP", "missing");
-        let duplicate = Finding::new(meta, [], "duplicate", "-201U1:DP", "duplicate");
+        let address = Finding::new(meta, [], "address", "-201U1:DP");
+        let duplicate = Finding::new(meta, [], "duplicate", "-201U1:DP");
         assert_eq!(open_item_of(&address).map(|o| o.category), Some("TBD value"));
         assert_eq!(open_item_of(&duplicate), None);
         let m041 = rule("EW-CORE-041").expect("registered").meta();
-        let f = Finding::new(m041, [], "anything", "-K1", "no part");
+        let f = Finding::new(m041, [], "anything", "-K1");
         assert_eq!(open_item_of(&f).map(|o| o.category), Some("Device without part"));
-        let other = Finding::new(rule("EW-TERM-002").expect("registered").meta(), [], "", "", "");
+        let other = Finding::new(rule("EW-TERM-002").expect("registered").meta(), [], "", "");
         assert_eq!(open_item_of(&other), None);
     }
 }

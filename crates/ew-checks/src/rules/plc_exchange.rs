@@ -22,6 +22,7 @@ use crate::rules::term::full_tag;
 /// EW-PLC-016 "Exchange drift" (doc 15 §4.5.1): hygiene, o, info, cfg (FR-PLC-035).
 pub const EXCHANGE_DRIFT: RuleMeta = RuleMeta {
     id: "EW-PLC-016",
+    message: key!("rule-ew-plc-016"),
     code: "110016",
     title: "Exchange drift",
     kind: RuleKind::Hygiene,
@@ -69,11 +70,11 @@ impl Rule for ExchangeDrift {
             _ => "export",
         };
         // the format's key in the message patterns, and its English words
-        let (format, format_words) = match stamp.format {
-            ExchangeFormat::Aml => ("aml", "AML"),
-            ExchangeFormat::TiaXlsx => ("tia_xlsx", "tag table"),
-            ExchangeFormat::Plcopen => ("plcopen", "PLCopen"),
-            ExchangeFormat::Unknown(_) => ("other", "PLC"),
+        let format = match stamp.format {
+            ExchangeFormat::Aml => "aml",
+            ExchangeFormat::TiaXlsx => "tia_xlsx",
+            ExchangeFormat::Plcopen => "plcopen",
+            ExchangeFormat::Unknown(_) => "other",
         };
         let channels = q.table::<Channel>();
         let objects: Vec<String> = drift
@@ -98,12 +99,6 @@ impl Rule for ExchangeDrift {
                 [Target::new(Kind::PlcConfigProject, cfg)],
                 "drift",
                 name.clone(),
-                format!(
-                    "configuration project {name} changed since the {format_words} {direction}{}: {count} object(s) \
-                     differ ({list}{}); export it again, or import the PLC's file",
-                    date.as_ref().map_or_else(String::new, |d| format!(" of {d}")),
-                    if more > 0 { format!(" and {more} more") } else { String::new() }
-                ),
             )
             .arg("cfg", name)
             .arg("format", format)
@@ -113,7 +108,11 @@ impl Rule for ExchangeDrift {
             .arg("objects", list)
             .arg(
                 "more",
-                if more > 0 { more.to_string() } else { "none".to_owned() },
+                if more > 0 {
+                    more.to_string()
+                } else {
+                    "none".to_owned()
+                },
             ),
         ]
     }
@@ -125,6 +124,7 @@ impl Rule for ExchangeDrift {
 /// EW-PRC-002 "Open instrument tag" (doc 15 §4.5.1): completeness, o, info, project (FR-PLC-050).
 pub const OPEN_INSTRUMENT_TAG: RuleMeta = RuleMeta {
     id: "EW-PRC-002",
+    message: key!("rule-ew-prc-002"),
     code: "110202",
     title: "Open instrument tag",
     kind: RuleKind::Completeness,
@@ -165,10 +165,6 @@ impl Rule for OpenInstrumentTag {
                     [Target::new(Kind::PlcConfigProject, r.config_project)],
                     format!("device:{tag}"),
                     tag.clone(),
-                    format!(
-                        "instrument tag {tag} has no device any more; apply the instrument list again, or remove \
-                         the tag from it"
-                    ),
                 )
                 .arg("form", "device")
             } else if r
@@ -183,10 +179,6 @@ impl Rule for OpenInstrumentTag {
                     [Target::new(Kind::Device, device)],
                     format!("channel:{tag}"),
                     name.clone(),
-                    format!(
-                        "instrument tag {tag} ({signal}) has no channel: no spare {signal} channel was free; add a \
-                         module or free a channel, then apply the instrument list again"
-                    ),
                 )
                 .arg("form", "channel")
                 .arg("device", name)

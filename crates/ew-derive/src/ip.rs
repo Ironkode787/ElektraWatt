@@ -28,7 +28,7 @@ use ew_schema::{Representation, StructureNode};
 use crate::index::{Index, IpFunctions};
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, ip_cp};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteFact};
 use crate::query::{Changes, Policy, Query};
 use crate::stitch::{IpGroup, IpInfo, PairMode};
 use crate::{DrawnPageOrder, PageRef, Q, RepAnchorCell};
@@ -131,6 +131,7 @@ impl Query for IpInfoOf {
             if spec.is_some() && !external && cp.is_none() {
                 notes.push(DeriveNote::Connectivity {
                     code: "EW-CORE-051",
+                    fact: NoteFact::Other,
                     subject: format!("interruption point {name} ({fid})"),
                     detail: "the interruption point has no connection point; it pairs with nothing".into(),
                 });
@@ -144,6 +145,7 @@ impl Query for IpInfoOf {
                 if let (Some(aspect), None) = (scope_aspect, scope) {
                     notes.push(DeriveNote::Connectivity {
                         code: "EW-CORE-051",
+                        fact: NoteFact::Other,
                         subject: format!("interruption point {name} ({fid})"),
                         detail: format!(
                             "ip_pairing scope is {aspect:?} but the page has no such structure node; \
@@ -320,6 +322,7 @@ fn pair(q: &Q) -> IpPairing {
                 if flagged.len() > 1 {
                     notes.push(DeriveNote::Connectivity {
                         code: "EW-CORE-051",
+                        fact: NoteFact::Other,
                         subject: format!("interruption point {name}"),
                         detail: format!("{} star sources; the smallest ID is the source", flagged.len()),
                     });
@@ -327,6 +330,7 @@ fn pair(q: &Q) -> IpPairing {
                 if flagged.is_empty() && sources.len() >= 2 {
                     notes.push(DeriveNote::Connectivity {
                         code: "EW-CORE-051",
+                        fact: NoteFact::Other,
                         subject: format!("interruption point {name}"),
                         detail: format!(
                             "{} source points and no star_source; the lowest ID source is the star source",
@@ -384,6 +388,7 @@ fn pair(q: &Q) -> IpPairing {
         for &u in &g.unpaired {
             notes.push(DeriveNote::Connectivity {
                 code: "EW-CORE-051",
+                fact: NoteFact::Other,
                 subject: format!("interruption point {name} ({u})"),
                 detail: "no partner; its wire stays open-ended".into(),
             });

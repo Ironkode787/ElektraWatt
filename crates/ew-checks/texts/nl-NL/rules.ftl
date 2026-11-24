@@ -1268,7 +1268,7 @@ fix-mark-cp-unused = Markeren als niet gebruikt
 fix-join-mark = Pen en markering verbinden
 fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
-fix-blank-position = Blindplaat op ventielplaats { $position }
+fix-blank-position = Blindplaat op ventielplaats { $p0 }
 fix-draw-valves = De ventielen in het ventieleiland tekenen
 fix-plug-open-ports = Blindstoppen op de open poorten zetten
 fix-text-style-minimum = Op 1,2 mm zetten
@@ -1409,3 +1409,7 @@ rule-ew-imp-206 =
 rule-ew-imp-207 =
     .title = Klemmen met meerdere niveaus samengevoegd
     .hint = Controleer de niveaus van de klem aan de hand van het rapport.
+
+## Words another part of the program wrote: the store's integrity findings, the text an importer stored, an importer's quick fix
+
+words-as-written = { $p0 }

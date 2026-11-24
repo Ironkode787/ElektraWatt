@@ -73,6 +73,7 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<(Id<Device>, Slot)> {
 /// EW-PLC-004 "Channel kind mismatch" (doc 15 §4.5.1): conflict, f r, warning, module (FR-PLC-046).
 pub const KIND_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-PLC-004",
+    message: key!("rule-ew-plc-004"),
     code: "110004",
     title: "Channel kind mismatch",
     kind: RuleKind::Conflict,
@@ -124,23 +125,12 @@ impl Rule for KindMismatch {
                 .device
                 .map_or_else(|| "its target".to_owned(), |d| full_tag(q, d, "its target"));
             let kind = kind_word(&c.kind);
-            let message = match form {
-                "output" => format!(
-                    "{channel}: the {kind} channel drives the contact of {target}; an output drives an actuator, check \
-                     the wiring or the channel kind"
-                ),
-                _ => format!(
-                    "{channel}: the {kind} channel reads the coil of {target}; an input reads a sensor, check the \
-                     wiring or the channel kind"
-                ),
-            };
             out.push(
                 Finding::new(
                     &KIND_MISMATCH,
                     [Target::new(Kind::Channel, c.id), Target::new(Kind::Function, f)],
                     form,
                     channel.clone(),
-                    message,
                 )
                 .arg("form", form)
                 .arg("channel", channel)
@@ -158,6 +148,7 @@ impl Rule for KindMismatch {
 /// EW-PLC-005 "Invalid symbol" (doc 15 §4.5.1): conflict, x r, error, cfg (FR-PLC-047).
 pub const INVALID_SYMBOL: RuleMeta = RuleMeta {
     id: "EW-PLC-005",
+    message: key!("rule-ew-plc-005"),
     code: "110005",
     title: "Invalid symbol",
     kind: RuleKind::Conflict,
@@ -208,10 +199,6 @@ impl Rule for InvalidSymbol {
                         [Target::new(Kind::Channel, *id)],
                         "symbol",
                         channel.clone(),
-                        format!(
-                            "{channel}: the symbol {symbol} is not an IEC 61131-3 identifier, which configuration \
-                             project {name} requires; use letters, digits and single underscores"
-                        ),
                     )
                     .arg("channel", channel)
                     .arg("symbol", symbol.clone())
@@ -229,6 +216,7 @@ impl Rule for InvalidSymbol {
 /// EW-PLC-009 "Channel without connection" (doc 15 §4.5.1): completeness, o r, warning, module (FR-PLC-046).
 pub const WITHOUT_CONNECTION: RuleMeta = RuleMeta {
     id: "EW-PLC-009",
+    message: key!("rule-ew-plc-009"),
     code: "110009",
     title: "Channel without connection",
     kind: RuleKind::Completeness,
@@ -282,20 +270,12 @@ impl Rule for WithoutConnection {
                 (false, None) => continue,
             };
             let channel = channel_name(q, module, c.id, c.number);
-            let given = match what {
-                "both" => "a manual address and a symbol",
-                "address" => "a manual address",
-                _ => "a symbol",
-            };
             out.push(
                 Finding::new(
                     &WITHOUT_CONNECTION,
                     [Target::new(Kind::Channel, c.id)],
                     what,
                     channel.clone(),
-                    format!(
-                        "{channel} has {given} but no connection; connect it, or mark it spare or reserved"
-                    ),
                 )
                 .arg("channel", channel)
                 .arg("what", what),
@@ -311,6 +291,7 @@ impl Rule for WithoutConnection {
 /// EW-PLC-010 "Data-type width mismatch" (doc 15 §4.5.1): conflict, o r, error, module (FR-PLC-046).
 pub const WIDTH_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-PLC-010",
+    message: key!("rule-ew-plc-010"),
     code: "110010",
     title: "Data-type width mismatch",
     kind: RuleKind::Conflict,
@@ -383,10 +364,6 @@ impl Rule for WidthMismatch {
                 [Target::new(Kind::Channel, c.id)],
                 "width",
                 channel.clone(),
-                format!(
-                    "{channel}: the data type {data_type} ({bits} bit(s)) does not fit the {width}-bit {kind} channel; \
-                     give the channel a data type of its width"
-                ),
             )
             .arg("channel", channel)
             .arg("data_type", data_type)
@@ -410,6 +387,7 @@ impl Rule for WidthMismatch {
 /// EW-PLC-011 "Slot rules" (doc 15 §4.5.1): conflict, p o r, error, station (FR-PLC-028).
 pub const SLOT_RULES: RuleMeta = RuleMeta {
     id: "EW-PLC-011",
+    message: key!("rule-ew-plc-011"),
     code: "110011",
     title: "Slot rules",
     kind: RuleKind::Conflict,
@@ -464,12 +442,12 @@ impl Rule for SlotRules {
             out.push(
                 Finding::new(
                     &SLOT_RULES,
-                    [Target::new(Kind::Device, other), Target::new(Kind::Device, *module)],
+                    [
+                        Target::new(Kind::Device, other),
+                        Target::new(Kind::Device, *module),
+                    ],
                     "occupied",
                     format!("{first} {second}"),
-                    format!(
-                        "{first} and {second} sit in the same slot {number} of {tag}; move one of them to a free slot"
-                    ),
                 )
                 .arg("form", "occupied")
                 .arg("module", first)
@@ -513,11 +491,6 @@ impl Rule for SlotRules {
                     [Target::new(Kind::Device, *module)],
                     "slot",
                     name.clone(),
-                    format!(
-                        "{name} sits in slot {number} of {tag}, but its part {} allows slots {allowed}; move it to an \
-                         allowed slot",
-                        copy.item.part_number
-                    ),
                 )
                 .arg("form", "slot")
                 .arg("module", name)
@@ -537,21 +510,11 @@ impl Rule for SlotRules {
         let confidence = part_confidence(&copy, "plc");
         let count = modules.len() as u64;
         let checks = [
-            ("max_modules", count, limits.max_modules.map(u64::from), "modules"),
-            (
-                "input",
-                input,
-                limits.max_input_bytes.map(u64::from),
-                "input bytes",
-            ),
-            (
-                "output",
-                output,
-                limits.max_output_bytes.map(u64::from),
-                "output bytes",
-            ),
+            ("max_modules", count, limits.max_modules.map(u64::from)),
+            ("input", input, limits.max_input_bytes.map(u64::from)),
+            ("output", output, limits.max_output_bytes.map(u64::from)),
         ];
-        for (form, have, limit, what) in checks {
+        for (form, have, limit) in checks {
             let Some(limit) = limit.filter(|l| have > *l) else {
                 continue;
             };
@@ -561,7 +524,6 @@ impl Rule for SlotRules {
                     [Target::new(Kind::Device, station)],
                     form,
                     tag.clone(),
-                    format!("{tag} has {have} {what}, more than the {limit} its part allows; remove modules"),
                 )
                 .arg("form", form)
                 .arg("station", tag.clone())
@@ -591,6 +553,7 @@ impl Rule for SlotRules {
 /// for PLC supply CPs.
 pub const CARD_SUPPLY: RuleMeta = RuleMeta {
     id: "EW-PLC-013",
+    message: key!("rule-ew-plc-013"),
     code: "110013",
     title: "Card supply wrong",
     kind: RuleKind::Conflict,
@@ -656,7 +619,7 @@ impl Rule for CardSupply {
                             .any(|b| b.kind == BondKind::FePe);
                         if !bonded {
                             let label = cp_label(q, at);
-                            let pin = PinWords::of(q, at, &label);
+                            let pin = PinWords::of(q, at);
                             let name = potential.map(|p| potential_name(q, p)).unwrap_or_default();
                             out.push(
                                 pin.args(Finding::new(
@@ -664,11 +627,6 @@ impl Rule for CardSupply {
                                     [Target::new(Kind::Function, f)],
                                     format!("fe:{}", cp.idx),
                                     label.clone(),
-                                    format!(
-                                        "{} is the FE pin of a PLC card and is fed from the PE potential {name}; \
-                                         connect it to functional earth, or declare an FE–PE bond",
-                                        pin.sentence
-                                    ),
                                 ))
                                 .arg("form", "fe")
                                 .arg("cp", label)
@@ -694,29 +652,16 @@ impl Rule for CardSupply {
                             SupplyKind::Unknown(_) => "supply",
                         };
                         let label = cp_label(q, at);
-                        let (form, message) = if q.idx().connections_at_cp(f, cp.idx).next().is_none() {
-                            (
-                                "unconnected",
-                                format!(
-                                    "{label}, the {role_word} pin of the {group_word} supply group, is not connected; \
-                                     connect the card's supply"
-                                ),
-                            )
-                        } else if let Some(t) = ptype.as_ref().filter(|t| {
+                        let form = if q.idx().connections_at_cp(f, cp.idx).next().is_none() {
+                            "unconnected"
+                        } else if ptype.as_ref().is_some_and(|t| {
                             // An M pin on L− is the same reference conductor by its other name.
-                            let alias = role == PotentialType::M && **t == PotentialType::LMinus;
+                            let alias = role == PotentialType::M && *t == PotentialType::LMinus;
                             !matches!(t, PotentialType::Undefined | PotentialType::Unknown(_))
-                                && **t != role
+                                && *t != role
                                 && !alias
                         }) {
-                            let type_word = ew_derive::potential_type_text(t);
-                            (
-                                "wrong",
-                                format!(
-                                    "{label}, the {role_word} pin of the {group_word} supply group, is fed from a \
-                                     potential of type {type_word}; feed it from {role_word}"
-                                ),
-                            )
+                            "wrong"
                         } else {
                             continue;
                         };
@@ -726,7 +671,6 @@ impl Rule for CardSupply {
                                 [Target::new(Kind::Function, f)],
                                 format!("{form}:{}", cp.idx),
                                 label.clone(),
-                                message,
                             )
                             .arg("form", form)
                             .arg("cp", label)
@@ -754,6 +698,7 @@ impl Rule for CardSupply {
 /// EW-PLC-014 "Output load exceeds rating" (doc 15 §4.5.1): safety, f r, warning, station (FR-PLC-048).
 pub const OUTPUT_LOAD: RuleMeta = RuleMeta {
     id: "EW-PLC-014",
+    message: key!("rule-ew-plc-014"),
     code: "110014",
     title: "Output load exceeds rating",
     kind: RuleKind::Safety,
@@ -886,24 +831,10 @@ fn load_finding(
     limit: u64,
     confidence: &ew_derive::ew_schema::Confidence,
 ) -> Finding {
-    let what = match form {
-        "channel" => "the output",
-        "group" => "the load supply group",
-        _ => "the module",
-    };
-    Finding::new(
-        &OUTPUT_LOAD,
-        [target],
-        form,
-        subject.to_owned(),
-        format!(
-            "{subject}: {what} carries {load} mA, more than its rating of {limit} mA; spread the loads or use a \
-             stronger output"
-        ),
-    )
-    .arg("form", form)
-    .arg("subject", subject.to_owned())
-    .arg("load", load.to_string())
-    .arg("limit", limit.to_string())
-    .reading(confidence)
+    Finding::new(&OUTPUT_LOAD, [target], form, subject.to_owned())
+        .arg("form", form)
+        .arg("subject", subject.to_owned())
+        .arg("load", load.to_string())
+        .arg("limit", limit.to_string())
+        .reading(confidence)
 }

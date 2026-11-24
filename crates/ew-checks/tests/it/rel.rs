@@ -34,7 +34,7 @@ fn rel(findings: &[Finding]) -> Vec<(&'static str, String, String)> {
     findings
         .iter()
         .filter(|f| f.rule.starts_with("EW-REL"))
-        .map(|f| (f.rule, f.discriminator.clone(), f.message.clone()))
+        .map(|f| (f.rule, f.discriminator.clone(), f.message().clone()))
         .collect()
 }
 

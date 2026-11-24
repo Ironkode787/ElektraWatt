@@ -547,7 +547,7 @@ impl Query for MediumRows {
             let mut consumers: Vec<Id<Device>> = consumers.into_iter().collect();
             consumers.sort_by_key(|d| natural_key(&short_tag(q, *d)));
             rows.push((
-                crate::neutral(&m.name),
+                m.name.neutral_or_first().unwrap_or_default().to_owned(),
                 MediumRow {
                     medium: id,
                     sources,

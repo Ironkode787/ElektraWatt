@@ -222,7 +222,7 @@ impl Session {
                         FindingChip {
                             rule: f.rule.to_owned(),
                             severity: f.severity.name().to_owned(),
-                            message: f.message.clone(),
+                            message: f.message().clone(),
                             pending_on: checks::rule(f.rule)
                                 .filter(|r| r.meta().kind == checks::RuleKind::Completeness)
                                 .and_then(|_| crate::output::navigators::finding_page(q, &folios, f).0)

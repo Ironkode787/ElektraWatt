@@ -52,7 +52,7 @@ fn ew_core_011_reports_each_conflict_in_words_as_a_release_error() {
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-CORE-011")
-        .map(|f| (f.subject, f.message, f.severity))
+        .map(|f| { let m = f.message(); (f.subject, m, f.severity) })
         .collect();
     let e = |subject: &str, message: &str| (subject.to_owned(), message.to_owned(), Severity::Error);
     let mut expected = vec![
@@ -134,7 +134,7 @@ fn ew_core_011_names_a_record_theirs_deleted() {
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-CORE-011")
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect();
     assert_eq!(
         found,
@@ -165,24 +165,29 @@ fn ew_core_013_groups_a_tag_two_devices_share_after_a_merge() {
     assert_eq!(f[0].targets.len(), 2);
     // No tag is frozen: the oldest keeps it, the one other must change, and the fix renumbers it.
     let arg = |name: &str| {
-        f[0].args
+        f[0].text
+            .named()
             .iter()
             .find(|(n, _)| *n == name)
-            .map(|(_, v)| v.as_str())
+            .map(|(_, v)| v.to_string())
     };
-    assert_eq!((arg("keeper"), arg("others")), (Some("oldest"), Some("one")));
+    assert_eq!(
+        (arg("keeper").as_deref(), arg("others").as_deref()),
+        (Some("oldest"), Some("one"))
+    );
     assert!(f[0].fix.is_some(), "{f:#?}");
     // The device whose tag is frozen keeps it, though its ID is the newer.
     let mut frozen = fx(true);
     frozen.rec_mut(&us(0x2002))["tag"]["frozen"] = json!({"text": "1K1", "sign": "hidden"});
     let f = findings_of(&frozen.build(), "EW-CORE-013");
     let arg = |name: &str| {
-        f[0].args
+        f[0].text
+            .named()
             .iter()
             .find(|(n, _)| *n == name)
-            .map(|(_, v)| v.as_str())
+            .map(|(_, v)| v.to_string())
     };
-    assert_eq!(arg("keeper"), Some("frozen"));
+    assert_eq!(arg("keeper").as_deref(), Some("frozen"));
     // The fix renumbers the other, the older.
     let fix = f[0].fix.as_ref().expect("the fix");
     assert_eq!(fix.params["scope"]["selection"], json!([us(0x2001)]));

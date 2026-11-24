@@ -803,7 +803,7 @@ impl Session {
             &touched,
         )
         .into_iter()
-        .map(|f| (f.rule.to_owned(), f.message))
+        .map(|f| (f.rule.to_owned(), f.message()))
         .collect();
         let new_devices: BTreeSet<Id<Device>> = after
             .devices()

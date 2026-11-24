@@ -30,7 +30,7 @@ use crate::cps::pattern_origin;
 use crate::index::{BondIndex, Index, RailTerminals};
 use crate::ip::IpPairingQ;
 use crate::nets::{CpRef, ends};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteFact};
 use crate::query::{Changes, Policy, Query};
 use crate::{FunctionCps, Q, StructureOf};
 
@@ -299,6 +299,7 @@ impl Query for RailTerminalOf {
             if !has_pe {
                 out.notes.push(DeriveNote::Connectivity {
                     code: "EW-TERM-005",
+                    fact: NoteFact::RailWithoutPe,
                     subject: dev.to_string(),
                     detail: "rail_bonded is set but the terminal has no PE CP; it joins no location PE node"
                         .into(),
@@ -314,6 +315,9 @@ impl Query for RailTerminalOf {
                     many => {
                         out.notes.push(DeriveNote::Connectivity {
                             code: "EW-POT-008",
+                            fact: NoteFact::RailWithoutLocation {
+                                locations: many.len(),
+                            },
                             subject: dev.to_string(),
                             detail: format!(
                                 "the rail-bonded terminal has no location and the project has {} own locations; \

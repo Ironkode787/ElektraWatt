@@ -122,7 +122,7 @@ pub(crate) fn symbol_copy(tx: &TxBuilder<'_>, id: ew_ids::Id<ew_schema::SymbolDe
     let words = tx
         .get::<ew_schema::LibCopy<ew_schema::SymbolDef>>(id)
         .and_then(|c| {
-            let name = ew_derive::neutral(&c.item.name);
+            let name = c.item.name.neutral_or_first().unwrap_or_default().to_owned();
             if name.is_empty() {
                 c.item.meta.key.as_ref().map(|k| TextArg::Plain(k.to_string()))
             } else {
@@ -227,7 +227,6 @@ pub(crate) fn copy(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>, version
 /// a name of its own is named by it with its kind's word ("manufacturer Phoenix Contact (PXC)", "symbol
 /// Contactor"); else by a part's number, else the item's key.
 fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>, &str)> {
-    use ew_derive::neutral;
     use ew_schema::LibDocument as D;
     let key = |m: &ew_schema::ItemMeta| m.key.as_ref().map(|k| TextArg::Plain(k.to_string()));
     let named = |name: String, words: fn(String) -> Text, m: &ew_schema::ItemMeta| {
@@ -246,7 +245,7 @@ fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>
         D::Symbol(c) => (
             Kind::Symbol,
             named(
-                neutral(&c.item.name),
+                c.item.name.neutral_or_first().unwrap_or_default().to_owned(),
                 |n| text!("refusal-words-symbol-named", n),
                 &c.item.meta,
             ),
@@ -257,14 +256,14 @@ fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>
         D::Macro(c) => (
             Kind::Macro,
             named(
-                neutral(&c.item.name),
+                c.item.name.neutral_or_first().unwrap_or_default().to_owned(),
                 |n| text!("refusal-words-macro-named", n),
                 &c.item.meta,
             ),
             &c.version,
         ),
         D::Manufacturer(c) => {
-            let name = neutral(&c.item.name);
+            let name = c.item.name.neutral_or_first().unwrap_or_default().to_owned();
             let words = if name.is_empty() {
                 key(&c.item.meta)
             } else {

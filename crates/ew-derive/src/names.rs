@@ -42,7 +42,7 @@ use crate::ip::{IpFnInfo, IpInfoOf};
 use crate::links::BondPathsQ;
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, NetId};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteFact};
 use crate::potentials::{
     Attr, AttrSource, NameSource, Potential, PotentialAttrs, PotentialId, PotentialName, PotentialPartition,
 };
@@ -119,6 +119,7 @@ impl Query for PotentialNameOf {
                 if other.name != first.name {
                     notes.push(DeriveNote::Connectivity {
                         code: "EW-POT-017",
+                        fact: NoteFact::Other,
                         subject: format!("potential {}", first.name.as_str()),
                         detail: format!(
                             "{} names it {}; the first definition in natural order ({}) wins",
@@ -186,6 +187,7 @@ impl Query for PotentialNameOf {
         for conflict in &q.get::<PotentialAttrsOf>(*key).conflicts {
             notes.push(DeriveNote::Connectivity {
                 code: "EW-POT-001",
+                fact: NoteFact::Other,
                 subject: format!("potential {}", name.text),
                 detail: conflict.detail(q),
             });

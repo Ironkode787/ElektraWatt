@@ -15,6 +15,8 @@ use serde_json::{Value, json};
 
 const FIXTURE: RuleMeta = RuleMeta {
     id: "EW-TEST-001",
+    // A fixture: its findings are read for their marker, never worded.
+    message: ew_checks::key!("words-as-written"),
     code: "999001",
     title: "A part's PLC section is read",
     kind: RuleKind::Completeness,
@@ -44,7 +46,6 @@ impl Rule for ReadsPlcSection {
                     [Target::new(Kind::Part, id)],
                     "plc",
                     copy.item.part_number.as_str(),
-                    "the PLC section was read",
                 )
                 .reading(&confidence)
             })
@@ -94,6 +95,6 @@ fn a_rule_reading_a_test_section_marks_its_finding() {
 
 #[test]
 fn a_finding_is_unmarked_unless_a_rule_marks_it() {
-    let f = Finding::new(&FIXTURE, [], "", "", "");
+    let f = Finding::new(&FIXTURE, [], "", "");
     assert!(!f.unverified_data);
 }

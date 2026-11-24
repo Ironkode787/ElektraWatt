@@ -39,7 +39,13 @@ serde_json = "1.0.154"
 toml.workspace = true
 # The process-tag scheme of FR-PLC-049 is a regular expression with named groups (doc 10 §3.4), as ew-api's.
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
+# The words of the domain's kinds by key (`texts/`, `ew_derive::text`), rendered by the one renderer.
+ew-l10n = { path = "../ew-l10n" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+
+[build-dependencies]
+# The generator of the key table that `build.rs` writes.
+ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true

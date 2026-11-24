@@ -116,6 +116,7 @@ fn notes_with(q: &mut Q, code: &str, needle: &str) -> Vec<(String, String)> {
                 code: c,
                 subject,
                 detail,
+                ..
             } if c == code && detail.contains(needle) => Some((subject, detail)),
             _ => None,
         })

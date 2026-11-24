@@ -1203,6 +1203,8 @@ fn sentence_start(item: &TextArg) -> TextArg {
             ("refusal-words-device-gone", []) => text!("refusal-words-device-gone-start").into(),
             _ => item.clone(),
         },
+        // A number or a name as it is.
+        other => other.clone(),
     }
 }
 

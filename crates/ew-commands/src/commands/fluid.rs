@@ -648,7 +648,7 @@ impl Command for EditMedium {
                 .count();
             let name = tx
                 .get::<Medium>(m)
-                .map(|x| ew_derive::neutral(&x.name))
+                .map(|x| x.name.neutral_or_first().unwrap_or_default().to_owned())
                 .unwrap_or_default();
             tx.delete((Kind::Medium, m.cast()))?;
             tx.notice(match defs {

@@ -72,9 +72,9 @@ fn core022_reports_a_folio_printed_twice() {
     assert_eq!(f[0].discriminator, "folio");
     assert_eq!(targets(&f[0]), [(Kind::Page, uid(PA)), (Kind::Page, uid(PB))]);
     assert!(
-        f[0].message.starts_with("folio 101 is printed by 2 pages"),
+        f[0].message().starts_with("folio 101 is printed by 2 pages"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&folios_fx(101, 102).build(), "EW-CORE-022").is_empty());
 }
@@ -326,7 +326,7 @@ fn core061_reads_the_project_text_styles() {
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].subject, "Device tag");
-    assert!(f[0].message.contains("prints 1.07 mm high"), "{}", f[0].message);
+    assert!(f[0].message().contains("prints 1.07 mm high"), "{}", f[0].message());
     // An out-of-range size in a file is ignored: the built-in 5 px row applies.
     let tiny = json!({"text_styles": {"cp.small": {"size": 100}, "marker": {"size": 100}}});
     let f = findings_of(&marker_fx(tiny).build(), "EW-CORE-061");
@@ -357,7 +357,7 @@ fn core063_reports_a_text_outside_the_style_table() {
     assert_eq!(f[0].severity, Severity::Info);
     assert_eq!(f[0].discriminator, "style");
     assert_eq!(targets(&f[0]), [(Kind::PageItem, uid(0x8600))]);
-    assert!(f[0].message.contains("qet.9"), "{}", f[0].message);
+    assert!(f[0].message().contains("qet.9"), "{}", f[0].message());
     assert!(findings_of(&text_fx(Some("text.normal")).build(), "EW-CORE-063").is_empty());
     assert!(findings_of(&text_fx(None).build(), "EW-CORE-063").is_empty());
 }
@@ -437,7 +437,7 @@ fn core008_reports_a_channel_of_a_device_that_is_no_module() {
     // The device is drawn on no page, so its designation keeps the open page number.
     assert_eq!(f[0].subject, "-?A1:0");
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "channel -?A1:0 belongs to -?A1, which is not a PLC module; delete the channel or make -?A1 a module again"
     );
     assert_eq!(f[0].targets.len(), 2);
@@ -495,10 +495,10 @@ fn rds001_reports_a_designation_that_does_not_parse() {
     assert_eq!(f[0].discriminator, "parse");
     assert_eq!(targets(&f[0]), [(Kind::Device, uid(0x101))]);
     assert!(
-        f[0].message
+        f[0].message()
             .contains("does not parse as an IEC 81346 designation"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&designation_fx("K", Some("A1")).build(), "EW-RDS-001").is_empty());
     // A structure code with separators parses as the project's known code it is.
@@ -547,12 +547,12 @@ fn rds003_reports_a_letter_against_the_function_category() {
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].discriminator, "letter");
     assert!(
-        f[0].message.contains(
+        f[0].message().contains(
             "the letter code T does not match its function category SensingTemperature; the identifier set \
              EN81346-2:2009 suggests B"
         ),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&letter_fx("B", "SensingTemperature").build(), "EW-RDS-003").is_empty());
     assert!(findings_of(&letter_fx("U", "Assembly").build(), "EW-RDS-003").is_empty());
@@ -575,7 +575,7 @@ fn rds003_reads_the_parts_category_before_the_functions() {
     assert!(findings_of(&contactor("Q"), "EW-RDS-003").is_empty());
     let f = findings_of(&contactor("K"), "EW-RDS-003");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert!(f[0].message.contains("suggests Q"), "{}", f[0].message);
+    assert!(f[0].message().contains("suggests Q"), "{}", f[0].message());
 }
 
 /// EW-RDS-007: a letter code with I or O is a warning; an ordinary letter code is not.
@@ -587,9 +587,9 @@ fn rds007_reports_reserved_letters() {
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].discriminator, "reserved");
     assert!(
-        f[0].message.contains("O is not used in letter codes"),
+        f[0].message().contains("O is not used in letter codes"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&designation_fx("KF", None).build(), "EW-RDS-007").is_empty());
 }
@@ -614,7 +614,7 @@ fn rds009_reports_a_confusable_character() {
         let f = findings_of(&designation_fx(&c.to_string(), None).build(), "EW-RDS-009");
         let want = format!("(looks like {latin})");
         assert!(
-            f.len() == 1 && f[0].message.contains(&want),
+            f.len() == 1 && f[0].message().contains(&want),
             "{c}: {want} in {f:#?}"
         );
     }
@@ -684,10 +684,10 @@ fn num002_reports_a_frozen_wire_number_that_deviates() {
     assert_eq!(f[0].subject, "wire W99");
     assert_eq!(targets(&f[0]), [(Kind::Connection, uid(0x2001))]);
     assert!(
-        f[0].message
+        f[0].message()
             .starts_with("wire number W99: frozen, deviates from the rule"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&wire_fx(json!("unassigned")).build(), "EW-NUM-002").is_empty());
 }
@@ -778,14 +778,14 @@ fn term004_reports_an_invalid_bridge_group() {
     assert_eq!(f[0].discriminator, "group-1");
     assert_eq!(targets(&f[0]), [(Kind::Connection, uid(0x2100))]);
     assert!(
-        f[0].message.contains("its terminals are not consecutive"),
+        f[0].message().contains("its terminals are not consecutive"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&bridges_fx(&[(1, 2, 1), (2, 3, 1)]).build(), "EW-TERM-004").is_empty());
     let f = findings_of(&bridges_fx(&[(1, 2, 1), (2, 3, 2)]).build(), "EW-TERM-004");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert!(f[0].message.contains("it runs over 2 shafts"), "{}", f[0].message);
+    assert!(f[0].message().contains("it runs over 2 shafts"), "{}", f[0].message());
 }
 
 /// EW-TERM-004 prevent: a bridge that puts a group on a second shaft is refused; touching a group the model already

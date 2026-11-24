@@ -243,7 +243,7 @@ fn findings(s: &Session, rule: &str) -> Vec<(String, String, ew_api::checks::Sev
         .findings
         .iter()
         .filter(|f| f.rule == rule && f.page.map(|p| p.as_uuid()) == page)
-        .map(|f| (f.message.clone(), ew_api::checks::render(f, "nl-NL"), f.severity))
+        .map(|f| (f.message().clone(), ew_api::checks::render(f, "nl-NL"), f.severity))
         .collect()
 }
 
@@ -414,7 +414,7 @@ fn a_wire_through_a_text_fires_ew_core_070() {
     };
     let f = wire_through_text(ew_derive::ew_ids::Id::from_uuid(rep), wire, device, "-103K3");
     assert_eq!(
-        (f.message.as_str(), ew_api::checks::render(&f, "nl-NL")),
+        (f.message().as_str(), ew_api::checks::render(&f, "nl-NL")),
         (
             "Wire -103K1:A2 → -103K2:A1 runs through the text \"-103K3\" of -103K3.",
             "Draad -103K1:A2 → -103K2:A1 loopt door de tekst \"-103K3\" van -103K3.".to_owned()
@@ -587,7 +587,7 @@ fn a_wire_through_an_interruption_point_names_it_in_each_language() {
     };
     let f = wire_through_text(ew_derive::ew_ids::Id::from_uuid(rep), wire, owner, "X-9");
     assert_eq!(
-        (f.message.as_str(), ew_api::checks::render(&f, "nl-NL")),
+        (f.message().as_str(), ew_api::checks::render(&f, "nl-NL")),
         (
             "Wire -103K1:A2 → -103K2:A2 runs through the text \"X-9\" of interruption point X-9.",
             "Draad -103K1:A2 → -103K2:A2 loopt door de tekst \"X-9\" van onderbrekingspunt X-9.".to_owned()
@@ -653,7 +653,7 @@ fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
     assert_eq!(
         (
             f.subject.as_str(),
-            f.message.as_str(),
+            f.message().as_str(),
             ew_api::checks::render(&f, "en-GB"),
             ew_api::checks::render(&f, "nl-NL")
         ),
@@ -735,7 +735,7 @@ fn the_sample_s_check_report_holds_no_layout_finding() {
         s.check(&DRAFTING, CheckMode::Online),
         s.check(&PRE_DELIVERY, CheckMode::Release),
     ] {
-        let layout: Vec<&str> = report
+        let layout: Vec<String> = report
             .findings
             .iter()
             .filter(|f| {
@@ -748,9 +748,9 @@ fn the_sample_s_check_report_holds_no_layout_finding() {
                 ]
                 .contains(&f.rule)
             })
-            .map(|f| f.message.as_str())
+            .map(|f| f.message())
             .collect();
-        assert_eq!(layout, Vec::<&str>::new());
+        assert_eq!(layout, Vec::<String>::new());
         assert!(
             report.rules.iter().any(|m| m.id == "EW-CORE-073"),
             "the run evaluated the rules"

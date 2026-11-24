@@ -645,7 +645,7 @@ fn an_older_bus_cable_that_meets_a_page_tag_is_reported_with_renumber() {
     let twice: Vec<_> = report
         .findings
         .iter()
-        .filter(|f| f.rule == "EW-RDS-004" && f.message.contains("-2W1"))
+        .filter(|f| f.rule == "EW-RDS-004" && f.message().contains("-2W1"))
         .collect();
     assert_eq!(twice.len(), 1, "{:?}", report.findings);
     assert!(twice[0].fix.is_some(), "the finding offers to renumber");

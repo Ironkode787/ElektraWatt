@@ -371,11 +371,11 @@ fn fl10_the_first_working_line_links_the_valve() {
     let other = device(&s, "-201M2");
     let s = without_q1s_lines(Some(other));
     let online = s.check(&ew_api::checks::DRAFTING, ew_api::checks::CheckMode::Online);
-    let t18: Vec<&str> = online
+    let t18: Vec<String> = online
         .findings
         .iter()
         .filter(|x| x.rule == "EW-FL-011")
-        .map(|x| x.message.as_str())
+        .map(|x| x.message())
         .collect();
     assert_eq!(
         t18,

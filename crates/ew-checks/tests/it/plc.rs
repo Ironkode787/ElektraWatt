@@ -166,7 +166,7 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
         "{f:#?}"
     );
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3); change addresses until \
          none overlap"
     );
@@ -180,7 +180,7 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
     assert_eq!(align.len(), 1, "{f:#?}");
     assert_eq!(align[0].severity, ew_checks::Severity::Warning);
     assert_eq!(
-        align[0].message,
+        align[0].message(),
         "-1U3:0: the address QW1 does not start at a multiple of 2 bytes, the profile's word alignment (an unverified \
          convention)"
     );
@@ -198,7 +198,7 @@ fn ew_plc_001_reports_a_group_of_three_once() {
     assert_eq!(f[0].targets.len(), 3);
     assert_eq!(f[0].subject, "-1U2:3");
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3), -1U3:1 (Q0.3); change \
          addresses until none overlap"
     );
@@ -219,7 +219,7 @@ fn ew_plc_001_reports_a_chained_group_once() {
     assert_eq!(overlap[0].targets.len(), 3, "{f:#?}");
     assert_eq!(overlap[0].subject, "-1U3:0");
     assert_eq!(
-        overlap[0].message,
+        overlap[0].message(),
         "addresses overlap in configuration project PLC1: -1U3:0 (IW0), -1U3:1 (I0.0), -1U3:2 (I1.7); change \
          addresses until none overlap"
     );
@@ -381,12 +381,12 @@ fn ew_plc_001_names_five_channels_and_counts_the_rest() {
     assert_eq!(f.len(), 1, "{f:#?}");
     let f = &f[0];
     assert_eq!(f.targets.len(), 9);
-    assert_eq!(f.message.matches("(Q0.3)").count(), 5, "{}", f.message);
+    assert_eq!(f.message().matches("(Q0.3)").count(), 5, "{}", f.message());
     assert!(
-        f.message
+        f.message()
             .ends_with("; and 4 more channels; change addresses until none overlap"),
         "{}",
-        f.message
+        f.message()
     );
     let nl = ew_checks::messages::render(f, "nl-NL");
     assert!(nl.contains("; en nog 4 kanalen; "), "{nl}");
@@ -413,12 +413,12 @@ fn ew_plc_001_the_en_gb_pattern_equals_the_rule_text() {
         for f in f {
             assert_eq!(
                 ew_checks::messages::format(&f, "en-GB").as_deref(),
-                Some(f.message.as_str()),
+                Some(f.message().as_str()),
                 "{case} {}",
                 f.discriminator
             );
             let nl = ew_checks::messages::format(&f, "nl-NL").expect("an nl-NL pattern");
-            assert_ne!(nl, f.message, "{case}: nl-NL is its own text");
+            assert_ne!(nl, f.message(), "{case}: nl-NL is its own text");
         }
     }
 }
@@ -436,13 +436,13 @@ fn ew_plc_002_reports_an_address_outside_the_module() {
     let f = findings_of(&fx.build(), "EW-PLC-002");
     assert_eq!(subjects(&f), [("range".to_owned(), "-1U3:2".to_owned())]);
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U3:2: the address Q4.5 is outside the I/O range of -1U3 (bytes 1 to 1 of area Q)"
     );
     fx.rec_mut(&ch(M2, 2))["address"] = json!({"manual": {"area": "i", "byte": 1, "bit": 5}});
     let f = findings_of(&fx.build(), "EW-PLC-002");
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U3:2: the address I1.5 is outside the I/O range of -1U3 (bytes 1 to 1 of area Q)"
     );
 }
@@ -464,11 +464,11 @@ fn ew_plc_003_reports_a_bit_beyond_the_unit() {
         "{f:#?}"
     );
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U2: the output start names bit 8, outside the 8 bits of a unit"
     );
     assert_eq!(
-        f[1].message,
+        f[1].message(),
         "-1U3:2: the manual address names bit 9, outside the 8 bits of a unit"
     );
 }
@@ -483,7 +483,7 @@ fn ew_plc_007_reports_a_duplicate_symbol_once() {
     let f = findings_of(&fx.build(), "EW-PLC-007");
     assert_eq!(subjects(&f), [("symbol".to_owned(), "Pump_On".to_owned())]);
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "the symbol Pump_On is used by 2 channels of configuration project PLC1: -1U2:3, -1U3:4; give each channel its \
          own symbol"
     );
@@ -498,7 +498,7 @@ fn ew_plc_008_reports_a_used_channel_without_an_address() {
     let f = findings_of(&fx.build(), "EW-PLC-008");
     assert_eq!(subjects(&f), [("address".to_owned(), "-1U2:0".to_owned())]);
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U2:0 is used but has no address: it is excluded from addressing; give it an address"
     );
     // a spare channel without an address is no finding
@@ -524,7 +524,7 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
         "{f:#?}"
     );
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U2:1 (Q0.1) drives solenoid 14 of -1Q1, which the position map of part 533361 assigns to -1U2:0 (Q0.0); \
          rebind it to the map's channel, or correct the part's PLC section"
     );
@@ -547,7 +547,7 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
     let f = findings_of(&fx.build(), "EW-PLC-012");
     assert_eq!(subjects(&f), [("manual".to_owned(), "-1U3:6".to_owned())]);
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U3:6: the manual address Q1.7 differs from the derived address Q1.6; set the address to auto, or keep the \
          deviation deliberately"
     );
@@ -589,11 +589,11 @@ fn ew_plc_015_reports_tbd_values_and_supersedes_ew_core_044() {
         "{f:#?}"
     );
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U2:5: the channel address is TBD; enter it before release"
     );
     assert_eq!(
-        f[1].message,
+        f[1].message(),
         "-1U3: the output start address is TBD; enter it before release"
     );
     assert!(f.iter().all(|f| f.severity == ew_checks::Severity::Info));
@@ -655,7 +655,7 @@ fn ew_core_008_reports_a_duplicate_channel_number() {
         "the channel without the v5 ID is the one reported"
     );
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1U3 holds a second channel numbered 2; the module keeps one channel per number, so this one prints nowhere"
     );
 }

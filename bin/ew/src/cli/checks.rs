@@ -334,8 +334,13 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
         if a.after_merge {
             session.assume_merged();
         }
-        let result = report::localise(&session.check_integrity(&opened), &a.lang);
-        return print_check(format, a.out.as_ref(), &result, &undrawn_notices(&session));
+        return print_check(
+            format,
+            a.out.as_ref(),
+            &a.lang,
+            &session.check_integrity(&opened),
+            &undrawn_notices(&session),
+        );
     }
     // `--scheme`, else the scheme the project names for the mode, else the shipped default. A project naming a
     // scheme this build does not ship (a newer writer, a hand edit) gets the default and a notice; the exit status is
@@ -369,13 +374,10 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
     };
     // The integrity findings of opening (EW-CORE-001 … 019) join the report: in release mode the "n r"
     // errors count and set the exit code (doc 15 §4.2).
-    let result = report::localise(
-        &session
-            .check(sch, a.check_mode())
-            .with_integrity(ew_api::integrity_items(&opened)),
-        &a.lang,
-    );
-    print_check(format, a.out.as_ref(), &result, &undrawn_notices(&session))
+    let result = session
+        .check(sch, a.check_mode())
+        .with_integrity(ew_api::integrity_items(&opened));
+    print_check(format, a.out.as_ref(), &a.lang, &result, &undrawn_notices(&session))
 }
 
 /// The notices of the images the project keeps but no drawing shows, in the window's words.
@@ -387,21 +389,22 @@ pub(super) fn undrawn_notices(session: &ew_api::Session) -> Vec<String> {
         .collect()
 }
 
-/// Prints a check report as `ew check` does, to `--out` or stdout with the totals on stderr; its exit code. The
-/// `notices` stand outside the findings and their counts: the JSON's `notices`, else a `notice:` line each on
-/// stderr.
+/// Prints a check report as `ew check` does, its messages in `lang`, to `--out` or stdout with the totals on stderr;
+/// its exit code. The `notices` stand outside the findings and their counts: the JSON's `notices`, else a `notice:`
+/// line each on stderr.
 pub(super) fn print_check(
     format: CheckFormat,
     out: Option<&PathBuf>,
+    lang: &str,
     result: &ew_api::checks::CheckReport,
     notices: &[String],
 ) -> i32 {
     let result = result.clone();
     let text = match format {
-        CheckFormat::Text => report::to_text(&result),
-        CheckFormat::Markdown => report::to_markdown(&result),
+        CheckFormat::Text => report::to_text(&result, lang),
+        CheckFormat::Markdown => report::to_markdown(&result, lang),
         CheckFormat::Json => {
-            let mut json = report::to_result(&result);
+            let mut json = report::to_result(&result, lang);
             json.notices = notices.to_vec();
             format!(
                 "{:#}\n",

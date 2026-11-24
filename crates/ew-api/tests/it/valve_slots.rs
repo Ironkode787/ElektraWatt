@@ -658,7 +658,7 @@ fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-FL-002")
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect();
     assert!(
         !unbound.iter().any(|m| m.contains("solenoid 14")),

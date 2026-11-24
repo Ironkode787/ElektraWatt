@@ -1174,7 +1174,7 @@ pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
             messages: Vec::new(),
         });
         g.count = g.count.saturating_add(1);
-        g.messages.push(format!("{}: {}", f.subject, f.message));
+        g.messages.push(format!("{}: {}", f.subject, f.message()));
     }
     groups.into_values().collect()
 }

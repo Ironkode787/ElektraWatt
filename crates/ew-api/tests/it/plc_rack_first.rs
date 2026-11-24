@@ -101,7 +101,7 @@ fn a_bus_node_in_the_rack_is_found_and_taken_out_again() {
     let [f] = found.as_slice() else {
         panic!("one finding: {found:#?}")
     };
-    assert!(f.message.contains("describes no PLC module"), "{}", f.message);
+    assert!(f.message().contains("describes no PLC module"), "{}", f.message());
     let fix = f.fix.clone().expect("a quick fix");
     run(&mut s, &fix.command, fix.params).expect("the fix");
     let d = device(&s, node).expect("the device stays");

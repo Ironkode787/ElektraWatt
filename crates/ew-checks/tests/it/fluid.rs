@@ -147,7 +147,7 @@ fn bind(fx: &mut Fx, module: u128, number: u16, valve: u128) {
 fn messages(fx: &Fx, rule: &str) -> Vec<(Severity, String)> {
     let mut out: Vec<(Severity, String)> = findings_of(&fx.build(), rule)
         .into_iter()
-        .map(|f| (f.severity, f.message))
+        .map(|f| (f.severity, f.message()))
         .collect();
     out.sort_by(|a, b| a.1.cmp(&b.1));
     out
@@ -394,7 +394,7 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     let messages = |after: &Fx| -> Vec<String> {
         ew_checks::prevent(&Q::new(&before), &Q::new(&after.build()), &touched)
             .into_iter()
-            .map(|f| f.message)
+            .map(|f| f.message())
             .collect()
     };
     assert_eq!(
@@ -439,7 +439,7 @@ fn ew_fl_013_prevents_a_module_at_a_held_position() {
     let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(MODULE_2))];
     let messages: Vec<String> = ew_checks::prevent(&Q::new(&before), &Q::new(&onto.build()), &touched)
         .into_iter()
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect();
     assert_eq!(messages, ["-1U1: position 1 holds both -1U3 and -1U4"]);
 }
@@ -457,7 +457,7 @@ fn ew_fl_013_prevents_a_lower_id_valve_at_a_held_position() {
     let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(V1))];
     let messages: Vec<String> = ew_checks::prevent(&Q::new(&before), &Q::new(&held.build()), &touched)
         .into_iter()
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect();
     assert_eq!(messages, ["-1U3: position 1 holds both -1Q2 and -1Q1"]);
 }

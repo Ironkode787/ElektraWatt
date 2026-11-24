@@ -48,7 +48,7 @@ fn pot001_reports_conflicting_definition_attributes_once_per_potential() {
         ew_checks::Fingerprint::of("EW-POT-001", &[uid(0x5001)], &f[0].discriminator)
     );
     assert_eq!(f[0].subject, "P");
-    assert!(f[0].message.contains("voltage"), "{}", f[0].message);
+    assert!(f[0].message().contains("voltage"), "{}", f[0].message());
 }
 
 /// Two definitions with the attributes `at_a` (at the function tagged -K1) and `at_b` (at -K2); `swap` swaps
@@ -79,16 +79,16 @@ fn definitions_rank_in_natural_order_not_in_id_order() {
         assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
         assert_eq!(f[0].targets.len(), 2, "swap {swap}");
         assert!(
-            f[0].message.contains("is wired to P at -1K1:1 (24 V)"),
+            f[0].message().contains("is wired to P at -1K1:1 (24 V)"),
             "swap {swap}: {}",
-            f[0].message
+            f[0].message()
         );
         assert!(
-            !f[0].message.contains(&us(0x5001)) && !f[0].message.contains(&us(0x5002)),
+            !f[0].message().contains(&us(0x5001)) && !f[0].message().contains(&us(0x5002)),
             "swap {swap}: no ID in the text: {}",
-            f[0].message
+            f[0].message()
         );
-        messages.push(f[0].message.clone());
+        messages.push(f[0].message().clone());
         let q = ew_derive::Q::new(&m);
         let part = q.get::<ew_derive::PotentialPartition>(());
         let p = part
@@ -117,17 +117,17 @@ fn the_first_name_in_natural_order_wins_whatever_the_ids() {
         assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
         assert_eq!(f[0].subject, "P2", "swap {swap}");
         assert!(
-            f[0].message.contains("is wired to P2 at -1K2:1 (24 V)"),
+            f[0].message().contains("is wired to P2 at -1K2:1 (24 V)"),
             "swap {swap}: {}",
-            f[0].message
+            f[0].message()
         );
         let names = findings_of(&m, "EW-POT-017");
         assert_eq!(names.len(), 1, "swap {swap}: {names:#?}");
         assert_eq!(names[0].targets.len(), 2, "swap {swap}");
         assert!(
-            names[0].message.contains("P2"),
+            names[0].message().contains("P2"),
             "swap {swap}: {}",
-            names[0].message
+            names[0].message()
         );
     }
 }
@@ -264,7 +264,7 @@ fn pot001_member_role_conflict_does_not_depend_on_the_id_order() {
         let other_tag = format!("-1K{other}:+");
         let pe_tag = format!("-1K{pe}:PE");
         assert_eq!(
-            f[0].message,
+            f[0].message(),
             format!(
                 "{other_tag} (plus L+) is wired to {pe_tag} (protective earth PE) on page 1: a wire joins two \
                  different potentials, so one of the two pins is wired to the wrong conductor. Move that wire to the \
@@ -321,9 +321,9 @@ fn pot001_joins_several_conflicts_into_one_finding() {
     let f = findings_of(&m, "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
-        f[0].message.contains("cannot carry two voltages") && f[0].message.contains("two circuit classes"),
+        f[0].message().contains("cannot carry two voltages") && f[0].message().contains("two circuit classes"),
         "{}",
-        f[0].message
+        f[0].message()
     );
 }
 
@@ -351,15 +351,15 @@ fn the_flow_conflict_names_the_pass_through_by_its_tag() {
         fx.def(0x5002, cp(b), &json!({"ptype": "n"}));
         let f = findings_of(&fx.build(), "EW-POT-001");
         assert_eq!(f.len(), 1, "{f:#?}");
-        assert!(f[0].message.contains("K7"), "{}", f[0].message);
+        assert!(f[0].message().contains("K7"), "{}", f[0].message());
         for n in [0x1001, 0x1002, 0x1003] {
             assert!(
-                !f[0].message.contains(&us(n)),
+                !f[0].message().contains(&us(n)),
                 "no ID in the text: {}",
-                f[0].message
+                f[0].message()
             );
         }
-        messages.push(f[0].message.clone());
+        messages.push(f[0].message().clone());
     }
     assert_eq!(messages[0], messages[1]);
 }
@@ -385,7 +385,7 @@ fn pot001_flow_reports_a_pass_through_between_different_types() {
         f[0].targets
     );
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1K4099 carries plus L+ through to neutral N: a contact or a fuse passes one potential on, it cannot change \
          it into another. Correct the type on one side, or put a power supply or a transformer between them."
     );
@@ -453,7 +453,7 @@ fn pot011_cases() {
                     // the potential once, first; then which junction, where, and the wires that meet there (FT-933).
                     let p = &f[0].subject;
                     assert_eq!(
-                        f[0].message,
+                        f[0].message(),
                         format!(
                             "{p}: it is unclear which wire feeds the junction on folio 1 (wires 1.1); draw one wire \
                              into it from the supply side"
@@ -462,7 +462,7 @@ fn pot011_cases() {
                     );
                     assert_eq!(
                         ew_checks::messages::format(&f[0], "en-GB").as_deref(),
-                        Some(f[0].message.as_str()),
+                        Some(f[0].message().as_str()),
                         "case {c}: the en-GB pattern renders the message"
                     );
                     let nl = ew_checks::messages::render(&f[0], "nl-NL");
@@ -635,11 +635,11 @@ fn pot008_location_cases() {
                     assert_eq!(f[0].code, "005008", "case {c}");
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Device, 0x4001)], "case {c}");
-                    assert!(f[0].message.contains("no location"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message().contains("no location"), "case {c}: {}", f[0].message());
                     assert!(
-                        f[0].message.contains("2 own locations"),
+                        f[0].message().contains("2 own locations"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -741,9 +741,9 @@ fn pot002_cases() {
                     assert_eq!(f[0].discriminator, "pelv", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)], "case {c}");
                     assert!(
-                        f[0].message.contains("its 0 V is not bonded to protective earth"),
+                        f[0].message().contains("its 0 V is not bonded to protective earth"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -755,9 +755,9 @@ fn pot002_cases() {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert_eq!(f[0].discriminator, "pelv", "case {c}");
                     assert!(
-                        f[0].message.contains("bonded to protective earth in 2 places"),
+                        f[0].message().contains("bonded to protective earth in 2 places"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                     let bonds = f[0].targets.iter().filter(|t| t.kind == Kind::Bond).count();
                     assert_eq!(bonds, 2, "case {c}: {:?}", f[0].targets);
@@ -867,7 +867,7 @@ fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
         let f = findings_of(&zero_volt_through_a_terminal_with(false, (w1, w27)), "EW-POT-001");
         assert_eq!(f.len(), 1, "{f:#?}");
         assert_eq!(
-            f[0].message,
+            f[0].message(),
             "-1K4097:- (0 V) is joined to the protective earth -2K4099:PE on page 2, but not by a wire drawn from \
              the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or \
              take that wire away."
@@ -930,7 +930,7 @@ fn pot001_without_a_carrier_has_no_fix_and_names_draw_connect_bond() {
     assert!(f[0].fix.is_none(), "{:?}", f[0].fix);
     // The menu path as the menus give it (Draw ▸ Connect ▸ Bond).
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "-1K4097:- (0 V) is joined to the protective earth -2K4099:PE on page 2, but not by a wire drawn from the \
          0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take \
          that wire away."
@@ -955,7 +955,7 @@ fn pot001_a_conflict_without_pe_has_no_fix_and_no_hint() {
     let f = findings_of(&fx.build(), "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(f[0].fix.is_none());
-    assert!(!f[0].message.contains("Draw"), "{}", f[0].message);
+    assert!(!f[0].message().contains("Draw"), "{}", f[0].message());
 }
 
 /// A type-M definition on a terminal on page 1, carried by the interruption points "SUP" to page 2, where the point is
@@ -983,15 +983,15 @@ fn pe_members_against_m(n: u128) -> ew_checks::Finding {
 fn pot001_names_three_member_cps_and_counts_the_rest() {
     let joined = "is joined to the protective earth ";
     let f = pe_members_against_m(3);
-    assert_eq!(f.message.matches(joined).count(), 3, "{}", f.message);
-    assert!(!f.message.contains("more"), "{}", f.message);
+    assert_eq!(f.message().matches(joined).count(), 3, "{}", f.message());
+    assert!(!f.message().contains("more"), "{}", f.message());
     let f = pe_members_against_m(6);
-    assert_eq!(f.message.matches(joined).count(), 3, "{}", f.message);
+    assert_eq!(f.message().matches(joined).count(), 3, "{}", f.message());
     assert!(
-        f.message
+        f.message()
             .ends_with(" 3 more connection points are wired the same way."),
         "{}",
-        f.message
+        f.message()
     );
     let nl = ew_checks::messages::render(&f, "nl-NL");
     assert!(
@@ -1133,12 +1133,12 @@ fn a_0v_on_functional_earth_is_told_where_the_bond_belongs() {
     let f = findings_of(&m, "EW-POT-002");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
-        f[0].message.contains("goes to functional earth (FE) only")
+        f[0].message().contains("goes to functional earth (FE) only")
             && f[0]
-                .message
+                .message()
                 .contains("protective earth symbol (PE) or to the PE rail"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     let (m, _, _) = zero_volt_to_earth(ZeroSide::Pin, EarthSide::Protective);
     assert!(findings_of(&m, "EW-POT-002").is_empty());

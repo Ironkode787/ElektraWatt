@@ -13,8 +13,8 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
-    DeriveNote, DeviceTag, EndpointKey, FunctionCps, PhysicalWiresOf, PotentialPartition, Q, RailTerminalOf,
-    StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
+    DeriveNote, DeviceTag, EndpointKey, FunctionCps, NoteFact, PhysicalWiresOf, PotentialPartition, Q,
+    RailTerminalOf, StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
 };
 
 use crate::engine::touched_ids;
@@ -100,6 +100,7 @@ fn designation_groups(q: &Q, strip: Id<Device>) -> Groups {
 /// EW-TERM-001 "Terminal without designation" (doc 15 §4.4): conflict, por, error, strip.
 pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-TERM-001",
+    message: key!("rule-ew-term-001"),
     code: "001001",
     title: "Terminal without designation",
     kind: RuleKind::Conflict,
@@ -146,7 +147,6 @@ impl Rule for TerminalWithoutDesignation {
                     [Target::new(Kind::Device, t)],
                     "",
                     full_tag(q, t, &strip_tag),
-                    format!("a terminal of {strip_tag} has no designation"),
                 )
                 .arg("strip", strip_tag.clone())
             })
@@ -175,7 +175,6 @@ impl Rule for TerminalWithoutDesignation {
                         [Target::new(Kind::Device, id)],
                         "",
                         full_tag(after, id, &strip_tag),
-                        format!("a terminal of {strip_tag} has no designation"),
                     )
                     .arg("strip", strip_tag),
                 )
@@ -197,6 +196,7 @@ fn is_unnumbered_strip(q: &Q, strip: Id<Device>) -> bool {
 /// EW-TERM-002 "Duplicate designation" (doc 15 §4.4): conflict, p o r, error, strip.
 pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-TERM-002",
+    message: key!("rule-ew-term-002"),
     code: "001002",
     title: "Duplicate designation",
     kind: RuleKind::Conflict,
@@ -242,16 +242,11 @@ impl Rule for DuplicateDesignation {
             .filter(|(_, members)| members.len() > 1)
             .map(|(designation, members)| {
                 let subject = format!("{strip_tag}:{designation}");
-                let message = format!(
-                    "designation {designation} is used by {} terminals of {strip_tag}",
-                    members.len()
-                );
                 Finding::new(
                     &DUPLICATE_DESIGNATION,
                     members.iter().map(|m| Target::new(Kind::Device, *m)),
                     "",
                     subject,
-                    message,
                 )
                 // The arguments of the rule's pattern.
                 .arg("form", "used")
@@ -339,7 +334,6 @@ impl Rule for DuplicateDesignation {
                         members.iter().map(|m| Target::new(Kind::Device, *m)),
                         "",
                         format!("{strip_tag}:{designation}"),
-                        message,
                     )
                     .arg("form", "taken")
                     .arg("designation", designation.clone())
@@ -359,6 +353,7 @@ impl Rule for DuplicateDesignation {
 /// EW-TERM-005 "Rail bonding on a non-PE terminal" (doc 15 §4.4): conflict, o, error, strip.
 pub const RAIL_BONDING_ON_NON_PE: RuleMeta = RuleMeta {
     id: "EW-TERM-005",
+    message: key!("rule-ew-term-005"),
     code: "001005",
     title: "Rail bonding on a non-PE terminal",
     kind: RuleKind::Conflict,
@@ -400,8 +395,7 @@ impl Rule for RailBondingOnNonPe {
             let rail = q.get::<RailTerminalOf>(t);
             for note in &rail.notes {
                 if let DeriveNote::Connectivity {
-                    code: "EW-TERM-005",
-                    detail,
+                    fact: NoteFact::RailWithoutPe,
                     ..
                 } = note
                 {
@@ -412,7 +406,6 @@ impl Rule for RailBondingOnNonPe {
                             [Target::new(Kind::Device, t)],
                             "",
                             tag.clone(),
-                            detail.clone(),
                         )
                         .arg("terminal", tag),
                     );
@@ -426,6 +419,7 @@ impl Rule for RailBondingOnNonPe {
 /// EW-TERM-003 "Spare wired on the field side" (doc 15 §4.4): conflict, o, warning, strip.
 pub const SPARE_WIRED_ON_FIELD_SIDE: RuleMeta = RuleMeta {
     id: "EW-TERM-003",
+    message: key!("rule-ew-term-003"),
     code: "001003",
     title: "Spare wired on the field side",
     kind: RuleKind::Conflict,
@@ -485,14 +479,15 @@ impl Rule for SpareWiredOnFieldSide {
                 continue;
             }
             let tag = full_tag(q, t, "terminal");
-            out.push(Finding::new(
-                &SPARE_WIRED_ON_FIELD_SIDE,
-                [Target::new(Kind::Device, t)],
-                "field-side",
-                tag.clone(),
-                format!("spare terminal {tag} is wired on its field side; wire it on the other side or clear its spare state"),
-            )
-            .arg("terminal", tag));
+            out.push(
+                Finding::new(
+                    &SPARE_WIRED_ON_FIELD_SIDE,
+                    [Target::new(Kind::Device, t)],
+                    "field-side",
+                    tag.clone(),
+                )
+                .arg("terminal", tag),
+            );
         }
         out
     }
@@ -501,6 +496,7 @@ impl Rule for SpareWiredOnFieldSide {
 /// EW-TERM-004 "Bridge group invalid" (doc 15 §4.4): conflict, p o, error, strip.
 pub const BRIDGE_GROUP_INVALID: RuleMeta = RuleMeta {
     id: "EW-TERM-004",
+    message: key!("rule-ew-term-004"),
     code: "001004",
     title: "Bridge group invalid",
     kind: RuleKind::Conflict,
@@ -649,12 +645,6 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
             s.connections.iter().map(|c| Target::new(Kind::Connection, *c)),
             format!("group-{}", s.group),
             format!("{strip_tag} bridge group {}", s.group),
-            format!(
-                "bridge group {} of {strip_tag} is invalid: {}; a bridge group runs over consecutive terminals of \
-                 one strip on one shaft",
-                s.group,
-                why.join("; ")
-            ),
         )
         .arg("group", s.group.to_string())
         .arg("strip", strip_tag.clone());
@@ -721,12 +711,12 @@ impl Rule for BridgeGroupInvalid {
             }
             let held: BTreeSet<(Fingerprint, String)> = bridge_findings(before, strip)
                 .into_iter()
-                .map(|f| (f.fingerprint, f.message))
+                .map(|f| (f.fingerprint, f.message()))
                 .collect();
             out.extend(
                 bridge_findings(after, strip)
                     .into_iter()
-                    .filter(|f| !held.contains(&(f.fingerprint, f.message.clone()))),
+                    .filter(|f| !held.contains(&(f.fingerprint, f.message().clone()))),
             );
         }
         out
@@ -739,6 +729,7 @@ impl Rule for BridgeGroupInvalid {
 /// EW-TERM-006 "Terminal on a wire it does not join" (doc 15 §4.4): conflict, o r, warning, page.
 pub const TERMINAL_ON_UNJOINED_WIRE: RuleMeta = RuleMeta {
     id: "EW-TERM-006",
+    message: key!("rule-ew-term-006"),
     code: "001006",
     title: "Terminal on a wire it does not join",
     kind: RuleKind::Conflict,
@@ -962,9 +953,6 @@ impl Rule for TerminalOnUnjoinedWire {
                         ],
                         "",
                         subject.clone(),
-                        format!(
-                            "{subject} lies on wire {wire} without joining it; connect it to the wire or move it"
-                        ),
                     )
                     .arg("terminal", subject)
                     .arg("wire", wire)

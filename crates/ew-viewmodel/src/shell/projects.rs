@@ -1024,8 +1024,8 @@ impl ShellModel {
             };
             // The record's words in the window's language.
             let record = match &row.record {
-                ew_api::TextArg::Plain(s) => s.clone(),
                 ew_api::TextArg::Text(t) => super::tools::rejected_words("", Some(t)),
+                other => other.to_string(),
             };
             rows.push(strings::format(key, &[&record]));
             for m in &row.members {

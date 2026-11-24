@@ -851,7 +851,10 @@ impl ShellModel {
         let kind = first
             .fix
             .as_ref()
-            .map(|x| x.key.map_or_else(|| x.command.clone(), str::to_owned))
+            .map(|x| match x.label.key() {
+                k if k == ew_api::checks::key!("words-as-written") => x.command.clone(),
+                k => k.to_owned(),
+            })
             .unwrap_or_default();
         let mut fixes = Vec::new();
         // The findings whose fix can be done: one finding's fix may be several commands (a valve with two open

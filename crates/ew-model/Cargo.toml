@@ -26,6 +26,8 @@ testkit = ["dep:ew-units", "dep:ew-mltext", "dep:ew-rds"]
 [dependencies]
 ew-schema = { path = "../ew-schema" }
 ew-ids = { path = "../ew-ids" }
+# A prevent rule's finding by key (`PreventViolation::text`), which the window renders in its language.
+ew-l10n = { path = "../ew-l10n" }
 # Value types of the test fixture's records (coordinates, decimals, identifiers, aspects); with `testkit` only.
 ew-units = { path = "../ew-units", optional = true }
 ew-mltext = { path = "../ew-mltext", optional = true }

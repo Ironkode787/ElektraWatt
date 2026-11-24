@@ -164,7 +164,7 @@ fn ew_plc_005_and_007_judge_the_cleaned_symbol() {
     .build();
     let invalid = found(&m, "EW-PLC-005");
     assert_eq!(invalid.len(), 1);
-    assert!(invalid[0].message.contains("TA05-V-15"), "{}", invalid[0].message);
+    assert!(invalid[0].message().contains("TA05-V-15"), "{}", invalid[0].message());
     assert_eq!(found(&m, "EW-PLC-007").len(), 1, "the cleaned symbols collide");
     let mut fx = card(
         "di",
@@ -379,10 +379,10 @@ fn ew_plc_013_reports_an_fe_pin_fed_from_pe_without_a_bond() {
     assert_eq!(open[0].targets[0].id, uid(FE_FN));
     assert!(
         open[0]
-            .message
+            .message()
             .contains("is the FE pin of a PLC card and is fed from the PE potential"),
         "{}",
-        open[0].message
+        open[0].message()
     );
     assert!(fe_pin(true).is_empty(), "{:#?}", fe_pin(true));
 }

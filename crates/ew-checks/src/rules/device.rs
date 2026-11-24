@@ -50,6 +50,7 @@ fn parts_of(q: &Q, device: &Device) -> Vec<(Id<Part>, std::sync::Arc<LibCopy<Par
 /// EW-CORE-041 "Device without part" (doc 15 §4.2): completeness, o r, warning, device.
 pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-041",
+    message: key!("rule-ew-core-041"),
     code: "102041",
     title: "Device without part",
     kind: RuleKind::Completeness,
@@ -91,7 +92,6 @@ impl Rule for DeviceWithoutPart {
                 [Target::new(Kind::Device, device)],
                 "",
                 tag.clone(),
-                format!("{tag} has no part, so the parts list cannot order it. Choose one in its Properties (Part)."),
             )
             .arg("device", tag),
         ]
@@ -117,6 +117,7 @@ pub fn lacks_part(q: &Q, device: Id<Device>) -> bool {
 /// EW-CORE-042 "Incomplete part data" (doc 15 §4.2): completeness, o r, warning, device.
 pub const INCOMPLETE_PART_DATA: RuleMeta = RuleMeta {
     id: "EW-CORE-042",
+    message: key!("rule-ew-core-042"),
     code: "102042",
     title: "Incomplete part data",
     kind: RuleKind::Completeness,
@@ -180,7 +181,6 @@ impl Rule for IncompletePartData {
                     [Target::new(Kind::Device, device), Target::new(Kind::Part, id)],
                     "part-data",
                     tag.clone(),
-                    format!("part {number} of {tag} has no {}", missing.join(", no ")),
                 )
                 .arg("part", number)
                 .arg("device", tag)
@@ -197,6 +197,7 @@ impl Rule for IncompletePartData {
 /// EW-CORE-043 "Placeholder part" (doc 15 §4.2): completeness, o r, info (release: error), device.
 pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-043",
+    message: key!("rule-ew-core-043"),
     code: "102043",
     title: "Placeholder part",
     kind: RuleKind::Completeness,
@@ -271,10 +272,6 @@ impl Rule for PlaceholderPart {
                         .chain(users.iter().map(|(_, x)| Target::new(Kind::Device, *x))),
                     "placeholder",
                     format!("TBD {what}"),
-                    format!(
-                        "placeholder part \"{what}\" (part number TBD) is used by {}; choose the part before release",
-                        tags.join(", ")
-                    ),
                 )
                 .arg("part", what.clone())
                 .arg("users", tags.join(", "))
@@ -323,6 +320,7 @@ fn uses_copy(q: &Q, id: Id<Device>, device: &Device, part: Id<Part>) -> bool {
 /// EW-CORE-044 "Open `Tbd` value" (doc 15 §4.2): completeness, o r, info (release: error), device.
 pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
     id: "EW-CORE-044",
+    message: key!("rule-ew-core-044"),
     code: "102044",
     title: "Open Tbd value",
     kind: RuleKind::Completeness,
@@ -372,7 +370,6 @@ impl Rule for OpenTbdValue {
                     [Target::new(Kind::Device, device), Target::new(Kind::Function, f)],
                     "bus_address",
                     name.clone(),
-                    format!("{name}: the station address is TBD; enter it before release"),
                 )
                 .arg("form", "bus")
                 .arg("end", end)
@@ -391,7 +388,6 @@ impl Rule for OpenTbdValue {
                         [Target::new(Kind::Device, device)],
                         format!("start.{which}"),
                         tag.clone(),
-                        format!("{tag}: the {which} start address is TBD; enter it before release"),
                     )
                     .arg("form", "start")
                     .arg("module", tag.clone())
@@ -409,7 +405,6 @@ impl Rule for OpenTbdValue {
                         [Target::new(Kind::Device, device), Target::new(Kind::Channel, id)],
                         "address",
                         tag.clone(),
-                        format!("{tag}: the address of channel {number} is TBD; enter it before release"),
                     )
                     .arg("form", "channel")
                     .arg("module", tag.clone())
@@ -427,6 +422,7 @@ impl Rule for OpenTbdValue {
 /// EW-CORE-045 "Auxiliary contacts exceed the part" (doc 15 §4.2): conflict, o r, error, device.
 pub const CONTACTS_EXCEED_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-045",
+    message: key!("rule-ew-core-045"),
     code: "102045",
     title: "Auxiliary contacts exceed the part",
     kind: RuleKind::Conflict,
@@ -454,11 +450,6 @@ impl ContactCount {
             ContactKind::Co => self.co += n,
             _ => {}
         }
-    }
-
-    /// The counts in words (a change-over contact is spelled out, `0 changeover`).
-    fn text(self) -> String {
-        format!("{} NO, {} NC, {} changeover", self.no, self.nc, self.co)
     }
 
     /// Whether `need` fits these contacts: change-overs serve change-overs first, then any normally open or normally
@@ -531,11 +522,6 @@ impl Rule for ContactsExceedPart {
                 [Target::new(Kind::Device, device)],
                 "contacts",
                 tag.clone(),
-                format!(
-                    "{tag} uses {} contacts; its parts have {}",
-                    need.text(),
-                    have.text()
-                ),
             )
             .arg("device", tag)
             .arg("need_no", need.no.to_string())
@@ -554,6 +540,7 @@ impl Rule for ContactsExceedPart {
 /// EW-CORE-048 "Order codes do not cover the children" (doc 15 §4.2): conflict, o r, warning, device.
 pub const ORDER_CODES_COVER: RuleMeta = RuleMeta {
     id: "EW-CORE-048",
+    message: key!("rule-ew-core-048"),
     code: "102048",
     title: "Order codes do not cover the children",
     kind: RuleKind::Conflict,
@@ -597,31 +584,15 @@ impl Rule for OrderCodesCover {
             }
         }
         let tag = full_tag(q, head, "assembly");
-        let mut rows: Vec<(String, Id<Device>, &'static str, String, u32)> = Vec::new();
+        let mut rows: Vec<(String, Id<Device>, &'static str, u32)> = Vec::new();
         let with_parts = |d: Id<Device>| q.devices().get(d).is_some_and(|x| !x.parts.is_empty());
         for d in std::iter::once(head).chain(ew_derive::device_descendants(q, head)) {
             let n = covered.get(&d).copied().unwrap_or(0);
             let child = full_tag(q, d, "device");
             if n > 1 {
-                rows.push((
-                    child.clone(),
-                    d,
-                    "covered-twice",
-                    format!(
-                        "{child} is covered by {n} order codes of {tag}; its parts would print {n} times"
-                    ),
-                    n,
-                ));
+                rows.push((child.clone(), d, "covered-twice", n));
             } else if n == 0 && d != head && with_parts(d) {
-                rows.push((
-                    child.clone(),
-                    d,
-                    "uncovered",
-                    format!(
-                        "{child} is covered by no order code of {tag}; the assembly BOM lists its own parts beside the configured products"
-                    ),
-                    n,
-                ));
+                rows.push((child.clone(), d, "uncovered", n));
             }
         }
         rows.sort_by(|a, b| {
@@ -630,13 +601,12 @@ impl Rule for OrderCodesCover {
                 .then_with(|| a.1.cmp(&b.1))
         });
         rows.into_iter()
-            .map(|(subject, d, disc, message, n)| {
+            .map(|(subject, d, disc, n)| {
                 Finding::new(
                     &ORDER_CODES_COVER,
                     [Target::new(Kind::Device, head), Target::new(Kind::Device, d)],
                     disc,
                     subject.clone(),
-                    message,
                 )
                 .arg("form", disc)
                 .arg("device", subject)
@@ -705,10 +675,6 @@ fn duplicate_numbers(q: &Q) -> Vec<Finding> {
                     [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],
                     "duplicate_number",
                     subject.clone(),
-                    format!(
-                        "{tag} holds a second channel numbered {number}; the module keeps one channel per number, so \
-                         this one prints nowhere"
-                    ),
                 )
                 .arg("form", "duplicate_number")
                 .arg("module", tag.clone())
@@ -749,10 +715,6 @@ fn orphan_channels(q: &Q) -> Vec<Finding> {
                 [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],
                 "channel",
                 subject.clone(),
-                format!(
-                    "channel {subject} belongs to {tag}, which is not a PLC module; delete the channel or make {tag} a \
-                     module again"
-                ),
             )
             .arg("form", "channel")
             .arg("channel", subject)
@@ -820,10 +782,6 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
                 [Target::new(Kind::Page, id)],
                 "form",
                 format!("folio {folio}"),
-                format!(
-                    "folio {folio}: {}, which the project does not hold; the page takes the next frame",
-                    missing.join(", and ")
-                ),
             )
             .arg("form", "form")
             .arg("page", folio.to_string())

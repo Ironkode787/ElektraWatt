@@ -87,18 +87,18 @@ pub fn assert_messages(findings: &[ew_checks::Finding]) {
     {
         assert_eq!(
             format(f, DEFAULT_LANGUAGE).as_deref(),
-            Some(f.message.as_str()),
+            Some(f.message().as_str()),
             "the en-GB pattern of {} does not render its message from {:?}",
             f.rule,
-            f.args
+            f.text
         );
         for lang in LANGUAGES {
             assert!(
                 format(f, lang).is_some(),
                 "{lang} does not word {}'s finding {:?} from {:?}",
                 f.rule,
-                f.message,
-                f.args
+                f.message(),
+                f.text
             );
         }
     }
@@ -171,7 +171,9 @@ pub fn dutch(m: &Model, rule: &str) -> Vec<String> {
 
 /// `(subject, message)` of each finding, in report order.
 pub fn texts(f: &[ew_checks::Finding]) -> Vec<(String, String)> {
-    f.iter().map(|f| (f.subject.clone(), f.message.clone())).collect()
+    f.iter()
+        .map(|f| (f.subject.clone(), f.message().clone()))
+        .collect()
 }
 
 /// The `(kind, id)` of each target of a finding.
@@ -215,7 +217,7 @@ pub fn printed(m: &Model) -> Vec<String> {
     [ew_checks::CheckMode::Online, ew_checks::CheckMode::Release]
         .into_iter()
         .flat_map(|mode| ew_checks::run(&q, &ew_checks::FULL, mode).findings)
-        .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message))
+        .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message()))
         .collect()
 }
 

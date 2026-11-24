@@ -37,3 +37,7 @@ ew-hack = { version = "0.3.5", path = "../ew-hack" }
 automod.workspace = true
 # Unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).
 ew-model = { path = "../ew-model" }
+
+[build-dependencies]
+# The generator of the key table that `build.rs` writes.
+ew-l10n = { path = "../ew-l10n" }

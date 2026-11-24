@@ -18,6 +18,7 @@ use crate::rules::term::full_tag;
 /// EW-PRC-001 "Process-tag scheme" (doc 15 §4.5.1): hygiene, o r, warning, project (FR-PLC-049).
 pub const PROCESS_TAG: RuleMeta = RuleMeta {
     id: "EW-PRC-001",
+    message: key!("rule-ew-prc-001"),
     code: "110201",
     title: "Process-tag scheme",
     kind: RuleKind::Hygiene,
@@ -65,10 +66,6 @@ impl Rule for ProcessTag {
                             [Target::new(Kind::Device, id)],
                             "scheme",
                             device.clone(),
-                            format!(
-                                "{device}: the process tag {tag} does not match the project's scheme {text}; correct \
-                                 the tag"
-                            ),
                         )
                         .arg("form", "scheme")
                         .arg("device", device)
@@ -91,10 +88,6 @@ impl Rule for ProcessTag {
                     devices.iter().map(|d| Target::new(Kind::Device, *d)),
                     format!("duplicate:{tag}"),
                     names[0].clone(),
-                    format!(
-                        "the process tag {tag} is carried by {list}; keep it on the one field device and track it from \
-                         the others"
-                    ),
                 )
                 .arg("form", "duplicate")
                 .arg("tag", tag)

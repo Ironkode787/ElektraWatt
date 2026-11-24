@@ -65,6 +65,7 @@ fn conductors_of(q: &Q, cable: Id<Device>) -> Vec<(Id<Conductor>, Conductor)> {
 /// EW-CORE-031 "Invalid core colour" (doc 15 §4.2): conflict, p o r, error, cable.
 pub const INVALID_CORE_COLOUR: RuleMeta = RuleMeta {
     id: "EW-CORE-031",
+    message: key!("rule-ew-core-031"),
     code: "003031",
     title: "Invalid core colour",
     kind: RuleKind::Conflict,
@@ -127,10 +128,6 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
             [Target::new(Kind::Conductor, id)],
             "colour",
             core.clone(),
-            format!(
-                "core {core} has the colour {shown}: {codes} is not an IEC 60757 code or a company code of the colour \
-                 profile"
-            ),
         )
         .arg("core", core)
         .arg("colour", shown)
@@ -195,6 +192,7 @@ impl Rule for InvalidCoreColour {
 /// EW-CORE-032 "Core differs from the part" (doc 15 §4.2): conflict, o r, warning, cable.
 pub const CORE_DIFFERS_FROM_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-032",
+    message: key!("rule-ew-core-032"),
     code: "003032",
     title: "Core differs from the part",
     kind: RuleKind::Conflict,
@@ -318,11 +316,8 @@ impl Rule for CoreDiffersFromPart {
         for (id, c) in conductors_of(q, cable) {
             let core = core_text(q, &c);
             let def = part.item.sections.cable_cores.iter().find(|d| d.core == c.core);
-            let (message, words) = match def {
-                None => (
-                    format!("core {core} is not a core of the cable part {number}"),
-                    vec![("form", "foreign".to_owned())],
-                ),
+            let words = match def {
+                None => vec![("form", "foreign".to_owned())],
                 Some(def) => {
                     let (diffs, mut words) = core_differences(&c, def);
                     if diffs.is_empty() {
@@ -330,14 +325,7 @@ impl Rule for CoreDiffersFromPart {
                     }
                     words.push(("form", "differs".to_owned()));
                     words.push(("def", def.core.as_str().to_owned()));
-                    (
-                        format!(
-                            "core {core} differs from the core {} of the cable part {number}: {}",
-                            def.core.as_str(),
-                            diffs.join(", ")
-                        ),
-                        words,
-                    )
+                    words
                 }
             };
             let mut f = Finding::new(
@@ -345,7 +333,6 @@ impl Rule for CoreDiffersFromPart {
                 [Target::new(Kind::Conductor, id), Target::new(Kind::Part, part_id)],
                 "core",
                 core.clone(),
-                message,
             )
             .arg("core", core)
             .arg("part", number.clone());
@@ -367,6 +354,7 @@ impl Rule for CoreDiffersFromPart {
 /// EW-CORE-034 "External connection without cable" (doc 15 §4.2): completeness, o r, warning, page.
 pub const EXTERNAL_WITHOUT_CABLE: RuleMeta = RuleMeta {
     id: "EW-CORE-034",
+    message: key!("rule-ew-core-034"),
     code: "003034",
     title: "External connection without cable",
     kind: RuleKind::Completeness,
@@ -498,21 +486,11 @@ impl Rule for ExternalWithoutCable {
             wires.dedup();
             let inside = inside.join(", ");
             // A far end that is not known prints nothing: the connection is named by where it goes.
-            let (subject, connection, far) = if at.is_empty() {
-                (
-                    inside.clone(),
-                    format!("from a place not known to {inside}"),
-                    "unknown",
-                )
+            let (subject, far) = if at.is_empty() {
+                (inside.clone(), "unknown")
             } else {
-                let subject = format!("{at} → {inside}");
-                (subject.clone(), subject, "known")
+                (format!("{at} → {inside}"), "known")
             };
-            let message = format!(
-                "the external connection {connection} has no cable: {} {} not a cable core; add the cable and assign its cores",
-                if wires.len() == 1 { "wire" } else { "wires" },
-                and_list(&wires, if wires.len() == 1 { "is" } else { "are" }),
-            );
             let count = if wires.len() == 1 { "one" } else { "many" };
             out.push(
                 Finding::new(
@@ -520,7 +498,6 @@ impl Rule for ExternalWithoutCable {
                     std::iter::once(target).chain(functions.iter().map(|f| Target::new(Kind::Function, *f))),
                     "external",
                     subject.clone(),
-                    message,
                 )
                 .arg("connection", subject)
                 .arg("inside", inside)
@@ -535,11 +512,6 @@ impl Rule for ExternalWithoutCable {
     }
 }
 
-/// `a, b, c <verb>`.
-fn and_list(items: &[String], verb: &str) -> String {
-    format!("{} {verb}", items.join(", "))
-}
-
 /// Sorts texts in natural order, then by bytes.
 fn sort_natural(items: &mut [String]) {
     items.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.cmp(b)));
@@ -551,6 +523,7 @@ fn sort_natural(items: &mut [String]) {
 /// EW-CORE-036 "Core assigned twice" (doc 15 §4.2): conflict, p o, error, cable.
 pub const CORE_ASSIGNED_TWICE: RuleMeta = RuleMeta {
     id: "EW-CORE-036",
+    message: key!("rule-ew-core-036"),
     code: "003036",
     title: "Core assigned twice",
     kind: RuleKind::Conflict,
@@ -641,11 +614,6 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
             std::iter::once(Target::new(Kind::Conductor, id)).chain(connections),
             "assigned",
             core.clone(),
-            format!(
-                "core {core} is assigned to {} wires ({}); a core carries one wire",
-                wires.len(),
-                labels.join(", ")
-            ),
         )
         .arg("core", core)
         .arg("count", wires.len().to_string())
@@ -711,6 +679,7 @@ impl Rule for CoreAssignedTwice {
 /// EW-CORE-037 "Shield not connected" (doc 15 §4.2): completeness, o, warning, cable.
 pub const SHIELD_NOT_CONNECTED: RuleMeta = RuleMeta {
     id: "EW-CORE-037",
+    message: key!("rule-ew-core-037"),
     code: "003037",
     title: "Shield not connected",
     kind: RuleKind::Completeness,
@@ -771,7 +740,6 @@ impl Rule for ShieldNotConnected {
                     [Target::new(Kind::Conductor, id)],
                     "shield",
                     core.clone(),
-                    format!("shield {core} is connected at neither end; connect it at one end or both"),
                 )
                 .arg("core", core)
             })

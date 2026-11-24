@@ -70,11 +70,8 @@ pub enum CmdError {
         finding: String,
         /// The records involved.
         keys: Vec<AnyKey>,
-        /// The finding's message arguments, by Fluent variable name, from which the window renders the rule's message
-        /// from the check catalogue in its language; empty for a rule the catalogue does not word.
-        args: Box<[(&'static str, String)]>,
-        /// The finding by key, for a rule of the commands' own (EW-REL-004), which the window renders in its language;
-        /// `None` for a rule of the check catalogue.
+        /// The finding by key, a rule message of the check catalogue or a text of the commands' own (EW-REL-004), which
+        /// the window renders in its language; `None` for a hook without such words.
         text: Option<Box<Text>>,
     },
     /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, the
@@ -151,13 +148,12 @@ impl From<ModelError> for CmdError {
                 rule,
                 message,
                 keys,
-                args,
+                text,
             } => CmdError::Prevented {
                 rule,
                 finding: message,
                 keys,
-                args,
-                text: None,
+                text,
             },
             // Without the model at hand, a record by its kind.
             other => {

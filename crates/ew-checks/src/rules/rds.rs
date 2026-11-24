@@ -30,6 +30,7 @@ use crate::rules::term::{case_setting, full_tag};
 /// not declared at MVP).
 pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-RDS-004",
+    message: key!("rule-ew-rds-004"),
     code: "017004",
     title: "Duplicate designation",
     kind: RuleKind::Conflict,
@@ -92,19 +93,12 @@ impl Rule for DuplicateDesignation {
             .into_values()
             .filter(|(_, members)| members.len() > 1)
             .map(|(full, members)| {
-                let message = format!("`{full}` is printed by {} devices", members.len());
                 let mut group: Vec<Target> = members.iter().map(|m| Target::new(Kind::Device, *m)).collect();
                 group.sort_by(|a, b| keeper_order(q, a, b));
                 let count = members.len().to_string();
-                let finding = Finding::new(
-                    &DUPLICATE_DESIGNATION,
-                    group.iter().copied(),
-                    "",
-                    full.clone(),
-                    message,
-                )
-                .arg("tag", full)
-                .arg("count", count);
+                let finding = Finding::new(&DUPLICATE_DESIGNATION, group.iter().copied(), "", full.clone())
+                    .arg("tag", full)
+                    .arg("count", count);
                 match renumber_newer(q, &group) {
                     Some(fix) => finding.with_fix(fix),
                     None => finding,
@@ -175,6 +169,7 @@ fn own_tag_device(q: &Q, device: Id<Device>) -> Option<std::sync::Arc<Device>> {
 /// EW-RDS-001 "Designation does not parse" (doc 15 §4.3): conflict, o r, error, device.
 pub const DESIGNATION_DOES_NOT_PARSE: RuleMeta = RuleMeta {
     id: "EW-RDS-001",
+    message: key!("rule-ew-rds-001"),
     code: "017001",
     title: "Designation does not parse",
     kind: RuleKind::Conflict,
@@ -239,10 +234,6 @@ impl Rule for DesignationDoesNotParse {
                 [Target::new(Kind::Device, device)],
                 "parse",
                 tag.full.clone(),
-                format!(
-                    "{} does not parse as an IEC 81346 designation: {}",
-                    tag.full, e.kind
-                ),
             )
             .arg("device", tag.full.clone())
             .arg("detail", e.kind.to_string())
@@ -262,6 +253,7 @@ impl Rule for DesignationDoesNotParse {
 /// EW-RDS-002 "Separator in a structure code" (doc 15 §4.3): hygiene, o, info, project.
 pub const SEPARATOR_IN_CODE: RuleMeta = RuleMeta {
     id: "EW-RDS-002",
+    message: key!("rule-ew-rds-002"),
     code: "017002",
     title: "Separator in a structure code",
     kind: RuleKind::Hygiene,
@@ -309,10 +301,6 @@ impl Rule for SeparatorInCode {
                     [Target::new(Kind::StructureNode, id)],
                     "separator",
                     text.clone(),
-                    format!(
-                        "the structure code {text} contains separator characters; tools that read exported \
-                         designations may split it into several levels"
-                    ),
                 )
                 .arg("code", text)
             })
@@ -326,6 +314,7 @@ impl Rule for SeparatorInCode {
 /// EW-RDS-003 "Letter code against function" (doc 15 §4.3): hygiene, o r, warning, device.
 pub const LETTER_AGAINST_FUNCTION: RuleMeta = RuleMeta {
     id: "EW-RDS-003",
+    message: key!("rule-ew-rds-003"),
     code: "017003",
     title: "Letter code against function",
     kind: RuleKind::Hygiene,
@@ -393,11 +382,6 @@ impl Rule for LetterAgainstFunction {
             return Vec::new();
         };
         let tag = full_tag(q, device, "device");
-        let unverified = if row.verified() {
-            ""
-        } else {
-            " (the set is not verified against the standard)"
-        };
         let severity = if d.tag.frozen.is_some() {
             FROZEN_SEVERITY
         } else {
@@ -409,13 +393,6 @@ impl Rule for LetterAgainstFunction {
                 [Target::new(Kind::Device, device)],
                 "letter",
                 tag.clone(),
-                format!(
-                    "{tag}: the letter code {letter} does not match its function category {}; the identifier set {} \
-                     suggests {}{unverified}",
-                    category.as_str(),
-                    set.key(),
-                    row.letter().as_str()
-                ),
             )
             .arg("device", tag)
             .arg("letter", letter.to_string())
@@ -434,6 +411,7 @@ impl Rule for LetterAgainstFunction {
 /// EW-RDS-007 "Reserved letters" (doc 15 §4.3): hygiene, o r, warning, device.
 pub const RESERVED_LETTERS: RuleMeta = RuleMeta {
     id: "EW-RDS-007",
+    message: key!("rule-ew-rds-007"),
     code: "017007",
     title: "Reserved letters",
     kind: RuleKind::Hygiene,
@@ -504,10 +482,6 @@ impl Rule for ReservedLetters {
                 [Target::new(Kind::Device, device)],
                 "reserved",
                 tag.clone(),
-                format!(
-                    "{tag}: the letter code {} uses reserved letters: {reasons_text}",
-                    letter.as_str(),
-                ),
             )
             .arg("device", tag)
             .arg("letter", letter.as_str().to_owned())
@@ -542,6 +516,7 @@ impl Rule for ReservedLetters {
 /// EW-RDS-009 "Confusable character" (doc 15 §4.3): conflict, o p r, error, device.
 pub const CONFUSABLE_CHARACTER: RuleMeta = RuleMeta {
     id: "EW-RDS-009",
+    message: key!("rule-ew-rds-009"),
     code: "017009",
     title: "Confusable character",
     kind: RuleKind::Conflict,
@@ -665,11 +640,6 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
                 [Target::new(Kind::Device, device)],
                 what,
                 tag.clone(),
-                format!(
-                    "the {what} {text} of {tag} contains non-Latin characters that look like Latin ones: {}; search \
-                     and cross-references cannot find it; retype it in Latin letters",
-                    chars.join(", ")
-                ),
             )
             .arg("what", what)
             .arg(
@@ -747,6 +717,7 @@ impl Rule for ConfusableCharacter {
 /// EW-RDS-010 "Structure-code variants" (doc 15 §4.3): conflict, o r, warning, project.
 pub const STRUCTURE_CODE_VARIANTS: RuleMeta = RuleMeta {
     id: "EW-RDS-010",
+    message: key!("rule-ew-rds-010"),
     code: "017010",
     title: "Structure-code variants",
     kind: RuleKind::Conflict,
@@ -803,14 +774,11 @@ impl Rule for StructureCodeVariants {
                 let texts: Vec<&str> = members.iter().map(|(t, _)| t.as_str()).collect();
                 Finding::new(
                     &STRUCTURE_CODE_VARIANTS,
-                    members.iter().map(|(_, id)| Target::new(Kind::StructureNode, *id)),
+                    members
+                        .iter()
+                        .map(|(_, id)| Target::new(Kind::StructureNode, *id)),
                     "spelling",
                     first,
-                    format!(
-                        "the structure codes {} differ only in separators or case; merge them into one node and keep \
-                         the other spellings as aliases",
-                        texts.join(", ")
-                    ),
                 )
                 .arg("codes", texts.join(", "))
             })

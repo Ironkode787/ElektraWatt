@@ -46,15 +46,13 @@ pub const DEFAULT_LANGUAGE: &str = "en-GB";
 /// The languages the rule messages ship in, the default first.
 pub const LANGUAGES: &[&str] = &["en-GB", "nl-NL"];
 
-/// The Fluent source of each shipped language, in [`LANGUAGES`] order.
-const SOURCES: &[&str] = &[
-    include_str!("../texts/en-GB/rules.ftl"),
-    include_str!("../texts/nl-NL/rules.ftl"),
-];
-
-/// The Fluent message ID of a rule: `rule-` and the rule ID in lower case (`rule-ew-pot-013`).
-pub fn message_id(rule: &str) -> String {
-    format!("rule-{}", rule.to_ascii_lowercase())
+/// The key of the message of the rule `rule` ([`RuleMeta::message`](crate::RuleMeta::message)): a registered rule's or
+/// an integrity rule's of opening a project; `None` for another ID.
+fn message_of(rule: &str) -> Option<&'static str> {
+    crate::registry::rule(rule)
+        .map(|r| r.meta())
+        .or_else(|| crate::rules::core::INTEGRITY.iter().find(|m| m.id == rule))
+        .map(|m| m.message)
 }
 
 /// The language of a shipped tag, built once: its patterns may call `NUMBER(…, type: "ordinal")` (a pin's position),
@@ -65,11 +63,10 @@ fn bundle(lang: &str) -> Option<&'static Language> {
     let bundles = BUNDLES.get_or_init(|| {
         LANGUAGES
             .iter()
-            .zip(SOURCES)
-            .map(|(tag, source)| {
+            .map(|tag| {
                 Language::new(
                     tag,
-                    [*source],
+                    sources(tag),
                     &[("DECIMAL", ew_l10n::render::decimal), ("WORD", words)],
                     true,
                 )
@@ -80,10 +77,18 @@ fn bundle(lang: &str) -> Option<&'static Language> {
     bundles.get(i)
 }
 
+/// The text files of the language `tag`.
+fn sources(tag: &str) -> impl Iterator<Item = &'static str> {
+    crate::SOURCES
+        .iter()
+        .filter(move |(l, _)| *l == tag)
+        .map(|(_, s)| *s)
+}
+
 /// The parse errors of the shipped resources, per language (empty when every resource parses): for the tests.
 pub fn resource_errors() -> Vec<(&'static str, String)> {
     let mut out = Vec::new();
-    for (tag, source) in LANGUAGES.iter().zip(SOURCES) {
+    for (tag, source) in crate::SOURCES {
         for e in ew_l10n::render::parse_errors(source) {
             out.push((*tag, e));
         }
@@ -110,7 +115,7 @@ fn words(lang: &str, text: &str) -> String {
 /// with one argument (`the junction in { $at }`) matches its text around the argument.
 fn word(lang: &str, value: &str) -> Option<String> {
     let mut args = Vec::new();
-    let id = SOURCES[0].lines().find_map(|l| {
+    let id = sources(DEFAULT_LANGUAGE).flat_map(str::lines).find_map(|l| {
         let (id, text) = l.split_once(" = ")?;
         if !id.starts_with("word-") {
             return None;
@@ -159,27 +164,36 @@ pub fn text_style_name(key: &str, lang: &str) -> String {
 
 /// The arguments of a finding as the pattern's arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
 fn fluent_args(f: &Finding) -> Vec<(&str, Value<'_>)> {
-    f.args
+    f.text
+        .named()
         .iter()
-        .map(|(k, v)| {
-            if NUMBER_ARGS.contains(k) {
-                (*k, Value::Number(v.as_str()))
-            } else {
-                (*k, Value::Text(v.as_str()))
-            }
+        .filter_map(|(k, v)| match v {
+            ew_l10n::TextArg::Plain(v) if NUMBER_ARGS.contains(k) => Some((*k, Value::Number(v.as_str()))),
+            ew_l10n::TextArg::Plain(v) => Some((*k, Value::Text(v.as_str()))),
+            _ => None,
         })
         .collect()
+}
+
+/// The value of the argument `name` of a finding, as printed.
+fn plain<'f>(f: &'f Finding, name: &str) -> Option<&'f str> {
+    f.text.named().iter().find_map(|(k, v)| match v {
+        ew_l10n::TextArg::Plain(v) if *k == name => Some(v.as_str()),
+        _ => None,
+    })
 }
 
 /// The finding's text rendered from the pattern of `lang`, when the language ships, the rule has a pattern in it, the
 /// finding carries arguments and the pattern resolves without an error; else `None`.
 pub fn format(f: &Finding, lang: &str) -> Option<String> {
-    if f.args.is_empty() {
-        return None;
-    }
     let b = bundle(lang)?;
-    let id = message_id(f.rule);
-    if !b.has(&id, None) {
+    let id = f.text.key();
+    if f.rule != crate::rules::core::MERGE_COLLISION.id
+        && f.rule != crate::rules::pot::TYPE_OR_VOLTAGE_CONFLICT.id
+    {
+        return b.text(&f.text, OnError::Miss);
+    }
+    if !b.has(id, None) {
         return None;
     }
     // EW-CORE-013 carries the uniqueness finding it reports by that finding's arguments, its discriminator naming the
@@ -187,7 +201,7 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     let collision = (f.rule == crate::rules::core::MERGE_COLLISION.id)
         .then(|| {
             b.format(
-                &message_id(&f.discriminator),
+                message_of(&f.discriminator)?,
                 None,
                 &fluent_args(f),
                 OnError::Miss,
@@ -198,7 +212,7 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     // shape, or one that does not resolve, leaves the finding to its en-GB message.
     let mut conflicts = None;
     if f.rule == crate::rules::pot::TYPE_OR_VOLTAGE_CONFLICT.id
-        && let Some((_, list)) = f.args.iter().find(|(k, _)| *k == "conflict_list")
+        && let Some(list) = plain(f, "conflict_list")
     {
         let worded: Vec<String> = list
             .split('\n')
@@ -208,7 +222,7 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
                     .iter()
                     .map(|(k, v)| (*k, Value::Text(v.as_str())))
                     .collect();
-                b.format(&id, Some(attribute), &piece_args, OnError::Miss)
+                b.format(id, Some(attribute), &piece_args, OnError::Miss)
             })
             .collect::<Option<_>>()?;
         conflicts = Some(worded.join(" "));
@@ -220,59 +234,53 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     if let Some(text) = &conflicts {
         args.push(("conflicts", Value::Text(text)));
     }
-    b.format(&id, None, &args, OnError::Miss)
+    b.format(id, None, &args, OnError::Miss)
 }
 
 /// The finding's message in `lang` (`ew check --lang`, the message panel): in en-GB the message itself; in another
 /// shipped language the rule's pattern of that language rendered from the finding's arguments where present, the
 /// en-GB message otherwise (doc 15 §3.8).
 pub fn render(f: &Finding, lang: &str) -> String {
-    if lang.eq_ignore_ascii_case(DEFAULT_LANGUAGE) {
-        return f.message.clone();
-    }
-    format(f, lang).unwrap_or_else(|| f.message.clone())
+    format(f, lang)
+        .or_else(|| format(f, DEFAULT_LANGUAGE))
+        .or_else(|| bundle(DEFAULT_LANGUAGE)?.text(&f.text, OnError::Keep))
+        .unwrap_or_else(|| f.text.to_string())
+}
+
+/// A text of the rule messages in `lang` (a prevent rule's finding, which the window shows when the rule refuses an
+/// edit): its pattern of that language where it resolves, else en-GB's, else its English as the key table holds it.
+pub fn text(t: &ew_l10n::Text, lang: &str) -> String {
+    let lookup = |tag: &str| bundle(tag)?.text(t, OnError::Miss);
+    lookup(lang)
+        .or_else(|| lookup(DEFAULT_LANGUAGE))
+        .unwrap_or_else(|| t.to_string())
 }
 
 /// One attribute of a rule's message in `lang`, falling back to en-GB; `None` when en-GB lacks it too.
 fn attribute(rule: &str, name: &str, lang: &str) -> Option<String> {
-    let id = message_id(rule);
-    let lookup = |tag: &str| bundle(tag)?.format(&id, Some(name), &[], OnError::Miss);
+    let id = message_of(rule)?;
+    let lookup = |tag: &str| bundle(tag)?.format(id, Some(name), &[], OnError::Miss);
     lookup(lang).or_else(|| lookup(DEFAULT_LANGUAGE))
 }
 
 /// Whether `lang` itself (no fallback) has the message of `rule` with the attribute `name` (`None`: the message).
 pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
-    let Some(b) = bundle(lang) else {
+    let (Some(b), Some(id)) = (bundle(lang), message_of(rule)) else {
         return false;
     };
-    let id = message_id(rule);
     match name {
-        None => b.has_message(&id),
-        Some("value") => b.has(&id, None),
-        Some(attr) => b.has(&id, Some(attr)),
+        None => b.has_message(id),
+        Some("value") => b.has(id, None),
+        Some(attr) => b.has(id, Some(attr)),
     }
 }
 
-/// A quick fix's label in `lang`: its key's message of that language, falling back to en-GB's, and to the
-/// English label for a fix without a key (an importer's).
+/// A quick fix's label in `lang`, falling back to en-GB.
 pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
-    // A label may name its command's parameters that are a number or a text (`{ $position }`), as printed.
-    let values: Vec<(&str, String)> = fix
-        .params
-        .as_object()
-        .into_iter()
-        .flatten()
-        .filter_map(|(name, value)| match value {
-            serde_json::Value::Number(n) => Some((name.as_str(), n.to_string())),
-            serde_json::Value::String(s) => Some((name.as_str(), s.clone())),
-            _ => None,
-        })
-        .collect();
-    let args: Vec<(&str, Value<'_>)> = values.iter().map(|(k, v)| (*k, Value::Text(v))).collect();
-    let lookup = |tag: &str| bundle(tag)?.format(fix.key?, None, &args, OnError::Miss);
+    let lookup = |tag: &str| bundle(tag)?.text(&fix.label, OnError::Miss);
     lookup(lang)
         .or_else(|| lookup(DEFAULT_LANGUAGE))
-        .unwrap_or_else(|| fix.label.clone())
+        .unwrap_or_else(|| fix.label.to_string())
 }
 
 /// A rule's title in `lang` (`.title`), falling back to en-GB.

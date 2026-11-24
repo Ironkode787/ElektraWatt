@@ -461,7 +461,7 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-CORE-042")
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect();
     assert!(
         findings.is_empty(),

@@ -310,10 +310,10 @@ fn bracket_findings(s: &Session) -> Vec<(String, String)> {
         .map(|f| {
             assert_eq!(
                 ew_checks::messages::format(&f, ew_checks::messages::DEFAULT_LANGUAGE).as_deref(),
-                Some(f.message.as_str()),
+                Some(f.message().as_str()),
                 "the en-GB pattern renders the message"
             );
-            (f.message.clone(), ew_checks::messages::render(&f, "nl-NL"))
+            (f.message().clone(), ew_checks::messages::render(&f, "nl-NL"))
         })
         .collect();
     out.sort();

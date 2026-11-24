@@ -60,8 +60,8 @@ pub enum ModelError {
         message: String,
         /// The records involved.
         keys: Vec<AnyKey>,
-        /// The finding's message arguments ([`crate::PreventViolation::args`]).
-        args: Box<[(&'static str, String)]>,
+        /// The finding by key ([`crate::PreventViolation::text`]).
+        text: Option<Box<ew_l10n::Text>>,
     },
     /// Two records of one kind share an ID (EW-CORE-009), or the record set holds a second project row.
     DuplicateRecord {

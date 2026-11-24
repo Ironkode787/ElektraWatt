@@ -36,7 +36,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_mltext::MlText;
+
 use ew_rds::RdsSyntax;
 use ew_schema::{
     Connection, ConnectionKind, Csa, Device, FreeText, Function, FunctionKind, Page, PageItem, PageItemKind,
@@ -232,7 +232,11 @@ pub(crate) fn structure_for(q: &Q, function: Option<Id<Function>>, page: Id<Page
 /// The printed caption of a structure box: its caption text, and with `external` the external reference in
 /// parentheses as the external cross-reference texts print it.
 pub fn box_caption(q: &Q, b: &StructureBox) -> String {
-    let mut out = b.caption.as_ref().map(neutral).unwrap_or_default();
+    let mut out = b
+        .caption
+        .as_ref()
+        .map(|c| c.neutral_or_first().unwrap_or_default().to_owned())
+        .unwrap_or_default();
     if let Some(e) = b.external {
         let ext = crate::xref::external_text(q, e);
         if !ext.is_empty() {
@@ -249,18 +253,6 @@ pub fn box_caption(q: &Q, b: &StructureBox) -> String {
 
 // -------------------------------------------------------------------------------------------------------------
 // Texts
-
-/// The neutral text of a multi-language text: its neutral form, else its first language.
-pub fn neutral(m: &MlText) -> String {
-    if let Some(s) = m.as_neutral() {
-        return s.to_owned();
-    }
-    m.languages()
-        .next()
-        .and_then(|l| m.get(l))
-        .unwrap_or_default()
-        .to_owned()
-}
 
 /// The names a text of a symbol (its `of`, doc 06 §3.8) may bind to, in this order: the symbol's device's function
 /// text, and the tag of the strip whose terminal the symbol draws.
@@ -333,7 +325,7 @@ pub fn bound_text(q: &Q, page: Id<Page>, bind: &str) -> Option<String> {
     let tb = q.get::<TitleBlockValues>(r);
     Some(match tb.get(bind)? {
         TbValue::Text(s) => s.clone(),
-        TbValue::Ml(m) => neutral(m),
+        TbValue::Ml(m) => m.neutral_or_first().unwrap_or_default().to_owned(),
         TbValue::Tag { displayed, .. } => displayed.clone(),
         TbValue::Date(_) | TbValue::Asset(_) => return None,
     })
@@ -345,7 +337,7 @@ pub fn free_text(q: &Q, page: Id<Page>, t: &FreeText) -> String {
     match (&t.bind, t.of) {
         (Some(b), Some(rep)) => symbol_bound_text(q, page, rep, b.as_str()).unwrap_or_default(),
         (Some(b), None) => bound_text(q, page, b.as_str()).unwrap_or_default(),
-        (None, _) => neutral(&t.text),
+        (None, _) => t.text.neutral_or_first().unwrap_or_default().to_owned(),
     }
 }
 

@@ -23,7 +23,7 @@ use crate::Q;
 use crate::links::DeclaredLink;
 use crate::memo_keys::PartKey;
 use crate::names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteFact};
 use crate::potentials::{Attr, AttrSource, Partition, PotentialId, PotentialPartition};
 use crate::query::{Changes, Policy, Query};
 
@@ -436,6 +436,7 @@ impl Query for FlowNotes {
                 let b = q.get::<PotentialNameOf>(c.b);
                 DeriveNote::Connectivity {
                     code: "EW-POT-001",
+                    fact: NoteFact::Other,
                     subject: format!("potential {} / {}", a.name.text, b.name.text),
                     detail: format!(
                         "pass-through of function {} joins type {} and type {} without a converting function",

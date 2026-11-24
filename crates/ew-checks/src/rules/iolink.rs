@@ -37,6 +37,7 @@ fn mode_word(m: &PortMode) -> &'static str {
 /// EW-IOL-001 "IO-Link port class" (doc 15 §4.5.2): conflict, o r, error, module (FR-BUS-019).
 pub const PORT_CLASS: RuleMeta = RuleMeta {
     id: "EW-IOL-001",
+    message: key!("rule-ew-iol-001"),
     code: "111101",
     title: "IO-Link port class",
     kind: RuleKind::Conflict,
@@ -92,10 +93,6 @@ impl Rule for PortClassRule {
                         [Target::new(Kind::Channel, w.channel)],
                         "mode",
                         channel.clone(),
-                        format!(
-                            "{channel} is in mode {mode}, but the IO-Link device {tag} is connected; set the port to \
-                             IO-Link"
-                        ),
                     )
                     .arg("form", "mode")
                     .arg("channel", channel)
@@ -109,11 +106,6 @@ impl Rule for PortClassRule {
                         [Target::new(Kind::Channel, w.channel)],
                         "class",
                         channel.clone(),
-                        format!(
-                            "{channel} is a class-{} port, but {tag} needs class {}; connect it to a class-B port",
-                            class_word(&window.class),
-                            class_word(&data.class)
-                        ),
                     )
                     .arg("form", "class")
                     .arg("channel", channel)
@@ -134,6 +126,7 @@ impl Rule for PortClassRule {
 /// EW-IOL-002 "IO-Link limits" (doc 15 §4.5.2): conflict, o r, warning, module (FR-BUS-019).
 pub const LIMITS: RuleMeta = RuleMeta {
     id: "EW-IOL-002",
+    message: key!("rule-ew-iol-002"),
     code: "111102",
     title: "IO-Link limits",
     kind: RuleKind::Conflict,
@@ -192,10 +185,6 @@ impl Rule for Limits {
                                 [Target::new(Kind::Channel, w.channel)],
                                 format!("window:{dir}"),
                                 channel.clone(),
-                                format!(
-                                    "{channel}: the device's {have} {dir} bits exceed the port window of {room} bits; \
-                                     use a master with a larger window"
-                                ),
                             )
                             .arg("form", "window")
                             .arg("channel", channel.clone())
@@ -236,13 +225,12 @@ impl Rule for Limits {
                     out.push(
                         Finding::new(
                             &LIMITS,
-                            [Target::new(Kind::Channel, w.channel), Target::new(Kind::Device, cable)],
+                            [
+                                Target::new(Kind::Channel, w.channel),
+                                Target::new(Kind::Device, cable),
+                            ],
                             "cable",
                             channel.clone(),
-                            format!(
-                                "{channel}: the cable {tag} is {metres} m long, more than the {max} m an IO-Link port \
-                                 allows; shorten it"
-                            ),
                         )
                         .arg("form", "cable")
                         .arg("channel", channel.clone())

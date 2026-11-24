@@ -475,7 +475,7 @@ fn an_exchange_notice_names_its_field_and_state_by_their_keys() {
         .expect("the renamed symbol's notice");
     let key = |arg: &ew_api::TextArg| match arg {
         ew_api::TextArg::Text(t) => t.key(),
-        ew_api::TextArg::Plain(p) => panic!("words written as they are: {p}"),
+        other => panic!("words written as they are: {other}"),
     };
     assert_eq!(key(&notice.args()[1]), "plc-field-tag-name");
     assert_eq!(key(&notice.args()[4]), "plc-import-state-apply");
@@ -692,11 +692,11 @@ fn an_edit_after_an_export_is_drift() {
         .unwrap()
         .date;
     assert!(
-        found[0].message.starts_with(&format!(
+        found[0].message().starts_with(&format!(
             "configuration project PLC1 changed since the AML export of {date}: 1 object(s)"
         )),
         "{}",
-        found[0].message
+        found[0].message()
     );
     let nl = ew_api::checks::render(&found[0], "nl-NL");
     assert!(
@@ -732,10 +732,10 @@ fn drift_after_an_undated_export_names_no_date() {
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(
         found[0]
-            .message
+            .message()
             .starts_with("configuration project PLC1 changed since the AML export: 1 object(s)"),
         "{}",
-        found[0].message
+        found[0].message()
     );
     let nl = ew_api::checks::render(&found[0], "nl-NL");
     assert!(
@@ -832,15 +832,15 @@ fn an_instrument_list_reserves_spare_channels() {
     assert_eq!(placeholder.1.function_text.as_neutral(), Some("Valve 40"));
 
     let open = findings(&s, "EW-PRC-002");
-    let tags: BTreeSet<&str> = open
+    let tags: BTreeSet<String> = open
         .iter()
-        .map(|f| f.args.iter().find(|(k, _)| *k == "tag").unwrap().1.as_str())
+        .map(|f| f.text.named().iter().find(|(k, _)| *k == "tag").unwrap().1.to_string())
         .collect();
-    assert_eq!(tags, ["CV-L-01", "CV-V-46"].into());
+    assert_eq!(tags, ["CV-L-01".to_owned(), "CV-V-46".to_owned()].into());
     assert!(
-        open[0].message.contains("has no channel: no spare"),
+        open[0].message().contains("has no channel: no spare"),
         "{}",
-        open[0].message
+        open[0].message()
     );
 
     let again = s

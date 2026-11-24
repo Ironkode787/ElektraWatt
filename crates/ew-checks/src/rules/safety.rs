@@ -23,6 +23,7 @@ use crate::rules::term::full_tag;
 /// EW-SAF-001 "F-address" (doc 15 §4.5.1): safety, o r, error, project (FR-PLC-042).
 pub const F_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-SAF-001",
+    message: key!("rule-ew-saf-001"),
     code: "110101",
     title: "F-address",
     kind: RuleKind::Safety,
@@ -61,7 +62,6 @@ impl Rule for FAddress {
                         [Target::new(Kind::Device, id)],
                         "missing",
                         module.clone(),
-                        format!("{module} is an F-module without an F-destination address; enter it"),
                     )
                     .arg("form", "missing")
                     .arg("module", module),
@@ -75,11 +75,6 @@ impl Rule for FAddress {
                                 [Target::new(Kind::Device, id)],
                                 "range",
                                 module.clone(),
-                                format!(
-                                    "{module}: the F-destination address {a} is outside {}..{}, the range of its \
-                                     device description; enter an address inside it",
-                                    r.min, r.max
-                                ),
                             )
                             .arg("form", "range")
                             .arg("module", module)
@@ -104,9 +99,6 @@ impl Rule for FAddress {
                     modules.iter().map(|m| Target::new(Kind::Device, *m)),
                     format!("duplicate:{address}"),
                     names[0].clone(),
-                    format!(
-                        "the F-destination address {address} is used by {list}; give each F-module its own address"
-                    ),
                 )
                 .arg("form", "duplicate")
                 .arg("address", address.to_string())
@@ -123,6 +115,7 @@ impl Rule for FAddress {
 /// EW-SAF-002 "1oo2 pair" (doc 15 §4.5.1): safety, f r, error, module (FR-PLC-043).
 pub const PAIR: RuleMeta = RuleMeta {
     id: "EW-SAF-002",
+    message: key!("rule-ew-saf-002"),
     code: "110102",
     title: "1oo2 pair",
     kind: RuleKind::Safety,
@@ -177,10 +170,6 @@ impl Rule for Pair {
                         [Target::new(Kind::Channel, c.id)],
                         "incomplete",
                         name.clone(),
-                        format!(
-                            "{name} is a 1oo2 channel without a partner that names it back; pair it with the other \
-                             channel of the sensor"
-                        ),
                     )
                     .arg("form", "incomplete")
                     .arg("channel", name),
@@ -207,10 +196,6 @@ impl Rule for Pair {
                             [Target::new(Kind::Channel, c.id), Target::new(Kind::Channel, p.id)],
                             "devices",
                             name.clone(),
-                            format!(
-                                "the 1oo2 pair {name} and {other} reads two devices, {ta} and {tb}; wire both \
-                                 channels to the one two-channel sensor"
-                            ),
                         )
                         .arg("form", "devices")
                         .arg("channel", name)
@@ -231,6 +216,7 @@ impl Rule for Pair {
 /// EW-SAF-003 "Test pulse" (doc 15 §4.5.1): safety, f r, warning, module (FR-PLC-043).
 pub const TEST_PULSE: RuleMeta = RuleMeta {
     id: "EW-SAF-003",
+    message: key!("rule-ew-saf-003"),
     code: "110103",
     title: "Test pulse",
     kind: RuleKind::Safety,
@@ -283,10 +269,6 @@ impl Rule for TestPulse {
                     [Target::new(Kind::Channel, c.id)],
                     "pulse",
                     name.clone(),
-                    format!(
-                        "{name}: the sensor {sensor} is not supplied from the module's test-pulse pin; wire its supply \
-                         to that pin"
-                    ),
                 )
                 .arg("channel", name)
                 .arg("sensor", sensor),

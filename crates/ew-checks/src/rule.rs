@@ -87,98 +87,67 @@ impl Modes {
     }
 }
 
-/// The scope kind of a rule: the memo key of `checks(scope)`, not the finding granularity (doc 15 §2.3).
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum ScopeKind {
+/// Declares the scope kinds once: [`ScopeKind`] with its catalogue name, and [`Scope`], one scope of a kind with the
+/// identifier of its record.
+macro_rules! scope_kinds {
+    ($($(#[$doc:meta])* $kind:ident $(($id:ty))? = $name:literal;)*) => {
+        /// The scope kind of a rule: the memo key of `checks(scope)`, not the finding granularity (doc 15 §2.3).
+        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+        pub enum ScopeKind {
+            $($(#[$doc])* $kind,)*
+        }
+
+        impl ScopeKind {
+            /// The catalogue's text (`rules.json`, the rule reference): `project`, `page`, `strip`, `device`, `cable`,
+            /// `potential`, `module`, `cfg`, `lnet`, `pnet`, `station`. Stable: a sign-off's pack digest binds it
+            /// ([`pack_definition`](crate::pack_definition)).
+            pub fn name(self) -> &'static str {
+                match self {
+                    $(ScopeKind::$kind => $name,)*
+                }
+            }
+        }
+
+        /// One evaluation scope: the key of the memo family [`CheckOf`](crate::CheckOf) together with a rule ID.
+        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+        pub enum Scope {
+            $($(#[$doc])* $kind$(($id))?,)*
+        }
+
+        impl Scope {
+            /// The kind of the scope.
+            pub fn kind(&self) -> ScopeKind {
+                match self {
+                    $(Scope::$kind { .. } => ScopeKind::$kind,)*
+                }
+            }
+        }
+    };
+}
+
+scope_kinds! {
     /// The whole project.
-    Project,
+    Project = "project";
     /// One drawn page.
-    Page,
+    Page(Id<Page>) = "page";
     /// One terminal strip (a device with the strip aspect).
-    Strip,
+    Strip(Id<Device>) = "strip";
     /// One device.
-    Device,
+    Device(Id<Device>) = "device";
     /// One cable (a device with the cable aspect).
-    Cable,
+    Cable(Id<Device>) = "cable";
     /// One potential of the potential partition.
-    Potential,
+    Potential(PotentialId) = "potential";
     /// One PLC module (a device with the `plc_module` aspect; doc 15 §2.3 `module`).
-    Module,
+    Module(Id<Device>) = "module";
     /// One PLC configuration project (doc 15 §2.3 `cfg`, requested by doc 10 §3.10).
-    Cfg,
+    Cfg(Id<PlcConfigProject>) = "cfg";
     /// One logical bus net (doc 15 §2.3 `lnet`).
-    Lnet,
+    Lnet(Id<LogicalNet>) = "lnet";
     /// One physical bus net (doc 15 §2.3 `pnet`).
-    Pnet,
+    Pnet(Id<PhysicalNet>) = "pnet";
     /// One PLC station (a device with the `plc_station` aspect; doc 15 §2.3 `station`).
-    Station,
-}
-
-impl ScopeKind {
-    /// The catalogue's text (`rules.json`, the rule reference): `project`, `page`, `strip`, `device`, `cable`,
-    /// `potential`, `module`, `cfg`, `lnet`, `pnet`, `station`. Stable: a sign-off's pack digest binds it
-    /// ([`pack_definition`](crate::pack_definition)).
-    pub fn name(self) -> &'static str {
-        match self {
-            ScopeKind::Project => "project",
-            ScopeKind::Page => "page",
-            ScopeKind::Strip => "strip",
-            ScopeKind::Device => "device",
-            ScopeKind::Cable => "cable",
-            ScopeKind::Potential => "potential",
-            ScopeKind::Module => "module",
-            ScopeKind::Cfg => "cfg",
-            ScopeKind::Lnet => "lnet",
-            ScopeKind::Pnet => "pnet",
-            ScopeKind::Station => "station",
-        }
-    }
-}
-
-/// One evaluation scope: the key of the memo family [`CheckOf`](crate::CheckOf) together with a rule ID.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum Scope {
-    /// The whole project.
-    Project,
-    /// A drawn page.
-    Page(Id<Page>),
-    /// A strip device.
-    Strip(Id<Device>),
-    /// A device.
-    Device(Id<Device>),
-    /// A cable device.
-    Cable(Id<Device>),
-    /// A potential.
-    Potential(PotentialId),
-    /// A PLC module device.
-    Module(Id<Device>),
-    /// A PLC configuration project.
-    Cfg(Id<PlcConfigProject>),
-    /// A logical bus net.
-    Lnet(Id<LogicalNet>),
-    /// A physical bus net.
-    Pnet(Id<PhysicalNet>),
-    /// A PLC station device.
-    Station(Id<Device>),
-}
-
-impl Scope {
-    /// The kind of the scope.
-    pub fn kind(&self) -> ScopeKind {
-        match self {
-            Scope::Project => ScopeKind::Project,
-            Scope::Page(_) => ScopeKind::Page,
-            Scope::Strip(_) => ScopeKind::Strip,
-            Scope::Device(_) => ScopeKind::Device,
-            Scope::Cable(_) => ScopeKind::Cable,
-            Scope::Potential(_) => ScopeKind::Potential,
-            Scope::Module(_) => ScopeKind::Module,
-            Scope::Cfg(_) => ScopeKind::Cfg,
-            Scope::Lnet(_) => ScopeKind::Lnet,
-            Scope::Pnet(_) => ScopeKind::Pnet,
-            Scope::Station(_) => ScopeKind::Station,
-        }
-    }
+    Station(Id<Device>) = "station";
 }
 
 /// The static description of a shipped rule (doc 15 §2.3, §4; ADR-0019 decision 1).
@@ -186,6 +155,9 @@ impl Scope {
 pub struct RuleMeta {
     /// The rule ID, `<OWNER>-<FAMILY>-<NNN>` (doc 15 §2.2), for example `EW-TERM-002`.
     pub id: &'static str,
+    /// The key of the rule's message in the rule messages, `rule-<id in lower case>` (ADR-0019 amendment 4): its
+    /// pattern words a finding, its `.title` and `.hint` the rule.
+    pub message: &'static str,
     /// The six-digit code `CCCNNN` (doc 15 §2.2), for example `001002`.
     pub code: &'static str,
     /// The English title, the catalogue's; the en-GB `.title` attribute of the rule's Fluent message

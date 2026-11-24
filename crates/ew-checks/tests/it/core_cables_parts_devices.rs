@@ -218,10 +218,10 @@ fn core034_reports_an_external_connection_without_cable() {
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].subject, "+J-E-206 → -1K1, -1K2");
     assert!(
-        f[0].message
+        f[0].message()
             .starts_with("the external connection +J-E-206 → -1K1, -1K2 has no cable: wires "),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert_eq!(f[0].page, Some(uid(P1).cast()));
     assert!(targets(&f[0]).contains(&(Kind::StructureNode, uid(0x900))));
@@ -255,9 +255,9 @@ fn core036_reports_a_core_assigned_to_two_wires() {
     assert_eq!(f[0].code, "003036");
     assert_eq!(f[0].subject, "-1W1/1");
     assert!(
-        f[0].message.starts_with("core -1W1/1 is assigned to 2 wires ("),
+        f[0].message().starts_with("core -1W1/1 is assigned to 2 wires ("),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(targets(&f[0]).contains(&(Kind::Connection, uid(0x2002))));
     assert!(findings_of(&cores(&[0x2001]), "EW-CORE-036").is_empty());
@@ -357,7 +357,7 @@ fn core041_reports_a_device_without_part() {
     want.sort();
     assert_eq!(reported, want);
     assert!(
-        f[0].message.ends_with(
+        f[0].message().ends_with(
             "has no part, so the parts list cannot order it. Choose one in its Properties (Part)."
         )
     );
@@ -408,10 +408,10 @@ fn core042_reports_incomplete_part_data() {
     assert_eq!(f[0].code, "102042");
     assert_eq!(f[0].discriminator, "part-data");
     assert!(
-        f[0].message.starts_with("part P-2 of ")
-            && f[0].message.ends_with(" has no description, no manufacturer"),
+        f[0].message().starts_with("part P-2 of ")
+            && f[0].message().ends_with(" has no description, no manufacturer"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert_eq!(
         targets(&f[0]),
@@ -451,7 +451,7 @@ fn core043_reports_each_placeholder_part_once() {
     assert_eq!(f[0].severity, Severity::Info);
     assert_eq!(f[0].subject, "TBD Wiring duct");
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         "placeholder part \"Wiring duct\" (part number TBD) is used by -1K1, -1K2; choose the part before release"
     );
     assert_eq!(
@@ -478,7 +478,7 @@ fn core043_reports_each_placeholder_part_once() {
     fx.with_parts(0x302, &[0x7100]);
     let one = findings_of(&fx.build(), "EW-CORE-043");
     assert_eq!(one.len(), 1, "{one:#?}");
-    assert!(one[0].message.contains("is used by -1K1;"), "{}", one[0].message);
+    assert!(one[0].message().contains("is used by -1K1;"), "{}", one[0].message());
 }
 
 /// A PLC module `-A1` with its input start `input` and channel 0's address `address`.
@@ -567,10 +567,10 @@ fn core045_reports_contacts_beyond_the_part() {
     assert_eq!(f[0].code, "102045");
     assert_eq!(f[0].severity, Severity::Error);
     assert!(
-        f[0].message
+        f[0].message()
             .ends_with("uses 2 NO, 0 NC, 0 changeover contacts; its parts have 1 NO, 1 NC, 0 changeover"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&contacts(&["no", "co"], &["no", "nc"]), "EW-CORE-045").is_empty());
     assert!(findings_of(&contacts(&[], &["no", "no", "no"]), "EW-CORE-045").is_empty());
@@ -596,10 +596,10 @@ fn core045_a_change_over_contact_serves_one_no_or_nc_function() {
     let f = findings_of(&contacts(&["co"], &["no", "no"]), "EW-CORE-045");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
-        f[0].message
+        f[0].message()
             .ends_with("uses 2 NO, 0 NC, 0 changeover contacts; its parts have 0 NO, 0 NC, 1 changeover"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert_eq!(
         findings_of(&contacts(&["co"], &["no", "nc"]), "EW-CORE-045").len(),
@@ -682,15 +682,15 @@ fn core008_reports_frame_defaults_naming_a_missing_form() {
     );
     assert_eq!(f[0].subject, "folio 1");
     assert!(
-        f[0].message
+        f[0].message()
             .contains("the frame for page type multi_line names form copy"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(
-        f[0].message.contains("the default frame names form copy"),
+        f[0].message().contains("the default frame names form copy"),
         "{}",
-        f[0].message
+        f[0].message()
     );
     assert!(findings_of(&m, "EW-CORE-008").is_empty(), "release mode only");
     assert!(release_findings_of(&Fx::base().build(), "EW-CORE-008").is_empty());
@@ -720,7 +720,7 @@ fn findings_of_one_code_order_by_printed_subject_under_id_permutation() {
             .findings
             .iter()
             .filter(|f| f.rule == "EW-POT-009")
-            .map(|f| (f.subject.clone(), f.message.clone()))
+            .map(|f| (f.subject.clone(), f.message().clone()))
             .collect()
     };
     let subjects = |v: &[(String, String)]| v.iter().map(|(s, _)| s.clone()).collect::<Vec<_>>();

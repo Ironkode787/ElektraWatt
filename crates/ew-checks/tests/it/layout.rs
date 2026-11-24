@@ -238,7 +238,7 @@ fn others_silent(m: &ew_model::Model, except: &[&str]) {
 
 /// The messages of `rule`'s findings, sorted.
 fn messages(m: &ew_model::Model, rule: &str) -> Vec<String> {
-    let mut out: Vec<String> = findings_of(m, rule).into_iter().map(|f| f.message).collect();
+    let mut out: Vec<String> = findings_of(m, rule).into_iter().map(|f| f.message()).collect();
     out.sort();
     out
 }
@@ -254,7 +254,7 @@ fn the_unplaced_device_is_reported_and_placing_it_clears_it() {
     let m = plate().build();
     let found = findings_of(&m, "EW-LAY-001");
     assert_eq!(found.len(), 1, "{found:#?}");
-    assert_eq!(found[0].message, F55_UNPLACED);
+    assert_eq!(found[0].message(), F55_UNPLACED);
     assert_eq!(found[0].subject, "+J-E-2416-F55");
     assert_eq!(found[0].severity, Severity::Warning, "online: warning");
     assert_eq!(
@@ -320,7 +320,7 @@ fn removing_the_other_part_changes_nothing_removing_the_placed_one_is_reported()
     let found = findings_of(&m, "EW-LAY-003");
     assert_eq!(found.len(), 1, "{found:#?}");
     assert_eq!(
-        found[0].message,
+        found[0].message(),
         "the placement of +J-E-2416-U201 realises part 195740, which the device no longer uses; place the device \
          with one of its parts, or give it the part back"
     );
@@ -488,7 +488,7 @@ fn five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
         .collect();
     assert_eq!(summary.len(), 1);
     assert_eq!(
-        summary[0].message,
+        summary[0].message(),
         "more footprints overlap on the mounting plate of +J-E-2416-UC1; the first 64 overlaps are listed"
     );
     assert_eq!(
@@ -498,7 +498,7 @@ fn five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
     // the other 64 are pairs of two placements (their whole texts render from their arguments: `assert_messages`)
     let pairs = found
         .iter()
-        .filter(|f| f.args.contains(&("form", "placements".to_owned())))
+        .filter(|f| f.text.named().contains(&("form", "placements".into())))
         .count();
     assert_eq!(pairs, 64);
 }
@@ -862,7 +862,7 @@ fn the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
     let m = strip_with_bracket_of_no_width(-20.0, P_TERM).build();
     let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
-        .map(|f| (f.discriminator, f.message))
+        .map(|f| { let m = f.message(); (f.discriminator, m) })
         .collect();
     found.sort();
     assert_eq!(
@@ -894,7 +894,7 @@ fn brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
     let m = zero_width_strip(600.0).build();
     let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
-        .map(|f| (f.discriminator, f.message))
+        .map(|f| { let m = f.message(); (f.discriminator, m) })
         .collect();
     found.sort();
     assert_eq!(

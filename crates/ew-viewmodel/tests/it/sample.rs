@@ -161,7 +161,7 @@ fn the_sample_opens_in_place_without_a_finding() {
     let findings: Vec<String> = report
         .findings
         .iter()
-        .map(|f| format!("{} {}", f.rule, f.message))
+        .map(|f| format!("{} {}", f.rule, f.message()))
         .collect();
     assert!(findings.is_empty(), "{findings:#?}");
 }

@@ -39,9 +39,9 @@ fn term002_cases() {
                 assert_eq!(f[0].targets.len(), 2, "case {c}");
                 assert_eq!(f[0].code, "001002", "case {c}");
                 assert!(
-                    f[0].message.contains("designation 2"),
+                    f[0].message().contains("designation 2"),
                     "case {c}: {}",
-                    f[0].message
+                    f[0].message()
                 );
             }),
             Case::silent("a clean strip", clean),
@@ -70,9 +70,9 @@ fn term002_cases() {
         "case a designation duplicated in one strip"
     );
     assert!(
-        term[0].message.contains("designation 2"),
+        term[0].message().contains("designation 2"),
         "case a designation duplicated in one strip: {}",
-        term[0].message
+        term[0].message()
     );
     assert_eq!(
         report.counts.errors, 1,
@@ -160,13 +160,13 @@ fn term002_prevent_cases() {
             |c, v| {
                 assert_eq!(v.len(), 1, "case {c}: {v:#?}");
                 assert_eq!(v[0].rule, "EW-TERM-002", "case {c}");
-                assert!(v[0].message.contains("taken"), "case {c}: {}", v[0].message);
-                assert!(v[0].message.contains("use 3"), "case {c}: {}", v[0].message);
-                assert!(v[0].message.contains("swap 3"), "case {c}: {}", v[0].message);
+                assert!(v[0].message().contains("taken"), "case {c}: {}", v[0].message());
+                assert!(v[0].message().contains("use 3"), "case {c}: {}", v[0].message());
+                assert!(v[0].message().contains("swap 3"), "case {c}: {}", v[0].message());
                 // The prevent finding carries its pattern's arguments: nl-NL words it, never falls back.
                 assert_eq!(
                     ew_checks::messages::format(&v[0], ew_checks::messages::DEFAULT_LANGUAGE).as_deref(),
-                    Some(v[0].message.as_str()),
+                    Some(v[0].message().as_str()),
                     "case {c}"
                 );
                 assert_eq!(
@@ -271,7 +271,7 @@ fn term005_cases() {
                 assert_eq!(f[0].discriminator, "", "case {c}");
                 assert_eq!(f[0].targets.len(), 1, "case {c}");
                 assert_eq!(f[0].targets[0].id, uid(0x4001), "case {c}");
-                assert!(f[0].message.contains("no PE CP"), "case {c}: {}", f[0].message);
+                assert!(f[0].message().contains("no PE CP"), "case {c}: {}", f[0].message());
             }),
             Case::silent("a terminal with a PE CP", with_pe),
             Case::silent("a terminal without the rail-bonded flag", unflagged),
@@ -364,7 +364,7 @@ fn a_waiver_for_a_rule_that_did_not_run_is_not_evaluated() {
     assert_eq!(f.len(), 2, "{f:#?}");
     assert_messages(&report.findings);
     for x in &f {
-        assert!(x.message.contains("not evaluated"), "{}", x.message);
+        assert!(x.message().contains("not evaluated"), "{}", x.message());
         assert!(x.discriminator.starts_with("not-evaluated"));
         assert_eq!(x.severity, ew_checks::Severity::Info);
     }
@@ -457,7 +457,7 @@ fn term006_reports(wire: u128, number: &'static str) -> impl Fn(&str, &[ew_check
                 f[0].code,
                 f[0].severity,
                 f[0].subject.as_str(),
-                f[0].message.as_str()
+                f[0].message().as_str()
             ),
             ("001006", ew_checks::Severity::Warning, "-1X1:5", message.as_str()),
             "case {c}"

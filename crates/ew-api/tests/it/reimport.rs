@@ -278,7 +278,7 @@ fn a_change_on_both_sides_and_a_removal_are_kept_and_listed() {
             .findings
             .iter()
             .filter(|f| f.rule == rule)
-            .map(|f| f.message.clone())
+            .map(|f| f.message().clone())
             .collect()
     };
     assert!(

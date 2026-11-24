@@ -24,38 +24,33 @@ use ew_derive::ew_units::Dec3;
 use ew_derive::{
     AttrConflict, BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DefAttr, DeriveNote,
     DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
-    PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
-    PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text,
-    cp_label, cp_point, cp_text, csa_short_of, csa_text, device_location, potential_id_at, potential_part,
-    ranked_defs, wire_props_below_overrides, wire_rating,
+    NoteFact, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId,
+    PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential,
+    colour_text, cp_label, cp_point, cp_text, csa_short_of, csa_text, device_location, potential_id_at,
+    potential_part, ranked_defs, wire_props_below_overrides, wire_rating,
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::{full_tag, location_text};
+use ew_l10n::TextArg;
 
 /// A CP as a finding's sentence names it: a designation the function shares between pins carries
 /// its position in words, "-1A4 pin − (2nd)", never the label's `#2`; any other CP is named by its label. The parts
 /// go to the Fluent patterns as `cp_shared`, `cp_tag`, `cp_pin` and `cp_nth` (an ordinal number), so that each
 /// language words the position itself; `cp` stays the label.
 pub(crate) struct PinWords {
-    /// The English sentence form (the en-GB pattern renders the same text).
-    pub(crate) sentence: String,
     /// The tag, the designation and the position, when the designation is shared.
     shared: Option<(String, String, u32)>,
 }
 
 impl PinWords {
-    pub(crate) fn of(q: &Q, cp: CpRef, label: &str) -> PinWords {
+    pub(crate) fn of(q: &Q, cp: CpRef) -> PinWords {
         match cp.label_parts(q) {
             Some((tag, pin, Some(n))) => PinWords {
-                sentence: format!("{tag} pin {pin} ({})", ordinal_en(n)),
                 shared: Some((tag, pin, n)),
             },
-            _ => PinWords {
-                sentence: label.to_owned(),
-                shared: None,
-            },
+            _ => PinWords { shared: None },
         }
     }
 
@@ -66,23 +61,10 @@ impl PinWords {
                 .arg("cp_shared", "yes")
                 .arg("cp_tag", tag.clone())
                 .arg("cp_pin", pin.clone())
-                .arg("cp_nth", n.to_string()),
+                .arg("cp_nth", TextArg::Number(i64::from(*n))),
             None => finding.arg("cp_shared", "no"),
         }
     }
-}
-
-/// An English ordinal (`1st`, `2nd`, `3rd`, `11th`, `21st`), as the en-GB pattern's `NUMBER($cp_nth, type:
-/// "ordinal")` selects it.
-fn ordinal_en(n: u32) -> String {
-    let suffix = match (n % 10, n % 100) {
-        (_, 11..=13) => "th",
-        (1, _) => "st",
-        (2, _) => "nd",
-        (3, _) => "rd",
-        _ => "th",
-    };
-    format!("{n}{suffix}")
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -113,7 +95,6 @@ impl PotTargets {
         extra: &[Target],
         discriminator: String,
         subject: String,
-        message: String,
     ) -> Finding {
         let key: Vec<Target> = self.key.iter().chain(extra).copied().collect();
         Finding::new(
@@ -121,7 +102,6 @@ impl PotTargets {
             self.targets.iter().chain(extra).copied(),
             discriminator,
             subject,
-            message,
         )
         .keyed_on(&key)
     }
@@ -263,6 +243,7 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
         .filter_map(|note| match note {
             DeriveNote::Connectivity {
                 code,
+                fact,
                 subject,
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
@@ -271,12 +252,9 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 // derivation's own text. The message leads with the potential, so the Messages row, which shows a
                 // subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
-                    let (place, args) = feed_place(q, &wires.wires, subject);
-                    let message = format!(
-                        "{name}: it is unclear which wire feeds {place}; draw one wire into it from the supply side"
-                    );
+                    let args = feed_place(q, &wires.wires, subject);
                     let mut f = pt
-                        .finding(meta, &[], subject.clone(), name.clone(), message)
+                        .finding(meta, &[], subject.clone(), name.clone())
                         .arg("potential", name.clone());
                     for (k, v) in args {
                         f = f.arg(k, v);
@@ -287,20 +265,20 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 // the wire or connection the note is about, and its form.
                 let (form, about) = if meta.id == RING_IN_DRAWING_GRAPH.id {
                     ("ring", connection_text(q, subject))
-                } else if detail.contains(" names conductor ") {
-                    ("conductor", carrier_wire_text(q, &wires.wires, subject))
-                } else if detail.contains(" overrides a value ") {
-                    ("override", carrier_wire_text(q, &wires.wires, subject))
                 } else {
-                    ("other", String::new())
+                    match fact {
+                        NoteFact::Conductor => ("conductor", carrier_wire_text(q, &wires.wires, subject)),
+                        NoteFact::Override => ("override", carrier_wire_text(q, &wires.wires, subject)),
+                        _ => ("other", String::new()),
+                    }
                 };
                 let f = pt
-                    .finding(meta, &[], subject.clone(), name.clone(), detail.clone())
+                    .finding(meta, &[], subject.clone(), name.clone())
                     .arg("detail", detail.clone())
                     .arg("form", form)
                     .arg("wire", about);
                 // A note of a known form in plain words; another keeps the derivation's text.
-                Some(if form == "other" { f } else { worded(f) })
+                Some(f)
             }
             _ => None,
         })
@@ -331,10 +309,10 @@ fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: &str) -> String {
         .map_or_else(|| connection_text(q, subject), |w| wire_text(q, w))
 }
 
-/// EW-POT-011's place in English (`the junction at H16 on folio 101 (wires 101.3, 101.4)`), with the arguments of the
-/// rule's pattern: the selector `place` (`junction`, `ip`, `other`), `cell` (empty without a frame grid), `page`,
-/// `group` (the interruption points' name) and `wires` (the wires that meet there, in natural order).
-fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> (String, Vec<(&'static str, String)>) {
+/// EW-POT-011's place as the arguments of the rule's pattern: the selector `place` (`junction`, `ip`, `other`), `cell`
+/// (empty without a frame grid), `page`, `group` (the interruption points' name) and `wires` (the wires that meet
+/// there, in natural order).
+fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str, String)> {
     let uuid = subject.parse::<ew_derive::ew_ids::Uuid>().ok();
     let wire_of = |c: Id<Connection>| {
         wires
@@ -359,21 +337,13 @@ fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> (String, Vec<(&'s
             .map(ToString::to_string)
             .unwrap_or_default();
         let list = listed(j.sequence.clone());
-        let at = if cell.is_empty() {
-            format!("the junction on folio {page}")
-        } else {
-            format!("the junction at {cell} on folio {page}")
-        };
-        return (
-            format!("{at} (wires {list})"),
-            vec![
-                ("place", "junction".to_owned()),
-                ("at", if cell.is_empty() { "folio" } else { "cell" }.to_owned()),
-                ("cell", cell),
-                ("page", page),
-                ("wires", list),
-            ],
-        );
+        return vec![
+            ("place", "junction".to_owned()),
+            ("at", if cell.is_empty() { "folio" } else { "cell" }.to_owned()),
+            ("cell", cell),
+            ("page", page),
+            ("wires", list),
+        ];
     }
     let f: Option<Id<Function>> = uuid.map(Id::from_uuid);
     if let Some((f, FunctionKind::Ip(ip))) = f.and_then(|f| q.functions().get(f).map(|x| (f, x.kind.clone())))
@@ -385,19 +355,13 @@ fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> (String, Vec<(&'s
             .flat_map(|(_, c)| c.iter().copied())
             .collect();
         let list = listed(conns);
-        return (
-            format!("the interruption points {} (wires {list})", ip.name),
-            vec![
-                ("place", "ip".to_owned()),
-                ("group", ip.name.to_string()),
-                ("wires", list),
-            ],
-        );
+        return vec![
+            ("place", "ip".to_owned()),
+            ("group", ip.name.to_string()),
+            ("wires", list),
+        ];
     }
-    (
-        "a junction or a group of interruption points".to_owned(),
-        vec![("place", "other".to_owned())],
-    )
+    vec![("place", "other".to_owned())]
 }
 
 /// The potential that reports a wire note about `subject`: of the potentials the subject lies in (a wire's
@@ -446,6 +410,7 @@ fn note_owner(q: &Q, p: PotentialId, wires: &[PhysicalWire], subject: &str) -> O
 /// EW-POT-001 "Type or voltage conflict" (doc 15 §4.3): conflict, o r, error, potential.
 pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
     id: "EW-POT-001",
+    message: key!("rule-ew-pot-001"),
     code: "005001",
     title: "Type or voltage conflict",
     kind: RuleKind::Conflict,
@@ -498,8 +463,7 @@ impl Rule for TypeOrVoltageConflict {
                 && let Some(c) = *q.get::<BondCarrierQ>(p)
             {
                 fix = Some(QuickFix {
-                    label: "Declare 0 V–PE bond (PELV)".to_owned(),
-                    key: Some("fix-declare-pelv-bond"),
+                    label: text!("fix-declare-pelv-bond"),
                     command: "bond.create".to_owned(),
                     params: serde_json::json!({
                         "a": endpoint_param(c.a),
@@ -510,13 +474,12 @@ impl Rule for TypeOrVoltageConflict {
                 });
             }
             // The text names at most [`SHOWN_MEMBER_CPS`] member CPs.
-            let finding = worded(
-                pt.finding(
+            let finding = pt
+                .finding(
                     &TYPE_OR_VOLTAGE_CONFLICT,
                     &[],
                     format!("attrs{suffix}"),
                     potential_name(q, p),
-                    String::new(),
                 )
                 .arg("form", "attrs")
                 // The shown conflicts one per line, which `messages::format` words one by one.
@@ -528,8 +491,7 @@ impl Rule for TypeOrVoltageConflict {
                     } else {
                         "none".to_owned()
                     },
-                ),
-            );
+                );
             out.push(match fix {
                 Some(fix) => finding.with_fix(fix),
                 None => finding,
@@ -549,19 +511,18 @@ impl Rule for TypeOrVoltageConflict {
                     .as_ref()
                     .map_or_else(|| debug.to_owned(), |t| type_words(&t.value))
             };
-            out.push(worded(
+            out.push(
                 pt.finding(
                     &TYPE_OR_VOLTAGE_CONFLICT,
                     &[Target::new(Kind::Function, c.function)],
                     format!("flow{suffix}"),
                     potential_name(q, p),
-                    String::new(),
                 )
                 .arg("form", "flow")
                 .arg("device", tag)
                 .arg("from", own(c.a, &c.a_type))
                 .arg("to", own(c.b, &c.b_type)),
-            ));
+            );
         }
         out
     }
@@ -585,16 +546,6 @@ fn shown_conflicts(conflicts: &[AttrConflict]) -> (Vec<&AttrConflict>, usize) {
         shown.push(c);
     }
     (shown, members.saturating_sub(SHOWN_MEMBER_CPS))
-}
-
-/// `f` with its message rendered from the en-GB pattern of its rule and its arguments: the rule builds the arguments
-/// only, and the en-GB text is the pattern's (P5-2 holds by construction). A pattern that does not resolve keeps the
-/// message the rule gave.
-fn worded(mut f: Finding) -> Finding {
-    if let Some(text) = crate::messages::format(&f, crate::messages::DEFAULT_LANGUAGE) {
-        f.message = text;
-    }
-    f
 }
 
 /// A potential type in the trade's words, as the en-GB messages print it (the `word-type-…` messages word it in
@@ -889,6 +840,7 @@ fn endpoint_param(e: EndpointKey) -> serde_json::Value {
 /// EW-POT-002 "PELV or SELV bonding" (doc 15 §4.3): safety, o r, error, potential.
 pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
     id: "EW-POT-002",
+    message: key!("rule-ew-pot-002"),
     code: "005002",
     title: "PELV or SELV bonding",
     kind: RuleKind::Safety,
@@ -989,19 +941,18 @@ impl Rule for PelvSelvBonding {
             1 => "one",
             _ => "some",
         };
-        vec![worded(
+        vec![
             pt.finding(
                 &PELV_SELV_BONDING,
                 &[bonds.as_slice(), functional.as_slice()].concat(),
                 format!("{discriminator}{}", pt.suffix),
                 potential_name(q, p),
-                String::new(),
             )
             .arg("form", discriminator)
             .arg("potential", potential_name(q, p))
             .arg("count", bonds.len().to_string())
             .arg("bonds", count),
-        )]
+        ]
     }
 }
 
@@ -1011,6 +962,7 @@ impl Rule for PelvSelvBonding {
 /// EW-POT-003 "FE pin on PE" (doc 15 §4.3): conflict, o r, warning, potential.
 pub const FE_PIN_ON_PE: RuleMeta = RuleMeta {
     id: "EW-POT-003",
+    message: key!("rule-ew-pot-003"),
     code: "005003",
     title: "FE pin on PE",
     kind: RuleKind::Conflict,
@@ -1063,18 +1015,17 @@ impl Rule for FePinOnPe {
                 continue;
             }
             let label = cp_label(q, *cp);
-            let pin = PinWords::of(q, *cp, &label);
-            out.push(worded(
+            let pin = PinWords::of(q, *cp);
+            out.push(
                 pin.args(Finding::new(
                     &FE_PIN_ON_PE,
                     [Target::new(Kind::Function, cp.function)],
                     format!("fe:{}", cp.idx),
                     label.clone(),
-                    String::new(),
                 ))
                 .arg("cp", label)
                 .arg("potential", name.clone()),
-            ));
+            );
         }
         out
     }
@@ -1086,6 +1037,7 @@ impl Rule for FePinOnPe {
 /// EW-POT-004 "GNYE on a non-PE potential" (doc 15 §4.3): safety, o r, error, potential.
 pub const GNYE_ON_NON_PE: RuleMeta = RuleMeta {
     id: "EW-POT-004",
+    message: key!("rule-ew-pot-004"),
     code: "005004",
     title: "GNYE on a non-PE potential",
     kind: RuleKind::Safety,
@@ -1152,19 +1104,16 @@ impl Rule for GnyeOnNonPe {
             })
             .map(|(w, _)| {
                 let text = wire_text(q, &w);
-                worded(
-                    Finding::new(
-                        &GNYE_ON_NON_PE,
-                        [Target::new(Kind::Connection, w.id)],
-                        "",
-                        text.clone(),
-                        String::new(),
-                    )
-                    .arg("wire", text)
-                    .arg("potential", name.clone())
-                    .arg("typed", if ptype.is_some() { "yes" } else { "no" })
-                    .arg("type", ptype.as_ref().map(type_words).unwrap_or_default()),
+                Finding::new(
+                    &GNYE_ON_NON_PE,
+                    [Target::new(Kind::Connection, w.id)],
+                    "",
+                    text.clone(),
                 )
+                .arg("wire", text)
+                .arg("potential", name.clone())
+                .arg("typed", if ptype.is_some() { "yes" } else { "no" })
+                .arg("type", ptype.as_ref().map(type_words).unwrap_or_default())
             })
             .collect()
     }
@@ -1173,6 +1122,7 @@ impl Rule for GnyeOnNonPe {
 /// EW-POT-005 "BU on a non-N conductor" (doc 15 §4.3): conflict, o r, warning, potential.
 pub const BU_ON_NON_N: RuleMeta = RuleMeta {
     id: "EW-POT-005",
+    message: key!("rule-ew-pot-005"),
     code: "005005",
     title: "BU on a non-N conductor",
     kind: RuleKind::Conflict,
@@ -1226,20 +1176,17 @@ impl Rule for BuOnNonN {
             .into_iter()
             .map(|(w, _)| {
                 let text = wire_text(q, &w);
-                worded(
-                    Finding::new(
-                        &BU_ON_NON_N,
-                        [Target::new(Kind::Connection, w.id)],
-                        "",
-                        text.clone(),
-                        String::new(),
-                    )
-                    .arg("wire", text)
-                    .arg("potential", name.clone())
-                    .arg(
-                        "type",
-                        ptype.as_ref().map_or_else(|| "none".to_owned(), type_words),
-                    ),
+                Finding::new(
+                    &BU_ON_NON_N,
+                    [Target::new(Kind::Connection, w.id)],
+                    "",
+                    text.clone(),
+                )
+                .arg("wire", text)
+                .arg("potential", name.clone())
+                .arg(
+                    "type",
+                    ptype.as_ref().map_or_else(|| "none".to_owned(), type_words),
                 )
             })
             .collect()
@@ -1260,6 +1207,7 @@ fn project_has_n(q: &Q) -> bool {
 /// EW-POT-006 "PE undersized" (doc 15 §4.3): safety, o r, error, potential.
 pub const PE_UNDERSIZED: RuleMeta = RuleMeta {
     id: "EW-POT-006",
+    message: key!("rule-ew-pot-006"),
     code: "005006",
     title: "PE undersized",
     kind: RuleKind::Safety,
@@ -1458,13 +1406,12 @@ impl Rule for PeUndersized {
                 continue;
             }
             let text = wire_text(q, &w);
-            out.push(worded(
+            out.push(
                 Finding::new(
                     &PE_UNDERSIZED,
                     [Target::new(Kind::Connection, w.id)],
                     "",
                     text.clone(),
-                    String::new(),
                 )
                 .arg("wire", text)
                 .arg("pe", pe.to_string())
@@ -1472,7 +1419,7 @@ impl Rule for PeUndersized {
                 .arg("line", line.to_string())
                 .arg("at", at)
                 .arg("verified", if table.verified { "yes" } else { "no" }),
-            ));
+            );
         }
         out
     }
@@ -1553,6 +1500,7 @@ fn associated_line(q: &Q, table: &PeSizing, cp: CpRef, pe_wire: Id<Connection>) 
 /// EW-POT-008 "PE island" (doc 15 §4.3): conflict, o r, warning, project.
 pub const PE_ISLAND: RuleMeta = RuleMeta {
     id: "EW-POT-008",
+    message: key!("rule-ew-pot-008"),
     code: "005008",
     title: "PE island",
     kind: RuleKind::Conflict,
@@ -1599,6 +1547,7 @@ impl Rule for PeIsland {
             for note in &rail.notes {
                 if let DeriveNote::Connectivity {
                     code: "EW-POT-008",
+                    fact,
                     detail,
                     ..
                 } = note
@@ -1606,23 +1555,16 @@ impl Rule for PeIsland {
                     // The derivation's text in English; the other languages word it from the terminal and the
                     // number of own locations the text names.
                     let tag = full_tag(q, id, "terminal");
-                    let locations = detail
-                        .split_once(" the project has ")
-                        .and_then(|(_, rest)| rest.split_whitespace().next())
-                        .unwrap_or_default()
-                        .to_owned();
+                    let locations = match fact {
+                        NoteFact::RailWithoutLocation { locations } => locations.to_string(),
+                        _ => String::new(),
+                    };
                     out.push(
-                        Finding::new(
-                            &PE_ISLAND,
-                            [Target::new(Kind::Device, id)],
-                            "",
-                            tag.clone(),
-                            detail.clone(),
-                        )
-                        .arg("form", "terminal")
-                        .arg("detail", detail.clone())
-                        .arg("terminal", tag)
-                        .arg("locations", locations),
+                        Finding::new(&PE_ISLAND, [Target::new(Kind::Device, id)], "", tag.clone())
+                            .arg("form", "terminal")
+                            .arg("detail", detail.clone())
+                            .arg("terminal", tag)
+                            .arg("locations", locations),
                     );
                 }
             }
@@ -1688,13 +1630,12 @@ fn pe_islands(q: &Q) -> Vec<Finding> {
                 .into_iter()
                 .chain(pt.key.iter().copied())
                 .collect();
-            out.push(worded(
+            out.push(
                 Finding::new(
                     &PE_ISLAND,
                     key.iter().copied().chain(pt.targets.iter().copied()),
                     format!("island{}", pt.suffix),
                     at.clone(),
-                    String::new(),
                 )
                 .arg("form", "island")
                 .arg("at", at)
@@ -1702,7 +1643,7 @@ fn pe_islands(q: &Q) -> Vec<Finding> {
                 .arg("location", if node.is_some() { "node" } else { "main" })
                 .arg("node", text.clone())
                 .keyed_on(&key),
-            ));
+            );
         }
     }
     out
@@ -1730,6 +1671,7 @@ fn first_point(q: &Q, partition: &ew_derive::Partition, p: PotentialId) -> Optio
 /// EW-POT-009 "Unconnected CP" (doc 15 §4.3): completeness, o r, warning (unused: info), page.
 pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
     id: "EW-POT-009",
+    message: key!("rule-ew-pot-009"),
     code: "005009",
     title: "Unconnected CP",
     kind: RuleKind::Completeness,
@@ -1791,8 +1733,7 @@ fn unjoined_marks(q: &Q, page: Id<Page>) -> Vec<(String, CpRef, (i64, i64))> {
 fn join_mark(pin: CpRef, mark: CpRef, page: Id<Page>) -> QuickFix {
     let end = |c: CpRef| serde_json::json!({ "cp": { "function": c.function.to_string(), "idx": c.idx } });
     QuickFix {
-        label: "Join the pin and the mark".to_owned(),
-        key: Some("fix-join-mark"),
+        label: text!("fix-join-mark"),
         command: "connection.draw".to_owned(),
         params: serde_json::json!({
             "a": end(pin),
@@ -1859,7 +1800,7 @@ impl Rule for UnconnectedCp {
                     continue;
                 }
                 let label = cp_label(q, CpRef::new(f, c.idx));
-                let pin = PinWords::of(q, CpRef::new(f, c.idx), &label);
+                let pin = PinWords::of(q, CpRef::new(f, c.idx));
                 // A mark of a potential standing right beside the pin without joining it (not for a pin marked not
                 // used, which stays free on purpose).
                 let beside = cp_point(q, f, c.idx, page).filter(|_| !c.unused).and_then(|at| {
@@ -1876,18 +1817,6 @@ impl Rule for UnconnectedCp {
                         [Target::new(Kind::Function, f)],
                         c.idx.to_string(),
                         label.clone(),
-                        match (c.unused, beside) {
-                            (true, _) => format!("{} has no wire (marked not used)", pin.sentence),
-                            (false, Some(m)) => format!(
-                                "{} has no wire, and the mark {} stands right beside it without joining it. Join \
-                                 the two with the quick fix, or draw a wire to it.",
-                                pin.sentence, m.0
-                            ),
-                            (false, None) => format!(
-                                "{} has no wire. Draw one to it, or right-click it and choose Mark not used.",
-                                pin.sentence
-                            ),
-                        },
                     ))
                     .arg("cp", label)
                     .arg("unused", if c.unused { "yes" } else { "no" })
@@ -1931,8 +1860,7 @@ fn mark_unused(function: &Function, idx: u16) -> Option<QuickFix> {
         }
     }
     Some(QuickFix {
-        label: "Mark not used".to_owned(),
-        key: Some("fix-mark-cp-unused"),
+        label: text!("fix-mark-cp-unused"),
         command: "fields.set".to_owned(),
         params: serde_json::json!({
             "kind": "function",
@@ -1965,6 +1893,7 @@ fn idle_channel_pin(q: &Q, function: Id<Function>, idx: u16) -> bool {
 /// EW-POT-011 "Junction feed ambiguous" (doc 15 §4.3): conflict, o, warning, potential.
 pub const JUNCTION_FEED_AMBIGUOUS: RuleMeta = RuleMeta {
     id: "EW-POT-011",
+    message: key!("rule-ew-pot-011"),
     code: "005011",
     title: "Junction feed ambiguous",
     kind: RuleKind::Conflict,
@@ -1998,6 +1927,7 @@ impl Rule for JunctionFeedAmbiguous {
 /// EW-POT-012 "Wires in a ring" (doc 15 §4.3): hygiene, o, warning, potential.
 pub const RING_IN_DRAWING_GRAPH: RuleMeta = RuleMeta {
     id: "EW-POT-012",
+    message: key!("rule-ew-pot-012"),
     code: "005012",
     title: "Wires in a ring",
     kind: RuleKind::Hygiene,
@@ -2033,6 +1963,7 @@ impl Rule for RingInDrawingGraph {
 /// EW-POT-013 "N switching" (doc 15 §4.3): safety, o r, error, potential.
 pub const N_SWITCHING: RuleMeta = RuleMeta {
     id: "EW-POT-013",
+    message: key!("rule-ew-pot-013"),
     code: "005013",
     title: "N switching",
     kind: RuleKind::Safety,
@@ -2191,20 +2122,19 @@ impl Rule for NSwitching {
                 let (up, down) = (potential_name(q, pair.up), potential_name(q, pair.down));
                 let discriminator = format!("pair:{}-{}", pair.up_idx, pair.down_idx);
                 if isolating {
-                    out.push(worded(
+                    out.push(
                         Finding::new(
                             &N_SWITCHING,
                             [Target::new(Kind::Function, f)],
                             discriminator,
                             name.clone(),
-                            String::new(),
                         )
                         .arg("form", "isolating")
                         .arg("device", name.clone())
                         .arg("from", up.clone())
                         .arg("to", down.clone())
                         .with_severity(Severity::Info),
-                    ));
+                    );
                     continue;
                 }
                 let loads = stranded_loads(q, pair.down, function.device, &switched);
@@ -2225,7 +2155,6 @@ impl Rule for NSwitching {
                     [Target::new(Kind::Function, f)],
                     discriminator,
                     name.clone(),
-                    String::new(),
                 );
                 // Several stranded loads by their English sentences, and as `load → line` pairs for the other
                 // languages.
@@ -2247,13 +2176,13 @@ impl Rule for NSwitching {
                                 .join("; "),
                         ),
                 };
-                out.push(worded(
+                out.push(
                     finding
                         .arg("form", "switching")
                         .arg("device", name.clone())
                         .arg("from", up.to_string())
                         .arg("to", down.to_string()),
-                ));
+                );
             }
         }
         out
@@ -2319,6 +2248,7 @@ fn stranded_loads(
 /// EW-POT-014 "Physical-wire conflict" (doc 15 §4.3): conflict, o r, error, potential.
 pub const PHYSICAL_WIRE_CONFLICT: RuleMeta = RuleMeta {
     id: "EW-POT-014",
+    message: key!("rule-ew-pot-014"),
     code: "005014",
     title: "Physical-wire conflict",
     kind: RuleKind::Conflict,
@@ -2355,6 +2285,7 @@ impl Rule for PhysicalWireConflict {
 /// EW-POT-015 "Wire-number conflict" (doc 15 §4.3): conflict, o r, error, project.
 pub const WIRE_NUMBER_CONFLICT: RuleMeta = RuleMeta {
     id: "EW-POT-015",
+    message: key!("rule-ew-pot-015"),
     code: "005015",
     title: "Wire-number conflict",
     kind: RuleKind::Conflict,
@@ -2413,17 +2344,14 @@ pub(crate) fn duplicate_numbers(numbers: impl IntoIterator<Item = (String, Id<Co
         .filter(|(_, wires)| wires.len() > 1)
         .map(|(label, wires)| {
             // The arguments of the rule's pattern.
-            worded(
-                Finding::new(
-                    &WIRE_NUMBER_CONFLICT,
-                    wires.iter().map(|w| Target::new(Kind::Connection, *w)),
-                    "",
-                    label.clone(),
-                    String::new(),
-                )
-                .arg("number", label.clone())
-                .arg("count", wires.len().to_string()),
+            Finding::new(
+                &WIRE_NUMBER_CONFLICT,
+                wires.iter().map(|w| Target::new(Kind::Connection, *w)),
+                "",
+                label.clone(),
             )
+            .arg("number", label.clone())
+            .arg("count", wires.len().to_string())
         })
         .collect()
 }
@@ -2434,6 +2362,7 @@ pub(crate) fn duplicate_numbers(numbers: impl IntoIterator<Item = (String, Id<Co
 /// EW-POT-016 "Redundant override" (doc 15 §4.3): hygiene, o, info, potential.
 pub const REDUNDANT_OVERRIDE: RuleMeta = RuleMeta {
     id: "EW-POT-016",
+    message: key!("rule-ew-pot-016"),
     code: "005016",
     title: "Redundant override",
     kind: RuleKind::Hygiene,
@@ -2522,18 +2451,17 @@ impl Rule for RedundantOverride {
             }
             for (member, source, value) in redundant {
                 let at = source.unwrap_or(w.id);
-                out.push(worded(
+                out.push(
                     Finding::new(
                         &REDUNDANT_OVERRIDE,
                         [Target::new(Kind::Connection, at)],
                         member,
                         text.clone(),
-                        String::new(),
                     )
                     .arg("member", member)
                     .arg("value", value)
                     .arg("wire", text.clone()),
-                ));
+                );
             }
         }
         out
@@ -2546,6 +2474,7 @@ impl Rule for RedundantOverride {
 /// EW-POT-017 "Two potential names" (doc 15 §4.3): hygiene, o r, warning, potential.
 pub const TWO_POTENTIAL_NAMES: RuleMeta = RuleMeta {
     id: "EW-POT-017",
+    message: key!("rule-ew-pot-017"),
     code: "005017",
     title: "Two potential names",
     kind: RuleKind::Hygiene,
@@ -2588,17 +2517,11 @@ impl Rule for TwoPotentialNames {
             return Vec::new();
         }
         let pt = potential_targets(q, p);
-        vec![worded(
-            pt.finding(
-                &TWO_POTENTIAL_NAMES,
-                &[],
-                "names".to_owned(),
-                names[0].clone(),
-                String::new(),
-            )
-            .arg("names", names.join(", "))
-            .arg("first", names[0].clone()),
-        )]
+        vec![
+            pt.finding(&TWO_POTENTIAL_NAMES, &[], "names".to_owned(), names[0].clone())
+                .arg("names", names.join(", "))
+                .arg("first", names[0].clone()),
+        ]
     }
 }
 
@@ -2608,6 +2531,7 @@ impl Rule for TwoPotentialNames {
 /// EW-POT-021 "Load not returned" (doc 15 §4.4): completeness, o r, warning, potential.
 pub const LOAD_NOT_RETURNED: RuleMeta = RuleMeta {
     id: "EW-POT-021",
+    message: key!("rule-ew-pot-021"),
     code: "005021",
     title: "Load not returned",
     kind: RuleKind::Completeness,
@@ -2780,18 +2704,13 @@ impl Rule for LoadNotReturned {
                 continue;
             }
             let label = cp_label(q, CpRef::new(f, here));
-            let pin = PinWords::of(q, CpRef::new(f, here), &label);
+            let pin = PinWords::of(q, CpRef::new(f, here));
             out.push(
                 pin.args(Finding::new(
                     &LOAD_NOT_RETURNED,
                     [Target::new(Kind::Function, f)],
                     here.to_string(),
                     label.clone(),
-                    format!(
-                        "{} is on {name}, which reaches no supply: the load is fed but not returned; \
-                         connect it to the return conductor (0 V, N)",
-                        pin.sentence
-                    ),
                 ))
                 .arg("cp", label)
                 .arg("potential", name.clone()),
@@ -2807,6 +2726,7 @@ impl Rule for LoadNotReturned {
 /// EW-POT-022 "Cross-section below its protection" (doc 15 §4.3): safety, o r, warning, potential.
 pub const CSA_BELOW_PROTECTION: RuleMeta = RuleMeta {
     id: "EW-POT-022",
+    message: key!("rule-ew-pot-022"),
     code: "005022",
     title: "Cross-section below its protection",
     kind: RuleKind::Safety,
@@ -2872,23 +2792,19 @@ impl Rule for CsaBelowProtection {
                 serde_json::to_value(&needed).unwrap_or_default()
             };
             out.push(
-                worded(
-                    Finding::new(
-                        &CSA_BELOW_PROTECTION,
-                        [Target::new(Kind::Connection, at)],
-                        "csa",
-                        wire.clone(),
-                        String::new(),
-                    )
-                    .arg("wire", wire)
-                    .arg("size", size_text)
-                    .arg("needed", needed_text)
-                    .arg("current", current.to_string())
-                    .arg("device", tag),
+                Finding::new(
+                    &CSA_BELOW_PROTECTION,
+                    [Target::new(Kind::Connection, at)],
+                    "csa",
+                    wire.clone(),
                 )
+                .arg("wire", wire)
+                .arg("size", size_text)
+                .arg("needed", needed_text)
+                .arg("current", current.to_string())
+                .arg("device", tag)
                 .with_fix(QuickFix {
-                    label: "Take the proposed size".to_owned(),
-                    key: Some("fix-take-proposed-size"),
+                    label: text!("fix-take-proposed-size"),
                     command: "fields.set".to_owned(),
                     params: serde_json::json!({
                         "kind": "connection",
@@ -2950,7 +2866,7 @@ mod tests {
         assert_eq!(f[0].subject, "101.2");
         assert_eq!(f[0].targets.len(), 2);
         assert_eq!(
-            f[0].message,
+            f[0].message(),
             "Wire number 101.2 is printed on 2 wires that are not one conductor"
         );
         // The finding's own arguments word it in Dutch.

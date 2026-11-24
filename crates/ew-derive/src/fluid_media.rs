@@ -87,7 +87,7 @@ fn two(name: &MlText, en: impl Fn(&str) -> String, nl: impl Fn(&str) -> String) 
         let tag = tag.parse().expect("a language tag");
         name.text_for(&tag)
             .map(str::to_owned)
-            .unwrap_or_else(|| crate::neutral(name))
+            .unwrap_or_else(|| name.neutral_or_first().unwrap_or_default().to_owned())
     };
     MlText::from_langs([
         ("en-GB".parse().expect("tag"), en(&in_lang("en-GB"))),

@@ -55,12 +55,12 @@ fn num001_cases() {
                         "case {c}"
                     );
                     assert!(
-                        f[0].message.contains("frozen, deviates from scheme"),
+                        f[0].message().contains("frozen, deviates from scheme"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
-                    assert!(f[0].message.starts_with("S51"), "case {c}: {}", f[0].message);
-                    assert!(f[0].message.contains(&rule), "case {c}: {}", f[0].message);
+                    assert!(f[0].message().starts_with("S51"), "case {c}: {}", f[0].message());
+                    assert!(f[0].message().contains(&rule), "case {c}: {}", f[0].message());
                 },
             ),
             Case::silent("a frozen tag equal to the rule value", equal),

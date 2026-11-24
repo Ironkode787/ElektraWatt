@@ -20,6 +20,7 @@ use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 /// The metadata of `EW-IMP-<n>` with its code `160<n>`.
 const fn imp(
     id: &'static str,
+    message: &'static str,
     code: &'static str,
     title: &'static str,
     kind: RuleKind,
@@ -27,6 +28,7 @@ const fn imp(
 ) -> RuleMeta {
     RuleMeta {
         id,
+        message,
         code,
         title,
         kind,
@@ -47,18 +49,55 @@ use Severity::{Error as E, Info as I, Warning as W};
 pub const IMP: &[RuleMeta] = &[
     imp(
         "EW-IMP-001",
+        key!("rule-ew-imp-001"),
         "160001",
         "Input limit exceeded; item or file refused",
         C,
         E,
     ),
-    imp("EW-IMP-002", "160002", "Malformed or refused item skipped", C, E),
-    imp("EW-IMP-003", "160003", "Unresolvable reference dropped", C, E),
-    imp("EW-IMP-004", "160004", "Content dropped by design", H, I),
-    imp("EW-IMP-005", "160005", "Object inferred, review", C, W),
-    imp("EW-IMP-006", "160006", "Font substituted", H, I),
+    imp(
+        "EW-IMP-002",
+        key!("rule-ew-imp-002"),
+        "160002",
+        "Malformed or refused item skipped",
+        C,
+        E,
+    ),
+    imp(
+        "EW-IMP-003",
+        key!("rule-ew-imp-003"),
+        "160003",
+        "Unresolvable reference dropped",
+        C,
+        E,
+    ),
+    imp(
+        "EW-IMP-004",
+        key!("rule-ew-imp-004"),
+        "160004",
+        "Content dropped by design",
+        H,
+        I,
+    ),
+    imp(
+        "EW-IMP-005",
+        key!("rule-ew-imp-005"),
+        "160005",
+        "Object inferred, review",
+        C,
+        W,
+    ),
+    imp(
+        "EW-IMP-006",
+        key!("rule-ew-imp-006"),
+        "160006",
+        "Font substituted",
+        H,
+        I,
+    ),
     imp(
         "EW-IMP-007",
+        key!("rule-ew-imp-007"),
         "160007",
         "Value mapped through an alias table",
         H,
@@ -66,15 +105,31 @@ pub const IMP: &[RuleMeta] = &[
     ),
     imp(
         "EW-IMP-008",
+        key!("rule-ew-imp-008"),
         "160008",
         "Value kept as foreign or opaque text",
         C,
         W,
     ),
-    imp("EW-IMP-009", "160009", "Print-equivalence deviation", X, W),
-    imp("EW-IMP-010", "160010", "Removed in the source, kept here", X, W),
+    imp(
+        "EW-IMP-009",
+        key!("rule-ew-imp-009"),
+        "160009",
+        "Print-equivalence deviation",
+        X,
+        W,
+    ),
+    imp(
+        "EW-IMP-010",
+        key!("rule-ew-imp-010"),
+        "160010",
+        "Removed in the source, kept here",
+        X,
+        W,
+    ),
     imp(
         "EW-IMP-011",
+        key!("rule-ew-imp-011"),
         "160011",
         "Changed in the source and here, kept here",
         X,
@@ -82,15 +137,31 @@ pub const IMP: &[RuleMeta] = &[
     ),
     imp(
         "EW-IMP-101",
+        key!("rule-ew-imp-101"),
         "160101",
         "Stored label differs from the formula result",
         X,
         W,
     ),
-    imp("EW-IMP-102", "160102", "Structure-code spelling variants", X, W),
-    imp("EW-IMP-103", "160103", "Label kept as a frozen tag", H, I),
+    imp(
+        "EW-IMP-102",
+        key!("rule-ew-imp-102"),
+        "160102",
+        "Structure-code spelling variants",
+        X,
+        W,
+    ),
+    imp(
+        "EW-IMP-103",
+        key!("rule-ew-imp-103"),
+        "160103",
+        "Label kept as a frozen tag",
+        H,
+        I,
+    ),
     imp(
         "EW-IMP-104",
+        key!("rule-ew-imp-104"),
         "160104",
         "Per-folio title-block value conflict",
         X,
@@ -98,6 +169,7 @@ pub const IMP: &[RuleMeta] = &[
     ),
     imp(
         "EW-IMP-105",
+        key!("rule-ew-imp-105"),
         "160105",
         "Per-folio description kept as an override",
         H,
@@ -105,6 +177,7 @@ pub const IMP: &[RuleMeta] = &[
     ),
     imp(
         "EW-IMP-109",
+        key!("rule-ew-imp-109"),
         "160109",
         "Strip segments merged into one strip",
         H,
@@ -112,46 +185,121 @@ pub const IMP: &[RuleMeta] = &[
     ),
     imp(
         "EW-IMP-114",
+        key!("rule-ew-imp-114"),
         "160114",
         "Imported text styles not bound to slot kinds",
         H,
         I,
     ),
-    imp("EW-IMP-115", "160115", "Folio-report pair names differ", X, W),
+    imp(
+        "EW-IMP-115",
+        key!("rule-ew-imp-115"),
+        "160115",
+        "Folio-report pair names differ",
+        X,
+        W,
+    ),
     imp(
         "EW-IMP-116",
+        key!("rule-ew-imp-116"),
         "160116",
         "Slave without master, or master above its slaves",
         C,
         W,
     ),
-    imp("EW-IMP-117", "160117", "Default folio-index formula", H, I),
-    imp("EW-IMP-118", "160118", "Junction wiring assumed", H, I),
-    imp("EW-IMP-119", "160119", "Element without function semantics", C, W),
-    imp("EW-IMP-120", "160120", "Shared element UUID disambiguated", H, I),
+    imp(
+        "EW-IMP-117",
+        key!("rule-ew-imp-117"),
+        "160117",
+        "Default folio-index formula",
+        H,
+        I,
+    ),
+    imp(
+        "EW-IMP-118",
+        key!("rule-ew-imp-118"),
+        "160118",
+        "Junction wiring assumed",
+        H,
+        I,
+    ),
+    imp(
+        "EW-IMP-119",
+        key!("rule-ew-imp-119"),
+        "160119",
+        "Element without function semantics",
+        C,
+        W,
+    ),
+    imp(
+        "EW-IMP-120",
+        key!("rule-ew-imp-120"),
+        "160120",
+        "Shared element UUID disambiguated",
+        H,
+        I,
+    ),
     imp(
         "EW-IMP-122",
+        key!("rule-ew-imp-122"),
         "160122",
         "Unlabelled element, tag synthesised",
         C,
         I,
     ),
     // The EPLAN report spreadsheets (WP-S3.18, doc 14 §5.4).
-    imp("EW-IMP-206", "160206", "Report column not mapped", C, W),
-    imp("EW-IMP-207", "160207", "Multi-level terminals folded", H, I),
+    imp(
+        "EW-IMP-206",
+        key!("rule-ew-imp-206"),
+        "160206",
+        "Report column not mapped",
+        C,
+        W,
+    ),
+    imp(
+        "EW-IMP-207",
+        key!("rule-ew-imp-207"),
+        "160207",
+        "Multi-level terminals folded",
+        H,
+        I,
+    ),
     // The DXF and DWG imports (WP-S3.19, doc 14 §6). EW-IMP-256 is the symbol wizard's, in a draft's details only.
     imp(
         "EW-IMP-251",
+        key!("rule-ew-imp-251"),
         "160251",
         "Drawing without a unit, read in the chosen unit",
         C,
         W,
     ),
-    imp("EW-IMP-252", "160252", "SHX font drawn in a bundled font", H, W),
-    imp("EW-IMP-253", "160253", "Drawing entity not imported", C, I),
-    imp("EW-IMP-254", "160254", "External file not opened", C, I),
+    imp(
+        "EW-IMP-252",
+        key!("rule-ew-imp-252"),
+        "160252",
+        "SHX font drawn in a bundled font",
+        H,
+        W,
+    ),
+    imp(
+        "EW-IMP-253",
+        key!("rule-ew-imp-253"),
+        "160253",
+        "Drawing entity not imported",
+        C,
+        I,
+    ),
+    imp(
+        "EW-IMP-254",
+        key!("rule-ew-imp-254"),
+        "160254",
+        "External file not opened",
+        C,
+        I,
+    ),
     imp(
         "EW-IMP-255",
+        key!("rule-ew-imp-255"),
         "160255",
         "Hatch pattern reduced to its outline",
         C,
@@ -159,6 +307,7 @@ pub const IMP: &[RuleMeta] = &[
     ),
     imp(
         "EW-IMP-257",
+        key!("rule-ew-imp-257"),
         "160257",
         "DWG converted by the ODA File Converter",
         H,
@@ -243,13 +392,12 @@ impl Rule for ImportEntries {
                     targets,
                     format!("{}#{i}", run.id),
                     place(e.location.as_ref()),
-                    e.message.clone(),
                 )
+                .written(e.message.clone())
                 .with_severity(severity);
                 if let Some(fix) = &e.fix {
                     f = f.with_fix(QuickFix {
-                        label: fix.label.clone(),
-                        key: None,
+                        label: text!("words-as-written", fix.label.clone()),
                         command: fix.command.clone(),
                         params: fix.params.clone(),
                     });
@@ -279,8 +427,7 @@ fn remedy(q: &Q, rule: &str, targets: &[Target]) -> Option<QuickFix> {
         .map(|t| t.id.to_string())
         .collect();
     (!ids.is_empty()).then(|| QuickFix {
-        label: "Unfreeze the tag".to_owned(),
-        key: Some("fix-unfreeze-tag"),
+        label: text!("fix-unfreeze-tag"),
         command: "fields.set".to_owned(),
         params: serde_json::json!({
             "kind": "device",
@@ -346,28 +493,14 @@ mod tests {
     fn an_entry_and_its_live_finding_on_the_same_records_make_one_row() {
         let page = |n: u128| Target::new(Kind::Page, Id::<()>::from_uuid(Uuid::from_u128(n)));
         let fix = QuickFix {
-            label: "apply style".into(),
-            key: None,
+            label: text!("words-as-written", "apply style"),
             command: "fields.set".into(),
             params: serde_json::json!({}),
         };
         let findings = vec![
-            Finding::new(
-                meta("EW-IMP-114"),
-                [page(1)],
-                "r#0",
-                "folio 1",
-                "styles not bound",
-            )
-            .with_fix(fix.clone()),
-            Finding::new(
-                meta("EW-IMP-114"),
-                [page(2)],
-                "r#1",
-                "folio 2",
-                "styles not bound",
-            ),
-            Finding::new(&UNSTYLED_TEXT_SIZE, [page(1)], "", "folio 1", "unstyled text"),
+            Finding::new(meta("EW-IMP-114"), [page(1)], "r#0", "folio 1").with_fix(fix.clone()),
+            Finding::new(meta("EW-IMP-114"), [page(2)], "r#1", "folio 2"),
+            Finding::new(&UNSTYLED_TEXT_SIZE, [page(1)], "", "folio 1"),
         ];
         let rows = fold(findings);
         let rules: Vec<(&str, Option<&str>)> = rows.iter().map(|f| (f.rule, f.origin)).collect();

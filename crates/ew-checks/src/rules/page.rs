@@ -47,6 +47,7 @@ fn sort_printed<T: Ord>(rows: &mut [(String, T)]) {
 /// EW-CORE-021 "Folio outside its section" (doc 15 §4.2): conflict, o r, error, page.
 pub const FOLIO_OUTSIDE_SECTION: RuleMeta = RuleMeta {
     id: "EW-CORE-021",
+    message: key!("rule-ew-core-021"),
     code: "101021",
     title: "Folio outside its section",
     kind: RuleKind::Conflict,
@@ -97,11 +98,6 @@ impl Rule for FolioOutsideSection {
                 ],
                 "range",
                 format!("folio {folio}"),
-                format!(
-                    "folio {folio} lies outside the folio range {lo}–{hi} of section {}; renumber the page or move it \
-                     to the section whose range holds {n}",
-                    section.number
-                ),
             )
             .arg("page", folio.to_string())
             .arg("from", lo.to_string())
@@ -119,6 +115,7 @@ impl Rule for FolioOutsideSection {
 /// EW-CORE-022 "Folio collision" (doc 15 §4.2): conflict, o p r, error, project.
 pub const FOLIO_COLLISION: RuleMeta = RuleMeta {
     id: "EW-CORE-022",
+    message: key!("rule-ew-core-022"),
     code: "101022",
     title: "Folio collision",
     kind: RuleKind::Conflict,
@@ -180,11 +177,6 @@ fn collision_finding(label: &str, pages: &[(Target, Origin)]) -> Finding {
         pages.iter().map(|(t, _)| *t),
         "folio",
         format!("folio {label}"),
-        format!(
-            "folio {label} is printed by {} pages ({}); give each page its own folio",
-            pages.len(),
-            kinds.join(", ")
-        ),
     )
     .arg("page", label)
     .arg("count", pages.len().to_string())
@@ -251,6 +243,7 @@ impl Rule for FolioCollision {
 /// EW-CORE-025 "TOC fixpoint not reached" (doc 15 §4.2): hygiene, o r, warning, project.
 pub const TOC_FIXPOINT: RuleMeta = RuleMeta {
     id: "EW-CORE-025",
+    message: key!("rule-ew-core-025"),
     code: "101025",
     title: "TOC fixpoint not reached",
     kind: RuleKind::Hygiene,
@@ -288,18 +281,15 @@ impl Rule for TocFixpoint {
             .filter(|(_, b)| matches!(b.source, ReportSource::Kind(ReportKind::Toc)))
             .map(|(id, _)| id)
             .collect();
-        vec![Finding::new(
-            &TOC_FIXPOINT,
-            blocks.iter().map(|b| Target::new(Kind::ReportBlock, *b)),
-            "toc",
-            "table of contents",
-            format!(
-                "the table of contents did not settle its page count; it uses {} pages and its last page lists every \
-                 remaining row",
-                order.toc_pages
-            ),
-        )
-        .arg("pages", order.toc_pages.to_string())]
+        vec![
+            Finding::new(
+                &TOC_FIXPOINT,
+                blocks.iter().map(|b| Target::new(Kind::ReportBlock, *b)),
+                "toc",
+                "table of contents",
+            )
+            .arg("pages", order.toc_pages.to_string()),
+        ]
     }
 }
 
@@ -309,6 +299,7 @@ impl Rule for TocFixpoint {
 /// EW-CORE-026 "Report coverage gap" (doc 15 §4.2): completeness, o r, info/warning, project.
 pub const REPORT_COVERAGE_GAP: RuleMeta = RuleMeta {
     id: "EW-CORE-026",
+    message: key!("rule-ew-core-026"),
     code: "101026",
     title: "Report coverage gap",
     kind: RuleKind::Completeness,
@@ -350,12 +341,12 @@ impl Family {
         }
     }
 
-    /// The entity, the block kind and the discriminator, as printed.
-    fn words(self) -> (&'static str, &'static str, &'static str) {
+    /// The discriminator: the report kind of the family.
+    fn discriminator(self) -> &'static str {
         match self {
-            Family::Strip => ("strip", "terminal diagram", "terminal_diagram"),
-            Family::Cable => ("cable", "cable overview and diagrams", "cable_overview_diagrams"),
-            Family::Station => ("PLC station", "PLC overview", "plc_overview"),
+            Family::Strip => "terminal_diagram",
+            Family::Cable => "cable_overview_diagrams",
+            Family::Station => "plc_overview",
         }
     }
 }
@@ -422,13 +413,12 @@ impl Rule for ReportCoverageGap {
         });
         rows.into_iter()
             .map(|(tag, (family, m))| {
-                let (entity, block, disc) = family.words();
+                let disc = family.discriminator();
                 Finding::new(
                     &REPORT_COVERAGE_GAP,
                     [Target::new(Kind::Device, m)],
                     disc,
                     tag.clone(),
-                    format!("{entity} {tag} is in no {block}: no report block of that kind covers it; add one or include it"),
                 )
                 .arg("family", disc)
                 .arg("device", tag)
@@ -448,6 +438,7 @@ fn is_style(table: &[EffectiveStyle], key: &str) -> bool {
 /// EW-CORE-061 "Text below minimum height" (doc 15 §4.2): hygiene, o r, warning, project.
 pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
     id: "EW-CORE-061",
+    message: key!("rule-ew-core-061"),
     code: "104061",
     title: "Text below minimum height",
     kind: RuleKind::Hygiene,
@@ -514,25 +505,15 @@ impl Rule for TextBelowMinimum {
                         value.remove(key);
                     }
                 }
-                Finding::new(
-                    &TEXT_BELOW_MINIMUM,
-                    [],
-                    key,
-                    &name,
-                    format!(
-                        "{name} prints {height} mm high, too small to read on paper ({minimum} mm at least). \
-                         Make it larger in Text styles."
-                    ),
-                )
-                .arg("name", name.clone())
-                .arg("height", height)
-                .arg("minimum", minimum)
-                .with_fix(QuickFix {
-                    label: "Set to 1.2 mm".to_owned(),
-                    key: Some("fix-text-style-minimum"),
-                    command: "project.settings.set".to_owned(),
-                    params: serde_json::json!({ "member": "text_styles", "value": value }),
-                })
+                Finding::new(&TEXT_BELOW_MINIMUM, [], key, &name)
+                    .arg("name", name.clone())
+                    .arg("height", height)
+                    .arg("minimum", minimum)
+                    .with_fix(QuickFix {
+                        label: text!("fix-text-style-minimum"),
+                        command: "project.settings.set".to_owned(),
+                        params: serde_json::json!({ "member": "text_styles", "value": value }),
+                    })
             })
             .collect()
     }
@@ -642,6 +623,7 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
 /// EW-CORE-063 "Unstyled text size" (doc 15 §4.2): hygiene, o, info, page.
 pub const UNSTYLED_TEXT_SIZE: RuleMeta = RuleMeta {
     id: "EW-CORE-063",
+    message: key!("rule-ew-core-063"),
     code: "104063",
     title: "Unstyled text size",
     kind: RuleKind::Hygiene,
@@ -694,7 +676,6 @@ impl Rule for UnstyledTextSize {
                     [Target::new(Kind::PageItem, id)],
                     "style",
                     format!("folio {folio}: {style}"),
-                    format!("a text on folio {folio} has the size {style}, which no text style binds; give it a text style"),
                 )
                 .arg("page", folio.to_string())
                 .arg("style", style)
@@ -710,6 +691,7 @@ impl Rule for UnstyledTextSize {
 /// EW-CORE-071 "Graphic line on a CP" (doc 15 §4.2): hygiene, o, info, page.
 pub const GRAPHIC_LINE_ON_CP: RuleMeta = RuleMeta {
     id: "EW-CORE-071",
+    message: key!("rule-ew-core-071"),
     code: "104071",
     title: "Graphic line on a CP",
     kind: RuleKind::Hygiene,
@@ -804,9 +786,6 @@ impl Rule for GraphicLineOnCp {
                     ],
                     "line",
                     label.clone(),
-                    format!(
-                        "a graphic line ends on {label}, which joins nothing electrically; draw a connection instead"
-                    ),
                 )
                 .arg("cp", label)
                 .on_page(page)
@@ -821,6 +800,7 @@ impl Rule for GraphicLineOnCp {
 /// The metadata of a layout rule: pack EW-CORE, scope page, release MVP, modes `o r`.
 const fn layout_rule(
     id: &'static str,
+    message: &'static str,
     code: &'static str,
     title: &'static str,
     kind: RuleKind,
@@ -829,6 +809,7 @@ const fn layout_rule(
 ) -> RuleMeta {
     RuleMeta {
         id,
+        message,
         code,
         title,
         kind,
@@ -844,6 +825,7 @@ const fn layout_rule(
 /// EW-CORE-067 "Wire through a connection point": conflict, o r, warning (release error), page.
 pub const WIRE_THROUGH_CP: RuleMeta = layout_rule(
     "EW-CORE-067",
+    key!("rule-ew-core-067"),
     "104067",
     "Wire through a connection point",
     RuleKind::Conflict,
@@ -854,6 +836,7 @@ pub const WIRE_THROUGH_CP: RuleMeta = layout_rule(
 /// EW-CORE-068 "Wire along another wire": conflict, o r, warning (release error), page.
 pub const WIRE_ALONG_WIRE: RuleMeta = layout_rule(
     "EW-CORE-068",
+    key!("rule-ew-core-068"),
     "104068",
     "Wire along another wire",
     RuleKind::Conflict,
@@ -864,6 +847,7 @@ pub const WIRE_ALONG_WIRE: RuleMeta = layout_rule(
 /// EW-CORE-069 "Wire through a symbol": hygiene, o r, warning, page.
 pub const WIRE_THROUGH_SYMBOL: RuleMeta = layout_rule(
     "EW-CORE-069",
+    key!("rule-ew-core-069"),
     "104069",
     "Wire through a symbol",
     RuleKind::Hygiene,
@@ -874,6 +858,7 @@ pub const WIRE_THROUGH_SYMBOL: RuleMeta = layout_rule(
 /// EW-CORE-070 "Wire through a text": hygiene, o r, warning, page.
 pub const WIRE_THROUGH_TEXT: RuleMeta = layout_rule(
     "EW-CORE-070",
+    key!("rule-ew-core-070"),
     "104070",
     "Wire through a text",
     RuleKind::Hygiene,
@@ -884,6 +869,7 @@ pub const WIRE_THROUGH_TEXT: RuleMeta = layout_rule(
 /// EW-CORE-072 "Four-way junction": hygiene, o r, warning, page.
 pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
     "EW-CORE-072",
+    key!("rule-ew-core-072"),
     "104072",
     "Four-way junction",
     RuleKind::Hygiene,
@@ -894,6 +880,7 @@ pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
 /// EW-CORE-073 "Unrouted wire" (D3): completeness, o r, info (release error), page.
 pub const UNROUTED_WIRE: RuleMeta = layout_rule(
     "EW-CORE-073",
+    key!("rule-ew-core-073"),
     "104073",
     "Unrouted wire",
     RuleKind::Completeness,
@@ -941,11 +928,6 @@ impl LayoutWire<'_> {
     fn line(self) -> &'static str {
         if self.tube { "tube" } else { "wire" }
     }
-
-    /// The English noun that starts a message: `Tube` or `Wire`.
-    fn noun(self) -> &'static str {
-        if self.tube { "Tube" } else { "Wire" }
-    }
 }
 
 /// The point a wire runs through without joining it (EW-CORE-067).
@@ -972,12 +954,11 @@ pub enum PassedPoint<'a> {
 /// EW-CORE-067: `wire` crosses `point` without joining it (measure (a)). Targets the wire and the point's
 /// function or junction; discriminator the CP index (`cp 2`) or `junction`.
 pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<'_>) -> Finding {
-    let (target, discriminator, kind, pin, named) = match point {
+    let (target, discriminator, kind, pin) = match point {
         PassedPoint::Cp { function, idx, label } => (
             Target::new(Kind::Function, function),
             format!("cp {idx}"),
             "cp",
-            label.to_owned(),
             label.to_owned(),
         ),
         PassedPoint::Junction { id, cell: "" } => (
@@ -985,14 +966,12 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
             "junction".to_owned(),
             "junction-off-grid",
             String::new(),
-            "a junction".to_owned(),
         ),
         PassedPoint::Junction { id, cell } => (
             Target::new(Kind::Junction, id),
             "junction".to_owned(),
             "junction",
             cell.to_owned(),
-            format!("the junction in {cell}"),
         ),
     };
     Finding::new(
@@ -1000,12 +979,6 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
         [wire.target(), target],
         discriminator,
         wire.words,
-        format!(
-            "{} {} crosses {named} without joining it, so on paper it looks connected. Route it again so that it passes \
-             beside.",
-            wire.noun(),
-            wire.words
-        ),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1016,23 +989,12 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
 
 /// EW-CORE-068: `wire` runs along `other` on the page labelled `folio` (measure (b)). Targets both wires.
 pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other: LayoutWire<'_>) -> Finding {
-    Finding::new(
-        &WIRE_ALONG_WIRE,
-        [wire.target(), other.target()],
-        "",
-        wire.words,
-        format!(
-            "{} {} lies on top of {} on page {folio}, so on paper the two cannot be told apart. Route one of them again.",
-            wire.noun(),
-            wire.words,
-            other.words
-        ),
-    )
-    .on_page(page)
-    .arg("line", wire.line())
-    .arg("wire", wire.words)
-    .arg("other", other.words)
-    .arg("page", folio)
+    Finding::new(&WIRE_ALONG_WIRE, [wire.target(), other.target()], "", wire.words)
+        .on_page(page)
+        .arg("line", wire.line())
+        .arg("wire", wire.words)
+        .arg("other", other.words)
+        .arg("page", folio)
 }
 
 /// A representation as a layout rule names it (EW-CORE-069, -070): a device by its tag, an interruption point by its
@@ -1053,14 +1015,6 @@ impl<'a> SymbolName<'a> {
             SymbolName::Ip(n) => ("ip", n),
         }
     }
-
-    /// The name in English.
-    fn english(self) -> String {
-        match self {
-            SymbolName::Device(d) => d.to_owned(),
-            SymbolName::Ip(n) => format!("interruption point {n}"),
-        }
-    }
 }
 
 /// EW-CORE-069: `wire` runs through the body of the representation `rep`, named by `symbol` (measure (c)). Targets the
@@ -1077,12 +1031,6 @@ pub fn wire_through_symbol(
         [wire.target(), Target::new(Kind::Representation, rep)],
         "",
         wire.words,
-        format!(
-            "{} {} runs through {}.",
-            wire.noun(),
-            wire.words,
-            symbol.english()
-        ),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1127,44 +1075,29 @@ pub enum TextOwner<'a> {
 /// text and a structure box's caption have their own wording ("the free text …", "the caption … of a structure box"),
 /// so that no English word enters another language's message.
 pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<'_>, text: &str) -> Finding {
-    let (target, kind, device, named) = owned_text(owner, text);
-    Finding::new(
-        &WIRE_THROUGH_TEXT,
-        [wire.target(), target],
-        "",
-        wire.words,
-        format!("{} {} runs through {named}.", wire.noun(), wire.words),
-    )
-    .on_page(page)
-    .arg("line", wire.line())
-    .arg("wire", wire.words)
-    .arg("owner", kind)
-    .arg("text", text)
-    .arg("device", device)
+    let (target, kind, device) = owned_text(owner);
+    Finding::new(&WIRE_THROUGH_TEXT, [wire.target(), target], "", wire.words)
+        .on_page(page)
+        .arg("line", wire.line())
+        .arg("wire", wire.words)
+        .arg("owner", kind)
+        .arg("text", text)
+        .arg("device", device)
 }
 
 /// EW-CORE-072: the junction `junction` in the frame cell `cell` joins four wires (measure (g)); on a page without a
 /// frame grid (`cell` empty) the junction is named by the folio `folio`. Targets the junction.
 pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, cell: &str) -> Finding {
-    let (place, subject, message) = if cell.is_empty() {
-        (
-            "off-grid",
-            format!("folio {folio}"),
-            format!("A junction on folio {folio} joins four wires: draw two T junctions instead."),
-        )
+    let (place, subject) = if cell.is_empty() {
+        ("off-grid", format!("folio {folio}"))
     } else {
-        (
-            "cell",
-            cell.to_owned(),
-            format!("The junction at {cell} joins four wires: draw two T junctions instead."),
-        )
+        ("cell", cell.to_owned())
     };
     Finding::new(
         &FOUR_WAY_JUNCTION,
         [Target::new(Kind::Junction, junction)],
         "",
         subject,
-        message,
     )
     .on_page(page)
     .arg("place", place)
@@ -1174,25 +1107,16 @@ pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, ce
 
 /// EW-CORE-073: `wire`, a page connection between two different points, has no route. Targets the wire.
 pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
-    Finding::new(
-        &UNROUTED_WIRE,
-        [wire.target()],
-        "",
-        wire.words,
-        format!(
-            "{} {} has no route: it is drawn as a dashed line.",
-            wire.noun(),
-            wire.words
-        ),
-    )
-    .on_page(page)
-    .arg("line", wire.line())
-    .arg("wire", wire.words)
+    Finding::new(&UNROUTED_WIRE, [wire.target()], "", wire.words)
+        .on_page(page)
+        .arg("line", wire.line())
+        .arg("wire", wire.words)
 }
 
 /// EW-CORE-074 "Wires meet without joining" (docs/design/06a-drafting.md §1.2, F6): conflict, o r, warning, page.
 pub const WIRES_MEET: RuleMeta = layout_rule(
     "EW-CORE-074",
+    key!("rule-ew-core-074"),
     "104074",
     "Wires meet without joining",
     RuleKind::Conflict,
@@ -1203,6 +1127,7 @@ pub const WIRES_MEET: RuleMeta = layout_rule(
 /// EW-CORE-075 "Text on a text" (docs/design/06a-drafting.md §1.2, C5): hygiene, o r, warning, page.
 pub const TEXT_ON_TEXT: RuleMeta = layout_rule(
     "EW-CORE-075",
+    key!("rule-ew-core-075"),
     "104075",
     "Text on a text",
     RuleKind::Hygiene,
@@ -1213,6 +1138,7 @@ pub const TEXT_ON_TEXT: RuleMeta = layout_rule(
 /// EW-CORE-076 "Text on a symbol" (docs/design/06a-drafting.md §1.2, C5: a text on a part): hygiene, o r, warning, page.
 pub const TEXT_ON_PART: RuleMeta = layout_rule(
     "EW-CORE-076",
+    key!("rule-ew-core-076"),
     "104076",
     "Text on a symbol",
     RuleKind::Hygiene,
@@ -1223,6 +1149,7 @@ pub const TEXT_ON_PART: RuleMeta = layout_rule(
 /// EW-CORE-077 "Symbol on a symbol" (docs/design/06a-drafting.md §1.2, F7: a part on a part): conflict, o r, warning, page.
 pub const PART_ON_PART: RuleMeta = layout_rule(
     "EW-CORE-077",
+    key!("rule-ew-core-077"),
     "104077",
     "Symbol on a symbol",
     RuleKind::Conflict,
@@ -1230,14 +1157,10 @@ pub const PART_ON_PART: RuleMeta = layout_rule(
     None,
 );
 
-/// The frame cell a finding names, or the folio where the point is off the frame grid: the `place` argument's word
-/// (`cell`, `off-grid`) and the English words (`at C4`, `on folio 101`).
-fn place_words(folio: &str, cell: &str) -> (&'static str, String) {
-    if cell.is_empty() {
-        ("off-grid", format!("on folio {folio}"))
-    } else {
-        ("cell", format!("at {cell}"))
-    }
+/// Whether a finding names the frame cell or, where the point is off the frame grid, the folio: the `place` argument's
+/// word (`cell`, `off-grid`).
+fn place_word(cell: &str) -> &'static str {
+    if cell.is_empty() { "off-grid" } else { "cell" }
 }
 
 /// EW-CORE-074: the corners of `wire` and `other` meet at one point, in the frame cell `cell` of the page labelled
@@ -1249,68 +1172,34 @@ pub fn wires_meet(
     other: LayoutWire<'_>,
     cell: &str,
 ) -> Finding {
-    let (place, at) = place_words(folio, cell);
-    Finding::new(
-        &WIRES_MEET,
-        [wire.target(), other.target()],
-        cell,
-        wire.words,
-        format!(
-            "{} {} and {} turn on one point {at} without a junction, so on paper they look joined. Route one of \
-             them again.",
-            wire.noun(),
-            wire.words,
-            other.words
-        ),
-    )
-    .on_page(page)
-    .arg("line", wire.line())
-    .arg("wire", wire.words)
-    .arg("other", other.words)
-    .arg("place", place)
-    .arg("cell", cell)
-    .arg("page", folio)
+    let place = place_word(cell);
+    Finding::new(&WIRES_MEET, [wire.target(), other.target()], cell, wire.words)
+        .on_page(page)
+        .arg("line", wire.line())
+        .arg("wire", wire.words)
+        .arg("other", other.words)
+        .arg("place", place)
+        .arg("cell", cell)
+        .arg("page", folio)
 }
 
-/// The target of a text's owner and the English words that name the text.
-fn owned_text(owner: TextOwner<'_>, text: &str) -> (Target, &'static str, String, String) {
+/// The target of a text's owner, the `owner` argument's word and the owner's name.
+fn owned_text(owner: TextOwner<'_>) -> (Target, &'static str, String) {
     match owner {
         TextOwner::Symbol { rep, device } => (
             Target::new(Kind::Representation, rep),
             "symbol",
             device.to_owned(),
-            format!("the text \"{text}\" of {device}"),
         ),
-        TextOwner::Ip { rep, name } => (
-            Target::new(Kind::Representation, rep),
-            "ip",
-            name.to_owned(),
-            format!("the text \"{text}\" of interruption point {name}"),
-        ),
-        TextOwner::FreeText(id) => (
-            Target::new(Kind::PageItem, id),
-            "free-text",
-            String::new(),
-            format!("the free text \"{text}\""),
-        ),
+        TextOwner::Ip { rep, name } => (Target::new(Kind::Representation, rep), "ip", name.to_owned()),
+        TextOwner::FreeText(id) => (Target::new(Kind::PageItem, id), "free-text", String::new()),
         TextOwner::StructureBox(id) => (
             Target::new(Kind::StructureBox, id),
             "structure-box",
             String::new(),
-            format!("the caption \"{text}\" of a structure box"),
         ),
-        TextOwner::Wire { id, words } => (
-            Target::new(Kind::Connection, id),
-            "wire",
-            words.to_owned(),
-            format!("the number \"{text}\" of {words}"),
-        ),
-        TextOwner::Mark(id) => (
-            Target::new(Kind::PageItem, id),
-            "mark",
-            String::new(),
-            format!("the cable mark \"{text}\""),
-        ),
+        TextOwner::Wire { id, words } => (Target::new(Kind::Connection, id), "wire", words.to_owned()),
+        TextOwner::Mark(id) => (Target::new(Kind::PageItem, id), "mark", String::new()),
     }
 }
 
@@ -1324,26 +1213,17 @@ pub fn text_on_text(
     other: &str,
     cell: &str,
 ) -> Finding {
-    let (target, kind, device, named) = owned_text(owner, text);
-    let (place, at) = place_words(folio, cell);
-    Finding::new(
-        &TEXT_ON_TEXT,
-        [target],
-        format!("{text}\u{1f}{other}"),
-        text,
-        format!(
-            "{} lies on the text \"{other}\" {at}, so neither can be read. Move one of them.",
-            capitalised(&named)
-        ),
-    )
-    .on_page(page)
-    .arg("owner", kind)
-    .arg("text", text)
-    .arg("device", device)
-    .arg("other", other)
-    .arg("place", place)
-    .arg("cell", cell)
-    .arg("page", folio)
+    let (target, kind, device) = owned_text(owner);
+    let place = place_word(cell);
+    Finding::new(&TEXT_ON_TEXT, [target], format!("{text}\u{1f}{other}"), text)
+        .on_page(page)
+        .arg("owner", kind)
+        .arg("text", text)
+        .arg("device", device)
+        .arg("other", other)
+        .arg("place", place)
+        .arg("cell", cell)
+        .arg("page", folio)
 }
 
 /// EW-CORE-076: the text `text` of `owner` lies on the body of the representation `rep`, named by `symbol` (measure
@@ -1356,19 +1236,14 @@ pub fn text_on_part(
     (rep, symbol): (Id<Representation>, SymbolName<'_>),
     cell: &str,
 ) -> Finding {
-    let (target, kind, device, named) = owned_text(owner, text);
-    let (place, at) = place_words(folio, cell);
+    let (target, kind, device) = owned_text(owner);
+    let place = place_word(cell);
     let (part_kind, part) = symbol.parts();
     Finding::new(
         &TEXT_ON_PART,
         [target, Target::new(Kind::Representation, rep)],
         text,
         text,
-        format!(
-            "{} lies on {} {at}. Move the text or the symbol.",
-            capitalised(&named),
-            symbol.english()
-        ),
     )
     .on_page(page)
     .arg("owner", kind)
@@ -1391,32 +1266,15 @@ pub fn part_on_part(
 ) -> Finding {
     let (kind, name) = symbol.parts();
     let mut targets = vec![Target::new(Kind::Representation, rep)];
-    let (form, message, other_kind, other_name) = match other {
+    let (form, other_kind, other_name) = match other {
         Some((o, on)) => {
             targets.push(Target::new(Kind::Representation, o));
             let (ok, oname) = on.parts();
-            (
-                "part",
-                format!(
-                    "{} lies on {}. Move one of them.",
-                    capitalised(&symbol.english()),
-                    on.english()
-                ),
-                ok,
-                oname,
-            )
+            ("part", ok, oname)
         }
-        None => (
-            "outside",
-            format!(
-                "{} stands outside the drawing area of page {folio}. Move it into the frame.",
-                capitalised(&symbol.english())
-            ),
-            "device",
-            "",
-        ),
+        None => ("outside", "device", ""),
     };
-    Finding::new(&PART_ON_PART, targets, form, name, message)
+    Finding::new(&PART_ON_PART, targets, form, name)
         .on_page(page)
         .arg("form", form)
         .arg("symbol", kind)
@@ -1424,11 +1282,4 @@ pub fn part_on_part(
         .arg("other_symbol", other_kind)
         .arg("other", other_name)
         .arg("page", folio)
-}
-
-/// `s` with its first letter capitalised.
-fn capitalised(s: &str) -> String {
-    let mut c = s.chars();
-    c.next()
-        .map_or_else(String::new, |f| f.to_uppercase().collect::<String>() + c.as_str())
 }

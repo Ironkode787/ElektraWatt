@@ -141,14 +141,14 @@ pub(crate) fn plc_channels(s: &Source<'_>) -> Vec<Row> {
                 .set("data_type", r.data_type.clone())
                 .set(
                     "comment",
-                    ch.and_then(|c| non_empty(ew_derive::neutral(&c.comment))),
+                    ch.and_then(|c| non_empty(c.comment.neutral_or_first().unwrap_or_default().to_owned())),
                 )
                 .set(
                     "function_text",
                     r.text
                         .function_text
                         .as_ref()
-                        .and_then(|t| non_empty(ew_derive::neutral(t))),
+                        .and_then(|t| non_empty(t.neutral_or_first().unwrap_or_default().to_owned())),
                 )
                 .set("process_tag", r.text.process_tag.clone())
                 .set("target", r.target_device.map(|d| tag_short(q, d)))
@@ -229,7 +229,11 @@ pub(crate) fn pages(s: &Source<'_>) -> Vec<Row> {
                     (
                         uuid(p),
                         page.and_then(|pg| pg.folio.label.as_ref().map(|l| l.as_str().to_owned())),
-                        page.and_then(|pg| pg.description_override.as_ref().map(ew_derive::neutral)),
+                        page.and_then(|pg| {
+                            pg.description_override
+                                .as_ref()
+                                .map(|t| t.neutral_or_first().unwrap_or_default().to_owned())
+                        }),
                         false,
                         None,
                     )
@@ -252,7 +256,7 @@ pub(crate) fn pages(s: &Source<'_>) -> Vec<Row> {
                 .set("label", label)
                 .set("section_id", e.section.map(uuid))
                 .set("kind", enum_text(&e.kind))
-                .set("title", ew_derive::neutral(&title))
+                .set("title", title.neutral_or_first().unwrap_or_default().to_owned())
                 .set("title_ml", ml_json(&title))
                 .set("description_overridden", description.is_some())
                 .set("description", description)
@@ -328,7 +332,10 @@ pub(crate) fn devices(s: &Source<'_>) -> Vec<Row> {
                     "structure_location",
                     tag.and_then(|t| render_aspect(&t.structure, Aspect::Location)),
                 )
-                .set("function_text", non_empty(ew_derive::neutral(&d.function_text)))
+                .set(
+                    "function_text",
+                    non_empty(d.function_text.neutral_or_first().unwrap_or_default().to_owned()),
+                )
                 .set(
                     "function_text_ml",
                     (!d.function_text.is_empty()).then(|| ml_json(&d.function_text)),
@@ -678,7 +685,7 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
             };
             let group = aspect
                 .and_then(|a| a.groups.iter().find(|g| g.from_seq <= seq && seq <= g.to_seq))
-                .map(|g| ew_derive::neutral(&g.label));
+                .map(|g| g.label.neutral_or_first().unwrap_or_default().to_owned());
             let part = q
                 .get::<DevicePartLines>(t)
                 .first()
@@ -716,7 +723,15 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
                 .set("designation", term.designation.as_str())
                 .set("printed", term.designation.as_str())
                 .set("seq", seq)
-                .set("function_text", non_empty(ew_derive::neutral(&dev.function_text)))
+                .set(
+                    "function_text",
+                    non_empty(
+                        dev.function_text
+                            .neutral_or_first()
+                            .unwrap_or_default()
+                            .to_owned(),
+                    ),
+                )
                 .set("strip_group", group)
                 .set("part_number", part)
                 .set("levels", term.levels.len().max(1))
@@ -1094,7 +1109,10 @@ fn bom(q: &Q, mode: BomMode, view: &'static View) -> Vec<Row> {
                 .set("manufacturer", manufacturer_name(q, &b.manufacturer))
                 .set("part_number", b.part_number.as_str())
                 .set("type", b.type_designation.clone())
-                .set("description", ew_derive::neutral(&b.description))
+                .set(
+                    "description",
+                    b.description.neutral_or_first().unwrap_or_default().to_owned(),
+                )
                 .set("description_ml", ml_json(&b.description))
                 .set("quantity", b.qty.to_string())
                 .set("unit", enum_text(&b.unit))
@@ -1140,7 +1158,7 @@ pub(crate) fn messages(s: &Source<'_>) -> Vec<Row> {
                 .set("target_ids", json_array(&ids))
                 .set("target_tags", non_empty(f.subject.clone()))
                 .set("page_id", f.page.map(uuid))
-                .set("message", f.message.as_str())
+                .set("message", f.message().as_str())
                 .set("args", non_empty(f.discriminator.clone()))
                 .set("waiver_id", waiver);
             r
@@ -1211,7 +1229,12 @@ pub(crate) fn fluid_lines(s: &Source<'_>) -> Vec<Row> {
                 .set("fluid_net_id", t.net.map(|n| n.0.as_uuid().to_string()))
                 .set(
                     "medium",
-                    non_empty(ew_derive::neutral(&ew_derive::medium_text(q, t.net))),
+                    non_empty(
+                        ew_derive::medium_text(q, t.net)
+                            .neutral_or_first()
+                            .unwrap_or_default()
+                            .to_owned(),
+                    ),
                 )
                 .set("od_nm", p.od.as_ref().map(|v| v.value.0))
                 .set("id_nm", p.id.as_ref().map(|v| v.value.0))
@@ -1268,7 +1291,10 @@ pub(crate) fn valve_positions(s: &Source<'_>) -> Vec<Row> {
                 .set("solenoids", json_array(&v.solenoids))
                 .set("channel_ids", json_array(&channels))
                 .set("addresses", v.addresses.clone())
-                .set("function_text", non_empty(ew_derive::neutral(&v.function_text)))
+                .set(
+                    "function_text",
+                    non_empty(v.function_text.neutral_or_first().unwrap_or_default().to_owned()),
+                )
                 .set("process_tag", v.process_tag.clone())
                 .set("target_id", v.target.map(uuid))
                 .set(
@@ -1291,7 +1317,7 @@ pub(crate) fn media(s: &Source<'_>) -> Vec<Row> {
             let rec = media.get(m.medium)?;
             let mut r = Row::new(&MEDIUM);
             r.set("id", uuid(m.medium))
-                .set("name", ew_derive::neutral(&rec.name))
+                .set("name", rec.name.neutral_or_first().unwrap_or_default().to_owned())
                 .set("code", rec.code.as_ref().map(|c| c.as_str().to_owned()))
                 .set("discipline", enum_text(&rec.discipline))
                 .set("p_nom", rec.p_nom.to_string())

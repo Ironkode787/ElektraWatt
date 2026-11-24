@@ -63,8 +63,8 @@ fn a_size_set_by_hand_below_its_breakers_rating_is_pot022_and_its_fix_takes_the_
         let found = findings_on(&s, wire);
         assert_eq!(found.len(), usize::from(short), "{size} mm²: {found:?}");
         if let Some(f) = found.first() {
-            assert!(f.message.contains("2.5 mm²"), "the proposed size: {}", f.message);
-            assert!(f.message.contains("16 A"), "the rating: {}", f.message);
+            assert!(f.message().contains("2.5 mm²"), "the proposed size: {}", f.message());
+            assert!(f.message().contains("16 A"), "the rating: {}", f.message());
         }
     }
     set_csa(&mut s, wire, json!("0.5"));

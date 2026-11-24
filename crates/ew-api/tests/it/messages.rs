@@ -103,7 +103,7 @@ fn the_rows_are_the_online_findings_under_their_severity_and_rule() {
         assert_eq!(sev.parent, None);
         assert_eq!(n.cells[0], f.severity.name());
         assert_eq!(n.cells[1], f.rule);
-        assert_eq!(n.cells[2], f.message);
+        assert_eq!(n.cells[2], f.message());
         assert_eq!(n.cells[3], f.subject);
         assert_eq!(n.badges[0], f.severity.name());
         assert_eq!(n.badges.contains(&"fix".to_owned()), f.fix.is_some());

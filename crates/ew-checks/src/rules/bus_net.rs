@@ -74,6 +74,7 @@ fn net_name(q: &Q, net: Id<LogicalNet>) -> String {
 /// EW-BUS-002 "Address outside the range" (doc 15 §4.5.2): conflict, o r, warning, lnet (FR-BUS-018).
 pub const ADDRESS_RANGE: RuleMeta = RuleMeta {
     id: "EW-BUS-002",
+    message: key!("rule-ew-bus-002"),
     code: "111002",
     title: "Address outside the range",
     kind: RuleKind::Conflict,
@@ -120,7 +121,6 @@ impl Rule for AddressRange {
                     [Target::new(Kind::Function, f)],
                     "range",
                     name.clone(),
-                    format!("{name}: the station address {a} is outside {min}..{max}; enter an address inside the range"),
                 )
                 .arg("port", name)
                 .arg("address", a.to_string())
@@ -139,6 +139,7 @@ impl Rule for AddressRange {
 /// EW-BUS-003 "PROFINET name or IP" (doc 15 §4.5.2): conflict, o r, error, lnet (FR-BUS-017).
 pub const PROFINET: RuleMeta = RuleMeta {
     id: "EW-BUS-003",
+    message: key!("rule-ew-bus-003"),
     code: "111003",
     title: "PROFINET name or IP",
     kind: RuleKind::Conflict,
@@ -210,20 +211,10 @@ impl Rule for Profinet {
             names.entry(a.name.to_string()).or_default().push(*f);
             if !valid_station_name(a.name.as_str()) {
                 out.push(
-                    Finding::new(
-                        &PROFINET,
-                        [Target::new(Kind::Function, *f)],
-                        "name",
-                        port.clone(),
-                        format!(
-                            "{port}: the device name {} is not DNS-compatible; use lower-case letters, digits, hyphens \
-                             and dots",
-                            a.name
-                        ),
-                    )
-                    .arg("form", "name")
-                    .arg("port", port.clone())
-                    .arg("name", a.name.to_string()),
+                    Finding::new(&PROFINET, [Target::new(Kind::Function, *f)], "name", port.clone())
+                        .arg("form", "name")
+                        .arg("port", port.clone())
+                        .arg("name", a.name.to_string()),
                 );
             }
             if let Some(ip) = a.ip {
@@ -236,10 +227,6 @@ impl Rule for Profinet {
                                 [Target::new(Kind::Function, *f)],
                                 "subnet",
                                 port.clone(),
-                                format!(
-                                    "{port}: the IP address {ip} is outside the subnet of the master, {mip} with mask \
-                                     {mmask}; enter an address of that subnet"
-                                ),
                             )
                             .arg("form", "subnet")
                             .arg("port", port)
@@ -253,12 +240,9 @@ impl Rule for Profinet {
         }
         let shared = names
             .into_iter()
-            .map(|(k, v)| ("duplicate_name", "device name", k, v))
-            .chain(
-                ips.into_iter()
-                    .map(|(k, v)| ("duplicate_ip", "IP address", k.to_string(), v)),
-            );
-        for (form, what, value, functions) in shared {
+            .map(|(k, v)| ("duplicate_name", k, v))
+            .chain(ips.into_iter().map(|(k, v)| ("duplicate_ip", k.to_string(), v)));
+        for (form, value, functions) in shared {
             if functions.len() < 2 {
                 continue;
             }
@@ -271,9 +255,6 @@ impl Rule for Profinet {
                     functions.iter().map(|f| Target::new(Kind::Function, *f)),
                     format!("{form}:{value}"),
                     words[0].clone(),
-                    format!(
-                        "the {what} {value} is used by {list} in logical net {net_text}; give each port its own"
-                    ),
                 )
                 .arg("form", form)
                 .arg("value", value)
@@ -291,6 +272,7 @@ impl Rule for Profinet {
 /// EW-BUS-005 "Rate not supported" (doc 15 §4.5.2): conflict, o r, error, lnet (FR-BUS-009, FR-BUS-018).
 pub const RATE: RuleMeta = RuleMeta {
     id: "EW-BUS-005",
+    message: key!("rule-ew-bus-005"),
     code: "111005",
     title: "Rate not supported",
     kind: RuleKind::Conflict,
@@ -331,21 +313,11 @@ impl Rule for Rate {
             }
             let name = port_words(q, f);
             out.push(
-                Finding::new(
-                    &RATE,
-                    [Target::new(Kind::Function, f)],
-                    "rate",
-                    name.clone(),
-                    format!(
-                        "{name} does not support {} bit/s, the rate of logical net {net_text}; choose a rate every \
-                         station supports",
-                        rate.0
-                    ),
-                )
-                .arg("port", name)
-                .arg("rate", rate.0.to_string())
-                .arg("net", net_text.clone())
-                .reading(&confidence),
+                Finding::new(&RATE, [Target::new(Kind::Function, f)], "rate", name.clone())
+                    .arg("port", name)
+                    .arg("rate", rate.0.to_string())
+                    .arg("net", net_text.clone())
+                    .reading(&confidence),
             );
         }
         out
@@ -358,6 +330,7 @@ impl Rule for Rate {
 /// EW-BUS-006 "Segment limits" (doc 15 §4.5.2): conflict, f r, warning, pnet (FR-BUS-018).
 pub const SEGMENT_LIMITS: RuleMeta = RuleMeta {
     id: "EW-BUS-006",
+    message: key!("rule-ew-bus-006"),
     code: "111006",
     title: "Segment limits",
     kind: RuleKind::Conflict,
@@ -444,23 +417,13 @@ impl Rule for SegmentLimits {
                 .map(|f| Target::new(Kind::Function, f))
                 .collect();
             if stations > PROFIBUS_STATIONS {
-                let message = format!(
-                    "the segment from {subject} has {stations} stations, more than the {PROFIBUS_STATIONS} a PROFIBUS \
-                     segment takes; split it with a repeater"
-                );
                 let (n, limit) = (stations.to_string(), PROFIBUS_STATIONS.to_string());
                 out.push(
-                    Finding::new(
-                        &SEGMENT_LIMITS,
-                        targets.clone(),
-                        "stations",
-                        subject.clone(),
-                        message,
-                    )
-                    .arg("form", "stations")
-                    .arg("segment", subject.clone())
-                    .arg("count", n)
-                    .arg("limit", limit),
+                    Finding::new(&SEGMENT_LIMITS, targets.clone(), "stations", subject.clone())
+                        .arg("form", "stations")
+                        .arg("segment", subject.clone())
+                        .arg("count", n)
+                        .arg("limit", limit),
                 );
             }
             let Some(rate) = net.as_ref().and_then(|n| n.rate) else {
@@ -488,33 +451,18 @@ impl Rule for SegmentLimits {
                 .saturating_mul(1_000_000_000);
             if length_nm > limit_nm {
                 let metres = ew_derive::ew_units::Dec3(length_nm / 1_000_000);
-                let message = format!(
-                    "the segment from {subject} is {metres} m long, more than the {limit} m PROFIBUS allows at {} bit/s; \
-                     shorten it or lower the rate",
-                    rate.0
-                );
                 out.push(
-                    Finding::new(
-                        &SEGMENT_LIMITS,
-                        targets.clone(),
-                        "length",
-                        subject.clone(),
-                        message,
-                    )
-                    .arg("form", "length")
-                    .arg("segment", subject.clone())
-                    .arg("metres", metres.to_string())
-                    .arg("limit", limit.to_string())
-                    .arg("rate", rate.0.to_string()),
+                    Finding::new(&SEGMENT_LIMITS, targets.clone(), "length", subject.clone())
+                        .arg("form", "length")
+                        .arg("segment", subject.clone())
+                        .arg("metres", metres.to_string())
+                        .arg("limit", limit.to_string())
+                        .arg("rate", rate.0.to_string()),
                 );
             }
             if segment.branched && rate.0 > 1_500_000 {
-                let message = format!(
-                    "the segment from {subject} branches, and PROFIBUS allows no stubs above 1.5 Mbit/s; run the line \
-                     through every station"
-                );
                 out.push(
-                    Finding::new(&SEGMENT_LIMITS, targets.clone(), "stub", subject.clone(), message)
+                    Finding::new(&SEGMENT_LIMITS, targets.clone(), "stub", subject.clone())
                         .arg("form", "stub")
                         .arg("segment", subject.clone()),
                 );
@@ -530,6 +478,7 @@ impl Rule for SegmentLimits {
 /// EW-BUS-007 "No master" (doc 15 §4.5.2): completeness, o r, warning, lnet (FR-BUS-018).
 pub const NO_MASTER: RuleMeta = RuleMeta {
     id: "EW-BUS-007",
+    message: key!("rule-ew-bus-007"),
     code: "111007",
     title: "No master",
     kind: RuleKind::Completeness,
@@ -569,9 +518,6 @@ impl Rule for NoMaster {
                 [Target::new(Kind::LogicalNet, net)],
                 "master",
                 format!("logical net {name}"),
-                format!(
-                    "logical net {name} has no master; name its master port, or the external partner that is"
-                ),
             )
             .arg("net", name),
         ]
@@ -584,6 +530,7 @@ impl Rule for NoMaster {
 /// EW-BUS-009 "Wrong bus cable" (doc 15 §4.5.2): conflict, o r, warning, pnet (FR-BUS-018).
 pub const WRONG_CABLE: RuleMeta = RuleMeta {
     id: "EW-BUS-009",
+    message: key!("rule-ew-bus-009"),
     code: "111009",
     title: "Wrong bus cable",
     kind: RuleKind::Conflict,
@@ -660,7 +607,6 @@ impl Rule for WrongCable {
                                 [Target::new(Kind::Device, cable), Target::new(Kind::Function, *f)],
                                 "cable",
                                 name.clone(),
-                                format!("{name} is connected by {tag}, which is not a cable for its bus; use a bus cable"),
                             )
                             .arg("form", "cable")
                             .arg("port", name)
@@ -693,12 +639,12 @@ impl Rule for WrongCable {
                         out.push(
                             Finding::new(
                                 &WRONG_CABLE,
-                                [Target::new(Kind::Function, *f), Target::new(Kind::Function, other)],
+                                [
+                                    Target::new(Kind::Function, *f),
+                                    Target::new(Kind::Function, other),
+                                ],
                                 "connector",
                                 name.clone(),
-                                format!(
-                                    "{name} ({a}) is mated with {other_name} ({b}); the connector types differ"
-                                ),
                             )
                             .arg("form", "connector")
                             .arg("port", name)
@@ -722,6 +668,7 @@ impl Rule for WrongCable {
 /// EW-BUS-010 "Net mismatch" (doc 15 §4.5.2): conflict, o r, warning, pnet (FR-BUS-024).
 pub const NET_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-BUS-010",
+    message: key!("rule-ew-bus-010"),
     code: "111010",
     title: "Net mismatch",
     kind: RuleKind::Conflict,
@@ -768,10 +715,6 @@ impl Rule for NetMismatch {
                     named.iter().map(|(f, _)| Target::new(Kind::Function, *f)),
                     "nets",
                     subject.clone(),
-                    format!(
-                        "the ports joined with {subject} belong to the logical nets {list}; put every port of the segment \
-                         in one logical net"
-                    ),
                 )
                 .arg("port", subject)
                 .arg("nets", list),

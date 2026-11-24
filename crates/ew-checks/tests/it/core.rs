@@ -41,11 +41,11 @@ fn core033_cases() {
                     "case {c}"
                 );
                 assert!(
-                    f[0].message.ends_with(
+                    f[0].message().ends_with(
                         "has no length yet: type it in its Properties, or route the cable in the layout"
                     ),
                     "case {c}: {}",
-                    f[0].message
+                    f[0].message()
                 );
                 assert!(f[0].subject.contains("W1"), "case {c}: {}", f[0].subject);
             }),
@@ -87,10 +87,10 @@ fn core047_reports_a_device_whose_functions_are_not_drawn() {
         (Kind::Device, uid(0x102))
     );
     assert!(
-        f[0].message
+        f[0].message()
             .ends_with("is not drawn on any page, so its tag shows ? where the page number belongs. Draw it on a page, or delete it if it is not needed."),
         "{}",
-        f[0].message
+        f[0].message()
     );
     let q = Q::new(&m);
     let release = run(&q, &FULL, CheckMode::Release);
@@ -160,10 +160,10 @@ fn core051_cases() {
                     assert!(f[0].subject.contains("LONELY"), "case {c}: {}", f[0].subject);
                     // Where it stands and what it lacks: a source its targets (a persona run read "no partner").
                     assert!(
-                        f[0].message
+                        f[0].message()
                             .contains("is a source without a target: place where LONELY goes on"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -176,9 +176,9 @@ fn core051_cases() {
                     assert_eq!(f[0].targets[0].id, uid(0x1101), "case {c}");
                     assert_eq!(f[0].discriminator, "no-cp", "case {c}");
                     assert!(
-                        f[0].message.contains("no connection point"),
+                        f[0].message().contains("no connection point"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -252,7 +252,7 @@ fn core052_cases() {
                     assert_eq!(f[0].discriminator, "star-source", "case {c}");
                     // FT-901: the remedy in words, no ID tie-break.
                     assert_eq!(
-                        f[0].message,
+                        f[0].message(),
                         "interruption point X: 2 source points and no star source; set all but one to target, or \
                          flag one as the star source",
                         "case {c}"
@@ -270,7 +270,7 @@ fn core052_cases() {
                 assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                 assert_eq!(f[0].discriminator, "star-source", "case {c}");
                 assert_eq!(
-                    f[0].message,
+                    f[0].message(),
                     "interruption point X: 2 points are flagged as star source; keep the flag on one of them",
                     "case {c}"
                 );
@@ -380,8 +380,8 @@ fn core023_cases() {
                         (Kind::Page, uid(P1)),
                         "case {c}"
                     );
-                    assert!(f[0].message.contains("folio 1"), "case {c}: {}", f[0].message);
-                    assert!(f[0].message.contains("Override"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message().contains("folio 1"), "case {c}: {}", f[0].message());
+                    assert!(f[0].message().contains("Override"), "case {c}: {}", f[0].message());
                     let fix = f[0]
                         .fix
                         .as_ref()
@@ -475,14 +475,14 @@ fn core053_cases() {
                     assert_eq!(f[0].targets.len(), 2, "case {c}");
                     assert_eq!(f[0].targets[0].kind, Kind::Representation, "case {c}");
                     assert!(
-                        f[0].message.contains(": empty cell"),
+                        f[0].message().contains(": empty cell"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                     assert!(
-                        f[0].message.starts_with(&f[0].subject),
+                        f[0].message().starts_with(&f[0].subject),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                     let fix = f[0]
                         .fix
@@ -507,9 +507,9 @@ fn core053_an_anchor_outside_the_frame_is_reported_with_the_same_fingerprint() {
     let outside = findings_of(&main_and_aux_at("origin", true, 400_000_000, None), "EW-CORE-053");
     assert_eq!((inside.len(), outside.len()), (1, 1), "{inside:#?} {outside:#?}");
     assert!(
-        outside[0].message.contains(": outside the frame"),
+        outside[0].message().contains(": outside the frame"),
         "{}",
-        outside[0].message
+        outside[0].message()
     );
     assert_eq!(outside[0].discriminator, "");
     assert_eq!(

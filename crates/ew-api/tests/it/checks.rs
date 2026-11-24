@@ -321,7 +321,7 @@ fn the_unconnected_pins_fix_marks_it_unused() {
     assert!(n >= 1, "{before:#?}");
     let fix = before.iter().find_map(|f| f.fix.clone()).expect("a fix");
     assert_eq!(
-        (fix.label.as_str(), fix.command.as_str()),
+        (fix.label.to_string().as_str(), fix.command.as_str()),
         ("Mark not used", "fields.set")
     );
     s.execute(&AnyCommand {
@@ -437,7 +437,7 @@ fn a_pe_branch_deleted_leaves_one_pe_island() {
         .collect();
     assert_eq!(islands.len(), 1, "{islands:#?}");
     assert_eq!(
-        islands[0].message,
+        islands[0].message(),
         "The protective earth at -101G1:PE on page 101 reaches neither the incoming PE nor an earth symbol of +CAB. \
          Connect it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail."
     );
@@ -525,8 +525,8 @@ fn a_tbd_channel_address_is_an_open_item() {
     assert_eq!(open[0].severity, checks::Severity::Error);
     assert_eq!(open[0].discriminator, "address");
     assert!(
-        open[0].message.contains("is TBD; enter it before release"),
+        open[0].message().contains("is TBD; enter it before release"),
         "{}",
-        open[0].message
+        open[0].message()
     );
 }

@@ -1116,7 +1116,7 @@ impl PreventHook for NoDevices {
                 rule: "EW-TERM-002".into(),
                 message: "devices are locked".into(),
                 keys: touched.to_vec(),
-                args: Vec::new(),
+                text: None,
             });
         }
         Ok(())

@@ -161,7 +161,7 @@ fn medium_def(fx: &mut Fx, n: u128, a: Ep, medium: u128) {
 fn messages(fx: &Fx, rule: &str) -> Vec<String> {
     let mut out: Vec<String> = findings_of(&fx.build(), rule)
         .into_iter()
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect();
     out.sort();
     out

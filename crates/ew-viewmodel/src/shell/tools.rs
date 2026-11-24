@@ -1864,8 +1864,8 @@ pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> Strin
             .args()
             .iter()
             .map(|a| match a {
-                ew_api::TextArg::Plain(s) => s.clone(),
                 ew_api::TextArg::Text(t) => words(t),
+                other => other.to_string(),
             })
             .collect();
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
@@ -1886,22 +1886,14 @@ pub(crate) fn notices_words(notices: &[ew_api::Text]) -> Vec<String> {
 /// A prevent rule's refusal in the window's language, as a sentence without the rule's code (the code belongs in the
 /// findings list and the help): a finding of the commands' own by its key, a finding of the check catalogue by the
 /// rule's message rendered from its arguments, else the finding as it prints.
-pub(crate) fn prevented_words(
-    rule: &str,
-    finding: &str,
-    args: &[(&'static str, String)],
-    text: Option<&ew_api::Text>,
-) -> String {
-    match (text, ew_api::checks::rule(rule)) {
-        (Some(t), _) => rejected_words(finding, Some(t)),
-        (None, Some(r)) if !args.is_empty() => {
-            let f = args.iter().fold(
-                ew_api::checks::Finding::new(r.meta(), std::iter::empty(), "", "", finding),
-                |f, (k, v)| f.arg(k, v.clone()),
-            );
-            ew_api::checks::messages::render(&f, strings::rule_language())
+pub(crate) fn prevented_words(finding: &str, text: Option<&ew_api::Text>) -> String {
+    match text {
+        // A rule message of the check catalogue.
+        Some(t) if ew_api::checks::has_key(t.key()) => {
+            ew_api::checks::messages::text(t, strings::rule_language())
         }
-        _ => finding.to_owned(),
+        Some(t) => rejected_words(finding, Some(t)),
+        None => finding.to_owned(),
     }
 }
 
@@ -1965,15 +1957,9 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
         // A prevent rule's and the model's own words, without their rule code, which the IP tool and the card read,
         // in the window's language.
-        CmdError::Prevented {
-            rule,
-            finding,
-            args,
-            text,
-            ..
-        } => (
+        CmdError::Prevented { finding, text, .. } => (
             key!("error-command"),
-            vec![prevented_words(rule, finding, args, text.as_deref())],
+            vec![prevented_words(finding, text.as_deref())],
         ),
         CmdError::Model(m, text) => (
             key!("error-command"),
@@ -2170,17 +2156,18 @@ mod ft779 {
     fn a_prevented_edit_and_a_history_block_read_in_a_dutch_window() {
         let finding = "interruption point 0V: 2 source points and no star source; set all but one to target, or flag \
                        one as the star source";
+        let meta = ew_api::checks::rule("EW-CORE-052").expect("registered").meta();
         let prevented = CmdError::Prevented {
             rule: "EW-CORE-052".into(),
             finding: finding.into(),
             keys: Vec::new(),
-            args: vec![
-                ("name", "0V".to_owned()),
-                ("form", "sources".to_owned()),
-                ("count", "2".to_owned()),
-            ]
-            .into(),
-            text: None,
+            text: Some(Box::new(
+                ew_api::checks::Finding::new(meta, [], "", "")
+                    .arg("name", "0V")
+                    .arg("form", "sources")
+                    .arg("count", "2")
+                    .text,
+            )),
         };
         let checkpoint = CmdError::History {
             reason: "`revision.release` is a non-undoable checkpoint; nothing before it can be undone".into(),

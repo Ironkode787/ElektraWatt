@@ -180,14 +180,15 @@ impl Session {
                 let findings: Vec<&checks::Finding> =
                     of_severity.iter().copied().filter(|f| f.rule == rule).collect();
                 let meta = checks::rule(rule).map(|r| r.meta());
-                // Every finding of the group has a quick fix of one kind (its key, else its command): Fix all (one step
-                // for what would take one fix after another).
+                // Every finding of the group has a quick fix of one kind (its label's key, else, for a fix an importer
+                // worded, its command): Fix all (one step for what would take one fix after another).
                 let kinds: std::collections::BTreeSet<Option<String>> = findings
                     .iter()
                     .map(|f| {
-                        f.fix
-                            .as_ref()
-                            .map(|x| x.key.map_or_else(|| x.command.clone(), str::to_owned))
+                        f.fix.as_ref().map(|x| match x.label.key() {
+                            k if k == ew_checks::key!("words-as-written") => x.command.clone(),
+                            k => k.to_owned(),
+                        })
                     })
                     .collect();
                 let mut badges = vec![findings.len().to_string()];
@@ -313,10 +314,13 @@ fn finding_node(
     let cells = vec![
         word.to_owned(),
         f.rule.to_owned(),
-        f.message.clone(),
+        f.message().clone(),
         f.subject.clone(),
         page_cell,
-        f.fix.as_ref().map(|x| x.label.clone()).unwrap_or_default(),
+        f.fix
+            .as_ref()
+            .map(|x| crate::checks::messages::fix_label(x, crate::checks::messages::DEFAULT_LANGUAGE))
+            .unwrap_or_default(),
         state.to_owned(),
     ];
     let mut badges = vec![word.to_owned()];
@@ -336,10 +340,10 @@ fn finding_node(
     facets.push(("state".to_owned(), state.to_owned()));
     // A rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
     // no ...") shows the subject once; the findings themselves, the CSV and the reports are unchanged.
-    let label = if f.subject.is_empty() || names_subject(&f.subject, &f.message) {
-        f.message.clone()
+    let label = if f.subject.is_empty() || names_subject(&f.subject, &f.message()) {
+        f.message().clone()
     } else {
-        format!("{}: {}", f.subject, f.message)
+        format!("{}: {}", f.subject, f.message())
     };
     let open_page = page
         .as_ref()

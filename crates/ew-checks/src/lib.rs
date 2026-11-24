@@ -47,6 +47,9 @@
 
 #![forbid(unsafe_code)]
 
+// `TEXTS`, `KEYS`, `SOURCES`, `text!` and `key!`, before the modules that name a key.
+ew_l10n::texts!(crate);
+
 mod engine;
 mod finding;
 mod gate;

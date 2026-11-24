@@ -65,7 +65,11 @@ pub(super) fn run_revision(a: &RevisionArgs) -> i32 {
 pub(super) fn finding_line(f: &ew_api::checks::Finding) -> String {
     format!(
         "{} {} {} {}: {}\n",
-        f.severity, f.rule, f.code, f.subject, f.message
+        f.severity,
+        f.rule,
+        f.code,
+        f.subject,
+        f.message()
     )
 }
 

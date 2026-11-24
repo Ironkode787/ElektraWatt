@@ -43,7 +43,7 @@ fn en_nl(t: &MlText) -> (String, String) {
         let tag = tag.parse().expect("a language tag");
         t.text_for(&tag)
             .map(str::to_owned)
-            .unwrap_or_else(|| ew_derive::neutral(t))
+            .unwrap_or_else(|| t.neutral_or_first().unwrap_or_default().to_owned())
     };
     (get("en-GB"), get("nl-NL"))
 }
@@ -70,10 +70,11 @@ fn members(q: &Q, net: NetId, alone: EndpointKey) -> Vec<EndpointKey> {
 }
 
 macro_rules! meta {
-    ($name:ident, $id:literal, $code:literal, $title:literal, $kind:ident, $modes:literal, $sev:ident, $scope:ident) => {
+    ($name:ident, $id:literal, $message:literal, $code:literal, $title:literal, $kind:ident, $modes:literal, $sev:ident, $scope:ident) => {
         #[doc = concat!($id, " \"", $title, "\" (doc 11 §6): 1.0.")]
         pub const $name: RuleMeta = RuleMeta {
             id: $id,
+            message: key!($message),
             code: $code,
             title: $title,
             kind: RuleKind::$kind,
@@ -93,6 +94,7 @@ macro_rules! meta {
 meta!(
     TWO_MEDIA,
     "EW-FL-005",
+    "rule-ew-fl-005",
     "120005",
     "Two media in one net",
     Conflict,
@@ -153,19 +155,10 @@ impl Rule for TwoMedia {
             en.sort_by_key(|s| natural_key(s));
             nl.sort_by_key(|s| natural_key(s));
             out.push(
-                Finding::new(
-                    &TWO_MEDIA,
-                    targets,
-                    "media",
-                    at.clone(),
-                    format!(
-                        "the fluid net at {at} carries {} directly; keep one medium per net",
-                        and_list(&en, "and")
-                    ),
-                )
-                .arg("at", at)
-                .arg("media", and_list(&en, "and"))
-                .arg("media_nl", and_list(&nl, "en")),
+                Finding::new(&TWO_MEDIA, targets, "media", at.clone())
+                    .arg("at", at)
+                    .arg("media", and_list(&en, "and"))
+                    .arg("media_nl", and_list(&nl, "en")),
             );
         }
         out
@@ -178,6 +171,7 @@ impl Rule for TwoMedia {
 meta!(
     TUBE_MISFIT,
     "EW-FL-006",
+    "rule-ew-fl-006",
     "120006",
     "Tube does not fit",
     Conflict,
@@ -254,10 +248,6 @@ impl Rule for TubeMisfit {
                         [Target::new(Kind::Connection, r.id)],
                         "rating",
                         text.clone(),
-                        format!(
-                            "tube {text} is rated {} bar, below the {p} bar its net carries",
-                            rating.value
-                        ),
                     )
                     .arg("form", "rating")
                     .arg("tube", text.clone())
@@ -279,12 +269,6 @@ impl Rule for TubeMisfit {
                             [Target::new(Kind::Connection, r.id)],
                             format!("od {}", end.text),
                             text.clone(),
-                            format!(
-                                "tube {text} is {} mm outside, but port {} takes {} mm",
-                                ew_derive::mm_micro(od.value),
-                                end.text,
-                                ew_derive::mm_micro(port_od)
-                            ),
                         )
                         .arg("form", "od")
                         .arg("tube", text.clone())
@@ -306,6 +290,7 @@ impl Rule for TubeMisfit {
 meta!(
     NO_TUBE_SPEC,
     "EW-FL-007",
+    "rule-ew-fl-007",
     "120007",
     "Tube without specification",
     Completeness,
@@ -336,23 +321,12 @@ impl Rule for NoTubeSpec {
                 // The persona round: a tube the tube table showed as 6×4 had "no tube specification"; it lacked a
                 // material, and the finding says so.
                 let size = r.props.size_text();
-                let (missing, message) = if size.is_empty() {
-                    (
-                        "spec",
-                        format!("tube {text} has no tube specification; give the medium or the project a default tube, or set it on the line"),
-                    )
-                } else {
-                    (
-                        "material",
-                        format!("tube {text} is {size} mm but has no material; give the default tube of its medium or of the project a material, or set it on the tube"),
-                    )
-                };
+                let missing = if size.is_empty() { "spec" } else { "material" };
                 Finding::new(
                     &NO_TUBE_SPEC,
                     [Target::new(Kind::Connection, r.id)],
                     "spec",
                     text.clone(),
-                    message,
                 )
                 .arg("tube", text)
                 .arg("tube_nl", text_nl)
@@ -369,6 +343,7 @@ impl Rule for NoTubeSpec {
 meta!(
     EXHAUST_OPEN,
     "EW-FL-008",
+    "rule-ew-fl-008",
     "120008",
     "Exhaust open",
     Completeness,
@@ -466,10 +441,6 @@ impl Rule for ExhaustOpen {
                         targets,
                         format!("gallery {g}"),
                         full_tag(q, *vt, "device"),
-                        format!(
-                            "{vt_text}: gallery {g} ({} exhaust ports) has no silencer, collector line or closure",
-                            texts.len()
-                        ),
                     )
                     .arg("form", "gallery")
                     .arg("terminal", vt_text)
@@ -478,16 +449,10 @@ impl Rule for ExhaustOpen {
                 }
                 None => {
                     let ports = and_list(&texts, "and");
-                    Finding::new(
-                        &EXHAUST_OPEN,
-                        targets,
-                        "ports",
-                        texts[0].clone(),
-                        format!("exhaust {ports} has no silencer, collector line or closure"),
-                    )
-                    .arg("form", "ports")
-                    .arg("ports", ports)
-                    .arg("ports_nl", and_list(&texts, "en"))
+                    Finding::new(&EXHAUST_OPEN, targets, "ports", texts[0].clone())
+                        .arg("form", "ports")
+                        .arg("ports", ports)
+                        .arg("ports_nl", and_list(&texts, "en"))
                 }
             };
             out.push(finding);
@@ -514,6 +479,7 @@ fn gallery_number(g: &FluidPortRole) -> &'static str {
 meta!(
     COIL_VOLTAGE,
     "EW-FL-009",
+    "rule-ew-fl-009",
     "120009",
     "Coil voltage",
     Conflict,
@@ -671,10 +637,6 @@ impl Rule for CoilVoltage {
                 [Target::new(Kind::Device, d)],
                 "voltage",
                 full_tag(q, d, "device"),
-                format!(
-                    "{valve}: the coil takes {takes}, but {} feed it",
-                    and_list(&wrong, "and")
-                ),
             )
             .arg("valve", valve)
             .arg("voltage", takes)
@@ -690,6 +652,7 @@ impl Rule for CoilVoltage {
 meta!(
     NO_SUPPLY,
     "EW-FL-010",
+    "rule-ew-fl-010",
     "120010",
     "No supply",
     Completeness,
@@ -749,11 +712,6 @@ impl Rule for NoSupply {
                         [Target::new(Kind::Device, d)],
                         format!("gallery {}", cp_text(q, *first)),
                         full_tag(q, d, "device"),
-                        format!(
-                            "{vt}: no compressed air reaches its valves, because nothing feeds the valve terminal's \
-                             supply. Draw \
-                             the supply line to its supply port, or use Define medium at port there."
-                        ),
                     )
                     .arg("form", "gallery")
                     .arg("device", vt),
@@ -786,11 +744,6 @@ impl Rule for NoSupply {
                         [Target::new(Kind::Function, f)],
                         format!("port {}", cp.designation),
                         full_tag(q, d, "device"),
-                        format!(
-                            "{valve}: no compressed air reaches port {}. Draw the supply line to it, or use Define medium \
-                             at port there.",
-                            cp.designation
-                        ),
                     )
                     .arg("form", "valve")
                     .arg("device", valve)
@@ -813,6 +766,7 @@ fn cp_text(q: &Q, at: EndpointKey) -> String {
 meta!(
     PORT_ROLE_CONFLICT,
     "EW-FL-012",
+    "rule-ew-fl-012",
     "120012",
     "Port-role conflict",
     Conflict,
@@ -895,10 +849,6 @@ impl Rule for PortRoleConflict {
                         targets.clone(),
                         format!("valve {}", ports[0]),
                         ports[0].clone(),
-                        format!(
-                            "{} are ports of one valve and are joined",
-                            and_list(&ports, "and")
-                        ),
                     )
                     .arg("form", "valve")
                     .arg("ports", and_list(&ports, "and"))
@@ -916,7 +866,6 @@ impl Rule for PortRoleConflict {
                             targets.clone(),
                             format!("role {w} {f}"),
                             w.clone(),
-                            format!("working port {w} is joined to {f} with no valve between them"),
                         )
                         .arg("form", "role")
                         .arg("working", w.clone())
@@ -935,6 +884,7 @@ impl Rule for PortRoleConflict {
 meta!(
     LOCATION_CROSSING,
     "EW-FL-014",
+    "rule-ew-fl-014",
     "120014",
     "Tube crosses a location",
     Completeness,
@@ -968,7 +918,6 @@ impl Rule for LocationCrossing {
                     [Target::new(Kind::Connection, r.id)],
                     "location",
                     text.clone(),
-                    format!("tube {text} crosses from {from} to {to} without a bulkhead"),
                 )
                 .arg("tube", text)
                 .arg("tube_nl", text_nl)

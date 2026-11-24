@@ -69,6 +69,7 @@ fn functions_of_kind(q: &Q, d: Id<Device>, kind: &ContactKind) -> Vec<Id<Functio
 /// EW-FL-001 "Working port open" (doc 15 §4.5.3): completeness, o r, warning, device.
 pub const WORKING_PORT_OPEN: RuleMeta = RuleMeta {
     id: "EW-FL-001",
+    message: key!("rule-ew-fl-001"),
     code: "120001",
     title: "Working port open",
     kind: RuleKind::Completeness,
@@ -118,8 +119,7 @@ impl Rule for WorkingPortOpen {
                 })
                 .collect();
             let fix = QuickFix {
-                label: "Plug the open ports".to_owned(),
-                key: Some("fix-plug-open-ports"),
+                label: text!("fix-plug-open-ports"),
                 command: "check.fix_all".to_owned(),
                 params: serde_json::json!({ "fixes": plugs }),
             };
@@ -131,7 +131,6 @@ impl Rule for WorkingPortOpen {
                     [Target::new(Kind::Function, f)],
                     "open",
                     full_tag(q, d, "device"),
-                    format!("{valve}: working port {port} is open; connect, plug or blank it"),
                 )
                 .arg("form", "one")
                 .arg("port", port.clone()),
@@ -140,10 +139,6 @@ impl Rule for WorkingPortOpen {
                     [Target::new(Kind::Function, f)],
                     "open",
                     full_tag(q, d, "device"),
-                    format!(
-                        "{valve}: working ports {} are open; connect, plug or blank them",
-                        and_list(ports, "and")
-                    ),
                 )
                 .arg("form", "many")
                 .arg("ports", and_list(ports, "and"))
@@ -162,6 +157,7 @@ impl Rule for WorkingPortOpen {
 /// device.
 pub const COIL_BINDINGS: RuleMeta = RuleMeta {
     id: "EW-FL-002",
+    message: key!("rule-ew-fl-002"),
     code: "120002",
     title: "Solenoids and their outputs",
     kind: RuleKind::Conflict,
@@ -237,11 +233,6 @@ impl Rule for CoilBindings {
                         targets,
                         format!("excess:{designation}"),
                         full_tag(q, d, "device"),
-                        format!(
-                            "{valve}: solenoid {designation} is bound to {} channels: {}",
-                            at.len(),
-                            names.join(", ")
-                        ),
                     )
                     .arg("form", "excess")
                     .arg("valve", valve.clone())
@@ -259,10 +250,6 @@ impl Rule for CoilBindings {
                             [Target::new(Kind::Function, *f), Target::new(Kind::Channel, *c)],
                             "undeclared",
                             full_tag(q, d, "device"),
-                            format!(
-                                "{valve}: {} drives a coil that the part does not declare",
-                                channel_text(q, ch)
-                            ),
                         )
                         .arg("form", "undeclared")
                         .arg("valve", valve.clone())
@@ -286,7 +273,6 @@ impl Rule for CoilBindings {
                         [Target::new(Kind::Device, d)],
                         format!("unbound:{s}"),
                         full_tag(q, d, "device"),
-                        format!("{valve}: no PLC output drives solenoid {s}; bind one to it"),
                     )
                     .with_severity(Severity::Warning)
                     .arg("form", "unbound")
@@ -305,6 +291,7 @@ impl Rule for CoilBindings {
 /// EW-FL-004 "Spare positions" (doc 15 §4.5.3): hygiene, o r (O2), info, device.
 pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
     id: "EW-FL-004",
+    message: key!("rule-ew-fl-004"),
     code: "120004",
     title: "Spare positions",
     kind: RuleKind::Hygiene,
@@ -335,23 +322,12 @@ impl Rule for SparePositions {
         let mut out = Vec::new();
         for (i, slot) in slots.slots.iter().enumerate() {
             let p = (i + 1).to_string();
-            let (device, form, message) = match slot {
+            let (device, form) = match slot {
                 ValveSlot::Valve {
                     device,
                     state: DeviceState::Spare,
-                } => (
-                    *device,
-                    "valve",
-                    format!("{module}: position {p} holds a spare valve, {}", tag(q, *device)),
-                ),
-                ValveSlot::Blank { device } => (
-                    *device,
-                    "blank",
-                    format!(
-                        "{module}: position {p} is closed by a blanking plate, {}",
-                        tag(q, *device)
-                    ),
-                ),
+                } => (*device, "valve"),
+                ValveSlot::Blank { device } => (*device, "blank"),
                 _ => continue,
             };
             out.push(
@@ -360,7 +336,6 @@ impl Rule for SparePositions {
                     [Target::new(Kind::Device, device)],
                     form,
                     full_tag(q, device, "device"),
-                    message,
                 )
                 .arg("form", form)
                 .arg("module", module.clone())
@@ -378,6 +353,7 @@ impl Rule for SparePositions {
 /// EW-FL-011 "`Drives` target mismatch" (doc 15 §4.5.3): conflict, o, warning, device.
 pub const DRIVES_MISMATCH: RuleMeta = RuleMeta {
     id: "EW-FL-011",
+    message: key!("rule-ew-fl-011"),
     code: "120011",
     title: "Drives target mismatch",
     kind: RuleKind::Conflict,
@@ -416,7 +392,6 @@ impl Rule for DrivesMismatch {
                 [Target::new(Kind::Device, d)],
                 "drives",
                 full_tag(q, d, "device"),
-                format!("{valve} drives {target}, but its working-port lines reach {reached}"),
             )
             .arg("valve", valve)
             .arg("target", target)
@@ -431,6 +406,7 @@ impl Rule for DrivesMismatch {
 /// EW-FL-013 "Occupancy" (doc 15 §4.5.3): conflict, p o, error (empty: warning), device.
 pub const OCCUPANCY: RuleMeta = RuleMeta {
     id: "EW-FL-013",
+    message: key!("rule-ew-fl-013"),
     code: "120013",
     title: "Occupancy",
     kind: RuleKind::Conflict,
@@ -475,7 +451,6 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
         [Target::new(Kind::Device, b)],
         form,
         full_tag(q, b, "device"),
-        format!("{parent_t}: position {p} holds both {a_t} and {b_t}"),
     )
     .arg("form", form)
     .arg("parent", parent_t)
@@ -489,17 +464,11 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
 fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (&str, String)) -> Finding {
     let module_t = tag(q, module);
     let (form, free) = tail;
-    let suffix = match form {
-        "outside_free" => format!("; free positions: {free}"),
-        "outside_full" => "; every position is taken".to_owned(),
-        _ => String::new(),
-    };
     Finding::new(
         &OCCUPANCY,
         [Target::new(Kind::Device, child)],
         "outside",
         full_tag(q, child, "device"),
-        format!("{module_t}: position {p} is outside its {n} valve positions{suffix}"),
     )
     .arg("form", form)
     .arg("module", module_t)
@@ -551,10 +520,6 @@ impl Rule for Occupancy {
                     [Target::new(Kind::Device, d)],
                     format!("empty:{p}"),
                     full_tag(q, d, "device"),
-                    format!(
-                        "{module}: position {p} is empty; fit a valve, or a blanking plate (right-click the position: \
-                         Blanking plate)"
-                    ),
                 )
                 .with_severity(Severity::Warning)
                 .arg("form", "empty")
@@ -562,8 +527,7 @@ impl Rule for Occupancy {
                 .arg("position", p.to_string())
                 // A re-test searched the parts for a blanking plate: the fix fits one, Fix all every one.
                 .with_fix(QuickFix {
-                    label: format!("Blanking plate on position {p}"),
-                    key: Some("fix-blank-position"),
+                    label: text!("fix-blank-position", p.to_string()),
                     command: "valve.set_occupancy".to_owned(),
                     params: serde_json::json!({ "module": d.to_string(), "position": p,
                         "occupancy": { "blank": {} } }),

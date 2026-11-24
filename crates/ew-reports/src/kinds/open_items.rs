@@ -99,7 +99,12 @@ fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
     put(columns, &mut cells, "item", text_cell(&f.subject));
     // The message as `ew check --lang nl-NL` words it (its en-GB text where the rule has no Dutch pattern).
     let dutch = ew_checks::messages::render(f, "nl-NL");
-    put(columns, &mut cells, "description", words_cell(&f.message, &dutch));
+    put(
+        columns,
+        &mut cells,
+        "description",
+        words_cell(&f.message(), &dutch),
+    );
     put(columns, &mut cells, "rule", Cell::Ident(f.rule.to_owned()));
     let severity = match f.severity {
         Severity::Info => "info",

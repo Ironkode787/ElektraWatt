@@ -16,6 +16,7 @@ use crate::rules::term::full_tag;
 /// supersedes EW-NUM-002 and EW-RDS-001 for tags and frozen tags (doc 15 §3.6).
 pub const TAG_DEVIATES: RuleMeta = RuleMeta {
     id: "EW-NUM-001",
+    message: key!("rule-ew-num-001"),
     code: "017101",
     title: "Tag deviates from the scheme",
     kind: RuleKind::Hygiene,
@@ -66,16 +67,10 @@ impl Rule for TagDeviates {
         }
         let tag = full_tag(q, device, "device");
         vec![
-            Finding::new(
-                &TAG_DEVIATES,
-                [Target::new(Kind::Device, device)],
-                "frozen",
-                tag,
-                format!("{frozen}: frozen, deviates from scheme (rule-derived value {rule})"),
-            )
-            .arg("frozen", frozen.to_string())
-            .arg("derived", rule.to_string())
-            .with_severity(Severity::Info),
+            Finding::new(&TAG_DEVIATES, [Target::new(Kind::Device, device)], "frozen", tag)
+                .arg("frozen", frozen.to_string())
+                .arg("derived", rule.to_string())
+                .with_severity(Severity::Info),
         ]
     }
 }
@@ -83,6 +78,7 @@ impl Rule for TagDeviates {
 /// EW-NUM-002 "Frozen value deviates" (doc 15 §4.3): hygiene, o r, info, project.
 pub const FROZEN_VALUE_DEVIATES: RuleMeta = RuleMeta {
     id: "EW-NUM-002",
+    message: key!("rule-ew-num-002"),
     code: "017102",
     title: "Frozen value deviates",
     kind: RuleKind::Hygiene,
@@ -143,17 +139,11 @@ impl Rule for FrozenValueDeviates {
         });
         rows.into_iter()
             .map(|(text, rule, id)| {
-                let derived = if rule.is_empty() {
-                    "the rule derives no number for the wire".to_owned()
-                } else {
-                    format!("rule-derived value {rule}")
-                };
                 Finding::new(
                     &FROZEN_VALUE_DEVIATES,
                     [Target::new(Kind::Connection, id)],
                     "wire-number",
                     format!("wire {text}"),
-                    format!("wire number {text}: frozen, deviates from the rule ({derived})"),
                 )
                 .arg("number", text)
                 .arg("derived", if rule.is_empty() { "none" } else { "value" })

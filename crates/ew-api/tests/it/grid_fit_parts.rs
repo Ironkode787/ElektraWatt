@@ -88,7 +88,7 @@ fn on_one_another(s: &Session, folio: &str) -> Vec<String> {
         .findings
         .iter()
         .filter(|f| f.rule == "EW-CORE-077" && f.page.map(|p| p.as_uuid()) == page)
-        .map(|f| f.message.clone())
+        .map(|f| f.message().clone())
         .collect()
 }
 

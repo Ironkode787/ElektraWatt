@@ -51,7 +51,7 @@ fn num001(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-NUM-001")
-        .map(|f| f.message)
+        .map(|f| f.message())
         .collect()
 }
 

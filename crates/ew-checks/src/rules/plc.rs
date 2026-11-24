@@ -230,6 +230,7 @@ fn new_group_members(rule: &dyn Rule, before: &Q, after: &Q, touched: &Touched) 
 /// EW-PLC-001 "Address overlap" (doc 15 §4.5.1): conflict, o p, error, cfg (FR-PLC-044).
 pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
     id: "EW-PLC-001",
+    message: key!("rule-ew-plc-001"),
     code: "110001",
     title: "Address overlap",
     kind: RuleKind::Conflict,
@@ -296,7 +297,6 @@ impl Rule for AddressOverlap {
                     members.iter().map(|u| Target::new(Kind::Channel, u.channel)),
                     "overlap",
                     subject,
-                    message,
                 )
                 .arg("form", "overlap")
                 .arg("channels", shown)
@@ -321,11 +321,6 @@ impl Rule for AddressOverlap {
                         [Target::new(Kind::Channel, u.channel)],
                         "alignment",
                         channel.clone(),
-                        format!(
-                            "{channel}: the address {} does not start at a multiple of {align} bytes, the profile's \
-                             word alignment (an unverified convention)",
-                            u.text
-                        ),
                     )
                     .with_severity(Severity::Warning)
                     .arg("form", "alignment")
@@ -349,6 +344,7 @@ impl Rule for AddressOverlap {
 /// EW-PLC-002 "Address outside the module" (doc 15 §4.5.1): conflict, o r, error, module (FR-PLC-044).
 pub const OUTSIDE_MODULE: RuleMeta = RuleMeta {
     id: "EW-PLC-002",
+    message: key!("rule-ew-plc-002"),
     code: "110002",
     title: "Address outside the module",
     kind: RuleKind::Conflict,
@@ -394,18 +390,13 @@ impl Rule for OutsideModule {
             };
             let channel = channel_name(q, module, e.channel, e.number);
             let tag = full_tag(q, module, "module");
-            let (range, form) = if to > from {
-                (format!("bytes {from} to {} of area {area:?}", to - 1), "bytes")
-            } else {
-                (format!("no byte of area {area:?}"), "none")
-            };
+            let form = if to > from { "bytes" } else { "none" };
             out.push(
                 Finding::new(
                     &OUTSIDE_MODULE,
                     [Target::new(Kind::Channel, e.channel)],
                     "range",
                     channel.clone(),
-                    format!("{channel}: the address {text} is outside the I/O range of {tag} ({range})"),
                 )
                 .arg("channel", channel)
                 .arg("address", text.clone())
@@ -475,6 +466,7 @@ impl ModuleRange {
 /// EW-PLC-003 "Bit index out of range" (doc 15 §4.5.1): conflict, o r, error, module (FR-PLC-044).
 pub const BIT_OUT_OF_RANGE: RuleMeta = RuleMeta {
     id: "EW-PLC-003",
+    message: key!("rule-ew-plc-003"),
     code: "110003",
     title: "Bit index out of range",
     kind: RuleKind::Conflict,
@@ -524,9 +516,6 @@ impl Rule for BitOutOfRange {
                         [Target::new(Kind::Device, module)],
                         format!("start.{which}"),
                         tag.clone(),
-                        format!(
-                            "{tag}: the {which} start names bit {bit}, outside the {unit_bits} bits of a unit"
-                        ),
                     )
                     .arg("subject", tag.clone())
                     .arg("what", which)
@@ -547,9 +536,6 @@ impl Rule for BitOutOfRange {
                     [Target::new(Kind::Channel, *id)],
                     "address",
                     channel.clone(),
-                    format!(
-                        "{channel}: the manual address names bit {bit}, outside the {unit_bits} bits of a unit"
-                    ),
                 )
                 .arg("subject", channel)
                 .arg("what", "address")
@@ -567,6 +553,7 @@ impl Rule for BitOutOfRange {
 /// EW-PLC-007 "Duplicate symbol" (doc 15 §4.5.1): conflict, o p r, error, cfg (FR-PLC-016).
 pub const DUPLICATE_SYMBOL: RuleMeta = RuleMeta {
     id: "EW-PLC-007",
+    message: key!("rule-ew-plc-007"),
     code: "110007",
     title: "Duplicate symbol",
     kind: RuleKind::Conflict,
@@ -642,11 +629,6 @@ impl Rule for DuplicateSymbol {
                     channels.iter().map(|(_, id, _)| Target::new(Kind::Channel, *id)),
                     "symbol",
                     symbol.clone(),
-                    format!(
-                        "the symbol {symbol} is used by {} channels of configuration project {name}: {list}; give \
-                         each channel its own symbol",
-                        channels.len()
-                    ),
                 )
                 .arg("symbol", symbol)
                 .arg("count", channels.len().to_string())
@@ -668,6 +650,7 @@ impl Rule for DuplicateSymbol {
 /// EW-PLC-008 "Used channel without address" (doc 15 §4.5.1): completeness, o x r, warning, module (FR-PLC-044).
 pub const USED_WITHOUT_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-PLC-008",
+    message: key!("rule-ew-plc-008"),
     code: "110008",
     title: "Used channel without address",
     kind: RuleKind::Completeness,
@@ -709,18 +692,12 @@ impl Rule for UsedWithoutAddress {
                 continue;
             }
             let channel = channel_name(q, module, e.channel, e.number);
-            let (reason, why) = if module_cfg(q, module).is_none() {
-                (
-                    "station",
-                    "its module belongs to no PLC station; place a CPU first or attach the module to a station",
-                )
+            let reason = if module_cfg(q, module).is_none() {
+                "station"
             } else if e.address == ChannelAddr::Excluded {
-                ("excluded", "it is excluded from addressing; give it an address")
+                "excluded"
             } else {
-                (
-                    "other",
-                    "no address can be derived for it; check the module's start and its part's PLC section",
-                )
+                "other"
             };
             out.push(
                 Finding::new(
@@ -728,7 +705,6 @@ impl Rule for UsedWithoutAddress {
                     [Target::new(Kind::Channel, e.channel)],
                     "address",
                     channel.clone(),
-                    format!("{channel} is used but has no address: {why}"),
                 )
                 .arg("channel", channel)
                 .arg("reason", reason),
@@ -745,6 +721,7 @@ impl Rule for UsedWithoutAddress {
 /// supersedes EW-NUM-002 for addresses.
 pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
     id: "EW-PLC-012",
+    message: key!("rule-ew-plc-012"),
     code: "110012",
     title: "Binding differs from the part map",
     kind: RuleKind::Conflict,
@@ -838,12 +815,6 @@ impl Rule for DiffersFromMap {
                         ],
                         "binding",
                         channel.clone(),
-                        format!(
-                            "{channel} ({address}) drives solenoid {} of {valve}, which the position map of part \
-                             {part} assigns to {expected_name} ({expected_address}); rebind it to the map's channel, \
-                             or correct the part's PLC section",
-                            s.solenoid
-                        ),
                     )
                     .arg("form", "binding")
                     .arg("channel", channel)
@@ -856,8 +827,7 @@ impl Rule for DiffersFromMap {
                     .reading(&confidence);
                     if let Some(id) = expected_id {
                         f = f.with_fix(QuickFix {
-                            label: "Rebind to the map's channel".to_owned(),
-                            key: Some("fix-rebind-map-channel"),
+                            label: text!("fix-rebind-map-channel"),
                             command: "plc.bind_channel".to_owned(),
                             params: serde_json::json!({
                                 "channel": id.to_string(),
@@ -900,10 +870,6 @@ impl Rule for DiffersFromMap {
                     [Target::new(Kind::Channel, e.channel)],
                     "manual",
                     channel.clone(),
-                    format!(
-                        "{channel}: the manual address {text} differs from the derived address {derived}; set the \
-                         address to auto, or keep the deviation deliberately"
-                    ),
                 )
                 .arg("form", "manual")
                 .arg("channel", channel)
@@ -923,6 +889,7 @@ impl Rule for DiffersFromMap {
 /// EW-CORE-044 for module starts and channel addresses.
 pub const TBD_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-PLC-015",
+    message: key!("rule-ew-plc-015"),
     code: "110015",
     title: "Tbd address",
     kind: RuleKind::Completeness,
@@ -967,7 +934,6 @@ impl Rule for TbdAddress {
                             [Target::new(Kind::Device, module)],
                             format!("start.{which}"),
                             tag.clone(),
-                            format!("{tag}: the {which} start address is TBD; enter it before release"),
                         )
                         .arg("subject", tag.clone())
                         .arg("what", which),
@@ -985,7 +951,6 @@ impl Rule for TbdAddress {
                         [Target::new(Kind::Device, module), Target::new(Kind::Channel, *id)],
                         "address",
                         channel.clone(),
-                        format!("{channel}: the channel address is TBD; enter it before release"),
                     )
                     .arg("subject", channel)
                     .arg("what", "address"),
@@ -1002,6 +967,7 @@ impl Rule for TbdAddress {
 /// EW-PLC-018 "Module drawn with its channels unbound" (the rc.2 tutorials): conflict, o r, warning, module.
 pub const PINS_UNBOUND: RuleMeta = RuleMeta {
     id: "EW-PLC-018",
+    message: key!("rule-ew-plc-018"),
     code: "110018",
     title: "Module drawn with its channels unbound",
     kind: RuleKind::Conflict,
@@ -1050,15 +1016,10 @@ impl Rule for PinsUnbound {
                 [Target::new(Kind::Device, device)],
                 "module",
                 tag.clone(),
-                format!(
-                    "{tag} is drawn, but none of its channels is bound to its pin: its addresses stand at no pin and a \
-                     device wired to it is no channel's target; bind them"
-                ),
             )
             .arg("device", tag)
             .with_fix(QuickFix {
-                label: "Bind the channels to their pins".to_owned(),
-                key: Some("fix-plc-bind-pins"),
+                label: text!("fix-plc-bind-pins"),
                 command: "plc.bind_pins".to_owned(),
                 params: serde_json::json!({ "module": device.to_string() }),
             }),
@@ -1072,6 +1033,7 @@ impl Rule for PinsUnbound {
 /// EW-PLC-017 "Not a PLC module": conflict, o r, warning, module.
 pub const NOT_A_MODULE: RuleMeta = RuleMeta {
     id: "EW-PLC-017",
+    message: key!("rule-ew-plc-017"),
     code: "110017",
     title: "Not a PLC module",
     kind: RuleKind::Conflict,
@@ -1116,16 +1078,11 @@ impl Rule for NotAModule {
                 [Target::new(Kind::Device, device)],
                 "module",
                 tag.clone(),
-                format!(
-                    "{tag} sits in the PLC as a module, but its part {part} describes no PLC module; take it out of \
-                     the rack (a bus device joins a PLC as a station of its own)"
-                ),
             )
             .arg("device", tag)
             .arg("part", part)
             .with_fix(QuickFix {
-                label: "Take it out of the rack".to_owned(),
-                key: Some("fix-plc-take-out"),
+                label: text!("fix-plc-take-out"),
                 command: "plc.remove_from_rack".to_owned(),
                 params: serde_json::json!({ "device": device.to_string() }),
             }),

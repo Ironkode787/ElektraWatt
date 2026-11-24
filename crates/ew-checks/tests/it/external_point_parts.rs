@@ -87,12 +87,12 @@ fn core034_still_asks_for_the_cable_and_names_what_is_known() {
         .unwrap_or_else(|| panic!("{subjects:?}"));
     assert!(
         unknown
-            .message
+            .message()
             .starts_with("the external connection from a place not known to -1K3 has no cable: wire "),
         "{}",
-        unknown.message
+        unknown.message()
     );
-    assert_eq!(ew_checks::messages::render(unknown, "en-GB"), unknown.message);
+    assert_eq!(ew_checks::messages::render(unknown, "en-GB"), unknown.message());
     let nl = ew_checks::messages::render(unknown, "nl-NL");
     assert!(
         nl.starts_with("de externe verbinding van een onbekende plek naar -1K3 heeft geen kabel"),

@@ -27,6 +27,7 @@ pub struct GateInput {
 /// EW-REL-001 "Four eyes" (doc 15 §4.8): integrity, g, error, project.
 pub const FOUR_EYES: RuleMeta = RuleMeta {
     id: "EW-REL-001",
+    message: key!("rule-ew-rel-001"),
     code: "190001",
     title: "Four eyes",
     kind: RuleKind::Integrity,
@@ -41,6 +42,7 @@ pub const FOUR_EYES: RuleMeta = RuleMeta {
 /// EW-REL-002 "Stale committed computation" (doc 15 §4.8): integrity, g, error, project.
 pub const STALE_COMMITTED: RuleMeta = RuleMeta {
     id: "EW-REL-002",
+    message: key!("rule-ew-rel-002"),
     code: "190002",
     title: "Stale committed computation",
     kind: RuleKind::Integrity,
@@ -55,6 +57,7 @@ pub const STALE_COMMITTED: RuleMeta = RuleMeta {
 /// EW-REL-004 "Revision label order" (doc 15 §4.8): integrity, p g, error, project.
 pub const LABEL_ORDER: RuleMeta = RuleMeta {
     id: "EW-REL-004",
+    message: key!("rule-ew-rel-004"),
     code: "190004",
     title: "Revision label order",
     kind: RuleKind::Integrity,
@@ -94,33 +97,18 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
     let label = r.label.as_str();
     let subject = format!("revision {label}");
     let target = [Target::new(Kind::Revision, r.id)];
-    let finding = |disc: &str, message: String| {
-        Finding::new(&FOUR_EYES, target, disc, subject.clone(), message)
+    let finding = |disc: &str| {
+        Finding::new(&FOUR_EYES, target, disc, subject.clone())
             .arg("form", disc.to_owned())
             .arg("revision", label.to_owned())
     };
     let mut out = Vec::new();
     if r.author.is_none() {
-        out.push(finding(
-            "author",
-            format!("revision {label}: author not set; set it with Check ▸ Revision ▸ Set revision author…"),
-        ));
+        out.push(finding("author"));
     }
     match (&r.author, &r.checker) {
-        (_, None) => out.push(finding(
-            "checker",
-            format!("revision {label}: checker not set; the checker approves the revision"),
-        )),
-        (Some(a), Some(c)) if a == c => out.push(
-            finding(
-                "four-eyes",
-                format!(
-                    "revision {label}: the checker is the author ({}); four eyes need another party",
-                    role(c)
-                ),
-            )
-            .arg("role", role(c)),
-        ),
+        (_, None) => out.push(finding("checker")),
+        (Some(a), Some(c)) if a == c => out.push(finding("four-eyes").arg("role", role(c))),
         _ => {}
     }
     if !out.is_empty() {
@@ -128,17 +116,8 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
     }
     let digest = r.sign_off.as_ref().and_then(|s| s.content_digest);
     match (digest, input.content_digest) {
-        (None, _) => out.push(finding(
-            "sign-off",
-            format!("revision {label}: sign-off missing; the checker approves the saved revision"),
-        )),
-        (Some(signed), Some(saved)) if signed != saved => out.push(finding(
-            "stale",
-            format!(
-                "revision {label}: the sign-off does not match the saved content (edited after approval); approve it \
-                 again"
-            ),
-        )),
+        (None, _) => out.push(finding("sign-off")),
+        (Some(signed), Some(saved)) if signed != saved => out.push(finding("stale")),
         _ => {}
     }
     out
@@ -168,11 +147,6 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
                     [Target::new(Kind::Revision, r.id)],
                     "format",
                     format!("revision {}", r.label),
-                    format!(
-                        "revision {}: the label is not in the project's revision label format {}",
-                        r.label,
-                        format.pattern()
-                    ),
                 )
                 .arg("form", "format")
                 .arg("revision", r.label.to_string())
@@ -195,11 +169,6 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
                     [Target::new(Kind::Revision, open.id)],
                     "order",
                     format!("revision {}", open.label),
-                    format!(
-                        "revision {}: the open revision's label does not follow {} of revision {}; revision labels \
-                         increase, the open revision last",
-                        open.label, r.label, r.id
-                    ),
                 )
                 .arg("form", "order")
                 .arg("revision", open.label.to_string())

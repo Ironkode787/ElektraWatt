@@ -1249,7 +1249,7 @@ fix-mark-cp-unused = Mark not used
 fix-join-mark = Join the pin and the mark
 fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
-fix-blank-position = Blanking plate on position { $position }
+fix-blank-position = Blanking plate on position { $p0 }
 fix-draw-valves = Draw its valves in the valve terminal
 fix-plug-open-ports = Plug the open ports
 fix-text-style-minimum = Set to 1.2 mm
@@ -1391,3 +1391,7 @@ rule-ew-imp-206 =
 rule-ew-imp-207 =
     .title = Multi-level terminals folded
     .hint = Check the terminal's levels against the report.
+
+## Words another part of the program wrote: the store's integrity findings, the text an importer stored, an importer's quick fix
+
+words-as-written = { $p0 }

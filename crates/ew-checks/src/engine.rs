@@ -180,7 +180,8 @@ impl CheckReport {
                 self.rules.push(meta);
             }
             self.findings.push(
-                Finding::new(meta, [], item.location.clone(), item.location, item.message)
+                Finding::new(meta, [], item.location.clone(), item.location)
+                    .written(item.message)
                     .with_severity(item.severity),
             );
         }
@@ -445,31 +446,15 @@ fn run_rules(
             // implemented, or not enabled in this scheme and mode, was not evaluated (an info).
             let ran = evaluated.iter().any(|m| m.id == w.rule);
             let f = if ran {
-                Finding::new(
-                    meta081,
-                    target,
-                    id_part,
-                    format!("waiver {}", w.id),
-                    format!(
-                        "waiver {} for {} matches no finding; remove it or correct its target",
-                        w.id, w.rule
-                    ),
-                )
-                .arg("form", "unmatched")
-                .with_severity(mode.severity(meta081, meta081.severity))
+                Finding::new(meta081, target, id_part, format!("waiver {}", w.id))
+                    .arg("form", "unmatched")
+                    .with_severity(mode.severity(meta081, meta081.severity))
             } else {
                 Finding::new(
                     meta081,
                     target,
                     format!("not-evaluated{id_part}"),
                     format!("waiver {}", w.id),
-                    format!(
-                        "waiver {} for {} was not evaluated: the rule did not run in scheme {} ({} mode)",
-                        w.id,
-                        w.rule,
-                        scheme.name,
-                        mode.name()
-                    ),
                 )
                 .arg("form", "not-evaluated")
                 .arg("scheme", scheme.name.to_string())
@@ -558,6 +543,8 @@ mod tests {
 
     const PANICS: RuleMeta = RuleMeta {
         id: "EW-TERM-099",
+        // It reports nothing: it panics.
+        message: key!("rule-ew-core-083"),
         code: "001099",
         title: "Panics",
         kind: RuleKind::Conflict,
@@ -591,7 +578,7 @@ mod tests {
     fn printed(findings: &[Finding]) -> Vec<String> {
         findings
             .iter()
-            .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message))
+            .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message()))
             .collect()
     }
 
@@ -629,7 +616,7 @@ mod tests {
                 [Target::new(Kind::Device, Id::<()>::from_uuid(Uuid::from_u128(1)))]
             );
             assert_eq!(
-                f.message,
+                f.message(),
                 "rule EW-TERM-099 could not be evaluated for -?X1: it stopped with an internal error, so its findings \
                  there are missing; report the defect"
             );

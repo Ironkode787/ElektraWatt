@@ -96,9 +96,9 @@ fn pot003_cases() {
                     assert_eq!(f[0].discriminator, "fe:1", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1001)], "case {c}");
                     assert!(
-                        f[0].message.contains("is a functional earth (FE) pin"),
+                        f[0].message().contains("is a functional earth (FE) pin"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -146,9 +146,9 @@ fn pot004_cases() {
                     assert_eq!(f[0].severity, Severity::Error, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
                     assert!(
-                        f[0].message.contains("is green-yellow but carries"),
+                        f[0].message().contains("is green-yellow but carries"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -277,17 +277,17 @@ fn pot006_cases() {
                     assert_eq!(f[0].severity, Severity::Error, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2002)], "case {c}");
                     assert!(
-                        f[0].message
+                        f[0].message()
                             .contains("below the 2.5 mm² required for the 2.5 mm² line conductors"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                     // P2-4: the shipped table is `verified = false`, and the finding says so.
                     assert!(
-                        f[0].message
+                        f[0].message()
                             .contains("(the sizing table is not verified against the standard)"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -347,16 +347,16 @@ fn pot008_pe_cases() {
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].discriminator, "island", "case {c}");
                     assert_eq!(
-                        f[0].message,
+                        f[0].message(),
                         "The protective earth at -1K4097:1 on page 1 reaches neither the incoming PE nor an earth \
                          symbol of +A. Connect it to the PE rail or to an earth symbol, or put its PE terminal on a \
                          bonded rail.",
                         "case {c}"
                     );
                     assert!(
-                        f[1].message.contains(" at -1K4099:1 on page 1 "),
+                        f[1].message().contains(" at -1K4099:1 on page 1 "),
                         "case {c}: {}",
-                        f[1].message
+                        f[1].message()
                     );
                     assert!(
                         f[0].targets.contains(&target(Kind::StructureNode, LOC))
@@ -378,9 +378,9 @@ fn pot008_pe_cases() {
                 |c, f| {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert!(
-                        f[0].message.contains(" at -1K4099:1 on page 1 "),
+                        f[0].message().contains(" at -1K4099:1 on page 1 "),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -448,7 +448,7 @@ fn pot009_cases() {
                     assert_eq!(warning.severity, Severity::Warning, "case {c}");
                     assert_eq!(warning.discriminator, "1", "case {c}");
                     assert_eq!(
-                        warning.message,
+                        warning.message(),
                         "-1K4097:2 has no wire. Draw one to it, or right-click it and choose Mark not used.",
                         "case {c}"
                     );
@@ -458,9 +458,9 @@ fn pot009_cases() {
                     let info = info.unwrap_or_else(|| panic!("case {c}: the unused CP of -K4098"));
                     assert_eq!(info.severity, Severity::Info, "case {c}");
                     assert!(
-                        info.message.contains("marked not used"),
+                        info.message().contains("marked not used"),
                         "case {c}: {}",
-                        info.message
+                        info.message()
                     );
                 },
             ),
@@ -568,10 +568,10 @@ fn pot013_cases() {
                     assert_eq!(f[0].discriminator, "pair:0-1", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1003)], "case {c}");
                     assert!(
-                        f[0].message.contains("opens the neutral N → ")
-                            && f[0].message.contains("stays connected to L)"),
+                        f[0].message().contains("opens the neutral N → ")
+                            && f[0].message().contains("stays connected to L)"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -597,9 +597,9 @@ fn pot013_cases() {
                     assert_eq!(f[0].severity, Severity::Error, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1003)], "case {c}");
                     assert!(
-                        f[0].message.contains("K4098") && f[0].message.contains("stays connected to L)"),
+                        f[0].message().contains("K4098") && f[0].message().contains("stays connected to L)"),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),
@@ -623,7 +623,7 @@ fn pot013_cases() {
                 |c, f| {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert_eq!(f[0].severity, Severity::Info, "case {c}");
-                    assert!(f[0].message.contains("N-isolating"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message().contains("N-isolating"), "case {c}: {}", f[0].message());
                 },
             ),
         ],
@@ -676,7 +676,7 @@ fn pot016_cases() {
                     assert_eq!(f[0].discriminator, "csa", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
                     assert_eq!(
-                        f[0].message,
+                        f[0].message(),
                         "Wire -1W1/1 has its cross-section 1 mm² set by hand, which it gets anyway. Remove that \
                          setting.",
                         "case {c}"
@@ -717,7 +717,7 @@ fn pot017_cases() {
                     assert_eq!(f[0].discriminator, "names", "case {c}");
                     assert_eq!(f[0].subject, "P2", "case {c}");
                     assert_eq!(
-                        f[0].message,
+                        f[0].message(),
                         "P2 has more than one name: P2, P10 are wired together. Give them one name, or take away \
                          the wire that joins them.",
                         "case {c}"
@@ -812,13 +812,13 @@ fn pot021_cases() {
                         assert_eq!(x.targets, vec![target(Kind::Function, n)], "case {c}");
                     }
                     assert!(
-                        f[0].message.starts_with("-1K4098:2 is on ")
-                            && f[0].message.ends_with(
+                        f[0].message().starts_with("-1K4098:2 is on ")
+                            && f[0].message().ends_with(
                                 "which reaches no supply: the load is fed but not returned; connect it to the \
                                  return conductor (0 V, N)"
                             ),
                         "case {c}: {}",
-                        f[0].message
+                        f[0].message()
                     );
                 },
             ),

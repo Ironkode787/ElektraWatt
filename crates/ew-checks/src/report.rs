@@ -37,27 +37,21 @@ fn totals(report: &CheckReport) -> String {
     )
 }
 
-/// The report with every finding's message rendered in `lang` ([`crate::messages::render`]: the rule's pattern of
-/// that language where it exists, the en-GB message otherwise), for `ew check --lang`. The order, the
-/// counts and every other member stay as they are; in en-GB the report is unchanged.
-#[must_use]
-pub fn localise(report: &CheckReport, lang: &str) -> CheckReport {
-    let mut out = report.clone();
-    for f in &mut out.findings {
-        f.message = crate::messages::render(f, lang);
-    }
-    out
-}
-
 /// The report as plain text: one line `<severity> <rule> <code> <subject>: <message>` per finding, in report
-/// order (a waived finding gets a `[waived: <id>]` suffix), then the totals line.
-pub fn to_text(report: &CheckReport) -> String {
+/// order (a waived finding gets a `[waived: <id>]` suffix), then the totals line. Each message is rendered in `lang`
+/// ([`crate::messages::render`]: the rule's pattern of that language where it exists, the en-GB message otherwise), for
+/// `ew check --lang`; the order and the counts are the report's.
+pub fn to_text(report: &CheckReport, lang: &str) -> String {
     let mut out = String::new();
     for f in &report.findings {
         let _ = write!(
             out,
             "{} {} {} {}: {}",
-            f.severity, f.rule, f.code, f.subject, f.message
+            f.severity,
+            f.rule,
+            f.code,
+            f.subject,
+            crate::messages::render(f, lang)
         );
         if let FindingState::Waived { waiver } = &f.state {
             let _ = write!(out, " [waived: {waiver}]");
@@ -76,8 +70,8 @@ fn cell(s: &str) -> String {
         .replace(['\n', '\r'], " ")
 }
 
-/// The report as Markdown.
-pub fn to_markdown(report: &CheckReport) -> String {
+/// The report as Markdown, each message rendered in `lang` (as [`to_text`]).
+pub fn to_markdown(report: &CheckReport, lang: &str) -> String {
     let mut out = String::new();
     let _ = writeln!(
         out,
@@ -124,7 +118,7 @@ pub fn to_markdown(report: &CheckReport) -> String {
                 cell(f.rule),
                 sev,
                 cell(&f.subject),
-                cell(&f.message)
+                cell(&crate::messages::render(f, lang))
             );
         }
     }
@@ -276,7 +270,7 @@ pub struct ResultFix {
     pub params: serde_json::Value,
 }
 
-fn finding_result(f: &Finding) -> ResultFinding {
+fn finding_result(f: &Finding, lang: &str) -> ResultFinding {
     let (state, waiver) = match &f.state {
         FindingState::Open => (ResultState::Open, None),
         FindingState::Waived { waiver } => (ResultState::Waived, Some(waiver.clone())),
@@ -292,7 +286,7 @@ fn finding_result(f: &Finding) -> ResultFinding {
         state,
         waiver,
         subject: f.subject.clone(),
-        message: f.message.clone(),
+        message: crate::messages::render(f, lang),
         page: f.page.map(|p| p.to_string()),
         targets: f
             .targets
@@ -305,15 +299,15 @@ fn finding_result(f: &Finding) -> ResultFinding {
         discriminator: f.discriminator.clone(),
         fingerprint: f.fingerprint.to_string(),
         fix: f.fix.as_ref().map(|fix| ResultFix {
-            label: fix.label.clone(),
+            label: crate::messages::fix_label(fix, crate::messages::DEFAULT_LANGUAGE),
             command: fix.command.clone(),
             params: fix.params.clone(),
         }),
     }
 }
 
-/// The report as its typed JSON result ([`CheckResult`]).
-pub fn to_result(report: &CheckReport) -> CheckResult {
+/// The report as its typed JSON result ([`CheckResult`]), each message rendered in `lang` (as [`to_text`]).
+pub fn to_result(report: &CheckReport, lang: &str) -> CheckResult {
     CheckResult {
         schema: JSON_SCHEMA.to_owned(),
         scheme: report.scheme.to_owned(),
@@ -338,14 +332,15 @@ pub fn to_result(report: &CheckReport) -> CheckResult {
                 title: r.title.to_owned(),
             })
             .collect(),
-        findings: report.findings.iter().map(finding_result).collect(),
+        findings: report.findings.iter().map(|f| finding_result(f, lang)).collect(),
         notices: Vec::new(),
     }
 }
 
-/// The report as one JSON object: [`to_result`] as a JSON value, members in byte-wise key order.
+/// The report as one JSON object: [`to_result`] in en-GB as a JSON value, members in byte-wise key order.
 pub fn to_json(report: &CheckReport) -> serde_json::Value {
-    serde_json::to_value(to_result(report)).unwrap_or(serde_json::Value::Null)
+    serde_json::to_value(to_result(report, crate::messages::DEFAULT_LANGUAGE))
+        .unwrap_or(serde_json::Value::Null)
 }
 
 #[cfg(test)]
@@ -385,20 +380,13 @@ mod tests {
     }
 
     fn finding(subject: &str, message: &str) -> Finding {
-        Finding::new(
-            &DUPLICATE_DESIGNATION,
-            [target(1), target(2)],
-            "d",
-            subject,
-            message,
-        )
+        Finding::new(&DUPLICATE_DESIGNATION, [target(1), target(2)], "d", subject).written(message)
     }
 
     #[test]
     fn json_shape() {
         let f = finding("-X1:1", "duplicate").with_fix(QuickFix {
-            label: "Renumber".into(),
-            key: None,
+            label: text!("words-as-written", "Renumber"),
             command: "terminal.designate".into(),
             params: serde_json::json!({ "n": 3 }),
         });
@@ -431,7 +419,7 @@ mod tests {
 
     #[test]
     fn markdown_escapes_and_ends_with_disclaimer() {
-        let md = to_markdown(&report(vec![finding("a|b", "x | y\nz")]));
+        let md = to_markdown(&report(vec![finding("a|b", "x | y\nz")]), "en-GB");
         assert!(md.starts_with("# Check report: pre-delivery (release)\n"), "{md}");
         assert!(md.contains("1 errors, 0 warnings, 0 infos, 0 waived"), "{md}");
         assert!(
@@ -451,29 +439,29 @@ mod tests {
         f.state = FindingState::Waived { waiver: "W-1".into() };
         let r = report(vec![f]);
         assert_eq!(r.exit_code(), 0);
-        let md = to_markdown(&r);
+        let md = to_markdown(&r, "en-GB");
         assert!(md.contains("waived (W-1)"), "{md}");
         assert!(md.contains("| EW-TERM-002 | 001002 | error | 0 | 1 |"), "{md}");
         let v = to_json(&r);
         assert_eq!(v["findings"][0]["state"], "waived");
         assert_eq!(v["findings"][0]["waiver"], "W-1");
         assert_eq!(v["exit_code"], 0);
-        assert!(to_text(&r).contains("[waived: W-1]"));
+        assert!(to_text(&r, "en-GB").contains("[waived: W-1]"));
     }
 
     #[test]
     fn empty_report() {
         let r = report(Vec::new());
-        let md = to_markdown(&r);
+        let md = to_markdown(&r, "en-GB");
         assert!(md.contains("No findings."), "{md}");
         assert!(md.contains("0 errors, 0 warnings, 0 infos, 0 waived"), "{md}");
         assert_eq!(to_json(&r)["findings"], serde_json::json!([]));
-        assert_eq!(to_text(&r), "0 errors, 0 warnings, 0 infos, 0 waived\n");
+        assert_eq!(to_text(&r, "en-GB"), "0 errors, 0 warnings, 0 infos, 0 waived\n");
     }
 
     #[test]
     fn text_lines() {
-        let t = to_text(&report(vec![finding("-X1:1", "duplicate")]));
+        let t = to_text(&report(vec![finding("-X1:1", "duplicate")]), "en-GB");
         assert_eq!(
             t,
             "error EW-TERM-002 001002 -X1:1: duplicate\n1 errors, 0 warnings, 0 infos, 0 waived\n"

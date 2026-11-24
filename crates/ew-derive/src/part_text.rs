@@ -36,7 +36,6 @@ use ew_ids::{Id, v5};
 use ew_schema::{Confidence, Device, FnDef, FnRole, LibCopy, LibRef, Manufacturer, Part, TechVal, Unit};
 
 use crate::Q;
-use crate::items::neutral;
 
 /// The copy ID of the embedded copy that a `LibRef` resolves to: `v5(NS_LIBCOPY, library ‖ item)`.
 fn copy_of<T>(r: &LibRef) -> Id<T> {
@@ -88,7 +87,7 @@ pub fn manufacturer_copy(q: &Q, m: &LibRef) -> Option<Arc<LibCopy<Manufacturer>>
 /// manufacturer copies keeps on the reference; else empty.
 pub fn manufacturer_name(q: &Q, m: &LibRef) -> String {
     if let Some(copy) = manufacturer_copy(q, m) {
-        return neutral(&copy.item.name);
+        return copy.item.name.neutral_or_first().unwrap_or_default().to_owned();
     }
     m.extra
         .get("key")

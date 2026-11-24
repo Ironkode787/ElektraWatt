@@ -41,9 +41,9 @@ fn rds004_cases() {
                     "case {c}"
                 );
                 assert!(
-                    f[0].message.ends_with("is printed by 2 devices"),
+                    f[0].message().ends_with("is printed by 2 devices"),
                     "case {c}: {}",
-                    f[0].message
+                    f[0].message()
                 );
                 assert!(f[0].subject.contains("K1"), "case {c}: {}", f[0].subject);
             }),

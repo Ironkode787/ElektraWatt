@@ -80,6 +80,7 @@ fn external_end(q: &Q, f: Id<Function>) -> Option<(String, String)> {
 /// FR-CHK-034); supersedes EW-CORE-044 for bus addresses.
 pub const BUS_ADDRESS: RuleMeta = RuleMeta {
     id: "EW-BUS-001",
+    message: key!("rule-ew-bus-001"),
     code: "111001",
     title: "Bus address missing or duplicate",
     kind: RuleKind::Completeness,
@@ -133,7 +134,6 @@ impl Rule for BusAddress {
                             [Target::new(Kind::Function, *f)],
                             "address",
                             name.clone(),
-                            format!("{name}: the station address is TBD; enter it before release"),
                         )
                         .arg("form", "tbd")
                         .arg("end", end)
@@ -170,10 +170,6 @@ impl Rule for BusAddress {
                     ports.iter().map(|f| Target::new(Kind::Function, *f)),
                     "duplicate",
                     ports_text.clone(),
-                    format!(
-                        "{ports_text}: station address {address} is used more than once in logical net {net_name}; \
-                         give each port its own address"
-                    ),
                 )
                 .arg("form", "duplicate")
                 .arg("named", if list.is_empty() { "none" } else { "some" })
@@ -201,6 +197,7 @@ impl Rule for BusAddress {
 /// EW-BUS-004 "Termination" (doc 15 §4.5.2): conflict, o r, error (an unknown end: info), pnet (FR-BUS-016).
 pub const TERMINATION: RuleMeta = RuleMeta {
     id: "EW-BUS-004",
+    message: key!("rule-ew-bus-004"),
     code: "111004",
     title: "Termination",
     kind: RuleKind::Conflict,
@@ -327,10 +324,6 @@ impl Rule for Termination {
                             [Target::new(Kind::Function, end)],
                             "external",
                             name.clone(),
-                            format!(
-                                "{name}: the termination at the external end is unknown; check that the partner \
-                                 terminates the segment"
-                            ),
                         )
                         .with_severity(Severity::Info)
                         .arg("form", "external")
@@ -360,10 +353,6 @@ impl Rule for Termination {
                                 [Target::new(Kind::Function, end)],
                                 "missing",
                                 name.clone(),
-                                format!(
-                                    "{name}: no terminating element at this segment end; terminate the segment \
-                                     here"
-                                ),
                             )
                             .arg("form", "missing")
                             .arg("end", words)
@@ -375,26 +364,11 @@ impl Rule for Termination {
             for (i, (f, state)) in ports.iter().enumerate() {
                 let Some(state) = state else { continue };
                 let at_end = claimed.contains(&i);
-                let (discriminator, form, severity, text) = match (state, at_end) {
+                let (discriminator, form, severity) = match (state, at_end) {
                     (OnOff::On, true) | (OnOff::Off, false) => continue,
-                    (OnOff::Off, true) => (
-                        "end",
-                        "end",
-                        Severity::Error,
-                        "the termination is off at the segment end; switch it on",
-                    ),
-                    (OnOff::On, false) => (
-                        "middle",
-                        "middle",
-                        Severity::Error,
-                        "the termination is on inside the segment; switch it off",
-                    ),
-                    (OnOff::Unknown(_), _) => (
-                        "unknown",
-                        "unknown",
-                        Severity::Info,
-                        "the termination state is of a newer format; check it",
-                    ),
+                    (OnOff::Off, true) => ("end", "end", Severity::Error),
+                    (OnOff::On, false) => ("middle", "middle", Severity::Error),
+                    (OnOff::Unknown(_), _) => ("unknown", "unknown", Severity::Info),
                 };
                 let (name, words, port) = end_words(q, *f);
                 out.push(
@@ -403,7 +377,6 @@ impl Rule for Termination {
                         [Target::new(Kind::Function, *f)],
                         discriminator,
                         name.clone(),
-                        format!("{name}: {text}"),
                     )
                     .with_severity(severity)
                     .arg("form", form)

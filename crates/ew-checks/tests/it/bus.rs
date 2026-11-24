@@ -107,7 +107,7 @@ fn ew_bus_004_reports_an_end_off_and_a_middle_on() {
     let f = findings_of(&line(ports).build(), "EW-BUS-004");
     assert_eq!(rows(&f), [row(Severity::Error, "end", NAME_C)], "{f:#?}");
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         format!("{NAME_C}: the termination is off at the segment end; switch it on")
     );
     assert_eq!(f[0].targets.len(), 1);
@@ -149,7 +149,7 @@ fn ew_bus_001_reports_a_tbd_address_and_supersedes_ew_core_044() {
     let f = findings_of(&m, "EW-BUS-001");
     assert_eq!(rows(&f), [row(Severity::Error, "address", NAME_B)], "{f:#?}");
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         format!("{NAME_B}: the station address is TBD; enter it before release")
     );
     assert!(findings_of(&m, "EW-CORE-044").is_empty(), "superseded");
@@ -165,7 +165,7 @@ fn ew_bus_001_reports_a_duplicate_address_once() {
     assert_eq!(f[0].discriminator, "duplicate");
     assert_eq!(f[0].targets.len(), 2);
     assert_eq!(
-        f[0].message,
+        f[0].message(),
         format!(
             "{NAME_A}, {NAME_C}: station address 1 is used more than once in logical net DP; give each port its own \
              address"

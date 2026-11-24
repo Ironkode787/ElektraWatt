@@ -48,6 +48,9 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
+// `TEXTS`, `KEYS`, `SOURCES`, `text!` and `key!`, before the modules that name a key.
+ew_l10n::texts!(crate);
+
 mod assembly;
 mod bom;
 mod bond_carrier;
@@ -89,7 +92,7 @@ mod stitch;
 mod strip_bridges;
 mod structure;
 mod tag;
-mod text;
+pub mod text;
 mod text_frame;
 mod title_block;
 mod toc;
@@ -127,8 +130,8 @@ pub use ip::{IpInfoOf, IpNotes, IpPairing, IpPairingQ};
 pub use items::{
     BINDABLE, CableMark, IpStructure, RepStructureBox, SYMBOL_BINDABLE, bound_text, box_caption, cable_mark,
     cable_size_text, connection_marker, connection_number, effective_marker_text, free_text, group_marker,
-    grouped_connections, live_connections, marker_mode, neutral, outline_contains, shows_marker,
-    stale_marker_notes, strips_named_on,
+    grouped_connections, live_connections, marker_mode, outline_contains, shows_marker, stale_marker_notes,
+    strips_named_on,
 };
 pub use joins::{JoinWiring, cp_label, wire_join};
 pub use links::{
@@ -166,7 +169,7 @@ pub use names::{
     potential_named, ranked_defs,
 };
 pub use nets::{CpRef, NetId, PageIpNets, PageLocalNets, ZeroVoltIps};
-pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
+pub use note::{DeriveNote, EW_CORE_018, NoteFact, NoteSeverity, SchemeIssue};
 pub use numbering::{WireNumber, WireNumbers, orient_wire};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,

@@ -66,9 +66,8 @@ pub struct PreventViolation {
     pub message: String,
     /// The records involved.
     pub keys: Vec<AnyKey>,
-    /// The finding's message arguments, by Fluent variable name, from which the window renders the rule's message
-    /// in its language; empty for a hook without such a catalogue.
-    pub args: Vec<(&'static str, String)>,
+    /// The finding by key, which the window renders in its language; `None` for a hook without such a catalogue.
+    pub text: Option<ew_l10n::Text>,
 }
 
 /// Evaluates prevent rules on a candidate snapshot after the structural invariants passed.

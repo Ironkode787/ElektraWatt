@@ -8,6 +8,7 @@ use std::fmt;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{AnyId, Kind, Page};
+use ew_l10n::{Text, TextArg};
 use sha2::{Digest, Sha256};
 
 use crate::rule::RuleMeta;
@@ -112,11 +113,9 @@ impl Target {
 /// (doc 15 §2.6, ADR-0008).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct QuickFix {
-    /// The label, in English: the CLI's and the JSON's text.
-    pub label: String,
-    /// The Fluent message of the label in the rule messages (`fix-…`, [`crate::messages::fix_label`]), the
-    /// window's text; `None` for a fix an importer proposed, whose label is shown as written.
-    pub key: Option<&'static str>,
+    /// The label by key (`fix-…` of the rule messages; the words as written for a fix an importer proposed): its
+    /// English is the CLI's and the JSON's text, [`crate::messages::fix_label`] its words in a language.
+    pub label: Text,
     /// The command name from the catalogue, for example `terminal.designate`.
     pub command: String,
     /// The command's parameters.
@@ -147,13 +146,11 @@ pub struct Finding {
     pub subject: String,
     /// The page the finding is shown on, if any.
     pub page: Option<Id<Page>>,
-    /// The message: the en-GB text, as the rule prints it (rendered when the rule ran).
-    pub message: String,
-    /// The message's typed arguments, by Fluent variable name (doc 15 §3.8): the printed values the
-    /// rule's pattern in `texts/<lang>/rules.ftl` renders the text from in another language
-    /// ([`crate::messages::render`]). Empty for a rule whose messages have no pattern yet; the en-GB pattern renders
-    /// [`message`](Self::message) from them byte for byte.
-    pub args: Vec<(&'static str, String)>,
+    /// The message by key (doc 15 §3.8): the key of the rule's pattern in `texts/<lang>/rules.ftl` ([`RuleMeta::message`])
+    /// with the arguments it reads by name, the printed values (derived tags, names and quantities as text, rendered
+    /// when the rule ran) and words by key. [`message`](Self::message) is its en-GB rendering,
+    /// [`crate::messages::render`] its rendering in a language.
+    pub text: Text,
     /// A quick fix, where the rule offers one.
     pub fix: Option<QuickFix>,
     /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, FT-323's marker,
@@ -174,7 +171,6 @@ impl Finding {
         targets: impl IntoIterator<Item = Target>,
         discriminator: impl Into<String>,
         subject: impl Into<String>,
-        message: impl Into<String>,
     ) -> Finding {
         let mut targets: Vec<Target> = targets.into_iter().collect();
         targets.sort();
@@ -191,8 +187,11 @@ impl Finding {
             discriminator,
             subject: subject.into(),
             page: None,
-            message: message.into(),
-            args: Vec::new(),
+            text: Text::checked_by_macro(
+                rule.message,
+                crate::text_english(rule.message).unwrap_or("?"),
+                Vec::new(),
+            ),
             fix: None,
             unverified_data: false,
             origin: None,
@@ -223,15 +222,19 @@ impl Finding {
         self
     }
 
-    /// The same finding with the message argument `name` (a Fluent variable of the rule's pattern) set to `value`; a
-    /// second value of one name replaces the first.
+    /// The same finding with the message argument `name` (a Fluent variable of the rule's pattern) set to `value`: a
+    /// printed value, a number, words by key or a list of them; a second value of one name replaces the first.
     #[must_use]
-    pub fn arg(mut self, name: &'static str, value: impl Into<String>) -> Finding {
-        let value = value.into();
-        match self.args.iter_mut().find(|(k, _)| *k == name) {
-            Some(slot) => slot.1 = value,
-            None => self.args.push((name, value)),
-        }
+    pub fn arg(mut self, name: &'static str, value: impl Into<TextArg>) -> Finding {
+        self.text = self.text.with(name, value);
+        self
+    }
+
+    /// The same finding worded by `words` as another part of the program wrote them (the store's integrity findings,
+    /// the text an importer stored in the project), in every language.
+    #[must_use]
+    pub fn written(mut self, words: impl Into<String>) -> Finding {
+        self.text = text!("words-as-written", words.into());
         self
     }
 
@@ -252,6 +255,11 @@ impl Finding {
         self
     }
 
+    /// The message: the en-GB rendering of [`text`](Self::text), as `ew check` prints it.
+    pub fn message(&self) -> String {
+        crate::messages::render(self, crate::messages::DEFAULT_LANGUAGE)
+    }
+
     /// Whether the finding is open (not waived).
     pub fn is_open(&self) -> bool {
         self.state == FindingState::Open
@@ -262,20 +270,28 @@ impl Finding {
     /// order that follows the project's content: the fingerprint follows record IDs, which are random in a new
     /// project, so it decides only between two findings that print alike.
     pub fn order_cmp(&self, other: &Finding) -> std::cmp::Ordering {
+        self.order_by(&self.message(), other, &other.message())
+    }
+
+    /// [`order_cmp`](Self::order_cmp) with the two messages rendered.
+    fn order_by(&self, message: &str, other: &Finding, other_message: &str) -> std::cmp::Ordering {
         self.code
             .cmp(other.code)
             .then_with(|| natural_cmp(&self.subject, &other.subject))
             .then_with(|| self.subject.cmp(&other.subject))
-            .then_with(|| self.message.cmp(&other.message))
+            .then_with(|| message.cmp(other_message))
             .then_with(|| self.fingerprint.cmp(&other.fingerprint))
             .then_with(|| self.rule.cmp(other.rule))
     }
 }
 
-/// Sorts findings in the canonical order ([`Finding::order_cmp`]) and drops exact duplicates.
+/// Sorts findings in the canonical order ([`Finding::order_cmp`]), each message rendered once, and drops exact
+/// duplicates.
 pub fn sort_findings(findings: &mut Vec<Finding>) {
-    findings.sort_by(Finding::order_cmp);
-    findings.dedup();
+    let mut keyed: Vec<(String, Finding)> = findings.drain(..).map(|f| (f.message(), f)).collect();
+    keyed.sort_by(|(am, a), (bm, b)| a.order_by(am, b, bm));
+    keyed.dedup_by(|(_, a), (_, b)| a == b);
+    findings.extend(keyed.into_iter().map(|(_, f)| f));
 }
 
 #[cfg(test)]

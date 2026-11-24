@@ -525,7 +525,7 @@ impl ShellModel {
                 if let Some(f) = report
                     .findings
                     .iter()
-                    .find(|f| f.rule == chip.rule && f.message == chip.message)
+                    .find(|f| f.rule == chip.rule && f.message() == chip.message)
                 {
                     chip.message = ew_api::checks::messages::render(f, lang);
                 }

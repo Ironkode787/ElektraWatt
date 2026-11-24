@@ -610,7 +610,7 @@ impl Session {
         }
         match self.libraries().resolve(r) {
             Ok(LibDocument::Manufacturer(c)) => {
-                let name = ew_derive::neutral(&c.item.name);
+                let name = c.item.name.neutral_or_first().unwrap_or_default().to_owned();
                 if name.is_empty() {
                     c.item.key.as_str().to_owned()
                 } else {

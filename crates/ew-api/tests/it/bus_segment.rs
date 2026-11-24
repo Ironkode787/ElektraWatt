@@ -206,11 +206,11 @@ fn ac31_the_bus_checks_on_the_sample() {
         .expect("the finding");
     assert_eq!(
         ew_api::checks::messages::format(finding, "en-GB").as_deref(),
-        Some(finding.message.as_str())
+        Some(finding.message().as_str())
     );
     assert_ne!(
         ew_api::checks::messages::render(finding, "nl-NL"),
-        finding.message,
+        finding.message(),
         "worded in Dutch"
     );
 }

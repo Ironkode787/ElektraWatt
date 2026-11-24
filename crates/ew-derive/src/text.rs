@@ -3,9 +3,16 @@
 
 //! How a value of the domain is printed as a string that no language changes (doc 04 §3.4): one function per value.
 //! Where two places print a value differently, both forms stand here side by side under names that say the
-//! difference, and each caller keeps the form it had.
+//! difference, and each caller keeps the form it had. The word for a kind of the domain is a [`Text`] by key of this
+//! crate's text files (`texts/<language>/words.ftl`, architecture §18), which the checks, the lists and the session
+//! print; [`in_languages`] renders one in every language of the files as the multi-language text the lists print.
 
-use ew_schema::{AddrValue, ColourCode, ColourSpec, Csa, PotentialType};
+use std::sync::OnceLock;
+
+use ew_l10n::render::{Language, OnError};
+use ew_l10n::{Text, TextArg};
+use ew_mltext::MlText;
+use ew_schema::{AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, LineKind, PotentialType};
 use ew_units::{Dec3, Nm};
 
 use crate::bus::net_address_text;
@@ -229,4 +236,82 @@ pub fn potential_type_sql(t: &PotentialType) -> &'static str {
         PotentialType::Unknown(_) => "other",
         other => potential_type_text(other),
     }
+}
+
+/// The languages of this crate's text files.
+const LANGUAGES: &[&str] = &["en-GB", "nl-NL"];
+
+/// A port's role in words ("working").
+pub fn port_role(role: &FluidPortRole) -> Text {
+    match role {
+        FluidPortRole::Supply1 => text!("port-role-supply"),
+        FluidPortRole::Working2 | FluidPortRole::Working4 => text!("port-role-working"),
+        FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5 => text!("port-role-exhaust"),
+        FluidPortRole::Pilot10 | FluidPortRole::Pilot12 | FluidPortRole::Pilot14 => text!("port-role-pilot"),
+        FluidPortRole::PilotExhaust82 | FluidPortRole::PilotExhaust84 => text!("port-role-pilot-exhaust"),
+        FluidPortRole::ExternalPilot => text!("port-role-external-pilot"),
+        FluidPortRole::Consumer => text!("port-role-consumer"),
+        FluidPortRole::Sensing => text!("port-role-sensing"),
+        FluidPortRole::Generic | FluidPortRole::Unknown(_) => text!("port-role-other"),
+    }
+}
+
+/// A line kind in words ("pilot").
+pub fn line_kind(kind: &LineKind) -> Text {
+    match kind {
+        LineKind::Working => text!("line-kind-working"),
+        LineKind::Pilot => text!("line-kind-pilot"),
+        LineKind::Exhaust => text!("line-kind-exhaust"),
+        LineKind::Drain => text!("line-kind-drain"),
+        LineKind::Flexible => text!("line-kind-flexible"),
+        LineKind::Unknown(_) => text!("line-kind-other"),
+    }
+}
+
+/// A tube by its two ends (`-201U3-Q1:2 → -203Q1:A`).
+pub fn tube_ends(from: impl Into<TextArg>, to: impl Into<TextArg>) -> Text {
+    let (from, to): (TextArg, TextArg) = (from.into(), to.into());
+    text!("tube-ends", from, to)
+}
+
+/// A junction as the end of a tube ("tee").
+pub fn tube_end_junction() -> Text {
+    text!("tube-end-junction")
+}
+
+/// The vacuum a vacuum generator makes from the medium `name` ("vacuum (from compressed air 6 bar)").
+pub fn medium_vacuum(name: &MlText) -> Text {
+    text!("medium-vacuum", TextArg::Ml(name.clone()))
+}
+
+/// The air a valve vents ("exhaust").
+pub fn medium_exhaust() -> Text {
+    text!("medium-exhaust")
+}
+
+/// A PLC channel by its number and its module's tag ("channel 1 of -201U3").
+pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>) -> Text {
+    let (number, module): (TextArg, TextArg) = (number.into(), module.into());
+    text!("channel-of-module", number, module)
+}
+
+/// `text` in every language of this crate's text files, as the lists print a word of the program in the project's
+/// language.
+pub fn in_languages(text: &Text) -> MlText {
+    static BUNDLES: OnceLock<Vec<Language>> = OnceLock::new();
+    let bundles = BUNDLES.get_or_init(|| {
+        LANGUAGES
+            .iter()
+            .map(|tag| {
+                let sources = crate::SOURCES.iter().filter(|(l, _)| l == tag).map(|(_, s)| *s);
+                Language::new(tag, sources, &[], false)
+            })
+            .collect()
+    });
+    MlText::from_langs(LANGUAGES.iter().zip(bundles).map(|(tag, language)| {
+        let words = language
+            .text(text, OnError::Keep)
+            .unwrap_or_else(|| text.to_string());
+        (tag.parse().expect("a language tag"), words)
+    }))
 }

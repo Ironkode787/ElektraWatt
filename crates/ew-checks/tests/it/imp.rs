@@ -60,7 +60,7 @@ fn the_entries_of_a_lineage_s_last_run_are_findings_of_their_codes() {
         (Severity::Error, "folio 101, B2")
     );
     assert_eq!(
-        kept[0].fix.as_ref().map(|f| f.label.as_str()),
+        kept[0].fix.as_ref().map(|f| f.label.to_string()).as_deref(),
         Some("Unfreeze the tag")
     );
     let font = release_findings_of(&m, "EW-IMP-006");

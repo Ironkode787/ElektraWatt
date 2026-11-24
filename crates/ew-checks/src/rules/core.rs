@@ -23,6 +23,7 @@ use crate::rules::term::full_tag;
 /// was made).
 pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     id: "EW-CORE-033",
+    message: key!("rule-ew-core-033"),
     code: "003033",
     title: "Cable without length",
     kind: RuleKind::Completeness,
@@ -63,9 +64,6 @@ impl Rule for CableWithoutLength {
                 [Target::new(Kind::Device, cable)],
                 "",
                 tag.clone(),
-                format!(
-                    "{tag} has no length yet: type it in its Properties, or route the cable in the layout"
-                ),
             )
             .arg("cable", tag),
         ]
@@ -75,6 +73,7 @@ impl Rule for CableWithoutLength {
 /// EW-CORE-047 "Device not drawn" (doc 15 §4.2): completeness, o r, warning (release: error), device.
 pub const DEVICE_NOT_IN_SCHEMATIC: RuleMeta = RuleMeta {
     id: "EW-CORE-047",
+    message: key!("rule-ew-core-047"),
     code: "102047",
     title: "Device not drawn",
     kind: RuleKind::Completeness,
@@ -129,31 +128,18 @@ impl Rule for DeviceNotInSchematic {
         }
         let tag = full_tag(q, device, "device");
         // F17 of a test: the `?` in such a tag, where the page goes, said nothing; the text names it.
-        let message = if d.parts.is_empty() {
-            format!(
-                "{tag} is not drawn on any page, so its tag shows ? where the page number belongs. Draw it on a page, or \
-                 delete it if it is not needed."
-            )
-        } else {
-            format!(
-                "{tag} is not drawn on any page, so its tag shows ? where the page number belongs, and the parts list \
-                 still counts it. Draw it on a page, or delete it if it is not needed."
-            )
-        };
         let finding = Finding::new(
             &DEVICE_NOT_IN_SCHEMATIC,
             [Target::new(Kind::Device, device)],
             "",
             tag.clone(),
-            message,
         )
         .arg("device", tag)
         .arg("part", if d.parts.is_empty() { "no" } else { "yes" });
         // A valve on a valve terminal drawn as its positions: Draw its valves in the terminal.
         let finding = match drawn_terminal_of(q, device) {
             Some(terminal) => finding.with_fix(QuickFix {
-                label: "Draw its valves in the valve terminal".to_owned(),
-                key: Some("fix-draw-valves"),
+                label: text!("fix-draw-valves"),
                 command: "valve_terminal.draw_valves".to_owned(),
                 params: serde_json::json!({ "terminal": terminal.to_string() }),
             }),
@@ -190,6 +176,7 @@ fn drawn_terminal_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
 /// EW-CORE-051 "Unpaired interruption point" (doc 15 §4.2): completeness, o r, error, project.
 pub const UNPAIRED_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-051",
+    message: key!("rule-ew-core-051"),
     code: "103051",
     title: "Unpaired interruption point",
     kind: RuleKind::Completeness,
@@ -222,13 +209,12 @@ impl Rule for UnpairedInterruptionPoint {
             return Vec::new();
         }
         let pairing = q.get::<IpPairingQ>(());
-        let finding = |f: Id<Function>, name: &str, discriminator: &str, message: String| {
+        let finding = |f: Id<Function>, name: &str, discriminator: &str| {
             Finding::new(
                 &UNPAIRED_INTERRUPTION_POINT,
                 [Target::new(Kind::Function, f)],
                 discriminator,
                 format!("interruption point {name}"),
-                message,
             )
             .arg("form", discriminator.to_owned())
             .arg("name", name.to_owned())
@@ -236,15 +222,7 @@ impl Rule for UnpairedInterruptionPoint {
         let mut out = Vec::new();
         for (f, info) in &pairing.ips {
             if !info.external && info.cp.is_none() {
-                out.push(finding(
-                    *f,
-                    &info.name,
-                    "no-cp",
-                    format!(
-                        "interruption point {} has no connection point; it pairs with nothing",
-                        info.name
-                    ),
-                ));
+                out.push(finding(*f, &info.name, "no-cp"));
             }
         }
         for g in &pairing.groups {
@@ -270,22 +248,7 @@ impl Rule for UnpairedInterruptionPoint {
                     _ => "unpaired",
                 };
                 let name = &g.name;
-                let message = match role {
-                    "target" => format!(
-                        "interruption point {name} at {at} is a target without a source: place where {name} \
-                         comes from, its source, or turn this mark into the source"
-                    ),
-                    "source" => format!(
-                        "interruption point {name} at {at} is a source without a target: place where {name} \
-                         goes on, its targets, or turn this mark into a target"
-                    ),
-                    _ => format!("interruption point {name} has no partner; its wire stays open-ended"),
-                };
-                out.push(
-                    finding(*u, name, "unpaired", message)
-                        .arg("form", role)
-                        .arg("at", at),
-                );
+                out.push(finding(*u, name, "unpaired").arg("form", role).arg("at", at));
             }
         }
         out
@@ -297,6 +260,7 @@ impl Rule for UnpairedInterruptionPoint {
 /// new ambiguity.
 pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-052",
+    message: key!("rule-ew-core-052"),
     code: "103052",
     title: "Ambiguous interruption point",
     kind: RuleKind::Conflict,
@@ -333,23 +297,12 @@ fn ambiguous_groups(q: &Q) -> Vec<Finding> {
         };
         let flagged = count(&|i| i.star_source);
         let sources = count(&|i| i.direction == IpDirection::Source);
-        // What is wrong and the way out, in words (no ID tie-break in the text; the derivation still pairs
-        // from the smallest ID until the user decides).
-        let (form, count, why) = if flagged > 1 {
-            (
-                "flagged",
-                flagged,
-                format!("{flagged} points are flagged as star source; keep the flag on one of them"),
-            )
+        // What is wrong (no ID tie-break in the text; the derivation still pairs from the smallest ID until the user
+        // decides).
+        let (form, count) = if flagged > 1 {
+            ("flagged", flagged)
         } else if flagged == 0 && sources >= 2 {
-            (
-                "sources",
-                sources,
-                format!(
-                    "{sources} source points and no star source; set all but one to target, or flag one as the star \
-                     source"
-                ),
-            )
+            ("sources", sources)
         } else {
             continue;
         };
@@ -360,7 +313,6 @@ fn ambiguous_groups(q: &Q) -> Vec<Finding> {
                 g.members.iter().map(|f| Target::new(Kind::Function, *f)),
                 "star-source",
                 format!("interruption point {}", g.name),
-                format!("interruption point {}: {why}", g.name),
             )
             .arg("form", form)
             .arg("name", g.name.to_string())
@@ -404,11 +356,11 @@ impl Rule for AmbiguousInterruptionPoint {
         }
         let held: Vec<(Fingerprint, String)> = ambiguous_groups(before)
             .into_iter()
-            .map(|f| (f.fingerprint, f.message))
+            .map(|f| (f.fingerprint, f.message()))
             .collect();
         ambiguous_groups(after)
             .into_iter()
-            .filter(|f| !held.contains(&(f.fingerprint, f.message.clone())))
+            .filter(|f| !held.contains(&(f.fingerprint, f.message().clone())))
             .collect()
     }
 }
@@ -416,6 +368,7 @@ impl Rule for AmbiguousInterruptionPoint {
 /// EW-CORE-081 "Waiver matches nothing" (doc 15 §4.2): hygiene, o r, info, project.
 pub const WAIVER_MATCHES_NOTHING: RuleMeta = RuleMeta {
     id: "EW-CORE-081",
+    message: key!("rule-ew-core-081"),
     code: "105081",
     title: "Waiver matches nothing",
     kind: RuleKind::Hygiene,
@@ -446,6 +399,7 @@ impl Rule for WaiverMatchesNothing {
 /// EW-CORE-023 "Title-block override" (doc 15 §4.2): hygiene, o r, info, page.
 pub const TITLE_BLOCK_OVERRIDE: RuleMeta = RuleMeta {
     id: "EW-CORE-023",
+    message: key!("rule-ew-core-023"),
     code: "101023",
     title: "Title-block override",
     kind: RuleKind::Hygiene,
@@ -490,16 +444,12 @@ impl Rule for TitleBlockOverride {
                 [Target::new(Kind::Page, page)],
                 "description_override",
                 format!("folio {folio}"),
-                format!(
-                    "folio {folio} overrides the project description in its title block with \"{shown}\""
-                ),
             )
             .arg("page", folio.to_string())
             .arg("text", shown)
             .on_page(page)
             .with_fix(QuickFix {
-                label: "drop override".to_owned(),
-                key: Some("fix-drop-override"),
+                label: text!("fix-drop-override"),
                 command: "fields.set".to_owned(),
                 params: serde_json::json!({
                     "kind": "page",
@@ -523,6 +473,7 @@ fn ml_texts(t: &MlText) -> Vec<&str> {
 /// EW-CORE-053 "Cross-reference cell invalid" (doc 15 §4.2): hygiene, o r, warning, page.
 pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
     id: "EW-CORE-053",
+    message: key!("rule-ew-core-053"),
     code: "103053",
     title: "Cross-reference cell invalid",
     kind: RuleKind::Hygiene,
@@ -586,20 +537,15 @@ impl Rule for XrefCellInvalid {
                     None => ("outside", String::new()),
                     Some(cell) => ("empty", cell.to_string()),
                 };
-                let message = match &t.cell {
-                    None => format!("{item}: outside the frame (the target's anchor has no cell)"),
-                    Some(cell) => {
-                        let Some((columns, rows)) = graphics_cells(q, t.rep) else {
-                            continue;
-                        };
-                        if columns.contains(&cell.column) && rows.contains(&cell.row) {
-                            continue;
-                        }
-                        format!(
-                            "{item}: empty cell (cell {cell} holds no graphics of the target; its anchor policy places the anchor outside them)"
-                        )
+                // An empty cell is reported only where the cell holds none of the target's graphics.
+                if let Some(cell) = &t.cell {
+                    let Some((columns, rows)) = graphics_cells(q, t.rep) else {
+                        continue;
+                    };
+                    if columns.contains(&cell.column) && rows.contains(&cell.row) {
+                        continue;
                     }
-                };
+                }
                 let finding = Finding::new(
                     &XREF_CELL_INVALID,
                     [
@@ -608,14 +554,12 @@ impl Rule for XrefCellInvalid {
                     ],
                     "",
                     item.to_owned(),
-                    message,
                 )
                 .arg("item", item.to_owned())
                 .arg("form", form)
                 .arg("cell", cell_text)
                 .with_fix(QuickFix {
-                    label: "anchor at the graphics centre".to_owned(),
-                    key: Some("fix-anchor-graphics-centre"),
+                    label: text!("fix-anchor-graphics-centre"),
                     command: "rep.set_anchor_policy".to_owned(),
                     params: serde_json::json!({
                         "reps": [t.rep.to_string()],
@@ -715,6 +659,7 @@ fn graphics_cells(
 /// 1.0 content.
 pub const DESCRIPTION_LINT: RuleMeta = RuleMeta {
     id: "EW-CORE-065",
+    message: key!("rule-ew-core-065"),
     code: "104065",
     title: "Description lint",
     kind: RuleKind::Hygiene,
@@ -777,10 +722,6 @@ impl Rule for DescriptionLint {
                         [Target::new(Kind::Part, id)],
                         "rating",
                         subject.clone(),
-                        format!(
-                            "description \"{shown}\" of part {subject} holds the rating {}: move it to the technical data",
-                            quoted(&ratings)
-                        ),
                     )
                     .arg("form", "rating")
                     .arg("text", shown)
@@ -795,10 +736,6 @@ impl Rule for DescriptionLint {
                         [Target::new(Kind::Part, id)],
                         "unit-format",
                         subject.clone(),
-                        format!(
-                            "description \"{shown}\" of part {subject}: unit formatting {} (a space between number and unit, units as written in SI)",
-                            quoted(&formats)
-                        ),
                     )
                     .arg("form", "unit-format")
                     .arg("text", shown)
@@ -903,6 +840,7 @@ pub fn lint_description(text: &str) -> DescriptionFindings {
 /// An integrity rule's metadata: kind integrity, scope project, no supersessions.
 const fn integrity(
     id: &'static str,
+    message: &'static str,
     code: &'static str,
     title: &'static str,
     modes: &'static str,
@@ -910,6 +848,7 @@ const fn integrity(
 ) -> RuleMeta {
     RuleMeta {
         id,
+        message,
         code,
         title,
         kind: RuleKind::Integrity,
@@ -928,6 +867,7 @@ const fn integrity(
 /// project does not hold and the channels whose module is not a PLC module.
 pub const DANGLING_REFERENCE: RuleMeta = integrity(
     "EW-CORE-008",
+    key!("rule-ew-core-008"),
     "100008",
     "Dangling reference",
     "r",
@@ -938,6 +878,7 @@ pub const DANGLING_REFERENCE: RuleMeta = integrity(
 /// model's conflict table ([`ConflictRecords`]), no longer a row of [`INTEGRITY`].
 pub const CONFLICT_RECORDS: RuleMeta = integrity(
     "EW-CORE-011",
+    key!("rule-ew-core-011"),
     "100011",
     "Conflict records present",
     "r",
@@ -969,19 +910,13 @@ impl Rule for ConflictRecords {
                 } => {
                     let (target, words) = conflict_target(q, kind, id.cast());
                     let members = conflict.member_paths().join(", ");
-                    let (side, message) = match (ours.as_str(), theirs.as_str()) {
-                        (Some(DELETED_SIDE), _) => (
-                            "ours-deleted",
-                            format!("{target}: ours deleted it and theirs changed {members}"),
-                        ),
-                        (_, Some(DELETED_SIDE)) => (
-                            "theirs-deleted",
-                            format!("{target}: theirs deleted it and ours changed {members}"),
-                        ),
-                        _ => ("differ", format!("{target}: ours and theirs differ in {members}")),
+                    let side = match (ours.as_str(), theirs.as_str()) {
+                        (Some(DELETED_SIDE), _) => "ours-deleted",
+                        (_, Some(DELETED_SIDE)) => "theirs-deleted",
+                        _ => "differ",
                     };
                     let targets = Kind::from_name(kind).map(|k| Target::new(k, id));
-                    let mut f = Finding::new(&CONFLICT_RECORDS, targets, "record", target, message)
+                    let mut f = Finding::new(&CONFLICT_RECORDS, targets, "record", target)
                         .arg("form", "record")
                         .arg("side", side)
                         .arg("members", members);
@@ -991,16 +926,13 @@ impl Rule for ConflictRecords {
                     f
                 }
                 ConflictBody::File { path, side, .. } => {
-                    let (held, side) = match side {
-                        ConflictSide::Ours => ("ours", "ours"),
-                        ConflictSide::Theirs => ("theirs", "theirs"),
-                        ConflictSide::Unknown(_) => ("one side", "other"),
+                    let side = match side {
+                        ConflictSide::Ours => "ours",
+                        ConflictSide::Theirs => "theirs",
+                        ConflictSide::Unknown(_) => "other",
                     };
                     let (file, file_form, name) = conflict_file(q, path);
-                    let message = format!(
-                        "{file}: the merge could not read {held}; its lines are held in a conflict record"
-                    );
-                    Finding::new(&CONFLICT_RECORDS, [], "file", file, message)
+                    Finding::new(&CONFLICT_RECORDS, [], "file", file)
                         .arg("form", "file")
                         .arg("side", side)
                         .arg("file", file_form)
@@ -1017,6 +949,7 @@ impl Rule for ConflictRecords {
 /// integrity run on open and after an external change, is the window's online check: `o r`.
 pub const MERGE_COLLISION: RuleMeta = integrity(
     "EW-CORE-013",
+    key!("rule-ew-core-013"),
     "100013",
     "Collision after a merge",
     "or",
@@ -1074,34 +1007,15 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                 group.sort_by(|a, b| keeper_order(q, a, b));
                 let keeper = if frozen(q, &group[0]) { "frozen" } else { "oldest" };
                 let others = if group.len() > 2 { "many" } else { "one" };
-                let message = format!(
-                    "{} after a merge; {} keeps it, and {} must change",
-                    f.message,
-                    if keeper == "frozen" {
-                        "the record with the frozen tag"
-                    } else {
-                        "the oldest record"
-                    },
-                    if others == "many" {
-                        "the others"
-                    } else {
-                        "the other"
-                    }
-                );
-                let mut finding = Finding::new(
-                    &MERGE_COLLISION,
-                    group.iter().copied(),
-                    id,
-                    f.subject.clone(),
-                    message,
-                );
+                let mut finding =
+                    Finding::new(&MERGE_COLLISION, group.iter().copied(), id, f.subject.clone());
                 // The uniqueness finding's own arguments, so that each language words it by that rule's pattern
                 // (`messages::format`).
-                for (name, value) in &f.args {
+                for (name, value) in f.text.named() {
                     finding = finding.arg(name, value.clone());
                 }
                 finding = finding
-                    .arg("collision", f.message.clone())
+                    .arg("collision", f.message().clone())
                     .arg("keeper", keeper)
                     .arg("others", others);
                 if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {
@@ -1155,8 +1069,7 @@ pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
     }
     let ids: Vec<String> = newer.iter().map(|t| t.id.to_string()).collect();
     Some(QuickFix {
-        label: "Renumber the newer".to_owned(),
-        key: Some("fix-renumber-newer"),
+        label: text!("fix-renumber-newer"),
         command: "numbering.renumber".to_owned(),
         params: serde_json::json!({
             "scope": {"selection": ids},
@@ -1264,28 +1177,66 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
 /// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
 /// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
 pub const INTEGRITY: &[RuleMeta] = &[
-    integrity("EW-CORE-001", "100001", "Manifest damaged", "", Severity::Warning),
-    integrity("EW-CORE-002", "100002", "Mixed generation", "r", Severity::Error),
+    integrity(
+        "EW-CORE-001",
+        key!("rule-ew-core-001"),
+        "100001",
+        "Manifest damaged",
+        "",
+        Severity::Warning,
+    ),
+    integrity(
+        "EW-CORE-002",
+        key!("rule-ew-core-002"),
+        "100002",
+        "Mixed generation",
+        "r",
+        Severity::Error,
+    ),
     integrity(
         "EW-CORE-003",
+        key!("rule-ew-core-003"),
         "100003",
         "Listed file missing",
         "r",
         Severity::Error,
     ),
-    integrity("EW-CORE-004", "100004", "Orphan file", "", Severity::Warning),
-    integrity("EW-CORE-005", "100005", "JSON syntax error", "r", Severity::Error),
+    integrity(
+        "EW-CORE-004",
+        key!("rule-ew-core-004"),
+        "100004",
+        "Orphan file",
+        "",
+        Severity::Warning,
+    ),
+    integrity(
+        "EW-CORE-005",
+        key!("rule-ew-core-005"),
+        "100005",
+        "JSON syntax error",
+        "r",
+        Severity::Error,
+    ),
     integrity(
         "EW-CORE-006",
+        key!("rule-ew-core-006"),
         "100006",
         "Git conflict markers",
         "r",
         Severity::Error,
     ),
-    integrity("EW-CORE-007", "100007", "Schema violation", "r", Severity::Error),
+    integrity(
+        "EW-CORE-007",
+        key!("rule-ew-core-007"),
+        "100007",
+        "Schema violation",
+        "r",
+        Severity::Error,
+    ),
     DANGLING_REFERENCE,
     integrity(
         "EW-CORE-009",
+        key!("rule-ew-core-009"),
         "100009",
         "Duplicate record ID",
         "r",
@@ -1293,6 +1244,7 @@ pub const INTEGRITY: &[RuleMeta] = &[
     ),
     integrity(
         "EW-CORE-010",
+        key!("rule-ew-core-010"),
         "100010",
         "Record in the wrong file",
         "",
@@ -1300,6 +1252,7 @@ pub const INTEGRITY: &[RuleMeta] = &[
     ),
     integrity(
         "EW-CORE-012",
+        key!("rule-ew-core-012"),
         "100012",
         "Structural invariant violated",
         "r",
@@ -1307,14 +1260,23 @@ pub const INTEGRITY: &[RuleMeta] = &[
     ),
     integrity(
         "EW-CORE-014",
+        key!("rule-ew-core-014"),
         "100014",
         "Library copy modified",
         "",
         Severity::Warning,
     ),
-    integrity("EW-CORE-015", "100015", "Asset missing", "r", Severity::Error),
+    integrity(
+        "EW-CORE-015",
+        key!("rule-ew-core-015"),
+        "100015",
+        "Asset missing",
+        "r",
+        Severity::Error,
+    ),
     integrity(
         "EW-CORE-016",
+        key!("rule-ew-core-016"),
         "100016",
         "Data from a newer format",
         "r",
@@ -1322,6 +1284,7 @@ pub const INTEGRITY: &[RuleMeta] = &[
     ),
     integrity(
         "EW-CORE-017",
+        key!("rule-ew-core-017"),
         "100017",
         "Malformed known variant",
         "r",
@@ -1329,6 +1292,7 @@ pub const INTEGRITY: &[RuleMeta] = &[
     ),
     integrity(
         "EW-CORE-018",
+        key!("rule-ew-core-018"),
         "100018",
         "Unknown derivation profile",
         "r",
@@ -1336,6 +1300,7 @@ pub const INTEGRITY: &[RuleMeta] = &[
     ),
     integrity(
         "EW-CORE-019",
+        key!("rule-ew-core-019"),
         "100019",
         "Reader limit exceeded",
         "r",

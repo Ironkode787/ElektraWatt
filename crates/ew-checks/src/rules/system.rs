@@ -26,6 +26,7 @@ use crate::rules::term::full_tag;
 /// EW-CORE-083 "Rule not evaluated" (doc 15 §4.2): integrity, all modes, warning/error, project.
 pub const RULE_NOT_EVALUATED: RuleMeta = RuleMeta {
     id: "EW-CORE-083",
+    message: key!("rule-ew-core-083"),
     code: "105083",
     title: "Rule not evaluated",
     kind: RuleKind::Integrity,
@@ -62,6 +63,7 @@ impl Rule for RuleNotEvaluated {
 /// EW-CORE-084 "Rule pack not evaluated" (doc 15 §4.2): integrity, all modes, warning/error, project.
 pub const PACK_NOT_EVALUATED: RuleMeta = RuleMeta {
     id: "EW-CORE-084",
+    message: key!("rule-ew-core-084"),
     code: "105084",
     title: "Rule pack not evaluated",
     kind: RuleKind::Integrity,
@@ -142,20 +144,11 @@ pub(crate) fn pack_findings(tables: &[DataTable]) -> (Vec<Finding>, Vec<&'static
         rules.sort_unstable();
         rules.dedup();
         out.push(
-            Finding::new(
-                &PACK_NOT_EVALUATED,
-                [],
-                file,
-                pack,
-                format!(
-                    "pack {pack} was not evaluated in full: its data table {file} does not load ({error}); {} did not run",
-                    rules.join(", ")
-                ),
-            )
-            .arg("pack", pack)
-            .arg("file", file)
-            .arg("error", error)
-            .arg("rules", rules.join(", ")),
+            Finding::new(&PACK_NOT_EVALUATED, [], file, pack)
+                .arg("pack", pack)
+                .arg("file", file)
+                .arg("error", error)
+                .arg("rules", rules.join(", ")),
         );
     }
     skipped.sort_unstable();
@@ -234,11 +227,6 @@ fn not_evaluated(q: &Q, rule: &'static RuleMeta, scope: &Scope) -> Finding {
         scope_target(scope),
         format!("{}:{}", rule.id, scope_kind_name(scope.kind())),
         rule.id,
-        format!(
-            "rule {} could not be evaluated for {text}: it stopped with an internal error, so its findings there are \
-             missing; report the defect",
-            rule.id
-        ),
     )
     .arg("form", "scope")
     .arg("rule", rule.id)
@@ -264,11 +252,6 @@ pub(crate) fn prevent_caught(rule: &dyn Rule, before: &Q, after: &Q, touched: &T
                 [],
                 format!("{}:prevent", rule.meta().id),
                 rule.meta().id,
-                format!(
-                    "rule {} could not validate the edit: it stopped with an internal error, so the edit is not \
-                     committed; report the defect",
-                    rule.meta().id
-                ),
             )
             .arg("form", "prevent")
             .arg("rule", rule.meta().id)
@@ -326,7 +309,7 @@ mod tests {
         assert_eq!(f.discriminator, "data/pe_sizing.toml");
         assert!(f.targets.is_empty());
         assert_eq!(
-            f.message,
+            f.message(),
             "pack EW-POT was not evaluated in full: its data table data/pe_sizing.toml does not load (`rows` is \
              missing); EW-POT-006, EW-POT-099 did not run"
         );
