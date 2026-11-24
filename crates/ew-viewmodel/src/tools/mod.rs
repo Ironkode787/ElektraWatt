@@ -113,6 +113,7 @@ use ew_api::output::PageTables;
 use ew_dl::{Destination, EntityRef};
 use ew_units::{Nm, Rect};
 
+pub use crate::pointer::CP_SNAP_PT;
 pub(crate) use host::{GridFit, PasteFit, ResultNote, ToolHost};
 pub use host::{
     LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, PREVIEW_DWELL_MS, PreviewState, PreviewStatus,
