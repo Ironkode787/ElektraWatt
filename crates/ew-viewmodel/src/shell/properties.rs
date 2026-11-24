@@ -936,7 +936,8 @@ pub(super) mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::properties::EditRoute;
+    use crate::properties::{EditRoute, PendingEdit};
+    use crate::shell::Mode;
 
     /// A typed tag that changes only the letter or only the counter goes to that row; anything else to the
     /// Tag row.
