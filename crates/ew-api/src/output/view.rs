@@ -150,16 +150,11 @@ fn bus_cable_text(q: &Q, c: &ew_schema::Connection) -> Option<String> {
 
 /// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
 /// and without the grid, the cover frame and the title block they name; the A3 landscape frame with the grid and its
-/// title block, doc 09 §3.8), in the `lib/` JSON form that `library.embed` takes. A new empty project holds them and
-/// names the A4 ones in its frame defaults (`crate::shipped_frames`); the wizard embeds them into a template.
-pub const SHIPPED_FORMS: [&str; 6] = [
-    include_str!("../../../../content/forms/ew.frame.qet-a3-landscape-grid.json"),
-    include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-cover.json"),
-    include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-grid.json"),
-    include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"),
-    include_str!("../../../../content/forms/ew.titleblock.qet-a3.json"),
-    include_str!("../../../../content/forms/ew.titleblock.qet-a4.json"),
-];
+/// title block, doc 09 §3.8), in the `lib/` JSON form that `library.embed` takes, in key order: the starter library's
+/// forms (`ew_library::starter::FORMS`). A new empty project holds them and names the A4 ones in its frame defaults
+/// (`crate::shipped_frames`); the wizard embeds them into a template.
+pub static SHIPPED_FORMS: std::sync::LazyLock<Vec<&'static str>> =
+    std::sync::LazyLock::new(|| ew_library::starter::FORMS.iter().map(|(_, json)| *json).collect());
 
 /// The built-in generic symbols the page view draws without a record naming them.
 #[derive(Clone, Debug)]

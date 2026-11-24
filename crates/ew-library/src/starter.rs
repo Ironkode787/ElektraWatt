@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The starter library: the shipped symbols and function definitions of `content/symbols`,
-//! `content/symbols/qet10` and `content/fndefs`, compiled in, so that a new project without symbol copies can place
+//! `content/symbols/qet10` and `content/fndefs`, and the shipped forms of `content/forms`, compiled in, so that a new project without symbol copies can place
 //! symbols. Each item is one library document in the `lib/` JSON form that `library.embed` takes (doc 05 §13.2);
 //! [`items`] lists them in key order, the key being the file stem (`ew.iec.mcb-1p@qet10`, `ew.fn.mcb-1p`).
 //!
@@ -45,6 +45,15 @@ const ITEMS: &[StarterItem] = include!(concat!(env!("OUT_DIR"), "/starter_items.
 /// Every starter item, in key order.
 pub fn items() -> &'static [StarterItem] {
     ITEMS
+}
+
+/// The shipped forms of `content/forms` (the frames with and without the grid, the cover frame and the title blocks
+/// they name) as `(key, library document in the lib/ JSON form)`, in key order; the build script lists them.
+pub const FORMS: &[(&str, &str)] = include!(concat!(env!("OUT_DIR"), "/starter_forms.rs"));
+
+/// The shipped form with this key, as JSON text.
+pub fn form(key: &str) -> Option<&'static str> {
+    FORMS.iter().find(|(k, _)| *k == key).map(|(_, json)| *json)
 }
 
 /// The starter item with this key.

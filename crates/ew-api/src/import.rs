@@ -238,11 +238,10 @@ impl StarterLibrary {
     /// content directory takes them, so that it keeps its folio reports, and with them their connections, and
     /// frames a diagram without a template of its own.
     pub fn compiled() -> StarterLibrary {
-        const QET_TITLE_BLOCK: &str = include_str!("../../../content/forms/ew.titleblock.qet-a4.json");
         let docs = crate::library::starter::items()
             .iter()
             .map(|i| i.json)
-            .chain([QET_TITLE_BLOCK])
+            .chain(crate::library::starter::form(ew_schema::starter::TITLE_BLOCK))
             .filter_map(|json| LibDocument::from_json(json).ok())
             .collect();
         StarterLibrary {

@@ -15,6 +15,26 @@ pub const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589
 /// The `version_req` of a reference to a starter function definition, which are version `0.1`.
 pub const VERSION_REQ: &str = "^0.1";
 
+/// The suffix of a starter symbol's QElectroTech edition, drawn on QElectroTech's 10 px grid
+/// (`ew.gen.blackbox@qet10`).
+pub const QET10_EDITION: &str = "@qet10";
+
+/// The starter symbol `key` for a page of the connection grid `grid`: its QElectroTech edition ([`QET10_EDITION`]) on
+/// the QET 10 px grid, else `key` itself.
+pub fn for_grid(key: &str, grid: ew_units::Grid) -> String {
+    if grid == ew_units::Grid::QET_10PX {
+        format!("{key}{QET10_EDITION}")
+    } else {
+        key.to_owned()
+    }
+}
+
+/// The starter key that the symbol key `key` is an edition of: `key` up to its first `@` (`ew.gen.wire-marker@qet10`
+/// and `ew.gen.wire-marker@grid-5-1` are editions of `ew.gen.wire-marker`).
+pub fn edition_of(key: &str) -> &str {
+    key.split('@').next().unwrap_or(key)
+}
+
 /// Declares each key as a constant and [`KEYS`] as the list of them all.
 macro_rules! keys {
     ($($(#[doc = $doc:literal])* $name:ident = $key:literal;)*) => {
@@ -38,11 +58,11 @@ keys! {
     FN_IP = "ew.fn.ip";
     /// The black box's symbol.
     GEN_BLACKBOX = "ew.gen.blackbox";
-    /// The black box's symbol, QElectroTech edition.
+    /// The black box's symbol, QElectroTech edition (what [`for_grid`] names on that grid).
     GEN_BLACKBOX_QET10 = "ew.gen.blackbox@qet10";
     /// The wide module of an overview.
     OVW_MODULE_WIDE = "ew.ovw.module-wide";
-    /// The wide module of an overview, QElectroTech edition.
+    /// The wide module of an overview, QElectroTech edition (what [`for_grid`] names on that grid).
     OVW_MODULE_WIDE_QET10 = "ew.ovw.module-wide@qet10";
     /// The wire marker's symbol, which the marker tool places.
     GEN_WIRE_MARKER = "ew.gen.wire-marker";

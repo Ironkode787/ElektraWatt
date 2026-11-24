@@ -813,7 +813,7 @@ impl SymbolDraft {
         let mut out = self.clone();
         out.symbol = serde_json::from_value(doc).map_err(|e| Error::Input(e.to_string()))?;
         let suffix = if grid == units::Grid::QET_10PX {
-            "@qet10".to_owned()
+            ew_schema::starter::QET10_EDITION.to_owned()
         } else {
             format!("@grid-{}-{}", grid.num(), grid.den())
         };

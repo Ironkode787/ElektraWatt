@@ -3,7 +3,8 @@
 
 //! Writes the tables of the compiled-in content from the `content/` folder, which is the one place a starter item
 //! stands: every `*.json` of `content/symbols`, `content/symbols/qet10` and `content/fndefs` as a starter item in
-//! key order, and the records files of `content/libraries/ew-starter-parts.ewlib` in path order.
+//! key order, every `*.json` of `content/forms` as a shipped form in key order, and the records files of
+//! `content/libraries/ew-starter-parts.ewlib` in path order.
 
 // A build script reads the directories cargo gives it.
 #![allow(clippy::disallowed_methods)]
@@ -19,6 +20,9 @@ const STARTER: &[(&str, &str)] = &[
 ];
 
 const PARTS: &str = "libraries/ew-starter-parts.ewlib";
+
+/// The shipped forms' folder under `content/`.
+const FORMS: &str = "forms";
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -52,6 +56,27 @@ fn main() {
     }
     text.push_str("]\n");
     std::fs::write(out.join("starter_items.rs"), text).expect("the starter table is written");
+
+    // (key, path under `content/`)
+    let mut forms: Vec<(String, String)> = Vec::new();
+    println!("cargo:rerun-if-changed={}", content.join(FORMS).display());
+    for entry in std::fs::read_dir(content.join(FORMS)).expect("the forms folder is readable") {
+        let name = entry
+            .expect("a forms folder entry is readable")
+            .file_name()
+            .to_string_lossy()
+            .into_owned();
+        if let Some(key) = name.strip_suffix(".json") {
+            forms.push((key.to_owned(), format!("{FORMS}/{name}")));
+        }
+    }
+    forms.sort();
+    let mut text = String::from("&[\n");
+    for (key, path) in &forms {
+        let _ = writeln!(text, "    ({key:?}, content!({path:?})),");
+    }
+    text.push_str("]\n");
+    std::fs::write(out.join("starter_forms.rs"), text).expect("the forms table is written");
 
     let mut files = Vec::new();
     println!("cargo:rerun-if-changed={}", content.join(PARTS).display());

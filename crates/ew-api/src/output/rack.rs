@@ -960,15 +960,11 @@ impl Session {
             // every grid, and the QET edition of the narrow one, two thirds of it, had no room for the starter parts'
             // numbers.
             let grid = q.pages().get(page)?.grid;
-            let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
-                ew_schema::starter::OVW_MODULE_WIDE_QET10
-            } else {
-                ew_schema::starter::OVW_MODULE_WIDE
-            };
-            if let Some(symbol) = self.starter_symbol_copy(key) {
+            let key = ew_schema::starter::for_grid(ew_schema::starter::OVW_MODULE_WIDE, grid);
+            if let Some(symbol) = self.starter_symbol_copy(&key) {
                 params["symbol"] = serde_json::json!(symbol.to_string());
             }
-            if let Some(embed) = self.starter_embed(key) {
+            if let Some(embed) = self.starter_embed(&key) {
                 params["copies"] = embed["copies"].clone();
             }
         }
@@ -1006,12 +1002,8 @@ impl Session {
         // and the manufacturer above each box) stay inside the drawing area, off the column numbers.
         let (x, y) = (min.x.0 + gap, bottom.map_or(min.y.0 + 2 * gap, |b| b + 2 * gap));
         let grid = q.pages().get(page_id)?.grid;
-        let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
-            ew_schema::starter::GEN_BLACKBOX_QET10
-        } else {
-            ew_schema::starter::GEN_BLACKBOX
-        };
-        let symbol = self.starter_symbol_copy(key)?;
+        let key = ew_schema::starter::for_grid(ew_schema::starter::GEN_BLACKBOX, grid);
+        let symbol = self.starter_symbol_copy(&key)?;
         // The station, then its modules in slot order, each that no electrical page draws yet or draws in part, with its
         // part and its pins drawn.
         let devices: Vec<serde_json::Value> = to_draw(&q, Id::from_uuid(station))?
@@ -1029,7 +1021,7 @@ impl Session {
             "station": station.to_string(), "page": page.to_string(), "symbol": symbol.to_string(),
             "at": [x, y], "right": max.x.0 - gap, "foot": max.y.0 - gap, "devices": devices,
         });
-        if let Some(embed) = self.starter_embed(key) {
+        if let Some(embed) = self.starter_embed(&key) {
             params["copies"] = embed["copies"].clone();
         }
         Some(params)
