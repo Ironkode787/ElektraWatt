@@ -120,6 +120,8 @@ mod title_block;
 // List columns… and Rows of your own… of the list on show (doc 09 §3.8).
 mod list_look;
 pub(crate) mod tools;
+// Where the outcome of an act of the window is said.
+mod said;
 // The history panel and context restore.
 mod undo_panel;
 // The wiring tools' host duties.
@@ -714,6 +716,8 @@ pub struct ShellModel {
     /// Why the last action pressed in the open dialog did nothing, beside its buttons: the dialog's generation and
     /// the sentence. The next action that runs takes it away.
     dialog_refusal: Option<(u64, String)>,
+    /// The banner [`ShellModel::run_said`] raised for a failure, and the action that failed.
+    reported: said::Reported,
     prompt: Option<PromptRequest>,
     record: Record,
     quit: bool,
@@ -1174,6 +1178,7 @@ impl ShellModel {
             import: projects::ImportState::default(),
             dialog_gen: 0,
             dialog_refusal: None,
+            reported: said::Reported::default(),
             prompt: None,
             record: Record::default(),
             quit: false,
