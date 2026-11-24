@@ -1203,6 +1203,8 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/clipboard.rs` |  | The shell's clipboard: one text value, what it holds, and the text the window puts on the system clipboard. |
 | `src/command_bar.rs` | large | The command surface (doc 16a §5.2, §5.3, §5.5) in toolkit-neutral form: the command bar's tabs and groups, the placement of an action in the bar, the bar's model for one tab, each tab's next step, and the tool HUD's model. |
 | `src/describe.rs` | large | The `ui.describe` text: the visible user interface as text, one line per element, in paint order. |
+| `src/describe/dialogs.rs` |  | The describe text's lines of the dialog on show, one step per dialog that needs more than a few. |
+| `src/describe/page.rs` |  | The describe text of a page: its wires, its terms in sentences, its table lines and the page described whole. |
 | `src/dialogs.rs` | large | The texts and buttons of every modal dialog of the shell (doc 16a §6.12): one [`DialogSpec`] per [`Dialog`], so the window's dialog frame and `ui.describe` show the same title, body and buttons, and the rules of the design language are tested headless (CP1). |
 | `src/find.rs` |  | The find pane's model: the query being typed, the last results with the revision they were made at, the result cursor and the pane's note. |
 | `src/first_run.rs` |  | The first-run flow (UX/UI doc 16 section 9.1, FR-UI-030): language, what the user comes from, the privacy choice, the appearance, and where to start. |
@@ -1372,13 +1374,13 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/anonymise.rs` |  | The confidential-token rule of `cargo xtask rules` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09 (19 LR-12). |
 | `src/api_guard.rs` | large | `api-guard`: the guard of the published file-format surface (ADR-0011 amendment 6). |
 | `src/blind/brief.rs` | large | The open design brief (visual spec §6.1 and §6.2) and `check-brief <task>`. |
-| `src/blind/check_task.rs` |  | `check-task <task>`: checks a task folder without a product. |
-| `src/blind/check_task/tests.rs` |  | Tests of `check-task`: a brief's sheet is checked against the sample's script without a product. |
+| `src/blind/check_task.rs` |  | The first part of `check-brief <task>`: checks a task folder without a product. |
+| `src/blind/check_task/tests.rs` |  | Tests of the task folder's checks of `check-brief`: a brief's sheet is checked against the sample's script without a product. |
 | `src/blind/compose.rs` |  | `compose` (D10): the prompt of a run as the concatenation of its versioned files, deterministically. |
 | `src/blind/filter.rs` |  | The harness filter and the typed `key=value` arguments. |
 | `src/blind/friction.rs` |  | The friction log (visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` appends one entry to the run's `friction.jsonl` (`ew.blindfriction/1`), in a text run as in a visual one. |
 | `src/blind/keeper.rs` |  | The session keeper (D6): the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
-| `src/blind/mod.rs` | large | `cargo xtask blind`: the blind-drafter harness. |
+| `src/blind/mod.rs` |  | `cargo xtask blind`: the blind-drafter harness. |
 | `src/blind/normalise.rs` |  | The normalisation of product output (D14) and the guards that go with it. |
 | `src/blind/protocol.rs` | large | The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time. |
 | `src/blind/replay.rs` |  | Recording, bless and replay (D14, D15). |
