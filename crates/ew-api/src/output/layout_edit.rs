@@ -56,17 +56,15 @@ pub struct LayoutEdit {
 /// Why a layout row's text compiles to no command.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LayoutEditError {
-    /// The text does not read, in words for the user ("Type a length in millimetres, such as 158.").
-    Invalid(String),
-    /// The text does not read: the key of the window's words (checked by `key!`), in the window's language.
-    Refused(&'static str),
+    /// The text does not read: why, as a text of the session ("Type a length in millimetres, such as 158.5."), which
+    /// the window renders in its language.
+    Refused(crate::Text),
 }
 
 impl std::fmt::Display for LayoutEditError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LayoutEditError::Invalid(m) => f.write_str(m),
-            LayoutEditError::Refused(key) => f.write_str(crate::text_english(key).unwrap_or(key)),
+            LayoutEditError::Refused(t) => write!(f, "{t}"),
         }
     }
 }
@@ -925,25 +923,25 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// [`LayoutEditError::Invalid`] in words when the text does not read, the record or row does not exist, or the
+    /// [`LayoutEditError::Refused`] in words when the text does not read, the record or row does not exist, or the
     /// value names nothing the row offers.
     pub fn layout_edit(&self, edit: &LayoutEdit) -> Result<AnyCommand, LayoutEditError> {
         let q = self.query();
         let name = edit.row.strip_prefix("derived.").unwrap_or(&edit.row);
         let text = edit.text.trim();
-        let invalid = |m: &str| Err(LayoutEditError::Invalid(m.to_owned()));
+        let invalid = |t: crate::Text| Err(LayoutEditError::Refused(t));
         let length_text = || {
             if comma(&q) {
-                "Type a length in millimetres, such as 158,5."
+                text!("props-length-comma")
             } else {
-                "Type a length in millimetres, such as 158.5."
+                text!("props-length")
             }
         };
         let pair_text = || {
             if comma(&q) {
-                "Type two lengths in millimetres, such as 40; 740."
+                text!("props-lengths-two-comma")
             } else {
-                "Type two lengths in millimetres, such as 40, 740."
+                text!("props-lengths-two")
             }
         };
         let command = |name: &str, params: Value| {
@@ -958,7 +956,7 @@ impl Session {
             // §3.5: an address alone, or a far end not known).
             ("function", "supply_place" | "supply_device") => {
                 let Some((place, device)) = self.supply_source(&[edit.target]) else {
-                    return Err(LayoutEditError::Refused(key!("props-supply-no-mark")));
+                    return Err(LayoutEditError::Refused(text!("props-supply-no-mark")));
                 };
                 let (location, device) = if name == "supply_place" {
                     (text.to_owned(), device)
@@ -992,10 +990,10 @@ impl Session {
             // re-test set it on two tubes and only the first kept it).
             ("connection", "medium") => {
                 let Some((function, idx)) = self.line_end_cp(edit.target) else {
-                    return invalid("The tube ends at no port to define its medium at.");
+                    return invalid(text!("props-tube-no-port"));
                 };
                 if text.parse::<Uuid>().is_err() {
-                    return invalid("Choose one of the project's media.");
+                    return invalid(text!("props-medium-choose"));
                 }
                 let also: Vec<Value> = edit
                     .others
@@ -1013,10 +1011,10 @@ impl Session {
             ("device", "medium") => {
                 let Some((function, idx)) = super::properties::source_port(&q, Id::from_uuid(edit.target))
                 else {
-                    return invalid("The device has no fluid port to define its medium at.");
+                    return invalid(text!("props-device-no-fluid-port"));
                 };
                 if text.parse::<Uuid>().is_err() {
-                    return invalid("Choose one of the project's media.");
+                    return invalid(text!("props-medium-choose"));
                 }
                 command(
                     "fluid.medium.define",
@@ -1027,10 +1025,10 @@ impl Session {
             // refuses a position another child holds in words.
             ("device", "position") => {
                 let Some(position) = text.parse::<u32>().ok().filter(|p| *p > 0) else {
-                    return Err(LayoutEditError::Refused(key!("props-position-number")));
+                    return Err(LayoutEditError::Refused(text!("props-position-number")));
                 };
                 let Some(parent) = q.devices().get(Id::from_uuid(edit.target)).and_then(|d| d.parent) else {
-                    return Err(LayoutEditError::Refused(key!("props-position-no-terminal")));
+                    return Err(LayoutEditError::Refused(text!("props-position-no-terminal")));
                 };
                 command(
                     "assembly.attach",
@@ -1040,7 +1038,7 @@ impl Session {
             }
             ("placement", _) => {
                 let Some(p) = q.table::<Placement>().get(Id::from_uuid(edit.target)) else {
-                    return invalid("The placement is no longer in the project.");
+                    return invalid(text!("props-placement-gone"));
                 };
                 let pid = p.id.as_uuid().to_string();
                 let on_rail = matches!(p.carrier, CarrierRef::Carrier(_));
@@ -1073,13 +1071,13 @@ impl Session {
                         let k = if on_rail {
                             match RAIL_TURNS.iter().position(|t| t.eq_ignore_ascii_case(text)) {
                                 Some(i) => (i * 2) as u8,
-                                None => return invalid("Choose Normal or Flipped."),
+                                None => return invalid(text!("props-choose-flip")),
                             }
                         } else {
                             let t = text.trim_end_matches('°').trim();
                             match ["0", "90", "180", "270"].iter().position(|r| *r == t) {
                                 Some(i) => i as u8,
-                                None => return invalid("Choose 0°, 90°, 180° or 270°."),
+                                None => return invalid(text!("props-choose-angle")),
                             }
                         };
                         let mut params =
@@ -1098,10 +1096,7 @@ impl Session {
                                 .find(|c| part_number(&q, *c).eq_ignore_ascii_case(text))
                         });
                         let Some(copy) = copy else {
-                            return Err(LayoutEditError::Invalid(format!(
-                                "{} uses no part {text}; choose one of its parts.",
-                                tag(&q, p.device)
-                            )));
+                            return invalid(text!("props-placement-no-part", tag(&q, p.device), text));
                         };
                         command(
                             "layout.move",
@@ -1110,14 +1105,14 @@ impl Session {
                     }
                     "locked" => match parse_bool(text) {
                         Some(on) => command("layout.lock", json!({"placement": pid, "locked": on})),
-                        None => invalid("Choose yes or no."),
+                        None => invalid(text!("props-choose-yes-no")),
                     },
-                    _ => invalid("This row cannot be changed here."),
+                    _ => invalid(text!("props-row-not-here")),
                 }
             }
             ("carrier", _) => {
                 let Some(c) = q.table::<Carrier>().get(Id::from_uuid(edit.target)) else {
-                    return invalid("The carrier is no longer in the project.");
+                    return invalid(text!("props-carrier-gone"));
                 };
                 let cid = c.id.as_uuid().to_string();
                 let axis = RailAxis::of(&c.path);
@@ -1125,7 +1120,7 @@ impl Session {
                 match name {
                     "pe_bond" => match parse_bool(text) {
                         Some(on) => command("layout.carrier.edit", json!({"carrier": cid, "pe_bond": on})),
-                        None => invalid("Choose yes or no."),
+                        None => invalid(text!("props-choose-yes-no")),
                     },
                     "part" => {
                         let kind = if c.kind == CarrierKind::Rail {
@@ -1141,10 +1136,11 @@ impl Session {
                                 "layout.carrier.edit",
                                 json!({"carrier": cid, "part": id.as_uuid().to_string()}),
                             ),
-                            None => Err(LayoutEditError::Invalid(format!(
-                                "The project has no {} part {text}.",
-                                if kind == PartKind::Rail { "rail" } else { "duct" }
-                            ))),
+                            None => invalid(if kind == PartKind::Rail {
+                                text!("props-no-rail-part", text)
+                            } else {
+                                text!("props-no-duct-part", text)
+                            }),
                         }
                     }
                     "start" => {
@@ -1160,10 +1156,10 @@ impl Session {
                     }
                     "length" => {
                         let Some(a) = axis else {
-                            return invalid("This row cannot be changed here.");
+                            return invalid(text!("props-row-not-here"));
                         };
                         let Some(l) = parse_mm(text).filter(|l| *l > 0) else {
-                            return invalid("Type a length above 0 mm.");
+                            return invalid(text!("props-length-above-zero"));
                         };
                         let start = (i128::from(a.start.x.0), i128::from(a.start.y.0));
                         let (du, dv) = a.dir.rotate((l, 0));
@@ -1174,10 +1170,10 @@ impl Session {
                     }
                     "width" | "height" => {
                         let CarrierParams::Duct(d) = &c.params else {
-                            return invalid("This row cannot be changed here.");
+                            return invalid(text!("props-row-not-here"));
                         };
                         let Some(l) = parse_mm(text).filter(|l| *l > 0) else {
-                            return invalid("Type a length above 0 mm.");
+                            return invalid(text!("props-length-above-zero"));
                         };
                         let (w, h) = if name == "width" {
                             (l, i128::from(d.height.0))
@@ -1196,7 +1192,7 @@ impl Session {
                             json!({"carrier": cid, "params": {"duct": duct}}),
                         )
                     }
-                    _ => invalid("This row cannot be changed here."),
+                    _ => invalid(text!("props-row-not-here")),
                 }
             }
             ("mounting_surface", "pe_bond") => match parse_bool(text) {
@@ -1204,7 +1200,7 @@ impl Session {
                     "layout.surface.edit",
                     json!({"surface": edit.target.to_string(), "pe_bond": on}),
                 ),
-                None => invalid("Choose yes or no."),
+                None => invalid(text!("props-choose-yes-no")),
             },
             ("enclosure", "position") => {
                 let v = parse_mm_list(&q, text, 3).or_else(|| {
@@ -1216,9 +1212,9 @@ impl Session {
                 let Some(v) = v else {
                     // The row shows three lengths (x, y, z), so its refusal asks for three.
                     return invalid(if comma(&q) {
-                        "Type three lengths in millimetres, such as 10; 20; 0."
+                        text!("props-lengths-three-comma")
                     } else {
-                        "Type three lengths in millimetres, such as 10, 20, 0."
+                        text!("props-lengths-three")
                     });
                 };
                 command(
@@ -1241,7 +1237,7 @@ impl Session {
             ("page", "surface" | "label_mode" | "labels" | "datum") => {
                 let page: Id<Page> = Id::from_uuid(edit.target);
                 if q.pages().get(page).is_none() {
-                    return invalid("The page is no longer in the project.");
+                    return invalid(text!("props-page-gone"));
                 }
                 let view = q.get::<PageSurfaceView>(page).as_ref().clone();
                 let mut scale = None;
@@ -1275,17 +1271,13 @@ impl Session {
                             // A surface ID that names no surface (a deleted one, or a stale list): no ID in
                             // the words.
                             (None, []) if as_id.is_some() => {
-                                return invalid("That surface no longer exists; choose one of the list.");
+                                return invalid(text!("props-surface-gone"));
                             }
                             (None, []) => {
-                                return Err(LayoutEditError::Invalid(format!(
-                                    "The project has no surface {text}; choose one of the list."
-                                )));
+                                return invalid(text!("props-no-surface", text));
                             }
                             (None, _) => {
-                                return Err(LayoutEditError::Invalid(format!(
-                                    "More than one surface reads {text}; choose one of the list."
-                                )));
+                                return invalid(text!("props-surface-many", text));
                             }
                         };
                         // A page still drawn not to scale takes the fitting scale with the view.
@@ -1309,7 +1301,7 @@ impl Session {
                         let Some((show, _)) =
                             LABELS.iter().find(|(_, w)| w.eq_ignore_ascii_case(text.trim()))
                         else {
-                            return invalid("Choose Tags, Item numbers, Both or Tags or numbers.");
+                            return invalid(text!("props-choose-labels"));
                         };
                         labels = Some(*show);
                     }
@@ -1317,7 +1309,7 @@ impl Session {
                         mode = match text.to_ascii_lowercase().as_str() {
                             "abbreviated" => "abbreviated",
                             "full" => "full",
-                            _ => return invalid("Choose Abbreviated or Full."),
+                            _ => return invalid(text!("props-choose-label-mode")),
                         }
                     }
                     _ => {
@@ -1331,7 +1323,7 @@ impl Session {
                     }
                 }
                 let Some(surface) = surface else {
-                    return invalid("Choose the surface first.");
+                    return invalid(text!("props-surface-first"));
                 };
                 let (x, y) = datum.unwrap_or((0, 0));
                 let mut params = json!({"page": edit.target.to_string(), "surface": surface.as_uuid().to_string(),
@@ -1344,7 +1336,7 @@ impl Session {
                 }
                 command("page.surface_view.set", params)
             }
-            _ => invalid("This row cannot be changed here."),
+            _ => invalid(text!("props-row-not-here")),
         }
     }
 

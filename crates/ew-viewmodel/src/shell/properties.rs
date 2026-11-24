@@ -1684,12 +1684,8 @@ impl ShellModel {
         };
         let cmd = match project.session.layout_edit(&edit) {
             Ok(c) => c,
-            Err(ew_api::output::LayoutEditError::Invalid(message)) => {
-                self.props.set_error(row.key.clone(), message.clone());
-                return Outcome::Failed { message };
-            }
             Err(ew_api::output::LayoutEditError::Refused(reason)) => {
-                let message = strings::text(Key::run_time(reason)).to_owned();
+                let message = super::text_words(&reason);
                 self.props.set_error(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
