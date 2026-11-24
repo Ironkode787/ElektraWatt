@@ -18,6 +18,7 @@ use egui::{CentralPanel, Key, Modifiers, Panel, Ui, ViewportCommand};
 use ew_viewmodel::actions::Context;
 use ew_viewmodel::key;
 use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::shell::Screen;
 use ew_viewmodel::shell::print::{PrintEnd, PrintRequest};
 use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, PromptRequest, ShellModel};
 use ew_viewmodel::strings;
@@ -535,7 +536,7 @@ impl App {
     /// else none (tests; every handle is a named `Splitter` node).
     #[doc(hidden)]
     pub fn splitter_count(&self) -> usize {
-        if self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project() {
+        if !matches!(self.shell.screen(), Screen::FirstRun | Screen::Wizard) && self.shell.has_project() {
             self.dock.splitters() + self.area_splitters
         } else {
             0
@@ -933,11 +934,9 @@ impl App {
             });
         // An open template says so in a band across the window, under the command bar: it cannot be mistaken for a
         // project. The band takes its own room, so it covers no drawing.
-        let template = (self.shell.first_run().is_none()
-            && self.shell.wizard().is_none()
-            && self.shell.symbol_editor().is_none())
-        .then(|| self.shell.editing_template())
-        .flatten();
+        let template = matches!(self.shell.screen(), Screen::Project | Screen::Start)
+            .then(|| self.shell.editing_template())
+            .flatten();
         if let Some(name) = template {
             Panel::top("template-band")
                 .resizable(false)
@@ -1005,13 +1004,12 @@ impl App {
         }
         let mut new_layout = None;
         let mut canvas_shown = false;
-        let project_view =
-            self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project();
-        if project_view && self.shell.symbol_editor().is_none() {
+        let screen = self.shell.screen();
+        if screen == Screen::Project {
             self.canvas.begin_frame(&ctx);
         }
         self.area_splitters = 0;
-        if project_view && self.shell.symbol_editor().is_none() {
+        if screen == Screen::Project {
             // Doc 16a §5.4, §5.6: the navigator rail at the left, the palettes rail at the right.
             for (side, left) in [("rail-left", true), ("rail-right", false)] {
                 let panel = if left {
@@ -1040,76 +1038,74 @@ impl App {
         }
         CentralPanel::default().show(ui, |ui| {
             crate::properties::remember_free_area(ui);
-            if self.shell.first_run().is_some() {
-                first_run::show(ui, &self.shell, &mut events);
-            } else if self.shell.wizard().is_some() {
-                wizard::show(ui, &self.shell, &mut self.preview_view, &mut events);
-            } else if self.shell.symbol_editor().is_some() {
-                self.symbol_editor_view.show(ui, &self.shell, &mut events);
-            } else if self.shell.has_project() {
-                let App {
-                    shell,
-                    dock,
-                    canvas,
-                    canvas_area,
-                    navigator,
-                    navigators,
-                    properties,
-                    find,
-                    area_splitters,
-                    job_started,
-                    ..
-                } = self;
-                navigators.retain(|k, _| shell.navigator_open(*k));
-                let collapsed = shell.rail_collapsed();
-                // Doc 16a §5.7: the Messages tab's count chip shows the open findings (the status bar's rule).
-                let counts = [(
-                    PaneKind::Navigator(ew_viewmodel::navigators::NavKind::Messages),
-                    shell.messages_badge(),
-                )];
-                // The Preview tab's dot while a card waits for Apply.
-                let marks: Vec<(PaneKind, String)> = ew_viewmodel::status::waiting_text(shell)
-                    .map(|words| (PaneKind::Preview, words))
-                    .into_iter()
-                    .collect();
-                let headers = dock.show(ui, collapsed, &counts, &marks, &mut |ui, pane| match pane {
-                    PaneKind::Pages => navigator.show(ui, shell, &mut events),
-                    PaneKind::Navigator(k) => navigators
-                        .entry(k)
-                        .or_insert_with(|| NavigatorPane::of(k))
-                        .show(ui, shell, &mut events),
-                    PaneKind::Properties => properties.show(ui, shell, &mut events),
-                    PaneKind::Find => find.show(ui, shell, &mut events),
-                    PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, &mut events),
-                    PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
-                    PaneKind::History => crate::history::show(ui, shell, &mut events),
-                    PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
-                    PaneKind::PageView => {
-                        // The canvas takes the whole pane (doc 16a §5.5): the HUD, the zoom control and the tool
-                        // options float over it, each its own rounded shape with a shadow and nothing behind it
-                        // (a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
-                        // the HUD, the zoom control and the tool options stay away from it (below).
-                        let full = ui.max_rect();
-                        // The HUD stands above the page's horizontal scroll bar while one shows (FT-2096).
-                        let bar = (0..crate::canvas::GROUPS)
-                            .filter_map(|g| shell.canvas_of(g))
-                            .any(|c| crate::canvas::shows_scroll_bar(c, false));
-                        let foot = full.bottom() - if bar { tokens.space_3 } else { 0.0 };
-                        let split = (foot - crate::hud::strip_height(&tokens)).max(full.top());
-                        page_pane = Some(full);
-                        hud_strip = Some(egui::Rect::from_min_max(
-                            egui::pos2(full.left(), split),
-                            egui::pos2(full.right(), foot.max(split)),
-                        ));
-                        canvas_area.show(ui, shell, canvas, &mut events);
-                        *area_splitters = canvas_area.splitter_count(shell);
-                        canvas_shown = true;
-                    }
-                });
-                events.extend(headers);
-                new_layout = dock.layout().filter(|l| l != shell.layout());
-            } else {
-                start_page::show(ui, &self.shell, &mut events);
+            match screen {
+                Screen::FirstRun => first_run::show(ui, &self.shell, &mut events),
+                Screen::Wizard => wizard::show(ui, &self.shell, &mut self.preview_view, &mut events),
+                Screen::SymbolEditor => self.symbol_editor_view.show(ui, &self.shell, &mut events),
+                Screen::Project => {
+                    let App {
+                        shell,
+                        dock,
+                        canvas,
+                        canvas_area,
+                        navigator,
+                        navigators,
+                        properties,
+                        find,
+                        area_splitters,
+                        job_started,
+                        ..
+                    } = self;
+                    navigators.retain(|k, _| shell.navigator_open(*k));
+                    let collapsed = shell.rail_collapsed();
+                    // Doc 16a §5.7: the Messages tab's count chip shows the open findings (the status bar's rule).
+                    let counts = [(
+                        PaneKind::Navigator(ew_viewmodel::navigators::NavKind::Messages),
+                        shell.messages_badge(),
+                    )];
+                    // The Preview tab's dot while a card waits for Apply.
+                    let marks: Vec<(PaneKind, String)> = ew_viewmodel::status::waiting_text(shell)
+                        .map(|words| (PaneKind::Preview, words))
+                        .into_iter()
+                        .collect();
+                    let headers = dock.show(ui, collapsed, &counts, &marks, &mut |ui, pane| match pane {
+                        PaneKind::Pages => navigator.show(ui, shell, &mut events),
+                        PaneKind::Navigator(k) => navigators
+                            .entry(k)
+                            .or_insert_with(|| NavigatorPane::of(k))
+                            .show(ui, shell, &mut events),
+                        PaneKind::Properties => properties.show(ui, shell, &mut events),
+                        PaneKind::Find => find.show(ui, shell, &mut events),
+                        PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, &mut events),
+                        PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
+                        PaneKind::History => crate::history::show(ui, shell, &mut events),
+                        PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
+                        PaneKind::PageView => {
+                            // The canvas takes the whole pane (doc 16a §5.5): the HUD, the zoom control and the tool
+                            // options float over it, each its own rounded shape with a shadow and nothing behind it
+                            // (a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
+                            // the HUD, the zoom control and the tool options stay away from it (below).
+                            let full = ui.max_rect();
+                            // The HUD stands above the page's horizontal scroll bar while one shows (FT-2096).
+                            let bar = (0..crate::canvas::GROUPS)
+                                .filter_map(|g| shell.canvas_of(g))
+                                .any(|c| crate::canvas::shows_scroll_bar(c, false));
+                            let foot = full.bottom() - if bar { tokens.space_3 } else { 0.0 };
+                            let split = (foot - crate::hud::strip_height(&tokens)).max(full.top());
+                            page_pane = Some(full);
+                            hud_strip = Some(egui::Rect::from_min_max(
+                                egui::pos2(full.left(), split),
+                                egui::pos2(full.right(), foot.max(split)),
+                            ));
+                            canvas_area.show(ui, shell, canvas, &mut events);
+                            *area_splitters = canvas_area.splitter_count(shell);
+                            canvas_shown = true;
+                        }
+                    });
+                    events.extend(headers);
+                    new_layout = dock.layout().filter(|l| l != shell.layout());
+                }
+                Screen::Start => start_page::show(ui, &self.shell, &mut events),
             }
         });
         // The HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
@@ -1368,8 +1364,7 @@ impl App {
             // The canvas's input phase includes dispatching the frame's actions (section 9).
             self.canvas.end_frame(crate::clock::now() - dispatch_started);
         } else if self.shell.has_project()
-            && self.shell.first_run().is_none()
-            && self.shell.wizard().is_none()
+            && !matches!(self.shell.screen(), Screen::FirstRun | Screen::Wizard)
         {
             // The page pane is behind another tab of the dock: its tiles stay within a share of the cache.
             self.canvas.hide();

@@ -18,7 +18,7 @@
 use egui::{Align2, Id, Popup, Rect, Response, Sense, Ui, UiBuilder, Vec2, pos2, vec2};
 use ew_viewmodel::actions::ActionItem;
 use ew_viewmodel::command_bar::{
-    ButtonKind, CommandBarModel, CommandButton, CommandSize, GroupModel, Tab, command_bar,
+    ButtonKind, CommandBarModel, CommandButton, CommandSize, GroupModel, Tab, shown_command_bar,
 };
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
@@ -647,12 +647,7 @@ impl CommandBarHost {
         editor_view: &mut crate::symbol_editor::EditorView,
     ) {
         let t = theme::current(ui.ctx());
-        let mut model = command_bar(shell);
-        if shell.symbol_editor().is_some() {
-            model.collapsed = false;
-            model.tabs = vec![(model.tab, strings::text(key!("symbol-title")).to_owned())];
-            model.workspaces.clear();
-        }
+        let model = shown_command_bar(shell);
         if !model.collapsed {
             self.popover = false;
         }

@@ -641,6 +641,18 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
     command_bar_of(model, model.command_tab())
 }
 
+/// The command bar the window shows for the screen ([`ShellModel::screen`]): [`command_bar`], but over the symbol
+/// editor, which has its own row of commands, a bar never collapsed with the editor's one tab and no workspaces.
+pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
+    let mut bar = command_bar(model);
+    if model.symbol_editor().is_some() {
+        bar.collapsed = false;
+        bar.tabs = vec![(bar.tab, strings::text(key!("symbol-title")).to_owned())];
+        bar.workspaces.clear();
+    }
+    bar
+}
+
 /// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.
 pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
 

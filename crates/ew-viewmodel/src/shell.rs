@@ -281,6 +281,21 @@ impl ShellConfig {
     }
 }
 
+/// The screen the window shows ([`ShellModel::screen`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Screen {
+    /// The first-run flow.
+    FirstRun,
+    /// The company-standard wizard.
+    Wizard,
+    /// The symbol editor (over the project, when one is open).
+    SymbolEditor,
+    /// The open project: its pages, navigators and panes.
+    Project,
+    /// The start page, with no project open.
+    Start,
+}
+
 /// What a dispatched action did.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Outcome {
@@ -1339,6 +1354,22 @@ impl ShellModel {
     /// Whether a project is open.
     pub fn has_project(&self) -> bool {
         self.project.is_some()
+    }
+
+    /// Which screen the window shows (architecture §9.1): the first run while it lasts, else the company-standard
+    /// wizard, else the symbol editor, else the open project, else the start page.
+    pub fn screen(&self) -> Screen {
+        if self.first_run().is_some() {
+            Screen::FirstRun
+        } else if self.wizard().is_some() {
+            Screen::Wizard
+        } else if self.symbol_editor().is_some() {
+            Screen::SymbolEditor
+        } else if self.has_project() {
+            Screen::Project
+        } else {
+            Screen::Start
+        }
     }
 
     /// The open project's session, for the dialogs' specs and describe lines.
