@@ -23,6 +23,7 @@ use ew_derive::{DeviceTag, MainFunction, Q};
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::Named;
 use crate::rules::core::{keeper_order, renumber_newer};
 use crate::rules::term::{case_setting, full_tag};
 
@@ -381,7 +382,7 @@ impl Rule for LetterAgainstFunction {
         else {
             return Vec::new();
         };
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         let severity = if d.tag.frozen.is_some() {
             FROZEN_SEVERITY
         } else {
@@ -474,7 +475,7 @@ impl Rule for ReservedLetters {
         if reasons.is_empty() {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         let reasons_text = reasons.join("; ");
         vec![
             Finding::new(
@@ -618,12 +619,14 @@ fn identifiers(d: &Device) -> Vec<(&'static str, String)> {
 /// The EW-RDS-009 findings of one device.
 fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
     let mut out = Vec::new();
-    let mut tag: Option<String> = None;
+    let mut tag: Option<Named> = None;
     for (what, text) in identifiers(d) {
         let Some(chars) = confusables(&text) else {
             continue;
         };
-        let tag = tag.get_or_insert_with(|| full_tag(q, device, "device")).clone();
+        let tag = tag
+            .get_or_insert_with(|| full_tag(q, device, text!("word-device")))
+            .clone();
         // In English each as `U+XXXX (looks like Y)`; for the other languages as `U+XXXX → Y`.
         let lookalikes = chars
             .iter()

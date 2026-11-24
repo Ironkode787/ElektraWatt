@@ -472,7 +472,7 @@ fn screws(count: u128, v: impl Fn(u128) -> f64) -> ew_model::Model {
 fn collisions(m: &ew_model::Model) -> Vec<ew_checks::Finding> {
     use ew_checks::Rule;
     let found = ew_checks::rules::layout::Collision.run(&ew_derive::Q::new(m), &ew_checks::Scope::Project);
-    assert_messages(&found);
+    assert_worded(&found);
     found
 }
 
@@ -495,7 +495,7 @@ fn five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
         ew_checks::messages::render(summary[0], "nl-NL"),
         "meer voetafdrukken overlappen op de montageplaat van +J-E-2416-UC1; de eerste 64 overlappingen staan vermeld"
     );
-    // the other 64 are pairs of two placements (their whole texts render from their arguments: `assert_messages`)
+    // the other 64 are pairs of two placements (their whole texts render from their arguments: `assert_worded`)
     let pairs = found
         .iter()
         .filter(|f| f.text.named().contains(&("form", "placements".into())))

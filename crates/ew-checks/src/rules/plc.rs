@@ -799,9 +799,10 @@ impl Rule for DiffersFromMap {
                         .iter()
                         .find(|e| e.channel == at)
                         .map_or_else(|| "no address".to_owned(), |e| address_text(&e.address));
-                    let valve = s
-                        .valve
-                        .map_or_else(|| "the valve".to_owned(), |v| full_tag(q, v, "valve"));
+                    let valve = s.valve.map_or_else(
+                        || text!("word-the-valve").into(),
+                        |v| full_tag(q, v, text!("word-valve")),
+                    );
                     let expected_name = match expected_id {
                         Some(id) => channel_name(q, module, id, expected),
                         None => format!("{}:{expected}", full_tag(q, module, "module")),
@@ -1009,7 +1010,7 @@ impl Rule for PinsUnbound {
         {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         vec![
             Finding::new(
                 &PINS_UNBOUND,
@@ -1065,7 +1066,7 @@ impl Rule for NotAModule {
         if !ew_derive::not_a_module(q, device) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         let part = q
             .devices()
             .get(device)

@@ -84,7 +84,7 @@ impl Rule for PortClassRule {
                 continue;
             };
             let channel = channel_name(q, module, w.channel, w.number);
-            let tag = full_tag(q, device, "the device");
+            let tag = full_tag(q, device, text!("word-the-device"));
             if w.mode != PortMode::IoLink {
                 let mode = mode_word(&w.mode);
                 out.push(
@@ -221,7 +221,7 @@ impl Rule for Limits {
                 // compared in nanometres, so 20.9 m is longer than 20 m; printed to the millimetre
                 if nm.0 > i64::from(max).saturating_mul(1_000_000_000) {
                     let metres = ew_derive::ew_units::Dec3(nm.0 / 1_000_000);
-                    let tag = full_tag(q, cable, "the cable");
+                    let tag = full_tag(q, cable, text!("word-the-cable"));
                     out.push(
                         Finding::new(
                             &LIMITS,

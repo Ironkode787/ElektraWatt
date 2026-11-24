@@ -35,7 +35,7 @@ fn found_in(m: &ew_model::Model, rule: &str, mode: CheckMode) -> Vec<ew_checks::
         .into_iter()
         .filter(|f| f.rule == rule)
         .collect();
-    assert_messages(&found);
+    assert_worded(&found);
     found
 }
 

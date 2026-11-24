@@ -26,6 +26,8 @@ use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::location_text;
+use crate::rules::{Named, listed, wire_ends};
+use ew_l10n::TextArg;
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
@@ -216,79 +218,58 @@ fn cable_part(q: &Q, cable: Id<Device>) -> Option<(Id<Part>, std::sync::Arc<LibC
     })
 }
 
-/// The members in which a conductor differs from its core definition, as `member: conductor ≠ part` texts, with the
-/// arguments of the rule's pattern: per member (`colour`, `csa`, `kind`, `pair`) `yes` or `no`, the two values, and
-/// the separator before it. A member the conductor leaves unset (unknown) is not compared.
-fn core_differences(c: &Conductor, def: &CableCore) -> (Vec<String>, Vec<(&'static str, String)>) {
-    let mut out = Vec::new();
-    let mut args = Vec::new();
-    let mut add =
-        |out: &mut Vec<String>, names: [&'static str; 4], ours: String, part: String, text: String| {
-            let [member, sep, a, b] = names;
-            args.push((sep, if out.is_empty() { "" } else { ", " }.to_owned()));
-            args.push((member, "yes".to_owned()));
-            args.push((a, ours));
-            args.push((b, part));
-            out.push(text);
-        };
+/// The members in which a conductor differs from its core definition, as the arguments of the rule's pattern: per member
+/// (`colour`, `csa`, `kind`, `pair`) `yes`, the two values (a value the part leaves unset as the word `none`), and the
+/// separator before it; empty when they agree. A member the conductor leaves unset (unknown) is not compared.
+fn core_differences(c: &Conductor, def: &CableCore) -> Vec<(&'static str, TextArg)> {
+    let mut args: Vec<(&'static str, TextArg)> = Vec::new();
+    let none = || TextArg::from(text!("word-none"));
+    let mut add = |names: [&'static str; 4], ours: String, part: TextArg| {
+        let [member, sep, a, b] = names;
+        args.push((sep, if args.is_empty() { "" } else { ", " }.into()));
+        args.push((member, "yes".into()));
+        args.push((a, ours.into()));
+        args.push((b, part));
+    };
     if let Some(colour) = &c.colour
         && def.colour.as_ref() != Some(colour)
     {
         let part = def
             .colour
             .as_ref()
-            .map_or_else(|| "none".to_owned(), ew_derive::colour_marked);
-        let ours = ew_derive::colour_marked(colour);
-        let text = format!("colour {ours} ≠ {part}");
+            .map_or_else(none, |p| ew_derive::colour_marked(p).into());
         add(
-            &mut out,
             ["colour", "sep_colour", "colour_core", "colour_part"],
-            ours,
+            ew_derive::colour_marked(colour),
             part,
-            text,
         );
     }
     if let Some(csa) = &c.csa
         && def.csa.as_ref() != Some(csa)
     {
         let text = |x: &ew_derive::ew_schema::Csa| csa_text(x).unwrap_or_else(|| "?".to_owned());
-        let part = def.csa.as_ref().map_or_else(|| "none".to_owned(), text);
-        let ours = text(csa);
-        let text = format!("cross-section {ours} ≠ {part}");
-        add(
-            &mut out,
-            ["csa", "sep_csa", "csa_core", "csa_part"],
-            ours,
-            part,
-            text,
-        );
+        let part = def.csa.as_ref().map_or_else(none, |p| text(p).into());
+        add(["csa", "sep_csa", "csa_core", "csa_part"], text(csa), part);
     }
     if c.shield != def.shield {
         let word = |s: bool| if s { "shield" } else { "core" };
-        let text = format!("kind {} ≠ {}", word(c.shield), word(def.shield));
-        let (ours, part) = (word(c.shield).to_owned(), word(def.shield).to_owned());
         add(
-            &mut out,
             ["kind", "sep_kind", "kind_core", "kind_part"],
-            ours,
-            part,
-            text,
+            word(c.shield).to_owned(),
+            word(def.shield).into(),
         );
     }
     if let Some(pair) = c.pair
         && def.pair != Some(pair)
     {
-        let part = def.pair.map_or_else(|| "none".to_owned(), |p| p.to_string());
-        let text = format!("pair {pair} ≠ {part}");
+        let part = def.pair.map_or_else(none, |p| p.to_string().into());
         add(
-            &mut out,
             ["pair", "sep_pair", "pair_core", "pair_part"],
             pair.to_string(),
             part,
-            text,
         );
     }
-    (out, args)
+    args
 }
 
 /// EW-CORE-032: a core of a cable whose part defines cable cores (`sections.cable_cores`, FR-CBL-004) that differs
@@ -317,14 +298,14 @@ impl Rule for CoreDiffersFromPart {
             let core = core_text(q, &c);
             let def = part.item.sections.cable_cores.iter().find(|d| d.core == c.core);
             let words = match def {
-                None => vec![("form", "foreign".to_owned())],
+                None => vec![("form", "foreign".into())],
                 Some(def) => {
-                    let (diffs, mut words) = core_differences(&c, def);
-                    if diffs.is_empty() {
+                    let mut words = core_differences(&c, def);
+                    if words.is_empty() {
                         continue;
                     }
-                    words.push(("form", "differs".to_owned()));
-                    words.push(("def", def.core.as_str().to_owned()));
+                    words.push(("form", "differs".into()));
+                    words.push(("def", def.core.as_str().into()));
                     words
                 }
             };
@@ -476,7 +457,7 @@ impl Rule for ExternalWithoutCable {
             let (at, target) = match place {
                 Place::Location(l) => (location_text(q, l), Target::new(Kind::StructureNode, l)),
                 Place::Reference(r) => (
-                    ew_derive::external_partner_text(q, r),
+                    Named::from(ew_derive::external_partner_text(q, r)),
                     Target::new(Kind::ExternalRef, r),
                 ),
             };
@@ -577,7 +558,7 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
     }
     let core = core_text(q, c);
     let numbers = q.get::<WireNumbers>(());
-    let mut labels: Vec<String> = wires
+    let mut labels: Vec<Named> = wires
         .keys()
         .map(|w| {
             numbers.number(*w).map_or_else(
@@ -587,22 +568,24 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
                         .map(|c| {
                             let end = |e: &ew_derive::ew_schema::Endpoint| {
                                 EndpointKey::of(e).map_or_else(
-                                    || "?".to_owned(),
+                                    || TextArg::from("?"),
                                     |k| match k {
-                                        EndpointKey::Cp(f, i) => ew_derive::cp_label(q, CpRef::new(f, i)),
-                                        EndpointKey::Junction(_) => "junction".to_owned(),
+                                        EndpointKey::Cp(f, i) => {
+                                            ew_derive::cp_label(q, CpRef::new(f, i)).into()
+                                        }
+                                        EndpointKey::Junction(_) => text!("word-junction").into(),
                                     },
                                 )
                             };
-                            format!("{}–{}", end(&c.a), end(&c.b))
+                            Named::from(wire_ends(end(&c.a), end(&c.b)))
                         })
-                        .unwrap_or_default()
+                        .unwrap_or_else(|| Named::from(String::new()))
                 },
-                |n| n.label.clone(),
+                |n| n.label.clone().into(),
             )
         })
         .collect();
-    sort_natural(&mut labels);
+    labels.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
     let connections: Vec<Target> = wires
         .values()
         .flatten()
@@ -617,7 +600,7 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
         )
         .arg("core", core)
         .arg("count", wires.len().to_string())
-        .arg("wires", labels.join(", "))
+        .arg("wires", listed(labels))
         .keyed_on(&[Target::new(Kind::Conductor, id)]),
     )
 }

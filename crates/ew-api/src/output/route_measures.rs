@@ -233,12 +233,35 @@ fn cell_text(q: &Q, page: Id<ew_derive::ew_schema::Page>, p: (i64, i64)) -> Stri
         .unwrap_or_default()
 }
 
-/// A connection of `tables` named by its ends (`-E55:PE → -X1:PE`, `the junction in C11 → E56:X2`); empty for one
-/// the page does not draw. Its English is the rule messages' argument (whose patterns word the ends, FT-1600).
-fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
-    connection_words_text(q, tables, id)
-        .map(|t| t.to_string())
-        .unwrap_or_default()
+/// A connection of `tables` named by its ends (`-E55:PE → -X1:PE`, `the junction in C11 → E56:X2`) as the layout
+/// rules' findings name it, each end in the reader's language by the rule messages' words (FT-1600); empty for one
+/// the page does not draw.
+fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> crate::checks::rules::Named {
+    use crate::TextArg;
+    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let end = |e: &TableEnd| -> TextArg {
+        match e {
+            TableEnd::Cp { function, idx } => tables
+                .cps
+                .iter()
+                .find(|cp| cp.function == *function && cp.idx == *idx)
+                .map_or_else(
+                    || ew_checks::text!("word-a-connection-point-of-another-page").into(),
+                    |cp| cp_text(q, cp).into(),
+                ),
+            TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
+                Some(j) => match cell_text(q, page, j.at) {
+                    c if c.is_empty() => ew_checks::text!("word-a-junction").into(),
+                    c => ew_checks::text!("word-the-junction-in", c).into(),
+                },
+                None => ew_checks::text!("word-a-junction").into(),
+            },
+        }
+    };
+    tables.connections.iter().find(|c| c.id == id).map_or_else(
+        || String::new().into(),
+        |c| rules::connection_words(end(&c.a), end(&c.b)).into(),
+    )
 }
 
 /// [`connection_text`] by key, in the reader's language; `None` for a connection the page does not draw.
@@ -593,7 +616,7 @@ impl Reader<'_> {
     }
 
     fn connection(&self, w: ew_drafting::WireId) -> String {
-        connection_text(self.q, self.tables, w.0)
+        connection_text(self.q, self.tables, w.0).to_string()
     }
 
     fn symbol(&self, id: Uuid) -> String {
@@ -671,7 +694,7 @@ impl Reader<'_> {
     }
 
     /// The owner of a text as a layout rule names it.
-    fn owner<'b>(&'b self, owner: Uuid, words: &'b mut String) -> rules::TextOwner<'b> {
+    fn owner<'b>(&'b self, owner: Uuid, words: &'b mut crate::checks::rules::Named) -> rules::TextOwner<'b> {
         if let Some(name) = self.ip_name(owner) {
             return rules::TextOwner::Ip {
                 rep: Id::from_uuid(owner),
@@ -679,8 +702,8 @@ impl Reader<'_> {
             };
         }
         if self.tables.reps.iter().any(|r| r.id == owner) {
-            *words = self.symbol(owner);
-            let device: &'b String = words;
+            *words = self.symbol(owner).into();
+            let device: &'b str = words;
             return rules::TextOwner::Symbol {
                 rep: Id::from_uuid(owner),
                 device,
@@ -688,7 +711,7 @@ impl Reader<'_> {
         }
         if self.tables.connections.iter().any(|c| c.id == owner) {
             *words = connection_text(self.q, self.tables, owner);
-            let words: &'b String = words;
+            let words: &'b crate::checks::rules::Named = words;
             return rules::TextOwner::Wire {
                 id: Id::from_uuid(owner),
                 words,
@@ -864,17 +887,15 @@ fn page_layout(r: &Reader<'_>, m: &Quality) -> PageLayout {
 fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Finding>) {
     let (q, tables, page) = (r.q, r.tables, r.page());
     let f = &m.findings;
-    let words: Vec<(Uuid, String)> = tables
+    let words: Vec<(Uuid, crate::checks::rules::Named)> = tables
         .connections
         .iter()
         .map(|c| (c.id, connection_text(q, tables, c.id)))
         .collect();
+    let no_words = crate::checks::rules::Named::from(String::new());
     let wire = |id: Uuid| rules::LayoutWire {
         id: Id::from_uuid(id),
-        words: words
-            .iter()
-            .find(|(c, _)| *c == id)
-            .map_or("", |(_, w)| w.as_str()),
+        words: words.iter().find(|(c, _)| *c == id).map_or(&no_words, |(_, w)| w),
         tube: tables.connections.iter().any(|c| c.id == id && c.kind == "fluid"),
     };
     for (w, p, pt) in &f.through_points {
@@ -930,7 +951,7 @@ fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Fin
             .first()
             .map_or(rect, |(a, b)| ew_drafting::Rect::new(*a, *b).grown(1));
         let text = r.text(owner, rect);
-        let mut words = String::new();
+        let mut words = crate::checks::rules::Named::from(String::new());
         out.push(rules::wire_through_text(
             page,
             wire(w.0),
@@ -967,7 +988,7 @@ fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Fin
         let text = r.text(l.owner, rect);
         let (other_owner, other_rect) = r.text_owner(*t, &m.labels);
         let other = r.text(other_owner, other_rect);
-        let mut words = String::new();
+        let mut words = crate::checks::rules::Named::from(String::new());
         let owner = r.owner(l.owner, &mut words);
         out.push(rules::text_on_text(
             page,
@@ -981,7 +1002,7 @@ fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Fin
     for (l, p) in &f.texts_on_parts {
         let Some(rect) = label(*l) else { continue };
         let text = r.text(l.owner, rect);
-        let (mut words, mut device) = (String::new(), String::new());
+        let (mut words, mut device) = (crate::checks::rules::Named::from(String::new()), String::new());
         let owner = r.owner(l.owner, &mut words);
         let part = (Id::from_uuid(p.0), r.symbol_name(p.0, &mut device));
         out.push(rules::text_on_part(

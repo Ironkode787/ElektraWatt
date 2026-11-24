@@ -641,13 +641,13 @@ rule-ew-plc-015 = { $subject }: the { $what ->
     .hint = Enter the address before release.
 
 rule-ew-plc-004 = { $form ->
-        [input] { $channel }: the { $kind } channel reads the coil of { WORD($target) }; an input reads a sensor, check the wiring or the channel kind
-       *[output] { $channel }: the { $kind } channel drives the contact of { WORD($target) }; an output drives an actuator, check the wiring or the channel kind
+        [input] { $channel }: the { $kind } channel reads the coil of { $target }; an input reads a sensor, check the wiring or the channel kind
+       *[output] { $channel }: the { $kind } channel drives the contact of { $target }; an output drives an actuator, check the wiring or the channel kind
     }
     .title = Channel kind mismatch
     .hint = Wire the channel to a function of its kind, or change the channel kind.
 
-rule-ew-plc-005 = { $channel }: the symbol { $symbol } is not an IEC 61131-3 identifier, which configuration project { WORD($cfg) } requires; use letters, digits and single underscores
+rule-ew-plc-005 = { $channel }: the symbol { $symbol } is not an IEC 61131-3 identifier, which configuration project { $cfg } requires; use letters, digits and single underscores
     .title = Invalid symbol
     .hint = Give the channel a symbol of letters, digits and single underscores that does not start with a digit.
 
@@ -664,11 +664,11 @@ rule-ew-plc-010 = { $channel }: the data type { $data_type } ({ $bits } bit(s)) 
     .hint = Give the channel a data type as wide as the channel.
 
 rule-ew-plc-011 = { $form ->
-        [occupied] { WORD($module) } and { WORD($other) } sit in the same slot { $slot } of { WORD($station) }; move one of them to a free slot
-        [slot] { WORD($module) } sits in slot { $slot } of { WORD($station) }, but its part { $part } allows slots { $allowed }; move it to an allowed slot
-        [max_modules] { WORD($station) } has { $have } modules, more than the { $limit } its part allows; remove modules
-        [input] { WORD($station) } has { $have } input bytes, more than the { $limit } its part allows; remove modules
-       *[output] { WORD($station) } has { $have } output bytes, more than the { $limit } its part allows; remove modules
+        [occupied] { $module } and { $other } sit in the same slot { $slot } of { $station }; move one of them to a free slot
+        [slot] { $module } sits in slot { $slot } of { $station }, but its part { $part } allows slots { $allowed }; move it to an allowed slot
+        [max_modules] { $station } has { $have } modules, more than the { $limit } its part allows; remove modules
+        [input] { $station } has { $have } input bytes, more than the { $limit } its part allows; remove modules
+       *[output] { $station } has { $have } output bytes, more than the { $limit } its part allows; remove modules
     }
     .title = Slot rules
     .hint = Put each module in a slot of its own that its part allows, and keep the station within its limits.
@@ -706,8 +706,8 @@ rule-ew-plc-018 = { $device } is drawn, but none of its channels is bound to its
     .hint = Bind the channels to their pins with the fix; a module drawn now is bound at once.
 
 rule-ew-saf-001 = { $form ->
-        [missing] { WORD($module) } is an F-module without an F-destination address; enter it
-        [range] { WORD($module) }: the F-destination address { $address } is outside { $min }..{ $max }, the range of its device description; enter an address inside it
+        [missing] { $module } is an F-module without an F-destination address; enter it
+        [range] { $module }: the F-destination address { $address } is outside { $min }..{ $max }, the range of its device description; enter an address inside it
        *[duplicate] the F-destination address { $address } is used by { $modules }; give each F-module its own address
     }
     .title = F-address
@@ -715,17 +715,17 @@ rule-ew-saf-001 = { $form ->
 
 rule-ew-saf-002 = { $form ->
         [incomplete] { $channel } is a 1oo2 channel without a partner that names it back; pair it with the other channel of the sensor
-       *[devices] the 1oo2 pair { $channel } and { $other } reads two devices, { WORD($first) } and { WORD($second) }; wire both channels to the one two-channel sensor
+       *[devices] the 1oo2 pair { $channel } and { $other } reads two devices, { $first } and { $second }; wire both channels to the one two-channel sensor
     }
     .title = 1oo2 pair
     .hint = Pair each 1oo2 channel with the other channel of the same two-channel sensor.
 
-rule-ew-saf-003 = { $channel }: the sensor { WORD($sensor) } is not supplied from the module's test-pulse pin; wire its supply to that pin
+rule-ew-saf-003 = { $channel }: the sensor { $sensor } is not supplied from the module's test-pulse pin; wire its supply to that pin
     .title = Test pulse
     .hint = Supply the sensor of an F-DI channel from the module's test-pulse pin.
 
 rule-ew-prc-001 = { $form ->
-        [scheme] { WORD($device) }: the process tag { $tag } does not match the project's scheme { $scheme }; correct the tag
+        [scheme] { $device }: the process tag { $tag } does not match the project's scheme { $scheme }; correct the tag
        *[duplicate] the process tag { $tag } is carried by { $devices }; keep it on the one field device and track it from the others
     }
     .title = Process-tag scheme
@@ -800,7 +800,7 @@ rule-ew-bus-007 = logical net { $net } has no master; name its master port, or t
     .hint = Name the logical net's master: a port of the project or the external partner.
 
 rule-ew-bus-009 = { $form ->
-        [cable] { $port } is connected by { WORD($cable) }, which is not a cable for its bus; use a bus cable
+        [cable] { $port } is connected by { $cable }, which is not a cable for its bus; use a bus cable
        *[connector] { $port } ({ $connector }) is mated with { $other } ({ $other_connector }); the connector types differ
     }
     .title = Wrong bus cable
@@ -811,15 +811,15 @@ rule-ew-bus-010 = the ports joined with { $port } belong to the logical nets { $
     .hint = Put every port that bus connections join in one logical net.
 
 rule-ew-iol-001 = { $form ->
-        [mode] { $channel } is in mode { $mode }, but the IO-Link device { WORD($device) } is connected; set the port to IO-Link
-       *[class] { $channel } is a class-{ $port_class } port, but { WORD($device) } needs class { $device_class }; connect it to a class-B port
+        [mode] { $channel } is in mode { $mode }, but the IO-Link device { $device } is connected; set the port to IO-Link
+       *[class] { $channel } is a class-{ $port_class } port, but { $device } needs class { $device_class }; connect it to a class-B port
     }
     .title = IO-Link port class
     .hint = Connect each IO-Link device to a port of its class, in IO-Link mode.
 
 rule-ew-iol-002 = { $channel }: { $form ->
         [window] the device's { $have } { $dir } bits exceed the port window of { $room } bits; use a master with a larger window
-       *[cable] the cable { WORD($cable) } is { $metres } m long, more than the { $max } m an IO-Link port allows; shorten it
+       *[cable] the cable { $cable } is { $metres } m long, more than the { $max } m an IO-Link port allows; shorten it
     }
     .title = IO-Link limits
     .hint = Keep each IO-Link device within its port's window and cable length.
@@ -827,7 +827,7 @@ rule-ew-iol-002 = { $channel }: { $form ->
 ## EW-POT: potentials
 
 rule-ew-pot-001 = { $form ->
-        [flow] { $device } carries { WORD($from) } through to { WORD($to) }: a contact or a fuse passes one potential on, it cannot change it into another. Correct the type on one side, or put a power supply or a transformer between them.
+        [flow] { $device } carries { $from } through to { $to }: a contact or a fuse passes one potential on, it cannot change it into another. Correct the type on one side, or put a power supply or a transformer between them.
        *[attrs] { $conflicts }{ $more ->
             [none] {""}
            *[other] {" "}{ $more } more connection points are wired the same way.
@@ -835,34 +835,15 @@ rule-ew-pot-001 = { $form ->
     }
     .title = Type or voltage conflict
     .hint = Take away the wire that joins two different potentials, or correct the definition of one of them. A 0 V joined to earth some other way than by a wire drawn straight to an earth point needs its bond declared (Draw ▸ Connect ▸ Bond).
-    .conflict-type = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }: a wire joins two different potentials. If one of them is typed wrongly, correct its type; otherwise the wire goes to the wrong place: move it or take it away.
-    .conflict-voltage = { $a } ({ $a_kind }) is wired to { $b } ({ $b_kind }){ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }: one conductor cannot carry two voltages. If one voltage is typed wrongly, correct it; otherwise the wire goes to the wrong place: move it or take it away.
-    .conflict-environment = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }: one conductor cannot be both. If one setting is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
-    .conflict-class = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }: one conductor cannot be in two circuit classes. If one class is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
-    .conflict-role = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }: a wire joins two different potentials. If the pin is wired to the wrong conductor, move its wire; if { $b } is typed wrongly, correct its type.
-    .conflict-roles = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }: a wire joins two different potentials, so one of the two pins is wired to the wrong conductor. Move that wire to the right one, or take it away.
-    .conflict-earth = { $a } (0 V) is joined to the protective earth { $b }{ $at ->
-            [page] {" "}on page { $page }
-           *[none] {""}
-        }, but not by a wire drawn from the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take that wire away.
+
+pot-conflict-type = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: a wire joins two different potentials. If one of them is typed wrongly, correct its type; otherwise the wire goes to the wrong place: move it or take it away.
+pot-conflict-voltage = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: one conductor cannot carry two voltages. If one voltage is typed wrongly, correct it; otherwise the wire goes to the wrong place: move it or take it away.
+pot-conflict-environment = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: one conductor cannot be both. If one setting is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
+pot-conflict-class = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: one conductor cannot be in two circuit classes. If one class is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
+pot-conflict-role = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: a wire joins two different potentials. If the pin is wired to the wrong conductor, move its wire; if { $p2 } is typed wrongly, correct its type.
+pot-conflict-roles = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: a wire joins two different potentials, so one of the two pins is wired to the wrong conductor. Move that wire to the right one, or take it away.
+pot-conflict-earth = { $p0 } (0 V) is joined to the protective earth { $p2 }{ $p4 }, but not by a wire drawn from the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take that wire away.
+pot-conflict-on-page = {" "}on page { $p0 }
 
 rule-ew-pot-002 = { $form ->
         [selv] { $potential } is a SELV circuit, but its 0 V is bonded to protective earth{ $bonds ->
@@ -892,7 +873,7 @@ rule-ew-pot-003 = { $cp_shared ->
     .hint = Wire the pin to functional earth, or declare the FE–PE bond on its wire.
 
 rule-ew-pot-004 = Wire { $wire } is green-yellow but carries { $potential }{ $typed ->
-        [yes] {" "}({ WORD($type) })
+        [yes] {" "}({ $type })
        *[no] {""}
     }: green-yellow is for protective earth only. If the colour was set by hand on the wire, clear it there; otherwise give the wire another colour in its Properties.
     .title = GNYE on a non-PE potential
@@ -900,7 +881,7 @@ rule-ew-pot-004 = Wire { $wire } is green-yellow but carries { $potential }{ $ty
 
 rule-ew-pot-005 = Wire { $wire } is blue but carries { $potential }{ $type ->
         [none] {""}
-       *[other] {" "}({ WORD($type) })
+       *[other] {" "}({ $type })
     }: in a project with a neutral, blue marks the neutral. If the colour was set by hand on the wire, clear it there; otherwise give the wire another colour, or use a cable whose blue core carries the neutral.
     .title = BU on a non-N conductor
     .hint = Use another colour for the wire, or a cable whose blue core carries the neutral.
@@ -1254,8 +1235,8 @@ fix-draw-valves = Draw its valves in the valve terminal
 fix-plug-open-ports = Plug the open ports
 fix-text-style-minimum = Set to 1.2 mm
 
-# The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
-# argument that may hold them in WORD(…), which prints that language's message of the same ID instead.
+# The words a rule prints where a record has no name of its own (FT-912): a rule passes them to its pattern by key,
+# and each language prints its own.
 word-device = device
 word-cable = cable
 word-without-a-tag = without a tag
@@ -1288,7 +1269,7 @@ word-the-project = the project
 word-a-page = a page
 word-a-logical-bus-net = a logical bus net
 word-a-physical-bus-net = a physical bus net
-word-the-junction-in = the junction in { $at }
+word-the-junction-in = the junction in { $p0 }
 word-a-connection-point-of-another-page = a connection point of another page
 word-its-target = its target
 word-the-station = the station
@@ -1301,7 +1282,7 @@ word-type-pe = protective earth PE
 word-type-pen = PEN conductor
 word-type-fe = functional earth FE
 word-type-n = neutral N
-word-type-phase = phase { $at }
+word-type-phase = phase { $p0 }
 word-type-l-plus = plus L+
 word-type-l-minus = minus L−
 word-type-signal = signal
@@ -1332,8 +1313,8 @@ word-style-cover-title = Cover title
 word-style-cover-subtitle = Cover subtitle
 word-style-section-id = Section number
 word-style-section-subtitle = Section title
-word-style-imported = Imported text of { $size } pt
-word-style-imported-bold = Imported bold text of { $size } pt
+word-style-imported = Imported text of { $p0 } pt
+word-style-imported-bold = Imported bold text of { $p0 } pt
 word-style-own = A text style of this project
 
 rule-ew-imp-251 =
@@ -1395,3 +1376,11 @@ rule-ew-imp-207 =
 ## Words another part of the program wrote: the store's integrity findings, the text an importer stored, an importer's quick fix
 
 words-as-written = { $p0 }
+
+## The words that join the items of a list in a finding
+
+join-comma = {", "}
+join-and = {" and "}
+join-wire = –
+join-connection = {" → "}
+join-sentence = {" "}

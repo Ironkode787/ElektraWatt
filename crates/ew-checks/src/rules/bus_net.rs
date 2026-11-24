@@ -600,7 +600,7 @@ impl Rule for WrongCable {
                     if let Some((_, confidence)) =
                         made_for.as_ref().filter(|(list, _)| !list.contains(&port.bus))
                     {
-                        let tag = full_tag(q, cable, "the cable");
+                        let tag = full_tag(q, cable, text!("word-the-cable"));
                         out.push(
                             Finding::new(
                                 &WRONG_CABLE,

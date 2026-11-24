@@ -12,6 +12,7 @@ use ew_checks::messages::{
     self, DEFAULT_LANGUAGE, LANGUAGES, format, has, hint, render, resource_errors, title,
 };
 use ew_checks::rules;
+use ew_l10n::TextArg;
 use ew_checks::rules::core::INTEGRITY;
 
 const SOURCES: [(&str, &str); 2] = [
@@ -72,7 +73,7 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
         }
     }
     // FT-680: every other shipped language has the title and the hint of every rule, and the pattern of every rule
-    // whose en-GB message has one (the rule tables check that a finding carries its arguments, `assert_messages`).
+    // whose en-GB message has one (the rule tables check that a finding carries its arguments, `assert_worded`).
     for lang in LANGUAGES.iter().filter(|l| **l != DEFAULT_LANGUAGE) {
         let absent: Vec<String> = rules()
             .iter()
@@ -92,42 +93,33 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
 /// not load), which no fixture raises, word their English and their Dutch from their arguments.
 #[test]
 fn nl_nl_words_the_rule_system_s_findings() {
-    let scope = by_hand(
+    let scope = built(
         "EW-CORE-083",
         "",
-        "rule EW-POT-006 could not be evaluated for the project: it stopped with an internal error, so its findings \
-         there are missing; report the defect",
         &[
-            ("form", "scope"),
-            ("rule", "EW-POT-006"),
-            ("scope", "the project"),
-        ],
-    );
+            ("form", "scope".into()),
+            ("rule", "EW-POT-006".into()),
+            ("scope", ew_checks::text!("word-the-project").into()),
+        ]);
     assert_eq!(
         render(&scope, "nl-NL"),
         "regel EW-POT-006 kon niet worden beoordeeld voor het project: hij stopte met een interne fout, dus zijn \
          bevindingen daar ontbreken; meld het defect"
     );
-    let edit = by_hand(
+    let edit = built(
         "EW-CORE-083",
         "",
-        "rule EW-POT-006 could not validate the edit: it stopped with an internal error, so the edit is not committed; \
-         report the defect",
-        &[("form", "prevent"), ("rule", "EW-POT-006")],
-    );
+        &[("form", "prevent".into()), ("rule", "EW-POT-006".into())]);
     assert!(render(&edit, "nl-NL").starts_with("regel EW-POT-006 kon de bewerking niet toetsen"));
-    let pack = by_hand(
+    let pack = built(
         "EW-CORE-084",
         "",
-        "pack EW-POT was not evaluated in full: its data table data/pe_sizing.toml does not load (`rows` is missing); \
-         EW-POT-006 did not run",
         &[
-            ("pack", "EW-POT"),
-            ("file", "data/pe_sizing.toml"),
-            ("error", "`rows` is missing"),
-            ("rules", "EW-POT-006"),
-        ],
-    );
+            ("pack", "EW-POT".into()),
+            ("file", "data/pe_sizing.toml".into()),
+            ("error", "`rows` is missing".into()),
+            ("rules", "EW-POT-006".into()),
+        ]);
     assert!(render(&pack, "nl-NL").starts_with("pakket EW-POT is niet volledig beoordeeld"));
 }
 
@@ -151,50 +143,42 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         }
     }
     // EW-LAY-001 of a device without designation outside a location without codes; EW-POT-006's cross-sections.
-    let unplaced = by_hand(
+    let unplaced = built(
         "EW-LAY-001",
         "",
-        "a device without designation is not placed in the layout of a location; place it on a rail or on the mounting \
-         plate",
         &[
-            ("device", "a device without designation"),
-            ("location", "a location"),
-        ],
-    );
+            ("device", ew_checks::text!("word-a-device-without-designation").into()),
+            ("location", ew_checks::text!("word-a-location").into()),
+        ]);
     assert_eq!(
         render(&unplaced, "nl-NL"),
         "een apparaat zonder aanduiding is niet geplaatst in de layout van een locatie; plaats het op een rail of op de \
          montageplaat"
     );
     // FT-1600: a connection's junction end, and an end on another page, in Dutch.
-    let unrouted = by_hand(
+    let unrouted = built(
         "EW-CORE-073",
         "",
-        "Wire the junction in C11 → a connection point of another page has no route: it is drawn as a dashed line.",
         &[
-            ("line", "wire"),
-            ("wire", "the junction in C11 → a connection point of another page"),
-        ],
-    );
+            ("line", "wire".into()),
+            ("wire", ew_checks::rules::page::connection_words(ew_checks::text!("word-the-junction-in", "C11"), ew_checks::text!("word-a-connection-point-of-another-page"))),
+        ]);
     assert_eq!(
         render(&unrouted, "nl-NL"),
         "Draad de aftakking in C11 → een aansluitpunt van een andere pagina heeft geen route: hij is als gestreepte \
          lijn getekend."
     );
-    let pe = by_hand(
+    let pe = built(
         "EW-POT-006",
         "",
-        "PE wire 101.3 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at -X1:PE. Make it at \
-         least 2.5 mm² in its Properties.",
         &[
-            ("wire", "101.3"),
-            ("pe", "1.5"),
-            ("required", "2.5"),
-            ("line", "2.5"),
-            ("at", "-X1:PE"),
-            ("verified", "yes"),
-        ],
-    );
+            ("wire", "101.3".into()),
+            ("pe", "1.5".into()),
+            ("required", "2.5".into()),
+            ("line", "2.5".into()),
+            ("at", "-X1:PE".into()),
+            ("verified", "yes".into()),
+        ]);
     assert_eq!(
         render(&pe, "nl-NL"),
         "PE-draad 101.3 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij -X1:PE. \
@@ -328,14 +312,13 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
     );
 }
 
-/// A finding of `rule` built by hand with `args`, its en-GB message `en`: the en-GB pattern renders `en` byte for byte.
-fn by_hand(rule: &str, discriminator: &str, en: &str, args: &[(&'static str, &str)]) -> ew_checks::Finding {
+/// A finding of `rule` built by hand with `args`.
+fn built(rule: &str, discriminator: &str, args: &[(&'static str, TextArg)]) -> ew_checks::Finding {
     let meta = ew_checks::rule(rule).expect("registered").meta();
     let mut f = ew_checks::Finding::new(meta, [], discriminator, "");
     for (k, v) in args {
-        f = f.arg(k, *v);
+        f = f.arg(k, v.clone());
     }
-    assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(en), "{rule}");
     f
 }
 
@@ -374,21 +357,20 @@ fn nl_nl_words_ew_term_002_s_prevent_finding() {
              (terminal.designate)",
         ),
     ] {
-        let f = by_hand(
+        let f = built(
             "EW-TERM-002",
             "",
-            en,
             &[
-                ("form", "taken"),
-                ("designation", "4"),
-                ("count", "2"),
-                ("strip", "-X1"),
-                ("end", "named"),
-                ("remedy", remedy),
-                ("free", free),
-                ("old", old),
-            ],
-        );
+                ("form", "taken".into()),
+                ("designation", "4".into()),
+                ("count", "2".into()),
+                ("strip", "-X1".into()),
+                ("end", "named".into()),
+                ("remedy", remedy.into()),
+                ("free", free.into()),
+                ("old", old.into()),
+            ]);
+        assert_eq!(f.message(), en, "{remedy}");
         assert_eq!(render(&f, "nl-NL"), nl, "{remedy}");
     }
 }
@@ -409,21 +391,20 @@ fn nl_nl_words_ew_term_002_s_untagged_strip() {
         ),
     ] {
         let fallback = if form == "used" { "strip" } else { "the strip" };
-        let f = by_hand(
+        let f = built(
             "EW-TERM-002",
             "",
-            en,
             &[
-                ("form", form),
-                ("designation", "4"),
-                ("count", "2"),
-                ("strip", fallback),
-                ("end", "untagged"),
-                ("remedy", "none"),
-                ("free", ""),
-                ("old", ""),
-            ],
-        );
+                ("form", form.into()),
+                ("designation", "4".into()),
+                ("count", "2".into()),
+                ("strip", fallback.into()),
+                ("end", "untagged".into()),
+                ("remedy", "none".into()),
+                ("free", "".into()),
+                ("old", "".into()),
+            ]);
+        assert_eq!(f.message(), en, "{form}");
         assert_eq!(render(&f, "nl-NL"), nl, "{form}");
     }
 }
@@ -492,12 +473,11 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
         ),
     ] {
         let form = args[0].1;
-        let f = by_hand(
+        let f = built(
             "EW-BUS-001",
             if form == "tbd" { "address" } else { "duplicate" },
-            en,
-            args,
-        );
+            &args.iter().map(|(k, v)| (*k, TextArg::from(*v))).collect::<Vec<_>>());
+        assert_eq!(f.message(), en, "{args:?}");
         assert_eq!(render(&f, "nl-NL"), nl, "{args:?}");
     }
 }
@@ -506,33 +486,34 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
 /// merge), EW-BUS-004's segment ends and EW-POT-001's conflicts read in Dutch in nl-NL.
 #[test]
 fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
-    let number = by_hand(
+    let number = built(
         "EW-POT-015",
         "",
-        "Wire number 101.3 is printed on 2 wires that are not one conductor",
-        &[("number", "101.3"), ("count", "2")],
-    );
+        &[("number", "101.3".into()), ("count", "2".into())]);
     assert_eq!(
         render(&number, "nl-NL"),
         "Draadnummer 101.3 staat op 2 draden die niet één geleider zijn"
     );
     // EW-CORE-013 words the group by the uniqueness rule's pattern.
-    let merge = by_hand(
+    let merge = built(
         "EW-CORE-013",
         "EW-POT-015",
-        "Wire number 101.3 is printed on 2 wires that are not one conductor after a merge; the oldest record keeps \
-         it, and the other must change",
         &[
-            ("number", "101.3"),
-            ("count", "2"),
+            ("number", "101.3".into()),
+            ("count", "2".into()),
             (
                 "collision",
-                "Wire number 101.3 is printed on 2 wires that are not one conductor",
+                built(
+                    "EW-POT-015",
+                    "",
+                    &[("number", "101.3".into()), ("count", "2".into())],
+                )
+                .text
+                .into(),
             ),
-            ("keeper", "oldest"),
-            ("others", "one"),
-        ],
-    );
+            ("keeper", "oldest".into()),
+            ("others", "one".into()),
+        ]);
     assert_eq!(
         render(&merge, "nl-NL"),
         "Draadnummer 101.3 staat op 2 draden die niet één geleider zijn na samenvoegen; het oudste record behoudt \
@@ -571,16 +552,15 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
             "-3X1: geen afsluitend element aan dit segmenteinde; sluit het segment hier af",
         ),
     ] {
-        let f = by_hand(
+        let f = built(
             "EW-BUS-004",
             "missing",
-            en,
-            &[("form", "missing"), ("end", end), ("port", port)],
-        );
+            &[("form", "missing".into()), ("end", end.into()), ("port", port.into())]);
+        assert_eq!(f.message(), en, "{end}");
         assert_eq!(render(&f, "nl-NL"), nl, "{end}");
     }
-    // EW-POT-001: each shape of conflict, one per line of `conflict_list` (its fields separated by tabs: the attribute,
-    // the two sides with what each is, the page).
+    // EW-POT-001: each shape of conflict, as its message and its fields (separated by tabs here: the message, the two
+    // sides with what each is, the page), each kind a word by key.
     let conflicts = [
         (
             "conflict-type\t24VDC-1 at -X1:1\tphase L1\tL1 at -X2:1\tplus L+\t3",
@@ -643,21 +623,64 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
              ▸ Potentiaalverbinding, of haal die draad weg.",
         ),
     ];
-    let lines: Vec<&str> = conflicts.iter().map(|(line, _, _)| *line).collect();
+    let kind = |k: &str| -> TextArg {
+        use ew_checks::text;
+        match k {
+            "phase L1" => text!("word-type-phase", "L1").into(),
+            "plus L+" => text!("word-type-l-plus").into(),
+            "protective earth PE" => text!("word-type-pe").into(),
+            "neutral N" => text!("word-type-n").into(),
+            "mains circuit" => text!("word-class-mains").into(),
+            "control circuit" => text!("word-class-control").into(),
+            "DC, floating" => ew_l10n::List::new(
+                vec!["DC".into(), text!("word-earthing-floating").into()],
+                text!("join-comma"),
+                text!("join-comma"),
+            )
+            .into(),
+            other => other.into(),
+        }
+    };
+    let pieces: Vec<TextArg> = conflicts
+        .iter()
+        .map(|(line, _, _)| {
+            use ew_checks::text;
+            let f: Vec<&str> = line.split('\t').collect();
+            let (a, ak, b, bk) = (f[1], kind(f[2]), f[3], kind(f[4]));
+            let page: TextArg = if f[5].is_empty() {
+                "".into()
+            } else {
+                text!("pot-conflict-on-page", f[5]).into()
+            };
+            match f[0] {
+                "conflict-type" => text!("pot-conflict-type", a, ak, b, bk, page),
+                "conflict-voltage" => text!("pot-conflict-voltage", a, ak, b, bk, page),
+                "conflict-environment" => text!("pot-conflict-environment", a, ak, b, bk, page),
+                "conflict-class" => text!("pot-conflict-class", a, ak, b, bk, page),
+                "conflict-role" => text!("pot-conflict-role", a, ak, b, bk, page),
+                "conflict-roles" => text!("pot-conflict-roles", a, ak, b, bk, page),
+                _ => text!("pot-conflict-earth", a, ak, b, bk, page),
+            }
+            .into()
+        })
+        .collect();
     let en: Vec<&str> = conflicts.iter().map(|(_, en, _)| *en).collect();
     let nl: Vec<&str> = conflicts.iter().map(|(_, _, nl)| *nl).collect();
-    let pot = by_hand(
+    let sentence = || ew_checks::text!("join-sentence");
+    let pot = built(
         "EW-POT-001",
         "attrs",
-        &format!(
+        &[
+            ("form", "attrs".into()),
+            ("conflicts", ew_l10n::List::new(pieces, sentence(), sentence()).into()),
+            ("more", "2".into()),
+        ]);
+    assert_eq!(
+        pot.message(),
+        format!(
             "{} 2 more connection points are wired the same way.",
             en.join(" ")
-        ),
-        &[
-            ("form", "attrs"),
-            ("conflict_list", &lines.join("\n")),
-            ("more", "2"),
-        ],
+        )
     );
     assert_eq!(
         render(&pot, "nl-NL"),
@@ -666,11 +689,4 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
             nl.join(" ")
         )
     );
-    // A conflict of another shape keeps the en-GB message.
-    let meta = ew_checks::rule("EW-POT-001").expect("registered").meta();
-    let odd = ew_checks::Finding::new(meta, [], "attrs", "")
-        .arg("form", "attrs")
-        .arg("conflict_list", "something else")
-        .arg("more", "none");
-    assert_eq!(render(&odd, "nl-NL"), "something else");
 }

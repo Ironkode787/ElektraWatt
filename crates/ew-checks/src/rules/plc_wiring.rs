@@ -121,9 +121,10 @@ impl Rule for KindMismatch {
                 _ => continue,
             };
             let channel = channel_name(q, module, c.id, c.number);
-            let target = t
-                .device
-                .map_or_else(|| "its target".to_owned(), |d| full_tag(q, d, "its target"));
+            let target = t.device.map_or_else(
+                || text!("word-its-target").into(),
+                |d| full_tag(q, d, text!("word-its-target")),
+            );
             let kind = kind_word(&c.kind);
             out.push(
                 Finding::new(
@@ -419,7 +420,7 @@ impl Rule for SlotRules {
             return Vec::new();
         };
         let modules = station_modules(q, station);
-        let tag = full_tag(q, station, "the station");
+        let tag = full_tag(q, station, text!("word-the-station"));
         let mut out = Vec::new();
         // One module per slot: a positional module's number is a slot of rack 0.
         let mut held: std::collections::BTreeMap<(u16, u32, Option<u16>), Id<Device>> = Default::default();
@@ -433,7 +434,10 @@ impl Rule for SlotRules {
                 held.insert(at, *module);
                 continue;
             };
-            let (first, second) = (full_tag(q, other, "a module"), full_tag(q, *module, "a module"));
+            let (first, second) = (
+                full_tag(q, other, text!("word-a-module")),
+                full_tag(q, *module, text!("word-a-module")),
+            );
             let number = if at.0 == 0 {
                 at.1.to_string()
             } else {
@@ -478,7 +482,7 @@ impl Rule for SlotRules {
             if plc.allowed_slots.is_empty() || plc.allowed_slots.iter().any(|s| u32::from(*s) == number) {
                 continue;
             }
-            let name = full_tag(q, *module, "a module");
+            let name = full_tag(q, *module, text!("word-a-module"));
             let allowed = plc
                 .allowed_slots
                 .iter()
@@ -793,7 +797,7 @@ impl Rule for OutputLoad {
                     ));
                 }
             }
-            let name = full_tag(q, module, "a module");
+            let name = full_tag(q, module, text!("word-a-module"));
             let loads_groups = plc
                 .supply_groups
                 .iter()

@@ -24,6 +24,7 @@ use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::core::DANGLING_REFERENCE;
 use crate::rules::term::full_tag;
+use crate::rules::{Named, listed};
 
 /// The part uses of a device with their copies, in printed order (part number in natural order, then the copy
 /// ID); a use whose copy the project does not hold is left out (EW-CORE-008 reports a dangling reference).
@@ -85,7 +86,7 @@ impl Rule for DeviceWithoutPart {
         if !lacks_part(q, device) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         vec![
             Finding::new(
                 &DEVICE_WITHOUT_PART,
@@ -169,7 +170,7 @@ impl Rule for IncompletePartData {
             if missing.is_empty() {
                 continue;
             }
-            let tag = full_tag(q, device, "device");
+            let tag = full_tag(q, device, text!("word-device"));
             let number = part.item.part_number.as_str();
             let which = match missing.as_slice() {
                 [one] => *one,
@@ -238,11 +239,11 @@ impl Rule for PlaceholderPart {
                 continue;
             }
             // Every device that uses the copy, by printed tag.
-            let mut users: Vec<(String, Id<Device>)> = q
+            let mut users: Vec<(Named, Id<Device>)> = q
                 .devices()
                 .iter()
                 .filter(|(x, dev)| uses_copy(q, *x, dev, id))
-                .map(|(x, _)| (full_tag(q, x, "device"), x))
+                .map(|(x, _)| (full_tag(q, x, text!("word-device")), x))
                 .collect();
             users.sort_by(|a, b| {
                 natural_cmp(&a.0, &b.0)
@@ -264,7 +265,6 @@ impl Rule for PlaceholderPart {
                         .find_map(|l| part.item.description.get(l).map(str::to_owned))
                 })
                 .unwrap_or_else(|| "a part".to_owned());
-            let tags: Vec<&str> = users.iter().map(|(t, _)| t.as_str()).collect();
             out.push(
                 Finding::new(
                     &PLACEHOLDER_PART,
@@ -274,7 +274,7 @@ impl Rule for PlaceholderPart {
                     format!("TBD {what}"),
                 )
                 .arg("part", what.clone())
-                .arg("users", tags.join(", "))
+                .arg("users", listed(users.iter().map(|(t, _)| t.clone())))
                 .keyed_on(&[Target::new(Kind::Part, id)]),
             );
         }
@@ -515,7 +515,7 @@ impl Rule for ContactsExceedPart {
         if have.holds(need) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         vec![
             Finding::new(
                 &CONTACTS_EXCEED_PART,
@@ -583,12 +583,12 @@ impl Rule for OrderCodesCover {
                 *covered.entry(*d).or_default() += 1;
             }
         }
-        let tag = full_tag(q, head, "assembly");
-        let mut rows: Vec<(String, Id<Device>, &'static str, u32)> = Vec::new();
+        let tag = full_tag(q, head, text!("word-assembly"));
+        let mut rows: Vec<(Named, Id<Device>, &'static str, u32)> = Vec::new();
         let with_parts = |d: Id<Device>| q.devices().get(d).is_some_and(|x| !x.parts.is_empty());
         for d in std::iter::once(head).chain(ew_derive::device_descendants(q, head)) {
             let n = covered.get(&d).copied().unwrap_or(0);
-            let child = full_tag(q, d, "device");
+            let child = full_tag(q, d, text!("word-device"));
             if n > 1 {
                 rows.push((child.clone(), d, "covered-twice", n));
             } else if n == 0 && d != head && with_parts(d) {
@@ -698,7 +698,7 @@ fn orphan_channels(q: &Q) -> Vec<Finding> {
                 .is_some_and(|d| d.aspects.plc_module.is_none())
         })
         .map(|(id, c)| {
-            let tag = full_tag(q, c.module, "device");
+            let tag = full_tag(q, c.module, text!("word-device"));
             (format!("{tag}:{}", c.number), (id, c.module))
         })
         .collect();
@@ -709,7 +709,7 @@ fn orphan_channels(q: &Q) -> Vec<Finding> {
     });
     rows.into_iter()
         .map(|(subject, (id, module))| {
-            let tag = full_tag(q, module, "device");
+            let tag = full_tag(q, module, text!("word-device"));
             Finding::new(
                 &DANGLING_REFERENCE,
                 [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],

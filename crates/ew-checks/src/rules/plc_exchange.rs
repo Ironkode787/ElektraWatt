@@ -173,7 +173,7 @@ impl Rule for OpenInstrumentTag {
                 .and_then(|c| c.parse::<Id<Channel>>().ok())
                 .is_none_or(|c| !channels.contains(c))
             {
-                let name = full_tag(q, device, "a device");
+                let name = full_tag(q, device, text!("word-a-device"));
                 Finding::new(
                     &OPEN_INSTRUMENT_TAG,
                     [Target::new(Kind::Device, device)],

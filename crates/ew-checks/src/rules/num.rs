@@ -65,7 +65,7 @@ impl Rule for TagDeviates {
         if rule == frozen || source == ew_derive::TagSource::EarthConnection {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         vec![
             Finding::new(&TAG_DEVIATES, [Target::new(Kind::Device, device)], "frozen", tag)
                 .arg("frozen", frozen.to_string())

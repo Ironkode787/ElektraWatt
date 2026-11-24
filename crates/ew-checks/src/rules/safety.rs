@@ -16,6 +16,7 @@ use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::plc::channel_name;
 use crate::rules::term::full_tag;
+use crate::rules::{Named, listed};
 
 // ---------------------------------------------------------------------------------------------------------
 // EW-SAF-001
@@ -54,7 +55,7 @@ impl Rule for FAddress {
             let Some(safety) = d.aspects.plc_module.as_ref().and_then(|m| m.safety.as_ref()) else {
                 continue;
             };
-            let module = full_tag(q, id, "an F-module");
+            let module = full_tag(q, id, text!("word-an-f-module"));
             match safety.f_dest {
                 None => out.push(
                     Finding::new(
@@ -90,9 +91,14 @@ impl Rule for FAddress {
             if modules.len() < 2 {
                 continue;
             }
-            let mut names: Vec<String> = modules.iter().map(|m| full_tag(q, *m, "an F-module")).collect();
-            names.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
-            let list = names.join(", ");
+            let mut names: Vec<Named> = modules
+                .iter()
+                .map(|m| full_tag(q, *m, text!("word-an-f-module")))
+                .collect();
+            names.sort_by(|a, b| {
+                ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english()))
+            });
+            let list = listed(names.clone());
             out.push(
                 Finding::new(
                     &F_ADDRESS,
@@ -189,7 +195,10 @@ impl Rule for Pair {
             if let (Some(a), Some(b)) = (a, b) {
                 if a != b {
                     let other = channel_name(q, p.module, p.id, p.number);
-                    let (ta, tb) = (full_tag(q, a, "a device"), full_tag(q, b, "a device"));
+                    let (ta, tb) = (
+                        full_tag(q, a, text!("word-a-device")),
+                        full_tag(q, b, text!("word-a-device")),
+                    );
                     out.push(
                         Finding::new(
                             &PAIR,
@@ -262,7 +271,7 @@ impl Rule for TestPulse {
                 continue;
             }
             let name = channel_name(q, module, c.id, c.number);
-            let sensor = full_tag(q, device, "the sensor");
+            let sensor = full_tag(q, device, text!("word-the-sensor"));
             out.push(
                 Finding::new(
                     &TEST_PULSE,

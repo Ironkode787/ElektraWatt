@@ -10,7 +10,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, natural_key};
+use ew_derive::ew_mltext::natural_key;
 use ew_derive::ew_schema::{
     AcDc, ContactKind, CpOverride, Device, DeviceState, FluidPortRole, Function, Kind, Medium, SupplyKind,
 };
@@ -23,8 +23,9 @@ use ew_derive::{
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
-use crate::rules::and_list;
+use crate::rules::and_listed;
 use crate::rules::term::full_tag;
+use ew_l10n::TextArg;
 
 /// A device's displayed tag (`-201U3-Q1`), else `device`.
 fn tag(q: &Q, d: Id<Device>) -> String {
@@ -32,20 +33,11 @@ fn tag(q: &Q, d: Id<Device>) -> String {
     if t.is_empty() { "device".to_owned() } else { t }
 }
 
-/// A tube as the messages name it, en-GB and nl-NL: its line tag, else its two ends ("tee" / "T-stuk" at a junction).
-fn tube_text(r: &TubeRow) -> (String, String) {
-    en_nl(&r.name())
-}
-
-/// The en-GB and nl-NL text of a multi-language text.
-fn en_nl(t: &MlText) -> (String, String) {
-    let get = |tag: &str| {
-        let tag = tag.parse().expect("a language tag");
-        t.text_for(&tag)
-            .map(str::to_owned)
-            .unwrap_or_else(|| t.neutral_or_first().unwrap_or_default().to_owned())
-    };
-    (get("en-GB"), get("nl-NL"))
+/// A tube as the messages name it: its line tag, else its two ends ("tee" at a junction), as the subject prints it and
+/// in the reader's language.
+fn tube_text(r: &TubeRow) -> (String, TextArg) {
+    let name = TextArg::Ml(r.name());
+    (name.to_string(), name)
 }
 
 /// Whether a CP of a function carries a closure.
@@ -150,15 +142,12 @@ impl Rule for TwoMedia {
             let at = first
                 .map(|cp| cp_label(q, cp))
                 .unwrap_or_else(|| "a fluid net".to_owned());
-            let (mut en, mut nl): (Vec<String>, Vec<String>) =
-                direct.iter().map(|k| en_nl(&k.text(q))).unzip();
-            en.sort_by_key(|s| natural_key(s));
-            nl.sort_by_key(|s| natural_key(s));
+            let mut media: Vec<TextArg> = direct.iter().map(|k| TextArg::Ml(k.text(q))).collect();
+            media.sort_by_cached_key(|m| natural_key(&m.to_string()));
             out.push(
                 Finding::new(&TWO_MEDIA, targets, "media", at.clone())
                     .arg("at", at)
-                    .arg("media", and_list(&en, "and"))
-                    .arg("media_nl", and_list(&nl, "en")),
+                    .arg("media", and_listed(media)),
             );
         }
         out
@@ -250,8 +239,7 @@ impl Rule for TubeMisfit {
                         text.clone(),
                     )
                     .arg("form", "rating")
-                    .arg("tube", text.clone())
-                    .arg("tube_nl", text_nl.clone())
+                    .arg("tube", text_nl.clone())
                     .arg("rating", rating.value.to_string())
                     .arg("pressure", p.to_string()),
                 );
@@ -271,8 +259,7 @@ impl Rule for TubeMisfit {
                             text.clone(),
                         )
                         .arg("form", "od")
-                        .arg("tube", text.clone())
-                        .arg("tube_nl", text_nl.clone())
+                        .arg("tube", text_nl.clone())
                         .arg("od", ew_derive::mm_micro(od.value))
                         .arg("port", end.text.clone())
                         .arg("port_od", ew_derive::mm_micro(port_od)),
@@ -328,8 +315,7 @@ impl Rule for NoTubeSpec {
                     "spec",
                     text.clone(),
                 )
-                .arg("tube", text)
-                .arg("tube_nl", text_nl)
+                .arg("tube", text_nl)
                 .arg("missing", missing)
                 .arg("size", size)
             })
@@ -440,20 +426,16 @@ impl Rule for ExhaustOpen {
                         &EXHAUST_OPEN,
                         targets,
                         format!("gallery {g}"),
-                        full_tag(q, *vt, "device"),
+                        full_tag(q, *vt, text!("word-device")),
                     )
                     .arg("form", "gallery")
                     .arg("terminal", vt_text)
                     .arg("gallery", g)
                     .arg("count", texts.len().to_string())
                 }
-                None => {
-                    let ports = and_list(&texts, "and");
-                    Finding::new(&EXHAUST_OPEN, targets, "ports", texts[0].clone())
-                        .arg("form", "ports")
-                        .arg("ports", ports)
-                        .arg("ports_nl", and_list(&texts, "en"))
-                }
+                None => Finding::new(&EXHAUST_OPEN, targets, "ports", texts[0].clone())
+                    .arg("form", "ports")
+                    .arg("ports", and_listed(texts.iter().cloned())),
             };
             out.push(finding);
         }
@@ -636,12 +618,11 @@ impl Rule for CoilVoltage {
                 &COIL_VOLTAGE,
                 [Target::new(Kind::Device, d)],
                 "voltage",
-                full_tag(q, d, "device"),
+                full_tag(q, d, text!("word-device")),
             )
             .arg("valve", valve)
             .arg("voltage", takes)
-            .arg("feeds", and_list(&wrong, "and"))
-            .arg("feeds_nl", and_list(&wrong, "en")),
+            .arg("feeds", and_listed(wrong)),
         ]
     }
 }
@@ -711,7 +692,7 @@ impl Rule for NoSupply {
                         &NO_SUPPLY,
                         [Target::new(Kind::Device, d)],
                         format!("gallery {}", cp_text(q, *first)),
-                        full_tag(q, d, "device"),
+                        full_tag(q, d, text!("word-device")),
                     )
                     .arg("form", "gallery")
                     .arg("device", vt),
@@ -743,7 +724,7 @@ impl Rule for NoSupply {
                         &NO_SUPPLY,
                         [Target::new(Kind::Function, f)],
                         format!("port {}", cp.designation),
-                        full_tag(q, d, "device"),
+                        full_tag(q, d, text!("word-device")),
                     )
                     .arg("form", "valve")
                     .arg("device", valve)
@@ -851,8 +832,7 @@ impl Rule for PortRoleConflict {
                         ports[0].clone(),
                     )
                     .arg("form", "valve")
-                    .arg("ports", and_list(&ports, "and"))
-                    .arg("ports_nl", and_list(&ports, "en")),
+                    .arg("ports", and_listed(ports.iter().cloned())),
                 );
             }
             for (wd, w) in &working {
@@ -919,8 +899,7 @@ impl Rule for LocationCrossing {
                     "location",
                     text.clone(),
                 )
-                .arg("tube", text)
-                .arg("tube_nl", text_nl)
+                .arg("tube", text_nl)
                 .arg("from", from)
                 .arg("to", to)
             })

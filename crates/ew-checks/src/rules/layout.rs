@@ -50,6 +50,7 @@ use ew_derive::part_confidence;
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rules::Named;
 use crate::rules::term::{full_tag, location_text};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -101,15 +102,16 @@ fn location_of(q: &Q, device: Id<Device>) -> Option<Id<StructureNode>> {
 }
 
 /// A device as printed: its full designation.
-fn device_name(q: &Q, device: Id<Device>) -> String {
-    full_tag(q, device, "a device without designation")
+fn device_name(q: &Q, device: Id<Device>) -> Named {
+    full_tag(q, device, text!("word-a-device-without-designation"))
 }
 
 /// A part as printed: its part number.
-fn part_name(q: &Q, part: &PartRef) -> String {
-    q.table::<LibCopy<Part>>()
-        .get(part.copy)
-        .map_or_else(|| "a missing part".to_owned(), |c| c.item.part_number.to_string())
+fn part_name(q: &Q, part: &PartRef) -> Named {
+    q.table::<LibCopy<Part>>().get(part.copy).map_or_else(
+        || text!("word-a-missing-part").into(),
+        |c| c.item.part_number.to_string().into(),
+    )
 }
 
 /// The mounting surface a placement sits on: its carrier's surface, or the surface itself.
@@ -393,7 +395,7 @@ impl Rule for LocationMismatch {
             let space_text = location_text(q, space.location);
             let own_text = match own {
                 Some(node) => location_text(q, node),
-                None => "none".to_owned(),
+                None => Named::from("none"),
             };
             let f = Finding::new(
                 &LOCATION_MISMATCH,
@@ -635,7 +637,7 @@ fn crowded_finding(q: &Q, surface: Id<MountingSurface>) -> Finding {
                 .get(s.enclosure)
                 .map(|e| device_name(q, e.device))
         })
-        .unwrap_or_else(|| "a missing enclosure".to_owned());
+        .unwrap_or_else(|| "a missing enclosure".into());
     let f = Finding::new(
         &COLLISION,
         [Target::new(Kind::MountingSurface, surface)],
@@ -867,9 +869,7 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
     let part = realised_part(q, pl);
     let (mount, copy) = mount_of(q, part.as_ref());
     let confidence = copy.as_ref().map(|c| part_confidence(c, "mech"));
-    let part_text = part
-        .as_ref()
-        .map_or_else(|| "none".to_owned(), |p| part_name(q, p));
+    let part_text = part.as_ref().map_or_else(|| "none".into(), |p| part_name(q, p));
     let mark = |f: Finding| match &confidence {
         Some(c) => f.reading(c),
         None => f,
@@ -1077,7 +1077,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
             Some(Overlapped::Placement(p)) => {
                 let other = placements
                     .get(p)
-                    .map_or_else(|| "a placement".to_owned(), |o| device_name(q, o.device));
+                    .map_or_else(|| text!("word-a-placement").into(), |o| device_name(q, o.device));
                 out.push(
                     finding("bracket_overlap")
                         .arg("other_kind", "placement")
@@ -1169,9 +1169,10 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
         if seen_space.insert(e.space) {
             continue;
         }
-        let location = spaces
-            .get(e.space)
-            .map_or_else(|| "a location".to_owned(), |s| location_text(q, s.location));
+        let location = spaces.get(e.space).map_or_else(
+            || text!("word-a-location").into(),
+            |s| location_text(q, s.location),
+        );
         let enclosure = devices_tag(e.device);
         out.push(
             Finding::new(
@@ -1193,7 +1194,7 @@ fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
         }
         let enclosure = enclosures
             .get(s.enclosure)
-            .map_or_else(|| "a missing enclosure".to_owned(), |e| devices_tag(e.device));
+            .map_or_else(|| "a missing enclosure".into(), |e| devices_tag(e.device));
         let f = Finding::new(
             &CARRIER_INCOMPATIBLE,
             [Target::new(Kind::MountingSurface, id)],
@@ -1227,7 +1228,7 @@ pub const ASSEMBLY_ORDER: RuleMeta = RuleMeta {
 /// An assembly member placed on the rail: its full designation (for the texts) and its device. The wanted order is
 /// `ew_derive::layout::member_order`: the parent first, then `Device.position` (a PLC module's slot under
 /// its station is its position), then the full designation in natural order, then the ID.
-type MemberKey = (String, Id<Device>);
+type MemberKey = (Named, Id<Device>);
 
 /// EW-LAY-016: on each rail, the placed members of one assembly or PLC station (the parent device and its children,
 /// `Device.parent`; a station's modules are its children) out of their order along the rail (`order`: the parent

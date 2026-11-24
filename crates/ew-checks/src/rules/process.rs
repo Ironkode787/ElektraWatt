@@ -14,6 +14,7 @@ use ew_derive::{Q, process_tag_scheme};
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
+use crate::rules::{Named, listed};
 
 /// EW-PRC-001 "Process-tag scheme" (doc 15 §4.5.1): hygiene, o r, warning, project (FR-PLC-049).
 pub const PROCESS_TAG: RuleMeta = RuleMeta {
@@ -59,7 +60,7 @@ impl Rule for ProcessTag {
             by_tag.entry(tag.clone()).or_default().push(id);
             if let Some((text, re)) = &scheme {
                 if !re.is_match(&tag) {
-                    let device = full_tag(q, id, "a device");
+                    let device = full_tag(q, id, text!("word-a-device"));
                     out.push(
                         Finding::new(
                             &PROCESS_TAG,
@@ -79,9 +80,14 @@ impl Rule for ProcessTag {
             if devices.len() < 2 {
                 continue;
             }
-            let mut names: Vec<String> = devices.iter().map(|d| full_tag(q, *d, "a device")).collect();
-            names.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
-            let list = names.join(", ");
+            let mut names: Vec<Named> = devices
+                .iter()
+                .map(|d| full_tag(q, *d, text!("word-a-device")))
+                .collect();
+            names.sort_by(|a, b| {
+                ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english()))
+            });
+            let list = listed(names.clone());
             out.push(
                 Finding::new(
                     &PROCESS_TAG,

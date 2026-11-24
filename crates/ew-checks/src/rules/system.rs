@@ -21,6 +21,7 @@ use ew_derive::{PotentialNameOf, Q, folio_label};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::Named;
 use crate::rules::term::full_tag;
 
 /// EW-CORE-083 "Rule not evaluated" (doc 15 §4.2): integrity, all modes, warning/error, project.
@@ -157,31 +158,31 @@ pub(crate) fn pack_findings(tables: &[DataTable]) -> (Vec<Finding>, Vec<&'static
 }
 
 /// The scope as printed: "the project", a folio, a device's tag, a potential's name.
-fn scope_text(q: &Q, scope: &Scope) -> String {
+fn scope_text(q: &Q, scope: &Scope) -> Named {
     match *scope {
-        Scope::Project => "the project".to_owned(),
+        Scope::Project => text!("word-the-project").into(),
         Scope::Page(p) => q.pages().get(p).map_or_else(
-            || "a page".to_owned(),
-            |page| format!("folio {}", folio_label(page)),
+            || text!("word-a-page").into(),
+            |page| format!("folio {}", folio_label(page)).into(),
         ),
-        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => full_tag(q, d, "a device"),
-        Scope::Potential(p) => format!("potential {}", q.get::<PotentialNameOf>(p).name.text),
-        Scope::Module(d) => full_tag(q, d, "a module"),
-        Scope::Station(d) => full_tag(q, d, "a station"),
+        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => full_tag(q, d, text!("word-a-device")),
+        Scope::Potential(p) => format!("potential {}", q.get::<PotentialNameOf>(p).name.text).into(),
+        Scope::Module(d) => full_tag(q, d, text!("word-a-module")),
+        Scope::Station(d) => full_tag(q, d, text!("word-a-station")),
         Scope::Cfg(c) => q
             .table::<ew_derive::ew_schema::PlcConfigProject>()
             .get(c)
             .map_or_else(
-                || "a configuration project".to_owned(),
-                |c| format!("configuration project {}", c.name),
+                || text!("word-a-configuration-project").into(),
+                |c| format!("configuration project {}", c.name).into(),
             ),
         Scope::Lnet(n) => q.table::<ew_derive::ew_schema::LogicalNet>().get(n).map_or_else(
-            || "a logical bus net".to_owned(),
-            |n| format!("logical net {}", n.name),
+            || text!("word-a-logical-bus-net").into(),
+            |n| format!("logical net {}", n.name).into(),
         ),
         Scope::Pnet(n) => q.table::<ew_derive::ew_schema::PhysicalNet>().get(n).map_or_else(
-            || "a physical bus net".to_owned(),
-            |n| format!("physical net {}", n.name),
+            || text!("word-a-physical-bus-net").into(),
+            |n| format!("physical net {}", n.name).into(),
         ),
     }
 }
@@ -200,32 +201,15 @@ fn scope_target(scope: &Scope) -> Option<Target> {
     }
 }
 
-/// The lower-case name of a scope kind, for discriminators and texts.
-fn scope_kind_name(kind: ScopeKind) -> &'static str {
-    match kind {
-        ScopeKind::Project => "project",
-        ScopeKind::Page => "page",
-        ScopeKind::Strip => "strip",
-        ScopeKind::Device => "device",
-        ScopeKind::Cable => "cable",
-        ScopeKind::Potential => "potential",
-        ScopeKind::Module => "module",
-        ScopeKind::Cfg => "cfg",
-        ScopeKind::Lnet => "lnet",
-        ScopeKind::Pnet => "pnet",
-        ScopeKind::Station => "station",
-    }
-}
-
 /// The EW-CORE-083 finding of `rule` panicking in `scope`. The scope's text is computed under `catch_unwind` too, so
 /// a query that panics on the same data does not take the report down with it.
 fn not_evaluated(q: &Q, rule: &'static RuleMeta, scope: &Scope) -> Finding {
     let text = catch_unwind(AssertUnwindSafe(|| scope_text(q, scope)))
-        .unwrap_or_else(|_| format!("a {} scope", scope_kind_name(scope.kind())));
+        .unwrap_or_else(|_| format!("a {} scope", scope.kind().name()).into());
     Finding::new(
         &RULE_NOT_EVALUATED,
         scope_target(scope),
-        format!("{}:{}", rule.id, scope_kind_name(scope.kind())),
+        format!("{}:{}", rule.id, scope.kind().name()),
         rule.id,
     )
     .arg("form", "scope")

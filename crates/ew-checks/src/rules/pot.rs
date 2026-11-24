@@ -33,7 +33,8 @@ use ew_derive::{
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::{full_tag, location_text};
-use ew_l10n::TextArg;
+use crate::rules::{Named, listed, sentences, wire_ends};
+use ew_l10n::{Text, TextArg};
 
 /// A CP as a finding's sentence names it: a designation the function shares between pins carries
 /// its position in words, "-1A4 pin − (2nd)", never the label's `#2`; any other CP is named by its label. The parts
@@ -269,7 +270,7 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                     match fact {
                         NoteFact::Conductor => ("conductor", carrier_wire_text(q, &wires.wires, subject)),
                         NoteFact::Override => ("override", carrier_wire_text(q, &wires.wires, subject)),
-                        _ => ("other", String::new()),
+                        _ => ("other", Named::from(String::new())),
                     }
                 };
                 let f = pt
@@ -287,44 +288,44 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
 
 /// A connection by its ends as messages print a wire without a number (`-X1:1–-K1:A1`), a junction end as
 /// `junction`; empty for a subject that names no connection.
-fn connection_text(q: &Q, subject: &str) -> String {
+fn connection_text(q: &Q, subject: &str) -> Named {
     let Ok(uuid) = subject.parse::<ew_derive::ew_ids::Uuid>() else {
-        return String::new();
+        return String::new().into();
     };
     let Some(c) = q.connections().get(Id::<Connection>::from_uuid(uuid)) else {
-        return String::new();
+        return String::new().into();
     };
     let end = |e: &ew_derive::ew_schema::Endpoint| match EndpointKey::of(e) {
-        Some(EndpointKey::Cp(f, i)) => cp_label(q, CpRef::new(f, i)),
-        _ => "junction".to_owned(),
+        Some(EndpointKey::Cp(f, i)) => TextArg::from(cp_label(q, CpRef::new(f, i))),
+        _ => text!("word-junction").into(),
     };
-    format!("{}–{}", end(&c.a), end(&c.b))
+    wire_ends(end(&c.a), end(&c.b)).into()
 }
 
 /// The wire whose carrier connection `subject` names, as [`wire_text`] prints it, else the connection by its ends.
-fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: &str) -> String {
+fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: &str) -> Named {
     wires
         .iter()
         .find(|w| w.constituents.iter().any(|c| c.to_string() == subject))
-        .map_or_else(|| connection_text(q, subject), |w| wire_text(q, w))
+        .map_or_else(|| connection_text(q, subject), |w| wire_text(q, w).into())
 }
 
 /// EW-POT-011's place as the arguments of the rule's pattern: the selector `place` (`junction`, `ip`, `other`), `cell`
 /// (empty without a frame grid), `page`, `group` (the interruption points' name) and `wires` (the wires that meet
 /// there, in natural order).
-fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str, String)> {
+fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str, TextArg)> {
     let uuid = subject.parse::<ew_derive::ew_ids::Uuid>().ok();
     let wire_of = |c: Id<Connection>| {
         wires
             .iter()
             .find(|w| w.constituents.contains(&c))
-            .map_or_else(|| connection_text(q, &c.to_string()), |w| wire_text(q, w))
+            .map_or_else(|| connection_text(q, &c.to_string()), |w| wire_text(q, w).into())
     };
-    let listed = |conns: Vec<Id<Connection>>| {
-        let mut out: Vec<String> = conns.into_iter().map(wire_of).collect();
-        out.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.cmp(b)));
-        out.dedup();
-        out.join(", ")
+    let wires_listed = |conns: Vec<Id<Connection>>| {
+        let mut out: Vec<Named> = conns.into_iter().map(wire_of).collect();
+        out.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+        out.dedup_by(|a, b| a.english() == b.english());
+        listed(out)
     };
     let folio = |p: Id<Page>| q.pages().get(p).map(|p| ew_derive::folio_label(p).to_string());
     if let Some(j) = uuid.and_then(|u| q.junctions().get(Id::from_uuid(u)))
@@ -336,12 +337,12 @@ fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str
             .as_ref()
             .map(ToString::to_string)
             .unwrap_or_default();
-        let list = listed(j.sequence.clone());
+        let list = wires_listed(j.sequence.clone());
         return vec![
-            ("place", "junction".to_owned()),
-            ("at", if cell.is_empty() { "folio" } else { "cell" }.to_owned()),
-            ("cell", cell),
-            ("page", page),
+            ("place", "junction".into()),
+            ("at", if cell.is_empty() { "folio" } else { "cell" }.into()),
+            ("cell", cell.into()),
+            ("page", page.into()),
             ("wires", list),
         ];
     }
@@ -354,14 +355,14 @@ fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str
             .iter()
             .flat_map(|(_, c)| c.iter().copied())
             .collect();
-        let list = listed(conns);
+        let list = wires_listed(conns);
         return vec![
-            ("place", "ip".to_owned()),
-            ("group", ip.name.to_string()),
+            ("place", "ip".into()),
+            ("group", ip.name.to_string().into()),
             ("wires", list),
         ];
     }
-    vec![("place", "other".to_owned())]
+    vec![("place", "other".into())]
 }
 
 /// The potential that reports a wire note about `subject`: of the potentials the subject lies in (a wire's
@@ -457,7 +458,7 @@ impl Rule for TypeOrVoltageConflict {
         let attrs = q.get::<PotentialAttrsOf>(p);
         if !attrs.conflicts.is_empty() {
             let (shown, more) = shown_conflicts(&attrs.conflicts);
-            let pieces: Vec<String> = shown.iter().map(|c| conflict_piece(q, c).encode()).collect();
+            let pieces: Vec<Text> = shown.iter().map(|c| conflict_piece(q, c).text()).collect();
             let mut fix = None;
             if zero_volt_meets_pe(q, p)
                 && let Some(c) = *q.get::<BondCarrierQ>(p)
@@ -482,8 +483,8 @@ impl Rule for TypeOrVoltageConflict {
                     potential_name(q, p),
                 )
                 .arg("form", "attrs")
-                // The shown conflicts one per line, which `messages::format` words one by one.
-                .arg("conflict_list", pieces.join("\n"))
+                // The shown conflicts, one sentence each.
+                .arg("conflicts", sentences(pieces))
                 .arg(
                     "more",
                     if more > 0 {
@@ -504,12 +505,12 @@ impl Rule for TypeOrVoltageConflict {
                 .functions()
                 .get(c.function)
                 .and_then(|f| f.device)
-                .map_or_else(|| "?".to_owned(), |d| full_tag(q, d, "?"));
+                .map_or_else(|| "?".into(), |d| full_tag(q, d, "?"));
             let own = |x: PotentialId, debug: &str| {
                 q.get::<PotentialAttrsOf>(x)
                     .ptype
                     .as_ref()
-                    .map_or_else(|| debug.to_owned(), |t| type_words(&t.value))
+                    .map_or_else(|| TextArg::from(debug), |t| type_words(&t.value))
             };
             out.push(
                 pt.finding(
@@ -548,86 +549,58 @@ fn shown_conflicts(conflicts: &[AttrConflict]) -> (Vec<&AttrConflict>, usize) {
     (shown, members.saturating_sub(SHOWN_MEMBER_CPS))
 }
 
-/// A potential type in the trade's words, as the en-GB messages print it (the `word-type-…` messages word it in
-/// another language).
-pub(crate) fn type_words(t: &PotentialType) -> String {
+/// A potential type in the trade's words ("protective earth PE", "phase L1"), in the reader's language.
+pub(crate) fn type_words(t: &PotentialType) -> TextArg {
+    let phase = |p: &str| text!("word-type-phase", p).into();
     match t {
-        PotentialType::Pe => "protective earth PE".to_owned(),
-        PotentialType::Pen => "PEN conductor".to_owned(),
-        PotentialType::Fe => "functional earth FE".to_owned(),
-        PotentialType::N => "neutral N".to_owned(),
-        PotentialType::L1 => "phase L1".to_owned(),
-        PotentialType::L2 => "phase L2".to_owned(),
-        PotentialType::L3 => "phase L3".to_owned(),
-        PotentialType::L => "phase L".to_owned(),
-        PotentialType::LPlus => "plus L+".to_owned(),
-        PotentialType::LMinus => "minus L−".to_owned(),
-        PotentialType::M => "0 V (M)".to_owned(),
-        PotentialType::Signal => "signal".to_owned(),
-        PotentialType::Undefined => "no type".to_owned(),
-        PotentialType::Unknown(_) => "a type of a newer format".to_owned(),
+        PotentialType::Pe => text!("word-type-pe").into(),
+        PotentialType::Pen => text!("word-type-pen").into(),
+        PotentialType::Fe => text!("word-type-fe").into(),
+        PotentialType::N => text!("word-type-n").into(),
+        PotentialType::L1 => phase("L1"),
+        PotentialType::L2 => phase("L2"),
+        PotentialType::L3 => phase("L3"),
+        PotentialType::L => phase("L"),
+        PotentialType::LPlus => text!("word-type-l-plus").into(),
+        PotentialType::LMinus => text!("word-type-l-minus").into(),
+        PotentialType::M => TextArg::Plain("0 V (M)".to_owned()),
+        PotentialType::Signal => text!("word-type-signal").into(),
+        PotentialType::Undefined => text!("word-type-none").into(),
+        PotentialType::Unknown(_) => text!("word-type-newer").into(),
     }
 }
 
-/// One conflict of an EW-POT-001 message: the attribute of `rule-ew-pot-001` that words it and its arguments, two
-/// sides `a` and `b` (a connection point or a definition, each with what it is) and the page of `b`.
+/// One conflict of an EW-POT-001 message: the message that words it (`pot-conflict-…`) and its arguments, two sides
+/// `a` and `b` (a connection point or a definition, each with what it is) and the page of `b`.
 struct ConflictPiece {
     attribute: &'static str,
     a: String,
-    a_kind: String,
+    a_kind: TextArg,
     b: String,
-    b_kind: String,
+    b_kind: TextArg,
     page: Option<String>,
 }
 
-/// The separator of a piece's fields in `conflict_list` (never in a name: a name's tabs print as spaces).
-const FIELD: char = '\t';
-
 impl ConflictPiece {
-    /// The piece as one line of `conflict_list`: its fields separated by [`FIELD`].
-    fn encode(&self) -> String {
+    /// The conflict's sentence. A name's tabs and line breaks print as spaces.
+    fn text(self) -> Text {
         let clean = |s: &str| s.replace(['\t', '\n'], " ");
-        [
-            self.attribute.to_owned(),
-            clean(&self.a),
-            clean(&self.a_kind),
-            clean(&self.b),
-            clean(&self.b_kind),
-            self.page.as_deref().map(clean).unwrap_or_default(),
-        ]
-        .join(&FIELD.to_string())
+        let (a, b) = (clean(&self.a), clean(&self.b));
+        let page: TextArg = match &self.page {
+            Some(page) => text!("pot-conflict-on-page", clean(page)).into(),
+            None => TextArg::Plain(String::new()),
+        };
+        let (ak, bk) = (self.a_kind, self.b_kind);
+        match self.attribute {
+            "conflict-voltage" => text!("pot-conflict-voltage", a, ak, b, bk, page),
+            "conflict-environment" => text!("pot-conflict-environment", a, ak, b, bk, page),
+            "conflict-class" => text!("pot-conflict-class", a, ak, b, bk, page),
+            "conflict-role" => text!("pot-conflict-role", a, ak, b, bk, page),
+            "conflict-roles" => text!("pot-conflict-roles", a, ak, b, bk, page),
+            "conflict-earth" => text!("pot-conflict-earth", a, ak, b, bk, page),
+            _ => text!("pot-conflict-type", a, ak, b, bk, page),
+        }
     }
-}
-
-/// One line of `conflict_list` as the arguments of its pattern: the attribute of `rule-ew-pot-001` that words it and
-/// its arguments (`a`, `a_kind`, `b`, `b_kind`, `at` = `page` or `none`, `page`); `None` for a line of another shape.
-pub(crate) fn conflict_words(line: &str) -> Option<(&'static str, Vec<(&'static str, String)>)> {
-    let fields: Vec<&str> = line.split(FIELD).collect();
-    let [attribute, a, a_kind, b, b_kind, page] = fields.as_slice() else {
-        return None;
-    };
-    let attribute = [
-        "conflict-type",
-        "conflict-voltage",
-        "conflict-environment",
-        "conflict-class",
-        "conflict-role",
-        "conflict-roles",
-        "conflict-earth",
-    ]
-    .into_iter()
-    .find(|x| x == attribute)?;
-    Some((
-        attribute,
-        vec![
-            ("a", (*a).to_owned()),
-            ("a_kind", (*a_kind).to_owned()),
-            ("b", (*b).to_owned()),
-            ("b_kind", (*b_kind).to_owned()),
-            ("at", if page.is_empty() { "none" } else { "page" }.to_owned()),
-            ("page", (*page).to_owned()),
-        ],
-    ))
 }
 
 /// The folio a function is drawn on first, as its page prints it; `None` for a function drawn nowhere.
@@ -663,40 +636,43 @@ fn def_label(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> String {
 }
 
 /// What a definition sets of `attr`, in words (`24 V`, `DC`, `control circuit`); empty when it sets none.
-fn def_attr_words(def: &ew_derive::ew_schema::PotentialDef, attr: DefAttr) -> String {
+fn def_attr_words(def: &ew_derive::ew_schema::PotentialDef, attr: DefAttr) -> TextArg {
     use ew_derive::ew_schema::{AcDc, CircuitClass};
+    let none = || TextArg::Plain(String::new());
     match attr {
-        DefAttr::Type => def.ptype.as_ref().map(type_words).unwrap_or_default(),
-        DefAttr::Voltage => def.voltage.map(|v| format!("{v} V")).unwrap_or_default(),
+        DefAttr::Type => def.ptype.as_ref().map_or_else(none, type_words),
+        DefAttr::Voltage => def
+            .voltage
+            .map_or_else(none, |v| TextArg::Plain(format!("{v} V"))),
         DefAttr::Environment => {
             let env = &def.env;
-            let mut parts: Vec<String> = Vec::new();
+            let mut parts: Vec<TextArg> = Vec::new();
             match &env.ac_dc {
-                Some(AcDc::Ac) => parts.push("AC".to_owned()),
-                Some(AcDc::Dc) => parts.push("DC".to_owned()),
-                Some(AcDc::Unknown(_)) => parts.push("a current of a newer format".to_owned()),
+                Some(AcDc::Ac) => parts.push("AC".into()),
+                Some(AcDc::Dc) => parts.push("DC".into()),
+                Some(AcDc::Unknown(_)) => parts.push(text!("word-current-newer").into()),
                 None => {}
             }
             if let Some(f) = env.frequency {
-                parts.push(format!("{f} Hz"));
+                parts.push(format!("{f} Hz").into());
             }
             match &env.earthing {
-                Some(PotentialEarthing::Pelv) => parts.push("PELV".to_owned()),
-                Some(PotentialEarthing::Selv) => parts.push("SELV".to_owned()),
-                Some(PotentialEarthing::Floating) => parts.push("floating".to_owned()),
-                Some(PotentialEarthing::Unknown(_)) => parts.push("an earthing of a newer format".to_owned()),
+                Some(PotentialEarthing::Pelv) => parts.push("PELV".into()),
+                Some(PotentialEarthing::Selv) => parts.push("SELV".into()),
+                Some(PotentialEarthing::Floating) => parts.push(text!("word-earthing-floating").into()),
+                Some(PotentialEarthing::Unknown(_)) => parts.push(text!("word-earthing-newer").into()),
                 None => {}
             }
-            parts.join(", ")
+            listed(parts)
         }
         DefAttr::Class => match &def.circuit_class {
-            Some(CircuitClass::Mains) => "mains circuit".to_owned(),
-            Some(CircuitClass::Control) => "control circuit".to_owned(),
-            Some(CircuitClass::Analogue) => "analogue circuit".to_owned(),
-            Some(CircuitClass::Bus) => "bus circuit".to_owned(),
-            Some(CircuitClass::Pe) => "protective-earth circuit".to_owned(),
-            Some(CircuitClass::Unknown(_)) => "a circuit class of a newer format".to_owned(),
-            None => String::new(),
+            Some(CircuitClass::Mains) => text!("word-class-mains").into(),
+            Some(CircuitClass::Control) => text!("word-class-control").into(),
+            Some(CircuitClass::Analogue) => text!("word-class-analogue").into(),
+            Some(CircuitClass::Bus) => text!("word-class-bus").into(),
+            Some(CircuitClass::Pe) => text!("word-class-pe").into(),
+            Some(CircuitClass::Unknown(_)) => text!("word-class-newer").into(),
+            None => none(),
         },
     }
 }
@@ -724,7 +700,10 @@ fn conflict_piece(q: &Q, c: &AttrConflict) -> ConflictPiece {
                 DefAttr::Class => "conflict-class",
             };
             let side = |x: Option<&std::sync::Arc<ew_derive::ew_schema::PotentialDef>>| {
-                x.map_or_else(Default::default, |x| (def_label(q, x), def_attr_words(x, *attr)))
+                x.map_or_else(
+                    || (String::new(), TextArg::Plain(String::new())),
+                    |x| (def_label(q, x), def_attr_words(x, *attr)),
+                )
             };
             let ((mut a_text, mut a_kind), (mut b_text, mut b_kind)) = (side(d), side(a));
             let mut page = a.and_then(|x| def_page(q, x));
@@ -750,7 +729,10 @@ fn conflict_piece(q: &Q, c: &AttrConflict) -> ConflictPiece {
                 .unwrap_or(PotentialType::Undefined);
             let (cp_side, def_side) = (
                 (cp_text(q, *cp), type_words(role)),
-                d.map_or_else(Default::default, |x| (def_label(q, x), type_words(&defined))),
+                d.map_or_else(
+                    || (String::new(), TextArg::Plain(String::new())),
+                    |x| (def_label(q, x), type_words(&defined)),
+                ),
             );
             if zero_volt_and_pe(role, &defined) {
                 let (zero, earth, page) = if *role == PotentialType::Pe {
@@ -1113,7 +1095,10 @@ impl Rule for GnyeOnNonPe {
                 .arg("wire", text)
                 .arg("potential", name.clone())
                 .arg("typed", if ptype.is_some() { "yes" } else { "no" })
-                .arg("type", ptype.as_ref().map(type_words).unwrap_or_default())
+                .arg(
+                    "type",
+                    ptype.as_ref().map_or_else(|| TextArg::from(""), type_words),
+                )
             })
             .collect()
     }
@@ -1186,7 +1171,7 @@ impl Rule for BuOnNonN {
                 .arg("potential", name.clone())
                 .arg(
                     "type",
-                    ptype.as_ref().map_or_else(|| "none".to_owned(), type_words),
+                    ptype.as_ref().map_or_else(|| TextArg::from("none"), type_words),
                 )
             })
             .collect()
@@ -1554,7 +1539,7 @@ impl Rule for PeIsland {
                 {
                     // The derivation's text in English; the other languages word it from the terminal and the
                     // number of own locations the text names.
-                    let tag = full_tag(q, id, "terminal");
+                    let tag = full_tag(q, id, text!("word-terminal"));
                     let locations = match fact {
                         NoteFact::RailWithoutLocation { locations } => locations.to_string(),
                         _ => String::new(),
@@ -1616,9 +1601,9 @@ fn pe_islands(q: &Q) -> Vec<Finding> {
         if islands.len() + usize::from(!earth.is_empty()) < 2 {
             continue;
         }
-        let (node, text): (Option<Id<StructureNode>>, String) = match location {
+        let (node, text): (Option<Id<StructureNode>>, Named) = match location {
             RailLocation::Node(n) => (Some(n), location_text(q, n)),
-            RailLocation::Main => (None, "the main location".to_owned()),
+            RailLocation::Main => (None, "the main location".into()),
         };
         for p in islands {
             let Some((at, page)) = first_point(q, &partition, p) else {

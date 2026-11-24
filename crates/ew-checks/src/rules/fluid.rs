@@ -20,8 +20,8 @@ use ew_derive::{
 use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
-use crate::rules::and_list;
 use crate::rules::term::full_tag;
+use crate::rules::{and_listed, listed};
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
@@ -34,14 +34,9 @@ fn tag(q: &Q, d: Id<Device>) -> String {
         .map_or_else(|| "device".to_owned(), |t| t.short())
 }
 
-/// A channel as the messages print it: "channel 1 of -201U3".
-fn channel_text(q: &Q, c: &Channel) -> String {
-    format!("channel {} of {}", c.number, tag(q, c.module))
-}
-
-/// The same in nl-NL: "kanaal 1 van -201U3".
-fn channel_text_nl(q: &Q, c: &Channel) -> String {
-    format!("kanaal {} van {}", c.number, tag(q, c.module))
+/// A channel as the messages print it: "channel 1 of -201U3", in the reader's language.
+fn channel_text(q: &Q, c: &Channel) -> ew_l10n::Text {
+    ew_derive::text::channel_of_module(c.number.to_string(), tag(q, c.module))
 }
 
 /// The contact kind of a function's FnDef.
@@ -130,7 +125,7 @@ impl Rule for WorkingPortOpen {
                     &WORKING_PORT_OPEN,
                     [Target::new(Kind::Function, f)],
                     "open",
-                    full_tag(q, d, "device"),
+                    full_tag(q, d, text!("word-device")),
                 )
                 .arg("form", "one")
                 .arg("port", port.clone()),
@@ -138,11 +133,10 @@ impl Rule for WorkingPortOpen {
                     &WORKING_PORT_OPEN,
                     [Target::new(Kind::Function, f)],
                     "open",
-                    full_tag(q, d, "device"),
+                    full_tag(q, d, text!("word-device")),
                 )
                 .arg("form", "many")
-                .arg("ports", and_list(ports, "and"))
-                .arg("ports_nl", and_list(ports, "en")),
+                .arg("ports", and_listed(ports.iter().cloned())),
             };
             out.push(finding.arg("valve", valve).with_fix(fix));
         }
@@ -223,8 +217,7 @@ impl Rule for CoilBindings {
                 served.insert(designation.clone());
             }
             if declares && at.len() > 1 {
-                let names: Vec<String> = at.iter().map(|(_, _, c)| channel_text(q, c)).collect();
-                let names_nl: Vec<String> = at.iter().map(|(_, _, c)| channel_text_nl(q, c)).collect();
+                let names: Vec<ew_l10n::Text> = at.iter().map(|(_, _, c)| channel_text(q, c)).collect();
                 let mut targets = vec![Target::new(Kind::Function, *f)];
                 targets.extend(at.iter().map(|(_, c, _)| Target::new(Kind::Channel, *c)));
                 out.push(
@@ -232,14 +225,13 @@ impl Rule for CoilBindings {
                         &COIL_BINDINGS,
                         targets,
                         format!("excess:{designation}"),
-                        full_tag(q, d, "device"),
+                        full_tag(q, d, text!("word-device")),
                     )
                     .arg("form", "excess")
                     .arg("valve", valve.clone())
                     .arg("solenoid", designation.clone())
                     .arg("count", at.len().to_string())
-                    .arg("channels", names.join(", "))
-                    .arg("channels_nl", names_nl.join(", ")),
+                    .arg("channels", listed(names)),
                 );
             }
             if !declares {
@@ -249,12 +241,11 @@ impl Rule for CoilBindings {
                             &COIL_BINDINGS,
                             [Target::new(Kind::Function, *f), Target::new(Kind::Channel, *c)],
                             "undeclared",
-                            full_tag(q, d, "device"),
+                            full_tag(q, d, text!("word-device")),
                         )
                         .arg("form", "undeclared")
                         .arg("valve", valve.clone())
-                        .arg("channel", channel_text(q, ch))
-                        .arg("channel_nl", channel_text_nl(q, ch)),
+                        .arg("channel", channel_text(q, ch)),
                     );
                 }
             }
@@ -272,7 +263,7 @@ impl Rule for CoilBindings {
                         &COIL_BINDINGS,
                         [Target::new(Kind::Device, d)],
                         format!("unbound:{s}"),
-                        full_tag(q, d, "device"),
+                        full_tag(q, d, text!("word-device")),
                     )
                     .with_severity(Severity::Warning)
                     .arg("form", "unbound")
@@ -335,7 +326,7 @@ impl Rule for SparePositions {
                     &SPARE_POSITIONS,
                     [Target::new(Kind::Device, device)],
                     form,
-                    full_tag(q, device, "device"),
+                    full_tag(q, device, text!("word-device")),
                 )
                 .arg("form", form)
                 .arg("module", module.clone())
@@ -391,7 +382,7 @@ impl Rule for DrivesMismatch {
                 &DRIVES_MISMATCH,
                 [Target::new(Kind::Device, d)],
                 "drives",
-                full_tag(q, d, "device"),
+                full_tag(q, d, text!("word-device")),
             )
             .arg("valve", valve)
             .arg("target", target)
@@ -450,7 +441,7 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
         &OCCUPANCY,
         [Target::new(Kind::Device, b)],
         form,
-        full_tag(q, b, "device"),
+        full_tag(q, b, text!("word-device")),
     )
     .arg("form", form)
     .arg("parent", parent_t)
@@ -468,7 +459,7 @@ fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (
         &OCCUPANCY,
         [Target::new(Kind::Device, child)],
         "outside",
-        full_tag(q, child, "device"),
+        full_tag(q, child, text!("word-device")),
     )
     .arg("form", form)
     .arg("module", module_t)
@@ -519,7 +510,7 @@ impl Rule for Occupancy {
                     &OCCUPANCY,
                     [Target::new(Kind::Device, d)],
                     format!("empty:{p}"),
-                    full_tag(q, d, "device"),
+                    full_tag(q, d, text!("word-device")),
                 )
                 .with_severity(Severity::Warning)
                 .arg("form", "empty")

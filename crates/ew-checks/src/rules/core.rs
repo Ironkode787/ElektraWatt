@@ -16,7 +16,9 @@ use ew_derive::{
 
 use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::Named;
 use crate::rules::term::full_tag;
+use ew_l10n::TextArg;
 
 /// EW-CORE-033 "Cable without length" (doc 15 §4.2): completeness, o r, warning (release: error), cable. A new cable
 /// has no length yet; that is an error only in the check for delivery (it was an error from the moment a cable
@@ -57,7 +59,7 @@ impl Rule for CableWithoutLength {
         if !missing {
             return Vec::new();
         }
-        let tag = full_tag(q, cable, "cable");
+        let tag = full_tag(q, cable, text!("word-cable"));
         vec![
             Finding::new(
                 &CABLE_WITHOUT_LENGTH,
@@ -126,7 +128,7 @@ impl Rule for DeviceNotInSchematic {
         if functions.is_empty() || functions.iter().any(|f| idx.reps_of_function(*f).any(schematic)) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, "device");
+        let tag = full_tag(q, device, text!("word-device"));
         // F17 of a test: the `?` in such a tag, where the page goes, said nothing; the text names it.
         let finding = Finding::new(
             &DEVICE_NOT_IN_SCHEMATIC,
@@ -1009,13 +1011,9 @@ pub fn merge_collisions(q: &Q) -> Vec<Finding> {
                 let others = if group.len() > 2 { "many" } else { "one" };
                 let mut finding =
                     Finding::new(&MERGE_COLLISION, group.iter().copied(), id, f.subject.clone());
-                // The uniqueness finding's own arguments, so that each language words it by that rule's pattern
-                // (`messages::format`).
-                for (name, value) in f.text.named() {
-                    finding = finding.arg(name, value.clone());
-                }
+                // The uniqueness finding's text, which each language words by that rule's pattern.
                 finding = finding
-                    .arg("collision", f.message().clone())
+                    .arg("collision", f.text.clone())
                     .arg("keeper", keeper)
                     .arg("others", others);
                 if id == crate::rules::rds::DUPLICATE_DESIGNATION.id {
@@ -1110,36 +1108,40 @@ fn conflict_file(q: &Q, path: &str) -> (String, &'static str, String) {
 /// The record a conflict targets, in words: the project, a device by its tag, a page by its folio, a connection by its
 /// ends and folio, a function by its device; any other record by its kind. With the arguments of the rule's pattern:
 /// the selector `target` and the names it words.
-fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str, String)>) {
-    let tag = |d: Id<Device>| full_tag(q, d, "without a tag");
+fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str, TextArg)>) {
+    let tag = |d: Id<Device>| full_tag(q, d, text!("word-without-a-tag"));
     let end = |e: &Endpoint| match e {
-        Endpoint::Cp(f, idx) => ew_derive::cp_label(
+        Endpoint::Cp(f, idx) => Named::from(ew_derive::cp_label(
             q,
             CpRef {
                 function: *f,
                 idx: *idx,
             },
-        ),
-        _ => "a junction".to_owned(),
+        )),
+        _ => text!("word-a-junction").into(),
     };
     let kind_words = kind.replace('_', " ");
-    let (en, target, mut args): (String, &str, Vec<(&'static str, String)>) = match Kind::from_name(kind) {
+    let (en, target, mut args): (String, &str, Vec<(&'static str, TextArg)>) = match Kind::from_name(kind) {
         Some(Kind::Project) => ("the project".to_owned(), "project", vec![]),
         Some(Kind::Device) => {
             let t = tag(id.cast());
-            (format!("device {t}"), "device", vec![("tag", t)])
+            (format!("device {t}"), "device", vec![("tag", t.into())])
         }
         Some(Kind::Page) => match q.pages().get(id.cast()) {
             Some(p) => {
                 let folio = folio_label(p).to_string();
-                (format!("folio {folio}"), "page", vec![("page", folio)])
+                (format!("folio {folio}"), "page", vec![("page", folio.into())])
             }
             None => ("a page".to_owned(), "a-page", vec![]),
         },
         Some(Kind::Function) => match q.functions().get(id.cast()).and_then(|f| f.device) {
             Some(d) => {
                 let t = tag(d);
-                (format!("a function of device {t}"), "function", vec![("tag", t)])
+                (
+                    format!("a function of device {t}"),
+                    "function",
+                    vec![("tag", t.into())],
+                )
             }
             None => ("a function".to_owned(), "a-function", vec![]),
         },
@@ -1152,13 +1154,13 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
                         (
                             format!("connection from {from} to {to} on folio {folio}"),
                             "connection-on",
-                            vec![("from", from), ("to", to), ("page", folio)],
+                            vec![("from", from.into()), ("to", to.into()), ("page", folio.into())],
                         )
                     }
                     None => (
                         format!("connection from {from} to {to}"),
                         "connection",
-                        vec![("from", from), ("to", to)],
+                        vec![("from", from.into()), ("to", to.into())],
                     ),
                 }
             }
@@ -1166,8 +1168,8 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
         },
         _ => (format!("a {kind_words}"), "other", vec![]),
     };
-    args.push(("target", target.to_owned()));
-    args.push(("kind", kind_words));
+    args.push(("target", target.into()));
+    args.push(("kind", kind_words.into()));
     (en, args)
 }
 

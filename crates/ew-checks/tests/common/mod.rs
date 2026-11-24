@@ -62,9 +62,8 @@ pub fn model_with(settings: Value, records: Vec<Record>) -> Model {
     Model::from_records(project(settings), records, []).expect("the model passes the integrity check")
 }
 
-/// The findings of `rule` in an online run of the `full` scheme over `m`. Every finding with message arguments is
-/// checked to render its message byte for byte from the rule's en-GB pattern (P5-2), so every rule table
-/// exercises the patterns of its rule.
+/// The findings of `rule` in an online run of the `full` scheme over `m`. Every finding is checked to be worded by its
+/// pattern in every shipped language ([`assert_worded`]), so every rule table exercises the patterns of its rule.
 pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
     let q = ew_derive::Q::new(m);
     let found: Vec<ew_checks::Finding> = ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Online)
@@ -72,26 +71,15 @@ pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
         .into_iter()
         .filter(|f| f.rule == rule)
         .collect();
-    assert_messages(&found);
+    assert_worded(&found);
     found
 }
 
-/// Asserts that every finding carries its message arguments and renders its message byte for byte from the en-GB
-/// pattern, and that every other shipped language renders it from its own pattern (FT-680). An EW-IMP finding is the
-/// exception: its message is the text the importer stored in the project.
-pub fn assert_messages(findings: &[ew_checks::Finding]) {
-    use ew_checks::messages::{DEFAULT_LANGUAGE, LANGUAGES, format};
-    for f in findings
-        .iter()
-        .filter(|f| !ew_checks::rules::imp::IMP.iter().any(|m| m.id == f.rule))
-    {
-        assert_eq!(
-            format(f, DEFAULT_LANGUAGE).as_deref(),
-            Some(f.message().as_str()),
-            "the en-GB pattern of {} does not render its message from {:?}",
-            f.rule,
-            f.text
-        );
+/// Asserts that every shipped language, en-GB among them, words every finding by its pattern without an error, so no
+/// finding falls back to another language (FT-680).
+pub fn assert_worded(findings: &[ew_checks::Finding]) {
+    use ew_checks::messages::{LANGUAGES, format};
+    for f in findings {
         for lang in LANGUAGES {
             assert!(
                 format(f, lang).is_some(),

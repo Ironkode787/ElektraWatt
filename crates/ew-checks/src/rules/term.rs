@@ -20,6 +20,8 @@ use ew_derive::{
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Fingerprint, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::{Named, listed};
+use ew_l10n::TextArg;
 
 /// The project's case setting for identifier uniqueness (FR-NUM-016, FR-NUM-017): sensitive unless the
 /// project says insensitive.
@@ -30,21 +32,21 @@ pub(crate) fn case_setting(q: &Q) -> CaseSensitivity {
     }
 }
 
-/// The printed full designation of a device, or `fallback` when it has none.
-pub(crate) fn full_tag(q: &Q, device: Id<Device>, fallback: &str) -> String {
+/// The printed full designation of a device, or `fallback` (a word by key, or a text as it is) when it has none.
+pub(crate) fn full_tag(q: &Q, device: Id<Device>, fallback: impl Into<Named>) -> Named {
     q.get::<DeviceTag>(device)
         .as_ref()
         .as_ref()
-        .map_or_else(|| fallback.to_owned(), |t| t.full.clone())
+        .map_or_else(|| fallback.into(), |t| t.full.clone().into())
 }
 
 /// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`).
-pub(crate) fn location_text(q: &Q, node: Id<StructureNode>) -> String {
+pub(crate) fn location_text(q: &Q, node: Id<StructureNode>) -> Named {
     let path = q.get::<StructurePath>(node);
     if path.codes.is_empty() {
-        return "a location".to_owned();
+        return text!("word-a-location").into();
     }
-    format!("+{}", path.codes.join("+"))
+    format!("+{}", path.codes.join("+")).into()
 }
 
 /// The `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`
@@ -130,7 +132,7 @@ impl Rule for TerminalWithoutDesignation {
         let Scope::Strip(strip) = *scope else {
             return Vec::new();
         };
-        let strip_tag = full_tag(q, strip, "strip");
+        let strip_tag = full_tag(q, strip, text!("word-strip"));
         let mut terminals: Vec<Id<Device>> = q.idx().terminals_of_strip(strip).collect();
         terminals.sort();
         terminals
@@ -146,7 +148,7 @@ impl Rule for TerminalWithoutDesignation {
                     &TERMINAL_WITHOUT_DESIGNATION,
                     [Target::new(Kind::Device, t)],
                     "",
-                    full_tag(q, t, &strip_tag),
+                    full_tag(q, t, strip_tag.clone()),
                 )
                 .arg("strip", strip_tag.clone())
             })
@@ -168,13 +170,13 @@ impl Rule for TerminalWithoutDesignation {
                 if blank(before, id).is_some_and(|(_, was)| was) {
                     return None;
                 }
-                let strip_tag = full_tag(after, strip, "the strip");
+                let strip_tag = full_tag(after, strip, text!("word-the-strip"));
                 Some(
                     Finding::new(
                         &TERMINAL_WITHOUT_DESIGNATION,
                         [Target::new(Kind::Device, id)],
                         "",
-                        full_tag(after, id, &strip_tag),
+                        full_tag(after, id, strip_tag.clone()),
                     )
                     .arg("strip", strip_tag),
                 )
@@ -236,7 +238,7 @@ impl Rule for DuplicateDesignation {
         if is_unnumbered_strip(q, strip) {
             return Vec::new();
         }
-        let strip_tag = full_tag(q, strip, "strip");
+        let strip_tag = full_tag(q, strip, text!("word-strip"));
         designation_groups(q, strip)
             .into_values()
             .filter(|(_, members)| members.len() > 1)
@@ -294,7 +296,7 @@ impl Rule for DuplicateDesignation {
                     continue;
                 }
                 reported.insert((term.strip, key.clone()));
-                let strip_tag = full_tag(after, term.strip, "the strip");
+                let strip_tag = full_tag(after, term.strip, text!("word-the-strip"));
                 let mut remedy = Vec::new();
                 let free = next_free_number(groups.values().map(|(d, _)| d.as_str()));
                 if let Some(free) = &free {
@@ -399,7 +401,7 @@ impl Rule for RailBondingOnNonPe {
                     ..
                 } = note
                 {
-                    let tag = full_tag(q, t, "terminal");
+                    let tag = full_tag(q, t, text!("word-terminal"));
                     out.push(
                         Finding::new(
                             &RAIL_BONDING_ON_NON_PE,
@@ -478,7 +480,7 @@ impl Rule for SpareWiredOnFieldSide {
             if !wired {
                 continue;
             }
-            let tag = full_tag(q, t, "terminal");
+            let tag = full_tag(q, t, text!("word-terminal"));
             out.push(
                 Finding::new(
                     &SPARE_WIRED_ON_FIELD_SIDE,
@@ -525,7 +527,7 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
         .collect();
     order.sort_unstable();
     let position: BTreeMap<Id<Device>, usize> = order.iter().enumerate().map(|(i, (_, t))| (*t, i)).collect();
-    let strip_tag = full_tag(q, strip, "strip");
+    let strip_tag = full_tag(q, strip, text!("word-strip"));
     // Per group: its shafts, its positions on this strip and the strips it reaches beyond this one.
     struct Shape {
         group: u16,
@@ -582,42 +584,38 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
         .collect();
     let mut out = Vec::new();
     for s in &shapes {
-        let mut why: Vec<String> = Vec::new();
+        let mut why = 0usize;
         // Each reason's arguments of the rule's pattern: whether it holds, its values, and the separator before it.
-        let mut words: Vec<(&'static str, String)> = Vec::new();
-        let mut reason = |why: &mut Vec<String>, names: [&'static str; 3], value: String, text: String| {
+        let mut words: Vec<(&'static str, TextArg)> = Vec::new();
+        let mut reason = |why: &mut usize, names: [&'static str; 3], value: TextArg| {
             let [held, sep, arg] = names;
-            words.push((sep, if why.is_empty() { "" } else { "; " }.to_owned()));
-            words.push((held, "yes".to_owned()));
+            words.push((sep, if *why == 0 { "" } else { "; " }.into()));
+            words.push((held, "yes".into()));
             words.push((arg, value));
-            why.push(text);
+            *why += 1;
         };
         if s.positions.windows(2).any(|w| w[1] != w[0] + 1) {
-            let text = "its terminals are not consecutive".to_owned();
-            reason(&mut why, ["gap", "sep_gap", "gap_value"], String::new(), text);
+            reason(&mut why, ["gap", "sep_gap", "gap_value"], "".into());
         }
         if s.shafts.len() > 1 {
             let n = s.shafts.len().to_string();
-            let text = format!("it runs over {n} shafts");
-            reason(&mut why, ["shafts", "sep_shafts", "shaft_count"], n, text);
+            reason(&mut why, ["shafts", "sep_shafts", "shaft_count"], n.into());
         }
         if !s.other_strips.is_empty() {
-            let mut names: Vec<String> = s
+            let mut names: Vec<Named> = s
                 .other_strips
                 .iter()
                 .map(|o| {
                     if *o == strip {
-                        "a device that is not a terminal".to_owned()
+                        text!("word-a-device-that-is-not-a-terminal").into()
                     } else {
-                        full_tag(q, *o, "another strip")
+                        full_tag(q, *o, text!("word-another-strip"))
                     }
                 })
                 .collect();
-            names.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.cmp(b)));
-            names.dedup();
-            let list = names.join(", ");
-            let text = format!("it reaches {list}");
-            reason(&mut why, ["reaches", "sep_reaches", "reached"], list, text);
+            names.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+            names.dedup_by(|a, b| a.english() == b.english());
+            reason(&mut why, ["reaches", "sep_reaches", "reached"], listed(names));
         }
         let (Some(lo), Some(hi)) = (s.positions.first(), s.positions.last()) else {
             continue;
@@ -634,10 +632,9 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
         overlaps.sort_unstable();
         if !overlaps.is_empty() {
             let list = overlaps.iter().map(u16::to_string).collect::<Vec<_>>().join(", ");
-            let text = format!("it overlaps bridge group {list} on its shaft");
-            reason(&mut why, ["overlaps", "sep_overlaps", "overlapped"], list, text);
+            reason(&mut why, ["overlaps", "sep_overlaps", "overlapped"], list.into());
         }
-        if why.is_empty() {
+        if why == 0 {
             continue;
         }
         let mut f = Finding::new(
@@ -940,7 +937,7 @@ impl Rule for TerminalOnUnjoinedWire {
                 let aspect = q.devices().get(terminal)?.aspects.terminal.clone()?;
                 let subject = format!(
                     "{}:{}",
-                    full_tag(q, aspect.strip, "strip"),
+                    full_tag(q, aspect.strip, text!("word-strip")),
                     aspect.designation.as_str()
                 );
                 let wire = wire_number(q, id).unwrap_or_else(|| "?".to_owned());

@@ -33,8 +33,8 @@ rule-ew-core-007 =
     .hint = Corrigeer de regel in een teksteditor volgens de referentie van het formaat, of zet haar terug uit git.
 
 rule-ew-core-008 = { $form ->
-        [duplicate_number] { WORD($module) } heeft een tweede kanaal met nummer { $number }; de module houdt één kanaal per nummer, dus dit kanaal wordt nergens afgedrukt
-        [channel] kanaal { WORD($channel) } hoort bij { WORD($module) }, dat geen PLC-module is; verwijder het kanaal of maak van { WORD($module) } weer een module
+        [duplicate_number] { $module } heeft een tweede kanaal met nummer { $number }; de module houdt één kanaal per nummer, dus dit kanaal wordt nergens afgedrukt
+        [channel] kanaal { $channel } hoort bij { $module }, dat geen PLC-module is; verwijder het kanaal of maak van { $module } weer een module
        *[form] folio { $page }: { $names ->
             [both] het kader voor paginatype { $type } noemt formulierkopie { $type_copy }, en het standaardkader noemt formulierkopie { $default_copy }
             [type] het kader voor paginatype { $type } noemt formulierkopie { $type_copy }
@@ -67,13 +67,13 @@ rule-ew-core-011 = { $form ->
         } niet lezen; de regels staan in een conflictrecord
        *[record] { $target ->
             [project] het project
-            [device] apparaat { WORD($tag) }
+            [device] apparaat { $tag }
             [page] folio { $page }
             [a-page] een pagina
-            [function] een functie van apparaat { WORD($tag) }
+            [function] een functie van apparaat { $tag }
             [a-function] een functie
-            [connection-on] verbinding van { WORD($from) } naar { WORD($to) } op folio { $page }
-            [connection] verbinding van { WORD($from) } naar { WORD($to) }
+            [connection-on] verbinding van { $from } naar { $to } op folio { $page }
+            [connection] verbinding van { $from } naar { $to }
             [a-connection] een verbinding
            *[other] een record van soort { $kind }
         }: { $side ->
@@ -117,7 +117,7 @@ rule-ew-core-021 = folio { $page } ligt buiten het foliobereik { $from }–{ $to
     .title = Folio buiten zijn sectie
     .hint = Hernummer de pagina binnen het foliobereik van haar sectie, of verplaats haar naar de sectie die het bereik bezit.
 
-rule-ew-core-022 = folio { $page } wordt door { $count } pagina's afgedrukt ({ WORD($kinds) }); geef elke pagina een eigen folio
+rule-ew-core-022 = folio { $page } wordt door { $count } pagina's afgedrukt ({ $kinds }); geef elke pagina een eigen folio
     .title = Dubbel folio
     .hint = Geef een van de pagina's een ander folio; twee pagina's delen nooit een folio.
 
@@ -130,9 +130,9 @@ rule-ew-core-025 = de inhoudsopgave kwam niet tot een vast aantal pagina's; ze g
     .hint = Verkort de gegenereerde inhoudsopgave of haar paginaregels, zodat haar aantal pagina's vast komt te liggen.
 
 rule-ew-core-026 = { $family ->
-        [terminal_diagram] klemmenstrook { WORD($device) } staat in geen klemmenschema
-        [cable_overview_diagrams] kabel { WORD($device) } staat in geen kabeloverzicht en kabelschema's
-       *[plc_overview] PLC-station { WORD($device) } staat in geen PLC-overzicht
+        [terminal_diagram] klemmenstrook { $device } staat in geen klemmenschema
+        [cable_overview_diagrams] kabel { $device } staat in geen kabeloverzicht en kabelschema's
+       *[plc_overview] PLC-station { $device } staat in geen PLC-overzicht
     }: geen rapportblok van die soort dekt het; voeg er een toe of neem het op
     .title = Rapport dekt niet alle records
     .hint = Voeg een rapportblok van die soort toe, of sluit de records bewust uit van het rapport.
@@ -144,10 +144,10 @@ rule-ew-core-031 = ader { $core } heeft de kleur { $colour }: { $codes } is geen
 rule-ew-core-032 = ader { $core } { $form ->
         [foreign] is geen ader van het kabelartikel { $part }
        *[differs] wijkt af van ader { $def } van het kabelartikel { $part }: { $colour ->
-            [yes] { $sep_colour }kleur { $colour_core } ≠ { WORD($colour_part) }
+            [yes] { $sep_colour }kleur { $colour_core } ≠ { $colour_part }
            *[no] {""}
         }{ $csa ->
-            [yes] { $sep_csa }doorsnede { DECIMAL($csa_core) } ≠ { DECIMAL(WORD($csa_part)) }
+            [yes] { $sep_csa }doorsnede { DECIMAL($csa_core) } ≠ { DECIMAL($csa_part) }
            *[no] {""}
         }{ $kind ->
             [yes] { $sep_kind }soort { $kind_core ->
@@ -159,14 +159,14 @@ rule-ew-core-032 = ader { $core } { $form ->
             }
            *[no] {""}
         }{ $pair ->
-            [yes] { $sep_pair }paar { $pair_core } ≠ { WORD($pair_part) }
+            [yes] { $sep_pair }paar { $pair_core } ≠ { $pair_part }
            *[no] {""}
         }
     }
     .title = Ader wijkt af van het artikel
     .hint = Gebruik de ader zoals het kabelartikel haar definieert, of kies het artikel dat deze ader heeft.
 
-rule-ew-core-033 = { WORD($cable) } heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout
+rule-ew-core-033 = { $cable } heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout
     .title = Kabel zonder lengte
     .hint = Typ de lengte in de eigenschappen van de kabel, routeer de kabel in de layout of kies een kabelartikel met een vaste lengte. Alleen in de controle voor oplevering is het een fout.
 
@@ -180,7 +180,7 @@ rule-ew-core-034 = de externe verbinding { $far ->
     .title = Externe verbinding zonder kabel
     .hint = Voeg de kabel toe die de locatie verlaat en wijs de aders toe aan de draden.
 
-rule-ew-core-036 = ader { $core } is aan { $count } draden toegewezen ({ WORD($wires) }); een ader draagt één draad
+rule-ew-core-036 = ader { $core } is aan { $count } draden toegewezen ({ $wires }); een ader draagt één draad
     .title = Ader dubbel toegewezen
     .hint = Wijs de ader aan één verbinding toe, of gebruik een andere ader van de kabel.
 
@@ -188,11 +188,11 @@ rule-ew-core-037 = afscherming { $core } is aan geen van beide einden aangeslote
     .title = Afscherming niet aangesloten
     .hint = Sluit de afscherming aan op een aardingspunt, of markeer haar als bewust niet aangesloten.
 
-rule-ew-core-041 = { WORD($device) } heeft geen artikel, dus de stuklijst kan het niet bestellen. Kies er een in zijn eigenschappen (Artikel).
+rule-ew-core-041 = { $device } heeft geen artikel, dus de stuklijst kan het niet bestellen. Kies er een in zijn eigenschappen (Artikel).
     .title = Apparaat zonder artikel
     .hint = Open de melding: de eigenschappen van het apparaat openen. Kies daar zijn artikel (Artikel), uit de bibliotheek of een eigen artikel.
 
-rule-ew-core-042 = artikel { $part } van { WORD($device) } heeft geen { $missing ->
+rule-ew-core-042 = artikel { $part } van { $device } heeft geen { $missing ->
         [description] omschrijving
         [manufacturer] fabrikant
        *[both] omschrijving en geen fabrikant
@@ -200,7 +200,7 @@ rule-ew-core-042 = artikel { $part } van { WORD($device) } heeft geen { $missing
     .title = Onvolledige artikelgegevens
     .hint = Vul de gegevens van het artikel aan in de bibliotheek en werk de ingebedde kopie bij.
 
-rule-ew-core-043 = tijdelijk artikel "{ $part }" (artikelnummer TBD) wordt gebruikt door { WORD($users) }; kies het artikel vóór de vrijgave
+rule-ew-core-043 = tijdelijk artikel "{ $part }" (artikelnummer TBD) wordt gebruikt door { $users }; kies het artikel vóór de vrijgave
     .title = Tijdelijk artikel
     .hint = Vervang vóór de vrijgave elk tijdelijk artikel door het echte artikel.
 
@@ -212,29 +212,29 @@ rule-ew-core-044 = { $form ->
             [segment] een segmenteinde
            *[named] { $port }
         }: het stationsadres is TBD; vul het in vóór de vrijgave
-        [start] { WORD($module) }: het startadres van de { $which ->
+        [start] { $module }: het startadres van de { $which ->
             [input] ingangen
            *[output] uitgangen
         } is TBD; vul het in vóór de vrijgave
-       *[channel] { WORD($module) }: het adres van kanaal { $number } is TBD; vul het in vóór de vrijgave
+       *[channel] { $module }: het adres van kanaal { $number } is TBD; vul het in vóór de vrijgave
     }
     .title = Open TBD-waarde
     .hint = Vul vóór de vrijgave de waarde in die nog als TBD gemarkeerd is.
 
-rule-ew-core-045 = { WORD($device) } gebruikt { $need_no } maakcontacten, { $need_nc } verbreekcontacten en { $need_co } wisselcontacten; zijn artikelen hebben er { $have_no }, { $have_nc } en { $have_co }
+rule-ew-core-045 = { $device } gebruikt { $need_no } maakcontacten, { $need_nc } verbreekcontacten en { $need_co } wisselcontacten; zijn artikelen hebben er { $have_no }, { $have_nc } en { $have_co }
     .title = Meer hulpcontacten dan het artikel heeft
     .hint = Verwijder contacten uit de tekening, of kies een artikel met genoeg hoofd- en hulpcontacten.
 
-rule-ew-core-047 = { WORD($device) } is op geen pagina getekend, daarom toont het kenmerk ? waar het paginanummer hoort{ $part ->
+rule-ew-core-047 = { $device } is op geen pagina getekend, daarom toont het kenmerk ? waar het paginanummer hoort{ $part ->
         [yes] , en de stuklijst telt het nog mee
        *[no] {""}
     }. Teken het op een pagina, of verwijder het als het niet nodig is.
     .title = Apparaat niet getekend
     .hint = Open de melding: de eigenschappen van het apparaat openen. Plaats het vanuit de lijst Apparaten op een pagina (sleep het op de pagina), of verwijder het.
 
-rule-ew-core-048 = { WORD($device) } wordt { $form ->
-        [covered-twice] gedekt door { $count } bestelcodes van { WORD($assembly) }; zijn artikelen zouden { $count } keer worden afgedrukt
-       *[uncovered] door geen enkele bestelcode van { WORD($assembly) } gedekt; de stuklijst van de samenstelling vermeldt zijn eigen artikelen naast de geconfigureerde producten
+rule-ew-core-048 = { $device } wordt { $form ->
+        [covered-twice] gedekt door { $count } bestelcodes van { $assembly }; zijn artikelen zouden { $count } keer worden afgedrukt
+       *[uncovered] door geen enkele bestelcode van { $assembly } gedekt; de stuklijst van de samenstelling vermeldt zijn eigen artikelen naast de geconfigureerde producten
     }
     .title = Bestelcodes dekken de samenstelling niet
     .hint = Neem de ontbrekende leden op in een bestelcode van de samenstelling, of verwijder ze uit de samenstelling.
@@ -262,7 +262,7 @@ rule-ew-core-053 = { $item }: { $form ->
     .title = Ongeldige cel voor de kruisverwijzing
     .hint = Herstel het standaardbeleid voor ankers, of verplaats het anker naar een cel die de grafiek bevat.
 
-rule-ew-core-061 = { WORD($name) } drukt { DECIMAL($height) } mm hoog af, te klein om op papier te lezen (minstens { DECIMAL($minimum) } mm). Maak het groter in Tekststijlen.
+rule-ew-core-061 = { $name } drukt { DECIMAL($height) } mm hoog af, te klein om op papier te lezen (minstens { DECIMAL($minimum) } mm). Maak het groter in Tekststijlen.
     .title = Tekst onder de minimale hoogte
     .hint = Open de melding: Tekststijlen opent bij de stijl. Maak hem daar minstens 1,2 mm hoog, of kies Op 1,2 mm zetten.
 
@@ -280,7 +280,7 @@ rule-ew-core-065 = omschrijving "{ $text }" van artikel { $part }{ $form ->
 rule-ew-core-067 = { $line ->
         [tube] Slang
        *[wire] Draad
-    } { WORD($wire) } kruist { $point ->
+    } { $wire } kruist { $point ->
         [junction] de aftakking in { $pin }
         [junction-off-grid] een aftakking
        *[cp] { $pin }
@@ -291,16 +291,16 @@ rule-ew-core-067 = { $line ->
 rule-ew-core-068 = { $line ->
         [tube] Slang
        *[wire] Draad
-    } { WORD($wire) } ligt over { WORD($other) } op pagina { $page }, dus op papier zijn de twee niet uit elkaar te houden. Routeer een van beide opnieuw.
+    } { $wire } ligt over { $other } op pagina { $page }, dus op papier zijn de twee niet uit elkaar te houden. Routeer een van beide opnieuw.
     .title = Draad over een andere draad
     .hint = Open de melding: beide draden zijn geselecteerd op hun pagina. Kies Routeren, of sleep de grepen van één draad, zodat elke draad een eigen lijn heeft.
 
 rule-ew-core-069 = { $line ->
         [tube] Slang
        *[wire] Draad
-    } { WORD($wire) } loopt door { $symbol ->
-        [ip] onderbrekingspunt { WORD($device) }
-       *[device] { WORD($device) }
+    } { $wire } loopt door { $symbol ->
+        [ip] onderbrekingspunt { $device }
+       *[device] { $device }
     }.
     .title = Draad door een symbool
     .hint = Selecteer de draad en gebruik Routeren, of verplaats het symbool uit de weg.
@@ -308,13 +308,13 @@ rule-ew-core-069 = { $line ->
 rule-ew-core-070 = { $line ->
         [tube] Slang
        *[wire] Draad
-    } { WORD($wire) } loopt door { $owner ->
+    } { $wire } loopt door { $owner ->
         [free-text] de vrije tekst "{ $text }"
         [structure-box] het bijschrift "{ $text }" van een structuurkader
-        [ip] de tekst "{ $text }" van onderbrekingspunt { WORD($device) }
-        [wire] het nummer "{ $text }" van { WORD($device) }
+        [ip] de tekst "{ $text }" van onderbrekingspunt { $device }
+        [wire] het nummer "{ $text }" van { $device }
         [mark] de kabelmarkering "{ $text }"
-       *[symbol] de tekst "{ $text }" van { WORD($device) }
+       *[symbol] de tekst "{ $text }" van { $device }
     }.
     .title = Draad door een tekst
     .hint = Selecteer de draad en gebruik Routeren, of verplaats de tekst.
@@ -331,8 +331,8 @@ rule-ew-core-072 = { $place ->
     .hint = Verplaats één tak naar een eigen aftakking een rasterstap verder, zodat elke aftakking drie draden verbindt.
 
 rule-ew-core-073 = { $line ->
-        [tube] Slang { WORD($wire) } heeft geen route: zij is als gestreepte lijn getekend.
-       *[wire] Draad { WORD($wire) } heeft geen route: hij is als gestreepte lijn getekend.
+        [tube] Slang { $wire } heeft geen route: zij is als gestreepte lijn getekend.
+       *[wire] Draad { $wire } heeft geen route: hij is als gestreepte lijn getekend.
     }
     .title = Draad zonder route
     .hint = Gebruik Routeren; waar dat geen vrije weg vindt, versleep de grepen van de draad of verplaats de symbolen.
@@ -340,7 +340,7 @@ rule-ew-core-073 = { $line ->
 rule-ew-core-074 = { $line ->
         [tube] Slangen
        *[wire] Draden
-    } { WORD($wire) } en { WORD($other) } maken een bocht op hetzelfde punt { $place ->
+    } { $wire } en { $other } maken een bocht op hetzelfde punt { $place ->
         [off-grid] op folio { $page }
        *[cell] in { $cell }
     } zonder aftakking, dus op papier lijken ze verbonden. Routeer een van beide opnieuw.
@@ -350,10 +350,10 @@ rule-ew-core-074 = { $line ->
 rule-ew-core-075 = { $owner ->
         [free-text] De vrije tekst "{ $text }"
         [structure-box] Het bijschrift "{ $text }" van een structuurkader
-        [ip] De tekst "{ $text }" van onderbrekingspunt { WORD($device) }
-        [wire] Het nummer "{ $text }" van { WORD($device) }
+        [ip] De tekst "{ $text }" van onderbrekingspunt { $device }
+        [wire] Het nummer "{ $text }" van { $device }
         [mark] De kabelmarkering "{ $text }"
-       *[symbol] De tekst "{ $text }" van { WORD($device) }
+       *[symbol] De tekst "{ $text }" van { $device }
     } staat op de tekst "{ $other }" { $place ->
         [off-grid] op folio { $page }
        *[cell] in { $cell }
@@ -364,13 +364,13 @@ rule-ew-core-075 = { $owner ->
 rule-ew-core-076 = { $owner ->
         [free-text] De vrije tekst "{ $text }"
         [structure-box] Het bijschrift "{ $text }" van een structuurkader
-        [ip] De tekst "{ $text }" van onderbrekingspunt { WORD($device) }
-        [wire] Het nummer "{ $text }" van { WORD($device) }
+        [ip] De tekst "{ $text }" van onderbrekingspunt { $device }
+        [wire] Het nummer "{ $text }" van { $device }
         [mark] De kabelmarkering "{ $text }"
-       *[symbol] De tekst "{ $text }" van { WORD($device) }
+       *[symbol] De tekst "{ $text }" van { $device }
     } staat op { $symbol ->
-        [ip] onderbrekingspunt { WORD($part) }
-       *[device] { WORD($part) }
+        [ip] onderbrekingspunt { $part }
+       *[device] { $part }
     } { $place ->
         [off-grid] op folio { $page }
        *[cell] in { $cell }
@@ -379,13 +379,13 @@ rule-ew-core-076 = { $owner ->
     .hint = Sleep de tekst naar een vrije plek, of verplaats het symbool waar hij op staat.
 
 rule-ew-core-077 = { $symbol ->
-        [ip] Onderbrekingspunt { WORD($device) }
-       *[device] { WORD($device) }
+        [ip] Onderbrekingspunt { $device }
+       *[device] { $device }
     } { $form ->
         [outside] staat buiten het tekengebied van pagina { $page }. Verplaats het binnen het kader.
        *[part] ligt op { $other_symbol ->
-            [ip] onderbrekingspunt { WORD($other) }
-           *[device] { WORD($other) }
+            [ip] onderbrekingspunt { $other }
+           *[device] { $other }
         }. Verplaats een van beide.
     }
     .title = Symbool op een symbool
@@ -403,7 +403,7 @@ rule-ew-core-081 = vrijstelling { $waiver } voor { $rule } { $form ->
 
 rule-ew-core-083 = regel { $rule } { $form ->
         [prevent] kon de bewerking niet toetsen: hij stopte met een interne fout, dus de bewerking is niet doorgevoerd; meld het defect
-       *[scope] kon niet worden beoordeeld voor { WORD($scope) }: hij stopte met een interne fout, dus zijn bevindingen daar ontbreken; meld het defect
+       *[scope] kon niet worden beoordeeld voor { $scope }: hij stopte met een interne fout, dus zijn bevindingen daar ontbreken; meld het defect
     }
     .title = Regel niet geëvalueerd
     .hint = Meld het defect; de bevindingen van de regel in dat bereik ontbreken tot het is verholpen.
@@ -413,139 +413,139 @@ rule-ew-core-084 = pakket { $pack } is niet volledig beoordeeld: zijn gegevensta
     .hint = Herstel het gegevensbestand van het pakket of vertrouw het project, zodat het pakket kan draaien.
 
 rule-ew-fl-001 = { $form ->
-        [many] { WORD($valve) }: werkpoorten { $ports_nl } zijn open; sluit ze aan, zet er een blindstop op of blind ze af
-       *[one] { WORD($valve) }: werkpoort { $port } is open; sluit hem aan, zet er een blindstop op of blind hem af
+        [many] { $valve }: werkpoorten { $ports } zijn open; sluit ze aan, zet er een blindstop op of blind ze af
+       *[one] { $valve }: werkpoort { $port } is open; sluit hem aan, zet er een blindstop op of blind hem af
     }
     .title = Werkpoort open
     .hint = Teken de werkleiding, of sluit de poort af: met een blindstop, met een geluiddemper of afgeblind.
 
 rule-ew-fl-002 = { $form ->
-        [excess] { WORD($valve) }: magneetspoel { WORD($solenoid) } is aan { $count } kanalen gebonden: { $channels_nl }
-        [undeclared] { WORD($valve) }: { $channel_nl } stuurt een spoel aan die het artikel niet declareert
-       *[unbound] { WORD($valve) }: geen PLC-uitgang stuurt magneetspoel { WORD($solenoid) } aan; koppel er een aan
+        [excess] { $valve }: magneetspoel { $solenoid } is aan { $count } kanalen gebonden: { $channels }
+        [undeclared] { $valve }: { $channel } stuurt een spoel aan die het artikel niet declareert
+       *[unbound] { $valve }: geen PLC-uitgang stuurt magneetspoel { $solenoid } aan; koppel er een aan
     }
     .title = Magneetspoelen en hun uitgangen
     .hint = Geef elke magneetspoel die het ventielartikel noemt één PLC-uitgang (op een ventieleiland met busknooppunt een kanaal van het ventieleiland, op een multipol-ventieleiland de uitgang die met een draad op zijn stekkerpen is aangesloten), en geen uitgang aan een andere spoel.
 
 rule-ew-fl-004 = { $form ->
-        [blank] { WORD($module) }: ventielplaats { $position } is afgesloten met een blindplaat, { WORD($device) }
-       *[valve] { WORD($module) }: ventielplaats { $position } bevat een reserveventiel, { WORD($device) }
+        [blank] { $module }: ventielplaats { $position } is afgesloten met een blindplaat, { $device }
+       *[valve] { $module }: ventielplaats { $position } bevat een reserveventiel, { $device }
     }
     .title = Ventielplaatsen in reserve
     .hint = Houd het reserveventiel of de blindplaat bewust, of plaats een gebruikt ventiel op de ventielplaats.
 
-rule-ew-fl-005 = het fluïdumnet bij { $at } voert { $media_nl } rechtstreeks; houd één medium per net
+rule-ew-fl-005 = het fluïdumnet bij { $at } voert { $media } rechtstreeks; houd één medium per net
     .title = Twee media in één net
     .hint = Verwijder een van de mediumdefinities, of scheid de netten.
 
 rule-ew-fl-006 = { $form ->
-        [od] slang { $tube_nl } is { $od } mm buitendiameter, maar poort { $port } neemt { $port_od } mm
-       *[rating] slang { $tube_nl } is berekend op { $rating } bar, minder dan de { $pressure } bar in zijn net
+        [od] slang { $tube } is { $od } mm buitendiameter, maar poort { $port } neemt { $port_od } mm
+       *[rating] slang { $tube } is berekend op { $rating } bar, minder dan de { $pressure } bar in zijn net
     }
     .title = Slang past niet
     .hint = Kies een slang die bij de poort en bij de druk van het medium past.
 
 rule-ew-fl-007 = { $missing ->
-        [material] slang { $tube_nl } is { $size } mm maar heeft geen materiaal; geef de standaardslang van haar medium of van het project een materiaal, of stel het in op de slang
-       *[spec] slang { $tube_nl } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de slang
+        [material] slang { $tube } is { $size } mm maar heeft geen materiaal; geef de standaardslang van haar medium of van het project een materiaal, of stel het in op de slang
+       *[spec] slang { $tube } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de slang
     }
     .title = Slang zonder specificatie
     .hint = Geef het medium of het project een standaardslang, of stel haar in op de slang.
 
 rule-ew-fl-008 = { $form ->
-        [gallery] { WORD($terminal) }: verdeelkanaal { $gallery } ({ $count } afvoerpoorten) heeft geen geluiddemper, verzamelleiding of afsluiting
-       *[ports] afvoer { $ports_nl } heeft geen geluiddemper, verzamelleiding of afsluiting
+        [gallery] { $terminal }: verdeelkanaal { $gallery } ({ $count } afvoerpoorten) heeft geen geluiddemper, verzamelleiding of afsluiting
+       *[ports] afvoer { $ports } heeft geen geluiddemper, verzamelleiding of afsluiting
     }
     .title = Afvoer open
     .hint = Plaats een geluiddemper, teken een verzamelleiding of sluit de afvoer af.
 
-rule-ew-fl-009 = { WORD($valve) }: de spoel neemt { $voltage }, maar { $feeds_nl } voeden haar
+rule-ew-fl-009 = { $valve }: de spoel neemt { $voltage }, maar { $feeds } voeden haar
     .title = Spoelspanning
     .hint = Kies een ventiel waarvan de spoel de spanning van zijn voeding neemt, of voed haar uit een potentiaal van die spanning.
 
 rule-ew-fl-010 = { $form ->
-        [valve] { WORD($device) }: er komt geen perslucht op poort { $port }. Teken de voedingsleiding erheen, of kies daar Medium aan poort definiëren.
-       *[gallery] { WORD($device) }: er komt geen perslucht bij de ventielen, omdat er niets op de voeding van het ventieleiland is aangesloten. Teken de voedingsleiding naar de voedingspoort, of kies daar Medium aan poort definiëren.
+        [valve] { $device }: er komt geen perslucht op poort { $port }. Teken de voedingsleiding erheen, of kies daar Medium aan poort definiëren.
+       *[gallery] { $device }: er komt geen perslucht bij de ventielen, omdat er niets op de voeding van het ventieleiland is aangesloten. Teken de voedingsleiding naar de voedingspoort, of kies daar Medium aan poort definiëren.
     }
     .title = Geen voeding
     .hint = Teken de leiding die de lucht van de voeding naar de poort brengt, of klik met rechts op de poort en kies Medium aan poort definiëren.
 
-rule-ew-fl-011 = { WORD($valve) } stuurt { $target } aan, maar de leidingen van zijn werkpoorten bereiken { WORD($device) }
+rule-ew-fl-011 = { $valve } stuurt { $target } aan, maar de leidingen van zijn werkpoorten bereiken { $device }
     .title = Aangestuurd apparaat wijkt af
     .hint = Koppel het ventiel aan het apparaat dat zijn leidingen bereiken, of teken de leidingen naar het apparaat dat het aanstuurt.
 
 rule-ew-fl-012 = { $form ->
         [role] werkpoort { $working } is verbonden met { $other } zonder ventiel ertussen
-       *[valve] { $ports_nl } zijn poorten van één ventiel en zijn verbonden
+       *[valve] { $ports } zijn poorten van één ventiel en zijn verbonden
     }
     .title = Poortfuncties in conflict
     .hint = Teken elke werkleiding naar een verbruiker, en verbind geen twee poorten van één ventiel.
 
 rule-ew-fl-013 = { $form ->
-        [both] { WORD($parent) }: ventielplaats { $position } bevat zowel { $a } als { $b }
-        [modules] { WORD($parent) }: positie { $position } bevat zowel { $a } als { $b }
-        [outside] { WORD($module) }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen
-        [outside_free] { WORD($module) }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; vrije ventielplaatsen: { $free }
-        [outside_full] { WORD($module) }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; elke ventielplaats is bezet
-       *[empty] { WORD($module) }: ventielplaats { $position } is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)
+        [both] { $parent }: ventielplaats { $position } bevat zowel { $a } als { $b }
+        [modules] { $parent }: positie { $position } bevat zowel { $a } als { $b }
+        [outside] { $module }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen
+        [outside_free] { $module }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; vrije ventielplaatsen: { $free }
+        [outside_full] { $module }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; elke ventielplaats is bezet
+       *[empty] { $module }: ventielplaats { $position } is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)
     }
     .title = Bezetting
     .hint = Geef elke ventielplaats één ventiel of blindplaat (rechtsklik op de plaats: Blindplaat), en elke module een eigen positie.
 
-rule-ew-fl-014 = slang { $tube_nl } gaat van { $from } naar { $to } zonder schotdoorvoer
+rule-ew-fl-014 = slang { $tube } gaat van { $from } naar { $to } zonder schotdoorvoer
     .title = Slang verlaat een locatie
     .hint = Plaats een schotdoorvoer waar de slang de locatie verlaat, of aanvaard de overgang.
 
-rule-ew-lay-001 = { WORD($device) } is niet geplaatst in de layout van { WORD($location) }; plaats het op een rail of op de montageplaat
+rule-ew-lay-001 = { $device } is niet geplaatst in de layout van { $location }; plaats het op een rail of op de montageplaat
     .title = Niet geplaatst apparaat
     .hint = Plaats het apparaat op een rail of op de montageplaat van de layout van zijn locatie.
 
-rule-ew-lay-003 = de plaatsing van { WORD($device) } gebruikt artikel { WORD($part) }, dat het apparaat niet meer heeft; plaats het apparaat met een van zijn artikelen, of geef het het artikel terug
+rule-ew-lay-003 = de plaatsing van { $device } gebruikt artikel { $part }, dat het apparaat niet meer heeft; plaats het apparaat met een van zijn artikelen, of geef het het artikel terug
     .title = Artikel niet op het apparaat
     .hint = Plaats het apparaat opnieuw met een van zijn artikelen, of geef het het artikel van zijn plaatsing terug.
 
-rule-ew-lay-004 = { WORD($device) } { $location ->
+rule-ew-lay-004 = { $device } { $location ->
         [none] heeft geen locatie
-       *[other] staat in { WORD($location) }
-    } maar is geplaatst in de layout van { WORD($space) }; verplaats het naar de layout van zijn locatie, of corrigeer zijn locatie
+       *[other] staat in { $location }
+    } maar is geplaatst in de layout van { $space }; verplaats het naar de layout van zijn locatie, of corrigeer zijn locatie
     .title = Locatie wijkt af
     .hint = Verplaats het apparaat naar de layout van zijn eigen locatie, of corrigeer zijn locatie.
 
 rule-ew-lay-006 = { $form ->
-        [placements] { WORD($device) } overlapt { WORD($other) }; verplaats een van beide
-        [same] twee plaatsingen van { WORD($device) } overlappen; verplaats een van beide
-        [limit] meer voetafdrukken overlappen op de montageplaat van { WORD($enclosure) }; de eerste { $listed } overlappingen staan vermeld
-        [duct] { WORD($device) } overlapt de kabelgoot bij { $duct }; verplaats het apparaat of de kabelgoot
+        [placements] { $device } overlapt { $other }; verplaats een van beide
+        [same] twee plaatsingen van { $device } overlappen; verplaats een van beide
+        [limit] meer voetafdrukken overlappen op de montageplaat van { $enclosure }; de eerste { $listed } overlappingen staan vermeld
+        [duct] { $device } overlapt de kabelgoot bij { $duct }; verplaats het apparaat of de kabelgoot
        *[rail] de rail bij { $rail } overlapt de kabelgoot bij { $duct }; verplaats de rail of de kabelgoot
     }
     .title = Botsing
     .hint = Verplaats een van de overlappende objecten tot hun voetafdrukken niet meer overlappen.
 
 rule-ew-lay-010 = { $form ->
-        [on_duct] { WORD($device) } is geplaatst op de kabelgoot bij { $duct }, die geen apparaten draagt; plaats het op een rail
-        [off_rail] { WORD($device) } is geplaatst op { DECIMAL($s) } mm op de rail bij { $rail }, buiten 0,0 tot { DECIMAL($length) } mm; verplaats het op de rail
-        [rail_turn] { WORD($device) } is op de rail bij { $rail } gedraaid over een andere hoek dan 0° of 180°; draai het terug
-        [off_axis] { WORD($device) } is naast de as van de rail bij { $rail } geplaatst; verplaats het op de rail
-        [profile] { WORD($device) } (artikel { WORD($part) }) past niet op de rail bij { $rail } ({ WORD($profile) }); plaats het op een rail waar het op past
-        [surface_turn] { WORD($device) } is op de montageplaat gedraaid over een andere hoek dan een veelvoud van 90°; draai het terug
-        [off_surface] { WORD($device) } ligt niet in het vlak van de montageplaat; plaats het op de plaat
-        [surface] { WORD($device) } (artikel { WORD($part) }) wordt niet op de plaat zelf gemonteerd; plaats het op een rail
-        [overflow] { WORD($device) } beslaat { DECIMAL($from) } tot { DECIMAL($to) } mm op de rail bij { $rail }, voorbij 0,0 tot { DECIMAL($length) } mm; maak het korter of verplaats het
-        [outside] { WORD($device) } ligt buiten het bruikbare vlak van de montageplaat; verplaats het naar binnen
+        [on_duct] { $device } is geplaatst op de kabelgoot bij { $duct }, die geen apparaten draagt; plaats het op een rail
+        [off_rail] { $device } is geplaatst op { DECIMAL($s) } mm op de rail bij { $rail }, buiten 0,0 tot { DECIMAL($length) } mm; verplaats het op de rail
+        [rail_turn] { $device } is op de rail bij { $rail } gedraaid over een andere hoek dan 0° of 180°; draai het terug
+        [off_axis] { $device } is naast de as van de rail bij { $rail } geplaatst; verplaats het op de rail
+        [profile] { $device } (artikel { $part }) past niet op de rail bij { $rail } ({ $profile }); plaats het op een rail waar het op past
+        [surface_turn] { $device } is op de montageplaat gedraaid over een andere hoek dan een veelvoud van 90°; draai het terug
+        [off_surface] { $device } ligt niet in het vlak van de montageplaat; plaats het op de plaat
+        [surface] { $device } (artikel { $part }) wordt niet op de plaat zelf gemonteerd; plaats het op een rail
+        [overflow] { $device } beslaat { DECIMAL($from) } tot { DECIMAL($to) } mm op de rail bij { $rail }, voorbij 0,0 tot { DECIMAL($length) } mm; maak het korter of verplaats het
+        [outside] { $device } ligt buiten het bruikbare vlak van de montageplaat; verplaats het naar binnen
         [bracket_overlap] De eindsteun { $side ->
             [before] vóór
            *[after] na
-        } { WORD($device) } overlapt { $other_kind ->
+        } { $device } overlapt { $other_kind ->
             [bracket] de eindsteun { $other_side ->
                 [before] vóór
                *[after] na
-            } { WORD($other) }
-           *[placement] { WORD($other) }
+            } { $other }
+           *[placement] { $other }
         } op { $rail }.
         [bracket_outside] De eindsteun { $side ->
             [before] vóór
            *[after] na
-        } { WORD($device) } steekt { DECIMAL($by) } mm voorbij { $edge ->
+        } { $device } steekt { DECIMAL($by) } mm voorbij { $edge ->
             [start] het begin
            *[end] het einde
         } van { $rail }.
@@ -559,16 +559,16 @@ rule-ew-lay-010 = { $form ->
             [duct] kabelgoot
            *[other] drager
         } bij { $at } ligt buiten het bruikbare vlak van de montageplaat; verplaats die naar binnen
-        [spaces] { WORD($location) } heeft een tweede layoutruimte; een locatie heeft één layoutruimte; verwijder deze
-        [enclosures] de layout van { WORD($location) } heeft een tweede kast, { WORD($enclosure) }; een layoutruimte heeft één kast; verwijder deze
-       *[plates] de kast { WORD($enclosure) } heeft een tweede montageplaat; een kast heeft één montageplaat; verwijder deze
+        [spaces] { $location } heeft een tweede layoutruimte; een locatie heeft één layoutruimte; verwijder deze
+        [enclosures] de layout van { $location } heeft een tweede kast, { $enclosure }; een layoutruimte heeft één kast; verwijder deze
+       *[plates] de kast { $enclosure } heeft een tweede montageplaat; een kast heeft één montageplaat; verwijder deze
     }
     .title = Drager past niet
     .hint = Plaats het apparaat op een drager waar het op past, binnen de drager en het bruikbare vlak van de plaat.
 
 rule-ew-lay-016 = { $form ->
-        [order] de leden van { WORD($assembly) } op de rail bij { $rail } staan niet op volgorde: { WORD($early) } hoort vóór { WORD($late) }; plaats eerst de ouder, dan de leden op positie
-       *[between] { WORD($other) } staat tussen leden van { WORD($assembly) } op de rail bij { $rail }; houd de leden bij elkaar
+        [order] de leden van { $assembly } op de rail bij { $rail } staan niet op volgorde: { $early } hoort vóór { $late }; plaats eerst de ouder, dan de leden op positie
+       *[between] { $other } staat tussen leden van { $assembly } op de rail bij { $rail }; houd de leden bij elkaar
     }
     .title = Montagevolgorde
     .hint = Plaats eerst de ouder van de samenstelling en de leden ernaast, in de volgorde van hun posities.
@@ -586,7 +586,7 @@ rule-ew-num-002 = draadnummer { $number }: vastgezet, wijkt af van de regel ({ $
 
 rule-ew-plc-001 = { $form ->
         [alignment] { $channel }: het adres { $address } begint niet op een veelvoud van { $align } bytes, de woorduitlijning van het profiel (een niet-geverifieerde conventie)
-       *[overlap] adressen overlappen in configuratieproject { WORD($cfg) }: { $channels }{ $more ->
+       *[overlap] adressen overlappen in configuratieproject { $cfg }: { $channels }{ $more ->
             [none] {""}
            *[other] ; en nog { $more } kanalen
         }; wijzig adressen tot er geen meer overlappen
@@ -594,7 +594,7 @@ rule-ew-plc-001 = { $form ->
     .title = Adresoverlap
     .hint = Wijzig de adressen van de kanalen tot er geen meer overlappen, of laat ze een automatisch adres nemen.
 
-rule-ew-plc-002 = { $channel }: het adres { $address } ligt buiten het I/O-bereik van { WORD($module) } ({ $range ->
+rule-ew-plc-002 = { $channel }: het adres { $address } ligt buiten het I/O-bereik van { $module } ({ $range ->
         [none] geen byte van gebied { $area }
        *[bytes] bytes { $first } tot en met { $last } van gebied { $area }
     })
@@ -609,7 +609,7 @@ rule-ew-plc-003 = { $subject }: { $what ->
     .title = Bitindex buiten bereik
     .hint = Kies een bit binnen de breedte van een eenheid.
 
-rule-ew-plc-007 = het symbool { $symbol } wordt gebruikt door { $count } kanalen van configuratieproject { WORD($cfg) }: { $channels }; geef elk kanaal een eigen symbool
+rule-ew-plc-007 = het symbool { $symbol } wordt gebruikt door { $count } kanalen van configuratieproject { $cfg }: { $channels }; geef elk kanaal een eigen symbool
     .title = Dubbel symbool
     .hint = Geef elk kanaal een eigen symbool.
 
@@ -623,7 +623,7 @@ rule-ew-plc-008 = { $channel } is in gebruik maar heeft geen adres: { $reason ->
 
 rule-ew-plc-012 = { $form ->
         [manual] { $channel }: het handmatige adres { $address } wijkt af van het afgeleide adres { $derived }; zet het adres op automatisch, of houd de afwijking bewust aan
-       *[binding] { $channel } ({ $address }) stuurt spoel { WORD($solenoid) } van { WORD($valve) } aan, die de positiekaart van artikel { $part } toewijst aan { $expected } ({ $expected_address }); koppel het kanaal van de kaart, of corrigeer de PLC-sectie van het artikel
+       *[binding] { $channel } ({ $address }) stuurt spoel { $solenoid } van { $valve } aan, die de positiekaart van artikel { $part } toewijst aan { $expected } ({ $expected_address }); koppel het kanaal van de kaart, of corrigeer de PLC-sectie van het artikel
     }
     .title = Koppeling wijkt af van de artikelkaart
     .hint = Koppel het kanaal dat de kaart van het artikel toewijst, of corrigeer de PLC-sectie van het artikel.
@@ -637,13 +637,13 @@ rule-ew-plc-015 = { $subject }: { $what ->
     .hint = Vul het adres in vóór de vrijgave.
 
 rule-ew-plc-004 = { $form ->
-        [input] { $channel }: het { $kind }-kanaal leest de spoel van { WORD($target) }; een ingang leest een sensor, controleer de bedrading of de kanaalsoort
-       *[output] { $channel }: het { $kind }-kanaal stuurt het contact van { WORD($target) } aan; een uitgang stuurt een actuator aan, controleer de bedrading of de kanaalsoort
+        [input] { $channel }: het { $kind }-kanaal leest de spoel van { $target }; een ingang leest een sensor, controleer de bedrading of de kanaalsoort
+       *[output] { $channel }: het { $kind }-kanaal stuurt het contact van { $target } aan; een uitgang stuurt een actuator aan, controleer de bedrading of de kanaalsoort
     }
     .title = Kanaalsoort past niet
     .hint = Verbind het kanaal met een draad naar een functie van zijn soort, of wijzig de kanaalsoort.
 
-rule-ew-plc-005 = { $channel }: het symbool { $symbol } is geen IEC 61131-3-identifier, wat configuratieproject { WORD($cfg) } vereist; gebruik letters, cijfers en enkele underscores
+rule-ew-plc-005 = { $channel }: het symbool { $symbol } is geen IEC 61131-3-identifier, wat configuratieproject { $cfg } vereist; gebruik letters, cijfers en enkele underscores
     .title = Ongeldig symbool
     .hint = Geef het kanaal een symbool van letters, cijfers en enkele underscores dat niet met een cijfer begint.
 
@@ -660,11 +660,11 @@ rule-ew-plc-010 = { $channel }: het gegevenstype { $data_type } ({ $bits } bit) 
     .hint = Geef het kanaal een gegevenstype dat even breed is als het kanaal.
 
 rule-ew-plc-011 = { $form ->
-        [occupied] { WORD($module) } en { WORD($other) } zitten in hetzelfde slot { $slot } van { WORD($station) }; verplaats een van beide naar een vrij slot
-        [slot] { WORD($module) } zit in slot { $slot } van { WORD($station) }, maar zijn artikel { $part } staat slots { $allowed } toe; verplaats het naar een toegestaan slot
-        [max_modules] { WORD($station) } heeft { $have } modules, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
-        [input] { WORD($station) } heeft { $have } ingangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
-       *[output] { WORD($station) } heeft { $have } uitgangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
+        [occupied] { $module } en { $other } zitten in hetzelfde slot { $slot } van { $station }; verplaats een van beide naar een vrij slot
+        [slot] { $module } zit in slot { $slot } van { $station }, maar zijn artikel { $part } staat slots { $allowed } toe; verplaats het naar een toegestaan slot
+        [max_modules] { $station } heeft { $have } modules, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
+        [input] { $station } heeft { $have } ingangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
+       *[output] { $station } heeft { $have } uitgangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
     }
     .title = Slotregels
     .hint = Plaats elke module in een eigen slot dat zijn artikel toestaat, en houd het station binnen zijn grenzen.
@@ -700,17 +700,17 @@ rule-ew-plc-014 = { $subject }: { $form ->
     .title = Uitgangsbelasting boven de waarde
     .hint = Verdeel de belastingen over meer uitgangen, of gebruik een sterkere uitgang of module.
 
-rule-ew-plc-017 = { WORD($device) } staat als module in de PLC, maar zijn artikel { $part } beschrijft geen PLC-module; haal het uit het rek (een busapparaat komt als eigen station bij een PLC)
+rule-ew-plc-017 = { $device } staat als module in de PLC, maar zijn artikel { $part } beschrijft geen PLC-module; haal het uit het rek (een busapparaat komt als eigen station bij een PLC)
     .title = Geen PLC-module
     .hint = Haal het apparaat uit het rek; voeg een busapparaat vanuit zijn menu als station aan een PLC toe.
 
-rule-ew-plc-018 = { WORD($device) } is getekend, maar geen van zijn kanalen is aan zijn pin gekoppeld: zijn adressen staan bij geen pin en een apparaat dat erop aangesloten is, is van geen kanaal het doel; koppel ze
+rule-ew-plc-018 = { $device } is getekend, maar geen van zijn kanalen is aan zijn pin gekoppeld: zijn adressen staan bij geen pin en een apparaat dat erop aangesloten is, is van geen kanaal het doel; koppel ze
     .title = Module getekend met ongekoppelde kanalen
     .hint = Koppel de kanalen met de oplossing aan hun pinnen; een module die nu getekend wordt, is meteen gekoppeld.
 
 rule-ew-saf-001 = { $form ->
-        [missing] { WORD($module) } is een F-module zonder F-doeladres; vul het in
-        [range] { WORD($module) }: het F-doeladres { $address } ligt buiten { $min }..{ $max }, het bereik van zijn apparaatbeschrijving; vul een adres binnen dat bereik in
+        [missing] { $module } is een F-module zonder F-doeladres; vul het in
+        [range] { $module }: het F-doeladres { $address } ligt buiten { $min }..{ $max }, het bereik van zijn apparaatbeschrijving; vul een adres binnen dat bereik in
        *[duplicate] het F-doeladres { $address } wordt gebruikt door { $modules }; geef elke F-module een eigen adres
     }
     .title = F-adres
@@ -718,17 +718,17 @@ rule-ew-saf-001 = { $form ->
 
 rule-ew-saf-002 = { $form ->
         [incomplete] { $channel } is een 1oo2-kanaal zonder partner die het terugnoemt; koppel het aan het andere kanaal van de sensor
-       *[devices] het 1oo2-paar { $channel } en { $other } leest twee apparaten, { WORD($first) } en { WORD($second) }; verbind beide kanalen met draden naar dezelfde tweekanaalssensor
+       *[devices] het 1oo2-paar { $channel } en { $other } leest twee apparaten, { $first } en { $second }; verbind beide kanalen met draden naar dezelfde tweekanaalssensor
     }
     .title = 1oo2-paar
     .hint = Koppel elk 1oo2-kanaal aan het andere kanaal van dezelfde tweekanaalssensor.
 
-rule-ew-saf-003 = { $channel }: de sensor { WORD($sensor) } wordt niet gevoed uit de testpulspen van de module; verbind zijn voeding met een draad op die pen
+rule-ew-saf-003 = { $channel }: de sensor { $sensor } wordt niet gevoed uit de testpulspen van de module; verbind zijn voeding met een draad op die pen
     .title = Testpuls
     .hint = Voed de sensor van een F-DI-kanaal uit de testpulspen van de module.
 
 rule-ew-prc-001 = { $form ->
-        [scheme] { WORD($device) }: het proceskenmerk { $tag } past niet in het schema { $scheme } van het project; corrigeer het kenmerk
+        [scheme] { $device }: het proceskenmerk { $tag } past niet in het schema { $scheme } van het project; corrigeer het kenmerk
        *[duplicate] het proceskenmerk { $tag } staat op { $devices }; houd het op het ene veldapparaat en volg het vanaf de andere
     }
     .title = Schema van proceskenmerken
@@ -801,7 +801,7 @@ rule-ew-bus-007 = logisch net { $net } heeft geen master; noem zijn masterpoort,
     .hint = Noem de master van het logische net: een poort van het project of de externe partner.
 
 rule-ew-bus-009 = { $form ->
-        [cable] { $port } is verbonden met { WORD($cable) }, dat geen kabel voor zijn bus is; gebruik een buskabel
+        [cable] { $port } is verbonden met { $cable }, dat geen kabel voor zijn bus is; gebruik een buskabel
        *[connector] { $port } ({ $connector }) is gekoppeld aan { $other } ({ $other_connector }); de connectortypen verschillen
     }
     .title = Verkeerde buskabel
@@ -815,8 +815,8 @@ rule-ew-iol-001 = { $form ->
         [mode] { $channel } staat in modus { $mode ->
             [deactivated] uitgeschakeld
            *[other] { $mode }
-        }, maar het IO-Link-apparaat { WORD($device) } is aangesloten; zet de poort op IO-Link
-       *[class] { $channel } is een poort van klasse { $port_class }, maar { WORD($device) } heeft klasse { $device_class } nodig; sluit het aan op een poort van klasse B
+        }, maar het IO-Link-apparaat { $device } is aangesloten; zet de poort op IO-Link
+       *[class] { $channel } is een poort van klasse { $port_class }, maar { $device } heeft klasse { $device_class } nodig; sluit het aan op een poort van klasse B
     }
     .title = Klasse van de IO-Link-poort
     .hint = Sluit elk IO-Link-apparaat aan op een poort van zijn klasse, in IO-Link-modus.
@@ -826,13 +826,13 @@ rule-ew-iol-002 = { $channel }: { $form ->
             [input] ingangs
            *[output] uitgangs
         }bits van het apparaat zijn meer dan het poortvenster van { $room } bits; gebruik een master met een groter venster
-       *[cable] de kabel { WORD($cable) } is { $metres } m lang, meer dan de { $max } m die een IO-Link-poort toestaat; maak hem korter
+       *[cable] de kabel { $cable } is { $metres } m lang, meer dan de { $max } m die een IO-Link-poort toestaat; maak hem korter
     }
     .title = IO-Link-grenzen
     .hint = Houd elk IO-Link-apparaat binnen het venster en de kabellengte van zijn poort.
 
 rule-ew-pot-001 = { $form ->
-        [flow] { WORD($device) } voert { WORD($from) } door naar { WORD($to) }: een contact of een zekering geeft één potentiaal door en kan die niet in een andere veranderen. Verbeter het type aan één kant, of zet er een voeding of een transformator tussen.
+        [flow] { $device } voert { $from } door naar { $to }: een contact of een zekering geeft één potentiaal door en kan die niet in een andere veranderen. Verbeter het type aan één kant, of zet er een voeding of een transformator tussen.
        *[attrs] { $conflicts }{ $more ->
             [none] {""}
            *[other] {" "}Nog { $more } aansluitpunten zijn op dezelfde manier bedraad.
@@ -840,34 +840,15 @@ rule-ew-pot-001 = { $form ->
     }
     .title = Type- of spanningsconflict
     .hint = Haal de draad weg die twee verschillende potentialen verbindt, of verbeter de definitie van een van beide. Een 0 V die op een andere manier dan met een draad recht naar een aardpunt met aarde verbonden is, heeft een vastgelegde verbinding nodig (Tekenen ▸ Verbinden ▸ Potentiaalverbinding).
-    .conflict-type = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }: een draad verbindt twee verschillende potentialen. Is een van beide verkeerd getypeerd, verbeter dan het type; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
-    .conflict-voltage = { $a } ({ DECIMAL($a_kind) }) is verbonden met { $b } ({ DECIMAL($b_kind) }){ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }: één geleider kan geen twee spanningen voeren. Is een spanning verkeerd ingevuld, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
-    .conflict-environment = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }: één geleider kan niet allebei zijn. Is een instelling verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
-    .conflict-class = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }: één geleider kan niet in twee stroomkringklassen zitten. Is een klasse verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
-    .conflict-role = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }: een draad verbindt twee verschillende potentialen. Zit de pen op de verkeerde geleider, verplaats dan zijn draad; is { $b } verkeerd getypeerd, verbeter dan het type.
-    .conflict-roles = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }: een draad verbindt twee verschillende potentialen, dus een van beide pennen zit op de verkeerde geleider. Verplaats die draad naar de juiste, of haal hem weg.
-    .conflict-earth = { $a } (0 V) is verbonden met de beschermingsaarde { $b }{ $at ->
-            [page] {" "}op pagina { $page }
-           *[none] {""}
-        }, maar niet met een draad die van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ Verbinden ▸ Potentiaalverbinding, of haal die draad weg.
+
+pot-conflict-type = { $p0 } ({ $p1 }) is verbonden met { $p2 } ({ $p3 }){ $p4 }: een draad verbindt twee verschillende potentialen. Is een van beide verkeerd getypeerd, verbeter dan het type; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
+pot-conflict-voltage = { $p0 } ({ DECIMAL($p1) }) is verbonden met { $p2 } ({ DECIMAL($p3) }){ $p4 }: één geleider kan geen twee spanningen voeren. Is een spanning verkeerd ingevuld, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
+pot-conflict-environment = { $p0 } ({ $p1 }) is verbonden met { $p2 } ({ $p3 }){ $p4 }: één geleider kan niet allebei zijn. Is een instelling verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
+pot-conflict-class = { $p0 } ({ $p1 }) is verbonden met { $p2 } ({ $p3 }){ $p4 }: één geleider kan niet in twee stroomkringklassen zitten. Is een klasse verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
+pot-conflict-role = { $p0 } ({ $p1 }) is verbonden met { $p2 } ({ $p3 }){ $p4 }: een draad verbindt twee verschillende potentialen. Zit de pen op de verkeerde geleider, verplaats dan zijn draad; is { $p2 } verkeerd getypeerd, verbeter dan het type.
+pot-conflict-roles = { $p0 } ({ $p1 }) is verbonden met { $p2 } ({ $p3 }){ $p4 }: een draad verbindt twee verschillende potentialen, dus een van beide pennen zit op de verkeerde geleider. Verplaats die draad naar de juiste, of haal hem weg.
+pot-conflict-earth = { $p0 } (0 V) is verbonden met de beschermingsaarde { $p2 }{ $p4 }, maar niet met een draad die van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ Verbinden ▸ Potentiaalverbinding, of haal die draad weg.
+pot-conflict-on-page = {" "}op pagina { $p0 }
 
 rule-ew-pot-002 = { $form ->
         [selv] { $potential } is een SELV-stroomkring, maar de 0 V ervan is met de beschermingsaarde verbonden{ $bonds ->
@@ -891,21 +872,21 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE-pen op PE
     .hint = Sluit de pen aan op functionele aarde, of leg de FE–PE-verbinding vast op zijn draad.
 
-rule-ew-pot-004 = Draad { WORD($wire) } is groen-geel maar voert { $potential }{ $typed ->
-        [yes] {" "}({ WORD($type) })
+rule-ew-pot-004 = Draad { $wire } is groen-geel maar voert { $potential }{ $typed ->
+        [yes] {" "}({ $type })
        *[no] {""}
     }: groen-geel is alleen voor de beschermingsaarde. Is de kleur met de hand op de draad gezet, haal die daar weg; geef de draad anders een andere kleur in zijn Eigenschappen.
     .title = GNYE op een potentiaal die geen PE is
     .hint = Gebruik groen-geel alleen voor beschermingsleiders; geef de draad een andere kleur.
 
-rule-ew-pot-005 = Draad { WORD($wire) } is blauw maar voert { $potential }{ $type ->
+rule-ew-pot-005 = Draad { $wire } is blauw maar voert { $potential }{ $type ->
         [none] {""}
-       *[other] {" "}({ WORD($type) })
+       *[other] {" "}({ $type })
     }: in een project met een nulleider markeert blauw de nulleider. Is de kleur met de hand op de draad gezet, haal die daar weg; geef de draad anders een andere kleur, of gebruik een kabel waarvan de blauwe ader de nulleider voert.
     .title = BU op een geleider die geen N is
     .hint = Gebruik een andere kleur voor de draad, of een kabel waarvan de blauwe ader de nulleider voert.
 
-rule-ew-pot-006 = PE-draad { WORD($wire) } heeft { DECIMAL($pe) } mm², minder dan de { DECIMAL($required) } mm² die nodig is voor de lijngeleiders van { DECIMAL($line) } mm² bij { $at }{ $verified ->
+rule-ew-pot-006 = PE-draad { $wire } heeft { DECIMAL($pe) } mm², minder dan de { DECIMAL($required) } mm² die nodig is voor de lijngeleiders van { DECIMAL($line) } mm² bij { $at }{ $verified ->
         [yes] {""}
        *[no] {" "}(de dimensioneringstabel is niet getoetst aan de norm)
     }. Maak hem minstens { DECIMAL($required) } mm² in zijn Eigenschappen.
@@ -913,10 +894,10 @@ rule-ew-pot-006 = PE-draad { WORD($wire) } heeft { DECIMAL($pe) } mm², minder d
     .hint = Vergroot de doorsnede van de beschermingsleider tot de vereiste maat.
 
 rule-ew-pot-008 = { $form ->
-        [terminal] { WORD($terminal) } is met de rail verbonden maar heeft geen locatie, en het project heeft { $locations } eigen locaties; de klem sluit op geen PE-knooppunt van een locatie aan
+        [terminal] { $terminal } is met de rail verbonden maar heeft geen locatie, en het project heeft { $locations } eigen locaties; de klem sluit op geen PE-knooppunt van een locatie aan
        *[island] De beschermingsaarde bij { $at } op pagina { $page } bereikt de inkomende PE niet en ook geen aardsymbool{ $location ->
             [main] {""}
-           *[node] {" "}van { WORD($node) }
+           *[node] {" "}van { $node }
         }. Verbind hem met de PE-rail of met een aardsymbool, of zet zijn PE-klem op een geaarde rail.
     }
     .title = PE-eiland
@@ -939,21 +920,21 @@ rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
         [junction] de aftakking { $at ->
             [cell] in { $cell } op folio { $page }
            *[folio] op folio { $page }
-        } voedt (draden { WORD($wires) })
-        [ip] de onderbrekingspunten { $group } voedt (draden { WORD($wires) })
+        } voedt (draden { $wires })
+        [ip] de onderbrekingspunten { $group } voedt (draden { $wires })
        *[other] een aftakking of een groep onderbrekingspunten voedt
     }; teken één draad ernaartoe vanaf de voedingszijde
     .title = Voeding van aftakking onduidelijk
     .hint = Teken de aftakking zo dat één draad haar voedt, of stel de bedradingsvolgorde in.
 
 rule-ew-pot-012 = { $form ->
-        [ring] De draad { WORD($wire) } sluit een ring: zijn draden lopen terug naar waar ze begonnen, dus hij staat niet in de draadlijst. Haal één draad van de ring weg, of bevestig dat de ring bedoeld is.
+        [ring] De draad { $wire } sluit een ring: zijn draden lopen terug naar waar ze begonnen, dus hij staat niet in de draadlijst. Haal één draad van de ring weg, of bevestig dat de ring bedoeld is.
        *[other] { $detail }
     }
     .title = Draden in een ring
     .hint = Verwijder de draad die de ring sluit, of bevestig dat de ring bedoeld is.
 
-rule-ew-pot-013 = { WORD($device) } { $form ->
+rule-ew-pot-013 = { $device } { $form ->
         [isolating] is een N-scheidingsklem op { $from } → { $to }: goed zo, de nulleider wordt alleen geopend om te meten.
        *[switching] opent de nulleider { $from } → { $to } zonder de fase{ $loads ->
             [one] {" "}(belasting { $load } blijft verbonden met { $line })
@@ -965,8 +946,8 @@ rule-ew-pot-013 = { WORD($device) } { $form ->
     .hint = Verplaats het contact naar de lijngeleider, of gebruik een apparaat dat L en N tegelijk opent.
 
 rule-ew-pot-014 = { $form ->
-        [conductor] Een deel van draad { WORD($wire) } is op een andere kabelader getekend; de draad houdt de ader waarop hij begint. Teken de hele draad op één ader.
-        [override] Een deel van draad { WORD($wire) } zet een waarde die de draad al van een ander deel heeft; de eerste waarde geldt. Zet hem op één plaats.
+        [conductor] Een deel van draad { $wire } is op een andere kabelader getekend; de draad houdt de ader waarop hij begint. Teken de hele draad op één ader.
+        [override] Een deel van draad { $wire } zet een waarde die de draad al van een ander deel heeft; de eerste waarde geldt. Zet hem op één plaats.
        *[other] { $detail }
     }
     .title = Conflict in een fysieke draad
@@ -976,7 +957,7 @@ rule-ew-pot-015 = Draadnummer { $number } staat op { $count } draden die niet é
     .title = Draadnummerconflict
     .hint = Geef elke draad een eigen nummer, of verbind de draden als ze één geleider zijn.
 
-rule-ew-pot-016 = Draad { WORD($wire) } heeft { $member ->
+rule-ew-pot-016 = Draad { $wire } heeft { $member ->
         [csa] zijn doorsnede { DECIMAL($value) }
         [colour] zijn kleur { $value }
         [wire_part] zijn draadartikel
@@ -999,11 +980,11 @@ rule-ew-pot-021 = { $cp_shared ->
     .title = Belasting niet teruggevoerd
     .hint = Verbind de retourzijde van de belasting met de retourgeleider van de voeding (0 V, N), of met de retourpin van de module.
 
-rule-ew-pot-022 = Draad { WORD($wire) } heeft zijn doorsnede { DECIMAL($size) } met de hand ingesteld, kleiner dan de { DECIMAL($needed) } die de nominale stroom van { DECIMAL($current) } A van { WORD($device) } volgens de stroomtabel vraagt (IEC 60204-1 tabel 6, methode B2). Neem de voorgestelde doorsnede.
+rule-ew-pot-022 = Draad { $wire } heeft zijn doorsnede { DECIMAL($size) } met de hand ingesteld, kleiner dan de { DECIMAL($needed) } die de nominale stroom van { DECIMAL($current) } A van { $device } volgens de stroomtabel vraagt (IEC 60204-1 tabel 6, methode B2). Neem de voorgestelde doorsnede.
     .title = Doorsnede kleiner dan de beveiliging vraagt
     .hint = Neem de voorgestelde doorsnede of een grotere, of beveilig de draad met een apparaat van een lagere nominale stroom.
 
-rule-ew-rds-001 = { WORD($device) } is geen geldige IEC 81346-aanduiding: { $reason ->
+rule-ew-rds-001 = { $device } is geen geldige IEC 81346-aanduiding: { $reason ->
         [empty] lege referentieaanduiding
         [prefix] het voorteken ontbreekt (zoals '-' of '+')
         [unexpected] onverwacht teken { $char } (U+{ $code })
@@ -1024,7 +1005,7 @@ rule-ew-rds-002 = de structuurcode { $code } bevat scheidingstekens; programma's
     .title = Scheidingsteken in een structuurcode
     .hint = Verwijder het scheidingsteken uit de code, of gebruik in plaats daarvan een structuurniveau.
 
-rule-ew-rds-003 = { WORD($device) }: de lettercode { $letter } past niet bij de functiecategorie { $category }; de identificatieset { $set } stelt { $suggested } voor{ $verified ->
+rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functiecategorie { $category }; de identificatieset { $set } stelt { $suggested } voor{ $verified ->
         [yes] {""}
        *[no] {" "}(de set is niet getoetst aan de norm)
     }
@@ -1035,7 +1016,7 @@ rule-ew-rds-004 = `{ $tag }` wordt afgedrukt door { $count } apparaten
     .title = Dubbel kenmerk
     .hint = Geef een van de apparaten een ander kenmerk.
 
-rule-ew-rds-007 = { WORD($device) }: de lettercode { $letter } gebruikt gereserveerde letters: { $io_form ->
+rule-ew-rds-007 = { $device }: de lettercode { $letter } gebruikt gereserveerde letters: { $io_form ->
         [none] {""}
         [one] { $io } wordt niet gebruikt in lettercodes
        *[many] { $io } worden niet gebruikt in lettercodes
@@ -1054,7 +1035,7 @@ rule-ew-rds-009 = { $kind ->
         [letter] de lettercode
         [frozen] het vastgezette kenmerk
        *[designation] de klemaanduiding
-    } { $text } van { WORD($device) } bevat niet-Latijnse tekens die op Latijnse lijken: { $lookalikes }; zoeken en kruisverwijzingen vinden het niet; typ het opnieuw in Latijnse letters
+    } { $text } van { $device } bevat niet-Latijnse tekens die op Latijnse lijken: { $lookalikes }; zoeken en kruisverwijzingen vinden het niet; typ het opnieuw in Latijnse letters
     .title = Verwarrend teken
     .hint = Vervang het teken door zijn gewone Latijnse vorm.
 
@@ -1072,7 +1053,7 @@ rule-ew-rel-001 = revisie { $revision }: { $form ->
             [author] auteur
             [checker] controleur
             [engineer] ontwerper
-           *[other] { WORD($role) }
+           *[other] { $role }
         }); het vierogenprincipe vraagt een andere partij
         [sign-off] goedkeuring ontbreekt; de controleur keurt de opgeslagen revisie goed
        *[stale] de goedkeuring past niet bij de opgeslagen inhoud (gewijzigd na goedkeuring); keur haar opnieuw goed
@@ -1091,14 +1072,14 @@ rule-ew-rel-004 = revisie { $revision }: { $form ->
     .title = Volgorde van de revisielabels
     .hint = Geef de revisie een label in het labelformaat van het project dat na elk eerder label komt.
 
-rule-ew-term-001 = een klem van { WORD($strip) } heeft geen aanduiding
+rule-ew-term-001 = een klem van { $strip } heeft geen aanduiding
     .title = Klem zonder aanduiding
     .hint = Geef de klem een aanduiding.
 
 rule-ew-term-002 = { $form ->
         [taken] aanduiding { $designation } is al bezet op { $end ->
             [untagged] de klemmenstrook
-           *[named] { WORD($strip) }
+           *[named] { $strip }
         } ({ $count } klemmen){ $remedy ->
             [free] ; gebruik { $free }
             [swap] ; verwissel { $old } ↔ { $designation } in één transactie (terminal.designate)
@@ -1107,24 +1088,24 @@ rule-ew-term-002 = { $form ->
         }
        *[used] aanduiding { $designation } wordt gebruikt door { $count } klemmen van { $end ->
             [untagged] de klemmenstrook
-           *[named] { WORD($strip) }
+           *[named] { $strip }
         }
     }
     .title = Dubbele aanduiding
     .hint = Hernummer de klemmenstrook, of geef een van de klemmen een andere aanduiding.
 
-rule-ew-term-003 = reserveklem { WORD($terminal) } is aan zijn veldzijde bedraad; bedraad hem aan de andere zijde of hef de reservestatus op
+rule-ew-term-003 = reserveklem { $terminal } is aan zijn veldzijde bedraad; bedraad hem aan de andere zijde of hef de reservestatus op
     .title = Reserveklem aan de veldzijde bedraad
     .hint = Verwijder de draad aan de veldzijde, of maak de klem een gebruikte klem.
 
-rule-ew-term-004 = bruggroep { $group } van { WORD($strip) } is ongeldig: { $gap ->
+rule-ew-term-004 = bruggroep { $group } van { $strip } is ongeldig: { $gap ->
         [yes] { $sep_gap }zijn klemmen liggen niet naast elkaar
        *[no] {""}
     }{ $shafts ->
         [yes] { $sep_shafts }hij loopt over { $shaft_count } brugschachten
        *[no] {""}
     }{ $reaches ->
-        [yes] { $sep_reaches }hij reikt tot { WORD($reached) }
+        [yes] { $sep_reaches }hij reikt tot { $reached }
        *[no] {""}
     }{ $overlaps ->
         [yes] { $sep_overlaps }hij overlapt bruggroep { $overlapped } op zijn brugschacht
@@ -1133,11 +1114,11 @@ rule-ew-term-004 = bruggroep { $group } van { WORD($strip) } is ongeldig: { $gap
     .title = Ongeldige bruggroep
     .hint = Brug alleen naburige klemmen van één klemmenstrook, of zet de klemmen naast elkaar.
 
-rule-ew-term-005 = { WORD($terminal) } is met de rail verbonden maar heeft geen PE-aansluitpunt; de klem sluit op geen PE-knooppunt van een locatie aan
+rule-ew-term-005 = { $terminal } is met de rail verbonden maar heeft geen PE-aansluitpunt; de klem sluit op geen PE-knooppunt van een locatie aan
     .title = Railverbinding op een klem die geen PE is
     .hint = Wis de railverbinding, of maak de klem een PE-klem.
 
-rule-ew-term-006 = { WORD($terminal) } ligt op draad { WORD($wire) } zonder die te verbinden; sluit de klem op de draad aan of verplaats haar
+rule-ew-term-006 = { $terminal } ligt op draad { $wire } zonder die te verbinden; sluit de klem op de draad aan of verplaats haar
     .title = Klem op een draad die hij niet verbindt
     .hint = Neem de klem op in de draad, of haal hem van de draad af.
 
@@ -1273,8 +1254,8 @@ fix-draw-valves = De ventielen in het ventieleiland tekenen
 fix-plug-open-ports = Blindstoppen op de open poorten zetten
 fix-text-style-minimum = Op 1,2 mm zetten
 
-# De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
-# drukt ze in het Nederlands af.
+# De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; een regel geeft ze
+# bij hun sleutel aan zijn patroon door.
 word-device = apparaat
 word-cable = kabel
 word-without-a-tag = zonder kenmerk
@@ -1307,7 +1288,7 @@ word-the-project = het project
 word-a-page = een pagina
 word-a-logical-bus-net = een logisch busnet
 word-a-physical-bus-net = een fysiek busnet
-word-the-junction-in = de aftakking in { $at }
+word-the-junction-in = de aftakking in { $p0 }
 word-a-connection-point-of-another-page = een aansluitpunt van een andere pagina
 word-its-target = zijn doel
 word-the-station = het station
@@ -1320,7 +1301,7 @@ word-type-pe = beschermingsaarde PE
 word-type-pen = PEN-geleider
 word-type-fe = functionele aarde FE
 word-type-n = nulleider N
-word-type-phase = fase { $at }
+word-type-phase = fase { $p0 }
 word-type-l-plus = plus L+
 word-type-l-minus = min L−
 word-type-signal = signaal
@@ -1350,8 +1331,8 @@ word-style-cover-title = Titel van het voorblad
 word-style-cover-subtitle = Ondertitel van het voorblad
 word-style-section-id = Sectienummer
 word-style-section-subtitle = Sectietitel
-word-style-imported = Geïmporteerde tekst van { $size } pt
-word-style-imported-bold = Geïmporteerde vette tekst van { $size } pt
+word-style-imported = Geïmporteerde tekst van { $p0 } pt
+word-style-imported-bold = Geïmporteerde vette tekst van { $p0 } pt
 word-style-own = Een tekststijl van dit project
 
 rule-ew-imp-251 =
@@ -1413,3 +1394,11 @@ rule-ew-imp-207 =
 ## Words another part of the program wrote: the store's integrity findings, the text an importer stored, an importer's quick fix
 
 words-as-written = { $p0 }
+
+## The words that join the items of a list in a finding
+
+join-comma = {", "}
+join-and = {" en "}
+join-wire = –
+join-connection = {" → "}
+join-sentence = {" "}

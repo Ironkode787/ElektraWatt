@@ -5,7 +5,7 @@
 
 use crate::common;
 
-use common::{assert_messages, model, model_with, record, us};
+use common::{assert_worded, model, model_with, record, us};
 use ew_checks::{
     CheckMode, FULL, Finding, GateInput, PRE_DELIVERY, RuleKind, blockers, gate, pack_definition,
     pack_versions, rule, run,
@@ -30,7 +30,7 @@ fn digest(n: u8) -> Sha256 {
 }
 
 fn rel(findings: &[Finding]) -> Vec<(&'static str, String, String)> {
-    assert_messages(findings);
+    assert_worded(findings);
     findings
         .iter()
         .filter(|f| f.rule.starts_with("EW-REL"))

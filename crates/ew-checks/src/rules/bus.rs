@@ -22,8 +22,8 @@ use crate::rules::term::full_tag;
 /// on no device by its interface.
 pub(crate) fn port_name(q: &Q, function: &Function, port: &BusPort) -> String {
     match function.device {
-        Some(d) if port.role == PortRole::Passive => full_tag(q, d, "a connector"),
-        Some(d) => format!("{}:{}", full_tag(q, d, "a device"), port.interface),
+        Some(d) if port.role == PortRole::Passive => full_tag(q, d, "a connector").into(),
+        Some(d) => format!("{}:{}", full_tag(q, d, text!("word-a-device")), port.interface),
         None => port.interface.as_str().to_owned(),
     }
 }

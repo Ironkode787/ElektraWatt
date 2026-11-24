@@ -31,6 +31,8 @@ use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
+use crate::rules::{Named, listed};
+use ew_l10n::{List, TextArg};
 
 /// Sorts `(printed text, …)` rows by the text in natural order, then by bytes.
 fn sort_printed<T: Ord>(rows: &mut [(String, T)]) {
@@ -137,11 +139,11 @@ fn page_record(page: PageRef) -> Target {
 }
 
 /// The kind of a page of the order, as a message prints it.
-fn origin_text(origin: Origin) -> &'static str {
+fn origin_text(origin: Origin) -> Named {
     match origin {
-        Origin::Drawn => "a drawn page",
-        Origin::Divider => "a section divider",
-        Origin::Generated => "a report page",
+        Origin::Drawn => text!("word-a-drawn-page").into(),
+        Origin::Divider => text!("word-a-section-divider").into(),
+        Origin::Generated => text!("word-a-report-page").into(),
     }
 }
 
@@ -170,8 +172,8 @@ fn collisions(q: &Q) -> Vec<(String, Vec<(Target, Origin)>)> {
 
 /// The finding of one collision.
 fn collision_finding(label: &str, pages: &[(Target, Origin)]) -> Finding {
-    let mut kinds: Vec<&str> = pages.iter().map(|(_, o)| origin_text(*o)).collect();
-    kinds.sort_unstable();
+    let mut kinds: Vec<Named> = pages.iter().map(|(_, o)| origin_text(*o)).collect();
+    kinds.sort_unstable_by(|a, b| a.english().cmp(b.english()));
     let finding = Finding::new(
         &FOLIO_COLLISION,
         pages.iter().map(|(t, _)| *t),
@@ -180,7 +182,7 @@ fn collision_finding(label: &str, pages: &[(Target, Origin)]) -> Finding {
     )
     .arg("page", label)
     .arg("count", pages.len().to_string())
-    .arg("kinds", kinds.join(", "));
+    .arg("kinds", listed(kinds));
     match pages
         .iter()
         .find_map(|(t, _)| (t.kind == Kind::Page).then_some(t.id))
@@ -370,7 +372,7 @@ impl Rule for ReportCoverageGap {
             return Vec::new();
         }
         let devices = q.devices();
-        let mut rows: Vec<(String, (Family, Id<Device>))> = Vec::new();
+        let mut rows: Vec<(Named, (Family, Id<Device>))> = Vec::new();
         for family in [Family::Strip, Family::Cable, Family::Station] {
             let members: Vec<Id<Device>> = devices
                 .iter()
@@ -402,7 +404,7 @@ impl Rule for ReportCoverageGap {
             }
             for m in members {
                 if !covered.contains(&m) {
-                    rows.push((full_tag(q, m, "device"), (family, m)));
+                    rows.push((full_tag(q, m, text!("word-device")), (family, m)));
                 }
             }
         }
@@ -486,7 +488,7 @@ impl Rule for TextBelowMinimum {
             .filter(|s| used.contains(s.key.as_str()))
             .map(|s| {
                 let key = s.key.as_str();
-                let name = crate::messages::text_style_name(key, crate::messages::DEFAULT_LANGUAGE);
+                let name = Named::from(crate::messages::text_style_words(key));
                 let (height, minimum) = (
                     ew_derive::mm_hundredth(cap_height(s.em).0),
                     ew_derive::mm_hundredth(MIN_CAP_HEIGHT.0),
@@ -505,7 +507,7 @@ impl Rule for TextBelowMinimum {
                         value.remove(key);
                     }
                 }
-                Finding::new(&TEXT_BELOW_MINIMUM, [], key, &name)
+                Finding::new(&TEXT_BELOW_MINIMUM, [], key, name.english())
                     .arg("name", name.clone())
                     .arg("height", height)
                     .arg("minimum", minimum)
@@ -914,7 +916,7 @@ pub struct LayoutWire<'a> {
     /// The connection.
     pub id: Id<Connection>,
     /// Its words.
-    pub words: &'a str,
+    pub words: &'a Named,
     /// Whether it is a fluid line.
     pub tube: bool,
 }
@@ -928,6 +930,17 @@ impl LayoutWire<'_> {
     fn line(self) -> &'static str {
         if self.tube { "tube" } else { "wire" }
     }
+}
+
+/// A connection by its two ends (`-E55:PE → -X1:PE`), as the layout rules name a wire without a number, each end in the
+/// reader's language.
+pub fn connection_words(a: impl Into<TextArg>, b: impl Into<TextArg>) -> TextArg {
+    List::new(
+        vec![a.into(), b.into()],
+        text!("join-connection"),
+        text!("join-connection"),
+    )
+    .into()
 }
 
 /// The point a wire runs through without joining it (EW-CORE-067).
@@ -978,23 +991,28 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
         &WIRE_THROUGH_CP,
         [wire.target(), target],
         discriminator,
-        wire.words,
+        wire.words.english(),
     )
     .on_page(page)
     .arg("line", wire.line())
-    .arg("wire", wire.words)
+    .arg("wire", wire.words.english())
     .arg("point", kind)
     .arg("pin", pin)
 }
 
 /// EW-CORE-068: `wire` runs along `other` on the page labelled `folio` (measure (b)). Targets both wires.
 pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other: LayoutWire<'_>) -> Finding {
-    Finding::new(&WIRE_ALONG_WIRE, [wire.target(), other.target()], "", wire.words)
-        .on_page(page)
-        .arg("line", wire.line())
-        .arg("wire", wire.words)
-        .arg("other", other.words)
-        .arg("page", folio)
+    Finding::new(
+        &WIRE_ALONG_WIRE,
+        [wire.target(), other.target()],
+        "",
+        wire.words.english(),
+    )
+    .on_page(page)
+    .arg("line", wire.line())
+    .arg("wire", wire.words)
+    .arg("other", other.words)
+    .arg("page", folio)
 }
 
 /// A representation as a layout rule names it (EW-CORE-069, -070): a device by its tag, an interruption point by its
@@ -1030,11 +1048,11 @@ pub fn wire_through_symbol(
         &WIRE_THROUGH_SYMBOL,
         [wire.target(), Target::new(Kind::Representation, rep)],
         "",
-        wire.words,
+        wire.words.english(),
     )
     .on_page(page)
     .arg("line", wire.line())
-    .arg("wire", wire.words)
+    .arg("wire", wire.words.english())
     .arg("symbol", kind)
     .arg("device", name)
 }
@@ -1065,7 +1083,7 @@ pub enum TextOwner<'a> {
         /// The connection.
         id: Id<Connection>,
         /// Its words.
-        words: &'a str,
+        words: &'a Named,
     },
     /// A cable mark (a wire-marker group): its tag or type line.
     Mark(Id<PageItem>),
@@ -1076,13 +1094,18 @@ pub enum TextOwner<'a> {
 /// so that no English word enters another language's message.
 pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<'_>, text: &str) -> Finding {
     let (target, kind, device) = owned_text(owner);
-    Finding::new(&WIRE_THROUGH_TEXT, [wire.target(), target], "", wire.words)
-        .on_page(page)
-        .arg("line", wire.line())
-        .arg("wire", wire.words)
-        .arg("owner", kind)
-        .arg("text", text)
-        .arg("device", device)
+    Finding::new(
+        &WIRE_THROUGH_TEXT,
+        [wire.target(), target],
+        "",
+        wire.words.english(),
+    )
+    .on_page(page)
+    .arg("line", wire.line())
+    .arg("wire", wire.words)
+    .arg("owner", kind)
+    .arg("text", text)
+    .arg("device", device)
 }
 
 /// EW-CORE-072: the junction `junction` in the frame cell `cell` joins four wires (measure (g)); on a page without a
@@ -1107,7 +1130,7 @@ pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, ce
 
 /// EW-CORE-073: `wire`, a page connection between two different points, has no route. Targets the wire.
 pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
-    Finding::new(&UNROUTED_WIRE, [wire.target()], "", wire.words)
+    Finding::new(&UNROUTED_WIRE, [wire.target()], "", wire.words.english())
         .on_page(page)
         .arg("line", wire.line())
         .arg("wire", wire.words)
@@ -1173,33 +1196,36 @@ pub fn wires_meet(
     cell: &str,
 ) -> Finding {
     let place = place_word(cell);
-    Finding::new(&WIRES_MEET, [wire.target(), other.target()], cell, wire.words)
-        .on_page(page)
-        .arg("line", wire.line())
-        .arg("wire", wire.words)
-        .arg("other", other.words)
-        .arg("place", place)
-        .arg("cell", cell)
-        .arg("page", folio)
+    Finding::new(
+        &WIRES_MEET,
+        [wire.target(), other.target()],
+        cell,
+        wire.words.english(),
+    )
+    .on_page(page)
+    .arg("line", wire.line())
+    .arg("wire", wire.words)
+    .arg("other", other.words)
+    .arg("place", place)
+    .arg("cell", cell)
+    .arg("page", folio)
 }
 
 /// The target of a text's owner, the `owner` argument's word and the owner's name.
-fn owned_text(owner: TextOwner<'_>) -> (Target, &'static str, String) {
+fn owned_text(owner: TextOwner<'_>) -> (Target, &'static str, Named) {
     match owner {
-        TextOwner::Symbol { rep, device } => (
-            Target::new(Kind::Representation, rep),
-            "symbol",
-            device.to_owned(),
-        ),
-        TextOwner::Ip { rep, name } => (Target::new(Kind::Representation, rep), "ip", name.to_owned()),
-        TextOwner::FreeText(id) => (Target::new(Kind::PageItem, id), "free-text", String::new()),
+        TextOwner::Symbol { rep, device } => {
+            (Target::new(Kind::Representation, rep), "symbol", device.into())
+        }
+        TextOwner::Ip { rep, name } => (Target::new(Kind::Representation, rep), "ip", name.into()),
+        TextOwner::FreeText(id) => (Target::new(Kind::PageItem, id), "free-text", String::new().into()),
         TextOwner::StructureBox(id) => (
             Target::new(Kind::StructureBox, id),
             "structure-box",
-            String::new(),
+            String::new().into(),
         ),
-        TextOwner::Wire { id, words } => (Target::new(Kind::Connection, id), "wire", words.to_owned()),
-        TextOwner::Mark(id) => (Target::new(Kind::PageItem, id), "mark", String::new()),
+        TextOwner::Wire { id, words } => (Target::new(Kind::Connection, id), "wire", words.clone()),
+        TextOwner::Mark(id) => (Target::new(Kind::PageItem, id), "mark", String::new().into()),
     }
 }
 
