@@ -518,7 +518,7 @@ impl Builder<'_> {
         };
         self.slot_texts(view, &mut ctx);
         for (entity, text, at, angle, align, width) in pin_texts(view) {
-            let t = Text::plain(&text, at, angle, align, "data.small", entity);
+            let t = Text::plain(&text, at, angle, align, crate::page::PIN_TEXT_STYLE, entity);
             let t = match width {
                 Some(width) => self.fit_cell(t, width),
                 None => t,
@@ -534,7 +534,7 @@ impl Builder<'_> {
                 at,
                 angle,
                 align,
-                "data.small",
+                crate::page::PIN_TEXT_STYLE,
                 EntityRef(n.rep.as_uuid()),
             );
             // A note stands right beside the line its own pin's wire leaves along: its box is cut back to a quarter of

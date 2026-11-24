@@ -110,7 +110,7 @@
 //!   texts, core names and structure-box captions are fixed: they stand where they are, and the others keep clear of
 //!   them. [`LayerList::draft`] is that page.
 //! - **Pin texts**. A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
-//!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
+//!   (drawn as in "Black boxes") in [`PIN_TEXT_STYLE`] (`data.small`), inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
 //!   below a pin leaving up, middle left above a pin leaving down), but a text of signs only ("+", "−", no letter or
 //!   digit: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
@@ -1496,7 +1496,7 @@ impl Builder<'_> {
                 at,
                 angle,
                 align: &align,
-                style_key: "data.small",
+                style_key: PIN_TEXT_STYLE,
                 entity: EntityRef(n.rep.as_uuid()),
                 link: None,
                 items: &[],
@@ -2127,19 +2127,24 @@ fn is_line_break(c: char) -> bool {
 /// The distance of a black box's pin text from its pin, inward along the pin's normal: 1 mm.
 pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 
-/// The length in nanometres of the pin text `text` on one line in style `data.small` with the bundled fonts: how far a
-/// text of a top or bottom side, turned a quarter, reaches into the box.
-pub fn pin_text_length(text: &str) -> i64 {
-    let Some(style) = ew_text::builtin().resolve("data.small") else {
+/// The text style of a black box's pin texts and of the notes beside a plug's pins.
+pub const PIN_TEXT_STYLE: &str = "data.small";
+
+/// The length in nanometres of the pin text `text` on one line in [`PIN_TEXT_STYLE`] of the built-in table with the
+/// bundled fonts: how far a text of a top or bottom side, turned a quarter, reaches into the box, as the session sizes
+/// a drawn box. The page prints the text in the project's table, so the two differ where a project changes the style.
+pub fn builtin_pin_text_length(text: &str) -> i64 {
+    let Some(style) = ew_text::builtin().resolve(PIN_TEXT_STYLE) else {
         return 0;
     };
     ew_text::bundled().shape(text, &style, None).advance().0
 }
 
-/// The height in nanometres of one line of pin text (style `data.small` with the bundled fonts: its ascent and descent,
-/// as the scene's text box measures it); `None` without the style.
-pub fn pin_text_line() -> Option<i64> {
-    let style = ew_text::builtin().resolve("data.small")?;
+/// The height in nanometres of one line of pin text ([`PIN_TEXT_STYLE`] of the built-in table with the bundled fonts:
+/// its ascent and descent, as the scene's text box measures it), as [`builtin_pin_text_length`] measures; `None`
+/// without the style.
+pub fn builtin_pin_text_line() -> Option<i64> {
+    let style = ew_text::builtin().resolve(PIN_TEXT_STYLE)?;
     let m = ew_text::bundled().vertical_metrics(&style);
     Some(m.ascent.0.saturating_add(m.descent.0))
 }
