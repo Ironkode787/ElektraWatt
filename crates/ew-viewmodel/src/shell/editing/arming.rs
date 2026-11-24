@@ -14,7 +14,7 @@ use crate::strings::Key;
 use crate::tools::{
     BlackBoxTool, BoxTarget, ExchangeTool, PendingTerminal, Picker, PickerMode, PlaceTarget, PlaceTool,
 };
-use ew_api::output::{PlaceCatalogue, Uuid};
+use ew_api::output::{CatalogueSymbol, PlaceCatalogue, SymbolShape, Uuid};
 use serde_json::{Map, Value, json};
 use std::sync::Arc;
 
@@ -271,68 +271,10 @@ impl ShellModel {
         // An unplaced black-box function (a station placed first on a bus-topology page keeps its supply pins for a
         // schematic page) is drawn by the black box tool as another representation of it.
         if let (true, Pick::Function(function, _)) = (is_box, &pick)
-            && let Some(project) = &self.project
+            && self.project.is_some()
             && let Ok(id) = function.parse::<Uuid>()
         {
-            let cps = project.session.function_cp_list(id);
-            let Some(copy) = row.copy.or_else(|| project.session.starter_symbol_copy(&row.key)) else {
-                return Outcome::refused(key!("reason-unknown-symbol"));
-            };
-            let target = BoxTarget::Function {
-                function: function.clone(),
-                cps,
-            };
-            // A valve terminal made as a station, drawn on a fluid page: as its positions, one click.
-            let fluid = self
-                .page_rows()
-                .get(self.page_index())
-                .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
-            let terminal = project.session.terminal_of_main(id);
-            let slots = terminal
-                .filter(|_| fluid)
-                .and_then(|t| u16::try_from(project.session.terminal_positions(t).len()).ok());
-            // A multipin terminal's main function elsewhere is its plug: its pins down its two sides, one click.
-            let pins = !fluid && terminal.is_some_and(|t| project.session.terminal_plug(t).is_some());
-            // Drawn as its positions, its valves and its supply stand in it with their symbols.
-            let copies = match (slots, self.canvas()) {
-                (Some(_), Some(c)) => project
-                    .session
-                    .cell_copies(terminal, &[], Some(c.page().tables.page)),
-                _ => Vec::new(),
-            };
-            // Placed by Place, not by the Black box tool, it says at once that it is drawn as a box and how (a persona
-            // run pressed Place on a power supply and only the hint bar said that the tool had changed).
-            let drawn_as_box = !self.tools.black_box_pick
-                && self
-                    .tools
-                    .picker
-                    .as_ref()
-                    .is_none_or(|picker| picker.mode != PickerMode::BlackBox);
-            let tag = {
-                let q = project.session.query();
-                function
-                    .parse()
-                    .ok()
-                    .and_then(|f| q.functions().get(f))
-                    .and_then(|f| f.device)
-                    .and_then(|d| project.session.device_tag(d.as_uuid()))
-            };
-            self.tools.picker = None;
-            self.activate_tool(Box::new(
-                BlackBoxTool::new(copy.to_string(), target)
-                    .with_copies(copies)
-                    .with_slots(slots)
-                    .with_pins(pins)
-                    .with_drawn_as_box(drawn_as_box),
-            ));
-            if drawn_as_box
-                && slots.is_none()
-                && !pins
-                && let Some(tag) = tag
-            {
-                self.notify(strings::format(key!("toast-drawn-as-box"), &[&tag]), false);
-            }
-            return Outcome::Done;
+            return self.arm_unplaced_box(&row, function, id);
         }
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
             return self.refused_with_key(key!("reason-black-box-tool"), "tool.black_box");
@@ -357,78 +299,17 @@ impl ShellModel {
                 .and_then(|p| p.session.starter_symbol_copy(&row.key));
         }
         if is_box {
-            let Some(copy) = row.copy else {
-                return Outcome::refused(key!("reason-unknown-symbol"));
-            };
-            // A part without a symbol of its own that the Place tool places, not the Black box tool, is drawn as a
-            // box: the hint says so (FT-1808).
-            let drawn_as_box = part.is_some()
-                && !self.tools.black_box_pick
-                && self
-                    .tools
-                    .picker
-                    .as_ref()
-                    .is_none_or(|picker| picker.mode != PickerMode::BlackBox);
-            let named = part.as_ref().map(|(_, _, number)| number.clone());
-            let target = match part {
-                Some((part, template, number)) => {
-                    let Some(letter) = letter_param.or(part_letter).or(row.letter.clone()) else {
-                        return Outcome::refused(key!("reason-letter-needed"));
-                    };
-                    // A PLC card without a device box of its own is laid out as a card (doc 10 §3.6).
-                    let card = part_copy
-                        .zip(self.project_session())
-                        .map(|(copy, s)| s.part_card_pins(copy, &part_cps));
-                    BoxTarget::Part {
-                        part,
-                        template,
-                        letter,
-                        number,
-                        cps: part_cps,
-                        outputs: part_outputs,
-                        layout: part_layout,
-                        card,
-                    }
-                }
-                None => {
-                    let Some(letter) = letter_param.or(row.letter.clone()) else {
-                        return Outcome::refused(key!("reason-letter-needed"));
-                    };
-                    BoxTarget::NewDevice { letter }
-                }
-            };
-            self.tools.picker = None;
-            // On a bus-topology page the frame draws a topology box (a device with its sockets, doc 10 §2.7).
-            let rep_type = (row.rep_type == "topology").then(|| row.rep_type.clone());
-            // On a fluid page a valve terminal is drawn as its positions, one click.
-            let fluid = self
-                .page_rows()
-                .get(self.page_index())
-                .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
-            let slots = part_copy
-                .filter(|_| fluid)
-                .and_then(|p| self.project.as_ref()?.session.part_positions(p));
-            // Drawn as its positions, its supply ports stand in its left end.
-            let mut copies = copies;
-            if let (Some(_), Some(project), Some(c)) = (slots, &self.project, self.canvas()) {
-                let cells = project.session.cell_copies(None, &[], Some(c.page().tables.page));
-                crate::shell::fluid::extend_copies(&mut copies, cells);
-            }
-            self.activate_tool(Box::new(
-                BlackBoxTool::new(copy.to_string(), target)
-                    .with_copies(copies)
-                    .with_rep_type(rep_type)
-                    .with_slots(slots)
-                    .with_drawn_as_box(drawn_as_box),
-            ));
-            // The hint alone went unread: the first click came before it (a persona run).
-            if drawn_as_box
-                && slots.is_none()
-                && let Some(number) = named
-            {
-                self.notify(strings::format(key!("toast-drawn-as-box"), &[&number]), false);
-            }
-            return Outcome::Done;
+            return self.arm_black_box(
+                &row,
+                part,
+                letter_param,
+                part_letter,
+                part_copy,
+                part_cps,
+                part_outputs,
+                part_layout,
+                copies,
+            );
         }
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
@@ -457,63 +338,10 @@ impl ShellModel {
                     number,
                 }
             }
-            (_, part) if terminal => {
-                let mut strip = or_return!(string_param(p, "strip")).map(str::to_owned);
-                // Without a strip in the project a terminal has nowhere to go: a direct `place.pick` refuses. Chosen
-                // in the picker (the window's path) it goes on a new strip, made as Terminal…'s new strip is (no
-                // empty strip chooser stands between Place and the page).
-                if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
-                    return Outcome::refused(key!("reason-no-strip"));
-                }
-                let mut cat = cat;
-                if cat.strips.is_empty() {
-                    let made = self.act_strip_new(&Map::new());
-                    if made != Outcome::Done {
-                        return made;
-                    }
-                    strip.clone_from(&self.tools.last_primary);
-                    // Its toast says what happens now, not the Terminal… way strip.new's names.
-                    self.notify(
-                        strings::text(key!("toast-strip-new-for-terminal")).to_owned(),
-                        false,
-                    );
-                    match self.catalogue() {
-                        Some(fresh) => cat = fresh,
-                        None => return Outcome::refused(key!("reason-no-catalogue")),
-                    }
-                }
-                let strip = strip.as_deref();
-                // Without a strip the picker asks for one: its strip chooser.
-                let Some(strip) = strip else {
-                    let folio = self.current_folio().unwrap_or_default().to_owned();
-                    let pending = PendingTerminal {
-                        symbol: row.key.clone(),
-                        params: p.clone(),
-                        part: part.map(|(copy, template, _)| (copy, template)),
-                    };
-                    self.palette = None;
-                    self.tools.picker = Some(Picker::strips(&folio, Arc::clone(&cat), pending));
-                    return Outcome::Done;
-                };
-                // An unknown strip name says which strips there are (G-PP finding 9): a new strip's
-                // `-X??` takes its counter with its first terminal, so the name the toast gave may have changed.
-                let Some(i) = Self::catalogue_strip(&cat, strip) else {
-                    let tags: Vec<&str> = cat.strips.iter().map(|st| st.tag.as_str()).collect();
-                    return failed(key!("error-unknown-strip"), &[strip, &tags.join(", ")]);
-                };
-                let st = &cat.strips[i];
-                let designation = match terminal_designation(p) {
-                    Ok(Some(d)) => d.to_owned(),
-                    Ok(None) => st.next_designation.clone(),
-                    Err(e) => return e,
-                };
-                PlaceTarget::Terminal {
-                    strip: st.id.to_string(),
-                    strip_tag: st.tag.clone(),
-                    designation,
-                    part: part.map(|(copy, _, _)| copy),
-                }
-            }
+            (_, part) if terminal => match self.terminal_target(cat, &row, part, p) {
+                Ok(target) => target,
+                Err(out) => return out,
+            },
             _ => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
                     return Outcome::refused(key!("reason-letter-needed"));
@@ -521,6 +349,19 @@ impl ShellModel {
                 PlaceTarget::NewDevice { letter }
             }
         };
+        self.arm_place_tool(shape, target, p, copies)
+    }
+
+    /// Arms the Place tool with `shape` for `target`: its autoconnect hints, the Join chooser where the symbol's FnDef
+    /// can be an auxiliary function, a Terminal… row's count and spacing; a part's function that a device of the part
+    /// has unplaced fills that device.
+    fn arm_place_tool(
+        &mut self,
+        shape: Arc<SymbolShape>,
+        target: PlaceTarget,
+        p: &Map<String, Value>,
+        copies: Vec<Value>,
+    ) -> Outcome {
         self.tools.picker = None;
         let autoconnect = self.page_autoconnects();
         // J offers the Join chooser while the symbol's FnDef can be an auxiliary function.
@@ -563,6 +404,228 @@ impl ShellModel {
             self.join_template_slot(part, template);
         }
         Outcome::Done
+    }
+
+    /// Arms the black box tool for an unplaced black-box function (a station placed first on a bus-topology page keeps
+    /// its supply pins for a schematic page): another representation of it, a valve terminal's positions on a fluid
+    /// page, a plug's pins down its two sides; placed by Place, it says that it is drawn as a box.
+    fn arm_unplaced_box(&mut self, row: &CatalogueSymbol, function: &str, id: Uuid) -> Outcome {
+        let project = or_return!(crate::shell::gated(&self.project));
+        let cps = project.session.function_cp_list(id);
+        let Some(copy) = row.copy.or_else(|| project.session.starter_symbol_copy(&row.key)) else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        let target = BoxTarget::Function {
+            function: function.to_owned(),
+            cps,
+        };
+        // A valve terminal made as a station, drawn on a fluid page: as its positions, one click.
+        let fluid = self
+            .page_rows()
+            .get(self.page_index())
+            .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
+        let terminal = project.session.terminal_of_main(id);
+        let slots = terminal
+            .filter(|_| fluid)
+            .and_then(|t| u16::try_from(project.session.terminal_positions(t).len()).ok());
+        // A multipin terminal's main function elsewhere is its plug: its pins down its two sides, one click.
+        let pins = !fluid && terminal.is_some_and(|t| project.session.terminal_plug(t).is_some());
+        // Drawn as its positions, its valves and its supply stand in it with their symbols.
+        let copies = match (slots, self.canvas()) {
+            (Some(_), Some(c)) => project
+                .session
+                .cell_copies(terminal, &[], Some(c.page().tables.page)),
+            _ => Vec::new(),
+        };
+        // Placed by Place, not by the Black box tool, it says at once that it is drawn as a box and how (a persona
+        // run pressed Place on a power supply and only the hint bar said that the tool had changed).
+        let drawn_as_box = !self.tools.black_box_pick
+            && self
+                .tools
+                .picker
+                .as_ref()
+                .is_none_or(|picker| picker.mode != PickerMode::BlackBox);
+        let tag = {
+            let q = project.session.query();
+            function
+                .parse()
+                .ok()
+                .and_then(|f| q.functions().get(f))
+                .and_then(|f| f.device)
+                .and_then(|d| project.session.device_tag(d.as_uuid()))
+        };
+        self.tools.picker = None;
+        self.activate_tool(Box::new(
+            BlackBoxTool::new(copy.to_string(), target)
+                .with_copies(copies)
+                .with_slots(slots)
+                .with_pins(pins)
+                .with_drawn_as_box(drawn_as_box),
+        ));
+        if drawn_as_box
+            && slots.is_none()
+            && !pins
+            && let Some(tag) = tag
+        {
+            self.notify(strings::format(key!("toast-drawn-as-box"), &[&tag]), false);
+        }
+        Outcome::Done
+    }
+
+    /// Arms the black box tool for a black-box row: a part's template function as the part's box, else a new device's
+    /// box; on a fluid page a valve terminal as its positions; a part drawn as a box says so.
+    #[allow(clippy::too_many_arguments)]
+    fn arm_black_box(
+        &mut self,
+        row: &CatalogueSymbol,
+        part: Option<(String, u16, String)>,
+        letter_param: Option<String>,
+        part_letter: Option<String>,
+        part_copy: Option<Uuid>,
+        part_cps: Vec<(u16, String)>,
+        part_outputs: Vec<u16>,
+        part_layout: Option<ew_api::part_box::PartBox>,
+        copies: Vec<Value>,
+    ) -> Outcome {
+        let Some(copy) = row.copy else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        // A part without a symbol of its own that the Place tool places, not the Black box tool, is drawn as a
+        // box: the hint says so (FT-1808).
+        let drawn_as_box = part.is_some()
+            && !self.tools.black_box_pick
+            && self
+                .tools
+                .picker
+                .as_ref()
+                .is_none_or(|picker| picker.mode != PickerMode::BlackBox);
+        let named = part.as_ref().map(|(_, _, number)| number.clone());
+        let target = match part {
+            Some((part, template, number)) => {
+                let Some(letter) = letter_param.or(part_letter).or(row.letter.clone()) else {
+                    return Outcome::refused(key!("reason-letter-needed"));
+                };
+                // A PLC card without a device box of its own is laid out as a card (doc 10 §3.6).
+                let card = part_copy
+                    .zip(self.project_session())
+                    .map(|(copy, s)| s.part_card_pins(copy, &part_cps));
+                BoxTarget::Part {
+                    part,
+                    template,
+                    letter,
+                    number,
+                    cps: part_cps,
+                    outputs: part_outputs,
+                    layout: part_layout,
+                    card,
+                }
+            }
+            None => {
+                let Some(letter) = letter_param.or(row.letter.clone()) else {
+                    return Outcome::refused(key!("reason-letter-needed"));
+                };
+                BoxTarget::NewDevice { letter }
+            }
+        };
+        self.tools.picker = None;
+        // On a bus-topology page the frame draws a topology box (a device with its sockets, doc 10 §2.7).
+        let rep_type = (row.rep_type == "topology").then(|| row.rep_type.clone());
+        // On a fluid page a valve terminal is drawn as its positions, one click.
+        let fluid = self
+            .page_rows()
+            .get(self.page_index())
+            .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
+        let slots = part_copy
+            .filter(|_| fluid)
+            .and_then(|p| self.project.as_ref()?.session.part_positions(p));
+        // Drawn as its positions, its supply ports stand in its left end.
+        let mut copies = copies;
+        if let (Some(_), Some(project), Some(c)) = (slots, &self.project, self.canvas()) {
+            let cells = project.session.cell_copies(None, &[], Some(c.page().tables.page));
+            crate::shell::fluid::extend_copies(&mut copies, cells);
+        }
+        self.activate_tool(Box::new(
+            BlackBoxTool::new(copy.to_string(), target)
+                .with_copies(copies)
+                .with_rep_type(rep_type)
+                .with_slots(slots)
+                .with_drawn_as_box(drawn_as_box),
+        ));
+        // The hint alone went unread: the first click came before it (a persona run).
+        if drawn_as_box
+            && slots.is_none()
+            && let Some(number) = named
+        {
+            self.notify(strings::format(key!("toast-drawn-as-box"), &[&number]), false);
+        }
+        Outcome::Done
+    }
+
+    /// The target of a terminal placement: its strip (a new one when the project has none and the picker chose it, or
+    /// the picker's strip chooser when none is named) and its designation; `Err` the outcome the placement ends with
+    /// instead (a refusal, or the strip chooser opened).
+    fn terminal_target(
+        &mut self,
+        cat: Arc<PlaceCatalogue>,
+        row: &CatalogueSymbol,
+        part: Option<(String, u16, String)>,
+        p: &Map<String, Value>,
+    ) -> Result<PlaceTarget, Outcome> {
+        let mut strip = string_param(p, "strip")?.map(str::to_owned);
+        // Without a strip in the project a terminal has nowhere to go: a direct `place.pick` refuses. Chosen
+        // in the picker (the window's path) it goes on a new strip, made as Terminal…'s new strip is (no
+        // empty strip chooser stands between Place and the page).
+        if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
+            return Err(Outcome::refused(key!("reason-no-strip")));
+        }
+        let mut cat = cat;
+        if cat.strips.is_empty() {
+            let made = self.act_strip_new(&Map::new());
+            if made != Outcome::Done {
+                return Err(made);
+            }
+            strip.clone_from(&self.tools.last_primary);
+            // Its toast says what happens now, not the Terminal… way strip.new's names.
+            self.notify(
+                strings::text(key!("toast-strip-new-for-terminal")).to_owned(),
+                false,
+            );
+            match self.catalogue() {
+                Some(fresh) => cat = fresh,
+                None => return Err(Outcome::refused(key!("reason-no-catalogue"))),
+            }
+        }
+        let strip = strip.as_deref();
+        // Without a strip the picker asks for one: its strip chooser.
+        let Some(strip) = strip else {
+            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let pending = PendingTerminal {
+                symbol: row.key.clone(),
+                params: p.clone(),
+                part: part.map(|(copy, template, _)| (copy, template)),
+            };
+            self.palette = None;
+            self.tools.picker = Some(Picker::strips(&folio, Arc::clone(&cat), pending));
+            return Err(Outcome::Done);
+        };
+        // An unknown strip name says which strips there are (G-PP finding 9): a new strip's
+        // `-X??` takes its counter with its first terminal, so the name the toast gave may have changed.
+        let Some(i) = Self::catalogue_strip(&cat, strip) else {
+            let tags: Vec<&str> = cat.strips.iter().map(|st| st.tag.as_str()).collect();
+            return Err(failed(key!("error-unknown-strip"), &[strip, &tags.join(", ")]));
+        };
+        let st = &cat.strips[i];
+        let designation = match terminal_designation(p) {
+            Ok(Some(d)) => d.to_owned(),
+            Ok(None) => st.next_designation.clone(),
+            Err(e) => return Err(e),
+        };
+        Ok(PlaceTarget::Terminal {
+            strip: st.id.to_string(),
+            strip_tag: st.tag.clone(),
+            designation,
+            part: part.map(|(copy, _, _)| copy),
+        })
     }
 
     /// Arms the change-symbol tool for the representation the picker was opened for and symbol row `i`.
