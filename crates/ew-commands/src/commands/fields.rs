@@ -394,6 +394,28 @@ fn drop_left_surface_views(tx: &mut TxBuilder<'_>, targets: &[AnyId]) -> Result<
 impl SetFields {
     /// The edit of [`SetFields`] on `tx`, with `fields.set`'s pointers (`fields.set_many` prefixes them).
     fn apply(&self, tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {
+        self.check_params(tx)?;
+        let (path, value) = (self.path.as_str(), &self.value);
+        for t in &self.targets {
+            self.set_target(tx, *t, path, value)?;
+        }
+        if self.kind == KindName::Device && (path == "assembly" || path.starts_with("assembly.")) {
+            for t in &self.targets {
+                refuse_foreign_covers(tx, t.cast())?;
+            }
+        }
+        if matches!(
+            self.kind,
+            KindName::Device | KindName::Function | KindName::Channel
+        ) {
+            crate::commands::plc_exchange::refuse_owned_edits(tx)?;
+        }
+        Ok(())
+    }
+
+    /// The parameters before any edit: at least one target and each once, a path the kind can set (a revision's
+    /// author and checker never), and no target that is a closed revision.
+    fn check_params(&self, tx: &TxBuilder<'_>) -> Result<(), CmdError> {
         if self.targets.is_empty() {
             return Err(CmdError::invalid_params(
                 Self::NAME,
@@ -440,7 +462,6 @@ impl SetFields {
             };
             return Err(CmdError::invalid_params(Self::NAME, "/path", message));
         }
-        let (path, value) = (self.path.as_str(), &self.value);
         if self.kind == KindName::Revision {
             for (i, t) in self.targets.iter().enumerate() {
                 crate::commands::revision::refuse_closed_revision(
@@ -451,190 +472,194 @@ impl SetFields {
                 )?;
             }
         }
-        for t in &self.targets {
-            match self.kind {
-                KindName::Device => set_one::<Device>(tx, *t, path, value)?,
-                KindName::Function => {
-                    refuse_not_ip(tx, *t, path)?;
-                    refuse_no_port(tx, *t, path)?;
-                    set_one::<Function>(tx, *t, path, value)?;
-                    if path == "bus_port" || path.starts_with("bus_port.") {
-                        check_port(tx, t.cast())?;
-                    }
-                    if path == "bus_port.address" {
-                        check_address_form(tx, t.cast())?;
-                    }
-                    if path == "kind.ip.direction" {
-                        refuse_unknown_direction(tx, *t)?;
-                    }
+        Ok(())
+    }
+
+    /// The field set on one target of the kind, with the checks of what it may become.
+    fn set_target(
+        &self,
+        tx: &mut TxBuilder<'_>,
+        t: AnyId,
+        path: &str,
+        value: &Value,
+    ) -> Result<(), CmdError> {
+        match self.kind {
+            KindName::Device => set_one::<Device>(tx, t, path, value)?,
+            KindName::Function => set_function(tx, t, path, value)?,
+            KindName::Page => {
+                let grid = tx.require::<Page>(t.cast())?.grid;
+                set_one::<Page>(tx, t, path, value)?;
+                if path == "scale" {
+                    refuse_bad_scale(tx, t)?;
                 }
-                KindName::Page => {
-                    let grid = tx.require::<Page>(t.cast())?.grid;
-                    set_one::<Page>(tx, *t, path, value)?;
-                    if path == "scale" {
-                        refuse_bad_scale(tx, *t)?;
-                    }
-                    if path == "grid" {
-                        refuse_grid_under_items(tx, *t, grid)?;
-                    }
-                }
-                KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
-                KindName::Connection if path == "line_kind" => set_line_kind(tx, t.cast(), value)?,
-                KindName::Connection if path == "tube_part" || path == "tube_length" => {
-                    set_tube_cell(tx, t.cast(), path, value)?;
-                }
-                KindName::Connection => {
-                    set_one::<Connection>(tx, *t, path, value)?;
-                    if path == "overrides.colour" {
-                        refuse_unknown_colour(tx, t.cast())?;
-                    }
-                }
-                KindName::Conductor => {
-                    set_one::<Conductor>(tx, *t, path, value)?;
-                    if path == "colour" {
-                        refuse_unknown_conductor_colour(tx, t.cast())?;
-                    }
-                }
-                KindName::PotentialDef => set_one::<PotentialDef>(tx, *t, path, value)?,
-                KindName::StructureNode => set_one::<StructureNode>(tx, *t, path, value)?,
-                KindName::Section => {
-                    set_one::<Section>(tx, *t, path, value)?;
-                    // A divider onto a folio a page or a page-oriented report block of the
-                    // section holds is refused, as `page.create` and `report_block.create` keep the divider's free.
-                    if path == "divider" || path == "folio_range" {
-                        refuse_held_divider(tx, t.cast())?;
-                    }
-                }
-                KindName::ReportBlock => {
-                    set_one::<ReportBlock>(tx, *t, path, value)?;
-                    // A block's form is one the project holds, as `report_block.create` asks.
-                    if path == "form" {
-                        let form = tx.require::<ReportBlock>(t.cast())?.form;
-                        tx.require::<LibCopy<FormDef>>(form)?;
-                    }
-                    // A first folio or a continuation whose generated pages a page of the section
-                    // already holds is refused, as `report_block.create` refuses it.
-                    if path == "first_folio" || path == "continuation" {
-                        let b = tx.require::<ReportBlock>(t.cast())?;
-                        if let (None, Some(first)) = (&b.embedded, b.first_folio) {
-                            let held = crate::commands::structure::held_folio(
-                                tx,
-                                b.section,
-                                first,
-                                &b.continuation,
-                                Some(b.id),
-                            );
-                            if let Some(held) = held {
-                                return tx.reject(text!("refusal-page-create-exists", held));
-                            }
-                        }
-                    }
-                }
-                KindName::ExternalRef => set_one::<ExternalRef>(tx, *t, path, value)?,
-                KindName::Revision => {
-                    if path == "page_notes" {
-                        crate::commands::revision::refuse_open_page_notes(Self::NAME, value)?;
-                    }
-                    if path == "label" {
-                        crate::commands::revision::refuse_label_edit_out_of_order(tx, t.cast(), value)?;
-                    }
-                    set_one::<Revision>(tx, *t, path, value)?;
-                    if path == "page_notes" {
-                        let notes = tx.require::<Revision>(t.cast())?.page_notes.clone();
-                        crate::commands::revision::check_page_notes(tx, Self::NAME, "/value", &notes)?;
-                    }
-                }
-                KindName::PageItem => {
-                    refuse_other_variant(tx, *t, path)?;
-                    set_one::<PageItem>(tx, *t, path, value)?;
-                    let mut item = (*tx.require::<PageItem>(t.cast())?).clone();
-                    if let Some(p) = crate::commands::items::item_problem(&item) {
-                        return Err(CmdError::invalid_params(Self::NAME, "/value", p));
-                    }
-                    // A symbol's name the symbol cannot print, refused as `item.place` refuses it.
-                    if let PageItemKind::FreeText(free) = &item.kind
-                        && let Some(p) = crate::commands::items::bind_problem(tx, free)
-                    {
-                        return Err(CmdError::invalid_params(Self::NAME, "/value", p));
-                    }
-                    let before = item.clone();
-                    crate::commands::items::clean_marker(tx, &mut item);
-                    if item != before {
-                        tx.put(item);
-                    }
-                }
-                KindName::StructureBox => {
-                    set_one::<StructureBox>(tx, *t, path, value)?;
-                    let b = tx.require::<StructureBox>(t.cast())?;
-                    crate::commands::structure_box::check_box(tx, Self::NAME, "", &b).map_err(
-                        |e| match e {
-                            CmdError::InvalidParams { text, .. } => {
-                                CmdError::invalid_params(Self::NAME, "/value", *text)
-                            }
-                            other => other,
-                        },
-                    )?;
-                }
-                KindName::Project => set_project_member(tx, *t, path, value)?,
-                KindName::Channel => {
-                    let value = if path == "address" {
-                        channel_address_value(tx, t.cast(), value)?
-                    } else {
-                        value.clone()
-                    };
-                    set_one::<Channel>(tx, *t, path, &value)?;
-                    refuse_unknown_channel_member(tx, t.cast())?;
-                }
-                KindName::PlcConfigProject => {
-                    set_one::<PlcConfigProject>(tx, *t, path, value)?;
-                    refuse_duplicate_config_name(tx, t.cast())?;
-                    refuse_bad_symbol_template(tx, t.cast())?;
-                    refuse_unknown_owner(tx, t.cast())?;
-                }
-                KindName::DeviceLink => {
-                    set_one::<DeviceLink>(tx, *t, path, value)?;
-                    let l = tx.require::<DeviceLink>(t.cast())?;
-                    if let DeviceLinkKind::Unknown(v) = &l.kind {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            "/value",
-                            text!("refusal-fields-link-kind-unknown", v.to_string()),
-                        ));
-                    }
-                }
-                KindName::LogicalNet => {
-                    set_one::<LogicalNet>(tx, *t, path, value)?;
-                    check_logical_net(tx, t.cast())?;
-                }
-                KindName::PhysicalNet => {
-                    set_one::<PhysicalNet>(tx, *t, path, value)?;
-                    check_physical_net(tx, t.cast())?;
-                }
-                // Junctions, bonds and the layout kinds have no settable fields: rejected above.
-                KindName::Junction
-                | KindName::Bond
-                | KindName::LayoutSpace
-                | KindName::Enclosure
-                | KindName::MountingSurface
-                | KindName::Carrier
-                | KindName::Placement => {
-                    return Err(CmdError::internal("fields.set: kind without settable fields"));
+                if path == "grid" {
+                    refuse_grid_under_items(tx, t, grid)?;
                 }
             }
-        }
-        if self.kind == KindName::Device && (path == "assembly" || path.starts_with("assembly.")) {
-            for t in &self.targets {
-                refuse_foreign_covers(tx, t.cast())?;
+            KindName::Representation => set_one::<Representation>(tx, t, path, value)?,
+            KindName::Connection if path == "line_kind" => set_line_kind(tx, t.cast(), value)?,
+            KindName::Connection if path == "tube_part" || path == "tube_length" => {
+                set_tube_cell(tx, t.cast(), path, value)?;
             }
-        }
-        if matches!(
-            self.kind,
-            KindName::Device | KindName::Function | KindName::Channel
-        ) {
-            crate::commands::plc_exchange::refuse_owned_edits(tx)?;
+            KindName::Connection => {
+                set_one::<Connection>(tx, t, path, value)?;
+                if path == "overrides.colour" {
+                    refuse_unknown_colour(tx, t.cast())?;
+                }
+            }
+            KindName::Conductor => {
+                set_one::<Conductor>(tx, t, path, value)?;
+                if path == "colour" {
+                    refuse_unknown_conductor_colour(tx, t.cast())?;
+                }
+            }
+            KindName::PotentialDef => set_one::<PotentialDef>(tx, t, path, value)?,
+            KindName::StructureNode => set_one::<StructureNode>(tx, t, path, value)?,
+            KindName::Section => {
+                set_one::<Section>(tx, t, path, value)?;
+                // A divider onto a folio a page or a page-oriented report block of the
+                // section holds is refused, as `page.create` and `report_block.create` keep the divider's free.
+                if path == "divider" || path == "folio_range" {
+                    refuse_held_divider(tx, t.cast())?;
+                }
+            }
+            KindName::ReportBlock => set_report_block(tx, t, path, value)?,
+            KindName::ExternalRef => set_one::<ExternalRef>(tx, t, path, value)?,
+            KindName::Revision => {
+                if path == "page_notes" {
+                    crate::commands::revision::refuse_open_page_notes(Self::NAME, value)?;
+                }
+                if path == "label" {
+                    crate::commands::revision::refuse_label_edit_out_of_order(tx, t.cast(), value)?;
+                }
+                set_one::<Revision>(tx, t, path, value)?;
+                if path == "page_notes" {
+                    let notes = tx.require::<Revision>(t.cast())?.page_notes.clone();
+                    crate::commands::revision::check_page_notes(tx, Self::NAME, "/value", &notes)?;
+                }
+            }
+            KindName::PageItem => set_page_item(tx, t, path, value)?,
+            KindName::StructureBox => {
+                set_one::<StructureBox>(tx, t, path, value)?;
+                let b = tx.require::<StructureBox>(t.cast())?;
+                crate::commands::structure_box::check_box(tx, Self::NAME, "", &b).map_err(|e| match e {
+                    CmdError::InvalidParams { text, .. } => {
+                        CmdError::invalid_params(Self::NAME, "/value", *text)
+                    }
+                    other => other,
+                })?;
+            }
+            KindName::Project => set_project_member(tx, t, path, value)?,
+            KindName::Channel => {
+                let value = if path == "address" {
+                    channel_address_value(tx, t.cast(), value)?
+                } else {
+                    value.clone()
+                };
+                set_one::<Channel>(tx, t, path, &value)?;
+                refuse_unknown_channel_member(tx, t.cast())?;
+            }
+            KindName::PlcConfigProject => {
+                set_one::<PlcConfigProject>(tx, t, path, value)?;
+                refuse_duplicate_config_name(tx, t.cast())?;
+                refuse_bad_symbol_template(tx, t.cast())?;
+                refuse_unknown_owner(tx, t.cast())?;
+            }
+            KindName::DeviceLink => {
+                set_one::<DeviceLink>(tx, t, path, value)?;
+                let l = tx.require::<DeviceLink>(t.cast())?;
+                if let DeviceLinkKind::Unknown(v) = &l.kind {
+                    return Err(CmdError::invalid_params(
+                        Self::NAME,
+                        "/value",
+                        text!("refusal-fields-link-kind-unknown", v.to_string()),
+                    ));
+                }
+            }
+            KindName::LogicalNet => {
+                set_one::<LogicalNet>(tx, t, path, value)?;
+                check_logical_net(tx, t.cast())?;
+            }
+            KindName::PhysicalNet => {
+                set_one::<PhysicalNet>(tx, t, path, value)?;
+                check_physical_net(tx, t.cast())?;
+            }
+            // Junctions, bonds and the layout kinds have no settable fields: rejected above.
+            KindName::Junction
+            | KindName::Bond
+            | KindName::LayoutSpace
+            | KindName::Enclosure
+            | KindName::MountingSurface
+            | KindName::Carrier
+            | KindName::Placement => {
+                return Err(CmdError::internal("fields.set: kind without settable fields"));
+            }
         }
         Ok(())
     }
+}
+
+/// The field set on a function: an interruption point's and a bus port's members only on such a function, a bus port
+/// checked against its part, an address in its form, and a known direction.
+fn set_function(tx: &mut TxBuilder<'_>, t: AnyId, path: &str, value: &Value) -> Result<(), CmdError> {
+    refuse_not_ip(tx, t, path)?;
+    refuse_no_port(tx, t, path)?;
+    set_one::<Function>(tx, t, path, value)?;
+    if path == "bus_port" || path.starts_with("bus_port.") {
+        check_port(tx, t.cast())?;
+    }
+    if path == "bus_port.address" {
+        check_address_form(tx, t.cast())?;
+    }
+    if path == "kind.ip.direction" {
+        refuse_unknown_direction(tx, t)?;
+    }
+    Ok(())
+}
+
+/// The field set on a report block, refused as `report_block.create` refuses it.
+fn set_report_block(tx: &mut TxBuilder<'_>, t: AnyId, path: &str, value: &Value) -> Result<(), CmdError> {
+    set_one::<ReportBlock>(tx, t, path, value)?;
+    // A block's form is one the project holds, as `report_block.create` asks.
+    if path == "form" {
+        let form = tx.require::<ReportBlock>(t.cast())?.form;
+        tx.require::<LibCopy<FormDef>>(form)?;
+    }
+    // A first folio or a continuation whose generated pages a page of the section
+    // already holds is refused, as `report_block.create` refuses it.
+    if path == "first_folio" || path == "continuation" {
+        let b = tx.require::<ReportBlock>(t.cast())?;
+        if let (None, Some(first)) = (&b.embedded, b.first_folio) {
+            let held =
+                crate::commands::structure::held_folio(tx, b.section, first, &b.continuation, Some(b.id));
+            if let Some(held) = held {
+                return tx.reject(text!("refusal-page-create-exists", held));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The field set on a page item, refused as `item.place` refuses what it would become, its marker cleaned.
+fn set_page_item(tx: &mut TxBuilder<'_>, t: AnyId, path: &str, value: &Value) -> Result<(), CmdError> {
+    refuse_other_variant(tx, t, path)?;
+    set_one::<PageItem>(tx, t, path, value)?;
+    let mut item = (*tx.require::<PageItem>(t.cast())?).clone();
+    if let Some(p) = crate::commands::items::item_problem(&item) {
+        return Err(CmdError::invalid_params(SetFields::NAME, "/value", p));
+    }
+    // A symbol's name the symbol cannot print, refused as `item.place` refuses it.
+    if let PageItemKind::FreeText(free) = &item.kind
+        && let Some(p) = crate::commands::items::bind_problem(tx, free)
+    {
+        return Err(CmdError::invalid_params(SetFields::NAME, "/value", p));
+    }
+    let before = item.clone();
+    crate::commands::items::clean_marker(tx, &mut item);
+    if item != before {
+        tx.put(item);
+    }
+    Ok(())
 }
 
 /// [`set_one`] for the project row, which is not a table entity: the one target must be the project's ID (else not
