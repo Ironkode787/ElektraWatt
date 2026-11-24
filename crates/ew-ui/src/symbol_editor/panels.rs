@@ -43,23 +43,9 @@ pub(super) fn panel_header(ui: &mut Ui, title: &str) {
 pub(super) fn title_lines(ui: &mut Ui, title: &str, line: &str) {
     let t = theme::current(ui.ctx());
     ui.add_space(t.space_1);
-    ui.add(
-        egui::Label::new(
-            egui::RichText::new(title)
-                .font(theme::font(&t.type_title))
-                .color(t.text_primary.color32()),
-        )
-        .wrap(),
-    );
+    ui.add(egui::Label::new(crate::components::title(&t, title)).wrap());
     if !line.is_empty() {
-        ui.add(
-            egui::Label::new(
-                egui::RichText::new(line)
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
     }
     ui.add_space(t.space_3);
 }

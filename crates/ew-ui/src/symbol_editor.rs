@@ -653,11 +653,10 @@ impl EditorView {
         let t = theme::current(ui.ctx());
         let draft = &editor.draft;
         let symbol_name = ew_viewmodel::shell::symbol_editor::display_name(draft);
-        ui.label(
-            egui::RichText::new(label(key!("symbol-variants")))
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::small_secondary(
+            &t,
+            label(key!("symbol-variants")),
+        ));
         let pins: Vec<String> = draft
             .symbol
             .cps
@@ -805,14 +804,10 @@ impl EditorView {
                             "link" => field(ui, key!("symbol-name"), &mut self.link_name, 5.0 * t.size_row),
                             _ => {}
                         }
-                        ui.label(
-                            egui::RichText::new(label(strings::Key::run_time(&format!(
-                                "symbol-tip-{}",
-                                editor.tool
-                            ))))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                        );
+                        ui.label(crate::components::small_secondary(
+                            &t,
+                            label(strings::Key::run_time(&format!("symbol-tip-{}", editor.tool))),
+                        ));
                     });
                 });
             });
@@ -876,14 +871,13 @@ impl EditorView {
                 if group.rows.is_empty() {
                     ui.horizontal(|ui| {
                         ui.add_space(t.size_tree_indent + t.space_2);
-                        ui.label(
-                            egui::RichText::new(label(strings::Key::run_time(&format!(
+                        ui.label(crate::components::small_tertiary(
+                            &t,
+                            label(strings::Key::run_time(&format!(
                                 "symbol-outline-empty-{}",
                                 group.key
-                            ))))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_tertiary.color32()),
-                        );
+                            ))),
+                        ));
                     });
                 }
             }
@@ -1088,16 +1082,11 @@ impl EditorView {
         events: &mut Vec<Event>,
     ) {
         let t = theme::current(ui.ctx());
-        ui.label(
-            egui::RichText::new(label(key!("symbol-start-title")))
-                .font(theme::font(&t.type_title))
-                .color(t.text_primary.color32()),
-        );
-        ui.label(
-            egui::RichText::new(label(key!("symbol-start-line")))
-                .font(theme::font(&t.type_body))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::title(&t, label(key!("symbol-start-title"))));
+        ui.label(crate::components::body_secondary(
+            &t,
+            label(key!("symbol-start-line")),
+        ));
         ui.add_space(t.space_3);
         if way(
             ui,
@@ -1182,17 +1171,12 @@ impl EditorView {
             if components::icon_button(ui, IconId::arrow_left, label(key!("symbol-start-back"))).clicked() {
                 self.start_page = StartPage::Ways;
             }
-            ui.label(
-                egui::RichText::new(label(key!("symbol-start-box")))
-                    .font(theme::font(&t.type_title))
-                    .color(t.text_primary.color32()),
-            );
+            ui.label(crate::components::title(&t, label(key!("symbol-start-box"))));
         });
-        ui.label(
-            egui::RichText::new(label(key!("symbol-start-box-line")))
-                .font(theme::font(&t.type_body))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::body_secondary(
+            &t,
+            label(key!("symbol-start-box-line")),
+        ));
         if !shell.has_project() {
             ui.label(
                 egui::RichText::new(label(key!("symbol-start-box-no-project")))
@@ -1242,14 +1226,7 @@ impl EditorView {
         } else {
             key!("symbol-start-box-elsewhere")
         };
-        ui.add(
-            egui::Label::new(
-                egui::RichText::new(label(note))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, label(note))).wrap());
         ui.spacing_mut().scroll.floating = false;
         egui::ScrollArea::vertical()
             .id_salt("symbol-start-parts")
@@ -1278,17 +1255,12 @@ impl EditorView {
             if components::icon_button(ui, IconId::arrow_left, label(key!("symbol-start-back"))).clicked() {
                 self.start_page = StartPage::Ways;
             }
-            ui.label(
-                egui::RichText::new(label(key!("symbol-start-copy")))
-                    .font(theme::font(&t.type_title))
-                    .color(t.text_primary.color32()),
-            );
+            ui.label(crate::components::title(&t, label(key!("symbol-start-copy"))));
         });
-        ui.label(
-            egui::RichText::new(label(key!("symbol-start-copy-line")))
-                .font(theme::font(&t.type_body))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::body_secondary(
+            &t,
+            label(key!("symbol-start-copy-line")),
+        ));
         let filter =
             components::filter_field(ui, &mut self.source_filter, label(key!("symbol-source-filter")));
         if !filter.has_focus() && self.source_filter.is_empty() && ui.memory(|m| m.focused().is_none()) {
@@ -1420,11 +1392,7 @@ fn grid_controls(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     );
     let caption = label(key!("symbol-snap-step"));
     let t = theme::current(ui.ctx());
-    ui.label(
-        egui::RichText::new(caption)
-            .font(theme::font(&t.type_small))
-            .color(t.text_secondary.color32()),
-    );
+    ui.label(crate::components::small_secondary(&t, caption));
     let mut step = editor.grid.min(GRID_STEPS.len() - 1);
     let combo = crate::components::choice(
         ui,

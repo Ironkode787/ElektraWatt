@@ -216,11 +216,10 @@ impl EditorView {
                     ui.horizontal(|ui| {
                         ui.add_space(t.size_tree_indent + t.space_2);
                         ui.add(
-                            egui::Label::new(
-                                egui::RichText::new(label(key!("box-pins-empty")))
-                                    .font(theme::font(&t.type_small))
-                                    .color(t.text_tertiary.color32()),
-                            )
+                            egui::Label::new(crate::components::small_tertiary(
+                                &t,
+                                label(key!("box-pins-empty")),
+                            ))
                             .wrap(),
                         );
                     });

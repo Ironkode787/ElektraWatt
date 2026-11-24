@@ -891,9 +891,10 @@ impl App {
                             ui,
                             &tokens,
                             (crate::icons::IconId::file_stack, tokens.accent),
-                            egui::RichText::new(strings::format(key!("template-band"), &[&name]))
-                                .font(crate::theme::font(&tokens.type_body_strong))
-                                .color(tokens.text_primary.color32()),
+                            crate::components::body_strong(
+                                &tokens,
+                                strings::format(key!("template-band"), &[&name]),
+                            ),
                             vec![(
                                 crate::components::Kind::Secondary,
                                 strings::text(key!("template-band-close")),

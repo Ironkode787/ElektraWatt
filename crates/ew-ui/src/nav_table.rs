@@ -552,9 +552,7 @@ pub(crate) fn chooser(
     let shown = shown.as_slice();
     let word = nav.kind.word();
     let t = crate::theme::current(ui.ctx());
-    let label = RichText::new(strings::text(key!("table-columns")))
-        .font(theme::font(&t.type_body))
-        .color(t.text_primary.color32());
+    let label = crate::components::body(&t, strings::text(key!("table-columns")));
     let chevron = crate::components::icon_atom(
         IconId::chevron_down,
         t.icon_sm,

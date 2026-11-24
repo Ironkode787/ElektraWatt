@@ -205,14 +205,8 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
     let t = components::tokens(ui);
     for row in &c.conflicts {
         let text = ew_viewmodel::properties::PasteChoice::conflict_text(row);
-        let response = ui.add(
-            egui::Label::new(
-                RichText::new(&text)
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_primary.color32()),
-            )
-            .wrap(),
-        );
+        let response =
+            ui.add(egui::Label::new(crate::components::styled(&text, &t.type_small, t.text_primary)).wrap());
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
     }
     ui.add_space(t.space_2);
@@ -244,11 +238,7 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
         }
     });
     for reason in [c.adapt, c.update].into_iter().flatten() {
-        ui.label(
-            RichText::new(strings::text(reason))
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::small_secondary(&t, strings::text(reason)));
     }
 }
 
@@ -291,9 +281,7 @@ fn arrange_block(ui: &mut Ui, a: &ew_viewmodel::properties::ArrangeCard, events:
             let all = rows.iter().all(|r| r.ticked);
             let some = rows.iter().any(|r| r.ticked);
             let mut on = all;
-            let label = RichText::new(strings::text(key))
-                .font(theme::font(&t.type_small))
-                .color(t.text_tertiary.color32());
+            let label = crate::components::small_tertiary(&t, strings::text(key));
             if ui
                 .add(egui::Checkbox::new(&mut on, label).indeterminate(some && !all))
                 .changed()
@@ -345,11 +333,10 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
     let t = components::tokens(ui);
     if !m.value_sets.is_empty() {
         ui.horizontal(|ui| {
-            let label = ui.label(
-                RichText::new(strings::text(key!("macro-value-set")))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            );
+            let label = ui.label(crate::components::small_secondary(
+                &t,
+                strings::text(key!("macro-value-set")),
+            ));
             let defaults = strings::text(key!("macro-value-set-defaults"));
             let shown = m.value_set.as_deref().unwrap_or(defaults);
             let combo = crate::components::choice(
@@ -386,14 +373,8 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
         true,
     ) {
         for c in &m.conflicts {
-            let response = ui.add(
-                egui::Label::new(
-                    RichText::new(c)
-                        .font(theme::font(&t.type_small))
-                        .color(t.text_primary.color32()),
-                )
-                .wrap(),
-            );
+            let response =
+                ui.add(egui::Label::new(crate::components::styled(c, &t.type_small, t.text_primary)).wrap());
             let text = c.clone();
             response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
         }
@@ -412,11 +393,10 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
         return;
     }
     let t = components::tokens(ui);
-    ui.label(
-        RichText::new(strings::text(key!("macro-values")))
-            .font(theme::font(&t.type_small))
-            .color(t.text_secondary.color32()),
-    );
+    ui.label(crate::components::small_secondary(
+        &t,
+        strings::text(key!("macro-values")),
+    ));
     let font = theme::font(&t.type_small);
     let labels: Vec<String> = m
         .fields
@@ -498,14 +478,7 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
                 ui.add_space(label_width + t.space_3);
                 ui.vertical(|ui| {
                     ui.set_max_width(field_width);
-                    ui.add(
-                        egui::Label::new(
-                            RichText::new(error)
-                                .font(theme::font(&t.type_small))
-                                .color(t.error.color32()),
-                        )
-                        .wrap(),
-                    );
+                    ui.add(egui::Label::new(crate::components::styled(error, &t.type_small, t.error)).wrap());
                 });
             });
         }
@@ -671,11 +644,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             } else {
                 strings::format(key!("preview-title"), &[command])
             };
-            let response = ui.label(
-                RichText::new(&title)
-                    .font(theme::font(&t.type_body_strong))
-                    .color(t.text_primary.color32()),
-            );
+            let response = ui.label(crate::components::body_strong(&t, &title));
             let mut header = if choice {
                 title.clone()
             } else {
@@ -692,14 +661,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 n.set_value(header);
             });
             if !choice {
-                ui.label(
-                    RichText::new(strings::format(
-                        key!("card-as-of"),
-                        &[&card.preview.base_rev.to_string()],
-                    ))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_tertiary.color32()),
-                );
+                ui.label(crate::components::small_tertiary(
+                    &t,
+                    strings::format(key!("card-as-of"), &[&card.preview.base_rev.to_string()]),
+                ));
             }
             match &status {
                 CardStatus::Stale => {
@@ -763,11 +728,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             inset(ui, &mut |ui| components::live_line(ui, &text, !choice));
             if let Some(rule) = lead.and_then(|l| l.rule) {
                 inset(ui, &mut |ui| {
-                    ui.label(
-                        RichText::new(strings::format(key!("card-failed-rule"), &[&rule]))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
+                    ui.label(crate::components::small_secondary(
+                        &t,
+                        strings::format(key!("card-failed-rule"), &[&rule]),
+                    ));
                 });
             }
             if let CardOrigin::Macro(m) = &card.origin {
@@ -819,11 +783,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 if let CardOrigin::Route { rows, .. } = &card.origin {
                     for row in rows {
                         inset(ui, &mut |ui| {
-                            ui.label(
-                                RichText::new(row)
-                                    .font(theme::font(&t.type_small))
-                                    .color(t.text_secondary.color32()),
-                            );
+                            ui.label(crate::components::small_secondary(&t, row));
                         });
                     }
                     ui.add_space(t.space_2);

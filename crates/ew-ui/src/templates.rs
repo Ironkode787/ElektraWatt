@@ -33,14 +33,7 @@ fn under(ui: &mut Ui, t: &theme::Tokens, indent: f32, text: &str) {
 
 /// A line in `type.small`, secondary, wrapped.
 fn small(ui: &mut Ui, t: &theme::Tokens, text: &str) {
-    ui.add(
-        egui::Label::new(
-            RichText::new(text)
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        )
-        .wrap(),
-    );
+    ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
 }
 
 /// A label in the dialog's label column (`size.dialog.label`), then `space.3`, then `field` in the rest of the row.
@@ -134,11 +127,10 @@ pub(crate) fn new_project(
     };
     under(ui, &t, t.size_dialog_label + t.space_3, &made_in);
     ui.add_space(t.space_2);
-    ui.label(
-        RichText::new(strings::text(key!("new-project-start-from")))
-            .font(theme::font(&t.type_body_strong))
-            .color(t.text_primary.color32()),
-    );
+    ui.label(crate::components::body_strong(
+        &t,
+        strings::text(key!("new-project-start-from")),
+    ));
     // Every start on show with what it brings; a long list scrolls inside the dialog.
     egui::ScrollArea::vertical()
         .max_height(ui.ctx().content_rect().height() * 0.45)
@@ -251,22 +243,17 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
                             if d.renaming == Some(i) {
                                 rename_field(ui, &t, i, &row.name, events);
                             } else {
-                                ui.label(
-                                    RichText::new(&row.name)
-                                        .font(theme::font(&t.type_body_strong))
-                                        .color(t.text_primary.color32()),
-                                );
+                                ui.label(crate::components::body_strong(&t, &row.name));
                             }
                             if row.star {
                                 small(ui, &t, &format!("★ {}", strings::text(key!("templates-for-new"))));
                             }
                         });
                         small(ui, &t, &row.what);
-                        ui.label(
-                            RichText::new(strings::format(key!("templates-folder"), &[&row.dir]))
-                                .font(theme::font(&t.type_small))
-                                .color(t.text_tertiary.color32()),
-                        );
+                        ui.label(crate::components::small_tertiary(
+                            &t,
+                            strings::format(key!("templates-folder"), &[&row.dir]),
+                        ));
                         // The selected template's actions stand in its own row, so they read as its (not as
                         // buttons under the list that do not say which template they act on).
                         if selected && !row_actions.is_empty() {

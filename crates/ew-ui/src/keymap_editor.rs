@@ -121,11 +121,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     } else {
         strings::format(key!("keymap-preset"), &[preset])
     };
-    ui.label(
-        RichText::new(preset_line)
-            .font(theme::font(&t.type_small))
-            .color(t.text_secondary.color32()),
-    );
+    ui.label(crate::components::small_secondary(&t, preset_line));
     let mut text = state.search.clone();
     let search = components::filter_field(ui, &mut text, strings::text(key!("keymap-search-hint")));
     if just_opened {
@@ -186,11 +182,10 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     let (label_w, keys_w, where_w) = columns(room, keys_need, where_need);
     let shown = visible_rows(ui.ctx().content_rect().height(), row_height, rows.len());
     if rows.is_empty() {
-        ui.label(
-            RichText::new(strings::text(key!("keymap-none")))
-                .font(theme::font(&t.type_body))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::body_secondary(
+            &t,
+            strings::text(key!("keymap-none")),
+        ));
     }
     let gap = std::mem::replace(&mut ui.spacing_mut().item_spacing.y, 0.0);
     egui::ScrollArea::vertical()
@@ -205,9 +200,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                         ui.spacing_mut().item_spacing.x = t.space_3;
                         // A cut action label shows its whole text on hover (egui's truncated label does).
                         cell(ui, label_w, row_height, |ui| {
-                            let mut text = RichText::new(&row.label)
-                                .font(theme::font(&t.type_body))
-                                .color(t.text_primary.color32());
+                            let mut text = crate::components::body(&t, &row.label);
                             if row.custom {
                                 text = text.strong();
                             }
@@ -215,11 +208,11 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                         });
                         cell(ui, keys_w, row_height, |ui| {
                             if state.recording == Some(row.action) {
-                                ui.label(
-                                    RichText::new(strings::text(key!("keymap-recording")))
-                                        .font(theme::font(&t.type_small))
-                                        .color(t.accent.color32()),
-                                );
+                                ui.label(crate::components::styled(
+                                    strings::text(key!("keymap-recording")),
+                                    &t.type_small,
+                                    t.accent,
+                                ));
                             } else {
                                 ui.spacing_mut().item_spacing.x = t.space_1;
                                 for c in &row.chords {
@@ -279,32 +272,23 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     ui.spacing_mut().item_spacing.y = gap;
     // The Menu key's note only while a shortcut is being recorded, under the list that shows the recording.
     if state.recording.is_some() {
-        ui.label(
-            RichText::new(strings::text(key!("keymap-menu-key")))
-                .font(theme::font(&t.type_small))
-                .color(t.text_tertiary.color32()),
-        );
+        ui.label(crate::components::small_tertiary(
+            &t,
+            strings::text(key!("keymap-menu-key")),
+        ));
     }
     // What the user's own bindings shadow (D8's info), in full: the row's cell has room for a tag only.
     for note in rows.iter().filter(|r| r.custom).flat_map(|r| &r.notes) {
-        ui.label(
-            RichText::new(note)
-                .font(theme::font(&t.type_small))
-                .color(t.info.color32()),
-        );
+        ui.label(crate::components::styled(note, &t.type_small, t.info));
     }
     // The user keymap's bindings for actions this build does not know (D6).
     if let Some(user) = shell.user_keymap() {
         for b in user.unused() {
             let keys: Vec<String> = b.chords().map(ew_viewmodel::keymap::Chord::display).collect();
-            ui.label(
-                RichText::new(strings::format(
-                    key!("keymap-unused"),
-                    &[&b.action, &keys.join(", ")],
-                ))
-                .font(theme::font(&t.type_small))
-                .color(t.text_tertiary.color32()),
-            );
+            ui.label(crate::components::small_tertiary(
+                &t,
+                strings::format(key!("keymap-unused"), &[&b.action, &keys.join(", ")]),
+            ));
         }
     }
 }

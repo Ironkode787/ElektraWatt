@@ -70,46 +70,40 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         .order(egui::Order::Foreground)
         .fixed_pos(egui::pos2(window.center().x - width / 2.0, window.top() + top))
         .show(ctx, |ui| {
-            egui::Frame::new()
-                .fill(t.surface_raised.color32())
-                .stroke(theme::stroke(t.border_raised_width, t.border_default))
-                .corner_radius(theme::radius(t.radius_lg))
-                .shadow(theme::shadow(&t.elevation_2))
-                .inner_margin(egui::Margin::same(theme::margin_px(t.space_5)))
-                .show(ui, |ui| {
-                    let inner = Vec2::new(width - 2.0 * t.space_5, height - 2.0 * t.space_5);
-                    ui.set_min_size(inner);
-                    ui.set_max_size(inner);
-                    ui.spacing_mut().item_spacing.y = t.space_3;
-                    header(ui, shell, picker, events);
-                    // Not while a dialog over it has the keys (the New terminal strip form).
-                    let focus = shell.dialog().is_none() && (just_opened || pane == Pane::Filter);
-                    filter(ui, picker, focus, pane, events);
-                    let rest = ui.available_size();
-                    ui.horizontal_top(|ui| {
-                        ui.spacing_mut().item_spacing.x = t.space_4;
-                        // The tree and the detail take a share of the width within the left panel's bounds; the
-                        // table takes the rest.
-                        let tree_w = if has_tree {
-                            (rest.x * 0.16).clamp(t.size_panel_left * 0.7, t.size_panel_left)
-                        } else {
-                            0.0
-                        };
-                        let detail_w = (rest.x * 0.2).clamp(t.size_panel_left * 0.8, t.size_panel_left_max);
-                        let table_w = rest.x - tree_w - detail_w - 2.0 * t.space_4;
-                        if has_tree {
-                            column(ui, Vec2::new(tree_w, rest.y), |ui| {
-                                tree(ui, &t, picker, pane, events);
-                            });
-                        }
-                        column(ui, Vec2::new(table_w, rest.y), |ui| {
-                            table(ui, &t, picker, pane, events);
+            crate::components::raised_frame(&t, t.space_5).show(ui, |ui| {
+                let inner = Vec2::new(width - 2.0 * t.space_5, height - 2.0 * t.space_5);
+                ui.set_min_size(inner);
+                ui.set_max_size(inner);
+                ui.spacing_mut().item_spacing.y = t.space_3;
+                header(ui, shell, picker, events);
+                // Not while a dialog over it has the keys (the New terminal strip form).
+                let focus = shell.dialog().is_none() && (just_opened || pane == Pane::Filter);
+                filter(ui, picker, focus, pane, events);
+                let rest = ui.available_size();
+                ui.horizontal_top(|ui| {
+                    ui.spacing_mut().item_spacing.x = t.space_4;
+                    // The tree and the detail take a share of the width within the left panel's bounds; the
+                    // table takes the rest.
+                    let tree_w = if has_tree {
+                        (rest.x * 0.16).clamp(t.size_panel_left * 0.7, t.size_panel_left)
+                    } else {
+                        0.0
+                    };
+                    let detail_w = (rest.x * 0.2).clamp(t.size_panel_left * 0.8, t.size_panel_left_max);
+                    let table_w = rest.x - tree_w - detail_w - 2.0 * t.space_4;
+                    if has_tree {
+                        column(ui, Vec2::new(tree_w, rest.y), |ui| {
+                            tree(ui, &t, picker, pane, events);
                         });
-                        column(ui, Vec2::new(detail_w, rest.y), |ui| {
-                            detail(ui, &t, shell, picker, events);
-                        });
+                    }
+                    column(ui, Vec2::new(table_w, rest.y), |ui| {
+                        table(ui, &t, picker, pane, events);
+                    });
+                    column(ui, Vec2::new(detail_w, rest.y), |ui| {
+                        detail(ui, &t, shell, picker, events);
                     });
                 });
+            });
         });
 }
 
@@ -217,14 +211,7 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
         _ => None,
     };
     if let Some(note) = note {
-        ui.add(
-            egui::Label::new(
-                RichText::new(strings::text(note))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(note))).wrap());
     }
     // FT-1766: the device browser lists parts; one the person's hardware needs is made from here.
     if picker.mode == PickerMode::Parts && picker.part.is_none() {
@@ -296,11 +283,7 @@ fn tree(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<E
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
                             ui.add_space(ui.spacing().button_padding.x);
-                            ui.label(
-                                RichText::new(words)
-                                    .font(theme::font(&t.type_label))
-                                    .color(t.text_secondary.color32()),
-                            );
+                            ui.label(crate::components::styled(words, &t.type_label, t.text_secondary));
                         },
                     );
                 }
@@ -321,10 +304,7 @@ fn tree(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<E
                     ));
                 }
                 atoms.push_right(
-                    RichText::new(&words)
-                        .font(theme::font(&t.type_small))
-                        .color(t.text_primary.color32())
-                        .atom_shrink(true),
+                    crate::components::styled(&words, &t.type_small, t.text_primary).atom_shrink(true),
                 );
                 atoms.push_right(egui::Atom::grow());
                 atoms.push_right(
@@ -906,14 +886,7 @@ fn edit_buttons(
     });
     // The reason stands under the buttons too, where the eye is after the click.
     if let Some(why) = refusal {
-        ui.add(
-            egui::Label::new(
-                RichText::new(why)
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, why)).wrap());
     }
 }
 

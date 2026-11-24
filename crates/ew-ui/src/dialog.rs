@@ -10,7 +10,7 @@
 //! action left-aligned and apart. No close cross: Cancel is the way out; Escape cancels through `ui.dismiss`
 //! (`App::route_keys`); the first focus is the Primary when the dialog has no field.
 
-use egui::{Align, Id, Layout, RichText, Ui};
+use egui::{Align, Id, Layout, Ui};
 use ew_viewmodel::dialogs::{DialogAnswer, DialogButton, DialogSpec};
 
 use crate::components::{self, Kind, Tip};
@@ -76,12 +76,7 @@ pub(crate) fn show_sized(
             .max(t.size_dialog_small)
             .min(ctx.content_rect().width()),
     };
-    let frame = egui::Frame::new()
-        .fill(t.surface_raised.color32())
-        .stroke(theme::stroke(t.border_raised_width, t.border_default))
-        .corner_radius(theme::radius(t.radius_lg))
-        .shadow(theme::shadow(&t.elevation_2))
-        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_5)));
+    let frame = crate::components::raised_frame(&t, t.space_5);
     let mut clicked = None;
     egui::Modal::new(Id::unique("ew-dialog"))
         .backdrop_color(t.backdrop.color32())
@@ -89,22 +84,11 @@ pub(crate) fn show_sized(
         .show(ctx, |ui| {
             ui.set_width(width - 2.0 * t.space_5);
             ui.spacing_mut().item_spacing.y = t.space_3;
-            let title = ui.label(
-                RichText::new(&spec.title)
-                    .font(theme::font(&t.type_title))
-                    .color(t.text_primary.color32()),
-            );
+            let title = ui.label(crate::components::title(&t, &spec.title));
             let name = spec.title.clone();
             title.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
             for paragraph in &spec.body {
-                ui.add(
-                    egui::Label::new(
-                        RichText::new(paragraph)
-                            .font(theme::font(&t.type_body))
-                            .color(t.text_primary.color32()),
-                    )
-                    .wrap(),
-                );
+                ui.add(egui::Label::new(crate::components::body(&t, paragraph)).wrap());
             }
             content(ui);
             if let Some(text) = refusal {

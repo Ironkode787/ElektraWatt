@@ -201,80 +201,74 @@ pub fn show(
         )),
     };
     area.show(ctx, |ui| {
-        egui::Frame::new()
-            .fill(t.surface_raised.color32())
-            .stroke(theme::stroke(t.border_raised_width, t.border_default))
-            .corner_radius(theme::radius(t.radius_lg))
-            .shadow(theme::shadow(&t.elevation_2))
-            .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
-            .show(ui, |ui| {
-                // The palette grows with the window (doc 16a §2), never narrower than at the floor.
-                let width = crate::dialog::grown(t.size_palette, PALETTE_SHARE, ctx.content_rect().width());
-                ui.set_width(width - 2.0 * t.space_2);
-                ui.spacing_mut().item_spacing.y = t.space_1;
-                // The 36-px search field with its icon.
-                let field_h = t.size_control + t.space_3;
+        crate::components::raised_frame(&t, t.space_2).show(ui, |ui| {
+            // The palette grows with the window (doc 16a §2), never narrower than at the floor.
+            let width = crate::dialog::grown(t.size_palette, PALETTE_SHARE, ctx.content_rect().width());
+            ui.set_width(width - 2.0 * t.space_2);
+            ui.spacing_mut().item_spacing.y = t.space_1;
+            // The 36-px search field with its icon.
+            let field_h = t.size_control + t.space_3;
+            ui.horizontal(|ui| {
+                ui.set_min_height(field_h);
+                ui.add_space(t.space_2);
+                let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
+                icons::paint(
+                    ui.painter(),
+                    IconId::search,
+                    r,
+                    t.text_secondary.color32(),
+                    t.icon_stroke,
+                );
+                let mut query = state.query.clone();
+                // The close button at the row's right end (FT-1635).
+                let field_w = ui.available_width() - t.size_control_inline - ui.spacing().item_spacing.x;
+                let edit = ui.add(
+                    TextEdit::singleline(&mut query)
+                        .hint_text(strings::text(key!("palette-hint")))
+                        .frame(egui::Frame::NONE)
+                        .font(theme::font(&t.type_body))
+                        .desired_width(field_w),
+                );
+                crate::components::close_button(ui, shell, events);
+                if just_opened && form.is_none() {
+                    edit.request_focus();
+                }
+                if query != state.query {
+                    events.push(Event::PaletteQuery(query));
+                }
+            });
+            let (line, _) =
+                ui.allocate_exact_size(Vec2::new(ui.available_width(), t.border_width), Sense::hover());
+            ui.painter()
+                .rect_filled(line, theme::SQUARE, t.border_subtle.color32());
+            if let Some(form) = form {
+                form_rows(ui, &t, form, form_opened, events);
+            } else if entries.is_empty() {
+                ui.add_space(t.space_3);
                 ui.horizontal(|ui| {
-                    ui.set_min_height(field_h);
-                    ui.add_space(t.space_2);
-                    let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
-                    icons::paint(
-                        ui.painter(),
-                        IconId::search,
-                        r,
-                        t.text_secondary.color32(),
-                        t.icon_stroke,
+                    ui.add_space(t.space_3);
+                    ui.label(
+                        egui::RichText::new(shell.palette_empty_text()).color(t.text_secondary.color32()),
                     );
-                    let mut query = state.query.clone();
-                    // The close button at the row's right end (FT-1635).
-                    let field_w = ui.available_width() - t.size_control_inline - ui.spacing().item_spacing.x;
-                    let edit = ui.add(
-                        TextEdit::singleline(&mut query)
-                            .hint_text(strings::text(key!("palette-hint")))
-                            .frame(egui::Frame::NONE)
-                            .font(theme::font(&t.type_body))
-                            .desired_width(field_w),
-                    );
-                    crate::components::close_button(ui, shell, events);
-                    if just_opened && form.is_none() {
-                        edit.request_focus();
-                    }
-                    if query != state.query {
-                        events.push(Event::PaletteQuery(query));
+                });
+                ui.add_space(t.space_3);
+            }
+            // The list asks for its own rows' height (up to ten): an egui area lays out in the size it had the
+            // frame before, so without it a list that grows (a reopened palette, a shorter query) stayed as short
+            // as the previous one.
+            let rows = entries.len().min(10) as f32;
+            ScrollArea::vertical()
+                .max_height(t.size_palette_row * 10.0)
+                .min_scrolled_height(t.size_palette_row * rows)
+                .show(ui, |ui| {
+                    ui.spacing_mut().item_spacing.y = 0.0;
+                    for (i, entry) in entries.iter().enumerate() {
+                        if row(ui, &t, entry, rest, i == state.selected) {
+                            events.push(Event::PaletteClick(i));
+                        }
                     }
                 });
-                let (line, _) =
-                    ui.allocate_exact_size(Vec2::new(ui.available_width(), t.border_width), Sense::hover());
-                ui.painter()
-                    .rect_filled(line, theme::SQUARE, t.border_subtle.color32());
-                if let Some(form) = form {
-                    form_rows(ui, &t, form, form_opened, events);
-                } else if entries.is_empty() {
-                    ui.add_space(t.space_3);
-                    ui.horizontal(|ui| {
-                        ui.add_space(t.space_3);
-                        ui.label(
-                            egui::RichText::new(shell.palette_empty_text()).color(t.text_secondary.color32()),
-                        );
-                    });
-                    ui.add_space(t.space_3);
-                }
-                // The list asks for its own rows' height (up to ten): an egui area lays out in the size it had the
-                // frame before, so without it a list that grows (a reopened palette, a shorter query) stayed as short
-                // as the previous one.
-                let rows = entries.len().min(10) as f32;
-                ScrollArea::vertical()
-                    .max_height(t.size_palette_row * 10.0)
-                    .min_scrolled_height(t.size_palette_row * rows)
-                    .show(ui, |ui| {
-                        ui.spacing_mut().item_spacing.y = 0.0;
-                        for (i, entry) in entries.iter().enumerate() {
-                            if row(ui, &t, entry, rest, i == state.selected) {
-                                events.push(Event::PaletteClick(i));
-                            }
-                        }
-                    });
-            });
+        });
     });
 }
 
@@ -288,11 +282,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
     ui.add_space(t.space_2);
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
-        ui.label(
-            egui::RichText::new(title)
-                .font(theme::font(&t.type_body_strong))
-                .color(t.text_primary.color32()),
-        );
+        ui.label(crate::components::body_strong(&t, title));
     });
     let mut first = opened;
     for (i, f) in form.fields.iter().enumerate() {
@@ -373,11 +363,10 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
     // The form says how it applies and how it goes back, in the hint style (`type.small`, tertiary).
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
-        ui.label(
-            egui::RichText::new(strings::text(key!("palette-form-hint")))
-                .font(theme::font(&t.type_small))
-                .color(t.text_tertiary.color32()),
-        );
+        ui.label(crate::components::small_tertiary(
+            &t,
+            strings::text(key!("palette-form-hint")),
+        ));
     });
     ui.add_space(t.space_2);
 }

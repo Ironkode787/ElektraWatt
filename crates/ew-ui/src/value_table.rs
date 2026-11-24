@@ -92,17 +92,15 @@ fn cell(ui: &mut Ui, t: &Tokens, width: f32, text: &mut String, name: &str, hint
 pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     ui.add_space(t.space_4);
-    ui.label(
-        RichText::new(strings::text(table.heading_key))
-            .font(theme::font(&t.type_body_strong))
-            .color(t.text_primary.color32()),
-    );
+    ui.label(crate::components::body_strong(
+        &t,
+        strings::text(table.heading_key),
+    ));
     if table.columns.is_empty() {
-        ui.label(
-            RichText::new(strings::text(key!("form-value-sets-none")))
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::small_secondary(
+            &t,
+            strings::text(key!("form-value-sets-none")),
+        ));
         return;
     }
     // Given rows are text: the first column is as wide as its longest row, so that a long wire name does not run

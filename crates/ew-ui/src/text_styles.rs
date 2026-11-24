@@ -81,11 +81,7 @@ pub(crate) fn text_styles(
                     continue;
                 }
                 ui.add_space(t.space_3);
-                ui.label(
-                    RichText::new(group_words(group))
-                        .font(theme::font(&t.type_body_strong))
-                        .color(t.text_primary.color32()),
-                );
+                ui.label(crate::components::body_strong(&t, group_words(group)));
                 ui.separator();
                 for row in in_group {
                     let focused = d.focus.as_deref() == Some(row.key.as_str());
@@ -132,11 +128,10 @@ fn typeface_line(
 ) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
-        ui.label(
-            RichText::new(strings::text(key!("text-styles-typeface-title")))
-                .font(theme::font(&t.type_body_strong))
-                .color(t.text_primary.color32()),
-        );
+        ui.label(crate::components::body_strong(
+            &t,
+            strings::text(key!("text-styles-typeface-title")),
+        ));
         ui.label(RichText::new(&line.words).color(t.text_primary.color32()));
         let choose = components::button(
             ui,

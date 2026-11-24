@@ -27,55 +27,96 @@ use serde_json::{Value, json};
 use crate::app::Event;
 use crate::components::Tip as _;
 
+/// A severity as the window draws it (doc 16a §6.24), read from the view-model's word: `error`, `warning`, `pending`
+/// (the Properties header's pending chip); any other word is an info.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Severity {
+    Error,
+    Warning,
+    Info,
+    Pending,
+}
+
+impl Severity {
+    /// The severity of the view-model's word `word`.
+    pub(crate) fn of(word: &str) -> Severity {
+        match word {
+            "error" => Severity::Error,
+            "warning" => Severity::Warning,
+            "pending" => Severity::Pending,
+            _ => Severity::Info,
+        }
+    }
+
+    /// The colour of its icon: error, the warning icon colour, info (the accent).
+    pub(crate) fn icon_colour(self, t: &Tokens) -> Rgba {
+        match self {
+            Severity::Error => t.error,
+            Severity::Warning => t.warning_icon,
+            Severity::Info | Severity::Pending => t.info,
+        }
+    }
+
+    /// The colour of its word: `color.error`, `color.warning` (the text tone), `color.accent`.
+    fn word_colour(self, t: &Tokens) -> Rgba {
+        match self {
+            Severity::Error => t.error,
+            Severity::Warning => t.warning,
+            Severity::Info | Severity::Pending => t.info,
+        }
+    }
+
+    /// Its icon (doc 16a §6.24): `circle-x`, `alert-triangle`, `info-circle`; the Properties header's pending chip
+    /// `pencil`, as the pending badge.
+    pub(crate) fn icon(self) -> IconId {
+        match self {
+            Severity::Error => IconId::circle_x,
+            Severity::Warning => IconId::alert_triangle,
+            Severity::Pending => IconId::pencil,
+            Severity::Info => IconId::info_circle,
+        }
+    }
+
+    /// The word of a finding row ("Error", "Warning", "Info").
+    pub(crate) fn word(self) -> &'static str {
+        strings::text(match self {
+            Severity::Error => key!("severity-error"),
+            Severity::Warning => key!("severity-warning"),
+            Severity::Info | Severity::Pending => key!("severity-info"),
+        })
+    }
+
+    /// The fill and the text colour of its count badge: its subtle fill and its text tone.
+    pub(crate) fn count_colours(self, t: &Tokens) -> (Rgba, Rgba) {
+        match self {
+            Severity::Error => (t.error_subtle, t.error),
+            Severity::Warning => (t.warning_subtle, t.warning),
+            Severity::Pending => (t.surface_sunken, t.text_secondary),
+            Severity::Info => (t.info_subtle, t.info),
+        }
+    }
+}
+
 /// The colour of a finding row's icon: the severity's token, the tertiary text while it is pending (doc 16a §6.24).
 pub(crate) fn icon_colour(ui: &Ui, look: FindingLook) -> Color32 {
     colour_of(&theme::current(ui.ctx()), look)
 }
 
-/// The colour rule of [`icon_colour`] over a theme's tokens: error, the warning icon colour, info (the accent).
+/// The colour rule of [`icon_colour`] over a theme's tokens: the severity's icon colour, the tertiary text while
+/// pending.
 fn colour_of(t: &Tokens, look: FindingLook) -> Color32 {
     if look.pending {
         return t.text_tertiary.color32();
     }
-    match look.severity {
-        "error" => t.error,
-        "warning" => t.warning_icon,
-        _ => t.info,
-    }
-    .color32()
+    Severity::of(look.severity).icon_colour(t).color32()
 }
 
-/// The colour of a severity word: `color.error`, `color.warning` (the text tone), `color.accent`; the tertiary text
-/// while pending.
+/// The colour of a severity word: the severity's word colour; the tertiary text while pending.
 fn word_colour(t: &Tokens, look: FindingLook) -> Rgba {
     if look.pending {
         return t.text_tertiary;
     }
-    match look.severity {
-        "error" => t.error,
-        "warning" => t.warning,
-        _ => t.info,
-    }
-}
-
-/// The icon of a severity (doc 16a §6.24): `circle-x`, `alert-triangle`, `info-circle`.
-pub(crate) fn severity_icon_id(severity: &str) -> IconId {
-    match severity {
-        "error" => IconId::circle_x,
-        "warning" => IconId::alert_triangle,
-        // The Properties header's pending chip, as the pending badge.
-        "pending" => IconId::pencil,
-        _ => IconId::info_circle,
-    }
-}
-
-/// The severity word of a finding row ("Error", "Warning", "Info").
-pub(crate) fn severity_word(severity: &str) -> &'static str {
-    strings::text(match severity {
-        "error" => key!("severity-error"),
-        "warning" => key!("severity-warning"),
-        _ => key!("severity-info"),
-    })
+    Severity::of(look.severity).word_colour(t)
 }
 
 /// The severity of a severity group row of the Messages tree (`severity:<word>`), `None` for any other row.
@@ -95,7 +136,7 @@ pub(crate) fn severity_icon(ui: &mut Ui, look: FindingLook) {
     let colour = icon_colour(ui, look);
     icons::paint(
         ui.painter(),
-        severity_icon_id(look.severity),
+        Severity::of(look.severity).icon(),
         rect,
         colour,
         t.icon_stroke,
@@ -114,7 +155,7 @@ pub(crate) fn severity_cell(ui: &mut Ui, look: FindingLook) {
     let colour = word_colour(&t, look).color32();
     let galley = ui
         .painter()
-        .layout_no_wrap(severity_word(look.severity).to_owned(), font, colour);
+        .layout_no_wrap(Severity::of(look.severity).word().to_owned(), font, colour);
     let (rect, _) = ui.allocate_exact_size(Vec2::new(galley.size().x, t.size_severity_icon), Sense::hover());
     ui.painter().galley(
         egui::pos2(rect.left(), rect.center().y - galley.size().y / 2.0),
@@ -134,20 +175,10 @@ pub(crate) fn finding_badge(word: &str) -> Option<Badge> {
     }
 }
 
-/// The fill and the text colour of a severity's count badge: its subtle fill and its text tone.
-fn count_colours(t: &Tokens, severity: &str) -> (Rgba, Rgba) {
-    match severity {
-        "error" => (t.error_subtle, t.error),
-        "warning" => (t.warning_subtle, t.warning),
-        "pending" => (t.surface_sunken, t.text_secondary),
-        _ => (t.info_subtle, t.info),
-    }
-}
-
 /// One count badge of the header (doc 16a §6.24, §6.16): `radius.pill`, the severity's subtle fill, its icon at 12 px
 /// and the number in `type.caption` in its text colour. Paints no node.
-fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
-    let (fill, text) = count_colours(t, severity);
+fn count_badge(ui: &mut Ui, t: &Tokens, severity: Severity, count: usize) {
+    let (fill, text) = severity.count_colours(t);
     let galley = ui
         .painter()
         .layout_no_wrap(count.to_string(), theme::font(&t.type_caption), text.color32());
@@ -163,15 +194,11 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
         egui::pos2(rect.left() + t.space_2 + icon / 2.0, rect.center().y),
         Vec2::splat(icon),
     );
-    let look = FindingLook {
-        severity,
-        pending: false,
-    };
     icons::paint(
         painter,
-        severity_icon_id(severity),
+        severity.icon(),
         icon_rect,
-        colour_of(t, look),
+        severity.icon_colour(t).color32(),
         t.icon_stroke,
     );
     painter.galley(
@@ -185,17 +212,17 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
 }
 
 /// "<n> <Word>" of a severity, singular for one ("1 Warning", "3 Warnings"): a count chip's word.
-pub(crate) fn count_words(severity: &str, n: usize) -> String {
+pub(crate) fn count_words(severity: Severity, n: usize) -> String {
     // Pending findings count under one word, as the Messages header counts them ("2 Pending").
-    let words = if severity == "pending" {
+    let words = if severity == Severity::Pending {
         strings::text(key!("badge-pending"))
     } else if n == 1 {
-        severity_word(severity)
+        severity.word()
     } else {
         strings::text(match severity {
-            "error" => key!("severity-errors"),
-            "warning" => key!("severity-warnings"),
-            _ => key!("severity-infos"),
+            Severity::Error => key!("severity-errors"),
+            Severity::Warning => key!("severity-warnings"),
+            Severity::Info | Severity::Pending => key!("severity-infos"),
         })
     };
     strings::format(key!("props-findings-count"), &[&n.to_string(), words])
@@ -204,7 +231,11 @@ pub(crate) fn count_words(severity: &str, n: usize) -> String {
 /// One chip for `findings.len()` findings of one severity (always one chip per
 /// severity): the icon and "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a `Label` node named by that and each
 /// "<rule>: <message>", the same lines as the tooltip.
-pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
+pub(crate) fn severity_count_chip(
+    ui: &mut Ui,
+    severity: Severity,
+    findings: &[(&str, &str)],
+) -> egui::Response {
     let word = count_words(severity, findings.len());
     let lines: Vec<String> = findings
         .iter()
@@ -216,9 +247,9 @@ pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str
 
 /// A severity chip's tooltip: its findings, one "<rule>: <message>" line each; the Pending chip says first what it
 /// counts, then lists them (item 8).
-pub(crate) fn chip_tip(severity: &str, lines: &[String]) -> String {
+pub(crate) fn chip_tip(severity: Severity, lines: &[String]) -> String {
     let list = lines.join("\n");
-    if severity == "pending" {
+    if severity == Severity::Pending {
         format!("{}\n{list}", strings::text(key!("tip-pending")))
     } else {
         list
@@ -226,9 +257,9 @@ pub(crate) fn chip_tip(severity: &str, lines: &[String]) -> String {
 }
 
 /// Paints a severity chip with `word`, its node named `name`, `tip` as the tooltip.
-fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip: &str) -> egui::Response {
+fn paint_severity_chip(ui: &mut Ui, severity: Severity, word: &str, name: &str, tip: &str) -> egui::Response {
     let t = theme::current(ui.ctx());
-    let (fill, text) = count_colours(&t, severity);
+    let (fill, text) = severity.count_colours(&t);
     let galley = ui
         .painter()
         .layout_no_wrap(word.to_owned(), theme::font(&t.type_caption), text.color32());
@@ -246,19 +277,11 @@ fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip:
         egui::pos2(rect.left() + t.space_2 + icon / 2.0, rect.center().y),
         Vec2::splat(icon),
     );
-    let look = FindingLook {
-        severity: match severity {
-            "error" => "error",
-            "warning" => "warning",
-            _ => "info",
-        },
-        pending: false,
-    };
     icons::paint(
         painter,
-        severity_icon_id(severity),
+        severity.icon(),
         icon_rect,
-        colour_of(&t, look),
+        severity.icon_colour(&t).color32(),
         t.icon_stroke,
     );
     painter.galley(
@@ -325,9 +348,9 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             } else {
                 small(ui, scheme, t.text_secondary);
             }
-            count_badge(ui, &t, "error", c.errors);
-            count_badge(ui, &t, "warning", c.warnings);
-            count_badge(ui, &t, "info", c.infos);
+            count_badge(ui, &t, Severity::Error, c.errors);
+            count_badge(ui, &t, Severity::Warning, c.warnings);
+            count_badge(ui, &t, Severity::Info, c.infos);
             let waived = strings::format(key!("messages-header-waived"), &[&c.waived.to_string()]);
             small(ui, &waived, t.text_tertiary);
             let pending = strings::format(key!("messages-header-pending"), &[&c.pending.to_string()]);
@@ -349,11 +372,10 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4);
                 ui.add(
-                    egui::Label::new(
-                        RichText::new(strings::text(key!("messages-pending-note")))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    )
+                    egui::Label::new(crate::components::small_secondary(
+                        &t,
+                        strings::text(key!("messages-pending-note")),
+                    ))
                     .wrap(),
                 );
             });
@@ -426,11 +448,11 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = t.space_3;
-                let link = ui.add(egui::Link::new(
-                    RichText::new(strings::text(key!("messages-rule-page")))
-                        .font(theme::font(&t.type_small))
-                        .color(t.accent.color32()),
-                ));
+                let link = ui.add(egui::Link::new(crate::components::styled(
+                    strings::text(key!("messages-rule-page")),
+                    &t.type_small,
+                    t.accent,
+                )));
                 if link.clicked() {
                     events.push(Event::Action(
                         "ui.focus",
@@ -442,11 +464,10 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     if small_link(ui, key!("messages-unwaive-button"), "messages.unwaive").clicked() {
                         events.push(Event::Action("messages.unwaive", Value::Null));
                     }
-                    ui.label(
-                        RichText::new(strings::text(key!("messages-detail-waived")))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
+                    ui.label(crate::components::small_secondary(
+                        &t,
+                        strings::text(key!("messages-detail-waived")),
+                    ));
                 } else if small_link(ui, key!("messages-waive-button"), "messages.waive").clicked() {
                     // The window reads the date; the shell never does.
                     events.push(Event::Action(
@@ -455,31 +476,13 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     ));
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    ui.add(
-                        egui::Label::new(
-                            RichText::new(&title)
-                                .font(theme::font(&t.type_body_strong))
-                                .color(t.text_primary.color32()),
-                        )
-                        .truncate(),
-                    );
+                    ui.add(egui::Label::new(crate::components::body_strong(&t, &title)).truncate());
                 });
             });
         });
     });
-    ui.label(
-        RichText::new(d.kind_line())
-            .font(theme::font(&t.type_small))
-            .color(t.text_secondary.color32()),
-    );
-    ui.add(
-        egui::Label::new(
-            RichText::new(&d.message)
-                .font(theme::font(&t.type_body))
-                .color(t.text_primary.color32()),
-        )
-        .wrap(),
-    );
+    ui.label(crate::components::small_secondary(&t, d.kind_line()));
+    ui.add(egui::Label::new(crate::components::body(&t, &d.message)).wrap());
     // Where the finding asks for a step the window can take the person to (Choose a cable type…).
     if let Some(offer) = shell
         .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
@@ -492,11 +495,10 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     if let (Some(fix), false) = (&d.fix, d.waived) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_3;
-            ui.label(
-                RichText::new(strings::format(key!("messages-detail-fix"), &[fix]))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            );
+            ui.label(crate::components::small_secondary(
+                &t,
+                strings::format(key!("messages-detail-fix"), &[fix]),
+            ));
             let button = components::button(
                 ui,
                 Kind::Secondary,
@@ -571,7 +573,7 @@ mod tests {
     fn three_distinct_shapes_words_and_group_keys() {
         let ids: Vec<IconId> = ["error", "warning", "info"]
             .into_iter()
-            .map(severity_icon_id)
+            .map(|s| Severity::of(s).icon())
             .collect();
         assert_eq!(
             ids,
@@ -581,7 +583,7 @@ mod tests {
         assert_ne!(ids[1].segments(), ids[2].segments());
         assert_ne!(ids[0].segments(), ids[2].segments());
         assert_eq!(
-            ["error", "warning", "info"].map(severity_word),
+            ["error", "warning", "info"].map(|s| Severity::of(s).word()),
             ["Error", "Warning", "Info"]
         );
         assert_eq!(group_severity("severity:warning"), Some("warning"));
@@ -600,12 +602,12 @@ mod tests {
             "EW-CORE-033: -3W1 has no length".to_owned(),
         ];
         assert_eq!(
-            chip_tip("pending", &lines),
+            chip_tip(Severity::Pending, &lines),
             "Findings on the page you are editing that wait until you leave it or run a check\n\
              EW-CORE-041: -K1 has no part\nEW-CORE-033: -3W1 has no length"
         );
         assert_eq!(
-            chip_tip("warning", &lines),
+            chip_tip(Severity::Warning, &lines),
             "EW-CORE-041: -K1 has no part\nEW-CORE-033: -3W1 has no length"
         );
     }

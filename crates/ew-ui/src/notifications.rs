@@ -160,92 +160,86 @@ fn toast(
     events: &mut Vec<Event>,
 ) -> (bool, bool) {
     let width = toast_width(t, ui.ctx().content_rect().width());
-    let frame = egui::Frame::new()
-        .fill(t.surface_raised.color32())
-        .stroke(theme::stroke(t.border_raised_width, t.border_default))
-        .corner_radius(theme::radius(t.radius_lg))
-        .shadow(theme::shadow(&t.elevation_2))
-        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_4)))
-        .show(ui, |ui| {
-            let inner = width - 2.0 * t.space_4;
-            ui.set_width(inner);
-            ui.horizontal_top(|ui| {
-                ui.spacing_mut().item_spacing.x = t.space_3;
-                let (icon, colour) = tone_icon(t, n.tone());
-                let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_md), egui::Sense::hover());
-                icons::paint(ui.painter(), icon, r, colour.color32(), t.icon_stroke);
-                let text_w = text_width(t, width);
-                ui.vertical(|ui| {
-                    ui.set_width(text_w);
-                    ui.spacing_mut().item_spacing.y = t.space_icon;
-                    match n.lines() {
-                        (title, Some(line)) => {
-                            // The title carries the whole text as the live region. It wraps at word boundaries up to two
-                            // rows (a disabled command's reason is never cut at one line), the line up to three
-                            // each then cut with an ellipsis; the whole text is the toast's tooltip, so
-                            // the labels show no tooltip of their own. A check's counts stay on one line (the
-                            // waived and pending counts qualify the title, so the severities fit).
-                            let response = ui.add(
-                                egui::Label::new(line_job(
-                                    title,
-                                    theme::font(&t.type_body_strong),
-                                    t.text_primary.color32(),
-                                    TITLE_ROWS,
-                                ))
-                                .wrap()
-                                .selectable(false)
-                                .show_tooltip_when_elided(false),
-                            );
-                            let (live, name) = (n.text.clone(), title.to_owned());
-                            ui.ctx().accesskit_node_builder(response.id, |node| {
-                                node.set_live(egui::accesskit::Live::Polite);
-                                node.set_value(live);
-                                node.set_label(name);
-                            });
-                            let response = ui.add(
-                                egui::Label::new(line_job(
-                                    &line,
-                                    theme::font(&t.type_small),
-                                    t.text_secondary.color32(),
-                                    LINE_ROWS,
-                                ))
-                                .wrap()
-                                .selectable(false)
-                                .show_tooltip_when_elided(false),
-                            );
-                            let name = line.to_string();
-                            ui.ctx()
-                                .accesskit_node_builder(response.id, |node| node.set_label(name));
-                        }
-                        (_, None) => {
-                            // Doc 16a §6.10: a long text wraps up to four rows, then is cut with an
-                            // ellipsis; the whole text is the toast's tooltip.
-                            let response = ui.add(
-                                egui::Label::new(line_job(
-                                    n.shown(),
-                                    theme::font(&t.type_body_strong),
-                                    t.text_primary.color32(),
-                                    LINE_ROWS,
-                                ))
-                                .wrap()
-                                .selectable(false)
-                                .show_tooltip_when_elided(false),
-                            );
-                            let (live, name) = (n.text.clone(), n.text.clone());
-                            ui.ctx().accesskit_node_builder(response.id, |node| {
-                                node.set_live(egui::accesskit::Live::Polite);
-                                node.set_value(live);
-                                node.set_label(name);
-                            });
-                        }
+    let frame = crate::components::raised_frame(&t, t.space_4).show(ui, |ui| {
+        let inner = width - 2.0 * t.space_4;
+        ui.set_width(inner);
+        ui.horizontal_top(|ui| {
+            ui.spacing_mut().item_spacing.x = t.space_3;
+            let (icon, colour) = tone_icon(t, n.tone());
+            let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_md), egui::Sense::hover());
+            icons::paint(ui.painter(), icon, r, colour.color32(), t.icon_stroke);
+            let text_w = text_width(t, width);
+            ui.vertical(|ui| {
+                ui.set_width(text_w);
+                ui.spacing_mut().item_spacing.y = t.space_icon;
+                match n.lines() {
+                    (title, Some(line)) => {
+                        // The title carries the whole text as the live region. It wraps at word boundaries up to two
+                        // rows (a disabled command's reason is never cut at one line), the line up to three
+                        // each then cut with an ellipsis; the whole text is the toast's tooltip, so
+                        // the labels show no tooltip of their own. A check's counts stay on one line (the
+                        // waived and pending counts qualify the title, so the severities fit).
+                        let response = ui.add(
+                            egui::Label::new(line_job(
+                                title,
+                                theme::font(&t.type_body_strong),
+                                t.text_primary.color32(),
+                                TITLE_ROWS,
+                            ))
+                            .wrap()
+                            .selectable(false)
+                            .show_tooltip_when_elided(false),
+                        );
+                        let (live, name) = (n.text.clone(), title.to_owned());
+                        ui.ctx().accesskit_node_builder(response.id, |node| {
+                            node.set_live(egui::accesskit::Live::Polite);
+                            node.set_value(live);
+                            node.set_label(name);
+                        });
+                        let response = ui.add(
+                            egui::Label::new(line_job(
+                                &line,
+                                theme::font(&t.type_small),
+                                t.text_secondary.color32(),
+                                LINE_ROWS,
+                            ))
+                            .wrap()
+                            .selectable(false)
+                            .show_tooltip_when_elided(false),
+                        );
+                        let name = line.to_string();
+                        ui.ctx()
+                            .accesskit_node_builder(response.id, |node| node.set_label(name));
                     }
-                    action_link(ui, t, shell, n, events);
-                });
-                if components::icon_button(ui, IconId::x, strings::text(key!("toast-dismiss"))).clicked() {
-                    events.push(Event::DismissToast(n.serial));
+                    (_, None) => {
+                        // Doc 16a §6.10: a long text wraps up to four rows, then is cut with an
+                        // ellipsis; the whole text is the toast's tooltip.
+                        let response = ui.add(
+                            egui::Label::new(line_job(
+                                n.shown(),
+                                theme::font(&t.type_body_strong),
+                                t.text_primary.color32(),
+                                LINE_ROWS,
+                            ))
+                            .wrap()
+                            .selectable(false)
+                            .show_tooltip_when_elided(false),
+                        );
+                        let (live, name) = (n.text.clone(), n.text.clone());
+                        ui.ctx().accesskit_node_builder(response.id, |node| {
+                            node.set_live(egui::accesskit::Live::Polite);
+                            node.set_value(live);
+                            node.set_label(name);
+                        });
+                    }
                 }
+                action_link(ui, t, shell, n, events);
             });
+            if components::icon_button(ui, IconId::x, strings::text(key!("toast-dismiss"))).clicked() {
+                events.push(Event::DismissToast(n.serial));
+            }
         });
+    });
     // A `Group` node over the card, named "Notification" (its text is the live region inside).
     // Hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut, or the toast
     // shows a brief of it, unless a control inside shows its own tooltip.
@@ -574,11 +568,10 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                     ui.set_width(width);
                     ui.horizontal(|ui| {
                         ui.add_space(t.space_2);
-                        ui.label(
-                            RichText::new(strings::text(key!("notifications-title")))
-                                .font(theme::font(&t.type_body_strong))
-                                .color(t.text_primary.color32()),
-                        );
+                        ui.label(crate::components::body_strong(
+                            &t,
+                            strings::text(key!("notifications-title")),
+                        ));
                     });
                     if log.is_empty() {
                         components::empty_state(

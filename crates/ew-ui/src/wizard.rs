@@ -103,14 +103,7 @@ fn under(ui: &mut Ui, t: &theme::Tokens, text: &str) {
 
 /// A line in `type.small`, secondary, wrapped.
 fn secondary(ui: &mut Ui, t: &theme::Tokens, text: &str) {
-    ui.add(
-        egui::Label::new(
-            RichText::new(text)
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        )
-        .wrap(),
-    );
+    ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
 }
 
 /// The step's title, what it is, whether it can be changed later, then its fields and its Result (or, on the
@@ -136,11 +129,10 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
         ui.add_space(t.space_2);
         ui.label(strings::text(step.hint_key()));
         ui.add_space(t.space_1);
-        ui.label(
-            RichText::new(strings::text(step.later_key()))
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::small_secondary(
+            &t,
+            strings::text(step.later_key()),
+        ));
     });
     ui.add_space(t.space_5);
     if step == Step::Review {

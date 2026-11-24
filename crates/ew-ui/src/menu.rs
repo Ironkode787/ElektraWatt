@@ -74,11 +74,11 @@ pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) 
         ui.horizontal(|ui| {
             ui.add_space(t.icon_sm + ui.spacing().button_padding.x + ui.spacing().icon_spacing);
             ui.add(
-                egui::Label::new(
-                    egui::RichText::new(reason)
-                        .font(crate::theme::font(&t.type_caption))
-                        .color(t.text_tertiary.color32()),
-                )
+                egui::Label::new(crate::components::styled(
+                    reason,
+                    &t.type_caption,
+                    t.text_tertiary,
+                ))
                 .wrap(),
             );
         });
@@ -143,11 +143,10 @@ fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>)
         .frame_when_inactive(false)
         .min_size(egui::vec2(0.0, t.size_row));
     if !item.shortcut.is_empty() {
-        button = button.shortcut_text(
-            egui::RichText::new(keys::short_display(&item.shortcut))
-                .font(crate::theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        button = button.shortcut_text(crate::components::small_secondary(
+            &t,
+            keys::short_display(&item.shortcut),
+        ));
     }
     // A checked item shows its check icon; the selection fill stays off (the hover overlay is the only highlight).
     let response = ui.scope(|ui| {

@@ -192,11 +192,7 @@ pub fn show(
                                 if i > 0 {
                                     ui.add_space(t.space_3);
                                 }
-                                ui.label(
-                                    egui::RichText::new(h)
-                                        .font(crate::theme::font(&t.type_body_strong))
-                                        .color(t.text_primary.color32()),
-                                );
+                                ui.label(crate::components::body_strong(&t, h));
                             }
                             NoticeBlock::Text(text) => {
                                 ui.add(
@@ -220,23 +216,15 @@ pub fn show(
                         if i > 0 {
                             ui.add_space(t.space_3);
                         }
-                        ui.label(
-                            egui::RichText::new(strings::format(
-                                key!("external-row"),
-                                &[&r.record, &r.field],
-                            ))
-                            .font(crate::theme::font(&t.type_body_strong))
-                            .color(t.text_primary.color32()),
-                        );
+                        ui.label(crate::components::body_strong(
+                            &t,
+                            strings::format(key!("external-row"), &[&r.record, &r.field]),
+                        ));
                         let small = |ui: &mut Ui, name: ew_viewmodel::strings::Key<'_>, value: &str| {
-                            ui.label(
-                                egui::RichText::new(strings::format(
-                                    key!("external-side"),
-                                    &[strings::text(name), value],
-                                ))
-                                .font(crate::theme::font(&t.type_small))
-                                .color(t.text_secondary.color32()),
-                            );
+                            ui.label(crate::components::small_secondary(
+                                &t,
+                                strings::format(key!("external-side"), &[strings::text(name), value]),
+                            ));
                         };
                         small(ui, key!("external-base"), &r.base);
                         ui.horizontal(|ui| {
@@ -283,18 +271,10 @@ pub fn show(
                 ui.add_space(t.space_2);
                 ui.label(egui::RichText::new(&group.heading).strong());
                 for row in group.rows.iter().take(ew_viewmodel::dialogs::IMPORT_KINDS_LISTED) {
-                    ui.label(
-                        egui::RichText::new(row)
-                            .font(crate::theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
+                    ui.label(crate::components::small_secondary(&t, row));
                 }
                 if let Some(more) = ew_viewmodel::dialogs::import_more_kinds(group) {
-                    ui.label(
-                        egui::RichText::new(more)
-                            .font(crate::theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
+                    ui.label(crate::components::small_secondary(&t, more));
                 }
             }
         }
@@ -303,21 +283,13 @@ pub fn show(
         Dialog::Reimport { rows, .. } => {
             let t = crate::theme::current(ui.ctx());
             for row in rows.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
-                ui.label(
-                    egui::RichText::new(row)
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.text_secondary.color32()),
-                );
+                ui.label(crate::components::small_secondary(&t, row));
             }
         }
         Dialog::ConfirmPurge { files, .. } => {
             let t = crate::theme::current(ui.ctx());
             for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {
-                ui.label(
-                    egui::RichText::new(f)
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.text_secondary.color32()),
-                );
+                ui.label(crate::components::small_secondary(&t, f));
             }
         }
         // The elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a small
@@ -331,11 +303,10 @@ pub fn show(
             if let Some(when) = utc_text(*last_change_ms) {
                 let ago = strings::elapsed_text(*last_change_ms, dialog_now_ms(ui.ctx()));
                 ui.label(strings::format(key!("recovery-last-change"), &[&ago]));
-                ui.label(
-                    egui::RichText::new(strings::format(key!("recovery-last-change-utc"), &[&when]))
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.text_tertiary.color32()),
-                );
+                ui.label(crate::components::small_tertiary(
+                    &t,
+                    strings::format(key!("recovery-last-change-utc"), &[&when]),
+                ));
             }
             if let Some(reason) = failed {
                 ui.colored_label(
@@ -365,14 +336,7 @@ pub fn show(
             if form.action.starts_with("revision.") {
                 let t = crate::theme::current(ui.ctx());
                 for line in shell.revision_list() {
-                    ui.add(
-                        egui::Label::new(
-                            egui::RichText::new(line)
-                                .font(crate::theme::font(&t.type_small))
-                                .color(t.text_secondary.color32()),
-                        )
-                        .wrap(),
-                    );
+                    ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
                 }
             }
             submit |= form_fields(ui, shell, form, just_opened, primary_disabled, events);
@@ -624,14 +588,7 @@ fn field_line(ui: &mut Ui, t: &crate::theme::Tokens, label_width: f32, line: Str
         ui.spacing_mut().interact_size.y = 0.0;
         ui.horizontal(|ui| {
             ui.add_space(label_width + t.space_3);
-            ui.add(
-                egui::Label::new(
-                    egui::RichText::new(line)
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.text_secondary.color32()),
-                )
-                .wrap(),
-            );
+            ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
         });
     });
 }

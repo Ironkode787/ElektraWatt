@@ -341,14 +341,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             let undrawn = (view.tag.contains('?') || view.tag.is_empty()) && !number.is_empty();
             // A station drawn nowhere is named by its part number; its tag of question marks stands beside it.
             if undrawn {
-                ui.add(
-                    egui::Label::new(
-                        RichText::new(number)
-                            .font(theme::font(&t.type_title))
-                            .color(t.text_primary.color32()),
-                    )
-                    .selectable(false),
-                );
+                ui.add(egui::Label::new(crate::components::title(&t, number)).selectable(false));
             }
             // The station's tag changes in place: it looks like it (a pencil, an outline on hover), and a click on it
             // or F2 on its head opens it.
@@ -440,11 +433,10 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
     };
     ui.horizontal(|ui| {
         ui.add(
-            egui::Label::new(
-                RichText::new(strings::text(key!("rack-new-title")))
-                    .font(theme::font(&t.type_title))
-                    .color(t.text_primary.color32()),
-            )
+            egui::Label::new(crate::components::title(
+                &t,
+                strings::text(key!("rack-new-title")),
+            ))
             .selectable(false),
         );
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

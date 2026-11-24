@@ -573,7 +573,7 @@ impl PropertiesPane {
             };
             let chips: f32 = groups
                 .iter()
-                .map(|(severity, of)| chip(crate::messages::count_words(severity, of.len())))
+                .map(|(severity, of)| chip(crate::messages::count_words(*severity, of.len())))
                 .sum();
             let gaps = t.space_1 * groups.len().saturating_sub(1) as f32;
             // The title elides first (whole in its tooltip), down to its first three
@@ -610,7 +610,7 @@ impl PropertiesPane {
     fn header_lines(
         ui: &mut Ui,
         sheet: &PropertySheet,
-        groups: &[(&str, Vec<(&str, &str)>)],
+        groups: &[(crate::messages::Severity, Vec<(&str, &str)>)],
         compact: bool,
         links: [Option<&ew_viewmodel::actions::ActionItem>; 2],
         events: &mut Vec<Event>,
@@ -623,9 +623,9 @@ impl PropertiesPane {
                 // that opens Messages filtered to the record (the existing `messages.show` and `navigator.filter`).
                 for (severity, of) in groups.iter().rev() {
                     let chip = if compact {
-                        glyph_chip(ui, severity, of)
+                        glyph_chip(ui, *severity, of)
                     } else {
-                        crate::messages::severity_count_chip(ui, severity, of)
+                        crate::messages::severity_count_chip(ui, *severity, of)
                     };
                     if chip.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
                         events.extend(findings_events(&sheet.header));
@@ -646,11 +646,7 @@ impl PropertiesPane {
                 });
             });
         });
-        let small = |s: &str| {
-            RichText::new(s)
-                .font(crate::theme::font(&t.type_small))
-                .color(t.text_secondary.color32())
-        };
+        let small = |s: &str| crate::components::small_secondary(&t, s);
         // What the device is ("Compressed-air supply point · pneumatic").
         if let Some(what) = &sheet.header.what {
             ui.label(small(&ew_viewmodel::properties::what_words(what)));
@@ -663,11 +659,11 @@ impl PropertiesPane {
         }
         // One page's sheet links its title block's fields (FT-1686), where a person looks for them.
         if sheet.read_only.is_none() && sheet.header.kinds.as_slice() == [("page".to_owned(), 1)] {
-            let link = egui::Link::new(
-                RichText::new(strings::text(key!("action-page-title-block")))
-                    .font(crate::theme::font(&t.type_small))
-                    .color(t.accent.color32()),
-            );
+            let link = egui::Link::new(crate::components::styled(
+                strings::text(key!("action-page-title-block")),
+                &t.type_small,
+                t.accent,
+            ));
             if ui.add(link).clicked() {
                 events.push(Event::Action("page.title_block", json!({})));
             }
@@ -679,11 +675,7 @@ impl PropertiesPane {
             .flatten()
             .filter(|i| sheet.read_only.is_none() && i.enabled)
         {
-            let link = egui::Link::new(
-                RichText::new(&item.label)
-                    .font(crate::theme::font(&t.type_small))
-                    .color(t.accent.color32()),
-            );
+            let link = egui::Link::new(crate::components::styled(&item.label, &t.type_small, t.accent));
             if ui.add(link).clicked() {
                 events.push(Event::Action(item.id, item.params.clone()));
             }
@@ -1410,14 +1402,7 @@ impl PropertiesPane {
                 t.error.color32(),
                 t.icon_stroke,
             );
-            ui.add(
-                egui::Label::new(
-                    RichText::new(e)
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.error.color32()),
-                )
-                .wrap(),
-            );
+            ui.add(egui::Label::new(crate::components::styled(e, &t.type_small, t.error)).wrap());
         });
         // A new error brings its row and its line into view (in a 1280 × 800 window it lay below the
         // pane's edge); the pane's scrolling is the user's again after that.
@@ -1924,11 +1909,11 @@ fn part_details(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, events: 
     egui::Frame::new()
         .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
         .show(ui, |ui| {
-            let link = egui::Link::new(
-                RichText::new(strings::text(key!("action-part-details")))
-                    .font(crate::theme::font(&t.type_small))
-                    .color(t.accent.color32()),
-            );
+            let link = egui::Link::new(crate::components::styled(
+                strings::text(key!("action-part-details")),
+                &t.type_small,
+                t.accent,
+            ));
             let response = ui.add(link);
             if response.clicked() {
                 open = !open;
@@ -2098,27 +2083,33 @@ fn group_heading(
 fn severity_groups<'a>(
     findings: &'a [ew_viewmodel::ew_api::output::FindingChip],
     editing: Option<&str>,
-) -> Vec<(&'static str, Vec<(&'a str, &'a str)>)> {
+) -> Vec<(crate::messages::Severity, Vec<(&'a str, &'a str)>)> {
     let pending = |f: &ew_viewmodel::ew_api::output::FindingChip| {
         ew_viewmodel::navigators::messages::chip_pending(f, editing)
     };
-    ["error", "warning", "info", "pending"]
-        .into_iter()
-        .map(|severity| {
-            let of: Vec<(&str, &str)> = findings
-                .iter()
-                .filter(|f| match severity {
-                    "pending" => pending(f),
-                    _ if pending(f) => false,
-                    "error" | "warning" => f.severity == severity,
-                    _ => f.severity != "error" && f.severity != "warning",
-                })
-                .map(|f| (f.rule.as_str(), f.message.as_str()))
-                .collect();
-            (severity, of)
-        })
-        .filter(|(_, of)| !of.is_empty())
-        .collect()
+    use crate::messages::Severity;
+    [
+        Severity::Error,
+        Severity::Warning,
+        Severity::Info,
+        Severity::Pending,
+    ]
+    .into_iter()
+    .map(|severity| {
+        let of: Vec<(&str, &str)> = findings
+            .iter()
+            .filter(|f| match severity {
+                Severity::Pending => pending(f),
+                _ if pending(f) => false,
+                Severity::Error | Severity::Warning => Severity::of(&f.severity) == severity,
+                Severity::Info => !matches!(Severity::of(&f.severity), Severity::Error | Severity::Warning),
+            })
+            .map(|f| (f.rule.as_str(), f.message.as_str()))
+            .collect();
+        (severity, of)
+    })
+    .filter(|(_, of)| !of.is_empty())
+    .collect()
 }
 
 /// The Properties label column's width in a row `row` wide whose widest label on show needs `need` and whose values
@@ -2358,13 +2349,13 @@ pub(crate) fn findings_filter(header: &ew_viewmodel::ew_api::output::SheetHeader
     }
 }
 
-fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
+fn glyph_chip(ui: &mut Ui, severity: crate::messages::Severity, findings: &[(&str, &str)]) -> egui::Response {
     let t = crate::theme::current(ui.ctx());
-    let (fill, text, icon_colour) = match severity {
-        "error" => (t.error_subtle, t.error, t.error),
-        "warning" => (t.warning_subtle, t.warning, t.warning_icon),
-        "pending" => (t.surface_sunken, t.text_secondary, t.text_secondary),
-        _ => (t.info_subtle, t.info, t.info),
+    let (fill, text) = severity.count_colours(&t);
+    // The glyph of a pending chip is in its text colour, not the info's.
+    let icon_colour = match severity {
+        crate::messages::Severity::Pending => t.text_secondary,
+        s => s.icon_colour(&t),
     };
     let count = (findings.len() > 1).then(|| {
         ui.painter().layout_no_wrap(
@@ -2397,7 +2388,7 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
     );
     crate::icons::paint(
         painter,
-        crate::messages::severity_icon_id(severity),
+        severity.icon(),
         icon_rect,
         icon_colour.color32(),
         t.icon_stroke,
@@ -2483,10 +2474,15 @@ mod tests {
             chip("error", Some("102")),
         ];
         let groups = super::severity_groups(&findings, Some("101"));
-        let count = |s: &str| groups.iter().find(|(g, _)| *g == s).map_or(0, |(_, of)| of.len());
+        let count = |s: &str| {
+            groups
+                .iter()
+                .find(|(g, _)| *g == crate::messages::Severity::of(s))
+                .map_or(0, |(_, of)| of.len())
+        };
         assert_eq!((count("error"), count("warning"), count("pending")), (1, 1, 1));
         let none = super::severity_groups(&findings, None);
-        assert!(none.iter().all(|(g, _)| *g != "pending"));
+        assert!(none.iter().all(|(g, _)| *g != crate::messages::Severity::Pending));
     }
 
     /// A page's chip filters Messages by its folio facet, a device's by its tag.

@@ -2129,14 +2129,8 @@ impl CanvasHost {
         else {
             return;
         };
-        let view = view_of(canvas);
-        let ppp = canvas.ppp();
-        let corner = |x: f64, y: f64| {
-            let (px, py) = view.transform().to_screen((x, y));
-            response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
-        };
         let b = rect.max();
-        let at = corner(b.x.0 as f64, b.y.0 as f64);
+        let at = Self::screen_point(response.rect, canvas, (b.x.0 as f64, b.y.0 as f64));
         let t = crate::theme::current(&response.ctx);
         let at = at + egui::vec2(t.space_2, t.space_2);
         let at = egui::pos2(
@@ -2148,16 +2142,8 @@ impl CanvasHost {
             .fixed_pos(at)
             .show(&response.ctx, |ui| {
                 crate::components::card_frame(&t).show(ui, |ui| {
-                    ui.label(
-                        egui::RichText::new(&title)
-                            .font(crate::theme::font(&t.type_body_strong))
-                            .color(t.text_primary.color32()),
-                    );
-                    ui.label(
-                        egui::RichText::new(&why)
-                            .font(crate::theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
+                    ui.label(crate::components::body_strong(&t, &title));
+                    ui.label(crate::components::small_secondary(&t, &why));
                     ui.add_space(t.space_2);
                     ui.horizontal(|ui| {
                         use crate::components::{Kind, button};
@@ -2189,12 +2175,7 @@ impl CanvasHost {
         let Some((text, folio, [x0, y0, x1, y1])) = shell.list_foot().filter(|_| focused) else {
             return;
         };
-        let view = view_of(canvas);
-        let ppp = canvas.ppp();
-        let corner = |x: i64, y: i64| {
-            let (px, py) = view.transform().to_screen((x as f64, y as f64));
-            response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
-        };
+        let corner = |x: i64, y: i64| Self::screen_point(response.rect, canvas, (x as f64, y as f64));
         let row = Rect::from_two_pos(corner(x0, y0), corner(x1, y1));
         if !response.rect.intersects(row) {
             return;
@@ -2258,18 +2239,14 @@ impl CanvasHost {
             .filter(|(e, _)| panel.rows.iter().any(|r| r.rep == e.0))
             .map(|(_, r)| *r)
             .collect();
-        let view = view_of(canvas);
-        let ppp = canvas.ppp();
-        let corner = |x: f64, y: f64| {
-            let (px, py) = view.transform().to_screen((x, y));
-            response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
-        };
         let t = crate::theme::current(&response.ctx);
         let at = match (
             rects.iter().map(|r| r.min().x.0).min(),
             rects.iter().map(|r| r.max().y.0).max(),
         ) {
-            (Some(x), Some(y)) => corner(x as f64, y as f64) + egui::vec2(0.0, t.space_2),
+            (Some(x), Some(y)) => {
+                Self::screen_point(response.rect, canvas, (x as f64, y as f64)) + egui::vec2(0.0, t.space_2)
+            }
             _ => response.rect.min + egui::vec2(t.space_4, t.space_4),
         };
         let at = egui::pos2(
@@ -2289,11 +2266,10 @@ impl CanvasHost {
             .fixed_pos(at)
             .show(&response.ctx, |ui| {
                 crate::components::card_frame(&t).show(ui, |ui| {
-                    ui.label(
-                        egui::RichText::new(strings::text(key!("supply-potential-title")))
-                            .font(crate::theme::font(&t.type_body_strong))
-                            .color(t.text_primary.color32()),
-                    );
+                    ui.label(crate::components::body_strong(
+                        &t,
+                        strings::text(key!("supply-potential-title")),
+                    ));
                     ui.add_space(t.space_2);
                     egui::Grid::new("supply-panel-rows")
                         .num_columns(3)
@@ -2304,11 +2280,7 @@ impl CanvasHost {
                                 key!("supply-potential-kind"),
                                 key!("supply-potential-voltage"),
                             ] {
-                                ui.label(
-                                    egui::RichText::new(strings::text(k))
-                                        .font(crate::theme::font(&t.type_small))
-                                        .color(t.text_secondary.color32()),
-                                );
+                                ui.label(crate::components::small_secondary(&t, strings::text(k)));
                             }
                             ui.end_row();
                             for (i, row) in panel.rows.iter().enumerate() {
@@ -2371,11 +2343,10 @@ impl CanvasHost {
                         ui.label(egui::RichText::new(error).color(t.error.color32()));
                     }
                     ui.add_space(t.space_2);
-                    ui.label(
-                        egui::RichText::new(strings::text(key!("supply-potential-hint")))
-                            .font(crate::theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
+                    ui.label(crate::components::small_secondary(
+                        &t,
+                        strings::text(key!("supply-potential-hint")),
+                    ));
                     ui.add_space(t.space_2);
                     ui.horizontal(|ui| {
                         use crate::components::{Kind, button};
@@ -2397,6 +2368,14 @@ impl CanvasHost {
                     });
                 });
             });
+    }
+
+    /// The screen position (points) of the sheet point `(x, y)` (nm) on a canvas drawn in `rect`, with the model's
+    /// exact view: where a floating card of the canvas stands.
+    fn screen_point(rect: Rect, canvas: &CanvasModel, (x, y): (f64, f64)) -> Pos2 {
+        let ppp = canvas.ppp();
+        let (px, py) = view_of(canvas).transform().to_screen((x, y));
+        rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
     }
 
     /// The sheet point (nm) under the screen position `pos` (points), with the model's exact view.

@@ -15,7 +15,7 @@
 
 use std::sync::{Arc, Mutex, PoisonError};
 
-use egui::{Align, Layout, RichText, Sense, TextEdit, TextureHandle, TextureOptions, Ui, Vec2};
+use egui::{Align, Layout, Sense, TextEdit, TextureHandle, TextureOptions, Ui, Vec2};
 use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, render_placed};
 use ew_viewmodel::ew_api::output::DrawingFonts;
 use ew_viewmodel::ew_api::output::print::{Paper, PrintSet};
@@ -448,11 +448,7 @@ fn navigation(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, pages: usize, ev
         if components::button(ui, Kind::Secondary, previous, d.page > 0, t.size_button_min_width).clicked() {
             events.push(Event::Action("print.page", json!({ "to": "previous" })));
         }
-        ui.label(
-            RichText::new(&caption)
-                .font(theme::font(&t.type_body))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::body_secondary(&t, &caption));
         if components::button(
             ui,
             Kind::Secondary,

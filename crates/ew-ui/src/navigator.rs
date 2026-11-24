@@ -239,39 +239,27 @@ impl NavigatorPane {
                     if pages {
                         // The New page entry beside the filter: the same action as Page, New page, disabled
                         // with its reason.
-                        let new_page = ew_viewmodel::actions::find("page.new").map(|a| a.enabled_now(shell));
-                        let enabled = matches!(new_page, Some(Ok(())));
-                        let button = crate::components::icon_toggle(
+                        crate::components::action_button(
                             ui,
-                            crate::icons::IconId::file_plus,
-                            strings::text(key!("nav-new-page")),
-                            enabled,
-                            None,
+                            shell,
+                            "page.new",
+                            (
+                                crate::icons::IconId::file_plus,
+                                strings::text(key!("nav-new-page")),
+                            ),
+                            events,
                         );
-                        let button = match new_page {
-                            Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
-                            _ => button,
-                        };
-                        if button.clicked() {
-                            events.push(Event::Action("page.new", Value::Null));
-                        }
                         // New section beside it (FT-1634): the same action as Page, New section.
-                        let new_section =
-                            ew_viewmodel::actions::find("section.new").map(|a| a.enabled_now(shell));
-                        let button = crate::components::icon_toggle(
+                        crate::components::action_button(
                             ui,
-                            crate::icons::IconId::folder_plus,
-                            strings::text(key!("nav-new-section")),
-                            matches!(new_section, Some(Ok(()))),
-                            None,
+                            shell,
+                            "section.new",
+                            (
+                                crate::icons::IconId::folder_plus,
+                                strings::text(key!("nav-new-section")),
+                            ),
+                            events,
                         );
-                        let button = match new_section {
-                            Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
-                            _ => button,
-                        };
-                        if button.clicked() {
-                            events.push(Event::Action("section.new", Value::Null));
-                        }
                     }
                     // The Fluid panel's Fluid settings… and New medium… (so they are not found only through
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
@@ -286,21 +274,13 @@ impl NavigatorPane {
                             _ => &[],
                         };
                     for (id, icon, label) in own {
-                        let state = ew_viewmodel::actions::find(id).map(|a| a.enabled_now(shell));
-                        let button = crate::components::icon_toggle(
+                        crate::components::action_button(
                             ui,
-                            *icon,
-                            strings::text(*label),
-                            matches!(state, Some(Ok(()))),
-                            None,
+                            shell,
+                            id,
+                            (*icon, strings::text(*label)),
+                            events,
                         );
-                        let button = match state {
-                            Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
-                            _ => button,
-                        };
-                        if button.clicked() {
-                            events.push(Event::Action(id, Value::Null));
-                        }
                     }
                     if self.kind == NavKind::Fluid {
                         for (id, icon, label) in [
@@ -315,21 +295,13 @@ impl NavigatorPane {
                                 key!("action-fluid-medium-new"),
                             ),
                         ] {
-                            let state = ew_viewmodel::actions::find(id).map(|a| a.enabled_now(shell));
-                            let button = crate::components::icon_toggle(
+                            crate::components::action_button(
                                 ui,
-                                icon,
-                                strings::text(label),
-                                matches!(state, Some(Ok(()))),
-                                None,
+                                shell,
+                                id,
+                                (icon, strings::text(label)),
+                                events,
                             );
-                            let button = match state {
-                                Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
-                                _ => button,
-                            };
-                            if button.clicked() {
-                                events.push(Event::Action(id, Value::Null));
-                            }
                         }
                     }
                     // The Table toggle (`navigator.table`); the Messages pane
@@ -882,9 +854,7 @@ fn addresses_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         return;
     }
     let t = crate::theme::current(ui.ctx());
-    let label = egui::RichText::new(strings::text(key!("nav-plc-addresses")))
-        .font(crate::theme::font(&t.type_body))
-        .color(t.text_primary.color32());
+    let label = crate::components::body(&t, strings::text(key!("nav-plc-addresses")));
     let chevron = crate::components::icon_atom(
         crate::icons::IconId::chevron_down,
         t.icon_sm,
@@ -1056,14 +1026,7 @@ fn rename_error_ui(
             t.error.color32(),
             t.icon_stroke,
         );
-        ui.add(
-            egui::Label::new(
-                egui::RichText::new(message)
-                    .font(crate::theme::font(&t.type_small))
-                    .color(t.error.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::styled(message, &t.type_small, t.error)).wrap());
     });
     if let Some(p) = proposal {
         ui.horizontal(|ui| {
@@ -1586,11 +1549,10 @@ pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
     }
     ui.horizontal_wrapped(|ui| {
         let t = crate::components::tokens(ui);
-        ui.label(
-            egui::RichText::new(strings::text(key!("chips-label")))
-                .font(crate::theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::small_secondary(
+            &t,
+            strings::text(key!("chips-label")),
+        ));
         for c in chips {
             let text = c.words();
             let response = crate::components::jump_chip(ui, &text, &text);

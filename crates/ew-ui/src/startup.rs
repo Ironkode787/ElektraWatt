@@ -8,7 +8,7 @@
 //! opens), and the refusal of the last answer. The Primary takes the first focus (doc 16a §6.12); Escape is
 //! Not now (`App::route_keys`).
 
-use egui::{Id, RichText, Ui};
+use egui::{Id, Ui};
 use ew_viewmodel::dialogs::DialogAnswer;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::startup::StartupOffer;
@@ -42,9 +42,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Eve
         let t = crate::theme::current(ui.ctx());
         let several = offer.projects.len() > 1;
         for (i, p) in offer.projects.iter().enumerate() {
-            let row = RichText::new(StartupOffer::project_row(p))
-                .font(crate::theme::font(&t.type_body))
-                .color(t.text_primary.color32());
+            let row = crate::components::body(&t, StartupOffer::project_row(p));
             if several {
                 if ui.radio(choice == i + 1, row).clicked() {
                     choice = i + 1;
@@ -53,11 +51,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Eve
                 ui.label(row);
             }
             // D11, doc 05 §8.3: the project's path under its row.
-            ui.label(
-                RichText::new(p.path.to_string_lossy())
-                    .font(crate::theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            );
+            ui.label(crate::components::small_secondary(&t, p.path.to_string_lossy()));
         }
         if let Some(refusal) = &offer.refusal {
             ui.colored_label(t.error.color32(), refusal);

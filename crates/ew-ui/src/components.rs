@@ -43,6 +43,43 @@ pub(crate) fn tokens(ui: &Ui) -> std::sync::Arc<Tokens> {
     theme::current(ui.ctx())
 }
 
+/// `text` in the type token `font` and the colour token `colour`: the window's one way to style a run of text.
+pub(crate) fn styled(text: impl Into<String>, font: &theme::TypeToken, colour: Rgba) -> RichText {
+    RichText::new(text)
+        .font(theme::font(font))
+        .color(colour.color32())
+}
+
+/// The text role of a secondary line: `type.small` in `color.text.secondary`.
+pub(crate) fn small_secondary(t: &Tokens, text: impl Into<String>) -> RichText {
+    styled(text, &t.type_small, t.text_secondary)
+}
+
+/// The text role of a tertiary line (a date, a count beside a word): `type.small` in `color.text.tertiary`.
+pub(crate) fn small_tertiary(t: &Tokens, text: impl Into<String>) -> RichText {
+    styled(text, &t.type_small, t.text_tertiary)
+}
+
+/// The text role of a card's or a section's title: `type.body.strong` in `color.text.primary`.
+pub(crate) fn body_strong(t: &Tokens, text: impl Into<String>) -> RichText {
+    styled(text, &t.type_body_strong, t.text_primary)
+}
+
+/// The text role of a surface's title: `type.title` in `color.text.primary`.
+pub(crate) fn title(t: &Tokens, text: impl Into<String>) -> RichText {
+    styled(text, &t.type_title, t.text_primary)
+}
+
+/// The text role of running text: `type.body` in `color.text.primary`.
+pub(crate) fn body(t: &Tokens, text: impl Into<String>) -> RichText {
+    styled(text, &t.type_body, t.text_primary)
+}
+
+/// The text role of secondary running text: `type.body` in `color.text.secondary`.
+pub(crate) fn body_secondary(t: &Tokens, text: impl Into<String>) -> RichText {
+    styled(text, &t.type_body, t.text_secondary)
+}
+
 /// The most lines a tooltip shows; a longer text ends its last line in "…" (a finding's tooltip covered
 /// half the canvas). The whole text stays the widget's accessible description ([`Tip::tip`]).
 pub(crate) const TIP_MAX_LINES: usize = 8;
@@ -51,9 +88,7 @@ pub(crate) const TIP_MAX_LINES: usize = 8;
 /// [`TIP_MAX_LINES`] lines, the last ending in "…" when the text is longer.
 pub(crate) fn tip_galley(ui: &Ui, t: &Tokens, text: &str) -> std::sync::Arc<egui::Galley> {
     // Laid out as a label of that RichText is (style, vertical alignment), only with the line cap.
-    let rich = RichText::new(text)
-        .font(theme::font(&t.type_small))
-        .color(t.text_on_inverse.color32());
+    let rich = crate::components::styled(text, &t.type_small, t.text_on_inverse);
     let mut job = std::sync::Arc::unwrap_or_clone(egui::WidgetText::from(rich).into_layout_job(
         ui.style(),
         egui::FontSelection::Default,
@@ -371,6 +406,26 @@ pub(crate) fn icon_button(ui: &mut Ui, id: IconId, name: &str) -> Response {
 /// its selected state, as the navigators' Table toggle (doc 16a §6.21).
 pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on: Option<bool>) -> Response {
     icon_toggle_tip(ui, id, name, name, enabled, on)
+}
+
+/// An action's icon button ([`icon_toggle`] with `icon` and `label`): enabled by the action's check, greyed with its
+/// reason as the tooltip; a click gives the action without parameters.
+pub(crate) fn action_button(
+    ui: &mut Ui,
+    shell: &ShellModel,
+    action: &'static str,
+    (icon, label): (IconId, &str),
+    events: &mut Vec<Event>,
+) {
+    let state = ew_viewmodel::actions::find(action).map(|a| a.enabled_now(shell));
+    let button = icon_toggle(ui, icon, label, matches!(state, Some(Ok(()))), None);
+    let button = match state {
+        Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
+        _ => button,
+    };
+    if button.clicked() {
+        events.push(Event::Action(action, Value::Null));
+    }
 }
 
 /// [`icon_toggle`] whose tooltip is `tip` rather than its name (Back names its key, "Back (Alt+Left)").
@@ -790,19 +845,8 @@ pub(crate) fn empty_state(
                 icons::paint(ui.painter(), icon, r, t.text_tertiary.color32(), t.icon_stroke_lg);
                 ui.add_space(t.space_3);
             }
-            ui.label(
-                RichText::new(line)
-                    .font(theme::font(&t.type_body_strong))
-                    .color(t.text_primary.color32()),
-            );
-            ui.add(
-                egui::Label::new(
-                    RichText::new(sentence)
-                        .font(theme::font(&t.type_body))
-                        .color(t.text_secondary.color32()),
-                )
-                .wrap(),
-            );
+            ui.label(crate::components::body_strong(&t, line));
+            ui.add(egui::Label::new(crate::components::body_secondary(&t, sentence)).wrap());
             if let Some(label) = action {
                 ui.add_space(t.space_3);
                 clicked = Some(button(ui, Kind::Primary, label, true, 0.0));
@@ -836,6 +880,41 @@ pub(crate) fn opened<T: Clone + PartialEq + Send + Sync + 'static>(
         d.insert_temp(id, now);
         opened
     })
+}
+
+/// The frame of a raised surface (doc 16a §6.12, §6.10: a dialog, the palette, the picker, a toast):
+/// `color.surface.raised`, a `border.raised` line in `color.border.default`, `radius.lg`, `elevation.2`, and `padding`
+/// inside.
+pub(crate) fn raised_frame(t: &Tokens, padding: f32) -> egui::Frame {
+    egui::Frame::new()
+        .fill(t.surface_raised.color32())
+        .stroke(theme::stroke(t.border_raised_width, t.border_default))
+        .corner_radius(theme::radius(t.radius_lg))
+        .shadow(theme::shadow(&t.elevation_2))
+        .inner_margin(egui::Margin::same(theme::margin_px(padding)))
+}
+
+/// A labelled row of a form: `label` in the label column (`size.dialog.label` wide, `size.control` high, cut with an
+/// ellipsis when longer), `space.3`, then `field` in the rest of the row, given the label's id (the field's accessible
+/// label).
+pub(crate) fn form_row<R>(ui: &mut Ui, label: &str, field: impl FnOnce(&mut Ui, egui::Id) -> R) -> R {
+    let t = tokens(ui);
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        let label = ui
+            .allocate_ui_with_layout(
+                Vec2::new(t.size_dialog_label, t.size_control),
+                Layout::left_to_right(Align::Center),
+                |ui| {
+                    ui.set_min_size(Vec2::new(t.size_dialog_label, t.size_control));
+                    ui.add(egui::Label::new(label).truncate())
+                },
+            )
+            .inner;
+        ui.add_space(t.space_3);
+        field(ui, label.id)
+    })
+    .inner
 }
 
 /// The frame of a band across an area (doc 16a §6.11: the banner, the template band): `fill`, `space.4` by `space.2`
@@ -902,17 +981,12 @@ pub(crate) fn card_header(ui: &mut Ui, title: &str, rev: Option<u64>, status: &C
     let t = tokens(ui);
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
-        ui.label(
-            RichText::new(title)
-                .font(theme::font(&t.type_body_strong))
-                .color(t.text_primary.color32()),
-        );
+        ui.label(crate::components::body_strong(&t, title));
         if let Some(rev) = rev {
-            ui.label(
-                RichText::new(strings::format(key!("card-as-of"), &[&rev.to_string()]))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_tertiary.color32()),
-            );
+            ui.label(crate::components::small_tertiary(
+                &t,
+                strings::format(key!("card-as-of"), &[&rev.to_string()]),
+            ));
         }
         match status {
             CardStatus::Fresh => {}
@@ -1353,11 +1427,7 @@ pub(crate) fn overlay_backdrop(ctx: &egui::Context, id: egui::Id, dim: bool, eve
 pub(crate) fn overlay_title(ui: &mut Ui, title: &str, shell: &ShellModel, events: &mut Vec<Event>) {
     let t = tokens(ui);
     ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(title)
-                .font(theme::font(&t.type_title))
-                .color(t.text_primary.color32()),
-        );
+        ui.label(crate::components::title(&t, title));
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             close_button(ui, shell, events);
         });

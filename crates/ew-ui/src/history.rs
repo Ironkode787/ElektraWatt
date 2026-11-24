@@ -156,11 +156,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             return;
         }
         let small = |ui: &mut Ui, text: String| {
-            ui.label(
-                RichText::new(text)
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            );
+            ui.label(crate::components::small_secondary(&t, text));
         };
         ui.horizontal_wrapped(|ui| {
             // The pane's `space.4` gutter, as the Messages header has it.
@@ -392,13 +388,9 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
                 meta.push_str(&format!(" · {}", e.row.pages.join(", ")));
             }
             ui.add(
-                egui::Label::new(
-                    RichText::new(meta)
-                        .font(theme::font(&t.type_small))
-                        .color(t.text_tertiary.color32()),
-                )
-                .selectable(false)
-                .truncate(),
+                egui::Label::new(crate::components::small_tertiary(&t, meta))
+                    .selectable(false)
+                    .truncate(),
             );
             if !e.row.step {
                 components::status_badge(ui, Badge::NotUndoable);
@@ -416,12 +408,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
     };
     let t = theme::current(ctx);
     let title = strings::format(key!("history-changes-title"), &[&(index + 1).to_string()]);
-    let frame = egui::Frame::new()
-        .fill(t.surface_raised.color32())
-        .stroke(theme::stroke(t.border_raised_width, t.border_default))
-        .corner_radius(theme::radius(t.radius_lg))
-        .shadow(theme::shadow(&t.elevation_2))
-        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_5)));
+    let frame = crate::components::raised_frame(&t, t.space_5);
     let lines: Vec<String> = records
         .iter()
         .take(MAX_CHANGES)
@@ -471,14 +458,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
                     for line in lines {
                         ui.horizontal(|ui| {
                             ui.set_min_height(t.size_row);
-                            ui.add(
-                                egui::Label::new(
-                                    RichText::new(line)
-                                        .font(theme::font(&t.type_body))
-                                        .color(t.text_primary.color32()),
-                                )
-                                .truncate(),
-                            );
+                            ui.add(egui::Label::new(crate::components::body(&t, line)).truncate());
                         });
                     }
                 });

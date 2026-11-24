@@ -241,11 +241,7 @@ pub(crate) fn chooser(
     }
     if let Some(detail) = act.and_then(|i| shell.part_offer_detail(i)) {
         ui.add_space(t.space_2);
-        ui.label(
-            RichText::new(detail)
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        );
+        ui.label(crate::components::small_secondary(&t, detail));
     }
     // FT-1766: a part the lists do not have is made here, and the dialog comes back on it. FT-1878: for devices, a part
     // whose type is not known yet is named in a few words and given as a placeholder; while its field is open, Enter
@@ -329,11 +325,10 @@ fn placeholder(ui: &mut Ui, text: &mut String, opened: bool, enter: bool, events
         field.request_focus();
     }
     // In the style of the active row's detail line above.
-    ui.label(
-        RichText::new(strings::text(key!("part-placeholder-note")))
-            .font(theme::font(&t.type_small))
-            .color(t.text_secondary.color32()),
-    );
+    ui.label(crate::components::small_secondary(
+        &t,
+        strings::text(key!("part-placeholder-note")),
+    ));
     let words = text.trim();
     let used = crate::components::button(
         ui,
@@ -375,20 +370,7 @@ pub(crate) fn elide_to(text: &str, room: f32, measure: impl Fn(&str) -> f32) -> 
 /// word; picking one sends its value (`part.field {field: "kind", value: "end_bracket"}`).
 fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
     use ew_viewmodel::shell::part_dialog::{PART_KINDS, part_kind_word};
-    let t = theme::current(ui.ctx());
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        let label = ui
-            .allocate_ui_with_layout(
-                vec2(t.size_dialog_label, t.size_control),
-                egui::Layout::left_to_right(egui::Align::Center),
-                |ui| {
-                    ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
-                    ui.add(egui::Label::new(label_text).truncate())
-                },
-            )
-            .inner;
-        ui.add_space(t.space_3);
+    crate::components::form_row(ui, label_text, |ui, label| {
         let mut picked = None;
         crate::components::choice(
             ui,
@@ -404,7 +386,7 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
             },
         )
         .response
-        .labelled_by(label.id);
+        .labelled_by(label);
         if let Some(k) = picked.filter(|k| *k != value) {
             events.push(Event::Action(
                 "part.field",
@@ -431,19 +413,7 @@ fn labelled_field(
 ) -> bool {
     let t = theme::current(ui.ctx());
     let mut enter = false;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        let label = ui
-            .allocate_ui_with_layout(
-                vec2(t.size_dialog_label, t.size_control),
-                egui::Layout::left_to_right(egui::Align::Center),
-                |ui| {
-                    ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
-                    ui.add(egui::Label::new(label_text).truncate())
-                },
-            )
-            .inner;
-        ui.add_space(t.space_3);
+    crate::components::form_row(ui, label_text, |ui, label| {
         let mut text = value.to_owned();
         let edit = ui
             .add(
@@ -451,7 +421,7 @@ fn labelled_field(
                     .desired_width(ui.available_width())
                     .min_size(vec2(0.0, t.size_control)),
             )
-            .labelled_by(label.id);
+            .labelled_by(label);
         // The field carries its label as its own name too, so that a visual run finds it by the words it shows.
         edit.widget_info(|| named_edit(value, &text, label_text));
         if focus {
@@ -567,14 +537,7 @@ fn size_fields(
 ) -> bool {
     let mut save = false;
     let hint = |ui: &mut Ui, k: strings::Key<'static>| {
-        ui.add(
-            egui::Label::new(
-                RichText::new(strings::text(k))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(k))).wrap());
     };
     for f in ew_viewmodel::ew_api::SIZE_FIELDS {
         let label = strings::text(strings::Key::run_time(&format!(
@@ -615,7 +578,6 @@ fn size_fields(
 
 /// The Mounting choice of Size and mounting: not given, or a mounting word in words.
 fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
-    let t = theme::current(ui.ctx());
     let words = |w: &str| {
         if w.is_empty() {
             strings::text(key!("part-size-mount-none")).to_owned()
@@ -623,19 +585,7 @@ fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Even
             strings::choice_text(w)
         }
     };
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        let label = ui
-            .allocate_ui_with_layout(
-                vec2(t.size_dialog_label, t.size_control),
-                egui::Layout::left_to_right(egui::Align::Center),
-                |ui| {
-                    ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
-                    ui.add(egui::Label::new(label_text).truncate())
-                },
-            )
-            .inner;
-        ui.add_space(t.space_3);
+    crate::components::form_row(ui, label_text, |ui, label| {
         let mut picked = None;
         let options: Vec<String> = std::iter::once(String::new())
             .chain(ew_viewmodel::ew_api::mount_words())
@@ -654,7 +604,7 @@ fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Even
             },
         )
         .response
-        .labelled_by(label.id);
+        .labelled_by(label);
         if let Some(w) = picked.filter(|w| w != value) {
             events.push(Event::Action(
                 "part.field",
@@ -814,15 +764,14 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
     if let Some(from) = d.pins_from() {
         let names: Vec<&str> = d.pins.iter().map(|p| p.name.as_str()).collect();
         ui.add(
-            egui::Label::new(
-                RichText::new(strings::text(match from {
+            egui::Label::new(crate::components::small_secondary(
+                &t,
+                strings::text(match from {
                     PinsFrom::Channels => key!("box-pins-from-channels"),
                     PinsFrom::Ports => key!("box-pins-from-ports"),
                     PinsFrom::Symbol => key!("box-pins-from-symbol"),
-                }))
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-            )
+                }),
+            ))
             .wrap(),
         );
         if !names.is_empty() {
@@ -904,18 +853,7 @@ fn labelled_combo(
     word: impl Fn(&str) -> String,
     events: &mut Vec<Event>,
 ) {
-    let t = theme::current(ui.ctx());
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.allocate_ui_with_layout(
-            vec2(t.size_dialog_label, t.size_control),
-            egui::Layout::left_to_right(egui::Align::Center),
-            |ui| {
-                ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
-                ui.add(egui::Label::new(label_text).truncate())
-            },
-        );
-        ui.add_space(t.space_3);
+    crate::components::form_row(ui, label_text, |ui, _| {
         let mut picked = None;
         let combo = crate::components::choice(
             ui,
@@ -943,14 +881,7 @@ fn note(ui: &mut Ui, text: &str) {
     let t = theme::current(ui.ctx());
     ui.horizontal(|ui| {
         ui.add_space(t.size_dialog_label + t.space_3);
-        ui.add(
-            egui::Label::new(
-                RichText::new(text)
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
-            .wrap(),
-        );
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
     });
 }
 
@@ -964,11 +895,10 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     let mut save = false;
     ui.label(RichText::new(strings::text(key!("part-section-plc"))).font(theme::font(&t.type_body_strong)));
     ui.add(
-        egui::Label::new(
-            RichText::new(strings::text(key!("part-section-plc-hint")))
-                .font(theme::font(&t.type_small))
-                .color(t.text_secondary.color32()),
-        )
+        egui::Label::new(crate::components::small_secondary(
+            &t,
+            strings::text(key!("part-section-plc-hint")),
+        ))
         .wrap(),
     );
     let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-plc-{m}"))).to_owned();
@@ -1032,12 +962,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
                     None => {
                         ui.add_space(t.size_dialog_label + t.space_3);
                         ui.add(
-                            egui::Label::new(
-                                RichText::new(note_text)
-                                    .font(theme::font(&t.type_small))
-                                    .color(t.text_secondary.color32()),
-                            )
-                            .truncate(),
+                            egui::Label::new(crate::components::small_secondary(&t, note_text)).truncate(),
                         );
                     }
                 }
@@ -1227,11 +1152,7 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
             for m in ["core", "colour"] {
                 ui.add_sized(
                     vec2(width, t.size_row),
-                    egui::Label::new(
-                        RichText::new(label(m))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    ),
+                    egui::Label::new(crate::components::small_secondary(&t, label(m))),
                 );
             }
         });
@@ -1382,11 +1303,10 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
     ui.label(RichText::new(strings::text(key!("part-section-bus"))).font(theme::font(&t.type_body_strong)));
     if d.new || d.own {
         ui.add(
-            egui::Label::new(
-                RichText::new(strings::text(key!("part-section-bus-hint")))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_secondary.color32()),
-            )
+            egui::Label::new(crate::components::small_secondary(
+                &t,
+                strings::text(key!("part-section-bus-hint")),
+            ))
             .wrap(),
         );
     }
@@ -1406,12 +1326,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
             for m in BUS_MEMBERS {
                 ui.add_sized(
                     vec2(cell, t.size_row),
-                    egui::Label::new(
-                        RichText::new(label(m))
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    )
-                    .truncate(),
+                    egui::Label::new(crate::components::small_secondary(&t, label(m))).truncate(),
                 );
             }
         });

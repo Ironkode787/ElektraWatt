@@ -58,20 +58,18 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
 fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     let t = crate::components::tokens(ui);
     ui.spacing_mut().item_spacing.y = t.space_3;
-    ui.label(
-        RichText::new(strings::text(key!("parts-map-title")))
-            .font(crate::theme::font(&t.type_title))
-            .color(t.text_primary.color32()),
-    );
+    ui.label(crate::components::title(
+        &t,
+        strings::text(key!("parts-map-title")),
+    ));
     let intro = match map.kind {
         MapKind::Parts => key!("parts-map-intro"),
         MapKind::Report(_) => key!("eplan-map-intro"),
     };
-    ui.label(
-        RichText::new(strings::format(intro, &[&map.file]))
-            .font(crate::theme::font(&t.type_body))
-            .color(t.text_secondary.color32()),
-    );
+    ui.label(crate::components::body_secondary(
+        &t,
+        strings::format(intro, &[&map.file]),
+    ));
     if let MapKind::Report(target) = map.kind {
         report_row(ui, target, events);
     }
@@ -102,11 +100,11 @@ fn report_row(ui: &mut egui::Ui, target: ReportTarget, events: &mut Vec<Event>) 
                 Layout::left_to_right(Align::Center),
                 |ui| {
                     ui.set_min_width(t.size_dialog_label);
-                    ui.label(
-                        RichText::new(strings::text(key!("eplan-map-list")))
-                            .font(crate::theme::font(&t.type_label))
-                            .color(t.text_secondary.color32()),
-                    )
+                    ui.label(crate::components::styled(
+                        strings::text(key!("eplan-map-list")),
+                        &t.type_label,
+                        t.text_secondary,
+                    ))
                 },
             )
             .inner;
@@ -142,11 +140,11 @@ fn source_row(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 Layout::left_to_right(Align::Center),
                 |ui| {
                     ui.set_min_width(t.size_dialog_label);
-                    ui.label(
-                        RichText::new(strings::text(key!("parts-map-source")))
-                            .font(crate::theme::font(&t.type_label))
-                            .color(t.text_secondary.color32()),
-                    )
+                    ui.label(crate::components::styled(
+                        strings::text(key!("parts-map-source")),
+                        &t.type_label,
+                        t.text_secondary,
+                    ))
                 },
             )
             .inner;
@@ -235,11 +233,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                     ui.label(small(strings::text(key!("parts-map-member")), true));
                     ui.end_row();
                     for (i, c) in map.columns.iter().enumerate() {
-                        ui.label(
-                            RichText::new(&c.header)
-                                .font(crate::theme::font(&t.type_body))
-                                .color(t.text_primary.color32()),
-                        );
+                        ui.label(crate::components::body(&t, &c.header));
                         ui.allocate_ui_with_layout(
                             Vec2::new(sample, t.size_control),
                             Layout::left_to_right(Align::Center),
