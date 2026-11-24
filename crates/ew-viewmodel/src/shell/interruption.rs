@@ -71,17 +71,6 @@ pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     a.len().cmp(&b.len()).then_with(|| a.cmp(b))
 }
 
-impl IpDir {
-    /// The direction of its word.
-    fn of_word(w: &str) -> IpDir {
-        match w {
-            "target" => IpDir::Target,
-            "undirected" => IpDir::Undirected,
-            _ => IpDir::Source,
-        }
-    }
-}
-
 /// The sort key of an arranged IP: its potential name, its name, its function ID and its position (y, x).
 type ArrangeKey = (Option<String>, String, String, (i64, i64));
 
@@ -303,7 +292,7 @@ impl ShellModel {
                 if outcome == Outcome::Done {
                     self.tools.ip_memory = IpMemory {
                         last_name: Some(name),
-                        last_direction: IpDir::of_word(direction),
+                        last_direction: IpDir::from_word(direction).unwrap_or_default(),
                         typed: None,
                     };
                 }

@@ -123,6 +123,9 @@ pub enum IpDir {
 }
 
 impl IpDir {
+    /// Every direction.
+    pub const ALL: [IpDir; 3] = [IpDir::Source, IpDir::Target, IpDir::Undirected];
+
     /// The word of `ip.place`'s `direction`, the transcript and the describe text.
     pub fn word(self) -> &'static str {
         match self {
@@ -134,12 +137,7 @@ impl IpDir {
 
     /// The direction of its word (`source`, `target`, `undirected`).
     pub fn from_word(w: &str) -> Option<IpDir> {
-        match w {
-            "source" => Some(IpDir::Source),
-            "target" => Some(IpDir::Target),
-            "undirected" => Some(IpDir::Undirected),
-            _ => None,
-        }
+        IpDir::ALL.into_iter().find(|d| d.word() == w)
     }
 
     /// D's next direction: source and target, to and fro; an undirected point becomes a source. (D went on to
