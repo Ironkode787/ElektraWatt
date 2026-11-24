@@ -2175,12 +2175,6 @@ fn shipped_dir() -> PathBuf {
         .join("ew-starter-parts.ewlib")
 }
 
-// The test boundary: `EW_BLESS=1` asks the generator to rewrite the shipped files.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// Every file of a library directory by its relative path (`/`-separated), with `\r\n` read as `\n`.
 fn files_of(dir: &Path) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
@@ -2234,7 +2228,7 @@ fn the_shipped_library_is_the_generated_one() {
     let generated = files_of(&dir);
     let _ = std::fs::remove_dir_all(&root);
     let shipped = shipped_dir();
-    if bless() {
+    if ew_testdir::bless() {
         for (p, _) in files_of(&shipped) {
             std::fs::remove_file(shipped.join(&p)).unwrap();
         }

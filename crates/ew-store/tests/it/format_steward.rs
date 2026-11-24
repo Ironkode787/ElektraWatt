@@ -226,7 +226,7 @@ fn the_corpus_job_saves_each_fixture_to_its_expected_files() {
                 .unwrap_or_else(|e| panic!("{} saves: {e}", project.display()));
             store.close();
             // `EW_BLESS=1` writes the save as the expected folder; the fixture itself never changes.
-            if std::env::var_os("EW_BLESS").is_some() {
+            if ew_testdir::bless() {
                 let expected = Path::new(&expected);
                 let _ = std::fs::remove_dir_all(expected);
                 for (rel, bytes) in project_files(&vfs, &root) {

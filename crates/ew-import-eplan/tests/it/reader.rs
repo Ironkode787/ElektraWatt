@@ -602,12 +602,6 @@ fn lzma_seven() -> (Vec<u8>, usize) {
     (seven_of(&packed, &e), member)
 }
 
-// Allowed: the program boundary of a test, read once; the value never reaches a verdict.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// M25-p4#4: an LZMA2 member under an LZMA-encoded header reads through both decoders (EW's header walk decodes the
 /// header, sevenz-rust2 the header again and the member), and a damaged byte in either stream is refused after its
 /// decoder ran. The archive is the `symbol_authoring` fuzz seed `lzma2-7z.edz` (`EW_BLESS=1` writes it).
@@ -638,15 +632,7 @@ fn seven_zip_lzma2_members_read_under_an_lzma_encoded_header() {
         );
     }
     let seed = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lzma2-7z.edz");
-    if bless() {
-        std::fs::write(&seed, &archive).unwrap();
-    }
-    let held =
-        std::fs::read(&seed).unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 writes it)", seed.display()));
-    assert!(
-        held == archive,
-        "the fuzz seed is not this archive (EW_BLESS=1 writes it)"
-    );
+    ew_testdir::compare_or_bless(&seed, &archive);
 }
 
 /// M25-p2#8 and SM25#4: a UTF-16 XML reads as XML, and a `.pxf` member or file is read as PXF.

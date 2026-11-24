@@ -9,7 +9,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use crate::common::{SAMPLE, Tmp, bless, copy_dir};
+use crate::common::{SAMPLE, Tmp, copy_dir};
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::{EntropyError, IdSource, Session, UnixTime};
 use ew_viewmodel::script::{self, NoExtension};
@@ -126,7 +126,7 @@ fn write_sample(made: &Path) {
 fn the_committed_sample_is_what_its_script_makes() {
     let tmp = Tmp::new("sample-made");
     let made = make(&tmp);
-    if bless() {
+    if ew_testdir::bless() {
         write_sample(&made);
     }
     let (made, committed) = (files(&made), files(Path::new(SAMPLE)));

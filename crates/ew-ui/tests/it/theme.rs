@@ -30,13 +30,6 @@ fn all() -> Vec<Tokens> {
     out
 }
 
-/// Whether the test rewrites its expected file (`EW_BLESS=1`).
-// Program boundary of the test binary: the bless switch; the dump does not depend on it.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 // ---------------------------------------------------------------------------------------------------------------
 // DL1
 
@@ -175,18 +168,7 @@ fn every_alias_exists_in_every_theme_and_density() {
 fn the_dump_equals_the_blessed_file_and_is_deterministic() {
     let a = dump();
     assert_eq!(a, dump(), "two runs byte-identical");
-    if bless() {
-        std::fs::create_dir_all(Path::new(EXPECTED).parent().unwrap()).unwrap();
-        std::fs::write(EXPECTED, &a).unwrap();
-        return;
-    }
-    let expected = std::fs::read_to_string(EXPECTED)
-        .unwrap_or_default()
-        .replace("\r\n", "\n");
-    assert!(
-        expected == a,
-        "tests/expected/tokens.txt differs; re-bless with EW_BLESS=1 cargo nextest run -p ew-ui --test it -E 'test(/^theme::/)'"
-    );
+    ew_testdir::compare_or_bless(Path::new(EXPECTED), &a);
 }
 
 #[test]

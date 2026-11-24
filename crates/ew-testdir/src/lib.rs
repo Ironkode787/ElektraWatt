@@ -3,7 +3,8 @@
 
 //! The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test
 //! ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and
-//! the starter content in the source tree, and a font file of any size for a project's typeface ([`font_of_size`]).
+//! the starter content in the source tree, the comparison of an expected file with its re-bless ([`compare_or_bless`],
+//! [`bless`]), and a font file of any size for a project's typeface ([`font_of_size`]).
 //! A dev-only helper crate without dependencies, so any crate may take it as
 //! a dev-dependency. How each test binary opens the sample (in place, read-only, or a copy) is in its own support.
 
@@ -92,6 +93,47 @@ pub fn copy_dir(from: &Path, to: &Path) {
             copy_dir(&source, &target);
         } else if let Err(e) = std::fs::copy(&source, &target) {
             fail("copy", &source, e);
+        }
+    }
+}
+
+/// Whether the expected files are rewritten instead of compared: `EW_BLESS=1`, the one switch of the tests that hold
+/// an expected file.
+// Allowed: the program boundary of a test, read where it is asked; the value never reaches a result.
+#[allow(clippy::disallowed_methods)]
+#[must_use]
+pub fn bless() -> bool {
+    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
+/// Compares `actual` with the expected file `path`, byte for byte; under [`bless`] writes it instead, its folder made
+/// first.
+///
+/// # Panics
+///
+/// When the file cannot be read or written, or differs: the message names the file and `EW_BLESS=1`, and a text shows
+/// both sides.
+pub fn compare_or_bless(path: &Path, actual: impl AsRef<[u8]>) {
+    let actual = actual.as_ref();
+    if bless() {
+        if let Some(parent) = path.parent() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                panic!("cannot create {}: {e}", parent.display());
+            }
+        }
+        if let Err(e) = std::fs::write(path, actual) {
+            panic!("cannot write {}: {e}", path.display());
+        }
+        return;
+    }
+    let expected =
+        std::fs::read(path).unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 writes it)", path.display()));
+    if expected != actual {
+        match (std::str::from_utf8(&expected), std::str::from_utf8(actual)) {
+            (Ok(expected), Ok(actual)) => {
+                assert_eq!(actual, expected, "{} differs (EW_BLESS=1 rewrites it)", path.display());
+            }
+            _ => panic!("{} differs (EW_BLESS=1 rewrites it)", path.display()),
         }
     }
 }

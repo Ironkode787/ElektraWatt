@@ -816,13 +816,6 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
 // ---------------------------------------------------------------------------------------------------------
 // The two-function part fixtures (`crates/ew-api/tests/expected/`, read by the ew-api and ew-viewmodel tests)
 
-/// Whether `EW_BLESS=1` asks the fixture test to rewrite its expected files in this build's form.
-// Allowed: the program boundary of a test, read once; the value never reaches a result.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The fixture `name` under `crates/ew-api/tests/expected/` as a part copy of the test library holding `item`, after
 /// checking that it is in this build's form byte for byte (`EW_BLESS=1` rewrites it so) and that its hash is its
 /// item's.
@@ -837,15 +830,7 @@ fn fixture_part(name: &str, item: Uuid) -> ew_schema::LibCopy<Part> {
         "{}\n",
         serde_json::to_string_pretty(&doc).expect("a serialisable library document")
     );
-    if bless() {
-        std::fs::write(&path, &text).expect("the fixture");
-    }
-    assert_eq!(
-        committed,
-        text,
-        "{} is not in this build's form byte for byte; EW_BLESS=1 rewrites it",
-        path.display()
-    );
+    ew_testdir::compare_or_bless(&path, &text);
     let LibDocument::Part(part) = doc else {
         panic!("{} holds a part", path.display());
     };

@@ -24,12 +24,6 @@ use crate::support::{SAMPLE, Tmp, args, stderr, stdout};
 /// The expected files of the `ew` tests.
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
 
-// The program boundary of a test: `EW_BLESS=1` rewrites the expected files instead of comparing them.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// `text` with every UUID written `<id n>`, numbered by order of first appearance.
 fn numbered_ids(text: &str) -> String {
     let uuid = |s: &[u8]| {
@@ -71,18 +65,7 @@ fn numbered_ids(text: &str) -> String {
 pub(crate) fn expected_file(rel: &str, text: &str) {
     let path = Path::new(EXPECTED).join(rel);
     let text = numbered_ids(text);
-    if bless() {
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, &text).unwrap();
-        return;
-    }
-    let committed = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
-    assert!(
-        committed == text,
-        "{} differs from the export (EW_BLESS=1 rewrites it)",
-        path.display()
-    );
+    ew_testdir::compare_or_bless(&path, &text);
 }
 
 /// The ID of the sample's report block with this first folio (`report-blocks.jsonl`).

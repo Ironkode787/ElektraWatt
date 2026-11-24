@@ -36,12 +36,6 @@ fn hostile() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("hostile")
 }
 
-// Allowed: the program boundary of a test, read once; the value never reaches a verdict.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The files of the class `class`: the committed ones (the generated binaries compared with the generator, which
 /// `EW_BLESS=1` writes) and the ones made at each run, by name.
 fn files(class: &str) -> BTreeMap<String, Vec<u8>> {
@@ -49,16 +43,7 @@ fn files(class: &str) -> BTreeMap<String, Vec<u8>> {
     for (path, bytes) in generate::committed() {
         if path.starts_with(&prefix) {
             let on_disk = hostile().join(path);
-            if bless() {
-                std::fs::create_dir_all(on_disk.parent().unwrap()).unwrap();
-                std::fs::write(&on_disk, &bytes).unwrap();
-            }
-            let held =
-                std::fs::read(&on_disk).unwrap_or_else(|e| panic!("{path}: {e} (EW_BLESS=1 writes it)"));
-            assert!(
-                held == bytes,
-                "{path} is not what the generator makes (EW_BLESS=1 writes it)"
-            );
+            ew_testdir::compare_or_bless(&on_disk, &bytes);
         }
     }
     let mut out: BTreeMap<String, Vec<u8>> = std::fs::read_dir(hostile().join(class))

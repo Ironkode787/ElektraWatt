@@ -354,12 +354,6 @@ fn a_part_without_number_or_manufacturer_is_left_to_the_placer() {
     assert_eq!(read.drafts[1].manufacturer, "");
 }
 
-// Allowed: the program boundary of a test, read once; the value never reaches a verdict.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The synthetic EDZ the other crates' tests read (`ew-api`, `ew`): one part in a 7-Zip and in a ZIP container,
 /// made here from [`PSU`] (`EW_BLESS=1` writes them).
 #[test]
@@ -376,7 +370,7 @@ fn the_synthetic_edz_fixtures_are_current() {
         ),
     ] {
         let path = dir.join(name);
-        if bless() {
+        if ew_testdir::bless() {
             std::fs::write(&path, &bytes).unwrap();
         }
         // The committed archive holds this part; its bytes are the compressor's business, not the test's.

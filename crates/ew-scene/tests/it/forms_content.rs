@@ -546,16 +546,9 @@ fn cover_text() -> String {
 #[test]
 fn the_cover_frame_is_the_generated_one() {
     let text = cover_text();
-    if std::env::var_os("EW_BLESS").is_some_and(|v| v == "1") {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../content/forms/ew.frame.qet-a4-landscape-cover.json");
-        std::fs::write(path, text.as_bytes()).unwrap();
-        return;
-    }
-    assert!(
-        FRAME_COVER == text,
-        "content/forms/ew.frame.qet-a4-landscape-cover.json differs from the generated frame (EW_BLESS=1 rewrites it)"
-    );
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../content/forms/ew.frame.qet-a4-landscape-cover.json");
+    ew_testdir::compare_or_bless(&path, &text);
 }
 
 /// Every cell lies inside the sheet, uses a known style, has balanced braces and does not overlap another

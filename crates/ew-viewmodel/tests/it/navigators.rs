@@ -80,7 +80,7 @@ fn the_pages_lines_are_the_as_built_lines() {
     done(&mut shell, "pages.row", json!({"step": 1}));
     take(&shell, "103 shown, cursor moved down");
     let path = Path::new(EXPECTED).join("navigator_pages.txt");
-    if common::bless() {
+    if ew_testdir::bless() {
         std::fs::write(&path, &text).unwrap();
     }
     let expected = std::fs::read_to_string(&path).unwrap().replace("\r\n", "\n");

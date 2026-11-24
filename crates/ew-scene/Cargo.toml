@@ -41,6 +41,8 @@ ew-hack = { version = "0.3.5", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
+# The expected files and their re-bless (dev-only crate).
+ew-testdir = { path = "../ew-testdir" }
 sha2 = { workspace = true }
 insta = { version = "1.49.0", default-features = false }
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

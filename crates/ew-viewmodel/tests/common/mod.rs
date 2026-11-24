@@ -80,13 +80,6 @@ impl Drop for Tmp {
     }
 }
 
-/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files.
-// Allowed: the program boundary of a test, read once; the value never reaches a result.
-#[allow(clippy::disallowed_methods)]
-pub fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// Gives the shell a job waker that signals the returned channel; set before a job starts, it lets a test block where
 /// the window would be woken.
 pub fn job_wakes(shell: &mut ShellModel) -> mpsc::Receiver<()> {

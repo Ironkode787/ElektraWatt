@@ -195,12 +195,6 @@ fn highlight(shell: &mut ShellModel, names: &[&str]) {
     }
 }
 
-// Program boundary of the test binary: the bless switch of the repository's tests (`EW_BLESS=1`).
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 #[test]
 fn the_highlight_renders_under_each_simulation_are_written_for_review() {
     let dir = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/canvas/cvd"));
@@ -240,7 +234,7 @@ fn the_highlight_renders_under_each_simulation_are_written_for_review() {
             "{folio} {}: the hues change",
             sim.word()
         );
-        if bless() {
+        if ew_testdir::bless() {
             std::fs::create_dir_all(&dir).unwrap();
             let path = dir.join(format!("{folio}-{}.png", sim.word()));
             std::fs::write(&path, ew_render_cpu::encode_png(&seen, Some(150))).unwrap();

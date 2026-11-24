@@ -149,12 +149,6 @@ fn overlay_with(
     })
 }
 
-// Program boundary of the test binary: the bless switch of the repository's tests (`EW_BLESS=1`).
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 fn expected(name: &str) -> PathBuf {
     PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/canvas")).join(name)
 }
@@ -186,7 +180,7 @@ fn decode(bytes: &[u8]) -> RgbaImage {
 /// OV5: compares `image` with the blessed `name` (or blesses it).
 fn gate(name: &str, image: &RgbaImage) {
     let path = expected(name);
-    if bless() {
+    if ew_testdir::bless() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, ew_render_cpu::encode_png(image, Some(96))).unwrap();
         return;

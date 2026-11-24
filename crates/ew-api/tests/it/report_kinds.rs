@@ -48,13 +48,6 @@ fn block_of(q: &Q, folio: u32) -> ReportBlock {
         .unwrap_or_else(|| panic!("no block of {folio}"))
 }
 
-/// Whether `EW_BLESS=1` asks for the committed files to be rewritten.
-// The flag only chooses whether the committed files are rewritten; the compared results never depend on it.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 fn export(q: &Q, kind: &str) -> ew_api::output::RowsCsv {
     row_export(q, &RowExport::Kind(kind.to_owned()), None).unwrap_or_else(|e| panic!("{kind}: {e}"))
 }
@@ -110,13 +103,7 @@ fn the_kind_csvs_equal_the_export_by_kind() {
     for (kind, out) in &derived {
         assert_eq!(export(&q, kind).csv, out.csv, "{kind}: twice-run equal");
         let path = expected_csv(kind);
-        if bless() {
-            std::fs::write(&path, &out.csv).unwrap();
-            continue;
-        }
-        let committed = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 writes it)", path.display()));
-        assert_eq!(out.csv, committed, "{kind} (EW_BLESS=1 rewrites it)");
+        ew_testdir::compare_or_bless(&path, &out.csv);
     }
 }
 

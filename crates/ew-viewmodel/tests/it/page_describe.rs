@@ -10,7 +10,7 @@ use crate::common;
 
 use std::path::PathBuf;
 
-use common::{Tmp, bless, done, refused};
+use common::{Tmp, done, refused};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
@@ -39,7 +39,7 @@ fn the_texts_of_folios_101_to_103_equal_the_expected_files() {
         let first = text.lines().next().unwrap();
         assert!(first.starts_with(&format!("page \"{folio}\" \"")), "{first}");
         let path = expected_path(folio);
-        if bless() {
+        if ew_testdir::bless() {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, format!("{text}\n")).unwrap();
         }

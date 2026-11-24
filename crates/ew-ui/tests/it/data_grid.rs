@@ -65,12 +65,6 @@ fn strips_in(tmp: &Tmp, density: Option<&str>) -> Harness<'static, App> {
     h
 }
 
-// Program boundary of the test binary: the bless switch of the repository's tests (`EW_BLESS=1`).
-#[expect(clippy::disallowed_methods, reason = "the test binary's bless switch")]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// One input of the dispatch log.
 enum Input {
     Key(Modifiers, Key),
@@ -272,13 +266,7 @@ fn every_key_dispatches_the_as_built_actions() {
     }
     let log = ids_numbered(&log);
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/table_keys.txt");
-    if bless() {
-        std::fs::write(&path, &log).unwrap();
-    }
-    let expected = std::fs::read_to_string(&path)
-        .unwrap_or_else(|_| panic!("{} is blessed (EW_BLESS=1)", path.display()))
-        .replace("\r\n", "\n");
-    assert_eq!(log, expected, "the grid's dispatch log");
+    ew_testdir::compare_or_bless(&path, &log);
     h.state_mut().shell_mut().shutdown();
 }
 

@@ -511,10 +511,6 @@ fn expected_path() -> PathBuf {
     repo().join("crates/ew-api/tests/qet_import/expected_diff.txt")
 }
 
-fn blessing() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The differing lines of two texts, `-` for expected and `+` for actual, at most 60 of them.
 fn line_diff(expected: &str, actual: &str) -> String {
     let (e, a): (Vec<&str>, Vec<&str>) = (expected.lines().collect(), actual.lines().collect());
@@ -551,7 +547,7 @@ fn check_or_bless(listing: &str) {
     let text = format!("{SPDX_HEADER}{listing}");
     let text = text.as_str();
     let path = expected_path();
-    if blessing() {
+    if ew_testdir::bless() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, text).unwrap();
         return;

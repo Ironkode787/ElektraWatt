@@ -35,3 +35,5 @@ lzma-rust2 = { version = "=0.23.0", default-features = false, features = ["std",
 
 [dev-dependencies]
 automod.workspace = true
+# The expected files and their re-bless (dev-only crate).
+ew-testdir = { path = "../ew-testdir" }

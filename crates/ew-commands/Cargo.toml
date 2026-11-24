@@ -67,4 +67,6 @@ automod.workspace = true
 ew-commands = { path = ".", features = ["testkit"] }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }
+# The expected files and their re-bless (dev-only crate).
+ew-testdir = { path = "../ew-testdir" }
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

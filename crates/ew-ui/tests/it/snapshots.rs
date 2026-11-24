@@ -57,13 +57,6 @@ fn out_dir() -> PathBuf {
     )
 }
 
-/// Whether this run writes the blessed images.
-// Program boundary of the test binary: the bless switch of the repository's tests (`EW_BLESS=1`).
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 fn device() -> ew_render2d::gpu::HeadlessDevice {
     offscreen::device()
         .expect("no adapter: DX12 WARP on Windows or Mesa's lavapipe on Linux at least must be found")
@@ -86,7 +79,7 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
     } else {
         shared.clone()
     };
-    if bless() {
+    if ew_testdir::bless() {
         if cfg!(target_os = "linux") {
             let differs = offscreen::read_png(&shared).is_none_or(|old| {
                 offscreen::compare(&old, image)

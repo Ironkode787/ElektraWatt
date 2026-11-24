@@ -37,12 +37,6 @@ impl ew_render_cpu::FontResolver for NoFonts {
     }
 }
 
-// Program boundary of the test binary: the bless switch of the repository's tests (`EW_BLESS=1`).
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The icon rendered at `side` × `side` pixels (one pixel 0.1 mm at 254 dpi), as the check renders it.
 fn render_image(side: u32) -> ew_render_cpu::RgbaImage {
     let svg = std::fs::read(SVG).expect("the icon's SVG");
@@ -112,15 +106,7 @@ fn render_ico() -> Vec<u8> {
 #[test]
 fn the_application_icon_png_is_the_rendering_of_its_svg() {
     let png = render();
-    if bless() {
-        std::fs::write(PNG, &png).expect("write the icon's PNG");
-        return;
-    }
-    let committed = std::fs::read(PNG).expect("the icon's PNG");
-    assert!(
-        committed == png,
-        "assets/icons/app/elektrawatt.png is not the rendering of elektrawatt.svg: run this test with EW_BLESS=1"
-    );
+    ew_testdir::compare_or_bless(std::path::Path::new(PNG), &png);
 }
 
 /// FT-1710: the program's Windows icon (`elektrawatt.ico`, which `build.rs` embeds in `elektrawatt.exe` and the setup
@@ -128,13 +114,5 @@ fn the_application_icon_png_is_the_rendering_of_its_svg() {
 #[test]
 fn the_windows_icon_is_the_rendering_of_the_same_svg() {
     let ico = render_ico();
-    if bless() {
-        std::fs::write(ICO, &ico).expect("write the icon's ICO");
-        return;
-    }
-    let committed = std::fs::read(ICO).expect("the icon's ICO");
-    assert!(
-        committed == ico,
-        "assets/icons/app/elektrawatt.ico is not the rendering of elektrawatt.svg: run this test with EW_BLESS=1"
-    );
+    ew_testdir::compare_or_bless(std::path::Path::new(ICO), &ico);
 }

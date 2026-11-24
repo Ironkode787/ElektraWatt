@@ -21,13 +21,6 @@ fn dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/plc-profiles")
 }
 
-// The test boundary: `EW_BLESS=1` asks the test to rewrite the shipped files.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    // The bless switch of a test: it chooses whether the test rewrites the shipped files, never a result.
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The canonical text of a profile file: the item ID `v5(starter, meta.key)`, the copy ID, the hash of the item.
 fn canonical(text: &str) -> String {
     let LibDocument::PlcProfile(mut c) = LibDocument::from_json(text).expect("a library document") else {
@@ -57,7 +50,7 @@ fn the_profile_files_are_canonical() {
     for path in names {
         let mut text = std::fs::read_to_string(&path).unwrap().replace("\r\n", "\n");
         let want = canonical(&text);
-        if bless() {
+        if ew_testdir::bless() {
             std::fs::write(&path, &want).unwrap();
             text.clone_from(&want);
         }

@@ -180,12 +180,6 @@ fn build_release_min(dir: &Path, state: &Path) {
     s.close();
 }
 
-// Allowed: the program boundary of a test, read once; the value never reaches a result.
-#[allow(clippy::disallowed_methods)]
-fn bless() -> bool {
-    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
-}
-
 /// The fixture is what [`build_release_min`] builds (the manifest compared without its generator); `EW_BLESS=1`
 /// writes it.
 #[test]
@@ -194,7 +188,7 @@ fn the_release_fixture_is_built_by_its_helper() {
     let state = ew_testdir::Tmp::new("ew-release-min-state");
     build_release_min(&built, &state);
     let (manifest, files) = project_files(&built);
-    if bless() {
+    if ew_testdir::bless() {
         let target = fixture();
         let _ = std::fs::remove_dir_all(&target);
         std::fs::create_dir_all(&target).expect("the fixture directory");
