@@ -66,6 +66,29 @@ pub struct FirstRun {
     pub step: FirstRunStep,
 }
 
+/// The Start step's buttons and the start each one takes (the screen and the fit test read this one list).
+pub const STARTS: [(Key<'static>, &str); 5] = [
+    (key!("firstrun-start-wizard"), "wizard"),
+    (key!("firstrun-start-sample"), "sample"),
+    (key!("firstrun-start-qet"), "qet"),
+    (key!("firstrun-start-new"), "new"),
+    (key!("firstrun-start-none"), "none"),
+];
+
+/// The footer's buttons on `step`, in their order, with the action each runs: Back after the first step, Skip and
+/// Next before the last (the screen and the fit test read this one list).
+pub fn footer(step: FirstRunStep) -> Vec<(Key<'static>, &'static str)> {
+    let mut out = Vec::new();
+    if step != FirstRunStep::Language {
+        out.push((key!("firstrun-back"), "first_run.back"));
+    }
+    if step != FirstRunStep::Start {
+        out.push((key!("firstrun-skip"), "first_run.next"));
+        out.push((key!("firstrun-next"), "first_run.next"));
+    }
+    out
+}
+
 /// Where the first-run flow can lead (the `start` of `first_run.finish`).
 pub const START_CHOICES: [&str; 5] = ["wizard", "sample", "qet", "new", "none"];
 

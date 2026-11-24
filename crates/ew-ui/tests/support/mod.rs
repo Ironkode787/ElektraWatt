@@ -687,10 +687,10 @@ pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
         let text = |k| strings::text(k).to_owned();
         let mut labels: Vec<String> = Vec::new();
         if run.step == FirstRunStep::Start {
-            labels.extend(ew_ui::first_run::STARTS.iter().map(|(k, _)| text(*k)));
+            labels.extend(ew_viewmodel::first_run::STARTS.iter().map(|(k, _)| text(*k)));
         }
         labels.extend(
-            ew_ui::first_run::footer(run.step)
+            ew_viewmodel::first_run::footer(run.step)
                 .into_iter()
                 .map(|(k, _)| text(k)),
         );

@@ -6,7 +6,7 @@
 //! network connection. The answers are dispatched as `first_run.set`; the flow ends with `first_run.finish`.
 
 use egui::Ui;
-use ew_viewmodel::first_run::FirstRunStep;
+use ew_viewmodel::first_run::{FirstRunStep, STARTS, footer};
 use ew_viewmodel::key;
 use ew_viewmodel::settings::{LANGUAGES, ORIGINS, THEMES, UI_SCALES, scale_label};
 use ew_viewmodel::shell::ShellModel;
@@ -29,29 +29,6 @@ fn choices(ui: &mut Ui, events: &mut Vec<Event>, field: &str, prefix: &str, opti
             set(events, field, json!(option));
         }
     }
-}
-
-/// The Start step's buttons and the start each one takes (the screen and the fit test read this one list).
-pub const STARTS: [(strings::Key<'static>, &str); 5] = [
-    (key!("firstrun-start-wizard"), "wizard"),
-    (key!("firstrun-start-sample"), "sample"),
-    (key!("firstrun-start-qet"), "qet"),
-    (key!("firstrun-start-new"), "new"),
-    (key!("firstrun-start-none"), "none"),
-];
-
-/// The footer's buttons on `step`, in their order, with the action each runs: Back after the first step, Skip and
-/// Next before the last (the screen and the fit test read this one list).
-pub fn footer(step: FirstRunStep) -> Vec<(strings::Key<'static>, &'static str)> {
-    let mut out = Vec::new();
-    if step != FirstRunStep::Language {
-        out.push((key!("firstrun-back"), "first_run.back"));
-    }
-    if step != FirstRunStep::Start {
-        out.push((key!("firstrun-skip"), "first_run.next"));
-        out.push((key!("firstrun-next"), "first_run.next"));
-    }
-    out
 }
 
 /// Paints the first-run screen into `ui`.
