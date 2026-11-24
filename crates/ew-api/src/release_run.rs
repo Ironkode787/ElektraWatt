@@ -53,7 +53,7 @@ use ew_derive::ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::AnyKey;
 use ew_schema::{Date, Digest128, Page, ReleaseRecord, Revision};
-use ew_store::archive::{self, ArchiveError, WriteError};
+use ew_store::archive::{self, ArchiveError, NewArchive, WriteError};
 use ew_store::git::{self, Committed, Git, GitError};
 use ew_store::zip::ZipLimits;
 use ew_store::{Changes, GenerationError, SaveError, Vfs};
@@ -979,10 +979,15 @@ impl Session {
         // needs that this directory's run wrote the archive. Its mark goes into the tag's message.
         let run = ew_store::lock::new_session_id();
         let record_at = self.run_record_at(plan.gate.revision, &ctx.label, generation, &run);
-        let written = archive::write_atomically(
-            &*vfs, &root, &ctx.label, &owner, generation, &bytes, &verify, record_at,
-        )
-        .map_err(ReleaseError::Write)?;
+        let archive = NewArchive {
+            label: &ctx.label,
+            owner: &owner,
+            generation,
+            bytes: &bytes,
+            verify: &verify,
+        };
+        let written =
+            archive::write_atomically(&*vfs, &root, archive, record_at).map_err(ReleaseError::Write)?;
         let sha256 = Sha256(written.sha256);
         let run_record = written.run_record.clone();
         if let Some(e) = &written.record_trouble {

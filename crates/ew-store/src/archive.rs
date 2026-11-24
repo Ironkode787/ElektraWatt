@@ -537,33 +537,38 @@ pub fn leftover_temps(vfs: &dyn Vfs, root: &Path, label: &str, owner: &str) -> i
     }
 }
 
-/// Writes the archive `bytes` of the release `label` by `owner` at generation `generation` into `root` atomically (see
-/// the module documentation); `verify` checks the bytes read back (the sums and the project against manifest g).
-/// With `record`, the run's record is written once the temp is verified and before the archive has its name
-/// ([`Written::run_record`]; best effort: a record that cannot be written is left out).
-///
-/// # Errors
-///
-/// [`WriteError`]; on every error the temp, the archive and the record this call created are removed (best effort)
-/// and nothing else is left. An existing archive (another copy's) is never replaced or removed.
-#[allow(clippy::too_many_arguments)] // The seam, the name's parts, the bytes, their check and the record: one each.
-pub fn write_atomically(
+/// The archive [`write_atomically`] writes: the release `label` by `owner` at generation `generation` (the archive's
+/// and the temp's names), its `bytes`, and `verify`, which checks the bytes read back (the sums and the project against
+/// manifest g).
+#[derive(Clone, Copy)]
+pub struct NewArchive<'a> {
+    /// The release's label.
+    pub label: &'a str,
+    /// The run that writes it.
+    pub owner: &'a str,
+    /// The generation.
+    pub generation: u64,
+    /// The archive's bytes.
+    pub bytes: &'a [u8],
+    /// The check of the bytes read back.
+    pub verify: &'a dyn Fn(&[u8]) -> Result<(), ArchiveError>,
+}
+
+/// The [`WriteError::Io`] of `step` at `path`.
+fn io_err(step: WriteStep, path: &Path) -> impl FnOnce(io::Error) -> WriteError {
+    let path = path.to_path_buf();
+    move |error: io::Error| WriteError::Io { step, path, error }
+}
+
+/// The root, durable before anything is named in it; the leftover temps of `owner` removed; and no archive at
+/// `target` yet.
+fn prepare_root(
     vfs: &dyn Vfs,
     root: &Path,
     label: &str,
     owner: &str,
-    generation: u64,
-    bytes: &[u8],
-    verify: &dyn Fn(&[u8]) -> Result<(), ArchiveError>,
-    record: Option<RecordAt<'_>>,
-) -> Result<Written, WriteError> {
-    let io_err = |step: WriteStep, path: &Path| {
-        let path = path.to_path_buf();
-        move |error: io::Error| WriteError::Io { step, path, error }
-    };
-    let target = root.join(file_name(label));
-    let temp = root.join(temp_name(label, owner, generation));
-    // The root, durable before anything is named in it.
+    target: &Path,
+) -> Result<(), WriteError> {
     let created = match vfs.stat(root) {
         Ok(_) => false,
         Err(e) if e.kind() == io::ErrorKind::NotFound => true,
@@ -579,11 +584,39 @@ pub fn write_atomically(
         vfs.remove_file(&leftover)
             .map_err(io_err(WriteStep::Root, &leftover))?;
     }
-    match vfs.stat(&target) {
-        Ok(_) => return Err(WriteError::Exists { path: target }),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
-        Err(e) => return Err(io_err(WriteStep::Root, &target)(e)),
+    match vfs.stat(target) {
+        Ok(_) => Err(WriteError::Exists {
+            path: target.to_path_buf(),
+        }),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(io_err(WriteStep::Root, target)(e)),
     }
+}
+
+/// Writes `archive` into `root` atomically (see the module documentation).
+/// With `record`, the run's record is written once the temp is verified and before the archive has its name
+/// ([`Written::run_record`]; best effort: a record that cannot be written is left out).
+///
+/// # Errors
+///
+/// [`WriteError`]; on every error the temp, the archive and the record this call created are removed (best effort)
+/// and nothing else is left. An existing archive (another copy's) is never replaced or removed.
+pub fn write_atomically(
+    vfs: &dyn Vfs,
+    root: &Path,
+    archive: NewArchive<'_>,
+    record: Option<RecordAt<'_>>,
+) -> Result<Written, WriteError> {
+    let NewArchive {
+        label,
+        owner,
+        generation,
+        bytes,
+        verify,
+    } = archive;
+    let target = root.join(file_name(label));
+    let temp = root.join(temp_name(label, owner, generation));
+    prepare_root(vfs, root, label, owner, &target)?;
     let cleanup = |e: WriteError| {
         let _ = vfs.remove_file(&temp);
         let _ = vfs.sync_dir(root);
@@ -673,13 +706,30 @@ pub fn write_atomically(
         let _ = vfs.remove_file(&target);
         return Err(fail(io_err(WriteStep::Rename, root)(e), &run_record));
     }
-    // The archive did not keep the temp's time. Until the record is rewritten it names another
-    // time, so the archive reads as foreign and is kept (the safe side); the rewrite makes the discard evidence true
-    // again. If the rewrite fails, the record goes (the archive stays foreign and kept) and the caller reports it.
+    let (run_record, record_trouble) = rewrite_record(vfs, &target, run_record, time_kept);
+    Ok(Written {
+        path: target,
+        sha256: sha256(bytes),
+        run_record,
+        record_trouble,
+    })
+}
+
+/// The run's record once the archive at `target` has its name: where the archive did not keep the temp's time
+/// (`time_kept` false), the record is rewritten with the archive's own. Until the record is rewritten it names another
+/// time, so the archive reads as foreign and is kept (the safe side); the rewrite makes the discard evidence true
+/// again. If the rewrite fails, the record goes (the archive stays foreign and kept) and the caller reports it. The
+/// record's path, and the trouble of a failed rewrite.
+fn rewrite_record(
+    vfs: &dyn Vfs,
+    target: &Path,
+    run_record: Option<(PathBuf, &Path, RunRecord)>,
+    time_kept: bool,
+) -> (Option<PathBuf>, Option<io::Error>) {
     let mut record_trouble = None;
     let run_record = match run_record {
         Some((path, state, record)) if !time_kept => {
-            let rewritten = vfs.stat(&target).and_then(|stat| {
+            let rewritten = vfs.stat(target).and_then(|stat| {
                 let record = RunRecord {
                     modified: stat.modified.and_then(record_time),
                     ..record
@@ -697,12 +747,7 @@ pub fn write_atomically(
         }
         other => other.map(|(path, _, _)| path),
     };
-    Ok(Written {
-        path: target,
-        sha256: sha256(bytes),
-        run_record,
-        record_trouble,
-    })
+    (run_record, record_trouble)
 }
 
 /// Removes an archive this run created (a failed release, doc 05 §14.1 "On failure") or one the user discards, and
@@ -1094,7 +1139,19 @@ mod tests {
         );
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
-        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, None).unwrap();
+        let w = write_atomically(
+            &vfs,
+            root,
+            NewArchive {
+                label: "V1.0",
+                owner: "a1",
+                generation: 3,
+                bytes: &bytes,
+                verify: &ok,
+            },
+            None,
+        )
+        .unwrap();
         assert_eq!(w.path, root.join("V1.0.ewarchive"));
         assert_eq!(w.sha256, sha256(&bytes));
         let files = vfs.files(root);
@@ -1115,7 +1172,18 @@ mod tests {
         assert_eq!(vfs.files(root)["V1.0.ewarchive"], bytes);
         // Never replaced.
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", "a1", 4, &bytes, &ok, None),
+            write_atomically(
+                &vfs,
+                root,
+                NewArchive {
+                    label: "V1.0",
+                    owner: "a1",
+                    generation: 4,
+                    bytes: &bytes,
+                    verify: &ok
+                },
+                None
+            ),
             Err(WriteError::Exists { .. })
         ));
         assert!(leftover_temps(&vfs, root, "V1.0", "a1").unwrap().is_empty());
@@ -1290,7 +1358,18 @@ mod tests {
                     at: n,
                     kind: io::ErrorKind::Other,
                 });
-                let result = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()));
+                let result = write_atomically(
+                    &vfs,
+                    root,
+                    NewArchive {
+                        label: "V1.0",
+                        owner: "a1",
+                        generation: 3,
+                        bytes: &bytes,
+                        verify: &ok,
+                    },
+                    Some(record_at()),
+                );
                 let calls = vfs.calls();
                 vfs.set_fault(Fault::None);
                 match result {
@@ -1330,7 +1409,18 @@ mod tests {
         let vfs = MemVfs::new(DirSync::Explicit);
         let refuse = |_: &[u8]| -> Result<(), ArchiveError> { Err(ArchiveError::Project("no".to_owned())) };
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &refuse, None),
+            write_atomically(
+                &vfs,
+                root,
+                NewArchive {
+                    label: "V1.0",
+                    owner: "a1",
+                    generation: 3,
+                    bytes: &bytes,
+                    verify: &refuse
+                },
+                None
+            ),
             Err(WriteError::Verify(_))
         ));
         assert!(vfs.files(root).is_empty());
@@ -1359,8 +1449,18 @@ mod tests {
                     } else {
                         Fault::Kill { at: n }
                     });
-                    let result =
-                        write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()));
+                    let result = write_atomically(
+                        &vfs,
+                        root,
+                        NewArchive {
+                            label: "V1.0",
+                            owner: "a1",
+                            generation: 3,
+                            bytes: &bytes,
+                            verify: &ok,
+                        },
+                        Some(record_at()),
+                    );
                     let calls = vfs.calls();
                     vfs.restart();
                     if result.is_ok() && n > calls {
@@ -1493,7 +1593,19 @@ mod tests {
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
         let vfs = racing(None);
-        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at())).unwrap();
+        let w = write_atomically(
+            &vfs,
+            root,
+            NewArchive {
+                label: "V1.0",
+                owner: "a1",
+                generation: 3,
+                bytes: &bytes,
+                verify: &ok,
+            },
+            Some(record_at()),
+        )
+        .unwrap();
         assert_eq!(
             vfs.inner.files(root).keys().collect::<Vec<_>>(),
             ["V1.0.ewarchive"]
@@ -1511,7 +1623,18 @@ mod tests {
         let other = b"another copy's archive";
         let vfs = racing(Some(other));
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at())),
+            write_atomically(
+                &vfs,
+                root,
+                NewArchive {
+                    label: "V1.0",
+                    owner: "a1",
+                    generation: 3,
+                    bytes: &bytes,
+                    verify: &ok
+                },
+                Some(record_at())
+            ),
             Err(WriteError::Exists { .. })
         ));
         assert_eq!(
@@ -1547,7 +1670,19 @@ mod tests {
                 ..record("run-1")
             },
         };
-        let w = write_atomically(&vfs, &root, "V1.0", "k", 3, &bytes, &ok, Some(at)).unwrap();
+        let w = write_atomically(
+            &vfs,
+            &root,
+            NewArchive {
+                label: "V1.0",
+                owner: "k",
+                generation: 3,
+                bytes: &bytes,
+                verify: &ok,
+            },
+            Some(at),
+        )
+        .unwrap();
         let kept = read_run_record(&vfs, w.run_record.as_deref().unwrap()).unwrap();
         assert_eq!(kept.archive, path_text(&vfs, &w.path));
         assert_eq!(kept.sha256, hash_text(&sha256(&bytes)));
@@ -1722,7 +1857,18 @@ mod tests {
                 ..record("run-1")
             },
         };
-        let result = write_atomically(&vfs, &root, "V1.0", "k", 3, &bytes, &ok, Some(at));
+        let result = write_atomically(
+            &vfs,
+            &root,
+            NewArchive {
+                label: "V1.0",
+                owner: "k",
+                generation: 3,
+                bytes: &bytes,
+                verify: &ok,
+            },
+            Some(at),
+        );
         match result {
             Err(WriteError::Io {
                 step: WriteStep::Rename,
@@ -1768,8 +1914,19 @@ mod tests {
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
         let vfs = timeless(None);
-        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()))
-            .expect("the release goes on");
+        let w = write_atomically(
+            &vfs,
+            root,
+            NewArchive {
+                label: "V1.0",
+                owner: "a1",
+                generation: 3,
+                bytes: &bytes,
+                verify: &ok,
+            },
+            Some(record_at()),
+        )
+        .expect("the release goes on");
         assert!(w.record_trouble.is_none(), "{:?}", w.record_trouble);
         assert_eq!(
             vfs.inner.files(root).keys().collect::<Vec<_>>(),
@@ -1793,8 +1950,19 @@ mod tests {
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
         let vfs = timeless(Some(2));
-        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()))
-            .expect("the release goes on");
+        let w = write_atomically(
+            &vfs,
+            root,
+            NewArchive {
+                label: "V1.0",
+                owner: "a1",
+                generation: 3,
+                bytes: &bytes,
+                verify: &ok,
+            },
+            Some(record_at()),
+        )
+        .expect("the release goes on");
         assert_eq!(
             w.record_trouble.as_ref().map(io::Error::kind),
             Some(io::ErrorKind::StorageFull)
