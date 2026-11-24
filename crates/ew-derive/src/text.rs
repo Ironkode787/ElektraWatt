@@ -12,7 +12,7 @@ use std::sync::OnceLock;
 use ew_l10n::render::{Language, OnError};
 use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
-use ew_schema::{AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, LineKind, PotentialType};
+use ew_schema::{AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LineKind, PotentialType};
 use ew_units::{Dec3, Nm};
 
 use crate::bus::net_address_text;
@@ -293,6 +293,97 @@ pub fn medium_exhaust() -> Text {
 pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>) -> Text {
     let (number, module): (TextArg, TextArg) = (number.into(), module.into());
     text!("channel-of-module", number, module)
+}
+
+/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand; a
+/// representation and a connection, which the commands word as a symbol and a wire, as any other record.
+pub fn record(kind: Kind) -> Text {
+    match kind {
+        Kind::Device => text!("record-device"),
+        Kind::Function => text!("record-function"),
+        Kind::Page => text!("record-page"),
+        Kind::Junction => text!("record-junction"),
+        Kind::Project => text!("record-project"),
+        Kind::PlcConfigProject => text!("record-plc-config-project"),
+        Kind::LogicalNet => text!("record-logical-net"),
+        Kind::PhysicalNet => text!("record-physical-net"),
+        Kind::Medium => text!("record-medium"),
+        Kind::ImportLineage => text!("record-import-lineage"),
+        Kind::StructureNode => text!("record-structure-node"),
+        Kind::Section => text!("record-section"),
+        Kind::ExternalRef => text!("record-external-ref"),
+        Kind::Conductor => text!("record-conductor"),
+        Kind::Channel => text!("record-channel"),
+        Kind::PotentialDef => text!("record-potential-def"),
+        Kind::NetDef => text!("record-net-def"),
+        Kind::MediumDef => text!("record-medium-def"),
+        Kind::Bond => text!("record-bond"),
+        Kind::DeviceLink => text!("record-device-link"),
+        Kind::PageItem => text!("record-page-item"),
+        Kind::StructureBox => text!("record-structure-box"),
+        Kind::ReportBlock => text!("record-report-block"),
+        Kind::MacroInstance => text!("record-macro-instance"),
+        Kind::PlaceholderGroup => text!("record-placeholder-group"),
+        Kind::LayoutSpace => text!("record-layout-space"),
+        Kind::Enclosure => text!("record-enclosure"),
+        Kind::MountingSurface => text!("record-mounting-surface"),
+        Kind::Carrier => text!("record-carrier"),
+        Kind::Placement => text!("record-placement"),
+        Kind::RouteOverride => text!("record-route-override"),
+        Kind::CommittedRoute => text!("record-committed-route"),
+        Kind::RoutingPath => text!("record-routing-path"),
+        Kind::SurfaceFeature => text!("record-surface-feature"),
+        Kind::Revision => text!("record-revision"),
+        Kind::Waiver => text!("record-waiver"),
+        Kind::Comment => text!("record-comment"),
+        Kind::Transmittal => text!("record-transmittal"),
+        Kind::ExchangeRecord => text!("record-exchange-record"),
+        Kind::ForeignId => text!("record-foreign-id"),
+        Kind::ImportRun => text!("record-import-run"),
+        Kind::Conflict => text!("record-conflict"),
+        Kind::Part => text!("record-part"),
+        Kind::Symbol => text!("record-symbol"),
+        Kind::Fndef => text!("record-fndef"),
+        Kind::Form => text!("record-form"),
+        Kind::Macro => text!("record-macro"),
+        Kind::Manufacturer => text!("record-manufacturer"),
+        Kind::PlcProfile => text!("record-plc-profile"),
+        Kind::MachineProfile => text!("record-machine-profile"),
+        Kind::LabelProfile => text!("record-label-profile"),
+        _ => text!("record-other"),
+    }
+}
+
+/// A record of a kind this build does not word ("an item").
+pub fn record_other() -> Text {
+    text!("record-other")
+}
+
+/// The category of an open item: a value still to be decided, a device without a part, a device not placed, a
+/// connection point not connected, a cable without a length.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum OpenItem {
+    /// "TBD value".
+    TbdValue,
+    /// "Device without part".
+    DeviceWithoutPart,
+    /// "Unplaced device".
+    UnplacedDevice,
+    /// "Unconnected connection point".
+    UnconnectedCp,
+    /// "Missing length".
+    MissingLength,
+}
+
+/// The category of an open item, as the list of open items prints it ("TBD value").
+pub fn open_item(category: OpenItem) -> Text {
+    match category {
+        OpenItem::TbdValue => text!("open-item-tbd-value"),
+        OpenItem::DeviceWithoutPart => text!("open-item-device-without-part"),
+        OpenItem::UnplacedDevice => text!("open-item-unplaced-device"),
+        OpenItem::UnconnectedCp => text!("open-item-unconnected-cp"),
+        OpenItem::MissingLength => text!("open-item-missing-length"),
+    }
 }
 
 /// `text` in every language of this crate's text files, as the lists print a word of the program in the project's

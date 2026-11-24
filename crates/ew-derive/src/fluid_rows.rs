@@ -28,33 +28,14 @@ use crate::{
     valve_functions, valve_solenoids,
 };
 
-/// A port role in words, en-GB and nl-NL ("working" / "werkpoort").
+/// A port role in words ("working" / "werkpoort"), in every language of the derivation's words.
 pub fn port_role_text(role: &FluidPortRole) -> MlText {
-    let (en, nl) = match role {
-        FluidPortRole::Supply1 => ("supply", "voeding"),
-        FluidPortRole::Working2 | FluidPortRole::Working4 => ("working", "werkpoort"),
-        FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5 => ("exhaust", "afvoer"),
-        FluidPortRole::Pilot10 | FluidPortRole::Pilot12 | FluidPortRole::Pilot14 => ("pilot", "stuurpoort"),
-        FluidPortRole::PilotExhaust82 | FluidPortRole::PilotExhaust84 => ("pilot exhaust", "stuurafvoer"),
-        FluidPortRole::ExternalPilot => ("external pilot", "externe stuurlucht"),
-        FluidPortRole::Consumer => ("consumer", "verbruiker"),
-        FluidPortRole::Sensing => ("sensing", "meetpoort"),
-        FluidPortRole::Generic | FluidPortRole::Unknown(_) => ("port", "poort"),
-    };
-    langs(en, nl)
+    crate::text::in_languages(&crate::text::port_role(role))
 }
 
-/// A line kind in words, en-GB and nl-NL.
+/// A line kind in words, in every language of the derivation's words.
 pub fn line_kind_text(kind: &LineKind) -> MlText {
-    let (en, nl) = match kind {
-        LineKind::Working => ("working", "werkleiding"),
-        LineKind::Pilot => ("pilot", "stuurleiding"),
-        LineKind::Exhaust => ("exhaust", "afvoerleiding"),
-        LineKind::Drain => ("drain", "lekleiding"),
-        LineKind::Flexible => ("flexible", "slang"),
-        LineKind::Unknown(_) => ("line", "leiding"),
-    };
-    langs(en, nl)
+    crate::text::in_languages(&crate::text::line_kind(kind))
 }
 
 /// A text in en-GB and nl-NL.
@@ -122,8 +103,16 @@ impl TubeEnd {
     /// for a junction.
     pub fn words(&self) -> MlText {
         match self.at {
-            EndpointKey::Junction(_) => langs("tee", "T-stuk"),
+            EndpointKey::Junction(_) => crate::text::in_languages(&crate::text::tube_end_junction()),
             EndpointKey::Cp(..) => langs(&self.text, &self.text),
+        }
+    }
+
+    /// The end as a text's argument: its `DT:port` as it is, or the words for a junction.
+    fn arg(&self) -> ew_l10n::TextArg {
+        match self.at {
+            EndpointKey::Junction(_) => crate::text::tube_end_junction().into(),
+            EndpointKey::Cp(..) => self.text.clone().into(),
         }
     }
 }
@@ -140,16 +129,7 @@ impl TubeRow {
         if !self.tag.is_empty() {
             return langs(&self.tag, &self.tag);
         }
-        let (from, to) = (self.from.words(), self.to.words());
-        let pair = |tag: &str| {
-            let tag = tag.parse().expect("a language tag");
-            format!(
-                "{} → {}",
-                from.text_for(&tag).unwrap_or_default(),
-                to.text_for(&tag).unwrap_or_default()
-            )
-        };
-        langs(&pair("en-GB"), &pair("nl-NL"))
+        crate::text::in_languages(&crate::text::tube_ends(self.from.arg(), self.to.arg()))
     }
 }
 

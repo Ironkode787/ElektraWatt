@@ -285,10 +285,14 @@ pub use ew_derive::ew_ids::{EntropyError, UnixTime};
 /// A text by key: the window renders it in its language, the CLI prints its English.
 pub use ew_l10n::{Text, TextArg};
 
-/// The text files of the session and of `ew-commands`, whose texts reach a front end, as (language, the file's
-/// text): the window loads them beside its own.
+/// The text files of the session, of `ew-commands` and of `ew-derive` (the words of the domain's kinds), whose texts
+/// reach a front end, as (language, the file's text): the window loads them beside its own.
 pub fn text_sources() -> impl Iterator<Item = (&'static str, &'static str)> {
-    SOURCES.iter().chain(ew_commands::SOURCES).copied()
+    SOURCES
+        .iter()
+        .chain(ew_commands::SOURCES)
+        .chain(ew_derive::SOURCES)
+        .copied()
 }
 
 /// Whether `key` is a key of the session's text files or of those of `ew-commands`: the window names some of them

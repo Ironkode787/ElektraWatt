@@ -148,63 +148,13 @@ pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
     }
 }
 
-/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand.
+/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand: a symbol and a
+/// wire in the commands' words, every other kind in the derivation's ([`ew_derive::text::record`]).
 pub(crate) fn kind_words(kind: Kind) -> TextArg {
     match kind {
-        Kind::Device => text!("refusal-words-kind-device").into(),
-        Kind::Function => text!("refusal-words-kind-function").into(),
-        Kind::Page => text!("refusal-words-kind-page").into(),
         Kind::Representation => text!("refusal-words-symbol-any").into(),
         Kind::Connection => text!("refusal-words-wire-any").into(),
-        Kind::Junction => text!("refusal-words-kind-junction").into(),
-        Kind::Project => text!("refusal-words-kind-project").into(),
-        Kind::PlcConfigProject => text!("refusal-words-kind-plc-config-project").into(),
-        Kind::LogicalNet => text!("refusal-words-kind-logical-net").into(),
-        Kind::PhysicalNet => text!("refusal-words-kind-physical-net").into(),
-        Kind::Medium => text!("refusal-words-kind-medium").into(),
-        Kind::ImportLineage => text!("refusal-words-kind-import-lineage").into(),
-        Kind::StructureNode => text!("refusal-words-kind-structure-node").into(),
-        Kind::Section => text!("refusal-words-kind-section").into(),
-        Kind::ExternalRef => text!("refusal-words-kind-external-ref").into(),
-        Kind::Conductor => text!("refusal-words-kind-conductor").into(),
-        Kind::Channel => text!("refusal-words-kind-channel").into(),
-        Kind::PotentialDef => text!("refusal-words-kind-potential-def").into(),
-        Kind::NetDef => text!("refusal-words-kind-net-def").into(),
-        Kind::MediumDef => text!("refusal-words-kind-medium-def").into(),
-        Kind::Bond => text!("refusal-words-kind-bond").into(),
-        Kind::DeviceLink => text!("refusal-words-kind-device-link").into(),
-        Kind::PageItem => text!("refusal-words-kind-page-item").into(),
-        Kind::StructureBox => text!("refusal-words-kind-structure-box").into(),
-        Kind::ReportBlock => text!("refusal-words-kind-report-block").into(),
-        Kind::MacroInstance => text!("refusal-words-kind-macro-instance").into(),
-        Kind::PlaceholderGroup => text!("refusal-words-kind-placeholder-group").into(),
-        Kind::LayoutSpace => text!("refusal-words-kind-layout-space").into(),
-        Kind::Enclosure => text!("refusal-words-kind-enclosure").into(),
-        Kind::MountingSurface => text!("refusal-words-kind-mounting-surface").into(),
-        Kind::Carrier => text!("refusal-words-kind-carrier").into(),
-        Kind::Placement => text!("refusal-words-kind-placement").into(),
-        Kind::RouteOverride => text!("refusal-words-kind-route-override").into(),
-        Kind::CommittedRoute => text!("refusal-words-kind-committed-route").into(),
-        Kind::RoutingPath => text!("refusal-words-kind-routing-path").into(),
-        Kind::SurfaceFeature => text!("refusal-words-kind-surface-feature").into(),
-        Kind::Revision => text!("refusal-words-kind-revision").into(),
-        Kind::Waiver => text!("refusal-words-kind-waiver").into(),
-        Kind::Comment => text!("refusal-words-kind-comment").into(),
-        Kind::Transmittal => text!("refusal-words-kind-transmittal").into(),
-        Kind::ExchangeRecord => text!("refusal-words-kind-exchange-record").into(),
-        Kind::ForeignId => text!("refusal-words-kind-foreign-id").into(),
-        Kind::ImportRun => text!("refusal-words-kind-import-run").into(),
-        Kind::Conflict => text!("refusal-words-kind-conflict").into(),
-        Kind::Part => text!("refusal-words-kind-part").into(),
-        Kind::Symbol => text!("refusal-words-kind-symbol").into(),
-        Kind::Fndef => text!("refusal-words-kind-fndef").into(),
-        Kind::Form => text!("refusal-words-kind-form").into(),
-        Kind::Macro => text!("refusal-words-kind-macro").into(),
-        Kind::Manufacturer => text!("refusal-words-kind-manufacturer").into(),
-        Kind::PlcProfile => text!("refusal-words-kind-plc-profile").into(),
-        Kind::MachineProfile => text!("refusal-words-kind-machine-profile").into(),
-        Kind::LabelProfile => text!("refusal-words-kind-label-profile").into(),
-        _ => text!("refusal-words-kind-other").into(),
+        other => ew_derive::text::record(other).into(),
     }
 }
 
@@ -292,7 +242,7 @@ fn document_words(tx: &TxBuilder<'_>, kind: Kind, words: Option<TextArg>) -> Tex
 /// A library document's copy, as [`copy`] names it; a document of a kind this build does not read as "an item".
 pub(crate) fn document(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> Text {
     document_parts(doc).map_or_else(
-        || text!("refusal-words-kind-other"),
+        || ew_derive::text::record_other(),
         |(kind, words, version)| text!("refusal-words-copy", document_words(tx, kind, words), version),
     )
 }
@@ -300,7 +250,7 @@ pub(crate) fn document(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> Text
 /// A library document's item, as [`document`] names it without its version.
 pub(crate) fn document_item(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> TextArg {
     document_parts(doc).map_or_else(
-        || text!("refusal-words-kind-other").into(),
+        || ew_derive::text::record_other().into(),
         |(kind, words, _)| document_words(tx, kind, words),
     )
 }
@@ -518,10 +468,7 @@ mod tests {
                 panic!("{kind} is keyed");
             };
             assert_eq!(t.to_string(), words);
-            assert_eq!(
-                t.key(),
-                format!("refusal-words-kind-{}", kind.name().replace('_', "-"))
-            );
+            assert_eq!(t.key(), format!("record-{}", kind.name().replace('_', "-")));
         }
     }
 }

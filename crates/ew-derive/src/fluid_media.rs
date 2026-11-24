@@ -68,31 +68,10 @@ impl MediumKey {
         match self {
             MediumKey::Defined(_) => name,
             MediumKey::Regulated(_, p) => crate::map_ml(&name, |s| format!("{s} → {p} bar")),
-            MediumKey::Vacuum(_) => two(
-                &name,
-                |s| format!("vacuum (from {s})"),
-                |s| format!("vacuüm (uit {s})"),
-            ),
-            MediumKey::Exhaust(_) => MlText::from_langs([
-                ("en-GB".parse().expect("tag"), "exhaust"),
-                ("nl-NL".parse().expect("tag"), "afvoer"),
-            ]),
+            MediumKey::Vacuum(_) => crate::text::in_languages(&crate::text::medium_vacuum(&name)),
+            MediumKey::Exhaust(_) => crate::text::in_languages(&crate::text::medium_exhaust()),
         }
     }
-}
-
-/// A text in en-GB and nl-NL around a name, each from the name in that language (or its neutral text).
-fn two(name: &MlText, en: impl Fn(&str) -> String, nl: impl Fn(&str) -> String) -> MlText {
-    let in_lang = |tag: &str| {
-        let tag = tag.parse().expect("a language tag");
-        name.text_for(&tag)
-            .map(str::to_owned)
-            .unwrap_or_else(|| name.neutral_or_first().unwrap_or_default().to_owned())
-    };
-    MlText::from_langs([
-        ("en-GB".parse().expect("tag"), en(&in_lang("en-GB"))),
-        ("nl-NL".parse().expect("tag"), nl(&in_lang("nl-NL"))),
-    ])
 }
 
 /// How a key reached a net.

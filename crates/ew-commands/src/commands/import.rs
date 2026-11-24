@@ -482,7 +482,7 @@ impl DynCommand for ApplyImport {
                 let row = AnyRow::from_record(record.clone()).map_err(|r| {
                     let what = match (r.kind(), r.id()) {
                         (Some(kind), Some(id)) => crate::words::record(tx, (kind, ew_ids::Id::from_uuid(id))),
-                        _ => text!("refusal-words-kind-other").into(),
+                        _ => ew_derive::text::record_other().into(),
                     };
                     CmdError::rejected(Self::NAME, text!("refusal-import-unknown-kind", what))
                 })?;

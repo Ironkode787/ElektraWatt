@@ -68,7 +68,7 @@ fn generated() -> String {
                 // `\"open_item\": null` or
                 // `{\"category\": \"<words>\", \"discriminator\": \"<d>\" | null}` from `OPEN_ITEM_RULES`.
                 "open_item": OPEN_ITEM_RULES.iter().find(|o| o.rule == m.id).map(|o| json!({
-                    "category": o.category,
+                    "category": ew_derive::text::open_item(o.category).to_string(),
                     "discriminator": o.discriminator,
                 })),
                 // The rule's page reference and the en-GB hint, for the rule's page of the guide.
@@ -115,7 +115,7 @@ fn the_catalogue_marks_exactly_the_open_item_rules() {
         .map(|o| {
             (
                 o.rule.to_owned(),
-                json!({"category": o.category, "discriminator": o.discriminator}),
+                json!({"category": ew_derive::text::open_item(o.category).to_string(), "discriminator": o.discriminator}),
             )
         })
         .collect();

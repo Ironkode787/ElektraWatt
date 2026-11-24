@@ -94,7 +94,9 @@ fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
         columns,
         &mut cells,
         "category",
-        words_cell(row.category, row.category_nl),
+        Cell::Text(ew_derive::text::in_languages(&ew_derive::text::open_item(
+            row.category,
+        ))),
     );
     put(columns, &mut cells, "item", text_cell(&f.subject));
     // The message as `ew check --lang nl-NL` words it (its en-GB text where the rule has no Dutch pattern).

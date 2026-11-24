@@ -17,6 +17,8 @@ use ew_derive::{Cycle, Q};
 
 use crate::engine::run_table_rules;
 use crate::finding::{Finding, FindingState};
+use ew_derive::text::OpenItem;
+
 use crate::registry::rules;
 use crate::rule::Rule;
 use crate::scheme::{CheckMode, release_scheme_of};
@@ -29,10 +31,8 @@ pub struct OpenItemRule {
     /// Only the rule's findings with this discriminator are open items (EW-BUS-001's `address`: a missing station
     /// address is an open item, a duplicate one is not); `None`: every finding of the rule.
     pub discriminator: Option<&'static str>,
-    /// The category, as the `category` column of the list prints it ("TBD value").
-    pub category: &'static str,
-    /// The category in Dutch, as a Dutch project's list prints it ("Waarde n.t.b.").
-    pub category_nl: &'static str,
+    /// The category, the words the `category` column of the list prints ([`ew_derive::text::open_item`]).
+    pub category: OpenItem,
 }
 
 /// The open-item rules, by category in the list's order, then by rule ID.
@@ -40,50 +40,42 @@ pub const OPEN_ITEM_RULES: &[OpenItemRule] = &[
     OpenItemRule {
         rule: "EW-CORE-043",
         discriminator: None,
-        category: "TBD value",
-        category_nl: "Waarde n.t.b.",
+        category: OpenItem::TbdValue,
     },
     OpenItemRule {
         rule: "EW-CORE-044",
         discriminator: None,
-        category: "TBD value",
-        category_nl: "Waarde n.t.b.",
+        category: OpenItem::TbdValue,
     },
     OpenItemRule {
         rule: "EW-PLC-015",
         discriminator: None,
-        category: "TBD value",
-        category_nl: "Waarde n.t.b.",
+        category: OpenItem::TbdValue,
     },
     OpenItemRule {
         rule: "EW-BUS-001",
         discriminator: Some("address"),
-        category: "TBD value",
-        category_nl: "Waarde n.t.b.",
+        category: OpenItem::TbdValue,
     },
     OpenItemRule {
         rule: "EW-CORE-041",
         discriminator: None,
-        category: "Device without part",
-        category_nl: "Apparaat zonder artikel",
+        category: OpenItem::DeviceWithoutPart,
     },
     OpenItemRule {
         rule: "EW-LAY-001",
         discriminator: None,
-        category: "Unplaced device",
-        category_nl: "Niet geplaatst apparaat",
+        category: OpenItem::UnplacedDevice,
     },
     OpenItemRule {
         rule: "EW-POT-009",
         discriminator: None,
-        category: "Unconnected connection point",
-        category_nl: "Niet aangesloten aansluitpunt",
+        category: OpenItem::UnconnectedCp,
     },
     OpenItemRule {
         rule: "EW-CORE-033",
         discriminator: None,
-        category: "Missing length",
-        category_nl: "Lengte ontbreekt",
+        category: OpenItem::MissingLength,
     },
 ];
 
@@ -169,11 +161,17 @@ mod tests {
         let meta = rule("EW-BUS-001").expect("registered").meta();
         let address = Finding::new(meta, [], "address", "-201U1:DP");
         let duplicate = Finding::new(meta, [], "duplicate", "-201U1:DP");
-        assert_eq!(open_item_of(&address).map(|o| o.category), Some("TBD value"));
+        assert_eq!(
+            open_item_of(&address).map(|o| o.category),
+            Some(OpenItem::TbdValue)
+        );
         assert_eq!(open_item_of(&duplicate), None);
         let m041 = rule("EW-CORE-041").expect("registered").meta();
         let f = Finding::new(m041, [], "anything", "-K1");
-        assert_eq!(open_item_of(&f).map(|o| o.category), Some("Device without part"));
+        assert_eq!(
+            open_item_of(&f).map(|o| o.category),
+            Some(OpenItem::DeviceWithoutPart)
+        );
         let other = Finding::new(rule("EW-TERM-002").expect("registered").meta(), [], "", "");
         assert_eq!(open_item_of(&other), None);
     }
