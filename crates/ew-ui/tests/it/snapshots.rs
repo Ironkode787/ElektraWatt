@@ -1449,7 +1449,7 @@ fn the_join_chooser_in_light() {
             .iter()
             .find(|(e, _)| e.0.to_string() == coil)
             .map(|(_, r)| *r);
-        assert_eq!(ew_ui::canvas::hover_rect(shell, 0, c), outline);
+        assert_eq!(ew_viewmodel::canvas::hover_rect(shell, 0, c), outline);
         assert!(outline.is_some());
         dismiss_toasts(&mut h);
         support::settle(&mut h);

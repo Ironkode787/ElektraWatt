@@ -87,47 +87,6 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 /// The most canvas groups.
 pub(crate) const GROUPS: usize = 2;
 
-/// The hover outline of a canvas while the active tool shows the hover (doc 16a §7.1): the hovered link's
-/// rectangle, else the rectangle of the hovered entity, the first of the pick stack under the pointer (the one a click
-/// picks, FT-500; doc 16a §6.25); none on a selected entity (doc 16a §7.1: the selection only) and none on a line,
-/// which shows its band ([`hover_path`]). While the Join chooser is open, its active row's object instead (doc 16a
-/// §6.22).
-pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<SheetRect> {
-    if shell.chooser().is_some() {
-        let object = shell.chooser_object()?;
-        return c
-            .page()
-            .entities
-            .iter()
-            .find(|(e, _)| *e == object)
-            .map(|(_, r)| *r);
-    }
-    if !shell.tool().wants_hover() {
-        return None;
-    }
-    if let Some(l) = c.hovered_link() {
-        return Some(l.rect);
-    }
-    let (e, r) = c.hover()?;
-    if hovered_line(c, e).is_some() {
-        return None;
-    }
-    (!shell.selected_rects(group).contains(&r)).then_some(r)
-}
-
-/// The hovered line's band (sheet nm), where [`hover_rect`] draws none: a wire or a fluid line under the pointer that is
-/// not selected, while the active tool shows the hover and no link or chooser row is hovered.
-pub fn hover_path(shell: &ShellModel, c: &CanvasModel) -> Option<Vec<(i64, i64)>> {
-    if shell.chooser().is_some() || !shell.tool().wants_hover() || c.hovered_link().is_some() {
-        return None;
-    }
-    let (e, _) = c.hover()?;
-    if shell.selection().contains(e) {
-        return None;
-    }
-    hovered_line(c, e)
-}
-
 /// Whether the page's vertical (else horizontal) scroll bar shows: part of the page is out of view that way
 /// (FT-1830, doc 16a §5.5).
 pub(crate) fn shows_scroll_bar(canvas: &CanvasModel, vertical: bool) -> bool {
@@ -135,17 +94,6 @@ pub(crate) fn shows_scroll_bar(canvas: &CanvasModel, vertical: bool) -> bool {
     let (w, h) = canvas.sheet();
     let (v0, v1, end) = if vertical { (y0, y1, h) } else { (x0, x1, w) };
     v0 > 0 || v1 < end
-}
-
-/// The drawn polyline (sheet nm) of `e` when it is a connection of the page.
-fn hovered_line(c: &CanvasModel, e: ew_dl::EntityRef) -> Option<Vec<(i64, i64)>> {
-    let page = c.page();
-    page.tables.connections.iter().find(|t| t.id == e.0).map(|t| {
-        t.polyline
-            .iter()
-            .map(|p| page.snapper.page_to_sheet(*p))
-            .collect()
-    })
 }
 
 /// The bands of the hovered line and the selected lines, half as wide as the reach a line answers to the pointer
@@ -225,13 +173,13 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     let selected = shell.selected_rects(group);
     let tool = crate::tool_view::marks_of(shell, group);
     let open = shell.open_cps(group);
-    let hover_line = hover_path(shell, canvas);
+    let hover_line = ew_viewmodel::canvas::hover_path(shell, canvas);
     let selected_lines = shell.selected_paths(group);
     let (mut image, dpi) = render_view(
         canvas,
         &theme_of(shell),
         grid_spec(shell, canvas),
-        hover_rect(shell, group, canvas),
+        ew_viewmodel::canvas::hover_rect(shell, group, canvas),
         &selected,
         canvas.cursor(),
         &tool,
@@ -1586,7 +1534,7 @@ impl CanvasHost {
             .then(|| canvas.hovered_link().and_then(|l| l.label()))
             .flatten()
         {
-            // A link that leads somewhere looks like one (its outline is the hover, `hover_rect`): the pointing
+            // A link that leads somewhere looks like one (its outline is the hover, `ew_viewmodel::canvas::hover_rect`): the pointing
             // hand and "Go to <its cell or folio>"; a link without a target stays plain.
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
             if !popup_shows {
@@ -1642,7 +1590,7 @@ impl CanvasHost {
         let selected = shell.selected_rects(group);
         let tool = crate::tool_view::marks_of(shell, group);
         let open = shell.open_cps(group);
-        let hover_line = hover_path(shell, canvas);
+        let hover_line = ew_viewmodel::canvas::hover_path(shell, canvas);
         let selected_lines = shell.selected_paths(group);
         let overlay = overlay::build(&OverlayInput {
             transform,
@@ -1651,7 +1599,7 @@ impl CanvasHost {
             ppp: canvas.ppp(),
             sheet,
             grid: grid_spec(shell, canvas),
-            hover: hover_rect(shell, group, canvas),
+            hover: ew_viewmodel::canvas::hover_rect(shell, group, canvas),
             selected: &selected,
             cursor: canvas.cursor(),
             tool: &tool,

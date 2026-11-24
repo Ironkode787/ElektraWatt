@@ -237,6 +237,58 @@ pub const FIT_MARGIN_PT: f64 = 16.0;
 
 pub use crate::pointer::HOVER_SLOP_PT;
 
+/// The hover outline of a canvas while the active tool shows the hover (doc 16a §7.1): the hovered link's
+/// rectangle, else the rectangle of the hovered entity, the first of the pick stack under the pointer (the one a click
+/// picks, FT-500; doc 16a §6.25); none on a selected entity (doc 16a §7.1: the selection only) and none on a line,
+/// which shows its band ([`hover_path`]). While the Join chooser is open, its active row's object instead (doc 16a
+/// §6.22).
+pub fn hover_rect(shell: &crate::shell::ShellModel, group: usize, c: &CanvasModel) -> Option<Rect> {
+    if shell.chooser().is_some() {
+        let object = shell.chooser_object()?;
+        return c
+            .page()
+            .entities
+            .iter()
+            .find(|(e, _)| *e == object)
+            .map(|(_, r)| *r);
+    }
+    if !shell.tool().wants_hover() {
+        return None;
+    }
+    if let Some(l) = c.hovered_link() {
+        return Some(l.rect);
+    }
+    let (e, r) = c.hover()?;
+    if hovered_line(c, e).is_some() {
+        return None;
+    }
+    (!shell.selected_rects(group).contains(&r)).then_some(r)
+}
+
+/// The hovered line's band (sheet nm), where [`hover_rect`] draws none: a wire or a fluid line under the pointer that is
+/// not selected, while the active tool shows the hover and no link or chooser row is hovered.
+pub fn hover_path(shell: &crate::shell::ShellModel, c: &CanvasModel) -> Option<Vec<(i64, i64)>> {
+    if shell.chooser().is_some() || !shell.tool().wants_hover() || c.hovered_link().is_some() {
+        return None;
+    }
+    let (e, _) = c.hover()?;
+    if shell.selection().contains(e) {
+        return None;
+    }
+    hovered_line(c, e)
+}
+
+/// The drawn polyline (sheet nm) of `e` when it is a connection of the page.
+fn hovered_line(c: &CanvasModel, e: EntityRef) -> Option<Vec<(i64, i64)>> {
+    let page = c.page();
+    page.tables.connections.iter().find(|t| t.id == e.0).map(|t| {
+        t.polyline
+            .iter()
+            .map(|p| page.snapper.page_to_sheet(*p))
+            .collect()
+    })
+}
+
 /// The largest pane side in logical points `view.canvas_resize` accepts.
 pub const MAX_PANE_POINTS: f64 = 16_384.0;
 

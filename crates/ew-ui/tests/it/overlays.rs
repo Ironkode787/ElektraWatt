@@ -418,8 +418,8 @@ fn the_pick_stacks_hover_outline_and_walk() {
         Some(stack[0]),
         "the hover is the stack's first entity"
     );
-    let line = ew_ui::canvas::hover_path(&shell, c).expect("a wire first, drawn as its band");
-    assert_eq!(ew_ui::canvas::hover_rect(&shell, 0, c), None);
+    let line = ew_viewmodel::canvas::hover_path(&shell, c).expect("a wire first, drawn as its band");
+    assert_eq!(ew_viewmodel::canvas::hover_rect(&shell, 0, c), None);
     let image = snapshot(&shell);
     let o = overlay_with_bands(&shell, Some(&line), &[]);
     assert!(!o.hover_band.is_empty());
@@ -516,8 +516,8 @@ fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
     done(&mut shell, "canvas.pointer", at(on));
     let c = shell.canvas().unwrap();
     assert_eq!(c.hover().map(|h| h.0), Some(wire));
-    assert_eq!(ew_ui::canvas::hover_rect(&shell, 0, c), None, "no box");
-    assert!(ew_ui::canvas::hover_path(&shell, c).is_some());
+    assert_eq!(ew_viewmodel::canvas::hover_rect(&shell, 0, c), None, "no box");
+    assert!(ew_viewmodel::canvas::hover_path(&shell, c).is_some());
     let hovered = snapshot(&shell);
     assert!(
         beside
