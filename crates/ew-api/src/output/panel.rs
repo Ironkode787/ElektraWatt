@@ -142,12 +142,6 @@ pub(crate) struct Parts {
 }
 
 impl Parts {
-    pub(crate) const ALL: Parts = Parts {
-        surface: true,
-        carriers: true,
-        placements: true,
-        labels: true,
-    };
     pub(crate) const NONE: Parts = Parts {
         surface: false,
         carriers: false,

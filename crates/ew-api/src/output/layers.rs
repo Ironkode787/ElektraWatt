@@ -126,16 +126,189 @@ fn reps_with_slots(q: &Q, page: Id<ew_schema::Page>) -> Vec<RepView> {
     reps
 }
 
-/// The partial view `layer` of `page` reads (see the module documentation); `None` for a layer that draws
-/// nothing.
-fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
+/// How a view holds a part that comes in two forms: not at all, in its plain form, or in its full one (the frame with
+/// the title block's bindings, the representations with their slot texts, the page items and structure boxes with
+/// their texts).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+enum Form {
+    No,
+    Plain,
+    Full,
+}
+
+/// The parts of `view.rs` a view is filled with: what one layer reads ([`ViewParts::of`]), or, for [`page_view`], the
+/// union of what every layer reads.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct ViewParts {
+    /// Whether the parts exist only on a drawn page: the layer draws nothing on another.
+    drawn_only: bool,
+    frame: Form,
+    grid: bool,
+    reps: Form,
+    cp_targets: bool,
+    break_marks: bool,
+    valve_glyphs: bool,
+    valve_cells: bool,
+    plug_notes: bool,
+    connections: bool,
+    junctions: bool,
+    crossings: bool,
+    knockouts: bool,
+    bridges: bool,
+    /// The page items and the structure boxes.
+    items: Form,
+    strip_tags: bool,
+    /// The report table of a generated page, or the embedded blocks of a drawn one.
+    tables: bool,
+    panel: Parts,
+    /// Whether the layer draws nothing without a surface view.
+    needs_panel: bool,
+}
+
+impl ViewParts {
+    const NONE: ViewParts = ViewParts {
+        drawn_only: false,
+        frame: Form::No,
+        grid: false,
+        reps: Form::No,
+        cp_targets: false,
+        break_marks: false,
+        valve_glyphs: false,
+        valve_cells: false,
+        plug_notes: false,
+        connections: false,
+        junctions: false,
+        crossings: false,
+        knockouts: false,
+        bridges: false,
+        items: Form::No,
+        strip_tags: false,
+        tables: false,
+        panel: Parts::NONE,
+        needs_panel: false,
+    };
+
+    /// What `layer` reads (see the module documentation); `None` for a layer that draws nothing.
+    fn of(layer: Layer) -> Option<ViewParts> {
+        let none = ViewParts::NONE;
+        let drawn = ViewParts {
+            drawn_only: true,
+            ..none
+        };
+        Some(match layer {
+            Layer::Frame => ViewParts {
+                frame: Form::Full,
+                ..none
+            },
+            // The break marks and the graphics are stroked with the page's wire pen.
+            Layer::Symbols => ViewParts {
+                reps: Form::Plain,
+                cp_targets: true,
+                break_marks: true,
+                valve_glyphs: true,
+                valve_cells: true,
+                plug_notes: true,
+                grid: true,
+                items: Form::Plain,
+                ..drawn
+            },
+            Layer::Wires => ViewParts {
+                frame: Form::Plain,
+                grid: true,
+                reps: Form::Plain,
+                connections: true,
+                junctions: true,
+                crossings: true,
+                knockouts: true,
+                bridges: true,
+                ..drawn
+            },
+            // The layout's page: a valve terminal drawn as its cells is an outline round its valves, the texts beside a
+            // plug's pins are fixed texts the others keep clear of, and a strip's drawn bridge is a line the texts keep
+            // clear of (FT-2021).
+            Layer::Labels => ViewParts {
+                frame: Form::Plain,
+                grid: true,
+                reps: Form::Full,
+                connections: true,
+                junctions: true,
+                items: Form::Full,
+                strip_tags: true,
+                valve_cells: true,
+                plug_notes: true,
+                bridges: true,
+                panel: Parts {
+                    labels: true,
+                    ..Parts::NONE
+                },
+                ..drawn
+            },
+            Layer::Tables => ViewParts {
+                frame: Form::Plain,
+                tables: true,
+                ..none
+            },
+            Layer::Surface | Layer::Carriers | Layer::Placements => ViewParts {
+                panel: Parts {
+                    surface: layer == Layer::Surface,
+                    carriers: layer == Layer::Carriers,
+                    placements: layer == Layer::Placements,
+                    // The carriers are cut around the labels' knockout boxes.
+                    labels: layer == Layer::Carriers,
+                },
+                needs_panel: true,
+                ..drawn
+            },
+            _ => return None,
+        })
+    }
+
+    /// What either reads.
+    fn union(self, o: ViewParts) -> ViewParts {
+        ViewParts {
+            drawn_only: self.drawn_only && o.drawn_only,
+            frame: self.frame.max(o.frame),
+            grid: self.grid || o.grid,
+            reps: self.reps.max(o.reps),
+            cp_targets: self.cp_targets || o.cp_targets,
+            break_marks: self.break_marks || o.break_marks,
+            valve_glyphs: self.valve_glyphs || o.valve_glyphs,
+            valve_cells: self.valve_cells || o.valve_cells,
+            plug_notes: self.plug_notes || o.plug_notes,
+            connections: self.connections || o.connections,
+            junctions: self.junctions || o.junctions,
+            crossings: self.crossings || o.crossings,
+            knockouts: self.knockouts || o.knockouts,
+            bridges: self.bridges || o.bridges,
+            items: self.items.max(o.items),
+            strip_tags: self.strip_tags || o.strip_tags,
+            tables: self.tables || o.tables,
+            panel: Parts {
+                surface: self.panel.surface || o.panel.surface,
+                carriers: self.panel.carriers || o.panel.carriers,
+                placements: self.panel.placements || o.panel.placements,
+                labels: self.panel.labels || o.panel.labels,
+            },
+            needs_panel: self.needs_panel && o.needs_panel,
+        }
+    }
+}
+
+/// The view of `page` filled with `parts`; `None` where the parts draw nothing on this page (a drawn page's parts on
+/// another page, a surface view's layer without one).
+fn view_of(q: &Q, page: PageRef, parts: ViewParts) -> Option<PageView> {
     let mut v = base_view(page);
     let drawn = match page {
         PageRef::Drawn(p) => Some(p),
         _ => None,
     };
-    match layer {
-        Layer::Frame => {
+    if parts.drawn_only && drawn.is_none() {
+        return None;
+    }
+    match parts.frame {
+        Form::No => {}
+        Form::Plain => v.frame = bare_frame(q, page),
+        Form::Full => {
             let bindings = q.get::<PageBindingsOf>(page);
             v.frame = q
                 .get::<PageFrameOf>(page)
@@ -143,75 +316,75 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
                 .as_ref()
                 .map(|f| f.view((*bindings).clone()));
         }
-        Layer::Symbols => {
-            let p = drawn?;
-            v.reps = (*q.get::<PageRepsOf>(p)).clone();
-            v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
-            v.break_marks = page_break_marks(q, p);
-            v.valve_glyphs = page_valve_glyphs(q, p);
-            v.valve_cells = page_valve_cells(q, p);
-            v.plug_notes = page_plug_notes(q, p);
-            // The break marks and the graphics are stroked with the page's wire pen.
-            v.grid = page_grid(q, page);
-            v.items = page_items(q, p, false);
-            v.structure_boxes = page_boxes(q, p, false);
+    }
+    if parts.grid {
+        v.grid = page_grid(q, page);
+    }
+    if parts.tables {
+        match drawn {
+            Some(p) => v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone(),
+            None => v.table = (*q.get::<PageTableOf>(page)).clone(),
         }
-        Layer::Wires => {
-            let p = drawn?;
-            v.frame = bare_frame(q, page);
-            v.grid = page_grid(q, page);
-            v.reps = (*q.get::<PageRepsOf>(p)).clone();
-            v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
-            v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
-            v.crossings = crossings(q);
-            v.knockouts = (*q.get::<PageKnockoutsOf>(page)).clone();
-            v.bridges = page_bridges(q, p);
+    }
+    let Some(p) = drawn else {
+        return Some(v);
+    };
+    match parts.reps {
+        Form::No => {}
+        Form::Plain => v.reps = (*q.get::<PageRepsOf>(p)).clone(),
+        Form::Full => v.reps = reps_with_slots(q, p),
+    }
+    if parts.connections {
+        v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
+    }
+    if parts.junctions {
+        v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
+    }
+    if parts.cp_targets {
+        v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
+    }
+    if parts.break_marks {
+        v.break_marks = page_break_marks(q, p);
+    }
+    if parts.valve_glyphs {
+        v.valve_glyphs = page_valve_glyphs(q, p);
+    }
+    if parts.valve_cells {
+        v.valve_cells = page_valve_cells(q, p);
+    }
+    if parts.plug_notes {
+        v.plug_notes = page_plug_notes(q, p);
+    }
+    if parts.crossings {
+        v.crossings = crossings(q);
+    }
+    if parts.items != Form::No {
+        let texts = parts.items == Form::Full;
+        v.items = page_items(q, p, texts);
+        v.structure_boxes = page_boxes(q, p, texts);
+    }
+    if parts.strip_tags {
+        v.strip_tags = page_strip_tags(q, p);
+    }
+    if parts.knockouts {
+        v.knockouts = (*q.get::<PageKnockoutsOf>(page)).clone();
+    }
+    if parts.bridges {
+        v.bridges = page_bridges(q, p);
+    }
+    if parts.panel != Parts::NONE {
+        v.panel = panel_view(q, p, parts.panel);
+        if parts.needs_panel && v.panel.is_none() {
+            return None;
         }
-        Layer::Labels => {
-            let p = drawn?;
-            v.frame = bare_frame(q, page);
-            v.grid = page_grid(q, page);
-            v.reps = reps_with_slots(q, p);
-            v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
-            v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
-            v.items = page_items(q, p, true);
-            v.structure_boxes = page_boxes(q, p, true);
-            v.strip_tags = page_strip_tags(q, p);
-            // The layout's page: a valve terminal drawn as its cells is an outline round its valves, and the texts
-            // beside a plug's pins are fixed texts the others keep clear of.
-            v.valve_cells = page_valve_cells(q, p);
-            v.plug_notes = page_plug_notes(q, p);
-            // A strip's drawn bridge is a line the texts keep clear of (FT-2021).
-            v.bridges = page_bridges(q, p);
-            v.panel = panel_view(
-                q,
-                p,
-                Parts {
-                    labels: true,
-                    ..Parts::NONE
-                },
-            );
-        }
-        Layer::Tables => {
-            v.frame = bare_frame(q, page);
-            match drawn {
-                Some(p) => v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone(),
-                None => v.table = (*q.get::<PageTableOf>(page)).clone(),
-            }
-        }
-        Layer::Surface | Layer::Carriers | Layer::Placements => {
-            let parts = Parts {
-                surface: layer == Layer::Surface,
-                carriers: layer == Layer::Carriers,
-                placements: layer == Layer::Placements,
-                // The carriers are cut around the labels' knockout boxes.
-                labels: layer == Layer::Carriers,
-            };
-            v.panel = Some(panel_view(q, drawn?, parts)?);
-        }
-        _ => return None,
     }
     Some(v)
+}
+
+/// The partial view `layer` of `page` reads (see the module documentation); `None` for a layer that draws
+/// nothing.
+fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
+    view_of(q, page, ViewParts::of(layer)?)
 }
 
 /// The project's effective text-style table (ADR-0032) as the scene's table: the rows of `ew_derive::text_styles`
@@ -373,40 +546,16 @@ pub fn page_kind(entry: &PageEntry) -> PageKind {
     }
 }
 
-/// The full view of a page of the page order: every part of `view.rs` (the union of the layers' views). For
-/// callers that need the whole view (hit-testing, the CP positions, tests); the export reads the layers.
+/// The full view of a page of the page order: every part of `view.rs`, the union of what the layers read
+/// ([`ViewParts::of`]). For callers that need the whole view (hit-testing, the CP positions, tests); the export reads
+/// the layers.
 pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
-    let page = entry.page;
-    let mut v = base_view(page);
+    let all = Layer::ALL
+        .iter()
+        .filter_map(|l| ViewParts::of(*l))
+        .fold(ViewParts::NONE, ViewParts::union);
+    let mut v = view_of(q, entry.page, all).unwrap_or_else(|| base_view(entry.page));
     v.kind = page_kind(entry);
-    v.grid = page_grid(q, page);
-    let bindings = q.get::<PageBindingsOf>(page);
-    v.frame = q
-        .get::<PageFrameOf>(page)
-        .as_ref()
-        .as_ref()
-        .map(|f| f.view((*bindings).clone()));
-    match page {
-        PageRef::Drawn(p) => {
-            v.reps = reps_with_slots(q, p);
-            v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
-            v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
-            v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
-            v.break_marks = page_break_marks(q, p);
-            v.valve_glyphs = page_valve_glyphs(q, p);
-            v.valve_cells = page_valve_cells(q, p);
-            v.plug_notes = page_plug_notes(q, p);
-            v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone();
-            v.crossings = crossings(q);
-            v.items = page_items(q, p, true);
-            v.structure_boxes = page_boxes(q, p, true);
-            v.strip_tags = page_strip_tags(q, p);
-            v.panel = panel_view(q, p, Parts::ALL);
-            v.knockouts = (*q.get::<PageKnockoutsOf>(page)).clone();
-            v.bridges = page_bridges(q, p);
-        }
-        _ => v.table = (*q.get::<PageTableOf>(page)).clone(),
-    }
     v
 }
 
