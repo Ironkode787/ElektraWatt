@@ -66,21 +66,19 @@ fn page_words(done: &ExportDone) -> String {
     .filter(|(n, _)| *n > 0)
     .map(|(n, key)| strings::format_count(key, n))
     .collect();
-    match parts.as_slice() {
-        [] => strings::format_count(crate::count_key!("export-pages-drawing"), 0),
-        [one] => one.clone(),
-        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), strings::text(key!("list-and"))),
+    if parts.is_empty() {
+        return strings::format_count(crate::count_key!("export-pages-drawing"), 0);
     }
+    strings::and_list(&parts)
 }
 
 /// The numbers `1, 2 and 3` of a refusal that names the valid ones.
 fn number_list(numbers: &[u64]) -> String {
     let texts: Vec<String> = numbers.iter().map(u64::to_string).collect();
-    match texts.as_slice() {
-        [] => strings::text(key!("list-none")).to_owned(),
-        [one] => one.clone(),
-        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), strings::text(key!("list-and"))),
+    if texts.is_empty() {
+        return strings::text(key!("list-none")).to_owned();
     }
+    strings::and_list(&texts)
 }
 
 /// The `file://` URL of a local file or folder (the privacy file, the log folder): the path's characters outside the
@@ -221,6 +219,13 @@ impl ShellModel {
             None
         };
         self.notes.push(Note::new(key, text).offering([undo]));
+    }
+
+    /// Shows `text` as a toast: what a command did that the page does not show by itself (a new strip, the
+    /// wires a placement drew); `undo` offers Undo. The toasts of these callers share the key `edit`, so a
+    /// newer one replaces an older one on screen; every one enters the notifications log.
+    pub(super) fn notify(&mut self, text: String, undo: bool) {
+        self.notify_with(text, "edit", undo);
     }
 
     /// Shows a placement's sentences `made` that name the wires it made, with Undo, as a toast of key `wired`: the next

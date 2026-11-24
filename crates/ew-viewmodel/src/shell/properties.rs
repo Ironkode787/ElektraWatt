@@ -3076,13 +3076,6 @@ impl ShellModel {
         self.run_edit(rebuilt, true)
     }
 
-    /// Shows `text` as a toast: what a command did that the page does not show by itself (a new strip, the
-    /// wires a placement drew); `undo` offers Undo. The toasts of these callers share the key `edit`, so a
-    /// newer one replaces an older one on screen; every one enters the notifications log.
-    pub(super) fn notify(&mut self, text: String, undo: bool) {
-        self.notify_with(text, "edit", undo);
-    }
-
     /// `preview.cancel` (the card's Cancel, Escape): the preview is dropped.
     pub(crate) fn act_preview_cancel(&mut self) -> Outcome {
         if self.props.card.take().is_none() {

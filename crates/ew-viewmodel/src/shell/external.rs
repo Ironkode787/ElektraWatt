@@ -67,7 +67,7 @@ pub(crate) fn collision_count(rows: &[CollisionRow]) -> String {
             records,
         ));
     }
-    and_list(&parts)
+    strings::and_list(&parts)
 }
 
 /// The collaboration state of the shell.
@@ -313,7 +313,10 @@ impl ShellModel {
         } else if let [folio] = a.folios.as_slice() {
             strings::format(key!("toast-external-folio"), &[&records, folio])
         } else {
-            strings::format(key!("toast-external-folios"), &[&records, &and_list(&a.folios)])
+            strings::format(
+                key!("toast-external-folios"),
+                &[&records, &strings::and_list(&a.folios)],
+            )
         };
         if let Some(hash) = &a.commit {
             // The commit goes inside the sentence, before its full stop.
@@ -756,15 +759,6 @@ impl ShellModel {
             }
             Ok(Some(_)) => failed(key!("error-bad-param"), &["how"]),
         }
-    }
-}
-
-/// `a, b and c`: the folios of a toast, the wires of Route's.
-pub(super) fn and_list(items: &[String]) -> String {
-    match items {
-        [] => String::new(),
-        [one] => one.clone(),
-        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), strings::text(key!("list-and"))),
     }
 }
 

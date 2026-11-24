@@ -1146,7 +1146,7 @@ fn wire_names(session: &ew_api::Session, folio: &str, ids: &[ew_api::output::Uui
         let more = (ids.len() - NAMED).to_string();
         names.push(strings::format(key!("route-more"), &[&more]));
     }
-    super::external::and_list(&names)
+    strings::and_list(&names)
 }
 
 /// One sentence per wire a plan leaves without a way, with what is in it; per broken wire of the person's it replaces;

@@ -898,6 +898,16 @@ pub fn format_count(key: CountKey, count: usize) -> String {
         .unwrap_or_else(|| "?".to_owned())
 }
 
+/// `a, b and c` in the UI language: the folios of a toast, the wires of Route's, the pages of an export; empty
+/// for none.
+pub fn and_list(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), text(key!("list-and"))),
+    }
+}
+
 /// The time from epoch milliseconds `last_ms` to `now_ms` in words: `just now` under a minute (also for a
 /// `last_ms` after `now_ms`, a clock skew, never a negative), then whole minutes, hours or days, rounded down.
 pub fn elapsed_text(last_ms: u64, now_ms: u64) -> String {
