@@ -35,7 +35,7 @@ use crate::navigators::table::{
     cell_reason, cell_text, compile, define_point, gesture_rows, mark_conflicts, pattern_texts,
     potential_input, route_type, row_targets, row_terminal, rows_word, strip_route, strip_targets,
 };
-use crate::properties::{Card, CardOrigin, Decision, EditRoute, FieldReadOnly, PendingEdit, policy};
+use crate::properties::{Card, CardOrigin, Decision, PendingEdit, policy};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
@@ -625,17 +625,9 @@ impl ShellModel {
             .find_map(|c| c.route.as_ref().map(|r| r.0.clone()))
             .unwrap_or_default();
         let edit = PendingEdit {
-            row: String::new(),
             kind,
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: name.clone(),
-            params: params.clone(),
-            typed: String::new(),
             label: gesture.column_labels(),
+            ..PendingEdit::for_command(&name, params.clone())
         };
         self.close_edit(gesture.nav);
         self.props.card = Some(Card {

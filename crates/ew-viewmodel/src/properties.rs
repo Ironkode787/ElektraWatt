@@ -213,6 +213,26 @@ pub struct PendingEdit {
     pub label: String,
 }
 
+impl PendingEdit {
+    /// The command `name` with `params` that a host action built, not an edit of a row: no row, kind, path, targets,
+    /// base or typed text, read-only by its route.
+    pub fn for_command(name: &str, params: Value) -> PendingEdit {
+        PendingEdit {
+            row: String::new(),
+            kind: String::new(),
+            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
+            path: String::new(),
+            targets: Vec::new(),
+            leaf: None,
+            base: None,
+            name: name.to_owned(),
+            params,
+            typed: String::new(),
+            label: String::new(),
+        }
+    }
+}
+
 /// Where a card was opened: the property grid, the find pane's replace, or the parts table import (the transcript's
 /// `origin`).
 #[derive(Clone, PartialEq, Eq, Debug)]

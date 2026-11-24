@@ -20,9 +20,7 @@ use super::navigation::bump;
 use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::clipboard::{ClipKind, ClipboardState, copy_refusal, fragment_banner};
 use crate::key;
-use crate::properties::{
-    Card, CardOrigin, EditRoute, FieldReadOnly, PasteChoice, PasteConflict, PendingEdit,
-};
+use crate::properties::{Card, CardOrigin, PasteChoice, PasteConflict, PendingEdit};
 use crate::strings;
 use crate::tools::PreviewState;
 use crate::tools::{PasteTool, SelectionChange, ToolOutput, tool_named};
@@ -333,19 +331,7 @@ impl ShellModel {
             .collect::<Vec<_>>()
             .join(", ");
         let message = strings::format(key!("reason-paste-versions"), &[&list]);
-        let edit = PendingEdit {
-            row: String::new(),
-            kind: String::new(),
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: "edit.paste".to_owned(),
-            params: Value::Null,
-            typed: String::new(),
-            label: String::new(),
-        };
+        let edit = PendingEdit::for_command("edit.paste", Value::Null);
         self.props.card = Some(Card {
             preview: PreviewState {
                 base_rev: rev,

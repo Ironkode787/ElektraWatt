@@ -29,7 +29,7 @@ use super::{Mode, Outcome, Prompt, RecordedCommand, ShellModel, failed, string_p
 use crate::jobs::TableFile;
 use crate::key;
 use crate::layout::PaneKind;
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit, TableImportCard};
+use crate::properties::{Card, CardOrigin, PendingEdit, TableImportCard};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
@@ -372,17 +372,8 @@ impl ShellModel {
                 derived,
             },
             edit: PendingEdit {
-                row: String::new(),
-                kind: String::new(),
-                route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-                path: String::new(),
-                targets: Vec::new(),
-                leaf: None,
-                base: None,
-                name: COMMAND.to_owned(),
-                params,
-                typed: String::new(),
                 label: source.clone(),
+                ..PendingEdit::for_command(COMMAND, params)
             },
             targets: changes,
             changes,

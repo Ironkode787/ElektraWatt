@@ -34,7 +34,7 @@ use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
 use crate::key;
 use crate::navigators::{NavKind, TableRef};
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, MacroField, MacroInsert, PendingEdit};
+use crate::properties::{Card, CardOrigin, MacroField, MacroInsert, PendingEdit};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{MacroTool, PreviewState};
@@ -702,19 +702,7 @@ impl ShellModel {
             .map(|p| project.session.derived_diff(p))
             .unwrap_or_default();
         let changes = result.as_ref().map_or(0, |p| p.diff().len());
-        let edit = PendingEdit {
-            row: String::new(),
-            kind: String::new(),
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: cmd.name.clone(),
-            params: cmd.params.clone(),
-            typed: String::new(),
-            label: String::new(),
-        };
+        let edit = PendingEdit::for_command(&cmd.name, cmd.params.clone());
         self.props.card = Some(Card {
             preview: PreviewState {
                 base_rev: rev,

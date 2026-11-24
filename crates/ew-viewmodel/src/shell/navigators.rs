@@ -35,7 +35,7 @@ use crate::key;
 use crate::layout::PaneKind;
 use crate::navigator::RowKind;
 use crate::navigators::{NavView, Navigator, SortBy, starts_with_folded};
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
+use crate::properties::{Card, CardOrigin, PendingEdit};
 use crate::strings;
 use crate::tools::{OverlayItem, PreviewState, SelectionChange};
 
@@ -1805,17 +1805,8 @@ impl ShellModel {
         }
         let result = result.map_err(|e| e.to_string());
         let edit = PendingEdit {
-            row: String::new(),
             kind: "page".to_owned(),
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: REORDER.to_owned(),
-            params: params.clone(),
-            typed: String::new(),
-            label: String::new(),
+            ..PendingEdit::for_command(REORDER, params.clone())
         };
         let changes = notices.len();
         self.props.card = Some(Card {

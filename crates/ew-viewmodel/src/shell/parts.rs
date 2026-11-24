@@ -31,7 +31,7 @@ use super::navigation::bump;
 use super::tools::Kept;
 use super::{Outcome, Prompt, ShellModel, failed, string_param};
 use crate::key;
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
+use crate::properties::{Card, CardOrigin, PendingEdit};
 use crate::strings;
 use crate::tools::PreviewState;
 
@@ -703,17 +703,9 @@ impl ShellModel {
             .unwrap_or((0, 0));
         let result = result.map_err(|e| e.to_string());
         let edit = PendingEdit {
-            row: String::new(),
             kind: "part".to_owned(),
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: COMMAND.to_owned(),
-            params: params.clone(),
-            typed: String::new(),
             label: source.clone(),
+            ..PendingEdit::for_command(COMMAND, params.clone())
         };
         self.props.card = Some(Card {
             preview: PreviewState {

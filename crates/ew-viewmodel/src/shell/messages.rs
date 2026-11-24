@@ -24,7 +24,7 @@ use crate::layout::PaneKind;
 use crate::navigators::messages::{self, FindingDetail, MessageCounts, OnlineFacts};
 use crate::navigators::{NavRole, Navigator, Query, visible_rows};
 use crate::notifications::NoteTone;
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
+use crate::properties::{Card, CardOrigin, PendingEdit};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
@@ -919,19 +919,7 @@ impl ShellModel {
             Err(_) => Default::default(),
         };
         let changes = result.as_ref().map_or(0, |p| p.diff().len());
-        let edit = PendingEdit {
-            row: String::new(),
-            kind: String::new(),
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: name.clone(),
-            params: params.clone(),
-            typed: String::new(),
-            label: String::new(),
-        };
+        let edit = PendingEdit::for_command(&name, params.clone());
         self.props.card = Some(Card {
             preview: PreviewState {
                 base_rev: rev,

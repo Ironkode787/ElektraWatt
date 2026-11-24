@@ -29,7 +29,7 @@ use super::tools::Kept;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::layout::PaneKind;
 use crate::preview::{PreviewPane, XrefChange, card_key};
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
+use crate::properties::{Card, CardOrigin, PendingEdit};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
@@ -328,19 +328,7 @@ impl ShellModel {
         };
         let derived = project.session.derived_diff(&preview);
         let changes = preview.diff().len();
-        let edit = PendingEdit {
-            row: String::new(),
-            kind: String::new(),
-            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            path: String::new(),
-            targets: Vec::new(),
-            leaf: None,
-            base: None,
-            name: name.to_owned(),
-            params: params.clone(),
-            typed: String::new(),
-            label: String::new(),
-        };
+        let edit = PendingEdit::for_command(name, params.clone());
         self.props.card = Some(Card {
             preview: PreviewState {
                 base_rev: rev,
