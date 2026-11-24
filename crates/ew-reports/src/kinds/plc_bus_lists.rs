@@ -66,7 +66,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
     {
         Some(LengthSource::Manual(nm)) => text(&format!("{} m", ew_derive::ew_units::Dec3(nm.0 / 1_000_000))),
-        Some(LengthSource::FromPart) => words_cell("from part", "uit artikel"),
+        Some(LengthSource::FromPart) => words_cell(&text!("cell-from-part")),
         _ => Cell::Empty,
     }
 }
@@ -86,24 +86,18 @@ impl ReportKindDef for PlcCardList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(10),
-            ColumnDef::new("slot", CellType::Ident, "Slot", "Slot").weighted(5),
-            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
-            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(10),
-            ColumnDef::new("input_start", CellType::Address, "Input start", "Begin ingangen").weighted(8),
-            ColumnDef::new("input_length", CellType::Number, "Input bytes", "Ingangsbytes").weighted(7),
-            ColumnDef::new(
-                "output_start",
-                CellType::Address,
-                "Output start",
-                "Begin uitgangen",
-            )
-            .weighted(8),
-            ColumnDef::new("output_length", CellType::Number, "Output bytes", "Uitgangsbytes").weighted(7),
-            ColumnDef::new("used", CellType::Number, "Used", "Gebruikt").weighted(5),
-            ColumnDef::new("spare", CellType::Number, "Spare", "Reserve").weighted(5),
-            ColumnDef::new("reserved", CellType::Number, "Reserved", "Gereserveerd").weighted(6),
-            ColumnDef::new("deactivated", CellType::Number, "Deactivated", "Gedeactiveerd").weighted(7),
+            ColumnDef::new("station", CellType::Ident, text!("column-station")).weighted(10),
+            ColumnDef::new("slot", CellType::Ident, text!("column-slot")).weighted(5),
+            ColumnDef::new("module", CellType::Ident, text!("column-module")).weighted(10),
+            ColumnDef::new("part", CellType::Ident, text!("column-part")).weighted(10),
+            ColumnDef::new("input_start", CellType::Address, text!("column-input-start")).weighted(8),
+            ColumnDef::new("input_length", CellType::Number, text!("column-input-bytes")).weighted(7),
+            ColumnDef::new("output_start", CellType::Address, text!("column-output-start")).weighted(8),
+            ColumnDef::new("output_length", CellType::Number, text!("column-output-bytes")).weighted(7),
+            ColumnDef::new("used", CellType::Number, text!("column-used")).weighted(5),
+            ColumnDef::new("spare", CellType::Number, text!("column-spare")).weighted(5),
+            ColumnDef::new("reserved", CellType::Number, text!("column-reserved")).weighted(6),
+            ColumnDef::new("deactivated", CellType::Number, text!("column-deactivated")).weighted(7),
         ]
     }
 
@@ -201,22 +195,21 @@ impl ReportKindDef for NetworkAddressList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("net", CellType::Ident, "Logical net", "Logisch net").weighted(10),
-            ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(12),
-            ColumnDef::new("device_type", CellType::Ident, "Device type", "Apparaattype").weighted(10),
-            ColumnDef::new("address", CellType::Ident, "Address or name", "Adres of naam").weighted(10),
-            ColumnDef::new("ip", CellType::Ident, "IP address", "IP-adres").weighted(9),
-            ColumnDef::new("mask", CellType::Ident, "Subnet mask", "Subnetmasker").weighted(9),
-            ColumnDef::new("master", CellType::Bool, "Master", "Master").weighted(5),
-            ColumnDef::new("rate", CellType::Number, "Rate (bit/s)", "Snelheid (bit/s)").weighted(8),
+            ColumnDef::new("net", CellType::Ident, text!("column-logical-net")).weighted(10),
+            ColumnDef::new("station", CellType::Ident, text!("column-station")).weighted(12),
+            ColumnDef::new("device_type", CellType::Ident, text!("column-device-type")).weighted(10),
+            ColumnDef::new("address", CellType::Ident, text!("column-address-or-name")).weighted(10),
+            ColumnDef::new("ip", CellType::Ident, text!("column-ip-address")).weighted(9),
+            ColumnDef::new("mask", CellType::Ident, text!("column-subnet-mask")).weighted(9),
+            ColumnDef::new("master", CellType::Bool, text!("column-master")).weighted(5),
+            ColumnDef::new("rate", CellType::Number, text!("column-rate-bit-s")).weighted(8),
             ColumnDef::new(
                 "config_project",
                 CellType::Ident,
-                "Configuration project",
-                "Configuratieproject",
+                text!("column-configuration-project"),
             )
             .weighted(9),
-            ColumnDef::new("tbd", CellType::Bool, "TBD", "N.t.b.").weighted(4),
+            ColumnDef::new("tbd", CellType::Bool, text!("column-tbd")).weighted(4),
         ]
     }
 
@@ -383,16 +376,16 @@ impl ReportKindDef for BusOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("net", CellType::Ident, "Logical net", "Logisch net").weighted(10),
-            ColumnDef::new("position", CellType::Number, "Position", "Positie").weighted(6),
-            ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(12),
-            ColumnDef::new("port", CellType::Ident, "Port", "Poort").weighted(8),
-            ColumnDef::new("address", CellType::Ident, "Address", "Adres").weighted(10),
-            ColumnDef::new("connector", CellType::Ident, "Connector", "Connector").weighted(9),
-            ColumnDef::new("termination", CellType::Text, "Termination", "Afsluiting").weighted(8),
-            ColumnDef::new("cable", CellType::Ident, "Cable", "Kabel").weighted(8),
-            ColumnDef::new("length", CellType::Text, "Length", "Lengte").weighted(7),
-            ColumnDef::new("external", CellType::Bool, "External", "Extern").weighted(6),
+            ColumnDef::new("net", CellType::Ident, text!("column-logical-net")).weighted(10),
+            ColumnDef::new("position", CellType::Number, text!("column-position")).weighted(6),
+            ColumnDef::new("station", CellType::Ident, text!("column-station")).weighted(12),
+            ColumnDef::new("port", CellType::Ident, text!("column-port")).weighted(8),
+            ColumnDef::new("address", CellType::Ident, text!("column-address")).weighted(10),
+            ColumnDef::new("connector", CellType::Ident, text!("column-connector")).weighted(9),
+            ColumnDef::new("termination", CellType::Text, text!("column-termination")).weighted(8),
+            ColumnDef::new("cable", CellType::Ident, text!("column-cable")).weighted(8),
+            ColumnDef::new("length", CellType::Text, text!("column-length")).weighted(7),
+            ColumnDef::new("external", CellType::Bool, text!("column-external")).weighted(6),
         ]
     }
 
@@ -490,8 +483,8 @@ fn switch_port(q: &Q, d: Id<Device>, p: &ew_derive::ew_schema::BusPort) -> bool 
 
 fn termination(t: &Option<OnOff>) -> Cell {
     match t {
-        Some(OnOff::On) => words_cell("on", "aan"),
-        Some(OnOff::Off) => words_cell("off", "uit"),
+        Some(OnOff::On) => words_cell(&text!("cell-on")),
+        Some(OnOff::Off) => words_cell(&text!("cell-off")),
         _ => Cell::Empty,
     }
 }
@@ -515,13 +508,13 @@ impl ReportKindDef for BusCableList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("cable", CellType::Ident, "Cable", "Kabel").weighted(9),
-            ColumnDef::new("bus", CellType::Text, "Bus system", "Bussysteem").weighted(10),
-            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(10),
-            ColumnDef::new("length", CellType::Text, "Length", "Lengte").weighted(7),
-            ColumnDef::new("from", CellType::Ident, "From", "Van").weighted(12),
-            ColumnDef::new("to", CellType::Ident, "To", "Naar").weighted(12),
-            ColumnDef::new("segment", CellType::Ident, "Segment", "Segment").weighted(9),
+            ColumnDef::new("cable", CellType::Ident, text!("column-cable")).weighted(9),
+            ColumnDef::new("bus", CellType::Text, text!("column-bus-system")).weighted(10),
+            ColumnDef::new("part", CellType::Ident, text!("column-part")).weighted(10),
+            ColumnDef::new("length", CellType::Text, text!("column-length")).weighted(7),
+            ColumnDef::new("from", CellType::Ident, text!("column-from")).weighted(12),
+            ColumnDef::new("to", CellType::Ident, text!("column-to")).weighted(12),
+            ColumnDef::new("segment", CellType::Ident, text!("column-segment")).weighted(9),
         ]
     }
 
@@ -560,7 +553,7 @@ impl ReportKindDef for BusCableList {
             put(c, &mut cells, "cable", Cell::ident(&short_tag(q, cable)));
             if let Some(p) = &port {
                 let bus = match &p.bus {
-                    BusSystem::Unknown(_) => words_cell(bus_word(&p.bus), "overig"),
+                    BusSystem::Unknown(_) => words_cell(&text!("cell-other")),
                     known => text(bus_word(known)),
                 };
                 put(c, &mut cells, "bus", bus);
@@ -581,10 +574,7 @@ impl ReportKindDef for BusCableList {
             let end = |f: Id<Function>, plug: Option<Id<Part>>| {
                 let words = ew_derive::bus_end_label(q, f);
                 match plug.and_then(|p| q.parts().get(p)) {
-                    Some(p) => words_cell(
-                        &format!("{words} \u{b7} plug {}", p.item.part_number),
-                        &format!("{words} \u{b7} stekker {}", p.item.part_number),
-                    ),
+                    Some(p) => words_cell(&text!("cell-end-plug", words, p.item.part_number.to_string())),
                     None => Cell::ident(&words),
                 }
             };
@@ -615,16 +605,16 @@ impl ReportKindDef for IolinkPortList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("master", CellType::Ident, "Master", "Master").weighted(10),
-            ColumnDef::new("port", CellType::Number, "Port", "Poort").weighted(5),
-            ColumnDef::new("mode", CellType::Text, "Mode", "Modus").weighted(8),
-            ColumnDef::new("class", CellType::Ident, "Class", "Klasse").weighted(5),
-            ColumnDef::new("device", CellType::Ident, "Device", "Apparaat").weighted(10),
-            ColumnDef::new("vendor_id", CellType::Number, "Vendor ID", "Fabrikant-ID").weighted(7),
-            ColumnDef::new("device_id", CellType::Number, "Device ID", "Apparaat-ID").weighted(7),
-            ColumnDef::new("input_bits", CellType::Number, "Input bits", "Ingangsbits").weighted(6),
-            ColumnDef::new("output_bits", CellType::Number, "Output bits", "Uitgangsbits").weighted(6),
-            ColumnDef::new("cable", CellType::Ident, "Cable", "Kabel").weighted(8),
+            ColumnDef::new("master", CellType::Ident, text!("column-master")).weighted(10),
+            ColumnDef::new("port", CellType::Number, text!("column-port")).weighted(5),
+            ColumnDef::new("mode", CellType::Text, text!("column-mode")).weighted(8),
+            ColumnDef::new("class", CellType::Ident, text!("column-class")).weighted(5),
+            ColumnDef::new("device", CellType::Ident, text!("column-device")).weighted(10),
+            ColumnDef::new("vendor_id", CellType::Number, text!("column-vendor-id")).weighted(7),
+            ColumnDef::new("device_id", CellType::Number, text!("column-device-id")).weighted(7),
+            ColumnDef::new("input_bits", CellType::Number, text!("column-input-bits")).weighted(6),
+            ColumnDef::new("output_bits", CellType::Number, text!("column-output-bits")).weighted(6),
+            ColumnDef::new("cable", CellType::Ident, text!("column-cable")).weighted(8),
         ]
     }
 
@@ -654,8 +644,8 @@ impl ReportKindDef for IolinkPortList {
                         PortMode::IoLink => text("IO-Link"),
                         PortMode::Di => text("DI"),
                         PortMode::Dq => text("DQ"),
-                        PortMode::Deactivated => words_cell("deactivated", "gedeactiveerd"),
-                        PortMode::Unknown(_) => words_cell("other", "overig"),
+                        PortMode::Deactivated => words_cell(&text!("cell-deactivated")),
+                        PortMode::Unknown(_) => words_cell(&text!("cell-other")),
                     };
                     put(c, &mut cells, "mode", mode);
                     let class_text = match class {
@@ -719,20 +709,14 @@ impl ReportKindDef for SafetyIoList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("f_dest", CellType::Number, "F-destination", "F-bestemming").weighted(7),
-            ColumnDef::new("f_source", CellType::Number, "F-source", "F-bron").weighted(7),
-            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
-            ColumnDef::new("channel", CellType::Number, "Channel", "Kanaal").weighted(6),
-            ColumnDef::new("pair", CellType::Number, "Pair", "Paar").weighted(5),
-            ColumnDef::new(
-                "target",
-                CellType::Ident,
-                "Sensor or actuator",
-                "Sensor of actuator",
-            )
-            .weighted(12),
-            ColumnDef::new("requirement", CellType::Ident, "Requirement", "Eis").weighted(8),
-            ColumnDef::new("test_pulse", CellType::Ident, "Test pulse", "Testpuls").weighted(10),
+            ColumnDef::new("f_dest", CellType::Number, text!("column-f-destination")).weighted(7),
+            ColumnDef::new("f_source", CellType::Number, text!("column-f-source")).weighted(7),
+            ColumnDef::new("module", CellType::Ident, text!("column-module")).weighted(10),
+            ColumnDef::new("channel", CellType::Number, text!("column-channel")).weighted(6),
+            ColumnDef::new("pair", CellType::Number, text!("column-pair")).weighted(5),
+            ColumnDef::new("target", CellType::Ident, text!("column-sensor-or-actuator")).weighted(12),
+            ColumnDef::new("requirement", CellType::Ident, text!("column-requirement")).weighted(8),
+            ColumnDef::new("test_pulse", CellType::Ident, text!("column-test-pulse")).weighted(10),
         ]
     }
 

@@ -648,7 +648,7 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 
 ## ew-l10n
 
-`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on `ew-mltext` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-model`, `ew-viewmodel` · in tests by none
+`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on `ew-mltext` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-model`, `ew-reports`, `ew-viewmodel` · in tests by none
 
 A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too.
 
@@ -850,7 +850,7 @@ The 2D canvas renderer: the CPU tile path and the wgpu path over one display lis
 
 ## ew-reports
 
-`crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-zip` · used by `ew-api` · in tests by none
+`crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-l10n`, `ew-zip` · used by `ew-api` · in tests by none
 
 Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0), pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]).
 
@@ -888,6 +888,7 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/render.rs` |  | Value rendering rules (doc 09 §3.6): the display formatting of typed cells, applied late (FR-I18N-009), so the same [`Cell`] prints "0.75 mm²" in an English PDF and "0,75 mm²" in an nl-NL one while XLSX keeps the number. |
 | `src/rowset.rs` |  | `RowSet`: one row source for every consumer (doc 09 §2.3, ADR-0018). |
 | `src/table.rs` |  | The one table model of the table writers: report rows, the `ew sql` result and, from part 2, the navigator tables are a [`Table`], which the XLSX writer ([`crate::xlsx`]) and the CSV presets ([`crate::csv::table_csv`]) write. |
+| `src/words.rs` |  | The words of the lists by key (architecture §18): a column's heading, a word in a cell, the title of a box and the note of a list that is not derived stand in `texts/<language>/lists.ftl` and are made with `text!`. |
 | `src/xlsx.rs` | large | The own XLSX writer: [`xlsx()`] writes [`Table`]s as an Office Open XML workbook whose bytes depend on the tables and the [`WorkbookMeta`] only. |
 
 ## ew-scene

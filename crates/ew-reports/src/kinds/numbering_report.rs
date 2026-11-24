@@ -8,6 +8,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_schema::{Connection, Device, NumberSpec, ReportBlock};
 use ew_derive::{Q, WireNumbers, rule_product};
+use ew_l10n::Text;
 
 use super::conn::{tag_key, words_cell};
 use crate::kind::ReportKindDef;
@@ -32,11 +33,11 @@ impl ReportKindDef for NumberingReport {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("item", CellType::Tag, "Item", "Element").weighted(15),
-            ColumnDef::new("kind", CellType::Text, "Kind", "Soort").weighted(10),
-            ColumnDef::new("frozen", CellType::Ident, "Frozen", "Vastgezet").weighted(12),
-            ColumnDef::new("rule", CellType::Ident, "Rule value", "Waarde volgens regel").weighted(12),
-            ColumnDef::new("status", CellType::Text, "Status", "Status").weighted(10),
+            ColumnDef::new("item", CellType::Tag, text!("column-item")).weighted(15),
+            ColumnDef::new("kind", CellType::Text, text!("column-kind")).weighted(10),
+            ColumnDef::new("frozen", CellType::Ident, text!("column-frozen")).weighted(12),
+            ColumnDef::new("rule", CellType::Ident, text!("column-rule-value")).weighted(12),
+            ColumnDef::new("status", CellType::Text, text!("column-status")).weighted(10),
         ]
     }
 
@@ -58,7 +59,7 @@ impl ReportKindDef for NumberingReport {
             set.rows.push(row(
                 RowId::entity(id),
                 Cell::Tag(id),
-                ("tag", "kenmerk"),
+                text!("cell-item-tag"),
                 &frozen,
                 &rule,
             ));
@@ -81,7 +82,7 @@ impl ReportKindDef for NumberingReport {
             set.rows.push(row(
                 RowId::entity(id),
                 Cell::Empty,
-                ("wire number", "draadnummer"),
+                text!("cell-item-wire-number"),
                 &frozen,
                 &rule,
             ));
@@ -90,18 +91,18 @@ impl ReportKindDef for NumberingReport {
     }
 }
 
-/// `kind` is the item's kind in English and in Dutch.
-fn row(id: RowId, item: Cell, kind: (&str, &str), frozen: &str, rule: &str) -> Row {
+/// `kind` is the item's kind in words.
+fn row(id: RowId, item: Cell, kind: Text, frozen: &str, rule: &str) -> Row {
     let status = if frozen == rule {
-        words_cell("matches", "komt overeen")
+        words_cell(&text!("cell-matches"))
     } else {
-        words_cell("deviates", "wijkt af")
+        words_cell(&text!("cell-deviates"))
     };
     Row::data(
         id,
         vec![
             item,
-            words_cell(kind.0, kind.1),
+            words_cell(&kind),
             Cell::Ident(frozen.to_owned()),
             if rule.is_empty() {
                 Cell::Empty

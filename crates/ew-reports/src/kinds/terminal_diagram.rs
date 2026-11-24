@@ -6,12 +6,13 @@
 use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, Endpoint, ReportBlock, Side, Terminal};
 use ew_derive::{Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp,
+    words_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
@@ -44,29 +45,17 @@ impl ReportKindDef for TerminalDiagram {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("strip", CellType::Tag, "Strip", "Klemmenstrook").weighted(8),
-            ColumnDef::new("terminal", CellType::Ident, "Terminal", "Klem").weighted(7),
-            ColumnDef::new("level", CellType::Ident, "Level", "Etage").weighted(5),
-            ColumnDef::new("label", CellType::Text, "Function text", "Functietekst").weighted(8),
-            ColumnDef::new("group", CellType::Text, "Group", "Groep").weighted(9),
-            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(11),
-            ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(9),
-            ColumnDef::new(
-                "side1",
-                CellType::Text,
-                "Side 1 (clamp a)",
-                "Zijde 1 (aansluiting a)",
-            )
-            .weighted(21),
-            ColumnDef::new(
-                "side2",
-                CellType::Text,
-                "Side 2 (clamp b)",
-                "Zijde 2 (aansluiting b)",
-            )
-            .weighted(24),
-            ColumnDef::new("bridge", CellType::Ident, "Bridge", "Brug").weighted(6),
-            ColumnDef::new("state", CellType::Text, "State", "Status").weighted(7),
+            ColumnDef::new("strip", CellType::Tag, text!("column-strip")).weighted(8),
+            ColumnDef::new("terminal", CellType::Ident, text!("column-terminal")).weighted(7),
+            ColumnDef::new("level", CellType::Ident, text!("column-level")).weighted(5),
+            ColumnDef::new("label", CellType::Text, text!("column-function-text")).weighted(8),
+            ColumnDef::new("group", CellType::Text, text!("column-group")).weighted(9),
+            ColumnDef::new("part", CellType::Ident, text!("column-part")).weighted(11),
+            ColumnDef::new("potential", CellType::Ident, text!("column-potential")).weighted(9),
+            ColumnDef::new("side1", CellType::Text, text!("column-side-1-clamp-a")).weighted(21),
+            ColumnDef::new("side2", CellType::Text, text!("column-side-2-clamp-b")).weighted(24),
+            ColumnDef::new("bridge", CellType::Ident, text!("column-bridge")).weighted(6),
+            ColumnDef::new("state", CellType::Text, text!("column-state")).weighted(7),
         ]
     }
 
@@ -170,11 +159,7 @@ impl ReportKindDef for TerminalDiagram {
                             text_cell(side1.join(", ")),
                             text_cell(side2.join(", ")),
                             bridge.map_or(Cell::Empty, |b| Cell::Ident(b.label.clone())),
-                            Cell::Text(MlText::from_langs(
-                                [("en-GB", state.0), ("nl-NL", state.1)]
-                                    .into_iter()
-                                    .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
-                            )),
+                            words_cell(&state.words()),
                         ],
                     );
                     r.sources = vec![t.cast(), strip.cast()];

@@ -6,6 +6,7 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ReportBlock};
 use ew_derive::{CpRef, Q, WireNumbers, short_tag};
+use ew_l10n::{List, TextArg};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
@@ -45,18 +46,18 @@ impl ReportKindDef for WireList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("no", CellType::Ident, "No.", "Nr.").weighted(7),
-            ColumnDef::new("from", CellType::Tag, "From", "Van").weighted(13),
-            ColumnDef::new("from_cp", CellType::Ident, "CP", "Aansluitpunt").weighted(6),
-            ColumnDef::new("to", CellType::Tag, "To", "Naar").weighted(13),
-            ColumnDef::new("to_cp", CellType::Ident, "CP", "Aansluitpunt").weighted(6),
-            ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(11),
-            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(6),
-            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(6),
-            ColumnDef::new("source", CellType::Text, "Source", "Bron").weighted(10),
-            ColumnDef::new("via", CellType::Text, "Via", "Via").weighted(22),
-            ColumnDef::new("part", CellType::Ident, "Wire part", "Draadartikel").weighted(8),
-            ColumnDef::new("pages", CellType::Folios, "Pages", "Pagina's").weighted(8),
+            ColumnDef::new("no", CellType::Ident, text!("column-no")).weighted(7),
+            ColumnDef::new("from", CellType::Tag, text!("column-from")).weighted(13),
+            ColumnDef::new("from_cp", CellType::Ident, text!("column-cp")).weighted(6),
+            ColumnDef::new("to", CellType::Tag, text!("column-to")).weighted(13),
+            ColumnDef::new("to_cp", CellType::Ident, text!("column-cp")).weighted(6),
+            ColumnDef::new("potential", CellType::Ident, text!("column-potential")).weighted(11),
+            ColumnDef::new("colour", CellType::Colour, text!("column-colour")).weighted(6),
+            ColumnDef::new("cross_section", CellType::Qty, text!("column-mm2")).weighted(6),
+            ColumnDef::new("source", CellType::Text, text!("column-source")).weighted(10),
+            ColumnDef::new("via", CellType::Text, text!("column-via")).weighted(22),
+            ColumnDef::new("part", CellType::Ident, text!("column-wire-part")).weighted(8),
+            ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(8),
         ]
     }
 
@@ -81,7 +82,12 @@ impl ReportKindDef for WireList {
         let bridges = bridges(q);
         if !bridges.is_empty() {
             let mut heading = vec![Cell::Empty; set.columns.len()];
-            put(&set.columns, &mut heading, "no", words_cell("Bridges", "Bruggen"));
+            put(
+                &set.columns,
+                &mut heading,
+                "no",
+                words_cell(&text!("cell-bridges")),
+            );
             set.rows.push(Row {
                 id: RowId(vec![RowKey::Name("bridges".to_owned())]),
                 kind: RowKind::Heading,
@@ -99,19 +105,13 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
     let w = &rec.wire;
     let (from, from_cp) = end_cells(q, &w.ends[0]);
     let (to, to_cp) = end_cells(q, &w.ends[1]);
-    // In English and in Dutch: only the junction's and the chains' words differ.
-    let mut via: [Vec<String>; 2] = [Vec::new(), Vec::new()];
-    let mut push = |texts: [String; 2]| {
-        for (list, text) in via.iter_mut().zip(texts) {
-            list.push(text);
-        }
-    };
+    // The parts of the Via column: only the junction's and the chains' words are in a language.
+    let mut via: Vec<TextArg> = Vec::new();
     if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
-        let text = format!("{} {}", short_tag(q, core.cable), core.core.as_str());
-        push([text.clone(), text]);
+        via.push(format!("{} {}", short_tag(q, core.cable), core.core.as_str()).into());
     }
     let (junction, daisy) = join_texts(q, w);
-    junction.into_iter().chain(daisy).for_each(&mut push);
+    via.extend(junction.into_iter().chain(daisy).map(TextArg::from));
     // The interruption points the wire passes, by name (the two points of a pair share one), not the
     // external point it ends at.
     let mut ips: Vec<String> = Vec::new();
@@ -126,10 +126,14 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
         }
     }
     if !ips.is_empty() {
-        let text = format!("IP {}", ips.join(", "));
-        push([text.clone(), text]);
+        via.push(format!("IP {}", ips.join(", ")).into());
     }
-    let [via, via_nl] = via.map(|v| v.join("; "));
+    let via = if via.is_empty() {
+        Cell::Empty
+    } else {
+        let between = || text!("cell-via-between");
+        words_cell(&text!("cell-via", List::new(via, between(), between())))
+    };
     let part = rec
         .props
         .wire_part
@@ -150,11 +154,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
             colour_cell(rec.props.colour.as_ref().map(|p| &p.value)),
             csa_cell(rec.props.csa.as_ref().map(|p| &p.value)),
             source_text(&rec.props),
-            if via.is_empty() {
-                Cell::Empty
-            } else {
-                words_cell(&via, &via_nl)
-            },
+            via,
             part,
             pages_cell(&w.pages),
         ],
@@ -172,10 +172,7 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     let first = b.terminals.first().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let last = b.terminals.last().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let span = bridge_span(q, b);
-    let via = words_cell(
-        &format!("{} bridge, terminals {span}", b.kind.0),
-        &format!("{}, klemmen {span}", b.kind.1),
-    );
+    let via = words_cell(&text!("cell-bridge-via", b.kind.clone(), span));
     let id = RowId::entity(b.strip)
         .with(RowKey::Name("bridge".to_owned()))
         .with(RowKey::Index(u32::from(b.group)));

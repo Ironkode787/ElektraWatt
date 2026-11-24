@@ -6,9 +6,10 @@
 use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
+use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
+use ew_l10n::Text;
 
 use super::conn::{Wires, colour_cell, csa_cell, put, words_cell};
 use crate::kind::ReportKindDef;
@@ -37,15 +38,15 @@ impl ReportKindDef for PotentialOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(14),
-            ColumnDef::new("kind", CellType::Text, "Type", "Type").weighted(12),
-            ColumnDef::new("voltage", CellType::Ident, "Voltage", "Spanning").weighted(10),
-            ColumnDef::new("class", CellType::Text, "Class", "Klasse").weighted(10),
-            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(8),
-            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(8),
-            ColumnDef::new("aliases", CellType::Number, "Aliases", "Aliassen").weighted(8),
-            ColumnDef::new("members", CellType::Number, "Members", "Leden").weighted(8),
-            ColumnDef::new("pages", CellType::Folios, "Pages", "Pagina's").weighted(14),
+            ColumnDef::new("potential", CellType::Ident, text!("column-potential")).weighted(14),
+            ColumnDef::new("kind", CellType::Text, text!("column-type")).weighted(12),
+            ColumnDef::new("voltage", CellType::Ident, text!("column-voltage")).weighted(10),
+            ColumnDef::new("class", CellType::Text, text!("column-class")).weighted(10),
+            ColumnDef::new("colour", CellType::Colour, text!("column-colour")).weighted(8),
+            ColumnDef::new("cross_section", CellType::Qty, text!("column-mm2")).weighted(8),
+            ColumnDef::new("aliases", CellType::Number, text!("column-aliases")).weighted(8),
+            ColumnDef::new("members", CellType::Number, text!("column-members")).weighted(8),
+            ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(14),
         ]
     }
 
@@ -87,12 +88,7 @@ impl ReportKindDef for PotentialOverview {
                 .unwrap_or_default();
             let mut cells = vec![Cell::Empty; set.columns.len()];
             put(&set.columns, &mut cells, "potential", Cell::Ident(label));
-            put(
-                &set.columns,
-                &mut cells,
-                "kind",
-                words_cell("Bond", "Potentiaalverbinding"),
-            );
+            put(&set.columns, &mut cells, "kind", words_cell(&text!("cell-bond")));
             if !pages.is_empty() {
                 put(&set.columns, &mut cells, "pages", Cell::Folios(pages));
             }
@@ -154,7 +150,7 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
     // A bus line without a profile value takes colour and size from its cable: "(cable)" (doc 20 §7.3).
     let from_cable = || {
         (!ew_derive::bus_line_cables(q, &wires.partition, p.id).is_empty())
-            .then(|| words_cell("(cable)", "(kabel)"))
+            .then(|| words_cell(&text!("cell-from-cable")))
     };
     let colour_value = match colour {
         Some(c) => colour_cell(Some(&c.value)),
@@ -164,10 +160,7 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         Some(c) => csa_cell(Some(&c.value)),
         None => from_cable().unwrap_or_else(|| csa_cell(None)),
     };
-    let kind = attrs.ptype.as_ref().map_or(Cell::Empty, |t| {
-        let (english, dutch) = type_name(&t.value);
-        words_cell(english, dutch)
-    });
+    let kind = attrs.ptype.as_ref().map_or(Cell::Empty, |t| type_name(&t.value));
     let voltage = attrs.voltage.as_ref().map_or(Cell::Empty, |v| {
         let ac_dc = match attrs.env.as_ref().and_then(|e| e.value.ac_dc.as_ref()) {
             Some(ew_derive::ew_schema::AcDc::Ac) => " V AC",
@@ -176,10 +169,10 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         };
         Cell::Ident(format!("{}{ac_dc}", v.value))
     });
-    let class = attrs.circuit_class.as_ref().map_or(Cell::Empty, |c| {
-        let (english, dutch) = class_name(&c.value);
-        words_cell(english, dutch)
-    });
+    let class = attrs
+        .circuit_class
+        .as_ref()
+        .map_or(Cell::Empty, |c| words_cell(&class_name(&c.value)));
     let mut r = Row::data(
         match p.id {
             PotentialId::Def(d) => RowId::entity(d),
@@ -206,26 +199,26 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
     r
 }
 
-/// A potential type in English and in Dutch.
-fn type_name(t: &PotentialType) -> (&'static str, &'static str) {
+/// A potential type: its code as every language writes it, else in words.
+fn type_name(t: &PotentialType) -> Cell {
     if let Some(code) = ew_derive::potential_type_code(t) {
-        return (code, code);
+        return Cell::Text(MlText::neutral(code));
     }
-    match t {
-        PotentialType::Signal => ("signal", "signaal"),
-        PotentialType::Undefined => ("undefined", "onbepaald"),
-        _ => ("other", "overig"),
-    }
+    words_cell(&match t {
+        PotentialType::Signal => text!("cell-potential-signal"),
+        PotentialType::Undefined => text!("cell-potential-undefined"),
+        _ => text!("cell-other"),
+    })
 }
 
-/// A circuit class in English and in Dutch.
-fn class_name(c: &CircuitClass) -> (&'static str, &'static str) {
+/// A circuit class in words.
+fn class_name(c: &CircuitClass) -> Text {
     match c {
-        CircuitClass::Mains => ("mains", "net"),
-        CircuitClass::Control => ("control", "sturing"),
-        CircuitClass::Analogue => ("analogue", "analoog"),
-        CircuitClass::Bus => ("bus", "bus"),
-        CircuitClass::Pe => ("PE", "PE"),
-        CircuitClass::Unknown(_) => ("other", "overig"),
+        CircuitClass::Mains => text!("cell-class-mains"),
+        CircuitClass::Control => text!("cell-class-control"),
+        CircuitClass::Analogue => text!("cell-class-analogue"),
+        CircuitClass::Bus => text!("cell-class-bus"),
+        CircuitClass::Pe => text!("cell-class-pe"),
+        CircuitClass::Unknown(_) => text!("cell-other"),
     }
 }

@@ -40,14 +40,14 @@ impl ReportKindDef for PartsSummary {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("pos", CellType::Ident, "Pos", "Pos").weighted(4),
-            ColumnDef::new("qty", CellType::Qty, "Qty", "Aantal").weighted(4),
-            ColumnDef::new("unit", CellType::Ident, "Unit", "Eenheid").weighted(4),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer", "Fabrikant").weighted(15),
-            ColumnDef::new("part_number", CellType::Ident, "Part number", "Artikelnummer").weighted(19),
-            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving").weighted(31),
-            ColumnDef::new("tags", CellType::Range, "Tags", "Kenmerken").weighted(19),
-            ColumnDef::new("folios", CellType::Folios, "Folios", "Folio's").weighted(8),
+            ColumnDef::new("pos", CellType::Ident, text!("column-pos")).weighted(4),
+            ColumnDef::new("qty", CellType::Qty, text!("column-qty")).weighted(4),
+            ColumnDef::new("unit", CellType::Ident, text!("column-unit")).weighted(4),
+            ColumnDef::new("manufacturer", CellType::Ident, text!("column-manufacturer")).weighted(15),
+            ColumnDef::new("part_number", CellType::Ident, text!("column-part-number")).weighted(19),
+            ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(31),
+            ColumnDef::new("tags", CellType::Range, text!("column-tags")).weighted(19),
+            ColumnDef::new("folios", CellType::Folios, text!("column-folios")).weighted(8),
         ]
     }
 
@@ -83,7 +83,7 @@ impl PartsSummary {
         };
         let mut columns = self.columns();
         if mode == BomMode::Assembly {
-            columns.push(ColumnDef::new("covers", CellType::Range, "Covers", "Omvat").weighted(19));
+            columns.push(ColumnDef::new("covers", CellType::Range, text!("column-covers")).weighted(19));
         }
         let mut set = RowSet::new(columns);
         for row in q.get::<BomRows>(mode).iter() {
@@ -198,12 +198,12 @@ impl ReportKindDef for PartsList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("device", CellType::Tag, "Device", "Apparaat").weighted(18),
-            ColumnDef::new("qty", CellType::Qty, "Qty", "Aantal").weighted(5),
-            ColumnDef::new("unit", CellType::Ident, "Unit", "Eenheid").weighted(5),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer", "Fabrikant").weighted(18),
-            ColumnDef::new("part_number", CellType::Ident, "Part number", "Artikelnummer").weighted(22),
-            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving").weighted(32),
+            ColumnDef::new("device", CellType::Tag, text!("column-device")).weighted(18),
+            ColumnDef::new("qty", CellType::Qty, text!("column-qty")).weighted(5),
+            ColumnDef::new("unit", CellType::Ident, text!("column-unit")).weighted(5),
+            ColumnDef::new("manufacturer", CellType::Ident, text!("column-manufacturer")).weighted(18),
+            ColumnDef::new("part_number", CellType::Ident, text!("column-part-number")).weighted(22),
+            ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(32),
         ]
     }
 
@@ -270,7 +270,7 @@ pub(super) fn qty_cell(qty: Dec3) -> Cell {
 /// The cell of an order unit's symbol (`pc`, in Dutch `st.`; `m`; `set`).
 pub(super) fn unit_cell(unit: &OrderUnit) -> Cell {
     match unit {
-        OrderUnit::Piece => super::conn::words_cell(crate::render::PIECE.0, crate::render::PIECE.1),
+        OrderUnit::Piece => super::conn::words_cell(&text!("cell-piece")),
         OrderUnit::Metre => Cell::Ident("m".to_owned()),
         OrderUnit::Set => Cell::Ident("set".to_owned()),
         OrderUnit::Unknown(v) => Cell::Ident(v.as_str().unwrap_or("?").to_owned()),

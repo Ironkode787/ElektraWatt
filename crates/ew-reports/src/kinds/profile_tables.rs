@@ -43,19 +43,6 @@ pub struct ProfileTables;
 /// The groups, in cover order.
 pub const GROUPS: [&str; 4] = ["colours", "control", "mains", "note"];
 
-/// The titles of the three tables, in English and in Dutch.
-const TITLES: [(&str, &str, &str); 3] = [
-    ("colours", "CABLE COLOUR DEFINITIONS", "DEFINITIE ADERKLEUREN"),
-    ("control", "STANDARD SIZES CONTROL", "STANDAARDDOORSNEDEN STURING"),
-    ("mains", "STANDARD SIZES MAINS", "STANDAARDDOORSNEDEN NET"),
-];
-
-/// The note under the size tables, in English and in Dutch.
-const NOTE: (&str, &str) = (
-    "If size or sign is not indicated in diagram, standard size or sign is to be used.",
-    "Staat in het schema geen doorsnede of markering, dan geldt de standaarddoorsnede of -markering.",
-);
-
 impl ReportKindDef for ProfileTables {
     fn name(&self) -> &'static str {
         "profile_tables"
@@ -68,23 +55,13 @@ impl ReportKindDef for ProfileTables {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new(
-                "voltage_class",
-                CellType::Text,
-                "Voltage class",
-                "Spanningsklasse",
-            ),
-            ColumnDef::new("function", CellType::Text, "Function", "Functie"),
-            ColumnDef::new(
-                "potential_type",
-                CellType::Text,
-                "Potential type",
-                "Potentiaaltype",
-            ),
-            ColumnDef::new("colour", CellType::Text, "Colour", "Kleur"),
-            ColumnDef::new("code", CellType::Colour, "Code", "Code"),
-            ColumnDef::new("size", CellType::Qty, "Size", "Maat"),
-            ColumnDef::new("table", CellType::Ident, "Table", "Tabel"),
+            ColumnDef::new("voltage_class", CellType::Text, text!("column-voltage-class")),
+            ColumnDef::new("function", CellType::Text, text!("column-function")),
+            ColumnDef::new("potential_type", CellType::Text, text!("column-potential-type")),
+            ColumnDef::new("colour", CellType::Text, text!("column-colour")),
+            ColumnDef::new("code", CellType::Colour, text!("column-code")),
+            ColumnDef::new("size", CellType::Qty, text!("column-size")),
+            ColumnDef::new("table", CellType::Ident, text!("column-table")),
         ]
     }
 
@@ -103,7 +80,7 @@ impl ReportKindDef for ProfileTables {
                 "note",
                 RowKind::GroupFooter,
                 "note",
-                ew_derive::langs(NOTE.0, NOTE.1),
+                crate::words::in_languages(&text!("cell-sizes-note")),
             ));
         }
         set
@@ -144,12 +121,15 @@ fn text_row(group: &str, kind: RowKind, tag: &str, text: MlText) -> Row {
     }
 }
 
+/// The title of the table of `group`, empty for another group.
 fn title_of(group: &str) -> MlText {
-    TITLES
-        .iter()
-        .find(|(g, _, _)| *g == group)
-        .map(|(_, english, dutch)| ew_derive::langs(english, dutch))
-        .unwrap_or_default()
+    let title = match group {
+        "colours" => text!("title-colour-definitions"),
+        "control" => text!("title-sizes-control"),
+        "mains" => text!("title-sizes-mains"),
+        _ => return MlText::default(),
+    };
+    crate::words::in_languages(&title)
 }
 
 fn colours(profile: &Value, set: &mut RowSet, names: &mut BTreeMap<String, (MlText, ColourSpec)>) {

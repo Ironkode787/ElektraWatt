@@ -46,12 +46,12 @@ impl ReportKindDef for OpenItems {
     /// it prints at the floor and is reported as overflow.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("category", CellType::Text, "Category", "Categorie").weighted(38),
-            ColumnDef::new("item", CellType::Text, "Item", "Element").weighted(31),
-            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving").weighted(156),
-            ColumnDef::new("rule", CellType::Ident, "Rule", "Regel").weighted(18),
-            ColumnDef::new("severity", CellType::Text, "Severity", "Ernst").weighted(11),
-            ColumnDef::new("page", CellType::Folio, "Page", "Pagina").weighted(7),
+            ColumnDef::new("category", CellType::Text, text!("column-category")).weighted(38),
+            ColumnDef::new("item", CellType::Text, text!("column-item")).weighted(31),
+            ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(156),
+            ColumnDef::new("rule", CellType::Ident, text!("column-rule")).weighted(18),
+            ColumnDef::new("severity", CellType::Text, text!("column-severity")).weighted(11),
+            ColumnDef::new("page", CellType::Folio, text!("column-page")).weighted(7),
         ]
     }
 
@@ -105,20 +105,15 @@ fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
         columns,
         &mut cells,
         "description",
-        words_cell(&f.message(), &dutch),
+        Cell::Text(ew_derive::langs(&f.message(), &dutch)),
     );
     put(columns, &mut cells, "rule", Cell::Ident(f.rule.to_owned()));
     let severity = match f.severity {
-        Severity::Info => "info",
-        Severity::Warning => "waarschuwing",
-        Severity::Error => "fout",
+        Severity::Info => text!("cell-severity-info"),
+        Severity::Warning => text!("cell-severity-warning"),
+        Severity::Error => text!("cell-severity-error"),
     };
-    put(
-        columns,
-        &mut cells,
-        "severity",
-        words_cell(f.severity.name(), severity),
-    );
+    put(columns, &mut cells, "severity", words_cell(&severity));
     if let Some(page) = f.page {
         put(columns, &mut cells, "page", Cell::Folio(PageRef::Drawn(page)));
     }

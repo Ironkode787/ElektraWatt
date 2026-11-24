@@ -46,17 +46,17 @@ impl ReportKindDef for PartData {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("label", CellType::Text, "Label", "Label"),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer", "Fabrikant"),
-            ColumnDef::new("part_number", CellType::Ident, "Part number", "Artikelnummer"),
-            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving"),
+            ColumnDef::new("label", CellType::Text, text!("column-label")),
+            ColumnDef::new("manufacturer", CellType::Ident, text!("column-manufacturer")),
+            ColumnDef::new("part_number", CellType::Ident, text!("column-part-number")),
+            ColumnDef::new("description", CellType::Text, text!("column-description")),
         ]
     }
 
     fn embedded_layout(&self) -> EmbeddedLayout {
         EmbeddedLayout {
             columns: vec![("label".to_owned(), 3), ("part_number".to_owned(), 10)],
-            title: ew_derive::langs("PART DATA", "ARTIKELGEGEVENS"),
+            title: crate::words::in_languages(&text!("title-part-data")),
             headers: false,
             flow_columns: 1,
         }
@@ -96,7 +96,7 @@ fn push_configs(q: &Q, set: &mut RowSet, source: Id<Device>) -> bool {
     };
     for (n, config) in assembly.configs.iter().enumerate() {
         let label = if config.label.is_empty() {
-            ew_derive::langs(&format!("Order Code {}", n + 1), &format!("Bestelcode {}", n + 1))
+            crate::words::in_languages(&text!("cell-order-code", (n + 1).to_string()))
         } else {
             config.label.clone()
         };

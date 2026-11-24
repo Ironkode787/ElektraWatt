@@ -23,12 +23,12 @@ impl ReportKindDef for RevisionOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("label", CellType::Ident, "Revision", "Revisie"),
-            ColumnDef::new("date", CellType::Date, "Date", "Datum"),
-            ColumnDef::new("author", CellType::Text, "Author", "Auteur"),
-            ColumnDef::new("checker", CellType::Text, "Checker", "Controleur"),
-            ColumnDef::new("state", CellType::Text, "State", "Status"),
-            ColumnDef::new("pages", CellType::Folios, "Changed pages", "Gewijzigde pagina's"),
+            ColumnDef::new("label", CellType::Ident, text!("column-revision")),
+            ColumnDef::new("date", CellType::Date, text!("column-date")),
+            ColumnDef::new("author", CellType::Text, text!("column-author")),
+            ColumnDef::new("checker", CellType::Text, text!("column-checker")),
+            ColumnDef::new("state", CellType::Text, text!("column-state")),
+            ColumnDef::new("pages", CellType::Folios, text!("column-changed-pages")),
         ]
     }
 
@@ -97,9 +97,9 @@ fn row(q: &Q, order: &ew_derive::PageOrderV, rev: &Revision) -> Row {
             .map_or(Cell::Empty, |p| Cell::Text(p.name.clone()))
     };
     let state = match &rev.state {
-        RevisionState::Open => words_cell("open", "open"),
-        RevisionState::Released => words_cell("released", "uitgegeven"),
-        RevisionState::Withdrawn => words_cell("withdrawn", "ingetrokken"),
+        RevisionState::Open => words_cell(&text!("cell-revision-open")),
+        RevisionState::Released => words_cell(&text!("cell-revision-released")),
+        RevisionState::Withdrawn => words_cell(&text!("cell-revision-withdrawn")),
         RevisionState::Unknown(v) => {
             text_cell(v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string()))
         }

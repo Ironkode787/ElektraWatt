@@ -237,8 +237,8 @@ fn block_words(q: &Q, block: &ReportBlock, kind: &str) -> String {
 pub struct EmbeddedLayout {
     /// The printed columns in order: `(column key, relative width)`. A key the row set does not have prints nothing.
     pub columns: Vec<(String, u32)>,
-    /// The box title, in English and in Dutch (it prints in the project's language); empty: no title band. A block's
-    /// own non-empty `title` replaces it.
+    /// The box title, in every language of the list texts (it prints in the project's language); empty: no title
+    /// band. A block's own non-empty `title` replaces it.
     pub title: MlText,
     /// Whether each flow column starts with a header row of the column labels.
     pub headers: bool,

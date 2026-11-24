@@ -13,12 +13,13 @@ use ew_derive::ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, Rep
 use ew_derive::ew_units::Nm;
 use ew_derive::{
     EndpointKey, MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
-    langs, line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
+    line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
 };
 
 use super::conn::put;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet};
+use crate::words::in_languages;
 
 fn text(t: MlText) -> Cell {
     if t.is_empty() { Cell::Empty } else { Cell::Text(t) }
@@ -46,9 +47,9 @@ fn copy_number(q: &Q, part: Option<Id<Part>>) -> String {
 /// A length source in words.
 fn source_text(s: &LengthSource) -> MlText {
     match s {
-        LengthSource::Manual(_) => langs("manual", "handmatig"),
-        LengthSource::FromPart => langs("from part", "uit artikel"),
-        LengthSource::Missing | LengthSource::Unknown(_) => langs("missing", "ontbreekt"),
+        LengthSource::Manual(_) => in_languages(&text!("cell-manual")),
+        LengthSource::FromPart => in_languages(&text!("cell-from-part")),
+        LengthSource::Missing | LengthSource::Unknown(_) => in_languages(&text!("cell-missing")),
     }
 }
 
@@ -69,23 +70,23 @@ impl ReportKindDef for TubeList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("tag", CellType::Ident, "Tag", "Kenmerk").weighted(8),
-            ColumnDef::new("from", CellType::Ident, "From", "Van").weighted(12),
-            ColumnDef::new("from_role", CellType::Text, "Role", "Rol").weighted(8),
-            ColumnDef::new("to", CellType::Ident, "To", "Naar").weighted(12),
-            ColumnDef::new("to_role", CellType::Text, "Role", "Rol").weighted(8),
-            ColumnDef::new("medium", CellType::Text, "Medium", "Medium").weighted(12),
-            ColumnDef::new("line_kind", CellType::Text, "Line", "Leiding").weighted(8),
-            ColumnDef::new("size", CellType::Ident, "OD×ID", "UD×BD").weighted(7),
-            ColumnDef::new("material", CellType::Ident, "Material", "Materiaal").weighted(9),
-            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(7),
-            ColumnDef::new("part", CellType::Ident, "Tube part", "Slangartikel").weighted(10),
-            ColumnDef::new("length", CellType::Qty, "Length", "Lengte").weighted(6),
-            ColumnDef::new("length_source", CellType::Text, "Source", "Bron").weighted(8),
-            ColumnDef::new("fitting_a", CellType::Ident, "Fitting A", "Koppeling A").weighted(9),
-            ColumnDef::new("fitting_b", CellType::Ident, "Fitting B", "Koppeling B").weighted(9),
-            ColumnDef::new("location", CellType::Ident, "Location change", "Locatiewissel").weighted(16),
-            ColumnDef::new("page", CellType::Folio, "Page", "Pagina").weighted(5),
+            ColumnDef::new("tag", CellType::Ident, text!("column-tag")).weighted(8),
+            ColumnDef::new("from", CellType::Ident, text!("column-from")).weighted(12),
+            ColumnDef::new("from_role", CellType::Text, text!("column-role")).weighted(8),
+            ColumnDef::new("to", CellType::Ident, text!("column-to")).weighted(12),
+            ColumnDef::new("to_role", CellType::Text, text!("column-role")).weighted(8),
+            ColumnDef::new("medium", CellType::Text, text!("column-medium")).weighted(12),
+            ColumnDef::new("line_kind", CellType::Text, text!("column-line")).weighted(8),
+            ColumnDef::new("size", CellType::Ident, text!("column-od-id")).weighted(7),
+            ColumnDef::new("material", CellType::Ident, text!("column-material")).weighted(9),
+            ColumnDef::new("colour", CellType::Colour, text!("column-colour")).weighted(7),
+            ColumnDef::new("part", CellType::Ident, text!("column-tube-part")).weighted(10),
+            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(6),
+            ColumnDef::new("length_source", CellType::Text, text!("column-source")).weighted(8),
+            ColumnDef::new("fitting_a", CellType::Ident, text!("column-fitting-a")).weighted(9),
+            ColumnDef::new("fitting_b", CellType::Ident, text!("column-fitting-b")).weighted(9),
+            ColumnDef::new("location", CellType::Ident, text!("column-location-change")).weighted(16),
+            ColumnDef::new("page", CellType::Folio, text!("column-page")).weighted(5),
         ]
     }
 
@@ -195,12 +196,12 @@ impl ReportKindDef for TubeCutList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("material", CellType::Ident, "Material", "Materiaal").weighted(10),
-            ColumnDef::new("size", CellType::Ident, "OD×ID", "UD×BD").weighted(10),
-            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(8),
-            ColumnDef::new("part", CellType::Ident, "Tube part", "Slangartikel").weighted(16),
-            ColumnDef::new("count", CellType::Number, "Pieces", "Stuks").weighted(8),
-            ColumnDef::new("length", CellType::Qty, "Total length", "Totale lengte").weighted(12),
+            ColumnDef::new("material", CellType::Ident, text!("column-material")).weighted(10),
+            ColumnDef::new("size", CellType::Ident, text!("column-od-id")).weighted(10),
+            ColumnDef::new("colour", CellType::Colour, text!("column-colour")).weighted(8),
+            ColumnDef::new("part", CellType::Ident, text!("column-tube-part")).weighted(16),
+            ColumnDef::new("count", CellType::Number, text!("column-pieces")).weighted(8),
+            ColumnDef::new("length", CellType::Qty, text!("column-total-length")).weighted(12),
         ]
     }
 
@@ -283,9 +284,9 @@ impl ReportKindDef for TubeLabels {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("tube", CellType::Ident, "Tube", "Slang").weighted(16),
-            ColumnDef::new("at", CellType::Ident, "At", "Bij").weighted(14),
-            ColumnDef::new("text", CellType::Ident, "Label text", "Markeringstekst").weighted(14),
+            ColumnDef::new("tube", CellType::Ident, text!("column-tube")).weighted(16),
+            ColumnDef::new("at", CellType::Ident, text!("column-at")).weighted(14),
+            ColumnDef::new("text", CellType::Ident, text!("column-label-text")).weighted(14),
         ]
     }
 
@@ -328,17 +329,17 @@ impl ReportKindDef for ValveTerminalConfig {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("module_position", CellType::Number, "Slot", "Slot").weighted(5),
-            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
-            ColumnDef::new("module_part", CellType::Ident, "Module part", "Moduleartikel").weighted(10),
-            ColumnDef::new("position", CellType::Number, "Position", "Positie").weighted(6),
-            ColumnDef::new("valve", CellType::Ident, "Valve", "Ventiel").weighted(11),
-            ColumnDef::new("valve_part", CellType::Ident, "Valve part", "Ventielartikel").weighted(10),
-            ColumnDef::new("solenoids", CellType::Ident, "Solenoids", "Spoelen").weighted(7),
-            ColumnDef::new("address", CellType::Address, "Address", "Adres").weighted(9),
-            ColumnDef::new("function", CellType::Text, "Function text", "Functietekst").weighted(12),
-            ColumnDef::new("process_tag", CellType::Ident, "Process tag", "Proceskenmerk").weighted(11),
-            ColumnDef::new("occupancy", CellType::Text, "Occupancy", "Bezetting").weighted(12),
+            ColumnDef::new("module_position", CellType::Number, text!("column-slot")).weighted(5),
+            ColumnDef::new("module", CellType::Ident, text!("column-module")).weighted(10),
+            ColumnDef::new("module_part", CellType::Ident, text!("column-module-part")).weighted(10),
+            ColumnDef::new("position", CellType::Number, text!("column-position")).weighted(6),
+            ColumnDef::new("valve", CellType::Ident, text!("column-valve")).weighted(11),
+            ColumnDef::new("valve_part", CellType::Ident, text!("column-valve-part")).weighted(10),
+            ColumnDef::new("solenoids", CellType::Ident, text!("column-solenoids")).weighted(7),
+            ColumnDef::new("address", CellType::Address, text!("column-address")).weighted(9),
+            ColumnDef::new("function", CellType::Text, text!("column-function-text")).weighted(12),
+            ColumnDef::new("process_tag", CellType::Ident, text!("column-process-tag")).weighted(11),
+            ColumnDef::new("occupancy", CellType::Text, text!("column-occupancy")).weighted(12),
         ]
     }
 
@@ -362,16 +363,16 @@ impl ReportKindDef for ValveTerminalConfig {
                 put(c, &mut cells, "position", Cell::Number(i64::from(p)));
                 id = id.with(RowKey::Index(p));
                 let occupancy = match (&r.slot, &r.state) {
-                    (VtSlot::Valve, Some(DeviceState::Spare)) => langs("valve, spare", "ventiel, reserve"),
+                    (VtSlot::Valve, Some(DeviceState::Spare)) => in_languages(&text!("cell-valve-spare")),
                     (VtSlot::Valve, Some(DeviceState::Reserved)) => {
-                        langs("valve, reserved", "ventiel, gereserveerd")
+                        in_languages(&text!("cell-valve-reserved"))
                     }
                     (VtSlot::Valve, Some(DeviceState::NotFitted)) => {
-                        langs("valve, not fitted", "ventiel, niet geplaatst")
+                        in_languages(&text!("cell-valve-not-fitted"))
                     }
-                    (VtSlot::Valve, _) => langs("valve, used", "ventiel, in gebruik"),
-                    (VtSlot::Blank, _) => langs("blanking plate", "blindplaat"),
-                    (VtSlot::Empty, _) => langs("empty", "leeg"),
+                    (VtSlot::Valve, _) => in_languages(&text!("cell-valve-used")),
+                    (VtSlot::Blank, _) => in_languages(&text!("cell-blanking-plate")),
+                    (VtSlot::Empty, _) => in_languages(&text!("cell-empty")),
                     (VtSlot::Module, _) => MlText::default(),
                 };
                 put(c, &mut cells, "occupancy", text(occupancy));
@@ -420,13 +421,13 @@ impl ReportKindDef for MediumOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("medium", CellType::Text, "Medium", "Medium").weighted(16),
-            ColumnDef::new("sources", CellType::Ident, "Sources", "Bronnen").weighted(14),
-            ColumnDef::new("p_nom", CellType::Qty, "Pressure", "Druk").weighted(8),
-            ColumnDef::new("quality", CellType::Ident, "Quality", "Kwaliteit").weighted(8),
-            ColumnDef::new("consumers", CellType::Range, "Consumers", "Verbruikers").weighted(20),
-            ColumnDef::new("consumer_count", CellType::Number, "Count", "Aantal").weighted(6),
-            ColumnDef::new("default_tube", CellType::Ident, "Default tube", "Standaardslang").weighted(12),
+            ColumnDef::new("medium", CellType::Text, text!("column-medium")).weighted(16),
+            ColumnDef::new("sources", CellType::Ident, text!("column-sources")).weighted(14),
+            ColumnDef::new("p_nom", CellType::Qty, text!("column-pressure")).weighted(8),
+            ColumnDef::new("quality", CellType::Ident, text!("column-quality")).weighted(8),
+            ColumnDef::new("consumers", CellType::Range, text!("column-consumers")).weighted(20),
+            ColumnDef::new("consumer_count", CellType::Number, text!("column-count")).weighted(6),
+            ColumnDef::new("default_tube", CellType::Ident, text!("column-default-tube")).weighted(12),
         ]
     }
 

@@ -8,7 +8,7 @@ use ew_derive::ew_schema::{AnyId, MountingSurface, OrderUnit, ReportBlock};
 use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 use ew_derive::{DrawnPageOrder, PageRef, Q};
 
-use super::conn::words_cell;
+use super::conn::text_cell;
 use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_cell};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{
@@ -41,13 +41,13 @@ impl ReportKindDef for EnclosureLegend {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("pos", CellType::Ident, "Pos", "Pos").weighted(4),
-            ColumnDef::new("tag", CellType::Tag, "DT", "Kenmerk").weighted(14),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer", "Fabrikant").weighted(15),
-            ColumnDef::new("part_number", CellType::Ident, "Part number", "Artikelnummer").weighted(17),
-            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving").weighted(30),
-            ColumnDef::new("qty", CellType::Qty, "Qty", "Aantal").weighted(6),
-            ColumnDef::new("unit", CellType::Ident, "Unit", "Eenheid").weighted(4),
+            ColumnDef::new("pos", CellType::Ident, text!("column-pos")).weighted(4),
+            ColumnDef::new("tag", CellType::Tag, text!("column-dt")).weighted(14),
+            ColumnDef::new("manufacturer", CellType::Ident, text!("column-manufacturer")).weighted(15),
+            ColumnDef::new("part_number", CellType::Ident, text!("column-part-number")).weighted(17),
+            ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(30),
+            ColumnDef::new("qty", CellType::Qty, text!("column-qty")).weighted(6),
+            ColumnDef::new("unit", CellType::Ident, text!("column-unit")).weighted(4),
         ]
     }
 
@@ -55,7 +55,7 @@ impl ReportKindDef for EnclosureLegend {
         let printed = [("pos", 10), ("tag", 22), ("qty", 16), ("part_number", 35)];
         EmbeddedLayout {
             columns: printed.map(|(k, w)| (k.to_owned(), w)).to_vec(),
-            title: ew_derive::langs("LEGEND", "LEGENDA"),
+            title: crate::words::in_languages(&text!("title-legend")),
             headers: true,
             flow_columns: 2,
         }
@@ -84,8 +84,8 @@ impl ReportKindDef for EnclosureLegend {
             listed.push(surface);
             let mut heading = vec![Cell::Empty; set.columns.len()];
             if let Some(pos) = set.column("pos") {
-                let words = format!("Layout {}", entry.folio);
-                heading[pos] = words_cell(&words, &words);
+                // The same English words in every language: no Dutch is written for them.
+                heading[pos] = text_cell(format!("Layout {}", entry.folio));
             }
             set.rows.push(Row {
                 id: RowId(vec![

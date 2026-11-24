@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{DecimalSeparator, Device, OrderUnit};
+use ew_derive::ew_schema::{DecimalSeparator, Device, OrderUnit, Unit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 
@@ -68,16 +68,18 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
         Cell::Text(ml) => text(ml, opts.lang.as_ref()),
         Cell::Ident(s) | Cell::Address(s) => s.clone(),
         Cell::Number(n) => n.to_string(),
-        Cell::Bool(b) => words(if *b { ("yes", "ja") } else { ("no", "nee") }, opts),
+        Cell::Bool(b) => words(&if *b { text!("cell-yes") } else { text!("cell-no") }, opts),
         Cell::Tag(id) => tag(q, *id, opts),
         Cell::Folio(p) => folio(q, *p),
         Cell::Folios(ps) => folios(q, ps),
         Cell::CellRef(p, c) => format!("{}-{c}", folio(q, *p)),
         Cell::Qty(v, unit) => {
             let n = decimal(*v, writes_comma(q, opts.lang.as_ref()));
+            if is_piece(unit) {
+                return format!("{n} {}", words(&text!("cell-piece"), opts));
+            }
             match unit_symbol(unit) {
                 "" => n,
-                s if s == PIECE.0 => format!("{n} {}", words(PIECE, opts)),
                 s => format!("{n} {s}"),
             }
         }
@@ -86,15 +88,15 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
         Cell::Range(ds) => compress_range(q, ds),
         Cell::Tbd => match &opts.tbd {
             Some(own) => own.clone(),
-            None => words(("TBD", "n.t.b."), opts),
+            None => words(&text!("cell-tbd"), opts),
         },
         Cell::Missing(reason) => words(
-            match reason {
-                MissingReason::Length => ("length missing", "lengte ontbreekt"),
-                MissingReason::Part => ("part missing", "artikel ontbreekt"),
-                MissingReason::CrossSection => ("cross-section missing", "doorsnede ontbreekt"),
-                MissingReason::Colour => ("colour missing", "kleur ontbreekt"),
-                MissingReason::Manufacturer => ("manufacturer missing", "fabrikant ontbreekt"),
+            &match reason {
+                MissingReason::Length => text!("cell-length-missing"),
+                MissingReason::Part => text!("cell-part-missing"),
+                MissingReason::CrossSection => text!("cell-cross-section-missing"),
+                MissingReason::Colour => text!("cell-colour-missing"),
+                MissingReason::Manufacturer => text!("cell-manufacturer-missing"),
             },
             opts,
         ),
@@ -103,9 +105,9 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
     }
 }
 
-/// The program's own word of a cell, `(English, Dutch)`, in the output language (English without one).
-fn words((english, dutch): (&str, &str), opts: &RenderOptions) -> String {
-    text(&ew_derive::langs(english, dutch), opts.lang.as_ref())
+/// The program's own word of a cell in the output language (English without one).
+fn words(t: &ew_l10n::Text, opts: &RenderOptions) -> String {
+    crate::words::text(t, opts.lang.as_ref())
 }
 
 /// The text in `lang` (`ew_derive::text_in`: the neutral text, else that language, else its language, else the first
@@ -199,16 +201,18 @@ pub fn folios_spans(pages: &[(String, Option<usize>)]) -> (String, Vec<Option<Ra
     (text, spans)
 }
 
-/// The symbol of a piece, in English and in Dutch: the one unit symbol that is a word.
-pub(crate) const PIECE: (&str, &str) = ("pc", "st.");
+/// Whether the unit is the piece: the one unit whose symbol is a word (`pc`, in Dutch `st.`; `cell-piece`).
+fn is_piece(u: &QtyUnit) -> bool {
+    matches!(u, QtyUnit::Order(OrderUnit::Piece) | QtyUnit::Unit(Unit::Piece))
+}
 
-/// The typographic symbol of a unit; empty for a pure number. A piece prints in the output language ([`PIECE`]).
+/// The typographic symbol of a unit other than the piece ([`is_piece`]); empty for a pure number.
 fn unit_symbol(u: &QtyUnit) -> &'static str {
     match u {
         QtyUnit::None => "",
         QtyUnit::Unit(u) => u.symbol(),
         QtyUnit::Order(o) => match o {
-            OrderUnit::Piece => PIECE.0,
+            OrderUnit::Piece => "",
             OrderUnit::Metre => "m",
             OrderUnit::Set => "set",
             OrderUnit::Unknown(_) => "",

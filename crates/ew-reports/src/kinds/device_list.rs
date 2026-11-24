@@ -43,24 +43,12 @@ impl ReportKindDef for DeviceList {
     /// with room to spare.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("tag", CellType::Ident, "Tag", "Kenmerk").weighted(52),
-            ColumnDef::new("function_text", CellType::Text, "Function text", "Functietekst").weighted(50),
-            ColumnDef::new("parts", CellType::Ident, "Parts", "Artikelen").weighted(46),
-            ColumnDef::new(
-                "tech_data",
-                CellType::Text,
-                "Technical data",
-                "Technische gegevens",
-            )
-            .weighted(40),
-            ColumnDef::new("location", CellType::Ident, "Location (+)", "Locatie (+)").weighted(31),
-            ColumnDef::new(
-                "main_rep",
-                CellType::CellRef,
-                "Main representation",
-                "Hoofdweergave",
-            )
-            .weighted(42),
+            ColumnDef::new("tag", CellType::Ident, text!("column-tag")).weighted(52),
+            ColumnDef::new("function_text", CellType::Text, text!("column-function-text")).weighted(50),
+            ColumnDef::new("parts", CellType::Ident, text!("column-parts")).weighted(46),
+            ColumnDef::new("tech_data", CellType::Text, text!("column-technical-data")).weighted(40),
+            ColumnDef::new("location", CellType::Ident, text!("column-location-aspect")).weighted(31),
+            ColumnDef::new("main_rep", CellType::CellRef, text!("column-main-representation")).weighted(42),
         ]
     }
 

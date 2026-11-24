@@ -830,15 +830,18 @@ any row, link nowhere, and their row ID is their place in the list (`n:added/i:<
 (it lists the pages).
 
 **The language.** A Dutch project printed English headings because a column's heading was one English text and the
-page printed neutral text, as did the title block. Now every kind's column has its heading in English and Dutch
-(`ColumnDef`, the languages the program ships), the starter title blocks have Dutch labels, and a page prints in the
+page printed neutral text, as did the title block. Every kind's column has its heading as a text by key of the list
+texts (`ColumnDef::new` with `text!("column-…")`; `ew-reports/texts/<language>/lists.ftl`, in every language the
+program ships), the starter title blocks have Dutch labels, and a page prints in the
 project's language (`languages.source`; `nl` and `nl-NL` alike, `ew_derive::text_in`): the headings, the caption, the
 legend, the rows' texts, the terminal states, the title block's labels and multi-language values, and quantities with
 the language's decimal sign unless the project sets its own separator. A project without a language prints English
 as before. The CSV and XLSX headers stay English.
 
-**The program's own words.** Every word the program writes into a cell itself has its English and its Dutch,
-beside each other where the cell is made (`ew_derive::langs`, as the headings): a channel's state and kind, a
+**The program's own words.** Every word the program writes into a cell itself is a text by key of the list texts, as
+the headings are, rendered in every language they ship where the cell is made (`ew_reports::words::in_languages`); a
+word `ew_reports::render` adds when it prints is rendered there in the output language (`ew_reports::words::text`: the
+tag, else its primary language, else en-GB, `ew_l10n::render::language_for`): a channel's state and kind, a
 potential's type and class, a bond, "(cable)", a structure's and a device's kind, a revision's state, a bridge's kind
 and its heading, where a wire's colour and size come from and how it is joined, "from part", a termination's on and
 off, an IO-Link port's mode, a numbering's kind and status, "Order Code n", an open item's category, message (as `ew

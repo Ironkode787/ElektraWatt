@@ -6,7 +6,7 @@
 //! (FR-PLC-052).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
+use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock};
 use ew_derive::{ChannelAddr, EffectiveState, PageRef, PlcRow, PlcRows, Q, RepAnchorCell, short_tag};
 
@@ -36,18 +36,18 @@ impl ReportKindDef for PlcOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(9),
-            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(8),
-            ColumnDef::new("address", CellType::Address, "Address", "Adres").weighted(8),
-            ColumnDef::new("channel", CellType::Number, "Channel", "Kanaal").weighted(8),
-            ColumnDef::new("designation", CellType::Ident, "Designation", "Aanduiding").weighted(10),
-            ColumnDef::new("kind", CellType::Text, "Kind", "Soort").weighted(5),
-            ColumnDef::new("symbol", CellType::Ident, "Symbol", "Symbool").weighted(9),
-            ColumnDef::new("function", CellType::Text, "Function text", "Functietekst").weighted(12),
-            ColumnDef::new("process_tag", CellType::Ident, "Process tag", "Proceskenmerk").weighted(11),
-            ColumnDef::new("target", CellType::Ident, "Target", "Doel").weighted(11),
-            ColumnDef::new("state", CellType::Text, "State", "Status").weighted(10),
-            ColumnDef::new("page", CellType::CellRef, "Page", "Pagina").weighted(8),
+            ColumnDef::new("module", CellType::Ident, text!("column-module")).weighted(9),
+            ColumnDef::new("part", CellType::Ident, text!("column-part")).weighted(8),
+            ColumnDef::new("address", CellType::Address, text!("column-address")).weighted(8),
+            ColumnDef::new("channel", CellType::Number, text!("column-channel")).weighted(8),
+            ColumnDef::new("designation", CellType::Ident, text!("column-designation")).weighted(10),
+            ColumnDef::new("kind", CellType::Text, text!("column-kind")).weighted(5),
+            ColumnDef::new("symbol", CellType::Ident, text!("column-symbol")).weighted(9),
+            ColumnDef::new("function", CellType::Text, text!("column-function-text")).weighted(12),
+            ColumnDef::new("process_tag", CellType::Ident, text!("column-process-tag")).weighted(11),
+            ColumnDef::new("target", CellType::Ident, text!("column-target")).weighted(11),
+            ColumnDef::new("state", CellType::Text, text!("column-state")).weighted(10),
+            ColumnDef::new("page", CellType::CellRef, text!("column-page")).weighted(8),
         ]
     }
 
@@ -84,7 +84,7 @@ impl ReportKindDef for PlcOverview {
             .into_iter()
             .map(|(k, w)| (k.to_owned(), w))
             .collect(),
-            title: ew_derive::langs("PLC OVERVIEW", "PLC-OVERZICHT"),
+            title: crate::words::in_languages(&text!("title-plc-overview")),
             headers: true,
             flow_columns: 1,
         }
@@ -148,32 +148,29 @@ fn sorted_by_tag(q: &Q, stations: Vec<Id<Device>>) -> Vec<Id<Device>> {
     keyed.into_iter().map(|(_, s)| s).collect()
 }
 
-/// A channel kind as the PLC overview and the I/O list print it: `ew_derive::channel_kind_word`, in Dutch where it is
-/// a word.
+/// A channel kind as the PLC overview and the I/O list print it: its code as every language writes it
+/// (`ew_derive::channel_kind_word`), or in words where it is a word.
 pub(super) fn kind_text(k: &ChannelKind) -> Cell {
-    let english = ew_derive::channel_kind_word(k);
-    let dutch = match k {
-        ChannelKind::Counter => "teller",
-        ChannelKind::PowerSupply => "voeding",
-        ChannelKind::MultiFunction => "multifunctie",
-        ChannelKind::Unknown(_) => "overig",
+    words_cell(&match k {
+        ChannelKind::Counter => text!("cell-channel-counter"),
+        ChannelKind::PowerSupply => text!("cell-channel-supply"),
+        ChannelKind::MultiFunction => text!("cell-channel-multi-function"),
+        ChannelKind::Unknown(_) => text!("cell-other"),
         ChannelKind::Di | ChannelKind::Do | ChannelKind::Ai | ChannelKind::Ao | ChannelKind::IoLinkPort => {
-            english
+            return Cell::Text(MlText::neutral(ew_derive::channel_kind_word(k)));
         }
-    };
-    words_cell(english, dutch)
+    })
 }
 
-/// A channel's state as the PLC overview and the I/O list print it: `EffectiveState::name`, and in Dutch.
+/// A channel's state as the PLC overview and the I/O list print it, in words.
 pub(super) fn state_text(s: EffectiveState) -> Cell {
-    let dutch = match s {
-        EffectiveState::Used => "gebruikt",
-        EffectiveState::Spare => "reserve",
-        EffectiveState::Reserved => "gereserveerd",
-        EffectiveState::Deactivated => "gedeactiveerd",
-        EffectiveState::Tbd => "n.t.b.",
-    };
-    words_cell(s.name(), dutch)
+    words_cell(&match s {
+        EffectiveState::Used => text!("cell-used"),
+        EffectiveState::Spare => text!("cell-spare"),
+        EffectiveState::Reserved => text!("cell-reserved"),
+        EffectiveState::Deactivated => text!("cell-deactivated"),
+        EffectiveState::Tbd => text!("cell-tbd"),
+    })
 }
 
 fn ident(text: Option<&str>) -> Cell {

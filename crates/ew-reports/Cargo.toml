@@ -23,7 +23,13 @@ ew-checks = { path = "../ew-checks" }
 serde_json = "1.0.154"
 # The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own deterministic ZIP, no ZIP or XLSX crate.
 ew-zip = { path = "../ew-zip" }
+# The words of the lists by key (`texts/`, `ew_reports::words`), rendered by the one renderer.
+ew-l10n = { path = "../ew-l10n" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+
+[build-dependencies]
+# The generator of the key table that `build.rs` writes.
+ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true

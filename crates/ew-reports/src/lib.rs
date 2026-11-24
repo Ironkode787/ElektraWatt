@@ -45,6 +45,9 @@
 
 #![forbid(unsafe_code)]
 
+// `TEXTS`, `KEYS`, `SOURCES`, `text!` and `key!`, before the modules that name a key.
+ew_l10n::texts!(crate);
+
 pub mod arrange;
 pub mod csv;
 pub mod export;
@@ -56,6 +59,7 @@ mod queries;
 pub mod render;
 mod rowset;
 pub mod table;
+pub mod words;
 pub mod xlsx;
 
 pub use arrange::{Arrangement, arrange};

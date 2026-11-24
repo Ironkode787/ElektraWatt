@@ -9,7 +9,9 @@ use ew_derive::{
     DevicePartLines, DrawnPageOrder, MainRep, PageOrderV, PageRef, Q, RepAnchorCell, StructureOf, short_tag,
 };
 
-use super::conn::{Wires, bridges, put, terminal_state, terminal_wired, text_cell, wires_by_cp};
+use super::conn::{
+    TerminalState, Wires, bridges, put, terminal_state, terminal_wired, text_cell, wires_by_cp,
+};
 use super::terminal_diagram::strips_of;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowSet};
@@ -42,14 +44,14 @@ impl ReportKindDef for TerminalOverview {
     /// "103-A3, 103-A10") at the house cap height, the free-text columns Parts and Segments with the most room.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("strip", CellType::Ident, "Strip", "Klemmenstrook").weighted(25),
-            ColumnDef::new("location", CellType::Ident, "Location (+)", "Locatie (+)").weighted(30),
-            ColumnDef::new("terminals", CellType::Number, "Terminals", "Klemmen").weighted(22),
-            ColumnDef::new("used", CellType::Number, "Used", "Gebruikt").weighted(16),
-            ColumnDef::new("spare", CellType::Number, "Spare", "Reserve").weighted(16),
-            ColumnDef::new("other", CellType::Number, "Other", "Overig").weighted(16),
-            ColumnDef::new("parts", CellType::Text, "Parts", "Artikelen").weighted(80),
-            ColumnDef::new("segments", CellType::Text, "Segments", "Segmenten").weighted(56),
+            ColumnDef::new("strip", CellType::Ident, text!("column-strip")).weighted(25),
+            ColumnDef::new("location", CellType::Ident, text!("column-location-aspect")).weighted(30),
+            ColumnDef::new("terminals", CellType::Number, text!("column-terminals")).weighted(22),
+            ColumnDef::new("used", CellType::Number, text!("column-used")).weighted(16),
+            ColumnDef::new("spare", CellType::Number, text!("column-spare")).weighted(16),
+            ColumnDef::new("other", CellType::Number, text!("column-other")).weighted(16),
+            ColumnDef::new("parts", CellType::Text, text!("column-parts")).weighted(80),
+            ColumnDef::new("segments", CellType::Text, text!("column-segments")).weighted(56),
         ]
     }
 
@@ -71,9 +73,9 @@ impl ReportKindDef for TerminalOverview {
             for (_, t) in &terminals {
                 let Some(dev) = q.devices().get(*t) else { continue };
                 let bridged = bridges.iter().any(|b| b.terminals.contains(t));
-                match terminal_state(&dev.state, terminal_wired(q, *t, &by_cp), bridged).0 {
-                    "used" => used += 1,
-                    "spare" => spare += 1,
+                match terminal_state(&dev.state, terminal_wired(q, *t, &by_cp), bridged) {
+                    TerminalState::Used => used += 1,
+                    TerminalState::Spare => spare += 1,
                     _ => other += 1,
                 }
                 let number = q

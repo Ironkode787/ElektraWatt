@@ -39,14 +39,14 @@ impl ReportKindDef for CableOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("cable", CellType::Tag, "Cable", "Kabel").weighted(10),
-            ColumnDef::new("part", CellType::Ident, "Cable type", "Kabeltype").weighted(16),
-            ColumnDef::new("core", CellType::Ident, "Core", "Ader").weighted(7),
-            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(7),
-            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(7),
-            ColumnDef::new("from", CellType::Text, "From", "Van").weighted(18),
-            ColumnDef::new("to", CellType::Text, "To", "Naar").weighted(18),
-            ColumnDef::new("length", CellType::Qty, "Length", "Lengte").weighted(12),
+            ColumnDef::new("cable", CellType::Tag, text!("column-cable")).weighted(10),
+            ColumnDef::new("part", CellType::Ident, text!("column-cable-type")).weighted(16),
+            ColumnDef::new("core", CellType::Ident, text!("column-core")).weighted(7),
+            ColumnDef::new("colour", CellType::Colour, text!("column-colour")).weighted(7),
+            ColumnDef::new("cross_section", CellType::Qty, text!("column-mm2")).weighted(7),
+            ColumnDef::new("from", CellType::Text, text!("column-from")).weighted(18),
+            ColumnDef::new("to", CellType::Text, text!("column-to")).weighted(18),
+            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(12),
         ]
     }
 
@@ -73,7 +73,7 @@ impl ReportKindDef for CableOverview {
         }
         set.rows.push(heading(
             "overview",
-            ew_derive::langs("Cable overview", "Kabeloverzicht"),
+            crate::words::in_languages(&text!("cell-cable-overview")),
         ));
         for (_, cable) in &cables {
             set.rows.push(cable_row(q, *cable, &by_core));
@@ -139,7 +139,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .map(|c| &c.length)
     {
         Some(LengthSource::Manual(nm)) => Cell::metres(*nm),
-        Some(LengthSource::FromPart) => words_cell("from part", "uit artikel"),
+        Some(LengthSource::FromPart) => words_cell(&text!("cell-from-part")),
         Some(LengthSource::Missing) => Cell::Missing(MissingReason::Length),
         Some(LengthSource::Unknown(_)) | None => Cell::Empty,
     }

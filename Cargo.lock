@@ -1798,6 +1798,7 @@ dependencies = [
  "ew-checks",
  "ew-derive",
  "ew-hack",
+ "ew-l10n",
  "ew-model",
  "ew-zip",
  "proptest",

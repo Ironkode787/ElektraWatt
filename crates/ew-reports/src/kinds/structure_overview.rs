@@ -29,11 +29,11 @@ impl ReportKindDef for StructureOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("designation", CellType::Ident, "Designation", "Aanduiding").weighted(28),
-            ColumnDef::new("kind", CellType::Text, "Kind", "Soort").weighted(9),
-            ColumnDef::new("function_text", CellType::Text, "Function text", "Functietekst").weighted(30),
-            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(19),
-            ColumnDef::new("location", CellType::Ident, "Location (+)", "Locatie (+)").weighted(14),
+            ColumnDef::new("designation", CellType::Ident, text!("column-designation")).weighted(28),
+            ColumnDef::new("kind", CellType::Text, text!("column-kind")).weighted(9),
+            ColumnDef::new("function_text", CellType::Text, text!("column-function-text")).weighted(30),
+            ColumnDef::new("part", CellType::Ident, text!("column-part")).weighted(19),
+            ColumnDef::new("location", CellType::Ident, text!("column-location-aspect")).weighted(14),
         ]
     }
 
@@ -63,7 +63,7 @@ impl ReportKindDef for StructureOverview {
                 RowId::entity(id),
                 vec![
                     Cell::Ident(designation.clone()),
-                    words_cell("Structure", "Structuur"),
+                    words_cell(&text!("cell-structure")),
                     Cell::Empty,
                     Cell::Empty,
                     Cell::Empty,
@@ -105,7 +105,7 @@ impl ReportKindDef for StructureOverview {
                 RowId::entity(id),
                 vec![
                     Cell::Ident(full.clone()),
-                    words_cell("Device", "Apparaat"),
+                    words_cell(&text!("cell-device")),
                     function_text,
                     part,
                     if location.is_empty() {

@@ -23,6 +23,7 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::{Dec3, Nm};
 use ew_derive::{PageRef, Rev};
+use ew_l10n::Text;
 
 /// The frame-grid cell of a cross-reference target (`H16`), as `ew-derive` computes it.
 pub type GridCell = ew_derive::Cell;
@@ -114,24 +115,13 @@ pub enum NotDerived {
 }
 
 impl NotDerived {
-    /// The reason as a page or a box prints it, in English and Dutch, in words: no family or kind name (FT-1995). The
-    /// [`Display`](fmt::Display) form, which names them, is for the log and the command line.
+    /// The reason as a page or a box prints it, in every language of the list texts, in words: no family or kind name
+    /// (FT-1995). The [`Display`](fmt::Display) form, which names them, is for the log and the command line.
     pub fn words(&self) -> MlText {
-        let (en, nl) = match self {
-            NotDerived::Unsupported(_) => (
-                "Not derived: this build does not make this list",
-                "Niet afgeleid: deze versie maakt deze lijst niet",
-            ),
-            NotDerived::Cycle(_) => (
-                "Not derived: the list depends on its own pages",
-                "Niet afgeleid: de lijst hangt af van haar eigen pagina's",
-            ),
-        };
-        MlText::from_langs(
-            [("en-GB", en), ("nl-NL", nl)]
-                .into_iter()
-                .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
-        )
+        crate::words::in_languages(&match self {
+            NotDerived::Unsupported(_) => text!("not-derived-unsupported"),
+            NotDerived::Cycle(_) => text!("not-derived-cycle"),
+        })
     }
 }
 
@@ -151,8 +141,8 @@ pub struct ColumnDef {
     pub key: String,
     /// The cell type every data cell of the column has (or one of the absent values).
     pub ty: CellType,
-    /// The header label in English (`en-GB`) and Dutch (`nl-NL`), the languages the program ships; a list page prints
-    /// it in the project's language (doc 09 §4.7), the CSV and XLSX headers in English ([`ColumnDef::english`]).
+    /// The header label in every language of the list texts ([`crate::words::in_languages`]); a list page prints it in
+    /// the project's language (doc 09 §4.7), the CSV and XLSX headers in English ([`ColumnDef::english`]).
     pub label: MlText,
     /// The relative printed width of the column in a paged table: the house report form splits its table
     /// width by these weights ([`ColumnDef::new`] gives [`ColumnDef::DEFAULT_WEIGHT`]). Not data: XLSX and CSV
@@ -164,17 +154,12 @@ impl ColumnDef {
     /// The weight of a column that does not set one.
     pub const DEFAULT_WEIGHT: u32 = 10;
 
-    /// A column with its label in English and in Dutch.
-    pub fn new(key: &str, ty: CellType, english: &str, dutch: &str) -> ColumnDef {
-        let label = MlText::from_langs(
-            [("en-GB", english), ("nl-NL", dutch)]
-                .into_iter()
-                .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
-        );
+    /// A column with its heading, a text of the list texts (`text!("column-…")`).
+    pub fn new(key: &str, ty: CellType, label: Text) -> ColumnDef {
         ColumnDef {
             key: key.to_owned(),
             ty,
-            label,
+            label: crate::words::in_languages(&label),
             weight: ColumnDef::DEFAULT_WEIGHT,
         }
     }
