@@ -325,6 +325,14 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
     Ok(Value::Array(tokens.into_iter().map(Value::String).collect()))
 }
 
+/// A parsed value without notes.
+fn plain(value: Value) -> Result<ParsedInput, InputError> {
+    Ok(ParsedInput {
+        value,
+        notes: Vec::new(),
+    })
+}
+
 /// Parses `text` as a value of type `ty`. `member` is the field's last path member (a slot's aspect).
 pub(crate) fn parse_input(
     cx: &dyn ParseCx,
@@ -332,12 +340,6 @@ pub(crate) fn parse_input(
     member: &str,
     text: &str,
 ) -> Result<ParsedInput, InputError> {
-    let plain = |value: Value| {
-        Ok(ParsedInput {
-            value,
-            notes: Vec::new(),
-        })
-    };
     // A scale is typed as it shows ("1:5").
     if matches!(ty, FieldType::Json)
         && let Some(scale) = scale_input(text)
@@ -386,60 +388,12 @@ pub(crate) fn parse_input(
             "false" | "no" | "0" => plain(Value::Bool(false)),
             _ => Err(invalid(text!("refusal-input-yes-no", text.trim()))),
         },
-        FieldType::Int { min, max } => {
-            let t = text.trim();
-            let n: i64 = t.parse().map_err(|_| invalid(text!("refusal-input-whole", t)))?;
-            if min.is_some_and(|m| n < m) || max.is_some_and(|m| n > m) {
-                return Err(invalid(text!(
-                    "refusal-input-range",
-                    n.to_string(),
-                    min.map_or_else(String::new, |m| m.to_string()),
-                    max.map_or_else(String::new, |m| m.to_string())
-                )));
-            }
-            plain(Value::from(n))
-        }
+        FieldType::Int { min, max } => parse_int(text, *min, *max),
         FieldType::Dec3 => parse_dec3(text, &Value::String).map(|value| ParsedInput {
             value,
             notes: Vec::new(),
         }),
-        FieldType::Quantity => {
-            let t = text.trim();
-            // The unit is the longest suffix that names one (its persisted spelling or its symbol); the number before it.
-            let names: Vec<(String, String)> = ew_schema::Unit::ALL
-                .iter()
-                .filter_map(|u| u.spelling().map(|p| (p, u.symbol())))
-                .flat_map(|(p, s)| [(p.clone(), p.clone()), (p, s.to_owned())])
-                .collect();
-            let found = names.iter().fold(None::<(&str, &str)>, |best, (p, s)| {
-                if t.ends_with(s.as_str()) && best.is_none_or(|(_, b)| s.len() > b.len()) {
-                    Some((p, s))
-                } else {
-                    best
-                }
-            });
-            let Some((unit, spelling)) = found else {
-                // "24 V DC", as a panel builder writes a control voltage: DC or AC is no part of the value.
-                let current = ["DC", "AC"].iter().any(|w| {
-                    t.len() > w.len()
-                        && t.get(t.len() - w.len()..)
-                            .is_some_and(|end| end.eq_ignore_ascii_case(w))
-                });
-                if current {
-                    return Err(invalid(text!("refusal-input-ac-dc", t)));
-                }
-                // The units by their symbols.
-                let units: Vec<&str> = ew_schema::Unit::ALL.iter().map(ew_schema::Unit::symbol).collect();
-                return Err(invalid(text!("refusal-input-no-unit", t, units.join(", "))));
-            };
-            let number = t[..t.len() - spelling.len()].trim();
-            parse_dec3(number, &|d| serde_json::json!({ "value": d, "unit": unit })).map(|value| {
-                ParsedInput {
-                    value,
-                    notes: Vec::new(),
-                }
-            })
-        }
+        FieldType::Quantity => parse_quantity(text),
         FieldType::Csa => parse_csa(text).map(|value| ParsedInput {
             value,
             notes: Vec::new(),
@@ -448,94 +402,18 @@ pub(crate) fn parse_input(
             value,
             notes: Vec::new(),
         }),
-        // Typed as the project shows it, stored ISO.
-        FieldType::Date => {
-            let format = cx.date_format();
-            match format.parse(text) {
-                Ok(d) => plain(Value::String(d.to_string())),
-                Err(_) => Err(invalid(text!(
-                    "refusal-input-date",
-                    text.trim(),
-                    format.example()
-                ))),
-            }
-        }
+        FieldType::Date => parse_date(cx, text),
         FieldType::Colour => parse_colour(text, &cx.company_codes()).map(|value| ParsedInput {
             value,
             notes: Vec::new(),
         }),
-        FieldType::Enum { options } => {
-            let t = text.trim();
-            options
-                .iter()
-                .find(|o| o.eq_ignore_ascii_case(t))
-                .map(|o| ParsedInput {
-                    value: Value::String(o.clone()),
-                    notes: Vec::new(),
-                })
-                .ok_or_else(|| InputError::NotOneOf {
-                    typed: t.to_owned(),
-                    options: options.clone(),
-                })
-        }
+        FieldType::Enum { options } => parse_enum(options, text),
         FieldType::Link { kind } if kind == "part" => resolve_part(cx, text, None).map(|copy| ParsedInput {
             value: serde_json::json!({ "copy": copy }),
             notes: Vec::new(),
         }),
-        // A page's or a report block's form by its name, as the row's choices word it, or by its copy ID.
-        FieldType::Link { kind } if kind == "form" => {
-            let t = text.trim();
-            let forms = cx.frame_forms();
-            match forms
-                .iter()
-                .find(|(id, name)| name.to_string().eq_ignore_ascii_case(t) || id == t)
-            {
-                Some((id, _)) => Ok(ParsedInput {
-                    value: Value::String(id.clone()),
-                    notes: Vec::new(),
-                }),
-                None => {
-                    // The forms' names joined by "; ", each in the reader's language.
-                    let names = forms.into_iter().rev().fold(None, |tail, (_, name)| {
-                        Some(match tail {
-                            None => crate::TextArg::from(name),
-                            Some(tail) => ew_commands::text!("refusal-words-list", name, tail).into(),
-                        })
-                    });
-                    Err(invalid(text!(
-                        "refusal-input-form",
-                        t,
-                        names.unwrap_or_else(|| "".into())
-                    )))
-                }
-            }
-        }
-        FieldType::Slot => {
-            let t = text.trim();
-            if t.is_empty() {
-                return plain(Value::Null);
-            }
-            if t.eq_ignore_ascii_case("none") {
-                return plain(Value::String("none".into()));
-            }
-            let nodes = cx.slot_nodes(member);
-            if let Some((id, _, _)) = nodes.iter().find(|(_, path, _)| path == t) {
-                return plain(Value::String(id.clone()));
-            }
-            if let Some((id, _, _)) = nodes.iter().find(|(id, _, _)| id == t) {
-                return plain(Value::String(id.clone()));
-            }
-            match nodes
-                .iter()
-                .find(|(_, _, aliases)| aliases.iter().any(|a| a == t))
-            {
-                Some((id, _, _)) => Ok(ParsedInput {
-                    value: Value::String(id.clone()),
-                    notes: vec![format!("resolved through alias '{t}'")],
-                }),
-                None => Err(invalid(text!("refusal-input-no-node", t))),
-            }
-        }
+        FieldType::Link { kind } if kind == "form" => parse_form(cx, text),
+        FieldType::Slot => parse_slot(cx, member, text),
         FieldType::Uuid | FieldType::Link { .. } => Err(invalid(text!("refusal-input-shown"))),
         FieldType::List(_) if ty.is_part_uses() && !text.trim_start().starts_with('[') => {
             parse_part_uses(cx, text)
@@ -546,6 +424,144 @@ pub(crate) fn parse_input(
                 notes: Vec::new(),
             })
             .map_err(|e| invalid(text!("refusal-input-json", crate::schema_error_text(&e)))),
+    }
+}
+
+/// A whole number within the schema's bounds.
+fn parse_int(text: &str, min: Option<i64>, max: Option<i64>) -> Result<ParsedInput, InputError> {
+    let t = text.trim();
+    let n: i64 = t.parse().map_err(|_| invalid(text!("refusal-input-whole", t)))?;
+    if min.is_some_and(|m| n < m) || max.is_some_and(|m| n > m) {
+        return Err(invalid(text!(
+            "refusal-input-range",
+            n.to_string(),
+            min.map_or_else(String::new, |m| m.to_string()),
+            max.map_or_else(String::new, |m| m.to_string())
+        )));
+    }
+    plain(Value::from(n))
+}
+
+/// A number with its unit.
+fn parse_quantity(text: &str) -> Result<ParsedInput, InputError> {
+    let t = text.trim();
+    // The unit is the longest suffix that names one (its persisted spelling or its symbol); the number before it.
+    let names: Vec<(String, String)> = ew_schema::Unit::ALL
+        .iter()
+        .filter_map(|u| u.spelling().map(|p| (p, u.symbol())))
+        .flat_map(|(p, s)| [(p.clone(), p.clone()), (p, s.to_owned())])
+        .collect();
+    let found = names.iter().fold(None::<(&str, &str)>, |best, (p, s)| {
+        if t.ends_with(s.as_str()) && best.is_none_or(|(_, b)| s.len() > b.len()) {
+            Some((p, s))
+        } else {
+            best
+        }
+    });
+    let Some((unit, spelling)) = found else {
+        // "24 V DC", as a panel builder writes a control voltage: DC or AC is no part of the value.
+        let current = ["DC", "AC"].iter().any(|w| {
+            t.len() > w.len()
+                && t.get(t.len() - w.len()..)
+                    .is_some_and(|end| end.eq_ignore_ascii_case(w))
+        });
+        if current {
+            return Err(invalid(text!("refusal-input-ac-dc", t)));
+        }
+        // The units by their symbols.
+        let units: Vec<&str> = ew_schema::Unit::ALL.iter().map(ew_schema::Unit::symbol).collect();
+        return Err(invalid(text!("refusal-input-no-unit", t, units.join(", "))));
+    };
+    let number = t[..t.len() - spelling.len()].trim();
+    parse_dec3(number, &|d| serde_json::json!({ "value": d, "unit": unit })).map(|value| ParsedInput {
+        value,
+        notes: Vec::new(),
+    })
+}
+
+/// A date, typed as the project shows it, stored ISO.
+fn parse_date(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputError> {
+    let format = cx.date_format();
+    match format.parse(text) {
+        Ok(d) => plain(Value::String(d.to_string())),
+        Err(_) => Err(invalid(text!(
+            "refusal-input-date",
+            text.trim(),
+            format.example()
+        ))),
+    }
+}
+
+/// One of the closed list's words, matched without regard to case.
+fn parse_enum(options: &[String], text: &str) -> Result<ParsedInput, InputError> {
+    let t = text.trim();
+    options
+        .iter()
+        .find(|o| o.eq_ignore_ascii_case(t))
+        .map(|o| ParsedInput {
+            value: Value::String(o.clone()),
+            notes: Vec::new(),
+        })
+        .ok_or_else(|| InputError::NotOneOf {
+            typed: t.to_owned(),
+            options: options.to_vec(),
+        })
+}
+
+/// A page's or a report block's form by its name, as the row's choices word it, or by its copy ID.
+fn parse_form(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputError> {
+    let t = text.trim();
+    let forms = cx.frame_forms();
+    match forms
+        .iter()
+        .find(|(id, name)| name.to_string().eq_ignore_ascii_case(t) || id == t)
+    {
+        Some((id, _)) => Ok(ParsedInput {
+            value: Value::String(id.clone()),
+            notes: Vec::new(),
+        }),
+        None => {
+            // The forms' names joined by "; ", each in the reader's language.
+            let names = forms.into_iter().rev().fold(None, |tail, (_, name)| {
+                Some(match tail {
+                    None => crate::TextArg::from(name),
+                    Some(tail) => ew_commands::text!("refusal-words-list", name, tail).into(),
+                })
+            });
+            Err(invalid(text!(
+                "refusal-input-form",
+                t,
+                names.unwrap_or_else(|| "".into())
+            )))
+        }
+    }
+}
+
+/// A structure slot: empty (inherit), `none`, or a node by its path, its ID or an alias.
+fn parse_slot(cx: &dyn ParseCx, member: &str, text: &str) -> Result<ParsedInput, InputError> {
+    let t = text.trim();
+    if t.is_empty() {
+        return plain(Value::Null);
+    }
+    if t.eq_ignore_ascii_case("none") {
+        return plain(Value::String("none".into()));
+    }
+    let nodes = cx.slot_nodes(member);
+    if let Some((id, _, _)) = nodes.iter().find(|(_, path, _)| path == t) {
+        return plain(Value::String(id.clone()));
+    }
+    if let Some((id, _, _)) = nodes.iter().find(|(id, _, _)| id == t) {
+        return plain(Value::String(id.clone()));
+    }
+    match nodes
+        .iter()
+        .find(|(_, _, aliases)| aliases.iter().any(|a| a == t))
+    {
+        Some((id, _, _)) => Ok(ParsedInput {
+            value: Value::String(id.clone()),
+            notes: vec![format!("resolved through alias '{t}'")],
+        }),
+        None => Err(invalid(text!("refusal-input-no-node", t))),
     }
 }
 
