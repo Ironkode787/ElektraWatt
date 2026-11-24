@@ -1184,6 +1184,23 @@ impl Default for CanvasHost {
     }
 }
 
+/// A sheet point in nm as millimetres.
+fn mm(p: (i64, i64)) -> (f64, f64) {
+    (p.0 as f64 / 1e6, p.1 as f64 / 1e6)
+}
+
+/// The point of an input action on canvas `group` at `p` with the modifiers `mods` (left out when not held).
+fn point_with(group: usize, p: (i64, i64), mods: Modifiers) -> serde_json::Value {
+    let (x, y) = mm(p);
+    let mut v = json!({"x_mm": x, "y_mm": y, "group": group});
+    for (name, held) in [("shift", mods.shift), ("ctrl", mods.command), ("alt", mods.alt)] {
+        if held {
+            v[name] = json!(true);
+        }
+    }
+    v
+}
+
 /// The wire-colour view's codes painted last on a canvas, each frame (points) and whether it is faded, and the frames of
 /// the printed texts they kept clear of.
 type WireCodes = (Vec<(Rect, bool)>, Vec<Rect>);
@@ -2407,29 +2424,46 @@ impl CanvasHost {
         wheel_scrolls: bool,
         events: &mut Vec<Event>,
     ) {
-        let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
-        // The point of an input action with the modifiers `mods` (left out when not held).
-        let point_with = |p: (i64, i64), mods: Modifiers| {
-            let (x, y) = mm(p);
-            let mut v = json!({"x_mm": x, "y_mm": y, "group": group});
-            for (name, held) in [("shift", mods.shift), ("ctrl", mods.command), ("alt", mods.alt)] {
-                if held {
-                    v[name] = json!(true);
-                }
-            }
-            v
-        };
         let mods = ui.input(|i| i.modifiers);
-        let point = |p: (i64, i64)| point_with(p, mods);
         // A PLC channel row dropped on this canvas binds the channel at the drop point.
         let dropped = ui.input(|i| i.pointer.any_released().then(|| i.pointer.latest_pos()).flatten());
+        Self::map_drops(ui, rect, canvas, group, dropped, events);
+        Self::map_device_drag(ui, rect, canvas, (group, mods), dropped, events);
+        let space = ui.input(|i| i.key_down(Key::Space));
+        Self::map_back_forward(ui, response, events);
+        let hover = response.hover_pos();
+        self.map_pointer(ui, rect, canvas, (group, mods), hover, events);
+        self.map_buttons(ui, response, rect, canvas, (group, finishes, space), events);
+        let Some(pos) = hover else {
+            self.views[group].wheel_lines = 0.0;
+            return;
+        };
+        self.map_wheel_and_drag(
+            ui,
+            response,
+            (rect, pos),
+            canvas,
+            (group, space, reduce_motion, wheel_scrolls),
+            events,
+        );
+    }
+
+    /// The rows dropped on this canvas at `dropped`: a PLC channel, a macro, a station or a bus device.
+    fn map_drops(
+        ui: &Ui,
+        rect: Rect,
+        canvas: &CanvasModel,
+        group: usize,
+        dropped: Option<Pos2>,
+        events: &mut Vec<Event>,
+    ) {
         // (`take_payload` empties the store whatever its type: a function's drop stays the canvas area's.)
         if let Some(pos) = dropped
             && rect.contains(pos)
             && egui::DragAndDrop::has_payload_of_type::<crate::navigator::ChannelDrag>(ui.ctx())
             && let Some(channel) = egui::DragAndDrop::take_payload::<crate::navigator::ChannelDrag>(ui.ctx())
         {
-            let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            let mut p = point_with(group, Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
             p["channel"] = json!(channel.0);
             events.push(Event::Action("navigator.bind", p));
         }
@@ -2439,7 +2473,7 @@ impl CanvasHost {
             && egui::DragAndDrop::has_payload_of_type::<crate::navigator::MacroDrag>(ui.ctx())
             && let Some(key) = egui::DragAndDrop::take_payload::<crate::navigator::MacroDrag>(ui.ctx())
         {
-            let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            let mut p = point_with(group, Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
         }
@@ -2449,10 +2483,21 @@ impl CanvasHost {
             && egui::DragAndDrop::has_payload_of_type::<crate::navigator::StationDrag>(ui.ctx())
             && let Some(station) = egui::DragAndDrop::take_payload::<crate::navigator::StationDrag>(ui.ctx())
         {
-            let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            let mut p = point_with(group, Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
             p["station"] = json!(station.0);
             events.push(Event::Action("bus.put_station", p));
         }
+    }
+
+    /// An Unplaced devices row dragged over this canvas, with the modifiers `mods` held.
+    fn map_device_drag(
+        ui: &Ui,
+        rect: Rect,
+        canvas: &CanvasModel,
+        (group, mods): (usize, Modifiers),
+        dropped: Option<Pos2>,
+        events: &mut Vec<Event>,
+    ) {
         // An Unplaced devices row dragged over this canvas floats its device (the layout place
         // tool, armed once per drag), follows the pointer with the modifiers held, and drops it on release.
         let armed_id = egui::Id::unique(("layout-drag-armed", group));
@@ -2466,17 +2511,20 @@ impl CanvasHost {
                         ui.data_mut(|d| d.insert_temp(armed_id, device.0.clone()));
                         events.push(Event::Action("tool.place_layout", json!({"device": device.0})));
                     }
-                    events.push(Event::Action("canvas.pointer", point(at)));
+                    events.push(Event::Action("canvas.pointer", point_with(group, at, mods)));
                     if dropped.is_some() {
                         let _ = egui::DragAndDrop::take_payload::<crate::navigator::DeviceDrag>(ui.ctx());
                         ui.data_mut(|d| d.remove::<String>(armed_id));
-                        events.push(Event::Action("canvas.release", point(at)));
+                        events.push(Event::Action("canvas.release", point_with(group, at, mods)));
                     }
                 }
             }
             None => ui.data_mut(|d| d.remove::<String>(armed_id)),
         }
-        let space = ui.input(|i| i.key_down(Key::Space));
+    }
+
+    /// The pointer's back and forward buttons over this canvas.
+    fn map_back_forward(ui: &Ui, response: &egui::Response, events: &mut Vec<Event>) {
         if response.hovered() {
             let (back, forward) = ui.input(|i| {
                 (
@@ -2491,7 +2539,18 @@ impl CanvasHost {
                 events.push(Event::Action("nav.forward", json!({})));
             }
         }
-        let hover = response.hover_pos();
+    }
+
+    /// The pointer over this canvas at `hover` (or dragging from it), with the modifiers `mods` held.
+    fn map_pointer(
+        &mut self,
+        ui: &Ui,
+        rect: Rect,
+        canvas: &CanvasModel,
+        (group, mods): (usize, Modifiers),
+        hover: Option<Pos2>,
+        events: &mut Vec<Event>,
+    ) {
         // While the primary button drags from this canvas the pointer keeps reaching the tool beyond the pane.
         let tracked = hover.or_else(|| {
             self.views[group]
@@ -2517,7 +2576,7 @@ impl CanvasHost {
             Some(pos) if moved || view_changed => {
                 let p = Self::sheet_point(rect, canvas, pos);
                 if view_changed || canvas.pointer() != Some(p) {
-                    events.push(Event::Action("canvas.pointer", point(p)));
+                    events.push(Event::Action("canvas.pointer", point_with(group, p, mods)));
                 }
             }
             Some(_) => {}
@@ -2526,6 +2585,19 @@ impl CanvasHost {
             }
             None => {}
         }
+    }
+
+    /// The primary button's presses on this canvas and its releases; `finishes`: the tool finishes on a double click;
+    /// `space`: Space is held (the button pans).
+    fn map_buttons(
+        &mut self,
+        ui: &Ui,
+        response: &egui::Response,
+        rect: Rect,
+        canvas: &CanvasModel,
+        (group, finishes, space): (usize, bool, bool),
+        events: &mut Vec<Event>,
+    ) {
         // The primary button is the tool's: its presses on this canvas and its releases, wherever they
         // happen, taken from the button events in order with their own positions and modifiers, so a press and its
         // release in one frame (a touchpad tap, a slow frame) are both seen. A press focuses the group first; Space
@@ -2575,22 +2647,22 @@ impl CanvasHost {
                 self.views[group].last_press = Some((now, pos));
                 events.push(Event::Action(
                     "canvas.press",
-                    point_with(Self::sheet_point(rect, canvas, pos), m),
+                    point_with(group, Self::sheet_point(rect, canvas, pos), m),
                 ));
                 // A press clears the hover outline but keeps the pointer at the press point: a tool ghost and the
                 // dwell follow a stationary pointer (R2).
-                let mut pointer = point_with(Self::sheet_point(rect, canvas, pos), m);
+                let mut pointer = point_with(group, Self::sheet_point(rect, canvas, pos), m);
                 pointer["clear_hover"] = json!(true);
                 events.push(Event::Action("canvas.pointer", pointer));
                 self.views[group].pressed = true;
             } else if self.views[group].pressed {
                 events.push(Event::Action(
                     "canvas.release",
-                    point_with(Self::sheet_point(rect, canvas, pos), m),
+                    point_with(group, Self::sheet_point(rect, canvas, pos), m),
                 ));
                 self.views[group].pressed = false;
                 // The release ends the gesture's hover outline, but the pointer stays where it is (R2).
-                let mut pointer = point_with(Self::sheet_point(rect, canvas, pos), m);
+                let mut pointer = point_with(group, Self::sheet_point(rect, canvas, pos), m);
                 pointer["clear_hover"] = json!(true);
                 events.push(Event::Action("canvas.pointer", pointer));
                 // The drag ends here; its band goes with the release's answer. Paint the frame after it rather than
@@ -2598,10 +2670,18 @@ impl CanvasHost {
                 ui.ctx().request_repaint();
             }
         }
-        let Some(pos) = hover else {
-            self.views[group].wheel_lines = 0.0;
-            return;
-        };
+    }
+
+    /// The wheel, the pinch and the drags that zoom and pan about the pointer at `pos`.
+    fn map_wheel_and_drag(
+        &mut self,
+        ui: &Ui,
+        response: &egui::Response,
+        (rect, pos): (Rect, Pos2),
+        canvas: &CanvasModel,
+        (group, space, reduce_motion, wheel_scrolls): (usize, bool, bool, bool),
+        events: &mut Vec<Event>,
+    ) {
         let anchor = Self::sheet_point(rect, canvas, pos);
         let zoom_to = |zoom: f64, wheel: bool| {
             let (x, y) = mm(anchor);

@@ -672,12 +672,37 @@ impl App {
         Some(response.response.rect)
     }
 
-    /// Paints one frame into the root `ui` of the window.
+    /// Paints one frame into the root `ui` of the window: the settings it follows, the periodic tasks, the input,
+    /// the chrome, the screen, what floats over the page, the popups, what is said and asked, then the frame's
+    /// actions and the platform's requests.
     pub fn ui(&mut self, ui: &mut Ui) {
         let _frame = tracing::trace_span!("frame").entered();
         let ctx = ui.ctx().clone();
         // The window's parts read the clock it runs on from the frame's context.
         self.clock.publish(&ctx);
+        self.apply_settings(&ctx);
+        let (now, hide_job) = self.tick(&ctx);
+
+        let mut events: Vec<Event> = Vec::new();
+        self.properties.begin_frame();
+        let (form_key, held_for_picker) = self.input(&ctx, &mut events);
+        // The chrome paints `color.surface.chrome` itself (doc 16a §4.14); panels take `color.surface.panel`.
+        let tokens = crate::theme::current(&ctx);
+        self.chrome_panels(ui, &ctx, &tokens, hide_job, &mut events);
+        self.follow_tool_epoch();
+        let (page_pane, hud_strip, canvas_shown, new_layout) =
+            self.central(ui, &ctx, &tokens, now, &mut events);
+        self.over_page(&ctx, (page_pane, hud_strip, canvas_shown), &mut events);
+        self.popups(&ctx, held_for_picker, &mut events);
+        self.said_and_asked(&ctx, &tokens, form_key, &mut events);
+        self.dispatch_events(&ctx, &tokens, canvas_shown, events);
+        self.platform_requests(&ctx);
+        self.end_frame(&ctx, new_layout);
+    }
+
+    /// The settings the frame follows: the key bindings, the UI scale, the theme with the density, the minimum text
+    /// size and reduced motion.
+    fn apply_settings(&mut self, ctx: &egui::Context) {
         // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
         // to another monitor. It is set once when the setting changes.
         // The bindings follow the keymap preset and the user's keymap.
@@ -701,7 +726,7 @@ impl App {
             self.shell.reduce_motion(),
         );
         if self.applied_theme.as_ref() != Some(&appearance) {
-            crate::theme::apply_setting(&appearance.0, &appearance.1, appearance.2, appearance.3, &ctx);
+            crate::theme::apply_setting(&appearance.0, &appearance.1, appearance.2, appearance.3, ctx);
             // A visual run draws the caret always, so a frame never catches it off.
             if self.clock.is_frame() {
                 ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
@@ -710,13 +735,20 @@ impl App {
         }
         // Reduced motion ends egui's wheel smoothing too.
         if self.shell.reduce_motion() {
-            crate::theme::unsmoothed_scroll(&ctx);
+            crate::theme::unsmoothed_scroll(ctx);
         }
+    }
+
+    /// The periodic tasks of a frame: the canvas's backend, the window's geometry, a close request, the focus coming
+    /// back, the app menu's keys, the jobs, the New project dialog's folders, the project on disk, the project to
+    /// open first, the file dialogs' answers, the dock's layout and the wizard's preview. Returns the frame time and
+    /// whether the status bar hides its job field (the 200 ms rule).
+    fn tick(&mut self, ctx: &egui::Context) -> (f64, bool) {
         // The switch rule (section 7.2): the setting is effective at once, a failure moves the canvas to the
         // CPU with one banner, and the status bar shows the result.
         self.canvas.update_backend(&mut self.shell);
         // The window's geometry, written at the end of the window.
-        crate::window_memory::remember(&ctx, &mut self.shell, &mut self.window_zoom);
+        crate::window_memory::remember(ctx, &mut self.shell, &mut self.window_zoom);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             // While a file dialog is open nothing the user does reaches the shell (see below): the window stays open.
@@ -739,7 +771,7 @@ impl App {
             self.window_focused = focused;
         }
         // Alt pressed and released alone, or F10, opens the app menu (doc 16a §5.2).
-        self.app_menu_keys(&ctx);
+        self.app_menu_keys(ctx);
         // The jobs wake the window after each progress report and at their end, and every frame takes
         // the ends that are in (no `Session` call).
         // On the frame clock (a visual run) the driver waits for the jobs itself: no job thread wakes the frame, so
@@ -811,21 +843,24 @@ impl App {
         }
         // The file dialogs are started and answered at the start of a frame, so the menu is already closed and the card
         // is in the shell before this frame paints (W3); an answer from a dialog's thread starts this frame.
-        self.answer_prompts(&ctx);
+        self.answer_prompts(ctx);
         if self.dock.version() != self.shell.layout_version() {
             self.dock = Dock::new(self.shell.layout(), self.shell.layout_version());
         }
         // The preview is built from the draft before the frame reads it (a no-op while it is current).
         self.shell.wizard_prepare_preview();
+        (now, hide_job)
+    }
 
-        let mut events: Vec<Event> = Vec::new();
-        self.properties.begin_frame();
+    /// The frame's input before the panes paint: a form dialog's Ctrl+Enter (returned), the shortcuts, the keys held
+    /// back for the open picker (returned), a dropped image.
+    fn input(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) -> (bool, Vec<egui::Event>) {
         // Ctrl+Enter submits a form dialog from any focus. The form takes the key before the keymap
         // and the panes under it, so their Ctrl+Enter (`canvas.activate_alt`, `preview.apply`, `find.replace_all`)
         // does not fire.
         let form_key = matches!(self.shell.dialog(), Some(ew_viewmodel::shell::Dialog::Form(_)))
             && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter));
-        self.route_keys(&ctx, &mut events);
+        self.route_keys(ctx, events);
         // While the picker is open it owns the keyboard. The panes paint before it and
         // a focused one (the navigator's type-ahead, a Properties row, the canvas) would take the frame's keys and
         // text first: the key typed in the frame that opens the picker went to the focused navigator ("elay" for
@@ -855,15 +890,24 @@ impl App {
                 json!({ "path": file.to_string_lossy() }),
             ));
         }
+        (form_key, held_for_picker)
+    }
 
-        // The chrome paints `color.surface.chrome` itself (doc 16a §4.14); panels take `color.surface.panel`.
-        let tokens = crate::theme::current(&ctx);
+    /// The chrome around the screen: the command bar, the template band, the status bar.
+    fn chrome_panels(
+        &mut self,
+        ui: &mut Ui,
+        ctx: &egui::Context,
+        tokens: &crate::theme::Tokens,
+        hide_job: bool,
+        events: &mut Vec<Event>,
+    ) {
         let chrome = tokens.surface_chrome.color32();
         // The command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
         let bar_height = if self.shell.symbol_editor().is_some() {
-            tokens.size_tab_row + crate::symbol_editor::toolbar_height(&tokens) + tokens.border_width
+            tokens.size_tab_row + crate::symbol_editor::toolbar_height(tokens) + tokens.border_width
         } else {
-            crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed())
+            crate::command_bar::bar_height(tokens, self.shell.command_bar_collapsed())
         };
         let command_bar = &mut self.command_bar;
         let shell = &self.shell;
@@ -873,7 +917,7 @@ impl App {
             .show_separator_line(false)
             .frame(egui::Frame::NONE.fill(chrome))
             .show(ui, |ui| {
-                command_bar.show(ui, shell, &mut events, &mut self.symbol_editor_view)
+                command_bar.show(ui, shell, events, &mut self.symbol_editor_view)
             });
         // An open template says so in a band across the window, under the command bar: it cannot be mistaken for a
         // project. The band takes its own room, so it covers no drawing.
@@ -884,15 +928,15 @@ impl App {
             Panel::top("template-band")
                 .resizable(false)
                 .show_separator_line(false)
-                .frame(crate::components::band_frame(&tokens, tokens.accent_subtle))
+                .frame(crate::components::band_frame(tokens, tokens.accent_subtle))
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
                         crate::components::band_row(
                             ui,
-                            &tokens,
+                            tokens,
                             (crate::icons::IconId::file_stack, tokens.accent),
                             crate::components::body_strong(
-                                &tokens,
+                                tokens,
                                 strings::format(key!("template-band"), &[&name]),
                             ),
                             vec![(
@@ -900,7 +944,7 @@ impl App {
                                 strings::text(key!("template-band-close")),
                                 Event::Action("file.close", Value::Null),
                             )],
-                            &mut events,
+                            events,
                         );
                     });
                 });
@@ -908,7 +952,7 @@ impl App {
         // F6 reached the command bar: its active tab takes egui's keyboard focus.
         let bar_has_focus = self.shell.focus() == Some(Focus::CommandBar);
         if crate::components::opened(
-            &ctx,
+            ctx,
             egui::Id::unique("command-bar-focus"),
             bar_has_focus.then_some(()),
         ) {
@@ -921,7 +965,11 @@ impl App {
             .resizable(false)
             .show_separator_line(false)
             .frame(egui::Frame::NONE.fill(chrome))
-            .show(ui, |ui| status_bar::show(ui, &self.shell, hide_job, &mut events));
+            .show(ui, |ui| status_bar::show(ui, &self.shell, hide_job, events));
+    }
+
+    /// The drawing tools' option fields start empty with each new tool.
+    fn follow_tool_epoch(&mut self) {
         let tool_epoch = self.shell.tool_epoch();
         if self.drawing_fields_epoch != Some(tool_epoch) {
             self.marker_csa.clear();
@@ -930,14 +978,33 @@ impl App {
             self.structure_location.clear();
             self.drawing_fields_epoch = Some(tool_epoch);
         }
+    }
+
+    /// The screen in the central panel (the first run, the wizard, the symbol editor, the docked project view with
+    /// its rails, or the start page). Returns the page view pane and the HUD's strip on it, whether the canvas was
+    /// shown, and the dock's layout when the user changed it.
+    fn central(
+        &mut self,
+        ui: &mut Ui,
+        ctx: &egui::Context,
+        tokens: &crate::theme::Tokens,
+        now: f64,
+        events: &mut Vec<Event>,
+    ) -> (
+        Option<egui::Rect>,
+        Option<egui::Rect>,
+        bool,
+        Option<ew_viewmodel::layout::Layout>,
+    ) {
         let mut new_layout = None;
         let mut canvas_shown = false;
         let screen = self.shell.screen();
         if screen == Screen::Project {
-            self.canvas.begin_frame(&ctx);
+            self.canvas.begin_frame(ctx);
         }
         self.area_splitters = 0;
         if screen == Screen::Project {
+            let chrome = tokens.surface_chrome.color32();
             // Doc 16a §5.4, §5.6: the navigator rail at the left, the palettes rail at the right.
             for (side, left) in [("rail-left", true), ("rail-right", false)] {
                 let panel = if left {
@@ -952,9 +1019,9 @@ impl App {
                     .frame(egui::Frame::NONE.fill(chrome))
                     .show(ui, |ui| {
                         if left {
-                            crate::rail::show_left(ui, &self.shell, &mut events);
+                            crate::rail::show_left(ui, &self.shell, events);
                         } else {
-                            crate::rail::show_right(ui, &self.shell, &mut events);
+                            crate::rail::show_right(ui, &self.shell, events);
                         }
                     });
             }
@@ -967,9 +1034,9 @@ impl App {
         CentralPanel::default().show(ui, |ui| {
             crate::properties::remember_free_area(ui);
             match screen {
-                Screen::FirstRun => first_run::show(ui, &self.shell, &mut events),
-                Screen::Wizard => wizard::show(ui, &self.shell, &mut self.preview_view, &mut events),
-                Screen::SymbolEditor => self.symbol_editor_view.show(ui, &self.shell, &mut events),
+                Screen::FirstRun => first_run::show(ui, &self.shell, events),
+                Screen::Wizard => wizard::show(ui, &self.shell, &mut self.preview_view, events),
+                Screen::SymbolEditor => self.symbol_editor_view.show(ui, &self.shell, events),
                 Screen::Project => {
                     let App {
                         shell,
@@ -997,17 +1064,17 @@ impl App {
                         .into_iter()
                         .collect();
                     let headers = dock.show(ui, collapsed, &counts, &marks, &mut |ui, pane| match pane {
-                        PaneKind::Pages => navigator.show(ui, shell, &mut events),
+                        PaneKind::Pages => navigator.show(ui, shell, events),
                         PaneKind::Navigator(k) => navigators
                             .entry(k)
                             .or_insert_with(|| NavigatorPane::of(k))
-                            .show(ui, shell, &mut events),
-                        PaneKind::Properties => properties.show(ui, shell, &mut events),
-                        PaneKind::Find => find.show(ui, shell, &mut events),
-                        PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, &mut events),
-                        PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
-                        PaneKind::History => crate::history::show(ui, shell, &mut events),
-                        PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
+                            .show(ui, shell, events),
+                        PaneKind::Properties => properties.show(ui, shell, events),
+                        PaneKind::Find => find.show(ui, shell, events),
+                        PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, events),
+                        PaneKind::Preview => crate::preview::show(ui, shell, events),
+                        PaneKind::History => crate::history::show(ui, shell, events),
+                        PaneKind::Glossary => crate::glossary::show(ui, shell, events),
                         PaneKind::PageView => {
                             // The canvas takes the whole pane (doc 16a §5.5): the HUD, the zoom control and the tool
                             // options float over it, each its own rounded shape with a shadow and nothing behind it
@@ -1019,13 +1086,13 @@ impl App {
                                 .filter_map(|g| shell.canvas_of(g))
                                 .any(|c| crate::canvas::shows_scroll_bar(c, false));
                             let foot = full.bottom() - if bar { tokens.space_3 } else { 0.0 };
-                            let split = (foot - crate::hud::strip_height(&tokens)).max(full.top());
+                            let split = (foot - crate::hud::strip_height(tokens)).max(full.top());
                             page_pane = Some(full);
                             hud_strip = Some(egui::Rect::from_min_max(
                                 egui::pos2(full.left(), split),
                                 egui::pos2(full.right(), foot.max(split)),
                             ));
-                            canvas_area.show(ui, shell, canvas, &mut events);
+                            canvas_area.show(ui, shell, canvas, events);
                             *area_splitters = canvas_area.splitter_count(shell);
                             canvas_shown = true;
                         }
@@ -1033,9 +1100,20 @@ impl App {
                     events.extend(headers);
                     new_layout = dock.layout().filter(|l| l != shell.layout());
                 }
-                Screen::Start => start_page::show(ui, &self.shell, &mut events),
+                Screen::Start => start_page::show(ui, &self.shell, events),
             }
         });
+        (page_pane, hud_strip, canvas_shown, new_layout)
+    }
+
+    /// What floats over the page view: the HUD, the zoom control and the tool options, kept clear by the canvas's
+    /// chips; `page` is the page view pane, the HUD's strip on it and whether the canvas was shown.
+    fn over_page(
+        &mut self,
+        ctx: &egui::Context,
+        (page_pane, hud_strip, canvas_shown): (Option<egui::Rect>, Option<egui::Rect>, bool),
+        events: &mut Vec<Event>,
+    ) {
         // The HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
         // A station's view is no page: the HUD, the zoom control and the tool options stay away from it.
         let station = self.shell.station_tab().is_some();
@@ -1048,16 +1126,16 @@ impl App {
         }
         if let Some(pane) = self.page_pane {
             if let Some(strip) = hud_strip {
-                self.hud_rect = Some(crate::hud::show(&ctx, &self.shell, strip, &mut events));
+                self.hud_rect = Some(crate::hud::show(ctx, &self.shell, strip, events));
             }
-            crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
-            options_card = self.tool_options(&ctx, pane, &mut events);
+            crate::hud::show_zoom(ctx, &self.shell, pane, events);
+            options_card = self.tool_options(ctx, pane, events);
         }
         // OV2/OV6: the canvas painted before the HUD (whose place follows the pointer), so the chips keep off this
         // frame's HUD, zoom control and tool options card from the next frame on; the next input repaints
         // anyway, no extra repaint.
         let chrome: Vec<egui::Rect> = match (self.page_pane, self.hud_rect) {
-            (Some(pane), Some(hud)) => [hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)]
+            (Some(pane), Some(hud)) => [hud, crate::hud::zoom_rect(&crate::theme::current(ctx), pane)]
                 .into_iter()
                 // No obstacle for a ghost under the card.
                 .chain(options_card.filter(|(_, faded)| !faded).map(|(rect, _)| rect))
@@ -1067,50 +1145,60 @@ impl App {
         for group in 0..crate::canvas::GROUPS {
             self.canvas.set_chrome_obstacles(group, chrome.clone());
         }
+    }
+
+    /// The popups: the palette, the picker (given the keys held back for it), the Join chooser, the junction editor,
+    /// the text popup, the parts card, the parts import's mapping and Show changes.
+    fn popups(&mut self, ctx: &egui::Context, held_for_picker: Vec<egui::Event>, events: &mut Vec<Event>) {
         // The palette, the picker and a dialog take their first focus in the frame they open (the picker's when it
         // moves on to a part's symbols too; a dialog's when it replaced the last in one frame, the collision dialog
         // after Renumber, or is of the same kind, rebuilt by a second change: [`ShellModel::dialog_generation`]).
         let palette_open = self.shell.palette().is_some();
         palette::show(
-            &ctx,
+            ctx,
             &self.shell,
             crate::components::opened(
-                &ctx,
+                ctx,
                 egui::Id::unique("palette-opened"),
                 palette_open.then_some(()),
             ),
             self.command_bar.search_rect(),
-            &mut events,
+            events,
         );
         let picker_step = self.shell.picker().map(|p| p.part);
         if !held_for_picker.is_empty() {
             ctx.input_mut(|i| i.events.extend(held_for_picker));
         }
         crate::picker::show(
-            &ctx,
+            ctx,
             &self.shell,
-            crate::components::opened(&ctx, egui::Id::unique("picker-opened"), picker_step),
-            &mut events,
+            crate::components::opened(ctx, egui::Id::unique("picker-opened"), picker_step),
+            events,
         );
         // The Place tool's Join chooser (doc 16a §6.22).
-        crate::chooser::show(
-            &ctx,
-            &self.shell,
-            self.page_pane,
-            &mut self.chooser_typing,
-            &mut events,
-        );
-        crate::junction::show(&ctx, &self.shell, &mut events);
-        crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
-        crate::parts_card::show(&ctx, &self.shell, &mut events);
+        crate::chooser::show(ctx, &self.shell, self.page_pane, &mut self.chooser_typing, events);
+        crate::junction::show(ctx, &self.shell, events);
+        crate::text_popup::show(ctx, &self.shell, &mut self.text_buffer, events);
+        crate::parts_card::show(ctx, &self.shell, events);
         // The parts import's column mapping step.
-        crate::parts_map::show(&ctx, &self.shell, &mut events);
+        crate::parts_map::show(ctx, &self.shell, events);
         // Show changes of the history panel.
-        crate::history::show_changes(&ctx, &self.shell, &mut events);
+        crate::history::show_changes(ctx, &self.shell, events);
+    }
+
+    /// What is said and asked: the banner, the toasts, the notifications log, the dialog (`form_key`: a form's
+    /// Ctrl+Enter), the start-up offer, and F1 with what is under the pointer.
+    fn said_and_asked(
+        &mut self,
+        ctx: &egui::Context,
+        tokens: &crate::theme::Tokens,
+        form_key: bool,
+        events: &mut Vec<Event>,
+    ) {
         // The toasts and the notifications log.
         // At the canvas's top right (doc 16a §6.10).
         let bar_bottom = self.command_bar.bar_rect().map_or(0.0, |r| r.bottom());
-        let banner = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events);
+        let banner = self.banner_overlay(ctx, tokens, bar_bottom, events);
         let place = crate::notifications::ToastPlace {
             page_pane: self.page_pane,
             station_pane: self.station_pane,
@@ -1118,33 +1206,43 @@ impl App {
             banner,
             corner: self.symbol_editor_view.toast_corner,
         };
-        self.toasts.show(&ctx, &self.shell, &tokens, &place, &mut events);
-        crate::notifications::show_log(&ctx, &self.shell, &mut events);
+        self.toasts.show(ctx, &self.shell, tokens, &place, events);
+        crate::notifications::show_log(ctx, &self.shell, events);
         let opening = self.shell.dialog().map(|_| self.shell.dialog_generation());
         about::show(
-            &ctx,
+            ctx,
             &self.shell,
-            crate::components::opened(&ctx, egui::Id::unique("dialog-opened"), opening),
+            crate::components::opened(ctx, egui::Id::unique("dialog-opened"), opening),
             form_key,
-            &mut events,
+            events,
         );
         // The start-up offer, while no other dialog is open.
         if self.shell.dialog().is_none() {
-            crate::startup::show(&ctx, &self.shell, &mut events);
+            crate::startup::show(ctx, &self.shell, events);
         }
         // What the window names under the pointer goes to the shell, where the status bar says what F1 opens. F1
         // opens it, else the thing on the page under the pointer, else the context (the focus, the selection, the
         // tool, the screen).
-        self.shell.set_help_under(crate::help::take(&ctx));
+        self.shell.set_help_under(crate::help::take(ctx));
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1)) {
             let params = ew_viewmodel::help::pointer_topic(&self.shell)
                 .map_or(Value::Null, |under| serde_json::json!({ "topic": under.topic }));
             events.push(Event::Action("help.documentation", params));
         }
+    }
 
+    /// The frame's actions after it painted: the canvas's tile submission, the toasts' timeouts, then each event,
+    /// the clipboard's requests and the repaints a change asks for; the canvas keeps, hides or releases its tiles.
+    fn dispatch_events(
+        &mut self,
+        ctx: &egui::Context,
+        tokens: &crate::theme::Tokens,
+        canvas_shown: bool,
+        mut events: Vec<Event>,
+    ) {
         if canvas_shown {
             // The merged tile submission and the hidden-first eviction of every canvas.
-            self.canvas.finish_frame(&ctx, &self.shell);
+            self.canvas.finish_frame(ctx, &self.shell);
         }
         // A native dialog that is open off the window's thread need not be modal (on Linux the portal dialog has no
         // owner window), and its answer carries the shell's earlier choices with it (`discard` after a Discard): what
@@ -1156,7 +1254,7 @@ impl App {
         if !events.is_empty() {
             ctx.request_repaint();
         }
-        self.toasts.expire(&ctx, &self.shell, &tokens, &mut events);
+        self.toasts.expire(ctx, &self.shell, tokens, &mut events);
         let dispatch_started = self.clock.now();
         // The window repaints after an action that changed the model or the tool's marks without pointer motion
         // (an undo, a key-driven commit, a gesture's release; window check): once at once, and once
@@ -1165,7 +1263,7 @@ impl App {
         for event in events {
             // `ui.dismiss` while the app menu is open closes the menu and nothing else, as
             // Escape does; so does any menu, a context menu among them.
-            if matches!(event, Event::Action("ui.dismiss", _)) && menu_takes_dismiss(&ctx) {
+            if matches!(event, Event::Action("ui.dismiss", _)) && menu_takes_dismiss(ctx) {
                 continue;
             }
             self.apply(event);
@@ -1193,12 +1291,20 @@ impl App {
             // No canvas on screen (start page, wizard, first run): its tiles and queued jobs go.
             self.canvas.release();
         }
+    }
+
+    /// The platform's part of the frame's requests: the guide, a written file, a second window, the log folder, a
+    /// print.
+    fn platform_requests(&mut self, ctx: &egui::Context) {
         self.open_documentation();
         self.open_results();
         self.open_windows();
         self.open_log_folder();
-        self.print_requests(&ctx);
+        self.print_requests(ctx);
+    }
 
+    /// The end of a frame: the dock's layout given to the shell and written when due, the window's title, the close.
+    fn end_frame(&mut self, ctx: &egui::Context, new_layout: Option<ew_viewmodel::layout::Layout>) {
         // The layout the user made is the shell's; it is written a second after the last change.
         let now = ctx.input(|i| i.time);
         if let Some(layout) = new_layout {
@@ -1227,6 +1333,24 @@ impl App {
         // The platform answers the last frame's request for the clipboard in this frame, or not at all.
         let paste_in_place = std::mem::take(&mut self.paste_in_place);
         let palette_open = self.shell.palette().is_some();
+        if self.popup_keys(ctx, palette_open, events) || self.pane_keys(ctx, palette_open, events) {
+            return;
+        }
+        let focused = self.key_context();
+        if !palette_open
+            && (self.command_bar_keys(ctx, events)
+                || self.physical_keys(ctx, focused, events)
+                || self.clipboard_keys(ctx, focused, paste_in_place, events))
+        {
+            return;
+        }
+        self.bound_keys(ctx, focused, palette_open, events);
+    }
+
+    /// The keys of what lies over the window, in order: Enter in the supply marks' panel, Escape for an open menu,
+    /// the collapsed bar's popover, the palette, a dialog or a popup, and the start-up offer; then nothing more while a
+    /// dialog or a popup is open or a text field outside the palette has the focus. `true` when the routing ends here.
+    fn popup_keys(&mut self, ctx: &egui::Context, palette_open: bool, events: &mut Vec<Event>) -> bool {
         let dialog_open = self.shell.dialog().is_some();
         // The junction sequence editor is a popup like the picker: Escape closes it, its own keys
         // stay with it. The text popup is one too.
@@ -1245,46 +1369,50 @@ impl App {
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter))
         {
             events.push(Event::Action("ip.supply_potential", json!({"apply": true})));
-            return;
+            return true;
         }
         // Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
         // Any open menu, a context menu among them, closes and nothing else (the selection stays).
         if egui::Popup::is_any_open(ctx) && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             egui::Popup::close_all(ctx);
-            return;
+            return true;
         }
         if self.command_bar.popover_open()
             && !overlay
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
         {
             self.command_bar.close_popover();
-            return;
+            return true;
         }
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
-            return;
+            return true;
         }
         // The start-up offer is modal; Escape is its Not now.
         if self.shell.startup_offer().is_some() {
             if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 events.push(Event::Action("startup.dismiss", Value::Null));
             }
-            return;
+            return true;
         }
-        if dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open) {
-            return;
-        }
+        dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open)
+    }
+
+    /// The keys a pane keeps before the shortcuts: Escape with a Properties editor or a station's tag field open
+    /// (Enter too for the tag), Escape as `ui.dismiss`, the history panel's row keys, Ctrl+1 to Ctrl+9 for the left
+    /// rail, Ctrl+Enter for an open parts import card. `true` when the routing ends here.
+    fn pane_keys(&mut self, ctx: &egui::Context, palette_open: bool, events: &mut Vec<Event>) -> bool {
         // Escape with a Properties editor open is the editor's (`props.cancel`), whether or not its field
         // still holds the focus: egui drops the focus on Escape before the frame, so `ui.dismiss` took it and the field
         // then committed on the lost focus (refused: nothing was being edited).
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
-            return;
+            return true;
         }
         // So are Enter and Escape with a station view's tag field open: they take or leave the tag.
         if self.shell.station_tab().is_some_and(|t| t.rename.is_some())
             && ctx.input(|i| i.key_pressed(Key::Escape) || i.key_pressed(Key::Enter))
         {
-            return;
+            return true;
         }
         // While the symbol editor shows, Escape is its own (a gesture ends, then Select).
         if !palette_open
@@ -1293,11 +1421,11 @@ impl App {
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
         {
             events.push(Event::Action("ui.dismiss", Value::Null));
-            return;
+            return true;
         }
         // The history panel's row keys while it has the focus.
         if !palette_open && crate::history::keys(ctx, events) {
-            return;
+            return true;
         }
         // Ctrl+1 to Ctrl+9 pick the left rail's entries (doc 16a §5.4).
         if !palette_open
@@ -1305,7 +1433,7 @@ impl App {
             && self.shell.wizard().is_none()
             && crate::rail::keys(ctx, &self.shell, events)
         {
-            return;
+            return true;
         }
         // Ctrl+Enter applies an open parts import card from anywhere (the card is a window of its own).
         if !palette_open
@@ -1313,11 +1441,14 @@ impl App {
             && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter))
         {
             events.push(Event::Action("preview.apply", Value::Null));
-            return;
+            return true;
         }
-        // The focused context's chords first, then the global ones; while the navigator has the
-        // focus its own keys (arrows, Home, End, Enter) stay with it.
-        let focused = match self.shell.focus() {
+        false
+    }
+
+    /// The keymap's context of the focus: the focused context's chords go first, then the global ones.
+    fn key_context(&self) -> Context {
+        match self.shell.focus() {
             // Doc 16a P8: the symbol editor's drawing is a canvas; its tools take the canvas's keys.
             _ if self.shell.symbol_editor().is_some() => Context::Canvas,
             Some(Focus::Navigator(_)) => Context::Navigator,
@@ -1325,105 +1456,97 @@ impl App {
             Some(Focus::Properties) => Context::Properties,
             Some(Focus::Find) => Context::Find,
             Some(Focus::CommandBar | Focus::History) | None => Context::Global,
-        };
-        // While the symbol editor shows, of the canvas's keys those that choose its tools apply, and those that act
-        // on its selection as they do on a page's (the arrows, Delete, the clipboard, Select all).
-        let editor = self.shell.symbol_editor().is_some();
-        let applies = |b: &Binding| {
-            use ew_viewmodel::shell::symbol_editor::{EDIT_KEYS, TOOL_KEYS};
-            !editor
-                || b.context != Context::Canvas
-                || TOOL_KEYS.iter().any(|(_, action)| *action == b.action)
-                || EDIT_KEYS.iter().any(|(action, ..)| *action == b.action)
-        };
-        // Doc 16a §5.9: on the command bar Left and Right move between the tabs.
-        if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {
-            let step = ctx.input_mut(|i| {
-                if i.consume_key(Modifiers::NONE, Key::ArrowLeft) {
-                    -1
-                } else if i.consume_key(Modifiers::NONE, Key::ArrowRight) {
-                    1
-                } else {
-                    0
-                }
-            });
-            if step != 0 {
-                let tab = crate::command_bar::step_tab(self.shell.command_tab(), step);
-                events.push(Event::Action("view.command_tab", json!({ "tab": tab.word() })));
-                ctx.memory_mut(|m| m.request_focus(crate::command_bar::tab_id(tab)));
-                return;
-            }
         }
-        // The chords bound by physical key (`]` and `[` in the canvas, any `phys:` key of a keymap) are
-        // matched on the key's position, so they need no AltGr on QWERTZ and AZERTY: the focused context's first, the
-        // most modifiers first; a chord without Shift also takes the key with Shift.
-        if !palette_open {
-            let mut physical: Vec<&Binding> = self
-                .bindings
-                .iter()
-                .filter(|b| {
-                    b.physical && (b.context == Context::Global || b.context == focused) && applies(b)
-                })
-                .collect();
-            physical.sort_by_key(|b| {
-                let m = b.shortcut.modifiers;
-                (
-                    std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command)),
-                    b.context != focused,
-                )
-            });
-            let hit = ctx.input_mut(|i| {
-                let mut hit = None;
-                i.events.retain(|e| match e {
-                    // A platform that reports no physical key (a test's) has its logical key matched instead.
-                    egui::Event::Key {
-                        key,
-                        physical_key,
-                        pressed: true,
-                        modifiers,
-                        ..
-                    } if hit.is_none() => {
-                        let k = physical_key.unwrap_or(*key);
-                        let found = physical.iter().find(|b| {
-                            let want = b.shortcut.modifiers;
-                            b.shortcut.logical_key == k
-                                && want.command == (modifiers.command || modifiers.ctrl)
-                                && want.alt == modifiers.alt
-                                && (!want.shift || modifiers.shift)
-                        });
-                        match found {
-                            Some(b) => {
-                                hit = Some(b.action);
-                                false
-                            }
-                            None => true,
+    }
+
+    /// Doc 16a §5.9: on the command bar Left and Right move between the tabs. `true` when one did.
+    fn command_bar_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) -> bool {
+        if self.shell.focus() != Some(Focus::CommandBar) {
+            return false;
+        }
+        let step = ctx.input_mut(|i| {
+            if i.consume_key(Modifiers::NONE, Key::ArrowLeft) {
+                -1
+            } else if i.consume_key(Modifiers::NONE, Key::ArrowRight) {
+                1
+            } else {
+                0
+            }
+        });
+        if step == 0 {
+            return false;
+        }
+        let tab = crate::command_bar::step_tab(self.shell.command_tab(), step);
+        events.push(Event::Action("view.command_tab", json!({ "tab": tab.word() })));
+        ctx.memory_mut(|m| m.request_focus(crate::command_bar::tab_id(tab)));
+        true
+    }
+
+    /// The chords bound by physical key (`]` and `[` in the canvas, any `phys:` key of a keymap), matched on the key's
+    /// position, so they need no AltGr on QWERTZ and AZERTY; a chord without Shift also takes the key with Shift.
+    /// `true` when one matched.
+    fn physical_keys(&mut self, ctx: &egui::Context, focused: Context, events: &mut Vec<Event>) -> bool {
+        let physical = candidates(
+            &self.bindings,
+            self.shell.symbol_editor().is_some(),
+            true,
+            focused,
+        );
+        let hit = ctx.input_mut(|i| {
+            let mut hit = None;
+            i.events.retain(|e| match e {
+                // A platform that reports no physical key (a test's) has its logical key matched instead.
+                egui::Event::Key {
+                    key,
+                    physical_key,
+                    pressed: true,
+                    modifiers,
+                    ..
+                } if hit.is_none() => {
+                    let k = physical_key.unwrap_or(*key);
+                    let found = physical.iter().find(|b| {
+                        let want = b.shortcut.modifiers;
+                        b.shortcut.logical_key == k
+                            && want.command == (modifiers.command || modifiers.ctrl)
+                            && want.alt == modifiers.alt
+                            && (!want.shift || modifiers.shift)
+                    });
+                    match found {
+                        Some(b) => {
+                            hit = Some(b.action);
+                            false
                         }
+                        None => true,
                     }
-                    _ => true,
-                });
-                hit
+                }
+                _ => true,
             });
-            if let Some(action) = hit {
-                let (action, params) = self.shell.shortcut_action(action);
-                self.shell.note_shortcut_use(action);
-                events.push(Event::Action(action, params));
-                return;
-            }
-        }
-        // The platform layer turns Ctrl+C, Ctrl+X and Ctrl+V into clipboard events, not key presses
-        // (egui-winit); on the canvas they run the clipboard actions, a paste with the system clipboard's text. A text
-        // field never gets here (the return above), so the grid and the find pane keep egui's own copy and paste.
-        if focused == Context::Canvas && !palette_open {
-            let clip = ctx.input_mut(|i| {
-                let mut hit = None;
-                i.events.retain(|e| match e {
-                    egui::Event::Copy | egui::Event::Cut | egui::Event::Paste(_) if hit.is_none() => {
-                        hit = Some(e.clone());
-                        false
-                    }
-                    _ => true,
-                });
-                hit
+            hit
+        });
+        let Some(action) = hit else {
+            return false;
+        };
+        let (action, params) = self.shell.shortcut_action(action);
+        self.shell.note_shortcut_use(action);
+        events.push(Event::Action(action, params));
+        true
+    }
+
+    /// The clipboard events, which the platform layer makes of Ctrl+C, Ctrl+X and Ctrl+V (egui-winit), not key
+    /// presses: on the canvas the clipboard actions (a paste with the system clipboard's text, in place when
+    /// `paste_in_place`), in a navigator's table its copy and paste, in a navigator's list a paste onto the page shown.
+    /// A text field never gets here (the routing ended before), so the grid and the find pane keep egui's own copy and
+    /// paste. `true` when one was taken.
+    fn clipboard_keys(
+        &mut self,
+        ctx: &egui::Context,
+        focused: Context,
+        paste_in_place: bool,
+        events: &mut Vec<Event>,
+    ) -> bool {
+        if focused == Context::Canvas {
+            let clip = take_clip_event(ctx, |e| {
+                matches!(e, egui::Event::Copy | egui::Event::Cut | egui::Event::Paste(_))
             });
             // In the symbol editor they run its own clipboard (`shortcut_action`).
             let routed = |shell: &ShellModel, action: &'static str, params: Value| {
@@ -1437,11 +1560,11 @@ impl App {
             match clip {
                 Some(egui::Event::Copy) => {
                     events.push(routed(&self.shell, "edit.copy", Value::Null));
-                    return;
+                    return true;
                 }
                 Some(egui::Event::Cut) => {
                     events.push(routed(&self.shell, "edit.cut", Value::Null));
-                    return;
+                    return true;
                 }
                 Some(egui::Event::Paste(text)) => {
                     let action = if paste_in_place {
@@ -1450,77 +1573,59 @@ impl App {
                         "edit.paste_clip"
                     };
                     events.push(routed(&self.shell, action, json!({ "text": text })));
-                    return;
+                    return true;
                 }
                 _ => {}
             }
         }
         // In a navigator's table the clipboard events run the table's copy and paste.
         if focused == Context::Navigator
-            && !palette_open
             && let Some(kind) = self.shell.focused_navigator()
             && self.shell.nav(kind).is_some_and(|n| n.table_mode().is_some())
         {
-            let clip = ctx.input_mut(|i| {
-                let mut hit = None;
-                i.events.retain(|e| match e {
-                    egui::Event::Copy | egui::Event::Paste(_) if hit.is_none() => {
-                        hit = Some(e.clone());
-                        false
-                    }
-                    _ => true,
-                });
-                hit
-            });
+            let clip = take_clip_event(ctx, |e| matches!(e, egui::Event::Copy | egui::Event::Paste(_)));
             match clip {
                 Some(egui::Event::Copy) => {
                     events.push(Event::Action("table.copy", json!({ "kind": kind.word() })));
-                    return;
+                    return true;
                 }
                 Some(egui::Event::Paste(text)) => {
                     events.push(Event::Action(
                         "table.paste",
                         json!({ "kind": kind.word(), "text": text }),
                     ));
-                    return;
+                    return true;
                 }
                 _ => {}
             }
         }
         // Ctrl+V with the focus in a navigator's list (no table) pastes onto the page shown (after a page was
         // opened from the page list, Ctrl+V did nothing and said nothing).
-        if focused == Context::Navigator && !palette_open {
-            let paste = ctx.input_mut(|i| {
-                let mut hit = None;
-                i.events.retain(|e| match e {
-                    egui::Event::Paste(text) if hit.is_none() => {
-                        hit = Some(text.clone());
-                        false
-                    }
-                    _ => true,
-                });
-                hit
-            });
-            if let Some(text) = paste {
-                events.push(Event::Action("edit.paste_clip", json!({ "text": text })));
-                return;
-            }
+        if focused == Context::Navigator
+            && let Some(egui::Event::Paste(text)) =
+                take_clip_event(ctx, |e| matches!(e, egui::Event::Paste(_)))
+        {
+            events.push(Event::Action("edit.paste_clip", json!({ "text": text })));
+            return true;
         }
-        // One list over the focused context and the global one, most modifiers first (egui matches an extra Shift
-        // or Alt logically, so Alt+Left must be asked before Left), the focused context first on a tie.
-        let mut candidates: Vec<&Binding> = self
-            .bindings
-            .iter()
-            .filter(|b| !b.physical && (b.context == Context::Global || b.context == focused) && applies(b))
-            .collect();
-        candidates.sort_by_key(|b| {
-            let m = b.shortcut.modifiers;
-            (
-                std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command)),
-                b.context != focused,
-            )
-        });
-        for binding in candidates {
+        false
+    }
+
+    /// The chords matched by their logical key, the focused context's first ([`candidates`]); the palette lets
+    /// only its own toggle through, and a navigator, Properties and the find pane keep their own keys.
+    fn bound_keys(
+        &mut self,
+        ctx: &egui::Context,
+        focused: Context,
+        palette_open: bool,
+        events: &mut Vec<Event>,
+    ) {
+        for binding in candidates(
+            &self.bindings,
+            self.shell.symbol_editor().is_some(),
+            false,
+            focused,
+        ) {
             // Plain Escape is `ui.dismiss`'s own path above; a `ui.dismiss` the keymap binds to another key is matched
             // here, as the physical-key loop matches one.
             let escape =
@@ -1999,6 +2104,51 @@ impl App {
             }
         }
     }
+}
+
+/// The bindings of `bindings` matched by their physical key (`physical`) or by their logical one, in the global context
+/// and in `focused`, most modifiers first (egui matches an extra Shift or Alt logically, so Alt+Left must be asked
+/// before Left), the focused context first on a tie. While the symbol editor shows (`editor`), of the canvas's keys
+/// those that choose its tools apply, and those that act on its selection as they do on a page's (the arrows, Delete,
+/// the clipboard, Select all).
+fn candidates(bindings: &[Binding], editor: bool, physical: bool, focused: Context) -> Vec<&Binding> {
+    use ew_viewmodel::shell::symbol_editor::{EDIT_KEYS, TOOL_KEYS};
+    let applies = |b: &Binding| {
+        !editor
+            || b.context != Context::Canvas
+            || TOOL_KEYS.iter().any(|(_, action)| *action == b.action)
+            || EDIT_KEYS.iter().any(|(action, ..)| *action == b.action)
+    };
+    let mut candidates: Vec<&Binding> = bindings
+        .iter()
+        .filter(|b| {
+            b.physical == physical && (b.context == Context::Global || b.context == focused) && applies(b)
+        })
+        .collect();
+    candidates.sort_by_key(|b| {
+        let m = b.shortcut.modifiers;
+        (
+            std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command)),
+            b.context != focused,
+        )
+    });
+    candidates
+}
+
+/// Takes the first of the frame's input events that `wanted` picks (a clipboard event), the others left in place.
+fn take_clip_event(ctx: &egui::Context, wanted: impl Fn(&egui::Event) -> bool) -> Option<egui::Event> {
+    ctx.input_mut(|i| {
+        let mut hit = None;
+        i.events.retain(|e| {
+            if hit.is_none() && wanted(e) {
+                hit = Some(e.clone());
+                false
+            } else {
+                true
+            }
+        });
+        hit
+    })
 }
 
 /// Whether `e` is keyboard input (a key, typed text, an IME step, a clipboard key): what an open picker owns.
