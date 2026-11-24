@@ -327,6 +327,9 @@ pub struct NavColumn {
     pub key: String,
     /// The column label (`Folio`, `Designation`).
     pub label: String,
+    /// The key of its header's words in the session's texts (`column-…`), which the window shows in its language;
+    /// `None` for a column without words of its own, whose label the window shows as it stands.
+    pub label_key: Option<&'static str>,
     /// Whether the column is derived (drawn italic in table mode).
     pub derived: bool,
     /// Whether it is the key column (frozen at the left in table mode).
@@ -831,7 +834,7 @@ pub const FIX_ALL: &str = "fix all";
 
 #[cfg(test)]
 mod tests {
-    use super::columns::{EDITABLE_COLUMNS, key_label};
+    use super::columns::EDITABLE_COLUMNS;
     use super::messages::primary_drawables;
     use super::*;
 
@@ -948,8 +951,6 @@ mod tests {
             assert_eq!(NavKind::from_word(k.word()), Some(k));
         }
         assert_eq!(NavRole::StructureNode.word(), "structure_node");
-        assert_eq!(key_label("page_cell"), "Page cell");
-        assert_eq!(key_label("first_folio"), "First folio");
     }
 
     /// Whether a value type is a scalar of D10: Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum,

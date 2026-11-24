@@ -47,14 +47,14 @@ impl Session {
 }
 
 /// The columns of the message panel's table rows, in order; `rule` is the key column.
-pub(super) const MESSAGE_COLUMNS: [&str; 7] = [
-    "severity",
-    "rule",
-    "message",
-    "object",
-    "page_cell",
-    "fix",
-    "state",
+pub(super) const MESSAGE_COLUMNS: [(&str, &str); 7] = [
+    ("severity", key!("column-severity")),
+    ("rule", key!("column-rule")),
+    ("message", key!("column-message")),
+    ("object", key!("column-object")),
+    ("page_cell", key!("column-page-cell")),
+    ("fix", key!("column-fix")),
+    ("state", key!("column-state")),
 ];
 
 /// The severities in the panel's group order, with the group labels.

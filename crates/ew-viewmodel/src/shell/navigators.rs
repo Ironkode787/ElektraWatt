@@ -1976,7 +1976,7 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
 }
 
 /// A navigator table's texts in the UI language (`ew-api` gives the codes, the shell the words),
-/// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (the
+/// once per fetch: the column headers by the key of the session's texts each names (`NavColumn::label_key`, the
 /// strip editor's columns with them), an accessory row's kind, the Messages pane's group headers
 /// (`messages-group-<severity>`) and, in a language other than en-GB, each rule group's title and each finding's
 /// message as the Messages detail renders it (`ew_api::checks::messages`). The badges keep their codes; the
@@ -1984,11 +1984,9 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
 pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &super::Project) {
     // The PLC grid's texts are the PLC navigator's.
     let nav = table.kind.source().word();
+    // Each header by the key the session names it by.
     for c in &mut table.columns {
-        let key = c.key.replace('_', "-");
-        if let Some(text) = strings::lookup(&format!("column-{nav}-{key}"))
-            .or_else(|| strings::lookup(&format!("column-{key}")))
-        {
+        if let Some(text) = c.label_key.and_then(strings::lookup) {
             c.label = text.to_owned();
         }
     }
