@@ -502,8 +502,9 @@ fn link_files(pages: &[DxfSheet], dwg: bool) -> BTreeMap<Destination, String> {
     out
 }
 
-/// Whether an item is one line of text: a glyph run, or a group of the runs of one line.
-fn is_line(item: &Item) -> bool {
+/// Whether an item is one line of text: a glyph run, or a group of the runs of one line. The DXF set's glue of
+/// `ew-api` finds the attributes of a symbol's insert among such lines.
+pub fn is_line(item: &Item) -> bool {
     match &item.kind {
         ItemKind::Glyphs(_) => true,
         ItemKind::Group(g) => {

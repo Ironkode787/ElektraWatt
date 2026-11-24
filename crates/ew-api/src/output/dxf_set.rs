@@ -55,17 +55,6 @@ fn in_capitals(s: &str) -> String {
         .collect()
 }
 
-/// Whether an item is one line of text: a glyph run, or a group of the runs of one line.
-fn is_line(item: &Item) -> bool {
-    match &item.kind {
-        ItemKind::Glyphs(_) => true,
-        ItemKind::Group(g) => {
-            !g.items.is_empty() && g.items.iter().all(|i| matches!(i.kind, ItemKind::Glyphs(_)))
-        }
-        _ => false,
-    }
-}
-
 /// The concatenated text of a line.
 fn line_text(item: &Item) -> String {
     match &item.kind {
@@ -132,7 +121,7 @@ pub(super) fn split_attributes(
     for item in &labels.items {
         let name = item
             .entity
-            .filter(|_| is_line(item))
+            .filter(|_| ew_export::is_line(item))
             .and_then(|e| Some((e, reps.get(&e.0)?, bounds(item)?)))
             .and_then(|(e, rv, b)| {
                 let def = rv.symbol.as_ref()?;
