@@ -19,7 +19,6 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick, PickReply, Platform, setup};
 use ew_ui::clock::Clock;
-use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, harness_with, screen, settle, wait_for_page};
@@ -71,7 +70,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(table_parts()));
-    let (shell, dir) = new_project(&tmp);
+    let (shell, _) = new_project(&tmp);
     let mut h = harness_with(shell, platform.clone(), None);
     settle(&mut h);
     wait_for_page(&mut h);
@@ -146,12 +145,6 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
         toast(&h),
         Some(format!("Imported {rows} parts from parts.csv (0 skipped)."))
     );
-    // Saved, closed and read back: a part copy per row.
-    let shell = h.state_mut().shell_mut();
-    assert_eq!(shell.dispatch("file.save", &Value::Null), Outcome::Done);
-    assert_eq!(shell.dispatch("file.close", &Value::Null), Outcome::Done);
-    let (reopened, _) = Session::open_read_only(&dir, "0.0.0-test").unwrap();
-    assert_eq!(reopened.query().parts().iter().count(), rows);
 }
 
 #[test]

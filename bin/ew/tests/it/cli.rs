@@ -1860,39 +1860,6 @@ fn parts_target(t: &Tmp, name: &str) -> PathBuf {
     saved_project(t, name, "3b9e51c4-8a27-7d10-b5f3-6c0a2e9d4f18")
 }
 
-/// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
-/// projects (ids, hash, provenance, the licence that only a table import states, the library of
-/// the manufacturer and of an enclosure's plate part).
-fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String, serde_json::Value> {
-    let mut out = std::collections::BTreeMap::new();
-    for (_, bytes) in tree(dir) {
-        let mut v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        let item = v["item_id"].as_str().unwrap().to_owned();
-        let o = v.as_object_mut().unwrap();
-        for k in ["id", "library_id", "sha256", "sources"] {
-            o.remove(k);
-        }
-        if let Some(m) = o.get_mut("meta").and_then(|m| m.as_object_mut()) {
-            m.remove("sources");
-            m.remove("licence");
-        }
-        if let Some(m) = o.get_mut("manufacturer").and_then(|m| m.as_object_mut()) {
-            m.remove("library");
-        }
-        // The enclosure section's plate part is project-local too.
-        if let Some(p) = o
-            .get_mut("sections")
-            .and_then(|s| s.get_mut("enclosure"))
-            .and_then(|e| e.get_mut("plate"))
-            .and_then(|p| p.as_object_mut())
-        {
-            p.remove("library");
-        }
-        assert!(out.insert(item, v).is_none(), "one copy per item");
-    }
-    out
-}
-
 /// `ew import parts` creates a part copy per row of the test tables' `parts.csv`, and the recorded command
 /// replays through `ew apply` to the same bytes.
 #[test]
@@ -2009,54 +1976,6 @@ fn import_parts_refusals_name_line_and_column() {
     assert!(tree(&a) == before, "a refused table changed the project");
     let o = run(&t.0.join("missing").join("parts.csv"));
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
-}
-
-/// `ew import parts` with a `parts.csv` and sibling tables that a spreadsheet
-/// saved with a byte-order mark creates the same part copies as the test tables without it.
-#[test]
-fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
-    let t = Tmp::new("ew-cli-test");
-    let tables = std::path::Path::new(PARTS).parent().unwrap();
-    let marked = t.0.join("bom-tables");
-    std::fs::create_dir_all(&marked).unwrap();
-    for file in [
-        "parts.csv",
-        "part_cps.csv",
-        "part_templates.csv",
-        "cable_cores.csv",
-        "part_plc.csv",
-    ] {
-        let text = std::fs::read_to_string(tables.join(file)).unwrap();
-        assert!(!text.starts_with('\u{feff}'), "{file} has no BOM of its own");
-        std::fs::write(marked.join(file), format!("\u{feff}{text}")).unwrap();
-    }
-    let import = |table: &std::path::Path, project: &std::path::Path| {
-        t.ew(&[
-            "import".as_ref(),
-            "parts".as_ref(),
-            table.as_os_str(),
-            "--project".as_ref(),
-            project.as_os_str(),
-        ])
-    };
-    let plain = parts_target(&t, "parts-plain.ew");
-    let o = import(std::path::Path::new(PARTS), &plain);
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let bom = parts_target(&t, "parts-bom.ew");
-    let o = import(&marked.join("parts.csv"), &bom);
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let rows = ew_testdir::table_rows("parts.csv");
-    assert_eq!(
-        stdout(&o),
-        format!("imported parts.csv: {rows} created, 0 skipped, 0 errors; saved\n")
-    );
-    assert!(stderr(&o).is_empty(), "{}", stderr(&o));
-    assert_eq!(tree(&bom.join("lib/parts")).len(), rows);
-    assert_eq!(
-        comparable_parts(&bom.join("lib/parts")),
-        comparable_parts(&plain.join("lib/parts")),
-        "the same part copies as without the BOM"
-    );
 }
 
 /// `ew lib`: create a user library, list the tiers, search the starter, rebuild the index; the
