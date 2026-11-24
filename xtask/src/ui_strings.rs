@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src`
-//! except the allowlist `ci/ui-strings-allow.txt`. Every shell text comes from a Fluent key (`strings::text`).
+//! The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal with a letter reaches an egui text call in
+//! `crates/ew-ui/src`. Every shell text comes from a Fluent key (`strings::text`).
 //!
 //! The scan is lexical. A text call is a method `label(`, `button(`, `small_button(`, `selectable_label(`,
 //! `checkbox(`, `heading(`, `menu_button(`, `collapsing(`, `hint_text(` or `on_hover_text(`, a painter's `text(`
@@ -10,17 +10,14 @@
 //! `WidgetInfo` name (`WidgetInfo::labeled(`, `WidgetInfo::selected(`); every string literal inside its parentheses
 //! is checked (of `menu_button(` and `collapsing(` only the first argument, the title, not the closure),
 //! except the key of `key!`, `count_key!` and `Key::run_time`. A literal bound to a variable first and
-//! passed by name is out of its reach. A literal that holds only `format!` placeholders
-//! (`"{}"`, `"{a}{b}"`) passes; another passes when the allowlist holds it exactly as written in the source (one per
-//! line in its quotes, `#` comments). A `#[cfg(test)]` module, comments and the test tool's own files are not scanned.
-//! An allowlist entry that no such literal matches is stale and fails the check, named.
+//! passed by name is out of its reach. A literal without a letter outside its `format!` placeholders and its escapes
+//! passes (`"{}"`, `"{} / {}: {}"`, `"\u{2605}"`, `", "`): symbols, separators and digits are no words. A
+//! `#[cfg(test)]` module, comments and the test tool's own files are not scanned.
 
 use std::path::Path;
 
 use anyhow::{Context, Result};
 
-/// The allowlist, relative to the workspace root.
-pub(crate) const ALLOW: &str = "ci/ui-strings-allow.txt";
 /// The scanned directory.
 const SCANNED: &str = "crates/ew-ui/src";
 
@@ -153,24 +150,31 @@ fn tokens(src: &str) -> Vec<Tok<'_>> {
     out
 }
 
-/// Whether the literal `lit` holds nothing but `format!` placeholders.
-fn only_placeholders(lit: &str) -> bool {
-    let mut rest = lit;
-    while let Some(open) = rest.find('{') {
-        if !rest[..open].is_empty() {
-            return false;
-        }
-        match rest[open..].find('}') {
-            Some(close) => rest = &rest[open + close + 1..],
-            None => return false,
+/// Whether the literal `lit`, as written in the source, holds no letter outside its `format!` placeholders (`{…}`)
+/// and its escapes (`\n`, `\u{…}`).
+fn no_letter(lit: &str) -> bool {
+    let mut chars = lit.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '{' => {
+                if !chars.by_ref().any(|c| c == '}') {
+                    return false;
+                }
+            }
+            '\\' => {
+                if chars.next() == Some('u') && !chars.by_ref().any(|c| c == '}') {
+                    return false;
+                }
+            }
+            c if c.is_alphabetic() => return false,
+            _ => {}
         }
     }
-    rest.is_empty()
+    true
 }
 
-/// The literals of `src` that reach a text call and are not allowed: (line, literal). Each entry of `allow` that such a
-/// literal matches is marked in `used`, index for index.
-fn findings<'s>(src: &'s str, allow: &[String], used: &mut [bool]) -> Vec<(usize, &'s str)> {
+/// The literals of `src` with a letter that reach a text call: (line, literal).
+fn findings(src: &str) -> Vec<(usize, &str)> {
     let toks = tokens(src);
     let mut out = Vec::new();
     for (i, t) in toks.iter().enumerate() {
@@ -224,12 +228,7 @@ fn findings<'s>(src: &'s str, allow: &[String], used: &mut [bool]) -> Vec<(usize
                         key_depth = Some(depth + 1);
                     }
                 }
-                Tok::Str(lit, line) if key_depth.is_none() && !only_placeholders(lit) => {
-                    match allow.iter().position(|a| a == lit) {
-                        Some(k) => used[k] = true,
-                        None => out.push((*line, *lit)),
-                    }
-                }
+                Tok::Str(lit, line) if key_depth.is_none() && !no_letter(lit) => out.push((*line, *lit)),
                 _ => {}
             }
             j += 1;
@@ -252,30 +251,11 @@ fn rust_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) -> Result<()> {
     Ok(())
 }
 
-/// The allowlist's entries: one literal per line in its quotes, as written in the source; blank lines and `#`
-/// comments skipped.
-fn allowlist(text: &str) -> Vec<String> {
-    text.lines()
-        .filter(|l| !l.trim().is_empty() && !l.starts_with('#'))
-        .map(|l| {
-            l.strip_prefix('"')
-                .and_then(|l| l.strip_suffix('"'))
-                .unwrap_or(l)
-                .to_owned()
-        })
-        .collect()
-}
-
 /// The violations of the UI-text rule in the repository at `root`: each literal with its file and line.
 pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
-    let allow_path = root.join(ALLOW);
-    let allow = allowlist(
-        &std::fs::read_to_string(&allow_path).with_context(|| format!("reading {}", allow_path.display()))?,
-    );
     let mut files = Vec::new();
     rust_files(&root.join(SCANNED), &mut files)?;
     let mut out = Vec::new();
-    let mut used = vec![false; allow.len()];
     for path in files {
         let rel = path
             .strip_prefix(root)
@@ -287,27 +267,14 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
             continue;
         }
         let src = std::fs::read_to_string(&path).with_context(|| format!("reading {rel}"))?;
-        for (line, lit) in findings(&src, &allow, &mut used) {
+        for (line, lit) in findings(&src) {
             out.push(format!(
                 "{rel}:{line}: the literal \"{lit}\" reaches an egui text call; give it a key in \
-                 a file of crates/ew-viewmodel/texts/en-GB/ or, for a symbol, list it in {ALLOW}"
+                 a file of crates/ew-viewmodel/texts/en-GB/"
             ));
         }
     }
-    out.extend(stale(&allow, &used));
     Ok(out)
-}
-
-/// The entries of `allow` that no text call's literal matched (`used` false): a stale entry, named.
-fn stale(allow: &[String], used: &[bool]) -> Vec<String> {
-    allow
-        .iter()
-        .zip(used)
-        .filter(|(_, used)| !**used)
-        .map(|(entry, _)| {
-            format!("{ALLOW}: the entry \"{entry}\" matches no egui text call's literal; remove it")
-        })
-        .collect()
 }
 
 #[cfg(test)]
@@ -315,25 +282,11 @@ mod tests {
     use super::*;
 
     fn found(src: &str) -> Vec<(usize, &str)> {
-        findings(src, &["▸".to_owned()], &mut [false])
+        findings(src)
     }
 
-    /// An entry a text call's literal matches is used; one no literal matches is stale and named.
-    #[test]
-    fn a_stale_allowlist_entry_is_named() {
-        let allow = ["▸".to_owned(), "◂".to_owned()];
-        let mut used = [false, false];
-        let src = "fn f(ui: &mut Ui) {\n    ui.label(\"▸\");\n}\n";
-        assert_eq!(findings(src, &allow, &mut used), []);
-        assert_eq!(used, [true, false]);
-        assert_eq!(
-            stale(&allow, &used),
-            ["ci/ui-strings-allow.txt: the entry \"◂\" matches no egui text call's literal; remove it"]
-        );
-    }
-
-    /// Every text call is read, a literal inside `format!` too; keys, placeholders, allowed symbols, comments, other
-    /// calls and the test module are not.
+    /// Every text call is read, a literal inside `format!` too; keys, placeholders, symbols, comments, other calls and
+    /// the test module are not.
     #[test]
     fn the_calls_keys_and_exceptions() {
         let src = r##"
@@ -441,12 +394,19 @@ fn f(ui: &mut Ui) {
         );
     }
 
+    /// Placeholders, escapes, symbols, separators and digits are no letters; a word is.
     #[test]
-    fn placeholders_alone_pass() {
-        assert!(only_placeholders("{}"));
-        assert!(only_placeholders("{a}{b:>3}"));
-        assert!(only_placeholders(""));
-        assert!(!only_placeholders("{a} {b}"));
-        assert!(!only_placeholders("{} items"));
+    fn a_literal_without_a_letter_passes() {
+        assert!(no_letter("{}"));
+        assert!(no_letter("{a}{b:>3}"));
+        assert!(no_letter(""));
+        assert!(no_letter("{a} {b}"));
+        assert!(no_letter("{} / {}: {}"));
+        assert!(no_letter("\\u{2605}"));
+        assert!(no_letter("\\n"));
+        assert!(no_letter("· {state}"));
+        assert!(no_letter("-"));
+        assert!(!no_letter("{} items"));
+        assert!(!no_letter("▸ Next"));
     }
 }
