@@ -340,7 +340,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-derive
 
-`crates/ew-derive` · GPL-3.0-or-later · tier project · depends on `ew-ids`, `ew-memo`, `ew-mltext`, `ew-model`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-sqlview` · in tests by `ew-library`, `ew-testkit`
+`crates/ew-derive` · GPL-3.0-or-later · tier project · depends on `ew-ids`, `ew-l10n`, `ew-memo`, `ew-mltext`, `ew-model`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-sqlview` · in tests by `ew-library`, `ew-testkit`
 
 All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-0003).
 
@@ -648,7 +648,7 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 
 ## ew-l10n
 
-`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-viewmodel` · in tests by none
+`crates/ew-l10n` · GPL-3.0-or-later · tier values · depends on `ew-mltext` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-model`, `ew-viewmodel` · in tests by none
 
 A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too.
 
@@ -698,7 +698,7 @@ Generic memo engine: revisions, dependency recording, early cut-off, durability 
 
 ## ew-mltext
 
-`crates/ew-mltext` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema` · in tests by `ew-testkit`
+`crates/ew-mltext` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-l10n`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema` · in tests by `ew-testkit`
 
 Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag`, NFC identifiers `Ident`, confusable detection and natural-sort keys.
 
@@ -715,7 +715,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 
 ## ew-model
 
-`crates/ew-model` · GPL-3.0-or-later · tier project · depends on `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-store`, `ew-testkit` · in tests by `ew-checks`, `ew-reports`
+`crates/ew-model` · GPL-3.0-or-later · tier project · depends on `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-store`, `ew-testkit` · in tests by `ew-checks`, `ew-reports`
 
 `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants and link delete policies.
 
