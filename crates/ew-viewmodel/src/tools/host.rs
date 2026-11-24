@@ -89,7 +89,15 @@ pub struct LinkPreview {
     pub go: String,
 }
 
-/// The state of the tool host.
+/// The tool a host starts with: Select.
+impl Default for Box<dyn Tool> {
+    fn default() -> Self {
+        Box::new(SelectTool::new())
+    }
+}
+
+/// The state of the tool host. Its default is the start of every member but the two [`ToolHost::new`] sets.
+#[derive(Default)]
 pub(crate) struct ToolHost {
     /// The active tool.
     pub tool: Box<dyn Tool>,
@@ -115,7 +123,8 @@ pub(crate) struct ToolHost {
     pub picker: Option<Picker>,
     /// The Join chooser of the Place tool (doc 16a §6.22), while open.
     pub chooser: Option<Chooser>,
-    /// The representation a picker in exchange mode changes the symbol of.
+    /// The representation a picker in exchange mode changes the symbol of. The picker's, before the Change symbol
+    /// tool it arms exists.
     pub exchange_rep: Option<EntityRef>,
     /// The place catalogue of (session, revision, folio), fetched once while the picker needs it.
     pub catalogue: Option<((u64, u64, String), Arc<PlaceCatalogue>)>,
@@ -163,20 +172,23 @@ pub(crate) struct ToolHost {
     /// row back whole and Redo at `first` lays it again whole; forgotten at the next other commit.
     pub row_steps: Option<(usize, usize)>,
     /// The levels of each terminal of the next Terminal… row (its Levels, 1 or 2): with 2, the row's terminals join in
-    /// pairs, the second of each the first's next level (doc 08 §6.3).
+    /// pairs, the second of each the first's next level (doc 08 §6.3). Set before the Place tool is armed and kept
+    /// until a row of more than one terminal takes it, past a tool that ended without one.
     pub row_levels: u8,
     /// The devices the last Cut left unplaced (a terminal's strip, not the terminal), with their tags as they read
-    /// before it: a paste that brings them back to another page says how their tags followed it (doc 06 §3.6).
+    /// before it: a paste that brings them back to another page says how their tags followed it (doc 06 §3.6). It
+    /// outlives the clipboard's content: an Undo of the Cut and a later copy leave it until the next paste.
     pub cut_tags: Vec<(ew_api::output::Uuid, String)>,
     /// The notices of the last command the shell committed (`Outcome::notices`, in the window's words): what a paste
     /// did besides (the wires it removed), which its toast says.
     pub commit_notices: Vec<String>,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
-    /// `tool.black_box` is choosing: a row that is no black box is refused.
+    /// `tool.black_box` is choosing: a row that is no black box is refused. The picker's, before the tool exists.
     pub black_box_pick: bool,
     /// The station part the device browser was placing on a bus page when Put a station on this page asked first:
-    /// its copy and the letter given; "A new station" places it.
+    /// its copy and the letter given; "A new station" places it. The open form Put a station on this page holds it,
+    /// no tool.
     pub put_station_part: Option<(ew_api::output::Uuid, Option<String>)>,
     /// The last commit drew the bus interfaces of a device the project had already (a station put on a bus page): its
     /// rack does not open as for a station placed new (it opened unasked).
@@ -184,11 +196,12 @@ pub(crate) struct ToolHost {
     /// The active tool has put down what it was armed with (a commit since it was armed): a placement repeated is
     /// no longer in flight, and Undo takes back the step at once.
     pub put_down: bool,
-    /// The grips overlay of a selected black box the host set last: cleared while the overlay is it.
+    /// The grips overlay of a selected black box the host set last: cleared while the overlay is it. The host's,
+    /// beside whichever tool's overlay.
     pub grips: Option<Overlay>,
     /// The handle of the selected wire that has the keyboard's focus (Tab): the wire and the handle's place in
     /// [`route_edit::handle_parts`](super::route_edit::handle_parts); cleared when the wire is no longer the one
-    /// selected with Select at rest.
+    /// selected with Select at rest. It outlives a Select tool armed again after another tool.
     pub handle: Option<(EntityRef, usize)>,
     /// Whether the active tool got a primary press whose release has not come yet.
     pub press_held: bool,
@@ -203,9 +216,10 @@ pub(crate) struct ToolHost {
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
     /// `tool.connect_on_move` turns it off).
     pub connect_on_move: bool,
-    /// The line kind the Tube tool draws, the one chosen last; `None` before any: working lines.
+    /// The line kind the Tube tool draws, the one chosen last; `None` before any: working lines. Kept across the Tube
+    /// tool's armings.
     pub tube_kind: Option<&'static str>,
-    /// Whether the Tube tool said once that the project has no default tube.
+    /// Whether the Tube tool said once that the project has no default tube: once a session, across its armings.
     pub tube_size_said: bool,
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
@@ -219,7 +233,8 @@ pub(crate) struct ToolHost {
     /// pointer moves elsewhere.
     pub quiet_stack_at: Option<(i64, i64)>,
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
-    /// again only when its options or the revision change (the options card reads them every frame).
+    /// again only when its options or the revision change (the options card reads them every frame). Kept by what it
+    /// was computed for, not by a tool.
     pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
     /// The wires the last Route changed, with its toast's serial and the revision it left: drawn as a
     /// selected wire is while that toast is up and the project is at that revision.
@@ -302,59 +317,11 @@ impl ToolHost {
     /// A host with Select active and nothing selected.
     pub fn new() -> ToolHost {
         ToolHost {
-            tool: Box::new(SelectTool::new()),
-            overlay: Overlay::default(),
-            preview: None,
-            selection: Selection::default(),
-            link_preview: None,
-            announcement: None,
-            selection_announced: None,
-            context: None,
-            last_cp: None,
-            picker: None,
-            chooser: None,
-            exchange_rep: None,
-            catalogue: None,
-            shapes: None,
-            last_primary: None,
-            before_commit: None,
-            junction_editor: None,
-            notice: None,
-            notice_sticky: false,
-            refused_by: None,
-            notice_at: None,
-            notice_basis: None,
-            pasted: false,
-            paste_fit: None,
-            grid_fit: None,
-            page_proposal: None,
-            reread_designation: false,
-            row_steps: None,
+            // A Terminal… row's terminals have one level until its Levels says two.
             row_levels: 1,
-            cut_tags: Vec::new(),
-            commit_notices: Vec::new(),
-            ip_memory: IpMemory::default(),
-            black_box_pick: false,
-            put_station_part: None,
-            drew_existing: false,
-            put_down: false,
-            grips: None,
-            handle: None,
-            press_held: false,
-            drop_release: false,
-            result_note: None,
-            layout_options: super::LayoutOptions::default(),
+            // A move connects its autoconnect proposals until `tool.connect_on_move` turns it off.
             connect_on_move: true,
-            tube_kind: None,
-            tube_size_said: false,
-            layout_announce: false,
-            placed: false,
-            placed_device: None,
-            quiet_stack_at: None,
-            draw_offers: std::cell::RefCell::new(None),
-            last_routed: None,
-            arranged: None,
-            refit: None,
+            ..ToolHost::default()
         }
     }
 }
