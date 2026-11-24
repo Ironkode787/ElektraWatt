@@ -612,7 +612,7 @@ impl Command for ConnectMany {
                     CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), *text)
                 }
                 CmdError::Rejected { source, reason, text } => {
-                    let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
+                    let why = text.map_or_else(|| TextArg::from(reason), |t| TextArg::from(*t));
                     CmdError::rejected(
                         source,
                         text!("refusal-connection-draw-many-entry", i.to_string(), why),
@@ -688,7 +688,7 @@ pub(crate) fn run_routes(
                 CmdError::invalid_params(command, format!("/routes/{i}{path}"), *text)
             }
             CmdError::Rejected { source, reason, text } => {
-                let why = text.map_or_else(|| TextArg::from(reason), TextArg::from);
+                let why = text.map_or_else(|| TextArg::from(reason), |t| TextArg::from(*t));
                 CmdError::rejected(
                     source,
                     text!("refusal-connection-draw-many-entry", i.to_string(), why),

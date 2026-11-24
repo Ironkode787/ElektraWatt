@@ -1836,7 +1836,7 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
         // A refusal shows its reason, never the error's Display form ("<source>: <reason>"), and
         // in the window's language
         CmdError::Rejected { reason, text, .. } => {
-            failed(key!("error-command"), &[&rejected_words(reason, text.as_ref())])
+            failed(key!("error-command"), &[&rejected_words(reason, text.as_deref())])
         }
         // Every other reason through its own key in the window's language,
         // never the error's Display form (which names the exposure class and the origin, `cmdlog:script.uiscript`).
@@ -1988,9 +1988,10 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
             key!("error-command"),
             vec![rejected_words(message, Some(&**text))],
         ),
-        CmdError::Rejected { reason, text, .. } => {
-            (key!("error-command"), vec![rejected_words(reason, text.as_ref())])
-        }
+        CmdError::Rejected { reason, text, .. } => (
+            key!("error-command"),
+            vec![rejected_words(reason, text.as_deref())],
+        ),
     }
 }
 

@@ -440,7 +440,7 @@ impl ShellModel {
                 }
             }
             ew_api::CmdError::Rejected { reason, text, .. } => {
-                super::tools::rejected_words(reason, text.as_ref())
+                super::tools::rejected_words(reason, text.as_deref())
             }
             ew_api::CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
             // A prevent rule, a model or history error in the window's language.

@@ -449,7 +449,7 @@ impl Session {
             reason: "the sign-off is recorded only by the approval on the saved generation (Revision ▸ Approve, ew \
                      revision approve), which runs the release gate first"
                 .to_owned(),
-            text: Some(text!("refusal-revision-approve-direct")),
+            text: Some(Box::new(text!("refusal-revision-approve-direct"))),
         })
     }
 }

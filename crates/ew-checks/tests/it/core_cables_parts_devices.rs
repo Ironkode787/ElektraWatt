@@ -478,7 +478,11 @@ fn core043_reports_each_placeholder_part_once() {
     fx.with_parts(0x302, &[0x7100]);
     let one = findings_of(&fx.build(), "EW-CORE-043");
     assert_eq!(one.len(), 1, "{one:#?}");
-    assert!(one[0].message().contains("is used by -1K1;"), "{}", one[0].message());
+    assert!(
+        one[0].message().contains("is used by -1K1;"),
+        "{}",
+        one[0].message()
+    );
 }
 
 /// A PLC module `-A1` with its input start `input` and channel 0's address `address`.

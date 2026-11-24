@@ -271,7 +271,11 @@ fn term005_cases() {
                 assert_eq!(f[0].discriminator, "", "case {c}");
                 assert_eq!(f[0].targets.len(), 1, "case {c}");
                 assert_eq!(f[0].targets[0].id, uid(0x4001), "case {c}");
-                assert!(f[0].message().contains("no PE CP"), "case {c}: {}", f[0].message());
+                assert!(
+                    f[0].message().contains("no PE CP"),
+                    "case {c}: {}",
+                    f[0].message()
+                );
             }),
             Case::silent("a terminal with a PE CP", with_pe),
             Case::silent("a terminal without the rail-bonded flag", unflagged),

@@ -180,7 +180,7 @@ impl Model {
                     rule: v.rule,
                     message: v.message,
                     keys: v.keys,
-                    text: v.text.map(Box::new),
+                    text: v.text,
                 })?;
         }
         Ok(m)

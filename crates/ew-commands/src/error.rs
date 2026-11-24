@@ -43,7 +43,7 @@ pub enum CmdError {
         reason: String,
         /// The same by key, which the window renders in its language; `None` for a refusal of the
         /// API's own, which has only its English text.
-        text: Option<Text>,
+        text: Option<Box<Text>>,
     },
     /// The origin may not submit a command of this exposure class (doc 17 §2.3, FR-EXT-030).
     Exposure {
@@ -118,7 +118,7 @@ impl CmdError {
         CmdError::Rejected {
             source: source.into(),
             reason: text.to_string(),
-            text: Some(text),
+            text: Some(Box::new(text)),
         }
     }
 

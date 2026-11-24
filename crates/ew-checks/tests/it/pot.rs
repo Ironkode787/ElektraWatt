@@ -321,7 +321,8 @@ fn pot001_joins_several_conflicts_into_one_finding() {
     let f = findings_of(&m, "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
-        f[0].message().contains("cannot carry two voltages") && f[0].message().contains("two circuit classes"),
+        f[0].message().contains("cannot carry two voltages")
+            && f[0].message().contains("two circuit classes"),
         "{}",
         f[0].message()
     );
@@ -635,7 +636,11 @@ fn pot008_location_cases() {
                     assert_eq!(f[0].code, "005008", "case {c}");
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Device, 0x4001)], "case {c}");
-                    assert!(f[0].message().contains("no location"), "case {c}: {}", f[0].message());
+                    assert!(
+                        f[0].message().contains("no location"),
+                        "case {c}: {}",
+                        f[0].message()
+                    );
                     assert!(
                         f[0].message().contains("2 own locations"),
                         "case {c}: {}",
@@ -741,7 +746,8 @@ fn pot002_cases() {
                     assert_eq!(f[0].discriminator, "pelv", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)], "case {c}");
                     assert!(
-                        f[0].message().contains("its 0 V is not bonded to protective earth"),
+                        f[0].message()
+                            .contains("its 0 V is not bonded to protective earth"),
                         "case {c}: {}",
                         f[0].message()
                     );

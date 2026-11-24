@@ -102,7 +102,13 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
             .findings
             .iter()
             .filter(|f| f.rule.starts_with("EW-IMP-"))
-            .map(|f| (f.rule.to_owned(), f.severity.name().to_owned(), f.message().clone()))
+            .map(|f| {
+                (
+                    f.rule.to_owned(),
+                    f.severity.name().to_owned(),
+                    f.message().clone(),
+                )
+            })
             .collect();
         v.sort();
         v

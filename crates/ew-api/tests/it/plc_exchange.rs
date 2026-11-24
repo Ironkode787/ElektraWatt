@@ -834,7 +834,15 @@ fn an_instrument_list_reserves_spare_channels() {
     let open = findings(&s, "EW-PRC-002");
     let tags: BTreeSet<String> = open
         .iter()
-        .map(|f| f.text.named().iter().find(|(k, _)| *k == "tag").unwrap().1.to_string())
+        .map(|f| {
+            f.text
+                .named()
+                .iter()
+                .find(|(k, _)| *k == "tag")
+                .unwrap()
+                .1
+                .to_string()
+        })
         .collect();
     assert_eq!(tags, ["CV-L-01".to_owned(), "CV-V-46".to_owned()].into());
     assert!(

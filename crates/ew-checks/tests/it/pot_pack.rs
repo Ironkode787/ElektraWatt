@@ -623,7 +623,11 @@ fn pot013_cases() {
                 |c, f| {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert_eq!(f[0].severity, Severity::Info, "case {c}");
-                    assert!(f[0].message().contains("N-isolating"), "case {c}: {}", f[0].message());
+                    assert!(
+                        f[0].message().contains("N-isolating"),
+                        "case {c}: {}",
+                        f[0].message()
+                    );
                 },
             ),
         ],

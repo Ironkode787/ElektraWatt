@@ -862,7 +862,10 @@ fn the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
     let m = strip_with_bracket_of_no_width(-20.0, P_TERM).build();
     let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
-        .map(|f| { let m = f.message(); (f.discriminator, m) })
+        .map(|f| {
+            let m = f.message();
+            (f.discriminator, m)
+        })
         .collect();
     found.sort();
     assert_eq!(
@@ -894,7 +897,10 @@ fn brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
     let m = zero_width_strip(600.0).build();
     let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
-        .map(|f| { let m = f.message(); (f.discriminator, m) })
+        .map(|f| {
+            let m = f.message();
+            (f.discriminator, m)
+        })
         .collect();
     found.sort();
     assert_eq!(

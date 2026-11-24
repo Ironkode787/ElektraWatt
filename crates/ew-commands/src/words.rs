@@ -241,10 +241,9 @@ fn document_words(tx: &TxBuilder<'_>, kind: Kind, words: Option<TextArg>) -> Tex
 
 /// A library document's copy, as [`copy`] names it; a document of a kind this build does not read as "an item".
 pub(crate) fn document(tx: &TxBuilder<'_>, doc: &ew_schema::LibDocument) -> Text {
-    document_parts(doc).map_or_else(
-        || ew_derive::text::record_other(),
-        |(kind, words, version)| text!("refusal-words-copy", document_words(tx, kind, words), version),
-    )
+    document_parts(doc).map_or_else(ew_derive::text::record_other, |(kind, words, version)| {
+        text!("refusal-words-copy", document_words(tx, kind, words), version)
+    })
 }
 
 /// A library document's item, as [`document`] names it without its version.

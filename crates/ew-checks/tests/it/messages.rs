@@ -12,8 +12,8 @@ use ew_checks::messages::{
     self, DEFAULT_LANGUAGE, LANGUAGES, format, has, hint, render, resource_errors, title,
 };
 use ew_checks::rules;
-use ew_l10n::TextArg;
 use ew_checks::rules::core::INTEGRITY;
+use ew_l10n::TextArg;
 
 const SOURCES: [(&str, &str); 2] = [
     ("en-GB", include_str!("../../texts/en-GB/rules.ftl")),
@@ -37,7 +37,12 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
     assert!(resource_errors().is_empty(), "{:#?}", resource_errors());
     let mut missing = Vec::new();
     for m in rules().iter().map(|r| r.meta()).chain(INTEGRITY) {
-        assert_eq!(m.message, format!("rule-{}", m.id.to_ascii_lowercase()), "{}", m.id);
+        assert_eq!(
+            m.message,
+            format!("rule-{}", m.id.to_ascii_lowercase()),
+            "{}",
+            m.id
+        );
     }
     for r in rules() {
         let id = r.meta().id;
@@ -100,7 +105,8 @@ fn nl_nl_words_the_rule_system_s_findings() {
             ("form", "scope".into()),
             ("rule", "EW-POT-006".into()),
             ("scope", ew_checks::text!("word-the-project").into()),
-        ]);
+        ],
+    );
     assert_eq!(
         render(&scope, "nl-NL"),
         "regel EW-POT-006 kon niet worden beoordeeld voor het project: hij stopte met een interne fout, dus zijn \
@@ -109,7 +115,8 @@ fn nl_nl_words_the_rule_system_s_findings() {
     let edit = built(
         "EW-CORE-083",
         "",
-        &[("form", "prevent".into()), ("rule", "EW-POT-006".into())]);
+        &[("form", "prevent".into()), ("rule", "EW-POT-006".into())],
+    );
     assert!(render(&edit, "nl-NL").starts_with("regel EW-POT-006 kon de bewerking niet toetsen"));
     let pack = built(
         "EW-CORE-084",
@@ -119,7 +126,8 @@ fn nl_nl_words_the_rule_system_s_findings() {
             ("file", "data/pe_sizing.toml".into()),
             ("error", "`rows` is missing".into()),
             ("rules", "EW-POT-006".into()),
-        ]);
+        ],
+    );
     assert!(render(&pack, "nl-NL").starts_with("pakket EW-POT is niet volledig beoordeeld"));
 }
 
@@ -147,9 +155,13 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "EW-LAY-001",
         "",
         &[
-            ("device", ew_checks::text!("word-a-device-without-designation").into()),
+            (
+                "device",
+                ew_checks::text!("word-a-device-without-designation").into(),
+            ),
             ("location", ew_checks::text!("word-a-location").into()),
-        ]);
+        ],
+    );
     assert_eq!(
         render(&unplaced, "nl-NL"),
         "een apparaat zonder aanduiding is niet geplaatst in de layout van een locatie; plaats het op een rail of op de \
@@ -161,8 +173,15 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "",
         &[
             ("line", "wire".into()),
-            ("wire", ew_checks::rules::page::connection_words(ew_checks::text!("word-the-junction-in", "C11"), ew_checks::text!("word-a-connection-point-of-another-page"))),
-        ]);
+            (
+                "wire",
+                ew_checks::rules::page::connection_words(
+                    ew_checks::text!("word-the-junction-in", "C11"),
+                    ew_checks::text!("word-a-connection-point-of-another-page"),
+                ),
+            ),
+        ],
+    );
     assert_eq!(
         render(&unrouted, "nl-NL"),
         "Draad de aftakking in C11 → een aansluitpunt van een andere pagina heeft geen route: hij is als gestreepte \
@@ -178,7 +197,8 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
             ("line", "2.5".into()),
             ("at", "-X1:PE".into()),
             ("verified", "yes".into()),
-        ]);
+        ],
+    );
     assert_eq!(
         render(&pe, "nl-NL"),
         "PE-draad 101.3 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij -X1:PE. \
@@ -369,7 +389,8 @@ fn nl_nl_words_ew_term_002_s_prevent_finding() {
                 ("remedy", remedy.into()),
                 ("free", free.into()),
                 ("old", old.into()),
-            ]);
+            ],
+        );
         assert_eq!(f.message(), en, "{remedy}");
         assert_eq!(render(&f, "nl-NL"), nl, "{remedy}");
     }
@@ -403,7 +424,8 @@ fn nl_nl_words_ew_term_002_s_untagged_strip() {
                 ("remedy", "none".into()),
                 ("free", "".into()),
                 ("old", "".into()),
-            ]);
+            ],
+        );
         assert_eq!(f.message(), en, "{form}");
         assert_eq!(render(&f, "nl-NL"), nl, "{form}");
     }
@@ -476,7 +498,11 @@ fn nl_nl_words_ew_bus_001_s_untagged_ports() {
         let f = built(
             "EW-BUS-001",
             if form == "tbd" { "address" } else { "duplicate" },
-            &args.iter().map(|(k, v)| (*k, TextArg::from(*v))).collect::<Vec<_>>());
+            &args
+                .iter()
+                .map(|(k, v)| (*k, TextArg::from(*v)))
+                .collect::<Vec<_>>(),
+        );
         assert_eq!(f.message(), en, "{args:?}");
         assert_eq!(render(&f, "nl-NL"), nl, "{args:?}");
     }
@@ -489,7 +515,8 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     let number = built(
         "EW-POT-015",
         "",
-        &[("number", "101.3".into()), ("count", "2".into())]);
+        &[("number", "101.3".into()), ("count", "2".into())],
+    );
     assert_eq!(
         render(&number, "nl-NL"),
         "Draadnummer 101.3 staat op 2 draden die niet één geleider zijn"
@@ -513,7 +540,8 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
             ),
             ("keeper", "oldest".into()),
             ("others", "one".into()),
-        ]);
+        ],
+    );
     assert_eq!(
         render(&merge, "nl-NL"),
         "Draadnummer 101.3 staat op 2 draden die niet één geleider zijn na samenvoegen; het oudste record behoudt \
@@ -555,7 +583,12 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         let f = built(
             "EW-BUS-004",
             "missing",
-            &[("form", "missing".into()), ("end", end.into()), ("port", port.into())]);
+            &[
+                ("form", "missing".into()),
+                ("end", end.into()),
+                ("port", port.into()),
+            ],
+        );
         assert_eq!(f.message(), en, "{end}");
         assert_eq!(render(&f, "nl-NL"), nl, "{end}");
     }
@@ -672,9 +705,13 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         "attrs",
         &[
             ("form", "attrs".into()),
-            ("conflicts", ew_l10n::List::new(pieces, sentence(), sentence()).into()),
+            (
+                "conflicts",
+                ew_l10n::List::new(pieces, sentence(), sentence()).into(),
+            ),
             ("more", "2".into()),
-        ]);
+        ],
+    );
     assert_eq!(
         pot.message(),
         format!(

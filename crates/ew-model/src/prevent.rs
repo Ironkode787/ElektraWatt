@@ -67,7 +67,7 @@ pub struct PreventViolation {
     /// The records involved.
     pub keys: Vec<AnyKey>,
     /// The finding by key, which the window renders in its language; `None` for a hook without such a catalogue.
-    pub text: Option<ew_l10n::Text>,
+    pub text: Option<Box<ew_l10n::Text>>,
 }
 
 /// Evaluates prevent rules on a candidate snapshot after the structural invariants passed.

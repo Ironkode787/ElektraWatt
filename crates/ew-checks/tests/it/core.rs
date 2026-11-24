@@ -381,7 +381,11 @@ fn core023_cases() {
                         "case {c}"
                     );
                     assert!(f[0].message().contains("folio 1"), "case {c}: {}", f[0].message());
-                    assert!(f[0].message().contains("Override"), "case {c}: {}", f[0].message());
+                    assert!(
+                        f[0].message().contains("Override"),
+                        "case {c}: {}",
+                        f[0].message()
+                    );
                     let fix = f[0]
                         .fix
                         .as_ref()

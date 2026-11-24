@@ -164,7 +164,11 @@ fn ew_plc_005_and_007_judge_the_cleaned_symbol() {
     .build();
     let invalid = found(&m, "EW-PLC-005");
     assert_eq!(invalid.len(), 1);
-    assert!(invalid[0].message().contains("TA05-V-15"), "{}", invalid[0].message());
+    assert!(
+        invalid[0].message().contains("TA05-V-15"),
+        "{}",
+        invalid[0].message()
+    );
     assert_eq!(found(&m, "EW-PLC-007").len(), 1, "the cleaned symbols collide");
     let mut fx = card(
         "di",

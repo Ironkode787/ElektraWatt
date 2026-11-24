@@ -326,7 +326,11 @@ fn core061_reads_the_project_text_styles() {
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].subject, "Device tag");
-    assert!(f[0].message().contains("prints 1.07 mm high"), "{}", f[0].message());
+    assert!(
+        f[0].message().contains("prints 1.07 mm high"),
+        "{}",
+        f[0].message()
+    );
     // An out-of-range size in a file is ignored: the built-in 5 px row applies.
     let tiny = json!({"text_styles": {"cp.small": {"size": 100}, "marker": {"size": 100}}});
     let f = findings_of(&marker_fx(tiny).build(), "EW-CORE-061");
@@ -785,7 +789,11 @@ fn term004_reports_an_invalid_bridge_group() {
     assert!(findings_of(&bridges_fx(&[(1, 2, 1), (2, 3, 1)]).build(), "EW-TERM-004").is_empty());
     let f = findings_of(&bridges_fx(&[(1, 2, 1), (2, 3, 2)]).build(), "EW-TERM-004");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert!(f[0].message().contains("it runs over 2 shafts"), "{}", f[0].message());
+    assert!(
+        f[0].message().contains("it runs over 2 shafts"),
+        "{}",
+        f[0].message()
+    );
 }
 
 /// EW-TERM-004 prevent: a bridge that puts a group on a second shaft is refused; touching a group the model already

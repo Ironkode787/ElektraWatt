@@ -243,7 +243,13 @@ fn findings(s: &Session, rule: &str) -> Vec<(String, String, ew_api::checks::Sev
         .findings
         .iter()
         .filter(|f| f.rule == rule && f.page.map(|p| p.as_uuid()) == page)
-        .map(|f| (f.message().clone(), ew_api::checks::render(f, "nl-NL"), f.severity))
+        .map(|f| {
+            (
+                f.message().clone(),
+                ew_api::checks::render(f, "nl-NL"),
+                f.severity,
+            )
+        })
         .collect()
 }
 

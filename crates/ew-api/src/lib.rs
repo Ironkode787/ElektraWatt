@@ -405,7 +405,7 @@ impl PreventHook for ShippedPrevent {
                 message: f.message(),
                 keys: f.targets.iter().map(|t| (t.kind, t.id)).collect(),
                 // The window renders the rule's message from it in its language.
-                text: Some(f.text),
+                text: Some(Box::new(f.text)),
             }),
         }
     }
@@ -1848,7 +1848,7 @@ impl Session {
         self.purge_preview().map(|_| ()).map_err(|e| CmdError::Rejected {
             source: PurgeAssets::NAME.to_owned(),
             reason: e.to_string(),
-            text: Some(purge_refusal(&e)),
+            text: Some(Box::new(purge_refusal(&e))),
         })
     }
 
@@ -1857,7 +1857,7 @@ impl Session {
         let rejected = |e: PurgeError| CmdError::Rejected {
             source: PurgeAssets::NAME.to_owned(),
             reason: e.to_string(),
-            text: Some(purge_refusal(&e)),
+            text: Some(Box::new(purge_refusal(&e))),
         };
         let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone()).map_err(|e| {
             CmdError::invalid_params(
