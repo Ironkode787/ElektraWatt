@@ -412,3 +412,13 @@ kind-segment-changeover = wissel
 
 # The stamp a print scaled to its paper carries, in the project's language (output::print).
 print-stamp-scaled = geschaald op { $p0 } %
+
+# The bus navigator's column labels (output::navigators::bus).
+column-device = Apparaat
+column-interface = Interface
+column-address = Adres
+column-termination = Afsluiting
+column-bus = Bus
+column-role = Rol
+column-logical-net = Logisch net
+column-physical-net = Fysiek net

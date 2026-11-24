@@ -227,7 +227,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         NavKind::Bus => BUS_COLUMNS
             .iter()
             .enumerate()
-            .map(|(i, (k, l))| column(k, l, i == 0, None))
+            .map(|(i, (k, l))| column(k, crate::text_english(l).unwrap_or(l), i == 0, None))
             .collect(),
         // The fluid navigator's table mode lists its tubes (`NavKind::source`).
         NavKind::Fluid | NavKind::Tubes => kind_columns(&ReportKind::TubeList),

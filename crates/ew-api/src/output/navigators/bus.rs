@@ -14,18 +14,18 @@ use ew_derive::ew_schema::Function;
 use super::{Builder, NavRole, base_facets, device_drawables, drawable, folios, group, sorted};
 use ew_derive::short_tag;
 
-/// The bus navigator's columns (FR-UI-006): a port row's device, interface, bus, role, address, termination and nets.
-/// The address and termination, which are edited here, follow the port's name, so that a table at the default rail
-/// width shows them.
+/// The bus navigator's columns (FR-UI-006) with the keys of their labels: a port row's device, interface, bus, role,
+/// address, termination and nets. The address and termination, which are edited here, follow the port's name, so that
+/// a table at the default rail width shows them.
 pub(super) const BUS_COLUMNS: [(&str, &str); 8] = [
-    ("device", "Device"),
-    ("interface", "Interface"),
-    ("address", "Address"),
-    ("termination", "Termination"),
-    ("bus", "Bus"),
-    ("role", "Role"),
-    ("logical_net", "Logical net"),
-    ("physical_net", "Physical net"),
+    ("device", key!("column-device")),
+    ("interface", key!("column-interface")),
+    ("address", key!("column-address")),
+    ("termination", key!("column-termination")),
+    ("bus", key!("column-bus")),
+    ("role", key!("column-role")),
+    ("logical_net", key!("column-logical-net")),
+    ("physical_net", key!("column-physical-net")),
 ];
 
 /// A bus rate in words (`1.5 Mbit/s`, `500 kbit/s`, `9600 bit/s`).
