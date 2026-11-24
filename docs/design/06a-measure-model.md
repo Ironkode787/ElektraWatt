@@ -232,6 +232,13 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | 2 steps, 3/4 step, 8 screen points | guides (§6) |
 | `CARD_PIN_PITCH` | 8 steps | cards drawn from the station view (§7.5) |
 | `CARD_HEIGHT`, `CARD_PINS_MOST` | 6 steps; 8 pins | cards drawn from the station view (§7.5) |
+| `MARKER_REACH`, `MARKER_GAP` | 1.5 mm; 1 mm | the scene: a wire marker's line past its outer wires; its text beyond the line |
+| `CABLE_TICK`, `CABLE_TEXT_GAP` | 1 mm; 0.5 mm | the scene: half a cable mark's stroke on a core; its texts beside stroke and line |
+| `CABLE_MARK_ROOM`, `SUPPLY_GROUP_REACH` | 6 mm; 20 mm | the commands: the stretch a cable's mark placed with its cores prefers; how far apart two supply points of one group stand in a column |
+
+A mark's sizes and the commands' two distances are in nm, not steps: they stand the same on every grid. Where the
+mark's line and its wires cross, and where a wire's own marker stands, is one function each over the point's type
+(`ew_drafting::marks::{crossing, middle}`), which the layout calls in ticks and the scene in nm.
 
 ### 1.6 The rules that bind the placer
 

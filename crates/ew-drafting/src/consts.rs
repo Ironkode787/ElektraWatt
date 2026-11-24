@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The numbers of the layout, in one place (docs/design/06a-drafting.md §1.5): nothing else in the program repeats
-//! one. Distances are in ticks ([`TICKS_PER_STEP`] to a grid step); the weights of the cost are in grid steps of
-//! wire, which the measure multiplies by [`TICKS_PER_STEP`] where it adds them to a length.
+//! one. Distances are in ticks ([`TICKS_PER_STEP`] to a grid step), but for a drawn mark's sizes and the commands'
+//! drawing distances, which are in nm (at the end); the weights of the cost are in grid steps of wire, which the
+//! measure multiplies by [`TICKS_PER_STEP`] where it adds them to a length.
 
 use ew_units::Nm;
 
@@ -128,25 +129,23 @@ pub const CARD_HEIGHT: Tick = 6 * TICKS_PER_STEP;
 /// Cards drawn from the station view: the most channel pins of one box of a card wider than the drawing area.
 pub const CARD_PINS_MOST: usize = 8;
 
+// The sizes of a drawn mark and the commands' drawing distances: in nm, not ticks, for a page's grid step has no fixed
+// length and these stand the same on every grid. The layout reads a mark's sizes from the scene's drawn pieces
+// (`marks`), never from here.
+
 /// How far a wire marker's line reaches past its outer wires (FT-1706).
 pub const MARKER_REACH: Nm = Nm(1_500_000);
-
 /// The gap between a wire marker's line and its text (FT-1706).
 pub const MARKER_GAP: Nm = Nm(1_000_000);
-
 /// Half the run of a cable mark's slanted stroke on a core, along and across the line.
 pub const CABLE_TICK: Nm = Nm(1_000_000);
-
 /// The gap between a cable mark's stroke or line and the texts beside them.
 pub const CABLE_TEXT_GAP: Nm = Nm(500_000);
-
-/// The shortest stretch a mark prefers, so that its strokes and core names have room: 6 mm. It is a preference of the
-/// placing and no drafting number: the drawn mark's sizes (`ew_scene::page::CABLE_TICK`, `CABLE_TEXT_GAP`) do not
-/// give it.
-pub const ROOM: i64 = 6_000_000;
-
-/// How far above or below a point another point of its group may stand: 20 mm, the spacing of a column of supply
-/// points drawn one under the other (the window places them about 16 mm apart, an imported drawing 4 mm). It is a reach
-/// of the grouping and no drafting number: the window spaces such a column by grid steps
-/// (`ew_viewmodel::tools::supply_place::SUPPLY_STEPS`), which no length in nm equals on every grid.
-pub const GROUP_REACH: i64 = 20_000_000;
+/// The commands: the shortest stretch a cable's mark placed with its cores prefers, so that its strokes and core
+/// names have room: 6 mm. A preference of the placing that [`CABLE_TICK`] and [`CABLE_TEXT_GAP`] do not give.
+pub const CABLE_MARK_ROOM: Nm = Nm(6_000_000);
+/// The commands: how far above or below a supply point another point of its group may stand: 20 mm, the spacing of
+/// a column of supply points drawn one under the other (the window places them about 16 mm apart, an imported
+/// drawing 4 mm). The window spaces such a column by grid steps (`ew_viewmodel::tools::supply_place::SUPPLY_STEPS`),
+/// which no length in nm equals on every grid.
+pub const SUPPLY_GROUP_REACH: Nm = Nm(20_000_000);

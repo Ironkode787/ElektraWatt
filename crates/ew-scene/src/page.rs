@@ -181,7 +181,6 @@ mod wires;
 pub use cps::*;
 pub use pins::*;
 pub(crate) use text::*;
-pub(crate) use wires::*;
 
 /// The radius of a junction dot drawn without a junction symbol: 1.25 QET px (0.33 mm), the radius of
 /// `ew.gen.junction-dot@qet10`.
@@ -223,33 +222,6 @@ pub(crate) enum MarkerText {
     Above,
     /// The line is vertical: the text reads bottom to top (90°) upwards from its top end.
     Up,
-}
-
-/// The coordinate where `pts` crosses the line through `at` that runs horizontally (`horizontal`) or vertically: the
-/// crossing's `x` on a horizontal line, its `y` on a vertical one, the one nearest `at` of several; `None` when no
-/// segment crosses it (a segment lying on the line does not).
-pub(crate) fn crossing_of(pts: &[Pt2], at: Pt2, horizontal: bool) -> Option<Nm> {
-    // `(along the line, across it)` of a point.
-    let split = |p: Pt2| {
-        if horizontal {
-            (i128::from(p.x.0), i128::from(p.y.0))
-        } else {
-            (i128::from(p.y.0), i128::from(p.x.0))
-        }
-    };
-    let (target, line) = split(at);
-    let mut best: Option<i128> = None;
-    for w in pts.windows(2) {
-        let ((a_al, a_ac), (b_al, b_ac)) = (split(w[0]), split(w[1]));
-        if a_ac == b_ac || line < a_ac.min(b_ac) || line > a_ac.max(b_ac) {
-            continue;
-        }
-        let x = a_al + (line - a_ac) * (b_al - a_al) / (b_ac - a_ac);
-        if best.is_none_or(|b| (x - target).abs() < (b - target).abs()) {
-            best = Some(x);
-        }
-    }
-    best.and_then(|x| i64::try_from(x).ok()).map(Nm)
 }
 
 /// A symbol copy and its ID (the key of its geometry).

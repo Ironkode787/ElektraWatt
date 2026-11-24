@@ -206,8 +206,8 @@ home is too high: the thing moves down. A function that exists is made public be
 | A rule that needs several records or a derived fact (where a function CP is drawn, the open revision, the devices under a device, the grid labels of a frame, whether a slot shows) | one function or query of `ew-derive`, called by the commands, the checks, the scene and the lists |
 | How a value of the domain is shown: a colour, a cross-section, a length, a slot, an address, a short tag as a string that no language changes; the word for a kind (a record kind, a port role, a potential type) as a text by key | `ew_derive::text`: one function per value; where two places print it differently, both forms stand there side by side under their names |
 | Files on disk: the file-system seam, the lock, the clock and the civil date, the all-or-nothing write | `ew-store` |
-| A page in ticks: sides, roles, rectangles, rounding to the grid, grouping; the numbers of the layout | `ew-drafting` (`model`, `consts`) |
-| Where a thing is on a drawn page, the page-to-sheet map, the pens, the geometry of a marker | `ew-scene` |
+| A page in ticks: sides, roles, rectangles, rounding to the grid, grouping; the numbers of the layout, a drawn mark's sizes and the commands' drawing distances; where a mark crosses its wires, in ticks and in nm | `ew-drafting` (`model`, `consts`, `marks`) |
+| Where a thing is on a drawn page, the page-to-sheet map, the pens, how a marker is drawn | `ew-scene` |
 | A list's rows, its cells and their constructors | `ew-reports` |
 | A deciding number (a distance, a pitch, a clearance, a tolerance, a limit) | the `consts` module of the crate whose concern it is, named, with its unit and the section that sets it. A number used once stays beside its use, with its reason |
 | A pointer tolerance; a default of a form | `ew_viewmodel::pointer`; the form's declaration |

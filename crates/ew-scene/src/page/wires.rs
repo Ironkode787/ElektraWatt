@@ -293,7 +293,7 @@ impl Builder<'_> {
     }
 
     /// The crossings of the connections `ids` drawn on the page with the line through `at` (horizontal or
-    /// vertical), along the line ([`crossing_of`]); a connection the page does not draw, or one the line misses,
+    /// vertical), along the line ([`ew_drafting::marks::crossing`]); a connection the page does not draw, or one the line misses,
     /// has none.
     pub(crate) fn marker_crossings(
         view: &PageView,
@@ -306,7 +306,7 @@ impl Builder<'_> {
         ids.iter()
             .filter_map(|id| view.connections.iter().find(|c| c.connection.id == *id))
             .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
-            .filter_map(|pts| crossing_of(&pts, at, horizontal))
+            .filter_map(|pts| ew_drafting::marks::crossing(&pts, at, horizontal))
             .collect()
     }
 }
@@ -327,21 +327,4 @@ fn flexible_arc(pts: &[Pt2]) -> Path {
     let sat = |v: i128| Nm(i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX }));
     let control = Pt2::new(sat(mid(a.x.0, b.x.0) - dy / 4), sat(mid(a.y.0, b.y.0) + dx / 4));
     Path::builder().move_to(*a).quad_to(control, *b).build()
-}
-
-/// The midpoint of the longest segment of `pts` (the first of equal ones) and whether that segment is
-/// vertical; `None` for fewer than two points.
-pub(crate) fn marker_point(pts: &[Pt2]) -> Option<(Pt2, bool)> {
-    let mut best: Option<(i128, Pt2, bool)> = None;
-    for w in pts.windows(2) {
-        let (a, b) = (w[0], w[1]);
-        let dx = i128::from(b.x.0) - i128::from(a.x.0);
-        let dy = i128::from(b.y.0) - i128::from(a.y.0);
-        let len = dx * dx + dy * dy;
-        if best.is_none_or(|(l, _, _)| len > l) {
-            let mid = |p: Nm, q: Nm| Nm(p.0 + (q.0 - p.0).div_euclid(2));
-            best = Some((len, Pt2::new(mid(a.x, b.x), mid(a.y, b.y)), dx == 0 && dy != 0));
-        }
-    }
-    best.map(|(_, p, v)| (p, v))
 }

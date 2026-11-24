@@ -12,13 +12,13 @@
 //! - **Else the place** ([`placement`]): from the stored routes of the cores on the page (a connection without a route
 //!   is left out), for a horizontal line across their vertical segments and for a vertical line across their
 //!   horizontal ones, the stretch between two consecutive segment ends that the most cores run through side by side;
-//!   the most cores first, then a stretch of at least [`ROOM`], then the horizontal line (across vertical wires, as
-//!   panel builders mostly draw it), then the longer stretch. The mark stands in that stretch's middle, its cores
-//!   listed in the order the line crosses them. No stretch any core runs through: no mark.
+//!   the most cores first, then a stretch of at least [`CABLE_MARK_ROOM`], then the horizontal line (across vertical
+//!   wires, as panel builders mostly draw it), then the longer stretch. The mark stands in that stretch's middle, its
+//!   cores listed in the order the line crosses them. No stretch any core runs through: no mark.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_drafting::consts::ROOM;
+use ew_drafting::consts::CABLE_MARK_ROOM;
 use ew_ids::Id;
 use ew_schema::{
     Conductor, Connection, ConnectionKind, Device, Extra, MarkerField, Page, PageItem, PageItemKind,
@@ -226,7 +226,12 @@ pub(crate) fn placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<Placeme
                 continue;
             }
             crossed.sort();
-            let rank = (crossed.len(), hi - lo >= ROOM, horizontal_line, hi - lo);
+            let rank = (
+                crossed.len(),
+                hi - lo >= CABLE_MARK_ROOM.0,
+                horizontal_line,
+                hi - lo,
+            );
             if best.as_ref().is_some_and(|b| b.0 >= rank) {
                 continue;
             }

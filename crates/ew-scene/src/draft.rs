@@ -53,9 +53,9 @@ use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
 
 use crate::forms::FrameGeometry;
 use crate::page::{
-    Builder, CABLE_KIND_STYLE, CABLE_TAG_STYLE, ItemLink, MARKER_STYLE, MarkerText, PageFinding, PageView, SlotTextBox, TextSpec, bottom_align,
-    cp_owners, crossing_of, drawing_area, layout_bounds, marker_point, page_rect, pin_texts, polyline_of,
-    sorted_connections, sorted_reps, up_by, wire_stroke,
+    Builder, CABLE_KIND_STYLE, CABLE_TAG_STYLE, ItemLink, MARKER_STYLE, MarkerText, PageFinding, PageView,
+    SlotTextBox, TextSpec, bottom_align, cp_owners, drawing_area, layout_bounds, page_rect, pin_texts,
+    polyline_of, sorted_connections, sorted_reps, up_by, wire_stroke,
 };
 use crate::symbol;
 use crate::ticks::Ticks;
@@ -845,7 +845,7 @@ impl Builder<'_> {
             let Some(pts) = polylines.get(&c.id.as_uuid()) else {
                 continue;
             };
-            let Some((at, vertical)) = marker_point(pts) else {
+            let Some((at, vertical)) = ew_drafting::marks::middle(pts) else {
                 continue;
             };
             let entity = EntityRef(c.id.as_uuid());
@@ -978,7 +978,7 @@ impl Builder<'_> {
             .filter_map(|(id, core)| {
                 let cv = view.connections.iter().find(|c| c.connection.id == *id)?;
                 let pts = polyline_of(view, &cps, &cv.connection, page)?;
-                let along = crossing_of(&pts, m.at, horizontal)?;
+                let along = ew_drafting::marks::crossing(&pts, m.at, horizontal)?;
                 Some((WireId(id.as_uuid()), along, core.as_str()))
             })
             .collect();

@@ -4,7 +4,7 @@
 //! Project structure commands: `structure.create_node`, `section.create`, `report_block.create`,
 //! `external_ref.create`.
 
-use ew_drafting::consts::GROUP_REACH;
+use ew_drafting::consts::SUPPLY_GROUP_REACH;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
@@ -685,7 +685,7 @@ fn drawn_at(tx: &TxBuilder<'_>, f: Id<Function>) -> Option<(Id<Page>, ew_units::
 }
 
 /// The nearest point of the reference `external` in the column of the point `p` on its page, at most
-/// [`GROUP_REACH`] above or below it, with its group.
+/// [`SUPPLY_GROUP_REACH`] above or below it, with its group.
 fn neighbour(
     tx: &TxBuilder<'_>,
     p: Id<Function>,
@@ -699,7 +699,7 @@ fn neighbour(
             let (x, group) = supply_of(tx, f.id)?;
             let (other_page, other) = drawn_at(tx, f.id)?;
             let dy = (other.y.0 - at.y.0).abs();
-            (x == external && other_page == page && other.x == at.x && dy <= GROUP_REACH)
+            (x == external && other_page == page && other.x == at.x && dy <= SUPPLY_GROUP_REACH.0)
                 .then_some((dy, f.id, group))
         })
         .min_by_key(|(dy, id, _)| (*dy, *id))

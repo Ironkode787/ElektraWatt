@@ -9,9 +9,12 @@
 //!
 //! A wire's drawn line is its route, or for a wire without one the line it is drawn with dashed
 //! ([`crate::unrouted_line`]). Its crossing with a mark's line is the one nearest the mark's point along the line, a
-//! point on a slanted segment by its proportion (as the scene finds it in nm).
+//! point on a slanted segment by its proportion. The scene finds both in nm with the same [`middle`] and [`crossing`]
+//! ([`MarkPoint`]), so the layout's mark stands where the scene draws it.
 
 use std::collections::BTreeMap;
+
+use ew_units::{Nm, Pt2};
 
 use crate::model::{Anchor, DraftPage, End, FixedText, Follow, Mark, MarkAt, Pt, Rect, Tick, WireId};
 
@@ -65,33 +68,70 @@ fn drawn(page: &DraftPage, w: WireId) -> Option<Vec<Pt>> {
         .collect()
 }
 
-/// The middle of the longest segment of `line` (the first of equal ones).
-fn middle(line: &[Pt]) -> Option<Pt> {
-    let mut best: Option<(i128, Pt)> = None;
-    for w in line.windows(2) {
-        let (a, b) = (w[0], w[1]);
-        let (dx, dy) = (
-            i128::from(b.x) - i128::from(a.x),
-            i128::from(b.y) - i128::from(a.y),
-        );
-        let len = dx * dx + dy * dy;
-        if best.is_none_or(|(l, _)| len > l) {
-            let mid = |p: Tick, q: Tick| p + (q - p).div_euclid(2);
-            best = Some((len, Pt::new(mid(a.x, b.x), mid(a.y, b.y))));
-        }
-    }
-    best.map(|(_, p)| p)
+/// A point a mark's geometry is found on: the layout's [`Pt`] in ticks, the scene's [`Pt2`] in nm. [`middle`] and
+/// [`crossing`] work on its coordinates widened to `i128`, exactly, and hand back the point's own type.
+pub trait MarkPoint: Copy {
+    /// The coordinate of one axis.
+    type Coord;
+    /// Across and down, widened.
+    fn wide(self) -> (i128, i128);
+    /// The point at `x` across and `y` down; `None` beyond the coordinate's range.
+    fn from_wide(x: i128, y: i128) -> Option<Self>;
+    /// The coordinate `v`; `None` beyond its range.
+    fn coord(v: i128) -> Option<Self::Coord>;
 }
 
-/// The coordinate along a mark's line (horizontal: `x`) at which `line` crosses it, of its crossings the nearest to
-/// `at`; `None` where it does not cross.
-fn crossing(line: &[Pt], at: Pt, horizontal: bool) -> Option<Tick> {
-    let split = |p: Pt| {
-        if horizontal {
-            (i128::from(p.x), i128::from(p.y))
-        } else {
-            (i128::from(p.y), i128::from(p.x))
+impl MarkPoint for Pt {
+    type Coord = Tick;
+    fn wide(self) -> (i128, i128) {
+        (i128::from(self.x), i128::from(self.y))
+    }
+    fn from_wide(x: i128, y: i128) -> Option<Self> {
+        Some(Pt::new(Self::coord(x)?, Self::coord(y)?))
+    }
+    fn coord(v: i128) -> Option<Tick> {
+        Tick::try_from(v).ok()
+    }
+}
+
+impl MarkPoint for Pt2 {
+    type Coord = Nm;
+    fn wide(self) -> (i128, i128) {
+        (i128::from(self.x.0), i128::from(self.y.0))
+    }
+    fn from_wide(x: i128, y: i128) -> Option<Self> {
+        Some(Pt2::new(Self::coord(x)?, Self::coord(y)?))
+    }
+    fn coord(v: i128) -> Option<Nm> {
+        i64::try_from(v).ok().map(Nm)
+    }
+}
+
+/// The middle of the longest segment of `line` (the first of equal ones), where a wire's own marker stands, and
+/// whether that segment is vertical; `None` for fewer than two points.
+pub fn middle<P: MarkPoint>(line: &[P]) -> Option<(P, bool)> {
+    let mut best: Option<(i128, P, bool)> = None;
+    for w in line.windows(2) {
+        let ((ax, ay), (bx, by)) = (w[0].wide(), w[1].wide());
+        let (dx, dy) = (bx - ax, by - ay);
+        let len = dx * dx + dy * dy;
+        if best.is_none_or(|(l, _, _)| len > l) {
+            let mid = |p: i128, q: i128| p + (q - p).div_euclid(2);
+            if let Some(m) = P::from_wide(mid(ax, bx), mid(ay, by)) {
+                best = Some((len, m, dx == 0 && dy != 0));
+            }
         }
+    }
+    best.map(|(_, p, v)| (p, v))
+}
+
+/// The coordinate along a mark's line through `at` (horizontal: `x`, vertical: `y`) at which `line` crosses it, of
+/// its crossings the nearest to `at`; `None` where no segment crosses it (a segment lying on the line does not).
+pub fn crossing<P: MarkPoint>(line: &[P], at: P, horizontal: bool) -> Option<P::Coord> {
+    // `(along the line, across it)` of a point.
+    let split = |p: P| {
+        let (x, y) = p.wide();
+        if horizontal { (x, y) } else { (y, x) }
     };
     let (target, axis) = split(at);
     let mut best: Option<i128> = None;
@@ -105,7 +145,7 @@ fn crossing(line: &[Pt], at: Pt, horizontal: bool) -> Option<Tick> {
             best = Some(x);
         }
     }
-    best.and_then(|x| Tick::try_from(x).ok())
+    best.and_then(P::coord)
 }
 
 /// Where the anchors of mark `m` stand on `page` (module documentation); `None` for a mark without a [`Follow`] or a
@@ -114,7 +154,7 @@ pub fn anchors(page: &DraftPage, m: &Mark) -> Option<Anchors> {
     let follow: &Follow = m.follow.as_ref()?;
     let point = match follow.at {
         MarkAt::Point(p) => p,
-        MarkAt::Middle => middle(&drawn(page, *m.wires.first()?)?)?,
+        MarkAt::Middle => middle(&drawn(page, *m.wires.first()?)?)?.0,
     };
     let on_line = |v: Tick| {
         if m.horizontal {
