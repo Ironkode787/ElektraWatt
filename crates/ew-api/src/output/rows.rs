@@ -38,12 +38,13 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ReportBlock, ReportKind, ReportSource};
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q, short_tag};
 use ew_export::PdfDate;
-use ew_reports::csv::{CsvOptions, Preset, csv_field, restyle, rows_csv};
+use ew_reports::csv::{CsvOptions, Preset, restyle, rows_csv};
 use ew_reports::kinds::PartsSummary;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 use ew_reports::xlsx::{DateTime, WorkbookMeta};
 use ew_reports::{
-    CellType, Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, project_rows, rows_of,
+    Cell, CellType, Registry, Row, RowId, RowKey, RowKind, RowSet, RowSetStatus, arranged, project_rows,
+    rows_of,
 };
 
 use crate::Session;
@@ -395,22 +396,31 @@ fn ew_csv(q: &Q, body: &Body) -> (String, usize) {
     match body {
         Body::Whole(set) | Body::Strip(set, _) => (rows_csv(q, set), set.rows.len()),
         Body::Strips(template, strips) => {
-            let columns = template.columns.len();
-            let mut csv = rows_csv(q, template);
-            let mut count = 0;
-            for (name, rows) in strips {
-                let mut heading = vec!["heading".to_owned(), csv_field(name)];
-                heading.resize(columns + 1, String::new());
-                csv.push_str(&heading.join(","));
-                csv.push('\n');
-                let set = with_rows(template, rows.clone());
-                let text = rows_csv(q, &set);
-                csv.push_str(text.split_once('\n').map_or("", |(_, rest)| rest));
-                count += 1 + set.rows.len();
-            }
-            (csv, count)
+            let set = strips_rows(template, strips);
+            (rows_csv(q, &set), set.rows.len())
         }
     }
+}
+
+/// Every strip's rows after a heading row whose first cell is the strip's tag, as one row set of `template`'s columns:
+/// what the one CSV of every strip writes.
+fn strips_rows(template: &RowSet, strips: &[(String, Vec<Row>)]) -> RowSet {
+    let mut rows = Vec::new();
+    for (tag, strip) in strips {
+        let mut cells = vec![Cell::Empty; template.columns.len()];
+        if let Some(first) = cells.first_mut() {
+            *first = Cell::Ident(tag.clone());
+        }
+        rows.push(Row {
+            id: RowId(vec![RowKey::Name("strip".to_owned())]),
+            kind: RowKind::Heading,
+            cells,
+            links: Vec::new(),
+            sources: Vec::new(),
+        });
+        rows.extend(strip.iter().cloned());
+    }
+    with_rows(template, rows)
 }
 
 /// `template` with `rows` and no groups.
@@ -821,21 +831,7 @@ fn one_table(q: &Q, chosen: &Chosen) -> Table {
     match &chosen.body {
         Body::Whole(_) | Body::Strip(..) => sheets(q, chosen).remove(0),
         Body::Strips(template, strips) => {
-            let mut table = Table::from_rowset(q, template, &chosen.kind, &chosen.key);
-            for (tag, rows) in strips {
-                let mut cells = vec![TableCell::Text(String::new()); table.columns.len()];
-                if let Some(first) = cells.first_mut() {
-                    *first = TableCell::Text(tag.clone());
-                }
-                table.rows.push(TableRow {
-                    id: None,
-                    heading: true,
-                    cells,
-                });
-                let strip = Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key);
-                table.rows.extend(strip.rows);
-            }
-            table
+            Table::from_rowset(q, &strips_rows(template, strips), &chosen.kind, &chosen.key)
         }
     }
 }
