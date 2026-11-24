@@ -321,133 +321,7 @@ impl ShellModel {
                 moved,
                 into,
                 far,
-            } => {
-                // The representation the placement added at its insertion point (the lowest ID if several), else the one
-                // it added elsewhere (a valve placed in a terminal's cell stands at the cell's point).
-                let added = |at: bool| {
-                    now.reps
-                        .iter()
-                        .filter(|r| (!at || r.pos == pos) && !before.reps.iter().any(|b| b.id == r.id))
-                        .min_by_key(|r| r.id)
-                };
-                let Some(rep) = added(true).or_else(|| added(false)) else {
-                    return;
-                };
-                let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
-                // A black box (a valve terminal drawn as its positions) prints no pin label: its device's tag.
-                let tag = crate::describe::rep_tag(rep, &cps)
-                    .or_else(|| rep.device.and_then(|d| self.project_session()?.device_tag(d)))
-                    .unwrap_or_else(|| rep.symbol_key.clone());
-                // A row's terminal that made a wire is named on the placed terminal's strip (its ghost named a strip
-                // without a tag `-X??`): "-X1501 terminal 1".
-                let strip = rep
-                    .terminal
-                    .then(|| tag.rsplit_once(':').map(|(s, _)| s.to_owned()))
-                    .flatten();
-                let wires = wires.map(|(tubes, list)| {
-                    let own = |o: String| match (&strip, o.rsplit_once(':')) {
-                        (Some(strip), Some((_, number))) => {
-                            crate::describe::terminal_in_sentence(&format!("{strip}:{number}"))
-                        }
-                        _ => o,
-                    };
-                    (
-                        tubes,
-                        list.into_iter().map(|(o, to)| (own(o), to)).collect::<Vec<_>>(),
-                    )
-                });
-                // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3".
-                let tag = if rep.terminal {
-                    crate::describe::terminal_in_sentence(&tag)
-                } else {
-                    tag
-                };
-                let cell = self.canvas().and_then(|c| {
-                    let page = c.page();
-                    page.cell_text(page.snapper.page_to_sheet(pos))
-                });
-                let placed = match cell {
-                    Some(cell) => strings::format(key!("toast-placed"), &[&tag, &cell]),
-                    None => strings::format(key!("toast-placed-no-cell"), &[&tag]),
-                };
-                // A symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
-                // toast says that it is in the circuit, where a connection of the page now ends on it.
-                let ends_on_rep = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if rep.functions.contains(function));
-                let in_wire = now
-                    .connections
-                    .iter()
-                    .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
-                // The wires it made, after what it placed: the one by its two pins, two or more by their count and the
-                // first; then the way to place without them, its key from the keymap as the interruption point's
-                // toast takes it (a persona run did not see that a placement had drawn a wire).
-                let wires = wires.filter(|(_, list)| !list.is_empty());
-                let without = wires.is_some().then(|| {
-                    strings::format(
-                        key!("toast-place-without-wires"),
-                        &[&crate::command_bar::key_name(self, "canvas.activate_alt")],
-                    )
-                });
-                let text = match wires {
-                    Some((tubes, list)) => {
-                        let placed = strings::without_stop(&placed);
-                        let (own, to) = &list[0];
-                        match list.len() {
-                            1 => strings::format(key!("toast-placed-connected-one"), &[placed, own, to]),
-                            n => {
-                                let count = strings::format(
-                                    if tubes {
-                                        key!("count-tubes")
-                                    } else {
-                                        key!("count-wires")
-                                    },
-                                    &[&n.to_string()],
-                                );
-                                let more = (n - 1).to_string();
-                                strings::format(
-                                    key!("toast-placed-connected"),
-                                    &[placed, &count, own, to, &more],
-                                )
-                            }
-                        }
-                    }
-                    None if in_wire => {
-                        strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)])
-                    }
-                    None => placed,
-                };
-                // A terminal that left the click point says where and why, after the result.
-                let text = match moved {
-                    Some(moved) => format!("{}, {moved}", strings::without_stop(&text)),
-                    None => text,
-                };
-                // A valve dropped into a valve terminal's box says where it sits now.
-                let mut sentences: Vec<String> = std::iter::once(text)
-                    .chain(rep.device.filter(|_| into).and_then(|d| self.seat_words(d)))
-                    .collect();
-                if let Some(b) = rep.black_box.as_ref().filter(|b| !b.cells.is_empty()) {
-                    sentences = self.terminal_placed_words(sentences.join(" "), rep.device, &b.cells);
-                }
-                // A far autoconnect hit is offered, not drawn, with Connect: its Undo and Connect are valid while the
-                // placement is the next undo step.
-                match (far.first().and_then(|f| far_offer(f, &cps, now)), without) {
-                    (Some((question, wire)), without) => {
-                        sentences.extend(without);
-                        sentences.push(question);
-                        let connect = self.undo_offer(NoteAction::Connect).map(|o| Offer {
-                            params: Some(wire),
-                            ..o
-                        });
-                        let undo = self.undo_offer(NoteAction::Undo);
-                        self.notes
-                            .push(Note::of("edit", sentences).offering([undo, connect]));
-                    }
-                    (None, Some(without)) => self.notify_wired(sentences, without),
-                    (None, None) => {
-                        let undo = self.undo_offer(NoteAction::Undo);
-                        self.notes.push(Note::of("edit", sentences).offering([undo]));
-                    }
-                }
-            }
+            } => self.say_placed(before, now, pos, wires, moved, into, far),
             // An interruption point dropped on a pin says where it stands, what it connects to and the way
             // to place it free (the key from the keymap).
             ResultNote::IpConnected {
@@ -457,125 +331,281 @@ impl ShellModel {
                 external,
                 taken,
                 placed,
-            } => {
-                let cell = self.canvas().and_then(|c| {
-                    let page = c.page();
-                    page.cell_text(page.snapper.page_to_sheet(pos))
-                });
-                let key = crate::command_bar::key_name(self, "canvas.activate_alt");
-                // An external point is named so.
-                let text = match (cell, external) {
-                    (Some(cell), false) => {
-                        strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key])
-                    }
-                    (None, false) => {
-                        strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key])
-                    }
-                    (Some(cell), true) => {
-                        strings::format(key!("toast-ip-external-connected"), &[&name, &cell, &pin, &key])
-                    }
-                    (None, true) => strings::format(
-                        key!("toast-ip-external-connected-no-cell"),
-                        &[&name, "", &pin, &key],
-                    ),
-                };
-                // A renamed point says why first; where its partner is, last.
-                let sentences = taken.into_iter().chain([text]).chain(placed).collect();
-                let undo = self.undo_offer(NoteAction::Undo);
-                self.notes.push(Note::of("edit", sentences).offering([undo]));
-            }
+            } => self.say_ip_connected(pos, name, pin, external, taken, placed),
             ResultNote::Deleted {
                 names,
                 wires,
                 others,
                 unplaced,
                 undrawn,
-            } => {
-                let gone = wires
-                    .iter()
-                    .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
-                    .count();
-                let ips = (!names.is_empty() && gone > 0).then(|| {
-                    let key = match (names.len(), gone) {
-                        (1, 1) => key!("toast-ip-deleted-wire"),
-                        (1, _) => key!("toast-ip-deleted-wires"),
-                        (_, 1) => key!("toast-ips-deleted-wire"),
-                        _ => key!("toast-ips-deleted-wires"),
-                    };
-                    strings::format(key, &[&names.join(", "), &gone.to_string()])
-                });
-                // The wires drawn to the deleted symbols went with them (none stays drawn on no page).
-                let others = others
-                    .iter()
-                    .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
-                    .count();
-                let others = (others > 0)
-                    .then(|| strings::format_count(crate::count_key!("toast-deleted-wires"), others));
-                // The devices left without a symbol stay in the project; the toast says where.
-                let unplaced = self
-                    .project
-                    .as_ref()
-                    .and_then(|p| unplaced_text(&unplaced, |d| p.session.device_tag(d.0)));
-                // Terminals drawn nowhere stay in their strip and the lists, unless removed from the project too.
-                let terminals = (!undrawn.is_empty()).then(|| {
-                    strings::format_count(crate::count_key!("toast-terminals-undrawn"), undrawn.len())
-                });
-                let sentences: Vec<String> = ips
-                    .into_iter()
-                    .chain(others)
-                    .chain(unplaced)
-                    .chain(terminals)
-                    .collect();
-                if sentences.is_empty() {
-                    return;
-                }
-                // Each sentence ends with its own full stop. Remove them from the project, beside the delete's Undo,
-                // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
-                // nothing); terminals that stay in the project are a consequence the person may not want, so the
-                // toast stays.
-                let undo = self.undo_offer(NoteAction::Undo);
-                if undrawn.is_empty() {
-                    self.notes.push(Note::of("edit", sentences).offering([undo]));
-                } else {
-                    let terminals: Vec<String> = undrawn.iter().map(|e| e.0.to_string()).collect();
-                    let remove = self.undo_offer(NoteAction::RemoveUndrawn).map(|o| Offer {
-                        params: Some(json!(terminals)),
-                        ..o
-                    });
-                    self.notes.push(Note {
-                        stays: true,
-                        ..Note::of("edit", sentences).offering([undo, remove])
-                    });
-                }
-            }
+            } => self.say_deleted(now, names, wires, others, unplaced, undrawn),
             // A cut says what it took and the wires it removed with it; the paste brings the cut items back.
             ResultNote::Cut {
                 symbols,
                 terminals,
                 wires,
-            } => {
-                let what = if terminals {
-                    crate::count_key!("toast-cut-terminals")
-                } else {
-                    crate::count_key!("toast-cut-symbols")
-                };
-                let gone = wires
-                    .iter()
-                    .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
-                    .count();
-                let sentences = std::iter::once(strings::format_count(what, symbols))
-                    .chain(
-                        (gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)),
-                    )
-                    .collect();
-                // Wires a cut removed are a consequence the person may not want: the toast stays.
-                let undo = self.undo_offer(NoteAction::Undo);
-                self.notes.push(Note {
-                    stays: gone > 0,
-                    ..Note::of("edit", sentences).offering([undo])
+            } => self.say_cut(now, symbols, terminals, wires),
+        }
+    }
+
+    /// A placement's result line: the tag and the cell of what it placed, the wires it drew, where a terminal moved
+    /// to, where a valve sits, and a far autoconnect hit offered with Connect.
+    #[allow(clippy::too_many_arguments)]
+    fn say_placed(
+        &mut self,
+        before: &PageTables,
+        now: &PageTables,
+        pos: (i64, i64),
+        wires: Option<(bool, Vec<(String, String)>)>,
+        moved: Option<String>,
+        into: bool,
+        far: Vec<((i64, i64), String, Uuid, u16)>,
+    ) {
+        // The representation the placement added at its insertion point (the lowest ID if several), else the one
+        // it added elsewhere (a valve placed in a terminal's cell stands at the cell's point).
+        let added = |at: bool| {
+            now.reps
+                .iter()
+                .filter(|r| (!at || r.pos == pos) && !before.reps.iter().any(|b| b.id == r.id))
+                .min_by_key(|r| r.id)
+        };
+        let Some(rep) = added(true).or_else(|| added(false)) else {
+            return;
+        };
+        let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
+        // A black box (a valve terminal drawn as its positions) prints no pin label: its device's tag.
+        let tag = crate::describe::rep_tag(rep, &cps)
+            .or_else(|| rep.device.and_then(|d| self.project_session()?.device_tag(d)))
+            .unwrap_or_else(|| rep.symbol_key.clone());
+        // A row's terminal that made a wire is named on the placed terminal's strip (its ghost named a strip
+        // without a tag `-X??`): "-X1501 terminal 1".
+        let strip = rep
+            .terminal
+            .then(|| tag.rsplit_once(':').map(|(s, _)| s.to_owned()))
+            .flatten();
+        let wires = wires.map(|(tubes, list)| {
+            let own = |o: String| match (&strip, o.rsplit_once(':')) {
+                (Some(strip), Some((_, number))) => {
+                    crate::describe::terminal_in_sentence(&format!("{strip}:{number}"))
+                }
+                _ => o,
+            };
+            (
+                tubes,
+                list.into_iter().map(|(o, to)| (own(o), to)).collect::<Vec<_>>(),
+            )
+        });
+        // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3".
+        let tag = if rep.terminal {
+            crate::describe::terminal_in_sentence(&tag)
+        } else {
+            tag
+        };
+        let cell = self.canvas().and_then(|c| {
+            let page = c.page();
+            page.cell_text(page.snapper.page_to_sheet(pos))
+        });
+        let placed = match cell {
+            Some(cell) => strings::format(key!("toast-placed"), &[&tag, &cell]),
+            None => strings::format(key!("toast-placed-no-cell"), &[&tag]),
+        };
+        // A symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
+        // toast says that it is in the circuit, where a connection of the page now ends on it.
+        let ends_on_rep = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if rep.functions.contains(function));
+        let in_wire = now
+            .connections
+            .iter()
+            .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
+        // The wires it made, after what it placed: the one by its two pins, two or more by their count and the
+        // first; then the way to place without them, its key from the keymap as the interruption point's
+        // toast takes it (a persona run did not see that a placement had drawn a wire).
+        let wires = wires.filter(|(_, list)| !list.is_empty());
+        let without = wires.is_some().then(|| {
+            strings::format(
+                key!("toast-place-without-wires"),
+                &[&crate::command_bar::key_name(self, "canvas.activate_alt")],
+            )
+        });
+        let text = match wires {
+            Some((tubes, list)) => {
+                let placed = strings::without_stop(&placed);
+                let (own, to) = &list[0];
+                match list.len() {
+                    1 => strings::format(key!("toast-placed-connected-one"), &[placed, own, to]),
+                    n => {
+                        let count = strings::format(
+                            if tubes {
+                                key!("count-tubes")
+                            } else {
+                                key!("count-wires")
+                            },
+                            &[&n.to_string()],
+                        );
+                        let more = (n - 1).to_string();
+                        strings::format(key!("toast-placed-connected"), &[placed, &count, own, to, &more])
+                    }
+                }
+            }
+            None if in_wire => {
+                strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)])
+            }
+            None => placed,
+        };
+        // A terminal that left the click point says where and why, after the result.
+        let text = match moved {
+            Some(moved) => format!("{}, {moved}", strings::without_stop(&text)),
+            None => text,
+        };
+        // A valve dropped into a valve terminal's box says where it sits now.
+        let mut sentences: Vec<String> = std::iter::once(text)
+            .chain(rep.device.filter(|_| into).and_then(|d| self.seat_words(d)))
+            .collect();
+        if let Some(b) = rep.black_box.as_ref().filter(|b| !b.cells.is_empty()) {
+            sentences = self.terminal_placed_words(sentences.join(" "), rep.device, &b.cells);
+        }
+        // A far autoconnect hit is offered, not drawn, with Connect: its Undo and Connect are valid while the
+        // placement is the next undo step.
+        match (far.first().and_then(|f| far_offer(f, &cps, now)), without) {
+            (Some((question, wire)), without) => {
+                sentences.extend(without);
+                sentences.push(question);
+                let connect = self.undo_offer(NoteAction::Connect).map(|o| Offer {
+                    params: Some(wire),
+                    ..o
                 });
+                let undo = self.undo_offer(NoteAction::Undo);
+                self.notes
+                    .push(Note::of("edit", sentences).offering([undo, connect]));
+            }
+            (None, Some(without)) => self.notify_wired(sentences, without),
+            (None, None) => {
+                let undo = self.undo_offer(NoteAction::Undo);
+                self.notes.push(Note::of("edit", sentences).offering([undo]));
             }
         }
+    }
+
+    /// An interruption point dropped on a pin says where it stands, what it connects to and the way to place it free.
+    fn say_ip_connected(
+        &mut self,
+        pos: (i64, i64),
+        name: String,
+        pin: String,
+        external: bool,
+        taken: Option<String>,
+        placed: Option<String>,
+    ) {
+        let cell = self.canvas().and_then(|c| {
+            let page = c.page();
+            page.cell_text(page.snapper.page_to_sheet(pos))
+        });
+        let key = crate::command_bar::key_name(self, "canvas.activate_alt");
+        // An external point is named so.
+        let text = match (cell, external) {
+            (Some(cell), false) => strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key]),
+            (None, false) => strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key]),
+            (Some(cell), true) => {
+                strings::format(key!("toast-ip-external-connected"), &[&name, &cell, &pin, &key])
+            }
+            (None, true) => strings::format(
+                key!("toast-ip-external-connected-no-cell"),
+                &[&name, "", &pin, &key],
+            ),
+        };
+        // A renamed point says why first; where its partner is, last.
+        let sentences = taken.into_iter().chain([text]).chain(placed).collect();
+        let undo = self.undo_offer(NoteAction::Undo);
+        self.notes.push(Note::of("edit", sentences).offering([undo]));
+    }
+
+    /// A delete says the interruption points and the wires it took, the devices it left without a symbol and the
+    /// terminals it left drawn nowhere, with Remove them from the project beside its Undo.
+    fn say_deleted(
+        &mut self,
+        now: &PageTables,
+        names: Vec<String>,
+        wires: Vec<EntityRef>,
+        others: Vec<EntityRef>,
+        unplaced: Vec<(EntityRef, String, bool)>,
+        undrawn: Vec<EntityRef>,
+    ) {
+        let gone = wires
+            .iter()
+            .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
+            .count();
+        let ips = (!names.is_empty() && gone > 0).then(|| {
+            let key = match (names.len(), gone) {
+                (1, 1) => key!("toast-ip-deleted-wire"),
+                (1, _) => key!("toast-ip-deleted-wires"),
+                (_, 1) => key!("toast-ips-deleted-wire"),
+                _ => key!("toast-ips-deleted-wires"),
+            };
+            strings::format(key, &[&names.join(", "), &gone.to_string()])
+        });
+        // The wires drawn to the deleted symbols went with them (none stays drawn on no page).
+        let others = others
+            .iter()
+            .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
+            .count();
+        let others =
+            (others > 0).then(|| strings::format_count(crate::count_key!("toast-deleted-wires"), others));
+        // The devices left without a symbol stay in the project; the toast says where.
+        let unplaced = self
+            .project
+            .as_ref()
+            .and_then(|p| unplaced_text(&unplaced, |d| p.session.device_tag(d.0)));
+        // Terminals drawn nowhere stay in their strip and the lists, unless removed from the project too.
+        let terminals = (!undrawn.is_empty())
+            .then(|| strings::format_count(crate::count_key!("toast-terminals-undrawn"), undrawn.len()));
+        let sentences: Vec<String> = ips
+            .into_iter()
+            .chain(others)
+            .chain(unplaced)
+            .chain(terminals)
+            .collect();
+        if sentences.is_empty() {
+            return;
+        }
+        // Each sentence ends with its own full stop. Remove them from the project, beside the delete's Undo,
+        // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
+        // nothing); terminals that stay in the project are a consequence the person may not want, so the
+        // toast stays.
+        let undo = self.undo_offer(NoteAction::Undo);
+        if undrawn.is_empty() {
+            self.notes.push(Note::of("edit", sentences).offering([undo]));
+        } else {
+            let terminals: Vec<String> = undrawn.iter().map(|e| e.0.to_string()).collect();
+            let remove = self.undo_offer(NoteAction::RemoveUndrawn).map(|o| Offer {
+                params: Some(json!(terminals)),
+                ..o
+            });
+            self.notes.push(Note {
+                stays: true,
+                ..Note::of("edit", sentences).offering([undo, remove])
+            });
+        }
+    }
+
+    /// A cut says what it took and the wires it removed with it (the toast stays when it removed wires).
+    fn say_cut(&mut self, now: &PageTables, symbols: usize, terminals: bool, wires: Vec<EntityRef>) {
+        let what = if terminals {
+            crate::count_key!("toast-cut-terminals")
+        } else {
+            crate::count_key!("toast-cut-symbols")
+        };
+        let gone = wires
+            .iter()
+            .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
+            .count();
+        let sentences = std::iter::once(strings::format_count(what, symbols))
+            .chain((gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)))
+            .collect();
+        // Wires a cut removed are a consequence the person may not want: the toast stays.
+        let undo = self.undo_offer(NoteAction::Undo);
+        self.notes.push(Note {
+            stays: gone > 0,
+            ..Note::of("edit", sentences).offering([undo])
+        });
     }
 
     // -----------------------------------------------------------------------------------------------------------
