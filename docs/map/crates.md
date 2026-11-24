@@ -98,8 +98,11 @@ The `Session` facade shared by every front-end.
 | `src/output/editing/embeds.rs` |  | The `library.embed` parameters that place a starter or an installed library's symbol or part: the copies the project does not hold yet, and an installed symbol by its qualified address. |
 | `src/output/editing/shape.rs` |  | A symbol copy's shape (its outline flattened, its CPs with their directions and designations), the CP map of a symbol exchange, and the copies a valve terminal's cells and the undrawn bus ports need. |
 | `src/output/editing/supply.rs` |  | The supply marks as the window's Potential panel shows them (H9): a mark's name and definition, the supply's phase voltage, where a set of points comes from and a mark's group. |
-| `src/output/editing/tables.rs` | large | The page tables (`Session::page_tables`): every record drawn on a page as rows in page nm, in an order a person can see and a replay reproduces (representations, interruption points, boxes, potentials, CPs, connections, junctions, items, structure boxes). |
-| `src/output/fields.rs` | large | The field catalogue of the property grid: every field of every implemented record kind with its value type, category, label key and edit route, derived from the committed record schemas by one walker; and the parse, display and choice rules of the typed editors, which live here and nowhere else. |
+| `src/output/editing/tables.rs` |  | The page tables (`Session::page_tables`): every record drawn on a page as rows in page nm, in an order a person can see and a replay reproduces (representations, interruption points, boxes, potentials, CPs, connections, junctions, items, structure boxes). |
+| `src/output/fields.rs` |  | The field catalogue of the property grid: every field of every implemented record kind with its value type, category, label key and edit route, derived from the committed record schemas by one walker; and the parse, display and choice rules of the typed editors, which live here and nowhere else. |
+| `src/output/fields/catalogue.rs` |  | A kind's field catalogue (see the module documentation of `fields`): the walk of its record schema, the type of each node, and the route a field is edited by, or why it is read-only. |
+| `src/output/fields/display.rs` |  | A field's value in words (see the module documentation of `fields`): the text a row shows for its type. |
+| `src/output/fields/input.rs` |  | A typed value read (see the module documentation of `fields`): a row's text parsed by its type, the refusal of a text that does not read, a part found by its words, and the choices a row offers. |
 | `src/output/job.rs` |  | The PDF export as a job: a snapshot that crosses to the job's thread and runs the export's three phases there with a cold `Q`, progress and checkpoints. |
 | `src/output/join.rs` |  | The devices a placed symbol can join (FR-DEV-038): the read behind the Place tool's Join chooser and `place.pick`'s printed tags. |
 | `src/output/layers.rs` |  | `page_display_list(page, layer, lang)` (ARCH §6.4, doc 09 §4.1; ADR-0015 decision 1 and amendment 7): one memoised query family per layer, each building the view of its own layer from the parts it reads (`view.rs`), so a wire edit never rebuilds the title block and a renumber rebuilds only the frames whose Prev/Next changed. |
@@ -157,7 +160,11 @@ The `Session` facade shared by every front-end.
 | `src/output/title_block_fields.rs` |  | What the window's Title block fields form reads of a page (FT-1686): the placeholder paths the page's frame and title-block forms print, in the order of their cells, each with its text now; and where those values live (the project's ID, whether the page overrides the project's description, the open revision, the parties). |
 | `src/output/typeface.rs` |  | The project's typeface (doc 09 §4.8): the font set every page layer, the panel labels and the export shape the project's texts with ([`ProjectFontsQ`], [`fonts`]), and the fonts the writers and renderers draw them with ([`DrawingFonts`]). |
 | `src/output/underlay.rs` |  | Underlays (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a DXF drawing placed under a page by an import (`import.apply` of one `underlay` page item), and drawn by the export job when its options ask for them: the window's canvas always, an export only when the user prints underlays. |
-| `src/output/view.rs` | large | The glue rules of the page view (doc 09 §4.1): the parts of an [`ew_scene::page::PageView`] filled from the tracked read context `Q`. |
+| `src/output/view.rs` |  | The glue rules of the page view (doc 09 §4.1): the parts of an [`ew_scene::page::PageView`] filled from the tracked read context `Q`. |
+| `src/output/view/connections.rs` |  | The connections of a page's view (see the module documentation of `view`): the wires with their markers and numbers, the junctions, the connection points a report row links to and the strips' bridges. |
+| `src/output/view/items.rs` |  | The page items of a page's view (see the module documentation of `view`): its graphics and free texts, its structure boxes, the break marks of assembly overviews, the valve glyphs and cells and the notes beside a plug's pins. |
+| `src/output/view/reps.rs` |  | The representations of a page's view (see the module documentation of `view`): their symbols, their slot texts, a black box's pin texts and room, and the terminals a strip segment draws. |
+| `src/output/view/tables.rs` |  | The tables of a page's view (see the module documentation of `view`): the report table of a generated page and the embedded report blocks of a drawn one, the cover's tables, a row's links. |
 | `src/page_copy.rs` |  | A copy of pages in the session (doc 06 §3.6, "A copy of pages"): [`Session::copy_pages`] composes `page.copy` from the pages and the rule. |
 | `src/part_box.rs` |  | The device box of a part (doc 07 §2.5, "The device box"): the pins a part of one's own has and where they stand on the box a device of it is drawn as. |
 | `src/part_cable.rs` |  | The cable section of a cable part as a form (New cable type…): the number of cores, the cross-section, with or without a protective conductor, how the cores are marked, shielded or not, as texts checked one by one, and the cable as it will read (`3G1.5 · BN BU GNYE`). |
@@ -674,7 +681,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 | `src/record.rs` |  | Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2). |
 | `src/registry.rs` | large | [`Registry`]: the opened tiers, the one resolver and the search index (§7). |
 | `src/search.rs` |  | Part and item search: the queries, the hits and the order of D6 (doc 07 §4.3). |
-| `src/starter.rs` |  | The starter library: the shipped symbols and function definitions of `content/symbols`, `content/symbols/qet10` and `content/fndefs`, compiled in, so that a new project without symbol copies can place symbols. |
+| `src/starter.rs` |  | The starter library: the shipped symbols and function definitions of `content/symbols`, `content/symbols/qet10` and `content/fndefs`, and the shipped forms of `content/forms`, compiled in, so that a new project without symbol copies can place symbols. |
 | `src/starter_parts.rs` |  | The system library `ew-starter-parts` compiled in: the files of `content/libraries/ew-starter-parts.ewlib`, which the build script lists from the folder. |
 | `src/tiers.rs` |  | The four library tiers and where they live (doc 07 §2.1; doc 05 §1, §13.1). |
 
@@ -901,7 +908,7 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 |---|---|---|
 | `src/draft.rs` | large | The labels layer of a schematic page: the page as the layout sees it ([`ew_drafting::DraftPage`], built here once from the view, docs/design/06a-drafting.md §2.1 and §2.2) and its texts drawn where [`ew_drafting::settle_labels`] sets them (doc 06a §5). |
 | `src/embedded.rs` | large | Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size tables (doc 20 §17.3) and, for every other kind, a boxed report table (PART DATA, the layout legend). |
-| `src/forms/bindings.rs` |  | Placeholders and their bindings (doc 09 §2.6): `{scope.path \| filter …}` templates filled from a [`Bindings`] source. |
+| `src/forms/bindings.rs` |  | Placeholders and their bindings (doc 09 §2.6): `{scope.path \| filter …}` templates filled from a [`PageBindings`]. |
 | `src/forms/geometry.rs` |  | Frame geometry from a [`FrameGrid`]: the outer rectangle, the drawing area, the column and row edges, the labels and the title-block origin, all in page coordinates (nm, y down). |
 | `src/forms/mod.rs` |  | Frames, title blocks and their cells: a [`FormDef`] to the `frame` layer of doc 09 §4.1. |
 | `src/forms/sheet.rs` |  | The page-to-sheet transform (FR-PAG-029, doc 09 §2.5 and §4.1): a uniform integer scale in parts per 10⁹ and an offset, applied once by every writer with the same integer arithmetic. |
@@ -911,7 +918,12 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 | `src/items.rs` |  | Page items and structure boxes drawn: graphics and structure-box outlines in [`ew_dl::Layer::Symbols`], free texts, wire-marker groups and captions in [`ew_dl::Layer::Labels`]; no new layer, so the permissive display-list crate is unchanged. |
 | `src/knockout.rs` |  | A text a wire runs through stays readable (FT-1786, ADR-0034 amendment 3): the wires layer leaves out the stretch of every line that runs through the box of a text of the labels layer, and [`KNOCKOUT_GAP`] on each side of it along the line. |
 | `src/lib.rs` |  | A page as display lists per layer ([`page`]), the forms engine (frames, title blocks, report forms), text through `ew-text`. |
-| `src/page.rs` | large | Page display lists per layer (doc 09 §4.1, ARCH §6.4 `page_display_list(page, layer, lang)`, ADR-0015 decision 1 and amendment 2). |
+| `src/page.rs` |  | Page display lists per layer (doc 09 §4.1, ARCH §6.4 `page_display_list(page, layer, lang)`, ADR-0015 decision 1 and amendment 2). |
+| `src/page/cps.rs` |  | Where the page draws its connection points (see the module documentation of `page`): the drawn CPs, the tag's anchor, a connection's polyline between its drawn ends. |
+| `src/page/draw.rs` |  | The frame, tables and symbols layers of a page (see the module documentation of `page`): the frame form, the report tables and embedded blocks, the symbol instances with their static texts, the valve cells and the plug notes. |
+| `src/page/pins.rs` |  | The pin texts of a black box and the notes beside a plug's pins (see the module documentation of `page`, "Pin texts"): where each stands, its style, and the built-in measures the session sizes a box by. |
+| `src/page/text.rs` |  | The texts of a page's layers (see the module documentation of `page`): a text shaped and placed, its box, its lines and the links over the items it lists, and the styles it resolves. |
+| `src/page/wires.rs` |  | The wires layer of a page (see the module documentation of `page`): the connections, the junctions, the bridges and the level ties, and the lines a wire marker crosses. |
 | `src/panel.rs` | large | Panel-layout pages (doc 12 §5.1 to §5.3): the surface view of a `panel_layout` page drawn into the panel layers of [`ew_dl::Layer::PANEL`]. |
 | `src/pdf_text.rs` |  | The text of a PDF page as the migration verifier reads it (doc 14 §4.15, FR-IMP-021): every run of glyphs a page draws, with its string, the anchor of its first glyph and its box, in millimetres from the top left of the page; and the page labels of the file. |
 | `src/route.rs` |  | The polyline a connection is drawn along on its page. |
@@ -922,7 +934,7 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 
 ## ew-schema
 
-`crates/ew-schema` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-mltext`, `ew-rds`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-format`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-scene`, `ew-testkit` · in tests by none
+`crates/ew-schema` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-mltext`, `ew-rds`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-format`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-scene`, `ew-testkit`, `ew-text` · in tests by none
 
 The persisted record type of every entity kind (plain serde structs), the kind registry, per-kind schema versions and JSON Schemas.
 
@@ -1041,7 +1053,7 @@ The test kit, a crate only tests depend on: the builder DSL that speaks the comm
 
 ## ew-text
 
-`crates/ew-text` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-units` · used by `ew-api`, `ew-scene` · in tests by `ew-export`, `ew-render-cpu`
+`crates/ew-text` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-scene` · in tests by `ew-export`, `ew-render-cpu`
 
 Fonts and shaping: one text stack for screen, pagination and paper (ADR-0015 decision 4, ARCH §8.3).
 
