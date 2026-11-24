@@ -31,21 +31,28 @@ fn arguments_are_strings() {
 /// LO-3 and NL-1: the completeness gate lists every en-GB key a shipped locale (en-GB, nl-NL) lacks.
 #[test]
 fn every_shipped_locale_has_every_key() {
-    let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
+    let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("texts");
     let mut shipped: Vec<String> = std::fs::read_dir(&locales)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .collect();
     shipped.sort();
     assert!(shipped.iter().any(|l| l == "en-GB"), "{shipped:?}");
+    // The window's texts: its own files and those of the session and the commands.
+    let ids = |locale: &str| -> Vec<&'static str> {
+        strings::sources(locale)
+            .flat_map(str::lines)
+            .filter_map(|l| l.split_once(" =").map(|(id, _)| id))
+            .collect()
+    };
+    let keys: Vec<&str> = ids("en-GB")
+        .into_iter()
+        .filter(|id| id.starts_with(|c: char| c.is_ascii_alphabetic()))
+        .collect();
     let mut missing = Vec::new();
     for locale in &shipped {
-        let ftl = std::fs::read_to_string(locales.join(locale).join("shell.ftl")).unwrap();
-        let ids: Vec<&str> = ftl
-            .lines()
-            .filter_map(|l| l.split_once(" =").map(|(id, _)| id))
-            .collect();
-        for key in strings::KEYS {
+        let ids = ids(locale);
+        for key in &keys {
             if !ids.contains(key) {
                 missing.push(format!("{locale}: {key}"));
             }
@@ -116,13 +123,10 @@ fn arguments(ftl: &str) -> std::collections::BTreeMap<String, std::collections::
         .collect()
 }
 
-/// The shell file of the shipped locale `locale`.
+/// The window's files of the shipped locale `locale`, its own and those of the session and the commands, one after
+/// the other.
 fn shipped_file(locale: &str) -> String {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("locales")
-        .join(locale)
-        .join("shell.ftl");
-    std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
+    strings::sources(locale).collect::<String>().replace("\r\n", "\n")
 }
 
 /// Doc 16a §8 item 5: in every shipped locale every whole toast text ends with its full stop. Exempt
@@ -179,7 +183,7 @@ fn every_toast_ends_with_its_full_stop() {
 #[test]
 fn every_message_takes_the_arguments_of_en_gb() {
     let en = arguments(&shipped_file("en-GB"));
-    let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
+    let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("texts");
     let mut differ = Vec::new();
     for entry in std::fs::read_dir(&locales).unwrap() {
         let locale = entry.unwrap().file_name().to_string_lossy().into_owned();
@@ -397,7 +401,7 @@ fn texts(ftl: &str) -> String {
 
 /// The checks' nl-NL rule messages (`ew-checks`), which the Messages pane shows in Dutch (D10).
 fn rule_messages_nl() -> String {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-checks/messages/nl-NL/rules.ftl");
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-checks/texts/nl-NL/rules.ftl");
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
@@ -583,7 +587,7 @@ fn the_terminology_table_is_followed() {
     by_length.sort_by_key(|t| std::cmp::Reverse(t.en.len()));
     let rule_file = |locale: &str| {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../ew-checks/messages")
+            .join("../ew-checks/texts")
             .join(locale)
             .join("rules.ftl");
         std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")

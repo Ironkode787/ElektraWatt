@@ -765,7 +765,7 @@ mod tests {
     /// FT-1715: a tutorial added to the guide reaches Help ▸ Tutorials under its own name in both languages.
     #[test]
     fn every_tutorial_of_the_guide_has_a_label_in_both_languages() {
-        let nl = include_str!("../locales/nl-NL/shell.ftl");
+        let nl: String = strings::sources("nl-NL").collect();
         for (name, title) in tutorials() {
             let key = format!("tutorial-{name}");
             assert_eq!(strings::lookup(&key), Some(title), "{key} is the page's title");
@@ -780,7 +780,7 @@ mod tests {
     /// F5: a how-to guide added to the guide reaches Help ▸ Guides under its own name in both languages.
     #[test]
     fn every_guide_of_the_guide_has_a_label_in_both_languages() {
-        let nl = include_str!("../locales/nl-NL/shell.ftl");
+        let nl: String = strings::sources("nl-NL").collect();
         for (name, title) in guides() {
             let key = format!("guide-{name}");
             assert_eq!(strings::lookup(&key), Some(title), "{key} is the page's title");

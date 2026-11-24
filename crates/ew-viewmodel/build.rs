@@ -5,5 +5,5 @@
 //! key when the code is built.
 
 fn main() {
-    ew_l10n::build::generate("locales");
+    ew_l10n::build::generate("texts");
 }

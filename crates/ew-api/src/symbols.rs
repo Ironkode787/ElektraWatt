@@ -1419,12 +1419,15 @@ mod tests {
         );
     }
 
-    /// SM25#3: the words are the window's en-GB texts of the same keys.
+    /// SM25#3: the words are the en-GB texts of the same keys, which the window shows.
     #[test]
     fn the_words_are_the_windows_english() {
-        let ftl = include_str!("../../ew-viewmodel/locales/en-GB/shell.ftl");
+        let ftl = crate::SOURCES
+            .iter()
+            .filter(|(l, _)| *l == "en-GB")
+            .flat_map(|(_, s)| s.lines());
         let mut checked = 0;
-        for (key, text) in ftl.lines().filter_map(|l| l.split_once(" = ")) {
+        for (key, text) in ftl.filter_map(|l| l.split_once(" = ")) {
             if let Some(w) = words(key) {
                 assert_eq!(w, text, "{key}");
                 checked += 1;

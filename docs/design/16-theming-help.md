@@ -34,8 +34,9 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
 
 ## 12. UI localisation
 
-- **Stack.** fluent-bundle 0.16.0 with one `.ftl` resource per crate (`ew-ui`, `ew-viewmodel`, `ew-checks` rule
-  messages, `elektrawatt` menus), loaded at start and switchable at run time without restart (menus are rebuilt).
+- **Stack.** fluent-bundle 0.16.0 through the one renderer of `ew-l10n` ([04](04-architecture.md) §18): each crate that
+  says something keeps its `.ftl` files in `texts/<language>/<area>.ftl` (the window's, the commands', the
+  session's, the rule messages), loaded at start and switchable at run time without restart (menus are rebuilt).
   Keys are `area-object-detail` (`cmd-numbering-renumber`, `rule-pot013-title`, `rule-pot013-remedy`). Messages
   take arguments (`{ $tag }`, `{ $count }` with plural selectors) and are never concatenated. Bidi isolation marks
   are disabled (`set_use_isolating(false)`): v1 has no right-to-left UI locale, and the marks would otherwise end up

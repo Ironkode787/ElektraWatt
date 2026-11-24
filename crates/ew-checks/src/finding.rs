@@ -150,7 +150,7 @@ pub struct Finding {
     /// The message: the en-GB text, as the rule prints it (rendered when the rule ran).
     pub message: String,
     /// The message's typed arguments, by Fluent variable name (doc 15 §3.8): the printed values the
-    /// rule's pattern in `messages/<lang>/rules.ftl` renders the text from in another language
+    /// rule's pattern in `texts/<lang>/rules.ftl` renders the text from in another language
     /// ([`crate::messages::render`]). Empty for a rule whose messages have no pattern yet; the en-GB pattern renders
     /// [`message`](Self::message) from them byte for byte.
     pub args: Vec<(&'static str, String)>,

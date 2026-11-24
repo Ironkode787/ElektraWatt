@@ -5,5 +5,5 @@
 //! the code is built and the command line prints.
 
 fn main() {
-    ew_l10n::build::generate("../ew-viewmodel/locales");
+    ew_l10n::build::generate("texts");
 }

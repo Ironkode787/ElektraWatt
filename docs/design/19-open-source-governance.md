@@ -468,7 +468,7 @@ accounts.
 
 **Weblate workflow and glossary** (requested by [16](16-ux-ui.md)):
 - **Sources.**
-  - The `.ftl` resources of `ew-ui`, `ew-viewmodel`, `ew-checks` and `elektrawatt`, through Weblate's Fluent support
+  - The `.ftl` files of every crate's `texts/<language>/` folder, through Weblate's Fluent support
     (**verify** support for Fluent attributes and plurals).
   - The docs' PO files, produced by mdbook-i18n-helpers.
 - **Licence and sign-off.**

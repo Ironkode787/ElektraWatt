@@ -87,7 +87,7 @@ built from the same pages through mdbook-i18n-helpers 0.4.0 (pinned in `packagin
   stays at the end under `#~`. So to translate after pages changed: run `cargo xtask book-po`, then in `nl.po` bring each fuzzy
   entry's `msgstr` up to date and delete its `#, fuzzy` and `#|` lines. Only the `msgstr` texts are written by hand
   (no Weblate at 0.1.0, ID-1331). Keep the window's Dutch words (the terminology table at the head of
-  `crates/ew-viewmodel/locales/nl-NL/shell.ftl`) and its Dutch menu paths, which `elektrawatt`'s `tutorials` test
+  `crates/ew-viewmodel/texts/nl-NL/actions.ftl`) and its Dutch menu paths, which `elektrawatt`'s `tutorials` test
   checks.
 - `ci/build-book.sh` builds the Dutch book into `nl/` of the built book (`MDBOOK_BOOK__LANGUAGE=nl`, the
   `mdbook-gettext` preprocessor set from the environment, so `mdbook build docs/book` alone needs no plugin). F1 in a

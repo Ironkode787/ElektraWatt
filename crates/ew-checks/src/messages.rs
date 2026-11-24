@@ -3,7 +3,7 @@
 
 //! The rule messages in Fluent (doc 15 §3.8; ADR-0019 as amended, ADR-0024 for the dependency).
 //!
-//! One resource per language, `messages/<lang>/rules.ftl`, compiled into the binary. Every registered rule has the
+//! One resource per language, `texts/<lang>/rules.ftl`, compiled into the binary. Every registered rule has the
 //! message `rule-<id lower case>` (Fluent identifiers hold no dots) with the attributes `.title` and `.hint`; a rule
 //! whose findings carry typed arguments ([`Finding::args`]) also has the message's value, the pattern of its text:
 //!
@@ -48,8 +48,8 @@ pub const LANGUAGES: &[&str] = &["en-GB", "nl-NL"];
 
 /// The Fluent source of each shipped language, in [`LANGUAGES`] order.
 const SOURCES: &[&str] = &[
-    include_str!("../messages/en-GB/rules.ftl"),
-    include_str!("../messages/nl-NL/rules.ftl"),
+    include_str!("../texts/en-GB/rules.ftl"),
+    include_str!("../texts/nl-NL/rules.ftl"),
 ];
 
 /// The Fluent message ID of a rule: `rule-` and the rule ID in lower case (`rule-ew-pot-013`).

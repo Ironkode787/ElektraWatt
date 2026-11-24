@@ -2237,11 +2237,11 @@ mod ft779 {
     /// list holds it.
     #[test]
     fn every_command_error_reason_has_its_text_in_both_languages() {
-        let en = include_str!("../../locales/en-GB/shell.ftl");
-        let nl = include_str!("../../locales/nl-NL/shell.ftl");
+        let en: String = strings::sources("en-GB").collect();
+        let nl: String = strings::sources("nl-NL").collect();
         for key in COMMAND_ERROR_KEYS {
-            let a = arguments(en, key).unwrap_or_else(|| panic!("{key} has no en-GB text"));
-            assert_eq!(arguments(nl, key).as_ref(), Some(&a), "{key} in nl-NL");
+            let a = arguments(&en, key).unwrap_or_else(|| panic!("{key} has no en-GB text"));
+            assert_eq!(arguments(&nl, key).as_ref(), Some(&a), "{key} in nl-NL");
         }
         let errors = [
             CmdError::UnknownCommand { name: "x.y".into() },

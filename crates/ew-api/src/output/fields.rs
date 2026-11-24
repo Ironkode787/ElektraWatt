@@ -1827,7 +1827,7 @@ pub(crate) fn parse_input(
                     let names = forms.into_iter().rev().fold(None, |tail, (_, name)| {
                         Some(match tail {
                             None => crate::TextArg::from(name),
-                            Some(tail) => text!("refusal-words-list", name, tail).into(),
+                            Some(tail) => ew_commands::text!("refusal-words-list", name, tail).into(),
                         })
                     });
                     Err(invalid(text!(

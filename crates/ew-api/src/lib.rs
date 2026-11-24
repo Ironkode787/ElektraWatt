@@ -285,6 +285,18 @@ pub use ew_derive::ew_ids::{EntropyError, UnixTime};
 /// A text by key: the window renders it in its language, the CLI prints its English.
 pub use ew_l10n::{Text, TextArg};
 
+/// The text files of the session and of `ew-commands`, whose texts reach a front end, as (language, the file's
+/// text): the window loads them beside its own.
+pub fn text_sources() -> impl Iterator<Item = (&'static str, &'static str)> {
+    SOURCES.iter().chain(ew_commands::SOURCES).copied()
+}
+
+/// Whether `key` is a key of the session's text files or of those of `ew-commands`: the window names some of them
+/// too, and its `key!` checks them when the code is built.
+pub const fn has_text(key: &str) -> bool {
+    text_english(key).is_some() || ew_commands::text_english(key).is_some()
+}
+
 use ew_commands::commands::PurgeAssets;
 use ew_commands::{Command as _, Engine, EngineOptions};
 
@@ -1847,7 +1859,7 @@ impl Session {
             CmdError::invalid_params(
                 PurgeAssets::NAME,
                 "",
-                text!("refusal-params-detail", e.to_string()),
+                ew_commands::text!("refusal-params-detail", e.to_string()),
             )
         })?;
         let listed = cmd.listed()?;

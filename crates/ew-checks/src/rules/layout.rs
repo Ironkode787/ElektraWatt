@@ -19,7 +19,7 @@
 //! designation member); a location by its `+` designation. IDs enter only targets and fingerprints.
 //! EW-LAY-010's end-bracket cases name a rail by its derived label in a sentence ("rail 2")
 //! and print a length in millimetres without a trailing ".0" ("by 10 mm").
-//! Every finding carries its message arguments; the en-GB patterns of `messages/en-GB/rules.ftl` render the messages
+//! Every finding carries its message arguments; the en-GB patterns of `texts/en-GB/rules.ftl` render the messages
 //! byte for byte.
 //!
 //! # Geometry

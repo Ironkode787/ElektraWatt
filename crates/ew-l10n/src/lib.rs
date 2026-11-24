@@ -213,7 +213,8 @@ pub const fn arity(template: &str) -> usize {
 /// before its modules; its `build.rs` has called [`build::generate`] on the folder. The `crate` it is given names the
 /// crate in the macros it makes, so that they find its table from any crate. The crate gets
 ///
-/// - `TEXTS`, its key table, and `text_english(key)`, the English of a key of it;
+/// - `TEXTS`, its key table, and `text_english(key)`, the English of a key of it; `SOURCES`, its text files, which a
+///   front end that shows its texts loads;
 /// - `text!("key", args…)`, the [`Text`] of a key of the table with as many arguments (each a `String`, a `&str` or a
 ///   [`Text`]) as its English takes;
 /// - `key!("key")`, a key of the table as it is, for a crate that hands a key to a front end.
@@ -227,6 +228,7 @@ macro_rules! texts {
     };
     (@ $c:tt $d:tt) => {
         include!(concat!(env!("OUT_DIR"), "/texts.rs"));
+        include!(concat!(env!("OUT_DIR"), "/sources.rs"));
 
         /// The English text of `key`, its arguments written `{0}`, `{1}`, …, or `None` for a key that [`TEXTS`] does
         /// not hold.

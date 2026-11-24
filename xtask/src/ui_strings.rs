@@ -290,7 +290,7 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
         for (line, lit) in findings(&src, &allow, &mut used) {
             out.push(format!(
                 "{rel}:{line}: the literal \"{lit}\" reaches an egui text call; give it a key in \
-                 crates/ew-viewmodel/locales/en-GB/shell.ftl or, for a symbol, list it in {ALLOW}"
+                 a file of crates/ew-viewmodel/texts/en-GB/ or, for a symbol, list it in {ALLOW}"
             ));
         }
     }

@@ -10,9 +10,10 @@
 
 The report is a Markdown table per kind of text, a row per locale:
 
-  - the window (`crates/ew-viewmodel/locales/<locale>/*.ftl`): the en-GB messages a locale has, and the core flow's
-    share, which is the same set, since WP-S2.08's completeness gate asks every key of every shipped locale;
-  - the rule messages (`crates/ew-checks/messages/<locale>/*.ftl`): each message's value and attributes (`.title`,
+  - the window (`crates/<crate>/texts/<locale>/*.ftl` of every crate but `ew-checks`: the window's own texts and
+    those of the crates whose texts it shows): the en-GB messages a locale has, and the core flow's share, which is
+    the same set, since WP-S2.08's completeness gate asks every key of every shipped locale;
+  - the rule messages (`crates/ew-checks/texts/<locale>/*.ftl`): each message's value and attributes (`.title`,
     `.hint`) that en-GB has;
   - the user guide (`docs/book/po/`): the messages of the template `messages.pot` that each `<language>.po` translates
     (a fuzzy or empty translation is untranslated), and of those the tutorials' (the messages that the introduction or
@@ -34,8 +35,9 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-UI = os.path.join("crates", "ew-viewmodel", "locales")
-RULES = os.path.join("crates", "ew-checks", "messages")
+CRATES = "crates"
+TEXTS = "texts"
+RULES = os.path.join(CRATES, "ew-checks", TEXTS)
 PO_DIR = os.path.join("docs", "book", "po")
 TEMPLATE = "messages.pot"
 SOURCE = "en-GB"
@@ -77,24 +79,39 @@ def ftl_texts(text):
     return texts
 
 
-def locale_texts(root, kind):
-    """{locale: the texts of its .ftl files} for the folder `kind` under `root`."""
-    folder = os.path.join(root, kind)
-    if not os.path.isdir(folder):
-        raise Refusal(f"{kind} is missing")
+def ui_folders(root):
+    """The text folders of the window's texts: `texts/` of every crate but the rule messages' one."""
+    crates = os.path.join(root, CRATES)
+    if not os.path.isdir(crates):
+        raise Refusal(f"{CRATES} is missing")
+    folders = [
+        os.path.join(CRATES, name, TEXTS)
+        for name in sorted(os.listdir(crates))
+        if os.path.isdir(os.path.join(crates, name, TEXTS)) and os.path.join(CRATES, name, TEXTS) != RULES
+    ]
+    if not folders:
+        raise Refusal(f"no {os.path.join(CRATES, '<crate>', TEXTS)} but the rule messages'")
+    return folders
+
+
+def locale_texts(root, kinds):
+    """{locale: the texts of its .ftl files} over the folders `kinds` under `root`."""
     out = {}
-    for locale in sorted(os.listdir(folder)):
-        path = os.path.join(folder, locale)
-        if not os.path.isdir(path):
-            continue
-        texts = set()
-        for name in sorted(os.listdir(path)):
-            if name.endswith(".ftl"):
-                with open(os.path.join(path, name), encoding="utf-8") as f:
-                    texts |= ftl_texts(f.read())
-        out[locale] = texts
-    if SOURCE not in out:
-        raise Refusal(f"{os.path.join(kind, SOURCE)} is missing")
+    for kind in kinds:
+        folder = os.path.join(root, kind)
+        if not os.path.isdir(folder):
+            raise Refusal(f"{kind} is missing")
+        if not os.path.isdir(os.path.join(folder, SOURCE)):
+            raise Refusal(f"{os.path.join(kind, SOURCE)} is missing")
+        for locale in sorted(os.listdir(folder)):
+            path = os.path.join(folder, locale)
+            if not os.path.isdir(path):
+                continue
+            texts = out.setdefault(locale, set())
+            for name in sorted(os.listdir(path)):
+                if name.endswith(".ftl"):
+                    with open(os.path.join(path, name), encoding="utf-8") as f:
+                        texts |= ftl_texts(f.read())
     return out
 
 
@@ -191,13 +208,14 @@ def report(root):
     lines = ["# Translation status", ""]
     failures = []
 
-    ui = locale_texts(root, UI)
+    ui = locale_texts(root, ui_folders(root))
     source = ui[SOURCE]
     lines += [
         "## The window",
         "",
-        f"The messages of `{UI.replace(os.sep, '/')}/`. The core flow is the set that WP-S2.08's completeness gate "
-        "asks of every shipped locale: every key, so its share is the window's.",
+        f"The messages of the `{TEXTS}/` folders of every crate but `ew-checks`: the window's own and those of the "
+        "crates whose texts it shows. The core flow is the set that WP-S2.08's completeness gate asks of every shipped "
+        "locale: every key, so its share is the window's.",
         "",
         "| Locale | Messages | Of en-GB | Share | Core flow |",
         "|---|---|---|---|---|",
@@ -209,9 +227,9 @@ def report(root):
         if locale == BAR_LOCALE and part < BAR:
             failures.append(f"{locale} has {pct(part)} of the window's texts, below {pct(BAR)}")
     if BAR_LOCALE not in ui:
-        failures.append(f"{os.path.join(UI, BAR_LOCALE)} is missing")
+        failures.append(f"the window's {BAR_LOCALE} texts are missing")
 
-    rules = locale_texts(root, RULES)
+    rules = locale_texts(root, [RULES])
     source = rules[SOURCE]
     lines += [
         "",
@@ -333,10 +351,12 @@ class StatusTest(unittest.TestCase):
         )
 
     def fixture(self, nl_ui, nl_po):
-        self.write("crates/ew-viewmodel/locales/en-GB/shell.ftl", "".join(f"k{i} = t\n" for i in range(20)))
-        self.write("crates/ew-viewmodel/locales/nl-NL/shell.ftl", "".join(f"k{i} = t\n" for i in range(nl_ui)))
-        self.write("crates/ew-checks/messages/en-GB/rules.ftl", "rule-a = m\n    .title = T\n    .hint = H\n")
-        self.write("crates/ew-checks/messages/nl-NL/rules.ftl", "rule-a =\n    .title = T\n")
+        self.write("crates/ew-viewmodel/texts/en-GB/menus.ftl", "".join(f"k{i} = t\n" for i in range(15)))
+        self.write("crates/ew-api/texts/en-GB/session.ftl", "".join(f"k{i} = t\n" for i in range(15, 20)))
+        self.write("crates/ew-viewmodel/texts/nl-NL/menus.ftl", "".join(f"k{i} = t\n" for i in range(min(15, nl_ui))))
+        self.write("crates/ew-api/texts/nl-NL/session.ftl", "".join(f"k{i} = t\n" for i in range(15, nl_ui)))
+        self.write("crates/ew-checks/texts/en-GB/rules.ftl", "rule-a = m\n    .title = T\n    .hint = H\n")
+        self.write("crates/ew-checks/texts/nl-NL/rules.ftl", "rule-a =\n    .title = T\n")
         self.write(
             "docs/book/po/messages.pot",
             self.HEADER
@@ -389,10 +409,10 @@ class StatusTest(unittest.TestCase):
         self.assertEqual(pct(share(0, 0)), "100.0 %")
 
     def test_a_missing_file_is_refused_by_name(self):
-        self.write("crates/ew-viewmodel/locales/nl-NL/shell.ftl", "a = b\n")
+        self.write("crates/ew-viewmodel/texts/nl-NL/menus.ftl", "a = b\n")
         with self.assertRaises(Refusal) as refused:
             report(self.root)
-        self.assertEqual(str(refused.exception), os.path.join(UI, SOURCE) + " is missing")
+        self.assertEqual(str(refused.exception), os.path.join(CRATES, "ew-viewmodel", TEXTS, SOURCE) + " is missing")
 
     def test_stale_compares_the_messages_only(self):
         self.write("a.pot", self.HEADER + '#: src/a.md:1\nmsgid "One"\nmsgstr ""\n')

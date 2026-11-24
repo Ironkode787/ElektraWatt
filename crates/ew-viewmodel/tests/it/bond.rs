@@ -243,10 +243,10 @@ fn the_bond_hint_names_the_menu_path_in_the_registrys_words() {
             .map(ew_viewmodel::strings::text)
             .join(" \u{25b8} ")
     };
-    let en = include_str!("../../../ew-checks/messages/en-GB/rules.ftl");
+    let en = include_str!("../../../ew-checks/texts/en-GB/rules.ftl");
     assert!(en.contains(&format!(" and choose {}, or take that wire away.\n", path())));
     assert!(ew_viewmodel::strings::set_locale("nl"));
-    let nl = include_str!("../../../ew-checks/messages/nl-NL/rules.ftl");
+    let nl = include_str!("../../../ew-checks/texts/nl-NL/rules.ftl");
     assert!(nl.contains(&format!(" en kies {}, of haal die draad weg.\n", path())));
     assert!(ew_viewmodel::strings::set_locale("en"));
 }

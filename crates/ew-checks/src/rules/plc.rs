@@ -13,7 +13,7 @@
 //!
 //! A channel is named `<module tag>:<designation>` (its determined designation, else its number), an address by the
 //! configuration project's profile (`Q0.1`), a device by its derived tag. IDs enter only targets and fingerprints.
-//! Every finding carries its message arguments; the en-GB patterns of `messages/en-GB/rules.ftl` render the messages
+//! Every finding carries its message arguments; the en-GB patterns of `texts/en-GB/rules.ftl` render the messages
 //! byte for byte.
 //!
 //! # Prevent mode

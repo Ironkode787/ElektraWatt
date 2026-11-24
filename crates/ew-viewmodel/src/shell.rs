@@ -1027,8 +1027,8 @@ mod choice_word_tests {
         for set in super::choices::ALL {
             values.extend(set.iter().map(|v| (*v).to_owned()));
         }
-        let nl: std::collections::BTreeSet<&str> = include_str!("../locales/nl-NL/shell.ftl")
-            .lines()
+        let nl: std::collections::BTreeSet<&str> = strings::sources("nl-NL")
+            .flat_map(str::lines)
             .filter_map(|l| l.split_once(" = ").map(|(k, _)| k))
             .collect();
         let mut missing = std::collections::BTreeSet::new();

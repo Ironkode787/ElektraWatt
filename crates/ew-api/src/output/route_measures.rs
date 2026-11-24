@@ -267,7 +267,7 @@ fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::
         .connections
         .iter()
         .find(|c| c.id == id)
-        .map(|c| text!("refusal-words-connection", end(&c.a), end(&c.b)))
+        .map(|c| ew_commands::text!("refusal-words-connection", end(&c.a), end(&c.b)))
 }
 
 /// The owner `id` of a body or a text box of `tables` in words: a representation's device tag as the page prints it,

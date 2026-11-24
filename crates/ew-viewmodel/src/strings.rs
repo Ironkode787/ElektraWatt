@@ -3,11 +3,12 @@
 
 //! The texts of the shell, by key, in the UI language.
 //!
-//! Every user-facing text of `ew-viewmodel` and `ew-ui` is a message of the en-GB Fluent file
-//! `locales/en-GB/shell.ftl`; no other literal reaches a screen, a menu, a banner or a transcript. The code names a key
-//! with [`key!`](crate::key), checked at compile time against [`KEYS`] (the key list `build.rs` writes
-//! from that file), or, for a key built at run time, with [`Key::run_time`]. A text may take the arguments
-//! `{ $p0 }`, `{ $p1 }`, … that [`format()`] fills in, always as strings; [`text`] shows them as `{0}`, `{1}`, ….
+//! Every user-facing text of `ew-viewmodel` and `ew-ui` is a message of the en-GB Fluent files `texts/en-GB/*.ftl`,
+//! one per area; no other literal reaches a screen, a menu, a banner or a transcript. The window shows the texts of
+//! `ew-api` and `ew-commands` too ([`sources`]). The code names a key with [`key!`](crate::key), checked at compile time
+//! against [`KEYS`] (the key list `build.rs` writes from those files) and the keys of the session's and the commands'
+//! files, or, for a key built at run time, with [`Key::run_time`]. A text may take the arguments `{ $p0 }`, `{ $p1 }`,
+//! … that [`format()`] fills in, always as strings; [`text`] shows them as `{0}`, `{1}`, ….
 //!
 //! The UI language is process-wide ([`set_locale`]): `en` (en-GB, the source and the fallback of every other message)
 //! and the pseudo-locale `en-XA` of the tests (D11), generated at load from en-GB and never shipped as a file.
@@ -19,14 +20,27 @@ use std::sync::{OnceLock, PoisonError, RwLock};
 
 use ew_l10n::fluent::{Language, OnError, Value};
 
-/// The key list that `build.rs` writes from the en-GB text files.
+/// The key list and the list of text files that `build.rs` writes from the shell's text folder.
 mod keys {
     include!(concat!(env!("OUT_DIR"), "/keys.rs"));
+    include!(concat!(env!("OUT_DIR"), "/sources.rs"));
 }
 
 pub use keys::KEYS;
 
-/// A text key: a key of [`KEYS`] that [`text`], [`format()`] and [`format_count`] look up.
+/// The Fluent sources of the window's texts in `language` (`en-GB`, `nl-NL`): the shell's own files, then those of
+/// the session and the commands, whose texts it shows too (`ew_api::text_sources`).
+pub fn sources(language: &str) -> impl Iterator<Item = &'static str> + '_ {
+    keys::SOURCES
+        .iter()
+        .copied()
+        .chain(ew_api::text_sources())
+        .filter(move |(l, _)| *l == language)
+        .map(|(_, source)| source)
+}
+
+/// A text key: a key of the window's texts ([`KEYS`] and the keys of the session's and the commands' files) that
+/// [`text`], [`format()`] and [`format_count`] look up.
 ///
 /// A key written in the code is [`key!`](crate::key)`("…")`, checked at compile time: a misspelt key fails the build.
 /// A key built at run time (a family such as `action-<id>` or `tool-<name>`) goes through [`Key::run_time`], the one
@@ -64,8 +78,9 @@ impl CountKey {
     }
 }
 
-/// Whether `key` is a key of [`KEYS`]: the compile-time check of [`key!`](crate::key). It is a binary search of the
-/// sorted list, because the compiler runs it once for every key the code names.
+/// Whether `key` is a key of [`KEYS`], or of the session's and the commands' files that the window shows too
+/// (`ew_api::has_text`): the compile-time check of [`key!`](crate::key). It is a binary search of the sorted list,
+/// because the compiler runs it once for every key the code names.
 pub const fn has_key(key: &str) -> bool {
     let wanted = key.as_bytes();
     let (mut low, mut high) = (0, KEYS.len());
@@ -86,10 +101,11 @@ pub const fn has_key(key: &str) -> bool {
             high = mid;
         }
     }
-    false
+    ew_api::has_text(key)
 }
 
-/// The text key `$k`, a string literal, checked at compile time against [`KEYS`](crate::strings::KEYS).
+/// The text key `$k`, a string literal, checked at compile time against [`KEYS`](crate::strings::KEYS) and the keys of
+/// the session's and the commands' files ([`has_key`](crate::strings::has_key)).
 ///
 /// ```
 /// use ew_viewmodel::{key, strings};
@@ -151,12 +167,6 @@ macro_rules! count_key {
     };
 }
 
-/// The en-GB Fluent source of the shell's texts: the source language, and the fallback of every other message.
-const EN_GB: &str = include_str!("../locales/en-GB/shell.ftl");
-
-/// The nl-NL Fluent source of the shell's texts (D12): the settings value `nl`.
-const NL_NL: &str = include_str!("../locales/nl-NL/shell.ftl");
-
 /// The tag of the pseudo-locale of the tests (D11).
 pub const PSEUDO: &str = "en-XA";
 
@@ -169,19 +179,24 @@ const ARGS: [&str; 10] = ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", 
 struct Locale {
     tag: String,
     language: Option<Language>,
-    texts: BTreeMap<&'static str, &'static str>,
+    texts: BTreeMap<Box<str>, &'static str>,
 }
 
 impl Locale {
-    /// The language `tag` from the Fluent source `source`. A resource that does not parse is a defect the tests
-    /// catch (`every_shipped_resource_parses`); the entries that parse are still served, and a duplicate entry keeps
-    /// the first (the tests reject duplicates). A pattern that resolves with an error keeps the text Fluent writes.
-    fn from_source(tag: &str, source: &str) -> Locale {
+    /// The language `tag` from the Fluent sources `sources`, formatted for the keys of `en_gb` (its own keys when
+    /// it is en-GB). A resource that does not parse is a defect the tests catch (`every_shipped_resource_parses`); the
+    /// entries that parse are still served, and a duplicate entry keeps the first (the tests reject duplicates). A
+    /// pattern that resolves with an error keeps the text Fluent writes.
+    fn from_sources<'s>(
+        tag: &str,
+        sources: impl IntoIterator<Item = &'s str>,
+        en_gb: Option<&Language>,
+    ) -> Locale {
         // `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
         // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it.
         let language = Language::new(
             tag,
-            [source],
+            sources,
             &[("IN_SENTENCE", |_, label| in_sentence(label))],
             false,
         );
@@ -189,11 +204,11 @@ impl Locale {
         let args = arguments(&shown);
         let mut texts = BTreeMap::new();
         // The keys of en-GB only: no code names another.
-        for key in KEYS {
+        for key in en_gb.unwrap_or(&language).keys() {
             let Some(text) = language.format(key, None, &args, OnError::Keep) else {
                 continue;
             };
-            texts.insert(*key, &*Box::leak(text.into_boxed_str()));
+            texts.insert(Box::from(key), &*Box::leak(text.into_boxed_str()));
         }
         Locale {
             tag: tag.to_owned(),
@@ -210,7 +225,7 @@ impl Locale {
             .iter()
             .map(|(k, t)| {
                 let t: &'static str = Box::leak(ew_l10n::fluent::pseudo(t).into_boxed_str());
-                (*k, t)
+                (k.clone(), t)
             })
             .collect();
         Locale {
@@ -252,13 +267,13 @@ fn arguments(values: &[String]) -> Vec<(&'static str, Value<'_>)> {
 /// en-GB, loaded once.
 fn en_gb() -> &'static Locale {
     static EN: OnceLock<Locale> = OnceLock::new();
-    EN.get_or_init(|| Locale::from_source("en-GB", EN_GB))
+    EN.get_or_init(|| Locale::from_sources("en-GB", sources("en-GB"), None))
 }
 
 /// nl-NL, loaded once on its first use; its tag is the settings value `nl`.
 fn nl_nl() -> &'static Locale {
     static NL: OnceLock<Locale> = OnceLock::new();
-    NL.get_or_init(|| Locale::from_source("nl", NL_NL))
+    NL.get_or_init(|| Locale::from_sources("nl", sources("nl-NL"), en_gb().language.as_ref()))
 }
 
 /// The languages loaded besides en-GB: the pseudo-locale once selected, and the test languages of `testkit`.
@@ -367,16 +382,20 @@ pub fn rule_language() -> &'static str {
 /// before is replaced for later selections.
 #[cfg(feature = "testkit")]
 pub fn register_locale_for_tests(tag: &str, source: &str) {
-    let locale: &'static Locale = Box::leak(Box::new(Locale::from_source(tag, source)));
+    let locale: &'static Locale = Box::leak(Box::new(Locale::from_sources(
+        tag,
+        [source],
+        en_gb().language.as_ref(),
+    )));
     let mut all = LOADED.write().unwrap_or_else(PoisonError::into_inner);
     all.retain(|l| l.tag != tag);
     all.push(locale);
 }
 
-/// The parse errors of the en-GB Fluent source (empty when it parses): for the tests.
+/// The parse errors of the en-GB Fluent sources (empty when they parse): for the tests.
 #[doc(hidden)]
 pub fn en_gb_errors() -> Vec<String> {
-    ew_l10n::fluent::parse_errors(EN_GB)
+    sources("en-GB").flat_map(ew_l10n::fluent::parse_errors).collect()
 }
 
 /// The text of `key` in the source language, en-GB, whatever the UI language is (the guide's headings are English).
@@ -390,7 +409,7 @@ pub fn source_keys(prefix: &str) -> Vec<&'static str> {
     en_gb()
         .texts
         .range::<str, _>((std::ops::Bound::Included(prefix), std::ops::Bound::Unbounded))
-        .map(|(k, _)| *k)
+        .map(|(k, _)| &**k)
         .take_while(|k| k.starts_with(prefix))
         .map(|k| &k[prefix.len()..])
         .collect()
@@ -898,9 +917,14 @@ mod tests {
 
     const NOW: u64 = 1_793_000_000_000;
 
+    /// Every key of the window's en-GB texts, its own and those of the session and the commands.
+    fn window_keys() -> impl Iterator<Item = &'static str> {
+        en_gb().language.iter().flat_map(Language::keys)
+    }
+
     /// Every key with its en-GB text.
     fn texts() -> impl Iterator<Item = (&'static str, &'static str)> {
-        KEYS.iter().map(|k| (*k, en_gb().texts[k]))
+        window_keys().map(|k| (k, en_gb().texts[k]))
     }
 
     /// A part shown on its own line starts with a capital; a designation, a code or a digit first
@@ -990,7 +1014,7 @@ mod tests {
         assert_eq!(command_title("plugin.custom"), "plugin.custom");
     }
 
-    /// Every built-in command has its title key, and every `command-` key of `KEYS` names a built-in
+    /// Every built-in command has its title key, and every `command-` key of the texts names a built-in
     /// command.
     #[test]
     fn the_command_title_keys_are_the_builtin_commands() {
@@ -1004,11 +1028,7 @@ mod tests {
             .map(|k| format!("the key {k} has no text"))
             .collect();
         assert_eq!(missing, Vec::<String>::new());
-        let table: Vec<&str> = KEYS
-            .iter()
-            .copied()
-            .filter(|k| k.starts_with("command-"))
-            .collect();
+        let table: Vec<&str> = window_keys().filter(|k| k.starts_with("command-")).collect();
         assert!(table.contains(&"command-device-place"), "{table:?}");
         let stray: Vec<String> = table
             .iter()
@@ -1040,12 +1060,10 @@ mod tests {
     /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
     #[test]
     fn the_dutch_file_parses_with_every_key() {
-        let errors = ew_l10n::fluent::parse_errors(NL_NL);
+        let errors: Vec<String> = sources("nl-NL").flat_map(ew_l10n::fluent::parse_errors).collect();
         assert!(errors.is_empty(), "{errors:?}");
-        let missing: Vec<&str> = KEYS
-            .iter()
-            .copied()
-            .filter(|k| !nl_nl().texts.contains_key(k))
+        let missing: Vec<&str> = window_keys()
+            .filter(|k| !nl_nl().texts.contains_key(*k))
             .collect();
         assert_eq!(missing, Vec::<&str>::new());
         assert_eq!(nl_nl().texts["language-name"], "Nederlands");
@@ -1092,7 +1110,7 @@ mod tests {
     /// `record-kind-*` texts.
     fn catalogue_fields() -> Vec<(String, String, ew_api::output::FieldType)> {
         let mut out = Vec::new();
-        for line in include_str!("../locales/en-GB/shell.ftl").lines() {
+        for line in sources("en-GB").flat_map(str::lines) {
             let Some((kind, _)) = line
                 .strip_prefix("record-kind-")
                 .and_then(|l| l.split_once(" = "))
@@ -1112,8 +1130,8 @@ mod tests {
 
     /// The keys of the nl-NL file.
     fn nl_keys() -> BTreeSet<&'static str> {
-        include_str!("../locales/nl-NL/shell.ftl")
-            .lines()
+        sources("nl-NL")
+            .flat_map(str::lines)
             .filter_map(|l| l.split_once(" = ").map(|(k, _)| k))
             .collect()
     }

@@ -16,15 +16,10 @@ use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
-/// The keys of the shipped Fluent file of `locale`.
+/// The keys of the shipped Fluent files of `locale`.
 fn keys(locale: &str) -> BTreeSet<String> {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("locales")
-        .join(locale)
-        .join("shell.ftl");
-    std::fs::read_to_string(path)
-        .unwrap()
-        .lines()
+    strings::sources(locale)
+        .flat_map(str::lines)
         .filter(|l| !l.starts_with('#'))
         .filter_map(|l| l.split_once(" = ").map(|(k, _)| k.to_owned()))
         .collect()

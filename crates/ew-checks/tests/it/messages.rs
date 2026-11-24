@@ -16,8 +16,8 @@ use ew_checks::rules::core::INTEGRITY;
 use serde_json::json;
 
 const SOURCES: [(&str, &str); 2] = [
-    ("en-GB", include_str!("../../messages/en-GB/rules.ftl")),
-    ("nl-NL", include_str!("../../messages/nl-NL/rules.ftl")),
+    ("en-GB", include_str!("../../texts/en-GB/rules.ftl")),
+    ("nl-NL", include_str!("../../texts/nl-NL/rules.ftl")),
 ];
 
 /// The message IDs a resource defines, in file order (`rule-…` at the start of a line).

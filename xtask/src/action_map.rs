@@ -25,8 +25,11 @@ pub(crate) const OUTPUT: &str = "docs/map/actions.md";
 const TABLE_DIR: &str = "crates/ew-viewmodel/src/actions/table";
 /// The view-model's source, where the handlers' methods are.
 const SOURCE_DIR: &str = "crates/ew-viewmodel/src";
-/// The English catalogue; the Dutch one holds the same keys.
-const CATALOGUE: &str = "crates/ew-viewmodel/locales/en-GB/shell.ftl";
+/// The crates whose `texts/en-GB/` folders hold the texts the window shows: every crate's but the rule messages'
+/// (`crates/ew-checks`). The Dutch folders hold the same keys.
+const CATALOGUE: &str = "crates";
+/// The crate whose texts are the rule messages.
+const RULE_MESSAGES: &str = "ew-checks";
 /// The arguments of `act(…)` before its handler: ID, kind, category, shortcuts, enabled, menu slot.
 const ARGS_BEFORE_HANDLER: usize = 6;
 
@@ -300,7 +303,24 @@ fn generate(root: &Path) -> Result<String> {
         entries.extend(entries_of(&file, &read(&file)?)?);
     }
     let defs = definitions(&rust_files(root, SOURCE_DIR)?);
-    let ftl = read(CATALOGUE)?;
+    let names = |dir: &str| -> Result<Vec<String>> {
+        let mut names: Vec<String> = std::fs::read_dir(root.join(dir))
+            .with_context(|| format!("reading {dir}"))?
+            .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))
+            .collect();
+        names.sort();
+        Ok(names)
+    };
+    let mut ftl = String::new();
+    for krate in names(CATALOGUE)? {
+        let folder = format!("{CATALOGUE}/{krate}/texts/en-GB");
+        if krate == RULE_MESSAGES || !root.join(&folder).is_dir() {
+            continue;
+        }
+        for area in names(&folder)?.into_iter().filter(|name| name.ends_with(".ftl")) {
+            ftl.push_str(&read(&format!("{folder}/{area}"))?);
+        }
+    }
     let keys = catalogue_keys(&ftl);
     let ids: Vec<&str> = entries.iter().map(|e| e.id.as_str()).collect();
     let by_action = keys_by_action(&ids, &keys);
@@ -314,9 +334,9 @@ fn generate(root: &Path) -> Result<String> {
          changes only when an action, a handler's file or a key does: search the name in the file it names. The code builds an action's keys \
          from its ID (`action-file-new` is the label of `file.new`; also `tooltip-`, `bar-`, `valve-`, `menu-`, \
          `form-hint-<action>-<field>`), so a search for the ID finds them only here.\n\n\
-         Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch, in \
-         `crates/ew-viewmodel/locales/nl-NL/shell.ftl`.\n\n\
-         | Action | Entry | Handler | Text keys (in `locales/en-GB/shell.ftl` and `locales/nl-NL/shell.ftl`) |\n|---|---|---|---|\n",
+         Every key stands in a file of the `texts/en-GB/` folder of the crate that says it and, in Dutch, in its \
+         `texts/nl-NL/`.\n\n\
+         | Action | Entry | Handler | Text keys (in `texts/en-GB/` and `texts/nl-NL/`) |\n|---|---|---|---|\n",
     );
     for (i, e) in entries.iter().enumerate() {
         let handler = match handler_method(&e.handler) {
@@ -342,7 +362,7 @@ fn generate(root: &Path) -> Result<String> {
         let label = format!("action-{}", words(&e.id));
         if !by_action.get(&i).is_some_and(|k| k.contains(&label.as_str())) {
             bail!(
-                "{}: the action {} has no label {label} in {CATALOGUE}",
+                "{}: the action {} has no label {label} in the texts the window shows",
                 e.file,
                 e.id
             );

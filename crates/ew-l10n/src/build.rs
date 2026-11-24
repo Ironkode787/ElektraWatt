@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The one generator of the key tables (architecture §18 point 5): the build script of every crate that owns a text
-//! folder calls [`generate`], and the crate reads what it writes through [`texts!`](crate::texts) or `include!`.
+//! The one generator of the key tables and of the list of text files (architecture §18 point 5): the build script of
+//! every crate that owns a text folder calls [`generate`], and the crate reads what it writes through
+//! [`texts!`](crate::texts) or `include!`.
 
 use std::fmt::Write as _;
 use std::path::Path;
 
 /// Writes the tables of the text folder `folder` (relative to the crate's manifest; it holds `<language>/<area>.ftl`)
-/// into the build's output directory, read from its en-GB files in name order, and has cargo run the build script
-/// again when the folder changes:
+/// into the build's output directory, and has cargo run the build script again when the folder changes:
 ///
-/// - `texts.rs`: `TEXTS`, every one-line text that takes only positional arguments (`{ $p0 }`, `{ $p1 }`, …), sorted
-///   by key, with its English: the arguments written `{0}`, `{1}`, … and a literal brace (`{"{"}`, `{"}"}`) as the
-///   brace;
-/// - `keys.rs`: `KEYS`, every text key, sorted by bytes.
+/// - `texts.rs`: `TEXTS`, every one-line text of the en-GB files that takes only positional arguments (`{ $p0 }`,
+///   `{ $p1 }`, …), sorted by key, with its English: the arguments written `{0}`, `{1}`, … and a literal brace
+///   (`{"{"}`, `{"}"}`) as the brace;
+/// - `keys.rs`: `KEYS`, every text key of the en-GB files, sorted by bytes;
+/// - `sources.rs`: `SOURCES`, every file of every language as (language, its text), the languages and each
+///   language's files in name order.
 ///
 /// A message starts a line with `<id> =`; a term starts with `-`, a comment with `#`, a continuation with a space.
 #[allow(
@@ -23,16 +25,28 @@ use std::path::Path;
 )]
 pub fn generate(folder: &str) {
     println!("cargo:rerun-if-changed={folder}");
-    let english = Path::new(folder).join("en-GB");
-    let mut files: Vec<_> = std::fs::read_dir(&english)
-        .expect("the en-GB text folder is readable")
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().is_some_and(|x| x == "ftl"))
+    let names = |dir: &Path| -> Vec<String> {
+        let mut names: Vec<String> = std::fs::read_dir(dir)
+            .expect("the text folder is readable")
+            .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))
+            .collect();
+        names.sort();
+        names
+    };
+    let languages: Vec<String> = names(Path::new(folder))
+        .into_iter()
+        .filter(|l| Path::new(folder).join(l).is_dir())
         .collect();
-    files.sort();
+    let files = |language: &str| -> Vec<String> {
+        names(&Path::new(folder).join(language))
+            .into_iter()
+            .filter(|f| f.ends_with(".ftl"))
+            .collect()
+    };
     let mut texts: Vec<(String, String)> = Vec::new();
     let mut keys: Vec<String> = Vec::new();
-    for path in &files {
+    for file in files("en-GB") {
+        let path = Path::new(folder).join("en-GB").join(file);
         let ftl = std::fs::read_to_string(path).expect("an en-GB text file is readable");
         let lines: Vec<&str> = ftl.lines().collect();
         for (i, line) in lines.iter().enumerate() {
@@ -78,6 +92,21 @@ pub fn generate(folder: &str) {
     }
     out.push_str("];\n");
     std::fs::write(Path::new(&dir).join("keys.rs"), out).expect("the key list is written");
+    let mut out = String::from(
+        "/// This crate's Fluent text files as (language, the file's text), the languages and each language's files in \
+         name\n/// order.\npub const SOURCES: &[(&str, &str)] = &[\n",
+    );
+    for language in &languages {
+        for file in files(language) {
+            let path = format!("/{folder}/{language}/{file}");
+            let _ = writeln!(
+                out,
+                "    ({language:?}, include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), {path:?}))),"
+            );
+        }
+    }
+    out.push_str("];\n");
+    std::fs::write(Path::new(&dir).join("sources.rs"), out).expect("the source list is written");
 }
 
 /// The table's form of a one-line Fluent value, or `None` when it holds anything but positional arguments and
