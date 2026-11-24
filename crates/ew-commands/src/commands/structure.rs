@@ -667,7 +667,9 @@ impl Command for MarkSupplyIn {
 }
 
 /// How far above or below a point another point of its group may stand: 20 mm, the spacing of a column of supply
-/// points drawn one under the other (the window places them about 16 mm apart, an imported drawing 4 mm).
+/// points drawn one under the other (the window places them about 16 mm apart, an imported drawing 4 mm). It is a reach
+/// of the grouping and no drafting number: the window spaces such a column by grid steps
+/// (`ew_viewmodel::tools::supply_place::SUPPLY_STEPS`), which no length in nm equals on every grid.
 const GROUP_REACH: i64 = 20_000_000;
 
 /// The external point `p` (its interruption point's function): its reference and group.

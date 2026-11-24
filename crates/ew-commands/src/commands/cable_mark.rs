@@ -28,7 +28,9 @@ use ew_units::{Angle2, Nm, Pt2};
 use crate::error::CmdError;
 use crate::tx::TxBuilder;
 
-/// The shortest stretch a mark prefers, so that its strokes and core names have room: 6 mm.
+/// The shortest stretch a mark prefers, so that its strokes and core names have room: 6 mm. It is a preference of the
+/// placing and no drafting number: the drawn mark's sizes (`ew_scene::page::CABLE_TICK`, `CABLE_TEXT_GAP`) do not
+/// give it.
 const ROOM: i64 = 6_000_000;
 
 /// Places or extends the marks of `cable` for the connections `wires` that just became its cores (module
