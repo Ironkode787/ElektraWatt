@@ -1152,11 +1152,11 @@ rule-ew-imp-009 =
     .title = Print-equivalence deviation
     .hint = Compare the derived text with the source's printed text and correct the one that is wrong.
 
-rule-ew-imp-010 =
+rule-ew-imp-010 = { $record } was removed in { $file }; it is kept here. Delete it if it is no longer needed.
     .title = Removed in the source, kept here
     .hint = Delete the record if it is no longer needed; otherwise keep it.
 
-rule-ew-imp-011 =
+rule-ew-imp-011 = { $record } was changed both in { $file } and here; this project's version is kept.
     .title = Changed in the source and here, kept here
     .hint = Compare the source's change with this project's and take over what is needed by hand.
 

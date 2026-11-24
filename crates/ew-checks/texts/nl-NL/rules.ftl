@@ -1172,11 +1172,11 @@ rule-ew-imp-009 =
     .title = Afwijking in de afdruk
     .hint = Vergelijk de afgeleide tekst met de afgedrukte tekst van de bron en corrigeer de verkeerde.
 
-rule-ew-imp-010 =
+rule-ew-imp-010 = { $record } is in { $file } verwijderd; hier blijft het behouden. Verwijder het als het niet meer nodig is.
     .title = In de bron verwijderd, hier behouden
     .hint = Verwijder het record als het niet meer nodig is; behoud het anders.
 
-rule-ew-imp-011 =
+rule-ew-imp-011 = { $record } is zowel in { $file } als hier gewijzigd; de versie van dit project blijft behouden.
     .title = In de bron en hier gewijzigd, hier behouden
     .hint = Vergelijk de wijziging in de bron met die in dit project en neem met de hand over wat nodig is.
 

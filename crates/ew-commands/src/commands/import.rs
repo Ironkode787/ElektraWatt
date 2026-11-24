@@ -186,13 +186,15 @@ fn at_path<'v>(value: &'v Value, path: &str) -> Option<&'v Value> {
 
 /// A run entry of a re-import about the record `row`: its item the record in words, so that the finding's subject is
 /// the record.
-fn reimport_entry(code: &str, row: &ReimportRow, message: String, file: &str) -> ew_schema::RunEntry {
+fn reimport_entry(code: &str, row: &ReimportRow, file: &str) -> ew_schema::RunEntry {
     let key = row.key;
+    let record = row.record.to_string();
     ew_schema::RunEntry {
         code: code.to_owned(),
         severity: ew_schema::RunSeverity::Warning,
         defect: None,
-        message,
+        // The rule's pattern in English, as a third party reads the run; the Messages pane words it in its language.
+        message: ew_checks::rules::imp::reimport_message(code, &record, file).unwrap_or_default(),
         location: Some(ew_schema::RunLocation {
             file: file.to_owned(),
             item: Some(row.record.to_string()),
@@ -355,24 +357,8 @@ pub fn plan_reimport(
     rows.sort_by_key(|a| (a.class, a.key));
     for row in &rows {
         let entry = match row.class {
-            ReimportClass::Conflict => reimport_entry(
-                "EW-IMP-011",
-                row,
-                format!(
-                    "{} was changed both in {file} and here; this project's version is kept.",
-                    row.record
-                ),
-                file,
-            ),
-            ReimportClass::Removed => reimport_entry(
-                "EW-IMP-010",
-                row,
-                format!(
-                    "{} was removed in {file}; it is kept here. Delete it if it is no longer needed.",
-                    row.record
-                ),
-                file,
-            ),
+            ReimportClass::Conflict => reimport_entry("EW-IMP-011", row, file),
+            ReimportClass::Removed => reimport_entry("EW-IMP-010", row, file),
             _ => continue,
         };
         plan.entries.push(entry);

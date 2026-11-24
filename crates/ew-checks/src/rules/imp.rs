@@ -359,6 +359,21 @@ fn place(location: Option<&ew_derive::ew_schema::RunLocation>) -> String {
     }
 }
 
+/// The English message of a re-import's entry of `code` (EW-IMP-010, a record removed in the source, or EW-IMP-011, a
+/// record changed in both) for `record` from `file`: the rule's pattern, which the re-import stores in its run and
+/// [`ImportEntries`] words again in the reader's language. `None` for another code.
+pub fn reimport_message(code: &str, record: &str, file: &str) -> Option<String> {
+    let meta = IMP
+        .iter()
+        .find(|m| m.id == code && matches!(code, "EW-IMP-010" | "EW-IMP-011"))?;
+    Some(reimport_args(Finding::new(meta, [], "", ""), record, file).message())
+}
+
+/// `f` worded by its re-import pattern's arguments: the record and the source file.
+fn reimport_args(f: Finding, record: &str, file: &str) -> Finding {
+    f.arg("record", record.to_owned()).arg("file", file.to_owned())
+}
+
 impl Rule for ImportEntries {
     fn meta(&self) -> &'static RuleMeta {
         self.0
@@ -387,13 +402,19 @@ impl Rule for ImportEntries {
                     RunSeverity::Warning => Severity::Warning,
                     _ => Severity::Info,
                 };
-                let mut f = Finding::new(
+                let f = Finding::new(
                     self.0,
                     targets,
                     format!("{}#{i}", run.id),
                     place(e.location.as_ref()),
-                )
-                .written(e.message.clone())
+                );
+                // A re-import's entry is worded by its rule's pattern from the record and the file it names; every
+                // other entry as the importer wrote it.
+                let reimport = matches!(e.code.as_str(), "EW-IMP-010" | "EW-IMP-011");
+                let mut f = match e.location.as_ref().map(|l| (l.item.as_deref(), l.file.as_str())) {
+                    Some((Some(record), file)) if reimport => reimport_args(f, record, file),
+                    _ => f.written(e.message.clone()),
+                }
                 .with_severity(severity);
                 if let Some(fix) = &e.fix {
                     f = f.with_fix(QuickFix {
