@@ -12,6 +12,7 @@ use ew_model::EndpointKey;
 use ew_schema::{Connection, Device, Function};
 use serde_json::Value;
 
+use super::DerivedRow;
 use super::context::SheetCx;
 use super::sections::{Built, derived, merge};
 use super::{Provenance, RowAction, RowValue, SourceLink, device_tag_text, rep_location};
@@ -138,33 +139,33 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
         }
         other => other,
     };
-    let medium = derived(
-        "connection",
-        "medium",
-        Some((
+    let medium = derived(DerivedRow {
+        kind: "connection",
+        name: "medium",
+        partner: Some((
             "derived.medium",
             EditRoute::Command {
                 command: "fluid.medium.define".to_owned(),
             },
             false,
         )),
-        Category::Part,
-        FieldType::Enum { options },
-        medium_value,
-        medium_provenance,
-        vec![RowAction::Edit],
-    );
+        category: Category::Part,
+        ty: FieldType::Enum { options },
+        value: medium_value,
+        provenance: medium_provenance,
+        actions: vec![RowAction::Edit],
+    });
     let (tube_value, tube_provenance) = merge(cx, &FieldType::Text, tube_per);
-    let tube = derived(
-        "connection",
-        "tube",
-        None,
-        Category::Part,
-        FieldType::Text,
-        tube_value,
-        tube_provenance,
-        Vec::new(),
-    );
+    let tube = derived(DerivedRow {
+        kind: "connection",
+        name: "tube",
+        partner: None,
+        category: Category::Part,
+        ty: FieldType::Text,
+        value: tube_value,
+        provenance: tube_provenance,
+        actions: Vec::new(),
+    });
     vec![medium, tube]
 }
 
@@ -244,22 +245,22 @@ pub(super) fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> 
         }
         other => other,
     };
-    Some(derived(
-        "device",
-        "medium",
-        Some((
+    Some(derived(DerivedRow {
+        kind: "device",
+        name: "medium",
+        partner: Some((
             "derived.medium",
             EditRoute::Command {
                 command: "fluid.medium.define".to_owned(),
             },
             false,
         )),
-        Category::Part,
-        FieldType::Enum { options },
+        category: Category::Part,
+        ty: FieldType::Enum { options },
         value,
         provenance,
-        vec![RowAction::Edit],
-    ))
+        actions: vec![RowAction::Edit],
+    }))
 }
 
 /// The media of a fluid device, for its menu.
@@ -400,16 +401,16 @@ pub(super) fn fluid_port_rows(q: &Q, device: Id<Device>) -> Vec<Built> {
                     .map(|m| medium_words(m))
                     .unwrap_or_default(),
             };
-            let mut b = derived(
-                "device",
-                &format!("port[{n}]"),
-                None,
-                Category::Part,
-                FieldType::Text,
+            let mut b = derived(DerivedRow {
+                kind: "device",
+                name: &format!("port[{n}]"),
+                partner: None,
+                category: Category::Part,
+                ty: FieldType::Text,
                 value,
-                Provenance::Derived { via },
-                Vec::new(),
-            );
+                provenance: Provenance::Derived { via },
+                actions: Vec::new(),
+            });
             b.row.source = source.map(|d| SourceLink::Record {
                 id: d.as_uuid(),
                 row: "device/derived.medium".to_owned(),

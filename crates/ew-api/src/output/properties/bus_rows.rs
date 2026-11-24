@@ -11,6 +11,7 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_schema::Connection;
 use serde_json::Value;
 
+use super::DerivedRow;
 use super::context::SheetCx;
 use super::order::function_label;
 use super::sections::{Built, derived, merge};
@@ -207,16 +208,16 @@ pub(super) fn bus_line_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -
     };
     let row = |name: &str, per| {
         let (value, provenance) = merge(cx, &FieldType::Text, per);
-        derived(
-            "connection",
+        derived(DerivedRow {
+            kind: "connection",
             name,
-            Some((&format!("derived.{name}"), route(), false)),
-            Category::Part,
-            FieldType::Text,
+            partner: Some((&format!("derived.{name}"), route(), false)),
+            category: Category::Part,
+            ty: FieldType::Text,
             value,
             provenance,
-            vec![RowAction::Edit],
-        )
+            actions: vec![RowAction::Edit],
+        })
     };
     vec![row("bus_cable", cable_per), row("bus_plugs", plug_per)]
 }

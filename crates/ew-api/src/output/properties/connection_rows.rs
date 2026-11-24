@@ -14,6 +14,7 @@ use ew_model::EndpointKey;
 use ew_schema::{Connection, Function, Kind, PotentialDef};
 use serde_json::Value;
 
+use super::DerivedRow;
 use super::bus_rows::bus_line_rows;
 use super::context::SheetCx;
 use super::header::record_title;
@@ -109,16 +110,16 @@ pub(super) fn potential_row(q: &Q, cx: &SheetCx<'_>, kind: &str, ends: &[Vec<End
         ));
     }
     let (value, provenance) = merge(cx, &FieldType::Text, per);
-    let mut built = derived(
+    let mut built = derived(DerivedRow {
         kind,
-        "potential",
-        None,
-        Category::Electrical,
-        FieldType::Text,
+        name: "potential",
+        partner: None,
+        category: Category::Electrical,
+        ty: FieldType::Text,
         value,
         provenance,
-        Vec::new(),
-    );
+        actions: Vec::new(),
+    });
     if let [Some(def)] = defs.into_iter().collect::<Vec<_>>().as_slice() {
         built.row.source = Some(SourceLink::Record {
             id: def.as_uuid(),
@@ -301,16 +302,16 @@ impl Session {
                 other => other,
             };
             let varies = matches!(provenance, Provenance::Varies { .. });
-            let mut built = derived(
-                "connection",
+            let mut built = derived(DerivedRow {
+                kind: "connection",
                 name,
-                Some((path, route, false)),
-                Category::Electrical,
+                partner: Some((path, route, false)),
+                category: Category::Electrical,
                 ty,
                 value,
                 provenance,
                 actions,
-            );
+            });
             if let ([Some(link)], false) = (links.as_slice(), varies) {
                 built.row.source = Some(link.clone());
             }
@@ -354,16 +355,16 @@ impl Session {
         if any_frozen {
             actions.push(RowAction::Unfreeze);
         }
-        out.push(derived(
-            "connection",
-            "number",
-            Some(("number", editable("number"), true)),
-            Category::Identity,
-            FieldType::Ident,
+        out.push(derived(DerivedRow {
+            kind: "connection",
+            name: "number",
+            partner: Some(("number", editable("number"), true)),
+            category: Category::Identity,
+            ty: FieldType::Ident,
             value,
             provenance,
             actions,
-        ));
+        }));
         // The potential.
         let ends: Vec<Vec<EndpointKey>> = conns
             .iter()

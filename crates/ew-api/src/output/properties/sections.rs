@@ -20,8 +20,8 @@ use super::connection_rows::{ip_ends, potential_row, route_in_cells};
 use super::context::SheetCx;
 use super::fluid_rows::fluid_line_rows;
 use super::{
-    PropRow, Provenance, RowAction, RowValue, SheetSection, definition_point_in_words, json_at, lookup,
-    ml_text, part_function_row, profile_chooser, terminal_rows,
+    DerivedRow, PropRow, Provenance, RowAction, RowValue, SheetSection, definition_point_in_words, json_at,
+    lookup, ml_text, part_function_row, profile_chooser, terminal_rows,
 };
 use crate::Session;
 use crate::output::fields::{
@@ -278,42 +278,10 @@ fn library_provenance(q: &Q, json: &Value) -> Option<Provenance> {
     })
 }
 
-/// A derived row.
-#[allow(clippy::too_many_arguments)]
-pub(super) fn derived(
-    kind: &str,
-    name: &str,
-    partner: Option<(&str, EditRoute, bool)>,
-    category: Category,
-    ty: FieldType,
-    value: RowValue,
-    provenance: Provenance,
-    actions: Vec<RowAction>,
-) -> Built {
-    let (path, route, identifier) = match partner {
-        Some((path, route, identifier)) => (path.to_owned(), route, identifier),
-        None => (
-            format!("derived.{name}"),
-            EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-            false,
-        ),
-    };
-    // A derived row offers its partner's writes only where the grid can make them (a read-only row has none).
-    let actions = if route.is_editable() { actions } else { Vec::new() };
+/// A derived row of a property sheet.
+pub(super) fn derived(d: DerivedRow<'_>) -> Built {
     Built {
-        row: PropRow {
-            key: format!("{kind}/derived.{name}"),
-            path,
-            category,
-            depth: 0,
-            ty,
-            value,
-            provenance,
-            actions,
-            route,
-            identifier,
-            source: None,
-        },
+        row: d.row(),
         derived: true,
     }
 }
@@ -504,23 +472,23 @@ impl Session {
         }
         // A generated page shows its Kind, as a drawn page does: the page type `report`.
         if let (Kind::ReportBlock, Some(block)) = (kind, generated) {
-            built.push(derived(
-                "report_block",
-                "kind",
-                None,
-                Category::Identity,
-                FieldType::Enum {
+            built.push(derived(DerivedRow {
+                kind: "report_block",
+                name: "kind",
+                partner: None,
+                category: Category::Identity,
+                ty: FieldType::Enum {
                     options: vec!["report".to_owned()],
                 },
-                RowValue::One {
+                value: RowValue::One {
                     json: Value::String("report".to_owned()),
                     text: "report".to_owned(),
                 },
-                Provenance::Generated {
+                provenance: Provenance::Generated {
                     block: block.to_owned(),
                 },
-                Vec::new(),
-            ));
+                actions: Vec::new(),
+            }));
         }
         // A block's printed columns in words, the report's own column names ("Pos, DT, Qty, …"), and each row of its
         // own as its column names with their texts ("Terminal 3; Side 1 (clamp a) spare", doc 09 §3.8).
@@ -630,19 +598,19 @@ impl Session {
                         let route = EditRoute::Command {
                             command: "ip.supply_in".to_owned(),
                         };
-                        out.push(derived(
-                            "function",
+                        out.push(derived(DerivedRow {
+                            kind: "function",
                             name,
-                            Some((&format!("derived.{name}"), route, false)),
-                            Category::Structure,
+                            partner: Some((&format!("derived.{name}"), route, false)),
+                            category: Category::Structure,
                             ty,
-                            RowValue::One {
+                            value: RowValue::One {
                                 json: Value::String(text.clone()),
                                 text,
                             },
-                            Provenance::Authored,
-                            vec![RowAction::Edit],
-                        ));
+                            provenance: Provenance::Authored,
+                            actions: vec![RowAction::Edit],
+                        }));
                     }
                 }
                 out

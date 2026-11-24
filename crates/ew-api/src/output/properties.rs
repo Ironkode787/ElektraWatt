@@ -179,6 +179,60 @@ pub struct PropRow {
     pub source: Option<SourceLink>,
 }
 
+/// A derived row (`<kind>/derived.<name>`) as a property sheet builds it: what it shows, and the authored row a write
+/// goes to, if any. [`DerivedRow::row`] makes the [`PropRow`].
+pub(crate) struct DerivedRow<'a> {
+    /// The record kind (`device`).
+    pub kind: &'a str,
+    /// The derived row's name (`tag`).
+    pub name: &'a str,
+    /// The row a write goes to: its path, its route and whether it is an outgoing identifier; `None` for a read-only
+    /// row without a command, whose path is `derived.<name>`.
+    pub partner: Option<(&'a str, EditRoute, bool)>,
+    /// The category.
+    pub category: Category,
+    /// The value type.
+    pub ty: FieldType,
+    /// The value over the targets.
+    pub value: RowValue,
+    /// Where it comes from.
+    pub provenance: Provenance,
+    /// What a person can do with it, where its route lets the grid make the write (a read-only row offers none).
+    pub actions: Vec<RowAction>,
+}
+
+impl DerivedRow<'_> {
+    /// The row, at depth 0 and without a source link.
+    pub(crate) fn row(self) -> PropRow {
+        let (path, route, identifier) = match self.partner {
+            Some((path, route, identifier)) => (path.to_owned(), route, identifier),
+            None => (
+                format!("derived.{}", self.name),
+                EditRoute::ReadOnly(FieldReadOnly::NoCommand),
+                false,
+            ),
+        };
+        let actions = if route.is_editable() {
+            self.actions
+        } else {
+            Vec::new()
+        };
+        PropRow {
+            key: format!("{}/derived.{}", self.kind, self.name),
+            path,
+            category: self.category,
+            depth: 0,
+            ty: self.ty,
+            value: self.value,
+            provenance: self.provenance,
+            actions,
+            route,
+            identifier,
+            source: None,
+        }
+    }
+}
+
 /// The row that holds the source of a derived or inherited value (FT-1651): the cross-section of a wire from the
 /// size profile, a colour from a potential definition, a page's description from the project's.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -610,10 +664,10 @@ fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Buil
         })
         .collect();
     let (value, provenance) = merge(cx, &FieldType::Text, per);
-    let mut group = derived(
-        "device",
-        "group",
-        Some((
+    let mut group = derived(DerivedRow {
+        kind: "device",
+        name: "group",
+        partner: Some((
             "derived.group",
             EditRoute::FieldsSet {
                 kind: "device".to_owned(),
@@ -621,12 +675,12 @@ fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Buil
             },
             false,
         )),
-        Category::Terminal,
-        FieldType::Text,
+        category: Category::Terminal,
+        ty: FieldType::Text,
         value,
         provenance,
-        vec![RowAction::Edit],
-    );
+        actions: vec![RowAction::Edit],
+    });
     group.row.depth = depth;
     rows.push(group);
     let at = at + 1;
@@ -994,21 +1048,21 @@ mod tests {
     /// A derived row whose authored partner the grid cannot write offers no action.
     #[test]
     fn a_derived_row_with_a_read_only_partner_has_no_action() {
-        let built = derived(
-            "device",
-            "tag",
-            Some(("tag.frozen", EditRoute::ReadOnly(FieldReadOnly::NoCommand), true)),
-            Category::Identity,
-            FieldType::Ident,
-            RowValue::Absent,
-            Provenance::Authored,
-            vec![RowAction::Freeze, RowAction::Unfreeze],
-        );
+        let built = derived(DerivedRow {
+            kind: "device",
+            name: "tag",
+            partner: Some(("tag.frozen", EditRoute::ReadOnly(FieldReadOnly::NoCommand), true)),
+            category: Category::Identity,
+            ty: FieldType::Ident,
+            value: RowValue::Absent,
+            provenance: Provenance::Authored,
+            actions: vec![RowAction::Freeze, RowAction::Unfreeze],
+        });
         assert!(built.row.actions.is_empty());
-        let built = derived(
-            "device",
-            "tag",
-            Some((
+        let built = derived(DerivedRow {
+            kind: "device",
+            name: "tag",
+            partner: Some((
                 "tag.frozen",
                 EditRoute::FieldsSet {
                     kind: "device".into(),
@@ -1016,12 +1070,12 @@ mod tests {
                 },
                 true,
             )),
-            Category::Identity,
-            FieldType::Ident,
-            RowValue::Absent,
-            Provenance::Authored,
-            vec![RowAction::Freeze],
-        );
+            category: Category::Identity,
+            ty: FieldType::Ident,
+            value: RowValue::Absent,
+            provenance: Provenance::Authored,
+            actions: vec![RowAction::Freeze],
+        });
         assert_eq!(built.row.actions, [RowAction::Freeze]);
     }
 

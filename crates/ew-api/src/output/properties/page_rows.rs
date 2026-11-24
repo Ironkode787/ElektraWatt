@@ -11,6 +11,7 @@ use ew_derive::{PageRef, Q, TbValue, TitleBlockValues, XrefTextOf};
 use ew_schema::Kind;
 use serde_json::Value;
 
+use super::DerivedRow;
 use super::context::SheetCx;
 use super::sections::{Built, derived, merge};
 use super::{Provenance, RowAction, RowValue, SourceLink, device_tag_text, ml_text};
@@ -62,16 +63,16 @@ impl Session {
             actions.push(RowAction::Reset);
         }
         let inherited = matches!(provenance, Provenance::Inherited { .. });
-        let mut built = derived(
-            "page",
-            "description",
-            Some(("description_override", editable("description_override"), false)),
-            Category::Texts,
-            FieldType::MlText,
+        let mut built = derived(DerivedRow {
+            kind: "page",
+            name: "description",
+            partner: Some(("description_override", editable("description_override"), false)),
+            category: Category::Texts,
+            ty: FieldType::MlText,
             value,
             provenance,
             actions,
-        );
+        });
         if inherited {
             built.row.source = Some(SourceLink::Project {
                 row: "project/master.description".into(),
@@ -109,16 +110,16 @@ impl Session {
             })
         });
         if value != RowValue::Absent || electrical {
-            out.push(derived(
-                "representation",
-                "xref",
-                None,
-                Category::Texts,
-                FieldType::Text,
+            out.push(derived(DerivedRow {
+                kind: "representation",
+                name: "xref",
+                partner: None,
+                category: Category::Texts,
+                ty: FieldType::Text,
                 value,
                 provenance,
-                Vec::new(),
-            ));
+                actions: Vec::new(),
+            }));
         }
         // The coil symbol of a valve's solenoid says which valve it belongs to, a link to the valve.
         if let [one] = targets
@@ -134,18 +135,18 @@ impl Session {
                 json: serde_json::json!({"device": device.as_uuid().to_string(), "name": s.name, "tag": tag}),
                 text: format!("Solenoid {} of {tag}", s.name),
             };
-            out.push(derived(
-                "representation",
-                "solenoid_of",
-                None,
-                Category::Structure,
-                FieldType::Link { kind: "valve".into() },
+            out.push(derived(DerivedRow {
+                kind: "representation",
+                name: "solenoid_of",
+                partner: None,
+                category: Category::Structure,
+                ty: FieldType::Link { kind: "valve".into() },
                 value,
-                Provenance::Derived {
+                provenance: Provenance::Derived {
                     via: "the valve's part".into(),
                 },
-                Vec::new(),
-            ));
+                actions: Vec::new(),
+            }));
         }
         out
     }

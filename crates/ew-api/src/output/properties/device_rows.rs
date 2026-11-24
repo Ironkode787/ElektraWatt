@@ -14,6 +14,7 @@ use ew_derive::{DeviceTag, MainRep, Q, ResolvedStructure, SlotSource, StructureO
 use ew_schema::{Device, Kind};
 use serde_json::Value;
 
+use super::DerivedRow;
 use super::context::{SheetCx, member_of_aspect};
 use super::fluid_rows::{fluid_port_rows, source_medium_row};
 use super::sections::{Built, derived, merge};
@@ -78,16 +79,16 @@ impl Session {
         if !all_frozen {
             actions.push(RowAction::Freeze);
         }
-        out.push(derived(
-            "device",
-            "tag",
-            Some(("tag.frozen", editable("tag.frozen"), true)),
-            Category::Identity,
-            FieldType::Ident,
+        out.push(derived(DerivedRow {
+            kind: "device",
+            name: "tag",
+            partner: Some(("tag.frozen", editable("tag.frozen"), true)),
+            category: Category::Identity,
+            ty: FieldType::Ident,
             value,
             provenance,
             actions,
-        ));
+        }));
         // The structure, per aspect with a node on any target.
         let structures: Vec<std::sync::Arc<ResolvedStructure>> =
             devices.iter().map(|d| q.get::<StructureOf>(*d)).collect();
@@ -153,16 +154,16 @@ impl Session {
                 actions.push(RowAction::Reset);
             }
             let path = format!("structure.{member}");
-            out.push(derived(
-                "device",
-                &format!("structure.{member}"),
-                Some((&path, editable(&path), false)),
-                Category::Structure,
-                FieldType::Slot,
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: &format!("structure.{member}"),
+                partner: Some((&path, editable(&path), false)),
+                category: Category::Structure,
+                ty: FieldType::Slot,
                 value,
                 provenance,
                 actions,
-            ));
+            }));
         }
         // A valve's position on its valve terminal (`assembly.attach` owns the member, so the
         // schema's own row under Structure is read-only): one row in Main for valves and the children of a module with valve positions, typed into to move
@@ -203,22 +204,22 @@ impl Session {
             } else {
                 Vec::new()
             };
-            out.push(derived(
-                "device",
-                "position",
-                Some((
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: "position",
+                partner: Some((
                     "derived.position",
                     EditRoute::Command {
                         command: "assembly.attach".to_owned(),
                     },
                     false,
                 )),
-                Category::Structure,
-                FieldType::Text,
+                category: Category::Structure,
+                ty: FieldType::Text,
                 value,
                 provenance,
                 actions,
-            ));
+            }));
         }
         // A valve terminal's positions (a terminal drawn before as a free box shows its positions nowhere on
         // its page): each with what holds it, read-only; the window words the blanking plates and the empty ones.
@@ -237,21 +238,21 @@ impl Session {
                     })
                     .collect::<Vec<_>>()
                     .join(" · ");
-                out.push(derived(
-                    "device",
-                    "valve_positions",
-                    None,
-                    Category::Structure,
-                    FieldType::Text,
-                    RowValue::One {
+                out.push(derived(DerivedRow {
+                    kind: "device",
+                    name: "valve_positions",
+                    partner: None,
+                    category: Category::Structure,
+                    ty: FieldType::Text,
+                    value: RowValue::One {
                         json: Value::String(text.clone()),
                         text,
                     },
-                    Provenance::Derived {
+                    provenance: Provenance::Derived {
                         via: "its valve positions".to_owned(),
                     },
-                    Vec::new(),
-                ));
+                    actions: Vec::new(),
+                }));
             }
         }
         // The PLC a bus device belongs to ("no such field in the switch's properties"): a station names
@@ -265,18 +266,18 @@ impl Session {
                     };
                     ("derived.plc", route, false)
                 });
-                derived(
-                    "device",
-                    "plc",
+                derived(DerivedRow {
+                    kind: "device",
+                    name: "plc",
                     partner,
-                    Category::Identity,
-                    FieldType::Enum { options },
+                    category: Category::Identity,
+                    ty: FieldType::Enum { options },
                     value,
-                    Provenance::Derived {
+                    provenance: Provenance::Derived {
                         via: "its PLC station".to_owned(),
                     },
                     actions,
-                )
+                })
             };
             match crate::output::rack::plc_offer(q, *one) {
                 crate::output::rack::PlcOffer::Station(name) => out.push(row(
@@ -348,18 +349,18 @@ impl Session {
                         "name": s.name, "function": s.function.to_string(), "drawn": s.drawn, "seat": seat }),
                     text: s.drawn.clone().unwrap_or_default(),
                 };
-                out.push(derived(
-                    "device",
-                    &format!("solenoid[{k}]"),
-                    None,
-                    Category::Structure,
-                    FieldType::Link {
+                out.push(derived(DerivedRow {
+                    kind: "device",
+                    name: &format!("solenoid[{k}]"),
+                    partner: None,
+                    category: Category::Structure,
+                    ty: FieldType::Link {
                         kind: "solenoid".into(),
                     },
                     value,
-                    Provenance::Derived { via },
-                    Vec::new(),
-                ));
+                    provenance: Provenance::Derived { via },
+                    actions: Vec::new(),
+                }));
             }
         }
         // A multipin valve terminal's plug: where it is drawn (a link that goes there), or that it is not, which
@@ -371,18 +372,18 @@ impl Session {
                 json: serde_json::json!({ "terminal": one.as_uuid().to_string(), "drawn": plug.drawn }),
                 text: plug.drawn.clone().unwrap_or_default(),
             };
-            out.push(derived(
-                "device",
-                "plug",
-                None,
-                Category::Structure,
-                FieldType::Link { kind: "plug".into() },
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: "plug",
+                partner: None,
+                category: Category::Structure,
+                ty: FieldType::Link { kind: "plug".into() },
                 value,
-                Provenance::Derived {
+                provenance: Provenance::Derived {
                     via: "its plug".to_owned(),
                 },
-                Vec::new(),
-            ));
+                actions: Vec::new(),
+            }));
         }
         // The main location.
         let per: Vec<(Option<Value>, Provenance)> = devices
@@ -393,16 +394,16 @@ impl Session {
             })
             .collect();
         let (value, provenance) = merge(cx, &FieldType::Text, per);
-        out.push(derived(
-            "device",
-            "main_location",
-            None,
-            Category::Placement,
-            FieldType::Text,
+        out.push(derived(DerivedRow {
+            kind: "device",
+            name: "main_location",
+            partner: None,
+            category: Category::Placement,
+            ty: FieldType::Text,
             value,
             provenance,
-            Vec::new(),
-        ));
+            actions: Vec::new(),
+        }));
         // The connection points of the device's functions, one read-only row each with the label
         // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
         // devices the n-th rows merge.
@@ -459,16 +460,16 @@ impl Session {
             {
                 json.clone_from(point);
             }
-            out.push(derived(
-                "device",
-                &format!("cp[{n}]"),
-                None,
-                Category::ConnectionPoints,
-                FieldType::Text,
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: &format!("cp[{n}]"),
+                partner: None,
+                category: Category::ConnectionPoints,
+                ty: FieldType::Text,
                 value,
                 provenance,
-                Vec::new(),
-            ));
+                actions: Vec::new(),
+            }));
         }
         out
     }

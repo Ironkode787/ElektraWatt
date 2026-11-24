@@ -32,7 +32,7 @@ use serde_json::{Value, json};
 
 use super::fields::{Category, EditRoute, FieldReadOnly, FieldType};
 use super::panel::{PageSurfaceView, location_text};
-use super::properties::{PropRow, Provenance, RowAction, RowValue};
+use super::properties::{DerivedRow, PropRow, Provenance, RowAction, RowValue};
 use super::scale_fit::{drawing_area, page_fitting_scale};
 use crate::{AnyCommand, Session};
 
@@ -327,8 +327,7 @@ pub(crate) fn layout_title(q: &Q, kind: Kind, id: Uuid) -> Option<String> {
     })
 }
 
-/// One row (`<kind>/derived.<name>`).
-#[allow(clippy::too_many_arguments)]
+/// One row (`<kind>/derived.<name>`) of the placement category, edited by `command` where it has one.
 fn row(
     kind: &str,
     name: &str,
@@ -338,22 +337,20 @@ fn row(
     provenance: Provenance,
     command: Option<&str>,
 ) -> PropRow {
-    let route = match command {
-        Some(c) => EditRoute::Command {
-            command: c.to_owned(),
-        },
-        None => EditRoute::ReadOnly(FieldReadOnly::NoCommand),
-    };
-    let actions = if command.is_some() {
-        vec![RowAction::Edit]
-    } else {
-        Vec::new()
-    };
-    PropRow {
-        key: format!("{kind}/derived.{name}"),
-        path: format!("derived.{name}"),
+    let path = format!("derived.{name}");
+    DerivedRow {
+        kind,
+        name,
+        partner: command.map(|c| {
+            (
+                path.as_str(),
+                EditRoute::Command {
+                    command: c.to_owned(),
+                },
+                false,
+            )
+        }),
         category: Category::Placement,
-        depth: 0,
         ty,
         value: if json.is_null() {
             RowValue::Absent
@@ -361,11 +358,9 @@ fn row(
             RowValue::One { json, text }
         },
         provenance,
-        actions,
-        route,
-        identifier: false,
-        source: None,
+        actions: vec![RowAction::Edit],
     }
+    .row()
 }
 
 fn text_row(kind: &str, name: &str, text: String, provenance: Provenance, command: Option<&str>) -> PropRow {
