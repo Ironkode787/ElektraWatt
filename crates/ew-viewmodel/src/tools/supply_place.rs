@@ -18,7 +18,7 @@ use ew_api::output::SymbolShape;
 /// The marks' spacing in grid steps.
 pub const SUPPLY_STEPS: i64 = 2;
 
-/// What the Supply tool's marks are placed with (the host keeps it while the tool floats them): where the supply
+/// What the Supply tool's marks are placed with (the tool keeps it while it floats them): where the supply
 /// comes from, and the library documents of the interruption-point forms the command carries.
 #[derive(Clone, Debug, Default)]
 pub struct SupplyPlan {
@@ -40,18 +40,26 @@ pub struct SupplyTool {
     outline: Arc<[Vec<(i64, i64)>]>,
     /// The snapped anchor of the first mark: (sheet nm, page nm), `None` before the first move.
     at: Option<((i64, i64), (i64, i64))>,
+    /// What the marks are placed with.
+    plan: SupplyPlan,
 }
 
 impl SupplyTool {
-    /// A tool floating the marks `names`, drawn with `shape`.
-    pub fn new(names: Vec<String>, shape: Arc<SymbolShape>) -> SupplyTool {
+    /// A tool floating the marks `names`, drawn with `shape`, placed with `plan`.
+    pub fn new(names: Vec<String>, shape: Arc<SymbolShape>, plan: SupplyPlan) -> SupplyTool {
         let outline: Arc<[Vec<(i64, i64)>]> = shape.outline.clone().into();
         SupplyTool {
             names,
             shape,
             outline,
             at: None,
+            plan,
         }
+    }
+
+    /// What the marks are placed with.
+    pub fn plan(&self) -> &SupplyPlan {
+        &self.plan
     }
 
     /// The marks' names.

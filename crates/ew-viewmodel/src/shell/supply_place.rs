@@ -133,13 +133,13 @@ impl ShellModel {
             Ok(f) => f,
             Err(out) => return out,
         };
-        self.tools.supply = Some(SupplyPlan {
+        let plan = SupplyPlan {
             location: location.unwrap_or(place),
             device: device.unwrap_or(feeder),
             copies,
-        });
+        };
         self.dialog = None;
-        self.activate_tool(Box::new(SupplyTool::new(names, target.unwrap_or(shape))));
+        self.activate_tool(Box::new(SupplyTool::new(names, target.unwrap_or(shape), plan)));
         Outcome::Done
     }
 
@@ -147,13 +147,11 @@ impl ShellModel {
     /// under the other, marked as where the supply comes in from the plan's place and device; one undo step. The
     /// marks' Potential panel opens (`after_supply_marks`), and Select takes over.
     pub(super) fn supply_place_from_tool(&mut self, at: (i64, i64)) -> Outcome {
-        let Some(plan) = self.tools.supply.clone() else {
-            return Outcome::refused(key!("reason-no-page"));
-        };
         let placed = self
             .with_tool(|t, cx| {
                 let tool = t.as_any_mut()?.downcast_mut::<SupplyTool>()?;
                 Some((
+                    tool.plan().clone(),
                     tool.names().to_vec(),
                     tool.shape().copy.to_string(),
                     tool.positions(at, cx),
@@ -161,7 +159,7 @@ impl ShellModel {
                 ))
             })
             .flatten();
-        let Some((names, symbol, positions, page)) = placed else {
+        let Some((plan, names, symbol, positions, page)) = placed else {
             return Outcome::Done;
         };
         let mut points: Vec<Uuid> = Vec::new();
@@ -213,7 +211,6 @@ impl ShellModel {
         if out == Outcome::Done && self.revision() != rev {
             self.fold_step();
         }
-        self.tools.supply = None;
         let _ = self.act_tool("select");
         out
     }

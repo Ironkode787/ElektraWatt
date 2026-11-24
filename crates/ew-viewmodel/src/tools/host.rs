@@ -173,8 +173,6 @@ pub(crate) struct ToolHost {
     pub commit_notices: Vec<String>,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
-    /// Where the Supply tool's marks come from, while it floats them.
-    pub supply: Option<super::supply_place::SupplyPlan>,
     /// `tool.black_box` is choosing: a row that is no black box is refused.
     pub black_box_pick: bool,
     /// The station part the device browser was placing on a bus page when Put a station on this page asked first:
@@ -336,7 +334,6 @@ impl ToolHost {
             cut_tags: Vec::new(),
             commit_notices: Vec::new(),
             ip_memory: IpMemory::default(),
-            supply: None,
             black_box_pick: false,
             put_station_part: None,
             drew_existing: false,
