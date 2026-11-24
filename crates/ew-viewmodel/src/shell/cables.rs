@@ -435,77 +435,7 @@ impl ShellModel {
             None => self.tag_example("cable", "W"),
         };
         let Some(type_text) = given(p, "type") else {
-            return match self.mode {
-                Mode::Headless => failed(key!("error-missing-param"), &["type"]),
-                Mode::Gui if self.in_form_of(FROM_WIRES) => {
-                    let message = self.missing_text("type");
-                    self.form_failed(FROM_WIRES, message)
-                }
-                Mode::Gui => {
-                    let text = |name, label_key, value: String| FormField {
-                        name,
-                        label_key,
-                        choices: &super::choices::NONE,
-                        options: Vec::new(),
-                        value,
-                    };
-                    let rows = form
-                        .rows
-                        .iter()
-                        .map(|(w, core)| super::FormRow {
-                            key: self.wire_words(*w),
-                            cells: vec![core.clone()],
-                        })
-                        .collect();
-                    // A new cable asks for its type first: the cable parts that fit the wires, best first, or none
-                    // and the size typed. Choosing a part writes its number as the type.
-                    // One Cable form in two uses: the cable type, the tag, the length, then the cores (here) or
-                    // the plugs (a bus line's).
-                    let mut fields = Vec::new();
-                    let mut type_text = form.type_text.clone();
-                    if form.cable.is_none() {
-                        let options = from_wires_options(&project.session, &wires, &form.type_text);
-                        // The best part that fits, else no part (never New cable type…, the list's last entry).
-                        let value = options
-                            .get(1)
-                            .map(|o| o.0.clone())
-                            .filter(|v| v != NEW_CABLE_TYPE)
-                            .unwrap_or_default();
-                        if !value.is_empty() {
-                            type_text.clone_from(&value);
-                        }
-                        fields.push(FormField {
-                            name: "part",
-                            label_key: key!("form-cable-kind"),
-                            choices: &super::choices::NONE,
-                            options,
-                            value,
-                        });
-                    }
-                    fields.push(text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()));
-                    fields.push(text("type", key!("form-cable-type"), type_text));
-                    fields.push(text("length", key!("form-bus-cable-length"), form.length.clone()));
-                    let mut dialog = FormDialog {
-                        action: FROM_WIRES,
-                        title_key: key!("bar-cable"),
-                        ok_key: key!("dialog-apply"),
-                        fields,
-                        error: None,
-                        table: Some(super::FormTable {
-                            name: "cores",
-                            heading_key: key!("form-cable-cores"),
-                            fixed: true,
-                            key_label: key!("form-cable-wire"),
-                            add_key: key!("form-value-set-add"),
-                            columns: vec![(strings::text(key!("form-cable-core")).to_owned(), String::new())],
-                            rows,
-                        }),
-                    };
-                    let row_wires: Vec<Uuid> = form.rows.iter().map(|r| r.0).collect();
-                    retype(Some(&project.session), &row_wires, &mut dialog);
-                    self.open_dialog(Dialog::Form(dialog))
-                }
-            };
+            return self.cable_from_wires_form(wires, form, proposed);
         };
         // The cable: the one the wires belong to, else an existing one the typed tag names, else a new one.
         let typed_tag = given(p, "tag");
@@ -662,6 +592,88 @@ impl ShellModel {
             self.dialog = None;
         }
         Outcome::Done
+    }
+
+    /// Cable from wires… without a cable type: headless a missing parameter; in the window its form, filled from the
+    /// selected wires and the cable they belong to (or the proposed tag), or retyped while it is open.
+    fn cable_from_wires_form(
+        &mut self,
+        wires: Vec<Uuid>,
+        form: ew_api::window::CableForm,
+        proposed: Option<String>,
+    ) -> Outcome {
+        let project = or_return!(crate::shell::gated(&self.project));
+        match self.mode {
+            Mode::Headless => failed(key!("error-missing-param"), &["type"]),
+            Mode::Gui if self.in_form_of(FROM_WIRES) => {
+                let message = self.missing_text("type");
+                self.form_failed(FROM_WIRES, message)
+            }
+            Mode::Gui => {
+                let text = |name, label_key, value: String| FormField {
+                    name,
+                    label_key,
+                    choices: &super::choices::NONE,
+                    options: Vec::new(),
+                    value,
+                };
+                let rows = form
+                    .rows
+                    .iter()
+                    .map(|(w, core)| super::FormRow {
+                        key: self.wire_words(*w),
+                        cells: vec![core.clone()],
+                    })
+                    .collect();
+                // A new cable asks for its type first: the cable parts that fit the wires, best first, or none
+                // and the size typed. Choosing a part writes its number as the type.
+                // One Cable form in two uses: the cable type, the tag, the length, then the cores (here) or
+                // the plugs (a bus line's).
+                let mut fields = Vec::new();
+                let mut type_text = form.type_text.clone();
+                if form.cable.is_none() {
+                    let options = from_wires_options(&project.session, &wires, &form.type_text);
+                    // The best part that fits, else no part (never New cable type…, the list's last entry).
+                    let value = options
+                        .get(1)
+                        .map(|o| o.0.clone())
+                        .filter(|v| v != NEW_CABLE_TYPE)
+                        .unwrap_or_default();
+                    if !value.is_empty() {
+                        type_text.clone_from(&value);
+                    }
+                    fields.push(FormField {
+                        name: "part",
+                        label_key: key!("form-cable-kind"),
+                        choices: &super::choices::NONE,
+                        options,
+                        value,
+                    });
+                }
+                fields.push(text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()));
+                fields.push(text("type", key!("form-cable-type"), type_text));
+                fields.push(text("length", key!("form-bus-cable-length"), form.length.clone()));
+                let mut dialog = FormDialog {
+                    action: FROM_WIRES,
+                    title_key: key!("bar-cable"),
+                    ok_key: key!("dialog-apply"),
+                    fields,
+                    error: None,
+                    table: Some(super::FormTable {
+                        name: "cores",
+                        heading_key: key!("form-cable-cores"),
+                        fixed: true,
+                        key_label: key!("form-cable-wire"),
+                        add_key: key!("form-value-set-add"),
+                        columns: vec![(strings::text(key!("form-cable-core")).to_owned(), String::new())],
+                        rows,
+                    }),
+                };
+                let row_wires: Vec<Uuid> = form.rows.iter().map(|r| r.0).collect();
+                retype(Some(&project.session), &row_wires, &mut dialog);
+                self.open_dialog(Dialog::Form(dialog))
+            }
+        }
     }
 }
 
