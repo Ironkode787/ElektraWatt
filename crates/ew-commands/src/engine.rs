@@ -503,6 +503,13 @@ impl Engine {
             };
             self.model = candidate;
             self.changes.push(change);
+            // In every test build (`testkit`) the whole project's structural check follows each changing command, so
+            // a command that leaves a record its next reader trips over fails where it is made. A shipped program
+            // never builds it.
+            #[cfg(feature = "testkit")]
+            if let Err(e) = self.model.integrity_check() {
+                panic!("`{}` left the project failing its structural check: {e}", meta.name);
+            }
         }
         if changed || !meta.undoable {
             self.history.push(
