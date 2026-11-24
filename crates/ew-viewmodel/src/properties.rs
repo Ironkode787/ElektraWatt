@@ -1388,6 +1388,25 @@ pub fn shared_provenance(sheet: &PropertySheet) -> Option<&Provenance> {
     (!matches!(first, Provenance::Authored) && rows.all(|p| p == first)).then_some(first)
 }
 
+/// The Messages filter of a sheet's record: a page by its folio facet (`page:101`; its title "101 Control" is in no
+/// finding's text), a tube or an unnumbered wire by the words its findings name it by (`SheetHeader::filter`), any
+/// other record by its title (a device's tag, a wire's number). Several records have no filter
+/// (FT-1659: the title "2 devices" is in no finding's text, so the chip of four warnings opened "Nothing matches"); the
+/// chip's tooltip lists their findings.
+pub fn findings_filter(header: &ew_api::output::SheetHeader) -> String {
+    if header.items != 1 {
+        return String::new();
+    }
+    if let Some(filter) = &header.filter {
+        return filter.clone();
+    }
+    let page = header.kinds.iter().any(|(k, n)| k == "page" && *n == 1);
+    match header.title.split_whitespace().next() {
+        Some(folio) if page => format!("page:{folio}"),
+        _ => header.title.clone(),
+    }
+}
+
 /// Whether a row is a group header: a group or list without a route of its own whose members are editable.
 pub fn is_header(section: &SheetSection, row: &PropRow) -> bool {
     if !row.ty.is_container() || row.route.is_editable() || is_derived(row) {
@@ -2640,5 +2659,25 @@ mod tests {
             }),
             json!(1)
         );
+    }
+
+    /// A page's chip filters Messages by its folio facet, a device's by its tag.
+    #[test]
+    fn a_finding_chip_filters_a_page_by_folio_and_a_device_by_tag() {
+        use ew_api::output::SheetHeader;
+        let page = SheetHeader {
+            title: "101 Control".into(),
+            items: 1,
+            kinds: vec![("page".into(), 1)],
+            ..SheetHeader::default()
+        };
+        assert_eq!(super::findings_filter(&page), "page:101");
+        let device = SheetHeader {
+            title: "-101S1".into(),
+            items: 1,
+            kinds: vec![("device".into(), 1)],
+            ..SheetHeader::default()
+        };
+        assert_eq!(super::findings_filter(&device), "-101S1");
     }
 }

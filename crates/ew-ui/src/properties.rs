@@ -2317,36 +2317,17 @@ fn is_line_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &Prop
 /// A severity's glyph chip: the severity's subtle fill, its icon, and the count in `type.caption` when more
 /// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
 /// The actions of a click on a Properties finding chip: Messages opens, filtered to the record
-/// ([`findings_filter`]), at its first row, so the most severe findings are in view (FT-1659: the list kept its
+/// ([`ew_viewmodel::properties::findings_filter`]), at its first row, so the most severe findings are in view (FT-1659: the list kept its
 /// cursor on an info below them, and the error the chip counted stood above the pane's top).
 fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event; 3] {
     [
         Event::Action("messages.show", json!({"on": true})),
         Event::Action(
             "navigator.filter",
-            json!({"kind": "messages", "text": findings_filter(header)}),
+            json!({"kind": "messages", "text": ew_viewmodel::properties::findings_filter(header)}),
         ),
         Event::Action("navigator.row", json!({"kind": "messages", "to": "first"})),
     ]
-}
-
-/// The Messages filter of a sheet's record: a page by its folio facet (`page:101`; its title "101 Control" is in no
-/// finding's text), a tube or an unnumbered wire by the words its findings name it by (`SheetHeader::filter`), any
-/// other record by its title (a device's tag, a wire's number). Several records have no filter
-/// (FT-1659: the title "2 devices" is in no finding's text, so the chip of four warnings opened "Nothing matches"); the
-/// chip's tooltip lists their findings.
-pub(crate) fn findings_filter(header: &ew_viewmodel::ew_api::output::SheetHeader) -> String {
-    if header.items != 1 {
-        return String::new();
-    }
-    if let Some(filter) = &header.filter {
-        return filter.clone();
-    }
-    let page = header.kinds.iter().any(|(k, n)| k == "page" && *n == 1);
-    match header.title.split_whitespace().next() {
-        Some(folio) if page => format!("page:{folio}"),
-        _ => header.title.clone(),
-    }
 }
 
 fn glyph_chip(ui: &mut Ui, severity: crate::messages::Severity, findings: &[(&str, &str)]) -> egui::Response {
@@ -2483,26 +2464,6 @@ mod tests {
         assert_eq!((count("error"), count("warning"), count("pending")), (1, 1, 1));
         let none = super::severity_groups(&findings, None);
         assert!(none.iter().all(|(g, _)| *g != crate::messages::Severity::Pending));
-    }
-
-    /// A page's chip filters Messages by its folio facet, a device's by its tag.
-    #[test]
-    fn a_finding_chip_filters_a_page_by_folio_and_a_device_by_tag() {
-        use ew_viewmodel::ew_api::output::SheetHeader;
-        let page = SheetHeader {
-            title: "101 Control".into(),
-            items: 1,
-            kinds: vec![("page".into(), 1)],
-            ..SheetHeader::default()
-        };
-        assert_eq!(super::findings_filter(&page), "page:101");
-        let device = SheetHeader {
-            title: "-101S1".into(),
-            items: 1,
-            kinds: vec![("device".into(), 1)],
-            ..SheetHeader::default()
-        };
-        assert_eq!(super::findings_filter(&device), "-101S1");
     }
 
     /// The free area of a 1280 by 800 window: above the status bar, between the rails.
