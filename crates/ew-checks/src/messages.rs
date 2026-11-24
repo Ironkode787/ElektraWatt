@@ -21,13 +21,13 @@
 //! finding's arguments are its printed values (derived tags, names and quantities as text, rendered when the rule
 //! ran), so a pattern never formats a number itself: the bytes cannot depend on a locale's number format.
 //!
-//! The languages are rendered by the one renderer, `ew_l10n::fluent`, which inserts no Unicode isolation marks: the
+//! The languages are rendered by the one renderer, `ew_l10n::render`, which inserts no Unicode isolation marks: the
 //! arguments are tags and names in the project's own text, and isolation marks would break the byte equality of P5-2.
 //!
 //! Two functions let a pattern of another language word an argument as that language does:
 //!
 //! - `DECIMAL($x)` writes the decimal points of a printed number (`1.5 mm²`, `40.0`) as the language writes them
-//!   (`1,5 mm²` in nl-NL; [`ew_l10n::fluent::decimal`]); a pattern wraps every argument that holds a measured value,
+//!   (`1,5 mm²` in nl-NL; [`ew_l10n::render::decimal`]); a pattern wraps every argument that holds a measured value,
 //!   never a wire number or a version.
 //! - `WORD($x)` writes the words a rule prints where a record has no name of its own ("a location", "a device without
 //!   designation", "the junction in C11"; each piece of a comma list and each end of a connection `a → b` or a wire
@@ -36,7 +36,7 @@
 
 use std::sync::OnceLock;
 
-use ew_l10n::fluent::{Language, OnError, Value};
+use ew_l10n::render::{Language, OnError, Value};
 
 use crate::finding::Finding;
 
@@ -70,7 +70,7 @@ fn bundle(lang: &str) -> Option<&'static Language> {
                 Language::new(
                     tag,
                     [*source],
-                    &[("DECIMAL", ew_l10n::fluent::decimal), ("WORD", words)],
+                    &[("DECIMAL", ew_l10n::render::decimal), ("WORD", words)],
                     true,
                 )
             })
@@ -84,7 +84,7 @@ fn bundle(lang: &str) -> Option<&'static Language> {
 pub fn resource_errors() -> Vec<(&'static str, String)> {
     let mut out = Vec::new();
     for (tag, source) in LANGUAGES.iter().zip(SOURCES) {
-        for e in ew_l10n::fluent::parse_errors(source) {
+        for e in ew_l10n::render::parse_errors(source) {
             out.push((*tag, e));
         }
     }

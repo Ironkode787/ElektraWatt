@@ -12,12 +12,12 @@
 //! The table holds each one-line text that takes only positional arguments (`{ $p0 }`, `{ $p1 }`, …) as its English
 //! with the arguments written `{0}`, `{1}`, …, which a [`Text`] keeps for [`fmt::Display`].
 //!
-//! The words in a language are rendered at the edge by the one renderer over Fluent, [`fluent`].
+//! The words in a language are rendered at the edge by the one renderer over Fluent, [`render`].
 
 use std::fmt;
 
 pub mod build;
-pub mod fluent;
+pub mod render;
 
 /// A text by key, with its arguments: [`fmt::Display`] writes it in English.
 #[derive(Clone)]

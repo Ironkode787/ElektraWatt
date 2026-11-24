@@ -18,7 +18,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{OnceLock, PoisonError, RwLock};
 
-use ew_l10n::fluent::{Language, OnError, Value};
+use ew_l10n::render::{Language, OnError, Value};
 
 /// The key list and the list of text files that `build.rs` writes from the shell's text folder.
 mod keys {
@@ -173,7 +173,7 @@ pub const PSEUDO: &str = "en-XA";
 /// The arguments a text may take: `{ $p0 }` to `{ $p9 }`.
 const ARGS: [&str; 10] = ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"];
 
-/// A loaded UI language: its tag, its language of `ew_l10n::fluent` (none for the pseudo-locale, whose texts are
+/// A loaded UI language: its tag, its language of `ew_l10n::render` (none for the pseudo-locale, whose texts are
 /// generated) and every message formatted once, the arguments shown as `{0}`, `{1}`, … (bounded: keys × loaded
 /// languages).
 struct Locale {
@@ -218,13 +218,13 @@ impl Locale {
     }
 
     /// The pseudo-locale en-XA from `base` (D11): every text's letters accented, padded by 35 % of its length (rounded
-    /// up) and bracketed with `⟦ ⟧`; the arguments `{0}`, `{1}`, … stay as they are (`ew_l10n::fluent::pseudo`).
+    /// up) and bracketed with `⟦ ⟧`; the arguments `{0}`, `{1}`, … stay as they are (`ew_l10n::render::pseudo`).
     fn pseudo(base: &Locale) -> Locale {
         let texts = base
             .texts
             .iter()
             .map(|(k, t)| {
-                let t: &'static str = Box::leak(ew_l10n::fluent::pseudo(t).into_boxed_str());
+                let t: &'static str = Box::leak(ew_l10n::render::pseudo(t).into_boxed_str());
                 (k.clone(), t)
             })
             .collect();
@@ -395,7 +395,7 @@ pub fn register_locale_for_tests(tag: &str, source: &str) {
 /// The parse errors of the en-GB Fluent sources (empty when they parse): for the tests.
 #[doc(hidden)]
 pub fn en_gb_errors() -> Vec<String> {
-    sources("en-GB").flat_map(ew_l10n::fluent::parse_errors).collect()
+    sources("en-GB").flat_map(ew_l10n::render::parse_errors).collect()
 }
 
 /// The text of `key` in the source language, en-GB, whatever the UI language is (the guide's headings are English).
@@ -1060,7 +1060,7 @@ mod tests {
     /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
     #[test]
     fn the_dutch_file_parses_with_every_key() {
-        let errors: Vec<String> = sources("nl-NL").flat_map(ew_l10n::fluent::parse_errors).collect();
+        let errors: Vec<String> = sources("nl-NL").flat_map(ew_l10n::render::parse_errors).collect();
         assert!(errors.is_empty(), "{errors:?}");
         let missing: Vec<&str> = window_keys()
             .filter(|k| !nl_nl().texts.contains_key(*k))

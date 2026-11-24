@@ -655,8 +655,8 @@ A text for a person by key (architecture §18): a [`Text`] is a key of the text 
 | File | Size | What it holds |
 |---|---|---|
 | `src/build.rs` |  | The one generator of the key tables and of the list of text files (architecture §18 point 5): the build script of every crate that owns a text folder calls [`generate`], and the crate reads what it writes through [`texts!`](crate::texts) or `include!`. |
-| `src/fluent.rs` |  | The one renderer over Fluent (architecture §18 point 4): a language's Fluent sources as one [`Language`], and a message or one of its attributes formatted with its arguments. |
 | `src/lib.rs` |  | A text for a person by key (architecture §18): a [`Text`] is a key of the text files of the crate that says it and its arguments; the command line and `ew-api` print its English, the window renders the key in its language, an argument that is itself a [`Text`] in its language too. |
+| `src/render.rs` |  | The one renderer over Fluent (architecture §18 point 4): a language's Fluent sources as one [`Language`], and a message or one of its attributes formatted with its arguments. |
 
 ## ew-library
 
