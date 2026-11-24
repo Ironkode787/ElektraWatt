@@ -10,7 +10,7 @@ use ew_ids::Id;
 use ew_model::EndpointKey;
 use ew_schema::{
     Connection, Device, DeviceLink, Endpoint, Function, Kind, LevelSpec, LibCopy, PinMapEntry,
-    Representation, SymbolDef,
+    Representation, SymbolDef, Terminal,
 };
 
 use super::common::function_cp_levels;
@@ -18,6 +18,7 @@ use super::join::{dropped_device_members, dropped_function_members, listed, move
 use crate::command::Outcome;
 use crate::error::CmdError;
 use crate::tx::TxBuilder;
+use ew_l10n::Text;
 
 /// The command whose parameters the refusals point into.
 const NAME: &str = "rep.join_device";
@@ -83,23 +84,7 @@ pub(super) fn join_level(
     };
     let from = only_function(tx, source.id)?;
     let to = only_function(tx, target)?;
-    if let Some(link) = tx
-        .iter::<DeviceLink>()
-        .into_iter()
-        .filter(|l| l.from == source.id || l.to == source.id)
-        .min_by_key(|l| l.id)
-    {
-        let other = if link.from == source.id {
-            link.to
-        } else {
-            link.from
-        };
-        return Err(CmdError::invalid_params(
-            NAME,
-            "/rep",
-            text!("refusal-join-device-link", crate::words::device(tx, other)),
-        ));
-    }
+    refuse_device_link(tx, source)?;
     let from_fn = tx.require::<Function>(from)?;
     let to_fn = tx.require::<Function>(to)?;
 
@@ -114,59 +99,7 @@ pub(super) fn join_level(
         ));
     }
 
-    // The new level and the target's levels with it.
-    let target_cps = function_cp_levels(tx, &to_fn, &block);
-    let base = target_cps.iter().filter_map(|(_, l)| *l).min().unwrap_or(1);
-    let mut levels = theirs.levels.clone();
-    if levels.is_empty() {
-        levels.push(LevelSpec {
-            level: base,
-            role: Default::default(),
-            designation: None,
-            extra: Default::default(),
-        });
-    }
-    let top = levels.iter().map(|l| l.level).max().unwrap_or(base);
-    let no_level = || {
-        Err(CmdError::invalid_params(
-            NAME,
-            "/device",
-            text!(
-                "refusal-join-level-none",
-                crate::words::device(tx, target),
-                top.saturating_add(1).to_string()
-            ),
-        ))
-    };
-    let Some(level) = top.checked_add(1) else {
-        return no_level();
-    };
-    levels.push(LevelSpec {
-        level,
-        role: Default::default(),
-        designation: (own.designation != theirs.designation).then(|| own.designation.clone()),
-        extra: Default::default(),
-    });
-    let mut after = (*block).clone();
-    if let Some(t) = after.aspects.terminal.as_mut() {
-        t.levels = levels;
-    }
-    if after.parts.is_empty() {
-        after.parts = source.parts.clone();
-    }
-    let gained: Vec<u16> = function_cp_levels(tx, &to_fn, &after)
-        .into_iter()
-        .filter(|(_, l)| *l == Some(level))
-        .map(|(i, _)| i)
-        .collect();
-    if gained.is_empty() {
-        return no_level();
-    }
-    let shared: Vec<u16> = target_cps
-        .iter()
-        .filter(|(_, l)| l.is_none())
-        .map(|(i, _)| *i)
-        .collect();
+    let (after, level, gained, shared) = new_level(tx, source, own, &block, theirs, &to_fn)?;
 
     // The source's CPs onto the new level's (and its CPs without a level onto the target's), by position.
     let leveled: Vec<u16> = source_cps
@@ -188,6 +121,145 @@ pub(super) fn join_level(
     };
 
     // What must move: the CPs the source's representations draw and those something is attached to.
+    let (pins, mut needed) = drawn_pins(tx, from, to, &onto)?;
+    let all: BTreeSet<u16> = source_cps.iter().map(|(i, _)| *i).collect();
+    needed.extend(attached_cps(tx, from, &all));
+    if let Some(lost) = needed.iter().find(|i| onto(**i).is_none()) {
+        return Err(CmdError::invalid_params(
+            NAME,
+            "/device",
+            text!(
+                "refusal-join-level-cp",
+                crate::words::device(tx, target),
+                level.to_string(),
+                lost.to_string(),
+                crate::words::device(tx, source.id)
+            ),
+        ));
+    }
+
+    // The words of what goes with the source, before it goes.
+    let notices = dropped_notices(source, &block, &from_fn);
+
+    tx.put(after);
+    for (r, entries) in pins {
+        let pin_map = ew_schema::KeyedList::from_vec(entries)
+            .map_err(|e| CmdError::internal(format!("{NAME}: the pin map: {e}")))?;
+        tx.update::<Representation>(r, |r| {
+            for f in &mut r.functions {
+                if *f == from {
+                    *f = to;
+                }
+            }
+            r.pin_map = pin_map;
+        })?;
+    }
+    move_attached(tx, from, &all, to, &|i| onto(i).unwrap_or(i))?;
+    tx.delete((Kind::Device, source.id.cast()))?;
+
+    let mut outcome = Outcome::primary((Kind::Representation, rep.cast()));
+    outcome.notices = notices;
+    Ok(outcome)
+}
+
+/// The join removes the source, and its device links with it (they cascade): refused, not lost.
+fn refuse_device_link(tx: &TxBuilder<'_>, source: &Device) -> Result<(), CmdError> {
+    if let Some(link) = tx
+        .iter::<DeviceLink>()
+        .into_iter()
+        .filter(|l| l.from == source.id || l.to == source.id)
+        .min_by_key(|l| l.id)
+    {
+        let other = if link.from == source.id {
+            link.to
+        } else {
+            link.from
+        };
+        return Err(CmdError::invalid_params(
+            NAME,
+            "/rep",
+            text!("refusal-join-device-link", crate::words::device(tx, other)),
+        ));
+    }
+    Ok(())
+}
+
+/// The new level and the target's levels with it: one above the levels the target lists (or above the one its CPs
+/// carry), designated by the source's designation unless that is the target's own. The target as it will be, the new
+/// level, the CPs the target gains on it, and the target's CPs without a level; refused when the level does not exist
+/// or brings no CP.
+fn new_level(
+    tx: &TxBuilder<'_>,
+    source: &Device,
+    own: &Terminal,
+    block: &Device,
+    theirs: &Terminal,
+    to_fn: &Function,
+) -> Result<(Device, u8, Vec<u16>, Vec<u16>), CmdError> {
+    let target_cps = function_cp_levels(tx, to_fn, block);
+    let base = target_cps.iter().filter_map(|(_, l)| *l).min().unwrap_or(1);
+    let mut levels = theirs.levels.clone();
+    if levels.is_empty() {
+        levels.push(LevelSpec {
+            level: base,
+            role: Default::default(),
+            designation: None,
+            extra: Default::default(),
+        });
+    }
+    let top = levels.iter().map(|l| l.level).max().unwrap_or(base);
+    let no_level = || {
+        Err(CmdError::invalid_params(
+            NAME,
+            "/device",
+            text!(
+                "refusal-join-level-none",
+                crate::words::device(tx, block.id),
+                top.saturating_add(1).to_string()
+            ),
+        ))
+    };
+    let Some(level) = top.checked_add(1) else {
+        return no_level();
+    };
+    levels.push(LevelSpec {
+        level,
+        role: Default::default(),
+        designation: (own.designation != theirs.designation).then(|| own.designation.clone()),
+        extra: Default::default(),
+    });
+    let mut after = block.clone();
+    if let Some(t) = after.aspects.terminal.as_mut() {
+        t.levels = levels;
+    }
+    if after.parts.is_empty() {
+        after.parts = source.parts.clone();
+    }
+    let gained: Vec<u16> = function_cp_levels(tx, to_fn, &after)
+        .into_iter()
+        .filter(|(_, l)| *l == Some(level))
+        .map(|(i, _)| i)
+        .collect();
+    if gained.is_empty() {
+        return no_level();
+    }
+    let shared: Vec<u16> = target_cps
+        .iter()
+        .filter(|(_, l)| l.is_none())
+        .map(|(i, _)| *i)
+        .collect();
+    Ok((after, level, gained, shared))
+}
+
+/// The pin maps of the source's representations with every pin of function `from` drawn onto its CP of `to` (by
+/// `onto`), and the source CPs they draw.
+#[allow(clippy::type_complexity)]
+fn drawn_pins(
+    tx: &TxBuilder<'_>,
+    from: Id<Function>,
+    to: Id<Function>,
+    onto: &dyn Fn(u16) -> Option<u16>,
+) -> Result<(Vec<(Id<Representation>, Vec<PinMapEntry>)>, BTreeSet<u16>), CmdError> {
     let reps = tx.reps_of_function(from);
     let mut pins: Vec<(Id<Representation>, Vec<PinMapEntry>)> = Vec::new();
     let mut needed: BTreeSet<u16> = BTreeSet::new();
@@ -214,7 +286,12 @@ pub(super) fn join_level(
         }
         pins.push((*r, entries));
     }
-    let all: BTreeSet<u16> = source_cps.iter().map(|(i, _)| *i).collect();
+    Ok((pins, needed))
+}
+
+/// The CPs of function `from` (of `all`) that a connection, a potential definition, a bond or a channel is at.
+fn attached_cps(tx: &TxBuilder<'_>, from: Id<Function>, all: &BTreeSet<u16>) -> BTreeSet<u16> {
+    let mut needed: BTreeSet<u16> = BTreeSet::new();
     for c in tx.connections_of_function(from) {
         if let Some(c) = tx.get::<Connection>(c) {
             for e in [&c.a, &c.b] {
@@ -226,7 +303,7 @@ pub(super) fn join_level(
             }
         }
     }
-    for i in &all {
+    for i in all {
         let at = EndpointKey::Cp(from, *i);
         if !tx.potential_defs_at(at).is_empty()
             || !tx.bonds_at(at).is_empty()
@@ -235,55 +312,28 @@ pub(super) fn join_level(
             needed.insert(*i);
         }
     }
-    if let Some(lost) = needed.iter().find(|i| onto(**i).is_none()) {
-        return Err(CmdError::invalid_params(
-            NAME,
-            "/device",
-            text!(
-                "refusal-join-level-cp",
-                crate::words::device(tx, target),
-                level.to_string(),
-                lost.to_string(),
-                crate::words::device(tx, source.id)
-            ),
-        ));
-    }
+    needed
+}
 
-    // The words of what goes with the source, before it goes.
-    let mut device_members = dropped_device_members(source, &block);
+/// The notices that name what goes with the source terminal and with its function.
+fn dropped_notices(source: &Device, block: &Device, from_fn: &Function) -> Vec<Text> {
+    let mut device_members = dropped_device_members(source, block);
     if !source.parts.is_empty() && !block.parts.is_empty() {
         device_members.push(text!("notice-member-part"));
     }
-    let function_members = dropped_function_members(&from_fn);
-
-    tx.put(after);
-    for (r, entries) in pins {
-        let pin_map = ew_schema::KeyedList::from_vec(entries)
-            .map_err(|e| CmdError::internal(format!("{NAME}: the pin map: {e}")))?;
-        tx.update::<Representation>(r, |r| {
-            for f in &mut r.functions {
-                if *f == from {
-                    *f = to;
-                }
-            }
-            r.pin_map = pin_map;
-        })?;
-    }
-    move_attached(tx, from, &all, to, &|i| onto(i).unwrap_or(i))?;
-    tx.delete((Kind::Device, source.id.cast()))?;
-
-    let mut outcome = Outcome::primary((Kind::Representation, rep.cast()));
+    let function_members = dropped_function_members(from_fn);
+    let mut notices = Vec::new();
     if !device_members.is_empty() {
-        outcome.notices.push(match listed(device_members) {
+        notices.push(match listed(device_members) {
             (words, false) => text!("notice-join-terminal-dropped-one", words),
             (words, true) => text!("notice-join-terminal-dropped-many", words),
         });
     }
     if !function_members.is_empty() {
-        outcome.notices.push(match listed(function_members) {
+        notices.push(match listed(function_members) {
             (words, false) => text!("notice-join-terminal-function-dropped-one", words),
             (words, true) => text!("notice-join-terminal-function-dropped-many", words),
         });
     }
-    Ok(outcome)
+    notices
 }

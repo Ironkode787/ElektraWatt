@@ -257,6 +257,15 @@ pub(super) fn move_attached(
     Ok(())
 }
 
+/// The refusal of a representation that cannot join, with the reason.
+fn not_eligible<T>(why: Text) -> Result<T, CmdError> {
+    Err(CmdError::invalid_params(
+        JoinDevice::NAME,
+        "/rep",
+        text!("refusal-join-not-eligible", why),
+    ))
+}
+
 impl Command for JoinDevice {
     const NAME: &'static str = "rep.join_device";
 
@@ -266,13 +275,6 @@ impl Command for JoinDevice {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let rep = tx.require::<Representation>(self.rep)?;
-        let not_eligible = |why: Text| {
-            Err(CmdError::invalid_params(
-                Self::NAME,
-                "/rep",
-                text!("refusal-join-not-eligible", why),
-            ))
-        };
         let [function] = rep.functions.as_slice() else {
             return not_eligible(text!("refusal-join-not-one-function"));
         };
@@ -292,8 +294,79 @@ impl Command for JoinDevice {
         if terminal_or_strip(&source_device) {
             return not_eligible(text!("refusal-join-terminal"));
         }
-        // The device's other functions (of its part) are neither drawn nor wired: the join empties the device, which
-        // goes with them and its part use.
+        let others = self.check_source_may_go(tx, function, &source_device)?;
+        let target = tx.require::<Device>(self.device)?;
+        // D1: a slot of the FnDef first, the lowest template entry, then the lowest ID.
+        let mut slots: Vec<(u16, Id<Function>)> = tx
+            .functions_of_device(self.device)
+            .into_iter()
+            .filter_map(|s| tx.get::<Function>(s).map(|r| (s, r)))
+            .filter(|(s, r)| {
+                r.def == f.def && r.kind == FunctionKind::Normal && tx.reps_of_function(*s).is_empty()
+            })
+            .map(|(s, r)| (r.template_entry.unwrap_or(u16::MAX), s))
+            .collect();
+        slots.sort();
+        let slot = slots.first().map(|(_, s)| *s);
+        if slot.is_none() {
+            self.check_takes_fndef(tx, &f, &target)?;
+        }
+        // The function the representation draws afterwards, as it will be.
+        let after = match slot {
+            Some(s) => (*tx.require::<Function>(s)?).clone(),
+            None => {
+                let mut moved = (*f).clone();
+                moved.device = Some(self.device);
+                moved.role = FnRole::Aux;
+                moved.template_entry = None;
+                moved
+            }
+        };
+        let fn_cps = self.check_attached_cps_stay(tx, &f, &source_device, &after, &target)?;
+        match slot {
+            Some(slot) => {
+                // The pin map keeps its keys (the symbol CPs): only the function it names changes.
+                let pins: Vec<ew_schema::PinMapEntry> = rep
+                    .pin_map
+                    .iter()
+                    .map(|p| {
+                        let mut p = p.clone();
+                        if p.function == function {
+                            p.function = slot;
+                        }
+                        p
+                    })
+                    .collect();
+                let pins = ew_schema::KeyedList::from_vec(pins)
+                    .map_err(|e| CmdError::internal(format!("{}: the pin map: {e}", Self::NAME)))?;
+                tx.update::<Representation>(self.rep, |r| {
+                    r.functions = vec![slot];
+                    r.pin_map = pins;
+                })?;
+                move_attached(tx, function, &fn_cps, slot, &|i| i)?;
+            }
+            None => tx.put(after),
+        }
+        // The emptied source device goes (in the slot case with the old function, which nothing names now); the
+        // notices name what goes with them.
+        let mut outcome = Outcome::primary((Kind::Representation, self.rep.cast()));
+        outcome.notices = dropped_notices(&source_device, &target, &f, !others.is_empty(), slot.is_some());
+        tx.delete((Kind::Device, source.cast()))?;
+        Ok(outcome)
+    }
+}
+
+impl JoinDevice {
+    /// The source device may go with the join: its other functions (of its part) are neither drawn nor wired, the
+    /// representation is the function's only one, the device takes part in no device link, and it is not the target.
+    /// The device's other functions, which go with it and its part use.
+    fn check_source_may_go(
+        &self,
+        tx: &TxBuilder<'_>,
+        function: Id<Function>,
+        source_device: &Device,
+    ) -> Result<Vec<Id<Function>>, CmdError> {
+        let source = source_device.id;
         let others: Vec<Id<Function>> = tx
             .functions_of_device(source)
             .into_iter()
@@ -303,7 +376,7 @@ impl Command for JoinDevice {
             let other = tx.require::<Function>(*g)?;
             let attached = !tx.reps_of_function(*g).is_empty()
                 || !tx.connections_of_function(*g).is_empty()
-                || crate::commands::common::function_cp_indices(tx, &other, &source_device)
+                || crate::commands::common::function_cp_indices(tx, &other, source_device)
                     .iter()
                     .any(|i| {
                         let at = EndpointKey::Cp(*g, *i);
@@ -339,92 +412,85 @@ impl Command for JoinDevice {
                 text!("refusal-join-same-device", crate::words::device(tx, source)),
             ));
         }
-        let target = tx.require::<Device>(self.device)?;
-        // D1: a slot of the FnDef first, the lowest template entry, then the lowest ID.
-        let mut slots: Vec<(u16, Id<Function>)> = tx
-            .functions_of_device(self.device)
-            .into_iter()
-            .filter_map(|s| tx.get::<Function>(s).map(|r| (s, r)))
-            .filter(|(s, r)| {
-                r.def == f.def && r.kind == FunctionKind::Normal && tx.reps_of_function(*s).is_empty()
+        Ok(others)
+    }
+
+    /// D2, where the target has no slot of the FnDef: a contact joins a device whose family takes auxiliary functions,
+    /// a bus port a device whose bus part has a free port (FT-841), and a function of another kind any device but a
+    /// terminal or a strip (FT-1860).
+    fn check_takes_fndef(&self, tx: &TxBuilder<'_>, f: &Function, target: &Device) -> Result<(), CmdError> {
+        // D2: a contact joins a device whose family takes auxiliary functions.
+        let contact = tx.get::<LibCopy<FnDef>>(f.def).is_some_and(|d| {
+            matches!(
+                d.item.contact_kind,
+                ContactKind::No | ContactKind::Nc | ContactKind::Co
+            )
+        });
+        let coil = tx.functions_of_device(self.device).into_iter().any(|m| {
+            tx.get::<Function>(m).is_some_and(|m| {
+                m.role == FnRole::Main
+                    && tx
+                        .get::<LibCopy<FnDef>>(m.def)
+                        .is_some_and(|d| d.item.contact_kind == ContactKind::Coil)
             })
-            .map(|(s, r)| (r.template_entry.unwrap_or(u16::MAX), s))
-            .collect();
-        slots.sort();
-        let slot = slots.first().map(|(_, s)| *s);
-        if slot.is_none() {
-            // D2: a contact joins a device whose family takes auxiliary functions.
-            let contact = tx.get::<LibCopy<FnDef>>(f.def).is_some_and(|d| {
-                matches!(
-                    d.item.contact_kind,
-                    ContactKind::No | ContactKind::Nc | ContactKind::Co
-                )
-            });
-            let coil = tx.functions_of_device(self.device).into_iter().any(|m| {
-                tx.get::<Function>(m).is_some_and(|m| {
-                    m.role == FnRole::Main
-                        && tx
-                            .get::<LibCopy<FnDef>>(m.def)
-                            .is_some_and(|d| d.item.contact_kind == ContactKind::Coil)
-                })
-            });
-            let templated = target.parts.iter().any(|u| {
-                tx.get::<LibCopy<Part>>(u.part.copy)
-                    .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == f.def))
-            });
-            // FT-841: a bus-port FnDef joins a device whose bus part has a port no function carries yet
-            let bus_port = tx
-                .get::<LibCopy<FnDef>>(f.def)
-                .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort);
-            let free_port = bus_port && has_free_bus_port(tx, &target);
-            let auxiliary = contact && !terminal_or_strip(&target) && (coil || templated);
-            // FT-1860: a function of another kind is the device drawn once more, on any device but a terminal or a strip.
-            let any = tx
-                .get::<LibCopy<FnDef>>(f.def)
-                .is_some_and(|d| joins_any_device(&d.item));
-            let own = any && !terminal_or_strip(&target);
-            if !(auxiliary || free_port || own) {
-                let fndef_words = tx.get::<LibCopy<FnDef>>(f.def).map_or_else(
-                    || text!("refusal-words-kind-fndef"),
-                    |d| {
-                        let key = d.item.meta.key.as_ref().map(ToString::to_string);
-                        crate::words::copy(tx, ew_schema::Kind::Fndef, key, &d.version)
-                    },
-                );
-                return Err(CmdError::invalid_params(
-                    Self::NAME,
-                    "/device",
-                    text!(
-                        "refusal-join-no-function",
-                        crate::words::device(tx, self.device),
-                        fndef_words,
-                        if contact {
-                            text!("refusal-join-no-auxiliary")
-                        } else if bus_port {
-                            text!("refusal-join-no-free-port")
-                        } else if any {
-                            text!("refusal-join-target-terminal")
-                        } else {
-                            text!("refusal-join-no-device-function")
-                        }
-                    ),
-                ));
-            }
+        });
+        let templated = target.parts.iter().any(|u| {
+            tx.get::<LibCopy<Part>>(u.part.copy)
+                .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == f.def))
+        });
+        // FT-841: a bus-port FnDef joins a device whose bus part has a port no function carries yet
+        let bus_port = tx
+            .get::<LibCopy<FnDef>>(f.def)
+            .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort);
+        let free_port = bus_port && has_free_bus_port(tx, target);
+        let auxiliary = contact && !terminal_or_strip(target) && (coil || templated);
+        // FT-1860: a function of another kind is the device drawn once more, on any device but a terminal or a strip.
+        let any = tx
+            .get::<LibCopy<FnDef>>(f.def)
+            .is_some_and(|d| joins_any_device(&d.item));
+        let own = any && !terminal_or_strip(target);
+        if !(auxiliary || free_port || own) {
+            let fndef_words = tx.get::<LibCopy<FnDef>>(f.def).map_or_else(
+                || text!("refusal-words-kind-fndef"),
+                |d| {
+                    let key = d.item.meta.key.as_ref().map(ToString::to_string);
+                    crate::words::copy(tx, ew_schema::Kind::Fndef, key, &d.version)
+                },
+            );
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/device",
+                text!(
+                    "refusal-join-no-function",
+                    crate::words::device(tx, self.device),
+                    fndef_words,
+                    if contact {
+                        text!("refusal-join-no-auxiliary")
+                    } else if bus_port {
+                        text!("refusal-join-no-free-port")
+                    } else if any {
+                        text!("refusal-join-target-terminal")
+                    } else {
+                        text!("refusal-join-no-device-function")
+                    }
+                ),
+            ));
         }
-        // The function the representation draws afterwards, as it will be.
-        let after = match slot {
-            Some(s) => (*tx.require::<Function>(s)?).clone(),
-            None => {
-                let mut moved = (*f).clone();
-                moved.device = Some(self.device);
-                moved.role = FnRole::Aux;
-                moved.template_entry = None;
-                moved
-            }
-        };
-        // Every attached CP must exist on the new function (the same FnDef, so the indices line up unless a part's
-        // template draws other CPs).
-        let now = crate::commands::common::function_cp_indices(tx, &after, &target);
+        Ok(())
+    }
+
+    /// Every attached CP of the function must exist on the function as it will be (the same FnDef, so the indices
+    /// line up unless a part's template draws other CPs). The function's CPs on its source device.
+    fn check_attached_cps_stay(
+        &self,
+        tx: &TxBuilder<'_>,
+        f: &Function,
+        source_device: &Device,
+        after: &Function,
+        target: &Device,
+    ) -> Result<BTreeSet<u16>, CmdError> {
+        let function = f.id;
+        let now = crate::commands::common::function_cp_indices(tx, after, target);
         let mut attached: BTreeSet<u16> = BTreeSet::new();
         for c in tx.connections_of_function(function) {
             if let Some(c) = tx.get::<Connection>(c) {
@@ -437,7 +503,7 @@ impl Command for JoinDevice {
                 }
             }
         }
-        let fn_cps = crate::commands::common::function_cp_indices(tx, &f, &source_device);
+        let fn_cps = crate::commands::common::function_cp_indices(tx, f, source_device);
         for i in &fn_cps {
             let at = EndpointKey::Cp(function, *i);
             if !tx.potential_defs_at(at).is_empty()
@@ -459,56 +525,41 @@ impl Command for JoinDevice {
                 ),
             ));
         }
-        match slot {
-            Some(slot) => {
-                // The pin map keeps its keys (the symbol CPs): only the function it names changes.
-                let pins: Vec<ew_schema::PinMapEntry> = rep
-                    .pin_map
-                    .iter()
-                    .map(|p| {
-                        let mut p = p.clone();
-                        if p.function == function {
-                            p.function = slot;
-                        }
-                        p
-                    })
-                    .collect();
-                let pins = ew_schema::KeyedList::from_vec(pins)
-                    .map_err(|e| CmdError::internal(format!("{}: the pin map: {e}", Self::NAME)))?;
-                tx.update::<Representation>(self.rep, |r| {
-                    r.functions = vec![slot];
-                    r.pin_map = pins;
-                })?;
-                move_attached(tx, function, &fn_cps, slot, &|i| i)?;
-            }
-            None => tx.put(after),
-        }
-        // The emptied source device goes (in the slot case with the old function, which nothing names now); the
-        // notices name what goes with them.
-        let mut outcome = Outcome::primary((Kind::Representation, self.rep.cast()));
-        let mut device_members = dropped_device_members(&source_device, &target);
-        if !source_device.parts.is_empty() {
-            device_members.push(text!("notice-member-part"));
-        }
-        if !others.is_empty() {
-            device_members.push(text!("notice-member-unplaced-functions"));
-        }
-        if !device_members.is_empty() {
-            outcome.notices.push(match listed(device_members) {
-                (words, false) => text!("notice-join-device-dropped-one", words),
-                (words, true) => text!("notice-join-device-dropped-many", words),
+        Ok(fn_cps)
+    }
+}
+
+/// The notices that name what goes with the emptied source device (its members, its part use, its unplaced
+/// functions) and, in the slot case, with the old function.
+fn dropped_notices(
+    source_device: &Device,
+    target: &Device,
+    f: &Function,
+    others: bool,
+    slot: bool,
+) -> Vec<Text> {
+    let mut notices = Vec::new();
+    let mut device_members = dropped_device_members(source_device, target);
+    if !source_device.parts.is_empty() {
+        device_members.push(text!("notice-member-part"));
+    }
+    if others {
+        device_members.push(text!("notice-member-unplaced-functions"));
+    }
+    if !device_members.is_empty() {
+        notices.push(match listed(device_members) {
+            (words, false) => text!("notice-join-device-dropped-one", words),
+            (words, true) => text!("notice-join-device-dropped-many", words),
+        });
+    }
+    if slot {
+        let function_members = dropped_function_members(f);
+        if !function_members.is_empty() {
+            notices.push(match listed(function_members) {
+                (words, false) => text!("notice-join-function-dropped-one", words),
+                (words, true) => text!("notice-join-function-dropped-many", words),
             });
         }
-        if slot.is_some() {
-            let function_members = dropped_function_members(&f);
-            if !function_members.is_empty() {
-                outcome.notices.push(match listed(function_members) {
-                    (words, false) => text!("notice-join-function-dropped-one", words),
-                    (words, true) => text!("notice-join-function-dropped-many", words),
-                });
-            }
-        }
-        tx.delete((Kind::Device, source.cast()))?;
-        Ok(outcome)
     }
+    notices
 }
