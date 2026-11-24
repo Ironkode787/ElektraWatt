@@ -377,7 +377,13 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
     let result = session
         .check(sch, a.check_mode())
         .with_integrity(ew_api::integrity_items(&opened));
-    print_check(format, a.out.as_ref(), &a.lang, &result, &undrawn_notices(&session))
+    print_check(
+        format,
+        a.out.as_ref(),
+        &a.lang,
+        &result,
+        &undrawn_notices(&session),
+    )
 }
 
 /// The notices of the images the project keeps but no drawing shows, in the window's words.
