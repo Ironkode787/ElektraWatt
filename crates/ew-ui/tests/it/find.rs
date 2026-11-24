@@ -517,7 +517,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
 /// the fields and the buttons stay on one row ending at the pane's right inset, and the field rows start at the
 /// header's inset, `space.4` (16a §4.9). Every node fits at both sizes.
 #[test]
-fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
+fn the_find_fields_take_their_rows_width_at_the_headers_inset() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);

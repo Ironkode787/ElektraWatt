@@ -918,7 +918,7 @@ fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
 /// the copy when the project exists), open the copy read-only and have its edits refused. A test directory is now
 /// always one this process created; the leftover is skipped and left alone.
 #[test]
-fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
+fn a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let parent = Tmp::new("viewer");
     // The killed run: its copy of the sample open for editing, then gone without a shutdown (the lock stays).
 

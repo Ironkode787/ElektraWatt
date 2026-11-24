@@ -137,7 +137,7 @@ fn warp_is_labelled_warp_and_other_software_adapters_draw_on_the_cpu() {
 }
 
 #[test]
-fn ft_349_at_ui_scale_150_per_cent_the_page_keeps_its_paper_size() {
+fn at_ui_scale_150_per_cent_the_page_keeps_its_paper_size() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     assert_eq!(
@@ -173,7 +173,7 @@ fn ft_349_at_ui_scale_150_per_cent_the_page_keeps_its_paper_size() {
 }
 
 #[test]
-fn ft_356_a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share() {
+fn a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let shown = h.state().canvas_cached_tiles();

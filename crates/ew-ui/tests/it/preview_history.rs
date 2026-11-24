@@ -235,7 +235,7 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
 /// At 1920 × 1080 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
 /// list that carries the change, first and open, below Apply and Cancel.
 #[test]
-fn w31_2_the_first_tag_change_is_on_show() {
+fn the_first_tag_change_is_on_show() {
     let tmp = Tmp::new();
     let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -273,7 +273,7 @@ fn w31_2_the_first_tag_change_is_on_show() {
 /// An undone entry offers Redo to here (`history.undo_to` redoes up to it), not Undo to here; the applied
 /// entries keep Undo to here. Its row is named `…, undone`.
 #[test]
-fn w31_7_an_undone_entry_offers_redo_to_here() {
+fn an_undone_entry_offers_redo_to_here() {
     let tmp = Tmp::new();
     let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

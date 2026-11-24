@@ -417,7 +417,7 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
 
 /// FR6: the describe lines of the find pane; Escape on a replace card closes it.
 #[test]
-fn fr6_describe_lines() {
+fn the_describe_lines_of_find() {
     let tmp = Tmp::new("find-fr6");
     let mut shell = spare_on_201(&tmp);
     let d = shell.describe();

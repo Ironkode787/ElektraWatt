@@ -311,7 +311,7 @@ fn a_toasts_line_is_drawn_with_a_capital() {
 /// and sends the Placed toast low. The pointer then travels to the toast's Undo with the tool still armed: the stack
 /// stays where it stood on every step, and the click on Undo takes the placing back.
 #[test]
-fn c52_p3_2_a_placed_toasts_undo_is_reached_with_a_tool_armed() {
+fn a_placed_toasts_undo_is_reached_with_a_tool_armed() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
     let tmp = Tmp::new();
     let dir = tmp.sample("s.ew");

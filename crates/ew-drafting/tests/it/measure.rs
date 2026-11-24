@@ -205,7 +205,7 @@ fn a_label_on_a_text_is_counted_in_the_cost() {
 /// off its line, costs [`MARK_JOG`] steps, more than the length and bends a trunk saves by leaving the line; the trunk
 /// on the mark's line costs nothing more, and a mark's wire that bends into a pin no other wire ends at is no jog.
 #[test]
-fn c8_a_marks_wire_that_jogs_off_its_line_to_its_trunk() {
+fn a_marks_wire_that_jogs_off_its_line_to_its_trunk() {
     let page = |dy: Tick| {
         let mut b = Page::new(80, 40);
         b.mark_in("M", p(4, 10));

@@ -357,7 +357,7 @@ fn waive_from_the_detail_takes_an_empty_reason_and_author() {
 /// At 1920 × 1080 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
 /// finding selected both its row (of at least two whole rows) and its detail block, above the status bar.
 #[test]
-fn w31_1_the_selected_row_and_its_detail_are_both_on_show() {
+fn the_selected_row_and_its_detail_are_both_on_show() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1920.0, 1080.0));

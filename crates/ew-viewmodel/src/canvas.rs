@@ -1583,7 +1583,7 @@ mod tests {
     }
 
     #[test]
-    fn ft_349_the_ui_scale_enlarges_the_chrome_and_never_the_page() {
+    fn the_ui_scale_enlarges_the_chrome_and_never_the_page() {
         // A window at UI scale 1.5 on a monitor of scale factor 1: egui's points include the 1.5.
         let mut m = CanvasModel::new(page(Vec::new()), (800.0, 533.0), 1.5);
         m.set_ui_scale(1.5);

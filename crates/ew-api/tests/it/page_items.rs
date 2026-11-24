@@ -264,7 +264,7 @@ fn a_stale_marker_entry_is_ignored() {
 // The fuzz-smoke finding of CI run 40115388450 as a plain test
 
 /// Store options on the in-memory file system (the project and its journals stay inside the test).
-fn ft468_store(vfs: &Arc<MemVfs>) -> StoreOptions {
+fn memory_store(vfs: &Arc<MemVfs>) -> StoreOptions {
     let mut o = StoreOptions::new("ElektraWatt test");
     o.vfs = Arc::clone(vfs) as Arc<dyn Vfs>;
     o.clock = Arc::new(ManualClock::fixed());
@@ -305,10 +305,10 @@ fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_r
             "external": external,
         }),
     );
-    s.create(&dir, ft468_store(&vfs)).expect("the copy is written");
+    s.create(&dir, memory_store(&vfs)).expect("the copy is written");
     let live = s.world().model.clone();
     s.close();
-    let (mut r, report) = Session::open(&dir, ft468_store(&vfs), SessionOptions::default(), Recovery::Keep)
+    let (mut r, report) = Session::open(&dir, memory_store(&vfs), SessionOptions::default(), Recovery::Keep)
         .expect("the copy reopens");
     assert!(report.findings.is_empty(), "{:#?}", report.findings);
     let back = r.world().model.clone();
@@ -331,7 +331,7 @@ fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_r
     r.save().expect("the later save writes the page");
     let live = r.world().model.clone();
     r.close();
-    let (again, report) = Session::open(&dir, ft468_store(&vfs), SessionOptions::default(), Recovery::Keep)
+    let (again, report) = Session::open(&dir, memory_store(&vfs), SessionOptions::default(), Recovery::Keep)
         .expect("the copy reopens after the later save");
     assert!(report.findings.is_empty(), "{:#?}", report.findings);
     let back = again.world().model.clone();

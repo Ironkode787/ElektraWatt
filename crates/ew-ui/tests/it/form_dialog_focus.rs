@@ -230,7 +230,7 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
 /// toggling no check box. Renumber devices… (no text field, two check boxes) opened on "Include frozen
 /// tags" before: the first Enter toggled it, silently.
 #[test]
-fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
+fn every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     let listed = form_actions();
     for known in ["devices.renumber", "page.new", "revision.approve", "macros.save"] {
         assert!(
@@ -562,7 +562,7 @@ fn texts(h: &Harness<'_, App>) -> Vec<String> {
 /// have rows. No text of the window and no line of `ui.describe` holds the placeholder tag, in English or in Dutch; the
 /// describe header names the strip in words. Before, the filter `strip:-?x?` showed with "Nothing matches".
 #[test]
-fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
+fn the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "strip.new", json!({}));
@@ -669,7 +669,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
 /// Enter on a check box a form's Tab reached neither submits the form nor toggles the box, and the box
 /// keeps the focus; Space still toggles it.
 #[test]
-fn w49_2_f1_enter_on_a_forms_check_box_does_nothing() {
+fn enter_on_a_forms_check_box_does_nothing() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "devices.renumber", json!({}));

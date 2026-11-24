@@ -1594,10 +1594,10 @@ fn the_save_tooltip_in_light() {
 fn the_window_details(k: usize, of: usize) {
     type Detail = fn(&ew_render2d::gpu::HeadlessDevice, &mut Vec<String>);
     let details: [Detail; 4] = [
-        ft625_the_place_ghost_wires_and_hud_hint,
-        ft625_the_counted_toasts,
-        ft625_the_wire_marker_row,
-        ft625_the_potential_name_cell,
+        the_place_ghost_wires_and_hud_hint,
+        the_counted_toasts,
+        the_wire_marker_row,
+        the_potential_name_cell,
     ];
     let dev = device();
     let mut failures = Vec::new();
@@ -1618,7 +1618,7 @@ support::shard_tests!(
 /// The Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
 /// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the
 /// page pane, light Comfortable.
-fn ft625_the_place_ghost_wires_and_hud_hint(
+fn the_place_ghost_wires_and_hud_hint(
     dev: &ew_render2d::gpu::HeadlessDevice,
     failures: &mut Vec<String>,
 ) {
@@ -1652,7 +1652,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
         // The canvas with the HUD floating over its foot, where the prompt reads.
         assert!(pane.contains_rect(hud_rect), "the HUD over the canvas");
         failures.extend(record(
-            &format!("ft625-place-wires-{theme}-comfortable"),
+            &format!("place-wires-{theme}-comfortable"),
             &crop(&image, pane.union(hud_rect.expand(4.0))),
             true,
         ));
@@ -1665,7 +1665,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
 /// The counted toasts one after the other, Run checks by severity (`check`) and the
 /// marker-mode switch's count (`marker`), at the canvas's top right; cropped to the toast with its shadow, light
 /// Comfortable.
-fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
+fn the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
@@ -1690,7 +1690,7 @@ fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &m
             let area = egui::Id::unique("ew-toasts");
             let toasts = h.ctx.memory(|m| m.area_rect(area)).expect("the toasts' area");
             failures.extend(record(
-                &format!("ft625-toast-{name}-{theme}-comfortable"),
+                &format!("toast-{name}-{theme}-comfortable"),
                 &crop(&image, toasts.expand(16.0)),
                 true,
             ));
@@ -1704,7 +1704,7 @@ fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &m
 /// Properties of the wire 102.1 on folio 102 (from the breaker -102F1 to the strip), the Main group with "Wire
 /// marker" right after the cross-section and the colour; cropped to those rows in the Properties pane, light
 /// Comfortable.
-fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
+fn the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
@@ -1736,7 +1736,7 @@ fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &
             egui::pos2(right, row.bottom() + 40.0),
         );
         failures.extend(record(
-            &format!("ft625-wire-marker-{theme}-comfortable"),
+            &format!("wire-marker-{theme}-comfortable"),
             &crop(&image, region),
             true,
         ));
@@ -1748,7 +1748,7 @@ fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &
 
 /// The Potentials table with a potential known only at its connection points (the sample defines only its supplies'),
 /// its Name cell in the editor with a typed name; cropped to the grid, light Comfortable.
-fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
+fn the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     use ew_viewmodel::navigators::NavKind;
     {
         let theme = "light";
@@ -1800,7 +1800,7 @@ fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failure
             egui::pos2(grid.right(), grid.bottom().min(top + 140.0)),
         );
         failures.extend(record(
-            &format!("ft625-potential-name-{theme}-comfortable"),
+            &format!("potential-name-{theme}-comfortable"),
             &crop(&image, pane),
             true,
         ));
@@ -1881,7 +1881,7 @@ fn the_conflict_overlay_in_light() {
         &[0xC4, 0x2B, 0x3C],
         "the conflict colour at {mid:?}"
     );
-    let failures: Vec<String> = record("ft675-conflict-overlay-103-light", &image, true)
+    let failures: Vec<String> = record("conflict-overlay-103-light", &image, true)
         .into_iter()
         .collect();
     shell.shutdown();

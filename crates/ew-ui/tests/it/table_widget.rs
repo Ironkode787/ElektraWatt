@@ -351,7 +351,7 @@ fn paste_resolve_and_apply_without_a_pointer() {
 /// `type.small` SemiBold) is painted within the column less its `space.4` padding, cut with an ellipsis when it is
 /// wider, never run into the next column.
 #[test]
-fn w31_3_a_header_text_is_truncated_within_its_column() {
+fn a_header_text_is_truncated_within_its_column() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "strip:-X1021");
     settle(&mut h);

@@ -168,7 +168,7 @@ fn refused_in_the_form(h: &Harness<'_, App>, how: &str) {
 }
 
 #[test]
-fn w49_1a_a_refused_renumber_says_why_in_the_form_by_click_enter_and_ctrl_enter() {
+fn a_refused_renumber_says_why_in_the_form_by_click_enter_and_ctrl_enter() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "101");
     assert!(h.state().shell().selection().is_empty());

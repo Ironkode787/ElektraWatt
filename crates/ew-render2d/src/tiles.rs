@@ -784,7 +784,7 @@ mod tests {
     }
 
     #[test]
-    fn ft_356_trim_keeps_the_most_recently_used_tiles_within_a_share() {
+    fn trim_keeps_the_most_recently_used_tiles_within_a_share() {
         let mut c: TileCache<u32> = TileCache::new(1_000);
         for n in 0..5 {
             c.insert(key(n), n, 100, u64::from(n));
