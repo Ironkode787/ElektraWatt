@@ -8,7 +8,7 @@
 use egui::Ui;
 use ew_viewmodel::first_run::{FirstRunStep, STARTS, footer};
 use ew_viewmodel::key;
-use ew_viewmodel::settings::{LANGUAGES, ORIGINS, THEMES, UI_SCALES, scale_label};
+use ew_viewmodel::settings::{LANGUAGES, ORIGINS, THEMES, UI_SCALES, choice_word, scale_label};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
@@ -22,9 +22,10 @@ fn set(events: &mut Vec<Event>, field: &str, value: Value) {
     ));
 }
 
-fn choices(ui: &mut Ui, events: &mut Vec<Event>, field: &str, prefix: &str, options: &[&str], current: &str) {
+/// One selectable button per option of the setting `field`, each in its word ([`choice_word`]).
+fn choices(ui: &mut Ui, events: &mut Vec<Event>, field: &str, options: &[&str], current: &str) {
     for option in options {
-        let text = strings::text(strings::Key::run_time(&format!("{prefix}-{option}")));
+        let text = choice_word(field, option);
         if ui.selectable_label(*option == current, text).clicked() && *option != current {
             set(events, field, json!(option));
         }
@@ -57,13 +58,13 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 FirstRunStep::Language => {
                     ui.label(strings::text(key!("firstrun-text-language")));
                     ui.horizontal(|ui| {
-                        choices(ui, events, "language", "language", &LANGUAGES, &settings.language);
+                        choices(ui, events, "language", &LANGUAGES, &settings.language);
                     });
                 }
                 FirstRunStep::Origin => {
                     ui.label(strings::text(key!("firstrun-text-origin")));
                     ui.horizontal(|ui| {
-                        choices(ui, events, "comes_from", "origin", &ORIGINS, &settings.comes_from);
+                        choices(ui, events, "comes_from", &ORIGINS, &settings.comes_from);
                     });
                 }
                 FirstRunStep::Privacy => {
@@ -77,7 +78,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     ui.label(strings::text(key!("firstrun-text-appearance")));
                     ui.horizontal(|ui| {
                         ui.label(strings::text(key!("firstrun-theme")));
-                        choices(ui, events, "theme", "theme", &THEMES, &settings.theme);
+                        choices(ui, events, "theme", &THEMES, &settings.theme);
                     });
                     ui.horizontal(|ui| {
                         ui.label(strings::text(key!("firstrun-scale")));

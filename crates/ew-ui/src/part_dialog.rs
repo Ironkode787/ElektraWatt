@@ -460,13 +460,7 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
         ew_viewmodel::ew_api::DRAFT_FIELDS.to_vec()
     };
     for (i, f) in fields.iter().enumerate() {
-        let label = if e.bus_part.is_some() && *f == "type_designation" {
-            strings::text(key!("part-bus-part-name"))
-        } else if e.cable_type && *f == "type_designation" {
-            strings::text(key!("part-cable-series"))
-        } else {
-            strings::text(strings::Key::run_time(&format!("part-field-{f}")))
-        };
+        let label = e.identity_label(f);
         if *f == "kind" {
             kind_field(ui, label, d.text(f), events);
         } else {
@@ -540,10 +534,7 @@ fn size_fields(
         ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(k))).wrap());
     };
     for f in ew_viewmodel::ew_api::SIZE_FIELDS {
-        let label = strings::text(strings::Key::run_time(&format!(
-            "part-size-{}",
-            f.replace(['.', '_'], "-")
-        )));
+        let label = ew_viewmodel::shell::part_dialog::size_label(f);
         if f == "mech.mount_kind" {
             mount_field(ui, label, d.text(f), events);
         } else {
@@ -901,7 +892,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         ))
         .wrap(),
     );
-    let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-plc-{m}"))).to_owned();
+    let label = |m: &str| ew_viewmodel::shell::part_dialog::plc_label(m).to_owned();
     let message = |ui: &mut Ui, m: &str| {
         if let Some(msg) = d.message(&format!("plc.{m}")) {
             ui.colored_label(
@@ -1074,7 +1065,7 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
     let t = theme::current(ui.ctx());
     let mut save = false;
     ui.label(RichText::new(strings::text(key!("part-section-cable"))).font(theme::font(&t.type_body_strong)));
-    let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-cable-{m}"))).to_owned();
+    let label = |m: &str| ew_viewmodel::shell::part_dialog::cable_label(m).to_owned();
     let message = |ui: &mut Ui, field: &str| {
         if let Some(msg) = d.message(field) {
             ui.colored_label(
@@ -1141,7 +1132,7 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
         &label("marking"),
         d.text("cable.marking"),
         &markings,
-        |m| strings::text(strings::Key::run_time(&format!("part-cable-marking-{m}"))).to_owned(),
+        |m| ew_viewmodel::shell::part_dialog::marking_word(m).to_owned(),
         events,
     );
     // The own marking: one row per core, its designation and its colour.
@@ -1313,7 +1304,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
     if d.bus.is_empty() {
         ui.label(RichText::new(strings::text(key!("part-bus-none"))).color(t.text_secondary.color32()));
     }
-    let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-bus-{m}"))).to_owned();
+    let label = |m: &str| ew_viewmodel::shell::part_dialog::bus_label(m).to_owned();
     if !d.bus.is_empty() {
         // The columns share the row; the remove button keeps its own width.
         let gap = t.space_2;

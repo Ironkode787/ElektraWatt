@@ -143,6 +143,18 @@ pub struct BusPart {
 }
 
 impl PartEditor {
+    /// The label of the draft field `field` in the form's identity rows ([`draft_label`]): a bus part's type
+    /// designation is its part name, a cable type's its series.
+    pub fn identity_label(&self, field: &str) -> &'static str {
+        if self.bus_part.is_some() && field == "type_designation" {
+            strings::text(key!("part-bus-part-name"))
+        } else if self.cable_type && field == "type_designation" {
+            strings::text(key!("part-cable-series"))
+        } else {
+            draft_label(field)
+        }
+    }
+
     /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`, `New cable type`, `New bus cable`, `New bus plug`).
     pub fn title(&self) -> String {
         match self.bus_part {
@@ -188,16 +200,49 @@ pub fn field_label(field: &str) -> String {
         return key.to_owned();
     }
     if let Some(member) = field.strip_prefix("plc.") {
-        return strings::text(Key::run_time(&format!("part-plc-{member}"))).to_owned();
+        return plc_label(member).to_owned();
     }
     if let Some(member) = field.strip_prefix("cable.") {
         let member = member.split('.').next().unwrap_or_default();
-        return strings::text(Key::run_time(&format!("part-cable-{member}"))).to_owned();
+        return cable_label(member).to_owned();
     }
     if let Some((_, member)) = field.strip_prefix("bus.").and_then(|r| r.split_once('.')) {
-        return strings::text(Key::run_time(&format!("part-bus-{member}"))).to_owned();
+        return bus_label(member).to_owned();
     }
-    strings::text(Key::run_time(&format!("part-field-{field}"))).to_owned()
+    draft_label(field).to_owned()
+}
+
+/// The label of the part editor's draft field `field` (`part-field-<field>`).
+pub fn draft_label(field: &str) -> &'static str {
+    strings::text(Key::run_time(&format!("part-field-{field}")))
+}
+
+/// The label of the part editor's size and mounting field `field` (`part-size-<field>`, `.` and `_` as `-`).
+pub fn size_label(field: &str) -> &'static str {
+    strings::text(Key::run_time(&format!(
+        "part-size-{}",
+        field.replace(['.', '_'], "-")
+    )))
+}
+
+/// The label of the part editor's PLC member `member` (`part-plc-<member>`).
+pub fn plc_label(member: &str) -> &'static str {
+    strings::text(Key::run_time(&format!("part-plc-{member}")))
+}
+
+/// The label of the part editor's cable member `member` (`part-cable-<member>`).
+pub fn cable_label(member: &str) -> &'static str {
+    strings::text(Key::run_time(&format!("part-cable-{member}")))
+}
+
+/// The word of the cable marking `marking` (`part-cable-marking-<marking>`).
+pub fn marking_word(marking: &str) -> &'static str {
+    strings::text(Key::run_time(&format!("part-cable-marking-{marking}")))
+}
+
+/// The label of the part editor's bus member `member` (`part-bus-<member>`).
+pub fn bus_label(member: &str) -> &'static str {
+    strings::text(Key::run_time(&format!("part-bus-{member}")))
 }
 
 /// The part kinds the editor's Kind field offers ([`ew_api::PART_KINDS`], tied to the schema's part kinds by a test).

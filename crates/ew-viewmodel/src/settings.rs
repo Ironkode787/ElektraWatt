@@ -66,6 +66,28 @@ pub const DENSITIES: [&str; 2] = ["comfortable", "compact"];
 /// What the user comes from (first-run step 2, doc 16 section 9.1); the empty text is "not answered".
 pub const ORIGINS: [&str; 4] = ["eplan", "qet", "kicad", "other"];
 
+/// The word of `option` among the choices of the setting `setting` that the first run and the start page offer
+/// ([`LANGUAGES`] by their own names, [`ORIGINS`] for `comes_from`, [`THEMES`], [`KEYMAPS`]); `?` for any other.
+pub fn choice_word(setting: &str, option: &str) -> &'static str {
+    use crate::key;
+    crate::strings::text(match (setting, option) {
+        ("language", "en") => key!("language-en"),
+        ("language", "nl") => key!("language-nl"),
+        ("comes_from", "eplan") => key!("origin-eplan"),
+        ("comes_from", "qet") => key!("origin-qet"),
+        ("comes_from", "kicad") => key!("origin-kicad"),
+        ("comes_from", "other") => key!("origin-other"),
+        ("theme", "system") => key!("theme-system"),
+        ("theme", "light") => key!("theme-light"),
+        ("theme", "dark") => key!("theme-dark"),
+        ("theme", "hc-dark") => key!("theme-hc-dark"),
+        ("theme", "hc-light") => key!("theme-hc-light"),
+        ("keymap", "ew") => key!("keymap-ew"),
+        ("keymap", "kicad") => key!("keymap-kicad"),
+        _ => return "?",
+    })
+}
+
 /// The values of `canvas_backend`: the switch rule decides (`auto`, the default), or always the CPU canvas (`cpu`).
 pub const CANVAS_BACKENDS: [&str; 2] = ["auto", "cpu"];
 

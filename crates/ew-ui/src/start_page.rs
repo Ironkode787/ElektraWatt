@@ -34,7 +34,7 @@ fn quick_switch(
     let label = strings::text(label_key);
     let texts: Vec<&str> = options
         .iter()
-        .map(|option| strings::text(strings::Key::run_time(&format!("{key}-{option}"))))
+        .map(|option| ew_viewmodel::settings::choice_word(key, option))
         .collect();
     let body = egui::TextStyle::Body.resolve(ui.style());
     let width_of = |text: &str| {
