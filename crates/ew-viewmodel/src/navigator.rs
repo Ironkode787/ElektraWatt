@@ -50,6 +50,15 @@ impl NavMode {
     pub fn from_word(w: &str) -> Option<NavMode> {
         NavMode::ALL.into_iter().find(|m| m.word() == w)
     }
+
+    /// The key of its label in the Page navigator's menu.
+    pub fn label_key(self) -> crate::strings::Key<'static> {
+        match self {
+            NavMode::Flat => crate::key!("nav-mode-flat"),
+            NavMode::Section => crate::key!("nav-mode-section"),
+            NavMode::Structure => crate::key!("nav-mode-structure"),
+        }
+    }
 }
 
 /// The two sort orders of the navigator.
@@ -77,6 +86,14 @@ impl NavSort {
     /// The order of a word.
     pub fn from_word(w: &str) -> Option<NavSort> {
         NavSort::ALL.into_iter().find(|s| s.word() == w)
+    }
+
+    /// The key of its label in the Page navigator's menu.
+    pub fn label_key(self) -> crate::strings::Key<'static> {
+        match self {
+            NavSort::Folio => crate::key!("nav-sort-folio"),
+            NavSort::Type => crate::key!("nav-sort-type"),
+        }
     }
 }
 

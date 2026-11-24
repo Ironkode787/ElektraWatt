@@ -330,8 +330,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 if meta.id == "pages.mode" {
                     for mode in crate::navigator::NavMode::ALL {
                         let mut item = item_of(meta, model);
-                        item.label =
-                            strings::text(Key::run_time(&format!("nav-mode-{}", mode.word()))).to_owned();
+                        item.label = strings::text(mode.label_key()).to_owned();
                         item.params = json!({ "mode": mode.word() });
                         item.checked = nav.mode == mode;
                         items.push(item);
@@ -339,8 +338,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 } else if meta.id == "pages.sort" {
                     for sort in crate::navigator::NavSort::ALL {
                         let mut item = item_of(meta, model);
-                        item.label =
-                            strings::text(Key::run_time(&format!("nav-sort-{}", sort.word()))).to_owned();
+                        item.label = strings::text(sort.label_key()).to_owned();
                         item.params = json!({ "by": sort.word() });
                         item.checked = nav.sort == sort;
                         items.push(item);
