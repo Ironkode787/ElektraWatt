@@ -4,7 +4,7 @@
 //! `terminal_overview`: the terminal strip overview (FR-REP-010).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, RepType, ReportBlock, Representation};
+use ew_derive::ew_schema::{Device, RepType, ReportBlock, ReportKind, Representation};
 use ew_derive::{
     DevicePartLines, DrawnPageOrder, MainRep, PageOrderV, PageRef, Q, RepAnchorCell, StructureOf, short_tag,
 };
@@ -35,8 +35,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 pub struct TerminalOverview;
 
 impl ReportKindDef for TerminalOverview {
-    fn name(&self) -> &'static str {
-        "terminal_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::TerminalOverview
     }
 
     /// The weights are millimetres of the house table's 260.96 mm: each column holds the widest text of its kind (the

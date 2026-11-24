@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
+use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock, ReportKind};
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 use ew_l10n::Text;
 
@@ -32,8 +32,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 pub struct PotentialOverview;
 
 impl ReportKindDef for PotentialOverview {
-    fn name(&self) -> &'static str {
-        "potential_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::PotentialOverview
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

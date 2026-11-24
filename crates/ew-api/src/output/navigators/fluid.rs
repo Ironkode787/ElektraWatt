@@ -109,7 +109,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let tubes = q.get::<TubeRows>(());
     // The tube list's cells by the row's record (the tube), each given to one row only.
     let mut cells: BTreeMap<Uuid, Vec<String>> = BTreeMap::new();
-    if let Some(set) = ew_reports::project_rows(q, "tube_list", None) {
+    if let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::TubeList, None) {
         for (i, r) in set.rows.iter().enumerate() {
             if let (ew_reports::RowKind::Data, Some(record)) = (&r.kind, row_entity(&r.id, 0)) {
                 cells.insert(record, texts_in(q, &set, i, lang));
@@ -292,7 +292,7 @@ fn texts_in(q: &Q, set: &ew_reports::RowSet, i: usize, lang: Option<&str>) -> Ve
 /// and length with their sources; the tube part and the length are edited in their cells (`fields.set` `tube_part`,
 /// `tube_length` on the line).
 pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
-    let Some(set) = ew_reports::project_rows(q, "tube_list", None) else {
+    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::TubeList, None) else {
         return;
     };
     let folios = folios(q);
@@ -329,7 +329,8 @@ pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
 /// The medium table (doc 11 §7): the medium overview's rows (`medium_overview`), one per medium; a row highlights the
 /// medium's zones on the page (pattern and colour, doc 11 §7's highlight).
 pub(super) fn media_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
-    let Some(set) = ew_reports::project_rows(q, "medium_overview", None) else {
+    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::MediumOverview, None)
+    else {
         return;
     };
     for (i, r) in set.rows.iter().enumerate() {

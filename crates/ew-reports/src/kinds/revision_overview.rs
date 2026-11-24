@@ -5,7 +5,7 @@
 //! doc 09 §2.4, doc 15 §5.6).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Page, PartyRole, ReportBlock, Revision, RevisionState, Section};
+use ew_derive::ew_schema::{Page, PartyRole, ReportBlock, ReportKind, Revision, RevisionState, Section};
 use ew_derive::{DrawnPageOrder, PageRef, Q, recorded_changed_pages, revision_label_key};
 
 use super::conn::{text_cell, words_cell};
@@ -17,8 +17,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
 pub struct RevisionOverview;
 
 impl ReportKindDef for RevisionOverview {
-    fn name(&self) -> &'static str {
-        "revision_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::RevisionOverview
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

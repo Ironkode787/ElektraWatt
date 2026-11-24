@@ -6,6 +6,8 @@
 //!
 //! Not here: the rows (each provider's own file beside this one) and the table types (`navigators.rs`).
 
+use ew_derive::ew_schema::ReportKind;
+
 use super::bus::BUS_COLUMNS;
 use super::libraries;
 use super::messages::MESSAGE_COLUMNS;
@@ -37,9 +39,9 @@ pub(super) fn key_label(key: &str) -> String {
 }
 
 /// The columns of a report kind, the first one the key column.
-fn kind_columns(kind: &str) -> Vec<NavColumn> {
+fn kind_columns(kind: &ReportKind) -> Vec<NavColumn> {
     ew_reports::Registry::builtin()
-        .by_name(kind)
+        .get(kind)
         .map(|k| {
             k.columns()
                 .iter()
@@ -189,14 +191,14 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             // The page change status of doc 15 §5.6.
             column("changed_in", "Changed in", false, None),
         ],
-        NavKind::Devices => kind_columns("structure_overview"),
-        NavKind::Connections => kind_columns("wire_list"),
+        NavKind::Devices => kind_columns(&ReportKind::StructureOverview),
+        NavKind::Connections => kind_columns(&ReportKind::WireList),
         // `pos` after `strip`, `bridge_part` after `bridge`; the list's own `strip` column is the first, and its `level`
         // column is the printed list's alone.
         NavKind::Strips => {
             let mut c = own(&["strip"]);
             c.push(column("pos", "Pos", false, None));
-            for mut k in kind_columns("terminal_diagram")
+            for mut k in kind_columns(&ReportKind::TerminalDiagram)
                 .into_iter()
                 .filter(|k| k.key != "strip" && k.key != "level")
             {
@@ -212,7 +214,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         // The cable overview's columns (a core row's From and To are the far ends of its
         // wires, as the cable diagram prints them), then a core's derived potential, its shield flag and pair.
         NavKind::Cables => {
-            let mut c = kind_columns("cable_overview_diagrams");
+            let mut c = kind_columns(&ReportKind::CableOverviewDiagrams);
             c.extend(["potential", "shield", "pair"].map(|k| column(k, &key_label(k), false, None)));
             c
         }
@@ -228,16 +230,16 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             .map(|(i, (k, l))| column(k, l, i == 0, None))
             .collect(),
         // The fluid navigator's table mode lists its tubes (`NavKind::source`).
-        NavKind::Fluid | NavKind::Tubes => kind_columns("tube_list"),
-        NavKind::Media => kind_columns("medium_overview"),
-        NavKind::Potentials => kind_columns("potential_overview"),
+        NavKind::Fluid | NavKind::Tubes => kind_columns(&ReportKind::TubeList),
+        NavKind::Media => kind_columns(&ReportKind::MediumOverview),
+        NavKind::Potentials => kind_columns(&ReportKind::PotentialOverview),
         NavKind::Ips => own(&["name", "page_cell", "direction", "partner", "external"]),
         NavKind::Structure => {
-            let mut c = kind_columns("structure_overview");
+            let mut c = kind_columns(&ReportKind::StructureOverview);
             c.push(column("usage", "Usage", false, None));
             c
         }
-        NavKind::Parts => kind_columns("parts_summary"),
+        NavKind::Parts => kind_columns(&ReportKind::PartsSummary),
         NavKind::Blocks => own(&["title", "kind", "first_folio", "section", "pages"]),
         // The device (the key column, as the tree row names it in table mode), Part,
         // W × H (mm), Mount.

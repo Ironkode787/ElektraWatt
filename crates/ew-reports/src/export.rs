@@ -15,11 +15,10 @@ use std::fmt;
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::ReportBlock;
+use ew_derive::ew_schema::{ReportBlock, ReportKind, ReportSource};
 use ew_derive::{BomMode, Q};
 
 use crate::csv::rows_csv;
-use crate::kind::kind_name;
 use crate::kinds::PartsSummary;
 use crate::queries::{BlockRows, arranged};
 use crate::rowset::{RowSet, RowSetStatus};
@@ -36,10 +35,10 @@ pub enum Export {
 
 impl Export {
     /// The report kind whose block supplies the rows.
-    pub fn kind(self) -> &'static str {
+    pub fn kind(self) -> ReportKind {
         match self {
-            Export::Cables => "cable_overview_diagrams",
-            Export::Bom(_) => "parts_summary",
+            Export::Cables => ReportKind::CableOverviewDiagrams,
+            Export::Bom(_) => ReportKind::PartsSummary,
         }
     }
 }
@@ -67,12 +66,12 @@ impl fmt::Display for ExportError {
 impl std::error::Error for ExportError {}
 
 /// The project's page-oriented block of `kind`: the lowest first folio, then the lowest ID.
-fn block_of_kind(q: &Q, kind: &str) -> Option<(Id<ReportBlock>, Arc<ReportBlock>)> {
+fn block_of_kind(q: &Q, kind: &ReportKind) -> Option<(Id<ReportBlock>, Arc<ReportBlock>)> {
     q.report_blocks()
         .iter()
         .filter(|(_, b)| b.embedded.is_none())
         .filter(|(_, b)| match &b.source {
-            ew_derive::ew_schema::ReportSource::Kind(k) => kind_name(k) == Some(kind),
+            ReportSource::Kind(k) => k == kind,
             _ => false,
         })
         .min_by_key(|(id, b)| (b.first_folio.unwrap_or(u32::MAX), *id))
@@ -93,7 +92,8 @@ fn why(set: &RowSet) -> String {
 /// [`ExportError`] when the project has no block of the kind or the block does not derive.
 pub fn export_rows(q: &Q, what: Export) -> Result<RowSet, ExportError> {
     let kind = what.kind();
-    let (id, block) = block_of_kind(q, kind).ok_or(ExportError::NoBlock(kind))?;
+    let name = kind.name().unwrap_or_default();
+    let (id, block) = block_of_kind(q, &kind).ok_or(ExportError::NoBlock(name))?;
     let rows = match what {
         Export::Cables => (*q.get::<BlockRows>(id)).clone(),
         Export::Bom(mode) => arranged(q, &block, PartsSummary.rows_in_mode(q, mode)),
@@ -101,7 +101,7 @@ pub fn export_rows(q: &Q, what: Export) -> Result<RowSet, ExportError> {
     if rows.is_derived() {
         Ok(rows)
     } else {
-        Err(ExportError::NotDerived(kind, why(&rows)))
+        Err(ExportError::NotDerived(name, why(&rows)))
     }
 }
 

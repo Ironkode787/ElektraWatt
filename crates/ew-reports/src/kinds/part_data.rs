@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_schema::{Device, Enclosure, MountingSurface, ReportBlock};
+use ew_derive::ew_schema::{Device, Enclosure, MountingSurface, ReportBlock, ReportKind};
 use ew_derive::layout::page_surface;
 use ew_derive::{DevicePartLines, LineSource, MainRep, PartLine, Q};
 
@@ -35,8 +35,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 pub struct PartData;
 
 impl ReportKindDef for PartData {
-    fn name(&self) -> &'static str {
-        "part_data"
+    fn kind(&self) -> ReportKind {
+        ReportKind::PartData
     }
 
     /// Embedded on a drawn page only.

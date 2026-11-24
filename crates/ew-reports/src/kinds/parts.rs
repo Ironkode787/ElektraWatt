@@ -8,7 +8,9 @@ use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock, Representation};
+use ew_derive::ew_schema::{
+    Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock, ReportKind, Representation,
+};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
     BomMode, BomRows, DevicePartLines, PageRef, PartLine, Q, manufacturer_copy, manufacturer_name,
@@ -34,8 +36,8 @@ const MODE: &str = "mode";
 pub struct PartsSummary;
 
 impl ReportKindDef for PartsSummary {
-    fn name(&self) -> &'static str {
-        "parts_summary"
+    fn kind(&self) -> ReportKind {
+        ReportKind::PartsSummary
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -192,8 +194,8 @@ fn rep_by_page(q: &Q, devices: &[Id<Device>]) -> BTreeMap<Id<Page>, Id<Represent
 pub struct PartsList;
 
 impl ReportKindDef for PartsList {
-    fn name(&self) -> &'static str {
-        "parts_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::PartsList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

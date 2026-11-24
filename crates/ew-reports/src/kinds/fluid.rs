@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, Unit};
+use ew_derive::ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, ReportKind, Unit};
 use ew_derive::ew_units::Nm;
 use ew_derive::{
     EndpointKey, MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
@@ -64,8 +64,8 @@ fn source_text(s: &LengthSource) -> MlText {
 pub struct TubeList;
 
 impl ReportKindDef for TubeList {
-    fn name(&self) -> &'static str {
-        "tube_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::TubeList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -190,8 +190,8 @@ type CutLine = (Id<ew_derive::ew_schema::Connection>, i64, i64, bool, TubeRow);
 pub struct TubeCutList;
 
 impl ReportKindDef for TubeCutList {
-    fn name(&self) -> &'static str {
-        "tube_cut_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::TubeCutList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -278,8 +278,8 @@ impl ReportKindDef for TubeCutList {
 pub struct TubeLabels;
 
 impl ReportKindDef for TubeLabels {
-    fn name(&self) -> &'static str {
-        "tube_labels"
+    fn kind(&self) -> ReportKind {
+        ReportKind::TubeLabels
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -323,8 +323,8 @@ impl ReportKindDef for TubeLabels {
 pub struct ValveTerminalConfig;
 
 impl ReportKindDef for ValveTerminalConfig {
-    fn name(&self) -> &'static str {
-        "valve_terminal_config"
+    fn kind(&self) -> ReportKind {
+        ReportKind::ValveTerminalConfig
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -415,8 +415,8 @@ impl ReportKindDef for ValveTerminalConfig {
 pub struct MediumOverview;
 
 impl ReportKindDef for MediumOverview {
-    fn name(&self) -> &'static str {
-        "medium_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::MediumOverview
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

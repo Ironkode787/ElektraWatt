@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, Endpoint, ReportBlock, Side, Terminal};
+use ew_derive::ew_schema::{Device, Endpoint, ReportBlock, ReportKind, Side, Terminal};
 use ew_derive::{Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
 
 use super::conn::{
@@ -39,8 +39,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 pub struct TerminalDiagram;
 
 impl ReportKindDef for TerminalDiagram {
-    fn name(&self) -> &'static str {
-        "terminal_diagram"
+    fn kind(&self) -> ReportKind {
+        ReportKind::TerminalDiagram
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

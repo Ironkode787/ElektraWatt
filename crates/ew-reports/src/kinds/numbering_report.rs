@@ -6,7 +6,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_schema::{Connection, Device, NumberSpec, ReportBlock};
+use ew_derive::ew_schema::{Connection, Device, NumberSpec, ReportBlock, ReportKind};
 use ew_derive::{Q, WireNumbers, rule_product};
 use ew_l10n::Text;
 
@@ -27,8 +27,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
 pub struct NumberingReport;
 
 impl ReportKindDef for NumberingReport {
-    fn name(&self) -> &'static str {
-        "numbering_report"
+    fn kind(&self) -> ReportKind {
+        ReportKind::NumberingReport
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

@@ -20,7 +20,8 @@ use super::{Builder, NavRole, group, row_entity, tokens};
 pub(super) fn structure_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{Open, StructureNode};
     use ew_derive::{DevicesByStructure, PageStructure};
-    let Some(set) = ew_reports::project_rows(q, "structure_overview", None) else {
+    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::StructureOverview, None)
+    else {
         return;
     };
     let by_device = q.get::<DevicesByStructure>(());

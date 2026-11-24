@@ -41,7 +41,7 @@ pub(super) struct WireListRow {
 pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
     use ew_derive::ew_schema::{Connection, ConnectionKind, Endpoint};
     use ew_derive::{PhysicalWiresOf, PotentialPartition};
-    let Some(set) = ew_reports::project_rows(q, "wire_list", None) else {
+    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::WireList, None) else {
         return Vec::new();
     };
     let folios = folios(q);

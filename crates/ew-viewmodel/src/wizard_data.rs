@@ -23,6 +23,8 @@ pub const SIZE_PROFILE_SAMPLE: &str = include_str!("../../../content/profiles/si
 /// same copies.
 pub use ew_api::output::{A3_GRID_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, TITLE_BLOCK};
 
+use ew_api::ReportKind;
+
 /// The shipped colour profiles of `content/profiles/colour` (doc 16 section 9.2, step 3), by the choice of
 /// the `colour` field: "EN 60204-1 machine" and "IEC 60445 installation". Each is a value of the settings member
 /// `colour_profile`, the project's own table of doc 08 section 4.3 (cited by standard and clause, no standard text),
@@ -44,34 +46,44 @@ pub const SHIPPED_COLOUR_PROFILES: [(&str, &str); 2] = [
 /// three terminal-diagram blocks 903 to 905 select one strip each, which a basic project has none of, so the basic
 /// project holds one terminal-diagram block at 903 over every strip (its pages continue as 903.1, 903.2), and the
 /// titles that name the strip or the device of a selection (`{strip}`, `{device}`) count pages instead (`{n}`).
-pub const STANDARD_REPORT_LAYOUT: [(&str, u32, &str, &str); 9] = [
-    ("toc", 2, "Table of Contents {n}", "Inhoudsopgave {n}"),
-    ("parts_summary", 901, "Partlist {n}", "Stuklijst {n}"),
+pub const STANDARD_REPORT_LAYOUT: [(ReportKind, u32, &str, &str); 9] = [
+    (ReportKind::Toc, 2, "Table of Contents {n}", "Inhoudsopgave {n}"),
+    (ReportKind::PartsSummary, 901, "Partlist {n}", "Stuklijst {n}"),
     (
-        "terminal_diagram",
+        ReportKind::TerminalDiagram,
         903,
         "Terminal Diagram {n}",
         "Klemmenschema {n}",
     ),
     (
-        "cable_overview_diagrams",
+        ReportKind::CableOverviewDiagrams,
         906,
         "Cable Overview and Diagrams",
         "Kabeloverzicht en kabelschema's",
     ),
-    ("wire_list", 907, "Wire List {n}", "Draadlijst {n}"),
-    ("plc_overview", 908, "PLC Overview {n}", "PLC-overzicht {n}"),
+    (ReportKind::WireList, 907, "Wire List {n}", "Draadlijst {n}"),
     (
-        "potential_overview",
+        ReportKind::PlcOverview,
+        908,
+        "PLC Overview {n}",
+        "PLC-overzicht {n}",
+    ),
+    (
+        ReportKind::PotentialOverview,
         909,
         "Potential Overview",
         "Potentiaaloverzicht",
     ),
     (
-        "structure_overview",
+        ReportKind::StructureOverview,
         910,
         "Device Tag Overview {n}",
         "Kenmerkenoverzicht {n}",
     ),
-    ("revision_overview", 911, "Revision Overview", "Revisieoverzicht"),
+    (
+        ReportKind::RevisionOverview,
+        911,
+        "Revision Overview",
+        "Revisieoverzicht",
+    ),
 ];

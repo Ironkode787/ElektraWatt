@@ -124,7 +124,7 @@ fn devices_lists_every_non_terminal_device_once() {
 /// The number of device rows of the structure overview (its rows minus its structure-node rows).
 fn ew_reports_count(s: &Session) -> usize {
     let q = s.query();
-    let set = ew_reports::project_rows(&q, "structure_overview", None).unwrap();
+    let set = ew_reports::project_rows(&q, &ew_schema::ReportKind::StructureOverview, None).unwrap();
     let kind = set.column("kind").unwrap();
     (0..set.rows.len())
         .filter(|&i| ew_reports::csv::row_texts(&q, &set, i)[kind] == "Device")

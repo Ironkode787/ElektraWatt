@@ -28,7 +28,7 @@ use std::collections::BTreeMap;
 
 use ew_derive::Q;
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{ColourSpec, ReportBlock, Unit};
+use ew_derive::ew_schema::{ColourSpec, ReportBlock, ReportKind, Unit};
 use ew_derive::ew_units::Dec3;
 use serde_json::Value;
 
@@ -44,8 +44,8 @@ pub struct ProfileTables;
 pub const GROUPS: [&str; 4] = ["colours", "control", "mains", "note"];
 
 impl ReportKindDef for ProfileTables {
-    fn name(&self) -> &'static str {
-        "profile_tables"
+    fn kind(&self) -> ReportKind {
+        ReportKind::ProfileTables
     }
 
     /// Embedded on a drawn page only.

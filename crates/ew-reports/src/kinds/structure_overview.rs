@@ -6,7 +6,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, ReportBlock, StructureNode};
+use ew_derive::ew_schema::{Device, ReportBlock, ReportKind, StructureNode};
 use ew_derive::{
     DevicePartLines, DeviceTag, Q, ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
@@ -23,8 +23,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 pub struct StructureOverview;
 
 impl ReportKindDef for StructureOverview {
-    fn name(&self) -> &'static str {
-        "structure_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::StructureOverview
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

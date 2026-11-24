@@ -4,7 +4,7 @@
 //! `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, MountingSurface, OrderUnit, ReportBlock};
+use ew_derive::ew_schema::{AnyId, MountingSurface, OrderUnit, ReportBlock, ReportKind};
 use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 use ew_derive::{DrawnPageOrder, PageRef, Q};
 
@@ -35,8 +35,8 @@ use crate::rowset::{
 pub struct EnclosureLegend;
 
 impl ReportKindDef for EnclosureLegend {
-    fn name(&self) -> &'static str {
-        "enclosure_legend"
+    fn kind(&self) -> ReportKind {
+        ReportKind::EnclosureLegend
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

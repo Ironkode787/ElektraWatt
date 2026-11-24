@@ -46,7 +46,7 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
         let section = first.map_or(block.section, |(_, e)| e.section);
         let number = section.and_then(|s| q.sections().get(s)).map(|s| s.number);
         let kind = match &block.source {
-            ReportSource::Kind(k) => ew_reports::kind_name(k).unwrap_or("unknown").to_owned(),
+            ReportSource::Kind(k) => k.name().unwrap_or("unknown").to_owned(),
             ReportSource::SqlQuery(_) => "sql".to_owned(),
             _ => "unknown".to_owned(),
         };

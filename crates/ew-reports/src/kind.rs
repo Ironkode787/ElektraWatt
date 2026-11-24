@@ -30,8 +30,8 @@ use crate::rowset::{ColumnDef, RowSet};
 ///   pages are counted by the fixpoint, and its rows are read only after the page order exists.
 /// - Every row has a stable [`RowId`](crate::RowId) from source entity IDs, and one cell per column.
 pub trait ReportKindDef: Send + Sync {
-    /// The snake_case name of doc 09 §2.4 (`"parts_summary"`), as `report-blocks.jsonl` writes it.
-    fn name(&self) -> &'static str;
+    /// The kind (doc 09 §2.4); its stored spelling (`parts_summary`) is its name ([`ReportKind::name`]).
+    fn kind(&self) -> ReportKind;
 
     /// The column schema.
     fn columns(&self) -> Vec<ColumnDef>;
@@ -132,6 +132,7 @@ pub fn kind_params(q: &Q, block: &ReportBlock) -> KindParams {
     }) else {
         return KindParams::default();
     };
+    let name = def.kind().name().unwrap_or_default();
     let declared = def.params();
     let defaults = || KindParams {
         values: declared.iter().map(|p| (p.key, p.default)).collect(),
@@ -144,7 +145,7 @@ pub fn kind_params(q: &Q, block: &ReportBlock) -> KindParams {
     };
     let Some(object) = params.as_object() else {
         note(
-            format!("{} params", block_words(q, block, def.name())),
+            format!("{} params", block_words(q, block, name)),
             format!("expected an object of parameters, found {}", value_words(params)),
         );
         return defaults();
@@ -157,7 +158,7 @@ pub fn kind_params(q: &Q, block: &ReportBlock) -> KindParams {
                 Ok(value) => value,
                 Err(detail) => {
                     note(
-                        format!("{} params.{}", block_words(q, block, def.name()), p.key),
+                        format!("{} params.{}", block_words(q, block, name), p.key),
                         detail,
                     );
                     p.default
@@ -171,8 +172,8 @@ pub fn kind_params(q: &Q, block: &ReportBlock) -> KindParams {
         .filter(|k| declared.iter().all(|p| p.key != k.as_str()))
     {
         note(
-            format!("{} params.{}", block_words(q, block, def.name()), bounded(key)),
-            format!("`{}` has no parameter of this name", def.name()),
+            format!("{} params.{}", block_words(q, block, name), bounded(key)),
+            format!("`{name}` has no parameter of this name"),
         );
     }
     KindParams { values }
@@ -273,8 +274,9 @@ impl std::fmt::Debug for Registry {
 static BUILTIN: LazyLock<Registry> = LazyLock::new(|| {
     let mut kinds = BTreeMap::new();
     for k in kinds::builtin() {
-        let previous = kinds.insert(k.name(), k);
-        assert!(previous.is_none(), "report kind `{}` registered twice", k.name());
+        let name = k.kind().name().expect("a built-in kind is a kind of this build");
+        let previous = kinds.insert(name, k);
+        assert!(previous.is_none(), "report kind `{name}` registered twice");
     }
     Registry { kinds }
 });
@@ -292,48 +294,11 @@ impl Registry {
 
     /// The kind of a block source.
     pub fn get(&self, kind: &ReportKind) -> Option<&'static dyn ReportKindDef> {
-        kind_name(kind).and_then(|n| self.by_name(n))
+        kind.name().and_then(|n| self.by_name(n))
     }
 
     /// The registered names, in order.
     pub fn names(&self) -> impl Iterator<Item = &'static str> + '_ {
         self.kinds.keys().copied()
     }
-}
-
-/// The snake_case name of a schema report kind; `None` for a kind of a newer format.
-pub fn kind_name(kind: &ReportKind) -> Option<&'static str> {
-    Some(match kind {
-        ReportKind::ProfileTables => "profile_tables",
-        ReportKind::PartData => "part_data",
-        ReportKind::Toc => "toc",
-        ReportKind::StructureOverview => "structure_overview",
-        ReportKind::PartsSummary => "parts_summary",
-        ReportKind::PartsList => "parts_list",
-        ReportKind::DeviceList => "device_list",
-        ReportKind::TerminalDiagram => "terminal_diagram",
-        ReportKind::TerminalOverview => "terminal_overview",
-        ReportKind::CableOverviewDiagrams => "cable_overview_diagrams",
-        ReportKind::WireList => "wire_list",
-        ReportKind::PlcOverview => "plc_overview",
-        ReportKind::IoList => "io_list",
-        ReportKind::PotentialOverview => "potential_overview",
-        ReportKind::RevisionOverview => "revision_overview",
-        ReportKind::OpenItems => "open_items",
-        ReportKind::NumberingReport => "numbering_report",
-        ReportKind::EnclosureLegend => "enclosure_legend",
-        ReportKind::CheckReport => "check_report",
-        ReportKind::PlcCardList => "plc_card_list",
-        ReportKind::NetworkAddressList => "network_address_list",
-        ReportKind::BusOverview => "bus_overview",
-        ReportKind::BusCableList => "bus_cable_list",
-        ReportKind::IolinkPortList => "iolink_port_list",
-        ReportKind::SafetyIoList => "safety_io_list",
-        ReportKind::TubeList => "tube_list",
-        ReportKind::TubeCutList => "tube_cut_list",
-        ReportKind::TubeLabels => "tube_labels",
-        ReportKind::ValveTerminalConfig => "valve_terminal_config",
-        ReportKind::MediumOverview => "medium_overview",
-        ReportKind::Unknown(_) => return None,
-    })
 }

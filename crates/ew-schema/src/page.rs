@@ -528,6 +528,18 @@ pub enum ReportKind {
     Unknown(Value),
 }
 
+impl ReportKind {
+    /// The kind's stored spelling (`parts_summary`, as `report-blocks.jsonl` writes it); `None` for a kind of a newer
+    /// format.
+    pub fn name(&self) -> Option<&'static str> {
+        let stored = serde_json::to_value(self).ok()?;
+        crate::track::variant_names(|d| ReportKind::deserialize(d))
+            .iter()
+            .copied()
+            .find(|name| Some(*name) == stored.as_str())
+    }
+}
+
 /// Explicit include and exclude lists of entity IDs (sets, sorted).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ManualSelection {

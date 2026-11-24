@@ -18,7 +18,9 @@ use super::{
 /// the headings are dropped.
 pub(super) fn cables_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{Conductor, ConnectionKind};
-    let Some(set) = ew_reports::project_rows(q, "cable_overview_diagrams", None) else {
+    let Some(set) =
+        ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::CableOverviewDiagrams, None)
+    else {
         return;
     };
     let folios = folios(q);

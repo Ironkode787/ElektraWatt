@@ -4,7 +4,7 @@
 //! `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock};
+use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock, ReportKind};
 use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, short_tag};
 
 use super::conn::put;
@@ -38,8 +38,8 @@ const INCLUDE_DEACTIVATED: &str = "include_deactivated";
 pub struct IoList;
 
 impl ReportKindDef for IoList {
-    fn name(&self) -> &'static str {
-        "io_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::IoList
     }
 
     /// The weights are the printed width, in tenths of a millimetre, that the widest text of each column

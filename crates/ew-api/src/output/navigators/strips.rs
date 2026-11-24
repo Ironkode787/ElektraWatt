@@ -48,7 +48,11 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
         }
     }
     for strip in strips(q) {
-        let Some(set) = ew_reports::project_rows(q, "terminal_diagram", Some(strip.as_uuid())) else {
+        let Some(set) = ew_reports::project_rows(
+            q,
+            &ew_derive::ew_schema::ReportKind::TerminalDiagram,
+            Some(strip.as_uuid()),
+        ) else {
             continue;
         };
         let tag = short_tag(q, strip);

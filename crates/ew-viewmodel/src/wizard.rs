@@ -26,7 +26,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ew_api::output::{ExportOptions, ExportPages, PageSelection};
-use ew_api::{CmdLog, Session};
+use ew_api::{CmdLog, ReportKind, Session};
 use serde_json::{Value, json};
 
 use std::sync::Arc;
@@ -1264,7 +1264,7 @@ impl Draft {
                 return out;
             }
         };
-        let reports: &[(&str, u32, &str, &str)] = if self.get("report_blocks") == "standard" {
+        let reports: &[(ReportKind, u32, &str, &str)] = if self.get("report_blocks") == "standard" {
             &STANDARD_REPORT_LAYOUT
         } else {
             &[]
@@ -1314,7 +1314,10 @@ impl Draft {
                         key!("wizard-example-report"),
                         &[
                             &folio.to_string(),
-                            strings::text(Key::run_time(&format!("wizard-report-{kind}"))),
+                            strings::text(Key::run_time(&format!(
+                                "wizard-report-{}",
+                                kind.name().unwrap_or_default()
+                            ))),
                         ],
                     )
                 })
@@ -1619,6 +1622,7 @@ mod tests {
             assert!(strings::lookup(s.later_key().as_str()).is_some());
         }
         for (kind, _, _, _) in STANDARD_REPORT_LAYOUT {
+            let kind = kind.name().unwrap_or_default();
             assert!(
                 strings::lookup(&format!("wizard-report-{kind}")).is_some(),
                 "{kind}"

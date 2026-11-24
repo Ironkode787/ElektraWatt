@@ -12,7 +12,7 @@ use ew_derive::{
 };
 
 use crate::arrange::{Arrangement, arrange};
-use crate::kind::{Registry, kind_name};
+use crate::kind::Registry;
 use crate::layout::{Layouts, PageLayout};
 use crate::paginate::{
     BlockSpec, Continuation, FixedLines, is_toc, legend_first_sub, number, slice, toc_slices,
@@ -57,7 +57,7 @@ impl Query for BlockRows {
             }
         };
         let Some(def) = Registry::builtin().get(kind) else {
-            let name = kind_name(kind).unwrap_or("unknown kind");
+            let name = kind.name().unwrap_or("unknown kind");
             return Arc::new(RowSet::not_derived(
                 Vec::new(),
                 NotDerived::Unsupported(name.to_owned()),
@@ -313,24 +313,20 @@ pub fn rows_of(q: &Q, block: Id<ReportBlock>) -> Arc<RowSet> {
 ///
 /// `None` for an unknown kind, and for `terminal_diagram` without `include`. Not memoised (the navigator fetches it once
 /// per revision for an open navigator only); it reads what the kind's row query reads and never `page_order`.
-pub fn project_rows(q: &Q, kind: &str, include: Option<ew_derive::ew_ids::Uuid>) -> Option<RowSet> {
-    let def = Registry::builtin().by_name(kind)?;
-    let parsed: ReportKind = serde_json::from_value(serde_json::Value::from(kind)).ok()?;
-    if kind_name(&parsed) != Some(def.name()) {
-        return None;
-    }
+pub fn project_rows(q: &Q, kind: &ReportKind, include: Option<ew_derive::ew_ids::Uuid>) -> Option<RowSet> {
+    let def = Registry::builtin().get(kind)?;
     let mut manual = ManualSelection::default();
     match include {
         Some(u) => {
             manual.include.insert(Id::from_uuid(u));
         }
-        None if kind == "terminal_diagram" => return None,
+        None if *kind == ReportKind::TerminalDiagram => return None,
         None => {}
     }
     let block = ReportBlock {
         id: Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
         v: 1,
-        source: ReportSource::Kind(parsed),
+        source: ReportSource::Kind(kind.clone()),
         manual,
         sort: Vec::new(),
         group: None,

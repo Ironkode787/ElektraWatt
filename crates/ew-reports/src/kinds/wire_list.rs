@@ -4,7 +4,7 @@
 //! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, ReportBlock};
+use ew_derive::ew_schema::{Device, ReportBlock, ReportKind};
 use ew_derive::{CpRef, Q, WireNumbers, short_tag};
 use ew_l10n::{List, TextArg};
 
@@ -40,8 +40,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowS
 pub struct WireList;
 
 impl ReportKindDef for WireList {
-    fn name(&self) -> &'static str {
-        "wire_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::WireList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

@@ -5,7 +5,7 @@
 
 use ew_checks::{Finding, OPEN_ITEM_RULES, OpenItemRule, Severity, open_item_of, open_items};
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Kind, ReportBlock};
+use ew_derive::ew_schema::{Kind, ReportBlock, ReportKind};
 use ew_derive::{PageRef, Q};
 
 use super::conn::{put, text_cell, words_cell};
@@ -35,8 +35,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 pub struct OpenItems;
 
 impl ReportKindDef for OpenItems {
-    fn name(&self) -> &'static str {
-        "open_items"
+    fn kind(&self) -> ReportKind {
+        ReportKind::OpenItems
     }
 
     /// The weights are millimetres of the house table's 260.96 mm. Each short column holds its widest text at

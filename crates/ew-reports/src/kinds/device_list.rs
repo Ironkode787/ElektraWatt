@@ -5,7 +5,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, ReportBlock};
+use ew_derive::ew_schema::{Device, ReportBlock, ReportKind};
 use ew_derive::{
     DevicePartLines, DeviceTag, LineSource, MainRep, PageRef, Q, RepAnchorCell, StructureOf, tech_data_text,
 };
@@ -33,8 +33,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 pub struct DeviceList;
 
 impl ReportKindDef for DeviceList {
-    fn name(&self) -> &'static str {
-        "device_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::DeviceList
     }
 
     /// The weights are millimetres of the house table's 260.96 mm: each column holds the widest text of its kind (the

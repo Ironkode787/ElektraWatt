@@ -65,8 +65,7 @@ pub mod xlsx;
 pub use arrange::{Arrangement, arrange};
 pub use ew_derive::bus_word;
 pub use kind::{
-    EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_name,
-    kind_params,
+    EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_params,
 };
 pub use kinds::bridge_groups;
 pub use layout::{Layouts, PageLayout};
@@ -87,7 +86,7 @@ mod tests {
         let reg = Registry::builtin();
         for n in reg.names() {
             let k = reg.by_name(n).unwrap();
-            assert_eq!(k.name(), n);
+            assert_eq!(k.kind().name(), Some(n));
             assert!(!k.columns().is_empty(), "kind `{n}` has no columns");
             assert!(
                 k.columns().iter().all(|c| c.weight > 0),

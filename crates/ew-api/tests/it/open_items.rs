@@ -31,7 +31,7 @@ use ew_reports::{BlockRows, RowKey, RowSet, RowSetStatus, project_rows};
 use ew_scene::forms::OverflowKind;
 use ew_scene::page::PageFinding;
 use ew_scene::table::TableFinding;
-use ew_schema::{Record, ReportBlock};
+use ew_schema::{Record, ReportBlock, ReportKind};
 use serde_json::{Value, json};
 
 /// The rows of the open-items kind as printed texts.
@@ -40,7 +40,7 @@ fn texts(q: &Q, set: &RowSet) -> Vec<Vec<String>> {
 }
 
 fn kind_rows(q: &Q) -> RowSet {
-    project_rows(q, "open_items", None).expect("the open-items kind")
+    project_rows(q, &ReportKind::OpenItems, None).expect("the open-items kind")
 }
 
 /// The `(rule, fingerprint)` of each row, from its row ID `name(<rule>/<fingerprint>)`.

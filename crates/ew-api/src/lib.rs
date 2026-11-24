@@ -220,6 +220,8 @@ pub use ew_schema::LabelFormat;
 pub use ew_schema::PartyRole;
 /// A project's kind: a schematic project, a template (`Basic`) or a macro project (FR-PRJ-026).
 pub use ew_schema::ProjectKind;
+/// A list kind (doc 09 §2.4): the new-project wizard's standard layout names its report blocks by it.
+pub use ew_schema::ReportKind;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
     AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, MAX_TYPEFACE_BYTES, Sha256, SvgHazard, base64_encode,

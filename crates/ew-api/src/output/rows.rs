@@ -35,7 +35,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
+use ew_derive::ew_schema::{Device, ReportBlock, ReportKind, ReportSource};
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q, short_tag};
 use ew_export::PdfDate;
 use ew_reports::csv::{CsvOptions, Preset, csv_field, restyle, rows_csv};
@@ -43,8 +43,7 @@ use ew_reports::kinds::PartsSummary;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 use ew_reports::xlsx::{DateTime, WorkbookMeta};
 use ew_reports::{
-    CellType, Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, kind_name, project_rows,
-    rows_of,
+    CellType, Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, project_rows, rows_of,
 };
 
 use crate::Session;
@@ -75,10 +74,10 @@ impl RowExport {
     /// [`RowExport::Kind`] (no block supplies the rows).
     pub fn kind(&self) -> Option<&'static str> {
         match self {
-            RowExport::Cables => Some("cable_overview_diagrams"),
-            RowExport::Bom(_) => Some("parts_summary"),
-            RowExport::Wires => Some("wire_list"),
-            RowExport::Terminals { .. } => Some("terminal_diagram"),
+            RowExport::Cables => ReportKind::CableOverviewDiagrams.name(),
+            RowExport::Bom(_) => ReportKind::PartsSummary.name(),
+            RowExport::Wires => ReportKind::WireList.name(),
+            RowExport::Terminals { .. } => ReportKind::TerminalDiagram.name(),
             RowExport::Report | RowExport::Kind(_) => None,
         }
     }
@@ -200,7 +199,7 @@ impl std::error::Error for RowsError {}
 /// The kind name of a block's source (`sql_query` for a user SQL report, `unknown` for a source of a newer format).
 pub fn block_kind(b: &ReportBlock) -> &'static str {
     match &b.source {
-        ReportSource::Kind(k) => kind_name(k).unwrap_or("unknown"),
+        ReportSource::Kind(k) => k.name().unwrap_or("unknown"),
         ReportSource::SqlQuery(_) => "sql_query",
         ReportSource::Unknown(_) => "unknown",
     }
@@ -446,27 +445,21 @@ fn kind_rows(q: &Q, name: &str) -> Result<Chosen, RowsError> {
             registry.names().map(str::to_owned).collect(),
         ));
     };
-    if def.name() == "terminal_diagram" {
+    if def.kind() == ReportKind::TerminalDiagram {
         return Err(RowsError::KindOneStrip);
     }
-    let set = project_rows(q, def.name(), None).ok_or_else(|| RowsError::NotDerived {
-        kind: def.name().to_owned(),
+    let set = project_rows(q, &def.kind(), None).ok_or_else(|| RowsError::NotDerived {
+        kind: name.to_owned(),
         why: "the kind has no whole-project rows".to_owned(),
     })?;
-    let set = derived(set, def.name())?;
-    Ok(whole(
-        q,
-        set,
-        def.name().to_owned(),
-        Vec::new(),
-        format!("kind:{}", def.name()),
-    ))
+    let set = derived(set, name)?;
+    Ok(whole(q, set, name.to_owned(), Vec::new(), format!("kind:{name}")))
 }
 
 /// `set` with the `pages` cell of every data row of a `revision_overview` row set replaced by the revision's changed
 /// pages, through the function folio 911's drawn cell uses; `None` for any other kind.
 fn with_revision_pages(q: &Q, set: &RowSet, kind: &str) -> Option<RowSet> {
-    if kind != "revision_overview" {
+    if Some(kind) != ReportKind::RevisionOverview.name() {
         return None;
     }
     let column = set.column("pages")?;
@@ -619,7 +612,9 @@ fn terminals(
         sets.push((label, derived((*rows_of(q, *id)).clone(), kind)?));
     }
     let Some((_, template)) = sets.first() else {
-        return Err(RowsError::NoBlock("terminal_diagram"));
+        return Err(RowsError::NoBlock(
+            ReportKind::TerminalDiagram.name().unwrap_or_default(),
+        ));
     };
     let gathered = gather_strips(&sets.iter().map(|(l, s)| (l.clone(), s)).collect::<Vec<_>>());
     // Every strip once, in block order, with its printed tag and the block its rows come from.
@@ -772,7 +767,7 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
 /// kind's columns read-only.
 fn kind_table(q: &Q, set: &RowSet, name: &str, key: &str, kind: &str) -> Table {
     let mut table = Table::from_rowset(q, set, name, key);
-    if kind == "io_list" {
+    if Some(kind) == ReportKind::IoList.name() {
         for c in &mut table.columns {
             c.editable = super::table_io::IO_LIST_ROUTES
                 .iter()

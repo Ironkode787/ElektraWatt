@@ -14,7 +14,7 @@ use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
     AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
     LogicalNet, NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole,
-    ReportBlock,
+    ReportBlock, ReportKind,
 };
 use ew_derive::{
     BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
@@ -80,8 +80,8 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
 pub struct PlcCardList;
 
 impl ReportKindDef for PlcCardList {
-    fn name(&self) -> &'static str {
-        "plc_card_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::PlcCardList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -189,8 +189,8 @@ impl ReportKindDef for PlcCardList {
 pub struct NetworkAddressList;
 
 impl ReportKindDef for NetworkAddressList {
-    fn name(&self) -> &'static str {
-        "network_address_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::NetworkAddressList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -370,8 +370,8 @@ fn port_row(
 pub struct BusOverview;
 
 impl ReportKindDef for BusOverview {
-    fn name(&self) -> &'static str {
-        "bus_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::BusOverview
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -502,8 +502,8 @@ type Ends = ((Id<Function>, Option<Id<Part>>), (Id<Function>, Option<Id<Part>>))
 pub struct BusCableList;
 
 impl ReportKindDef for BusCableList {
-    fn name(&self) -> &'static str {
-        "bus_cable_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::BusCableList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -599,8 +599,8 @@ impl ReportKindDef for BusCableList {
 pub struct IolinkPortList;
 
 impl ReportKindDef for IolinkPortList {
-    fn name(&self) -> &'static str {
-        "iolink_port_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::IolinkPortList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {
@@ -703,8 +703,8 @@ impl ReportKindDef for IolinkPortList {
 pub struct SafetyIoList;
 
 impl ReportKindDef for SafetyIoList {
-    fn name(&self) -> &'static str {
-        "safety_io_list"
+    fn kind(&self) -> ReportKind {
+        ReportKind::SafetyIoList
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

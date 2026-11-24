@@ -7,7 +7,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock};
+use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock, ReportKind};
 use ew_derive::{ChannelAddr, EffectiveState, PageRef, PlcRow, PlcRows, Q, RepAnchorCell, short_tag};
 
 use super::conn::{put, words_cell};
@@ -30,8 +30,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 pub struct PlcOverview;
 
 impl ReportKindDef for PlcOverview {
-    fn name(&self) -> &'static str {
-        "plc_overview"
+    fn kind(&self) -> ReportKind {
+        ReportKind::PlcOverview
     }
 
     fn columns(&self) -> Vec<ColumnDef> {

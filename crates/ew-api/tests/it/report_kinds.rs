@@ -32,7 +32,7 @@ use ew_reports::csv::row_texts;
 use ew_reports::{BlockRows, Registry, project_rows};
 use ew_scene::page::PageFinding;
 use ew_scene::table::TableFinding;
-use ew_schema::{Record, ReportBlock};
+use ew_schema::{Record, ReportBlock, ReportKind};
 use serde_json::{Value, json};
 
 fn expected_csv(kind: &str) -> PathBuf {
@@ -232,10 +232,10 @@ fn the_terminal_overview_lists_the_three_strips() {
 fn the_counts_agree_with_the_terminal_diagram_states() {
     let s = common::sample();
     let q = s.query();
-    let overview = project_rows(&q, "terminal_overview", None).expect("the overview");
+    let overview = project_rows(&q, &ReportKind::TerminalOverview, None).expect("the overview");
     for (i, row) in overview.rows.iter().enumerate() {
         let strip = row.id.entities().next().expect("the strip");
-        let diagram = project_rows(&q, "terminal_diagram", Some(strip)).expect("the strip's diagram");
+        let diagram = project_rows(&q, &ReportKind::TerminalDiagram, Some(strip)).expect("the strip's diagram");
         let state = diagram.column("state").unwrap();
         let states: Vec<String> = (0..diagram.rows.len())
             .map(|r| row_texts(&q, &diagram, r)[state].clone())
@@ -279,7 +279,7 @@ fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
     let mut s = common::sample();
     let strip = device(&s, "-X1031");
     let row_of = |q: &Q| -> (ew_reports::RowSet, usize) {
-        let set = project_rows(q, "terminal_overview", None).unwrap();
+        let set = project_rows(q, &ReportKind::TerminalOverview, None).unwrap();
         let i = set
             .rows
             .iter()
@@ -321,7 +321,7 @@ fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
         json!({"kind": "device", "targets": [strip.to_string()], "path": "tag.frozen", "value": {"text": "X1041"}}),
     );
     let q = s.query();
-    let set = project_rows(&q, "terminal_overview", None).unwrap();
+    let set = project_rows(&q, &ReportKind::TerminalOverview, None).unwrap();
     let renamed = set
         .rows
         .iter()

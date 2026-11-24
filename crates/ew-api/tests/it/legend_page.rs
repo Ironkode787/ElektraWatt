@@ -392,7 +392,7 @@ fn the_legend_by_kind_lists_every_layout_as_its_legend_page_does() {
         .iter()
         .find_map(|(id, b)| b.layout_page.filter(|p| p.as_uuid() != page).map(|p| (id, p)))
         .expect("the sample's legend list");
-    let set = ew_reports::project_rows(&q, "enclosure_legend", None).expect("the kind's rows");
+    let set = ew_reports::project_rows(&q, &ReportKind::EnclosureLegend, None).expect("the kind's rows");
     let mut runs: Vec<(Vec<Uuid>, Vec<String>)> = Vec::new();
     for row in &set.rows {
         if row.kind == ew_reports::RowKind::Heading {
