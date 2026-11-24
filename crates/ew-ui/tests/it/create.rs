@@ -11,32 +11,13 @@ use crate::support;
 use egui::Key;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_viewmodel::shell::Dialog;
-use support::{Scripted, Tmp, harness, settle};
+use support::{Scripted, Tmp, harness, settle, wait_until};
 
 /// The text field labelled `name` (the form fields have no placeholder; their label names them).
 fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) -> egui_kittest::Node<'h> {
     h.get_all_by_role(egui::Role::TextInput)
         .find(|n| n.accesskit_node().label().as_deref() == Some(name))
         .unwrap_or_else(|| panic!("no field {name}"))
-}
-
-/// Runs the frame until `done` holds of the shell, bounded like `support::wait_for_page` (600 frames, 20 ms apart),
-/// then settles. After Create or Enter the test waits on the state, not on one `settle` frame.
-#[track_caller]
-fn wait_until(
-    h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
-    what: &str,
-    done: impl Fn(&ew_viewmodel::shell::ShellModel) -> bool,
-) {
-    for _ in 0..600 {
-        h.run_ok();
-        if done(h.state().shell()) {
-            settle(h);
-            return;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(20));
-    }
-    panic!("{what} did not happen (dialog {:?})", h.state().shell().dialog());
 }
 
 /// Whether the open form shows a refusal.

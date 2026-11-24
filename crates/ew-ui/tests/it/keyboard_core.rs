@@ -11,9 +11,6 @@
 
 use crate::support;
 
-use std::collections::BTreeSet;
-use std::time::Duration;
-
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
@@ -21,6 +18,7 @@ use ew_ui::app::{App, Pick};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Dialog, Focus, Prompt};
+use std::collections::BTreeSet;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
@@ -248,13 +246,7 @@ fn the_five_core_tasks_with_key_events_only() {
 
     // 5. Export PDF: Ctrl+Shift+E, the save dialog's answer, the export job to its end.
     chord(&mut h, Modifiers::COMMAND | Modifiers::SHIFT, Key::E);
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().jobs().running() == 0 && pdf.exists() {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    support::finish_jobs(&mut h);
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::SavePdf]);
     let bytes = std::fs::read(&pdf).expect("the PDF");

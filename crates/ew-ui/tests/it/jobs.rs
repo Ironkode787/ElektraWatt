@@ -8,7 +8,7 @@
 
 use crate::support;
 
-use std::time::Duration;
+use std::sync::{Arc, Mutex, mpsc};
 
 use egui::Key;
 use egui_kittest::Harness;
@@ -19,26 +19,26 @@ use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Prompt, ShellModel}
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, edit_toast, harness, harness_with, settle};
 
-/// Frames until no job runs (bounded); the job's thread wakes the window, the frame takes its end.
-fn run_until_jobs_end(h: &mut Harness<'_, App>) {
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().jobs().running() == 0 {
-            settle(h);
-            return;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
-    panic!("the job did not end");
+/// Gives the shell a job waker that signals the returned channel, before a job starts: the window's own waker asks
+/// for a repaint, which a test cannot block on.
+fn job_wakes(h: &mut Harness<'_, App>) -> mpsc::Receiver<()> {
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    h.state_mut().shell_mut().set_job_waker(Some(Arc::new(move || {
+        let _ = tx.lock().map(|tx| tx.send(()));
+    })));
+    rx
 }
 
-/// Waits for the running jobs without running frames, then settles: for a test of what the ends show, not of how the
-/// window takes them. Frames run the window's clock, so polling through a long export ran an earlier toast's 8 seconds
-/// out on a loaded machine.
-fn wait_jobs_then_settle(h: &mut Harness<'_, App>) {
-    h.state_mut().shell_mut().wait_jobs();
+/// A frame (which takes a save dialog's answer and starts its job), then frames until no job runs, each after a job
+/// woke the window: the frame takes the end, as the window's does.
+fn run_until_jobs_end(h: &mut Harness<'_, App>, wakes: &mpsc::Receiver<()>) {
+    h.run_ok();
+    while h.state().shell().jobs().running() > 0 {
+        wakes.recv().expect("a running job wakes the window");
+        h.run_ok();
+    }
     settle(h);
-    assert_eq!(h.state().shell().jobs().running(), 0);
 }
 
 #[test]
@@ -50,11 +50,12 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));
     let mut h = harness(&tmp, platform.clone(), Some(dir));
+    let wakes = job_wakes(&mut h);
     settle(&mut h);
     assert!(h.state().shell().has_project());
     // The save dialog asked about the existing file itself: its answer carries `replace`, nothing is refused.
     dispatch(&mut h, "file.export_pdf", Value::Null);
-    run_until_jobs_end(&mut h);
+    run_until_jobs_end(&mut h, &wakes);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::SavePdf]);
     let bytes = std::fs::read(&pdf).unwrap();
     assert!(bytes.starts_with(b"%PDF-"), "the file was replaced");
@@ -110,6 +111,7 @@ fn a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_field(
     gate.hold("page");
     shell.set_job_gate_for_tests(Some(gate.clone()));
     let mut h = harness_with(shell, Scripted::default(), Some(dir));
+    let wakes = job_wakes(&mut h);
     settle(&mut h);
     dispatch(&mut h, "jobs.show", json!({}));
     dispatch(
@@ -134,7 +136,7 @@ fn a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_field(
     h.get_by_label("Cancel").click();
     settle(&mut h);
     gate.release();
-    run_until_jobs_end(&mut h);
+    run_until_jobs_end(&mut h, &wakes);
     assert!(!pdf.exists());
     assert!(h.query_by_label("Export cancelled; no file written.").is_some());
     assert!(
@@ -156,7 +158,7 @@ fn the_toasts_stack_and_the_log_opens_from_the_status_bar() {
         "file.export_pdf",
         json!({ "path": tmp.0.join("a.pdf").to_string_lossy() }),
     );
-    wait_jobs_then_settle(&mut h);
+    support::wait_jobs_and_settle(&mut h);
     assert_eq!(
         h.state().shell().notifications().visible().len(),
         2,

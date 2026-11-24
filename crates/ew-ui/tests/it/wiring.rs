@@ -399,7 +399,6 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
             preview = true;
             break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(preview, "the rest over the link shows its preview");
     // The popup says how to go there, on a line under its title, with `nav.follow`'s key.
@@ -422,7 +421,6 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         h.hover_at(at);
         h.step();
         assert!(h.query_by_label(&tip).is_none(), "no tooltip beside the preview");
-        std::thread::sleep(std::time::Duration::from_millis(10));
     }
     // ... and shows once the preview is dismissed, the pointer still on the link.
     dispatch(&mut h, "ui.dismiss", json!({}));
@@ -433,7 +431,6 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
             shown = true;
             break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(
         shown,
@@ -499,7 +496,6 @@ fn hovering_a_fluid_line_names_its_kind() {
             shown = true;
             break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(shown, "a tooltip reads {tip}");
     // An electrical wire has none.
@@ -566,7 +562,6 @@ fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
                 shown = true;
                 break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(10));
         }
         assert!(shown, "a tooltip reads {tip}");
     }

@@ -6,10 +6,8 @@
 //! wire, a terminal strip, renumber, export PDF), pass `assert_accessible` and `assert_fits` after each step. View ▸
 //! Language ▸ Nederlands switches the menus, the command bar and an open card without a restart, and back.
 
-use std::path::PathBuf;
-use std::time::Duration;
-
 use crate::support;
+use std::path::PathBuf;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -213,13 +211,7 @@ fn export_pdf_in_the_pseudo_locale() {
     assert!(strings::set_locale(strings::PSEUDO));
     step(&mut h);
     dispatch(&mut h, "file.export_pdf", Value::Null);
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().jobs().running() == 0 {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    support::finish_jobs(&mut h);
     assert_eq!(h.state().shell().jobs().running(), 0, "the export ended");
     step(&mut h);
     assert!(std::fs::read(&pdf).unwrap().starts_with(b"%PDF-"));

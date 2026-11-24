@@ -336,14 +336,7 @@ fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
     h.get_by_label("Bus overview").click();
     settle(&mut h);
     h.get_by_label("Create").click();
-    for _ in 0..600 {
-        h.run_ok();
-        if h.state().shell().dialog().is_none() {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(20));
-    }
-    settle(&mut h);
+    support::wait_until(&mut h, "the form's close", |s| s.dialog().is_none());
     let toast = h
         .state()
         .shell()
@@ -895,7 +888,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     settle(&mut h);
     h.get_by_label("Export to PLC software…").click();
     settle(&mut h);
-    let today = ew_ui::clock::Clock::Wall.today();
+    let today = support::CLOCK.today();
     assert_eq!(form_value(&h, "date"), today, "the form is dated today");
     crate::support::combos(&h)
         .into_iter()
@@ -1766,14 +1759,7 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
     h.get_by_label("Network address list").click();
     settle(&mut h);
     h.get_by_label("Create").click();
-    for _ in 0..600 {
-        h.run_ok();
-        if h.state().shell().dialog().is_none() {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(20));
-    }
-    settle(&mut h);
+    support::wait_until(&mut h, "the form's close", |s| s.dialog().is_none());
     let toast = h
         .state()
         .shell()

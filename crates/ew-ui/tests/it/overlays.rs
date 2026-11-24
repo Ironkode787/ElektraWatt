@@ -710,7 +710,6 @@ fn the_link_preview_has_a_named_region() {
             break;
         }
         h.run_ok();
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     assert!(
         h.state().shell().link_preview().is_some(),

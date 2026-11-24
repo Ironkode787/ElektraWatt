@@ -5,6 +5,7 @@
 //! dispatch with checks, points of a page.
 
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, mpsc};
 
 use ew_viewmodel::canvas::{CanvasModel, HOVER_SLOP_PT, pick, rect_centre};
 use ew_viewmodel::script;
@@ -84,6 +85,29 @@ impl Drop for Tmp {
 #[allow(clippy::disallowed_methods)]
 pub fn bless() -> bool {
     std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
+/// Gives the shell a job waker that signals the returned channel; set before a job starts, it lets a test block where
+/// the window would be woken.
+pub fn job_wakes(shell: &mut ShellModel) -> mpsc::Receiver<()> {
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    shell.set_job_waker(Some(Arc::new(move || {
+        let _ = tx.lock().map(|tx| tx.send(()));
+    })));
+    rx
+}
+
+/// Polls the jobs until `done` holds of the shell, each poll after a job woke it, as the window takes an end. No
+/// clock: a job that never ends is caught by the run's time limit.
+pub fn poll_until(shell: &mut ShellModel, wakes: &mpsc::Receiver<()>, done: impl Fn(&ShellModel) -> bool) {
+    loop {
+        shell.poll_jobs();
+        if done(shell) {
+            return;
+        }
+        wakes.recv().expect("a running job wakes the shell");
+    }
 }
 
 #[track_caller]

@@ -17,17 +17,9 @@ use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, harness_with, settle};
 
-/// Frames until the print set is built (bounded); its thread wakes the window, a frame takes its end.
+/// Frames until the print set is built, waiting for its build between them.
 fn run_until_built(h: &mut Harness<'_, App>) {
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().print_set().is_some() {
-            settle(h);
-            return;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(10));
-    }
-    panic!("the print set was not built");
+    support::wait_until(h, "the print set's build", |s| s.print_set().is_some());
 }
 
 /// The dialog's area.

@@ -12,9 +12,6 @@
 
 use crate::support;
 
-use std::path::{Path, PathBuf};
-use std::time::Duration;
-
 use egui::{Modifiers, MouseWheelSource, MouseWheelUnit, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -23,6 +20,7 @@ use ew_viewmodel::settings::Settings;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::json;
+use std::path::{Path, PathBuf};
 use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
 /// D14's window, in points.
@@ -129,13 +127,7 @@ fn print(size: Size) {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, size);
     dispatch(&mut h, "file.print", json!({"range": "current"}));
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().print_set().is_some() {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    support::wait_until(&mut h, "the print set's build", |s| s.print_set().is_some());
     assert!(h.state().shell().print_set().is_some(), "the print set was built");
     step(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Print(_))));

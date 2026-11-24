@@ -6,10 +6,8 @@
 //! (the language and keymap quick switches, View ▸ UI scale, the keyboard shortcuts) pass `assert_accessible` and
 //! `assert_fits` after each step, at a UI scale of 100 % and of 200 %.
 
-use std::path::PathBuf;
-use std::time::Duration;
-
 use crate::support;
+use std::path::PathBuf;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -202,13 +200,7 @@ fn export_pdf(scale: f32) {
     settle(&mut h);
     dutch_at(&mut h, scale);
     dispatch(&mut h, "file.export_pdf", Value::Null);
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().jobs().running() == 0 {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    support::finish_jobs(&mut h);
     assert_eq!(h.state().shell().jobs().running(), 0, "the export ended");
     step(&mut h);
     assert!(std::fs::read(&pdf).unwrap().starts_with(b"%PDF-"));

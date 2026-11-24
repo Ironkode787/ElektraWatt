@@ -7,8 +7,6 @@
 
 use crate::support;
 
-use std::time::Duration;
-
 use egui::{Key, Modifiers, MouseWheelSource, MouseWheelUnit, PointerButton, Pos2, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -515,12 +513,13 @@ fn the_window_reports_the_rest_and_shows_the_popup() {
     // The window's pointer over the link.
     let pos = screen(&h, p);
     h.event(egui::Event::PointerMoved(pos));
-    let started = ew_render2d::stats::now();
     // The rest is measured on egui's frame time: the harness's steps, however long the machine takes.
     let rest_from = h.ctx.input(|i| i.time);
-    while h.state().shell().link_preview().is_none() && started.elapsed() < Duration::from_secs(5) {
+    for _ in 0..200 {
+        if h.state().shell().link_preview().is_some() {
+            break;
+        }
         h.run_ok();
-        std::thread::sleep(Duration::from_millis(25));
     }
     let target = link.target.clone().unwrap();
     let lp = h

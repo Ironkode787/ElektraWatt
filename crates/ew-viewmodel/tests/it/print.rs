@@ -6,7 +6,7 @@
 //! Pages field's refusals, the disabled print buttons and the toasts of the window's print, every text whole. PW-1's
 //! digest is `bin/elektrawatt`'s `tests/it/print.rs` and `ew-api`'s `export_job.rs`.
 
-use crate::common::{Tmp, done, failed, refused};
+use crate::common::{Tmp, done, failed, job_wakes, poll_until, refused};
 use ew_api::ew_jobs::Gate;
 use ew_viewmodel::jobs::JobKind;
 use ew_viewmodel::shell::ShellModel;
@@ -49,24 +49,11 @@ fn labels(s: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// Waits for the running build to end, as `wait_print` does, but polling a bounded number of times (a join
-/// that never returns would hold the run): fails, naming `step`, when the build is still running after 600 polls of
-/// 100 ms.
-fn wait_print_bounded(s: &mut ShellModel, step: &str) {
-    for _ in 0..600 {
-        s.poll_jobs();
-        if s.print_progress().is_none() {
-            return;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-    panic!("the print set build did not end: {step}");
-}
-
 #[test]
 fn an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
     let tmp = Tmp::new("pw2");
     let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Headless, true, "100");
+    let wakes = job_wakes(&mut s);
     // Held after the writer: a hold stays across releases, so a hold at `page` would stop every page.
     let gate = Gate::new();
     gate.hold("written");
@@ -90,7 +77,7 @@ fn an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
     );
     assert!(s.page_rows().iter().any(|r| r.folio == "107"), "applied at once");
     gate.release();
-    wait_print_bounded(&mut s, "after the release at `written`");
+    poll_until(&mut s, &wakes, |s| s.print_progress().is_none());
     assert_eq!(
         labels(&s),
         ["100", "101", "102", "103", "104", "105"],

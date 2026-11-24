@@ -452,9 +452,8 @@ Rules that a local run on one OS cannot see:
   `if let`).
 - **The Linux steps run locally before a release.** The Linux steps of CI-PR-01 and CI-PR-02 (fmt, clippy, the workspace
   tests) run in a local Linux environment, for example WSL with the pinned toolchain, in addition to the Windows run.
-- **Wall-clock bounds only under `EW_PERF_ASSERT=1`.** An ordinary test never asserts a wall-clock bound; it may
-  measure and print. Bounds are asserted only when `EW_PERF_ASSERT=1` is set. A `cargo xtask` lint that finds
-  `elapsed` or `Instant` comparisons in assertions outside `#[ignore]` tests or an `EW_PERF_ASSERT` guard is not built.
+- **No test asserts a time.** A test neither asserts a wall-clock bound nor waits on the wall clock: it waits on an
+  event (a job's end, a tile or a preview ready, a file time it set) and bounds its frames by count.
 - **rustdoc on both platforms.** `cargo doc` with `-D warnings` runs on Windows and in the local Linux environment
   before a release: a redundant explicit link target is a warning on the Linux toolchain only. Intra-doc links are fully
   qualified (for example ``[`crate::module::Item`]``) and carry no explicit target that repeats the path.
@@ -586,8 +585,8 @@ budgets on real projects and exercises the importer ([14](14-interop.md) §12).
   because their noise exceeds 15 %.
 - **Statistics.** Medians and p99 follow 02c §1.4. Gesture sequences are scripted, replayed through the `Session`
   API and timed with `tracing` spans.
-- **Milestone runs** (target). Release-phase runs set `EW_PERF_ASSERT=1`; an ordinary test never asserts a wall-clock
-  bound (§3.16).
+- **Milestone runs** (target). Release-phase runs measure with the benchmarks of this section; no test asserts a
+  wall-clock bound (§3.16).
 - **No performance runs during development.** The measurements of this section run in the release phase, before a binary
   release gate, on the BM-class runner; until then a gate's performance criteria are assumed to pass, and a performance
   claim is marked "not measured". The timing rule of §3.16 stays.

@@ -17,15 +17,6 @@ use ew_ui::clock::Clock;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, edit_toast, harness, settle};
 
-/// Waits for the running jobs without running frames, then settles. Polling with frames ran the window's clock on for
-/// as long as the export took, so on a loaded machine the edit toast's 8 seconds ran out before the assertions
-/// (`cp2_cp7` saw one toast). The window's own path (the job wakes it, a frame takes the end) is `jobs.rs`'s.
-fn run_until_jobs_end(h: &mut Harness<'_, App>) {
-    h.state_mut().shell_mut().wait_jobs();
-    settle(h);
-    assert_eq!(h.state().shell().jobs().running(), 0);
-}
-
 fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
     h.get_all_by_role(egui::Role::Group)
         .any(|n| n.accesskit_node().label().as_deref() == Some(name))
@@ -85,7 +76,7 @@ fn the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
         "file.export_pdf",
         json!({ "path": tmp.0.join("a.pdf").to_string_lossy() }),
     );
-    run_until_jobs_end(&mut h);
+    support::wait_jobs_and_settle(&mut h);
     let toasts: Vec<egui::Rect> = h
         .get_all_by_role(egui::Role::Group)
         .filter(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
@@ -218,7 +209,7 @@ fn empty_states_and_the_jobs_outcome_badge() {
         "file.export_pdf",
         json!({ "path": tmp.0.join("a.pdf").to_string_lossy() }),
     );
-    run_until_jobs_end(&mut h);
+    support::wait_jobs_and_settle(&mut h);
     assert!(!group_named(&h, "No jobs yet"));
     assert!(h.query_by_label("Done").is_some(), "FT-510: the outcome badge");
     dispatch(&mut h, "preview.show", json!({}));

@@ -13,7 +13,6 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::time::Duration;
 
 use egui::Vec2;
 use egui_kittest::Harness;
@@ -96,10 +95,14 @@ pub fn harness<'a>(tmp: &Tmp, platform: Scripted, initial: Option<PathBuf>) -> H
     harness_with(ShellModel::new(Mode::Gui, tmp.config()), platform, initial)
 }
 
+/// The clock every window test runs on: the frame clock, so a frame takes the page's tiles that the frame before
+/// asked for, and no test of the window reads the wall clock.
+pub const CLOCK: Clock = Clock::Frame;
+
 /// A harness around the frame of a shell the test made itself (resources, a first-run flow already started), in a
-/// window of 1920 × 1080 points, the main resolution (doc 16a §2).
+/// window of 1920 × 1080 points, the main resolution (doc 16a §2), on [`CLOCK`].
 pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
-    let app = App::new(shell, Box::new(platform), initial, Clock::Wall);
+    let app = App::new(shell, Box::new(platform), initial, CLOCK);
     Harness::builder()
         .with_size(Vec2::new(1920.0, 1080.0))
         .with_context_setup(setup)
@@ -116,37 +119,76 @@ pub fn settle(harness: &mut Harness<'_, App>) {
     assert_accessible(harness);
 }
 
-/// Runs frames until no job runs, waiting for each running job's own end between them: an import reads its file in a
-/// job and goes on in a later frame (FT-1753, FT-1763). No clock: a loaded machine ends the job later, never not.
+/// Runs frames until no job runs and no print build is due, waiting for each running job's own end and the print
+/// pre-dialog's build between them: an import reads its file in a job and goes on in a later frame. No clock: a
+/// loaded machine ends the job later, never not.
 #[track_caller]
 pub fn finish_jobs(harness: &mut Harness<'_, App>) {
     for _ in 0..50 {
         harness.run_ok();
-        if harness.state().shell().jobs().running() == 0 {
+        let shell = harness.state().shell();
+        if shell.jobs().running() == 0 && !shell.print_waits() {
             harness.run_ok();
             return;
         }
-        harness.state_mut().shell_mut().wait_jobs();
+        wait_for_workers(harness);
     }
     panic!("a job is still running after 50 frames that each waited for it");
 }
 
-/// Waits (bounded) for the render worker's image of the page on show.
+/// Waits for the running jobs without running frames, then settles: for a test of what the ends show, not of how the
+/// window takes them (that is `jobs.rs`'s). Frames run the window's clock on, so polling through a long export ran an
+/// earlier toast's 8 seconds out before the assertions.
+#[track_caller]
+pub fn wait_jobs_and_settle(harness: &mut Harness<'_, App>) {
+    harness.state_mut().shell_mut().wait_jobs();
+    settle(harness);
+    assert_eq!(harness.state().shell().jobs().running(), 0);
+}
+
+/// Runs frames until `done` holds of the shell, waiting between them for the running jobs' ends and the print
+/// build as [`finish_jobs`] does, then settles. After Create or Enter a test waits on the state, not on one frame.
+#[track_caller]
+pub fn wait_until(harness: &mut Harness<'_, App>, what: &str, done: impl Fn(&ShellModel) -> bool) {
+    for _ in 0..50 {
+        harness.run_ok();
+        if done(harness.state().shell()) {
+            settle(harness);
+            return;
+        }
+        wait_for_workers(harness);
+    }
+    panic!(
+        "{what} did not happen (dialog {:?})",
+        harness.state().shell().dialog()
+    );
+}
+
+/// Blocks on the end of every running job and on a print build no test gate holds, taking their ends.
+fn wait_for_workers(harness: &mut Harness<'_, App>) {
+    let shell = harness.state_mut().shell_mut();
+    if shell.jobs().running() > 0 {
+        shell.wait_jobs();
+    }
+    if shell.print_waits() {
+        shell.wait_print();
+    }
+}
+
+/// Runs frames until the page on show is drawn. On [`CLOCK`] a frame waits for the tiles the frame before asked
+/// for, so the frames are a bound and no wait on time.
 #[track_caller]
 pub fn wait_for_page(harness: &mut Harness<'_, App>) {
-    let started = ew_render2d::stats::now();
     for _ in 0..600 {
         harness.run_ok();
         if harness.state().page_view_ready() {
             return;
         }
-        std::thread::sleep(Duration::from_millis(20));
     }
     // What the next sighting needs to tell a slow worker from a project that opened otherwise.
     let shell = harness.state().shell();
     panic!(
-        "the page image did not arrive after {:?} (access {:?}, banner {:?}, folio {:?})",
-        started.elapsed(),
+        "the page image did not arrive (access {:?}, banner {:?}, folio {:?})",
         shell.access(),
         shell.banner(),
         shell.current_folio()
@@ -312,7 +354,8 @@ pub fn on_sample(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     h
 }
 
-/// Waits (bounded) for the render worker's image of the wizard's preview.
+/// Runs frames until the image of the wizard's preview has arrived: on [`CLOCK`] it is rendered in the frame that
+/// asks for it.
 #[track_caller]
 pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
     for _ in 0..600 {
@@ -320,7 +363,6 @@ pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
         if harness.state().preview_ready() {
             return;
         }
-        std::thread::sleep(Duration::from_millis(20));
     }
     panic!("the preview image did not arrive");
 }

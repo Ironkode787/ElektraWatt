@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use crate::common::{Tmp, done, failed, refused, state};
+use crate::common::{Tmp, done, failed, job_wakes, poll_until, refused, state};
 use ew_api::ew_jobs::Gate;
 use ew_viewmodel::jobs::JobStatus;
 use ew_viewmodel::shell::{Mode, ShellModel};
@@ -355,19 +355,14 @@ fn a_result_after_an_edit_during_the_job_names_both_revisions() {
 fn polling_takes_the_end_of_a_job_that_was_not_waited_for() {
     let tmp = Tmp::new("jb5-poll");
     let mut s = small(&tmp, Mode::Headless);
+    let wakes = job_wakes(&mut s);
     let target = tmp.0.join("out.pdf");
     done(
         &mut s,
         "file.export_pdf",
         json!({"path": path_text(&target), "wait": false}),
     );
-    for _ in 0..2000 {
-        s.poll_jobs();
-        if s.jobs().running() == 0 {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(5));
-    }
+    poll_until(&mut s, &wakes, |s| s.jobs().running() == 0);
     assert_eq!(s.jobs().running(), 0, "the job ended");
     assert!(target.exists());
     let pages = s.page_count();
@@ -461,16 +456,11 @@ fn the_log_popup_and_its_refusals() {
 fn open_pdf_in_the_window_is_a_request_of_the_written_file() {
     let tmp = Tmp::new("jb6-open");
     let mut s = small(&tmp, Mode::Gui);
+    let wakes = job_wakes(&mut s);
     let target = tmp.0.join("a b.pdf");
     done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
     // The window never waits: the end arrives by polling.
-    for _ in 0..2000 {
-        s.poll_jobs();
-        if s.jobs().running() == 0 {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(5));
-    }
+    poll_until(&mut s, &wakes, |s| s.jobs().running() == 0);
     done(&mut s, "jobs.open_result", json!({}));
     let file = s.take_open_request().expect("an open request");
     assert_eq!(file, std::path::absolute(&target).unwrap());
@@ -515,15 +505,13 @@ fn quit_records_a_cancelled_export_in_its_entry_and_the_log() {
 fn quit_keeps_the_end_of_an_export_that_wrote_its_file() {
     let tmp = Tmp::new("quit-done");
     let mut s = small(&tmp, Mode::Gui);
+    let wakes = job_wakes(&mut s);
     let target = tmp.0.join("out.pdf");
     done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
     // The window never waits and nothing polls: the end is still in the job when the shell ends. After the rename the
     // body has no checkpoint left, so the cancel cannot change its end.
-    for _ in 0..2000 {
-        if target.exists() {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(5));
+    while !target.exists() {
+        wakes.recv().expect("the job wakes the shell");
     }
     assert!(target.exists(), "the file is written");
     assert_eq!(s.jobs().running(), 1, "its end is not taken yet");

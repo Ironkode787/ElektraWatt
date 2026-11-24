@@ -9,25 +9,7 @@ use crate::support;
 
 use egui_kittest::kittest::Queryable;
 use ew_viewmodel::shell::{Dialog, ShellModel};
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
-
-/// Runs the frame until `done` holds of the shell (600 frames, 20 ms apart), then settles.
-#[track_caller]
-fn wait_until(
-    h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
-    what: &str,
-    done: impl Fn(&ShellModel) -> bool,
-) {
-    for _ in 0..600 {
-        h.run_ok();
-        if done(h.state().shell()) {
-            settle(h);
-            return;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(20));
-    }
-    panic!("{what} did not happen (dialog {:?})", h.state().shell().dialog());
-}
+use support::{Scripted, Tmp, harness, settle, wait_for_page, wait_until};
 
 /// The text of the toast on show.
 fn toast(shell: &ShellModel) -> String {

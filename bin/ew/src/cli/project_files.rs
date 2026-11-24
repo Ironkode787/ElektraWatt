@@ -1251,9 +1251,15 @@ mod tests {
     fn the_discard_needs_the_typed_word_and_deletes_one_journal() {
         let dir = setup("discard");
         crash(&dir, 5);
-        // The second crash is the later change: it is summarised first.
-        std::thread::sleep(std::time::Duration::from_millis(20));
+        let first = journals(&dir)[0].0.clone();
         crash(&dir, 6);
+        // The second crash is the later change: it is summarised first. The first journal's time is set an hour back,
+        // so the two never share a file time.
+        let file = std::fs::File::options().write(true).open(&first).unwrap();
+        let written = file.metadata().unwrap().modified().unwrap();
+        file.set_modified(written - std::time::Duration::from_secs(3600))
+            .unwrap();
+        drop(file);
         let before = journals(&dir);
         assert_eq!(before.len(), 2);
 
