@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Tests of `check-task`: a brief's sheet is checked against the sample's script without a product.
+//! Tests of the task folder's checks of `check-brief`: a brief's sheet is checked against the sample's script without a
+//! product.
 
 use super::*;
 use crate::blind::run::copy_dir;
 use ew_testdir::Tmp;
 
-/// `check-task` on a copy of a brief that starts on the sample: the committed brief is sound; an identifier and a name
-/// that the sample's script does not hold and an address in its sheet are named, and a missing sheet.
+/// The folder's checks on a copy of a brief that starts on the sample: the committed brief is sound; an identifier and a
+/// name that the sample's script does not hold and an address in its sheet are named, and a missing sheet.
 #[test]
 fn check_task_names_what_is_wrong() {
     let tmp = Tmp::new("check-task");

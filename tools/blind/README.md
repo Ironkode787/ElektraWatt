@@ -19,9 +19,9 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | `personas/eplan-designer.md`, `personas/eplan-maintainer.md`, `personas/qet-user.md` | The personas of the usability rounds (WP-S2.12 D10): R0 runs `qet-veteran` and `qet-user`, R1 `eplan-designer`, `eplan-maintainer` and `qet-user` (T6 also `qet-veteran`); every persona is senses-independent, the run's prompt says how it acts |
 | `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 (WP-S2.12 §5.1) as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`sample`: the run starts on a copy of the sample project, `fixtures/sample/sample.ew`, which the prelude may change first, as T1 and T2 take away the 24 V breaker of folio 102), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
 
-`cargo xtask blind check-task <task>` checks a task folder without a product (the sheet and the prelude, and for a brief
-that starts on the sample that every identifier of `task.md` is in the sample's script). Run it after any change of a
-task folder.
+`cargo xtask blind check-brief <task>` checks a task folder first without a product (the sheet and the prelude, and for
+a brief that starts on the sample that every identifier of `task.md` is in the sample's script), then a brief's reference
+solution on the build. Run it after any change of a task folder.
 
 The check run's filter admits the actions of kind `View` and `file.open`, `app.quit`, **except** the canvas actions that can
 reach a tool's commit (FT-442): `canvas.press`, `canvas.release`, `canvas.activate` and `canvas.activate_alt` (a press, a

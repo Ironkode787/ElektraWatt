@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-task <task>`: checks a task folder without a product. The sheet `task.md` exists and holds no address or
+//! The first part of `check-brief <task>`: checks a task folder without a product. The sheet `task.md` exists and holds no address or
 //! path, the prelude's steps parse, and the sheet of a brief that starts on the sample ([`SAMPLE_SCRIPT`]) holds no
 //! identifier-shaped token and no proper name that the sample's script does not hold: the script is the sheet's only
 //! source (D4).
 //!
-//! A brief's replay and acceptance list are checked by `check-brief` ([`super::brief`]).
+//! A brief's replay and acceptance list are checked after it ([`super::brief`]).
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -19,7 +19,7 @@ use super::score::{prelude_actions, task_dir};
 pub const SAMPLE_SCRIPT: &str = "fixtures/sample/sample.uiscript";
 
 // ---------------------------------------------------------------------------------------------------------------
-// `check-task`.
+// The task folder's checks.
 
 /// Whether `w` is a word of the sheet that must be found in its source: an identifier (a letter and a digit together, a
 /// folio of 3 digits or more, a sign-prefixed designation, an all-capitals code of 2 letters or more).

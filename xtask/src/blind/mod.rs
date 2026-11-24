@@ -74,7 +74,8 @@ For the orchestrator:
   stop <run> [--reason <r>]                   the epilogue, the exports, the report
   report <run> check|bom|score                what the stop wrote
   report <run> connections|pages|pdf          the wires and potentials, the page texts, the PDF (a check run's)
-  check-brief <task> [--bin <dir>]            a brief's files, and its reference solution replayed and scored
+  check-brief <task> [--bin <dir>]            the task folder (the sheet, the prelude, a brief's sheet against its
+                                              source), then a brief's files and its reference solution replayed and scored
   resume <run>                                a lost session: replay and go on
   compose --kind <k> --task <t> [--senses text|visual] [--persona <p>] [--folios <a,b>] --run <id>
   bless <run> --as <name> [--replay check|none]
@@ -83,7 +84,6 @@ For the orchestrator:
   selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
   selftest-visual [--no-build] [--bin <dir>] [--out <dir>] [--keep]
                                               the visual self-test through the keeper and the visual driver
-  check-task <task>                           the task folder: the sheet, the prelude, a brief's sheet against its source
 ";
 
 /// Takes `--flag value` and `--flag` out of `args`.
@@ -527,9 +527,22 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let [task] = args.as_slice() else {
                 bail!("check-brief <task> [--bin <dir>]");
             };
+            // The folder first, without a product; a brief's replay after it.
+            let problems = check_task::check_task(root, task)?;
+            for p in &problems {
+                println!("{p}");
+            }
+            if !task.starts_with("brief-") {
+                if problems.is_empty() {
+                    println!("task `{task}` is sound");
+                } else {
+                    println!("task `{task}`: {} problem(s)", problems.len());
+                }
+                return Ok(problems.is_empty());
+            }
             let c = brief::check_brief(root, task, &bin)?;
             print!("{}", c.text(task));
-            Ok(c.runnable())
+            Ok(problems.is_empty() && c.runnable())
         }
         "stop" => {
             let mut f = Flags(rest);
@@ -666,23 +679,6 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 bail!("{command}: unexpected `{extra}`");
             }
             selftest::run(root, &a)
-        }
-        "check-task" => {
-            let args = Flags(rest).rest();
-            let [task] = args.as_slice() else {
-                bail!("check-task <task>");
-            };
-            let problems = check_task::check_task(root, task)?;
-            if problems.is_empty() {
-                println!("task `{task}` is sound");
-                Ok(true)
-            } else {
-                for p in &problems {
-                    println!("{p}");
-                }
-                println!("task `{task}`: {} problem(s)", problems.len());
-                Ok(false)
-            }
         }
         other => {
             eprint!("blind: unknown subcommand `{other}`\n\n{HELP}");
@@ -893,7 +889,7 @@ mod tests {
             "compose",
             "replay",
             "rescore",
-            "check-task",
+            "check-brief",
             "nonsense",
         ] {
             assert_eq!(

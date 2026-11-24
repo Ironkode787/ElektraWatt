@@ -393,7 +393,7 @@ pub fn score_run(root: &Path, run: &Run, facts: ExportFacts) -> Result<Score> {
 #[cfg(test)]
 mod tests;
 
-/// The steps of a prelude text, for the checks of `check-task`.
+/// The steps of a prelude text, for the task folder's checks of `check-brief`.
 ///
 /// # Errors
 ///
