@@ -144,7 +144,7 @@ fn off_a_layout_page_the_enclosure_is_drawn_on_a_new_layout_page() {
     };
     assert_eq!(s.dispatch(action, &params), Outcome::Done);
     assert_eq!(s.current_folio(), Some("102"), "the page after 101");
-    assert_eq!(s.page_rows()[s.page_index()].kind, "panel_layout");
+    assert_eq!(ew_viewmodel::ew_api::output::page_kind_name(&s.page_rows()[s.page_index()].kind), "panel_layout");
     assert_eq!(panel(&s).location, "+CAB1");
     // Back on 101 the location's enclosure is offered to be drawn on another new page.
     done(&mut s, "page.goto", json!({"folio": "101"}));

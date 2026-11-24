@@ -430,7 +430,7 @@ impl ShellModel {
             let fluid = self
                 .page_rows()
                 .get(self.page_index())
-                .is_some_and(|r| r.kind == "fluid");
+                .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
             if fluid {
                 let label = strings::text(key!("action-fluid-draw-slots")).to_owned();
                 out.extend(self.aimed("fluid.draw_slots", json!({ "rep": rep.id.to_string() }), label));
@@ -779,8 +779,8 @@ impl ShellModel {
                 self.plc_entries(device, &mut out);
                 if let Some((device, port)) = super::navigators::undrawn_port(&node.key) {
                     let label = strings::format(key!("canvas-place-port"), &[port]);
-                    let bus_page = self.page_rows().get(self.page_index()).map(|r| r.kind.as_str())
-                        == Some("bus_topology");
+                    let bus_page = self.page_rows().get(self.page_index()).map(|r| &r.kind)
+                        == Some(&ew_api::PageType::BusTopology);
                     let params = json!({ "device": device, "port": port });
                     out.extend(self.aimed("place.pick", params, label).map(|mut i| {
                         if i.enabled && !bus_page {
@@ -914,7 +914,9 @@ impl ShellModel {
             // On a bus-topology page each interface not drawn there yet is a box with its sockets (doc 10 §2.7);
             // elsewhere each port no function carries yet is its bus's port symbol.
             let folio = self.current_folio().unwrap_or_default();
-            if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology") {
+            if self.page_rows().get(self.page_index()).map(|r| &r.kind)
+                == Some(&ew_api::PageType::BusTopology)
+            {
                 for i in session.undrawn_interfaces(station, folio) {
                     let label = strings::format(key!("canvas-place-port"), &[&i.label]);
                     let params = json!({ "device": station.to_string(), "port": i.label });
@@ -1208,7 +1210,7 @@ impl ShellModel {
     fn electrical_in_front(&self) -> bool {
         self.page_rows()
             .get(self.page_index())
-            .is_some_and(|r| r.kind == "multi_line")
+            .is_some_and(|r| r.kind == ew_api::PageType::MultiLine)
     }
 
     /// The label of Draw the plug of `<terminal>`: on this page…, or on an electrical page… (which asks which).

@@ -48,7 +48,7 @@ fn pages_lists_the_page_order_under_its_sections() {
         // A generated page and a section's divider have no page record.
         assert_eq!(
             n.records.is_empty(),
-            r.generated || r.kind == "section_divider",
+            r.generated || ew_api::output::page_kind_name(&r.kind) == "section_divider",
             "{}",
             r.folio
         );

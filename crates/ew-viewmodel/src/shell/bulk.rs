@@ -452,7 +452,9 @@ impl ShellModel {
             .iter()
             // A section's divider page holds the range's first folio and keeps it (the renumber's own pages follow).
             .filter(|r| {
-                !r.generated && r.kind != "section_divider" && r.section.as_ref().map(|s| s.0) == number
+                !r.generated
+                    && r.kind != ew_api::PageType::SectionDivider
+                    && r.section.as_ref().map(|s| s.0) == number
             })
             .map(|r| (r.id, r.folio.clone()))
             .collect();

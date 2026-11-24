@@ -41,7 +41,7 @@ fn the_overview_page_of_the_todo_stands_in_the_fluid_section() {
     let new: Vec<String> = s
         .page_rows()
         .iter()
-        .filter(|r| r.kind == "assembly_overview" && !before.contains(&r.folio))
+        .filter(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind) == "assembly_overview" && !before.contains(&r.folio))
         .map(|r| r.folio.clone())
         .collect();
     assert!(!new.is_empty(), "the overview page is made");

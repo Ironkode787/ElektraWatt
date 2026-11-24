@@ -43,17 +43,17 @@ impl ShellModel {
     /// `crates/ew-commands/src/commands/paste.rs`'s `PasteFragment::place` (`Report | TableOfContents |
     /// SectionDivider`). `tests/clipboard.rs` checks it against a real `edit.paste` dry run for every page kind the
     /// shell knows.
-    pub fn paste_page_kind(&self) -> Option<&str> {
-        let kind = self.page_rows().get(self.page_index())?.kind.as_str();
+    pub fn paste_page_kind(&self) -> Option<&ew_api::PageType> {
+        let kind = &self.page_rows().get(self.page_index())?.kind;
         matches!(
             kind,
-            "title_page"
-                | "report"
-                | "table_of_contents"
-                | "section_divider"
-                | "panel_layout"
-                | "model_view"
-                | "external_document"
+            ew_api::PageType::TitlePage
+                | ew_api::PageType::Report
+                | ew_api::PageType::TableOfContents
+                | ew_api::PageType::SectionDivider
+                | ew_api::PageType::PanelLayout
+                | ew_api::PageType::ModelView
+                | ew_api::PageType::ExternalDocument
         )
         .then_some(kind)
     }
@@ -64,7 +64,7 @@ impl ShellModel {
         self.paste_page_kind().map(|kind| {
             strings::format(
                 key!("reason-paste-page-kind"),
-                &[strings::kind_label(kind).trim_end_matches(" page")],
+                &[strings::kind_label(&ew_api::output::page_kind_name(kind)).trim_end_matches(" page")],
             )
         })
     }

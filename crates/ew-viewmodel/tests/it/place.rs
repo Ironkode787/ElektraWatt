@@ -1060,7 +1060,7 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
 fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     let tmp = Tmp::new("pagetype");
     let mut s = shell(&tmp, "1");
-    let kind = s.page_rows()[s.page_index()].kind.clone();
+    let kind = ew_viewmodel::ew_api::output::page_kind_name(&s.page_rows()[s.page_index()].kind);
     assert_eq!(kind, "title_page", "folio 1 is the title page");
     for action in [
         "tool.place",
@@ -1109,7 +1109,7 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
     let rows: Vec<(String, String)> = s
         .page_rows()
         .iter()
-        .map(|r| (r.kind.clone(), r.folio.clone()))
+        .map(|r| (ew_viewmodel::ew_api::output::page_kind_name(&r.kind), r.folio.clone()))
         .collect();
     for (kind, text) in expected {
         let (_, folio) = rows

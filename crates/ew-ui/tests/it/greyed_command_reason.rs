@@ -78,7 +78,7 @@ fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
         .shell()
         .page_rows()
         .iter()
-        .find(|r| r.kind == "section_divider")
+        .find(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind) == "section_divider")
         .map(|r| r.folio.clone())
         .expect("the sample has a section divider");
     assert_eq!(
@@ -116,7 +116,7 @@ fn the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
         .shell()
         .page_rows()
         .iter()
-        .find(|r| r.kind == "section_divider")
+        .find(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind) == "section_divider")
         .map(|r| r.folio.clone())
         .expect("the sample has a section divider");
     let prompt = |h: &Harness<'_, App>| ew_viewmodel::command_bar::hud(h.state().shell()).prompt;

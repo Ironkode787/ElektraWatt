@@ -350,8 +350,8 @@ pub(super) fn can_go_forward(m: &ShellModel) -> Result<(), Key<'static>> {
 pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
-    match m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) {
-        Some("panel_layout") => Ok(()),
+    match m.page_rows().get(m.page_index()).map(|r| &r.kind) {
+        Some(ew_api::PageType::PanelLayout) => Ok(()),
         _ => Err(key!("reason-no-panel-page")),
     }
 }
@@ -491,13 +491,15 @@ pub(super) fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
 ///  and the generic text otherwise; `None` for a page that takes them. One mapping for the refusal of the
 /// editing tools and the canvas HUD's prompt.
 pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Key<'static>> {
-    match m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) {
-        Some("section_divider") => Some(key!("reason-page-type-no-symbols-divider")),
-        Some("title_page") => Some(key!("reason-page-type-no-symbols-title")),
-        Some("table_of_contents") => Some(key!("reason-page-type-no-symbols-contents")),
-        Some("report") => Some(key!("reason-page-type-no-symbols-report")),
-        Some("panel_layout") => Some(key!("reason-page-type-no-symbols-panel")),
-        Some("model_view" | "external_document") => Some(key!("reason-page-type-no-symbols")),
+    match m.page_rows().get(m.page_index()).map(|r| &r.kind) {
+        Some(ew_api::PageType::SectionDivider) => Some(key!("reason-page-type-no-symbols-divider")),
+        Some(ew_api::PageType::TitlePage) => Some(key!("reason-page-type-no-symbols-title")),
+        Some(ew_api::PageType::TableOfContents) => Some(key!("reason-page-type-no-symbols-contents")),
+        Some(ew_api::PageType::Report) => Some(key!("reason-page-type-no-symbols-report")),
+        Some(ew_api::PageType::PanelLayout) => Some(key!("reason-page-type-no-symbols-panel")),
+        Some(ew_api::PageType::ModelView | ew_api::PageType::ExternalDocument) => {
+            Some(key!("reason-page-type-no-symbols"))
+        }
         _ => None,
     }
 }
@@ -544,7 +546,7 @@ pub(super) fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
 /// page…).
 pub(super) fn put_station_page(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
-    if m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
+    if m.page_rows().get(m.page_index()).map(|r| &r.kind) != Some(&ew_api::PageType::BusTopology) {
         return Err(key!("reason-put-station-bus-page"));
     }
     if m.stations_off_page(None).is_empty() {

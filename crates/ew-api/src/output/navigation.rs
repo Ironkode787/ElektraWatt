@@ -54,8 +54,8 @@ pub struct PageRow {
     pub folio: String,
     /// The neutral page title without the folio.
     pub title: String,
-    /// The page type's snake_case spelling (`multi_line`, `report`).
-    pub kind: String,
+    /// The page type.
+    pub kind: PageType,
     /// The position of the page type in the schema's `PageType` declaration (sort by type).
     pub kind_rank: u16,
     /// Whether the page is a generated report page.
@@ -496,7 +496,7 @@ fn kind_rank(kind: &PageType) -> u16 {
 }
 
 /// The page type's snake_case spelling (a string of a newer format as it is, `unknown` for any other value).
-fn kind_name(kind: &PageType) -> String {
+pub fn page_kind_name(kind: &PageType) -> String {
     serde_json::to_value(kind)
         .ok()
         .and_then(|v| v.as_str().map(str::to_owned))
@@ -712,7 +712,7 @@ impl Session {
                     id: page_uuid(e.page),
                     folio: e.folio.clone(),
                     title: ew_derive::text_in(&q.get::<PageTitle>(e.page), lang.as_ref()).to_owned(),
-                    kind: kind_name(&e.kind),
+                    kind: e.kind.clone(),
                     kind_rank: kind_rank(&e.kind),
                     generated: matches!(e.page, PageRef::Generated { .. }),
                     section: e
@@ -1027,13 +1027,16 @@ mod tests {
             let kind: PageType =
                 serde_json::from_value(serde_json::Value::String((*name).to_owned())).unwrap();
             assert_eq!(usize::from(kind_rank(&kind)), i, "{name}");
-            assert_eq!(kind_name(&kind), *name);
+            assert_eq!(page_kind_name(&kind), *name);
         }
         let newer = PageType::Unknown(serde_json::Value::String("future".to_owned()));
         assert_eq!(usize::from(kind_rank(&newer)), names.len());
         // A string of a newer format prints as it is; a value that is no string prints `unknown`.
-        assert_eq!(kind_name(&newer), "future");
-        assert_eq!(kind_name(&PageType::Unknown(serde_json::json!(7))), "unknown");
+        assert_eq!(page_kind_name(&newer), "future");
+        assert_eq!(
+            page_kind_name(&PageType::Unknown(serde_json::json!(7))),
+            "unknown"
+        );
     }
 
     #[test]

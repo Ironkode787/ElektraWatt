@@ -129,6 +129,13 @@ pub enum PageType {
     Unknown(Value),
 }
 
+impl PageType {
+    /// Whether the page is a schematic: a multi-line or a single-line diagram.
+    pub fn is_schematic(&self) -> bool {
+        matches!(self, PageType::MultiLine | PageType::SingleLine)
+    }
+}
+
 /// The scale of a page (doc 03 §6): `"not_to_scale"` (the default, omitted) or `{"one_to": n}` for 1:n.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]

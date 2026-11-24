@@ -63,7 +63,7 @@ impl Session {
             let cells = vec![
                 row.folio.clone(),
                 row.title.clone(),
-                row.kind.clone(),
+                crate::output::navigation::page_kind_name(&row.kind),
                 frame,
                 if row.generated { "yes" } else { "no" }.to_owned(),
                 row.changed_in.clone().unwrap_or_default(),

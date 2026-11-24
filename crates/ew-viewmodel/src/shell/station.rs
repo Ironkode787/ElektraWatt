@@ -309,7 +309,7 @@ impl ShellModel {
     pub fn schematic_pages(&self) -> Vec<(String, String)> {
         self.page_rows()
             .iter()
-            .filter(|r| matches!(r.kind.as_str(), "multi_line" | "single_line"))
+            .filter(|r| r.kind.is_schematic())
             .map(|r| (r.folio.clone(), r.title.clone()))
             .collect()
     }
@@ -317,19 +317,19 @@ impl ShellModel {
     /// The project's bus-topology pages: folio and title, in page order (Put it on a bus page asks which when there
     /// are several).
     pub fn bus_pages(&self) -> Vec<(String, String)> {
-        self.pages_of_kind("bus_topology")
+        self.pages_of_kind(&ew_api::PageType::BusTopology)
     }
 
     /// The project's fluid pages: folio and title, in page order (a valve terminal's Draw on a fluid page… asks which
     /// when there are several).
     pub fn fluid_pages(&self) -> Vec<(String, String)> {
-        self.pages_of_kind("fluid")
+        self.pages_of_kind(&ew_api::PageType::Fluid)
     }
 
-    fn pages_of_kind(&self, kind: &str) -> Vec<(String, String)> {
+    fn pages_of_kind(&self, kind: &ew_api::PageType) -> Vec<(String, String)> {
         self.page_rows()
             .iter()
-            .filter(|r| r.kind == kind)
+            .filter(|r| r.kind == *kind)
             .map(|r| (r.folio.clone(), r.title.clone()))
             .collect()
     }
@@ -568,8 +568,8 @@ impl ShellModel {
         // ports on a bus page, a valve terminal's valves on their positions on a fluid page. A drawing of one side
         // does not stand for another.
         let open = self.page_rows().get(self.page_index());
-        let on_page = |step: &'static str, kinds: &[&str], pages: Vec<(String, String)>| {
-            let here = open.filter(|r| kinds.contains(&r.kind.as_str()));
+        let on_page = |step: &'static str, kinds: &[ew_api::PageType], pages: Vec<(String, String)>| {
+            let here = open.filter(|r| kinds.contains(&r.kind));
             let (label, folio) = match (here, pages.is_empty()) {
                 (Some(r), _) => {
                     let at = if step == "bus" {
@@ -617,7 +617,11 @@ impl ShellModel {
             };
             out.push(step(
                 text,
-                on_page("draw", &["multi_line", "single_line"], self.schematic_pages()),
+                on_page(
+                    "draw",
+                    &[ew_api::PageType::MultiLine, ew_api::PageType::SingleLine],
+                    self.schematic_pages(),
+                ),
             ));
         }
         // A card wider than the drawing area, drawn one box at a time (docs/design/06a-drafting.md §7.5): the rest goes
@@ -648,7 +652,7 @@ impl ShellModel {
         if session.has_bus_interfaces(station) && !on_bus_page {
             out.push(step(
                 strings::format(key!("rack-todo-bus"), &[&name(&view.head)]),
-                on_page("bus", &["bus_topology"], self.bus_pages()),
+                on_page("bus", &[ew_api::PageType::BusTopology], self.bus_pages()),
             ));
         }
         if terminal {
@@ -664,7 +668,7 @@ impl ShellModel {
             {
                 out.push(step(
                     strings::format(key!("rack-todo-fluid"), &[&name(&view.head)]),
-                    on_page("fluid", &["fluid"], self.fluid_pages()),
+                    on_page("fluid", &[ew_api::PageType::Fluid], self.fluid_pages()),
                 ));
             }
             // Drawn as its positions, with valves put on them without a symbol.

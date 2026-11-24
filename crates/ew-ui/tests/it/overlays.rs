@@ -841,7 +841,7 @@ fn free_cps_are_marked_open_on_screen_only() {
     let folios: Vec<String> = shell
         .page_rows()
         .iter()
-        .filter(|r| r.kind == "multi_line")
+        .filter(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind) == "multi_line")
         .map(|r| r.folio.clone())
         .collect();
     let folio = folios

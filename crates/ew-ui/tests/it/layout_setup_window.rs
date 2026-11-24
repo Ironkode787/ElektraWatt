@@ -295,7 +295,7 @@ fn the_create_enclosure_dialog_draws_the_locations_enclosure_on_the_layout_page(
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
     let shell = h.state().shell();
-    assert_eq!(shell.page_rows()[shell.page_index()].kind, "panel_layout");
+    assert_eq!(ew_viewmodel::ew_api::output::page_kind_name(&shell.page_rows()[shell.page_index()].kind), "panel_layout");
     assert_eq!(
         shell.panel_tables().map(|t| t.location.clone()),
         Some("+CAB1".to_owned())

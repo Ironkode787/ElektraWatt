@@ -815,9 +815,9 @@ impl ShellModel {
         except: Option<Uuid>,
     ) -> Option<String> {
         let row = self.page_rows().get(self.page_index())?;
-        let numbered_here = match row.kind.as_str() {
-            "multi_line" | "single_line" => true,
-            "bus_topology" => aspect == "cable",
+        let numbered_here = match row.kind {
+            ew_api::PageType::MultiLine | ew_api::PageType::SingleLine => true,
+            ew_api::PageType::BusTopology => aspect == "cable",
             _ => false,
         };
         if !numbered_here || row.folio.is_empty() || !row.folio.bytes().all(|b| b.is_ascii_digit()) {
@@ -1053,7 +1053,7 @@ impl ShellModel {
             let fluid = self
                 .page_rows()
                 .get(self.page_index())
-                .is_some_and(|r| r.kind == "fluid");
+                .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
             let terminal = project.session.terminal_of_main(id);
             let slots = terminal
                 .filter(|_| fluid)
@@ -1180,7 +1180,7 @@ impl ShellModel {
             let fluid = self
                 .page_rows()
                 .get(self.page_index())
-                .is_some_and(|r| r.kind == "fluid");
+                .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
             let slots = part_copy
                 .filter(|_| fluid)
                 .and_then(|p| self.project.as_ref()?.session.part_positions(p));
@@ -1684,7 +1684,8 @@ impl ShellModel {
         // A port of a device (its tag or ID) on a bus-topology page: the box of that interface with its sockets (doc
         // 10 §2.7); `port` names the interface as its row does ("X1", "X1 P1R").
         if let (Some(device), Some(port)) = (&device, &port)
-            && self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology")
+            && self.page_rows().get(self.page_index()).map(|r| &r.kind)
+                == Some(&ew_api::PageType::BusTopology)
         {
             let id = match self.join_device_ref(device) {
                 Ok(id) => id,

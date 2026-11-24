@@ -122,7 +122,7 @@ fn the_paste_page_kinds_agree_with_the_paste_command() {
     let rows = session.page_rows();
     let report = rows
         .iter()
-        .find(|r| r.kind == "report")
+        .find(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind) == "report")
         .expect("a generated report page");
     pages.push(("report".to_owned(), report.folio.clone()));
     let fragment = parse_fragment(&text).unwrap();

@@ -895,10 +895,10 @@ fn selection_topic(model: &ShellModel) -> Option<String> {
 /// The guide of the page on show where its type has one: a bus-topology page the bus part of the PLC guide, a fluid
 /// page the fluid guide, a panel layout page the panel layout guide.
 fn page_topic(model: &ShellModel) -> Option<&'static str> {
-    match model.page_rows().get(model.page_index())?.kind.as_str() {
-        "bus_topology" => Some("guide-bus"),
-        "fluid" => Some("guide-fluid"),
-        "panel_layout" => Some("guide-panel-layout"),
+    match model.page_rows().get(model.page_index())?.kind {
+        ew_api::PageType::BusTopology => Some("guide-bus"),
+        ew_api::PageType::Fluid => Some("guide-fluid"),
+        ew_api::PageType::PanelLayout => Some("guide-panel-layout"),
         _ => None,
     }
 }

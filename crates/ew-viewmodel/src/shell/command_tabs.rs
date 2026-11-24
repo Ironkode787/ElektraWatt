@@ -131,7 +131,7 @@ impl ShellModel {
         let Some(folio) = self
             .page_rows()
             .get(self.page_index())
-            .filter(|r| r.kind == "bus_topology")
+            .filter(|r| r.kind == ew_api::PageType::BusTopology)
             .map(|r| r.folio.clone())
         else {
             return Vec::new();

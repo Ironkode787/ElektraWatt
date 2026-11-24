@@ -482,7 +482,7 @@ mod tests {
             id: std::str::FromStr::from_str(&format!("00000000-0000-0000-0000-{n:012x}")).unwrap(),
             folio: folio.into(),
             title: title.into(),
-            kind: "multi_line".into(),
+            kind: ew_api::PageType::MultiLine,
             kind_rank,
             generated: false,
             section: section.map(|s| (s, format!("S{s}"))),

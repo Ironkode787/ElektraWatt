@@ -1406,7 +1406,7 @@ impl ShellModel {
     fn on_panel_page(&self) -> bool {
         self.page_rows()
             .get(self.page_index())
-            .is_some_and(|r| r.kind == "panel_layout")
+            .is_some_and(|r| r.kind == ew_api::PageType::PanelLayout)
     }
 
     /// A panel layout page after the page shown (New page…'s proposed folio, else the first free number), titled

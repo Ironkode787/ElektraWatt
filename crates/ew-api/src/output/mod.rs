@@ -133,7 +133,9 @@ pub use layers::{
 };
 pub(crate) use layout_edit::LayoutPartOffer;
 pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
-pub use navigation::{CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow};
+pub use navigation::{
+    CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow, page_kind_name,
+};
 pub use scale_fit::fitting_scale;
 // The panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
 // `ew-viewmodel` keeps its one dependency.

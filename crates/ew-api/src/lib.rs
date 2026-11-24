@@ -216,6 +216,8 @@ pub use ew_schema::FORMAT;
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
 /// against it, as `revision.create` does (EW-REL-004).
 pub use ew_schema::LabelFormat;
+/// A page's type, as the page rows carry it (`output::PageRow::kind`): the shell asks what a page is by it.
+pub use ew_schema::PageType;
 /// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
 pub use ew_schema::PartyRole;
 /// A project's kind: a schematic project, a template (`Basic`) or a macro project (FR-PRJ-026).

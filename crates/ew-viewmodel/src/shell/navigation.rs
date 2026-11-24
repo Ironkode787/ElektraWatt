@@ -277,10 +277,12 @@ impl ShellModel {
     /// sub-pages (`901`, `901.1`, ...). `None` for a list of one page and for any other page.
     pub fn list_pages(&self, i: usize) -> Option<ListPages> {
         let rows = self.page_rows();
-        let here = rows.get(i).filter(|r| r.kind == "report" && r.generated)?;
+        let here = rows
+            .get(i)
+            .filter(|r| r.kind == ew_api::PageType::Report && r.generated)?;
         let base = here.folio.split('.').next()?;
         let of_list = |r: &PageRow| {
-            r.kind == "report"
+            r.kind == ew_api::PageType::Report
                 && r.generated
                 && r.folio
                     .strip_prefix(base)
@@ -500,7 +502,7 @@ impl ShellModel {
         if self
             .page_rows()
             .iter()
-            .any(|r| r.folio == folio && r.kind == "panel_layout" && !r.generated)
+            .any(|r| r.folio == folio && r.kind == ew_api::PageType::PanelLayout && !r.generated)
         {
             page.panel = project.session.panel_tables(folio).map(Arc::new);
             self.count(|c| c.panel_tables += 1);

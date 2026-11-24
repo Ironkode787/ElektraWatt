@@ -947,7 +947,7 @@ impl ShellModel {
                 folios
                     .iter()
                     .map(|f| match PageRow::by_folio(rows, f) {
-                        Some(r) if !r.generated && r.kind != "section_divider" => Ok(r.id),
+                        Some(r) if !r.generated && r.kind != ew_api::PageType::SectionDivider => Ok(r.id),
                         Some(_) => Err(failed(key!("error-generated-page-order"), &[])),
                         None => Err(failed(key!("error-no-folio"), &[f])),
                     })

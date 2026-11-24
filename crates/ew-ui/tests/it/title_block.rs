@@ -228,7 +228,7 @@ fn a_new_panel_page_of_an_imported_project_has_its_frame() {
         h.state().shell().dialog()
     );
     assert_eq!(
-        h.state().shell().page_rows()[h.state().shell().page_index()].kind,
+        ew_viewmodel::ew_api::output::page_kind_name(&h.state().shell().page_rows()[h.state().shell().page_index()].kind),
         "panel_layout"
     );
     // It has a title block: Title block fields… lists what it prints.

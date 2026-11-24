@@ -190,7 +190,7 @@ impl ShellModel {
         let page = self
             .page_rows()
             .iter()
-            .find(|r| r.folio == folio && matches!(r.kind.as_str(), "multi_line" | "single_line"))
+            .find(|r| r.folio == folio && r.kind.is_schematic())
             .map(|r| r.id);
         let Some(page) = page else {
             return failed(key!("error-bad-param"), &["folio"]);

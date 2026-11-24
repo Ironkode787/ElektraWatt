@@ -213,8 +213,8 @@ impl ShellModel {
     /// fluid ports autoconnect with fluid lines, FT-1733).
     pub(super) fn page_autoconnects(&self) -> bool {
         matches!(
-            self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()),
-            Some("multi_line" | "single_line" | "fluid")
+            self.page_rows().get(self.page_index()).map(|r| &r.kind),
+            Some(ew_api::PageType::MultiLine | ew_api::PageType::SingleLine | ew_api::PageType::Fluid)
         )
     }
 
@@ -226,11 +226,15 @@ impl ShellModel {
     /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page, `Ok(Some("bus"))` (`{"bus": {}}`) on a
     /// bus-topology page (FT-434); refused on every page type whose Wire tool creates nothing.
     pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
-        match self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) {
-            Some("multi_line") => Ok(None),
-            Some("single_line" | "overview" | "assembly_overview") => Ok(Some("overview")),
-            Some("fluid") => Ok(Some("fluid")),
-            Some("bus_topology") => Ok(Some("bus")),
+        match self.page_rows().get(self.page_index()).map(|r| &r.kind) {
+            Some(ew_api::PageType::MultiLine) => Ok(None),
+            Some(
+                ew_api::PageType::SingleLine
+                | ew_api::PageType::Overview
+                | ew_api::PageType::AssemblyOverview,
+            ) => Ok(Some("overview")),
+            Some(ew_api::PageType::Fluid) => Ok(Some("fluid")),
+            Some(ew_api::PageType::BusTopology) => Ok(Some("bus")),
             _ => Err(key!("reason-no-wire-kind")),
         }
     }

@@ -427,8 +427,8 @@ impl ShellModel {
     /// ([`Self::show_page_of_kind`]), else a new one made there and then, asking nothing, as the station's Put it on a
     /// bus page makes its page; a toast names the page made.
     pub(crate) fn fluid_page_here(&mut self) -> Outcome {
-        if self.page_rows().iter().any(|r| r.kind == "fluid") {
-            return self.show_page_of_kind("fluid", key!("reason-no-fluid-page-terminal"));
+        if self.page_rows().iter().any(|r| r.kind == ew_api::PageType::Fluid) {
+            return self.show_page_of_kind(&ew_api::PageType::Fluid, key!("reason-no-fluid-page-terminal"));
         }
         let folio = self.new_fluid_page();
         if folio.is_empty() {
@@ -481,8 +481,8 @@ impl ShellModel {
 
     /// Shows the page shown when it is of kind `kind`, else the nearest such page before it, else after it; refused
     /// with `none` without one.
-    pub(super) fn show_page_of_kind(&mut self, kind: &str, none: Key<'static>) -> Outcome {
-        let of_kind = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == kind);
+    pub(super) fn show_page_of_kind(&mut self, kind: &ew_api::PageType, none: Key<'static>) -> Outcome {
+        let of_kind = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == *kind);
         let here = self.page_index();
         let Some(page) = (here..=here)
             .chain((0..here).rev())

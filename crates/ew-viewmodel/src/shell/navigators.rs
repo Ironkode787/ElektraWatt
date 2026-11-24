@@ -152,7 +152,7 @@ pub struct FindingLook {
 
 /// Whether a page row is a page record (not a generated page, not a section's divider).
 fn is_record(r: &PageRow) -> bool {
-    !r.generated && r.kind != "section_divider"
+    !r.generated && r.kind != ew_api::PageType::SectionDivider
 }
 
 impl ShellModel {
@@ -716,7 +716,9 @@ impl ShellModel {
         sections.sort();
         let holds = |n: u16| {
             self.page_rows().iter().any(|r| {
-                r.kind == kind && !r.generated && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n))
+                ew_api::output::page_kind_name(&r.kind) == kind
+                    && !r.generated
+                    && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n))
             })
         };
         if let Some((n, _)) = sections.iter().find(|(n, _)| holds(*n)) {
@@ -1913,7 +1915,7 @@ impl ShellModel {
     /// Place port `<port>` of a Bus navigator row of a port not drawn yet: on a bus-topology page the Black box tool
     /// with that interface's box (`place.pick {device, port}`); on another page refused, in words.
     pub(crate) fn place_undrawn_port(&mut self, device: &str, port: &str) -> Outcome {
-        if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
+        if self.page_rows().get(self.page_index()).map(|r| &r.kind) != Some(&ew_api::PageType::BusTopology) {
             return Outcome::refused(key!("reason-port-bus-page"));
         }
         self.act_place_pick(&json_map(json!({ "device": device, "port": port })))

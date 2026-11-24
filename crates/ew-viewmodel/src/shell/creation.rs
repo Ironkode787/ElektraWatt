@@ -1543,7 +1543,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         // In words, as a failure: a row dropped on another page says why (the window shows a failure in its banner).
-        if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
+        if self.page_rows().get(self.page_index()).map(|r| &r.kind) != Some(&ew_api::PageType::BusTopology) {
             return Outcome::Failed {
                 message: strings::text(key!("reason-put-station-bus-page")).to_owned(),
             };
@@ -1686,7 +1686,7 @@ impl ShellModel {
             .page_rows()
             .iter()
             .enumerate()
-            .filter(|(_, r)| r.kind == "multi_line")
+            .filter(|(_, r)| r.kind == ew_api::PageType::MultiLine)
             .map(|(i, r)| (i, r.folio.clone(), r.title.clone()))
             .collect();
         let folio = match page.as_str() {
@@ -1731,7 +1731,7 @@ impl ShellModel {
                 return Ok(false);
             }
             "" => {
-                let out = self.show_page_of_kind("multi_line", none);
+                let out = self.show_page_of_kind(&ew_api::PageType::MultiLine, none);
                 return if out == Outcome::Done { Ok(true) } else { Err(out) };
             }
             f if pages.iter().any(|(_, folio, _)| folio == f) => f.to_owned(),

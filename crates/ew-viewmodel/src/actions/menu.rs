@@ -592,8 +592,8 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                     items.push(heading_item(meta, model, key!("submenu-bus-one-port")));
                 }
             }
-            let bus_page =
-                model.page_rows().get(model.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology");
+            let bus_page = model.page_rows().get(model.page_index()).map(|r| &r.kind)
+                == Some(&ew_api::PageType::BusTopology);
             if !bus_page {
                 items.extend(nothing_item(meta, model, key!("reason-port-bus-page")));
                 return items;

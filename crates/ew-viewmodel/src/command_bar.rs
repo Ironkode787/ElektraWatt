@@ -739,13 +739,13 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             items.extend(item("layout.fit_sheet"));
         }
         // A schematic page offers New station… (the rack comes first).
-        let kind = model.page_rows().get(model.page_index()).map(|r| r.kind.as_str());
-        if matches!(kind, Some("multi_line" | "single_line")) {
+        let kind = model.page_rows().get(model.page_index()).map(|r| &r.kind);
+        if kind.is_some_and(ew_api::PageType::is_schematic) {
             items.extend(item("plc.new_station"));
         }
         // A bus-topology page offers Put a station on this page… (the CPU drawn with its cards had no
         // way onto it), greyed with its reason when every station is on it.
-        if kind == Some("bus_topology") {
+        if kind == Some(&ew_api::PageType::BusTopology) {
             items.extend(item("bus.put_station"));
         }
         return items;
@@ -1160,12 +1160,12 @@ pub fn hud(model: &ShellModel) -> HudModel {
             } else if model
                 .page_rows()
                 .get(model.page_index())
-                .is_some_and(|r| r.kind == "bus_topology")
+                .is_some_and(|r| r.kind == ew_api::PageType::BusTopology)
             {
                 // A bus-topology page says its three steps where the user looks.
                 strings::text(key!("hud-bus-page-steps")).to_owned()
-            } else if model.page_rows().get(model.page_index()).map(|r| r.kind.as_str())
-                == Some("panel_layout")
+            } else if model.page_rows().get(model.page_index()).map(|r| &r.kind)
+                == Some(&ew_api::PageType::PanelLayout)
             {
                 // A layout page names its first step while it shows no plate (the persona read only that it
                 // takes no symbols), and the Select hint once it does.

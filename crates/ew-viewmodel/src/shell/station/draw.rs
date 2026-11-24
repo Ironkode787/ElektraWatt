@@ -507,7 +507,7 @@ impl ShellModel {
                 let shown = self
                     .page_rows()
                     .get(self.page_index())
-                    .filter(|r| matches!(r.kind.as_str(), "multi_line" | "single_line"))
+                    .filter(|r| r.kind.is_schematic())
                     .map(|r| r.folio.clone());
                 match shown {
                     Some(folio) => folio,
@@ -725,11 +725,11 @@ impl ShellModel {
                 .undrawn_fluid_terminals()
                 .iter()
                 .any(|(t, _)| *t == station);
-        let kind = self.page_rows().get(self.page_index()).map(|r| r.kind.as_str());
+        let kind = self.page_rows().get(self.page_index()).map(|r| &r.kind);
         Some(match kind {
-            Some("multi_line" | "single_line") if electrical => Ok("draw"),
-            Some("bus_topology") if bus => Ok("bus"),
-            Some("fluid") if fluid => Ok("fluid"),
+            Some(k) if k.is_schematic() && electrical => Ok("draw"),
+            Some(ew_api::PageType::BusTopology) if bus => Ok("bus"),
+            Some(ew_api::PageType::Fluid) if fluid => Ok("fluid"),
             _ if electrical => Err(key!("reason-place-electrical")),
             _ if bus => Err(key!("reason-place-bus")),
             _ if fluid => Err(key!("reason-place-fluid")),

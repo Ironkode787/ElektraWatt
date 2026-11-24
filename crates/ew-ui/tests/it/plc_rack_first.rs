@@ -301,7 +301,7 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
         shell
             .page_rows()
             .get(shell.page_index())
-            .map(|r| (r.folio.clone(), r.kind.clone()))
+            .map(|r| (r.folio.clone(), ew_viewmodel::ew_api::output::page_kind_name(&r.kind)))
     };
     let (made, kind) = shown(&h).expect("a page");
     assert_eq!(kind, "bus_topology", "the bus page is made and shown");
@@ -504,7 +504,7 @@ fn draw_on_a_page_lists_the_pages() {
     let shell = h.state().shell();
     assert!(shell.station_tab().is_none(), "the page is on show");
     let row = shell.page_rows().get(shell.page_index()).expect("a page");
-    assert_eq!(row.kind, "multi_line", "a new schematic page");
+    assert_eq!(ew_viewmodel::ew_api::output::page_kind_name(&row.kind), "multi_line", "a new schematic page");
     assert_ne!(row.folio, "101");
     assert_eq!(topology_boxes(&h, station), 1, "the station drawn there");
     let tabs = shell.area().expect("the canvas area").focused_group();
