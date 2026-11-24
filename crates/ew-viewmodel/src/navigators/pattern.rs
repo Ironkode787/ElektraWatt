@@ -60,20 +60,15 @@ pub enum PatternError {
 }
 
 impl PatternError {
-    /// The English message.
+    /// The message in the UI language.
     pub fn message(&self) -> String {
+        use crate::{key, strings};
         match self {
-            PatternError::Unclosed => {
-                "unclosed brace: a `{` has no `}` (write `{{` for a literal brace)".to_owned()
-            }
-            PatternError::StrayClose => "a `}` closes nothing (write `}}` for a literal brace)".to_owned(),
-            PatternError::Unknown(e) => {
-                format!(
-                    "unknown expression {{{e}}}: use {{n}}, {{n*2+1}}, {{n:02}}, {{col:<column>}} or {{prev}}"
-                )
-            }
-            PatternError::Number(e) => format!("the number in {{{e}}} is too large"),
-            PatternError::UnknownColumn(k) => format!("unknown column {k} in {{col:{k}}}"),
+            PatternError::Unclosed => strings::text(key!("table-pattern-unclosed")).to_owned(),
+            PatternError::StrayClose => strings::text(key!("table-pattern-stray-close")).to_owned(),
+            PatternError::Unknown(e) => strings::format(key!("table-pattern-unknown"), &[e]),
+            PatternError::Number(e) => strings::format(key!("table-pattern-number"), &[e]),
+            PatternError::UnknownColumn(k) => strings::format(key!("table-pattern-column"), &[k]),
         }
     }
 }
@@ -90,12 +85,13 @@ pub enum RowError {
 }
 
 impl RowError {
-    /// The English message.
+    /// The message in the UI language.
     pub fn message(&self) -> &'static str {
+        use crate::{key, strings};
         match self {
-            RowError::Overflow => "the counter overflows",
-            RowError::Negative => "the counter is negative",
-            RowError::TooLong => "the text is longer than 10000 characters",
+            RowError::Overflow => strings::text(key!("table-row-overflow")),
+            RowError::Negative => strings::text(key!("table-row-negative")),
+            RowError::TooLong => strings::text(key!("table-row-too-long")),
         }
     }
 }

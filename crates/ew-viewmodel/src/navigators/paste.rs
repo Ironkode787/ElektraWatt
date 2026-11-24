@@ -28,13 +28,16 @@ pub enum TsvError {
 }
 
 impl TsvError {
-    /// The English message.
+    /// The message in the UI language.
     pub fn message(&self) -> String {
         match self {
-            TsvError::TooLarge => format!(
-                "too large: a paste takes at most {MAX_CELLS} cells of at most {MAX_CELL_CHARS} characters"
+            TsvError::TooLarge => crate::strings::format(
+                crate::key!("table-paste-too-large"),
+                &[&MAX_CELLS.to_string(), &MAX_CELL_CHARS.to_string()],
             ),
-            TsvError::UnclosedQuote(n) => format!("unclosed quote in row {n}"),
+            TsvError::UnclosedQuote(n) => {
+                crate::strings::format(crate::key!("table-paste-unclosed-quote"), &[&n.to_string()])
+            }
         }
     }
 }

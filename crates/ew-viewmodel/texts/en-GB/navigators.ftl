@@ -296,6 +296,16 @@ table-nothing = No cell can be applied.
 table-no-row = no row
 table-no-column = no column
 table-not-clearable = cannot be cleared
+table-paste-too-large = too large: a paste takes at most { $p0 } cells of at most { $p1 } characters
+table-paste-unclosed-quote = unclosed quote in row { $p0 }
+table-pattern-unclosed = unclosed brace: a `{"{"}` has no `{"}"}` (write `{"{{"}` for a literal brace)
+table-pattern-stray-close = a `{"}"}` closes nothing (write `{"}}"}` for a literal brace)
+table-pattern-unknown = unknown expression {"{"}{ $p0 }{"}"}: use {"{"}n{"}"}, {"{"}n*2+1{"}"}, {"{"}n:02{"}"}, {"{"}col:<column>{"}"} or {"{"}prev{"}"}
+table-pattern-number = the number in {"{"}{ $p0 }{"}"} is too large
+table-pattern-column = unknown column { $p0 } in {"{"}col:{ $p0 }{"}"}
+table-row-overflow = the counter overflows
+table-row-negative = the counter is negative
+table-row-too-long = the text is longer than 10000 characters
 
 # The card's title of a gesture: "Preview: paste 12 cells on 12 terminals · 2 invalid".
 table-preview-title = Preview: { $p0 } { $p1 } { $p2 } on { $p3 } { $p4 }
