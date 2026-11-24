@@ -7,7 +7,7 @@
 use crate::common;
 
 use common::{Tmp, done, tables};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// Terminal… with `params`, then a click at grid index `k`.
@@ -23,15 +23,8 @@ fn row(s: &mut ShellModel, params: serde_json::Value, k: (i64, i64)) {
 #[test]
 fn after_a_row_only_its_terminals_are_selected() {
     let tmp = Tmp::new("terminal-row-selection");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     row(&mut s, json!({"strip": "new", "count": "4"}), (20, 10));
     let first: Vec<_> = tables(&s).reps.iter().map(|r| r.id).collect();
     done(&mut s, "select.set", json!({"ids": []}));

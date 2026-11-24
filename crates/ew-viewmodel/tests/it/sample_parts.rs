@@ -16,7 +16,7 @@ use ew_api::library::LibraryTiers;
 use ew_api::library::starter;
 use ew_api::output::{TableRep, Uuid};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::PickerRow;
 use serde_json::{Value, json};
 
@@ -64,20 +64,17 @@ fn templated_parts() -> Vec<(String, String)> {
 /// A new project with one page of each type the parts use (101 multi-line, 102 fluid, 103 overview, 104 bus
 /// topology) and the strip `-X`, its sessions reading `tiers`.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(tiers(&tmp.0)));
-    let mut s = ShellModel::new(Mode::Headless, config);
-    done(
+    let mut s = ShellModel::new(Mode::Headless, tmp.config().with_libraries(Some(tiers(&tmp.0))));
+    common::make_project(
         &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+        &tmp.0.join("new.ew"),
+        &[
+            ("101", MULTI, MULTI),
+            ("102", FLUID, FLUID),
+            ("103", OVERVIEW, OVERVIEW),
+            ("104", BUS, BUS),
+        ],
     );
-    for (folio, ty) in [("101", MULTI), ("102", FLUID), ("103", OVERVIEW), ("104", BUS)] {
-        done(
-            &mut s,
-            "page.new",
-            json!({"folio": folio, "type": ty, "title": ty}),
-        );
-    }
     done(&mut s, "strip.new", json!({"letter": "X"}));
     s
 }

@@ -9,13 +9,13 @@ use crate::common::{Tmp, cursor, done, grid_point, refused, toast};
 
 use ew_viewmodel::dialogs::{DialogAnswer, spec};
 use ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 
 /// A shell in the window's mode with the libraries `tiers`, on a new project `name` from the built-in template with a
 /// schematic page 101 shown.
 fn project(tmp: &Tmp, tiers: LibraryTiers, name: &str) -> ShellModel {
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(tiers));
+    let config = tmp.config().with_libraries(Some(tiers));
     let mut s = ShellModel::new(Mode::Gui, config);
     done(
         &mut s,

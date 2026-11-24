@@ -7,7 +7,7 @@
 use crate::common;
 
 use common::{Tmp, done};
-use ew_viewmodel::shell::{Dialog, Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 
 /// The value of the New page form's field `name`.
@@ -26,10 +26,7 @@ fn field(s: &ShellModel, name: &str) -> String {
 #[test]
 fn new_page_from_a_station_s_view_comes_with_the_page_s_grid() {
     let tmp = Tmp::new("new-page-from-station");
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Gui);
     let project = json!({"dir": tmp.0.join("p.ew").to_string_lossy(), "template": "builtin"});
     done(&mut s, "file.new", project);
     done(&mut s, "page.new", json!({}));

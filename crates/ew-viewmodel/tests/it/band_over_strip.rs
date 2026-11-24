@@ -8,21 +8,14 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::Mode;
 use serde_json::json;
 
 #[test]
 fn a_band_over_a_row_of_terminals_selects_them_all() {
     let tmp = Tmp::new("band-over-strip");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "tool.place_terminal",

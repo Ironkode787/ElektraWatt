@@ -385,14 +385,9 @@ fn holds_copy(s: &mut ShellModel, number: &str) -> bool {
 #[test]
 fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
     let tmp = Tmp::new("ft1371c");
-    let config = ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test")
-        .with_libraries(Some(tiers(&tmp.0)));
+    let config = tmp.config().with_libraries(Some(tiers(&tmp.0)));
     let mut s = ShellModel::new(Mode::Gui, config);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     const NUMBER: &str = "6XV1830-0EH10";
     assert!(!holds_copy(&mut s, NUMBER), "the new project holds no cable part");
     assert!(!s.can_undo());

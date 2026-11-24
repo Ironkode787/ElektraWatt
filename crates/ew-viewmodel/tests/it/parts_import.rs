@@ -31,11 +31,7 @@ fn headless(tmp: &Tmp) -> ShellModel {
 }
 
 fn new_project(shell: &mut ShellModel, dir: &Path) {
-    done(
-        shell,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
+    common::make_project(shell, dir, &[]);
 }
 
 fn line_with(text: &str, prefix: &str) -> String {

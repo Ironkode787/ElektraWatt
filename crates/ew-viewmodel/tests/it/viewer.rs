@@ -922,7 +922,11 @@ fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let parent = Tmp::new("viewer");
     // The killed run: its copy of the sample open for editing, then gone without a shutdown (the lock stays).
 
-    let killed = Tmp(ew_testdir::Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0))));
+    let killed = Tmp(ew_testdir::Tmp(fresh_dir::fresh_dir_in(
+        &parent.0,
+        "run",
+        &AtomicU32::new(0),
+    )));
     Box::leak(Box::new(killed.open_sample(true)));
     assert!(killed.0.join("sample.ew").join(".~ew.lock").is_file());
     // Adopting the leftover (the old behaviour): the copy is read-only.
@@ -932,7 +936,11 @@ fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     );
     // The next process starts its numbers again: the leftover's name is skipped, the new directory is empty and its
     // copy is writable.
-    let fresh = Tmp(ew_testdir::Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0))));
+    let fresh = Tmp(ew_testdir::Tmp(fresh_dir::fresh_dir_in(
+        &parent.0,
+        "run",
+        &AtomicU32::new(0),
+    )));
     assert_ne!(fresh.0.0, killed.0.0);
     assert_eq!(std::fs::read_dir(&fresh.0).unwrap().count(), 0);
     assert!(fresh.open_sample(true).is_writable());

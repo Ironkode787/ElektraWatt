@@ -115,10 +115,7 @@ fn a_page_describe_step_carries_its_text_and_changes_no_state() {
 #[test]
 fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
     let tmp = Tmp::new("pagerefused");
-    let mut none = ShellModel::new(
-        Mode::Headless,
-        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut none = tmp.empty_shell(Mode::Headless);
     assert_eq!(
         refused(&mut none, "page.describe", json!({})),
         "reason-no-project"
@@ -143,11 +140,7 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
         Mode::Headless,
         ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config2"), "0.0.0-test"),
     );
-    done(
-        &mut fresh,
-        "file.new",
-        json!({"dir": tmp.0.join("fresh").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut fresh, &tmp.0.join("fresh"), &[]);
     let text = page_text(&mut fresh, None);
     assert!(text.starts_with("page \""), "{text}");
     assert_eq!(ew_viewmodel::alias::find_uuid(&text), None);

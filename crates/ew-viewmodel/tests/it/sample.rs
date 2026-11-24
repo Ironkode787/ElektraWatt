@@ -13,7 +13,7 @@ use crate::common::{SAMPLE, Tmp, copy_dir};
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::{EntropyError, IdSource, Session, UnixTime};
 use ew_viewmodel::script::{self, NoExtension};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::Mode;
 use serde_json::Value;
 
 /// The UI script that makes the sample.
@@ -65,10 +65,7 @@ fn make(tmp: &Tmp) -> PathBuf {
             *dir = tmp.0.join(dir.as_str()).to_string_lossy().into_owned();
         }
     }
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     shell.set_id_source_for_tests(Some(counting));
     let mut lines = Vec::new();
     script::run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {

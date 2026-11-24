@@ -4,29 +4,18 @@
 //! Shell-model transitions on a temporary copy of the sample (acceptance checks A2, A3, A9).
 
 use crate::common::refused;
-use ew_testdir::Tmp;
+use crate::common::Tmp;
 
 use std::path::Path;
 
 use ew_api::Session;
-use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
 const VERSION: &str = "0.0.0-test";
 
 /// The directory stem of this module's temporary directories.
-const STEM: &str = "ew-vm-test";
-
-/// The shell configuration of a temporary directory.
-trait ConfigTmp {
-    fn config(&self) -> ShellConfig;
-}
-
-impl ConfigTmp for Tmp {
-    fn config(&self) -> ShellConfig {
-        ShellConfig::in_dir(&self.0.join("config"), VERSION)
-    }
-}
+const STEM: &str = "test";
 
 fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
     shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }))
@@ -36,7 +25,7 @@ fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
 fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("sample.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     assert!(!shell.has_project());
     assert_eq!(shell.title(), "ElektraWatt");
     assert_eq!(shell.status_fields(false), ["No project open", "CPU", "EN"]);
@@ -76,7 +65,7 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
 fn page_navigation_has_bounds_and_reasons() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     let labels: Vec<String> = shell.page_labels().to_vec();
     let last = labels.len() - 1;
@@ -119,7 +108,7 @@ fn page_navigation_has_bounds_and_reasons() {
 fn edits_undo_redo_save_and_close() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     let before = shell.page_labels().to_vec();
 
@@ -176,7 +165,7 @@ fn edits_undo_redo_save_and_close() {
 fn the_gui_asks_instead_of_failing() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Gui);
     // Open without a directory is a prompt for the window.
     assert_eq!(shell.dispatch("file.open", &Value::Null), Outcome::Done);
     let prompt = shell.take_prompt().expect("a prompt");
@@ -221,7 +210,7 @@ fn the_gui_asks_instead_of_failing() {
 fn a_second_shell_opens_a_held_project_read_only() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut first = ShellModel::new(Mode::Headless, tmp.config());
+    let mut first = tmp.empty_shell(Mode::Headless);
     open(&mut first, &dir);
     assert_eq!(first.access(), Some(AccessMode::Edit));
 
@@ -252,7 +241,7 @@ fn save_as_writes_a_new_project_directory() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
     let target = tmp.0.join("copy.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     let run = json!({"cmd": "page.create", "params": {"number": 995}});
     shell.dispatch("command.run", &run);
@@ -264,7 +253,7 @@ fn save_as_writes_a_new_project_directory() {
     shell.shutdown();
     // A second Save As into the same, now occupied directory fails without a path in the message. Save As closed the
     // original cleanly, so it opens editable without the recovery dialog (FT-499).
-    let mut again = ShellModel::new(Mode::Headless, tmp.config());
+    let mut again = tmp.empty_shell(Mode::Headless);
     open(&mut again, &dir);
     assert_eq!(again.dialog(), None);
     assert_eq!(again.access(), Some(AccessMode::Edit));
@@ -276,7 +265,7 @@ fn save_as_writes_a_new_project_directory() {
     }
     again.shutdown();
     // The copy opens and has the page.
-    let mut third = ShellModel::new(Mode::Headless, tmp.config());
+    let mut third = tmp.empty_shell(Mode::Headless);
     open(&mut third, &target);
     assert!(third.page_labels().iter().any(|l| l == "995"));
     third.shutdown();
@@ -286,7 +275,7 @@ fn save_as_writes_a_new_project_directory() {
 fn a_failed_open_leaves_no_path_in_the_message_and_drops_a_recent() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     shell.dispatch("file.close", &json!({}));
     assert_eq!(shell.recent_names(), ["g.ew"]);
@@ -319,7 +308,7 @@ fn a_failed_open_leaves_no_path_in_the_message_and_drops_a_recent() {
 #[test]
 fn the_ui_scale_is_validated_and_persists() {
     let tmp = Tmp::new(STEM);
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     assert_eq!(shell.settings().ui_scale, 1.0);
     assert_eq!(
         shell.dispatch("view.ui_scale", &json!({"scale": 1.5})),
@@ -330,7 +319,7 @@ fn the_ui_scale_is_validated_and_persists() {
         shell.dispatch("view.ui_scale", &json!({"scale": 1.1})),
         Outcome::Failed { .. }
     ));
-    let again = ShellModel::new(Mode::Headless, tmp.config());
+    let again = tmp.empty_shell(Mode::Headless);
     assert_eq!(again.settings().ui_scale, 1.5);
 }
 
@@ -375,7 +364,7 @@ fn density_and_theme_round_trip_through_settings_toml() {
         );
     }
     assert_eq!(std::fs::read_to_string(&file).unwrap(), text, "nothing written");
-    let again = ShellModel::new(Mode::Headless, tmp.config());
+    let again = tmp.empty_shell(Mode::Headless);
     assert_eq!(again.settings().density, "compact");
     assert_eq!(again.settings().theme, "hc-dark");
 }
@@ -399,7 +388,7 @@ fn a_corrupted_settings_file_raises_a_banner_and_keeps_a_copy() {
 #[test]
 fn palette_lists_disabled_entries_last_with_their_reason() {
     let tmp = Tmp::new(STEM);
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     assert_eq!(
         shell.dispatch("tools.palette", &json!({"query": "save"})),
         Outcome::Done
@@ -439,7 +428,7 @@ fn palette_lists_disabled_entries_last_with_their_reason() {
 fn command_run_refuses_what_a_script_may_not_run() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     let labels = shell.page_labels().to_vec();
 
@@ -505,7 +494,7 @@ fn recorded(shell: &ShellModel) -> Vec<(String, Value)> {
 fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     let run = json!({"cmd": "page.create", "params": {"number": 990}});
     assert_eq!(shell.dispatch("command.run", &run), Outcome::Done);
@@ -550,7 +539,7 @@ fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
 fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     let a = json!({"cmd": "page.create", "params": {"number": 991}});
     let b = json!({"cmd": "page.create", "params": {"number": 992}});
@@ -583,7 +572,7 @@ fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
 fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("g.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     shell.dispatch("file.close", &json!({}));
     // The directory is there but no longer holds a project.
@@ -618,12 +607,12 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
     let dir = tmp.sample("g.ew");
     let run = json!({"cmd": "page.create", "params": {"number": 993}});
 
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir);
     shell.dispatch("command.run", &run);
     shell.shutdown();
     // The next open finds the journal: read-only with the recovery banner.
-    let mut again = ShellModel::new(Mode::Headless, tmp.config());
+    let mut again = tmp.empty_shell(Mode::Headless);
     assert_eq!(open(&mut again, &dir), Outcome::Done);
     assert!(matches!(again.access(), Some(AccessMode::ReadOnly { .. })));
     assert!(
@@ -640,26 +629,26 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
     assert!(!again.page_labels().iter().any(|l| l == "993"));
     again.shutdown();
     // Opening read-only left the journal alone: it is still offered.
-    let mut third = ShellModel::new(Mode::Headless, tmp.config());
+    let mut third = tmp.empty_shell(Mode::Headless);
     open(&mut third, &dir);
     assert!(matches!(third.access(), Some(AccessMode::ReadOnly { .. })));
     third.shutdown();
 
     // An explicit Discard is the user's choice: the journal goes (a fresh copy, so nothing is left over).
     let dir2 = tmp.sample("h.ew");
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     open(&mut shell, &dir2);
     shell.dispatch("command.run", &run);
     assert_eq!(
         shell.dispatch("file.close", &json!({"discard": true})),
         Outcome::Done
     );
-    let mut after = ShellModel::new(Mode::Headless, tmp.config());
+    let mut after = tmp.empty_shell(Mode::Headless);
     open(&mut after, &dir2);
     assert_eq!(after.access(), Some(AccessMode::Edit), "no journal after Discard");
     // A clean shutdown removes the journal too: nothing is left to recover.
     after.shutdown();
-    let mut clean = ShellModel::new(Mode::Headless, tmp.config());
+    let mut clean = tmp.empty_shell(Mode::Headless);
     open(&mut clean, &dir2);
     assert_eq!(clean.access(), Some(AccessMode::Edit));
     clean.shutdown();
@@ -669,7 +658,7 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
 #[test]
 fn escape_leaves_the_banner_alone() {
     let tmp = Tmp::new(STEM);
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     shell.show_banner("note");
     assert_eq!(shell.dispatch("ui.dismiss", &Value::Null), Outcome::Done);
     assert_eq!(shell.banner(), Some("note"));
@@ -683,7 +672,7 @@ fn escape_leaves_the_banner_alone() {
 fn the_registry_flag_decides_whether_an_action_clears_the_banner() {
     use ew_viewmodel::actions::find;
     let tmp = Tmp::new(STEM);
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     assert!(find("help.about").unwrap().keeps_banner);
     assert!(!find("settings.set").unwrap().keeps_banner);
     shell.show_banner("note");
@@ -706,8 +695,8 @@ fn a_window_exit_merges_only_its_geometry_into_the_settings_on_disk() {
     use ew_viewmodel::window::WindowGeometry;
     let tmp = Tmp::new(STEM);
     let dir = tmp.sample("r15.ew");
-    let mut b = ShellModel::new(Mode::Gui, tmp.config());
-    let mut a = ShellModel::new(Mode::Gui, tmp.config());
+    let mut b = tmp.empty_shell(Mode::Gui);
+    let mut a = tmp.empty_shell(Mode::Gui);
     assert_eq!(
         a.dispatch("settings.set", &json!({"key": "theme", "value": "dark"})),
         Outcome::Done
@@ -731,7 +720,7 @@ fn a_window_exit_merges_only_its_geometry_into_the_settings_on_disk() {
     // Unchanged geometry: no write (the file keeps its bytes and its time).
     let bytes = std::fs::read(config.join(FILE_NAME)).unwrap();
     std::fs::write(config.join(FILE_NAME), [bytes.as_slice(), b"# kept\n"].concat()).unwrap();
-    let mut c = ShellModel::new(Mode::Gui, tmp.config());
+    let mut c = tmp.empty_shell(Mode::Gui);
     c.set_window(g);
     c.shutdown();
     let now = std::fs::read(config.join(FILE_NAME)).unwrap();

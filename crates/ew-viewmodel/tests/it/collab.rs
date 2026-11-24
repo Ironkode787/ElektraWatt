@@ -16,15 +16,12 @@ use ew_api::{
     AnyCommand, FormatStep, MigrationError, Migrations, Recovery, Session, SessionOptions, StoreOptions,
 };
 use ew_viewmodel::describe::describe;
-use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellModel};
 use ew_viewmodel::status::{StatusKind, bar};
 use serde_json::{Value, json};
 
 fn shell(tmp: &Tmp) -> ShellModel {
-    ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    )
+    tmp.empty_shell(Mode::Headless)
 }
 
 fn open(s: &mut ShellModel, dir: &Path, read_only: bool) {
@@ -135,10 +132,7 @@ fn the_external_change_toast_offers_undo_and_show_changes() {
     let dir = tmp.0.join("sample.ew");
     copy_dir(Path::new(SAMPLE), &dir);
     // The window's own shell: an external change is undone by a person (its step is `Internal`, as a `HumanOnly` one).
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Gui);
     open(&mut s, &dir, false);
     let wire = sample_wire(0);
     let written = colleague(&tmp, &dir, &[colour(&wire, json!(["RD"]))]);

@@ -377,11 +377,7 @@ fn the_empty_states_name_the_location_or_the_missing_layout() {
         Mode::Headless,
         ew_viewmodel::shell::ShellConfig::in_dir(&fresh.0.join("config"), "0.0.0-test"),
     );
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": fresh.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut shell, &fresh.0.join("new.ew"), &[]);
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
     assert!(shell.shown_rows(NavKind::Unplaced).is_empty());
     assert_eq!(

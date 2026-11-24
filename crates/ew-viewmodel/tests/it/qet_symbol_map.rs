@@ -6,8 +6,9 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_testdir::{CONTENT, SAMPLE, Tmp};
-use ew_viewmodel::shell::{Mode, Outcome, Resources, ShellConfig, ShellModel};
+use crate::common::Tmp;
+use ew_testdir::{CONTENT, SAMPLE};
+use ew_viewmodel::shell::{Mode, Outcome, Resources, ShellModel};
 use serde_json::json;
 
 use crate::common::done;
@@ -33,10 +34,7 @@ fn shell(tmp: &Tmp) -> ShellModel {
         notices_file: None,
         privacy_file: None,
     };
-    ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_resources(resources),
-    )
+    ShellModel::new(Mode::Headless, tmp.config().with_resources(resources))
 }
 
 fn path(p: &Path) -> String {

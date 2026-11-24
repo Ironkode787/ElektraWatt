@@ -695,10 +695,7 @@ fn a_fill_over_more_than_500_rows_opens_the_card() {
     let mut fresh = Session::new(session.world().model.clone(), Default::default());
     fresh.create(&dir, StoreOptions::new("test")).unwrap();
     fresh.close();
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     done(&mut shell, "navigator.table", json!({"kind": "devices"}));

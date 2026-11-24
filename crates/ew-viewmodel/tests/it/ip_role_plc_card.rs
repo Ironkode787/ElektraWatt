@@ -13,27 +13,15 @@ use crate::common;
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
 /// A headless shell with a new project (the builtin template) and the pages 101 and 102; 101 shown.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
+    let mut s = tmp.new_project_in(
         Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+        &[("102", "multi_line", "Page"), ("101", "multi_line", "Page")],
     );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    for folio in ["102", "101"] {
-        done(
-            &mut s,
-            "page.new",
-            json!({"folio": folio, "type": "multi_line", "title": "Page"}),
-        );
-    }
     done(&mut s, "page.goto", json!({"folio": "101"}));
     s
 }

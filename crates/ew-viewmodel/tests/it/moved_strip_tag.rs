@@ -9,20 +9,13 @@ use crate::common;
 
 use common::{Tmp, at, done, tables};
 use ew_viewmodel::notifications::NoteAction;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// A new project with the schematic pages 101 and 102 and two terminals of a new strip placed on 101, selected.
 fn two_terminals_on_101(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     for folio in ["101", "102"] {
         done(
             &mut s,

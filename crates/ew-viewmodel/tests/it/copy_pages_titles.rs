@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, done};
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use serde_json::json;
 
 fn title_of(s: &ShellModel, folio: &str) -> Option<String> {
@@ -21,15 +21,8 @@ fn title_of(s: &ShellModel, folio: &str) -> Option<String> {
 #[test]
 fn the_rename_reaches_the_titles_and_the_card_lists_them() {
     let tmp = Tmp::new("copy-titles");
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("job.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Gui);
+    crate::common::make_project(&mut s, &tmp.0.join("job.ew"), &[]);
     done(
         &mut s,
         "page.new",

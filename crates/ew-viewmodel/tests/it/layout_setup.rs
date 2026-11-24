@@ -15,7 +15,7 @@ use ew_api::library::{LibManifest, LibraryTiers, STARTER_PARTS_KEY, starter_part
 use ew_api::output::{PanelCarrier, PanelTables, Uuid};
 use ew_viewmodel::command_bar::{Tab, command_bar_of};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use serde_json::json;
 use std::path::Path;
 
@@ -800,13 +800,9 @@ fn new_project(tmp: &Tmp) -> ShellModel {
 
 /// A new project's shell with the library tiers `libraries` (the compiled-in starter when `None`).
 fn new_project_with(tmp: &Tmp, libraries: Option<LibraryTiers>) -> ShellModel {
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(libraries);
+    let config = tmp.config().with_libraries(libraries);
     let mut s = ShellModel::new(Mode::Gui, config);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("n.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    common::make_project(&mut s, &tmp.0.join("n.ew"), &[]);
     s
 }
 

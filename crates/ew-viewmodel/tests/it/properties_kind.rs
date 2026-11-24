@@ -12,30 +12,16 @@ use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::properties::{
     PropertySheet, RowGroup, RowValue, chip_text, find_row, groups, visible_rows, what_words,
 };
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
 /// A new project with the electrical page 101 and the fluid page 102.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
+    tmp.new_project_in(
         Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    let dir = tmp.0.join("new.ew");
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
-    for (folio, ty) in [("101", "multi_line"), ("102", "fluid")] {
-        done(
-            &mut s,
-            "page.new",
-            json!({"folio": folio, "type": ty, "title": ty}),
-        );
-    }
-    s
+        &[("101", "multi_line", "multi_line"), ("102", "fluid", "fluid")],
+    )
 }
 
 fn place_at(s: &mut ShellModel, k: (i64, i64)) {
@@ -273,11 +259,7 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     use ew_viewmodel::shell::symbol_editor::function_kinds;
     let tmp = Tmp::new("props-kind-symbol");
     let mut s = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("project"), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &tmp.0.join("project"), &[]);
     done(
         &mut s,
         "command.run",

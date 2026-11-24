@@ -733,10 +733,7 @@ fn a_read_only_project_offers_no_action() {
 #[test]
 fn a_new_project_sets_its_size_profile_from_the_grid() {
     let tmp = Tmp::new("props-new");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let dir = tmp.0.join("new.ew");
     done(&mut shell, "file.new", json!({ "dir": dir.to_string_lossy() }));
     done(&mut shell, "props.project", json!({}));
@@ -803,10 +800,7 @@ fn an_edit_of_501_targets_opens_the_card() {
     let mut fresh = Session::new(session.world().model.clone(), Default::default());
     fresh.create(&dir, StoreOptions::new("test")).unwrap();
     fresh.close();
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     done(&mut shell, "select.set", json!({ "ids": ids }));
     assert_eq!(shell.properties().sheet().unwrap().sections[0].targets.len(), 501);

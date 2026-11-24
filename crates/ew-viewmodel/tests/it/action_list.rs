@@ -6,15 +6,12 @@
 
 use crate::common::Tmp;
 use ew_viewmodel::script::{self, NoExtension};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::Mode;
 
 #[test]
 fn the_action_list_names_each_action_with_its_parameters_and_state() {
     let tmp = Tmp::new("action-list");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let text = "{\"$schema\":\"ew.uiscript/1\",\"label\":\"actions\"}\n{\"action\":\"ui.actions\"}\n";
     let mut lines = Vec::new();
     script::run(

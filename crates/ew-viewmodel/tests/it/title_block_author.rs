@@ -9,16 +9,13 @@
 use crate::common;
 
 use common::{Tmp, done};
-use ew_viewmodel::shell::{Dialog, Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 
 #[test]
 fn a_field_the_session_may_not_write_is_said_before_apply() {
     let tmp = Tmp::new("titleblock-author");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     done(&mut s, "tools.company_standard", json!({}));
     let company = tmp.0.join("company.ew");
     done(
@@ -61,10 +58,7 @@ fn a_field_the_session_may_not_write_is_said_before_apply() {
 #[test]
 fn the_designer_is_a_plain_row_that_the_author_cell_prints() {
     let tmp = Tmp::new("titleblock-designer");
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Gui);
     done(&mut s, "tools.company_standard", json!({}));
     let company = tmp.0.join("company.ew");
     done(

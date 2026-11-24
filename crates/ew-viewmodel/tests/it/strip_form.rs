@@ -10,21 +10,14 @@
 use crate::common;
 
 use common::{Tmp, done, toast};
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
 /// A new project with the multi-line page 101 on show and no terminal strip.
 fn chooser(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "page.new",

@@ -11,22 +11,15 @@ use common::{Tmp, at, done};
 use ew_api::output::Uuid;
 use ew_viewmodel::command_bar::{MenuSpot, Tab, canvas_menu, command_bar_of};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
 /// A new project with the fluid page 102 and a valve terminal made in its station view with three valves, drawn there
 /// as its positions; the valves, left to right.
 fn terminal_with_valves(tmp: &Tmp) -> (ShellModel, Vec<Uuid>) {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     let dir = tmp.0.join("new.ew");
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &dir, &[]);
     done(
         &mut s,
         "page.new",

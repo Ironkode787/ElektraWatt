@@ -13,22 +13,18 @@ use ew_api::Session;
 use ew_viewmodel::actions::{MenuEntry, menu_model};
 use ew_viewmodel::describe::describe;
 use ew_viewmodel::navigator::RowKind;
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::PreviewStatus;
 use serde_json::{Value, json};
 
 fn shell_in(tmp: &Tmp, mode: Mode) -> ShellModel {
-    ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"))
+    tmp.empty_shell(mode)
 }
 
 /// A shell in `mode` with a new project (`new.ew` of `tmp`, the builtin template) open.
 fn new_project(tmp: &Tmp, mode: Mode) -> ShellModel {
     let mut shell = shell_in(tmp, mode);
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    common::make_project(&mut shell, &tmp.0.join("new.ew"), &[]);
     shell
 }
 
@@ -998,11 +994,7 @@ fn the_menu_entries_are_disabled_with_their_reason() {
             ),
         ]
     );
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": tmp.0.join("m.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut shell, &tmp.0.join("m.ew"), &[]);
     assert!(items(&shell).iter().all(|i| i.2 && i.3.is_none()));
     shell.shutdown();
 }

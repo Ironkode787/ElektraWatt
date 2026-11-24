@@ -16,7 +16,7 @@ use ew_api::checks;
 use ew_api::library::starter::{self, StarterKind};
 use ew_api::output::{TableRep, Uuid};
 use ew_viewmodel::properties::{RowValue, find_row};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::PickerRow;
 use serde_json::json;
 
@@ -235,22 +235,15 @@ fn starter_symbols() -> BTreeSet<&'static str> {
 /// A new project with one page of each type a path uses: 101 multi-line, 102 fluid, 103 overview, 104 bus topology,
 /// and the strip `-X`.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
+    let mut s = tmp.new_project_in(
         Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+        &[
+            ("101", MULTI, MULTI),
+            ("102", FLUID, FLUID),
+            ("103", OVERVIEW, OVERVIEW),
+            ("104", BUS, BUS),
+        ],
     );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    for (folio, ty) in [("101", MULTI), ("102", FLUID), ("103", OVERVIEW), ("104", BUS)] {
-        done(
-            &mut s,
-            "page.new",
-            json!({"folio": folio, "type": ty, "title": ty}),
-        );
-    }
     done(&mut s, "strip.new", json!({"letter": "X"}));
     s
 }
@@ -323,6 +316,29 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
         starter_symbols(),
         "every starter symbol needs a path in PATHS (WP-S2.18 D7)"
     );
+    place_every_symbol(false);
+}
+
+/// The symbols of [`every_starter_symbol_reaches_a_usable_device_from_the_picker`] that are placed on the fluid page,
+/// in a project of their own: each action of the shell costs more as the project grows, and the two halves run beside
+/// each other.
+#[test]
+fn every_fluid_starter_symbol_reaches_a_usable_device_from_the_picker() {
+    place_every_symbol(true);
+}
+
+/// The page a path places its symbol on; `None` for an aid, which is no device symbol.
+fn page_of(path: Path) -> Option<&'static str> {
+    match path {
+        Path::Part(_, _, page) | Path::Device(_, page) | Path::DeviceBox(_, page) => Some(page),
+        Path::Aid => None,
+        _ => Some(MULTI),
+    }
+}
+
+/// Places every symbol of [`PATHS`] whose page is (`fluid`) or is not the fluid page through the picker in a new
+/// project, saves it, and checks each device's parts after reopening and that no starter part is incomplete.
+fn place_every_symbol(fluid: bool) {
     let tmp = Tmp::new("starter-symbols");
     let mut s = new_project(&tmp);
     let mut placed: Vec<Placed> = Vec::new();
@@ -349,11 +365,10 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
     let relay_tag = tag_of(&s, &relay);
     for &(key, path) in PATHS {
         let before = {
-            let page = match path {
-                Path::Part(_, _, page) | Path::Device(_, page) | Path::DeviceBox(_, page) => page,
-                Path::Aid => continue,
-                _ => MULTI,
-            };
+            let Some(page) = page_of(path) else { continue };
+            if (page == FLUID) != fluid {
+                continue;
+            }
             goto(&mut s, page);
             reps(&s)
         };

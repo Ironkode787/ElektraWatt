@@ -12,28 +12,15 @@ use ew_api::output::{TableRep, Uuid};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::{RowValue, find_row};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
 /// A new project with the electrical page 101 and the fluid page 102, on page 102.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
+    let mut s = tmp.new_project_in(
         Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+        &[("101", "multi_line", "multi_line"), ("102", "fluid", "fluid")],
     );
-    let dir = tmp.0.join("new.ew");
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
-    for (folio, ty) in [("101", "multi_line"), ("102", "fluid")] {
-        done(
-            &mut s,
-            "page.new",
-            json!({"folio": folio, "type": ty, "title": ty}),
-        );
-    }
     done(&mut s, "page.goto", json!({"folio": "102"}));
     s
 }

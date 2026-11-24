@@ -9,7 +9,7 @@ use crate::common;
 
 use common::{Tmp, at, done, tables};
 use ew_api::output::TableRep;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// A part placed with its anchor at grid index `k` by one click, joined to what it plainly faces.
@@ -33,16 +33,9 @@ fn place(s: &mut ShellModel, part: &str, k: (i64, i64)) -> TableRep {
 #[test]
 fn flow_controls_set_side_by_side_are_not_joined_and_one_facing_a_cylinder_is() {
     let tmp = Tmp::new("fittings-row");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     let dir = tmp.0.join("new.ew");
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &dir, &[]);
     done(
         &mut s,
         "page.new",

@@ -11,7 +11,7 @@ use crate::common;
 use common::Tmp;
 use ew_viewmodel::alias;
 use ew_viewmodel::script::{self, NoExtension};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 
 /// The script text of `steps`.
@@ -30,10 +30,7 @@ fn shell(tmp: &Tmp) -> (ShellModel, String) {
     if !dir.exists() {
         common::copy_dir(std::path::Path::new(common::SAMPLE), &dir);
     }
-    let shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let shell = tmp.empty_shell(Mode::Headless);
     (shell, dir.to_string_lossy().into_owned())
 }
 

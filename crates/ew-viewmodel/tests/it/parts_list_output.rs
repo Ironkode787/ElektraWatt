@@ -9,7 +9,7 @@ use ew_viewmodel::strings::Key;
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::actions;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -39,17 +39,10 @@ fn parts_list_opens_the_first_page_of_the_bom_block() {
 #[test]
 fn parts_list_without_a_bom_block_is_refused_in_words() {
     let tmp = Tmp::new("h40-noparts");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     let meta = actions::find("lists.parts").expect("registered");
     assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-project")));
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut shell, &tmp.0.join("new.ew"), &[]);
     done(
         &mut shell,
         "page.new",

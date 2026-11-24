@@ -11,7 +11,7 @@ use std::path::Path;
 
 use common::{SAMPLE, Tmp, copy_dir, done};
 use ew_api::library::{LibraryTiers, Registry};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 
 fn tiers(root: &Path) -> LibraryTiers {
@@ -39,10 +39,7 @@ fn config_project() -> String {
 /// A shell over a writable copy of the sample in `dir`, with `libraries`.
 fn open(tmp: &Tmp, dir: &Path, libraries: Option<LibraryTiers>) -> ShellModel {
     copy_dir(Path::new(SAMPLE), dir);
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(libraries),
-    );
+    let mut s = ShellModel::new(Mode::Headless, tmp.config().with_libraries(libraries));
     done(
         &mut s,
         "file.open",

@@ -11,20 +11,13 @@ use crate::common;
 use common::{Tmp, done, failed, tables};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// A new project with a row of three blocks of two levels; its terminal symbols left to right as (rep, level).
 fn blocks(tmp: &Tmp) -> (ShellModel, Vec<(String, u8)>) {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "tool.place_terminal",

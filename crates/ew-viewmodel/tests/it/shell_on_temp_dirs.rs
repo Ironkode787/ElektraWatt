@@ -5,7 +5,8 @@
 //! QElectroTech import and the tutorials copy, the journal discard, first run, the
 //! company-standard wizard with its preview, workspaces, F1 and the quick switches.
 
-use ew_testdir::{CONTENT, SAMPLE, Tmp};
+use crate::common::Tmp;
+use ew_testdir::{CONTENT, SAMPLE};
 use ew_viewmodel::key;
 
 use std::path::{Path, PathBuf};
@@ -31,22 +32,22 @@ fn resources() -> Resources {
 
 /// The shell models of a temporary directory.
 trait ShellTmp {
-    fn config(&self) -> ShellConfig;
+    fn config_with_resources(&self) -> ShellConfig;
     fn shell(&self) -> ShellModel;
     fn gui(&self) -> ShellModel;
 }
 
 impl ShellTmp for Tmp {
-    fn config(&self) -> ShellConfig {
+    fn config_with_resources(&self) -> ShellConfig {
         ShellConfig::in_dir(&self.0.join("config"), VERSION).with_resources(resources())
     }
 
     fn shell(&self) -> ShellModel {
-        ShellModel::new(Mode::Headless, self.config())
+        ShellModel::new(Mode::Headless, self.config_with_resources())
     }
 
     fn gui(&self) -> ShellModel {
-        ShellModel::new(Mode::Gui, self.config())
+        ShellModel::new(Mode::Gui, self.config_with_resources())
     }
 }
 
@@ -210,7 +211,7 @@ fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
 #[test]
 fn without_a_sample_the_action_fails_and_the_tutorials_page_still_opens() {
     let tmp = Tmp::new(STEM);
-    let mut config = tmp.config();
+    let mut config = tmp.config_with_resources();
     config.resources.sample_dir = None;
     let mut shell = ShellModel::new(Mode::Headless, config);
     assert!(!shell.has_sample());
@@ -1475,7 +1476,7 @@ fn the_wizard_makes_a_template_in_a_folder_of_its_own() {
     // No projects folder: a script names the folder, the window asks.
     let bare = ShellConfig {
         projects_dir: None,
-        ..tmp.config()
+        ..tmp.config_with_resources()
     };
     let mut script = ShellModel::new(Mode::Headless, bare.clone());
     done(&mut script, "tools.company_standard", json!({}));
@@ -2039,7 +2040,7 @@ fn the_check_level_is_written_by_create_in_the_window_and_never_by_a_script() {
 #[test]
 fn without_the_sample_the_wizard_works_and_the_preview_says_why_it_is_empty() {
     let tmp = Tmp::new(STEM);
-    let mut config = tmp.config();
+    let mut config = tmp.config_with_resources();
     config.resources.sample_dir = None;
     let mut shell = ShellModel::new(Mode::Headless, config);
     done(&mut shell, "tools.company_standard", json!({}));
@@ -2258,7 +2259,7 @@ fn the_documentation_url_points_into_the_installed_book() {
     let tmp = Tmp::new(STEM);
     let docs = tmp.0.join("book");
     std::fs::create_dir_all(&docs).unwrap();
-    let mut config = tmp.config();
+    let mut config = tmp.config_with_resources();
     config.resources.docs_dir = Some(docs.clone());
     let mut shell = ShellModel::new(Mode::Headless, config);
     done(&mut shell, "help.documentation", json!({"topic": "tutorials"}));
@@ -2279,7 +2280,7 @@ fn f1_in_a_dutch_window_opens_the_dutch_page_when_the_book_has_it() {
     let docs = tmp.0.join("book");
     std::fs::create_dir_all(docs.join("tutorials")).unwrap();
     std::fs::write(docs.join("tutorials/index.html"), "").unwrap();
-    let mut config = tmp.config();
+    let mut config = tmp.config_with_resources();
     config.resources.docs_dir = Some(docs.clone());
     let mut shell = ShellModel::new(Mode::Headless, config);
     let url = |shell: &mut ShellModel| {
@@ -2327,7 +2328,7 @@ fn a_documentation_step_names_the_installed_guide_page_it_opens() {
         let line = run_step(shell, &mut NoExtension, 1, &step).line;
         serde_json::from_str::<Value>(&line).unwrap()["doc"].clone()
     };
-    let mut config = tmp.config();
+    let mut config = tmp.config_with_resources();
     config.resources.docs_dir = Some(docs);
     let mut shell = ShellModel::new(Mode::Headless, config);
     assert_eq!(doc(&mut shell), json!("introduction.html"));
@@ -2343,7 +2344,7 @@ fn a_documentation_step_names_the_installed_guide_page_it_opens() {
         json!({"key": "language", "value": "en"}),
     );
     shell.shutdown();
-    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut shell = tmp.empty_shell(Mode::Headless);
     assert_eq!(doc(&mut shell), Value::Null);
     shell.shutdown();
 }
@@ -2736,7 +2737,7 @@ fn no_uuid_reaches_the_describe_text_and_a_selection_prints_an_alias() {
     texts.push(sample.describe());
     sample.shutdown();
     // A wizard whose preview is not available says why.
-    let mut config = tmp.config();
+    let mut config = tmp.config_with_resources();
     config.resources.sample_dir = None;
     let mut no_sample = ShellModel::new(Mode::Headless, config);
     done(&mut no_sample, "tools.company_standard", json!({}));

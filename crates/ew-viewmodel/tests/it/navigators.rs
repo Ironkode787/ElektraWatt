@@ -12,7 +12,7 @@ use std::path::Path;
 
 use ew_viewmodel::navigator::{NavMode, PageNavigator, RowKind};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
@@ -23,10 +23,7 @@ fn open(tmp: &Tmp, writable: bool) -> ShellModel {
     if !dir.exists() {
         common::copy_dir(Path::new(common::SAMPLE), &dir);
     }
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(
         &mut shell,
         "file.open",

@@ -17,11 +17,7 @@ use serde_json::json;
 /// A headless shell with a new one-page project (the builtin template, folio 101).
 fn small(tmp: &Tmp, mode: Mode) -> ShellModel {
     let mut s = tmp.empty_shell(mode);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("small.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &tmp.0.join("small.ew"), &[]);
     done(
         &mut s,
         "page.new",

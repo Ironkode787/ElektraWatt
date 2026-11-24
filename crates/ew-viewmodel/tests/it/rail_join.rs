@@ -13,25 +13,12 @@ use crate::common;
 use common::{Tmp, at, done, tables};
 use ew_api::output::{TableCp, TableRep};
 use ew_dl::{EntityRef, Item, ItemKind};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// A new project (the built-in template) with the multi-line page 101 shown at actual size.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Control"}),
-    );
+    let mut s = tmp.new_project_in(Mode::Headless, &[("101", "multi_line", "Control")]);
     done(&mut s, "page.goto", json!({"folio": "101"}));
     done(&mut s, "view.zoom_actual", json!({}));
     s

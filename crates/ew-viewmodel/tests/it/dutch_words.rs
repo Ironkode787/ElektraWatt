@@ -12,7 +12,7 @@ use ew_viewmodel::actions;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::navigators::messages::FindingDetail;
 use ew_viewmodel::palette::{FormPlan, PaletteField, form_plan};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
@@ -210,15 +210,8 @@ fn a_count_of_one_reads_in_the_singular() {
 #[test]
 fn a_new_strip_without_a_terminal_reads_in_words() {
     let tmp = Tmp::new("l49");
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut shell, &tmp.0.join("new.ew"), &[]);
     done(
         &mut shell,
         "page.new",

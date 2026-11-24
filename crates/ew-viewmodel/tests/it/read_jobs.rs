@@ -8,7 +8,7 @@
 
 use crate::common::{SAMPLE, Tmp, copy_dir, done, library_tiers};
 
-use ew_viewmodel::shell::{ConfirmAnswer, Dialog, EplanStep, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{ConfirmAnswer, Dialog, EplanStep, Mode, Outcome, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::json;
 use std::path::Path;
@@ -30,8 +30,7 @@ fn running(s: &ShellModel) -> Vec<String> {
 #[test]
 fn an_edz_is_read_as_a_job_with_cancel_and_its_dialog_opens_at_its_end() {
     let tmp = Tmp::new("read-job");
-    let config =
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(library_tiers(&tmp.0)));
+    let config = tmp.config().with_libraries(Some(library_tiers(&tmp.0)));
     let mut s = ShellModel::new(Mode::Gui, config);
     let project = tmp.sample_copy();
     copy_dir(Path::new(SAMPLE), &project);

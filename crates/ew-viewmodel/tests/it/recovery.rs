@@ -20,7 +20,7 @@ use ew_viewmodel::shell::{AccessMode, ConfirmAnswer, Dialog, Mode, Outcome, Shel
 use serde_json::json;
 
 fn config(tmp: &Tmp) -> ShellConfig {
-    ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test")
+    tmp.config()
 }
 
 fn shell(tmp: &Tmp, mode: Mode) -> ShellModel {
@@ -49,11 +49,7 @@ fn set_title(s: &mut ShellModel, title: &str) {
 fn crashed(tmp: &Tmp) -> PathBuf {
     let dir = project(tmp);
     let mut s = shell(tmp, Mode::Headless);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &dir, &[]);
     done(
         &mut s,
         "page.new",

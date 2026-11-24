@@ -13,7 +13,7 @@ use std::path::Path;
 
 use common::{Tmp, done, entity_points, lines_with, refused, state};
 use ew_viewmodel::layout::PaneKind;
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
 /// Every file of the project directory `dir` by its relative path, the manifest's `generation` and `base` lines left
@@ -472,15 +472,8 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
 
     // Import: the parts table's card on a new project.
     let tmp = Tmp::new("pv3-import");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("p.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("p.ew"), &[]);
     let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
     done(&mut s, "parts.import", json!({"path": parts.to_string_lossy()}));
     done(&mut s, "parts.map_import", json!({}));
@@ -648,12 +641,8 @@ fn undo_and_redo_restore_the_page_view_and_selection() {
 
 /// A new one-page project (the builtin template, folio 101) in `mode`.
 fn small(tmp: &Tmp, mode: Mode) -> ShellModel {
-    let mut s = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("small.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(mode);
+    crate::common::make_project(&mut s, &tmp.0.join("small.ew"), &[]);
     done(
         &mut s,
         "page.new",

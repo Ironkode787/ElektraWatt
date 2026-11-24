@@ -13,11 +13,7 @@ use serde_json::json;
 fn a_part_on_the_power_supply_function_is_placed_with_its_own_symbol() {
     let tmp = Tmp::new("own-psu-symbol");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": tmp.0.join("project"), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut shell, &tmp.0.join("project"), &[]);
     done(
         &mut shell,
         "command.run",

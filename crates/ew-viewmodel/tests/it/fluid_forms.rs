@@ -7,17 +7,11 @@
 use crate::common;
 
 use common::{Tmp, done};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
 fn new_project(tmp: &Tmp, mode: Mode) -> ShellModel {
-    let mut s = ShellModel::new(mode, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    s
+    tmp.new_project_in(mode, &[])
 }
 
 /// The toast's first line.

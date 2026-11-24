@@ -20,7 +20,7 @@ use ew_api::{EntropyError, IdSource, Session, UnixTime};
 use ew_viewmodel::alias;
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::script::{self, NoExtension};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 
 /// New IDs that ascend: the clock counts up from the epoch's first millisecond (every new ID sorts before the sample's),
@@ -280,10 +280,7 @@ fn run(
     let dir = tmp.0.join("sample.ew");
     copy_dir(Path::new(SAMPLE), &dir);
     let dir = dir.to_string_lossy().into_owned();
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     shell.set_id_source_for_tests(Some(ids));
     let parsed = script::parse(&script_text(&steps(&dir, p))).unwrap();
     let mut lines = Vec::new();
@@ -439,10 +436,7 @@ fn run_coincident(tag: &str, ids: Ids) -> String {
     let dir = tmp.0.join("sample.ew");
     copy_dir(Path::new(SAMPLE), &dir);
     let dir = dir.to_string_lossy().into_owned();
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     shell.set_id_source_for_tests(Some(ids));
     let parsed = script::parse(&script_text(&coincident_steps(&dir))).unwrap();
     let mut lines = Vec::new();

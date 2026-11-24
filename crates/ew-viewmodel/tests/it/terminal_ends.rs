@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, done, tables};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::{Anchor, OverlayItem};
 use serde_json::json;
 
@@ -34,15 +34,8 @@ fn clamps(s: &ShellModel) -> Vec<String> {
 #[test]
 fn a_selected_terminal_names_its_clamps_and_a_half_turn_moves_them() {
     let tmp = Tmp::new("terminal-ends");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(&mut s, "tool.place_terminal", json!({"strip": "new"}));
     let p = {
         let sn = &s.canvas().unwrap().page().snapper;
@@ -84,15 +77,8 @@ fn a_selected_terminal_names_its_clamps_and_a_half_turn_moves_them() {
 #[test]
 fn the_letters_show_for_a_few_terminals_and_the_hint_names_the_cabinet_side() {
     let tmp = Tmp::new("terminal-ends-many");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "tool.place_terminal",

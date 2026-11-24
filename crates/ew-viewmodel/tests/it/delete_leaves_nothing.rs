@@ -12,7 +12,7 @@ use common::{Tmp, done, tables};
 use ew_api::output::{NavRole, TableCp, TableRep};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::notifications::NoteAction;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// The rows of role `role` in navigator `kind`'s table.
@@ -25,15 +25,8 @@ fn rows(s: &mut ShellModel, kind: NavKind, role: NavRole) -> usize {
 
 /// A new project with `count` terminals of a new strip placed on its first page, their symbols from left to right.
 fn terminals(tmp: &Tmp, count: usize) -> (ShellModel, Vec<TableRep>) {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "tool.place_terminal",

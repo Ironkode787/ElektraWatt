@@ -10,25 +10,12 @@ use crate::common;
 
 use common::{Tmp, click, done, entity_points};
 use ew_dl::EntityRef;
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 
 /// A headless shell with a new project (the builtin template), a new folio 101 shown and one new strip.
 fn new_project_with_strip(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
+    let mut s = tmp.new_project_in(Mode::Headless, &[("101", "multi_line", "Power")]);
     done(&mut s, "view.zoom_actual", json!({}));
     done(&mut s, "strip.new", json!({"letter": "X"}));
     s

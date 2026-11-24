@@ -34,7 +34,7 @@ fn fixture_copy(tmp: &Tmp) -> PathBuf {
 }
 
 fn config(tmp: &Tmp) -> ShellConfig {
-    ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test")
+    tmp.config()
 }
 
 /// `shell` with the copy `dir` open for editing.
@@ -805,11 +805,7 @@ fn ruling4_a_scripted_purge_is_refused() {
     let logo = |bytes: &[u8]| json!({"cmd": "project.company.set", "params": {"logo": ew_api::base64_encode(bytes)}});
     {
         let mut s = ShellModel::new(Mode::Gui, config(&tmp));
-        done(
-            &mut s,
-            "file.new",
-            json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-        );
+        crate::common::make_project(&mut s, &dir, &[]);
         done(
             &mut s,
             "command.run",

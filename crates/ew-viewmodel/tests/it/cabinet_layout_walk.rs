@@ -12,18 +12,14 @@ use crate::common;
 use common::{Tmp, at, done};
 use ew_api::output::PanelTables;
 use ew_viewmodel::dialogs::{DialogAnswer, spec};
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
 /// A new project with the multi-line page 101 and a breaker and a switch on it, at no location.
 fn project(tmp: &Tmp) -> ShellModel {
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let config = tmp.config();
     let mut s = ShellModel::new(Mode::Gui, config);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("cab.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &tmp.0.join("cab.ew"), &[]);
     done(
         &mut s,
         "page.new",

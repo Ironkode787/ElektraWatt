@@ -57,10 +57,7 @@ fn damaged_sample(tmp: &Tmp) -> (std::path::PathBuf, String) {
 fn a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
     let tmp = Tmp::new("ft1383");
     let (dir, _) = damaged_sample(&tmp);
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     done(
         &mut s,
         "file.open",
@@ -132,10 +129,7 @@ fn save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
 fn the_damaged_copy_banner_stays_while_its_state_holds() {
     let tmp = Tmp::new("id1427-damaged-banner");
     let (dir, _) = damaged_sample(&tmp);
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     done(
         &mut s,
         "file.open",

@@ -10,7 +10,7 @@ use crate::common;
 
 use common::{Tmp, done};
 use ew_dl::{Item, ItemKind};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 
 /// A layout box in page nm: (min x, min y, max x, max y).
@@ -45,15 +45,8 @@ fn overlap(a: Box4, b: Box4) -> bool {
 #[test]
 fn a_back_reference_clears_the_next_contacts_tag_and_its_own_designation() {
     let tmp = Tmp::new("c37-backref");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "command.run",
@@ -109,15 +102,8 @@ fn a_back_reference_clears_the_next_contacts_tag_and_its_own_designation() {
 
 /// A new project's folio 101 in a headless shell.
 fn new_folio(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "command.run",

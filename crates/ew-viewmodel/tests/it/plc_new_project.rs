@@ -13,24 +13,16 @@ use crate::common::{Tmp, cursor, done, grid_point};
 use ew_viewmodel::command_bar::navigator_row_menu;
 use ew_viewmodel::ew_api::output::{NavNode, Uuid};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// A new project with page 101, the PLC panel shown.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
+    let mut s = tmp.empty_shell(Mode::Gui);
+    crate::common::make_project(
         &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("rack-first.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Control"}),
+        &tmp.0.join("rack-first.ew"),
+        &[("101", "multi_line", "Control")],
     );
     done(&mut s, "rail.show", json!({"pane": "plc"}));
     s

@@ -86,11 +86,7 @@ fn the_edited_date_is_set_by_a_save_with_changes() {
     let mut shell = tmp.empty_shell(ew_viewmodel::shell::Mode::Gui);
     shell.set_today("2026-03-04".to_owned());
     let dir = tmp.0.join("p.ew");
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut shell, &dir, &[]);
     done(&mut shell, "props.project", json!({}));
     assert_eq!(
         shown(&shell, CREATED),

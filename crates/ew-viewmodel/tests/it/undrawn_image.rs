@@ -143,10 +143,7 @@ fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template
     s.shutdown();
     swap_asset(&tmp.sample_copy(), &small, &big);
     let dir = tmp.sample_copy();
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
     done(&mut s, "page.goto", json!({"folio": "101"}));
     let hash = format!("sha256:{}", hex(&big));

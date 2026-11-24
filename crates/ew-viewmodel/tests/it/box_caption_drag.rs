@@ -7,21 +7,14 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 #[test]
 fn a_boxs_part_number_is_dragged_by_itself() {
     let tmp = Tmp::new("box-caption-drag");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(&mut s, "view.zoom_actual", json!({}));
     done(&mut s, "place.pick", json!({"part": "EW-GEN-PSU-1"}));
     let sheet = |s: &ShellModel, k: (i64, i64)| {

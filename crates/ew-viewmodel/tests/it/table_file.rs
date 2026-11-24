@@ -880,11 +880,7 @@ fn a_file_of_another_project_is_refused() {
         Mode::Headless,
         ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config-new"), "0.0.0-test"),
     );
-    done(
-        &mut other,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut other, &tmp.0.join("new.ew"), &[]);
     done(&mut other, "navigator.show", json!({"kind": "strips"}));
     done(
         &mut other,

@@ -12,11 +12,7 @@ use serde_json::json;
 fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_first_placement() {
     let tmp = Tmp::new("symbol-by-key");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir": tmp.0.join("project"), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut shell, &tmp.0.join("project"), &[]);
     done(
         &mut shell,
         "command.run",

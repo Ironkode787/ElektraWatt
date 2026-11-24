@@ -68,11 +68,7 @@ fn strip_tag(s: &ShellModel) -> String {
 /// strip's terminals 3 and 4, whose two wires are the cores of the cable -W1.
 fn small_project(tmp: &Tmp) -> ShellModel {
     let mut s = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("small.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &tmp.0.join("small.ew"), &[]);
     for (folio, title) in [("11", "Control"), ("12", "Outputs")] {
         done(
             &mut s,
@@ -288,10 +284,7 @@ fn save_as_macro_of_pages_by_folio_needs_no_selection() {
     let (t, _) = user_library(&tmp.0);
     let dir = tmp.sample_copy();
     common::copy_dir(std::path::Path::new(common::SAMPLE), &dir);
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(t)),
-    );
+    let mut s = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(t)));
     done(
         &mut s,
         "file.open",

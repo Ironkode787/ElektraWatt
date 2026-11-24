@@ -11,20 +11,11 @@ use crate::common;
 
 use common::{Tmp, done, tables};
 use ew_viewmodel::properties::{RowValue, find_row};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    s
+    tmp.new_project_in(Mode::Headless, &[])
 }
 
 /// Terminal… with `params`, then a click on an empty spot of the page.

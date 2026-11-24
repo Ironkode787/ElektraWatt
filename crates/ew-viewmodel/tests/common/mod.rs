@@ -19,14 +19,35 @@ pub use ew_testdir as fresh_dir;
 /// A fresh temporary directory ([`ew_testdir::Tmp`], removed on drop), with the shells of the tests.
 pub struct Tmp(pub ew_testdir::Tmp);
 
+/// The shared directory's own methods (`dir()`, `path()`, `sample()`) through `Deref`.
+impl std::ops::Deref for Tmp {
+    type Target = ew_testdir::Tmp;
+
+    fn deref(&self) -> &ew_testdir::Tmp {
+        &self.0
+    }
+}
+
 impl Tmp {
     pub fn new(tag: &str) -> Tmp {
         Tmp(ew_testdir::Tmp::new(&format!("ew-vm-{tag}")))
     }
 
+    /// The shell's configuration of the tests: its settings in this directory's `config`.
+    pub fn config(&self) -> ShellConfig {
+        ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test")
+    }
+
     /// A shell in `mode` with no project open, its settings in this directory.
     pub fn empty_shell(&self, mode: Mode) -> ShellModel {
-        ShellModel::new(mode, ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"))
+        ShellModel::new(mode, self.config())
+    }
+
+    /// A shell in `mode` on a new project in this directory ([`make_project`] at `new.ew`) with `pages`.
+    pub fn new_project_in(&self, mode: Mode, pages: &[(&str, &str, &str)]) -> ShellModel {
+        let mut shell = self.empty_shell(mode);
+        make_project(&mut shell, &self.0.join("new.ew"), pages);
+        shell
     }
 
     /// A headless shell with the sample open on the page it opens on: read-only in place in the source tree, or
@@ -261,18 +282,24 @@ pub fn toast(s: &ShellModel) -> String {
 
 /// A headless shell with a new project (the builtin template) and a new folio 101 shown.
 pub fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.empty_shell(Mode::Headless);
+    tmp.new_project_in(Mode::Headless, &[("101", "multi_line", "Power")])
+}
+
+/// Makes a new project at `dir` in `shell` from the built-in template, then the pages `pages` in order, each
+/// (folio, page type, title): the one way the tests make a project of their own.
+pub fn make_project(shell: &mut ShellModel, dir: &Path, pages: &[(&str, &str, &str)]) {
     done(
-        &mut s,
+        shell,
         "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
     );
-    done(
-        &mut s,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
-    );
-    s
+    for (folio, ty, title) in pages {
+        done(
+            shell,
+            "page.new",
+            json!({"folio": folio, "type": ty, "title": title}),
+        );
+    }
 }
 
 pub fn state(shell: &ShellModel) -> Value {

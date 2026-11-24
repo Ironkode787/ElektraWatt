@@ -13,7 +13,7 @@ use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 
 fn config(tmp: &Tmp) -> ShellConfig {
-    ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test")
+    tmp.config()
 }
 
 fn crashes(tmp: &Tmp) -> PathBuf {

@@ -7,7 +7,7 @@
 
 use crate::common::{SAMPLE, Tmp, copy_dir, done, library_tiers};
 
-use ew_viewmodel::shell::{Dialog, EplanStep, Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, EplanStep, Mode, ShellModel};
 use serde_json::json;
 use std::path::Path;
 
@@ -23,8 +23,7 @@ fn an_edz_under_another_name_and_a_named_step_still_stop_at_the_terms() {
     let tmp = Tmp::new("eplan-terms");
     let disguised = tmp.0.join("psu.xml");
     std::fs::copy(EDZ, &disguised).unwrap();
-    let config =
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(library_tiers(&tmp.0)));
+    let config = tmp.config().with_libraries(Some(library_tiers(&tmp.0)));
     let mut s = ShellModel::new(Mode::Gui, config);
     let project = tmp.sample_copy();
     copy_dir(Path::new(SAMPLE), &project);

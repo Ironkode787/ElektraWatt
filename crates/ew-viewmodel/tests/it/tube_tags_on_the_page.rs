@@ -9,7 +9,7 @@ use crate::common;
 
 use common::{Tmp, at, done, tables};
 use ew_dl::{Item, ItemKind};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// The texts the page shown prints.
@@ -40,16 +40,9 @@ fn click(s: &mut ShellModel, k: (i64, i64), alt: bool) {
 #[test]
 fn a_tube_prints_its_tag_beside_it_when_tubes_are_tagged() {
     let tmp = Tmp::new("tube-tags");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
     let dir = tmp.0.join("new.ew");
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
-    );
+    crate::common::make_project(&mut s, &dir, &[]);
     done(
         &mut s,
         "page.new",

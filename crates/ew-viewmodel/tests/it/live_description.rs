@@ -311,10 +311,7 @@ fn an_unplaced_device_without_a_kind_says_device() {
     let mut fresh = Session::new(session.world().model.clone(), Default::default());
     fresh.create(&dir, StoreOptions::new("test")).unwrap();
     fresh.close();
-    let mut shell = ShellModel::new(
-        Mode::Headless,
-        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     done(&mut shell, "page.goto", json!({ "folio": "102" }));
     done(&mut shell, "select.set", json!({ "ids": [id] }));

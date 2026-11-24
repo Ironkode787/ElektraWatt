@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, done};
-use ew_viewmodel::shell::{Dialog, Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 
 fn field(s: &ShellModel, name: &str) -> String {
@@ -26,10 +26,7 @@ fn field(s: &ShellModel, name: &str) -> String {
 #[test]
 fn a_layout_page_asked_for_on_the_title_page_goes_into_a_section() {
     let tmp = Tmp::new("new-page-front");
-    let mut s = ShellModel::new(
-        Mode::Gui,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
+    let mut s = tmp.empty_shell(Mode::Gui);
     // A project of the company standard: its title page 1 in the front matter, its sections (wiring, pneumatics, lists).
     done(&mut s, "tools.company_standard", json!({}));
     let company = tmp.0.join("company.ew");

@@ -1036,7 +1036,7 @@ fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
 #[test]
 fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
     let tmp = Tmp::new("symbol-reopen");
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let config = tmp.config();
     let dir = tmp.0.join("project.ew");
     let mut shell = ShellModel::new(Mode::Headless, config.clone());
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
@@ -1072,7 +1072,7 @@ fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
     use ew_viewmodel::dialogs::spec;
     use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
     let tmp = Tmp::new("symbol-quit");
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    let config = tmp.config();
     let mut shell = ShellModel::new(Mode::Headless, config.clone());
     drawn(&mut shell, "example.quit", "Quit block");
     done(&mut shell, "symbol.close", json!({}));

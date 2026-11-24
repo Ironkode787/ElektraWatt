@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::{MarkerKind, OverlayItem};
 use serde_json::json;
 
@@ -31,15 +31,8 @@ fn rings(s: &ShellModel) -> usize {
 #[test]
 fn a_connection_point_at_the_fitted_zoom_shows_its_ring_and_starts_a_wire() {
     let tmp = Tmp::new("cp-ring");
-    let mut s = ShellModel::new(
-        Mode::Headless,
-        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
-    );
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
-    );
+    let mut s = tmp.empty_shell(Mode::Headless);
+    crate::common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
     done(
         &mut s,
         "place.pick",

@@ -8,18 +8,13 @@
 use crate::common::{Tmp, done};
 
 use ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
 /// A shell in the window's mode with the libraries `tiers`, on a new project `name` from the built-in template.
 fn new_project(tmp: &Tmp, tiers: LibraryTiers, name: &str) -> ShellModel {
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(tiers));
-    let mut s = ShellModel::new(Mode::Gui, config);
-    done(
-        &mut s,
-        "file.new",
-        json!({"dir": tmp.0.join(name), "template": "builtin"}),
-    );
+    let mut s = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(tiers)));
+    crate::common::make_project(&mut s, &tmp.0.join(name), &[]);
     s
 }
 
