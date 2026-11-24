@@ -50,6 +50,20 @@ pub struct LockFile {
     /// Windows reports a file whose deletion is pending (another session's takeover just unlinked it while a handle
     /// was open) that way, which is contention, not a read-only directory. Elsewhere every call runs once.
     pub retry_pending_delete: bool,
+    /// What a takeover makes of a lock file that another contender moved between two of its steps.
+    pub moved_away: MovedAway,
+}
+
+/// What a takeover makes of a lock file that another contender renamed or removed between two of its steps: the
+/// stale lock gone before the plain rename of doc 05 §7.4 step 3 (on Windows the rename without replacement is also
+/// refused while the other contender's unlink of the stale lock is pending), and its own new lock gone before it is
+/// synced.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MovedAway {
+    /// An I/O error of the takeover; the plain rename replaces whatever is at the target (the project's lock).
+    IsAnError,
+    /// The takeover is lost; the plain rename is lost too when the target exists (a library's lock).
+    IsLost,
 }
 
 /// How the stale rule judges a lock that names this process's PID on this host.
@@ -78,6 +92,7 @@ pub const PROJECT_LOCK: LockFile = LockFile {
     own_process: OwnProcess::OtherSessionsLive,
     stale_name: StaleName::Filtered,
     retry_pending_delete: false,
+    moved_away: MovedAway::IsAnError,
 };
 
 /// Who holds (or wants) the lock: the record of doc 05 §7.1.
@@ -373,10 +388,7 @@ impl Lock<'_> {
         loop {
             match op() {
                 Err(e)
-                    if self.file.retry_pending_delete
-                        && cfg!(windows)
-                        && e.kind() == io::ErrorKind::PermissionDenied
-                        && tries < 20 =>
+                    if self.file.retry_pending_delete && cfg!(windows) && access_denied(&e) && tries < 20 =>
                 {
                     tries += 1;
                     self.clock.sleep(Duration::from_millis(5));
@@ -537,7 +549,15 @@ impl Lock<'_> {
         let _ = self.vfs.set_modified(&to, self.clock.now());
         let record = self.me.record(self.clock.now()).to_text();
         match self.attempt(|| self.vfs.create_new(&from, record.as_bytes())) {
-            Ok(()) => self.vfs.sync(&from)?,
+            Ok(()) => match self.vfs.sync(&from) {
+                Ok(()) => {}
+                Err(e)
+                    if e.kind() == io::ErrorKind::NotFound && self.file.moved_away == MovedAway::IsLost =>
+                {
+                    return Ok(Err(TakeoverError::Lost));
+                }
+                Err(e) => return Err(e),
+            },
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => return Ok(Err(TakeoverError::Lost)),
             Err(e) => return Err(e),
         }
@@ -559,7 +579,19 @@ impl Lock<'_> {
             }
             // Doc 05 §7.4 step 3: no rename without replacement on this file system; the plain rename and the
             // re-read after the settle time (plus the heartbeat's session check) detect the loser.
-            Err(e) if e.kind() == io::ErrorKind::Unsupported => self.vfs.rename(from, to).map(Ok),
+            Err(e) if e.kind() == io::ErrorKind::Unsupported => match self.file.moved_away {
+                MovedAway::IsAnError => self.vfs.rename(from, to).map(Ok),
+                MovedAway::IsLost => {
+                    if self.vfs.stat(to).is_ok() {
+                        return Ok(Err(TakeoverError::Lost));
+                    }
+                    match self.vfs.rename(from, to) {
+                        Ok(()) => Ok(Ok(())),
+                        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Err(TakeoverError::Lost)),
+                        Err(e) => Err(e),
+                    }
+                }
+            },
             Err(e) => Err(e),
         }
     }
@@ -596,6 +628,16 @@ impl Lock<'_> {
             }
         }
     }
+}
+
+/// Whether `e` is an access-denied, also where [`Vfs::rename_noreplace`] reports one as `Unsupported` (the hard link
+/// refused).
+fn access_denied(e: &io::Error) -> bool {
+    e.kind() == io::ErrorKind::PermissionDenied
+        || (e.kind() == io::ErrorKind::Unsupported
+            && e.get_ref()
+                .and_then(|inner| inner.downcast_ref::<io::Error>())
+                .is_some_and(|inner| inner.kind() == io::ErrorKind::PermissionDenied))
 }
 
 impl StaleName {

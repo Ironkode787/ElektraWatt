@@ -18,8 +18,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use ew_store::lock::{
-    Acquire, Identity, Lock, LockFile, LockInfo, OwnProcess, STALE_AFTER, StaleName, TAKEOVER_SETTLE,
-    TakeoverError,
+    Acquire, Identity, Lock, LockFile, LockInfo, MovedAway, OwnProcess, STALE_AFTER, StaleName,
+    TAKEOVER_SETTLE, TakeoverError,
 };
 use ew_store::{Clock as _, OsProbe, OsVfs, SystemClock};
 
@@ -37,6 +37,7 @@ pub const LIBRARY_LOCK: LockFile = LockFile {
     own_process: OwnProcess::AllLive,
     stale_name: StaleName::WholeOrUnknown,
     retry_pending_delete: true,
+    moved_away: MovedAway::IsLost,
 };
 
 /// The lock timing: `lock.stale_after` and the takeover's settle wait.
