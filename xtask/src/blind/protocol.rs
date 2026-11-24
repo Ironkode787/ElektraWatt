@@ -747,7 +747,8 @@ pub mod tests {
     use crate::blind::filter::test_reference;
     use crate::blind::run::turns_header;
     use crate::blind::session::{Product, Spawner};
-    use crate::blind::testkit::{Tmp, new_run_json};
+    use crate::blind::testkit::new_run_json;
+    use ew_testdir::Tmp;
 
     /// G-PP triage row 10: a refusal prints its sentence beside its key; a pending card prints its summary on a line
     /// of its own; a line without the new members prints as before.

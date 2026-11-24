@@ -568,7 +568,7 @@ pub fn start(root: &Path, a: &StartArgs) -> Result<Run> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blind::testkit::Tmp;
+    use ew_testdir::Tmp;
 
     /// A repository root of a test: the sample, content, tools/blind and a `target/debug` of dummy binaries.
     fn fake_repo(tmp: &Tmp) -> PathBuf {

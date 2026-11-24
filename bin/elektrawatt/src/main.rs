@@ -1121,12 +1121,11 @@ mod tests {
     /// executable directory with nothing near it at `x/empty`, and the directories the environment names at `env/`.
     /// Each executable sits two levels below the root, so the source-tree fallback (`<exe dir>/../..`) lands on the
     /// root, which holds none of the resources.
-    struct Layouts(PathBuf);
+    struct Layouts(ew_testdir::Tmp);
 
     impl Layouts {
         fn new() -> Layouts {
-            let root = std::env::temp_dir().join(format!("ew-locate-resources-{}", std::process::id()));
-            let _ = std::fs::remove_dir_all(&root);
+            let root = ew_testdir::Tmp::new("ew-locate-resources");
             for base in ["x/flat", "inst/share/elektrawatt"] {
                 for dir in ["samples/sample.ew", "content", "docs"] {
                     std::fs::create_dir_all(root.join(base).join(dir)).unwrap();
@@ -1138,12 +1137,6 @@ mod tests {
                 std::fs::create_dir_all(root.join(dir)).unwrap();
             }
             Layouts(root)
-        }
-    }
-
-    impl Drop for Layouts {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
         }
     }
 
@@ -1231,7 +1224,7 @@ mod tests {
                     "--",
                     case,
                 ])
-                .arg(&fixture.0);
+                .arg(fixture.0.dir());
             for (var, rel) in vars {
                 if case == "environment" {
                     child.env(var, fixture.0.join(rel));

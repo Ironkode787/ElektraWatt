@@ -570,7 +570,8 @@ mod tests {
     use super::*;
     use crate::blind::run::script_header;
     use crate::blind::session::fake::FakeSpawner;
-    use crate::blind::testkit::{Tmp, test_run};
+    use crate::blind::testkit::test_run;
+    use ew_testdir::Tmp;
 
     /// A clock that never waits: the test says when the idle period has passed.
     struct Manual(Arc<AtomicBool>);

@@ -219,15 +219,28 @@ fn project() -> String {
 }
 
 /// The QET file and the symbol map `map` (none when empty) in a folder of their own, named for `name`.
-fn folder(name: &str, map: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("ew-qet-bound-{name}-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("the folder");
+fn folder(name: &str, map: &str) -> Folder {
+    let dir = ew_testdir::Tmp::new(&format!("ew-qet-bound-{name}"));
     let file = dir.join("bound.qet");
     std::fs::write(&file, project()).expect("the QET file");
     if !map.is_empty() {
         std::fs::write(dir.join("symbol-map.csv"), map).expect("the map");
     }
-    file
+    Folder { _dir: dir, file }
+}
+
+/// The QET file of [`folder`], read as its path; its folder is removed with it.
+struct Folder {
+    _dir: ew_testdir::Tmp,
+    file: PathBuf,
+}
+
+impl std::ops::Deref for Folder {
+    type Target = std::path::Path;
+
+    fn deref(&self) -> &std::path::Path {
+        &self.file
+    }
 }
 
 fn library() -> StarterLibrary {
@@ -365,7 +378,7 @@ fn a_wrong_row_refuses_the_map_in_words() {
     // A row whose connection points do not fit the element refuses the import.
     let file = folder("count", "element,function,cps\ncoil.elmt,ew.fn.coil,A1\n");
     let lib = library().with_symbol_map_beside(&file).expect("the map reads");
-    let r = import_qet("bound.qet", std::fs::read(&file).unwrap(), &lib);
+    let r = import_qet("bound.qet", std::fs::read(&*file).unwrap(), &lib);
     std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
     let Err(e) = r else {
         panic!("a row that does not fit the element refuses the import")

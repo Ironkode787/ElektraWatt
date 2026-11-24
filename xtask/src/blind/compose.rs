@@ -234,7 +234,7 @@ pub fn run_files(inp: &ComposeIn, composed: &Composed) -> Result<BTreeMap<String
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blind::testkit::Tmp;
+    use ew_testdir::Tmp;
 
     fn tree(tmp: &Tmp) {
         let w = |rel: &str, text: &str| {

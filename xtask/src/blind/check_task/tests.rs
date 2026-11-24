@@ -5,7 +5,7 @@
 
 use super::*;
 use crate::blind::run::copy_dir;
-use crate::blind::testkit::Tmp;
+use ew_testdir::Tmp;
 
 /// `check-task` on a copy of a brief that starts on the sample: the committed brief is sound; an identifier and a name
 /// that the sample's script does not hold and an address in its sheet are named, and a missing sheet.

@@ -1,35 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Helpers of the harness's unit tests: temporary folders and a run folder with a fake world.
+//! Helpers of the harness's unit tests: a run folder with a fake world.
 
-use std::path::PathBuf;
+use ew_testdir::Tmp;
 
 use serde_json::json;
 
 use super::run::{
     Counts, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, script_header, step_line, turns_header,
 };
-
-/// A fresh temporary folder, removed on drop.
-pub struct Tmp(pub PathBuf);
-
-impl Tmp {
-    /// A new folder tagged `tag`.
-    pub fn new(tag: &str) -> Tmp {
-        static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-        let n = N.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-blind-test-{tag}-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
 
 /// The `run.json` of a test run of `kind`.
 pub fn new_run_json(id: &str, kind: Kind) -> RunJson {

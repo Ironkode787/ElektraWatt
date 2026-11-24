@@ -17,20 +17,11 @@ use super::*;
 const PDF_PRINTER: &str = "Microsoft Print to PDF";
 
 /// A fresh empty directory under the system's temporary folder, removed on drop.
-struct Dir(PathBuf);
+struct Dir(ew_testdir::Tmp);
 
 impl Dir {
     fn new(tag: &str) -> Dir {
-        let dir = std::env::temp_dir().join(format!("ew-print-windows-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Dir(dir)
-    }
-}
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
+        Dir(ew_testdir::Tmp::new(&format!("ew-print-windows-{tag}")))
     }
 }
 

@@ -48,9 +48,8 @@ fn session() -> Session {
 }
 
 /// A parts table with one part whose template's one function is the FnDef `fndef`, in a folder of its own.
-fn table(name: &str, fndef: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("ew-parts-own-{name}-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("the folder");
+fn table(name: &str, fndef: &str) -> ew_testdir::Tmp {
+    let dir = ew_testdir::Tmp::new(&format!("ew-parts-own-{name}"));
     std::fs::write(
         dir.join("parts.csv"),
         "key,manufacturer,part_number\nLAMP-1,Own,LAMP-1\n",

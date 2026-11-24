@@ -860,8 +860,8 @@ mod tests {
     }
 
     /// A copy of `brief` with the tests' action list under a temporary root, for a test to break.
-    fn copy_brief(brief: &str) -> (crate::blind::testkit::Tmp, PathBuf) {
-        let tmp = crate::blind::testkit::Tmp::new("brief");
+    fn copy_brief(brief: &str) -> (ew_testdir::Tmp, PathBuf) {
+        let tmp = ew_testdir::Tmp::new("brief");
         let root = crate::workspace_root();
         let dir = tmp.0.join("tools/blind/tasks").join(brief);
         std::fs::create_dir_all(&dir).unwrap();
@@ -1043,7 +1043,7 @@ mod tests {
     /// item from the outputs, in the items' order.
     #[test]
     fn decide_items_reads_the_actions_the_queries_and_the_outputs() {
-        let tmp = crate::blind::testkit::Tmp::new("brief-decide");
+        let tmp = ew_testdir::Tmp::new("brief-decide");
         let acceptance: Acceptance = toml::from_str(
             "[[item]]\nid = \"A1\"\nkind = \"hard\"\nwhat = \"x\"\nhow = \"outcomes\"\nactions = [\"nav.follow\", \"nav.back\"]\n\n\
              [[item]]\nid = \"A2\"\nkind = \"hard\"\nwhat = \"y\"\nhow = \"connections\"\nquery = \"SELECT 1\"\nexpect = \">= 2\"\n\n\
@@ -1129,7 +1129,7 @@ mod tests {
             );
             return;
         }
-        let tmp = crate::blind::testkit::Tmp::new("ur8-check");
+        let tmp = ew_testdir::Tmp::new("ur8-check");
         for task in usability_tasks(&root) {
             let c = check_brief_in(&root, &task, &bin, &tmp.0).unwrap();
             assert!(c.runnable(), "{}", c.text(&task));
@@ -1175,7 +1175,7 @@ mod tests {
             );
             return;
         }
-        let tmp = crate::blind::testkit::Tmp::new("bv9-check");
+        let tmp = ew_testdir::Tmp::new("bv9-check");
         for brief in ["brief-valve-switch", "brief-relays-valves", "brief-plc-io"] {
             let c = check_brief_in(&root, brief, &bin, &tmp.0).unwrap();
             assert!(c.runnable(), "{}", c.text(brief));

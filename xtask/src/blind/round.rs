@@ -215,7 +215,8 @@ pub fn questionnaire(run: &Run, text: &str) -> Result<String> {
 mod tests {
     use super::*;
     use crate::blind::run::Kind;
-    use crate::blind::testkit::{Tmp, test_run};
+    use crate::blind::testkit::test_run;
+    use ew_testdir::Tmp;
 
     fn hints_file(run: &Run, n: usize) {
         let body: String = (1..=n)

@@ -667,29 +667,16 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicU32, Ordering};
 
     /// A temporary repository root, removed on drop.
-    struct Temp(PathBuf);
+    struct Temp(ew_testdir::Tmp);
 
     impl Temp {
         fn new() -> Self {
-            static N: AtomicU32 = AtomicU32::new(0);
-            let dir = std::env::temp_dir().join(format!(
-                "ew-xtask-symbols-{}-{}",
-                std::process::id(),
-                N.fetch_add(1, Ordering::Relaxed)
-            ));
-            let _ = std::fs::remove_dir_all(&dir);
+            let dir = ew_testdir::Tmp::new("ew-xtask-symbols");
             std::fs::create_dir_all(dir.join("content/symbols")).unwrap();
             std::fs::create_dir_all(dir.join("content/fndefs")).unwrap();
             Temp(dir)
-        }
-    }
-
-    impl Drop for Temp {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
         }
     }
 

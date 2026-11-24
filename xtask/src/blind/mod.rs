@@ -842,7 +842,8 @@ fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blind::testkit::{Tmp, test_run};
+    use crate::blind::testkit::test_run;
+    use ew_testdir::Tmp;
 
     /// `help` pages its text at line ends; the pages joined are the text, each page fits, and the footer names
     /// the next page or the last.

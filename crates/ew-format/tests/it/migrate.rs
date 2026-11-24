@@ -6,7 +6,6 @@
 //! `"0.1"`; every shipped kind is at `$v` 1, so its kind steps go from `$v` 0.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
 
 use ew_format::ew_schema::{Kind, LibDocument, Sha256};
 use ew_format::{
@@ -525,23 +524,15 @@ static TOWARDS_0_2: Migrations = Migrations {
 };
 
 /// A corpus folder of its own under the system's temporary folder, removed when dropped.
-struct Corpus(PathBuf);
+struct Corpus(ew_testdir::Tmp);
 
 impl Corpus {
     fn with(formats: &[&str]) -> Corpus {
-        let root = std::env::temp_dir().join(format!("ew-format-steward-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = ew_testdir::Tmp::new("ew-format-steward");
         for f in formats {
             std::fs::create_dir_all(root.join(f)).unwrap();
         }
-        std::fs::create_dir_all(&root).unwrap();
         Corpus(root)
-    }
-}
-
-impl Drop for Corpus {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
     }
 }
 
@@ -549,7 +540,7 @@ impl Drop for Corpus {
 #[test]
 fn the_steward_check_bites_at_the_first_format_change() {
     let corpus = Corpus::with(&["0.0", "0.1"]);
-    let root = corpus.0.as_path();
+    let root = corpus.0.dir();
     // Nothing released: nothing to check.
     assert_eq!(steward_problems(&[], "0.1", &MIGRATIONS, root), []);
     // The released format is the one written, its folder present.

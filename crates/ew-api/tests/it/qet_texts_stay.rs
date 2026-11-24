@@ -109,15 +109,28 @@ fn project() -> String {
 }
 
 /// The QET file and, when `map` is not empty, the symbol map beside it, in a folder of their own.
-fn folder(name: &str, map: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("ew-qet-stay-{name}-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("the folder");
+fn folder(name: &str, map: &str) -> Folder {
+    let dir = ew_testdir::Tmp::new(&format!("ew-qet-stay-{name}"));
     let file = dir.join("stay.qet");
     std::fs::write(&file, project()).expect("the QET file");
     if !map.is_empty() {
         std::fs::write(dir.join("symbol-map.csv"), map).expect("the map");
     }
-    file
+    Folder { _dir: dir, file }
+}
+
+/// The QET file of [`folder`], read as its path; its folder is removed with it.
+struct Folder {
+    _dir: ew_testdir::Tmp,
+    file: PathBuf,
+}
+
+impl std::ops::Deref for Folder {
+    type Target = std::path::Path;
+
+    fn deref(&self) -> &std::path::Path {
+        &self.file
+    }
 }
 
 /// The session of the import of `file`, the folder removed.

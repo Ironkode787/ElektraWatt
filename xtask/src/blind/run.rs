@@ -637,7 +637,7 @@ pub fn locate(arg: &str, out: Option<&Path>, exe: Option<&Path>) -> Result<Run> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blind::testkit::Tmp;
+    use ew_testdir::Tmp;
 
     #[test]
     fn canonical_json_sorts_the_members_at_every_depth() {

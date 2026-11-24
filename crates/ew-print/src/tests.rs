@@ -7,7 +7,6 @@
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use super::*;
 
@@ -39,18 +38,13 @@ fn stand_in_program() -> Program {
     }
 }
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
 
 /// A fresh empty directory, removed on drop.
-struct Dir(PathBuf);
+struct Dir(ew_testdir::Tmp);
 
 impl Dir {
     fn new() -> Dir {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-print-test-{}-{n}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Dir(dir)
+        Dir(ew_testdir::Tmp::new("ew-print-test"))
     }
 
     /// The names of the files in the directory, sorted.
@@ -61,12 +55,6 @@ impl Dir {
             .collect();
         names.sort();
         names
-    }
-}
-
-impl Drop for Dir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
     }
 }
 
@@ -99,7 +87,7 @@ fn lp_is_run_with_the_printer_the_title_and_the_file_which_is_removed_afterwards
         let dir = Dir::new();
         let lp = Lp {
             program: stand_in_program(),
-            temp_dir: dir.0.clone(),
+            temp_dir: dir.0.to_path_buf(),
         };
         assert_eq!(lp.name(), "lp");
         let outcome = lp.print(&job("J-E-2416 section 1", printer)).unwrap();
@@ -131,7 +119,7 @@ fn a_missing_or_failing_lp_is_refused_and_leaves_no_file() {
     let dir = Dir::new();
     let missing = Lp {
         program: Program::named("ew-print-test-no-such-program"),
-        temp_dir: dir.0.clone(),
+        temp_dir: dir.0.to_path_buf(),
     };
     let e = missing.print(&job("t", None)).unwrap_err();
     assert_eq!(
@@ -141,7 +129,7 @@ fn a_missing_or_failing_lp_is_refused_and_leaves_no_file() {
     assert!(dir.names().is_empty());
     let failing = Lp {
         program: stand_in_program(),
-        temp_dir: dir.0.clone(),
+        temp_dir: dir.0.to_path_buf(),
     };
     let e = failing.print(&job("fail", None)).unwrap_err();
     let PrintError::Failed { status, .. } = &e else {
@@ -159,7 +147,7 @@ fn a_missing_or_failing_lp_is_refused_and_leaves_no_file() {
 fn stand_in_viewer(dir: &Dir) -> Viewer {
     Viewer {
         opener: stand_in_program(),
-        dir: dir.0.clone(),
+        dir: dir.0.to_path_buf(),
         project: "J-E-2416".to_owned(),
     }
 }
@@ -408,7 +396,7 @@ fn a_failing_portal_falls_back_to_lp_with_one_notice() {
         Box::new(portal),
         Box::new(Lp {
             program: stand_in_program(),
-            temp_dir: dir.0.clone(),
+            temp_dir: dir.0.to_path_buf(),
         }),
         Box::new(stand_in_viewer(&dir)),
     ]);
@@ -532,7 +520,7 @@ fn a_cancel_while_a_way_runs_asks_no_further_way() {
 #[test]
 fn the_system_chain_is_portal_lp_viewer_on_linux_windows_viewer_on_windows_and_the_viewer_elsewhere() {
     let dir = Dir::new();
-    let system = Chain::system(dir.0.clone(), "J-E-2416");
+    let system = Chain::system(dir.0.to_path_buf(), "J-E-2416");
     if cfg!(target_os = "linux") {
         assert_eq!(system.names(), ["portal", "lp", "viewer"]);
     } else if cfg!(windows) {
@@ -540,7 +528,7 @@ fn the_system_chain_is_portal_lp_viewer_on_linux_windows_viewer_on_windows_and_t
     } else {
         assert_eq!(system.names(), ["viewer"]);
     }
-    assert_eq!(Chain::viewer(dir.0.clone(), "J-E-2416").names(), ["viewer"]);
+    assert_eq!(Chain::viewer(dir.0.to_path_buf(), "J-E-2416").names(), ["viewer"]);
 }
 
 /// The child process of the portal test: run by [`a_portal_without_a_session_bus_fails_and_leaves_no_file`]

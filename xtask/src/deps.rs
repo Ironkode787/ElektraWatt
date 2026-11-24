@@ -993,13 +993,12 @@ mod tests {
                 ("g-fuzz", "g-import-qet", Kind::Build),
             ]
         );
-        let root = std::env::temp_dir().join(format!("ew-xtask-confined-{}", std::process::id()));
+        let root = ew_testdir::Tmp::new("ew-xtask-confined");
         std::fs::create_dir_all(root.join("fuzz")).unwrap();
         std::fs::write(root.join("fuzz/Cargo.toml"), manifest).unwrap();
         let mut p = policy();
         p.confined[0].manifests = vec!["fuzz/Cargo.toml".to_owned()];
         let v = check_confined_manifests(&p, &root).unwrap();
-        let _ = std::fs::remove_dir_all(&root);
         assert_eq!(
             v,
             [

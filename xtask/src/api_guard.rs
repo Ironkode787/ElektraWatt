@@ -854,16 +854,14 @@ mod tests {
         );
     }
 
-    /// A scratch repository at a fresh temporary directory; removed by [`Scratch::remove`].
+    /// A scratch repository at a fresh temporary directory, removed on drop.
     struct Scratch {
-        dir: std::path::PathBuf,
+        dir: ew_testdir::Tmp,
     }
 
     impl Scratch {
         fn new(name: &str) -> Scratch {
-            let dir = std::env::temp_dir().join(format!("ew-xtask-api-guard-{name}-{}", std::process::id()));
-            let _ = std::fs::remove_dir_all(&dir);
-            std::fs::create_dir_all(&dir).unwrap();
+            let dir = ew_testdir::Tmp::new(&format!("ew-xtask-api-guard-{name}"));
             let s = Scratch { dir };
             s.git(&["init", "-q"]);
             s
@@ -916,10 +914,6 @@ mod tests {
             self.git(&["add", "-A"]);
             self.git(&["commit", "-q", "-m", message]);
             self.git(&["rev-parse", "HEAD"])
-        }
-
-        fn remove(self) {
-            let _ = std::fs::remove_dir_all(&self.dir);
         }
     }
 
@@ -982,7 +976,6 @@ mod tests {
         s.remove_file("schemas/0.1/pin.schema.json");
         s.write("fixtures/format/0.1/p.ew/manifest.json", "{}\n");
         let report = format_report(&s);
-        s.remove();
         assert_eq!(
             report,
             Report {
@@ -1046,7 +1039,6 @@ mod tests {
             "# Unreleased changes\n\n- format-variant: device Side up (a new side)\n",
         );
         let report = format_report(&s);
-        s.remove();
         let lines = [
             "breaking: format 0.1 device Side: value right removed",
             "additive: format 0.1 device Side: value up added",
@@ -1121,7 +1113,6 @@ mod tests {
             "# Unreleased changes\n\n- format-variant: device mode c (FT-0, a third mode)\n",
         );
         let report = format_report(&s);
-        s.remove();
         assert_eq!(
             report,
             Report {
@@ -1188,7 +1179,6 @@ mod tests {
         std::fs::remove_file(s.dir.join("docs/release-notes/0.2.1.md")).unwrap();
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.1.1\"\n");
         let report = format_report(&s);
-        s.remove();
         assert_eq!(
             report.failure,
             [
@@ -1234,7 +1224,6 @@ mod tests {
             }),
         );
         let report = format_report(&s);
-        s.remove();
         let changes = [
             ("device labels{}", "pattern \"^[a-z]+$\" added"),
             ("device note", "maxLength 40 added"),
@@ -1293,7 +1282,6 @@ mod tests {
             }),
         );
         let report = format_report(&s);
-        s.remove();
         let changes = [
             ("device Side|{at}", "additionalProperties false added"),
             (

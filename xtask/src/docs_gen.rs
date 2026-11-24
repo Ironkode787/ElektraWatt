@@ -2805,18 +2805,9 @@ mod tests {
         );
     }
 
-    /// A fresh empty directory under the system temporary directory.
-    fn temp_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "ew-xtask-docs-gen-{name}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        std::fs::create_dir_all(&dir).unwrap();
-        dir
+    /// A fresh empty directory under the system temporary directory, removed on drop.
+    fn temp_dir(name: &str) -> ew_testdir::Tmp {
+        ew_testdir::Tmp::new(&format!("ew-xtask-docs-gen-{name}"))
     }
 
     /// `docs-gen --check` compares only the committed `SUMMARY.md`: an absent or old built page and a stray file in a
@@ -2889,7 +2880,6 @@ mod tests {
             violations_of(&differing, &[], &[]),
             ["docs/book/src/SUMMARY.md differs; run `cargo xtask docs-gen`"]
         );
-        std::fs::remove_dir_all(&root).unwrap();
     }
 
     /// A built page that git tracks is a violation, whether or not a source gives it, and so is a
@@ -2951,7 +2941,6 @@ mod tests {
         }
         files.clear();
         let items = release_note_pages(&root, &mut files).unwrap();
-        std::fs::remove_dir_all(&root).unwrap();
         assert_eq!(
             items,
             ["9.9.9", "0.10.0", "0.9.0"].map(|v| (v.to_owned(), format!("{RELEASE_NOTES_DIR}/{v}.md"), 0))

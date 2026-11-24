@@ -378,8 +378,7 @@ mod tests {
     /// IC1: `--check` fails on a stale table (a copy of the inputs with one icon changed).
     #[test]
     fn the_check_fails_on_a_stale_table() {
-        let dir = std::env::temp_dir().join(format!("ew-gen-icons-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = ew_testdir::Tmp::new("ew-gen-icons");
         for sub in [TABLER_DIR, EW_DIR, "crates/ew-ui/src/icons"] {
             std::fs::create_dir_all(dir.join(sub)).unwrap();
         }

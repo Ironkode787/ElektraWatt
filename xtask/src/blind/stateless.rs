@@ -125,7 +125,8 @@ impl Backend for Stateless<'_> {
 mod tests {
     use super::*;
     use crate::blind::session::fake::FakeSpawner;
-    use crate::blind::testkit::{Tmp, test_run};
+    use crate::blind::testkit::test_run;
+    use ew_testdir::Tmp;
 
     fn step(action: &str) -> Step {
         Step {

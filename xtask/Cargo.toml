@@ -29,3 +29,7 @@ spdx.workspace = true
 toml.workspace = true
 unicode-normalization.workspace = true
 uuid = { version = "1.26", default-features = false, features = ["v5"] }
+
+[dev-dependencies]
+# The temporary folders of the unit tests (dev-only crate).
+ew-testdir = { path = "../crates/ew-testdir" }

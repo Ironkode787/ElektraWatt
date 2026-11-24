@@ -16,12 +16,12 @@ pub use ew_testdir::{SAMPLE, copy_dir};
 
 pub use ew_testdir as fresh_dir;
 
-/// A fresh temporary directory, removed on drop.
-pub struct Tmp(pub PathBuf);
+/// A fresh temporary directory ([`ew_testdir::Tmp`], removed on drop), with the shells of the tests.
+pub struct Tmp(pub ew_testdir::Tmp);
 
 impl Tmp {
     pub fn new(tag: &str) -> Tmp {
-        Tmp(fresh_dir::fresh_dir(&format!("ew-vm-{tag}")))
+        Tmp(ew_testdir::Tmp::new(&format!("ew-vm-{tag}")))
     }
 
     /// A shell in `mode` with no project open, its settings in this directory.
@@ -71,12 +71,6 @@ impl Tmp {
     /// A headless shell with the sample open read-only in place on `folio`.
     pub fn sample_shell(&self, folio: &str) -> ShellModel {
         self.sample_in(Mode::Headless, false, folio)
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
     }
 }
 
