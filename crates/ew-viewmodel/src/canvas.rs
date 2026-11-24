@@ -235,8 +235,7 @@ const FIRST_VIEW_GAIN: f64 = 1.15;
 /// The margin of fit page on each side, in points.
 pub const FIT_MARGIN_PT: f64 = 16.0;
 
-/// How far around an entity's rectangle the pointer still hovers it, in points.
-pub const HOVER_SLOP_PT: f64 = 4.0;
+pub use crate::pointer::HOVER_SLOP_PT;
 
 /// The largest pane side in logical points `view.canvas_resize` accepts.
 pub const MAX_PANE_POINTS: f64 = 16_384.0;

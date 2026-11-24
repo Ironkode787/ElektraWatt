@@ -58,6 +58,7 @@ pub mod notifications;
 pub mod palette;
 // A part's data at a glance in words (F22).
 pub mod part_card;
+pub mod pointer;
 pub mod preview;
 pub mod properties;
 pub mod rail;

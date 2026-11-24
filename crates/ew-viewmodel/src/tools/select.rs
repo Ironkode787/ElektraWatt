@@ -59,6 +59,7 @@
 //! the centre goes first as before ([`super::pick_stack`]).
 
 use crate::key;
+use crate::pointer::{CLICK_SLOP_PT, GRIP_PT};
 use crate::strings::Key;
 use ew_dl::{Destination, EntityRef};
 use ew_units::{Nm, Pt2, Rect};
@@ -72,9 +73,6 @@ use super::{
     Button, CanvasEvent, EntityKind, Ghost, Mods, Overlay, OverlayItem, SelectionChange, Style, Token, Tool,
     ToolCx, ToolKey, ToolOutput, entity_kind, rect_of,
 };
-
-/// How far a press may travel and still be a click, in screen points.
-pub const CLICK_SLOP_PT: f64 = 3.0;
 
 /// The Select tool's state.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -171,7 +169,7 @@ fn cp_near(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<(i64, i64)> {
     if cx.page.panel.is_some() {
         return None;
     }
-    let reach = cx.nm_of_points(super::CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let reach = cx.nm_of_points(crate::pointer::CP_SNAP_PT).floor().min(9.0e15) as i128;
     cx.page
         .tables
         .cps
@@ -405,9 +403,6 @@ struct BlockPress {
 
 /// The smallest legend a resize leaves, page nm: 30 × 20 mm.
 const BLOCK_MIN: (i64, i64) = (30_000_000, 20_000_000);
-
-/// How near a corner of the selected legend a press grabs it, in screen points.
-const GRIP_PT: f64 = 4.0;
 
 /// The corners of `r` (top left, top right, bottom right, bottom left), page nm.
 fn corners(r: Rect) -> [(i64, i64); 4] {

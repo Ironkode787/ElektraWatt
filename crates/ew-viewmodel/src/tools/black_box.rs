@@ -1430,10 +1430,6 @@ pub fn selected_black_box<'t>(cx: &'t ToolCx<'_>) -> Option<&'t TableRep> {
     }
 }
 
-/// How near a grip of a selected box a press takes it, in screen points (a drag that missed the small handle
-/// moved the whole box): the round handle the wire's grips have, and a margin.
-pub const GRIP_SLOP_PT: f64 = 7.0;
-
 /// What a press on a selected box takes ([`handle_at`]).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BoxHandle {
@@ -1443,8 +1439,8 @@ pub enum BoxHandle {
     Pin(u16),
 }
 
-/// The handle of the selected box `rep` under the sheet point `at`: a corner grip within [`GRIP_SLOP_PT`], else a pin
-/// within [`crate::canvas::HOVER_SLOP_PT`], else an edge's middle grip within [`GRIP_SLOP_PT`]; the nearest of each
+/// The handle of the selected box `rep` under the sheet point `at`: a corner grip within [`crate::pointer::GRIP_SLOP_PT`], else a pin
+/// within [`crate::pointer::HOVER_SLOP_PT`], else an edge's middle grip within [`crate::pointer::GRIP_SLOP_PT`]; the nearest of each
 /// kind, ties by index.
 pub fn handle_at(cx: &ToolCx<'_>, rep: &TableRep, at: (i64, i64)) -> Option<BoxHandle> {
     let b = rep.black_box.as_ref()?;
@@ -1456,7 +1452,7 @@ pub fn handle_at(cx: &ToolCx<'_>, rep: &TableRep, at: (i64, i64)) -> Option<BoxH
     let grips = grip_points(&b.outline);
     let best = |range: std::ops::Range<usize>| {
         range
-            .filter_map(|k| near(grips[k], GRIP_SLOP_PT).map(|d| (d, k)))
+            .filter_map(|k| near(grips[k], crate::pointer::GRIP_SLOP_PT).map(|d| (d, k)))
             .min()
             .map(|(_, k)| k)
     };
@@ -1466,7 +1462,7 @@ pub fn handle_at(cx: &ToolCx<'_>, rep: &TableRep, at: (i64, i64)) -> Option<BoxH
     if let Some((_, idx)) = b
         .cps
         .iter()
-        .filter_map(|(idx, p, _)| near(*p, crate::canvas::HOVER_SLOP_PT).map(|d| (d, *idx)))
+        .filter_map(|(idx, p, _)| near(*p, crate::pointer::HOVER_SLOP_PT).map(|d| (d, *idx)))
         .min()
     {
         return Some(BoxHandle::Pin(idx));

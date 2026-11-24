@@ -332,7 +332,7 @@ fn floating_bounds(
 fn reach(canvas: &CanvasModel, screen: &dyn Fn((i64, i64)) -> Pos2) -> f32 {
     let snapper = &canvas.page().snapper;
     let step = screen((snapper.sheet_of_index(1, 0), 0)).x - screen((snapper.sheet_of_index(0, 0), 0)).x;
-    (step.abs() / 2.0).max(tools::CP_SNAP_PT as f32) + vm::POINTER_BOX / 2.0
+    (step.abs() / 2.0).max(ew_viewmodel::pointer::CP_SNAP_PT as f32) + vm::POINTER_BOX / 2.0
 }
 
 /// The target of a floating shape's label: the shape's frame `shape` and the square of `reach` around its point

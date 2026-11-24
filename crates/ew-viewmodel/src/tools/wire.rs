@@ -5,7 +5,7 @@
 //! connection point, a junction or a point on a wire to another, routed by `ew_api::routing::route_wire` (`ew-drafting`'s router) and committed as
 //! `connection.draw` with the route the ghost showed.
 //!
-//! **Targets** in priority order within [`CP_SNAP_PT`] (9.5) screen points of the pointer or the grid cursor, at every
+//! **Targets** in priority order within [`CP_SNAP_PT`](crate::pointer::CP_SNAP_PT) (9.5) screen points of the pointer or the grid cursor, at every
 //! zoom, the ring of the snap marker showing what a click there takes: a connection point of the
 //! page tables (anywhere on an interruption point's arrow, its one CP), a junction, a point on a connection segment (the grid point of the segment nearest to the pointer
 //! that is not its connection's end, so a press beside a rail's end joins the rail at the next grid point along it
@@ -58,11 +58,12 @@ use ew_units::arith::div_round_ties_toward_zero;
 use serde_json::{Value, json};
 
 use super::{
-    Anchor, Button, CP_SNAP_PT, CanvasEvent, MarkerKind, Mods, Overlay, OverlayItem, RouteInfo, Style, Token,
-    Tool, ToolCx, ToolKey, ToolOutput, segment_dist2,
+    Anchor, Button, CanvasEvent, MarkerKind, Mods, Overlay, OverlayItem, RouteInfo, Style, Token, Tool,
+    ToolCx, ToolKey, ToolOutput, segment_dist2,
 };
 use crate::canvas::mm3;
 use crate::key;
+use crate::pointer::CP_SNAP_PT;
 use crate::strings;
 use crate::strings::Key;
 

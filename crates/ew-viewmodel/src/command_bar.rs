@@ -1058,7 +1058,7 @@ pub fn pointer_stack(model: &ShellModel) -> usize {
     let Some(at) = c.pointer() else { return 0 };
     let k = c.points_per_nm();
     let reach = if k.is_finite() && k > 0.0 {
-        crate::canvas::HOVER_SLOP_PT / k
+        crate::pointer::HOVER_SLOP_PT / k
     } else {
         0.0
     };

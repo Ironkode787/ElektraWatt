@@ -23,7 +23,7 @@ use ew_api::output::{PanelTables, Uuid};
 use ew_units::MAX_SAFE_INTEGER;
 use serde_json::{Value, json};
 
-use super::layout::{LAYOUT_SNAP_PT, round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet};
+use super::layout::{round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolOutput,
     clamp64,
@@ -139,7 +139,7 @@ pub(crate) fn dominant(from: (i128, i128), p: (i128, i128)) -> (i128, i128) {
 
 /// The snap reach in surface nm at the sheet point `at` (15 points at the zoom, D4).
 pub(crate) fn reach_at(cx: &ToolCx<'_>, panel: &PanelTables, at: (i64, i64)) -> i128 {
-    let r = cx.nm_of_points(LAYOUT_SNAP_PT) * surface_per_sheet(cx, panel, at);
+    let r = cx.nm_of_points(crate::pointer::LAYOUT_SNAP_PT) * surface_per_sheet(cx, panel, at);
     if r.is_finite() {
         r.clamp(0.0, 9.0e15) as i128
     } else {

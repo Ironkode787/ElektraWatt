@@ -46,9 +46,6 @@ use super::{
 use crate::key;
 use crate::strings;
 
-/// How near a rail or a snap target the pointer must come, in screen points (D4).
-pub const LAYOUT_SNAP_PT: f64 = 15.0;
-
 /// Shift's step: the pointer's `s` rounded to 0.1 mm.
 const FINE_NM: i128 = 100_000;
 
@@ -805,7 +802,7 @@ fn resolve_at(
         Some((du, dv)) => (ptr.0 + du, ptr.1 + dv),
         None => ptr,
     };
-    let reach_sheet = cx.nm_of_points(LAYOUT_SNAP_PT);
+    let reach_sheet = cx.nm_of_points(crate::pointer::LAYOUT_SNAP_PT);
     let k = surface_per_sheet(cx, panel, at);
     let reach = (reach_sheet * k).min(9.0e30) as i128;
     let rail_profile = mount.as_ref().and_then(Profile::of);

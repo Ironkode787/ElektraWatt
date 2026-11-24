@@ -63,9 +63,7 @@ use ew_dl::{Color, ew_units::Nm};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{DrawTransform, PxRect, View};
 use ew_units::Rect as SheetRect;
-use ew_viewmodel::canvas::{
-    CanvasModel, CanvasPage, HOVER_SLOP_PT, Viewport, bounded_pane, zoom_in_step, zoom_out_step,
-};
+use ew_viewmodel::canvas::{CanvasModel, CanvasPage, Viewport, bounded_pane, zoom_in_step, zoom_out_step};
 use ew_viewmodel::ew_api::output::DrawingFonts;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::{Focus, ShellModel};
@@ -156,7 +154,7 @@ fn bands<'a>(hover: Option<&'a [(i64, i64)]>, selected: &'a [Vec<(i64, i64)>]) -
     overlay::Bands {
         hover,
         selected,
-        radius_pt: HOVER_SLOP_PT,
+        radius_pt: ew_viewmodel::pointer::HOVER_SLOP_PT,
     }
 }
 

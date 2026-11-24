@@ -2523,7 +2523,7 @@ fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Opti
                 let stack = crate::tools::pick_stack(page, &page.snapper, p, f64::from(reach));
                 let alone = stack.iter().filter(|e| wires.contains(&e.0)).count() == 1;
                 let link =
-                    crate::tools::link_at(&page.links, p, crate::canvas::HOVER_SLOP_PT / f64::from(reach))
+                    crate::tools::link_at(&page.links, p, crate::pointer::HOVER_SLOP_PT / f64::from(reach))
                         .is_some();
                 if stack.first() == Some(&me) && alone && !link {
                     return Some(p);

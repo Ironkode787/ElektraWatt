@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Snapping (FR-UI-018, doc 06 §5.7): to the connection points drawn on a page within about ten
-//! screen points ([`CP_SNAP_PT`]), else to the page's connection grid, always on grid indices (ADR-0005).
+//! screen points ([`CP_SNAP_PT`](crate::pointer::CP_SNAP_PT)), else to the page's connection grid, always on grid indices (ADR-0005).
 //!
 //! A [`Snapper`] is built per page content from its [`PageGrid`] and `Session::page_cps`, once per (revision,
 //! folio), and evaluated without a `Session` call. A sheet point maps to the page by the inverse of the frame's
@@ -58,11 +58,6 @@ pub enum FineKind {
     /// A text's anchor.
     Text,
 }
-
-/// How far a connection point attracts the pointer, in screen points, at every zoom: what Select rings and what the
-/// Wire tool's click takes (FT-1800, at eight points a click nine points off a port placed a bend). A little
-/// under ten: at 100 % a step of the QET grid is ten points, and the grid point beside a pin stays one for a bend.
-pub const CP_SNAP_PT: f64 = 9.5;
 
 /// A connection point as the snapper keeps it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -173,7 +168,7 @@ impl Snapper {
     /// The connection point nearest to `at` within `CP_SNAP_PT` screen points at `points_per_nm` (squared distance
     /// in `i128`; ties to the earlier in reading order), as a snap.
     pub fn snap_cp(&self, at: (i64, i64), points_per_nm: f64) -> Option<Snap> {
-        let reach = CP_SNAP_PT / points_per_nm;
+        let reach = crate::pointer::CP_SNAP_PT / points_per_nm;
         if !(reach.is_finite() && reach >= 0.0) {
             return None;
         }
