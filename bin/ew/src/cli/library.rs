@@ -37,7 +37,40 @@ pub(super) fn index_state(s: &ew_api::library::IndexState) -> String {
     }
 }
 
-pub(super) fn run_lib(a: &LibArgs) -> i32 {
+impl Leaf for LibListCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::LibListResult::SCHEMA);
+}
+
+impl Leaf for SearchCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::LibSearchResult::SCHEMA);
+}
+
+impl Leaf for IndexCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::LibIndexResult::SCHEMA);
+}
+
+impl Leaf for CreateCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::LibCreateResult::SCHEMA);
+}
+
+impl Leaf for LibImportPartsCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::LibImportPartsResult::SCHEMA);
+}
+
+impl Leaf for LibImportQetCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "converted and written, files that cannot be converted listed"),
+        USAGE_ETC,
+    ];
+    const RESULT: Option<&'static str> = Some(results::LibImportQetElementsResult::SCHEMA);
+}
+
+pub(super) fn run_lib(a: &LibCli) -> i32 {
     use ew_api::library::{ItemQuery, PartQuery};
     let mut reg = match open_libraries(&a.company) {
         Ok(r) => r,
@@ -51,7 +84,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
         keys.get(&id).cloned().unwrap_or(id)
     };
     match &a.action {
-        LibAction::List => {
+        LibSub::List(LibListCli {}) => {
             if a.json {
                 let libraries = libs
                     .iter()
@@ -113,12 +146,12 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
             }
             0
         }
-        LibAction::Search {
+        LibSub::Search(SearchCli {
             text,
-            kinds,
+            kind: kinds,
             all,
             limit,
-        } => {
+        }) => {
             let kinds: Vec<_> = kinds
                 .iter()
                 .filter_map(|k| ew_api::library::item_kind(k))
@@ -234,7 +267,8 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
             }
             0
         }
-        LibAction::IndexRebuild => {
+        // `--rebuild` is required, so it is always set: the old parser refused `lib index` without it.
+        LibSub::Index(IndexCli { rebuild: _required }) => {
             if let Err(e) = reg.rebuild_index() {
                 eprintln!("error: the index cannot be rebuilt: {e}");
                 return 2;
@@ -261,12 +295,12 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                 }
             }
         }
-        LibAction::Create {
+        LibSub::Create(CreateCli {
             dir,
             key,
             name,
             licence,
-        } => match reg.create(dir, key, name, licence) {
+        }) => match reg.create(dir, key, name, licence) {
             Ok(id) => {
                 let listed = reg.libraries().iter().any(|l| l.id == id);
                 if a.json {
@@ -296,11 +330,11 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                 2
             }
         },
-        LibAction::ImportQetElements {
+        LibSub::Import(LibImportCli::QetElements(LibImportQetCli {
             library,
             dir,
             take_over,
-        } => {
+        })) => {
             let Some((id, key)) = libs
                 .iter()
                 .find(|l| l.key == *library || l.id.to_string() == *library)
@@ -389,14 +423,14 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                 }
             }
         }
-        LibAction::ImportParts {
+        LibSub::Import(LibImportCli::Parts(LibImportPartsCli {
             library,
             file,
             map,
             as_of,
             bump,
             take_over,
-        } => {
+        })) => {
             let Some(target) = libs
                 .iter()
                 .find(|l| l.key == *library || l.id.to_string() == *library)

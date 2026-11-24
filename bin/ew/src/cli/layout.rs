@@ -8,7 +8,17 @@
 use ew_api::cli_results as results;
 use ew_api::output::PageLayout;
 
+use super::tree::Leaf;
 use super::{LayoutArgs, open_reader, reader_dir};
+use crate::catalogue::{Exit, exit};
+
+impl Leaf for LayoutArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "measured"),
+        exit(2, "usage and open errors, a folio that names no drawn page"),
+    ];
+    const RESULT: Option<&'static str> = Some(results::LayoutResult::SCHEMA);
+}
 
 /// `ew layout`: opens the project as a reader (no lock) and prints the layout measures. Exit 0 when measured, 2 on
 /// usage, open errors and a folio that names no drawn page.

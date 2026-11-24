@@ -51,7 +51,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/diff.rs` |  | `ew diff <from> <to> [--json] [--exit-code]` and `ew diff --textconv <file>` (D27; doc 05 §11.6; FR-COL-013). |
 | `src/cli/dxf.rs` |  | `ew import dxf`, `ew import dwg` and `ew import pdf` (doc 14 §13): a drawing into the project as a graphic page or an underlay, its blocks as symbol drafts, its lines as a part's front outline; a DWG through the user's ODA File Converter first; a PDF page as an underlay. |
 | `src/cli/eplan.rs` |  | `ew import edz` and `ew import parts-xml` (doc 14 §5.2, §5.3, §13): the parts of an EDZ or an EPLAN parts XML into a writable library, or the previewed update of a project's part copies from them. |
-| `src/cli/export.rs` |  | `ew export` in its kinds, `ew export-ewz`, `ew extract`, `ew export pages` and `ew render`. |
+| `src/cli/export.rs` | large | `ew export` in its kinds, `ew export-ewz`, `ew extract`, `ew export pages` and `ew render`. |
 | `src/cli/import.rs` | large | The imports: a table of rows, a parts catalogue, a QElectroTech project, a CSV. |
 | `src/cli/layout.rs` |  | `ew layout [<project-dir>] [--page <folio>] [--json]`: the layout measure (docs/design/06a-drafting.md §1.2) of one page or of every schematic page, in text or as `ew.layout-result/1`: its faults, unrouted wires and cost, the figures a reader compares, and each item behind them. |
 | `src/cli/library.rs` |  | `ew lib`: the libraries and their index. |
@@ -67,7 +67,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/sql.rs` |  | `ew sql` and `ew sql dump`: a statement over the projection, under its panic guard. |
 | `src/cli/symbol.rs` |  | Project-independent symbol authoring: bounded input, structured validation, ordinary library publication. |
 | `src/cli/tests.rs` | large | Tests of the command line as a whole: parsing, the refusals, the commands that share helpers. |
-| `src/cli/tree.rs` | large | The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in its doc comment; [`Cli::into_command`] lowers a parsed line to the [`Command`] that [`super::run`] runs. |
+| `src/cli/tree.rs` | large | The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in its doc comment. |
 | `src/main.rs` |  | The `ew` command-line program: its entry point, which parses the arguments, runs the subcommand and exits with its code. |
 
 ## ew-api

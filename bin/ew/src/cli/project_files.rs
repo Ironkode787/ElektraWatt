@@ -10,11 +10,13 @@ use std::path::Path;
 use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
+use super::tree::{Leaf, usage_error};
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, human_only, is_terminal, journal_refusal, older_format,
+    FmtArgs, RecoverAction, RecoverCli, UpgradeArgs, human_only, is_terminal, journal_refusal, older_format,
     open_editing, open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word,
     warn_unread,
 };
+use crate::catalogue::{Exit, exit};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -23,6 +25,25 @@ const DISCARD_WORD: &str = "discard";
 
 /// The word that confirms `ew upgrade` on a terminal.
 const UPGRADE_WORD: &str = "upgrade";
+
+/// `fmt --repair --json` prints its own result, `results::FmtRepairResult`, which the published list names as the
+/// result of the flag.
+impl Leaf for FmtArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(
+            0,
+            "every file is canonical, or the files were rewritten and saved; repaired, or nothing to repair",
+        ),
+        exit(1, "`--check` found files to rewrite"),
+        exit(
+            2,
+            "usage, open, lock, a crashed session's journal, a content change and save errors; a repair refused \
+             before writing, its save failed, or its re-open found a finding (the new generation and the backup \
+             stay)",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::FmtResult::SCHEMA);
+}
 
 /// `ew fmt [--check]` (D9, FR-EXT-008): the files that are not in canonical form, listed (`--check`, a reader: no
 /// lock, nothing written) or rewritten through the save protocol after the content check (`ew_api::fmt`). The lines the
@@ -525,12 +546,34 @@ fn fmt_refusal(e: &FmtError) -> String {
     }
 }
 
+impl Leaf for RecoverCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "summarised, replayed and saved, discarded, or no journal"),
+        exit(
+            1,
+            "the replay refused, or its upgrade or the discard not confirmed",
+        ),
+        exit(2, "usage, no controlling terminal, lock, open and save errors"),
+    ];
+    const RESULT: Option<&'static str> = Some(results::RecoverResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        if self.action() == RecoverAction::Discard && self.json {
+            return Err(usage_error(
+                &["recover"],
+                "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`",
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// `ew recover [--replay|--discard]` (D10): the journal of the crashed session with the latest change, one at
 /// a time. Without a flag its summary; `--replay` replays it and saves; `--discard` deletes it
 /// after the word typed on a controlling terminal (without one: exit 2 before the project is opened). On a project of
 /// an older format `--replay` asks the upgrade's typed word (or takes `--yes`) before it replays, and saves with the
 /// upgrade's backup.
-pub(super) fn run_recover(a: &RecoverArgs) -> i32 {
+pub(super) fn run_recover(a: &RecoverCli) -> i32 {
     let terminal = is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
@@ -547,13 +590,14 @@ pub(super) fn run_recover(a: &RecoverArgs) -> i32 {
 /// [`run_recover`] with the terminal test, the reader, the writers (everything `ew recover` prints on stdout, and its
 /// own errors on stderr) and the store options injected (unit tests).
 fn run_recover_with(
-    a: &RecoverArgs,
+    a: &RecoverCli,
     terminal: bool,
     input: &mut dyn std::io::BufRead,
     (output, errors): (&mut dyn std::io::Write, &mut dyn std::io::Write),
     store: ew_api::StoreOptions,
 ) -> i32 {
-    if a.action == RecoverAction::Discard && !terminal {
+    let action = a.action();
+    if action == RecoverAction::Discard && !terminal {
         let why = format!(
             "`recover --discard` is confirmed by typing `{DISCARD_WORD}`; `ew recover` prints the summary without one"
         );
@@ -565,7 +609,7 @@ fn run_recover_with(
     };
     let origin = ew_api::Origin::Cli {
         subcommand: "recover".to_owned(),
-        confirmed: a.action == RecoverAction::Discard,
+        confirmed: action == RecoverAction::Discard,
     };
     // `ew recover` acts only with the lock; a read-only open is refused with `ew apply`'s text.
     // The first open keeps the journal: `--replay` opens again to replay it once the upgrade has its consent.
@@ -585,7 +629,7 @@ fn run_recover_with(
     let result = |journal: Option<&ew_api::RecoveryInfo>, replayed: bool, generation: u64| {
         results::to_text(&results::RecoverResult {
             schema: results::RecoverResult::SCHEMA.to_owned(),
-            action: if a.action == RecoverAction::Replay {
+            action: if action == RecoverAction::Replay {
                 results::RecoverAction::Replay
             } else {
                 results::RecoverAction::Summary
@@ -617,7 +661,7 @@ fn run_recover_with(
         }
         return 0;
     };
-    match a.action {
+    match action {
         RecoverAction::Summary => {
             say(output, errors, &summary(&info));
             say(
@@ -758,6 +802,21 @@ fn run_recover_with(
             0
         }
     }
+}
+
+impl Leaf for UpgradeArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "upgraded, backed up and saved, or nothing to upgrade"),
+        exit(
+            1,
+            "`--check` found an upgrade needed, or the upgrade not confirmed",
+        ),
+        exit(
+            2,
+            "usage, no controlling terminal without `--yes`, lock, a crashed session's journal, open, backup and \
+             save errors",
+        ),
+    ];
 }
 
 /// `ew upgrade [--check] [--yes]`: a project of an older format, which
@@ -976,7 +1035,7 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::*;
-    use crate::cli::{Command, parse};
+    use crate::cli::{Top, parse};
 
     const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
@@ -1058,9 +1117,10 @@ mod tests {
         terminal: bool,
         answer: &str,
     ) -> (i32, String, String) {
-        let args = RecoverArgs {
-            project: Some(dir.join("p.ew")),
-            action,
+        let args = RecoverCli {
+            project: crate::cli::ProjectArg(Some(dir.join("p.ew"))),
+            replay: action == RecoverAction::Replay,
+            discard: action == RecoverAction::Discard,
             json,
             yes: false,
         };
@@ -1084,9 +1144,10 @@ mod tests {
     fn recover_and_fmt_parse_their_flags() {
         let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         let recover = |project: Option<&str>, action, json| {
-            Ok(Command::Recover(RecoverArgs {
-                project: project.map(PathBuf::from),
-                action,
+            Ok(Top::Recover(RecoverCli {
+                project: crate::cli::ProjectArg(project.map(PathBuf::from)),
+                replay: action == RecoverAction::Replay,
+                discard: action == RecoverAction::Discard,
                 json,
                 yes: false,
             }))
@@ -1120,16 +1181,17 @@ mod tests {
         );
         assert_eq!(
             parse(&["recover", "--replay", "--yes"]),
-            Ok(Command::Recover(RecoverArgs {
-                project: None,
-                action: RecoverAction::Replay,
+            Ok(Top::Recover(RecoverCli {
+                project: crate::cli::ProjectArg(None),
+                replay: true,
+                discard: false,
                 json: false,
                 yes: true,
             }))
         );
         assert_eq!(
             parse(&["fmt", "p.ew", "--check"]),
-            Ok(Command::Fmt(FmtArgs {
+            Ok(Top::Fmt(FmtArgs {
                 project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 check: true,
                 repair: false,
@@ -1138,7 +1200,7 @@ mod tests {
         );
         assert_eq!(
             parse(&["fmt", "p.ew", "--repair", "--json"]),
-            Ok(Command::Fmt(FmtArgs {
+            Ok(Top::Fmt(FmtArgs {
                 project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 check: false,
                 repair: true,
@@ -1637,7 +1699,7 @@ mod tests {
     fn upgrade_parses_its_flags() {
         let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         let upgrade = |project: Option<&str>, check, yes| {
-            Ok(Command::Upgrade(UpgradeArgs {
+            Ok(Top::Upgrade(UpgradeArgs {
                 project: crate::cli::ProjectArg(project.map(PathBuf::from)),
                 check,
                 yes,
@@ -1953,9 +2015,10 @@ mod tests {
         drop(s);
         let before = upgrade_files(&dir);
         let run = |yes: bool, terminal: bool, answer: &str| {
-            let args = RecoverArgs {
-                project: Some(dir.join("p.ew")),
-                action: RecoverAction::Replay,
+            let args = RecoverCli {
+                project: crate::cli::ProjectArg(Some(dir.join("p.ew"))),
+                replay: true,
+                discard: false,
                 json: false,
                 yes,
             };

@@ -5,6 +5,10 @@
 
 use super::*;
 
+impl Leaf for ChecksSetArgs {
+    const EXITS: &'static [Exit] = HUMAN_EXITS;
+}
+
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
 /// exposure class `HumanOnly` accepts (ADR-0008 amendment 3), after the confirmation typed on a controlling
 /// terminal (doc 17 section 2.3, FR-EXT-030); without a terminal nothing is opened.
@@ -111,6 +115,15 @@ pub(super) fn confirm_typed(
     typed_word(input, output, &summary, word)
 }
 
+impl Leaf for VerifyArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "no difference"),
+        exit(1, "differences"),
+        exit(2, "usage and open errors"),
+    ];
+    const RESULT: Option<&'static str> = Some(results::VerifyDerivedResult::SCHEMA);
+}
+
 pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
@@ -170,6 +183,15 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
         println!("oracle: {m:?}");
     }
     i32::from(!report.is_clean())
+}
+
+impl Leaf for VerifyMigrationArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "only the expected deltas"),
+        exit(1, "other deviations, or an expected delta not found"),
+        exit(2, "usage, open and read errors"),
+    ];
+    const RESULT: Option<&'static str> = Some(results::VerifyMigrationResult::SCHEMA);
 }
 
 /// The most bytes of a reference PDF or of an expected-deltas file `ew verify-migration` reads.
@@ -280,8 +302,25 @@ fn deviation_line(d: &ew_api::migration::Deviation) -> String {
     format!("{text}{at}{}", d.detail)
 }
 
-pub(super) fn run_check(a: &CheckArgs) -> i32 {
-    let dir = match &a.project {
+impl Leaf for CheckCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "no unwaived error"),
+        exit(1, "unwaived errors"),
+        exit(2, "usage and open errors"),
+    ];
+    const RESULT: Option<&'static str> = Some(results::CHECK);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.output_format().map(drop)
+    }
+}
+
+pub(super) fn run_check(a: &CheckCli) -> i32 {
+    let format = match a.output_format() {
+        Ok(f) => f,
+        Err(e) => return usage(&e),
+    };
+    let dir = match &*a.project {
         Some(d) => d.clone(),
         None => {
             let found = std::env::current_dir().ok().and_then(|cwd| find_project(&cwd));
@@ -306,7 +345,7 @@ pub(super) fn run_check(a: &CheckArgs) -> i32 {
             session.assume_merged();
         }
         let result = report::localise(&session.check_integrity(&opened), &a.lang);
-        return print_check(a, &result, &undrawn_notices(&session));
+        return print_check(format, a.out.as_ref(), &result, &undrawn_notices(&session));
     }
     // `--scheme`, else the scheme the project names for the mode, else the shipped default. A project naming a
     // scheme this build does not ship (a newer writer, a hand edit) gets the default and a notice; the exit status is
@@ -314,7 +353,7 @@ pub(super) fn run_check(a: &CheckArgs) -> i32 {
     let sch = match &a.scheme {
         Some(name) => scheme(name),
         None => {
-            let named = session.project_check_scheme_name(a.mode);
+            let named = session.project_check_scheme_name(a.check_mode());
             match named.as_deref().and_then(scheme) {
                 Some(sch) => Some(sch),
                 None => {
@@ -342,11 +381,11 @@ pub(super) fn run_check(a: &CheckArgs) -> i32 {
     // errors count and set the exit code (doc 15 §4.2).
     let result = report::localise(
         &session
-            .check(sch, a.mode)
+            .check(sch, a.check_mode())
             .with_integrity(ew_api::integrity_items(&opened)),
         &a.lang,
     );
-    print_check(a, &result, &undrawn_notices(&session))
+    print_check(format, a.out.as_ref(), &result, &undrawn_notices(&session))
 }
 
 /// The notices of the images the project keeps but no drawing shows, in the window's words.
@@ -361,9 +400,14 @@ pub(super) fn undrawn_notices(session: &ew_api::Session) -> Vec<String> {
 /// Prints a check report as `ew check` does, to `--out` or stdout with the totals on stderr; its exit code. The
 /// `notices` stand outside the findings and their counts: the JSON's `notices`, else a `notice:` line each on
 /// stderr.
-pub(super) fn print_check(a: &CheckArgs, result: &ew_api::checks::CheckReport, notices: &[String]) -> i32 {
+pub(super) fn print_check(
+    format: CheckFormat,
+    out: Option<&PathBuf>,
+    result: &ew_api::checks::CheckReport,
+    notices: &[String],
+) -> i32 {
     let result = result.clone();
-    let text = match a.format {
+    let text = match format {
         CheckFormat::Text => report::to_text(&result),
         CheckFormat::Markdown => report::to_markdown(&result),
         CheckFormat::Json => {
@@ -375,12 +419,12 @@ pub(super) fn print_check(a: &CheckArgs, result: &ew_api::checks::CheckReport, n
             )
         }
     };
-    if !matches!(a.format, CheckFormat::Json) {
+    if !matches!(format, CheckFormat::Json) {
         for notice in notices {
             eprintln!("notice: {notice}");
         }
     }
-    match &a.out {
+    match out {
         Some(path) => match write_report(path, &text) {
             Ok(()) => println!("report written to {}", path.display()),
             Err(e) => {
@@ -459,11 +503,11 @@ mod tests {
         );
         assert_eq!(
             parse(&["project", "checks", "set", "p.ew", "--active", "full"]),
-            Ok(Command::ChecksSet(ChecksSetArgs {
+            Ok(Top::Project(ProjectCli::Checks(ChecksCli::Set(ChecksSetArgs {
                 project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 active: Some("full".to_owned()),
                 release: None,
-            }))
+            }))))
         );
     }
 }

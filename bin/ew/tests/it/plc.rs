@@ -22,15 +22,13 @@ fn an_export_is_recorded_and_its_file_comes_back() {
     let project = t.sample("sample.ew");
     let aml = t.path("PLC1.aml");
 
-    let o = t.ew(
-        &[
-            "export".as_ref(),
-            "plc-aml".as_ref(),
-            project.as_os_str(),
-            "--out".as_ref(),
-            aml.as_os_str(),
-        ],
-    );
+    let o = t.ew(&[
+        "export".as_ref(),
+        "plc-aml".as_ref(),
+        project.as_os_str(),
+        "--out".as_ref(),
+        aml.as_os_str(),
+    ]);
     let text = ok(&o);
     // The sample's PLC: the CPU's station with its input and output card, and the valve terminal's station on the
     // PROFIBUS with its one module; 8 channels each.
@@ -47,15 +45,13 @@ fn an_export_is_recorded_and_its_file_comes_back() {
     assert!(snapshot.contains("\"$k\":\"exchange_record\""));
 
     let status = |file: &Path| {
-        ok(&t.ew(
-            &[
-                "plc".as_ref(),
-                "status".as_ref(),
-                file.as_os_str(),
-                "--project".as_ref(),
-                project.as_os_str(),
-            ],
-        ))
+        ok(&t.ew(&[
+            "plc".as_ref(),
+            "status".as_ref(),
+            file.as_os_str(),
+            "--project".as_ref(),
+            project.as_os_str(),
+        ]))
     };
     let text = status(&aml);
     assert!(
@@ -116,15 +112,13 @@ fn the_tag_table_and_the_gvl_are_written_under_both_names() {
         ("plcopen", "io.xml"),
     ] {
         let out = t.path(file);
-        let o = t.ew(
-            &[
-                "export".as_ref(),
-                word.as_ref(),
-                project.as_os_str(),
-                "--out".as_ref(),
-                out.as_os_str(),
-            ],
-        );
+        let o = t.ew(&[
+            "export".as_ref(),
+            word.as_ref(),
+            project.as_os_str(),
+            "--out".as_ref(),
+            out.as_os_str(),
+        ]);
         ok(&o);
         assert!(out.is_file(), "{word}");
     }
@@ -138,15 +132,13 @@ fn the_tag_table_and_the_gvl_are_written_under_both_names() {
             .unwrap()
             .contains("IO_ElektraWatt")
     );
-    let o = t.ew(
-        &[
-            "export".as_ref(),
-            "plcopen".as_ref(),
-            project.as_os_str(),
-            "--apc".as_ref(),
-            "1.2.0".as_ref(),
-        ],
-    );
+    let o = t.ew(&[
+        "export".as_ref(),
+        "plcopen".as_ref(),
+        project.as_os_str(),
+        "--apc".as_ref(),
+        "1.2.0".as_ref(),
+    ]);
     assert_eq!(o.status.code(), Some(2));
     assert!(
         stderr(&o).contains("`--apc` is an option of `export plc-aml`"),

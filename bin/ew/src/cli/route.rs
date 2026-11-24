@@ -10,7 +10,21 @@ use ew_api::AnyCommand;
 use ew_api::cli_results as results;
 use ew_api::routing::{InTheWay, Reason, RoutePlan, RouteScope, Side};
 
+use super::tree::Leaf;
 use super::{RouteArgs, open_for_writing, open_reader, project_dir, reader_dir};
+use crate::catalogue::{Exit, exit};
+
+impl Leaf for RouteArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "every wire it routes is routed"),
+        exit(1, "a wire stays unrouted"),
+        exit(
+            2,
+            "usage, open, an unknown folio, a refused command and save errors",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::RouteResult::SCHEMA);
+}
 
 /// The reason's key in the JSON result and its sentence in the text.
 fn reason(why: Reason, wire: &str) -> (&'static str, String) {

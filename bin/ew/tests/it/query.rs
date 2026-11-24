@@ -35,7 +35,10 @@ fn result_schema(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
 /// `deny_unknown_fields`, byte-equal after the round trip.
 fn assert_query_result(out: &str) -> results::QueryResult {
     assert!(
-        out.starts_with(&format!("{{\n  \"$schema\": \"{}\"", results::QueryResult::SCHEMA)),
+        out.starts_with(&format!(
+            "{{\n  \"$schema\": \"{}\"",
+            results::QueryResult::SCHEMA
+        )),
         "{out}"
     );
     let value: Value = serde_json::from_str(out).unwrap_or_else(|e| panic!("{e}: {out}"));

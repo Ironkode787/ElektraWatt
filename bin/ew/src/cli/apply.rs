@@ -5,11 +5,31 @@
 
 use super::*;
 
-pub(super) fn run_apply(a: &ApplyArgs) -> i32 {
-    let text = match std::fs::read_to_string(&a.log) {
+impl Leaf for ApplyCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "every line commits"),
+        exit(1, "a prevent or domain rule refuses a line"),
+        exit(
+            2,
+            "usage, a malformed log, an unresolvable reference, a refused command, open, lock and save errors",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ApplyResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.project_and_log().map(drop)
+    }
+}
+
+pub(super) fn run_apply(a: &ApplyCli) -> i32 {
+    let (project, log_file) = match a.project_and_log() {
+        Ok(line) => line,
+        Err(e) => return usage(&e),
+    };
+    let text = match std::fs::read_to_string(log_file) {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("error: {}: {e}", a.log.display());
+            eprintln!("error: {}: {e}", log_file.display());
             return 2;
         }
     };
@@ -21,11 +41,11 @@ pub(super) fn run_apply(a: &ApplyArgs) -> i32 {
         }
     };
     // The origin names the log by its file name, never its path.
-    let file = a.log.file_name().map_or_else(
-        || a.log.to_string_lossy().into_owned(),
+    let file = log_file.file_name().map_or_else(
+        || log_file.to_string_lossy().into_owned(),
         |n| n.to_string_lossy().into_owned(),
     );
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = project_dir(project.as_ref()) else {
         return 2;
     };
     if a.preview {
@@ -97,6 +117,17 @@ pub(super) fn run_apply(a: &ApplyArgs) -> i32 {
             2
         }
     }
+}
+
+impl Leaf for UpdateCopiesArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(
+            0,
+            "every damaged library copy updated and the project opens for editing, or none damaged",
+        ),
+        exit(1, "refused, or a copy stays damaged"),
+        exit(2, "usage, open and save errors"),
+    ];
 }
 
 /// `ew update-copies` (FT-1499): every damaged library copy that a library of `ew lib` holds is
@@ -252,6 +283,11 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
     code
 }
 
+impl Leaf for CommandsCli {
+    const EXITS: &'static [Exit] = &[OK];
+    const RESULT: Option<&'static str> = Some(results::CommandsResult::SCHEMA);
+}
+
 /// `ew commands [--json]`: the command registry, one line per command (name, parameters version,
 /// exposure, cost, confirmation, undoable, stability, aliases), or its JSON result.
 pub(super) fn run_commands(json: bool) -> i32 {
@@ -274,6 +310,10 @@ pub(super) fn run_commands(json: bool) -> i32 {
         );
     }
     0
+}
+
+impl Leaf for SchemaCli {
+    const EXITS: &'static [Exit] = &[OK, exit(2, "usage, an unknown schema name")];
 }
 
 /// `ew schema <name>`: the parameter schema of a command (or an alias), byte for byte the file of

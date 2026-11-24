@@ -5,8 +5,41 @@
 
 use super::*;
 
-pub(super) fn run_sql(a: &SqlArgs) -> i32 {
-    let sql = match &a.query {
+/// `sql` is a path of its own (the query) with the paths `sql dump` and `sql schema` below it.
+impl Leaf for SqlCli {
+    const EXITS: &'static [Exit] = &[OK, exit(2, "usage, open and SQL errors, denials and limits")];
+    const RESULT: Option<&'static str> = Some(results::SQL);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        match &self.sub {
+            Some(sub) => sub.check(),
+            None => {
+                self.project_and_query()?;
+                self.csv_options(self.result_format()?).map(drop)
+            }
+        }
+    }
+
+    fn below(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<crate::catalogue::Entry>) {
+        SqlSub::entries(cmd, path, out);
+    }
+}
+
+impl Leaf for SqlSchemaCli {
+    const EXITS: &'static [Exit] = &[OK];
+}
+
+/// `ew sql <select>`: the statement over the projection, its result as CSV, JSON or a workbook.
+pub(super) fn run_sql(a: &SqlCli) -> i32 {
+    let line = a.project_and_query().and_then(|(project, query)| {
+        let format = a.result_format()?;
+        Ok((project, query, format, a.csv_options(format)?))
+    });
+    let (project, query, format, csv) = match line {
+        Ok(line) => line,
+        Err(e) => return usage(&e),
+    };
+    let sql = match &query {
         SqlSource::Text(t) => t.clone(),
         SqlSource::File(f) => match std::fs::read_to_string(f) {
             Ok(t) => t,
@@ -16,7 +49,7 @@ pub(super) fn run_sql(a: &SqlArgs) -> i32 {
             }
         },
     };
-    let (projection, session) = match open_projection_and_session(a.project.as_ref()) {
+    let (projection, session) = match open_projection_and_session(project.as_ref()) {
         Ok(p) => p,
         Err(code) => return code,
     };
@@ -30,16 +63,13 @@ pub(super) fn run_sql(a: &SqlArgs) -> i32 {
         debug_panic("sql");
         let set = projection.reader(profile).and_then(|r| r.query(&sql))?;
         debug_panic("sql-write");
-        let text = match a.format {
-            SqlFormat::Csv if a.csv.preset == Preset::Ew => Some(ew_api::output::restyle(
+        let text = match format {
+            SqlFormat::Csv if csv.preset == Preset::Ew => Some(ew_api::output::restyle(
                 &set.to_csv(),
-                a.csv.writes_bom(),
-                a.csv.writes_line_end(),
+                csv.writes_bom(),
+                csv.writes_line_end(),
             )),
-            SqlFormat::Csv => Some(ew_api::output::table_csv(
-                &ew_api::output::sql_table(&set),
-                &a.csv,
-            )),
+            SqlFormat::Csv => Some(ew_api::output::table_csv(&ew_api::output::sql_table(&set), &csv)),
             SqlFormat::Json => Some(format!("{:#}\n", set.to_json())),
             SqlFormat::Xlsx => None,
         };
@@ -52,7 +82,7 @@ pub(super) fn run_sql(a: &SqlArgs) -> i32 {
         }
     };
     let Some(text) = text else {
-        return write_sql_xlsx(a, &session, &set);
+        return write_sql_xlsx(a.out.as_ref(), &session, &set);
     };
     match &a.out {
         Some(path) => match write_report(path, &text) {
@@ -85,8 +115,12 @@ pub(super) fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlE
 }
 
 /// `ew sql --format xlsx --out <file>`: the result as the one sheet `sql` of a workbook, written atomically.
-pub(super) fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_api::sql::ResultSet) -> i32 {
-    let Some(path) = &a.out else {
+pub(super) fn write_sql_xlsx(
+    out: Option<&PathBuf>,
+    session: &ew_api::Session,
+    set: &ew_api::sql::ResultSet,
+) -> i32 {
+    let Some(path) = out else {
         eprintln!("error: {XLSX_NEEDS_OUT}");
         return 2;
     };
@@ -124,28 +158,41 @@ pub(super) fn write_sql_xlsx(a: &SqlArgs, session: &ew_api::Session, set: &ew_ap
 /// The refusal of `--format xlsx` without `--out`.
 pub const XLSX_NEEDS_OUT: &str = "`--format xlsx` writes a file: give `--out <file.xlsx>`";
 
-pub(super) fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
-    let projection = match open_projection(a.project.as_ref()) {
+impl Leaf for SqlDumpCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::SqlDumpResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.project_and_out().map(drop)
+    }
+}
+
+pub(super) fn run_sql_dump(a: &SqlDumpCli) -> i32 {
+    let (project, out) = match a.project_and_out() {
+        Ok(line) => line,
+        Err(e) => return usage(&e),
+    };
+    let projection = match open_projection(project.as_ref()) {
         Ok(p) => p,
         Err(code) => return code,
     };
-    match std::fs::write(&a.out, projection.image()) {
+    match std::fs::write(&out, projection.image()) {
         Ok(()) if a.json => {
             print!(
                 "{}",
                 results::to_text(&results::SqlDumpResult {
                     schema: results::SqlDumpResult::SCHEMA.to_owned(),
-                    out: a.out.display().to_string(),
+                    out: out.display().to_string(),
                 })
             );
             0
         }
         Ok(()) => {
-            println!("projection written to {}", a.out.display());
+            println!("projection written to {}", out.display());
             0
         }
         Err(e) => {
-            eprintln!("error: {}: {e}", a.out.display());
+            eprintln!("error: {}: {e}", out.display());
             2
         }
     }

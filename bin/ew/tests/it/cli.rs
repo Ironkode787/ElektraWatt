@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::process::Output;
 
 use crate::support::{
-    CONTENT, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr,
-    stdout, tree,
+    CONTENT, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr, stdout,
+    tree,
 };
 
 /// The QElectroTech project of the import tests.

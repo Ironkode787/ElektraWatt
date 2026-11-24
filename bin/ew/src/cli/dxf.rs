@@ -12,6 +12,8 @@ use ew_api::dxf::{DxfError, DxfOptions, Space, Unit};
 
 use super::open::{open_for_writing, project_dir};
 use super::revision::warn_unreleased;
+use super::tree::Leaf;
+use crate::catalogue::{Exit, exit};
 
 /// What a DXF drawing becomes (`--as`).
 #[derive(clap::ValueEnum, Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -185,12 +187,32 @@ pub(super) fn print_findings(entries: &[ew_api::import::ReportEntry]) {
     }
 }
 
+impl Leaf for ImportDxfArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "imported and saved, or the symbol drafts printed"),
+        exit(
+            2,
+            "usage, a refused file, a missing unit, open, write and save errors",
+        ),
+    ];
+}
+
 /// `ew import dxf`: exit 0 when imported (and saved), 2 on usage, a refused file, a refused import or a failed save.
 pub(super) fn run_import_dxf(a: &ImportDxfArgs) -> i32 {
     let Ok((name, bytes)) = read_input(&a.file) else {
         return 2;
     };
     import(a, "import dxf", &name, bytes, Vec::new())
+}
+
+impl Leaf for ImportDwgArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "converted and imported"),
+        exit(
+            2,
+            "usage, no converter, a failed or timed-out conversion, and as for `import dxf`",
+        ),
+    ];
 }
 
 /// `ew import dwg`: the drawing converted by the user's ODA File Converter (`--converter`, else `EW_DWG_CONVERTER`),
@@ -393,6 +415,13 @@ fn place(
     };
     println!("Placed {name} as an underlay on page {folio}, {kept}.");
     0
+}
+
+impl Leaf for ImportPdfArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "placed and saved"),
+        exit(2, "usage, a refused file or page, open and save errors"),
+    ];
 }
 
 /// `ew import pdf`: a PDF page as a locked underlay; exit 0 when placed and saved, 2 otherwise.

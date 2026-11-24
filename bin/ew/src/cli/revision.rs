@@ -31,6 +31,18 @@ pub(super) fn today() -> ew_api::catalog::Date {
         .unwrap_or_else(|| ew_api::catalog::Date::new(1980, 1, 1).expect("a valid date"))
 }
 
+impl Leaf for ApproveCli {
+    const EXITS: &'static [Exit] = HUMAN_EXITS;
+}
+
+impl Leaf for ReleaseCli {
+    const EXITS: &'static [Exit] = HUMAN_EXITS;
+}
+
+impl Leaf for WithdrawCli {
+    const EXITS: &'static [Exit] = HUMAN_EXITS;
+}
+
 /// `ew revision approve|release|withdraw`: the `HumanOnly` commands of the release workflow,
 /// each submitted from the confirmed origin only after the person types the revision label on a controlling terminal
 /// (doc 15 section 5.4, doc 17 section 2.3); without a terminal nothing is opened (exit 2).
@@ -551,50 +563,59 @@ mod tests {
     //! fixture in a fresh directory.
     use super::*;
 
-    fn parse(a: &[&str]) -> Result<Command, String> {
-        super::parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string())
+    /// What `ew revision` does and the project, as the run takes them, or clap's rendering of the line's error.
+    fn parse(a: &[&str]) -> Result<RevisionArgs, String> {
+        match super::parse(a.iter().map(|s| (*s).to_owned())) {
+            Ok(crate::cli::Top::Revision(r)) => Ok(match r {
+                RevisionCli::Approve(a) => a.revision(),
+                RevisionCli::Release(a) => a.revision(),
+                RevisionCli::Withdraw(a) => a.revision(),
+            }),
+            Ok(other) => panic!("not `revision`: {other:?}"),
+            Err(e) => Err(e.render().to_string()),
+        }
     }
 
     #[test]
     fn revision_subcommands_parse_their_label_role_reason_and_directory() {
         assert_eq!(
             parse(&["revision", "approve", "--as", "checker"]),
-            Ok(Command::Revision(RevisionArgs {
+            Ok(RevisionArgs {
                 action: RevisionAction::Approve {
                     role: "checker".into()
                 },
                 project: None,
-            }))
+            })
         );
         assert_eq!(
             parse(&["revision", "release", "V2.0", "p.ew"]),
-            Ok(Command::Revision(RevisionArgs {
+            Ok(RevisionArgs {
                 action: RevisionAction::Release {
                     label: "V2.0".into(),
                     archive_dir: None
                 },
                 project: Some(PathBuf::from("p.ew")),
-            }))
+            })
         );
         assert_eq!(
             parse(&["revision", "release", "V2.0", "--archive-dir", "out/archives"]),
-            Ok(Command::Revision(RevisionArgs {
+            Ok(RevisionArgs {
                 action: RevisionAction::Release {
                     label: "V2.0".into(),
                     archive_dir: Some(PathBuf::from("out/archives"))
                 },
                 project: None,
-            }))
+            })
         );
         assert_eq!(
             parse(&["revision", "withdraw", "V1.0", "--reason", "wrong terminals"]),
-            Ok(Command::Revision(RevisionArgs {
+            Ok(RevisionArgs {
                 action: RevisionAction::Withdraw {
                     label: "V1.0".into(),
                     reason: "wrong terminals".into()
                 },
                 project: None,
-            }))
+            })
         );
         for bad in [
             &["revision"][..],

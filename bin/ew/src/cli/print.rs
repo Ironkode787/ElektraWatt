@@ -5,9 +5,30 @@
 
 use super::*;
 
+impl Leaf for PrintCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "printed, opened in the viewer or written"),
+        exit(
+            2,
+            "usage, open, I/O and writer errors, an unknown folio or section, a refusal of the adapter",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::PrintResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.selection()?;
+        self.adapter().map(drop)
+    }
+}
+
 /// `ew print`: the print set of the selection, written to `--out` or handed to the adapter.
-pub(super) fn run_print(a: &PrintArgs) -> i32 {
+pub(super) fn run_print(a: &PrintCli) -> i32 {
     use ew_api::output::print::{Fit, PrintOptions};
+    let (pages, via) = match a.selection().and_then(|pages| Ok((pages, a.adapter()?))) {
+        Ok(line) => line,
+        Err(e) => return usage(&e),
+    };
+    let paper = a.paper.unwrap_or_default();
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
@@ -26,8 +47,8 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
         }
     };
     let options = PrintOptions {
-        pages: a.pages.clone(),
-        paper: a.paper,
+        pages,
+        paper,
         fit: if a.fit { Fit::ToPaper } else { Fit::Actual },
         monochrome: a.mono,
         date,
@@ -53,7 +74,7 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
         adapter: adapter.to_owned(),
         printer: a.printer.clone().unwrap_or_default(),
         pages: folios.clone(),
-        paper: a.paper.name().to_owned(),
+        paper: paper.name().to_owned(),
         scale,
         notices: notices.clone(),
         out,
@@ -84,7 +105,7 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
         monochrome: a.mono,
         cancel: ew_print::PrintCancel::default(),
     };
-    let adapter: Box<dyn ew_print::PrintAdapter> = match a.via {
+    let adapter: Box<dyn ew_print::PrintAdapter> = match via {
         PrintVia::Lp => Box::new(ew_print::Lp::new(std::env::temp_dir())),
         PrintVia::Viewer => Box::new(ew_print::Viewer::new(std::env::temp_dir(), &title)),
         // Ctrl+C aborts the document at the next band instead of ending the process mid-job.

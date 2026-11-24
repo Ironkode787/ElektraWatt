@@ -8,6 +8,10 @@ use super::*;
 /// The word a person types to confirm `ew project assets purge`.
 pub(super) const PURGE_WORD: &str = "purge";
 
+impl Leaf for AssetsPurgeArgs {
+    const EXITS: &'static [Exit] = HUMAN_EXITS;
+}
+
 /// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`), a `HumanOnly`
 /// command: the preview's list, then, after the word typed on a controlling terminal, the
 /// purge of exactly the listed files. `--preview` needs no terminal; without one the purge itself exits 2 before the
@@ -138,17 +142,21 @@ mod tests {
         let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         assert_eq!(
             parse(&["project", "assets", "purge"]),
-            Ok(Command::AssetsPurge(AssetsPurgeArgs {
-                project: crate::cli::ProjectArg(None),
-                preview: false,
-            }))
+            Ok(Top::Project(ProjectCli::Assets(AssetsCli::Purge(
+                AssetsPurgeArgs {
+                    project: crate::cli::ProjectArg(None),
+                    preview: false,
+                }
+            ))))
         );
         assert_eq!(
             parse(&["project", "assets", "purge", "p.ew", "--preview"]),
-            Ok(Command::AssetsPurge(AssetsPurgeArgs {
-                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
-                preview: true,
-            }))
+            Ok(Top::Project(ProjectCli::Assets(AssetsCli::Purge(
+                AssetsPurgeArgs {
+                    project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
+                    preview: true,
+                }
+            ))))
         );
         assert!(parse(&["project", "assets", "purge", "a", "b"]).is_err());
         assert!(parse(&["project", "assets", "purge", "--yes"]).is_err());

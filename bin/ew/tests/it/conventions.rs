@@ -513,8 +513,12 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         0,
     );
     assert!(index.parts > 0);
-    let list: results::LibListResult =
-        json_twice(&t, &args([&"lib", &"list", &"--json"]), results::LibListResult::SCHEMA, 0);
+    let list: results::LibListResult = json_twice(
+        &t,
+        &args([&"lib", &"list", &"--json"]),
+        results::LibListResult::SCHEMA,
+        0,
+    );
     assert!(list.libraries.iter().any(|l| l.key == "ew-starter"));
     let hits: results::LibSearchResult = json_twice(
         &t,
@@ -544,14 +548,23 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         matches!(parts.hits.first(), Some(results::LibHit::Part(_))),
         "{parts:?}"
     );
-    let fmt: results::FmtResult = json_twice(&t, &args([&"fmt", &p, &"--check", &"--json"]), results::FmtResult::SCHEMA, 0);
+    let fmt: results::FmtResult = json_twice(
+        &t,
+        &args([&"fmt", &p, &"--check", &"--json"]),
+        results::FmtResult::SCHEMA,
+        0,
+    );
     assert_eq!(
         (fmt.check, fmt.files.len(), fmt.kept.len()),
         (true, 0, 0),
         "{fmt:?}"
     );
-    let commands: results::CommandsResult =
-        json_twice(&t, &args([&"commands", &"--json"]), results::CommandsResult::SCHEMA, 0);
+    let commands: results::CommandsResult = json_twice(
+        &t,
+        &args([&"commands", &"--json"]),
+        results::CommandsResult::SCHEMA,
+        0,
+    );
     assert!(!commands.commands.is_empty());
     let qet = t.0.join("t.qet");
     std::fs::write(&qet, QET).unwrap();

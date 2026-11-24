@@ -5,10 +5,10 @@
 //! flags, its exit codes, its result schema and its stability.
 //!
 //! The paths and the flags (name, value, repetition) come from walking clap's tree in declaration order, skipping
-//! clap's own help and version; the exit codes and the result are [`TABLE`], one row per path; every path is
-//! [`Stability::Preview`] before 1.0. The tests below tie the table to the tree (every path has its row, every row names
-//! a path) and to the published result schemas ([`ew_api::cli_results::RESULTS`]). It is the source of the CLI
-//! snapshot and the CLI reference.
+//! clap's own help and version; the exit codes and the result of each path are its `Leaf` beside its run function
+//! (`cli/tree.rs`), which the walk reads as it goes ([`crate::cli::entries`]); every path is [`Stability::Preview`]
+//! before 1.0. The tests below tie the entries to the published result schemas ([`ew_api::cli_results::RESULTS`]).
+//! It is the source of the CLI snapshot and the CLI reference.
 
 /// One flag of a subcommand.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -37,18 +37,7 @@ pub enum Stability {
     Preview,
 }
 
-/// The hand-kept part of one subcommand path: what the tree cannot say.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Row {
-    /// The words after `ew` (`["export", "pdf"]`).
-    pub path: &'static [&'static str],
-    /// Its exit codes.
-    pub exits: &'static [Exit],
-    /// The schema name of its `--json` result (`ew.<command>-result/1`), or `None` when it prints none.
-    pub result: Option<&'static str>,
-}
-
-/// One subcommand path of the CLI: its words and flags from the tree, the rest from its [`Row`].
+/// One subcommand path of the CLI: its words and flags from the tree, its exits and result from its `Leaf`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Entry {
     /// The words after `ew`.
@@ -63,596 +52,93 @@ pub struct Entry {
     pub stability: Stability,
 }
 
-const fn exit(code: u8, meaning: &'static str) -> Exit {
+/// The exit code `code` with what it means for a subcommand.
+pub const fn exit(code: u8, meaning: &'static str) -> Exit {
     Exit { code, meaning }
 }
 
-const fn row(path: &'static [&'static str], exits: &'static [Exit], result: Option<&'static str>) -> Row {
-    Row { path, exits, result }
-}
-
-const OK: Exit = exit(0, "success");
-const USAGE_ETC: Exit = exit(2, "usage, open, I/O and every other error");
-const ROW_EXPORT_ERRORS: Exit = exit(
+/// Success.
+pub const OK: Exit = exit(0, "success");
+/// Every error of a subcommand that tells none apart.
+pub const USAGE_ETC: Exit = exit(2, "usage, open, I/O and every other error");
+/// The errors of a row export of one block.
+pub const ROW_EXPORT_ERRORS: Exit = exit(
     2,
     "usage and open errors, a project without the block, an unknown or wrong block",
 );
-const HUMAN_EXITS: &[Exit] = &[
+/// The exits of a human-only subcommand.
+pub const HUMAN_EXITS: &[Exit] = &[
     exit(0, "confirmed, done and saved"),
     exit(1, "refused or not confirmed"),
     exit(2, "usage, no controlling terminal, open and save errors"),
 ];
 
-/// The exits and results of every subcommand path of the tree, in its order.
-pub const TABLE: &[Row] = &[
-    row(&["symbol", "template"], &[OK, USAGE_ETC], None),
-    row(&["symbol", "schema"], &[OK, USAGE_ETC], None),
-    row(
-        &["symbol", "validate"],
-        &[OK, exit(1, "invalid draft"), USAGE_ETC],
-        None,
-    ),
-    row(&["symbol", "import"], &[OK, USAGE_ETC], None),
-    row(
-        &["symbol", "publish"],
-        &[OK, exit(1, "invalid draft"), USAGE_ETC],
-        None,
-    ),
-    row(
-        &["import", "qet"],
-        &[
-            exit(0, "imported, even with findings"),
-            exit(
-                1,
-                "the model check failed, or `--strict` with lost connections or error findings",
-            ),
-            USAGE_ETC,
-        ],
-        Some(ew_api::cli_results::ImportQetResult::SCHEMA),
-    ),
-    row(
-        &["import", "parts"],
-        &[exit(0, "imported and saved"), USAGE_ETC],
-        Some(ew_api::cli_results::ImportPartsResult::SCHEMA),
-    ),
-    row(
-        &["import", "csv"],
-        &[
-            exit(0, "written, with its findings"),
-            exit(
-                1,
-                "nothing written: `--strict` refused error findings, or the records do not make a project",
-            ),
-            exit(
-                2,
-                "usage, starter content, an unreadable table, an `--out` that holds something, write errors",
-            ),
-        ],
-        Some(ew_api::cli_results::ImportCsvResult::SCHEMA),
-    ),
-    row(
-        &["import", "table"],
-        &[
-            exit(0, "previewed, and with `--apply` applied and saved"),
-            exit(
-                2,
-                "usage, open, read and save errors, a file without a table or of another project",
-            ),
-        ],
-        Some(ew_api::cli_results::ImportTableResult::SCHEMA),
-    ),
-    row(
-        &["import", "dxf"],
-        &[
-            exit(0, "imported and saved, or the symbol drafts printed"),
-            exit(
-                2,
-                "usage, a refused file, a missing unit, open, write and save errors",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["import", "dwg"],
-        &[
-            exit(0, "converted and imported"),
-            exit(
-                2,
-                "usage, no converter, a failed or timed-out conversion, and as for `import dxf`",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["import", "edz"],
-        &[
-            exit(
-                0,
-                "imported into the library, or the update of the part copies previewed or committed and saved",
-            ),
-            exit(
-                2,
-                "usage, a refused file, a refused library write, open and save errors",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["import", "parts-xml"],
-        &[
-            exit(
-                0,
-                "imported into the library, or the update of the part copies previewed or committed and saved",
-            ),
-            exit(
-                2,
-                "usage, a refused file, a refused library write, open and save errors",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["import", "eplan-report"],
-        &[
-            exit(0, "written, with its findings"),
-            exit(
-                2,
-                "usage, a table the mapping does not fit, an `--out` that holds something, write errors",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["import", "pdf"],
-        &[
-            exit(0, "placed and saved"),
-            exit(2, "usage, a refused file or page, open and save errors"),
-        ],
-        None,
-    ),
-    row(
-        &["import", "plc-aml"],
-        &[
-            exit(0, "previewed, and with `--accept` applied and saved"),
-            exit(
-                2,
-                "usage, open, read and save errors, a file that is no AML file, a refused choice",
-            ),
-        ],
-        Some(ew_api::cli_results::ImportPlcResult::AML),
-    ),
-    row(
-        &["import", "plc-xlsx"],
-        &[
-            exit(0, "previewed, and with `--accept` applied and saved"),
-            exit(
-                2,
-                "usage, open, read and save errors, a workbook without a tag table, a refused choice",
-            ),
-        ],
-        Some(ew_api::cli_results::ImportPlcResult::XLSX),
-    ),
-    row(&["import", "instrument-list"], &[OK, USAGE_ETC], None),
-    row(
-        &["plc", "status"],
-        &[exit(0, "the status printed"), exit(2, "usage and open errors")],
-        Some(ew_api::cli_results::PlcStatusResult::SCHEMA),
-    ),
-    row(
-        &["check"],
-        &[
-            exit(0, "no unwaived error"),
-            exit(1, "unwaived errors"),
-            exit(2, "usage and open errors"),
-        ],
-        Some(ew_api::cli_results::CHECK),
-    ),
-    row(
-        &["sql"],
-        &[OK, exit(2, "usage, open and SQL errors, denials and limits")],
-        Some(ew_api::cli_results::SQL),
-    ),
-    row(
-        &["sql", "dump"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::SqlDumpResult::SCHEMA),
-    ),
-    row(&["sql", "schema"], &[OK], None),
-    row(
-        &["export", "cables"],
-        &[OK, ROW_EXPORT_ERRORS],
-        Some(ew_api::cli_results::ExportRowsResult::CABLES),
-    ),
-    row(
-        &["export", "bom"],
-        &[OK, ROW_EXPORT_ERRORS],
-        Some(ew_api::cli_results::ExportRowsResult::BOM),
-    ),
-    row(
-        &["export", "wires"],
-        &[OK, ROW_EXPORT_ERRORS],
-        Some(ew_api::cli_results::ExportRowsResult::WIRES),
-    ),
-    row(
-        &["export", "terminals"],
-        &[
-            OK,
-            exit(
-                2,
-                "usage and open errors, a project without the block, an unknown or wrong block, an unknown strip",
-            ),
-        ],
-        Some(ew_api::cli_results::ExportTerminalsResult::SCHEMA),
-    ),
-    row(
-        &["export", "report"],
-        &[
-            OK,
-            exit(
-                2,
-                "usage, open, I/O and writer errors, an unknown block, a block without rows or pages",
-            ),
-        ],
-        Some(ew_api::cli_results::ExportReportResult::SCHEMA),
-    ),
-    row(
-        &["export", "table"],
-        &[
-            OK,
-            exit(
-                2,
-                "usage, open, I/O and writer errors, an unknown navigator or strip",
-            ),
-        ],
-        Some(ew_api::cli_results::ExportTableResult::SCHEMA),
-    ),
-    row(
-        &["export", "pdf"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::ExportPdfResult::SCHEMA),
-    ),
-    row(
-        &["export", "svg"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::ExportSvgResult::SCHEMA),
-    ),
-    row(
-        &["export", "png"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::ExportPngResult::SCHEMA),
-    ),
-    row(
-        &["export", "dxf"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::ExportDxfResult::SCHEMA),
-    ),
-    row(&["export", "plc-aml"], &[OK, USAGE_ETC], None),
-    row(&["export", "plc-xlsx"], &[OK, USAGE_ETC], None),
-    row(&["export", "plcopen"], &[OK, USAGE_ETC], None),
-    row(
-        &["export", "ewz"],
-        &[
-            exit(0, "written"),
-            exit(
-                2,
-                "usage, open and write errors, a project changed on disk or one that cannot be packed",
-            ),
-        ],
-        Some(ew_api::cli_results::ExportEwzResult::SCHEMA),
-    ),
-    row(
-        &["extract"],
-        &[
-            exit(0, "extracted"),
-            exit(
-                2,
-                "usage, an unreadable or refused archive, an existing folder, write errors",
-            ),
-        ],
-        Some(ew_api::cli_results::ExtractResult::SCHEMA),
-    ),
-    row(
-        &["print"],
-        &[
-            exit(0, "printed, opened in the viewer or written"),
-            exit(
-                2,
-                "usage, open, I/O and writer errors, an unknown folio or section, a refusal of the adapter",
-            ),
-        ],
-        Some(ew_api::cli_results::PrintResult::SCHEMA),
-    ),
-    row(
-        &["render"],
-        &[
-            OK,
-            exit(2, "usage, open, I/O and writer errors, an unknown folio"),
-        ],
-        Some(ew_api::cli_results::RenderResult::SCHEMA),
-    ),
-    row(
-        &["apply"],
-        &[
-            exit(0, "every line commits"),
-            exit(1, "a prevent or domain rule refuses a line"),
-            exit(
-                2,
-                "usage, a malformed log, an unresolvable reference, a refused command, open, lock and save errors",
-            ),
-        ],
-        Some(ew_api::cli_results::ApplyResult::SCHEMA),
-    ),
-    row(
-        &["fmt"],
-        &[
-            exit(
-                0,
-                "every file is canonical, or the files were rewritten and saved; repaired, or nothing to repair",
-            ),
-            exit(1, "`--check` found files to rewrite"),
-            exit(
-                2,
-                "usage, open, lock, a crashed session's journal, a content change and save errors; a repair refused \
-                 before writing, its save failed, or its re-open found a finding (the new generation and the backup \
-                 stay)",
-            ),
-        ],
-        Some(ew_api::cli_results::FmtResult::SCHEMA),
-    ),
-    row(
-        &["recover"],
-        &[
-            exit(0, "summarised, replayed and saved, discarded, or no journal"),
-            exit(
-                1,
-                "the replay refused, or its upgrade or the discard not confirmed",
-            ),
-            exit(2, "usage, no controlling terminal, lock, open and save errors"),
-        ],
-        Some(ew_api::cli_results::RecoverResult::SCHEMA),
-    ),
-    row(
-        &["upgrade"],
-        &[
-            exit(0, "upgraded, backed up and saved, or nothing to upgrade"),
-            exit(
-                1,
-                "`--check` found an upgrade needed, or the upgrade not confirmed",
-            ),
-            exit(
-                2,
-                "usage, no controlling terminal without `--yes`, lock, a crashed session's journal, open, backup and \
-                 save errors",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["update-copies"],
-        &[
-            exit(
-                0,
-                "every damaged library copy updated and the project opens for editing, or none damaged",
-            ),
-            exit(1, "refused, or a copy stays damaged"),
-            exit(2, "usage, open and save errors"),
-        ],
-        None,
-    ),
-    row(&["project", "checks", "set"], HUMAN_EXITS, None),
-    row(&["project", "assets", "purge"], HUMAN_EXITS, None),
-    row(&["revision", "approve"], HUMAN_EXITS, None),
-    row(&["revision", "release"], HUMAN_EXITS, None),
-    row(&["revision", "withdraw"], HUMAN_EXITS, None),
-    row(
-        &["verify-derived"],
-        &[
-            exit(0, "no difference"),
-            exit(1, "differences"),
-            exit(2, "usage and open errors"),
-        ],
-        Some(ew_api::cli_results::VerifyDerivedResult::SCHEMA),
-    ),
-    row(
-        &["verify-migration"],
-        &[
-            exit(0, "only the expected deltas"),
-            exit(1, "other deviations, or an expected delta not found"),
-            exit(2, "usage, open and read errors"),
-        ],
-        Some(ew_api::cli_results::VerifyMigrationResult::SCHEMA),
-    ),
-    row(
-        &["query"],
-        &[
-            exit(0, "answered"),
-            exit(
-                2,
-                "usage, an unknown query, open errors, a key that names no record or one of another kind",
-            ),
-        ],
-        Some(ew_api::cli_results::QueryResult::SCHEMA),
-    ),
-    row(
-        &["queries"],
-        &[OK],
-        Some(ew_api::cli_results::QueriesResult::SCHEMA),
-    ),
-    row(
-        &["route"],
-        &[
-            exit(0, "every wire it routes is routed"),
-            exit(1, "a wire stays unrouted"),
-            exit(
-                2,
-                "usage, open, an unknown folio, a refused command and save errors",
-            ),
-        ],
-        Some(ew_api::cli_results::RouteResult::SCHEMA),
-    ),
-    row(
-        &["layout"],
-        &[
-            exit(0, "measured"),
-            exit(2, "usage and open errors, a folio that names no drawn page"),
-        ],
-        Some(ew_api::cli_results::LayoutResult::SCHEMA),
-    ),
-    row(
-        &["lib", "list"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LibListResult::SCHEMA),
-    ),
-    row(
-        &["lib", "search"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LibSearchResult::SCHEMA),
-    ),
-    row(
-        &["lib", "index"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LibIndexResult::SCHEMA),
-    ),
-    row(
-        &["lib", "create"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LibCreateResult::SCHEMA),
-    ),
-    row(
-        &["lib", "import", "parts"],
-        &[OK, USAGE_ETC],
-        Some(ew_api::cli_results::LibImportPartsResult::SCHEMA),
-    ),
-    row(
-        &["lib", "import", "qet-elements"],
-        &[
-            exit(0, "converted and written, files that cannot be converted listed"),
-            USAGE_ETC,
-        ],
-        Some(ew_api::cli_results::LibImportQetElementsResult::SCHEMA),
-    ),
-    row(
-        &["commands"],
-        &[OK],
-        Some(ew_api::cli_results::CommandsResult::SCHEMA),
-    ),
-    row(&["schema"], &[OK, exit(2, "usage, an unknown schema name")], None),
-    row(
-        &["merge", "resolve"],
-        &[
-            exit(0, "resolved and saved"),
-            exit(
-                1,
-                "`merge.resolve` refused: theirs does not make a valid record, a file's lines do not read",
-            ),
-            exit(
-                2,
-                "usage (no conflict record selected), open, lock, a crashed session's journal and save errors",
-            ),
-        ],
-        Some(ew_api::cli_results::MergeResolveResult::SCHEMA),
-    ),
-    row(
-        &["merge-driver"],
-        &[
-            exit(0, "merged cleanly into `%A`"),
-            exit(
-                1,
-                "conflict records written, or `%A` left as ours: a side or the merged file above the reader's limits, a \
-                 side in a newer format, or a side holding records this version cannot read",
-            ),
-            exit(
-                129,
-                "an internal error or a usage error: a file that cannot be read or written, a failure in the merge, \
-                 clap's usage text (`%A` as it was)",
-            ),
-        ],
-        None,
-    ),
-    row(
-        &["diff"],
-        &[
-            exit(
-                0,
-                "the sides are equal, or differ without `--exit-code`; `--textconv` printed",
-            ),
-            exit(1, "the sides differ, with `--exit-code`"),
-            exit(2, "usage and open errors, a git side that cannot be read"),
-        ],
-        Some(ew_api::cli_results::DiffResult::SCHEMA),
-    ),
-    row(
-        &["git", "setup"],
-        &[
-            exit(0, "configured"),
-            exit(
-                2,
-                "no consent (no terminal and no `--yes`, or declined), not in a git worktree, git missing or refusing, \
-                 a post-merge hook ElektraWatt did not write, write errors",
-            ),
-        ],
-        None,
-    ),
-];
+/// The subcommands of `cmd` (a built command) in declaration order; clap's `help` subcommand is skipped.
+pub fn subcommands(cmd: &clap::Command) -> impl Iterator<Item = &clap::Command> {
+    cmd.get_subcommands().filter(|s| s.get_name() != "help")
+}
 
-/// The subcommand paths of `cmd` (a built command) with their flags: a command is a path when it has no subcommands
-/// or does not require one (`sql` and its `dump` and `schema`); clap's `help` subcommand is skipped.
-fn walk(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<(Vec<String>, Vec<Flag>)>) {
-    let subcommands: Vec<&clap::Command> = cmd.get_subcommands().filter(|s| s.get_name() != "help").collect();
-    if !path.is_empty() && (subcommands.is_empty() || !cmd.is_subcommand_required_set()) {
-        let flags = cmd
-            .get_arguments()
-            .filter(|a| !a.is_positional() && !a.is_hide_set())
-            // clap's injected help and version, by their action: a user flag may be called `--version`.
-            .filter(|a| {
-                !matches!(
-                    a.get_action(),
-                    clap::ArgAction::Help
-                        | clap::ArgAction::HelpShort
-                        | clap::ArgAction::HelpLong
-                        | clap::ArgAction::Version
-                )
-            })
-            .filter_map(|a| {
-                a.get_long().map(|long| Flag {
-                    name: format!("--{long}"),
-                    value: a.get_action().takes_values(),
-                    repeatable: matches!(a.get_action(), clap::ArgAction::Append),
-                })
-            })
-            .collect();
-        out.push((path.clone(), flags));
-    }
-    for sub in subcommands {
-        path.push(sub.get_name().to_owned());
-        walk(sub, path, out);
-        path.pop();
+/// The entries of the node `N` whose clap command is `cmd`, a subcommand below `path`.
+///
+/// # Panics
+///
+/// When the group has fewer subcommands than variants: the tree and its enum are one declaration, so it does not.
+pub fn below<N: crate::cli::tree::Node>(
+    cmd: Option<&clap::Command>,
+    path: &mut Vec<String>,
+    out: &mut Vec<Entry>,
+) {
+    let cmd = cmd.expect("a variant of a group without its subcommand");
+    path.push(cmd.get_name().to_owned());
+    N::entries(cmd, path, out);
+    path.pop();
+}
+
+/// The entry of the subcommand path `path` whose clap command is `cmd` (built), with its exits and result: its flags
+/// in declaration order, clap's help and version and the hidden flags skipped; a parent's global flags (`lib
+/// --company`, `--json`) follow its own.
+pub fn entry(
+    cmd: &clap::Command,
+    path: &[String],
+    exits: &'static [Exit],
+    result: Option<&'static str>,
+) -> Entry {
+    Entry {
+        path: path.to_vec(),
+        flags: flags(cmd),
+        exits,
+        result,
+        stability: Stability::Preview,
     }
 }
 
-/// The CLI catalogue: every subcommand path of the tree in declaration order, with its row of [`TABLE`] (the tests
-/// below give every path its row).
-pub fn catalogue() -> Vec<Entry> {
-    let mut cmd = crate::cli::command();
-    cmd.build();
-    let mut paths = Vec::new();
-    walk(&cmd, &mut Vec::new(), &mut paths);
-    paths
-        .into_iter()
-        .map(|(path, flags)| {
-            let row = TABLE
-                .iter()
-                .find(|r| r.path.iter().copied().eq(path.iter().map(String::as_str)))
-                .unwrap_or_else(|| panic!("`ew {}` has no row in the CLI table", path.join(" ")));
-            Entry {
-                path,
-                flags,
-                exits: row.exits,
-                result: row.result,
-                stability: Stability::Preview,
-            }
+/// The flags of `cmd`, as [`entry`] lists them.
+fn flags(cmd: &clap::Command) -> Vec<Flag> {
+    cmd.get_arguments()
+        .filter(|a| !a.is_positional() && !a.is_hide_set())
+        // clap's injected help and version, by their action: a user flag may be called `--version`.
+        .filter(|a| {
+            !matches!(
+                a.get_action(),
+                clap::ArgAction::Help
+                    | clap::ArgAction::HelpShort
+                    | clap::ArgAction::HelpLong
+                    | clap::ArgAction::Version
+            )
+        })
+        .filter_map(|a| {
+            a.get_long().map(|long| Flag {
+                name: format!("--{long}"),
+                value: a.get_action().takes_values(),
+                repeatable: matches!(a.get_action(), clap::ArgAction::Append),
+            })
         })
         .collect()
+}
+
+/// The CLI catalogue: every subcommand path of the tree in declaration order, with its exits and result.
+pub fn catalogue() -> Vec<Entry> {
+    crate::cli::entries()
 }
 
 #[cfg(test)]
@@ -661,29 +147,30 @@ mod tests {
 
     use super::*;
 
-    /// Every path of the tree has its row and every row names a path of the tree, each once.
+    /// The entries are the paths of clap's tree, each once: a command is a path when it has no subcommands or does
+    /// not require one (`sql` and its `dump` and `schema`), so a structure with subcommands names them as its own
+    /// (`Leaf::below`) and a group of required subcommands is no path.
     #[test]
-    fn every_path_of_the_tree_has_one_row_of_the_table() {
+    fn the_entries_are_the_paths_of_the_tree() {
+        fn walk(cmd: &clap::Command, path: &mut Vec<String>, out: &mut BTreeSet<Vec<String>>) {
+            let subs: Vec<&clap::Command> = subcommands(cmd).collect();
+            if !path.is_empty() && (subs.is_empty() || !cmd.is_subcommand_required_set()) {
+                out.insert(path.clone());
+            }
+            for sub in subs {
+                path.push(sub.get_name().to_owned());
+                walk(sub, path, out);
+                path.pop();
+            }
+        }
         let mut cmd = crate::cli::command();
         cmd.build();
-        let mut walked = Vec::new();
-        walk(&cmd, &mut Vec::new(), &mut walked);
-        let tree: BTreeSet<Vec<String>> = walked.into_iter().map(|(path, _)| path).collect();
-        let table: BTreeSet<Vec<String>> = TABLE
-            .iter()
-            .map(|r| r.path.iter().map(|w| (*w).to_owned()).collect())
-            .collect();
-        assert_eq!(table.len(), TABLE.len(), "a path twice in the table");
-        assert!(
-            table.is_subset(&tree),
-            "rows without a path: {:?}",
-            table.difference(&tree)
-        );
-        assert!(
-            tree.is_subset(&table),
-            "paths without a row: {:?}",
-            tree.difference(&table)
-        );
+        let mut tree = BTreeSet::new();
+        walk(&cmd, &mut Vec::new(), &mut tree);
+        let entries = catalogue();
+        let listed: BTreeSet<Vec<String>> = entries.iter().map(|e| e.path.clone()).collect();
+        assert_eq!(listed.len(), entries.len(), "a path twice");
+        assert_eq!(listed, tree);
         assert!(
             tree.contains(&vec!["sql".to_owned()]),
             "`sql` takes a query and has subcommands"
@@ -745,8 +232,8 @@ mod tests {
         assert_eq!(flags("schema"), []);
     }
 
-    /// The walk skips clap's help and version by their action, so a user flag with the id `version` and a
-    /// `SetTrue` action stays in it, and clap's own `--help` and `--version` do not.
+    /// The flags skip clap's help and version by their action, so a user flag with the id `version` and a
+    /// `SetTrue` action stays in them, and clap's own `--help` and `--version` do not.
     #[test]
     fn the_walk_keeps_a_user_flag_named_version() {
         let mut cmd = clap::Command::new("t").version("1").subcommand(
@@ -757,13 +244,13 @@ mod tests {
             ),
         );
         cmd.build();
-        let mut walked = Vec::new();
-        walk(&cmd, &mut Vec::new(), &mut walked);
-        let names: Vec<(Vec<String>, Vec<String>)> = walked
-            .into_iter()
-            .map(|(path, flags)| (path, flags.into_iter().map(|f| f.name).collect()))
+        let names: Vec<(String, Vec<String>)> = subcommands(&cmd)
+            .map(|sub| {
+                let flags = flags(sub).into_iter().map(|f| f.name).collect();
+                (sub.get_name().to_owned(), flags)
+            })
             .collect();
-        assert_eq!(names, [(vec!["create".to_owned()], vec!["--version".to_owned()])]);
+        assert_eq!(names, [("create".to_owned(), vec!["--version".to_owned()])]);
     }
 
     /// Every result-printing entry takes `--json` and names a published schema whose subcommand is the entry's path;

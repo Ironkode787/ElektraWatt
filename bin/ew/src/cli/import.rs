@@ -17,6 +17,17 @@ pub(super) fn import_table_error_line(e: &ew_api::output::TableImportError) -> S
     format!("error: {first}{}", chars.as_str())
 }
 
+impl Leaf for ImportTableArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "previewed, and with `--apply` applied and saved"),
+        exit(
+            2,
+            "usage, open, read and save errors, a file without a table or of another project",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ImportTableResult::SCHEMA);
+}
+
 /// `ew import table`: the preview of a round-trip file against the project, and with `--apply` its one
 /// `fields.set_many` committed and the project saved.
 pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
@@ -341,6 +352,11 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
     0
 }
 
+impl Leaf for ImportPartsArgs {
+    const EXITS: &'static [Exit] = &[exit(0, "imported and saved"), USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::ImportPartsResult::SCHEMA);
+}
+
 pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
@@ -577,6 +593,28 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         return 2;
     }
     i32::from(a.strict && (violated > 0 || refused > 0))
+}
+
+impl Leaf for ImportQetArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "imported, even with findings"),
+        exit(
+            1,
+            "the model check failed, or `--strict` with lost connections or error findings",
+        ),
+        USAGE_ETC,
+    ];
+    const RESULT: Option<&'static str> = Some(results::ImportQetResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        if self.json && self.report.is_some() && self.report_out.is_none() {
+            return Err(usage_error(
+                &["import", "qet"],
+                "`--json` prints the result on stdout: give the report a file with `--report-out <file>`",
+            ));
+        }
+        Ok(())
+    }
 }
 
 pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
@@ -859,6 +897,21 @@ pub(super) fn run_reimport_qet(
     }
     session.close();
     0
+}
+
+impl Leaf for ImportCsvArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written, with its findings"),
+        exit(
+            1,
+            "nothing written: `--strict` refused error findings, or the records do not make a project",
+        ),
+        exit(
+            2,
+            "usage, starter content, an unreadable table, an `--out` that holds something, write errors",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ImportCsvResult::SCHEMA);
 }
 
 /// `ew import csv`: the tables of the `ew` dialect in a directory with the starter content as a new

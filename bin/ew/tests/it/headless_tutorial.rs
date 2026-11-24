@@ -7,7 +7,7 @@
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared
 //! whole; a line `...` stands for any lines, and a command without lines below it is only run.
 
-use crate::support::{Tmp};
+use crate::support::Tmp;
 
 const PAGE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

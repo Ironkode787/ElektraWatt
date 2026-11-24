@@ -8,7 +8,9 @@ use std::path::PathBuf;
 
 use ew_api::eplan;
 
+use super::tree::Leaf;
 use super::{library::index_warning, library::open_libraries, open::project_dir};
+use crate::catalogue::{Exit, exit};
 
 /// The arguments of `ew import edz` and `ew import parts-xml`.
 #[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
@@ -92,6 +94,16 @@ pub struct ImportEplanReportArgs {
     pub key: Option<String>,
 }
 
+impl Leaf for ImportEplanReportArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written, with its findings"),
+        exit(
+            2,
+            "usage, a table the mapping does not fit, an `--out` that holds something, write errors",
+        ),
+    ];
+}
+
 /// `ew import eplan-report`: a report export as a new project without drawings.
 pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
     let (map, default_key) = match (&a.map, &a.preset) {
@@ -168,6 +180,20 @@ pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
             2
         }
     }
+}
+
+/// `import edz` and `import parts-xml` say the same.
+impl Leaf for ImportEplanPartsArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(
+            0,
+            "imported into the library, or the update of the part copies previewed or committed and saved",
+        ),
+        exit(
+            2,
+            "usage, a refused file, a refused library write, open and save errors",
+        ),
+    ];
 }
 
 /// `ew import edz` and `ew import parts-xml`: a file that is an EDZ, whatever the subcommand and the file's name,

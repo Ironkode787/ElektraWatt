@@ -97,23 +97,54 @@ fn the_help_names_the_release_record_as_the_users() {
 
 use super::*;
 
-/// The command of a line, or clap's rendering of its error.
-fn p(args: &[&str]) -> Result<Command, String> {
+/// The subcommand of a line, or clap's rendering of its error.
+fn p(args: &[&str]) -> Result<Top, String> {
     parse(args.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string())
 }
 
 /// clap's whole rendering of a usage error of the subcommand whose usage line is `usage`.
-fn usage_error(message: &str, usage: &str) -> Result<Command, String> {
+fn usage_error(message: &str, usage: &str) -> Result<Top, String> {
     Err(format!(
         "error: {message}\n\nUsage: {usage}\n\nFor more information, try '--help'.\n"
     ))
 }
 
 /// clap's whole rendering of a value that the flag's value parser refuses with `message`.
-fn invalid(value: &str, flag: &str, message: &str) -> Result<Command, String> {
+fn invalid(value: &str, flag: &str, message: &str) -> Result<Top, String> {
     Err(format!(
         "error: invalid value '{value}' for '{flag}': {message}\n\nFor more information, try '--help'.\n"
     ))
+}
+
+/// The row export of a line (`export cables|bom|wires|terminals|report`), as its run takes it.
+fn rows(args: &[&str]) -> ExportArgs {
+    match p(args) {
+        Ok(Top::Export(e)) => match e {
+            ExportCli::Cables(a) => a.rows.export("cables", ExportKind::Cables),
+            ExportCli::Wires(a) => a.rows.export("wires", ExportKind::Wires),
+            ExportCli::Bom(a) => a.export(),
+            ExportCli::Terminals(a) => a.export(),
+            ExportCli::Report(a) => a.export(),
+            other => panic!("not a row export: {other:?}"),
+        }
+        .expect("a checked line"),
+        other => panic!("{args:?}: parse failed: {other:?}"),
+    }
+}
+
+/// The page export of a line (`export pdf|svg|png|dxf`), as its run takes it.
+fn pages(args: &[&str]) -> ExportPagesArgs {
+    match p(args) {
+        Ok(Top::Export(e)) => match e {
+            ExportCli::Pdf(a) => a.pages.export(PageFormat::Pdf),
+            ExportCli::Svg(a) => a.pages.export(PageFormat::Svg),
+            ExportCli::Png(a) => a.export(),
+            ExportCli::Dxf(a) => a.export(),
+            other => panic!("not a page export: {other:?}"),
+        }
+        .expect("a checked line"),
+        other => panic!("{args:?}: parse failed: {other:?}"),
+    }
 }
 
 /// `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, `windows` on
@@ -130,41 +161,59 @@ fn print_lowers_its_flags_and_resolves_the_adapter() {
     } else {
         PrintVia::Viewer
     };
+    let Ok(Top::Print(a)) = p(&[
+        "print",
+        "proj",
+        "--sections",
+        "1,2",
+        "--paper",
+        "A5",
+        "--fit",
+        "--mono",
+        "--out",
+        "p.pdf",
+    ]) else {
+        panic!("`print`");
+    };
     assert_eq!(
-        p(&[
-            "print",
-            "proj",
-            "--sections",
-            "1,2",
-            "--paper",
-            "A5",
-            "--fit",
-            "--mono",
-            "--out",
-            "p.pdf"
-        ]),
-        Ok(Command::Print(PrintArgs {
-            project: Some(PathBuf::from("proj")),
-            pages: PageSelection::Sections(vec!["1".to_owned(), "2".to_owned()]),
-            paper: Paper::A5,
-            fit: true,
-            mono: true,
-            printer: None,
-            via: default,
-            out: Some(PathBuf::from("p.pdf")),
-            json: false,
-        }))
+        (
+            a.project.0.clone(),
+            a.selection().unwrap(),
+            a.paper.unwrap_or_default(),
+            a.fit,
+            a.mono,
+            a.printer.clone(),
+            a.adapter().unwrap(),
+            a.out.clone(),
+            a.json
+        ),
+        (
+            Some(PathBuf::from("proj")),
+            PageSelection::Sections(vec!["1".to_owned(), "2".to_owned()]),
+            Paper::A5,
+            true,
+            true,
+            None,
+            default,
+            Some(PathBuf::from("p.pdf")),
+            false
+        )
     );
-    let Ok(Command::Print(a)) = p(&["print", "--via", "lp", "--printer", "office"]) else {
+    let Ok(Top::Print(a)) = p(&["print", "--via", "lp", "--printer", "office"]) else {
         panic!("`--via lp --printer`");
     };
     assert_eq!(
-        (a.via, a.printer.as_deref(), a.paper, a.pages),
+        (
+            a.adapter().unwrap(),
+            a.printer.as_deref(),
+            a.paper.unwrap_or_default(),
+            a.selection().unwrap()
+        ),
         (PrintVia::Lp, Some("office"), Paper::Sheet, PageSelection::All)
     );
     let printer = p(&["print", "--printer", "office"]);
     if cfg!(any(target_os = "linux", windows)) {
-        assert!(matches!(printer, Ok(Command::Print(_))));
+        assert!(matches!(printer, Ok(Top::Print(_))));
     } else {
         assert_eq!(
             printer,
@@ -187,10 +236,13 @@ fn print_lowers_its_flags_and_resolves_the_adapter() {
     let windows = p(&["print", "--via", "windows", "--printer", "office"]);
     #[cfg(windows)]
     {
-        let Ok(Command::Print(a)) = windows else {
+        let Ok(Top::Print(a)) = windows else {
             panic!("`--via windows --printer`: {windows:?}");
         };
-        assert_eq!((a.via, a.printer.as_deref()), (PrintVia::Windows, Some("office")));
+        assert_eq!(
+            (a.adapter().unwrap(), a.printer.as_deref()),
+            (PrintVia::Windows, Some("office"))
+        );
     }
     #[cfg(not(windows))]
     assert_eq!(
@@ -207,9 +259,7 @@ fn print_lowers_its_flags_and_resolves_the_adapter() {
             "ew print --out <file> [project-dir]"
         )
     );
-    let Ok(Command::ExportPages(png)) = p(&["export", "png", "--out", "d", "--sections", "9"]) else {
-        panic!("`export png --sections`");
-    };
+    let png = pages(&["export", "png", "--out", "d", "--sections", "9"]);
     assert_eq!(png.pages, PageSelection::Sections(vec!["9".to_owned()]));
     assert_eq!(
         p(&["export", "svg", "--out", "d", "--sections", "1,,2"]),
@@ -327,10 +377,10 @@ fn a_double_dash_word_in_a_hyphen_positional_is_a_mistyped_option() {
         );
         assert_eq!(e(args).exit_code(), 2, "{args:?}");
     }
-    let Ok(Command::Lib(l)) = p(&["lib", "search", "-X1"]) else {
+    let Ok(Top::Lib(l)) = p(&["lib", "search", "-X1"]) else {
         panic!("a search text starting with one `-`");
     };
-    let LibAction::Search { text, .. } = l.action else {
+    let LibSub::Search(SearchCli { text, .. }) = l.action else {
         panic!("`lib search`");
     };
     assert_eq!(text, "-X1");
@@ -391,19 +441,25 @@ fn a_usage_error_of_merge_driver_exits_129_and_of_another_command_2() {
 #[test]
 fn merge_driver_takes_a_leading_hyphen_and_names_a_missing_p() {
     let driver = |path: &str| {
-        Ok(Command::MergeDriver(merge_driver::MergeDriverArgs {
-            base: PathBuf::from("-o"),
-            ours: PathBuf::from("-a"),
-            theirs: PathBuf::from("-b"),
-            path: path.to_owned(),
-        }))
+        (
+            PathBuf::from("-o"),
+            PathBuf::from("-a"),
+            PathBuf::from("-b"),
+            path.to_owned(),
+        )
+    };
+    let line = |args: &[&str]| {
+        let Ok(Top::MergeDriver(a)) = p(args) else {
+            panic!("{args:?}");
+        };
+        (a.base.clone(), a.ours.clone(), a.theirs.clone(), a.repo_path())
     };
     assert_eq!(
-        p(&["merge-driver", "-o", "-a", "-b", "7", "-old.ew/pages/x.jsonl"]),
+        line(&["merge-driver", "-o", "-a", "-b", "7", "-old.ew/pages/x.jsonl"]),
         driver("-old.ew/pages/x.jsonl")
     );
     assert_eq!(
-        p(&["merge-driver", "-o", "-a", "-b", "-old.ew/manifest.json"]),
+        line(&["merge-driver", "-o", "-a", "-b", "-old.ew/manifest.json"]),
         driver("-old.ew/manifest.json")
     );
     assert_eq!(
@@ -419,9 +475,7 @@ fn merge_driver_takes_a_leading_hyphen_and_names_a_missing_p() {
 /// error, `--company` accumulates, another flag is last-wins; a bare `--` ends the options.
 #[test]
 fn the_grammar_of_values_repeats_and_the_option_end() {
-    let Ok(Command::Export(t)) = p(&["export", "terminals", "--strip", "--json"]) else {
-        panic!("a value starting with `-`");
-    };
+    let t = rows(&["export", "terminals", "--strip", "--json"]);
     assert_eq!(
         (t.kind, t.json),
         (ExportKind::Terminals(Some("--json".to_owned())), false)
@@ -433,40 +487,44 @@ fn the_grammar_of_values_repeats_and_the_option_end() {
             "ew fmt [OPTIONS] [project-dir]"
         )
     );
-    let Ok(Command::Check(c)) = p(&["check", "--out", "a", "--out", "b", "--json", "--json"]) else {
+    let Ok(Top::Check(c)) = p(&["check", "--out", "a", "--out", "b", "--json", "--json"]) else {
         panic!("last-wins");
     };
-    assert_eq!((c.out, c.format), (Some(PathBuf::from("b")), CheckFormat::Json));
-    let Ok(Command::Check(c)) = p(&["check", "--lang", "NL-nl"]) else {
+    assert_eq!(
+        (c.out.clone(), c.output_format().unwrap()),
+        (Some(PathBuf::from("b")), CheckFormat::Json)
+    );
+    let Ok(Top::Check(c)) = p(&["check", "--lang", "NL-nl"]) else {
         panic!("--lang in any case");
     };
     assert_eq!(c.lang, "nl-NL");
-    let Ok(Command::Fmt(f)) = p(&["fmt", "--", "--check"]) else {
+    let Ok(Top::Fmt(f)) = p(&["fmt", "--", "--check"]) else {
         panic!("`--` ends the options");
     };
     assert_eq!((f.project.0, f.check), (Some(PathBuf::from("--check")), false));
-    let Ok(Command::Query(q)) = p(&["query", "device_tag", "-X1031:5", "--json"]) else {
+    let Ok(Top::Query(q)) = p(&["query", "device_tag", "-X1031:5", "--json"]) else {
         panic!("a key starting with `-`");
     };
-    assert_eq!((q.key.as_str(), q.json), ("-X1031:5", true));
-    let Ok(Command::Lib(l)) = p(&["lib", "search", "-X1", "--company", "a", "--company", "b"]) else {
+    assert_eq!((q.project_name_key().unwrap().2, q.json), ("-X1031:5", true));
+    let Ok(Top::Lib(l)) = p(&["lib", "search", "-X1", "--company", "a", "--company", "b"]) else {
         panic!("a search text starting with `-`");
     };
     assert_eq!(l.company, [PathBuf::from("a"), PathBuf::from("b")]);
-    let Ok(Command::Query(q)) = p(&["query", "proj", "device_tag", "-"]) else {
+    let Ok(Top::Query(q)) = p(&["query", "proj", "device_tag", "-"]) else {
         panic!("`-` for a query without a key");
     };
-    assert_eq!((q.project, q.key.as_str()), (Some(PathBuf::from("proj")), "-"));
+    let (project, _, key) = q.project_name_key().unwrap();
+    assert_eq!((project, key), (Some(PathBuf::from("proj")), "-"));
     // `import csv --strict` names the default: the run reads only `lenient`.
-    let Ok(Command::ImportCsv(strict)) = p(&["import", "csv", "t", "--out", "o", "--strict"]) else {
+    let Ok(Top::Import(Import::Csv(strict))) = p(&["import", "csv", "t", "--out", "o", "--strict"]) else {
         panic!("`--strict` is the explicit default");
     };
     assert_eq!((strict.strict, strict.lenient), (true, false));
     assert_eq!(
-        Ok(Command::ImportCsv(ImportCsvArgs {
+        Ok(Top::Import(Import::Csv(ImportCsvArgs {
             strict: false,
             ..strict
-        })),
+        }))),
         p(&["import", "csv", "t", "--out", "o"])
     );
     assert_eq!(
@@ -528,26 +586,26 @@ fn the_grammar_of_values_repeats_and_the_option_end() {
 #[test]
 fn lib_commands() {
     let lib = |action, company: &[&str], json| {
-        Ok(Command::Lib(LibArgs {
+        Ok(Top::Lib(LibCli {
             action,
             company: company.iter().map(PathBuf::from).collect(),
             json,
         }))
     };
-    assert_eq!(p(&["lib", "list"]), lib(LibAction::List, &[], false));
+    assert_eq!(p(&["lib", "list"]), lib(LibSub::List(LibListCli {}), &[], false));
     assert_eq!(
         p(&["lib", "list", "--company", "a", "--json", "--company", "b"]),
-        lib(LibAction::List, &["a", "b"], true)
+        lib(LibSub::List(LibListCli {}), &["a", "b"], true)
     );
     assert_eq!(
         p(&["lib", "search", "A9P52610"]),
         lib(
-            LibAction::Search {
+            LibSub::Search(SearchCli {
                 text: "A9P52610".into(),
-                kinds: Vec::new(),
+                kind: Vec::new(),
                 all: false,
                 limit: 50
-            },
+            }),
             &[],
             false
         )
@@ -557,19 +615,19 @@ fn lib_commands() {
             "lib", "search", "--kind", "symbol", "mcb", "--kind", "fndef", "--all", "--limit", "0", "--json"
         ]),
         lib(
-            LibAction::Search {
+            LibSub::Search(SearchCli {
                 text: "mcb".into(),
-                kinds: vec!["symbol".into(), "fndef".into()],
+                kind: vec!["symbol".into(), "fndef".into()],
                 all: true,
                 limit: 0
-            },
+            }),
             &[],
             true
         )
     );
     assert_eq!(
         p(&["lib", "index", "--rebuild"]),
-        lib(LibAction::IndexRebuild, &[], false)
+        lib(LibSub::Index(IndexCli { rebuild: true }), &[], false)
     );
     assert_eq!(
         p(&[
@@ -586,12 +644,12 @@ fn lib_commands() {
             "c"
         ]),
         lib(
-            LibAction::Create {
+            LibSub::Create(CreateCli {
                 dir: PathBuf::from("d"),
                 key: "k".into(),
                 name: "N".into(),
                 licence: "CC0-1.0".into()
-            },
+            }),
             &["c"],
             false
         )
@@ -663,7 +721,7 @@ fn lib_commands() {
 
 #[test]
 fn import_qet_options() {
-    let Ok(Command::ImportQet(a)) = p(&[
+    let Ok(Top::Import(Import::Qet(a))) = p(&[
         "import",
         "qet",
         "a.qet",
@@ -680,13 +738,13 @@ fn import_qet_options() {
     assert_eq!(a.content, Some(PathBuf::from("c")));
     assert_eq!(a.report, Some(ReportFormat::Markdown));
     assert_eq!(a.report_out, Some(PathBuf::from("r.md")));
-    let Ok(Command::ImportQet(b)) = p(&["import", "qet", "--report", "json", "x.qet"]) else {
+    let Ok(Top::Import(Import::Qet(b))) = p(&["import", "qet", "--report", "json", "x.qet"]) else {
         panic!("parse failed");
     };
     assert_eq!(b.report, Some(ReportFormat::Json));
     assert_eq!(b.content, None);
     assert!(!b.strict);
-    let Ok(Command::ImportQet(c)) = p(&["import", "qet", "--strict", "x.qet"]) else {
+    let Ok(Top::Import(Import::Qet(c))) = p(&["import", "qet", "--strict", "x.qet"]) else {
         panic!("parse failed");
     };
     assert!(c.strict);
@@ -694,28 +752,28 @@ fn import_qet_options() {
 
 #[test]
 fn check_defaults_options_and_errors() {
-    let Ok(Command::Check(a)) = p(&["check"]) else {
+    let Ok(Top::Check(a)) = p(&["check"]) else {
         panic!("parse failed");
     };
-    assert_eq!(a.project, None);
+    assert_eq!(a.project.0, None);
     assert_eq!(a.scheme, None);
-    assert_eq!(a.mode, CheckMode::Release);
-    assert_eq!(a.format, CheckFormat::Text);
+    assert_eq!(a.check_mode(), CheckMode::Release);
+    assert_eq!(a.output_format().unwrap(), CheckFormat::Text);
     assert_eq!(a.out, None);
-    let Ok(Command::Check(b)) = p(&[
+    let Ok(Top::Check(b)) = p(&[
         "check", "proj", "--scheme", "drafting", "--mode", "online", "--format", "json", "--out", "r.json",
     ]) else {
         panic!("parse failed");
     };
-    assert_eq!(b.project, Some(PathBuf::from("proj")));
+    assert_eq!(b.project.0, Some(PathBuf::from("proj")));
     assert_eq!(b.scheme.as_deref(), Some("drafting"));
-    assert_eq!(b.mode, CheckMode::Online);
-    assert_eq!(b.format, CheckFormat::Json);
+    assert_eq!(b.check_mode(), CheckMode::Online);
+    assert_eq!(b.output_format().unwrap(), CheckFormat::Json);
     assert_eq!(b.out, Some(PathBuf::from("r.json")));
-    let Ok(Command::Check(c)) = p(&["check", "--format", "md", "proj"]) else {
+    let Ok(Top::Check(c)) = p(&["check", "--format", "md", "proj"]) else {
         panic!("parse failed");
     };
-    assert_eq!(c.format, CheckFormat::Markdown);
+    assert_eq!(c.output_format().unwrap(), CheckFormat::Markdown);
     assert!(p(&["check", "--scheme", "bogus"]).is_err());
     assert!(p(&["check", "--mode", "x"]).is_err());
     assert!(p(&["check", "--format", "xml"]).is_err());
@@ -724,12 +782,31 @@ fn check_defaults_options_and_errors() {
     assert!(p(&["check", "--scheme"]).is_err());
 }
 
-fn sql(args: &[&str]) -> SqlArgs {
+/// The line of `ew sql <args>` as its run reads it.
+struct SqlLine {
+    project: Option<PathBuf>,
+    query: SqlSource,
+    format: SqlFormat,
+    timeout: Option<u64>,
+    out: Option<PathBuf>,
+    csv: ew_api::output::CsvOptions,
+}
+
+fn sql(args: &[&str]) -> SqlLine {
     let mut v = vec!["sql"];
     v.extend_from_slice(args);
-    match p(&v) {
-        Ok(Command::Sql(a)) => a,
-        other => panic!("parse failed: {other:?}"),
+    let Ok(Top::Sql(a)) = p(&v) else {
+        panic!("parse failed: {:?}", p(&v));
+    };
+    let (project, query) = a.project_and_query().unwrap();
+    let format = a.result_format().unwrap();
+    SqlLine {
+        project,
+        query,
+        format,
+        timeout: a.timeout,
+        out: a.out.clone(),
+        csv: a.csv_options(format).unwrap(),
     }
 }
 
@@ -770,31 +847,36 @@ fn sql_defaults_and_positionals() {
 
 #[test]
 fn sql_dump_and_schema_forms() {
+    let dump = |args: &[&str]| {
+        let Ok(Top::Sql(SqlCli {
+            sub: Some(SqlSub::Dump(d)),
+            ..
+        })) = p(args)
+        else {
+            panic!("{args:?}");
+        };
+        let (project, out) = d.project_and_out().unwrap();
+        (project, out, d.json)
+    };
     assert_eq!(
-        p(&["sql", "dump", "o.sqlite"]),
-        Ok(Command::SqlDump(SqlDumpArgs {
-            project: None,
-            out: PathBuf::from("o.sqlite"),
-            json: false,
-        }))
+        dump(&["sql", "dump", "o.sqlite"]),
+        (None, PathBuf::from("o.sqlite"), false)
     );
     assert_eq!(
-        p(&["sql", "dump", "proj", "o.sqlite"]),
-        Ok(Command::SqlDump(SqlDumpArgs {
-            project: Some(PathBuf::from("proj")),
-            out: PathBuf::from("o.sqlite"),
-            json: false,
-        }))
+        dump(&["sql", "dump", "proj", "o.sqlite"]),
+        (Some(PathBuf::from("proj")), PathBuf::from("o.sqlite"), false)
     );
     assert_eq!(
-        p(&["sql", "dump", "--project", "proj", "o.sqlite"]),
-        Ok(Command::SqlDump(SqlDumpArgs {
-            project: Some(PathBuf::from("proj")),
-            out: PathBuf::from("o.sqlite"),
-            json: false,
-        }))
+        dump(&["sql", "dump", "--project", "proj", "o.sqlite"]),
+        (Some(PathBuf::from("proj")), PathBuf::from("o.sqlite"), false)
     );
-    assert_eq!(p(&["sql", "schema"]), Ok(Command::SqlSchema));
+    assert!(matches!(
+        p(&["sql", "schema"]),
+        Ok(Top::Sql(SqlCli {
+            sub: Some(SqlSub::Schema(_)),
+            ..
+        }))
+    ));
 }
 
 #[test]
@@ -846,19 +928,14 @@ fn sql_errors() {
     assert!(p(&["sql", "SELECT 1", "--timeout", "86401"]).is_err());
     assert!(matches!(
         p(&["sql", "SELECT 1", "--timeout", "86400"]),
-        Ok(Command::Sql(SqlArgs {
+        Ok(Top::Sql(SqlCli {
             timeout: Some(86_400),
             ..
         }))
     ));
     // An inline query may start with an SQL comment.
-    let Ok(Command::Sql(c)) = p(&[
-        "sql",
-        "-- count
-SELECT 1",
-    ]) else {
-        panic!("a query starting with a comment is not an option");
-    };
+    let c = sql(&["-- count
+SELECT 1"]);
     assert_eq!(
         c.query,
         SqlSource::Text(
@@ -890,12 +967,12 @@ SELECT 1"
 
 #[test]
 fn import_parts_options_and_errors() {
-    let Ok(Command::ImportParts(a)) = p(&["import", "parts", "a.csv"]) else {
+    let Ok(Top::Import(Import::Parts(a))) = p(&["import", "parts", "a.csv"]) else {
         panic!("import parts");
     };
     assert_eq!(a.file, PathBuf::from("a.csv"));
     assert_eq!(a.project, None);
-    let Ok(Command::ImportParts(b)) = p(&["import", "parts", "--project", "d", "a.csv"]) else {
+    let Ok(Top::Import(Import::Parts(b))) = p(&["import", "parts", "--project", "d", "a.csv"]) else {
         panic!("import parts --project");
     };
     assert_eq!(b.project, Some(PathBuf::from("d")));
@@ -908,7 +985,7 @@ fn import_parts_options_and_errors() {
 /// `import parts --map` and `lib import parts`.
 #[test]
 fn mapped_parts_imports() {
-    let Ok(Command::ImportParts(a)) = p(&[
+    let Ok(Top::Import(Import::Parts(a))) = p(&[
         "import",
         "parts",
         "list.xlsx",
@@ -924,7 +1001,7 @@ fn mapped_parts_imports() {
     assert_eq!(a.map, Some(PathBuf::from("m.toml")));
     assert_eq!(a.as_of, Some("2026-10-29".parse().unwrap()));
     assert_eq!(a.company, [PathBuf::from("c")]);
-    let Ok(Command::ImportParts(b)) = p(&["import", "parts", "parts.csv"]) else {
+    let Ok(Top::Import(Import::Parts(b))) = p(&["import", "parts", "parts.csv"]) else {
         panic!("import parts");
     };
     assert_eq!((b.map, b.as_of, b.company), (None, None, Vec::new()));
@@ -944,15 +1021,15 @@ fn mapped_parts_imports() {
             "--company",
             "c"
         ]),
-        Ok(Command::Lib(LibArgs {
-            action: LibAction::ImportParts {
+        Ok(Top::Lib(LibCli {
+            action: LibSub::Import(LibImportCli::Parts(LibImportPartsCli {
                 library: "std".into(),
                 file: PathBuf::from("list.csv"),
                 map: PathBuf::from("m.toml"),
                 as_of: "2026-10-29".parse().unwrap(),
                 bump: true,
                 take_over: true,
-            },
+            })),
             company: vec![PathBuf::from("c")],
             json: false,
         }))
@@ -1023,7 +1100,7 @@ fn import_qet_errors() {
 }
 #[test]
 fn import_dxf_forms() {
-    let Ok(Command::ImportDxf(a)) = p(&[
+    let Ok(Top::Import(Import::Dxf(a))) = p(&[
         "import",
         "dxf",
         "plant.dxf",
@@ -1040,7 +1117,7 @@ fn import_dxf_forms() {
         a.options().space,
         ew_api::dxf::Space::Layout("Sheet 1".to_owned())
     );
-    let Ok(Command::ImportDxf(a)) = p(&["import", "dxf", "plant.dxf", "--as", "symbol"]) else {
+    let Ok(Top::Import(Import::Dxf(a))) = p(&["import", "dxf", "plant.dxf", "--as", "symbol"]) else {
         panic!("parse failed");
     };
     assert_eq!(a.target, dxf::DxfTarget::Symbol);
@@ -1051,7 +1128,7 @@ fn import_dxf_forms() {
 
 #[test]
 fn export_dxf_forms() {
-    let Ok(Command::ExportPages(a)) = p(&[
+    let a = pages(&[
         "export",
         "dxf",
         "--out",
@@ -1060,16 +1137,12 @@ fn export_dxf_forms() {
         "101",
         "--layer",
         "wires=WIRING",
-    ]) else {
-        panic!("parse failed");
-    };
+    ]);
     assert_eq!(a.format, PageFormat::Dxf);
     assert_eq!(a.dxf_layers.wires, "WIRING");
     assert_eq!(a.dxf_layers.frame, ew_api::output::DxfLayers::default().frame);
     assert!(!a.dxf_dwg_links, "the links name the DXF files unless asked");
-    let Ok(Command::ExportPages(a)) = p(&["export", "dxf", "--out", "d", "--dwg-links"]) else {
-        panic!("parse failed");
-    };
+    let a = pages(&["export", "dxf", "--out", "d", "--dwg-links"]);
     assert!(a.dxf_dwg_links);
     assert!(p(&["export", "dxf", "--out", "d", "--layer", "cables=C"]).is_err());
     assert!(p(&["export", "dxf", "--out", "d", "--layer", "wires="]).is_err());
@@ -1077,14 +1150,10 @@ fn export_dxf_forms() {
 
 #[test]
 fn export_forms() {
-    let Ok(Command::Export(a)) = p(&["export", "cables"]) else {
-        panic!("parse failed");
-    };
+    let a = rows(&["export", "cables"]);
     assert_eq!(a.kind, ExportKind::Cables);
     assert_eq!((a.project, a.out), (None, None));
-    let Ok(Command::Export(b)) = p(&["export", "cables", "proj", "--format", "csv", "--out", "c.csv"]) else {
-        panic!("parse failed");
-    };
+    let b = rows(&["export", "cables", "proj", "--format", "csv", "--out", "c.csv"]);
     assert_eq!(b.project, Some(PathBuf::from("proj")));
     assert_eq!(b.out, Some(PathBuf::from("c.csv")));
     // The parts list is the default of `export bom`; `component` is the doc 17 name of `parts`.
@@ -1097,9 +1166,7 @@ fn export_forms() {
             BomMode::Assembly,
         ),
     ] {
-        let Ok(Command::Export(c)) = p(args) else {
-            panic!("{args:?}: parse failed");
-        };
+        let c = rows(args);
         assert_eq!(c.kind, ExportKind::Bom(mode), "{args:?}");
     }
 }
@@ -1212,14 +1279,12 @@ fn export_errors() {
 #[test]
 fn row_export_formats() {
     use ew_api::output::{CsvOptions, LineEnd, Preset};
-    let Ok(Command::Export(a)) = p(&["export", "wires", "--format", "xlsx", "--out", "w.xlsx"]) else {
-        panic!("parse failed");
-    };
+    let a = rows(&["export", "wires", "--format", "xlsx", "--out", "w.xlsx"]);
     assert_eq!(
         (a.format, a.out),
         (RowFormat::Xlsx, Some(PathBuf::from("w.xlsx")))
     );
-    let Ok(Command::Export(a)) = p(&[
+    let a = rows(&[
         "export",
         "bom",
         "--preset",
@@ -1228,9 +1293,7 @@ fn row_export_formats() {
         "off",
         "--line-end",
         "lf",
-    ]) else {
-        panic!("parse failed");
-    };
+    ]);
     assert_eq!(
         a.format,
         RowFormat::Csv(CsvOptions {
@@ -1239,35 +1302,25 @@ fn row_export_formats() {
             line_end: Some(LineEnd::Lf),
         })
     );
-    let Ok(Command::Export(a)) = p(&[
+    let a = rows(&[
         "export", "report", "--kind", "io_list", "--format", "xlsx", "--out", "k.xlsx",
-    ]) else {
-        panic!("parse failed");
-    };
+    ]);
     assert_eq!(
         (a.kind, a.format),
         (ExportKind::ReportKind("io_list".to_owned()), RowFormat::Xlsx)
     );
-    let Ok(Command::Export(a)) = p(&["export", "terminals"]) else {
-        panic!("parse failed");
-    };
+    let a = rows(&["export", "terminals"]);
     assert_eq!(a.format, RowFormat::default());
-    let Ok(Command::Sql(q)) = p(&["sql", "SELECT 1", "--format", "xlsx", "--out", "q.xlsx"]) else {
-        panic!("parse failed");
-    };
+    let q = sql(&["SELECT 1", "--format", "xlsx", "--out", "q.xlsx"]);
     assert_eq!((q.format, q.csv), (SqlFormat::Xlsx, CsvOptions::default()));
-    let Ok(Command::Sql(q)) = p(&["sql", "SELECT 1", "--preset", "rfc4180"]) else {
-        panic!("parse failed");
-    };
+    let q = sql(&["SELECT 1", "--preset", "rfc4180"]);
     assert_eq!(q.csv, CsvOptions::preset(Preset::Rfc4180));
 }
 
 /// D8: `wires`, `terminals [--strip]`, `report --block … --format csv|pdf` and `--block` on the row exports.
 #[test]
 fn row_export_forms() {
-    let Ok(Command::Export(a)) = p(&["export", "wires", "proj", "--block", "907"]) else {
-        panic!("parse failed");
-    };
+    let a = rows(&["export", "wires", "proj", "--block", "907"]);
     assert_eq!(
         (a.kind, a.block, a.project),
         (
@@ -1276,30 +1329,20 @@ fn row_export_forms() {
             Some(PathBuf::from("proj"))
         )
     );
-    let Ok(Command::Export(t)) = p(&["export", "terminals", "--strip", "-X1031"]) else {
-        panic!("parse failed");
-    };
+    let t = rows(&["export", "terminals", "--strip", "-X1031"]);
     assert_eq!(t.kind, ExportKind::Terminals(Some("-X1031".to_owned())));
-    let Ok(Command::Export(t)) = p(&["export", "terminals"]) else {
-        panic!("parse failed");
-    };
+    let t = rows(&["export", "terminals"]);
     assert_eq!((t.kind, t.block), (ExportKind::Terminals(None), None));
-    let Ok(Command::Export(b)) = p(&["export", "bom", "--block", "x", "--mode", "assembly"]) else {
-        panic!("parse failed");
-    };
+    let b = rows(&["export", "bom", "--block", "x", "--mode", "assembly"]);
     assert_eq!(
         (b.kind, b.block),
         (ExportKind::Bom(BomMode::Assembly), Some("x".to_owned()))
     );
-    let Ok(Command::Export(r)) = p(&["export", "report", "--block", "908"]) else {
-        panic!("parse failed");
-    };
+    let r = rows(&["export", "report", "--block", "908"]);
     assert_eq!(r.kind, ExportKind::Report { pdf: false });
-    let Ok(Command::Export(r)) = p(&[
+    let r = rows(&[
         "export", "report", "--block", "908", "--format", "pdf", "--out", "r.pdf",
-    ]) else {
-        panic!("parse failed");
-    };
+    ]);
     assert_eq!(
         (r.kind, r.out),
         (ExportKind::Report { pdf: true }, Some(PathBuf::from("r.pdf")))
@@ -1310,7 +1353,7 @@ fn row_export_forms() {
 /// `--block`; each refusal is the report layer's text, whole, given before the project opens.
 #[test]
 fn report_kind_forms_and_refusals() {
-    let Ok(Command::Export(r)) = p(&[
+    let r = rows(&[
         "export",
         "report",
         "proj",
@@ -1318,9 +1361,7 @@ fn report_kind_forms_and_refusals() {
         "device_list",
         "--format",
         "csv",
-    ]) else {
-        panic!("parse failed");
-    };
+    ]);
     assert_eq!(
         (r.kind, r.block, r.project),
         (
@@ -1391,7 +1432,7 @@ fn report_kind_forms_and_refusals() {
 fn render_and_png_forms() {
     assert_eq!(
         p(&["render", "proj", "--page", "103", "--png"]),
-        Ok(Command::Render(RenderArgs {
+        Ok(Top::Render(RenderArgs {
             project: ProjectArg(Some(PathBuf::from("proj"))),
             page: "103".to_owned(),
             png: true,
@@ -1400,7 +1441,7 @@ fn render_and_png_forms() {
             json: false,
         }))
     );
-    let Ok(Command::Render(r)) = p(&[
+    let Ok(Top::Render(r)) = p(&[
         "render", "--page", "2.1", "--png", "--dpi", "300", "--out", "x.png", "--json",
     ]) else {
         panic!("parse failed");
@@ -1416,10 +1457,7 @@ fn render_and_png_forms() {
     }
     assert!(p(&["render", "--page", "1", "--png", "--dpi", "72"]).is_ok());
     assert!(p(&["render", "--page", "1", "--png", "--dpi", "600"]).is_ok());
-    let Ok(Command::ExportPages(e)) = p(&["export", "png", "--out", "o", "--dpi", "300", "--threads", "4"])
-    else {
-        panic!("parse failed");
-    };
+    let e = pages(&["export", "png", "--out", "o", "--dpi", "300", "--threads", "4"]);
     assert_eq!((e.format, e.dpi, e.threads), (PageFormat::Png, 300, Some(4)));
     assert!(p(&["export", "png"]).is_err(), "--out is required");
     // `--dpi` is the raster's: PDF and SVG refuse it.
@@ -1429,14 +1467,12 @@ fn render_and_png_forms() {
 
 #[test]
 fn export_pages_forms_and_errors() {
-    let Ok(Command::ExportPages(a)) = p(&["export", "pdf", "proj", "--out", "o.pdf"]) else {
-        panic!("parse failed");
-    };
+    let a = pages(&["export", "pdf", "proj", "--out", "o.pdf"]);
     assert_eq!(a.format, PageFormat::Pdf);
     assert_eq!(a.project, Some(PathBuf::from("proj")));
     assert_eq!(a.out, PathBuf::from("o.pdf"));
     assert_eq!((a.pages, a.threads), (PageSelection::All, None));
-    let Ok(Command::ExportPages(b)) = p(&[
+    let b = pages(&[
         "export",
         "svg",
         "--out",
@@ -1445,9 +1481,7 @@ fn export_pages_forms_and_errors() {
         "101-106,1",
         "--threads",
         "4",
-    ]) else {
-        panic!("parse failed");
-    };
+    ]);
     assert_eq!(b.format, PageFormat::Svg);
     assert_eq!(b.project, None);
     assert_eq!(
@@ -1467,25 +1501,26 @@ fn export_pages_forms_and_errors() {
 
 #[test]
 fn apply_forms() {
+    let apply = |args: &[&str]| {
+        let Ok(Top::Apply(a)) = p(args) else {
+            panic!("{args:?}");
+        };
+        let (project, log) = a.project_and_log().unwrap();
+        (project, log.clone(), a.preview, a.one_step, a.json)
+    };
     assert_eq!(
-        p(&["apply", "proj", "x.ewcmd", "--preview"]),
-        Ok(Command::Apply(ApplyArgs {
-            project: Some(PathBuf::from("proj")),
-            log: PathBuf::from("x.ewcmd"),
-            preview: true,
-            one_step: false,
-            json: false,
-        }))
+        apply(&["apply", "proj", "x.ewcmd", "--preview"]),
+        (
+            Some(PathBuf::from("proj")),
+            PathBuf::from("x.ewcmd"),
+            true,
+            false,
+            false
+        )
     );
     assert_eq!(
-        p(&["apply", "--one-step", "x.ewcmd"]),
-        Ok(Command::Apply(ApplyArgs {
-            project: None,
-            log: PathBuf::from("x.ewcmd"),
-            preview: false,
-            one_step: true,
-            json: false,
-        }))
+        apply(&["apply", "--one-step", "x.ewcmd"]),
+        (None, PathBuf::from("x.ewcmd"), false, true, false)
     );
     assert!(p(&["apply"]).is_err());
     assert!(p(&["apply", "a", "b", "c"]).is_err());
@@ -1496,14 +1531,14 @@ fn apply_forms() {
 fn verify_derived_forms() {
     assert_eq!(
         p(&["verify-derived"]),
-        Ok(Command::VerifyDerived(VerifyArgs {
+        Ok(Top::VerifyDerived(VerifyArgs {
             project: ProjectArg(None),
             json: false
         }))
     );
     assert_eq!(
         p(&["verify-derived", "proj"]),
-        Ok(Command::VerifyDerived(VerifyArgs {
+        Ok(Top::VerifyDerived(VerifyArgs {
             project: ProjectArg(Some(PathBuf::from("proj"))),
             json: false,
         }))
@@ -1516,7 +1551,7 @@ fn verify_derived_forms() {
 fn layout_forms() {
     assert_eq!(
         p(&["layout"]),
-        Ok(Command::Layout(LayoutArgs {
+        Ok(Top::Layout(LayoutArgs {
             project: ProjectArg(None),
             page: None,
             json: false,
@@ -1524,7 +1559,7 @@ fn layout_forms() {
     );
     assert_eq!(
         p(&["layout", "proj", "--page", "101", "--json"]),
-        Ok(Command::Layout(LayoutArgs {
+        Ok(Top::Layout(LayoutArgs {
             project: ProjectArg(Some(PathBuf::from("proj"))),
             page: Some("101".to_owned()),
             json: true,
@@ -1532,7 +1567,7 @@ fn layout_forms() {
     );
     assert_eq!(
         p(&["layout", "--project", "proj", "--page", "-1"]),
-        Ok(Command::Layout(LayoutArgs {
+        Ok(Top::Layout(LayoutArgs {
             project: ProjectArg(Some(PathBuf::from("proj"))),
             page: Some("-1".to_owned()),
             json: false,

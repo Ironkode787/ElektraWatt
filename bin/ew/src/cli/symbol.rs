@@ -6,28 +6,78 @@
 use ew_api::symbols::{self, SymbolDraft};
 use std::path::PathBuf;
 
+use super::tree::{Leaf, group};
+use crate::catalogue::{Exit, OK, USAGE_ETC, exit};
+
+group! {
 #[derive(Clone, PartialEq, Eq, Debug, clap::Subcommand)]
 pub enum SymbolArgs {
     /// Print a new portable draft as JSON. Coordinates in files are integer nanometres.
-    Template { key: String, name: String },
+    Template(TemplateArgs),
     /// Print the authoring JSON Schema.
-    Schema,
+    Schema(SchemaArgs),
     /// Print validation issues as JSON; exit 1 for an invalid draft, 2 for unreadable input.
-    Validate { file: PathBuf },
+    Validate(ValidateArgs),
     /// Print an array of editable drafts from QET .elmt, EPLAN EDZ/PXF/parts XML, or portable JSON.
-    Import {
-        file: PathBuf,
-        /// The drafts' key; default: the file's name.
-        #[arg(long)]
-        key: Option<String>,
-    },
+    Import(ImportArgs),
     /// Publish a validated draft to a writable .ewlib; create the library when absent. Print whether the symbol was
     /// added, updated or unchanged, and the draft's identity: keep it in the draft to publish later versions.
-    Publish {
-        file: PathBuf,
-        #[arg(long)]
-        library: PathBuf,
-    },
+    Publish(PublishArgs),
+}
+}
+
+/// `ew symbol template`.
+#[derive(Clone, PartialEq, Eq, Debug, clap::Args)]
+pub struct TemplateArgs {
+    key: String,
+    name: String,
+}
+
+impl Leaf for TemplateArgs {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+}
+
+/// `ew symbol schema`.
+#[derive(Clone, PartialEq, Eq, Debug, clap::Args)]
+pub struct SchemaArgs {}
+
+impl Leaf for SchemaArgs {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+}
+
+/// `ew symbol validate`.
+#[derive(Clone, PartialEq, Eq, Debug, clap::Args)]
+pub struct ValidateArgs {
+    file: PathBuf,
+}
+
+impl Leaf for ValidateArgs {
+    const EXITS: &'static [Exit] = &[OK, exit(1, "invalid draft"), USAGE_ETC];
+}
+
+/// `ew symbol import`.
+#[derive(Clone, PartialEq, Eq, Debug, clap::Args)]
+pub struct ImportArgs {
+    file: PathBuf,
+    /// The drafts' key; default: the file's name.
+    #[arg(long)]
+    key: Option<String>,
+}
+
+impl Leaf for ImportArgs {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+}
+
+/// `ew symbol publish`.
+#[derive(Clone, PartialEq, Eq, Debug, clap::Args)]
+pub struct PublishArgs {
+    file: PathBuf,
+    #[arg(long)]
+    library: PathBuf,
+}
+
+impl Leaf for PublishArgs {
+    const EXITS: &'static [Exit] = &[OK, exit(1, "invalid draft"), USAGE_ETC];
 }
 
 pub(super) fn run(args: SymbolArgs) -> i32 {
@@ -46,9 +96,11 @@ pub(super) fn run(args: SymbolArgs) -> i32 {
 fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::error::Error>> {
     use serde_json::json;
     Ok(match args {
-        SymbolArgs::Template { key, name } => (serde_json::to_value(SymbolDraft::new(&key, &name)?)?, 0),
-        SymbolArgs::Schema => (symbols::json_schema(), 0),
-        SymbolArgs::Validate { file } => {
+        SymbolArgs::Template(TemplateArgs { key, name }) => {
+            (serde_json::to_value(SymbolDraft::new(&key, &name)?)?, 0)
+        }
+        SymbolArgs::Schema(SchemaArgs {}) => (symbols::json_schema(), 0),
+        SymbolArgs::Validate(ValidateArgs { file }) => {
             let d = SymbolDraft::parse(&symbols::read_file(&file)?)?;
             let issues = d.validate();
             let code = i32::from(!issues.is_empty());
@@ -57,11 +109,11 @@ fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::er
                 code,
             )
         }
-        SymbolArgs::Import { file, key } => {
+        SymbolArgs::Import(ImportArgs { file, key }) => {
             let key = key.unwrap_or_else(|| symbols::file_key(&file));
             (serde_json::to_value(symbols::open(&file, &key)?)?, 0)
         }
-        SymbolArgs::Publish { file, library } => {
+        SymbolArgs::Publish(PublishArgs { file, library }) => {
             let mut d = SymbolDraft::parse(&symbols::read_file(&file)?)?;
             let issues = d.validate();
             if !issues.is_empty() {

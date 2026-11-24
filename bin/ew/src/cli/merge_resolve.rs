@@ -7,7 +7,23 @@
 use ew_api::{Conflict, ConflictBody};
 
 use super::MergeResolveArgs;
-use super::tree::TakeArg;
+use super::tree::{Leaf, TakeArg};
+use crate::catalogue::{Exit, exit};
+
+impl Leaf for MergeResolveArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "resolved and saved"),
+        exit(
+            1,
+            "`merge.resolve` refused: theirs does not make a valid record, a file's lines do not read",
+        ),
+        exit(
+            2,
+            "usage (no conflict record selected), open, lock, a crashed session's journal and save errors",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(ew_api::cli_results::MergeResolveResult::SCHEMA);
+}
 
 /// Whether `conflict` is one `a` selects: its `kind` (a target's kind, or `file`) is `--kind`, and one of its members
 /// is `--field`, or lies below it or above it (`overrides` and `overrides.colour` select each other).

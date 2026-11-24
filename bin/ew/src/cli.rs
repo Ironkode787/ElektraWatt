@@ -40,7 +40,7 @@ mod sql;
 mod symbol;
 #[cfg(test)]
 mod tests;
-mod tree;
+pub(crate) mod tree;
 
 use apply::*;
 use assets::*;
@@ -53,118 +53,9 @@ use plc::*;
 use print::*;
 use revision::*;
 use sql::*;
-#[cfg(test)]
-use tree::ProjectArg;
-use tree::{
-    AssetsPurgeArgs, ChecksSetArgs, DiffArgs, ExtractArgs, FmtArgs, GitSetupArgs, ImportTableArgs,
-    InstrumentListArgs, LayoutArgs, MergeResolveArgs, PlcStatusArgs, RenderArgs, RouteArgs, UpdateCopiesArgs,
-    UpgradeArgs, VerifyArgs, VerifyMigrationArgs,
-};
+use tree::*;
 
-/// A parsed command line.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum Command {
-    /// Portable symbol authoring for people and automation.
-    Symbol(symbol::SymbolArgs),
-    /// Import a QElectroTech project.
-    ImportQet(ImportQetArgs),
-    /// `ew import parts`.
-    ImportParts(ImportPartsArgs),
-    /// `ew import csv`: tables of the `ew` dialect as a new project.
-    ImportCsv(ImportCsvArgs),
-    /// `ew import dxf`: a DXF drawing as a graphic page or symbol drafts.
-    ImportDxf(dxf::ImportDxfArgs),
-    /// `ew import pdf`: a PDF page as a locked underlay.
-    ImportPdf(dxf::ImportPdfArgs),
-    /// `ew import dwg`: a DWG through the user's ODA File Converter, then as `ew import dxf`.
-    ImportDwg(dxf::ImportDwgArgs),
-    /// `ew import edz`: the parts of an EDZ into a library, or the previewed update of a project's part copies.
-    ImportEdz(eplan::ImportEplanPartsArgs),
-    /// `ew import parts-xml`: as `ew import edz`, for an EPLAN parts XML.
-    ImportPartsXml(eplan::ImportEplanPartsArgs),
-    /// `ew import eplan-report`: an EPLAN report export as a new project without drawings.
-    ImportEplanReport(eplan::ImportEplanReportArgs),
-    /// `ew import table`: a round-trip table read back and its changed cells applied.
-    ImportTable(ImportTableArgs),
-    /// Check a project.
-    Check(CheckArgs),
-    /// Run a read-only query on the SQL projection.
-    Sql(SqlArgs),
-    /// Write the SQL projection as a SQLite file.
-    SqlDump(SqlDumpArgs),
-    /// Print the SQL schema.
-    SqlSchema,
-    /// Write a report's rows as CSV.
-    Export(ExportArgs),
-    /// `ew export table`: a navigator's table as CSV or XLSX for a round trip.
-    ExportTable(ExportTableArgs),
-    /// Compare the memoised derived data with a cold recomputation.
-    VerifyDerived(VerifyArgs),
-    /// `ew verify-migration`: an imported project compared with the PDF of the drawing it came from.
-    VerifyMigration(VerifyMigrationArgs),
-    /// Write the pages as PDF, SVG or PNG.
-    ExportPages(ExportPagesArgs),
-    /// `ew print`: the print set through an adapter, or to a file.
-    Print(PrintArgs),
-    /// `ew render --page <folio> --png`: one page as PNG.
-    Render(RenderArgs),
-    /// `ew export ewz`: the project's saved generation as an `.ewz`.
-    ExportEwz(ExportEwzArgs),
-    /// `ew export plc-aml|plc-xlsx|plcopen`: a PLC configuration project as an exchange file.
-    PlcExport(PlcExportArgs),
-    /// `ew import plc-aml|plc-xlsx`: an exchange file of PLC software previewed or applied.
-    PlcImport(PlcImportArgs),
-    /// `ew import instrument-list`: an instrument list taken into a configuration project.
-    InstrumentList(InstrumentListArgs),
-    /// `ew plc status`: the exchange status of a configuration project.
-    PlcStatus(PlcStatusArgs),
-    /// `ew extract`: an `.ewz` into a new project directory.
-    Extract(ExtractArgs),
-    /// Replay a command log.
-    Apply(ApplyArgs),
-    /// `ew fmt`: the project files in canonical form.
-    Fmt(FmtArgs),
-    /// `ew recover`: a crashed session's journal.
-    Recover(RecoverArgs),
-    /// `ew upgrade`: a project of an older format converted after a backup.
-    Upgrade(UpgradeArgs),
-    /// `ew update-copies`: the damaged library copies updated from their libraries (FT-1499).
-    UpdateCopies(UpdateCopiesArgs),
-    /// Name the project's check schemes (`project checks set`, a human-only command).
-    ChecksSet(ChecksSetArgs),
-    /// Delete the asset files nothing names (`project assets purge`).
-    AssetsPurge(AssetsPurgeArgs),
-    /// `ew lib`: list, search, reindex and create libraries.
-    Lib(LibArgs),
-    /// `ew revision approve|release|withdraw`.
-    Revision(RevisionArgs),
-    /// `ew commands [--json]`: the command registry.
-    Commands {
-        /// Print the result as JSON (`--json`).
-        json: bool,
-    },
-    /// `ew schema <name>`: a command's parameter schema or a result schema.
-    Schema(String),
-    /// `ew query <name> <key> [--explain]`: one public query.
-    Query(query::QueryArgs),
-    /// `ew queries [--json]`: the query registry.
-    Queries {
-        /// Print the result as JSON (`--json`).
-        json: bool,
-    },
-    /// `ew layout [--page <folio>] [--json]`: the layout measures.
-    Layout(LayoutArgs),
-    /// `ew route [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page router.
-    Route(RouteArgs),
-    /// `ew merge resolve`: the conflict records a merge left, resolved.
-    MergeResolve(MergeResolveArgs),
-    /// `ew diff`.
-    Diff(DiffArgs),
-    /// `ew git setup`.
-    GitSetup(GitSetupArgs),
-    /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files.
-    MergeDriver(merge_driver::MergeDriverArgs),
-}
+use crate::catalogue::{Exit, HUMAN_EXITS, OK, ROW_EXPORT_ERRORS, USAGE_ETC, exit};
 
 /// What `ew revision` does.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -200,72 +91,6 @@ pub struct RevisionArgs {
     pub project: Option<PathBuf>,
 }
 
-/// What `ew lib` does.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum LibAction {
-    /// `lib list`.
-    List,
-    /// `lib search`.
-    Search {
-        /// The typed text.
-        text: String,
-        /// The kinds (`--kind`); parts when empty.
-        kinds: Vec<String>,
-        /// Include deprecated and withdrawn items (`--all`).
-        all: bool,
-        /// The most hits (`--limit`, 0: all).
-        limit: u32,
-    },
-    /// `lib index --rebuild`.
-    IndexRebuild,
-    /// `lib create`.
-    Create {
-        /// The new library's directory.
-        dir: PathBuf,
-        /// `--key`.
-        key: String,
-        /// `--name`.
-        name: String,
-        /// `--licence`.
-        licence: String,
-    },
-    /// `lib import qet-elements`.
-    ImportQetElements {
-        /// The target library's key or ID.
-        library: String,
-        /// The collection's directory.
-        dir: PathBuf,
-        /// Take over a stale library lock (`--take-over`).
-        take_over: bool,
-    },
-    /// `lib import parts`.
-    ImportParts {
-        /// The target library's key or ID.
-        library: String,
-        /// The parts table.
-        file: PathBuf,
-        /// The column map (`--map`).
-        map: PathBuf,
-        /// The import date (`--as-of`).
-        as_of: ew_api::catalog::Date,
-        /// Write changed parts as the next patch version (`--bump`).
-        bump: bool,
-        /// Take over a stale library lock (`--take-over`).
-        take_over: bool,
-    },
-}
-
-/// The arguments of `ew lib`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct LibArgs {
-    /// The subcommand.
-    pub action: LibAction,
-    /// The company library paths (`--company`, repeatable).
-    pub company: Vec<PathBuf>,
-    /// Print JSON (`--json`).
-    pub json: bool,
-}
-
 /// What `ew recover` does with the journal of a crashed session.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RecoverAction {
@@ -275,19 +100,6 @@ pub enum RecoverAction {
     Replay,
     /// `--discard`: delete it after the word typed on a controlling terminal.
     Discard,
-}
-
-/// The arguments of `ew recover`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct RecoverArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// What to do.
-    pub action: RecoverAction,
-    /// Print the result as JSON (`--json`; not with `--discard`).
-    pub json: bool,
-    /// `--yes` (with `--replay`): confirm the upgrade of a project in an older format without the typed word.
-    pub yes: bool,
 }
 
 /// The arguments of `ew import csv`.
@@ -331,17 +143,6 @@ pub enum PageFormat {
     Dxf,
 }
 
-/// The arguments of `ew export ewz`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ExportEwzArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The `.ewz` file (`--out`).
-    pub out: PathBuf,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
 /// The arguments of `ew export pdf|svg|png`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExportPagesArgs {
@@ -377,82 +178,6 @@ pub enum PrintVia {
     /// The Windows print dialog, or the printer `--printer` names, through GDI (Windows only).
     #[cfg(windows)]
     Windows,
-}
-
-/// The arguments of `ew print`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PrintArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The page selection (`--pages`, `--sections`).
-    pub pages: PageSelection,
-    /// The paper (`--paper`).
-    pub paper: ew_api::output::print::Paper,
-    /// Scale each page to the paper (`--fit`).
-    pub fit: bool,
-    /// Black and grey (`--mono`).
-    pub mono: bool,
-    /// The printer (`--printer`).
-    pub printer: Option<String>,
-    /// The adapter (`--via`, its platform default resolved).
-    pub via: PrintVia,
-    /// The print set's file (`--out`); `None`: printed.
-    pub out: Option<PathBuf>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
-/// The arguments of `ew apply`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ApplyArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The command log.
-    pub log: PathBuf,
-    /// Replay on a copy and print the changes (`--preview`).
-    pub preview: bool,
-    /// Save only when every line commits (`--one-step`).
-    pub one_step: bool,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
-/// The arguments of `ew export plc-aml`, `plc-xlsx` and `plcopen`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PlcExportArgs {
-    /// The file format.
-    pub format: ew_api::plc_exchange::PlcFormat,
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The configuration project by name (`--config`).
-    pub config: Option<String>,
-    /// The stations to export, by tag (`--station`); empty: all.
-    pub stations: Vec<String>,
-    /// The language of comments and documentation (`--lang`).
-    pub lang: Option<String>,
-    /// The file to write (`--out`).
-    pub out: PathBuf,
-}
-
-/// The arguments of `ew import plc-aml` and `plc-xlsx`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PlcImportArgs {
-    /// The schema name of the subcommand's `--json` result.
-    pub schema: &'static str,
-    /// The exchange file.
-    pub file: PathBuf,
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The configuration project by name (`--config`).
-    pub config: Option<String>,
-    /// The language of a tag workbook's comment column (`--lang`).
-    pub lang: Option<String>,
-    /// `--complete`.
-    pub complete: bool,
-    /// The choices file (`--accept`): apply and save; `None`: preview only.
-    pub accept: Option<PathBuf>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
 }
 
 /// What `ew export` writes.
@@ -492,23 +217,6 @@ pub struct ExportArgs {
     pub format: RowFormat,
 }
 
-/// The arguments of `ew export table`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ExportTableArgs {
-    /// The navigator's word (`strips`).
-    pub navigator: String,
-    /// One strip of `strips`, by its tag (`--strip`).
-    pub strip: Option<String>,
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The output file (`--out`); `None`: stdout.
-    pub out: Option<PathBuf>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-    /// How the table is written (`--format`, `--preset`, `--bom`, `--line-end`).
-    pub format: RowFormat,
-}
-
 /// How a row export writes its rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowFormat {
@@ -544,34 +252,6 @@ pub enum SqlSource {
     File(PathBuf),
 }
 
-/// The arguments of `ew sql`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct SqlArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The query.
-    pub query: SqlSource,
-    /// The result format (`--format`).
-    pub format: SqlFormat,
-    /// The deadline in seconds (`--timeout`).
-    pub timeout: Option<u64>,
-    /// The output file (`--out`).
-    pub out: Option<PathBuf>,
-    /// The CSV preset and its overrides (`--preset`, `--bom`, `--line-end`).
-    pub csv: CsvOptions,
-}
-
-/// The arguments of `ew sql dump`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct SqlDumpArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The SQLite file to write.
-    pub out: PathBuf,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
 /// The output format of `ew check`.
 #[derive(clap::ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CheckFormat {
@@ -582,27 +262,6 @@ pub enum CheckFormat {
     Markdown,
     /// JSON (`ew.check-result/1`).
     Json,
-}
-
-/// The arguments of `ew check`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct CheckArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The scheme name (`--scheme`); `None`: the project's scheme for the mode, else `pre-delivery`.
-    pub scheme: Option<String>,
-    /// The mode (`--mode`).
-    pub mode: CheckMode,
-    /// The output format (`--format`).
-    pub format: CheckFormat,
-    /// The output file (`--out`).
-    pub out: Option<PathBuf>,
-    /// The language of the messages (`--lang`, a shipped language; default en-GB).
-    pub lang: String,
-    /// Only the project-integrity check (`--integrity`, FT-191).
-    pub integrity: bool,
-    /// With `integrity`: the project counts as just merged (`--after-merge`).
-    pub after_merge: bool,
 }
 
 /// The arguments of `ew import qet`.
@@ -695,19 +354,22 @@ pub struct ImportPartsArgs {
     pub company: Vec<PathBuf>,
 }
 
-/// Parses the arguments after the program name through the derive tree ([`tree::Cli`]).
+/// Parses the arguments after the program name through the derive tree ([`tree::Cli`]) and checks the rules of the
+/// subcommand's line that the tree's relations cannot say ([`tree::Leaf::check`]).
 ///
 /// # Errors
 ///
 /// clap's error: a usage error (exit 2), or the help or the version (exit 0), to print as clap renders it.
-pub fn parse<I, T>(args: I) -> Result<Command, clap::Error>
+pub fn parse<I, T>(args: I) -> Result<Top, clap::Error>
 where
     I: IntoIterator<Item = T>,
     T: Into<std::ffi::OsString> + Clone,
 {
     use clap::Parser as _;
     let line = std::iter::once(std::ffi::OsString::from("ew")).chain(args.into_iter().map(Into::into));
-    tree::Cli::try_parse_from(line)?.into_command()
+    let cli = tree::Cli::try_parse_from(line)?;
+    cli.command.check()?;
+    Ok(cli.command)
 }
 
 /// The exit code of [`parse`]'s error `e` for the arguments `args` after the program name: clap's (2 for a usage
@@ -728,59 +390,106 @@ pub fn command() -> clap::Command {
     tree::Cli::command()
 }
 
-/// Runs `cmd` and returns the exit code (0 success, 1 model check failed or `--strict` violated, 2 usage, I/O and
-/// import errors).
-pub fn run(cmd: Command) -> i32 {
+/// The CLI catalogue's entries: every subcommand path of the tree in declaration order, its flags read from clap's
+/// command and its exits and result from its [`tree::Leaf`].
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn entries() -> Vec<crate::catalogue::Entry> {
+    let mut cmd = command();
+    cmd.build();
+    let mut out = Vec::new();
+    Top::entries(&cmd, &mut Vec::new(), &mut out);
+    out
+}
+
+/// Runs the subcommand of a parsed line and returns its exit code (0 success, 1 model check failed or `--strict`
+/// violated, 2 usage, I/O and import errors).
+pub fn run(cmd: Top) -> i32 {
     match cmd {
-        Command::Symbol(a) => symbol::run(a),
-        Command::ImportQet(a) => run_import_qet(&a),
-        Command::ImportParts(a) => run_import_parts(&a),
-        Command::ImportCsv(a) => run_import_csv(&a),
-        Command::ImportTable(a) => run_import_table(&a),
-        Command::ImportDxf(a) => dxf::run_import_dxf(&a),
-        Command::ImportPdf(a) => dxf::run_import_pdf(&a),
-        Command::ImportDwg(a) => dxf::run_import_dwg(&a),
-        Command::ImportEdz(a) | Command::ImportPartsXml(a) => eplan::run_import_eplan_parts(&a),
-        Command::ImportEplanReport(a) => eplan::run_import_eplan_report(&a),
-        Command::Check(a) => run_check(&a),
-        Command::Sql(a) => run_sql(&a),
-        Command::SqlDump(a) => run_sql_dump(&a),
-        Command::Export(a) => run_export(&a),
-        Command::ExportTable(a) => run_export_nav_table(&a),
-        Command::VerifyDerived(a) => run_verify_derived(&a),
-        Command::VerifyMigration(a) => run_verify_migration(&a),
-        Command::ExportPages(a) => run_export_pages(&a),
-        Command::Print(a) => run_print(&a),
-        Command::Render(a) => run_render(&a),
-        Command::ExportEwz(a) => run_export_ewz(&a),
-        Command::PlcExport(a) => run_plc_export(&a),
-        Command::PlcImport(a) => run_plc_import(&a),
-        Command::InstrumentList(a) => run_instrument_list(&a),
-        Command::PlcStatus(a) => run_plc_status(&a),
-        Command::Extract(a) => run_extract(&a),
-        Command::Apply(a) => run_apply(&a),
-        Command::Fmt(a) => project_files::run_fmt(&a),
-        Command::Recover(a) => project_files::run_recover(&a),
-        Command::Upgrade(a) => project_files::run_upgrade(&a),
-        Command::UpdateCopies(a) => run_update_copies(&a),
-        Command::ChecksSet(a) => run_checks_set(&a),
-        Command::AssetsPurge(a) => run_assets_purge(&a),
-        Command::Lib(a) => run_lib(&a),
-        Command::Revision(a) => run_revision(&a),
-        Command::Commands { json } => run_commands(json),
-        Command::Schema(name) => run_schema(&name),
-        Command::Query(a) => query::run_query(&a),
-        Command::Queries { json } => query::run_queries(json),
-        Command::Layout(a) => layout::run_layout(&a),
-        Command::Route(a) => route::run_route(&a),
-        Command::MergeResolve(a) => merge_resolve::run_merge_resolve(&a),
-        Command::Diff(a) => diff::run_diff(&a),
-        Command::GitSetup(a) => collab::run_git_setup(&a),
-        Command::MergeDriver(a) => merge_driver::run_merge_driver(&a),
-        Command::SqlSchema => {
-            print!("{}", ew_api::sql::schema::schema_text());
-            0
-        }
+        Top::Symbol(a) => symbol::run(a),
+        Top::Import(i) => match i {
+            Import::Qet(a) => run_import_qet(&a),
+            Import::Parts(a) => run_import_parts(&a),
+            Import::Csv(a) => run_import_csv(&a),
+            Import::Table(a) => run_import_table(&a),
+            Import::Dxf(a) => dxf::run_import_dxf(&a),
+            Import::Pdf(a) => dxf::run_import_pdf(&a),
+            Import::Dwg(a) => dxf::run_import_dwg(&a),
+            Import::PlcAml(a) => run_plc_import(results::ImportPlcResult::AML, &a.plc),
+            Import::PlcXlsx(a) => run_plc_import(results::ImportPlcResult::XLSX, &a.plc),
+            Import::InstrumentList(a) => run_instrument_list(&a),
+            Import::Edz(a) | Import::PartsXml(a) => eplan::run_import_eplan_parts(&a),
+            Import::EplanReport(a) => eplan::run_import_eplan_report(&a),
+        },
+        Top::Check(a) => run_check(&a),
+        Top::Sql(a) => match &a.sub {
+            Some(SqlSub::Dump(d)) => run_sql_dump(d),
+            Some(SqlSub::Schema(_)) => {
+                print!("{}", ew_api::sql::schema::schema_text());
+                0
+            }
+            None => run_sql(&a),
+        },
+        Top::Export(e) => match e {
+            ExportCli::Cables(a) => run_rows(a.rows.export("cables", ExportKind::Cables)),
+            ExportCli::Bom(a) => run_rows(a.export()),
+            ExportCli::Wires(a) => run_rows(a.rows.export("wires", ExportKind::Wires)),
+            ExportCli::Terminals(a) => run_rows(a.export()),
+            ExportCli::Report(a) => run_rows(a.export()),
+            ExportCli::Table(a) => run_export_nav_table(&a),
+            ExportCli::Pdf(a) => run_pages(a.pages.export(PageFormat::Pdf)),
+            ExportCli::Svg(a) => run_pages(a.pages.export(PageFormat::Svg)),
+            ExportCli::Dxf(a) => run_pages(a.export()),
+            ExportCli::Ewz(a) => run_export_ewz(&a),
+            ExportCli::Png(a) => run_pages(a.export()),
+            ExportCli::PlcAml(a) => run_plc_export("plc-aml", &a.plc),
+            ExportCli::PlcXlsx(a) => run_plc_export("plc-xlsx", &a.plc),
+            ExportCli::Plcopen(a) => run_plc_export("plcopen", &a.plc),
+        },
+        Top::Plc(PlcCli::Status(a)) => run_plc_status(&a),
+        Top::Extract(a) => run_extract(&a),
+        Top::Print(a) => run_print(&a),
+        Top::Render(a) => run_render(&a),
+        Top::Apply(a) => run_apply(&a),
+        Top::Fmt(a) => project_files::run_fmt(&a),
+        Top::Recover(a) => project_files::run_recover(&a),
+        Top::Upgrade(a) => project_files::run_upgrade(&a),
+        Top::UpdateCopies(a) => run_update_copies(&a),
+        Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => run_checks_set(&a),
+        Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => run_assets_purge(&a),
+        Top::Revision(r) => run_revision(&match r {
+            RevisionCli::Approve(a) => a.revision(),
+            RevisionCli::Release(a) => a.revision(),
+            RevisionCli::Withdraw(a) => a.revision(),
+        }),
+        Top::VerifyDerived(a) => run_verify_derived(&a),
+        Top::VerifyMigration(a) => run_verify_migration(&a),
+        Top::Query(a) => query::run_query(&a),
+        Top::Queries(a) => query::run_queries(a.json),
+        Top::Layout(a) => layout::run_layout(&a),
+        Top::Route(a) => route::run_route(&a),
+        Top::Lib(a) => run_lib(&a),
+        Top::Commands(a) => run_commands(a.json),
+        Top::Schema(a) => run_schema(&a.name),
+        Top::Merge(MergeCli::Resolve(a)) => merge_resolve::run_merge_resolve(&a),
+        Top::MergeDriver(a) => merge_driver::run_merge_driver(&a),
+        Top::Diff(a) => diff::run_diff(&a),
+        Top::Git(GitCli::Setup(a)) => collab::run_git_setup(&a),
+    }
+}
+
+/// Runs a row export (`export cables|bom|wires|terminals|report`) of its checked line.
+fn run_rows(line: Result<ExportArgs, clap::Error>) -> i32 {
+    match line {
+        Ok(a) => run_export(&a),
+        Err(e) => usage(&e),
+    }
+}
+
+/// Runs a page export (`export pdf|svg|png|dxf`) of its checked line.
+fn run_pages(line: Result<ExportPagesArgs, clap::Error>) -> i32 {
+    match line {
+        Ok(a) => run_export_pages(&a),
+        Err(e) => usage(&e),
     }
 }
 

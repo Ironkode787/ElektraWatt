@@ -4,37 +4,41 @@
 //! `ew query` and `ew queries`: the public queries of the session, with `--explain`,
 //! and the query registry.
 
-use std::path::PathBuf;
-
 use ew_api::cli_results as results;
 
+use super::tree::{Leaf, QueriesCli, QueryCli, usage};
 use super::{open_reader, reader_dir};
+use crate::catalogue::{Exit, OK, exit};
 
-/// The arguments of `ew query`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct QueryArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The query's name (`device_tag`).
-    pub name: String,
-    /// The key (`tag:-101F1`, `-`).
-    pub key: String,
-    /// Add the explanation (`--explain`).
-    pub explain: bool,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
+impl Leaf for QueryCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "answered"),
+        exit(
+            2,
+            "usage, an unknown query, open errors, a key that names no record or one of another kind",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::QueryResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.project_name_key().map(drop)
+    }
 }
 
 /// `ew query` (D11, D12, FR-EXT-005): opens the project as a reader (no lock) and prints the query's value, with
 /// `--explain` its policy, dependencies and provenance. Exit 0 when answered, 2 on usage, an unknown query, open
 /// errors and a key that names no record or a record of another kind.
-pub(super) fn run_query(a: &QueryArgs) -> i32 {
+pub(super) fn run_query(a: &QueryCli) -> i32 {
+    let (project, name, key) = match a.project_name_key() {
+        Ok(line) => line,
+        Err(e) => return usage(&e),
+    };
     // An unknown name is refused before the project is opened.
-    if ew_api::queries::query(&a.name).is_none() {
-        eprintln!("error: {}", ew_api::queries::QueryError::Unknown(a.name.clone()));
+    if ew_api::queries::query(name).is_none() {
+        eprintln!("error: {}", ew_api::queries::QueryError::Unknown(name.to_owned()));
         return 2;
     }
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(project.as_ref()) else {
         return 2;
     };
     let session = match open_reader(&dir, "query") {
@@ -44,7 +48,7 @@ pub(super) fn run_query(a: &QueryArgs) -> i32 {
             return 2;
         }
     };
-    let answer = match session.run_query(&a.name, &a.key, a.explain) {
+    let answer = match session.run_query(name, key, a.explain) {
         Ok(answer) => answer,
         Err(e) => {
             eprintln!("error: {e}");
@@ -67,6 +71,11 @@ pub(super) fn run_query(a: &QueryArgs) -> i32 {
         print!("{}", answer.text());
     }
     0
+}
+
+impl Leaf for QueriesCli {
+    const EXITS: &'static [Exit] = &[OK];
+    const RESULT: Option<&'static str> = Some(results::QueriesResult::SCHEMA);
 }
 
 /// `ew queries` (D11, D13): the query registry, with `--json` the text of `crates/ew-api/api/queries.json`.

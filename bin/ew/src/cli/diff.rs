@@ -15,6 +15,20 @@ use std::path::{Path, PathBuf};
 use ew_api::Session;
 
 use super::DiffArgs;
+use super::tree::Leaf;
+use crate::catalogue::{Exit, exit};
+
+impl Leaf for DiffArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(
+            0,
+            "the sides are equal, or differ without `--exit-code`; `--textconv` printed",
+        ),
+        exit(1, "the sides differ, with `--exit-code`"),
+        exit(2, "usage and open errors, a git side that cannot be read"),
+    ];
+    const RESULT: Option<&'static str> = Some(ew_api::cli_results::DiffResult::SCHEMA);
+}
 
 /// The manifest's file name.
 const MANIFEST: &str = "manifest.json";

@@ -29,6 +29,64 @@ pub(super) fn export_refusal(what: Export, e: &ew_api::ExportError) -> String {
     }
 }
 
+impl Leaf for CablesCli {
+    const EXITS: &'static [Exit] = &[OK, ROW_EXPORT_ERRORS];
+    const RESULT: Option<&'static str> = Some(results::ExportRowsResult::CABLES);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.rows.export("cables", ExportKind::Cables).map(drop)
+    }
+}
+
+impl Leaf for BomCli {
+    const EXITS: &'static [Exit] = &[OK, ROW_EXPORT_ERRORS];
+    const RESULT: Option<&'static str> = Some(results::ExportRowsResult::BOM);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.export().map(drop)
+    }
+}
+
+impl Leaf for WiresCli {
+    const EXITS: &'static [Exit] = &[OK, ROW_EXPORT_ERRORS];
+    const RESULT: Option<&'static str> = Some(results::ExportRowsResult::WIRES);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.rows.export("wires", ExportKind::Wires).map(drop)
+    }
+}
+
+impl Leaf for TerminalsCli {
+    const EXITS: &'static [Exit] = &[
+        OK,
+        exit(
+            2,
+            "usage and open errors, a project without the block, an unknown or wrong block, an unknown strip",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ExportTerminalsResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.export().map(drop)
+    }
+}
+
+impl Leaf for ReportCli {
+    const EXITS: &'static [Exit] = &[
+        OK,
+        exit(
+            2,
+            "usage, open, I/O and writer errors, an unknown block, a block without rows or pages",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ExportReportResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.export().map(drop)
+    }
+}
+
+/// `ew export cables|bom|wires|terminals|report` of its line ([`RowsCli::export`] and its kin).
 pub(super) fn run_export(a: &ExportArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
@@ -212,7 +270,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
                 println!("export written to {}", path.display());
             }
         }
-        // `--format xlsx` needs `--out` (the lowering refuses it without); a CSV goes to stdout.
+        // `--format xlsx` needs `--out` (its line is refused without); a CSV goes to stdout.
         None => match &text {
             Some(csv) if !a.json => {
                 print!("{csv}");
@@ -262,9 +320,28 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
     0
 }
 
+impl Leaf for TableCli {
+    const EXITS: &'static [Exit] = &[
+        OK,
+        exit(
+            2,
+            "usage, open, I/O and writer errors, an unknown navigator or strip",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ExportTableResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.row_format().map(drop)
+    }
+}
+
 /// `ew export table`: a navigator's table unfiltered, as CSV in a preset or as a workbook with the
 /// round-trip sheets (`_ew`, and `_ew_base` with its digest), the file written atomically.
-pub(super) fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
+pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
+    let row_format = match a.row_format() {
+        Ok(f) => f,
+        Err(e) => return usage(&e),
+    };
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
@@ -285,7 +362,7 @@ pub(super) fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
             return 2;
         }
     };
-    let (bytes, text, format, preset) = match a.format {
+    let (bytes, text, format, preset) = match row_format {
         RowFormat::Csv(options) => {
             let csv = ew_api::output::table_csv(&table, &options);
             (
@@ -329,7 +406,7 @@ pub(super) fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
             eprintln!("{} rows", table.rows.len());
         }
         (None, Some(_)) => {}
-        // The lowering refuses `--format xlsx` without `--out`.
+        // A line with `--format xlsx` and no `--out` is refused before this runs.
         (None, None) => {
             eprintln!("error: {XLSX_NEEDS_OUT}");
             return 2;
@@ -550,10 +627,29 @@ pub(super) fn session_today() -> Option<ew_api::catalog::Date> {
     ew_api::catalog::Date::new(d.year, d.month, d.day).ok()
 }
 
+impl Leaf for EwzCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written"),
+        exit(
+            2,
+            "usage, open and write errors, a project changed on disk or one that cannot be packed",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ExportEwzResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.file().map(drop)
+    }
+}
+
 /// `ew export ewz`: the project's saved generation, read back from the disk and
 /// verified, packed into `--out` ([`write_atomically`]). The project opens as a reader (no lock); an `.ewz` given as
 /// the project is refused ([`project_dir`]).
-pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
+pub(super) fn run_export_ewz(a: &EwzCli) -> i32 {
+    let out = match a.file() {
+        Ok(out) => out,
+        Err(e) => return usage(&e),
+    };
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
@@ -571,8 +667,8 @@ pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
             return 2;
         }
     };
-    if let Err(e) = write_atomically(&a.out, &packed.bytes) {
-        eprintln!("error: {}: {e}", a.out.display());
+    if let Err(e) = write_atomically(out, &packed.bytes) {
+        eprintln!("error: {}: {e}", out.display());
         return 2;
     }
     if a.json {
@@ -580,7 +676,7 @@ pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
             "{}",
             results::to_text(&results::ExportEwzResult {
                 schema: results::ExportEwzResult::SCHEMA.to_owned(),
-                out: a.out.display().to_string(),
+                out: out.display().to_string(),
                 generation: packed.generation,
                 files: packed.files,
                 bytes: packed.bytes.len() as u64,
@@ -589,12 +685,23 @@ pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
     } else {
         println!(
             ".ewz written to {}: generation {}, {}",
-            a.out.display(),
+            out.display(),
             packed.generation,
             plural(packed.files, "file", "files")
         );
     }
     0
+}
+
+impl Leaf for ExtractArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "extracted"),
+        exit(
+            2,
+            "usage, an unreadable or refused archive, an existing folder, write errors",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ExtractResult::SCHEMA);
 }
 
 /// `ew extract <file.ewz> [--into <dir>]`: the archive read whole and checked before
@@ -672,6 +779,43 @@ pub(super) fn write_file_set(
     })
 }
 
+impl Leaf for PdfCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::ExportPdfResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.pages.export(PageFormat::Pdf).map(drop)
+    }
+}
+
+impl Leaf for SvgCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::ExportSvgResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.pages.export(PageFormat::Svg).map(drop)
+    }
+}
+
+impl Leaf for PngCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::ExportPngResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.export().map(drop)
+    }
+}
+
+impl Leaf for DxfCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+    const RESULT: Option<&'static str> = Some(results::ExportDxfResult::SCHEMA);
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.export().map(drop)
+    }
+}
+
+/// `ew export pdf|svg|png|dxf` of its line ([`PagesCli::export`] and its kin).
 pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
@@ -854,6 +998,14 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
         eprintln!("{findings}");
     }
     0
+}
+
+impl Leaf for RenderArgs {
+    const EXITS: &'static [Exit] = &[
+        OK,
+        exit(2, "usage, open, I/O and writer errors, an unknown folio"),
+    ];
+    const RESULT: Option<&'static str> = Some(results::RenderResult::SCHEMA);
 }
 
 /// `ew render --page <folio> --png` (FR-EXT-004): one page as PNG, to `--out` or `<folio>.png` in the

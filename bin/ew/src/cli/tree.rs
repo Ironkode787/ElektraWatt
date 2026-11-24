@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in
-//! its doc comment; [`Cli::into_command`] lowers a parsed line to the [`Command`] that [`super::run`] runs. A
-//! subcommand's `*Args` is what its command takes as parsed; a `*Cli` is lowered to the `*Args` of `cli.rs` where the
-//! line needs converting (a positional read by the count, `--json` as `--format json`, a platform default). Some
-//! `*Args` live beside their command (`dxf.rs`, `eplan.rs`, `symbol.rs`, the imports of `cli.rs`). The exit codes and
-//! results of each path are the CLI table, `catalogue.rs`.
+//! its doc comment. A subcommand is one structure: its arguments as clap parses them (`*Args`, `*Cli`), which its run
+//! function takes, and beside the run function its [`Leaf`]: its exit codes, the schema name of its `--json` result
+//! and the rules of its line that the tree's relations cannot say. Some structures live beside their run function
+//! (`dxf.rs`, `eplan.rs`, `symbol.rs`, the imports of `cli.rs`). A group of subcommands is an enum declared through
+//! [`group!`], which walks its variants for the check of a line and for the CLI catalogue (`catalogue.rs`).
 //!
 //! The grammar (doc 17 §3.1): a valued flag takes the next word as its value even when it starts with
 //! `-`; a second `--project` is an error, `--company` and `lib search --kind` accumulate, every other flag is
 //! last-wins; the positional project directory and `--project` exclude each other; a positional that takes hyphen
-//! values refuses a word starting with `--` as a mistyped option. A rule the relations cannot say is one check in the
-//! lowering that returns a usage error.
+//! values refuses a word starting with `--` as a mistyped option. A rule the relations cannot say is the
+//! subcommand's [`Leaf::check`], which returns a usage error when the line is parsed; the methods below each structure
+//! read a line that needs converting (a positional read by the count, `--json` as `--format json`, a platform
+//! default).
 
 use std::path::PathBuf;
 
@@ -24,14 +26,102 @@ use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
-use super::merge_driver::MergeDriverArgs;
-use super::query::QueryArgs;
 use super::{
-    ApplyArgs, CheckArgs, CheckFormat, Command, ExportArgs, ExportEwzArgs, ExportKind, ExportPagesArgs,
-    ExportTableArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
-    PlcExportArgs, PlcImportArgs, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RevisionAction,
-    RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, XLSX_NEEDS_OUT,
+    CheckFormat, ExportArgs, ExportKind, ExportPagesArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs,
+    PageFormat, PrintVia, RecoverAction, RevisionAction, RevisionArgs, RowFormat, SqlFormat, SqlSource,
+    XLSX_NEEDS_OUT,
 };
+use crate::catalogue::{Entry, Exit};
+
+/// A subcommand path of the tree, stated beside its run function: its exit codes, the schema name of its `--json`
+/// result, and the rules of its line that the relations of the tree cannot say.
+pub(crate) trait Leaf {
+    /// Its exit codes, each with what it means for this subcommand.
+    const EXITS: &'static [Exit];
+    /// The schema name of its `--json` result (`ew.<command>-result/1`), or `None` when it prints none.
+    const RESULT: Option<&'static str> = None;
+
+    /// A usage error for a rule of the line that the relations cannot say, found when the line is parsed, before
+    /// anything runs.
+    ///
+    /// # Errors
+    ///
+    /// The usage error, with clap's usage line of the subcommand.
+    fn check(&self) -> Result<(), clap::Error> {
+        Ok(())
+    }
+
+    /// The catalogue entries of the paths below this one, `cmd` its clap command at `path` (`sql dump` and `sql
+    /// schema` below `sql`); none for most.
+    fn below(_cmd: &clap::Command, _path: &mut Vec<String>, _out: &mut Vec<Entry>) {}
+}
+
+/// A node of the tree: a subcommand path ([`Leaf`]) or a group of subcommands ([`group!`]).
+pub(crate) trait Node {
+    /// [`Leaf::check`] of the subcommand this node holds.
+    ///
+    /// # Errors
+    ///
+    /// Its usage error.
+    fn check(&self) -> Result<(), clap::Error>;
+
+    /// The catalogue entries of this node, `cmd` its clap command at `path`, in declaration order.
+    fn entries(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<Entry>);
+}
+
+impl<T: Leaf> Node for T {
+    fn check(&self) -> Result<(), clap::Error> {
+        Leaf::check(self)
+    }
+
+    fn entries(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<Entry>) {
+        out.push(crate::catalogue::entry(cmd, path, T::EXITS, T::RESULT));
+        T::below(cmd, path, out);
+    }
+}
+
+/// A group of subcommands: the enum as written, each variant holding the node of one subcommand, and its [`Node`],
+/// which visits the variants in declaration order, the order of clap's subcommands of the group.
+macro_rules! group {
+    (
+        $(#[$meta:meta])*
+        $vis:vis enum $name:ident {
+            $( $(#[$variant_meta:meta])* $variant:ident($node:ty), )*
+        }
+    ) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $( $(#[$variant_meta])* $variant($node), )*
+        }
+
+        impl $crate::cli::tree::Node for $name {
+            fn check(&self) -> Result<(), clap::Error> {
+                match self {
+                    $( Self::$variant(node) => $crate::cli::tree::Node::check(node), )*
+                }
+            }
+
+            fn entries(
+                cmd: &clap::Command,
+                path: &mut Vec<String>,
+                out: &mut Vec<$crate::catalogue::Entry>,
+            ) {
+                let mut subcommands = $crate::catalogue::subcommands(cmd);
+                $( $crate::catalogue::below::<$node>(subcommands.next(), path, out); )*
+                assert!(subcommands.next().is_none(), "a subcommand of `{}` without its variant", cmd.get_name());
+            }
+        }
+    };
+}
+pub(super) use group;
+
+/// Prints the usage error `e` as clap renders it, on stderr, and returns its exit code: a [`Leaf::check`] found when
+/// the line was parsed, which a run function meets again only when it is called on an unchecked line.
+pub(super) fn usage(e: &clap::Error) -> i32 {
+    // Printing fails only when the stream is gone; the exit code still says what happened.
+    let _ = e.print();
+    e.exit_code()
+}
 
 /// The ElektraWatt command-line interface.
 ///
@@ -44,15 +134,16 @@ use super::{
 /// for `merge-driver`).
 #[derive(Parser, Debug)]
 #[command(name = "ew", bin_name = "ew", version)]
-pub(super) struct Cli {
+pub(crate) struct Cli {
     /// The subcommand.
     #[command(subcommand)]
-    command: Top,
+    pub(super) command: Top,
 }
 
+group! {
 /// The subcommands of `ew`.
-#[derive(Subcommand, Debug)]
-enum Top {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum Top {
     /// Create, inspect, import and publish portable symbol drafts.
     #[command(subcommand)]
     Symbol(super::symbol::SymbolArgs),
@@ -228,7 +319,7 @@ enum Top {
     /// List the public queries with their keys.
     ///
     /// Lists the public queries with their keys (`ew query` answers one); exits 0.
-    Queries(JsonCli),
+    Queries(QueriesCli),
     /// Measure how the pages are drawn.
     ///
     /// Opens the project as a reader (no lock) and prints the layout measure of the page `--page <folio>` names, else
@@ -265,7 +356,7 @@ enum Top {
     ///
     /// Lists the command registry (name, parameters version, exposure, cost, confirmation, undoable, stability,
     /// aliases); exits 0.
-    Commands(JsonCli),
+    Commands(CommandsCli),
     /// Print a command's parameter schema or a result schema.
     ///
     /// Prints the JSON Schema of a command's parameters (a name or alias of `ew commands`) or of a result
@@ -309,6 +400,7 @@ enum Top {
     #[command(subcommand)]
     Git(GitCli),
 }
+}
 
 /// `ew diff`.
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
@@ -338,9 +430,10 @@ pub struct DiffArgs {
     pub json: bool,
 }
 
+group! {
 /// `ew git`.
-#[derive(Subcommand, Debug)]
-enum GitCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum GitCli {
     /// Configure git's merge driver and textconv for ElektraWatt projects.
     ///
     /// Writes four keys into the repository's git configuration (`--global`: the user's) after your consent, a y/N
@@ -354,6 +447,7 @@ enum GitCli {
     /// else (no terminal and no `--yes`, a declined question, not in a git worktree, git missing or refusing, a foreign
     /// hook, write errors); nothing is written before the consent.
     Setup(GitSetupArgs),
+}
 }
 
 /// `ew git setup`.
@@ -370,9 +464,10 @@ pub struct GitSetupArgs {
     pub yes: bool,
 }
 
+group! {
 /// `ew import`.
-#[derive(Subcommand, Debug)]
-enum Import {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum Import {
     /// Import a QElectroTech project.
     ///
     /// Exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or error
@@ -470,7 +565,7 @@ enum Import {
     /// `theirs` or `create` (`{}` takes every default): the import then commits as one undo step with its snapshot,
     /// and the project is saved. Exit 0 with the preview (and once applied and saved), 2 on usage, open, read and
     /// save errors and a refused choice.
-    PlcAml(PlcImportCli),
+    PlcAml(ImportPlcAmlCli),
     /// Preview or apply a TIA Portal "PLC Tags" workbook.
     ///
     /// Reads the sheet `PLC Tags` of a workbook and matches its rows to the configuration project's tags by the
@@ -478,7 +573,7 @@ enum Import {
     /// names, data types and comments (`--lang` names the language of the comment column). A row without a channel
     /// is listed and never created.
     #[command(alias = "plc-tags")]
-    PlcXlsx(PlcImportCli),
+    PlcXlsx(ImportPlcXlsxCli),
     /// Take an instrument list into a PLC configuration project.
     ///
     /// Reads a CSV or the first sheet of a workbook with the columns `tag` and `signal type` (DI, DO, AI, AO) and,
@@ -519,6 +614,7 @@ enum Import {
     #[command(name = "eplan-report")]
     EplanReport(super::eplan::ImportEplanReportArgs),
 }
+}
 
 /// `ew import table`.
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
@@ -552,14 +648,14 @@ pub struct ImportTableArgs {
 }
 
 /// `ew check`.
-#[derive(Args, Debug)]
-struct CheckCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct CheckCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// The check scheme (default: the project's scheme for the mode, else `pre-delivery`).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "scheme", value_parser = scheme_name)]
-    scheme: Option<String>,
+    pub(super) scheme: Option<String>,
     /// The check mode.
     #[arg(
         long,
@@ -568,7 +664,7 @@ struct CheckCli {
         overrides_with = "mode",
         default_value = "release"
     )]
-    mode: ModeArg,
+    pub(super) mode: ModeArg,
     /// The output format (default: text).
     #[arg(
         long,
@@ -576,55 +672,80 @@ struct CheckCli {
         allow_hyphen_values = true,
         overrides_with = "format"
     )]
-    format: Option<CheckFormat>,
+    pub(super) format: Option<CheckFormat>,
     /// Print the result as JSON (`--format json`).
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
     /// The language of the messages (a shipped language).
     #[arg(long, value_name = "tag", allow_hyphen_values = true, overrides_with = "lang", value_parser = language, default_value = ew_api::checks::messages::DEFAULT_LANGUAGE)]
-    lang: String,
+    pub(super) lang: String,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Run only the project-integrity check: the integrity findings of opening the project and the rules EW-CORE-001
     /// to EW-CORE-019, conflict records (EW-CORE-011) and collisions after a merge (EW-CORE-013) among them, in release
     /// mode; exits 1 on any error.
     #[arg(long, overrides_with = "integrity", conflicts_with_all = ["scheme", "mode"])]
-    integrity: bool,
+    pub(super) integrity: bool,
     /// With `--integrity`: count the project as just merged, so that collisions of numbers report as EW-CORE-013 (the
     /// post-merge hook of `ew git setup --hooks` passes it).
     #[arg(long, overrides_with = "after_merge", requires = "integrity")]
-    after_merge: bool,
+    pub(super) after_merge: bool,
 }
 
 /// The mode of `ew check --mode`.
 #[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
-enum ModeArg {
+pub(crate) enum ModeArg {
     /// The release gate's mode.
     Release,
     /// The online checks' mode.
     Online,
 }
 
+impl CheckCli {
+    /// The check mode.
+    pub(super) fn check_mode(&self) -> CheckMode {
+        match self.mode {
+            ModeArg::Release => CheckMode::Release,
+            ModeArg::Online => CheckMode::Online,
+        }
+    }
+
+    /// The output format: `--json` is `--format json`, so another format beside it is refused.
+    pub(super) fn output_format(&self) -> Result<CheckFormat, clap::Error> {
+        let format_name = self.format.map(|f| match f {
+            CheckFormat::Text => "text",
+            CheckFormat::Markdown => "md",
+            CheckFormat::Json => "json",
+        });
+        json_alias(&["check"], self.json, format_name)?;
+        Ok(if self.json {
+            CheckFormat::Json
+        } else {
+            self.format.unwrap_or(CheckFormat::Text)
+        })
+    }
+}
+
 /// `ew sql`: the query, or `dump` and `schema`.
-#[derive(Args, Debug)]
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
 #[command(
     args_conflicts_with_subcommands = true,
     override_usage = "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       ew sql <COMMAND>"
 )]
-struct SqlCli {
+pub(crate) struct SqlCli {
     /// `dump` or `schema`.
     #[command(subcommand)]
-    sub: Option<SqlSub>,
+    pub(super) sub: Option<SqlSub>,
     /// The query, or with a second positional or `--file` the project directory.
     #[arg(value_name = "project-dir|select", allow_hyphen_values = true, value_parser = sql_word, required_unless_present = "file")]
-    first: Option<String>,
+    pub(super) first: Option<String>,
     /// The query, after the project directory.
     #[arg(value_name = "select", allow_hyphen_values = true, value_parser = sql_word, conflicts_with = "file")]
-    second: Option<String>,
+    pub(super) second: Option<String>,
     /// The project directory (instead of the positional one).
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
-    project: Option<PathBuf>,
+    pub(super) project: Option<PathBuf>,
     /// A file holding the query.
     #[arg(
         long,
@@ -632,56 +753,124 @@ struct SqlCli {
         allow_hyphen_values = true,
         overrides_with = "file"
     )]
-    file: Option<PathBuf>,
+    pub(super) file: Option<PathBuf>,
     /// The result format: csv (default), json, or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = sql_format)]
-    format: Option<SqlFormat>,
+    pub(super) format: Option<SqlFormat>,
     /// The CSV options.
     #[command(flatten)]
-    csv: CsvCli,
+    pub(super) csv: CsvCli,
     /// Print the result as JSON (`--format json`).
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
     /// The deadline in seconds.
     #[arg(long, value_name = "seconds", allow_hyphen_values = true, overrides_with = "timeout", value_parser = timeout)]
-    timeout: Option<u64>,
+    pub(super) timeout: Option<u64>,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
 }
 
+impl SqlCli {
+    /// The project directory and the query: one positional is the query; two, the project directory and the query;
+    /// with `--file`, the one positional is the project directory.
+    pub(super) fn project_and_query(&self) -> Result<(Option<PathBuf>, SqlSource), clap::Error> {
+        let (dir, query) = match (&self.file, &self.first, &self.second) {
+            (Some(file), dir, _) => (dir.as_ref().map(PathBuf::from), SqlSource::File(file.clone())),
+            (None, Some(dir), Some(q)) => (Some(PathBuf::from(dir)), SqlSource::Text(q.clone())),
+            (None, Some(q), None) => (None, SqlSource::Text(q.clone())),
+            // `required_unless_present = "file"` gives the query.
+            (None, None, _) => return Err(usage_error(&["sql"], "`sql` needs a query (or `--file`)")),
+        };
+        Ok((counted_project(&["sql"], self.project.clone(), dir)?, query))
+    }
+
+    /// The result format: `--json` is `--format json`, so another format beside it is refused.
+    pub(super) fn result_format(&self) -> Result<SqlFormat, clap::Error> {
+        let format_name = self.format.map(|f| match f {
+            SqlFormat::Csv => "csv",
+            SqlFormat::Json => "json",
+            SqlFormat::Xlsx => "xlsx",
+        });
+        json_alias(&["sql"], self.json, format_name)?;
+        Ok(if self.json {
+            SqlFormat::Json
+        } else {
+            self.format.unwrap_or(SqlFormat::Csv)
+        })
+    }
+
+    /// The CSV options of the result in `format`: a CSV option with another format is refused, and `xlsx` needs
+    /// `--out`.
+    pub(super) fn csv_options(&self, format: SqlFormat) -> Result<CsvOptions, clap::Error> {
+        let csv = self.csv.options(
+            &["sql"],
+            match format {
+                SqlFormat::Csv => "csv",
+                SqlFormat::Json => "json",
+                SqlFormat::Xlsx => "xlsx",
+            },
+        )?;
+        if format == SqlFormat::Xlsx && self.out.is_none() {
+            return Err(usage_error(&["sql"], XLSX_NEEDS_OUT));
+        }
+        Ok(csv)
+    }
+}
+
+group! {
 /// `ew sql dump|schema`.
-#[derive(Subcommand, Debug)]
-enum SqlSub {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum SqlSub {
     /// Write the SQL projection as a SQLite database file.
     ///
     /// With one positional it is the output file; with two, the project directory and the output file.
     #[command(override_usage = "ew sql dump [OPTIONS] [project-dir] <out.sqlite>")]
     Dump(SqlDumpCli),
     /// Print the SQL schema (the `api_v1_*` views).
-    Schema,
+    Schema(SqlSchemaCli),
+}
 }
 
 /// `ew sql dump`.
-#[derive(Args, Debug)]
-struct SqlDumpCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct SqlDumpCli {
     /// The output file, or with a second positional the project directory.
     #[arg(value_name = "project-dir|out.sqlite")]
-    first: String,
+    pub(super) first: String,
     /// The output file, after the project directory.
     #[arg(value_name = "out.sqlite")]
-    second: Option<String>,
+    pub(super) second: Option<String>,
     /// The project directory (instead of the positional one).
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
-    project: Option<PathBuf>,
+    pub(super) project: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
 }
 
+impl SqlDumpCli {
+    /// The project directory and the SQLite file: one positional is the file; two, the project directory and the file.
+    pub(super) fn project_and_out(&self) -> Result<(Option<PathBuf>, PathBuf), clap::Error> {
+        let (dir, out) = match &self.second {
+            Some(out) => (Some(PathBuf::from(&self.first)), out),
+            None => (None, &self.first),
+        };
+        Ok((
+            counted_project(&["sql", "dump"], self.project.clone(), dir)?,
+            PathBuf::from(out),
+        ))
+    }
+}
+
+/// `ew sql schema`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct SqlSchemaCli {}
+
+group! {
 /// `ew export`.
-#[derive(Subcommand, Debug)]
-enum ExportCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum ExportCli {
     /// Write the cable list as CSV or XLSX.
     ///
     /// Writes the rows of the project's cable overview (the `ew` dialect) to stdout or to `--out`. `--block`
@@ -690,7 +879,7 @@ enum ExportCli {
     /// `--out`; `--preset` writes the CSV for Excel (`excel-nl`, `excel-en`) or as RFC 4180 (`rfc4180`), and `--bom`
     /// and `--line-end` override the preset. Exit 0 on success, 2 on everything else (usage, open errors, a project
     /// without the block, an unknown or wrong block).
-    Cables(RowsCli),
+    Cables(CablesCli),
     /// Write the bill of materials as CSV or XLSX.
     ///
     /// Writes the rows of the project's parts summary (the `ew` dialect) to stdout or to `--out`. `--mode parts`
@@ -705,7 +894,7 @@ enum ExportCli {
     /// report block by its ID or its first folio; without it the block is the project's block of the kind with the
     /// lowest first folio. `--format`, `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success,
     /// 2 on everything else.
-    Wires(RowsCli),
+    Wires(WiresCli),
     /// Write the terminal diagrams as CSV or XLSX.
     ///
     /// Writes the rows of the project's terminal diagram blocks (the `ew` dialect) to stdout or to `--out`.
@@ -737,13 +926,13 @@ enum ExportCli {
     /// `--sections` section numbers, each section's pages with its divider (`1,2`), not both; `--threads` changes
     /// the speed, never the bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 on success, 2
     /// on everything else.
-    Pdf(PagesCli),
+    Pdf(PdfCli),
     /// Write one SVG file per page.
     ///
     /// Writes one `<folio>.svg` per page into the directory `--out` (empty, or one an earlier SVG export wrote, which
     /// is replaced as a whole without a question; any other is refused) through the session's export job with the bundled fonts only. `--pages`, `--sections` and `--threads`
     /// as for `export pdf`. Exit 0 on success, 2 on everything else.
-    Svg(PagesCli),
+    Svg(SvgCli),
     /// Write one DXF file per page.
     ///
     /// Writes one `<folio>.dxf` per page (AutoCAD 2010, AC1024, in millimetres) and the title block's PNG or JPEG
@@ -782,7 +971,7 @@ enum ExportCli {
     /// The export is recorded in the project as the base of the next import's merge, and the project is saved. A
     /// symbol that is no IEC identifier blocks the export (EW-PLC-005). Exit 0 when written and recorded, 2 on
     /// everything else.
-    PlcAml(PlcExportCli),
+    PlcAml(PlcAmlCli),
     /// Write the tags of a PLC configuration project as a TIA Portal "PLC Tags" workbook.
     ///
     /// Writes the sheet `PLC Tags` with the columns Name, Path, Data Type, Logical Address, Comment, Hmi Visible,
@@ -790,63 +979,64 @@ enum ExportCli {
     /// a symbol and an address (`%Q0.1`), the comment in `--lang`. Recorded and saved as `export plc-aml`, for the
     /// tags' fields it carries only; warns while no PLC import has confirmed the addresses.
     #[command(alias = "plc-tags")]
-    PlcXlsx(PlcExportCli),
+    PlcXlsx(PlcXlsxCli),
     /// Write the tags of a PLC configuration project as a PLCopen XML global variable list.
     ///
     /// Writes PLCopen XML (TC6 v2.01) with the global variable list `IO_ElektraWatt` to `--out` (required): one
     /// variable per channel with a symbol and an address, the address in IEC notation (`%QX0.1`), the function
     /// text and the signal pin as its documentation. Not recorded: the list never comes back, so it is no base of
     /// an import. A symbol that is no IEC identifier blocks the export (EW-PLC-005).
-    Plcopen(PlcExportCli),
+    Plcopen(PlcopenCli),
+}
 }
 
 /// `ew export plc-aml`, `plc-xlsx` and `plcopen`.
-#[derive(Args, Debug)]
-struct PlcExportCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PlcExportCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// The configuration project by name (default: the project's only one).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
-    config: Option<String>,
+    pub(super) config: Option<String>,
     /// The AR APC version of `plc-aml`: 1.4.0 (default) or 1.2.0.
     #[arg(long, value_name = "version", overrides_with = "apc", value_parser = apc_version)]
-    apc: Option<ew_api::plc_exchange::ApcVersion>,
+    pub(super) apc: Option<ew_api::plc_exchange::ApcVersion>,
     /// A station to export, by its tag (repeatable; default: every station of the configuration project).
     #[arg(long, value_name = "tag", allow_hyphen_values = true, value_parser = word)]
-    station: Vec<String>,
+    pub(super) station: Vec<String>,
     /// The language of comments (`plc-xlsx`) and of the documentation (`plcopen`), as a language tag.
     #[arg(long, value_name = "tag", overrides_with = "lang", value_parser = word)]
-    lang: Option<String>,
+    pub(super) lang: Option<String>,
     /// Leave person fields out; a PLC exchange file holds none either way.
     #[arg(long, overrides_with = "omit_personal_data")]
-    omit_personal_data: bool,
+    pub(super) omit_personal_data: bool,
     /// The file to write (required).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
 }
 
 /// `ew import plc-aml` and `plc-xlsx`.
-#[derive(Args, Debug)]
-struct PlcImportCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PlcImportCli {
     /// The exchange file: an AML file or a tag workbook.
     #[arg(value_name = "file", value_parser = path_word)]
-    file: PathBuf,
+    pub(super) file: PathBuf,
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// The configuration project by name (default: the project's only one).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
-    config: Option<String>,
+    pub(super) config: Option<String>,
     /// The language of a tag workbook's comment column, as a language tag.
     #[arg(long, value_name = "tag", overrides_with = "lang", value_parser = word)]
-    lang: Option<String>,
+    pub(super) lang: Option<String>,
     /// The file is complete: a station it does not hold was removed in the PLC software.
     #[arg(long, overrides_with = "complete")]
-    complete: bool,
+    pub(super) complete: bool,
     /// Print the preview and write nothing (the default without `--accept`).
     #[arg(long, overrides_with = "preview", conflicts_with = "accept")]
-    preview: bool,
+    pub(super) preview: bool,
     /// Apply the import with these choices: a JSON object from a change's key or a parked object's ID to `ours`,
     /// `theirs` or `create` (`{}` takes every default).
     #[arg(
@@ -855,10 +1045,10 @@ struct PlcImportCli {
         allow_hyphen_values = true,
         overrides_with = "accept"
     )]
-    accept: Option<PathBuf>,
+    pub(super) accept: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
 }
 
 /// `ew import instrument-list`.
@@ -878,15 +1068,17 @@ pub struct InstrumentListArgs {
     pub apply: bool,
 }
 
+group! {
 /// `ew plc`.
-#[derive(Subcommand, Debug)]
-enum PlcCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum PlcCli {
     /// Report the exchange status of a PLC configuration project.
     ///
     /// Prints the configuration project's last exchange (direction, format, date), every object of the project that
     /// differs from it (the drift EW-PLC-016 reports) and, with `<file>`, whether that file is the one last exchanged.
     /// The project opens as a reader. Exit 0 with the status, 2 on usage and open errors.
     Status(PlcStatusArgs),
+}
 }
 
 /// `ew plc status`.
@@ -915,50 +1107,75 @@ fn apc_version(v: &str) -> Result<ew_api::plc_exchange::ApcVersion, String> {
 /// The refusal of a PLC export without `--out`.
 pub(super) const PLC_NEEDS_OUT: &str = "a PLC export writes a file: give `--out <file>`";
 
-/// `ew export plc-aml|plc-xlsx|plcopen`.
-fn plc_export(word: &str, a: PlcExportCli) -> Result<Command, clap::Error> {
-    use ew_api::plc_exchange::PlcFormat;
-    let format = match word {
-        "plc-aml" => PlcFormat::Aml(a.apc.unwrap_or_default()),
-        _ if a.apc.is_some() => {
-            return Err(usage_error(
-                &["export", word],
-                "`--apc` is an option of `export plc-aml`",
-            ));
-        }
-        "plc-xlsx" => PlcFormat::TiaXlsx,
-        _ => PlcFormat::Plcopen,
-    };
-    let Some(out) = a.out else {
-        return Err(usage_error(&["export", word], PLC_NEEDS_OUT));
-    };
-    Ok(Command::PlcExport(PlcExportArgs {
-        format,
-        project: a.project.0,
-        config: a.config,
-        stations: a.station,
-        lang: a.lang,
-        out,
-    }))
+/// `ew export plc-aml`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PlcAmlCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) plc: PlcExportCli,
 }
 
-/// `ew import plc-aml|plc-xlsx`.
-fn plc_import(schema: &'static str, a: PlcImportCli) -> Command {
-    Command::PlcImport(PlcImportArgs {
-        schema,
-        file: a.file,
-        project: a.project.0,
-        config: a.config,
-        lang: a.lang,
-        complete: a.complete,
-        accept: a.accept,
-        json: a.json,
-    })
+/// `ew export plc-xlsx`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PlcXlsxCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) plc: PlcExportCli,
+}
+
+/// `ew export plcopen`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PlcopenCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) plc: PlcExportCli,
+}
+
+impl PlcExportCli {
+    /// The file format of `export <word>` (`plc-aml`, `plc-xlsx`, `plcopen`) and the file it writes: `--apc` is an
+    /// option of `plc-aml` alone, and `--out` is needed.
+    pub(super) fn format_and_out(
+        &self,
+        word: &str,
+    ) -> Result<(ew_api::plc_exchange::PlcFormat, &PathBuf), clap::Error> {
+        use ew_api::plc_exchange::PlcFormat;
+        let format = match word {
+            "plc-aml" => PlcFormat::Aml(self.apc.unwrap_or_default()),
+            _ if self.apc.is_some() => {
+                return Err(usage_error(
+                    &["export", word],
+                    "`--apc` is an option of `export plc-aml`",
+                ));
+            }
+            "plc-xlsx" => PlcFormat::TiaXlsx,
+            _ => PlcFormat::Plcopen,
+        };
+        let Some(out) = &self.out else {
+            return Err(usage_error(&["export", word], PLC_NEEDS_OUT));
+        };
+        Ok((format, out))
+    }
+}
+
+/// `ew import plc-aml`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ImportPlcAmlCli {
+    /// The import's arguments.
+    #[command(flatten)]
+    pub(super) plc: PlcImportCli,
+}
+
+/// `ew import plc-xlsx`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ImportPlcXlsxCli {
+    /// The import's arguments.
+    #[command(flatten)]
+    pub(super) plc: PlcImportCli,
 }
 
 /// `ew export ewz`.
-#[derive(Args, Debug)]
-struct EwzCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct EwzCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -969,10 +1186,19 @@ struct EwzCli {
         allow_hyphen_values = true,
         overrides_with = "out"
     )]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl EwzCli {
+    /// The `.ewz` file to write: `--out` is needed.
+    pub(super) fn file(&self) -> Result<&PathBuf, clap::Error> {
+        self.out
+            .as_ref()
+            .ok_or_else(|| usage_error(&["export", "ewz"], EWZ_NEEDS_OUT))
+    }
 }
 
 /// `ew extract`.
@@ -989,9 +1215,41 @@ pub struct ExtractArgs {
     pub json: bool,
 }
 
+/// `ew export cables`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct CablesCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) rows: RowsCli,
+}
+
+/// `ew export wires`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct WiresCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) rows: RowsCli,
+}
+
+impl RowsCli {
+    /// The row export `export <what>` of `kind` (`cables`, `wires`).
+    pub(super) fn export(&self, what: &str, kind: ExportKind) -> Result<ExportArgs, clap::Error> {
+        csv_only(what, self.format)?;
+        let format = rows_format(&["export", what], self.format, &self.csv, self.out.as_ref())?;
+        Ok(ExportArgs {
+            kind,
+            block: self.block.clone(),
+            project: self.project.0.clone(),
+            out: self.out.clone(),
+            json: self.json,
+            format,
+        })
+    }
+}
+
 /// `ew export cables|wires`.
-#[derive(Args, Debug)]
-struct RowsCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct RowsCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1002,24 +1260,24 @@ struct RowsCli {
         allow_hyphen_values = true,
         overrides_with = "block"
     )]
-    block: Option<String>,
+    pub(super) block: Option<String>,
     /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
-    format: Option<ReportPages>,
+    pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
-    csv: CsvCli,
+    pub(super) csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
 }
 
 /// `ew export bom`.
-#[derive(Args, Debug)]
-struct BomCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct BomCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1030,7 +1288,7 @@ struct BomCli {
         allow_hyphen_values = true,
         overrides_with = "block"
     )]
-    block: Option<String>,
+    pub(super) block: Option<String>,
     /// Every component part, or the configured products' rows in place of the parts they cover.
     #[arg(
         long,
@@ -1039,24 +1297,44 @@ struct BomCli {
         overrides_with = "mode",
         default_value = "parts"
     )]
-    mode: BomArg,
+    pub(super) mode: BomArg,
     /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
-    format: Option<ReportPages>,
+    pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
-    csv: CsvCli,
+    pub(super) csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl BomCli {
+    /// The row export `export bom` in its mode.
+    pub(super) fn export(&self) -> Result<ExportArgs, clap::Error> {
+        csv_only("bom", self.format)?;
+        let format = rows_format(&["export", "bom"], self.format, &self.csv, self.out.as_ref())?;
+        let mode = match self.mode {
+            BomArg::Parts => BomMode::Component,
+            BomArg::Assembly => BomMode::Assembly,
+        };
+        Ok(ExportArgs {
+            kind: ExportKind::Bom(mode),
+            block: self.block.clone(),
+            project: self.project.0.clone(),
+            out: self.out.clone(),
+            json: self.json,
+            format,
+        })
+    }
 }
 
 /// The mode of `ew export bom --mode`.
 #[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
-enum BomArg {
+pub(crate) enum BomArg {
     /// Every component part.
     #[value(alias = "component")]
     Parts,
@@ -1065,8 +1343,8 @@ enum BomArg {
 }
 
 /// `ew export terminals`.
-#[derive(Args, Debug)]
-struct TerminalsCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct TerminalsCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1077,7 +1355,7 @@ struct TerminalsCli {
         allow_hyphen_values = true,
         overrides_with = "block"
     )]
-    block: Option<String>,
+    pub(super) block: Option<String>,
     /// One strip, by its tag (`-X1031`).
     #[arg(
         long,
@@ -1085,26 +1363,47 @@ struct TerminalsCli {
         allow_hyphen_values = true,
         overrides_with = "strip"
     )]
-    strip: Option<String>,
+    pub(super) strip: Option<String>,
     /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
-    format: Option<ReportPages>,
+    pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
-    csv: CsvCli,
+    pub(super) csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl TerminalsCli {
+    /// The row export `export terminals` of one strip or every strip.
+    pub(super) fn export(&self) -> Result<ExportArgs, clap::Error> {
+        csv_only("terminals", self.format)?;
+        let format = rows_format(
+            &["export", "terminals"],
+            self.format,
+            &self.csv,
+            self.out.as_ref(),
+        )?;
+        Ok(ExportArgs {
+            kind: ExportKind::Terminals(self.strip.clone()),
+            block: self.block.clone(),
+            project: self.project.0.clone(),
+            out: self.out.clone(),
+            json: self.json,
+            format,
+        })
+    }
 }
 
 /// `ew export report`.
-#[derive(Args, Debug)]
-// The group allows both so that the lowering refuses the pair in its own words.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+// The group allows both so that `ReportCli::export` refuses the pair in its own words.
 #[command(group(ArgGroup::new("rows").args(["block", "kind"]).required(true).multiple(true)))]
-struct ReportCli {
+pub(crate) struct ReportCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1115,7 +1414,7 @@ struct ReportCli {
         allow_hyphen_values = true,
         overrides_with = "block"
     )]
-    block: Option<String>,
+    pub(super) block: Option<String>,
     /// A report kind: its whole-project rows (CSV or XLSX, no block).
     #[arg(
         long,
@@ -1123,13 +1422,13 @@ struct ReportCli {
         allow_hyphen_values = true,
         overrides_with = "kind"
     )]
-    kind: Option<String>,
+    pub(super) kind: Option<String>,
     /// The format: csv (default), xlsx (with `--out`) or pdf (a block's pages, with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = report_format)]
-    format: Option<ReportPages>,
+    pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
-    csv: CsvCli,
+    pub(super) csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(
         long,
@@ -1138,18 +1437,53 @@ struct ReportCli {
         overrides_with = "out",
         required_if_eq("format", "pdf")
     )]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl ReportCli {
+    /// The rows of a block, its pages (`--format pdf`), or the whole-project rows of a report kind: a kind takes
+    /// neither a block nor pages, refused in the report layer's words, the pair first.
+    pub(super) fn export(&self) -> Result<ExportArgs, clap::Error> {
+        let pdf = self.format == Some(ReportPages::Pdf);
+        let kind = match &self.kind {
+            Some(name) => {
+                if self.block.is_some() {
+                    return Err(usage_error(
+                        &["export", "report"],
+                        ew_api::output::RowsError::KindAndBlock,
+                    ));
+                }
+                if pdf {
+                    return Err(usage_error(
+                        &["export", "report"],
+                        ew_api::output::RowsError::KindPages,
+                    ));
+                }
+                ExportKind::ReportKind(name.clone())
+            }
+            None => ExportKind::Report { pdf },
+        };
+        let format = rows_format(&["export", "report"], self.format, &self.csv, self.out.as_ref())?;
+        Ok(ExportArgs {
+            kind,
+            block: self.block.clone(),
+            project: self.project.0.clone(),
+            out: self.out.clone(),
+            json: self.json,
+            format,
+        })
+    }
 }
 
 /// `ew export table`.
-#[derive(Args, Debug)]
-struct TableCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct TableCli {
     /// The navigator.
     #[arg(value_name = "navigator", value_parser = word)]
-    navigator: String,
+    pub(super) navigator: String,
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1160,24 +1494,43 @@ struct TableCli {
         allow_hyphen_values = true,
         overrides_with = "strip"
     )]
-    strip: Option<String>,
+    pub(super) strip: Option<String>,
     /// The format: csv (default) or xlsx (with `--out`).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format)]
-    format: Option<ReportPages>,
+    pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
-    csv: CsvCli,
+    pub(super) csv: CsvCli,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl TableCli {
+    /// How the table is written: the navigator and the strip are refused first, in the round trip's words (D8).
+    pub(super) fn row_format(&self) -> Result<RowFormat, clap::Error> {
+        let path = &["export", "table"];
+        if ew_api::output::NavKind::from_word(&self.navigator)
+            .is_none_or(|k| !ew_api::output::TABLE_NAVIGATORS.contains(&k))
+        {
+            return Err(usage_error(
+                path,
+                ew_api::output::TableError::UnknownNavigator(self.navigator.clone()),
+            ));
+        }
+        if self.strip.is_some() && self.navigator != "strips" {
+            return Err(usage_error(path, ew_api::output::TableError::StripElsewhere));
+        }
+        rows_format(path, self.format, &self.csv, self.out.as_ref())
+    }
 }
 
 /// What `ew export report --format` writes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum ReportPages {
+pub(crate) enum ReportPages {
     /// Rows as CSV.
     Csv,
     /// Rows as an XLSX workbook.
@@ -1187,22 +1540,22 @@ enum ReportPages {
 }
 
 /// The CSV options of a row export and of `sql`.
-#[derive(Args, Debug)]
-struct CsvCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct CsvCli {
     /// The CSV preset: ew (the default), excel-nl, excel-en or rfc4180.
     #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = preset)]
-    preset: Option<Preset>,
+    pub(super) preset: Option<Preset>,
     /// A UTF-8 byte-order mark: on or off (default: the preset's).
     #[arg(long, value_name = "on|off", allow_hyphen_values = true, overrides_with = "bom", value_parser = bom)]
-    bom: Option<bool>,
+    pub(super) bom: Option<bool>,
     /// The line end: crlf or lf (default: the preset's).
     #[arg(long, value_name = "crlf|lf", allow_hyphen_values = true, overrides_with = "line_end", value_parser = line_end)]
-    line_end: Option<LineEnd>,
+    pub(super) line_end: Option<LineEnd>,
 }
 
 impl CsvCli {
     /// The options, or the refusal of a CSV option given with another format (`format`: its name).
-    fn options(self, path: &[&str], format: &str) -> Result<CsvOptions, clap::Error> {
+    pub(super) fn options(&self, path: &[&str], format: &str) -> Result<CsvOptions, clap::Error> {
         if format != "csv" {
             let given = [
                 ("preset", self.preset.is_some()),
@@ -1228,7 +1581,7 @@ impl CsvCli {
 fn rows_format(
     path: &[&str],
     format: Option<ReportPages>,
-    csv: CsvCli,
+    csv: &CsvCli,
     out: Option<&PathBuf>,
 ) -> Result<RowFormat, clap::Error> {
     match format {
@@ -1248,76 +1601,131 @@ fn rows_format(
 }
 
 /// `ew export dxf`.
-#[derive(Args, Debug)]
-struct DxfCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct DxfCli {
     /// The pages, as for `export svg`.
     #[command(flatten)]
-    pages: PagesCli,
+    pub(super) pages: PagesCli,
     /// Name the DXF layer of a class (frame, symbols, wires, texts, graphics, tables, underlay): `wires=WIRING`
     /// (repeatable; default `EW-FRAME`, `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`,
     /// `EW-UNDERLAY`).
     #[arg(long, value_name = "class=name", allow_hyphen_values = true, value_parser = dxf_layer)]
-    layer: Vec<(String, String)>,
+    pub(super) layer: Vec<(String, String)>,
     /// Let the hyperlinks of the cross-references name the pages' `.dwg` files, for a set a converter turns into DWG
     /// (default: their `.dxf` files).
     #[arg(long)]
-    dwg_links: bool,
+    pub(super) dwg_links: bool,
+}
+
+impl DxfCli {
+    /// The page export `export dxf` with its layer names and links.
+    pub(super) fn export(&self) -> Result<ExportPagesArgs, clap::Error> {
+        let mut a = self.pages.export(PageFormat::Dxf)?;
+        for (class, name) in &self.layer {
+            a.dxf_layers
+                .set(class, name)
+                .map_err(|e| usage_error(&["export", "dxf"], e))?;
+        }
+        a.dxf_dwg_links = self.dwg_links;
+        Ok(a)
+    }
+}
+
+/// `ew export pdf`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PdfCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) pages: PagesCli,
+}
+
+/// `ew export svg`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct SvgCli {
+    /// The export's arguments.
+    #[command(flatten)]
+    pub(super) pages: PagesCli,
+}
+
+impl PagesCli {
+    /// The page export in `format` (`export pdf|svg|dxf`): the flags not built yet are refused, and the selection is
+    /// `--pages` or `--sections`.
+    pub(super) fn export(&self, format: PageFormat) -> Result<ExportPagesArgs, clap::Error> {
+        let path: &[&str] = match format {
+            PageFormat::Pdf => &["export", "pdf"],
+            PageFormat::Svg | PageFormat::Png => &["export", "svg"],
+            PageFormat::Dxf => &["export", "dxf"],
+        };
+        not_built(path, self.lang.is_some(), self.omit_personal_data)?;
+        Ok(ExportPagesArgs {
+            format,
+            project: self.project.0.clone(),
+            out: self.out.clone(),
+            pages: selection(path, self.pages.clone(), self.sections.clone())?,
+            threads: self.threads,
+            dpi: ew_api::output::DEFAULT_DPI,
+            dxf_layers: ew_api::output::DxfLayers::default(),
+            dxf_dwg_links: false,
+            underlays: self.underlays,
+            json: self.json,
+        })
+    }
 }
 
 /// `ew export pdf|svg`.
-#[derive(Args, Debug)]
-struct PagesCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PagesCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// The PDF file, or the directory of the SVG files.
     #[arg(long, value_name = "path", allow_hyphen_values = true, overrides_with = "out")]
-    out: PathBuf,
+    pub(super) out: PathBuf,
     /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
     #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
-    pages: Option<PageSelection>,
+    pub(super) pages: Option<PageSelection>,
     /// The section numbers, each section's pages with its divider (`1,2`; instead of `--pages`).
     #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
-    sections: Option<PageSelection>,
+    pub(super) sections: Option<PageSelection>,
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
-    threads: Option<usize>,
+    pub(super) threads: Option<usize>,
     /// Print the pages' underlays under them (a PDF page or a DXF drawing placed for redrawing; not printed by
     /// default).
     #[arg(long, overrides_with = "underlays")]
-    underlays: bool,
+    pub(super) underlays: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
     /// Not built yet: refused.
     #[arg(long, hide = true, num_args = 0..=1, overrides_with = "lang")]
-    lang: Option<Option<String>>,
+    pub(super) lang: Option<Option<String>>,
     /// Not built yet: refused.
     #[arg(long, hide = true, overrides_with = "omit_personal_data")]
-    omit_personal_data: bool,
+    pub(super) omit_personal_data: bool,
 }
 
 /// `ew print`.
-#[derive(Args, Debug)]
-struct PrintCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PrintCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
     #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
-    pages: Option<PageSelection>,
+    pub(super) pages: Option<PageSelection>,
     /// The section numbers, each section's pages with its divider (`1,2`; instead of `--pages`).
     #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
-    sections: Option<PageSelection>,
+    pub(super) sections: Option<PageSelection>,
     /// The paper (sheet, A5, A4, A3, A2, A1, A0, Letter, Legal, Tabloid; default: each page's sheet).
     #[arg(long, value_name = "size", allow_hyphen_values = true, overrides_with = "paper", value_parser = paper)]
-    paper: Option<Paper>,
+    pub(super) paper: Option<Paper>,
     /// Scale each page to the whole paper, up or down, and stamp a scaled page.
     #[arg(long, overrides_with = "fit")]
-    fit: bool,
+    pub(super) fit: bool,
     /// Print in black and grey.
     #[arg(long, overrides_with = "mono")]
-    mono: bool,
+    pub(super) mono: bool,
     /// The printer (with `--via lp` or `--via windows`; default: `lp`'s default printer, or the one chosen in the
     /// Windows print dialog).
     #[arg(
@@ -1327,7 +1735,7 @@ struct PrintCli {
         overrides_with = "printer",
         conflicts_with = "out"
     )]
-    printer: Option<String>,
+    pub(super) printer: Option<String>,
     /// How the set reaches the printer (default: `lp` on Linux, `windows` on Windows, else `viewer`).
     #[arg(
         long,
@@ -1336,18 +1744,48 @@ struct PrintCli {
         overrides_with = "via",
         conflicts_with = "out"
     )]
-    via: Option<ViaArg>,
+    pub(super) via: Option<ViaArg>,
     /// Write the print set to this PDF file instead of printing it.
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
-    out: Option<PathBuf>,
+    pub(super) out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl PrintCli {
+    /// The page selection: `--pages` or `--sections`, not both; neither is every page.
+    pub(super) fn selection(&self) -> Result<PageSelection, clap::Error> {
+        selection(&["print"], self.pages.clone(), self.sections.clone())
+    }
+
+    /// The adapter, its platform default resolved: `windows` prints on Windows only, and the viewer takes no
+    /// `--printer`.
+    pub(super) fn adapter(&self) -> Result<PrintVia, clap::Error> {
+        let via = match self.via {
+            Some(ViaArg::Lp) => PrintVia::Lp,
+            Some(ViaArg::Viewer) => PrintVia::Viewer,
+            #[cfg(windows)]
+            Some(ViaArg::Windows) | None => PrintVia::Windows,
+            #[cfg(not(windows))]
+            Some(ViaArg::Windows) => {
+                return Err(usage_error(&["print"], "`--via windows` prints on Windows only"));
+            }
+            #[cfg(not(windows))]
+            None if cfg!(target_os = "linux") => PrintVia::Lp,
+            #[cfg(not(windows))]
+            None => PrintVia::Viewer,
+        };
+        if via == PrintVia::Viewer && self.printer.is_some() {
+            return Err(usage_error(&["print"], ew_print::PrintError::PrinterWithViewer));
+        }
+        Ok(via)
+    }
 }
 
 /// The adapter of `ew print --via`.
 #[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
-enum ViaArg {
+pub(crate) enum ViaArg {
     /// The CUPS command `lp`.
     Lp,
     /// The default PDF application.
@@ -1357,39 +1795,58 @@ enum ViaArg {
 }
 
 /// `ew export png`.
-#[derive(Args, Debug)]
-struct PngCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PngCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// The directory of the PNG files.
     #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
-    out: PathBuf,
+    pub(super) out: PathBuf,
     /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
     #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
-    pages: Option<PageSelection>,
+    pub(super) pages: Option<PageSelection>,
     /// The section numbers, each section's pages with its divider (`1,2`; instead of `--pages`).
     #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
-    sections: Option<PageSelection>,
+    pub(super) sections: Option<PageSelection>,
     /// The resolution (72 to 600).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
-    dpi: u32,
+    pub(super) dpi: u32,
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
-    threads: Option<usize>,
+    pub(super) threads: Option<usize>,
     /// Print the pages' underlays under them (a PDF page or a DXF drawing placed for redrawing; not printed by
     /// default).
     #[arg(long, overrides_with = "underlays")]
-    underlays: bool,
+    pub(super) underlays: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
     /// Not built yet: refused.
     #[arg(long, hide = true, num_args = 0..=1, overrides_with = "lang")]
-    lang: Option<Option<String>>,
+    pub(super) lang: Option<Option<String>>,
     /// Not built yet: refused.
     #[arg(long, hide = true, overrides_with = "omit_personal_data")]
-    omit_personal_data: bool,
+    pub(super) omit_personal_data: bool,
+}
+
+impl PngCli {
+    /// The page export `export png` at its resolution.
+    pub(super) fn export(&self) -> Result<ExportPagesArgs, clap::Error> {
+        not_built(&["export", "png"], self.lang.is_some(), self.omit_personal_data)?;
+        Ok(ExportPagesArgs {
+            format: PageFormat::Png,
+            project: self.project.0.clone(),
+            out: self.out.clone(),
+            pages: selection(&["export", "png"], self.pages.clone(), self.sections.clone())?,
+            threads: self.threads,
+            dpi: self.dpi,
+            dxf_layers: ew_api::output::DxfLayers::default(),
+            dxf_dwg_links: false,
+            underlays: self.underlays,
+            json: self.json,
+        })
+    }
 }
 
 /// `ew render`.
@@ -1426,26 +1883,38 @@ pub struct RenderArgs {
 }
 
 /// `ew apply`.
-#[derive(Args, Debug)]
-struct ApplyCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ApplyCli {
     /// The command log, or with a second positional the project directory.
     #[arg(value_name = "project-dir|file.ewcmd")]
-    first: PathBuf,
+    pub(super) first: PathBuf,
     /// The command log, after the project directory.
     #[arg(value_name = "file.ewcmd")]
-    second: Option<PathBuf>,
+    pub(super) second: Option<PathBuf>,
     /// The project directory (instead of the positional one).
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
-    project: Option<PathBuf>,
+    pub(super) project: Option<PathBuf>,
     /// Replay on a copy in memory, print the changes and save nothing.
     #[arg(long, overrides_with = "preview")]
-    preview: bool,
+    pub(super) preview: bool,
     /// Save only when every line commits.
     #[arg(long, overrides_with = "one_step")]
-    one_step: bool,
+    pub(super) one_step: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl ApplyCli {
+    /// The project directory and the command log: one positional is the log; two, the project directory and the
+    /// log.
+    pub(super) fn project_and_log(&self) -> Result<(Option<PathBuf>, &PathBuf), clap::Error> {
+        let (dir, log) = match &self.second {
+            Some(log) => (Some(self.first.clone()), log),
+            None => (None, &self.first),
+        };
+        Ok((counted_project(&["apply"], self.project.clone(), dir)?, log))
+    }
 }
 
 /// `ew fmt`.
@@ -1491,29 +1960,41 @@ pub struct UpdateCopiesArgs {
 }
 
 /// `ew recover`.
-#[derive(Args, Debug)]
-struct RecoverCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct RecoverCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
     /// Replay the journal's transactions on the saved project and save.
     #[arg(long, overrides_with = "replay", conflicts_with = "discard")]
-    replay: bool,
+    pub(super) replay: bool,
     /// Delete the journal after the word `discard` typed on a controlling terminal.
     #[arg(long, overrides_with = "discard")]
-    discard: bool,
+    pub(super) discard: bool,
     /// Print the result as JSON (not with `--discard`, which prints a dialogue).
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
     /// With `--replay` on a project in an older format: confirm its upgrade without typing `upgrade` (the backup keeps
     /// the project as it was).
     #[arg(long, overrides_with = "yes", requires = "replay")]
-    yes: bool,
+    pub(super) yes: bool,
 }
 
+impl RecoverCli {
+    /// What to do with the journal.
+    pub(super) fn action(&self) -> RecoverAction {
+        match (self.replay, self.discard) {
+            (true, _) => RecoverAction::Replay,
+            (false, true) => RecoverAction::Discard,
+            (false, false) => RecoverAction::Summary,
+        }
+    }
+}
+
+group! {
 /// `ew project`.
-#[derive(Subcommand, Debug)]
-enum ProjectCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum ProjectCli {
     /// The project's check schemes.
     #[command(subcommand)]
     Checks(ChecksCli),
@@ -1521,10 +2002,12 @@ enum ProjectCli {
     #[command(subcommand)]
     Assets(AssetsCli),
 }
+}
 
+group! {
 /// `ew project checks`.
-#[derive(Subcommand, Debug)]
-enum ChecksCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum ChecksCli {
     /// Name the project's check schemes (human-only).
     ///
     /// Names the project's check schemes (`project.checks.set`): `--active` the online scheme, `--release` the
@@ -1535,6 +2018,7 @@ enum ChecksCli {
     /// (HumanOnly: needs an interactive terminal) before the project is opened. Exit 0 when written and saved, 1 for
     /// a scheme that does not ship or an answer that is not the name, 2 on usage, terminal, open and save errors.
     Set(ChecksSetArgs),
+}
 }
 
 /// `ew project checks set`.
@@ -1562,9 +2046,10 @@ pub struct ChecksSetArgs {
     pub release: Option<String>,
 }
 
+group! {
 /// `ew project assets`.
-#[derive(Subcommand, Debug)]
-enum AssetsCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum AssetsCli {
     /// Delete the asset files no project file names (human-only).
     ///
     /// Deletes the project's asset files (`assets/<sha256>.<ext>`) whose hash no project file mentions (kept lines
@@ -1578,6 +2063,7 @@ enum AssetsCli {
     /// terminal, open and save errors.
     Purge(AssetsPurgeArgs),
 }
+}
 
 /// `ew project assets purge`.
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
@@ -1590,9 +2076,10 @@ pub struct AssetsPurgeArgs {
     pub preview: bool,
 }
 
+group! {
 /// `ew revision`.
-#[derive(Subcommand, Debug)]
-enum RevisionCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum RevisionCli {
     /// Record the checker's sign-off on the open revision.
     ///
     /// `revision approve --as <role>` records the checker's sign-off on the open revision (`revision.approve`): the
@@ -1620,10 +2107,11 @@ enum RevisionCli {
     /// `revision withdraw <label> --reason <text>` withdraws a released revision (`revision.withdraw`) and saves.
     Withdraw(WithdrawCli),
 }
+}
 
 /// `ew revision approve`.
-#[derive(Args, Debug)]
-struct ApproveCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ApproveCli {
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1634,15 +2122,15 @@ struct ApproveCli {
         allow_hyphen_values = true,
         overrides_with = "role"
     )]
-    role: String,
+    pub(super) role: String,
 }
 
 /// `ew revision release`.
-#[derive(Args, Debug)]
-struct ReleaseCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ReleaseCli {
     /// The open revision's label.
     #[arg(value_name = "label")]
-    label: String,
+    pub(super) label: String,
     /// The project directory: the positional one or `--project`.
     #[command(flatten)]
     pub project: ProjectArg,
@@ -1653,18 +2141,18 @@ struct ReleaseCli {
         allow_hyphen_values = true,
         overrides_with = "archive_dir"
     )]
-    archive_dir: Option<PathBuf>,
+    pub(super) archive_dir: Option<PathBuf>,
 }
 
 /// `ew revision withdraw`.
-#[derive(Args, Debug)]
-struct WithdrawCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct WithdrawCli {
     /// The released revision's label.
     #[arg(value_name = "label")]
-    label: String,
+    pub(super) label: String,
     /// The project directory.
     #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
+    pub(super) project_dir: Option<PathBuf>,
     /// Why the revision is withdrawn.
     #[arg(
         long,
@@ -1672,7 +2160,7 @@ struct WithdrawCli {
         allow_hyphen_values = true,
         overrides_with = "reason"
     )]
-    reason: String,
+    pub(super) reason: String,
     /// The project directory (instead of the positional one).
     #[arg(
         long,
@@ -1680,7 +2168,45 @@ struct WithdrawCli {
         allow_hyphen_values = true,
         conflicts_with = "project_dir"
     )]
-    project: Option<PathBuf>,
+    pub(super) project: Option<PathBuf>,
+}
+
+impl ApproveCli {
+    /// What `revision approve` does, and the project.
+    pub(super) fn revision(&self) -> RevisionArgs {
+        RevisionArgs {
+            action: RevisionAction::Approve {
+                role: self.role.clone(),
+            },
+            project: self.project.0.clone(),
+        }
+    }
+}
+
+impl ReleaseCli {
+    /// What `revision release` does, and the project.
+    pub(super) fn revision(&self) -> RevisionArgs {
+        RevisionArgs {
+            action: RevisionAction::Release {
+                label: self.label.clone(),
+                archive_dir: self.archive_dir.clone(),
+            },
+            project: self.project.0.clone(),
+        }
+    }
+}
+
+impl WithdrawCli {
+    /// What `revision withdraw` does, and the project.
+    pub(super) fn revision(&self) -> RevisionArgs {
+        RevisionArgs {
+            action: RevisionAction::Withdraw {
+                label: self.label.clone(),
+                reason: self.reason.clone(),
+            },
+            project: self.project.clone().or_else(|| self.project_dir.clone()),
+        }
+    }
 }
 
 /// `ew verify-migration`.
@@ -1722,26 +2248,38 @@ pub struct VerifyArgs {
 }
 
 /// `ew query`.
-#[derive(Args, Debug)]
-struct QueryCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct QueryCli {
     /// The query's name, or with three positionals the project directory.
     #[arg(value_name = "project-dir|name", allow_hyphen_values = true, value_parser = word)]
-    first: String,
+    pub(super) first: String,
     /// The key, or with three positionals the query's name.
     #[arg(value_name = "name|key", allow_hyphen_values = true, value_parser = word)]
-    second: String,
+    pub(super) second: String,
     /// The key, after the project directory and the name.
     #[arg(value_name = "key", allow_hyphen_values = true, value_parser = word)]
-    third: Option<String>,
+    pub(super) third: Option<String>,
     /// The project directory (instead of the positional one).
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
-    project: Option<PathBuf>,
+    pub(super) project: Option<PathBuf>,
     /// Add the memo's policy, the value's dependencies and the row's provenance.
     #[arg(long, overrides_with = "explain")]
-    explain: bool,
+    pub(super) explain: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+impl QueryCli {
+    /// The project directory, the query's name and the key: with three positionals the first is the project
+    /// directory.
+    pub(super) fn project_name_key(&self) -> Result<(Option<PathBuf>, &str, &str), clap::Error> {
+        let (dir, name, key) = match &self.third {
+            Some(key) => (Some(PathBuf::from(&self.first)), &self.second, key),
+            None => (None, &self.first, &self.second),
+        };
+        Ok((counted_project(&["query"], self.project.clone(), dir)?, name, key))
+    }
 }
 
 /// `ew layout`.
@@ -1797,25 +2335,34 @@ pub struct RouteArgs {
     pub json: bool,
 }
 
-/// A subcommand that takes `--json` only.
-#[derive(Args, Debug)]
-struct JsonCli {
+/// `ew commands`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct CommandsCli {
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub(super) json: bool,
+}
+
+/// `ew queries`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct QueriesCli {
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    pub(super) json: bool,
 }
 
 /// `ew schema`.
-#[derive(Args, Debug)]
-struct SchemaCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct SchemaCli {
     /// A command's name or alias (see `ew commands`), or a result schema's name.
     #[arg(value_name = "name")]
-    name: String,
+    pub(super) name: String,
 }
 
+group! {
 /// `ew merge`.
-#[derive(Subcommand, Debug)]
-enum MergeCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum MergeCli {
     /// Resolve the conflict records a merge left, taking ours or theirs, and save.
     ///
     /// Resolves every conflict record of the project that `--kind` and `--field` select (both optional) in one
@@ -1828,6 +2375,7 @@ enum MergeCli {
     /// `merge.resolve` refuses (theirs does not make a valid record, a file's lines do not read), 2 on usage (no
     /// conflict record selected), open, lock and save errors.
     Resolve(MergeResolveArgs),
+}
 }
 
 /// `ew merge resolve`.
@@ -1861,47 +2409,75 @@ pub enum TakeArg {
 
 /// `ew merge-driver`. Every positional takes a leading `-`: `%P` may name a folder such as `-old.ew`. The fourth is
 /// named `P`, as the usage line shows the required one, so that three arguments are refused naming `<P>`.
-#[derive(Args, Debug)]
-struct MergeDriverCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct MergeDriverCli {
     /// `%O`: the ancestor's version of the file.
     #[arg(value_name = "O", allow_hyphen_values = true)]
-    base: PathBuf,
+    pub(super) base: PathBuf,
     /// `%A`: ours; the merged file is written here.
     #[arg(value_name = "A", allow_hyphen_values = true)]
-    ours: PathBuf,
+    pub(super) ours: PathBuf,
     /// `%B`: theirs.
     #[arg(value_name = "B", allow_hyphen_values = true)]
-    theirs: PathBuf,
+    pub(super) theirs: PathBuf,
     /// `%P` alone, or `%L` (unused) when `%P` follows it.
     #[arg(value_name = "P", allow_hyphen_values = true)]
-    fourth: PathBuf,
+    pub(super) fourth: PathBuf,
     /// `%P` after `%L`: the file's path in the repository.
     #[arg(value_name = "P", allow_hyphen_values = true)]
-    path: Option<PathBuf>,
+    pub(super) path: Option<PathBuf>,
+}
+
+impl MergeDriverCli {
+    /// `%P`, the file's path in the repository: the last positional of `%O %A %B %L %P`, or of the older
+    /// `%O %A %B %P` (`%L` is unused).
+    pub(super) fn repo_path(&self) -> String {
+        self.path
+            .as_ref()
+            .unwrap_or(&self.fourth)
+            .to_string_lossy()
+            .into_owned()
+    }
 }
 
 /// `ew lib`.
-#[derive(Args, Debug)]
-struct LibCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LibCli {
     /// The subcommand.
     #[command(subcommand)]
-    action: LibSub,
+    pub(super) action: LibSub,
     /// A company library: a library directory or a directory of `*.ewlib` libraries (repeatable).
     #[arg(long, value_name = "dir", allow_hyphen_values = true, global = true)]
-    company: Vec<PathBuf>,
+    pub(super) company: Vec<PathBuf>,
     /// Print JSON.
     #[arg(long, overrides_with = "json", global = true)]
-    json: bool,
+    pub(super) json: bool,
 }
 
+/// `lib` is no path of its own: its subcommands are, with the parent's `--company` and `--json`.
+impl Node for LibCli {
+    fn check(&self) -> Result<(), clap::Error> {
+        self.action.check()
+    }
+
+    fn entries(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<Entry>) {
+        LibSub::entries(cmd, path, out);
+    }
+}
+
+/// `ew lib list`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LibListCli {}
+
+group! {
 /// `ew lib list|search|index|create|import`.
-#[derive(Subcommand, Debug)]
-enum LibSub {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum LibSub {
     /// List the libraries.
     ///
     /// Prints each library (tier, key, version, name, ID, `rw` or `ro`, index state, directory) and what could not be
     /// read.
-    List,
+    List(LibListCli),
     /// Find parts or other library items.
     ///
     /// Finds parts by part number, manufacturer and description (`--kind part`, the default), or symbols, FnDefs,
@@ -1919,41 +2495,42 @@ enum LibSub {
     #[command(subcommand)]
     Import(LibImportCli),
 }
+}
 
 /// `ew lib search`.
-#[derive(Args, Debug)]
-struct SearchCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct SearchCli {
     /// The text to search for.
     #[arg(value_name = "text", allow_hyphen_values = true, value_parser = word)]
-    text: String,
+    pub(super) text: String,
     /// The kind of item (repeatable; default: part).
     #[arg(long, value_name = "kind", allow_hyphen_values = true, value_parser = item_kind)]
-    kind: Vec<String>,
+    pub(super) kind: Vec<String>,
     /// Include deprecated and withdrawn items.
     #[arg(long, overrides_with = "all")]
-    all: bool,
+    pub(super) all: bool,
     /// The most hits (0: all).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "limit", value_parser = limit, default_value_t = 50)]
-    limit: u32,
+    pub(super) limit: u32,
 }
 
 /// `ew lib index`.
-#[derive(Args, Debug)]
-struct IndexCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct IndexCli {
     /// Rebuild the index.
     #[arg(long, overrides_with = "rebuild", required = true)]
-    rebuild: bool,
+    pub(super) rebuild: bool,
 }
 
 /// `ew lib create`.
-#[derive(Args, Debug)]
-struct CreateCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct CreateCli {
     /// The new library's directory (absent or empty).
     #[arg(value_name = "dir", allow_hyphen_values = true, value_parser = path_word)]
-    dir: PathBuf,
+    pub(super) dir: PathBuf,
     /// The library's key.
     #[arg(long, value_name = "key", allow_hyphen_values = true, overrides_with = "key")]
-    key: String,
+    pub(super) key: String,
     /// The library's name.
     #[arg(
         long,
@@ -1961,7 +2538,7 @@ struct CreateCli {
         allow_hyphen_values = true,
         overrides_with = "name"
     )]
-    name: String,
+    pub(super) name: String,
     /// The library's licence (an SPDX expression).
     #[arg(
         long,
@@ -1969,12 +2546,13 @@ struct CreateCli {
         allow_hyphen_values = true,
         overrides_with = "licence"
     )]
-    licence: String,
+    pub(super) licence: String,
 }
 
+group! {
 /// `ew lib import`.
-#[derive(Subcommand, Debug)]
-enum LibImportCli {
+#[derive(Subcommand, Clone, PartialEq, Eq, Debug)]
+pub(crate) enum LibImportCli {
     /// Import a parts table into a writable library through a column map.
     ///
     /// Imports a parts table through a column map (as `import parts --map`) into the writable library `<library>`
@@ -1996,30 +2574,31 @@ enum LibImportCli {
     #[command(name = "qet-elements")]
     QetElements(LibImportQetCli),
 }
+}
 
 /// `ew lib import qet-elements`.
-#[derive(Args, Debug)]
-struct LibImportQetCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LibImportQetCli {
     /// The target library, by its key or ID.
     #[arg(value_name = "library", allow_hyphen_values = true, value_parser = word)]
-    library: String,
+    pub(super) library: String,
     /// The collection's directory.
     #[arg(value_name = "dir", allow_hyphen_values = true, value_parser = path_word)]
-    dir: PathBuf,
+    pub(super) dir: PathBuf,
     /// Take over a stale library lock.
     #[arg(long, overrides_with = "take_over")]
-    take_over: bool,
+    pub(super) take_over: bool,
 }
 
 /// `ew lib import parts`.
-#[derive(Args, Debug)]
-struct LibImportPartsCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LibImportPartsCli {
     /// The target library, by its key or ID.
     #[arg(value_name = "library", allow_hyphen_values = true, value_parser = word)]
-    library: String,
+    pub(super) library: String,
     /// The parts table (CSV or XLSX).
     #[arg(value_name = "table", allow_hyphen_values = true, value_parser = path_word)]
-    file: PathBuf,
+    pub(super) file: PathBuf,
     /// The column map (a TOML file).
     #[arg(
         long,
@@ -2027,16 +2606,16 @@ struct LibImportPartsCli {
         allow_hyphen_values = true,
         overrides_with = "map"
     )]
-    map: PathBuf,
+    pub(super) map: PathBuf,
     /// The parts' import date (YYYY-MM-DD).
     #[arg(long, value_name = "date", allow_hyphen_values = true, overrides_with = "as_of", value_parser = date)]
-    as_of: ew_api::catalog::Date,
+    pub(super) as_of: ew_api::catalog::Date,
     /// Write changed parts as the next patch version.
     #[arg(long, overrides_with = "bump")]
-    bump: bool,
+    pub(super) bump: bool,
     /// Take over a stale library lock.
     #[arg(long, overrides_with = "take_over")]
-    take_over: bool,
+    pub(super) take_over: bool,
 }
 
 /// The project of a subcommand: the positional directory or `--project <dir>` (the relations exclude both); `None`:
@@ -2053,11 +2632,11 @@ impl std::ops::Deref for ProjectArg {
 }
 
 /// The two ways to give a [`ProjectArg`], as the line declares them.
-#[derive(Args, Debug)]
-struct ProjectFlags {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ProjectFlags {
     /// The project directory.
     #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
+    pub(super) project_dir: Option<PathBuf>,
     /// The project directory (instead of the positional one).
     #[arg(
         long,
@@ -2065,7 +2644,7 @@ struct ProjectFlags {
         allow_hyphen_values = true,
         conflicts_with = "project_dir"
     )]
-    project: Option<PathBuf>,
+    pub(super) project: Option<PathBuf>,
 }
 
 impl FromArgMatches for ProjectArg {
@@ -2220,7 +2799,7 @@ fn sql_format(v: &str) -> Result<SqlFormat, String> {
 }
 
 /// The `--format` of a row export (`export cables|bom|wires|terminals`): CSV or XLSX; `pdf` is refused by the
-/// lowering with the subject's words ([`csv_only`]).
+/// row export with the subject's words ([`csv_only`]).
 fn row_format(v: &str) -> Result<ReportPages, String> {
     match v {
         "csv" => Ok(ReportPages::Csv),
@@ -2313,10 +2892,10 @@ fn limit(v: &str) -> Result<u32, String> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The lowering.
+// The usage errors of the rules the relations cannot say (each `Leaf::check` and the reading of its line).
 
 /// A usage error of the subcommand at `path`, with clap's usage line for it.
-fn usage_error(path: &[&str], message: impl std::fmt::Display) -> clap::Error {
+pub(super) fn usage_error(path: &[&str], message: impl std::fmt::Display) -> clap::Error {
     /// The error of the command at `path` below `cmd`; the paths are the tree's own, a missing word stops there.
     fn at(cmd: &mut clap::Command, path: &[&str], message: String) -> clap::Error {
         if let Some((word, rest)) = path.split_first()
@@ -2369,562 +2948,8 @@ fn counted_project(
     }
 }
 
-// A subcommand whose command takes its `*Args` as parsed passes them on. Every `*Cli` is destructured whole, with no
-// `..`: a field the lowering forgets is E0027, and a binding it does not use is `unused_variables`.
-impl Cli {
-    /// The command a parsed line names.
-    ///
-    /// # Errors
-    ///
-    /// A usage error for a rule the relations of the tree cannot say.
-    pub(super) fn into_command(self) -> Result<Command, clap::Error> {
-        Ok(match self.command {
-            Top::Import(Import::Qet(a)) => {
-                if a.json && a.report.is_some() && a.report_out.is_none() {
-                    return Err(usage_error(
-                        &["import", "qet"],
-                        "`--json` prints the result on stdout: give the report a file with `--report-out <file>`",
-                    ));
-                }
-                Command::ImportQet(a)
-            }
-            Top::Import(Import::Parts(a)) => Command::ImportParts(a),
-            Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
-            Top::Import(Import::Dxf(a)) => Command::ImportDxf(a),
-            Top::Import(Import::Pdf(a)) => Command::ImportPdf(a),
-            Top::Import(Import::Dwg(a)) => Command::ImportDwg(a),
-            Top::Import(Import::Edz(a)) => Command::ImportEdz(a),
-            Top::Import(Import::PartsXml(a)) => Command::ImportPartsXml(a),
-            Top::Import(Import::EplanReport(a)) => Command::ImportEplanReport(a),
-            Top::Import(Import::Table(a)) => Command::ImportTable(a),
-            Top::Check(CheckCli {
-                project,
-                scheme,
-                mode,
-                format,
-                json,
-                lang,
-                out,
-                integrity,
-                after_merge,
-            }) => {
-                let format_name = format.map(|f| match f {
-                    CheckFormat::Text => "text",
-                    CheckFormat::Markdown => "md",
-                    CheckFormat::Json => "json",
-                });
-                json_alias(&["check"], json, format_name)?;
-                Command::Check(CheckArgs {
-                    project: project.0,
-                    scheme,
-                    mode: match mode {
-                        ModeArg::Release => CheckMode::Release,
-                        ModeArg::Online => CheckMode::Online,
-                    },
-                    format: if json {
-                        CheckFormat::Json
-                    } else {
-                        format.unwrap_or(CheckFormat::Text)
-                    },
-                    out,
-                    lang,
-                    integrity,
-                    after_merge,
-                })
-            }
-            Top::Sql(a) => sql(a)?,
-            Top::Export(e) => export(e)?,
-            Top::Plc(PlcCli::Status(a)) => Command::PlcStatus(a),
-            Top::Import(Import::PlcAml(a)) => plc_import(ew_api::cli_results::ImportPlcResult::AML, a),
-            Top::Import(Import::PlcXlsx(a)) => plc_import(ew_api::cli_results::ImportPlcResult::XLSX, a),
-            Top::Import(Import::InstrumentList(a)) => Command::InstrumentList(a),
-            Top::Extract(a) => Command::Extract(a),
-            Top::Print(PrintCli {
-                project,
-                pages,
-                sections,
-                paper,
-                fit,
-                mono,
-                printer,
-                via,
-                out,
-                json,
-            }) => {
-                let pages = selection(&["print"], pages, sections)?;
-                let via = match via {
-                    Some(ViaArg::Lp) => PrintVia::Lp,
-                    Some(ViaArg::Viewer) => PrintVia::Viewer,
-                    #[cfg(windows)]
-                    Some(ViaArg::Windows) | None => PrintVia::Windows,
-                    #[cfg(not(windows))]
-                    Some(ViaArg::Windows) => {
-                        return Err(usage_error(&["print"], "`--via windows` prints on Windows only"));
-                    }
-                    #[cfg(not(windows))]
-                    None if cfg!(target_os = "linux") => PrintVia::Lp,
-                    #[cfg(not(windows))]
-                    None => PrintVia::Viewer,
-                };
-                if via == PrintVia::Viewer && printer.is_some() {
-                    return Err(usage_error(&["print"], ew_print::PrintError::PrinterWithViewer));
-                }
-                Command::Print(PrintArgs {
-                    project: project.0,
-                    pages,
-                    paper: paper.unwrap_or_default(),
-                    fit,
-                    mono,
-                    printer,
-                    via,
-                    out,
-                    json,
-                })
-            }
-            Top::Render(a) => Command::Render(a),
-            Top::Apply(ApplyCli {
-                first,
-                second,
-                project: flag,
-                preview,
-                one_step,
-                json,
-            }) => {
-                let (dir, log) = match second {
-                    Some(log) => (Some(first), log),
-                    None => (None, first),
-                };
-                Command::Apply(ApplyArgs {
-                    project: counted_project(&["apply"], flag, dir)?,
-                    log,
-                    preview,
-                    one_step,
-                    json,
-                })
-            }
-            Top::Fmt(a) => Command::Fmt(a),
-            Top::Recover(RecoverCli {
-                project,
-                replay,
-                discard,
-                json,
-                yes,
-            }) => {
-                let action = match (replay, discard) {
-                    (true, _) => RecoverAction::Replay,
-                    (false, true) => RecoverAction::Discard,
-                    (false, false) => RecoverAction::Summary,
-                };
-                if action == RecoverAction::Discard && json {
-                    return Err(usage_error(
-                        &["recover"],
-                        "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`",
-                    ));
-                }
-                Command::Recover(RecoverArgs {
-                    project: project.0,
-                    action,
-                    json,
-                    yes,
-                })
-            }
-            Top::Upgrade(a) => Command::Upgrade(a),
-            Top::UpdateCopies(a) => Command::UpdateCopies(a),
-            Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => Command::ChecksSet(a),
-            Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => Command::AssetsPurge(a),
-            Top::Revision(r) => {
-                let (action, project) = match r {
-                    RevisionCli::Approve(ApproveCli { project, role }) => {
-                        (RevisionAction::Approve { role }, project.0)
-                    }
-                    RevisionCli::Release(ReleaseCli {
-                        label,
-                        project,
-                        archive_dir,
-                    }) => (RevisionAction::Release { label, archive_dir }, project.0),
-                    RevisionCli::Withdraw(WithdrawCli {
-                        label,
-                        project_dir,
-                        reason,
-                        project: flag,
-                    }) => (RevisionAction::Withdraw { label, reason }, flag.or(project_dir)),
-                };
-                Command::Revision(RevisionArgs { action, project })
-            }
-            Top::VerifyDerived(a) => Command::VerifyDerived(a),
-            Top::VerifyMigration(a) => Command::VerifyMigration(a),
-            Top::Query(QueryCli {
-                first,
-                second,
-                third,
-                project: flag,
-                explain,
-                json,
-            }) => {
-                let (dir, name, key) = match third {
-                    Some(key) => (Some(PathBuf::from(first)), second, key),
-                    None => (None, first, second),
-                };
-                Command::Query(QueryArgs {
-                    project: counted_project(&["query"], flag, dir)?,
-                    name,
-                    key,
-                    explain,
-                    json,
-                })
-            }
-            Top::Queries(JsonCli { json }) => Command::Queries { json },
-            Top::Route(a) => Command::Route(a),
-            Top::Layout(a) => Command::Layout(a),
-            Top::Lib(LibCli {
-                action,
-                company,
-                json,
-            }) => Command::Lib(LibArgs {
-                action: match action {
-                    LibSub::List => LibAction::List,
-                    LibSub::Search(SearchCli {
-                        text,
-                        kind,
-                        all,
-                        limit,
-                    }) => LibAction::Search {
-                        text,
-                        kinds: kind,
-                        all,
-                        limit,
-                    },
-                    // `--rebuild` is required, so it is always set: the old parser refused `lib index` without it,
-                    // and `LibAction::IndexRebuild` carries nothing.
-                    LibSub::Index(IndexCli { rebuild: _required }) => LibAction::IndexRebuild,
-                    LibSub::Create(CreateCli {
-                        dir,
-                        key,
-                        name,
-                        licence,
-                    }) => LibAction::Create {
-                        dir,
-                        key,
-                        name,
-                        licence,
-                    },
-                    LibSub::Import(LibImportCli::QetElements(LibImportQetCli {
-                        library,
-                        dir,
-                        take_over,
-                    })) => LibAction::ImportQetElements {
-                        library,
-                        dir,
-                        take_over,
-                    },
-                    LibSub::Import(LibImportCli::Parts(LibImportPartsCli {
-                        library,
-                        file,
-                        map,
-                        as_of,
-                        bump,
-                        take_over,
-                    })) => LibAction::ImportParts {
-                        library,
-                        file,
-                        map,
-                        as_of,
-                        bump,
-                        take_over,
-                    },
-                },
-                company,
-                json,
-            }),
-            Top::Commands(JsonCli { json }) => Command::Commands { json },
-            Top::Symbol(args) => Command::Symbol(args),
-            Top::Schema(SchemaCli { name }) => Command::Schema(name),
-            Top::Merge(MergeCli::Resolve(a)) => Command::MergeResolve(a),
-            Top::MergeDriver(MergeDriverCli {
-                base,
-                ours,
-                theirs,
-                fourth,
-                path,
-            }) => Command::MergeDriver(MergeDriverArgs {
-                base,
-                ours,
-                theirs,
-                // `%O %A %B %L %P`, or the older `%O %A %B %P`: `%L` is unused.
-                path: path.unwrap_or(fourth).to_string_lossy().into_owned(),
-            }),
-            Top::Diff(a) => Command::Diff(a),
-            Top::Git(GitCli::Setup(a)) => Command::GitSetup(a),
-        })
-    }
-}
-
-/// `ew sql` and its subcommands.
-fn sql(a: SqlCli) -> Result<Command, clap::Error> {
-    let SqlCli {
-        sub,
-        first,
-        second,
-        project: flag,
-        file,
-        format,
-        csv,
-        json,
-        timeout,
-        out,
-    } = a;
-    match sub {
-        Some(SqlSub::Schema) => return Ok(Command::SqlSchema),
-        Some(SqlSub::Dump(SqlDumpCli {
-            first,
-            second,
-            project: flag,
-            json,
-        })) => {
-            let (dir, out) = match second {
-                Some(out) => (Some(PathBuf::from(first)), out),
-                None => (None, first),
-            };
-            return Ok(Command::SqlDump(SqlDumpArgs {
-                project: counted_project(&["sql", "dump"], flag, dir)?,
-                out: PathBuf::from(out),
-                json,
-            }));
-        }
-        None => {}
-    }
-    let (dir, query) = match (file, first, second) {
-        (Some(file), dir, _) => (dir.map(PathBuf::from), SqlSource::File(file)),
-        (None, Some(dir), Some(q)) => (Some(PathBuf::from(dir)), SqlSource::Text(q)),
-        (None, Some(q), None) => (None, SqlSource::Text(q)),
-        // `required_unless_present = "file"` gives the query.
-        (None, None, _) => return Err(usage_error(&["sql"], "`sql` needs a query (or `--file`)")),
-    };
-    let format_name = format.map(|f| match f {
-        SqlFormat::Csv => "csv",
-        SqlFormat::Json => "json",
-        SqlFormat::Xlsx => "xlsx",
-    });
-    let project = counted_project(&["sql"], flag, dir)?;
-    json_alias(&["sql"], json, format_name)?;
-    let format = if json {
-        SqlFormat::Json
-    } else {
-        format.unwrap_or(SqlFormat::Csv)
-    };
-    let csv = csv.options(
-        &["sql"],
-        match format {
-            SqlFormat::Csv => "csv",
-            SqlFormat::Json => "json",
-            SqlFormat::Xlsx => "xlsx",
-        },
-    )?;
-    if format == SqlFormat::Xlsx && out.is_none() {
-        return Err(usage_error(&["sql"], XLSX_NEEDS_OUT));
-    }
-    Ok(Command::Sql(SqlArgs {
-        project,
-        query,
-        format,
-        timeout,
-        out,
-        csv,
-    }))
-}
-
 /// The refusal of `ew export ewz` without `--out`.
 pub(super) const EWZ_NEEDS_OUT: &str = "`ew export ewz` writes a file: give `--out <file.ewz>`";
-
-/// `ew export` and its subjects.
-fn export(e: ExportCli) -> Result<Command, clap::Error> {
-    let rows = |kind, block, project: ProjectArg, out, json, format| {
-        Command::Export(ExportArgs {
-            kind,
-            block,
-            project: project.0,
-            out,
-            json,
-            format,
-        })
-    };
-    Ok(match e {
-        ExportCli::Cables(RowsCli {
-            project,
-            block,
-            format,
-            csv,
-            out,
-            json,
-        }) => {
-            csv_only("cables", format)?;
-            let format = rows_format(&["export", "cables"], format, csv, out.as_ref())?;
-            rows(ExportKind::Cables, block, project, out, json, format)
-        }
-        ExportCli::Wires(RowsCli {
-            project,
-            block,
-            format,
-            csv,
-            out,
-            json,
-        }) => {
-            csv_only("wires", format)?;
-            let format = rows_format(&["export", "wires"], format, csv, out.as_ref())?;
-            rows(ExportKind::Wires, block, project, out, json, format)
-        }
-        ExportCli::Bom(BomCli {
-            project,
-            block,
-            mode,
-            format,
-            csv,
-            out,
-            json,
-        }) => {
-            csv_only("bom", format)?;
-            let format = rows_format(&["export", "bom"], format, csv, out.as_ref())?;
-            let mode = match mode {
-                BomArg::Parts => BomMode::Component,
-                BomArg::Assembly => BomMode::Assembly,
-            };
-            rows(ExportKind::Bom(mode), block, project, out, json, format)
-        }
-        ExportCli::Terminals(TerminalsCli {
-            project,
-            block,
-            strip,
-            format,
-            csv,
-            out,
-            json,
-        }) => {
-            csv_only("terminals", format)?;
-            let format = rows_format(&["export", "terminals"], format, csv, out.as_ref())?;
-            rows(ExportKind::Terminals(strip), block, project, out, json, format)
-        }
-        ExportCli::Report(ReportCli {
-            project,
-            block,
-            kind,
-            format,
-            csv,
-            out,
-            json,
-        }) => {
-            let pdf = format == Some(ReportPages::Pdf);
-            let kind = match kind {
-                Some(name) => {
-                    // The refusals are the report layer's texts, the pair first.
-                    if block.is_some() {
-                        return Err(usage_error(
-                            &["export", "report"],
-                            ew_api::output::RowsError::KindAndBlock,
-                        ));
-                    }
-                    if pdf {
-                        return Err(usage_error(
-                            &["export", "report"],
-                            ew_api::output::RowsError::KindPages,
-                        ));
-                    }
-                    ExportKind::ReportKind(name)
-                }
-                None => ExportKind::Report { pdf },
-            };
-            let format = rows_format(&["export", "report"], format, csv, out.as_ref())?;
-            rows(kind, block, project, out, json, format)
-        }
-        ExportCli::Ewz(EwzCli { project, out, json }) => {
-            let Some(out) = out else {
-                return Err(usage_error(&["export", "ewz"], EWZ_NEEDS_OUT));
-            };
-            Command::ExportEwz(ExportEwzArgs {
-                project: project.0,
-                out,
-                json,
-            })
-        }
-        ExportCli::Table(TableCli {
-            navigator,
-            project,
-            strip,
-            format,
-            csv,
-            out,
-            json,
-        }) => {
-            let path = &["export", "table"];
-            // D8: the refusals are the round trip's texts; the navigator's first.
-            if ew_api::output::NavKind::from_word(&navigator)
-                .is_none_or(|k| !ew_api::output::TABLE_NAVIGATORS.contains(&k))
-            {
-                return Err(usage_error(
-                    path,
-                    ew_api::output::TableError::UnknownNavigator(navigator),
-                ));
-            }
-            if strip.is_some() && navigator != "strips" {
-                return Err(usage_error(path, ew_api::output::TableError::StripElsewhere));
-            }
-            Command::ExportTable(ExportTableArgs {
-                format: rows_format(path, format, csv, out.as_ref())?,
-                navigator,
-                strip,
-                project: project.0,
-                out,
-                json,
-            })
-        }
-        ExportCli::Pdf(a) => pages_command(PageFormat::Pdf, a)?,
-        ExportCli::Svg(a) => pages_command(PageFormat::Svg, a)?,
-        ExportCli::Png(PngCli {
-            project,
-            out,
-            pages,
-            sections,
-            dpi,
-            threads,
-            underlays,
-            json,
-            lang,
-            omit_personal_data,
-        }) => {
-            not_built(&["export", "png"], lang.is_some(), omit_personal_data)?;
-            Command::ExportPages(ExportPagesArgs {
-                format: PageFormat::Png,
-                project: project.0,
-                out,
-                pages: selection(&["export", "png"], pages, sections)?,
-                threads,
-                dpi,
-                dxf_layers: ew_api::output::DxfLayers::default(),
-                dxf_dwg_links: false,
-                underlays,
-                json,
-            })
-        }
-        ExportCli::Dxf(DxfCli {
-            pages,
-            layer,
-            dwg_links,
-        }) => {
-            let mut command = pages_command(PageFormat::Dxf, pages)?;
-            if let Command::ExportPages(a) = &mut command {
-                for (class, name) in layer {
-                    a.dxf_layers
-                        .set(&class, &name)
-                        .map_err(|e| usage_error(&["export", "dxf"], e))?;
-                }
-                a.dxf_dwg_links = dwg_links;
-            }
-            command
-        }
-        ExportCli::PlcAml(a) => plc_export("plc-aml", a)?,
-        ExportCli::PlcXlsx(a) => plc_export("plc-xlsx", a)?,
-        ExportCli::Plcopen(a) => plc_export("plcopen", a)?,
-    })
-}
 
 /// A `--layer <class>=<name>` of `export dxf`, checked against the layer classes.
 fn dxf_layer(s: &str) -> Result<(String, String), String> {
@@ -2933,37 +2958,4 @@ fn dxf_layer(s: &str) -> Result<(String, String), String> {
         .ok_or_else(|| format!("`{s}` is no `<class>=<name>`"))?;
     ew_api::output::DxfLayers::default().set(class.trim(), name)?;
     Ok((class.trim().to_owned(), name.trim().to_owned()))
-}
-
-/// `ew export pdf|svg`.
-fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error> {
-    let PagesCli {
-        project,
-        out,
-        pages,
-        sections,
-        threads,
-        underlays,
-        json,
-        lang,
-        omit_personal_data,
-    } = a;
-    let path: &[&str] = match format {
-        PageFormat::Pdf => &["export", "pdf"],
-        PageFormat::Svg | PageFormat::Png => &["export", "svg"],
-        PageFormat::Dxf => &["export", "dxf"],
-    };
-    not_built(path, lang.is_some(), omit_personal_data)?;
-    Ok(Command::ExportPages(ExportPagesArgs {
-        format,
-        project: project.0,
-        out,
-        pages: selection(path, pages, sections)?,
-        threads,
-        dpi: ew_api::output::DEFAULT_DPI,
-        dxf_layers: ew_api::output::DxfLayers::default(),
-        dxf_dwg_links: false,
-        underlays,
-        json,
-    }))
 }

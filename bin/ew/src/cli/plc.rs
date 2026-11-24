@@ -42,10 +42,38 @@ fn document_date() -> Result<Option<ew_api::plc_exchange::Date>, String> {
     Ok(source_date()?.and_then(|d| ew_api::plc_exchange::Date::new(d.year, d.month, d.day).ok()))
 }
 
+impl Leaf for PlcAmlCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.plc.format_and_out("plc-aml").map(drop)
+    }
+}
+
+impl Leaf for PlcXlsxCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.plc.format_and_out("plc-xlsx").map(drop)
+    }
+}
+
+impl Leaf for PlcopenCli {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.plc.format_and_out("plcopen").map(drop)
+    }
+}
+
 /// `ew export plc-aml | plc-xlsx | plcopen`: the configuration project as an exchange file in `--out`, written whole
 /// or not at all; an AML file or a tag table is recorded in the project as the base of the next import's merge
 /// (`plc.record_exchange`), which is saved.
-pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
+pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
+    let (format, out) = match a.format_and_out(word) {
+        Ok(line) => line,
+        Err(e) => return usage(&e),
+    };
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
@@ -62,12 +90,12 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
     };
     let options = PlcOptions {
         config: a.config.clone(),
-        stations: a.stations.clone(),
+        stations: a.station.clone(),
         date,
         lang: a.lang.clone(),
         ..PlcOptions::default()
     };
-    let export = match session.plc_export(a.format, &options) {
+    let export = match session.plc_export(format, &options) {
         Ok(e) => e,
         Err(e) => {
             eprintln!("{}", refusal(&e));
@@ -75,8 +103,8 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
             return 2;
         }
     };
-    if let Err(e) = write_atomically(&a.out, &export.bytes) {
-        eprintln!("error: {}: {e}", a.out.display());
+    if let Err(e) = write_atomically(out, &export.bytes) {
+        eprintln!("error: {}: {e}", out.display());
         session.close();
         return 2;
     }
@@ -97,7 +125,7 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
     }
     let [stations, modules, channels, tags] = export.counts;
     let plural = |n: usize, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
-    let held = if matches!(a.format, PlcFormat::TiaXlsx | PlcFormat::Plcopen) {
+    let held = if matches!(format, PlcFormat::TiaXlsx | PlcFormat::Plcopen) {
         plural(tags, "tag", "tags")
     } else {
         format!(
@@ -198,9 +226,31 @@ fn import_text(
     out
 }
 
+impl Leaf for ImportPlcAmlCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "previewed, and with `--accept` applied and saved"),
+        exit(
+            2,
+            "usage, open, read and save errors, a file that is no AML file, a refused choice",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ImportPlcResult::AML);
+}
+
+impl Leaf for ImportPlcXlsxCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "previewed, and with `--accept` applied and saved"),
+        exit(
+            2,
+            "usage, open, read and save errors, a workbook without a tag table, a refused choice",
+        ),
+    ];
+    const RESULT: Option<&'static str> = Some(results::ImportPlcResult::XLSX);
+}
+
 /// `ew import plc-aml | plc-xlsx <file>`: the preview of an exchange file against the configuration project, and
 /// with `--accept <choices.json>` its `plc.apply_exchange` committed and the project saved.
-pub(super) fn run_plc_import(a: &PlcImportArgs) -> i32 {
+pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
@@ -284,11 +334,15 @@ pub(super) fn run_plc_import(a: &PlcImportArgs) -> i32 {
     let refusal = (!apply).then(|| session.plc_import_refusal(&import)).flatten();
     session.close();
     if a.json {
-        print!("{}", results::to_text(&import.result(a.schema, apply)));
+        print!("{}", results::to_text(&import.result(schema, apply)));
     } else {
         print!("{}", import_text(&import, apply, refusal.as_ref()));
     }
     0
+}
+
+impl Leaf for InstrumentListArgs {
+    const EXITS: &'static [Exit] = &[OK, USAGE_ETC];
 }
 
 /// `ew import instrument-list <file>`: the rows of an instrument list against the configuration project, and with
@@ -350,6 +404,11 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
 /// The word of a format's or a direction's value in the project file (`aml`, `export`).
 fn word(value: serde_json::Value) -> String {
     value.as_str().unwrap_or_default().to_owned()
+}
+
+impl Leaf for PlcStatusArgs {
+    const EXITS: &'static [Exit] = &[exit(0, "the status printed"), exit(2, "usage and open errors")];
+    const RESULT: Option<&'static str> = Some(results::PlcStatusResult::SCHEMA);
 }
 
 /// `ew plc status [<file>]`: the last exchange of the configuration project, what changed in the project since

@@ -13,21 +13,27 @@
 //! exits 129 too, with clap's text.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::{FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file};
 
-/// The arguments of `ew merge-driver`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct MergeDriverArgs {
-    /// `%O`: the ancestor's version.
-    pub base: PathBuf,
-    /// `%A`: ours, where the result goes.
-    pub ours: PathBuf,
-    /// `%B`: theirs.
-    pub theirs: PathBuf,
-    /// `%P`: the file's path in the repository, `/` separators.
-    pub path: String,
+use super::tree::{Leaf, MergeDriverCli};
+use crate::catalogue::{Exit, exit};
+
+impl Leaf for MergeDriverCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "merged cleanly into `%A`"),
+        exit(
+            1,
+            "conflict records written, or `%A` left as ours: a side or the merged file above the reader's limits, a \
+             side in a newer format, or a side holding records this version cannot read",
+        ),
+        exit(
+            129,
+            "an internal error or a usage error: a file that cannot be read or written, a failure in the merge, \
+             clap's usage text (`%A` as it was)",
+        ),
+    ];
 }
 
 /// Exit: merged cleanly.
@@ -44,7 +50,7 @@ type Merge<'m> = &'m dyn Fn(&str, MergeSide<'_>, MergeSide<'_>, MergeSide<'_>) -
 type Project<'p> = &'p dyn Fn(&str) -> (String, String);
 
 /// Runs `ew merge-driver` in the current directory, git's working tree.
-pub(super) fn run_merge_driver(a: &MergeDriverArgs) -> i32 {
+pub(super) fn run_merge_driver(a: &MergeDriverCli) -> i32 {
     let worktree = match std::env::current_dir() {
         Ok(dir) => dir,
         Err(e) => {
@@ -63,18 +69,19 @@ pub(super) fn run_merge_driver(a: &MergeDriverArgs) -> i32 {
 
 /// The driver over `merge` under `limits`, `project` placing `%P` in its project. One panic guard covers everything
 /// from the reads to the write: a panic anywhere there exits 129 with `%A` as it was (ADR-0012 amendment 2).
-fn drive(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
+fn drive(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
     catch_unwind(AssertUnwindSafe(|| merge_and_write(a, project, limits, merge))).unwrap_or_else(|_| {
         eprintln!(
             "ew merge-driver: the merge of {} failed inside ElektraWatt; it is left as it was",
-            a.path
+            a.repo_path()
         );
         INTERNAL
     })
 }
 
 /// [`drive`] without its guard.
-fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
+fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
+    let repo = a.repo_path();
     let read = |p: &Path| {
         super::read_bounded(p, limits.max_file_bytes)
             .map_err(|e| format!("{} cannot be read: {e}", p.display()))
@@ -82,7 +89,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
     let (base, ours, theirs) = match (read(&a.base), read(&a.ours), read(&a.theirs)) {
         (Ok(o), Ok(a), Ok(b)) => (o, a, b),
         (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
-            eprintln!("ew merge-driver: {e}; {} is left as it was", a.path);
+            eprintln!("ew merge-driver: {e}; {} is left as it was", repo);
             return INTERNAL;
         }
     };
@@ -95,12 +102,12 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
     {
         eprintln!(
             "ew merge-driver: {} is larger than {} MiB on one side; it is left as ours, to merge by hand",
-            a.path,
+            repo,
             limits.max_file_bytes >> 20
         );
         return CONFLICTS;
     }
-    let (path, format) = project(&a.path);
+    let (path, format) = project(&repo);
     // A side written by a newer ElektraWatt is not merged in this project. The driver sees ours'
     // format (the working tree's manifest) and, when it merges the manifest, the three sides' own.
     let formats: Vec<String> = if path == "manifest.json" {
@@ -115,7 +122,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
         eprintln!(
             "merge-driver: {}: written by a newer ElektraWatt (format {newer}; this one reads {FORMAT}); left as \
              ours: merge it with that version",
-            a.path
+            repo
         );
         return CONFLICTS;
     }
@@ -125,7 +132,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
         eprintln!(
             "merge-driver: {}: holds records this ElektraWatt cannot read (this one reads format {FORMAT}); left as \
              ours: merge it with a newer version",
-            a.path
+            repo
         );
         return CONFLICTS;
     }
@@ -141,7 +148,7 @@ fn merge_and_write(a: &MergeDriverArgs, project: Project<'_>, limits: &Limits, m
     if let Err(e) = super::write_atomically(&a.ours, &merged.bytes) {
         eprintln!(
             "ew merge-driver: the merged {} cannot be written to {}: {e}; it is left as it was",
-            a.path,
+            repo,
             a.ours.display()
         );
         return INTERNAL;
@@ -186,22 +193,25 @@ fn newer_than_reader(format: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     /// A fresh directory with a project `p.ew` (its manifest of format `format`) and the three sides as git's
     /// temporary files.
-    fn setup(format: &str) -> (ew_testdir::Tmp, MergeDriverArgs) {
+    fn setup(format: &str) -> (ew_testdir::Tmp, MergeDriverCli) {
         let dir = ew_testdir::Tmp::new("ew-merge-driver");
         std::fs::create_dir_all(dir.join("p.ew")).unwrap();
         std::fs::write(dir.join("p.ew/manifest.json"), manifest(format)).unwrap();
         for (name, text) in [("o", "base\n"), ("a", "ours\n"), ("b", "theirs\n")] {
             std::fs::write(dir.join(name), text).unwrap();
         }
-        let args = MergeDriverArgs {
+        let args = MergeDriverCli {
             base: dir.join("o"),
             ours: dir.join("a"),
             theirs: dir.join("b"),
-            path: "p.ew/pages/x.jsonl".to_owned(),
+            fourth: PathBuf::from("p.ew/pages/x.jsonl"),
+            path: None,
         };
         (dir, args)
     }
@@ -262,7 +272,7 @@ mod tests {
     fn a_merge_that_would_pass_a_reader_limit_leaves_a_as_ours_and_exits_1() {
         let (dir, mut args) = setup("0.1");
         // A record file (a page needs a UUID name).
-        args.path = "p.ew/waivers.jsonl".to_owned();
+        args.fourth = PathBuf::from("p.ew/waivers.jsonl");
         let bond = |members: &str| {
             format!(r#"{{"$k":"bond","id":"0190d8a4-6d3e-7c41-8f00-000000000001"{members}}}"#)
         };

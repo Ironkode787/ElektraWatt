@@ -10,7 +10,20 @@ use std::path::{Path, PathBuf};
 
 use ew_api::git::{self, ConfigScope, GitExe};
 
+use super::tree::Leaf;
 use super::{GitSetupArgs, is_terminal};
+use crate::catalogue::{Exit, exit};
+
+impl Leaf for GitSetupArgs {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "configured"),
+        exit(
+            2,
+            "no consent (no terminal and no `--yes`, or declined), not in a git worktree, git missing or refusing, \
+             a post-merge hook ElektraWatt did not write, write errors",
+        ),
+    ];
+}
 
 /// The most folder levels below the worktree's root that `ew git setup` looks for project folders in.
 const PROJECT_DEPTH: usize = 4;
