@@ -140,8 +140,14 @@ impl CanvasHost {
         let t = crate::theme::current(&response.ctx);
         let at = at + egui::vec2(t.space_2, t.space_2);
         let at = egui::pos2(
-            at.x.clamp(response.rect.left(), response.rect.right() - t.size_dialog_label),
-            at.y.clamp(response.rect.top(), response.rect.bottom() - 4.0 * t.size_control),
+            at.x.clamp(
+                response.rect.left(),
+                (response.rect.right() - t.size_dialog_label).max(response.rect.left()),
+            ),
+            at.y.clamp(
+                response.rect.top(),
+                (response.rect.bottom() - 4.0 * t.size_control).max(response.rect.top()),
+            ),
         );
         egui::Area::new(response.id.with("potential-offer"))
             .order(egui::Order::Foreground)
