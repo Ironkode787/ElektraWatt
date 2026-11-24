@@ -869,7 +869,9 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
     let part = realised_part(q, pl);
     let (mount, copy) = mount_of(q, part.as_ref());
     let confidence = copy.as_ref().map(|c| part_confidence(c, "mech"));
-    let part_text = part.as_ref().map_or_else(|| "none".into(), |p| part_name(q, p));
+    let part_text = part
+        .as_ref()
+        .map_or_else(|| text!("word-none").into(), |p| part_name(q, p));
     let mark = |f: Finding| match &confidence {
         Some(c) => f.reading(c),
         None => f,

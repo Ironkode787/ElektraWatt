@@ -33,11 +33,11 @@ use ew_l10n::TextArg;
 // Shared texts
 
 /// A cable as messages print it: its displayed tag without structure (`-106W1`), else `cable`.
-pub(crate) fn cable_text(q: &Q, cable: Id<Device>) -> String {
+pub(crate) fn cable_text(q: &Q, cable: Id<Device>) -> Named {
     q.get::<DeviceTag>(cable)
         .as_ref()
         .as_ref()
-        .map_or_else(|| "cable".to_owned(), |t| t.short())
+        .map_or_else(|| text!("word-cable").into(), |t| t.short().into())
 }
 
 /// A conductor as messages print it: `<cable>/<core>` (`-106W1/BU`), as EW-POT-005 prints a core wire.
@@ -461,7 +461,10 @@ impl Rule for ExternalWithoutCable {
                     Target::new(Kind::ExternalRef, r),
                 ),
             };
-            let mut inside: Vec<String> = devices.into_iter().map(|d| cable_text(q, d)).collect();
+            let mut inside: Vec<String> = devices
+                .into_iter()
+                .map(|d| cable_text(q, d).to_string())
+                .collect();
             sort_natural(&mut inside);
             sort_natural(&mut wires);
             wires.dedup();

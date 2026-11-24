@@ -37,6 +37,7 @@ use ew_derive::{
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rules::Named;
 use crate::rules::term::full_tag;
 
 // ---------------------------------------------------------------------------------------------------------
@@ -72,10 +73,11 @@ pub(crate) fn module_cfg(q: &Q, module: Id<Device>) -> Option<Id<PlcConfigProjec
 }
 
 /// The name of a configuration project as printed.
-pub(crate) fn cfg_name(q: &Q, cfg: Id<PlcConfigProject>) -> String {
-    q.table::<PlcConfigProject>()
-        .get(cfg)
-        .map_or_else(|| "a configuration project".to_owned(), |c| c.name.to_string())
+pub(crate) fn cfg_name(q: &Q, cfg: Id<PlcConfigProject>) -> Named {
+    q.table::<PlcConfigProject>().get(cfg).map_or_else(
+        || text!("word-a-configuration-project").into(),
+        |c| c.name.to_string().into(),
+    )
 }
 
 /// The direction of a channel kind: outputs for `do` and `ao`, inputs for `di`, `ai` and counters.

@@ -98,7 +98,7 @@ impl ShellModel {
         let nav = self.navs.get(&NavKind::Messages)?;
         let key = nav.cursor_key()?;
         let mut d = nav.node_of(&key).and_then(|(_, n)| messages::detail(n))?;
-        // The message in the UI language, by `report::localise`'s rule
+        // The message in the UI language, by `ew check --lang`'s rule
         // (the rule's pattern of that language where it has one, the en-GB message otherwise), for the finding of the
         // online report with this fingerprint.
         let lang = strings::rule_language();

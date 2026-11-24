@@ -21,22 +21,23 @@ use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
-use crate::rules::{and_listed, listed};
+use crate::rules::{Named, and_listed, listed};
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
 
 /// A device as the messages print it: its displayed tag without structure (`-201U3-Q1`), else `device`.
-fn tag(q: &Q, d: Id<Device>) -> String {
+fn tag(q: &Q, d: Id<Device>) -> Named {
     q.get::<DeviceTag>(d)
         .as_ref()
         .as_ref()
-        .map_or_else(|| "device".to_owned(), |t| t.short())
+        .map_or_else(|| text!("word-device").into(), |t| t.short().into())
 }
 
 /// A channel as the messages print it: "channel 1 of -201U3", in the reader's language.
 fn channel_text(q: &Q, c: &Channel) -> ew_l10n::Text {
-    ew_derive::text::channel_of_module(c.number.to_string(), tag(q, c.module))
+    // The module as the subject prints it: the channel's words keep "device" for a module without a tag.
+    ew_derive::text::channel_of_module(c.number.to_string(), tag(q, c.module).english())
 }
 
 /// The contact kind of a function's FnDef.

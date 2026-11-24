@@ -23,14 +23,18 @@ use ew_derive::{
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
-use crate::rules::and_listed;
 use crate::rules::term::full_tag;
+use crate::rules::{Named, and_listed};
 use ew_l10n::TextArg;
 
 /// A device's displayed tag (`-201U3-Q1`), else `device`.
-fn tag(q: &Q, d: Id<Device>) -> String {
+fn tag(q: &Q, d: Id<Device>) -> Named {
     let t = ew_derive::short_tag(q, d);
-    if t.is_empty() { "device".to_owned() } else { t }
+    if t.is_empty() {
+        text!("word-device").into()
+    } else {
+        t.into()
+    }
 }
 
 /// A tube as the messages name it: its line tag, else its two ends ("tee" at a junction), as the subject prints it and

@@ -15,6 +15,7 @@ use ew_derive::ew_schema::{Kind, LabelFormat, PartyRole, Revision, Sha256};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rules::Named;
 
 /// What the gate knows besides the snapshot.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -70,11 +71,11 @@ pub const LABEL_ORDER: RuleMeta = RuleMeta {
 };
 
 /// The role's name as the file writes it (`checker`).
-fn role(r: &PartyRole) -> String {
+fn role(r: &PartyRole) -> Named {
     serde_json::to_value(r)
         .ok()
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .unwrap_or_else(|| "a role of a newer format".to_owned())
+        .and_then(|v| v.as_str().map(Named::from))
+        .unwrap_or_else(|| text!("word-a-role-of-a-newer-format").into())
 }
 
 /// The open revision (at most one, EW-INV-016; the first in key order otherwise).

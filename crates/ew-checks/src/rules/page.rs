@@ -995,7 +995,7 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
     )
     .on_page(page)
     .arg("line", wire.line())
-    .arg("wire", wire.words.english())
+    .arg("wire", wire.words)
     .arg("point", kind)
     .arg("pin", pin)
 }
@@ -1052,7 +1052,7 @@ pub fn wire_through_symbol(
     )
     .on_page(page)
     .arg("line", wire.line())
-    .arg("wire", wire.words.english())
+    .arg("wire", wire.words)
     .arg("symbol", kind)
     .arg("device", name)
 }

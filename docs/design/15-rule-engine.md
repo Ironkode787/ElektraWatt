@@ -483,12 +483,15 @@ rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }; { $loa
 - **Languages.** en-GB is mandatory and the fallback; nl-NL is complete at MVP (FR-UI-032). CI fails when a rule
   lacks its message or `.title` (NFR-I18N-02).
 
-  Every registered rule has its `.title`, `.hint` and, where its findings carry arguments, its
-  pattern in nl-NL, and every finding of a rule table carries its arguments; the message test fails otherwise. The
-  EW-IMP findings are the exception: their message is the text the importer stored in the project. Arguments stay
-  printed text; a pattern writes a measured value with `DECIMAL($x)` (the language's decimal separator) and a name
-  that may be a fallback ("a location", "a device without designation") with `WORD($x)`, whose words are the
-  messages `word-…` of each language.
+  A finding carries its text (ADR-0019 amendment 8): the key of its rule's pattern (`RuleMeta::message`) and its
+  arguments by name. Its message is the en-GB pattern rendered; another language renders its own pattern from the
+  same arguments and falls back to en-GB. Every registered rule has its `.title`, `.hint` and pattern in nl-NL, and
+  the rule tables check that every language words every finding. The integrity findings of opening and the EW-IMP
+  findings keep the words the store and the importer wrote (`words-as-written`). An argument is printed text, a
+  number a pattern selects on, a word by key (`word-…`: "a location", "a device without designation"), a name a person
+  wrote in several languages, another finding's text (EW-CORE-013), or a list of them joined by the language's words
+  (`join-…`); a pattern writes a measured value with `DECIMAL($x)` (the language's decimal separator). A quick fix's
+  label is a text by key (`fix-…`).
 - **F1 help.** F1 on a finding opens `docs` in the bundled offline documentation (FR-CHK-015, FR-UI-031): what is
   checked and why, the standard by number and clause without copied text, an example, quick fixes and waiver
   guidance (NFR-DOC-02). CI fails when the page is missing. Company packs ship `docs/<rule>.md`, which EW renders to
