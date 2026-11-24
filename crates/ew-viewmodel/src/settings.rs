@@ -98,8 +98,12 @@ pub const DEFAULT_WORKSPACE: &str = "Schematic";
 /// (`workspace-<name>` in lower case).
 pub const BUILT_IN_WORKSPACES: [&str; 3] = [DEFAULT_WORKSPACE, "PLC", "Fluid"];
 
-/// The settings.
-#[derive(Clone, PartialEq, Debug)]
+/// The settings. Serde reads and writes every member of the file's top level, a missing one at its default
+/// ([`Settings::default`]) and one of the wrong type making the file bad; a value it cannot take falls back
+/// ([`Settings::lenient`]). The members of `[properties]`, `[parts]` and `[window]` are read and written beside the
+/// other members of those tables, which are kept.
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(default)]
 pub struct Settings {
     /// The recent projects, most recent first (paths as text; a path that no longer exists stays until it is
     /// opened and fails).
@@ -122,8 +126,10 @@ pub struct Settings {
     pub update_check: bool,
     /// The template new projects start from (a project directory of [`Settings::templates`]), if the user chose one
     /// (FR-PRJ-009).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub basic_project: Option<String>,
     /// The templates the user keeps, in the order they were added (`[[templates]]`); never in the recent projects.
+    #[serde(deserialize_with = "templates", skip_serializing_if = "Vec::is_empty")]
     pub templates: Vec<TemplateEntry>,
     /// The active workspace (doc 16 section 2.6).
     pub workspace: String,
@@ -131,44 +137,59 @@ pub struct Settings {
     pub canvas_backend: String,
     /// The property grid's collapsed categories, `<kind>/<category>` (`device/identity`), sorted (`[properties]
     /// collapsed`).
+    #[serde(skip)]
     pub properties_collapsed: Vec<String>,
     /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`).
+    #[serde(skip)]
     pub properties_show_advanced: bool,
     /// The author name: the display name a waiver records as its author, prefilled in the Waive prompt and
     /// saved back when a waiver is committed; `None` until one is typed (`author_name`, written only when set).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub author_name: Option<String>,
     /// The program of the ODA File Converter the user chose for DWG imports (FR-IMP-036, `dwg_converter`, written only
     /// when set); never bundled or downloaded.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dwg_converter: Option<String>,
     /// The main window's last size, position and maximised state (`[window]`, item 9); `None`
     /// until a window has closed.
+    #[serde(skip)]
     pub window: Option<crate::window::WindowGeometry>,
     /// The favourite parts, `<library ID>/<item ID>`, sorted (`[parts] favourites`).
+    #[serde(skip)]
     pub parts_favourites: Vec<String>,
     /// The recently used parts, `<library ID>/<item ID>`, most recent first, at most [`MAX_RECENT_PARTS`] (`[parts]
     /// recent`).
+    #[serde(skip)]
     pub parts_recent: Vec<String>,
     /// The minimum text size in points (`min_font_pt`): 0 is off, else one of [`MIN_FONT_RANGE`]; a value
     /// out of range loads as 0. Written only when set.
+    #[serde(deserialize_with = "font_size", skip_serializing_if = "is_zero")]
     pub min_font_pt: u8,
     /// Reduce motion (`reduce_motion`, NFR-A11Y-04); `None` while unset, which is on with the CPU canvas
     /// and off otherwise (`ShellModel::reduce_motion`). Written only when set.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reduce_motion: Option<bool>,
     /// Whether the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooming
     /// (`wheel_scrolls`); off, the default, the wheel zooms. Written only when on.
+    #[serde(skip_serializing_if = "is_false")]
     pub wheel_scrolls: bool,
     /// Whether the one-time tips may be shown (`tips`; on unless the file says `tips = false`).
+    #[serde(skip_serializing_if = "is_true")]
     pub tips: bool,
     /// The tips already shown, by their word ([`crate::shell::Tip::word`]), in the order they were shown
     /// (`tips_seen`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tips_seen: Vec<String>,
     /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals), kept
     /// between sessions (`terminal_spacing`, FT-1791); `None` until one is chosen. Written only when set.
+    #[serde(deserialize_with = "spacing", skip_serializing_if = "Option::is_none")]
     pub terminal_spacing: Option<u32>,
     /// The symbols edited lately in the symbol editor, by their library address (`library:<library>:<item>`), most
     /// recent first, at most [`MAX_RECENT`] (`symbols_recent`, written only once one was edited).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub symbols_recent: Vec<String>,
     /// Keys this version does not know, kept and written back.
+    #[serde(flatten)]
     extra: toml::Table,
 }
 
@@ -208,7 +229,7 @@ impl Default for Settings {
 }
 
 /// One template of the Templates list: its folder and the name the list shows.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, serde::Serialize)]
 pub struct TemplateEntry {
     /// The project folder.
     pub dir: String,
@@ -320,137 +341,75 @@ impl Settings {
     pub fn parse(text: &str) -> Option<Settings> {
         let mut table: toml::Table = toml::from_str(text).ok()?;
         table.remove("version");
-        let recent = match table.remove("recent_projects") {
-            None => Vec::new(),
-            Some(toml::Value::Array(items)) => items
-                .into_iter()
-                .map(|v| match v {
-                    toml::Value::String(s) => Some(s),
-                    _ => None,
-                })
-                .collect::<Option<Vec<String>>>()?,
-            Some(_) => return None,
-        };
-        let ui_scale = match table.remove("ui_scale") {
-            None => 1.0,
-            Some(toml::Value::Float(f)) => f as f32,
-            Some(toml::Value::Integer(i)) => i as f32,
-            Some(_) => return None,
-        };
-        let first_run_done = take_bool(&mut table, "first_run_done")?;
-        let update_check = take_bool(&mut table, "update_check")?;
-        let language = take_choice(&mut table, "language", &LANGUAGES)?;
-        let keymap = take_choice(&mut table, "keymap", &KEYMAPS)?;
-        let theme = take_choice(&mut table, "theme", &THEMES)?;
-        let density = take_choice(&mut table, "density", &DENSITIES)?;
-        let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
-        // An integer; a value out of range loads as off. A float of an integral value
-        // (`14.0`) loads as that size, any other float as off.
-        let in_range = |i: i64| {
-            u8::try_from(i)
-                .ok()
-                .filter(|pt| MIN_FONT_RANGE.contains(pt))
-                .unwrap_or(0)
-        };
-        let min_font_pt = match table.remove("min_font_pt") {
-            None => 0,
-            Some(toml::Value::Integer(i)) => in_range(i),
-            Some(toml::Value::Float(f)) if f.fract() == 0.0 && f.abs() < 1e6 => in_range(f as i64),
-            Some(toml::Value::Float(_)) => 0,
-            Some(_) => return None,
-        };
-        let reduce_motion = match table.remove("reduce_motion") {
-            None => None,
-            Some(toml::Value::Boolean(on)) => Some(on),
-            Some(_) => return None,
-        };
-        let wheel_scrolls = match table.remove("wheel_scrolls") {
-            None => false,
-            Some(toml::Value::Boolean(on)) => on,
-            Some(_) => return None,
-        };
-        // A spacing of no grid step or of more than a whole number holds is no spacing: the default stays.
-        let terminal_spacing = match table.remove("terminal_spacing") {
-            None => None,
-            Some(toml::Value::Integer(n)) => u32::try_from(n).ok().filter(|n| *n > 0),
-            Some(_) => return None,
-        };
-        // `tips` a bool (absent is on), `tips_seen` a list of texts.
-        let tips = match table.remove("tips") {
-            None => true,
-            Some(toml::Value::Boolean(on)) => on,
-            Some(_) => return None,
-        };
-        let mut tips_seen: Vec<String> = Vec::new();
-        match table.remove("tips_seen") {
-            None => {}
-            Some(toml::Value::Array(items)) => {
-                for v in items {
-                    match v {
-                        toml::Value::String(s) if !tips_seen.contains(&s) => tips_seen.push(s),
-                        toml::Value::String(_) => {}
-                        _ => return None,
-                    }
-                }
-            }
-            Some(_) => return None,
+        let mut settings: Settings = toml::Value::Table(table).try_into().ok()?;
+        settings.lenient();
+        settings.read_tables()?;
+        Some(settings)
+    }
+
+    /// The values read that this version cannot take, at their fallbacks, and the lists normalised: a scale or a
+    /// choice it does not offer at its default (an unknown origin as none), a workspace that cannot be a file name at
+    /// the default one, blank texts as unset, a list without duplicates (the first one kept) and cut to its length;
+    /// the template of a file written before the list (one path) a list of that one, and the recent projects without
+    /// duplicates or templates, at most [`MAX_RECENT`].
+    fn lenient(&mut self) {
+        if scale_index(self.ui_scale).is_none() {
+            self.ui_scale = 1.0;
         }
-        let mut symbols_recent: Vec<String> = Vec::new();
-        match table.remove("symbols_recent") {
-            None => {}
-            Some(toml::Value::Array(items)) => {
-                for v in items {
-                    match v {
-                        toml::Value::String(s) if !symbols_recent.contains(&s) => symbols_recent.push(s),
-                        toml::Value::String(_) => {}
-                        _ => return None,
-                    }
-                }
+        for (value, choices) in [
+            (&mut self.language, &LANGUAGES[..]),
+            (&mut self.keymap, &KEYMAPS[..]),
+            (&mut self.theme, &THEMES[..]),
+            (&mut self.density, &DENSITIES[..]),
+            (&mut self.canvas_backend, &CANVAS_BACKENDS[..]),
+        ] {
+            if !choices.contains(&value.as_str()) {
+                choices[0].clone_into(value);
             }
-            Some(_) => return None,
         }
-        symbols_recent.truncate(MAX_RECENT);
-        let comes_from = match take_string(&mut table, "comes_from")? {
-            Some(v) if ORIGINS.contains(&v.as_str()) => v,
-            _ => String::new(),
-        };
-        let basic_project = take_string(&mut table, "basic_project")?.filter(|v| !v.is_empty());
-        // `[[templates]]`: each a `dir` and a `name`; an entry without a folder is left out, one without a name
-        // takes its folder's.
-        let mut templates: Vec<TemplateEntry> = Vec::new();
-        match table.remove("templates") {
-            None => {}
-            Some(toml::Value::Array(items)) => {
-                for item in items {
-                    let toml::Value::Table(mut entry) = item else {
-                        return None;
-                    };
-                    let dir = take_string(&mut entry, "dir")?.filter(|d| !d.trim().is_empty());
-                    let name = take_string(&mut entry, "name")?;
-                    if let Some(dir) = dir
-                        && !templates.iter().any(|t| t.dir == dir)
-                    {
-                        templates.push(TemplateEntry::new(dir, name));
-                    }
-                }
-            }
-            Some(_) => return None,
+        if !ORIGINS.contains(&self.comes_from.as_str()) {
+            self.comes_from.clear();
         }
-        let author_name = take_string(&mut table, "author_name")?
+        if !valid_workspace_name(&self.workspace) {
+            DEFAULT_WORKSPACE.clone_into(&mut self.workspace);
+        }
+        self.basic_project = self.basic_project.take().filter(|v| !v.is_empty());
+        self.author_name = self
+            .author_name
+            .take()
             .map(|v| v.trim().to_owned())
             .filter(|v| !v.is_empty());
-        let dwg_converter = take_string(&mut table, "dwg_converter")?.filter(|v| !v.trim().is_empty());
-        let workspace = take_string(&mut table, "workspace")?
-            .filter(|v| valid_workspace_name(v))
-            .unwrap_or_else(|| DEFAULT_WORKSPACE.to_owned());
+        self.dwg_converter = self.dwg_converter.take().filter(|v| !v.trim().is_empty());
+        dedup(&mut self.tips_seen);
+        dedup(&mut self.symbols_recent);
+        self.symbols_recent.truncate(MAX_RECENT);
+        // The template of a file written before the list (one path) is a list of that one.
+        if let Some(dir) = self.basic_project.clone() {
+            self.add_template(&dir, None);
+        }
+        // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins; a template is
+        // no recent project.
+        let recent = std::mem::take(&mut self.recent_projects);
+        for path in recent {
+            if !self.recent_projects.contains(&path)
+                && !self.is_template(&path)
+                && self.recent_projects.len() < MAX_RECENT
+            {
+                self.recent_projects.push(path);
+            }
+        }
+    }
+
+    /// Takes the members of `[properties]`, `[parts]` and `[window]` out of the kept keys; `None` when one has the
+    /// wrong type. Other members of those tables are kept.
+    fn read_tables(&mut self) -> Option<()> {
+        let table = &mut self.extra;
         // `[properties] collapsed`: a list of texts; other members of the table are kept.
-        let mut properties_collapsed: Vec<String> = Vec::new();
-        let mut properties_show_advanced = false;
         if let Some(toml::Value::Table(props)) = table.get_mut("properties") {
             // `[properties] show_advanced`.
             match props.remove("show_advanced") {
                 None => {}
-                Some(toml::Value::Boolean(on)) => properties_show_advanced = on,
+                Some(toml::Value::Boolean(on)) => self.properties_show_advanced = on,
                 Some(_) => return None,
             }
             match props.remove("collapsed") {
@@ -458,7 +417,7 @@ impl Settings {
                 Some(toml::Value::Array(items)) => {
                     for v in items {
                         match v {
-                            toml::Value::String(s) => properties_collapsed.push(s),
+                            toml::Value::String(s) => self.properties_collapsed.push(s),
                             _ => return None,
                         }
                     }
@@ -469,15 +428,13 @@ impl Settings {
                 table.remove("properties");
             }
         }
-        properties_collapsed.sort();
-        properties_collapsed.dedup();
+        self.properties_collapsed.sort();
+        self.properties_collapsed.dedup();
         // `[parts] favourites` and `recent`, lists of texts; other members of the table are kept.
-        let mut parts_favourites: Vec<String> = Vec::new();
-        let mut parts_recent: Vec<String> = Vec::new();
         if let Some(toml::Value::Table(parts)) = table.get_mut("parts") {
             for (key, list) in [
-                ("favourites", &mut parts_favourites),
-                ("recent", &mut parts_recent),
+                ("favourites", &mut self.parts_favourites),
+                ("recent", &mut self.parts_recent),
             ] {
                 match parts.remove(key) {
                     None => {}
@@ -497,11 +454,11 @@ impl Settings {
                 table.remove("parts");
             }
         }
-        parts_favourites.sort();
-        parts_recent.truncate(MAX_RECENT_PARTS);
+        self.parts_favourites.sort();
+        self.parts_recent.truncate(MAX_RECENT_PARTS);
         // `[window]`. Known members this version cannot read are dropped, not the whole
         // file: the window then opens at its default size. Other members of the table are kept.
-        let window = match table.remove("window") {
+        self.window = match table.remove("window") {
             Some(toml::Value::Table(mut w)) => {
                 let geometry = crate::window::WindowGeometry::from_toml(&w);
                 for key in crate::window::KEYS {
@@ -518,55 +475,7 @@ impl Settings {
             }
             None => None,
         };
-        let mut settings = Settings {
-            recent_projects: Vec::new(),
-            ui_scale: if scale_index(ui_scale).is_some() {
-                ui_scale
-            } else {
-                1.0
-            },
-            first_run_done,
-            language,
-            keymap,
-            theme,
-            density,
-            comes_from,
-            update_check,
-            basic_project,
-            templates,
-            workspace,
-            canvas_backend,
-            properties_collapsed,
-            properties_show_advanced,
-            author_name,
-            dwg_converter,
-            window,
-            parts_favourites,
-            parts_recent,
-            min_font_pt,
-            reduce_motion,
-            wheel_scrolls,
-            tips,
-            tips_seen,
-            symbols_recent,
-            terminal_spacing,
-            extra: table,
-        };
-        // The template of a file written before the list (one path) is a list of that one.
-        if let Some(dir) = settings.basic_project.clone() {
-            settings.add_template(&dir, None);
-        }
-        // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins; a template is
-        // no recent project.
-        for path in recent {
-            if !settings.recent_projects.contains(&path)
-                && !settings.is_template(&path)
-                && settings.recent_projects.len() < MAX_RECENT
-            {
-                settings.recent_projects.push(path);
-            }
-        }
-        Some(settings)
+        Some(())
     }
 
     /// The company library directories of the settings key `libraries.company` (`[libraries] company = [...]`),
@@ -620,122 +529,9 @@ impl Settings {
 
     /// The TOML text of the settings: `version`, the known keys and the kept unknown ones, keys sorted.
     pub fn to_toml(&self) -> String {
-        let mut table = self.extra.clone();
+        // A table of plain values always serialises.
+        let mut table = toml::Table::try_from(self).unwrap_or_default();
         table.insert("version".to_owned(), toml::Value::Integer(1));
-        table.insert(
-            "recent_projects".to_owned(),
-            toml::Value::Array(
-                self.recent_projects
-                    .iter()
-                    .map(|p| toml::Value::String(p.clone()))
-                    .collect(),
-            ),
-        );
-        table.insert(
-            "ui_scale".to_owned(),
-            toml::Value::Float(f64::from(self.ui_scale)),
-        );
-        table.insert(
-            "first_run_done".to_owned(),
-            toml::Value::Boolean(self.first_run_done),
-        );
-        table.insert("update_check".to_owned(), toml::Value::Boolean(self.update_check));
-        for (key, value) in [
-            ("language", &self.language),
-            ("keymap", &self.keymap),
-            ("theme", &self.theme),
-            ("density", &self.density),
-            ("comes_from", &self.comes_from),
-            ("workspace", &self.workspace),
-            ("canvas_backend", &self.canvas_backend),
-        ] {
-            table.insert(key.to_owned(), toml::Value::String(value.clone()));
-        }
-        match &self.basic_project {
-            Some(path) => {
-                table.insert("basic_project".to_owned(), toml::Value::String(path.clone()));
-            }
-            None => {
-                table.remove("basic_project");
-            }
-        }
-        // Written only once there is a template.
-        if self.templates.is_empty() {
-            table.remove("templates");
-        } else {
-            table.insert(
-                "templates".to_owned(),
-                toml::Value::Array(
-                    self.templates
-                        .iter()
-                        .map(|t| {
-                            let mut entry = toml::Table::new();
-                            entry.insert("dir".to_owned(), toml::Value::String(t.dir.clone()));
-                            entry.insert("name".to_owned(), toml::Value::String(t.name.clone()));
-                            toml::Value::Table(entry)
-                        })
-                        .collect(),
-                ),
-            );
-        }
-        match &self.author_name {
-            Some(name) => {
-                table.insert("author_name".to_owned(), toml::Value::String(name.clone()));
-            }
-            None => {
-                table.remove("author_name");
-            }
-        }
-        match &self.dwg_converter {
-            Some(program) => {
-                table.insert("dwg_converter".to_owned(), toml::Value::String(program.clone()));
-            }
-            None => {
-                table.remove("dwg_converter");
-            }
-        }
-        // Written only when set, so an untouched settings file keeps its bytes.
-        if self.min_font_pt != 0 {
-            table.insert(
-                "min_font_pt".to_owned(),
-                toml::Value::Integer(i64::from(self.min_font_pt)),
-            );
-        }
-        if let Some(on) = self.reduce_motion {
-            table.insert("reduce_motion".to_owned(), toml::Value::Boolean(on));
-        }
-        if self.wheel_scrolls {
-            table.insert("wheel_scrolls".to_owned(), toml::Value::Boolean(true));
-        }
-        if let Some(n) = self.terminal_spacing {
-            table.insert("terminal_spacing".to_owned(), toml::Value::Integer(i64::from(n)));
-        }
-        // Written only when set, likewise.
-        if !self.tips {
-            table.insert("tips".to_owned(), toml::Value::Boolean(false));
-        }
-        if !self.tips_seen.is_empty() {
-            table.insert(
-                "tips_seen".to_owned(),
-                toml::Value::Array(
-                    self.tips_seen
-                        .iter()
-                        .map(|t| toml::Value::String(t.clone()))
-                        .collect(),
-                ),
-            );
-        }
-        if !self.symbols_recent.is_empty() {
-            table.insert(
-                "symbols_recent".to_owned(),
-                toml::Value::Array(
-                    self.symbols_recent
-                        .iter()
-                        .map(|a| toml::Value::String(a.clone()))
-                        .collect(),
-                ),
-            );
-        }
         // Written only when a category is collapsed or Advanced is shown, so an untouched settings file keeps its
         // bytes.
         if !self.properties_collapsed.is_empty() || self.properties_show_advanced {
@@ -903,31 +699,74 @@ pub fn write_user_only(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     Staged::write(temp_beside(path), path, bytes, &user_only_options())?.commit()
 }
 
-/// Removes a boolean key: absent is `false`, another type makes the file bad (`None`).
-fn take_bool(table: &mut toml::Table, key: &str) -> Option<bool> {
-    match table.remove(key) {
-        None => Some(false),
-        Some(toml::Value::Boolean(b)) => Some(b),
-        Some(_) => None,
+/// `[[templates]]`: each a `dir` and a `name` (texts; another type makes the file bad); an entry without a folder is
+/// left out, one without a name takes its folder's, a folder given twice is kept once.
+fn templates<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<TemplateEntry>, D::Error> {
+    #[derive(serde::Deserialize)]
+    struct Entry {
+        dir: Option<String>,
+        name: Option<String>,
+    }
+    let mut out: Vec<TemplateEntry> = Vec::new();
+    for entry in <Vec<Entry> as serde::Deserialize>::deserialize(d)? {
+        if let Some(dir) = entry.dir.filter(|d| !d.trim().is_empty())
+            && !out.iter().any(|t| t.dir == dir)
+        {
+            out.push(TemplateEntry::new(dir, entry.name));
+        }
+    }
+    Ok(out)
+}
+
+/// `min_font_pt`: an integer; a value out of range loads as off. A float of an integral value (`14.0`) loads as
+/// that size, any other float as off; another type makes the file bad.
+fn font_size<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    let in_range = |i: i64| {
+        u8::try_from(i)
+            .ok()
+            .filter(|pt| MIN_FONT_RANGE.contains(pt))
+            .unwrap_or(0)
+    };
+    match <toml::Value as serde::Deserialize>::deserialize(d)? {
+        toml::Value::Integer(i) => Ok(in_range(i)),
+        toml::Value::Float(f) if f.fract() == 0.0 && f.abs() < 1e6 => Ok(in_range(f as i64)),
+        toml::Value::Float(_) => Ok(0),
+        _ => Err(serde::de::Error::custom("min_font_pt is no number")),
     }
 }
 
-/// Removes a string key: `Some(None)` when absent, `None` (a bad file) for another type.
-fn take_string(table: &mut toml::Table, key: &str) -> Option<Option<String>> {
-    match table.remove(key) {
-        None => Some(None),
-        Some(toml::Value::String(s)) => Some(Some(s)),
-        Some(_) => None,
-    }
+/// `terminal_spacing`: an integer; a spacing of no grid step or of more than a whole number holds is no spacing, and
+/// the default stays.
+fn spacing<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u32>, D::Error> {
+    let n = <i64 as serde::Deserialize>::deserialize(d)?;
+    Ok(u32::try_from(n).ok().filter(|n| *n > 0))
 }
 
-/// Removes a string key that names one of `choices`; absent or unknown gives the first choice.
-fn take_choice(table: &mut toml::Table, key: &str, choices: &[&str]) -> Option<String> {
-    let value = take_string(table, key)?;
-    Some(match value {
-        Some(v) if choices.contains(&v.as_str()) => v,
-        _ => choices[0].to_owned(),
-    })
+/// Whether a size is off (written only when set).
+fn is_zero(n: &u8) -> bool {
+    *n == 0
+}
+
+/// Whether a switch is off (written only when on).
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// Whether a switch is on (written only when off).
+fn is_true(b: &bool) -> bool {
+    *b
+}
+
+/// `list` without its duplicates, the first of each kept, in order.
+fn dedup(list: &mut Vec<String>) {
+    let mut seen: Vec<String> = Vec::with_capacity(list.len());
+    list.retain(|v| {
+        let new = !seen.contains(v);
+        if new {
+            seen.push(v.clone());
+        }
+        new
+    });
 }
 
 /// Whether `name` is a name that Windows reserves for a device (`CON`, `NUL`, `COM1` ...), in any letter case:

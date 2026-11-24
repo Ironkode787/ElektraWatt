@@ -1974,6 +1974,7 @@ dependencies = [
  "ew-testkit",
  "ew-units",
  "ew-viewmodel",
+ "serde",
  "serde_json",
  "toml",
 ]

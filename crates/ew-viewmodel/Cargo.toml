@@ -32,8 +32,9 @@ ew-dl = { path = "../ew-dl" }
 ew-units = { path = "../ew-units" }
 # UI-script lines, command parameters and the transcript (ew.uiscript/1, ew.uitranscript/1).
 serde_json = "1.0.154"
-# settings.toml; a `toml::Table` keeps unknown keys, sorted.
+# settings.toml; a `toml::Table` keeps unknown keys, sorted. Serde reads and writes the settings' members.
 toml = { workspace = true }
+serde = { workspace = true }
 # The shell's texts in Fluent (WP-S2.08 D9): `texts/<locale>/<area>.ftl`, compiled into the binary and rendered by
 # the one renderer, as `ew-checks` renders its rule messages (architecture §18).
 ew-l10n = { path = "../ew-l10n" }
