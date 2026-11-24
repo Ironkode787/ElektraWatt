@@ -39,12 +39,10 @@ use ew_units::arith::div_round_ties_away;
 use super::view::{PageFrameOf, PageGridOf, PageTableOf, neutral, page_uuid};
 use super::{CpTargetsByPage, page_scene};
 use crate::Session;
+use ew_scene::forms::SheetMap;
 
 /// The connection grid of QElectroTech's 10 px, `7_937_500/3` nm (ADR-0027).
 const QET_GRID: (u64, u64) = (7_937_500, 3);
-
-/// Parts per 10⁹: the unit of a page-to-sheet scale.
-const PPB_ONE: i128 = 1_000_000_000;
 
 /// One row of the page navigator: an entry of the derived page order.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -104,33 +102,9 @@ impl fmt::Display for CellLabel {
     }
 }
 
-/// The page-to-sheet map of a page's frame: `sheet = offset + page × scale_ppb / 10⁹`.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct Map {
-    scale_ppb: i128,
-    offset: (i128, i128),
-}
-
 /// An `i128` as `i64`, saturating.
 fn sat(v: i128) -> i64 {
     i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
-}
-
-impl Map {
-    /// The page coordinate of the sheet coordinate `s` on axis `axis` (0 x, 1 y).
-    fn to_page(self, s: i64, axis: usize) -> i64 {
-        let off = if axis == 0 { self.offset.0 } else { self.offset.1 };
-        sat(div_round_ties_away(
-            (i128::from(s) - off) * PPB_ONE,
-            self.scale_ppb.max(1),
-        ))
-    }
-
-    /// The sheet coordinate of the exact page coordinate `num / den` nm on `axis`, to the nearest nm.
-    fn to_sheet(self, num: i128, den: i128, axis: usize) -> i64 {
-        let off = if axis == 0 { self.offset.0 } else { self.offset.1 };
-        sat(off + div_round_ties_away(num * self.scale_ppb, den * PPB_ONE))
-    }
 }
 
 /// A page's frame cells for a viewer: opaque, made by [`Session::page_cells`]; evaluating it never
@@ -141,7 +115,7 @@ pub struct PageCells {
     page_index: Option<usize>,
     frame: FrameGrid,
     grid: Grid,
-    map: Map,
+    map: SheetMap,
     ip: Vec<XrefToken>,
     rows: Vec<String>,
     columns: Vec<String>,
@@ -188,7 +162,10 @@ impl PageCells {
     /// The cell under the sheet point `sheet` (nm), by `ew_derive`'s exact rule on the page point; `None` outside
     /// the drawing area.
     pub fn cell_at(&self, sheet: (i64, i64)) -> Option<CellLabel> {
-        let page = Pt2::new(Nm(self.map.to_page(sheet.0, 0)), Nm(self.map.to_page(sheet.1, 1)));
+        let page = Pt2::new(
+            Nm(self.map.unapply_ties_away(sheet.0, 0)),
+            Nm(self.map.unapply_ties_away(sheet.1, 1)),
+        );
         let cell = cell_in_grid(&self.frame, self.grid, page)?;
         Some(CellLabel {
             row: cell.row_label,
@@ -235,7 +212,7 @@ impl PageCells {
             let (c, d) = (i128::from(step.num()), i128::from(step.den()));
             let k = k as i128;
             // a/b + k·c/d = (a·d + k·c·b) / (b·d)
-            self.map.to_sheet(a * d + k * c * b, b * d, axis)
+            self.map.apply_exact_ties_away(a * d + k * c * b, b * d, axis)
         };
         let (w, h) = (self.frame.columns.width, self.frame.rows.height);
         Some([
@@ -274,10 +251,8 @@ impl PageCells {
     /// The column width and the row height on the sheet, rounded to nm.
     pub fn pitch_nm(&self) -> (i64, i64) {
         let len = |g: Grid| {
-            sat(div_round_ties_away(
-                i128::from(g.num()) * self.map.scale_ppb,
-                i128::from(g.den()) * PPB_ONE,
-            ))
+            self.map
+                .scale_exact_ties_away(i128::from(g.num()), i128::from(g.den()))
         };
         (len(self.frame.columns.width), len(self.frame.rows.height))
     }
@@ -562,21 +537,11 @@ fn aspect(q: &Q, page: PageRef, aspect: Aspect) -> Option<String> {
 }
 
 /// The page-to-sheet map of a page's frame form (the identity without one).
-fn sheet_map(q: &Q, page: PageRef) -> Map {
+fn sheet_map(q: &Q, page: PageRef) -> SheetMap {
     let form = q.get::<PageFrameOf>(page);
     form.as_ref()
         .as_ref()
-        .and_then(|f| f.form.page_to_sheet.as_ref())
-        .map_or(
-            Map {
-                scale_ppb: PPB_ONE,
-                offset: (0, 0),
-            },
-            |t| Map {
-                scale_ppb: i128::from(t.scale_ppb),
-                offset: (i128::from(t.offset.x.0), i128::from(t.offset.y.0)),
-            },
-        )
+        .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form))
 }
 
 /// The index of the grid point within 1 nm of the page coordinate `p` on a grid of `num / den` nm, if any.
@@ -1006,8 +971,8 @@ impl Session {
                 continue;
             };
             let at_nm = (
-                map.to_sheet(i128::from(p.x.0), 1, 0),
-                map.to_sheet(i128::from(p.y.0), 1, 1),
+                map.apply_exact_ties_away(i128::from(p.x.0), 1, 0),
+                map.apply_exact_ties_away(i128::from(p.y.0), 1, 1),
             );
             let grid_index = grid_index(p.x.0, num, den).zip(grid_index(p.y.0, num, den));
             let id: Id<()> = ew_derive::ew_ids::v5::cp_id(function, u32::from(idx));
@@ -1091,17 +1056,6 @@ mod tests {
         // A string of a newer format prints as it is; a value that is no string prints `unknown`.
         assert_eq!(kind_name(&newer), "future");
         assert_eq!(kind_name(&PageType::Unknown(serde_json::json!(7))), "unknown");
-    }
-
-    #[test]
-    fn rounding_halves_away_from_zero() {
-        let m = Map {
-            scale_ppb: 986_282_578,
-            offset: (9_790_000, 9_790_000),
-        };
-        // The QET frame's header band, 15 875 000/3 nm, prints at 15.009 mm.
-        assert_eq!(m.to_sheet(15_875_000, 3, 0), 15_009_079);
-        assert_eq!(m.to_page(15_009_079, 0), 5_291_667);
     }
 
     #[test]

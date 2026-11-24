@@ -106,6 +106,42 @@ impl SheetMap {
         )
     }
 
+    /// The page coordinate of the sheet coordinate `s` on axis `axis` (0 x, 1 y), rounded with exact ties away from
+    /// zero and saturating, in exact integers: the cell under a pointer and Go to read a sheet point by it, where
+    /// [`unapply`](SheetMap::unapply) rounds ties toward zero. A scale of 0 is treated as 1 ppb.
+    pub fn unapply_ties_away(self, s: i64, axis: usize) -> i64 {
+        let off = i128::from(if axis == 0 {
+            self.offset.x.0
+        } else {
+            self.offset.y.0
+        });
+        let q = arith::div_round_ties_away(
+            (i128::from(s) - off) * i128::from(PPB_ONE),
+            i128::from(self.scale_ppb.max(1)),
+        );
+        i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
+    }
+
+    /// The sheet coordinate of the exact page coordinate `num / den` nm on axis `axis` (0 x, 1 y), to the nearest nm
+    /// with exact ties away from zero and saturating: where a frame cell's edges and a connection point print for
+    /// Go to, where [`apply`](SheetMap::apply) rounds a whole nm with ties toward zero.
+    pub fn apply_exact_ties_away(self, num: i128, den: i128, axis: usize) -> i64 {
+        let off = i128::from(if axis == 0 {
+            self.offset.x.0
+        } else {
+            self.offset.y.0
+        });
+        let q = off + arith::div_round_ties_away(num * i128::from(self.scale_ppb), den * i128::from(PPB_ONE));
+        i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
+    }
+
+    /// The exact page length `num / den` nm on the sheet, to the nearest nm with exact ties away from zero and
+    /// saturating ([`apply_exact_ties_away`](SheetMap::apply_exact_ties_away) without the offset).
+    pub fn scale_exact_ties_away(self, num: i128, den: i128) -> i64 {
+        let q = arith::div_round_ties_away(num * i128::from(self.scale_ppb), den * i128::from(PPB_ONE));
+        i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
+    }
+
     /// A page rectangle on the sheet.
     pub fn apply_rect(self, r: Rect) -> Rect {
         Rect::from_points(self.apply(r.min()), self.apply(r.max()))
@@ -220,5 +256,21 @@ impl SheetMap {
         });
         out.layout_box = inner.apply_rect(r.layout_box);
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exact_ties_round_away_from_zero() {
+        let m = SheetMap {
+            scale_ppb: 986_282_578,
+            offset: Pt2::new(Nm(9_790_000), Nm(9_790_000)),
+        };
+        // The QET frame's header band, 15 875 000/3 nm, prints at 15.009 mm.
+        assert_eq!(m.apply_exact_ties_away(15_875_000, 3, 0), 15_009_079);
+        assert_eq!(m.unapply_ties_away(15_009_079, 0), 5_291_667);
     }
 }
