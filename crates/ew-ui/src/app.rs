@@ -227,6 +227,8 @@ const JOB_FIELD_AFTER: Duration = Duration::from_millis(200);
 pub struct App {
     shell: ShellModel,
     platform: Box<dyn Platform>,
+    /// The clock the window runs on: the wall clock, or the frame clock of a visual run.
+    clock: crate::clock::Clock,
     /// The page canvases of the project view.
     canvas: CanvasHost,
     /// The canvas area's nested tab tree.
@@ -358,12 +360,18 @@ pub fn setup(ctx: &egui::Context) {
 }
 
 impl App {
-    /// A frame over `shell`; `initial` is a project to open after the first frame.
-    pub fn new(shell: ShellModel, platform: Box<dyn Platform>, initial: Option<PathBuf>) -> App {
+    /// A frame over `shell` on `clock`; `initial` is a project to open after the first frame.
+    pub fn new(
+        shell: ShellModel,
+        platform: Box<dyn Platform>,
+        initial: Option<PathBuf>,
+        clock: crate::clock::Clock,
+    ) -> App {
         let dock = Dock::new(shell.layout(), shell.layout_version());
         App {
             shell,
             platform,
+            clock,
             canvas: CanvasHost::new(),
             canvas_area: CanvasAreaHost::new(),
             navigator: NavigatorPane::new(),
@@ -617,7 +625,7 @@ impl App {
     /// Runs `step` on the shell, which says its outcome where the person looks ([`ShellModel::run_said`]).
     fn run(&mut self, action: Option<&str>, step: impl FnOnce(&mut ShellModel) -> Outcome) {
         // The window reads the date before an action; the shell never does (the PLC export's form starts with it).
-        self.shell.set_today(crate::clock::today());
+        self.shell.set_today(self.clock.today());
         let properties = &self.properties;
         self.shell.run_said(action, step, |row| properties.drew_row(row));
     }
@@ -735,6 +743,8 @@ impl App {
     pub fn ui(&mut self, ui: &mut Ui) {
         let _frame = tracing::trace_span!("frame").entered();
         let ctx = ui.ctx().clone();
+        // The window's parts read the clock it runs on from the frame's context.
+        self.clock.publish(&ctx);
         // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
         // to another monitor. It is set once when the setting changes.
         // The bindings follow the keymap preset and the user's keymap.
@@ -760,7 +770,7 @@ impl App {
         if self.applied_theme.as_ref() != Some(&appearance) {
             crate::theme::apply_setting(&appearance.0, &appearance.1, appearance.2, appearance.3, &ctx);
             // A visual run draws the caret always, so a frame never catches it off.
-            if crate::clock::on_frame_clock() {
+            if self.clock.is_frame() {
                 ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
             }
             self.applied_theme = Some(appearance);
@@ -801,7 +811,7 @@ impl App {
         // the ends that are in (no `Session` call).
         // On the frame clock (a visual run) the driver waits for the jobs itself: no job thread wakes the frame, so
         // which frame sees an end never depends on timing.
-        if !self.waker_set && !crate::clock::on_frame_clock() {
+        if !self.waker_set && !self.clock.is_frame() {
             let waker = ctx.clone();
             self.shell
                 .set_job_waker(Some(std::sync::Arc::new(move || waker.request_repaint())));
@@ -824,7 +834,7 @@ impl App {
         // The project on disk is polled every 3 s, 750 ms later again while a change settles,
         // and when the window regains the focus; never while a pointer button is held (a gesture) or on the frame clock
         // (a visual run polls through `project.check_disk`).
-        if self.shell.has_project() && !crate::clock::on_frame_clock() {
+        if self.shell.has_project() && !self.clock.is_frame() {
             let (last, every) = self.disk_polled;
             let gesture = ctx.input(|i| i.pointer.any_down());
             if (regained || now - last >= every) && !gesture {
@@ -1336,7 +1346,7 @@ impl App {
                 ctx.request_repaint_after(to_fade.min(Duration::from_millis(500)));
             }
         }
-        let dispatch_started = crate::clock::now();
+        let dispatch_started = self.clock.now();
         // The window repaints after an action that changed the model or the tool's marks without pointer motion
         // (an undo, a key-driven commit, a gesture's release; window check): once at once, and once
         // shortly after, when the page's new tiles have had time to arrive.
@@ -1362,7 +1372,7 @@ impl App {
         }
         if canvas_shown {
             // The canvas's input phase includes dispatching the frame's actions (section 9).
-            self.canvas.end_frame(crate::clock::now() - dispatch_started);
+            self.canvas.end_frame(self.clock.now() - dispatch_started);
         } else if self.shell.has_project()
             && !matches!(self.shell.screen(), Screen::FirstRun | Screen::Wizard)
         {

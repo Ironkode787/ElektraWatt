@@ -37,6 +37,7 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::{App, setup};
+use ew_ui::clock::Clock;
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp};
@@ -163,7 +164,7 @@ fn window_on(
     // A base without the density setting refuses the key; the image is then Comfortable.
     let _ = shell.dispatch("settings.set", &json!({"key": "density", "value": density}));
     let recorder = offscreen::Recorder::default();
-    let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
+    let app = App::new(shell, Box::new(Scripted::default()), Some(dir), Clock::Wall);
     let mut h = Harness::builder()
         .with_size(size)
         .with_pixels_per_point(ppp)

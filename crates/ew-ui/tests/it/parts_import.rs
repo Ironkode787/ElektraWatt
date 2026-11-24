@@ -18,6 +18,7 @@ use egui::{Key, Modifiers, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick, PickReply, Platform, setup};
+use ew_ui::clock::Clock;
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
@@ -207,7 +208,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
         ctx: Rc::clone(&ctx_slot),
         pass: Rc::clone(&pick_pass),
     };
-    let app = App::new(shell, Box::new(platform), None);
+    let app = App::new(shell, Box::new(platform), None, Clock::Wall);
     let mut h = Harness::builder()
         .with_size(Vec2::new(1000.0, 700.0))
         .with_context_setup(setup)
@@ -296,7 +297,7 @@ impl Platform for ThreadedPlatform {
 /// A harness on a new project whose File, Import, Parts table… has been clicked once with `platform`.
 fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harness<'a, App> {
     let (shell, _) = new_project(tmp);
-    let app = App::new(shell, Box::new(platform), None);
+    let app = App::new(shell, Box::new(platform), None, Clock::Wall);
     let mut h = Harness::builder()
         .with_size(Vec2::new(1000.0, 700.0))
         .with_context_setup(setup)
@@ -395,7 +396,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     let other = tmp.sample("h.ew");
     let platform = ThreadedPlatform::default();
     let shell = ShellModel::new(Mode::Gui, tmp.config());
-    let app = App::new(shell, Box::new(platform.clone()), Some(dir));
+    let app = App::new(shell, Box::new(platform.clone()), Some(dir), Clock::Wall);
     let mut h = Harness::builder()
         .with_size(Vec2::new(1000.0, 700.0))
         .with_context_setup(setup)

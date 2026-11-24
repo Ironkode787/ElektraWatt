@@ -30,7 +30,7 @@
 //! strip reaches nothing. At another geometry than the default the transcript's header names it
 //! (`"window":[W,H],"ppp":n` after `"version"`).
 //!
-//! **Determinism.** The frame clock (`input.time` = frames / 60, [`crate::clock::use_frame_clock`]), theme light,
+//! **Determinism.** The frame clock (`input.time` = frames / 60, [`crate::clock::Clock::Frame`]), theme light,
 //! density comfortable, language `en`, the bundled fonts, `ui_scale` 1, the CPU canvas, the caret's blink off; the
 //! canvas's tiles and the page view's image are waited for in the frame that asked for them, and a running job is
 //! waited for by blocking on it, never on time.
@@ -771,7 +771,6 @@ impl Driver {
         base: PathBuf,
         geometry: Geometry,
     ) -> Result<Driver, String> {
-        crate::clock::use_frame_clock();
         let painter = match &frames_dir {
             None => None,
             Some(_) => {
@@ -818,7 +817,12 @@ impl Driver {
             answer: answer.clone(),
         };
         Ok(Driver {
-            app: Some(App::new(shell, Box::new(platform), None)),
+            app: Some(App::new(
+                shell,
+                Box::new(platform),
+                None,
+                crate::clock::Clock::Frame,
+            )),
             after: None,
             config,
             ctx,

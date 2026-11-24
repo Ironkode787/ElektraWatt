@@ -13,6 +13,7 @@ use egui::{Key, Modifiers, MouseWheelSource, MouseWheelUnit, PointerButton, Pos2
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
+use ew_ui::clock::Clock;
 use ew_viewmodel::shell::Outcome;
 use ew_viewmodel::tools::{Dash, Ghost, OverlayItem, Token, band_selection, measure_label, rect_of};
 use serde_json::json;
@@ -1132,7 +1133,7 @@ fn the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     let file = a_png(&tmp);
     let dir = tmp.sample("s.ew");
     let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
-    let app = App::new(shell, Box::new(ThreadedImage(file)), Some(dir));
+    let app = App::new(shell, Box::new(ThreadedImage(file)), Some(dir), Clock::Wall);
     let mut h = Harness::builder()
         .with_size(egui::Vec2::new(1000.0, 700.0))
         .with_context_setup(ew_ui::app::setup)

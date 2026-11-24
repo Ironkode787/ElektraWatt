@@ -13,6 +13,7 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
+use ew_ui::clock::Clock;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, edit_toast, harness, settle};
 
@@ -592,7 +593,7 @@ fn a_greyed_commands_toast_title_stands_whole() {
     let tmp = Tmp::new();
     let dir = tmp.sample("s.ew");
     let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
-    let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
+    let app = App::new(shell, Box::new(Scripted::default()), Some(dir), Clock::Wall);
     let mut h = Harness::builder()
         .with_size(egui::Vec2::new(1920.0, 1080.0))
         .with_context_setup(ew_ui::app::setup)

@@ -58,7 +58,7 @@ use ew_render2d::overlay::{self, GridSpec, OpenCps, Overlay, OverlayInput, Theme
 use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase};
 
-use crate::clock::{Stamp, now};
+use crate::clock::{Clock, Stamp};
 use ew_dl::{Color, ew_units::Nm};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{DrawTransform, PxRect, View};
@@ -1455,7 +1455,7 @@ impl CanvasHost {
     /// Starts a frame: the frame counter, the statistics' interval, the finished tiles taken from
     /// the pool and at most 8 (2 MiB) uploaded for every canvas together.
     pub(crate) fn begin_frame(&mut self, ctx: &egui::Context) {
-        let started = now();
+        let started = Clock::of(ctx).now();
         if let Some(previous) = self.frame_started.replace(started) {
             self.sample.set(Phase::Interval, started - previous);
         }
@@ -1481,7 +1481,8 @@ impl CanvasHost {
         if group >= GROUPS {
             return;
         }
-        let started = now();
+        let clock = Clock::of(ui.ctx());
+        let started = clock.now();
         // Phase 1: input.
         let input_span = tracing::trace_span!("frame.input").entered();
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -1584,7 +1585,7 @@ impl CanvasHost {
             self.dwell(ui, canvas, group, events);
         }
         drop(input_span);
-        let t_scene = now();
+        let t_scene = clock.now();
         self.add_phase(Phase::Input, t_scene - started);
 
         // Phase 2: scene.
@@ -1595,7 +1596,7 @@ impl CanvasHost {
             .filter(|_| !as_is)
             .unwrap_or_else(|| Arc::clone(canvas.page()));
         let scene = self.sync_scene(group, &shown);
-        let t_render = now();
+        let t_render = clock.now();
         self.add_phase(Phase::Scene, t_render - t_scene);
 
         // Phase 3: render.
@@ -1614,7 +1615,7 @@ impl CanvasHost {
             self.plans.push((group, Arc::clone(&scene), plan.clone()));
             Some(plan)
         };
-        let t_paint = now();
+        let t_paint = clock.now();
         self.add_phase(Phase::Render, t_paint - t_render);
 
         // Phase 4: paint.
@@ -1726,7 +1727,7 @@ impl CanvasHost {
         }
         self.views[group].drawn = true;
         self.shown_at.insert(scene.id(), self.frame);
-        self.add_phase(Phase::Paint, now() - t_paint);
+        self.add_phase(Phase::Paint, clock.now() - t_paint);
     }
 
     fn add_phase(&mut self, phase: Phase, d: Duration) {
@@ -3014,7 +3015,7 @@ impl CanvasHost {
             // On the frame clock (a visual run) the tiles submitted last frame are all waited for and taken in key
             // order, so what a frame shows never depends on the workers' timing.
             let mut waited = Vec::new();
-            if crate::clock::on_frame_clock() {
+            if Clock::of(ctx).is_frame() {
                 loop {
                     while let Some(done) = pool.try_recv() {
                         waited.push(done);
@@ -3123,7 +3124,7 @@ impl CanvasHost {
         if keys.is_empty() && self.pool.is_none() {
             return;
         }
-        let frame_clock = crate::clock::on_frame_clock();
+        let frame_clock = Clock::of(ctx).is_frame();
         let pool = self.pool.get_or_insert_with(|| {
             let ctx = ctx.clone();
             // On the frame clock no worker wakes the frame: the frame after a submission waits for its tiles.

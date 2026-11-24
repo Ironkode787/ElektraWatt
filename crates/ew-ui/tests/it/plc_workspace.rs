@@ -895,7 +895,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     settle(&mut h);
     h.get_by_label("Export to PLC software…").click();
     settle(&mut h);
-    let today = ew_ui::clock::today();
+    let today = ew_ui::clock::Clock::Wall.today();
     assert_eq!(form_value(&h, "date"), today, "the form is dated today");
     crate::support::combos(&h)
         .into_iter()

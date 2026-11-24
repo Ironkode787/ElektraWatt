@@ -451,7 +451,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     // The window reads the date; the shell never does.
                     events.push(Event::Action(
                         "messages.waive",
-                        json!({ "date": crate::clock::today() }),
+                        json!({ "date": crate::clock::Clock::of(ui.ctx()).today() }),
                     ));
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {

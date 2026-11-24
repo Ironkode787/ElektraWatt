@@ -415,7 +415,10 @@ pub fn show(
         && action.starts_with("revision.")
         && !params.contains_key("date")
     {
-        params.insert("date".to_owned(), Value::from(crate::clock::today()));
+        params.insert(
+            "date".to_owned(),
+            Value::from(crate::clock::Clock::of(ctx).today()),
+        );
     }
     match clicked {
         Some(DialogAnswer::Action(action, params)) => events.push(Event::Action(action, params)),

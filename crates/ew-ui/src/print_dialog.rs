@@ -410,7 +410,7 @@ fn progress(ui: &mut Ui, shell: &ShellModel) {
     let p = shell.print_progress().unwrap_or_default();
     let text = shell.print_progress_text().unwrap_or_default();
     ui.add_space((ui.available_height() / 2.0 - t.size_control).max(0.0));
-    if p.total == 0 && !crate::clock::on_frame_clock() {
+    if p.total == 0 && !crate::clock::Clock::of(ui.ctx()).is_frame() {
         ui.add(egui::Spinner::new().size(12.0));
     }
     components::live_line(ui, &text, false);
@@ -479,7 +479,7 @@ fn image(ctx: &egui::Context, set: &Arc<PrintSet>, tag: Tag) -> Option<TextureHa
             let result = render_page(&set, tag.page, tag.dpi, tag.mono);
             *slot.lock().unwrap_or_else(PoisonError::into_inner) = Some((tag, result));
         };
-        if crate::clock::on_frame_clock() {
+        if crate::clock::Clock::of(ctx).is_frame() {
             // In the frame that asks for it.
             render();
         } else {

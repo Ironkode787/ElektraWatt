@@ -742,7 +742,12 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         Box::new(move |cc| {
             setup(&cc.egui_ctx);
             // The file dialogs need the window (their owner on Windows), so the frame is made here.
-            let mut app = App::new(shell, Box::new(RfdPlatform::new(cc)), initial);
+            let mut app = App::new(
+                shell,
+                Box::new(RfdPlatform::new(cc)),
+                initial,
+                ew_ui::clock::Clock::Wall,
+            );
             // The canvas draws on eframe's device (one wgpu device, ADR-0014); without a render state it is the CPU
             // canvas.
             app.attach_gpu(cc.wgpu_render_state.clone(), flags);

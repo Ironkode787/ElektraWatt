@@ -246,7 +246,7 @@ impl PageView {
 
     fn spawn(&mut self, ctx: &egui::Context, tag: Tag, pages: Arc<ExportPages>) {
         // On the frame clock (a visual run) the image is rendered in the frame that asks for it.
-        if crate::clock::on_frame_clock() {
+        if crate::clock::Clock::of(ctx).is_frame() {
             let image = render_page(&pages, tag.dpi);
             let _ = self.tx.send(Done { tag, image });
             return;

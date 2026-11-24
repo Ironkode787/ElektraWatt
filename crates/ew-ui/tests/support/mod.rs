@@ -19,6 +19,7 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick, Platform, setup};
+use ew_ui::clock::Clock;
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 
@@ -98,7 +99,7 @@ pub fn harness<'a>(tmp: &Tmp, platform: Scripted, initial: Option<PathBuf>) -> H
 /// A harness around the frame of a shell the test made itself (resources, a first-run flow already started), in a
 /// window of 1920 × 1080 points, the main resolution (doc 16a §2).
 pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
-    let app = App::new(shell, Box::new(platform), initial);
+    let app = App::new(shell, Box::new(platform), initial, Clock::Wall);
     Harness::builder()
         .with_size(Vec2::new(1920.0, 1080.0))
         .with_context_setup(setup)
