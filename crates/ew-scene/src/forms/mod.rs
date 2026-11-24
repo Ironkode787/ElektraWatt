@@ -64,8 +64,8 @@ mod sheet;
 mod text;
 
 pub use bindings::{
-    AssetRef, BindingError, BindingFinding, Bindings, BoundValue, Filled, PageBindings, SCOPES,
-    eval_visible_if, fill, ml_text,
+    AssetRef, BindingError, BindingFinding, BoundValue, Filled, PageBindings, SCOPES, eval_visible_if, fill,
+    ml_text,
 };
 pub use geometry::{
     DEFAULT_FRAME_LINE, EXTRA_LINE_WIDTH, EXTRA_MARGIN, EXTRA_SHOW_GRID, FrameGeometry, title_block_origin,
@@ -187,7 +187,7 @@ pub struct LoweredForm {
 pub fn lower_form(
     form: &FormDef,
     title_block: Option<&FormDef>,
-    bindings: &dyn Bindings,
+    bindings: &PageBindings,
     fonts: &FontSet,
     styles: &TextStyleTable,
 ) -> LoweredForm {
@@ -217,7 +217,7 @@ pub fn lower_form(
 struct Lowerer<'a> {
     fonts: &'a FontSet,
     styles: &'a TextStyleTable,
-    bindings: &'a dyn Bindings,
+    bindings: &'a PageBindings,
     sheet: SheetMap,
     out: LoweredForm,
 }

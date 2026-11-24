@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Placeholders and their bindings (doc 09 §2.6): `{scope.path | filter …}` templates filled from a
-//! [`Bindings`] source.
+//! [`PageBindings`].
 //!
 //! A template is literal text with `{…}` placeholders; `{{` and `}}` print `{` and `}`. A placeholder is
 //! `scope.segment(.segment)*` followed by `|`-separated filters, each `name` or `name(args)` with
@@ -80,20 +80,6 @@ impl AssetRef {
     }
 }
 
-/// A source of placeholder values.
-pub trait Bindings {
-    /// The value at `path` (`page.title`, `party.end_user.name`), without braces or filters.
-    fn resolve(&self, path: &str) -> Option<BoundValue>;
-    /// The display language for [`BoundValue::Ml`] values and multi-language labels.
-    fn language(&self) -> Option<&LangTag> {
-        None
-    }
-    /// The project's date format (FR-PRJ-023).
-    fn date_format(&self) -> DateFormat {
-        DateFormat::DdMmYyyy
-    }
-}
-
 /// Why a path cannot be bound.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum BindingError {
@@ -153,14 +139,17 @@ impl PageBindings {
     }
 }
 
-impl Bindings for PageBindings {
-    fn resolve(&self, path: &str) -> Option<BoundValue> {
+impl PageBindings {
+    /// The value at `path` (`page.title`, `party.end_user.name`), without braces or filters.
+    pub fn resolve(&self, path: &str) -> Option<BoundValue> {
         self.values.get(path).cloned()
     }
-    fn language(&self) -> Option<&LangTag> {
+    /// The display language for [`BoundValue::Ml`] values and multi-language labels.
+    pub fn language(&self) -> Option<&LangTag> {
         self.language.as_ref()
     }
-    fn date_format(&self) -> DateFormat {
+    /// The project's date format (FR-PRJ-023); dd-mm-yyyy without one.
+    pub fn date_format(&self) -> DateFormat {
         self.date_format.clone().unwrap_or(DateFormat::DdMmYyyy)
     }
 }
@@ -209,13 +198,13 @@ pub struct Filled {
 }
 
 /// Fills `template` from `bindings`.
-pub fn fill(template: &str, bindings: &dyn Bindings) -> Filled {
+pub fn fill(template: &str, bindings: &PageBindings) -> Filled {
     fill_with(template, bindings)
 }
 
 /// Evaluates a `visible_if` expression: the filled text, trimmed, is visible unless it is empty, `false` or `0`;
 /// a leading `!` negates. A malformed expression is visible.
-pub fn eval_visible_if(expr: &str, bindings: &dyn Bindings) -> (bool, Vec<BindingFinding>) {
+pub fn eval_visible_if(expr: &str, bindings: &PageBindings) -> (bool, Vec<BindingFinding>) {
     let expr = expr.trim();
     let (negate, rest) = match expr.strip_prefix('!') {
         Some(rest) => (true, rest.trim()),
@@ -384,7 +373,7 @@ fn parse_template(template: &str) -> Option<Vec<Piece>> {
     Some(pieces)
 }
 
-fn fill_with(template: &str, bindings: &dyn Bindings) -> Filled {
+fn fill_with(template: &str, bindings: &PageBindings) -> Filled {
     let mut out = Filled::default();
     let Some(pieces) = parse_template(template) else {
         out.findings.push(BindingFinding::Malformed {
@@ -424,7 +413,7 @@ fn eval_placeholder(
     raw: &str,
     path: &str,
     filters: &[Filter],
-    bindings: &dyn Bindings,
+    bindings: &PageBindings,
     findings: &mut Vec<BindingFinding>,
 ) -> Option<BoundValue> {
     let mut state = bindings.resolve(path);
@@ -466,7 +455,7 @@ fn eval_placeholder(
     state
 }
 
-fn render(value: &BoundValue, bindings: &dyn Bindings) -> String {
+fn render(value: &BoundValue, bindings: &PageBindings) -> String {
     match value {
         BoundValue::Text(t) => t.clone(),
         BoundValue::Ml(ml) => ml_text(ml, bindings.language()).to_owned(),
