@@ -62,7 +62,9 @@ fn page_new_creates_folios_101_to_103_in_a_new_project() {
         assert!(labels.iter().any(|l| l == folio), "{folio} in {labels:?}");
     }
     let rows = shell.page_rows().to_vec();
-    let kind = |folio: &str| ew_viewmodel::ew_api::output::page_kind_name(&rows.iter().find(|r| r.folio == folio).unwrap().kind);
+    let kind = |folio: &str| {
+        ew_viewmodel::ew_api::output::page_kind_name(&rows.iter().find(|r| r.folio == folio).unwrap().kind)
+    };
     assert_eq!(kind("101"), "multi_line");
     assert_eq!(kind("102"), "multi_line", "the default type");
     assert_eq!(kind("103"), "single_line");

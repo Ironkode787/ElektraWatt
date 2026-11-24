@@ -2307,7 +2307,9 @@ fn draw_on_a_fluid_page_makes_one_when_there_is_none() {
     d.settle();
     let kind = {
         let s = d.shell_mut();
-        s.page_rows().get(s.page_index()).map(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind))
+        s.page_rows()
+            .get(s.page_index())
+            .map(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind))
     };
     assert_eq!(kind.as_deref(), Some("fluid"), "a fluid page made and shown");
     assert_eq!(d.shell_mut().tool().name(), "black_box");

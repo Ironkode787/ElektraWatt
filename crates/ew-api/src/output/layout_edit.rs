@@ -1096,7 +1096,11 @@ impl Session {
                                 .find(|c| part_number(&q, *c).eq_ignore_ascii_case(text))
                         });
                         let Some(copy) = copy else {
-                            return invalid(text!("refusal-layout-placement-no-part", tag(&q, p.device), text));
+                            return invalid(text!(
+                                "refusal-layout-placement-no-part",
+                                tag(&q, p.device),
+                                text
+                            ));
                         };
                         command(
                             "layout.move",

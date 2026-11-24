@@ -400,19 +400,34 @@ fn page_rows_follow_the_page_order() {
             "{}",
             r.folio
         );
-        assert_eq!(r.generated, ew_api::output::page_kind_name(&r.kind) == "report", "{}", r.folio);
+        assert_eq!(
+            r.generated,
+            ew_api::output::page_kind_name(&r.kind) == "report",
+            "{}",
+            r.folio
+        );
         assert_eq!(r.section.is_none(), e.section.is_none(), "{}", r.folio);
         assert!(!r.title.starts_with(&r.folio), "{}: {}", r.folio, r.title);
     }
     assert!(rows.iter().any(|r| r.generated));
     let p101 = row("101");
-    assert_eq!((ew_api::output::page_kind_name(&p101.kind).as_str(), p101.kind_rank), ("multi_line", 5));
+    assert_eq!(
+        (
+            ew_api::output::page_kind_name(&p101.kind).as_str(),
+            p101.kind_rank
+        ),
+        ("multi_line", 5)
+    );
     assert!(p101.qet_grid);
     assert_eq!(p101.section.as_ref().map(|s| s.0), Some(1));
     assert_eq!(p101.title, "Supply 400 V AC");
     let title = row("1");
     assert_eq!(
-        (ew_api::output::page_kind_name(&title.kind).as_str(), title.kind_rank, title.section.clone()),
+        (
+            ew_api::output::page_kind_name(&title.kind).as_str(),
+            title.kind_rank,
+            title.section.clone()
+        ),
         ("title_page", 0, None)
     );
     // Sorting by type keeps page order inside a type: kind_rank is the schema's declaration order.

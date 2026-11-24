@@ -133,7 +133,10 @@ fn the_fluid_buttons_find_or_make_their_fluid_page() {
     let made = s.current_folio().map(str::to_owned);
     assert_ne!(made, first, "a fluid page made and shown");
     assert_eq!(
-        s.page_rows().get(s.page_index()).map(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind)).as_deref(),
+        s.page_rows()
+            .get(s.page_index())
+            .map(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind))
+            .as_deref(),
         Some("fluid")
     );
     assert!(s.picker().is_some(), "the device browser is open");

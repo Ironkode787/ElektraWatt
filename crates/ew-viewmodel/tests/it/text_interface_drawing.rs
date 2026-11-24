@@ -239,7 +239,10 @@ fn the_new_strip_toast_off_a_schematic_page_has_no_example() {
         "page.new",
         json!({"folio": "201", "type": "overview", "title": "Overview"}),
     );
-    assert_eq!(ew_viewmodel::ew_api::output::page_kind_name(&s.page_rows()[s.page_index()].kind), "overview");
+    assert_eq!(
+        ew_viewmodel::ew_api::output::page_kind_name(&s.page_rows()[s.page_index()].kind),
+        "overview"
+    );
     done(&mut s, "strip.new", json!({"letter": "X"}));
     assert_eq!(
         toast(&s),

@@ -1109,7 +1109,12 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
     let rows: Vec<(String, String)> = s
         .page_rows()
         .iter()
-        .map(|r| (ew_viewmodel::ew_api::output::page_kind_name(&r.kind), r.folio.clone()))
+        .map(|r| {
+            (
+                ew_viewmodel::ew_api::output::page_kind_name(&r.kind),
+                r.folio.clone(),
+            )
+        })
         .collect();
     for (kind, text) in expected {
         let (_, folio) = rows
