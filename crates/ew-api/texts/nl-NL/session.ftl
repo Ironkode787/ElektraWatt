@@ -409,3 +409,6 @@ kind-words-double-acting-cylinder = Dubbelwerkende cilinder
 kind-words-two-way-process-valve = Tweewegprocesklep
 kind-words-5-2-valve = 5/2-ventiel
 kind-segment-changeover = wissel
+
+# The stamp a print scaled to its paper carries, in the project's language (output::print).
+print-stamp-scaled = geschaald op { $p0 } %

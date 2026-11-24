@@ -420,3 +420,6 @@ kind-words-double-acting-cylinder = Double-acting cylinder
 kind-words-two-way-process-valve = Two-way process valve
 kind-words-5-2-valve = 5/2 valve
 kind-segment-changeover = changeover
+
+# The stamp a print scaled to its paper carries, in the project's language (output::print).
+print-stamp-scaled = scaled { $p0 } %

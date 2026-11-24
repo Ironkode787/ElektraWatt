@@ -24,9 +24,10 @@
 //! document, byte for byte; any other set adds ` print <paper> <fit>` to the export's document ID text.
 
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use ew_derive::Q;
+use ew_derive::ew_mltext::LangTag;
 use ew_dl::{DisplayList, Item};
 use ew_export::{Parallelism, PdfPage, PdfReport};
 use ew_text::TextStyle;
@@ -238,8 +239,15 @@ fn percent((num, den): (u64, u64)) -> u32 {
     u32::try_from((200 * num + den) / (2 * den)).unwrap_or(u32::MAX)
 }
 
-/// The placement of a `width` × `height` sheet on `paper` with `fit`, and whether the sheet is clipped (D6).
-pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacement, bool) {
+/// The placement of a `width` × `height` sheet on `paper` with `fit`, and whether the sheet is clipped (D6); its stamp
+/// in the print's language `lang` ([`stamp_text`]).
+pub fn placement(
+    width: Nm,
+    height: Nm,
+    paper: Paper,
+    fit: Fit,
+    lang: Option<&LangTag>,
+) -> (PagePlacement, bool) {
     let (pw, ph) = match paper.sides() {
         None => (width, height),
         Some((short, long)) if width > height => (long, short),
@@ -274,7 +282,7 @@ pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacemen
     let clipped = fit == Fit::Actual && (width > pw || height > ph);
     let overlay = if scale.0 != scale.1 {
         DisplayList {
-            items: vec![stamp(&stamp_text(scale), pw, ph)],
+            items: vec![stamp(&stamp_text(scale, lang), pw, ph)],
         }
     } else {
         DisplayList::default()
@@ -291,9 +299,35 @@ pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacemen
     )
 }
 
-/// The stamp's text for a scale: "scaled 70 %".
-pub fn stamp_text(scale: (u64, u64)) -> String {
-    format!("scaled {} %", percent(scale))
+/// The stamp's text for a scale in the print's language `lang` ("scaled 70 %"): the project's language, as a page
+/// prints it ([`ew_l10n::render::language_for`] over the session's text files; en-GB without one).
+pub fn stamp_text(scale: (u64, u64), lang: Option<&LangTag>) -> String {
+    in_print_language(&text!("print-stamp-scaled", percent(scale).to_string()), lang)
+}
+
+/// `t` in the language a print prints for `lang` (the tag, else its primary language, else en-GB): its pattern there
+/// where it resolves, else en-GB's, else its English as the key table holds it.
+fn in_print_language(t: &crate::Text, lang: Option<&LangTag>) -> String {
+    use ew_l10n::render::{DEFAULT_LANGUAGE, Language, OnError, language_for};
+    static LANGUAGES: OnceLock<Vec<(&'static str, Language)>> = OnceLock::new();
+    let languages = LANGUAGES.get_or_init(|| {
+        let mut tags: Vec<&'static str> = crate::SOURCES.iter().map(|(tag, _)| *tag).collect();
+        tags.dedup();
+        tags.into_iter()
+            .map(|tag| {
+                let sources = crate::SOURCES.iter().filter(|(l, _)| *l == tag).map(|(_, s)| *s);
+                (tag, Language::new(tag, sources, &[], false))
+            })
+            .collect()
+    });
+    let lookup = |tag: &str| {
+        let (_, language) = languages.iter().find(|(l, _)| *l == tag)?;
+        language.text(t, OnError::Miss)
+    };
+    let tags: Vec<&str> = languages.iter().map(|(tag, _)| *tag).collect();
+    lookup(language_for(lang, &tags))
+        .or_else(|| lookup(DEFAULT_LANGUAGE))
+        .unwrap_or_else(|| t.to_string())
 }
 
 /// The stamp's cap height.
@@ -373,13 +407,21 @@ pub(crate) fn print_set_hooked(
             phase: "writing",
         });
     }
-    let mut set = print_pages(export.pages, export.options, options.paper, options.fit)?;
+    let lang = ew_derive::print_language(q);
+    let mut set = print_pages(
+        export.pages,
+        export.options,
+        options.paper,
+        options.fit,
+        lang.as_ref(),
+    )?;
     set.findings = export.findings;
     Ok(set)
 }
 
 /// The print set of export `pages` written with their export `options` (D5 to D7): each page placed on `paper` with
-/// `fit` and stamped when scaled, then written by [`ew_export::pdf`] with the bundled fonts; no findings.
+/// `fit` and stamped when scaled (in the print's language `lang`), then written by [`ew_export::pdf`] with the bundled
+/// fonts; no findings.
 ///
 /// # Errors
 ///
@@ -389,19 +431,20 @@ pub fn print_pages(
     options: ew_export::PdfOptions,
     paper: Paper,
     fit: Fit,
+    lang: Option<&LangTag>,
 ) -> Result<PrintSet, OutputError> {
     let mut stamps = Vec::with_capacity(pages.len());
     let mut notices = Vec::new();
     let mut as_exported = true;
     for page in &mut pages {
-        let (placement, clipped) = placement(page.width, page.height, paper, fit);
+        let (placement, clipped) = placement(page.width, page.height, paper, fit, lang);
         if clipped {
             notices.push(PrintNotice::Clipped {
                 folio: page.label.clone(),
                 paper,
             });
         }
-        stamps.push((placement.scale.0 != placement.scale.1).then(|| stamp_text(placement.scale)));
+        stamps.push((placement.scale.0 != placement.scale.1).then(|| stamp_text(placement.scale, lang)));
         as_exported &= placement.is_identity()
             && placement.overlay.items.is_empty()
             && (placement.width, placement.height) == (page.width, page.height);
@@ -466,41 +509,47 @@ mod tests {
     #[test]
     fn the_fit_is_the_smaller_ratio_exactly_and_centred() {
         let a4 = (Nm::from_mm(297), Nm::from_mm(210));
-        let (p, clipped) = placement(a4.0, a4.1, Paper::A5, Fit::ToPaper);
+        let (p, clipped) = placement(a4.0, a4.1, Paper::A5, Fit::ToPaper, None);
         assert!(!clipped);
         assert_eq!((p.width, p.height), (Nm::from_mm(210), Nm::from_mm(148)));
         assert_eq!(p.scale, (74, 105));
         // 297 mm × 74 / 105 = 209.314… mm, so 0.343 mm each side; the height fills the paper.
         assert_eq!(p.offset, Pt2::new(Nm(342_857), Nm(0)));
-        assert_eq!(stamp_text(p.scale), "scaled 70 %");
+        assert_eq!(stamp_text(p.scale, None), "scaled 70 %");
         assert_eq!(p.overlay.items.len(), 1);
-        let (p, _) = placement(Nm::from_mm(420), Nm::from_mm(297), Paper::A4, Fit::ToPaper);
+        let (p, _) = placement(Nm::from_mm(420), Nm::from_mm(297), Paper::A4, Fit::ToPaper, None);
         assert_eq!(p.scale, (70, 99));
-        assert_eq!(stamp_text(p.scale), "scaled 71 %");
-        let (p, _) = placement(a4.0, a4.1, Paper::A4, Fit::ToPaper);
+        assert_eq!(stamp_text(p.scale, None), "scaled 71 %");
+        let (p, _) = placement(a4.0, a4.1, Paper::A4, Fit::ToPaper, None);
         assert_eq!((p.scale, p.offset), ((1, 1), Pt2::ORIGIN));
         assert!(p.overlay.items.is_empty());
         // Enlarged too (FT-1826): an A4 sheet on A3 is min(420/297, 297/210) = 140/99 (141.41 %), stamped, its width
         // filling the paper and 297 − 210 × 140 / 99 = 0.030 mm left over in its height.
-        let (p, _) = placement(a4.0, a4.1, Paper::A3, Fit::ToPaper);
+        let (p, _) = placement(a4.0, a4.1, Paper::A3, Fit::ToPaper, None);
         assert_eq!(p.scale, (140, 99));
         assert_eq!(p.offset, Pt2::new(Nm(0), Nm(15_152)));
-        assert_eq!(stamp_text(p.scale), "scaled 141 %");
+        assert_eq!(stamp_text(p.scale, None), "scaled 141 %");
         assert_eq!(p.overlay.items.len(), 1);
     }
 
     /// Actual size: the sheet at the paper's top-left corner, a larger sheet clipped; a portrait sheet turns the paper.
     #[test]
     fn actual_size_clips_a_larger_sheet_and_turns_the_paper_with_the_sheet() {
-        let (p, clipped) = placement(Nm::from_mm(420), Nm::from_mm(297), Paper::A4, Fit::Actual);
+        let (p, clipped) = placement(Nm::from_mm(420), Nm::from_mm(297), Paper::A4, Fit::Actual, None);
         assert!(clipped);
         assert_eq!((p.scale, p.offset), ((1, 1), Pt2::ORIGIN));
         assert_eq!((p.width, p.height), (Nm::from_mm(297), Nm::from_mm(210)));
         assert!(p.overlay.items.is_empty());
-        let (p, clipped) = placement(Nm::from_mm(210), Nm::from_mm(297), Paper::A4, Fit::Actual);
+        let (p, clipped) = placement(Nm::from_mm(210), Nm::from_mm(297), Paper::A4, Fit::Actual, None);
         assert!(!clipped);
         assert_eq!((p.width, p.height), (Nm::from_mm(210), Nm::from_mm(297)));
-        let (p, clipped) = placement(Nm::from_mm(420), Nm::from_mm(297), Paper::Sheet, Fit::Actual);
+        let (p, clipped) = placement(
+            Nm::from_mm(420),
+            Nm::from_mm(297),
+            Paper::Sheet,
+            Fit::Actual,
+            None,
+        );
         assert!(!clipped && p.is_identity());
         assert_eq!((p.width, p.height), (Nm::from_mm(420), Nm::from_mm(297)));
     }
@@ -527,19 +576,26 @@ mod tests {
             placement: None,
         };
         let options = ew_export::PdfOptions::new(PdfDate::ymd(2026, 1, 1));
-        let fitted = print_pages(vec![page.clone()], options.clone(), Paper::A4, Fit::ToPaper).unwrap();
+        let fitted = print_pages(vec![page.clone()], options.clone(), Paper::A4, Fit::ToPaper, None).unwrap();
         assert_eq!(fitted.stamps, [Some("scaled 71 %".to_owned())]);
         assert!(fitted.notices.is_empty());
         assert_eq!(fitted.percent(0), 71);
         assert_eq!(fitted.pages[0].content, page.content);
-        let clipped = print_pages(vec![page.clone()], options.clone(), Paper::A4, Fit::Actual).unwrap();
+        let clipped = print_pages(vec![page.clone()], options.clone(), Paper::A4, Fit::Actual, None).unwrap();
         assert_eq!(clipped.stamps, [None]);
         let notices: Vec<String> = clipped.notices.iter().map(ToString::to_string).collect();
         assert_eq!(
             notices,
             ["page 902 is larger than A4: it is printed at 100 % and clipped from its top-left corner"]
         );
-        let sheet = print_pages(vec![page.clone()], options.clone(), Paper::Sheet, Fit::Actual).unwrap();
+        let sheet = print_pages(
+            vec![page.clone()],
+            options.clone(),
+            Paper::Sheet,
+            Fit::Actual,
+            None,
+        )
+        .unwrap();
         let export = ew_export::pdf(&[page], &options, &crate::output::DrawingFonts, None).unwrap();
         assert!(
             sheet.pdf == export.bytes,
@@ -551,7 +607,7 @@ mod tests {
     /// The stamp: its baseline 4 mm above the bottom edge, its end 5 mm from the right edge, 2 mm cap height.
     #[test]
     fn the_stamp_sits_at_the_bottom_right_of_the_paper() {
-        let (p, _) = placement(Nm::from_mm(297), Nm::from_mm(210), Paper::A5, Fit::ToPaper);
+        let (p, _) = placement(Nm::from_mm(297), Nm::from_mm(210), Paper::A5, Fit::ToPaper, None);
         let ew_dl::ItemKind::Glyphs(run) = &p.overlay.items[0].kind else {
             panic!("the stamp is a glyph run")
         };
