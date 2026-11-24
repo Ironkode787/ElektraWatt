@@ -206,6 +206,30 @@ enum Formatted {
     Number(String),
 }
 
+/// The language every crate's text files hold every key in, and the one a text falls back to.
+pub const DEFAULT_LANGUAGE: &str = "en-GB";
+
+/// The tag of `shipped` (the languages of a catalogue, in its order) that a reader of `tag` is given: `tag` itself, else
+/// the first shipped tag of the same primary language (`nl` and `nl-BE` take `nl-NL`, `en-US` takes `en-GB`), else
+/// [`DEFAULT_LANGUAGE`]; a reader without a language takes [`DEFAULT_LANGUAGE`]. The lists choose so; the window and the
+/// rule messages take a language by its exact tag.
+pub fn language_for<'a>(tag: Option<&ew_mltext::LangTag>, shipped: &[&'a str]) -> &'a str {
+    let Some(tag) = tag else {
+        return DEFAULT_LANGUAGE;
+    };
+    let parsed = |s: &&str| s.parse::<ew_mltext::LangTag>().ok();
+    shipped
+        .iter()
+        .find(|s| parsed(s).as_ref() == Some(tag))
+        .or_else(|| {
+            shipped
+                .iter()
+                .find(|s| parsed(s).is_some_and(|s| s.language().eq_ignore_ascii_case(tag.language())))
+        })
+        .copied()
+        .unwrap_or(DEFAULT_LANGUAGE)
+}
+
 /// The parse errors of the Fluent source `source` (empty when it parses): for the tests.
 pub fn parse_errors(source: &str) -> Vec<String> {
     match FluentResource::try_new(source.to_owned()) {
@@ -269,6 +293,19 @@ pub fn pseudo(text: &str) -> String {
 mod tests {
     use super::*;
     use crate::List;
+
+    /// A reader's tag takes its own language, else the first of its primary language, else en-GB.
+    #[test]
+    fn a_reader_takes_the_tag_else_its_language_else_english() {
+        let shipped = ["en-GB", "nl-NL"];
+        let pick = |tag: &str| language_for(tag.parse().ok().as_ref(), &shipped);
+        assert_eq!(pick("nl-NL"), "nl-NL");
+        assert_eq!(pick("nl"), "nl-NL");
+        assert_eq!(pick("nl-BE"), "nl-NL");
+        assert_eq!(pick("en-US"), "en-GB");
+        assert_eq!(pick("de-DE"), "en-GB");
+        assert_eq!(language_for(None, &shipped), "en-GB");
+    }
 
     /// A text with named arguments, a number, a nested text and a list renders each in the language: the list by its
     /// joining rule, the number for an ordinal; a nested key the language lacks fails with `Miss` and is written in
