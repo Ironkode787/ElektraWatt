@@ -1111,145 +1111,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     // The Tube tool (the Wire tool on a fluid page) says what it draws first: its line kind and tube.
     let tube = name == "wire" && model.wire_kind() == Ok(Some("fluid"));
     let prompt = match model.tool_ghost() {
-        None if name == "select" && tool.state() == "idle" => {
-            // Where a drop left the pointer, the stack is the dropped item and what it sits on; the HUD names
-            // it again once the pointer moves on.
-            if !model.stack_quiet() {
-                stack = pointer_stack(model);
-            }
-            let selected = model.canvas_selected();
-            if stack > 1 {
-                strings::format(key!("hud-stack"), &[&stack.to_string()])
-            } else if selected > 0 && model.selected_placements() > 0 {
-                // A placement selected on a panel page (doc 16a §5.5), its keys from the keymap.
-                // Only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
-                let delete = key_name(model, "edit.delete_selection");
-                let on_rail = model
-                    .selected_placement()
-                    .map(|(panel, row)| row.carrier.and_then(|c| panel.carrier(c)).is_some());
-                match on_rail {
-                    Some(true) => strings::format(
-                        key!("hud-layout-selected-rail"),
-                        &[&selected.to_string(), &key_name(model, "tool.mirror_x"), &delete],
-                    ),
-                    Some(false) => strings::format(
-                        key!("hud-layout-selected-plate"),
-                        &[&selected.to_string(), &key_name(model, "tool.rotate_cw"), &delete],
-                    ),
-                    None => strings::format(key!("hud-layout-selected"), &[&selected.to_string(), &delete]),
-                }
-            } else if selected > 0
-                && let Some((wire, _)) = model.wire_handles()
-            {
-                // One wire selected: how its handles are reached by keyboard, and with one in the focus, how
-                // it moves (Select's hint); a wire does not rotate.
-                if model.handle_focus().is_some_and(|w| w == wire) {
-                    hint()
-                } else {
-                    strings::format(
-                        key!("hud-wire-selected"),
-                        &[
-                            &selected.to_string(),
-                            &key_name(model, "tool.next_proposal"),
-                            &key_name(model, "edit.delete_selection"),
-                        ],
-                    )
-                }
-            } else if selected > 0 {
-                let line = strings::format(
-                    key!("hud-selected"),
-                    &[
-                        &selected.to_string(),
-                        &key_name(model, "tool.rotate_cw"),
-                        &key_name(model, "edit.delete_selection"),
-                    ],
-                );
-                // A terminal says which of its clamps is the cabinet's side (a persona run could not tell).
-                match model.terminal_sides_hint() {
-                    Some(sides) => format!("{line} · {sides}"),
-                    None => line,
-                }
-            } else if model
-                .page_rows()
-                .get(model.page_index())
-                .is_some_and(|r| r.kind == ew_api::PageType::BusTopology)
-            {
-                // A bus-topology page says its three steps where the user looks.
-                strings::text(key!("hud-bus-page-steps")).to_owned()
-            } else if model.page_rows().get(model.page_index()).map(|r| &r.kind)
-                == Some(&ew_api::PageType::PanelLayout)
-            {
-                // A layout page names its first step while it shows no plate (the persona read only that it
-                // takes no symbols), and the Select hint once it does.
-                // Its ways on are buttons beside the words (the rail's icons have no words).
-                let button = |label: String, action: &'static str, params: serde_json::Value| HudButton {
-                    label,
-                    action,
-                    params,
-                };
-                let unplaced = || {
-                    button(
-                        strings::text(key!("nav-title-unplaced")).to_owned(),
-                        "navigator.show",
-                        serde_json::json!({ "kind": "unplaced" }),
-                    )
-                };
-                match model.panel_tables() {
-                    None => strings::text(key!("hud-layout-start")).to_owned(),
-                    // A plate with no device on it says the next step (a persona did not find it).
-                    Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
-                        buttons.push(unplaced());
-                        buttons.push(button(
-                            strings::text(key!("action-layout-auto-fill-rail")).to_owned(),
-                            "layout.auto_fill_rail",
-                            serde_json::Value::Null,
-                        ));
-                        strings::text(key!("hud-layout-place-next")).to_owned()
-                    }
-                    // No device of the cabinet's location yet: the location comes first (Unplaced devices lists only
-                    // the devices of the location), in one step for the devices drawn without one.
-                    Some(t) if t.placements.is_empty() && model.has_devices_to_locate() => {
-                        buttons.push(button(
-                            strings::format(key!("hud-layout-give-location"), &[&t.location]),
-                            "layout.locate_devices",
-                            serde_json::Value::Null,
-                        ));
-                        buttons.push(unplaced());
-                        strings::format(key!("hud-layout-locate-first"), &[&t.location])
-                    }
-                    Some(t) if t.placements.is_empty() => {
-                        strings::format(key!("auto-fill-cause-none"), &[&t.location])
-                    }
-                    Some(_) => hint(),
-                }
-            } else if let Some(list) = model.list_pages(model.page_index()) {
-                // A list of more than one page says which page this is, with its way to the pages beside it (a
-                // persona missed the plugs on the parts list's second page).
-                let ways = [
-                    (list.previous, key!("hud-list-previous")),
-                    (list.next, key!("hud-list-next")),
-                ];
-                for (folio, label) in ways {
-                    if let Some(folio) = folio {
-                        buttons.push(HudButton {
-                            label: strings::format(label, &[&folio]),
-                            action: "page.goto",
-                            params: serde_json::json!({ "folio": folio }),
-                        });
-                    }
-                }
-                strings::format(
-                    key!("hud-list-page"),
-                    &[&list.n.to_string(), &list.of.to_string()],
-                )
-            } else if let Some(reason) = crate::actions::page_type_reason(model) {
-                // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
-                // where the user looks: the page type's, as a greyed drawing tool says it.
-                strings::text(reason).to_owned()
-            } else {
-                hint()
-            }
-        }
+        None if name == "select" && tool.state() == "idle" => select_prompt(model, &mut stack, &mut buttons),
         None => hint(),
         // Doc 16a §5.5: "Place -X1031:21 · R rotates · V variant · Esc done": the predicted tag or terminal (the symbol
         // until the pointer gives it one), then the keys; the ghost's line in `ui.describe` keeps the rest.
@@ -1262,65 +1124,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             hints,
             joinable,
             ..
-        }) => {
-            // A terminal of a strip without a tag yet reads in words until the preview predicts its tag, never as
-            // "-?X?:1" (FT-1813).
-            target = tag.or_else(|| {
-                strip.map(|text| match text.rsplit_once(':') {
-                    Some((strip, designation)) if strip.contains('?') => strings::format(
-                        key!("place-target-terminal"),
-                        &[strings::text(key!("place-target-new-strip")), designation],
-                    ),
-                    _ => text,
-                })
-            });
-            // M39: the symbol by its name in words (`Contact, normally open`); without a cached catalogue its key's last
-            // segment in sentence case (`Contact no`), never the key.
-            let mut what = target.clone().unwrap_or_else(|| {
-                model.symbol_title(&symbol).unwrap_or_else(|| {
-                    strings::choice_words(&crate::tools::symbol_name(&symbol).replace('-', "_"))
-                })
-            });
-            if hints > 0 {
-                let count = strings::format(
-                    if hints == 1 {
-                        key!("count-wire")
-                    } else {
-                        key!("count-wires")
-                    },
-                    &[&hints.to_string()],
-                );
-                what = format!(
-                    "{what} \u{b7} {}",
-                    strings::format(
-                        key!("hud-place-wires"),
-                        &[&count, &key_name(model, "canvas.activate_alt")]
-                    )
-                );
-            }
-            // "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
-            let keys = if joinable {
-                strings::format(
-                    key!("hud-keys-place-join"),
-                    &[
-                        &key_name(model, "tool.rotate_cw"),
-                        &key_name(model, "tool.next_variant"),
-                        &key_name(model, "place.join"),
-                        &key_name(model, crate::tools::ESCAPE),
-                    ],
-                )
-            } else {
-                strings::format(
-                    key!("hud-keys-place"),
-                    &[
-                        &key_name(model, "tool.rotate_cw"),
-                        &key_name(model, "tool.next_variant"),
-                        &key_name(model, crate::tools::ESCAPE),
-                    ],
-                )
-            };
-            format!("{what} \u{b7} {keys}")
-        }
+        }) => place_prompt(model, &mut target, symbol, strip, tag, hints, joinable),
         // The move's HUD names connect on move's key and the session's state, which the key turns at once
         // (C2).
         Some(Ghost::Move { readout, .. }) => {
@@ -1347,51 +1151,16 @@ pub fn hud(model: &ShellModel) -> HudModel {
             external,
             connects,
             ..
-        }) => {
-            target = Some(name.clone());
-            // A proposal other than its base's name says so in the name's place.
-            let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
-            // The role and the key that changes it ("0V · source: where the potential comes from … · D: target"), so the
-            // next role is on screen; the role says what it does, the key's part keeps the short next word.
-            // A star source is a source point (the tool shows a starred point as a source), so the
-            // star's hint stands alone in the role's place.
-            let mut key_part = None;
-            if let Some(d) = crate::tools::IpDir::from_word(direction) {
-                // The other half of a name that has one says so: "next: a target, where 24V goes on".
-                let role = if star {
-                    strings::text(key!("hud-ip-star")).to_owned()
-                } else {
-                    model
-                        .tool()
-                        .role_note()
-                        .unwrap_or_else(|| strings::text(ip_role_key(d)).to_owned())
-                };
-                parts.push(role);
-                let (key, next) = (key_name(model, "tool.ip_direction"), d.next().word());
-                key_part = Some((
-                    parts.len(),
-                    strings::format(key!("hud-ip-field-keys"), &[&key, next]),
-                ));
-                parts.push(format!("{key}: {next}"));
-            } else {
-                parts.push(direction.to_owned());
-            }
-            parts.extend(external);
-            // A click on a pin connects the point; the HUD says it before the click.
-            if let Some(cp) = connects {
-                parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
-            }
-            // While the name field holds the keys, the key part says how to give them back.
-            if let Some((i, words)) = key_part {
-                let mut typing = parts.clone();
-                typing[i] = words;
-                typing.retain(|p| !p.is_empty());
-                field_prompt = Some(typing.join(" \u{b7} "));
-            }
-            // An empty part (a name not yet computed) never joins the HUD.
-            parts.retain(|p| !p.is_empty());
-            parts.join(" \u{b7} ")
-        }
+        }) => ip_prompt(
+            model,
+            &mut target,
+            &mut field_prompt,
+            name,
+            direction,
+            star,
+            external,
+            connects,
+        ),
         // The count says what it counts ("7 connection points"), never a bare "· 7".
         Some(Ghost::Box { cps, .. }) => format!(
             "{} \u{b7} {}",
@@ -1481,6 +1250,278 @@ pub fn hud(model: &ShellModel) -> HudModel {
         stack,
         field_prompt,
         buttons,
+    }
+}
+
+/// The HUD's prompt of the IP tool: the point's name (or the proposal's reason), its role and the key that changes it,
+/// its external reference and the pin a click connects it to; `target` the name, `field_prompt` the line while the
+/// name field holds the keys.
+#[allow(clippy::too_many_arguments)]
+fn ip_prompt(
+    model: &ShellModel,
+    target: &mut Option<String>,
+    field_prompt: &mut Option<String>,
+    name: String,
+    direction: &'static str,
+    star: bool,
+    external: Option<String>,
+    connects: Option<String>,
+) -> String {
+    *target = Some(name.clone());
+    // A proposal other than its base's name says so in the name's place.
+    let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
+    // The role and the key that changes it ("0V · source: where the potential comes from … · D: target"), so the
+    // next role is on screen; the role says what it does, the key's part keeps the short next word.
+    // A star source is a source point (the tool shows a starred point as a source), so the
+    // star's hint stands alone in the role's place.
+    let mut key_part = None;
+    if let Some(d) = crate::tools::IpDir::from_word(direction) {
+        // The other half of a name that has one says so: "next: a target, where 24V goes on".
+        let role = if star {
+            strings::text(key!("hud-ip-star")).to_owned()
+        } else {
+            model
+                .tool()
+                .role_note()
+                .unwrap_or_else(|| strings::text(ip_role_key(d)).to_owned())
+        };
+        parts.push(role);
+        let (key, next) = (key_name(model, "tool.ip_direction"), d.next().word());
+        key_part = Some((
+            parts.len(),
+            strings::format(key!("hud-ip-field-keys"), &[&key, next]),
+        ));
+        parts.push(format!("{key}: {next}"));
+    } else {
+        parts.push(direction.to_owned());
+    }
+    parts.extend(external);
+    // A click on a pin connects the point; the HUD says it before the click.
+    if let Some(cp) = connects {
+        parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
+    }
+    // While the name field holds the keys, the key part says how to give them back.
+    if let Some((i, words)) = key_part {
+        let mut typing = parts.clone();
+        typing[i] = words;
+        typing.retain(|p| !p.is_empty());
+        *field_prompt = Some(typing.join(" \u{b7} "));
+    }
+    // An empty part (a name not yet computed) never joins the HUD.
+    parts.retain(|p| !p.is_empty());
+    parts.join(" \u{b7} ")
+}
+
+/// The HUD's prompt of the Place tool (doc 16a §5.5): the predicted tag or terminal, else the symbol in words, the
+/// wires its autoconnect hints draw, then the keys; `target` the tag or terminal it names.
+fn place_prompt(
+    model: &ShellModel,
+    target: &mut Option<String>,
+    symbol: String,
+    strip: Option<String>,
+    tag: Option<String>,
+    hints: usize,
+    joinable: bool,
+) -> String {
+    // A terminal of a strip without a tag yet reads in words until the preview predicts its tag, never as
+    // "-?X?:1" (FT-1813).
+    *target = tag.or_else(|| {
+        strip.map(|text| match text.rsplit_once(':') {
+            Some((strip, designation)) if strip.contains('?') => strings::format(
+                key!("place-target-terminal"),
+                &[strings::text(key!("place-target-new-strip")), designation],
+            ),
+            _ => text,
+        })
+    });
+    // M39: the symbol by its name in words (`Contact, normally open`); without a cached catalogue its key's last
+    // segment in sentence case (`Contact no`), never the key.
+    let mut what = target.clone().unwrap_or_else(|| {
+        model
+            .symbol_title(&symbol)
+            .unwrap_or_else(|| strings::choice_words(&crate::tools::symbol_name(&symbol).replace('-', "_")))
+    });
+    if hints > 0 {
+        let count = strings::format(
+            if hints == 1 {
+                key!("count-wire")
+            } else {
+                key!("count-wires")
+            },
+            &[&hints.to_string()],
+        );
+        what = format!(
+            "{what} \u{b7} {}",
+            strings::format(
+                key!("hud-place-wires"),
+                &[&count, &key_name(model, "canvas.activate_alt")]
+            )
+        );
+    }
+    // "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
+    let keys = if joinable {
+        strings::format(
+            key!("hud-keys-place-join"),
+            &[
+                &key_name(model, "tool.rotate_cw"),
+                &key_name(model, "tool.next_variant"),
+                &key_name(model, "place.join"),
+                &key_name(model, crate::tools::ESCAPE),
+            ],
+        )
+    } else {
+        strings::format(
+            key!("hud-keys-place"),
+            &[
+                &key_name(model, "tool.rotate_cw"),
+                &key_name(model, "tool.next_variant"),
+                &key_name(model, crate::tools::ESCAPE),
+            ],
+        )
+    };
+    format!("{what} \u{b7} {keys}")
+}
+
+/// The HUD's prompt of Select at rest: the stack under the pointer, what the selection allows, the page's ways on as
+/// buttons, or why the page takes no symbols.
+fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudButton>) -> String {
+    let hint = || crate::status::hint(model);
+    // Where a drop left the pointer, the stack is the dropped item and what it sits on; the HUD names
+    // it again once the pointer moves on.
+    if !model.stack_quiet() {
+        *stack = pointer_stack(model);
+    }
+    let selected = model.canvas_selected();
+    if *stack > 1 {
+        strings::format(key!("hud-stack"), &[&stack.to_string()])
+    } else if selected > 0 && model.selected_placements() > 0 {
+        // A placement selected on a panel page (doc 16a §5.5), its keys from the keymap.
+        // Only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
+        let delete = key_name(model, "edit.delete_selection");
+        let on_rail = model
+            .selected_placement()
+            .map(|(panel, row)| row.carrier.and_then(|c| panel.carrier(c)).is_some());
+        match on_rail {
+            Some(true) => strings::format(
+                key!("hud-layout-selected-rail"),
+                &[&selected.to_string(), &key_name(model, "tool.mirror_x"), &delete],
+            ),
+            Some(false) => strings::format(
+                key!("hud-layout-selected-plate"),
+                &[&selected.to_string(), &key_name(model, "tool.rotate_cw"), &delete],
+            ),
+            None => strings::format(key!("hud-layout-selected"), &[&selected.to_string(), &delete]),
+        }
+    } else if selected > 0
+        && let Some((wire, _)) = model.wire_handles()
+    {
+        // One wire selected: how its handles are reached by keyboard, and with one in the focus, how
+        // it moves (Select's hint); a wire does not rotate.
+        if model.handle_focus().is_some_and(|w| w == wire) {
+            hint()
+        } else {
+            strings::format(
+                key!("hud-wire-selected"),
+                &[
+                    &selected.to_string(),
+                    &key_name(model, "tool.next_proposal"),
+                    &key_name(model, "edit.delete_selection"),
+                ],
+            )
+        }
+    } else if selected > 0 {
+        let line = strings::format(
+            key!("hud-selected"),
+            &[
+                &selected.to_string(),
+                &key_name(model, "tool.rotate_cw"),
+                &key_name(model, "edit.delete_selection"),
+            ],
+        );
+        // A terminal says which of its clamps is the cabinet's side (a persona run could not tell).
+        match model.terminal_sides_hint() {
+            Some(sides) => format!("{line} · {sides}"),
+            None => line,
+        }
+    } else if model
+        .page_rows()
+        .get(model.page_index())
+        .is_some_and(|r| r.kind == ew_api::PageType::BusTopology)
+    {
+        // A bus-topology page says its three steps where the user looks.
+        strings::text(key!("hud-bus-page-steps")).to_owned()
+    } else if model.page_rows().get(model.page_index()).map(|r| &r.kind)
+        == Some(&ew_api::PageType::PanelLayout)
+    {
+        // A layout page names its first step while it shows no plate (the persona read only that it
+        // takes no symbols), and the Select hint once it does.
+        // Its ways on are buttons beside the words (the rail's icons have no words).
+        let button = |label: String, action: &'static str, params: serde_json::Value| HudButton {
+            label,
+            action,
+            params,
+        };
+        let unplaced = || {
+            button(
+                strings::text(key!("nav-title-unplaced")).to_owned(),
+                "navigator.show",
+                serde_json::json!({ "kind": "unplaced" }),
+            )
+        };
+        match model.panel_tables() {
+            None => strings::text(key!("hud-layout-start")).to_owned(),
+            // A plate with no device on it says the next step (a persona did not find it).
+            Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
+                buttons.push(unplaced());
+                buttons.push(button(
+                    strings::text(key!("action-layout-auto-fill-rail")).to_owned(),
+                    "layout.auto_fill_rail",
+                    serde_json::Value::Null,
+                ));
+                strings::text(key!("hud-layout-place-next")).to_owned()
+            }
+            // No device of the cabinet's location yet: the location comes first (Unplaced devices lists only
+            // the devices of the location), in one step for the devices drawn without one.
+            Some(t) if t.placements.is_empty() && model.has_devices_to_locate() => {
+                buttons.push(button(
+                    strings::format(key!("hud-layout-give-location"), &[&t.location]),
+                    "layout.locate_devices",
+                    serde_json::Value::Null,
+                ));
+                buttons.push(unplaced());
+                strings::format(key!("hud-layout-locate-first"), &[&t.location])
+            }
+            Some(t) if t.placements.is_empty() => {
+                strings::format(key!("auto-fill-cause-none"), &[&t.location])
+            }
+            Some(_) => hint(),
+        }
+    } else if let Some(list) = model.list_pages(model.page_index()) {
+        // A list of more than one page says which page this is, with its way to the pages beside it (a
+        // persona missed the plugs on the parts list's second page).
+        let ways = [
+            (list.previous, key!("hud-list-previous")),
+            (list.next, key!("hud-list-next")),
+        ];
+        for (folio, label) in ways {
+            if let Some(folio) = folio {
+                buttons.push(HudButton {
+                    label: strings::format(label, &[&folio]),
+                    action: "page.goto",
+                    params: serde_json::json!({ "folio": folio }),
+                });
+            }
+        }
+        strings::format(
+            key!("hud-list-page"),
+            &[&list.n.to_string(), &list.of.to_string()],
+        )
+    } else if let Some(reason) = crate::actions::page_type_reason(model) {
+        // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
+        // where the user looks: the page type's, as a greyed drawing tool says it.
+        strings::text(reason).to_owned()
+    } else {
+        hint()
     }
 }
 
