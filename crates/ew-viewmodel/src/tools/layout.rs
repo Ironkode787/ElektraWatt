@@ -479,7 +479,7 @@ impl LayoutGesture {
         items.push(OverlayItem::Label {
             at,
             text,
-            anchor: Anchor::Above,
+            anchor: Anchor::Beside,
         });
         Overlay::new(items)
     }

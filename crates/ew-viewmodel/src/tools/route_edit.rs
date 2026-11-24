@@ -279,7 +279,7 @@ pub fn part_overlay(cx: &ToolCx<'_>, line: &[(i64, i64)], part: RoutePart, steps
         items.push(OverlayItem::Label {
             at: cx.snapper.page_to_sheet(at),
             text: readout(cx, steps),
-            anchor: Anchor::Right,
+            anchor: Anchor::Beside,
         });
     }
     Overlay::new(items)

@@ -1142,7 +1142,7 @@ impl WireTool {
                     items.push(OverlayItem::Label {
                         at,
                         text: strings::format(key!("wire-readout"), &[&mm3(length.round() as i64)]),
-                        anchor: Anchor::Right,
+                        anchor: Anchor::Beside,
                     });
                     items.push(OverlayItem::Marker {
                         at: cx.snapper.page_to_sheet(t.at()),

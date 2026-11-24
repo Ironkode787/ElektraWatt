@@ -255,7 +255,7 @@ impl RailDrawTool {
             items.push(OverlayItem::Label {
                 at: midpoint(a, b),
                 text: strings::format(key!("draw-length"), &[&mm_of(panel, length)]),
-                anchor: Anchor::Above,
+                anchor: Anchor::Beside,
             });
         }
         Overlay::new(items)

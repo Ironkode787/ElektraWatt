@@ -124,16 +124,9 @@ impl MarkerKind {
 /// Where a label stands relative to its point.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Anchor {
-    /// Centred above the point.
-    Above,
-    /// Centred below the point.
-    Below,
-    /// To the left of the point, vertically centred.
-    Left,
-    /// To the right of the point, vertically centred.
-    Right,
-    /// Centred on the point, which the window keeps (a terminal's clamp letter beyond its end); a label of another
-    /// anchor goes where the chip rule finds room beside its point.
+    /// Beside the point: the window puts it where the chip rule finds room.
+    Beside,
+    /// Centred on the point, which the window keeps (a terminal's clamp letter beyond its end).
     Centre,
 }
 

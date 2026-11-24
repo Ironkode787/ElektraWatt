@@ -191,7 +191,7 @@ impl PinNameTool {
             items.push(OverlayItem::Label {
                 at,
                 text: label,
-                anchor: Anchor::Above,
+                anchor: Anchor::Beside,
             });
         }
         Overlay::new(items)

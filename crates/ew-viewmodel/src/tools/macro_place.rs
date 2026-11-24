@@ -69,7 +69,7 @@ impl MacroTool {
             OverlayItem::Label {
                 at: sheet,
                 text: strings::format(key!("label-macro"), &[&self.name]),
-                anchor: Anchor::Above,
+                anchor: Anchor::Beside,
             },
         ])
     }

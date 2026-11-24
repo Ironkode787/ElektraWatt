@@ -290,7 +290,7 @@ impl MarkerTool {
             items.push(OverlayItem::Label {
                 at: sheet(*to),
                 text: crate::strings::format(key!("marker-crossed"), &[&crossed.len().to_string()]),
-                anchor: Anchor::Right,
+                anchor: Anchor::Beside,
             });
             return Overlay::new(items);
         }

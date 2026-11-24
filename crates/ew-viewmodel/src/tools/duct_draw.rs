@@ -130,7 +130,7 @@ impl DuctDrawTool {
             items.push(OverlayItem::Label {
                 at: midpoint(a, b),
                 text: strings::format(key!("draw-duct-size"), &[&mm_of(panel, w), &mm_of(panel, h)]),
-                anchor: Anchor::Above,
+                anchor: Anchor::Beside,
             });
         }
         Overlay::new(items)

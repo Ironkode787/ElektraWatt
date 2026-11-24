@@ -111,7 +111,7 @@ impl TextTool {
             items.push(OverlayItem::Label {
                 at: label_at,
                 text: self.text().to_owned(),
-                anchor: Anchor::Right,
+                anchor: Anchor::Beside,
             });
         }
         Overlay::new(items)
@@ -360,7 +360,7 @@ impl Tool for TextEditTool {
                 ToolOutput::Transient(Overlay::new(vec![OverlayItem::Label {
                     at: cx.snapper.page_to_sheet(self.at),
                     text: text.clone(),
-                    anchor: Anchor::Right,
+                    anchor: Anchor::Beside,
                 }]))
             }
             CanvasEvent::Activate | CanvasEvent::Key(ToolKey::Finish) => self.finish(),

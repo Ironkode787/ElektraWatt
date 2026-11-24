@@ -733,7 +733,7 @@ impl BlackBoxTool {
             items.push(OverlayItem::Label {
                 at: cx.snapper.page_to_sheet(pos),
                 text: crate::strings::format(key!("place-target-click"), &[&self.label()]),
-                anchor: Anchor::Right,
+                anchor: Anchor::Beside,
             });
             return Overlay::new(items);
         }
@@ -749,7 +749,7 @@ impl BlackBoxTool {
                 OverlayItem::Label {
                     at: cx.snapper.page_to_sheet(at),
                     text: crate::strings::text(key!("box-chip-armed")).to_owned(),
-                    anchor: Anchor::Right,
+                    anchor: Anchor::Beside,
                 },
             ]),
             State::Outline { first, at } => {
@@ -792,7 +792,7 @@ impl BlackBoxTool {
                 items.push(OverlayItem::Label {
                     at: cx.snapper.page_to_sheet(at),
                     text: self.label(),
-                    anchor: Anchor::Right,
+                    anchor: Anchor::Beside,
                 });
                 Overlay::new(items)
             }

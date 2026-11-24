@@ -231,7 +231,7 @@ impl PasteTool {
                 } else {
                     self.label()
                 },
-                anchor: Anchor::Above,
+                anchor: Anchor::Beside,
             },
         ])
     }

@@ -642,7 +642,7 @@ impl PlaceTool {
         items.push(OverlayItem::Label {
             at: sheet,
             text: self.label(cx, pos),
-            anchor: Anchor::Above,
+            anchor: Anchor::Beside,
         });
         items.extend(self.guides.iter().cloned());
         // The proposals: a dashed stub from the ghost CP to its target; a split's two stubs one grid step long.

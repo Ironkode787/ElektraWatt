@@ -153,7 +153,7 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
         items.push(OverlayItem::Label {
             at,
             text: readout(cx, steps),
-            anchor: Anchor::Right,
+            anchor: Anchor::Beside,
         });
     }
     Overlay::new(items)

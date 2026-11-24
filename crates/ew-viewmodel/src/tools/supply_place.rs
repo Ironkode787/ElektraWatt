@@ -95,7 +95,7 @@ impl SupplyTool {
             items.push(OverlayItem::Label {
                 at: cx.snapper.page_to_sheet(pos),
                 text: name.clone(),
-                anchor: Anchor::Above,
+                anchor: Anchor::Beside,
             });
         }
         Overlay::new(items)

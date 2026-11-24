@@ -1347,7 +1347,7 @@ impl ShellModel {
             self.tools.overlay = crate::tools::Overlay::new(vec![crate::tools::OverlayItem::Label {
                 at,
                 text: words,
-                anchor: crate::tools::Anchor::Right,
+                anchor: crate::tools::Anchor::Beside,
             }]);
         }
         Outcome::Done

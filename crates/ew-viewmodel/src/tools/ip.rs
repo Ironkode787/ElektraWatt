@@ -1077,7 +1077,7 @@ impl IpTool {
             } else {
                 format!("{name} {}", direction.word())
             },
-            anchor: Anchor::Above,
+            anchor: Anchor::Beside,
         });
         Overlay::new(items)
     }

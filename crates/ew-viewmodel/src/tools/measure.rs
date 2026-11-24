@@ -90,7 +90,7 @@ fn measuring(a: &Snap, b: &Snap) -> Overlay {
         OverlayItem::Label {
             at: mid,
             text: measure_label(a.at_nm, b.at_nm),
-            anchor: Anchor::Above,
+            anchor: Anchor::Beside,
         },
     ])
 }
