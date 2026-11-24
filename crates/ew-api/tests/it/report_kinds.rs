@@ -235,7 +235,8 @@ fn the_counts_agree_with_the_terminal_diagram_states() {
     let overview = project_rows(&q, &ReportKind::TerminalOverview, None).expect("the overview");
     for (i, row) in overview.rows.iter().enumerate() {
         let strip = row.id.entities().next().expect("the strip");
-        let diagram = project_rows(&q, &ReportKind::TerminalDiagram, Some(strip)).expect("the strip's diagram");
+        let diagram =
+            project_rows(&q, &ReportKind::TerminalDiagram, Some(strip)).expect("the strip's diagram");
         let state = diagram.column("state").unwrap();
         let states: Vec<String> = (0..diagram.rows.len())
             .map(|r| row_texts(&q, &diagram, r)[state].clone())

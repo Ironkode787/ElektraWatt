@@ -533,7 +533,7 @@ impl ReportKind {
     /// format.
     pub fn name(&self) -> Option<&'static str> {
         let stored = serde_json::to_value(self).ok()?;
-        crate::track::variant_names(|d| ReportKind::deserialize(d))
+        crate::track::variant_names(ReportKind::deserialize)
             .iter()
             .copied()
             .find(|name| Some(*name) == stored.as_str())

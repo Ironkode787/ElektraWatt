@@ -38,7 +38,11 @@ fn data_set(n: u32) -> RowSet {
         rows: (0..n)
             .map(|i| Row::data(RowId(vec![RowKey::Index(i)]), vec![Cell::Number(i64::from(i))]))
             .collect(),
-        ..RowSet::new(vec![ColumnDef::new("n", CellType::Number, ew_reports::text!("column-count"))])
+        ..RowSet::new(vec![ColumnDef::new(
+            "n",
+            CellType::Number,
+            ew_reports::text!("column-count"),
+        )])
     }
 }
 

@@ -30,7 +30,11 @@ fn model() -> ew_model::Model {
 fn columns() -> Vec<ColumnDef> {
     vec![
         ColumnDef::new("name", CellType::Ident, ew_reports::text!("column-designation")),
-        ColumnDef::new("loc", CellType::Ident, ew_reports::text!("column-location-aspect")),
+        ColumnDef::new(
+            "loc",
+            CellType::Ident,
+            ew_reports::text!("column-location-aspect"),
+        ),
         ColumnDef::new("qty", CellType::Qty, ew_reports::text!("column-qty")),
     ]
 }

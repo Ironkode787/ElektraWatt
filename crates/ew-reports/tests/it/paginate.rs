@@ -44,7 +44,11 @@ fn spec(first_folio: u32) -> BlockSpec {
 }
 
 fn columns() -> Vec<ColumnDef> {
-    vec![ColumnDef::new("n", CellType::Number, ew_reports::text!("column-count"))]
+    vec![ColumnDef::new(
+        "n",
+        CellType::Number,
+        ew_reports::text!("column-count"),
+    )]
 }
 
 fn row(kind: RowKind, i: u32) -> Row {

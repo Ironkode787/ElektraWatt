@@ -54,7 +54,8 @@ fn a_drawn_bond_never_takes_a_declared_bonds_number() {
         .collect();
     let s = common::session_of(project, records, lib);
     let q = s.query();
-    let rows = ew_reports::project_rows(&q, &ew_schema::ReportKind::PotentialOverview, None).expect("the kind");
+    let rows =
+        ew_reports::project_rows(&q, &ew_schema::ReportKind::PotentialOverview, None).expect("the kind");
     let opts = RenderOptions::default();
     let cell = |row: &ew_reports::Row, key: &str| {
         rows.column(key)

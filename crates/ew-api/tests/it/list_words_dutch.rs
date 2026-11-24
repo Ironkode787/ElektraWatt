@@ -94,8 +94,11 @@ fn cells_of(s: &Session, kind: &str, include: Option<Uuid>) -> Vec<String> {
         lang: ew_derive::print_language(&q),
         ..RenderOptions::default()
     };
-    let def = ew_reports::Registry::builtin().by_name(kind).unwrap_or_else(|| panic!("the kind {kind}"));
-    let rows = ew_reports::project_rows(&q, &def.kind(), include).unwrap_or_else(|| panic!("the kind {kind}"));
+    let def = ew_reports::Registry::builtin()
+        .by_name(kind)
+        .unwrap_or_else(|| panic!("the kind {kind}"));
+    let rows =
+        ew_reports::project_rows(&q, &def.kind(), include).unwrap_or_else(|| panic!("the kind {kind}"));
     rows.rows
         .iter()
         .flat_map(|r| r.cells.iter().map(|c| render(&q, c, &opts)))

@@ -61,9 +61,7 @@ pub fn in_languages(t: &Text) -> MlText {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    /// The entries are NFC, as a word of a row set is ([`MlText`] normalises it): a word rendered at the edge prints
+    /// The entries are NFC, as a word of a row set is (`MlText` normalises it): a word rendered at the edge prints
     /// the bytes of its entry.
     #[test]
     fn every_entry_is_nfc() {
