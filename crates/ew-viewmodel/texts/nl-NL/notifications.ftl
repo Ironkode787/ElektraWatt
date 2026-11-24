@@ -47,10 +47,14 @@ announce-device = { $p0 }, { $p1 }, folio { $p2 }
 announce-device-unplaced = { $p0 }, { $p1 }
 announce-device-connected = { $p0 }, { $p1 }, { $p2 }
 announce-device-kind = Apparaat
-announce-cps = { $p0 } aansluitpunten
-announce-cps-one = 1 aansluitpunt
-announce-wires = { $p0 } draden
-announce-wires-one = 1 draad
+announce-cps = { $p0 ->
+        [one] 1 aansluitpunt
+       *[other] { $p0 } aansluitpunten
+    }
+announce-wires = { $p0 ->
+        [one] 1 draad
+       *[other] { $p0 } draden
+    }
 announce-wire = { $p0 }, { $p1 }, { $p2 } naar { $p3 }
 announce-wire-no-potential = { $p0 }, { $p1 } naar { $p2 }
 announce-wire-unnumbered = Ongenummerde draad
@@ -92,7 +96,10 @@ banner-damaged-copy-unnamed-no-library = Dit project is alleen-lezen geopend: he
 banner-damaged-copy-record-no-library = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een bibliotheek worden bijgewerkt.
 banner-damaged-copy-left-out-no-library = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Geen bibliotheek op deze computer bevat het; maak met Opslaan als een projectkopie zonder deze bibliotheekkopie.
 banner-damaged-copies-left-out-no-library = Dit project is alleen-lezen geopend: { $p0 } zijn beschadigd. Geen bibliotheek op deze computer bevat ze; maak met Opslaan als een projectkopie zonder deze bibliotheekkopieën.
-banner-findings = Bij het openen van het project zijn { $p0 } integriteitsbevindingen gevonden.
+banner-findings = { $p0 ->
+        [one] Bij het openen van het project is 1 integriteitsbevinding gevonden
+       *[other] Bij het openen van het project zijn { $p0 } integriteitsbevindingen gevonden
+    }.
 banner-settings-bad = Het instellingenbestand kon niet worden gelezen; de standaardwaarden worden gebruikt en het oude bestand is bewaard als { $p0 }.
 banner-settings-write = De instellingen konden niet worden geschreven.
 banner-recent-removed = { $p0 } kon niet worden geopend en is uit de recente projecten verwijderd.
@@ -130,16 +137,26 @@ toast-ips-deleted-wire = Onderbrekingspunten { $p0 } en de draad die erop aanslo
 toast-ips-deleted-wires = Onderbrekingspunten { $p0 } en de { $p1 } draden die erop aansloten verwijderd.
 toast-device-unplaced = { $p0 } heeft nu geen symbool op een pagina; het blijft in de navigator Apparaten en de stuklijst.
 toast-device-unplaced-no-part = { $p0 } heeft nu geen symbool op een pagina; het blijft in de navigator Apparaten.
-toast-deleted-wires = { $p0 } draden die op de verwijderde symbolen eindigden, zijn mee verwijderd.
-toast-deleted-wires-one = 1 draad die op de verwijderde symbolen eindigde, is mee verwijderd.
-toast-cut-terminals = { $p0 } klemmen geknipt.
-toast-cut-terminals-one = 1 klem geknipt.
-toast-cut-symbols = { $p0 } symbolen geknipt.
-toast-cut-symbols-one = 1 symbool geknipt.
-toast-cut-wires = { $p0 } draden die erop eindigden, zijn mee verwijderd; plakken houdt alleen de draden tussen de geknipte delen.
-toast-cut-wires-one = 1 draad die erop eindigde, is mee verwijderd; plakken houdt alleen de draden tussen de geknipte delen.
-toast-terminals-undrawn = { $p0 } klemmen zijn nergens meer getekend; ze blijven in het project en in de lijsten.
-toast-terminals-undrawn-one = 1 klem is nergens meer getekend; hij blijft in het project en in de lijsten.
+toast-deleted-wires = { $p0 ->
+        [one] 1 draad die op de verwijderde symbolen eindigde, is mee verwijderd
+       *[other] { $p0 } draden die op de verwijderde symbolen eindigden, zijn mee verwijderd
+    }.
+toast-cut-terminals = { $p0 ->
+        [one] 1 klem geknipt
+       *[other] { $p0 } klemmen geknipt
+    }.
+toast-cut-symbols = { $p0 ->
+        [one] 1 symbool geknipt
+       *[other] { $p0 } symbolen geknipt
+    }.
+toast-cut-wires = { $p0 ->
+        [one] 1 draad die erop eindigde, is mee verwijderd; plakken houdt alleen de draden tussen de geknipte delen
+       *[other] { $p0 } draden die erop eindigden, zijn mee verwijderd; plakken houdt alleen de draden tussen de geknipte delen
+    }.
+toast-terminals-undrawn = { $p0 ->
+        [one] 1 klem is nergens meer getekend; hij blijft in het project en in de lijsten
+       *[other] { $p0 } klemmen zijn nergens meer getekend; ze blijven in het project en in de lijsten
+    }.
 toast-devices-unplaced = { $p0 } hebben nu geen symbool op een pagina; ze blijven in de navigator Apparaten en de stuklijst.
 toast-devices-unplaced-no-part = { $p0 } hebben nu geen symbool op een pagina; ze blijven in de navigator Apparaten.
 toast-paste-ip-continues = Het geplakte onderbrekingspunt { $p0 } houdt zijn naam en zet daarom { $p0 } voort bij { $p1 }.
@@ -148,8 +165,10 @@ toast-paste-fitted-one = Het plakken is aangepast aan het raster van { $p0 } van
 toast-page-grid-set = Pagina { $p0 } heeft nu het raster van { $p1 }.
 toast-page-grid-fitted-none = Pagina { $p0 } heeft nu het raster van { $p1 }: elk item stond er al op, en de draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug.
 toast-page-grid-fitted = Pagina { $p0 } heeft nu het raster van { $p1 }: { $p2 } items zijn erop gezet en de draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug.
-toast-wires-unrouted = { $p0 } draden vonden geen weg en zijn als dunne gestreepte lijnen getekend: zet de elementen verder uit elkaar en kies Routeren.
-toast-wires-unrouted-one = Eén draad vond geen weg en is als dunne gestreepte lijn getekend: zet de elementen verder uit elkaar en kies Routeren.
+toast-wires-unrouted = { $p0 ->
+        [one] Eén draad vond geen weg en is als dunne gestreepte lijn getekend: zet de elementen verder uit elkaar en kies Routeren
+       *[other] { $p0 } draden vonden geen weg en zijn als dunne gestreepte lijnen getekend: zet de elementen verder uit elkaar en kies Routeren
+    }.
 toast-device-retagged = { $p0 } (nu { $p1 })
 toast-placed-connected-one = { $p0 } en { $p1 } verbonden met { $p2 }.
 toast-placed-connected = { $p0 } en { $p1 } verbonden: { $p2 } met { $p3 } en nog { $p4 }.
@@ -184,13 +203,17 @@ toast-open = Openen
 toast-export-cancelled = Export geannuleerd; geen bestand geschreven.
 toast-export-failed = Exporteren mislukt: { $p0 }; controleer of de map beschrijfbaar is en het bestand niet in een ander programma open is.
 toast-export-internal = Exporteren mislukt: een interne fout.
-toast-recovered = { $p0 } wijzigingen hersteld; sla op om ze te bewaren.
-toast-recovered-one = 1 wijziging hersteld; sla op om haar te bewaren.
+toast-recovered = { $p0 ->
+        [one] 1 wijziging hersteld; sla op om haar te bewaren
+       *[other] { $p0 } wijzigingen hersteld; sla op om ze te bewaren
+    }.
 toast-bridged = { $p0 } bruggen toegevoegd tussen { $p1 } klemmen.
 toast-bridged-one = 1 brug toegevoegd tussen { $p1 } klemmen.
 toast-check = Controle: { $p0 }.
-toast-marker-count = { $p0 } draden dragen een markering.
-toast-marker-count-one = 1 draad draagt een markering.
+toast-marker-count = { $p0 ->
+        [one] 1 draad draagt een markering
+       *[other] { $p0 } draden dragen een markering
+    }.
 job-kind-pdf = PDF-export
 job-kind-print = Afdrukset
 toast-print-printed = { $p0 } naar de printer gestuurd.
@@ -227,12 +250,18 @@ recovery-count = Niet-opgeslagen wijzigingen: { $p0 }
 recovery-last-change = Laatste wijziging: { $p0 }
 recovery-last-change-utc = { $p0 } UTC
 elapsed-just-now = zojuist
-elapsed-minutes = { $p0 } minuten geleden
-elapsed-minutes-one = 1 minuut geleden
-elapsed-hours = { $p0 } uur geleden
-elapsed-hours-one = 1 uur geleden
-elapsed-days = { $p0 } dagen geleden
-elapsed-days-one = 1 dag geleden
+elapsed-minutes = { $p0 ->
+        [one] 1 minuut geleden
+       *[other] { $p0 } minuten geleden
+    }
+elapsed-hours = { $p0 ->
+        [one] 1 uur geleden
+       *[other] { $p0 } uur geleden
+    }
+elapsed-days = { $p0 ->
+        [one] 1 dag geleden
+       *[other] { $p0 } dagen geleden
+    }
 recovery-moved = Het project is sindsdien op schijf gewijzigd.
 recovery-discard = Verwerpen…
 recovery-failed-moved = het project is op dezelfde plaatsen op schijf gewijzigd; herstel vraagt om het samenvoegpaneel
@@ -342,7 +371,6 @@ toast-enclosure-new-shown = Kast { $p0 } bij { $p1 } gemaakt; de pagina toont de
 toast-enclosure-drawn = { $p0 } van { $p1 } getekend op pagina { $p2 }.
 toast-enclosure-new-page = Kast { $p0 } bij { $p1 } gemaakt en getekend op de nieuwe paneellayoutpagina { $p2 }.
 job-done-one = 1 pagina, { $p1 } KiB
-banner-findings-one = Bij het openen van het project is 1 integriteitsbevinding gevonden.
 toast-convert = Omzetten in verbinding
 toast-show-block = Rapportblok tonen
 note-action-select-unlisted = Selecteren
@@ -372,8 +400,10 @@ banner-reimported = { $p0 } opnieuw geïmporteerd.
 # WP-S3.09 D4: the banner while the import job runs.
 banner-importing = { $p0 } wordt geïmporteerd…
 toast-cable-new = Kabel { $p0 } gemaakt met { $p1 }.
-toast-cable-new-cores = { $p0 } aders
-toast-cable-new-cores-one = 1 ader
+toast-cable-new-cores = { $p0 ->
+        [one] 1 ader
+       *[other] { $p0 } aders
+    }
 toast-cores-connected = Draden verbonden met de aders van { $p1 }: { $p0 }.
 toast-cable-wires = Kabel { $p0 } gemaakt van { $p1 }.
 toast-cable-wires-changed = Kabel { $p0 } bevat nu { $p1 }.
@@ -393,8 +423,10 @@ toast-route-nothing = Niets te routeren: geen draad zou beter lopen.
 toast-wire-error = De draad geeft een fout: { $p0 }.
 toast-route-done-selected = { $p0 } geselecteerde draden gerouteerd: { $p1 }.
 toast-route-done-selected-one = 1 geselecteerde draad gerouteerd: { $p0 }.
-toast-route-nothing-selected = Niets te routeren onder de { $p0 } geselecteerde elementen: geen draad zou beter lopen.
-toast-route-nothing-selected-one = Niets te routeren in het ene geselecteerde element: geen draad zou beter lopen.
+toast-route-nothing-selected = { $p0 ->
+        [one] Niets te routeren in het ene geselecteerde element: geen draad zou beter lopen
+       *[other] Niets te routeren onder de { $p0 } geselecteerde elementen: geen draad zou beter lopen
+    }.
 toast-route-kept = Niets veranderd: { $p0 } draden houden de route die ze hebben.
 toast-route-kept-one = Niets veranderd: 1 draad houdt de route die hij heeft.
 toast-lists-frame = Elke lijst van het project, ook de inhoudsopgave, wordt nu afgedrukt op { $p0 }; de kaders van de getekende pagina's en de sectiescheidingen blijven zoals ze waren.

@@ -1380,8 +1380,10 @@ nature-terminal = Terminal
 nature-strip = Terminal strip
 nature-cable = Cable
 nature-cable-mark = Mark of the cable
-nature-solenoids = { $p0 } solenoids
-nature-solenoids-one = 1 solenoid
+nature-solenoids = { $p0 ->
+        [one] 1 solenoid
+       *[other] { $p0 } solenoids
+    }
 category-more = More
 field-device-derived-port-item = Port
 field-help-device-derived-port-item = A fluid port of the device and the medium it carries, with where that medium is defined. Its source's Medium row sets it.

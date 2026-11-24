@@ -165,8 +165,10 @@ bar-cable = Cable
 bar-report = Report
 
 # A card that waits for Apply, in the status bar and on the Preview tab (the owner's test of 0.3.0-rc.1).
-status-waiting = { $p0 } changes wait for Apply
-status-waiting-one = 1 change waits for Apply
+status-waiting = { $p0 ->
+        [one] 1 change waits for Apply
+       *[other] { $p0 } changes wait for Apply
+    }
 status-waiting-open = A preview is open
 status-waiting-tip = Show the Preview, where Apply makes the changes
 bar-new-station = New station

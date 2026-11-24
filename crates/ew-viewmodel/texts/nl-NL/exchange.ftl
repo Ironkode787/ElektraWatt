@@ -69,12 +69,18 @@ report-rows-tube-labels = Een slang geeft het rijen
 report-rows-valve-terminal-config = Een ventieleiland geeft het rijen: plaats er een via Apparaat ▸ Ventieleilanden
 report-rows-medium-overview = Een medium op een slang geeft het rijen
 # FT-1212 (ID-1392): the export toast names its pages by kind.
-export-pages-drawing = { $p0 } tekeningpagina's
-export-pages-drawing-one = 1 tekeningpagina
-export-pages-divider = { $p0 } scheidingspagina's
-export-pages-divider-one = 1 scheidingspagina
-export-pages-report = { $p0 } rapportpagina's
-export-pages-report-one = 1 rapportpagina
+export-pages-drawing = { $p0 ->
+        [one] 1 tekeningpagina
+       *[other] { $p0 } tekeningpagina's
+    }
+export-pages-divider = { $p0 ->
+        [one] 1 scheidingspagina
+       *[other] { $p0 } scheidingspagina's
+    }
+export-pages-report = { $p0 ->
+        [one] 1 rapportpagina
+       *[other] { $p0 } rapportpagina's
+    }
 print-title = Afdrukken
 print-range = Bereik
 print-range-all = Alles
@@ -100,14 +106,22 @@ print-failed = De afdrukset kon niet worden opgebouwd: { $p0 }
 print-pages-error = De pagina's konden niet worden gelezen. Typ folio's of bereiken, gescheiden door komma's.
 print-unavailable = Afdrukken is in dit venster niet beschikbaar. Exporteer een PDF en druk die af vanuit uw PDF-viewer.
 plc-export-title = Naar PLC-software exporteren
-plc-count-stations = { $p0 } stations
-plc-count-stations-one = 1 station
-plc-count-modules = { $p0 } modules
-plc-count-modules-one = 1 module
-plc-count-channels = { $p0 } kanalen
-plc-count-channels-one = 1 kanaal
-plc-count-symbols = { $p0 } symbolen
-plc-count-symbols-one = 1 symbool
+plc-count-stations = { $p0 ->
+        [one] 1 station
+       *[other] { $p0 } stations
+    }
+plc-count-modules = { $p0 ->
+        [one] 1 module
+       *[other] { $p0 } modules
+    }
+plc-count-channels = { $p0 ->
+        [one] 1 kanaal
+       *[other] { $p0 } kanalen
+    }
+plc-count-symbols = { $p0 ->
+        [one] 1 symbool
+       *[other] { $p0 } symbolen
+    }
 plc-import-title = { $p0 } importeren
 plc-import-summary = { $p0 } gewijzigd, { $p1 } in conflict, { $p2 } verwijderd, { $p3 } geparkeerd. Er verandert niets tot u toepast.
 plc-import-tab-changed = Gewijzigd ({ $p0 })
@@ -127,10 +141,14 @@ plc-import-row = { $p0 } · { $p1 }
 plc-import-object = { $p0 } { $p1 }
 report-kind-sql = SQL-query
 report-kind-unknown = Onbekende soort
-external-records = { $p0 } records
-external-records-one = 1 record
-external-changes = { $p0 } wijzigingen
-external-changes-one = 1 wijziging
+external-records = { $p0 ->
+        [one] 1 record
+       *[other] { $p0 } records
+    }
+external-changes = { $p0 ->
+        [one] 1 wijziging
+       *[other] { $p0 } wijzigingen
+    }
 external-absent = (geen)
 external-whole-record = Het hele record
 external-deleted = verwijderd
@@ -139,8 +157,10 @@ external-present = aanwezig
 external-title = Uw wijzigingen of die op schijf behouden?
 external-text = Hier en op schijf gewijzigd: { $p0 }. Kies voor elk uw versie of die op schijf; opslaan wacht tot u kiest.
 external-text-one = Hier en op schijf gewijzigd: { $p0 }. Kies uw versie of die op schijf; opslaan wacht tot u kiest.
-external-fields = { $p0 } velden
-external-fields-one = 1 veld
+external-fields = { $p0 ->
+        [one] 1 veld
+       *[other] { $p0 } velden
+    }
 external-apply = Toepassen
 external-all-mine = Alles van mij
 external-all-theirs = Alles van schijf
@@ -157,26 +177,40 @@ import-card-does = Project maken maakt een nieuw project in de map { $p0 }, met 
 import-card-verdict-clean = Alles in het bestand is geïmporteerd.
 import-card-verdict-warnings = Het bestand is geïmporteerd. { $p0 } zijn het bekijken waard; geen ervan houdt u op.
 import-card-verdict-errors = Het bestand is geïmporteerd, maar { $p0 } moeten worden hersteld voordat de tekeningen kloppen.
-import-card-points = { $p0 } punten
-import-card-points-one = 1 punt
+import-card-points = { $p0 ->
+        [one] 1 punt
+       *[other] { $p0 } punten
+    }
 import-card-group-errors = Herstellen
 import-card-group-warnings = Het bekijken waard
 import-card-group-infos = Ter informatie
 import-card-row = { $p0 } × { $p1 }
-import-card-more-kinds = en nog { $p0 } soorten
-import-card-more-kinds-one = en nog 1 soort
+import-card-more-kinds = { $p0 ->
+        [one] en nog 1 soort
+       *[other] en nog { $p0 } soorten
+    }
 import-card-where = Het nieuwe project opent op deze lijst, punt voor punt, in Controle ▸ Meldingen onder Migratierapport.
-import-card-pages = { $p0 } pagina's
-import-card-pages-one = 1 pagina
-import-map-rows = { $p0 } regels
-import-map-rows-one = 1 regel
-import-card-devices = { $p0 } apparaten
-import-card-devices-one = 1 apparaat
-import-card-connections = { $p0 } verbindingen
-import-card-connections-one = 1 verbinding
+import-card-pages = { $p0 ->
+        [one] 1 pagina
+       *[other] { $p0 } pagina's
+    }
+import-map-rows = { $p0 ->
+        [one] 1 regel
+       *[other] { $p0 } regels
+    }
+import-card-devices = { $p0 ->
+        [one] 1 apparaat
+       *[other] { $p0 } apparaten
+    }
+import-card-connections = { $p0 ->
+        [one] 1 verbinding
+       *[other] { $p0 } verbindingen
+    }
 # FT-1397 (ID-1392): the import banner's count of the migration report's findings.
-import-card-findings = { $p0 } bevindingen
-import-card-findings-one = 1 bevinding
+import-card-findings = { $p0 ->
+        [one] 1 bevinding
+       *[other] { $p0 } bevindingen
+    }
 import-confirm-create = Project maken
 reimport-match-title = Opnieuw importeren in die import?
 reimport-match-text = { $p0 } komt overeen met de eerdere import van { $p1 } ({ $p2 } % van de items).
@@ -210,8 +244,10 @@ eplan-terms-local = ElektraWatt leest het bestand alleen van je schijf. Het down
 eplan-continue = Doorgaan
 eplan-parts-text = { $p0 } bevat { $p1 } artikelen. Het project heeft een kopie van { $p2 } ervan; { $p3 } van die kopieën zouden veranderen.
 eplan-parts-note = Bijwerken toont de gewijzigde velden voordat er iets verandert. Een artikel dat het project niet heeft, wordt er nooit aan toegevoegd: voeg de artikelen toe aan je artikelbibliotheek en wijs ze vandaar toe.
-eplan-update = { $p0 } artikelkopieën bijwerken
-eplan-update-one = 1 artikelkopie bijwerken
+eplan-update = { $p0 ->
+        [one] 1 artikelkopie bijwerken
+       *[other] { $p0 } artikelkopieën bijwerken
+    }
 eplan-library = Aan mijn artikelbibliotheek toevoegen
 eplan-report-text = { $p0 } is een EPLAN-rapport. Het wordt een nieuw project zonder tekeningen.
 eplan-report-none = Geen koppeling past bij de kolommen van dit bestand. Koppel de kolommen zelf, of importeer het bestand als artikeltabel.
@@ -235,5 +271,7 @@ eplan-member-from = Van
 eplan-member-to = Naar
 eplan-member-from-level = Niveau van
 eplan-member-to-level = Niveau naar
-plc-count-addresses = { $p0 } kanaaladressen
-plc-count-addresses-one = 1 kanaaladres
+plc-count-addresses = { $p0 ->
+        [one] 1 kanaaladres
+       *[other] { $p0 } kanaaladressen
+    }

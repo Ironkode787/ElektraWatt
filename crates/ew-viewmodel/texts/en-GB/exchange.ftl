@@ -71,12 +71,18 @@ report-rows-tube-labels = A tube gives it rows
 report-rows-valve-terminal-config = A valve terminal gives it rows: place one from Device ▸ Valve terminals
 report-rows-medium-overview = A medium on a tube gives it rows
 # FT-1212 (ID-1392): the export toast names its pages by kind.
-export-pages-drawing = { $p0 } drawing pages
-export-pages-drawing-one = 1 drawing page
-export-pages-divider = { $p0 } section divider pages
-export-pages-divider-one = 1 section divider page
-export-pages-report = { $p0 } report pages
-export-pages-report-one = 1 report page
+export-pages-drawing = { $p0 ->
+        [one] 1 drawing page
+       *[other] { $p0 } drawing pages
+    }
+export-pages-divider = { $p0 ->
+        [one] 1 section divider page
+       *[other] { $p0 } section divider pages
+    }
+export-pages-report = { $p0 ->
+        [one] 1 report page
+       *[other] { $p0 } report pages
+    }
 
 # WP-S3.07 part 3 (D10, rulings 3 and 4 of ID-1180): the print pre-dialog, its preview and its toasts.
 print-title = Print
@@ -105,14 +111,22 @@ print-failed = The print set could not be built: { $p0 }
 print-pages-error = The pages could not be read. Type folio labels or ranges, separated by commas.
 print-unavailable = Printing is not available in this window. Export a PDF and print it from your PDF viewer.
 plc-export-title = Export to PLC software
-plc-count-stations = { $p0 } stations
-plc-count-stations-one = 1 station
-plc-count-modules = { $p0 } modules
-plc-count-modules-one = 1 module
-plc-count-channels = { $p0 } channels
-plc-count-channels-one = 1 channel
-plc-count-symbols = { $p0 } symbols
-plc-count-symbols-one = 1 symbol
+plc-count-stations = { $p0 ->
+        [one] 1 station
+       *[other] { $p0 } stations
+    }
+plc-count-modules = { $p0 ->
+        [one] 1 module
+       *[other] { $p0 } modules
+    }
+plc-count-channels = { $p0 ->
+        [one] 1 channel
+       *[other] { $p0 } channels
+    }
+plc-count-symbols = { $p0 ->
+        [one] 1 symbol
+       *[other] { $p0 } symbols
+    }
 plc-import-title = Import { $p0 }
 plc-import-summary = { $p0 } changed, { $p1 } in conflict, { $p2 } removed, { $p3 } parked. Nothing changes until you apply.
 plc-import-tab-changed = Changed ({ $p0 })
@@ -132,10 +146,14 @@ plc-import-row = { $p0 } · { $p1 }
 plc-import-object = { $p0 } { $p1 }
 report-kind-sql = SQL query
 report-kind-unknown = Unknown kind
-external-records = { $p0 } records
-external-records-one = 1 record
-external-changes = { $p0 } changes
-external-changes-one = 1 change
+external-records = { $p0 ->
+        [one] 1 record
+       *[other] { $p0 } records
+    }
+external-changes = { $p0 ->
+        [one] 1 change
+       *[other] { $p0 } changes
+    }
 external-absent = (none)
 external-whole-record = The whole record
 external-deleted = deleted
@@ -144,8 +162,10 @@ external-present = present
 external-title = Keep your changes or the ones on disk?
 external-text = Changed here and on disk: { $p0 }. Choose yours or theirs for each; saving waits until you do.
 external-text-one = Changed here and on disk: { $p0 }. Choose yours or theirs; saving waits until you do.
-external-fields = { $p0 } fields
-external-fields-one = 1 field
+external-fields = { $p0 ->
+        [one] 1 field
+       *[other] { $p0 } fields
+    }
 external-apply = Apply
 external-all-mine = All mine
 external-all-theirs = All theirs
@@ -162,26 +182,40 @@ import-card-does = Create project makes a new project in the folder { $p0 }, wit
 import-card-verdict-clean = Everything in the file was imported.
 import-card-verdict-warnings = The file was imported. { $p0 } are worth a look, and none stops you from working.
 import-card-verdict-errors = The file was imported, but { $p0 } need a fix before the drawings are right.
-import-card-points = { $p0 } points
-import-card-points-one = 1 point
+import-card-points = { $p0 ->
+        [one] 1 point
+       *[other] { $p0 } points
+    }
 import-card-group-errors = Needs a fix
 import-card-group-warnings = Worth a look
 import-card-group-infos = For your information
 import-card-row = { $p0 } × { $p1 }
-import-card-more-kinds = and { $p0 } more kinds
-import-card-more-kinds-one = and 1 more kind
+import-card-more-kinds = { $p0 ->
+        [one] and 1 more kind
+       *[other] and { $p0 } more kinds
+    }
 import-card-where = The new project opens on this list, point by point, in Check ▸ Messages under Migration report.
-import-card-pages = { $p0 } pages
-import-card-pages-one = 1 page
-import-map-rows = { $p0 } rows
-import-map-rows-one = 1 row
-import-card-devices = { $p0 } devices
-import-card-devices-one = 1 device
-import-card-connections = { $p0 } connections
-import-card-connections-one = 1 connection
+import-card-pages = { $p0 ->
+        [one] 1 page
+       *[other] { $p0 } pages
+    }
+import-map-rows = { $p0 ->
+        [one] 1 row
+       *[other] { $p0 } rows
+    }
+import-card-devices = { $p0 ->
+        [one] 1 device
+       *[other] { $p0 } devices
+    }
+import-card-connections = { $p0 ->
+        [one] 1 connection
+       *[other] { $p0 } connections
+    }
 # FT-1397 (ID-1392): the import banner's count of the migration report's findings.
-import-card-findings = { $p0 } findings
-import-card-findings-one = 1 finding
+import-card-findings = { $p0 ->
+        [one] 1 finding
+       *[other] { $p0 } findings
+    }
 import-confirm-create = Create project
 reimport-match-title = Re-import it into that import?
 reimport-match-text = { $p0 } matches the earlier import of { $p1 } ({ $p2 } % of its items).
@@ -215,8 +249,10 @@ eplan-terms-local = ElektraWatt reads the file from your disk only. It never dow
 eplan-continue = Continue
 eplan-parts-text = { $p0 } holds { $p1 } parts. The project has a copy of { $p2 } of them; { $p3 } of those copies would change.
 eplan-parts-note = Update lists the changed fields before anything changes. A part the project does not have is never added to it: add the parts to your parts library, and assign them from there.
-eplan-update = Update { $p0 } part copies
-eplan-update-one = Update 1 part copy
+eplan-update = { $p0 ->
+        [one] Update 1 part copy
+       *[other] Update { $p0 } part copies
+    }
 eplan-library = Add to my parts library
 eplan-report-text = { $p0 } is an EPLAN report. It becomes a new project without drawings.
 eplan-report-none = No mapping fits the columns of this file. Map the columns yourself, or import the file as a parts table.
@@ -240,5 +276,7 @@ eplan-member-from = From
 eplan-member-to = To
 eplan-member-from-level = From level
 eplan-member-to-level = To level
-plc-count-addresses = { $p0 } channel addresses
-plc-count-addresses-one = 1 channel address
+plc-count-addresses = { $p0 ->
+        [one] 1 channel address
+       *[other] { $p0 } channel addresses
+    }

@@ -49,8 +49,10 @@ props-varies = ‹verschilt› ({ $p0 })
 props-position = x { $p0 } y { $p1 } mm
 props-position-cell = { $p0 } · x { $p1 } y { $p2 } mm
 props-notes = Opmerking: { $p0 }
-props-items = { $p0 } elementen
-props-items-one = 1 element
+props-items = { $p0 ->
+        [one] 1 element
+       *[other] { $p0 } elementen
+    }
 props-yes = ja
 props-no = nee
 props-fluid-line = Slang ({ $p0 })

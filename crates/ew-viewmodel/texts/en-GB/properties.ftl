@@ -49,8 +49,10 @@ props-varies = ‹varies› ({ $p0 })
 props-position = x { $p0 } y { $p1 } mm
 props-position-cell = { $p0 } · x { $p1 } y { $p2 } mm
 props-notes = Note: { $p0 }
-props-items = { $p0 } items
-props-items-one = 1 item
+props-items = { $p0 ->
+        [one] 1 item
+       *[other] { $p0 } items
+    }
 props-yes = yes
 props-no = no
 props-fluid-line = Tube ({ $p0 })

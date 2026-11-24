@@ -13,8 +13,10 @@ card-size = Afmetingen
 card-gives = Levert
 card-from = Herkomst
 card-interface-ports = { $p0 }, { $p1 } poorten
-card-cps = { $p0 } aansluitpunten
-card-cps-one = 1 aansluitpunt
+card-cps = { $p0 ->
+        [one] 1 aansluitpunt
+       *[other] { $p0 } aansluitpunten
+    }
 card-project-only = Alleen in dit project
 card-library-version = { $p0 }, versie { $p1 }
 card-source-checked = { $p0 } · gecontroleerd
@@ -115,8 +117,10 @@ part-card-added = Stuklijstregel toegevoegd: { $p0 }
 part-card-changed = Stuklijstregel gewijzigd: { $p0 }
 part-card-lost = Een buslijn eindigt op een aansluiting die het artikel niet meer heeft: { $p0 }. Hij houdt zijn eind daar; teken hem naar een andere aansluiting.
 part-change-interface = Interface { $p0 }
-part-change-ports = { $p0 } poorten
-part-change-ports-one = 1 poort
+part-change-ports = { $p0 ->
+        [one] 1 poort
+       *[other] { $p0 } poorten
+    }
 part-change-other = Overige artikelgegevens
 part-change-other-changed = gewijzigd
 part-field-manufacturer = Fabrikant
@@ -200,8 +204,10 @@ library-state-tip-update_available = De bibliotheek heeft een nieuwere versie va
 library-state-tip-deprecated = De bibliotheek biedt dit item niet meer aan; waar ze een opvolger noemt, gebruik die dan.
 library-state-tip-source_missing = Dit item bestaat alleen in dit project: geen geïnstalleerde bibliotheek bevat het, zoals een geïmporteerd kader of een artikel dat in het project is gemaakt. Dat is geen fout, maar er is niets om het mee bij te werken.
 library-state-tip-local_fork = De kopie in het project is hier gewijzigd en staat los van het bibliotheekitem; geen update vervangt haar.
-libraries-update-count = { $p0 } items bijwerken…
-libraries-update-count-one = 1 item bijwerken…
+libraries-update-count = { $p0 ->
+        [one] 1 item bijwerken…
+       *[other] { $p0 } items bijwerken…
+    }
 libraries-update-tip = Toont eerst de wijzigingen in het voorbeeld; Toepassen voert ze door.
 part-pins-and-box = Pennen en kast…
 part-pins-and-box-how = Welke pennen het apparaat heeft en waar ze staan op de kast waarmee het wordt getekend

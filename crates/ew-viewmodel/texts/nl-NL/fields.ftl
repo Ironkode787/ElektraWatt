@@ -1370,8 +1370,10 @@ nature-terminal = Klem
 nature-strip = Klemmenstrook
 nature-cable = Kabel
 nature-cable-mark = Markering van de kabel
-nature-solenoids = { $p0 } magneetspoelen
-nature-solenoids-one = 1 magneetspoel
+nature-solenoids = { $p0 ->
+        [one] 1 magneetspoel
+       *[other] { $p0 } magneetspoelen
+    }
 category-more = Meer
 field-device-derived-port-item = Aansluiting
 field-help-device-derived-port-item = Een fluïdumaansluiting van het apparaat en het medium dat erdoor gaat, met waar dat medium is bepaald. De rij Medium van de bron stelt het in.

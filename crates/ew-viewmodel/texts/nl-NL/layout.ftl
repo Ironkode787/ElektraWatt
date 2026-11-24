@@ -49,8 +49,10 @@ layout-blocked = Geblokkeerd door { $p0 }
 layout-rail-end = Aan het einde van de rail
 layout-live-rail = { $p0 }, { $p1 } op { $p2 } mm, { $p3 }
 layout-live-plate = { $p0 }, plaat op { $p1 }, { $p2 } mm
-layout-findings = { $p0 } bevindingen
-layout-findings-one = 1 bevinding
+layout-findings = { $p0 ->
+        [one] 1 bevinding
+       *[other] { $p0 } bevindingen
+    }
 layout-findings-none = geen bevindingen
 layout-mode-free = Vrij
 layout-mode-push = Duwen
@@ -67,8 +69,10 @@ auto-fill-ok = Vullen
 auto-fill-order-schematic = Schema
 auto-fill-order-dt = DT
 auto-fill-devices-all = Aangevinkt: de apparaten van de kast en die waarvan het artikel op een rail gaat; sensoren, cilinders, motoren en ventieleilanden zonder locatie niet. Een aangevinkt apparaat zonder locatie krijgt die van de kast.
-auto-fill-devices-marked = Aangevinkt: de { $p0 } apparaten die in Ongeplaatste apparaten zijn gemarkeerd.
-auto-fill-devices-marked-one = Aangevinkt: het apparaat dat in Ongeplaatste apparaten is gemarkeerd.
+auto-fill-devices-marked = { $p0 ->
+        [one] Aangevinkt: het apparaat dat in Ongeplaatste apparaten is gemarkeerd
+       *[other] Aangevinkt: de { $p0 } apparaten die in Ongeplaatste apparaten zijn gemarkeerd
+    }.
 auto-fill-cause-all-placed = Elk apparaat van { $p0 } is al geplaatst.
 auto-fill-cause-none = Nog geen apparaat heeft de locatie { $p0 }: geef apparaten deze locatie in Eigenschappen, onder Structuur.
 layout-show-item-numbers = Positienummers tonen
@@ -80,8 +84,10 @@ enclosure-create-only = Alleen maken
 enclosure-not-layout = Deze pagina is geen paneellayoutpagina. De kast wordt getekend op een nieuwe paneellayoutpagina erna; Alleen maken maakt de kast zonder haar te tekenen.
 enclosure-has-one = { $p1 } heeft de kast { $p0 } al: de knop tekent haar.
 enclosure-layout-title = Paneellayout { $p0 }
-auto-fill-devices = { $p0 } apparaten
-auto-fill-devices-one = 1 apparaat
+auto-fill-devices = { $p0 ->
+        [one] 1 apparaat
+       *[other] { $p0 } apparaten
+    }
 surface-plate = montageplaat
 surface-plate-of = { $p0 } montageplaat
 rack-new-title = Nieuw station
@@ -226,36 +232,58 @@ rack-channel-bad = "{ $p0 }" kan hier niet worden overgenomen.
 rack-put-blank = Blindplaat
 rack-draw-on-new-page = Op een nieuwe pagina tekenen
 arrange-lead = Schikken en routeren: { $p0 }. { $p1 }; { $p2 }. Er is nog niets veranderd.
-arrange-symbols = { $p0 } symbolen verschuiven
-arrange-symbols-one = 1 symbool verschuift
+arrange-symbols = { $p0 ->
+        [one] 1 symbool verschuift
+       *[other] { $p0 } symbolen verschuiven
+    }
 arrange-across = { $p0 }, waarvan { $p1 } over het blad
-arrange-wires = { $p0 } draden worden gerouteerd
-arrange-wires-one = 1 draad wordt gerouteerd
+arrange-wires = { $p0 ->
+        [one] 1 draad wordt gerouteerd
+       *[other] { $p0 } draden worden gerouteerd
+    }
 arrange-yours = { $p0 }, waarvan { $p1 } door u getekend
 arrange-figures = { $p0 }, { $p1 }, { $p2 }, { $p3 }, { $p4 }
-arrange-crossings = { $p0 } kruisingen
-arrange-crossings-one = 1 kruising
-arrange-bends = { $p0 } knikken
-arrange-bends-one = 1 knik
-arrange-straight = { $p0 } draden recht
-arrange-straight-one = 1 draad recht
-arrange-through = { $p0 } draden door een tekst
-arrange-through-one = 1 draad door een tekst
-arrange-faults = { $p0 } fouten
-arrange-faults-one = 1 fout
+arrange-crossings = { $p0 ->
+        [one] 1 kruising
+       *[other] { $p0 } kruisingen
+    }
+arrange-bends = { $p0 ->
+        [one] 1 knik
+       *[other] { $p0 } knikken
+    }
+arrange-straight = { $p0 ->
+        [one] 1 draad recht
+       *[other] { $p0 } draden recht
+    }
+arrange-through = { $p0 ->
+        [one] 1 draad door een tekst
+       *[other] { $p0 } draden door een tekst
+    }
+arrange-faults = { $p0 ->
+        [one] 1 fout
+       *[other] { $p0 } fouten
+    }
 arrange-now = Nu: { $p0 }
 arrange-then = Daarna: { $p0 }
 arrange-heading-parts = Symbolen
 arrange-heading-wires = Draden die u zelf tekende
 arrange-heading-left = Blijft zoals het is
-arrange-right = { $p0 } stappen naar rechts
-arrange-right-one = 1 stap naar rechts
-arrange-left = { $p0 } stappen naar links
-arrange-left-one = 1 stap naar links
-arrange-up = { $p0 } stappen omhoog
-arrange-up-one = 1 stap omhoog
-arrange-down = { $p0 } stappen omlaag
-arrange-down-one = 1 stap omlaag
+arrange-right = { $p0 ->
+        [one] 1 stap naar rechts
+       *[other] { $p0 } stappen naar rechts
+    }
+arrange-left = { $p0 ->
+        [one] 1 stap naar links
+       *[other] { $p0 } stappen naar links
+    }
+arrange-up = { $p0 ->
+        [one] 1 stap omhoog
+       *[other] { $p0 } stappen omhoog
+    }
+arrange-down = { $p0 ->
+        [one] 1 stap omlaag
+       *[other] { $p0 } stappen omlaag
+    }
 arrange-a-symbol = een symbool zonder kenmerk
 arrange-unticked = blijft staan (u hebt het uitgevinkt)
 arrange-his = krijgt een nieuwe route
@@ -276,13 +304,19 @@ arrange-in-way-crossings = op zijn plaats { $p0 } zouden de draden meer kruisen 
 arrange-in-way-no-gain = op zijn plaats { $p0 } zou de pagina niet beter worden; blijft staan
 arrange-hint = Een regel uitvinken plant de pagina opnieuw met dat symbool waar het staat, of die draad zoals hij loopt: wat u ziet, doet Toepassen.
 arrange-hold-b = Houd B ingedrukt: de pagina zoals hij nu is.
-arrange-moved = { $p0 } symbolen verschoven
-arrange-moved-one = 1 symbool verschoven
-arrange-routed = { $p0 } draden gerouteerd
-arrange-routed-one = 1 draad gerouteerd
+arrange-moved = { $p0 ->
+        [one] 1 symbool verschoven
+       *[other] { $p0 } symbolen verschoven
+    }
+arrange-routed = { $p0 ->
+        [one] 1 draad gerouteerd
+       *[other] { $p0 } draden gerouteerd
+    }
 arrange-blocked = Niets te schikken: { $p0 }
-arrange-blocked-more = En nog { $p0 }: wijs hier aan, of zie Notificaties.
-arrange-blocked-more-one = En nog 1: wijs hier aan, of zie Notificaties.
+arrange-blocked-more = { $p0 ->
+        [one] En nog 1: wijs hier aan, of zie Notificaties
+       *[other] En nog { $p0 }: wijs hier aan, of zie Notificaties
+    }.
 arrange-blocked-symbol = { $p0 }: { $p1 }.
 arrange-blocked-unrouted = { $p0 } heeft geen route: hij is als gestreepte lijn getekend.
 arrange-held-order = De strook bij { $p0 } blijft zoals hij staat: zijn klemmen zijn in een andere volgorde op de kaart aangesloten dan ze staan.
@@ -290,5 +324,7 @@ arrange-held-room = De strook bij { $p0 } blijft zoals hij staat: de kanalen van
 arrange-held-part = De strook bij { $p0 } blijft zoals hij staat: { $p1 } staat waar hij zou komen.
 arrange-held-sheet = De strook bij { $p0 } blijft zoals hij staat: geopend zou hij buiten het tekenvlak komen.
 arrange-held-worse = De strook bij { $p0 } blijft zoals hij staat: geopend in zijn volgorde zouden zijn draden meer kruisen dan nu. Kijk naar de klemmen die buiten die volgorde zijn aangesloten.
-arrange-blocked-faults = { $p0 } fouten blijven op de pagina; Project controleren noemt ze.
-arrange-blocked-faults-one = 1 fout blijft op de pagina; Project controleren noemt hem.
+arrange-blocked-faults = { $p0 ->
+        [one] 1 fout blijft op de pagina; Project controleren noemt hem
+       *[other] { $p0 } fouten blijven op de pagina; Project controleren noemt ze
+    }.

@@ -59,7 +59,10 @@ revision-release-blocked = The release is blocked by { $p0 } findings of the rel
 revision-release-blocked-one = The release is blocked by 1 finding of the release gate:
 revision-finding = { $p0 }: { $p1 }
 revision-more = and { $p0 } more
-revision-waivers = Approving also acknowledges { $p0 } safety waivers in force.
+revision-waivers = { $p0 ->
+        [one] Approving also acknowledges 1 safety waiver in force
+       *[other] Approving also acknowledges { $p0 } safety waivers in force
+    }.
 revision-release-text = The release runs six steps and cannot be undone:
 revision-step-gate = 1. Run the release gate on the saved project
 revision-step-freeze = 2. Freeze the revision's numbering and save the project
@@ -130,7 +133,6 @@ finding-kind-conflict = Conflict
 finding-kind-completeness = Completeness
 finding-kind-hygiene = Hygiene
 finding-kind-integrity = Integrity
-revision-waivers-one = Approving also acknowledges 1 safety waiver in force.
 messages-scheme-migration = Migration report
 messages-fix-all = Fix all ({ $p0 })…
 messages-fix-all-like = Fix all like this ({ $p0 })…

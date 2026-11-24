@@ -39,8 +39,10 @@ startup-title-crash = ElektraWatt stopped unexpectedly
 startup-crash-project = ElektraWatt stopped unexpectedly on { $p0 } UTC. Its log is in { $p1 }.
 startup-crash-alone = ElektraWatt stopped unexpectedly on { $p0 } UTC; no project had unsaved changes. Its log is in { $p1 }.
 startup-project-row = { $p0 }: { $p1 }, last change { $p2 } UTC
-startup-unsaved = { $p0 } unsaved changes
-startup-unsaved-one = 1 unsaved change
+startup-unsaved = { $p0 ->
+        [one] 1 unsaved change
+       *[other] { $p0 } unsaved changes
+    }
 startup-recover = Recover
 startup-open-log-folder = Open log folder
 startup-delete-log = Delete log
@@ -247,11 +249,15 @@ template-own-frames = its own frame and title block
 template-program-frames = the program's frame and title block
 template-check-level = check level "{ $p0 }"
 template-text-styles = its text styles
-template-sections = { $p0 } sections
-template-sections-one = 1 section
+template-sections = { $p0 ->
+        [one] 1 section
+       *[other] { $p0 } sections
+    }
 template-no-pages = one empty page
-template-pages = { $p0 } pages
-template-pages-one = 1 page
+template-pages = { $p0 ->
+        [one] 1 page
+       *[other] { $p0 } pages
+    }
 template-unreadable = Cannot be read now: { $p0 }
 templates-title = Templates
 templates-text = A template is how a new project starts: its frame and title block, check level, text styles and sections. A project made from it gets its pages only when you ask for them.

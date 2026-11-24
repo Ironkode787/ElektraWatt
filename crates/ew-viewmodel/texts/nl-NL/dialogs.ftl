@@ -8,8 +8,10 @@
 prompt-open-image-title = Een afbeelding invoegen
 prompt-export-dxf-title = DXF exporteren: kies een map voor de set
 confirm-export-dxf-replace-title = De DXF-set in { $p0 } vervangen?
-confirm-export-dxf-replace-text = De { $p0 } bestanden van de eerdere DXF-export verdwijnen, met elke wijziging die er sindsdien in is gemaakt; ongedaan maken brengt ze niet terug.
-confirm-export-dxf-replace-text-one = Het ene bestand van de eerdere DXF-export verdwijnt, met elke wijziging die er sindsdien in is gemaakt; ongedaan maken brengt het niet terug.
+confirm-export-dxf-replace-text = { $p0 ->
+        [one] Het ene bestand van de eerdere DXF-export verdwijnt, met elke wijziging die er sindsdien in is gemaakt; ongedaan maken brengt het niet terug
+       *[other] De { $p0 } bestanden van de eerdere DXF-export verdwijnen, met elke wijziging die er sindsdien in is gemaakt; ongedaan maken brengt ze niet terug
+    }.
 dialog-replace = Vervangen
 dialog-close = Sluiten
 dialog-save = Opslaan
@@ -99,8 +101,10 @@ new-project-empty-what = Eén lege pagina, met het kader en titelblok en de inst
 new-project-other = Een ander project…
 new-project-other-what = Kies een project om mee te beginnen: zijn instellingen, en zijn pagina's alleen als u het vakje aanvinkt.
 new-project-for-new = voor nieuwe projecten
-new-project-copy-pages = Ook zijn { $p0 } pagina's en de apparaten erop kopiëren
-new-project-copy-pages-one = Ook zijn pagina en de apparaten erop kopiëren
+new-project-copy-pages = { $p0 ->
+        [one] Ook zijn pagina en de apparaten erop kopiëren
+       *[other] Ook zijn { $p0 } pagina's en de apparaten erop kopiëren
+    }
 new-project-pages-note = Zonder dit vakje begint het project met één lege pagina.
 new-project-default-name = Nieuw project
 new-project-need-name = Typ een naam voor het project.

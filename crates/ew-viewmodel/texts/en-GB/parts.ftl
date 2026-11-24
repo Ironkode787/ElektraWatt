@@ -12,8 +12,10 @@ card-size = Size
 card-gives = Gives
 card-from = From
 card-interface-ports = { $p0 }, { $p1 } ports
-card-cps = { $p0 } connection points
-card-cps-one = 1 connection point
+card-cps = { $p0 ->
+        [one] 1 connection point
+       *[other] { $p0 } connection points
+    }
 card-project-only = This project only
 card-library-version = { $p0 }, version { $p1 }
 card-source-checked = { $p0 } · checked
@@ -120,8 +122,10 @@ part-card-added = Parts list row added: { $p0 }
 part-card-changed = Parts list row changed: { $p0 }
 part-card-lost = A bus line ends at a socket the part no longer has: { $p0 }. It keeps its end there; draw it to another socket.
 part-change-interface = Interface { $p0 }
-part-change-ports = { $p0 } ports
-part-change-ports-one = 1 port
+part-change-ports = { $p0 ->
+        [one] 1 port
+       *[other] { $p0 } ports
+    }
 part-change-other = Other part data
 part-change-other-changed = changed
 part-field-manufacturer = Manufacturer
@@ -205,8 +209,10 @@ library-state-tip-update_available = The library has a newer version of this ite
 library-state-tip-deprecated = The library no longer offers this item; where it names a successor, use that instead.
 library-state-tip-source_missing = This item exists in this project only: no installed library holds it, such as an imported frame or a part made in the project. That is not a fault, but there is nothing to update it from.
 library-state-tip-local_fork = The project's copy was changed here and is kept apart from its library item; no update replaces it.
-libraries-update-count = Update { $p0 } items…
-libraries-update-count-one = Update 1 item…
+libraries-update-count = { $p0 ->
+        [one] Update 1 item…
+       *[other] Update { $p0 } items…
+    }
 libraries-update-tip = Shows the changes in the Preview first; Apply makes them.
 part-pins-and-box = Pins and box…
 part-pins-and-box-how = Which pins the device has and where they stand on the box it is drawn as

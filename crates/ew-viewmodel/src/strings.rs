@@ -60,19 +60,19 @@ impl<'a> Key<'a> {
     }
 }
 
-/// A count text key: a key of [`KEYS`] with its `-one` text, the only key [`format_count`] takes. It is
-/// made by [`count_key!`](crate::count_key), which checks both texts at compile time.
+/// A count text key: a key of [`KEYS`] whose text selects on its count `{ $p0 }` (`[one]` and `*[other]`), the only
+/// key [`format_count`] takes. It is made by [`count_key!`](crate::count_key), which checks the key at compile time.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CountKey(&'static str);
 
 impl CountKey {
-    /// The constructor behind [`count_key!`](crate::count_key); call the macro instead, which checks both texts.
+    /// The constructor behind [`count_key!`](crate::count_key); call the macro instead, which checks the key.
     #[doc(hidden)]
     pub const fn checked_by_macro(key: &'static str) -> Self {
         Self(key)
     }
 
-    /// The key as text (the text for any count but one).
+    /// The key as text.
     pub const fn as_str(self) -> &'static str {
         self.0
     }
@@ -131,17 +131,17 @@ macro_rules! key {
 }
 
 /// The count text key `$k`, a string literal, for [`format_count`](crate::strings::format_count): checked at compile
-/// time for both `$k` (any count but one) and `$k-one` (exactly one).
+/// time. Its text selects its words for one and for any other count on `{ $p0 }`.
 ///
 /// ```
-/// use ew_viewmodel::{count_key, key, strings};
-/// assert_eq!(strings::format_count(count_key!("toast-recovered"), 1), strings::text(key!("toast-recovered-one")));
+/// use ew_viewmodel::{count_key, strings};
+/// assert_eq!(strings::format_count(count_key!("toast-recovered"), 2), "Recovered 2 changes; save to keep them.");
 /// ```
 ///
-/// A key without its `-one` text fails the build:
+/// A key without a text fails the build:
 ///
 /// ```compile_fail
-/// let _ = ew_viewmodel::count_key!("menu-file");
+/// let _ = ew_viewmodel::count_key!("menu-flie");
 /// ```
 ///
 /// and [`format_count`](crate::strings::format_count) takes no other key:
@@ -157,10 +157,6 @@ macro_rules! count_key {
             assert!(
                 $crate::strings::has_key($k),
                 concat!("unknown text key: ", $k)
-            );
-            assert!(
-                $crate::strings::has_key(concat!($k, "-one")),
-                concat!("unknown text key: ", $k, "-one")
             );
             $crate::strings::CountKey::checked_by_macro($k)
         }
@@ -237,6 +233,12 @@ impl Locale {
 
     /// The text of `key` with `args`, or `None` for a key this language has no message for.
     fn format(&self, key: &str, args: &[&str]) -> Option<String> {
+        self.format_with(key, args, false)
+    }
+
+    /// [`Locale::format`] with the first argument a number when `count` is set, so that a selector on it chooses the
+    /// words of its plural category; the pseudo-locale shows its template.
+    fn format_with(&self, key: &str, args: &[&str], count: bool) -> Option<String> {
         let template = *self.texts.get(key)?;
         let Some(language) = &self.language else {
             // The pseudo-locale: its texts are templates with `{0}`, `{1}`, ….
@@ -252,7 +254,11 @@ impl Locale {
                     .map_or_else(|| format!("{{{i}}}"), |a| (*a).to_owned())
             })
             .collect();
-        language.format(key, None, &arguments(&given), OnError::Keep)
+        let mut values = arguments(&given);
+        if count && let Some((_, first)) = values.first_mut() {
+            *first = Value::Number(&given[0]);
+        }
+        language.format(key, None, &values, OnError::Keep)
     }
 }
 
@@ -881,14 +887,15 @@ pub fn sentence_start(part: &str) -> Cow<'_, str> {
     }
 }
 
-/// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise. The key is a
-/// [`CountKey`], made by [`count_key!`](crate::count_key), which checks both texts at compile time.
+/// A count-dependent string: the text of `key` with the count as its number `{ $p0 }`, whose selector gives the words
+/// for one and for any other count in the UI language. The key is a [`CountKey`], made by
+/// [`count_key!`](crate::count_key), which checks it at compile time.
 pub fn format_count(key: CountKey, count: usize) -> String {
-    if count == 1 {
-        text(Key::run_time(&format!("{}-one", key.as_str()))).to_owned()
-    } else {
-        format(Key::run_time(key.as_str()), &[&count.to_string()])
-    }
+    let count = count.to_string();
+    current()
+        .format_with(key.as_str(), &[&count], true)
+        .or_else(|| en_gb().format_with(key.as_str(), &[&count], true))
+        .unwrap_or_else(|| "?".to_owned())
 }
 
 /// The time from epoch milliseconds `last_ms` to `now_ms` in words: `just now` under a minute (also for a

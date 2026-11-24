@@ -56,7 +56,10 @@ revision-release-blocked = De vrijgave wordt geblokkeerd door { $p0 } bevindinge
 revision-release-blocked-one = De vrijgave wordt geblokkeerd door 1 bevinding van de vrijgavepoort:
 revision-finding = { $p0 }: { $p1 }
 revision-more = en nog { $p0 }
-revision-waivers = Goedkeuren erkent ook { $p0 } geldende veiligheidsvrijstellingen.
+revision-waivers = { $p0 ->
+        [one] Goedkeuren erkent ook 1 geldende veiligheidsvrijstelling
+       *[other] Goedkeuren erkent ook { $p0 } geldende veiligheidsvrijstellingen
+    }.
 revision-release-text = De vrijgave doorloopt zes stappen en kan niet ongedaan worden gemaakt:
 revision-step-gate = 1. De vrijgavepoort op het opgeslagen project uitvoeren
 revision-step-freeze = 2. De nummering van de revisie vastzetten en het project opslaan
@@ -122,7 +125,6 @@ finding-kind-conflict = Conflict
 finding-kind-completeness = Volledigheid
 finding-kind-hygiene = Netheid
 finding-kind-integrity = Integriteit
-revision-waivers-one = Goedkeuren erkent ook 1 geldende veiligheidsvrijstelling.
 messages-scheme-migration = Migratierapport
 messages-fix-all = Alles oplossen ({ $p0 })…
 messages-fix-all-like = Alle zoals deze oplossen ({ $p0 })…

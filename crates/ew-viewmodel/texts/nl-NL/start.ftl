@@ -37,8 +37,10 @@ startup-title-crash = ElektraWatt is onverwacht gestopt
 startup-crash-project = ElektraWatt is op { $p0 } UTC onverwacht gestopt. Het logbestand staat in { $p1 }.
 startup-crash-alone = ElektraWatt is op { $p0 } UTC onverwacht gestopt; in geen enkel project waren niet-opgeslagen wijzigingen. Het logbestand staat in { $p1 }.
 startup-project-row = { $p0 }: { $p1 }, laatste wijziging { $p2 } UTC
-startup-unsaved = { $p0 } niet-opgeslagen wijzigingen
-startup-unsaved-one = 1 niet-opgeslagen wijziging
+startup-unsaved = { $p0 ->
+        [one] 1 niet-opgeslagen wijziging
+       *[other] { $p0 } niet-opgeslagen wijzigingen
+    }
 startup-recover = Herstellen
 startup-open-log-folder = Logmap openen
 startup-delete-log = Logbestand verwijderen
@@ -241,11 +243,15 @@ template-own-frames = een eigen kader en titelblok
 template-program-frames = het kader en titelblok van het programma
 template-check-level = controleniveau "{ $p0 }"
 template-text-styles = eigen tekststijlen
-template-sections = { $p0 } secties
-template-sections-one = 1 sectie
+template-sections = { $p0 ->
+        [one] 1 sectie
+       *[other] { $p0 } secties
+    }
 template-no-pages = één lege pagina
-template-pages = { $p0 } pagina's
-template-pages-one = 1 pagina
+template-pages = { $p0 ->
+        [one] 1 pagina
+       *[other] { $p0 } pagina's
+    }
 template-unreadable = Kan nu niet worden gelezen: { $p0 }
 templates-title = Sjablonen
 templates-text = Een sjabloon bepaalt hoe een nieuw project begint: het kader en titelblok, het controleniveau, de tekststijlen en de secties. Een project dat eruit gemaakt wordt, krijgt zijn pagina's alleen als u erom vraagt.

@@ -195,13 +195,22 @@ find-folios = Folio's (gescheiden door komma's)
 find-run = Zoeken
 find-replace-all = Alles vervangen
 find-close = Sluiten
-find-results = { $p0 } resultaten
+find-results = { $p0 ->
+        [one] 1 resultaat
+       *[other] { $p0 } resultaten
+    }
 find-no-results = Geen resultaten
 find-truncated = Meer dan 10.000 resultaten: verfijn de zoekopdracht
 find-stale = verouderd
 find-replaced = { $p0 } vervangen; voer opnieuw uit om te vernieuwen
-find-updated-fewer = Voorbeeld bijgewerkt: { $p0 } resultaten minder
-find-updated-more = Voorbeeld bijgewerkt: { $p0 } resultaten meer
+find-updated-fewer = { $p0 ->
+        [one] Voorbeeld bijgewerkt: 1 resultaat minder
+       *[other] Voorbeeld bijgewerkt: { $p0 } resultaten minder
+    }
+find-updated-more = { $p0 ->
+        [one] Voorbeeld bijgewerkt: 1 resultaat meer
+       *[other] Voorbeeld bijgewerkt: { $p0 } resultaten meer
+    }
 find-updated-same = Voorbeeld bijgewerkt: dezelfde resultaten
 find-not-replaced = niet vervangen: { $p0 }
 find-card-line = { $p0 } resultaten op { $p1 } records · { $p2 } kenmerken, { $p3 } kruisverwijzingsteksten
@@ -287,16 +296,26 @@ table-cells = cellen
 table-import-title = { $p0 } importeren
 table-import-nothing = Niets te importeren: het bestand komt overeen met het project.
 table-import-counts = { $p0 }, { $p1 }, { $p2 }, { $p3 }, { $p4 }, { $p5 }
-table-import-changed = { $p0 } cellen gewijzigd
-table-import-changed-one = 1 cel gewijzigd
-table-import-kept = { $p0 } cellen behouden
-table-import-kept-one = 1 cel behouden
-table-import-refused = { $p0 } cellen geweigerd
-table-import-refused-one = 1 cel geweigerd
-table-import-unknown = { $p0 } onbekende rijen
-table-import-unknown-one = 1 onbekende rij
-table-import-missing = { $p0 } rijen niet in het bestand
-table-import-missing-one = 1 rij niet in het bestand
+table-import-changed = { $p0 ->
+        [one] 1 cel gewijzigd
+       *[other] { $p0 } cellen gewijzigd
+    }
+table-import-kept = { $p0 ->
+        [one] 1 cel behouden
+       *[other] { $p0 } cellen behouden
+    }
+table-import-refused = { $p0 ->
+        [one] 1 cel geweigerd
+       *[other] { $p0 } cellen geweigerd
+    }
+table-import-unknown = { $p0 ->
+        [one] 1 onbekende rij
+       *[other] { $p0 } onbekende rijen
+    }
+table-import-missing = { $p0 ->
+        [one] 1 rij niet in het bestand
+       *[other] { $p0 } rijen niet in het bestand
+    }
 table-import-conflicts = { $p0 } conflicten
 table-import-conflict-kept = 1 conflict: de waarde van het project blijft behouden
 table-import-conflicts-kept = { $p0 } conflicten: de waarden van het project blijven behouden
@@ -351,8 +370,10 @@ nav-front-matter = Voorwerk
 nav-fluid-terminals = Ventieleilanden
 nav-fluid-devices = Fluïdumapparaten
 nav-fluid-media = Media
-nav-badge-consumers = { $p0 } verbruikers
-nav-badge-consumers-one = 1 verbruiker
+nav-badge-consumers = { $p0 ->
+        [one] 1 verbruiker
+       *[other] { $p0 } verbruikers
+    }
 nav-badge-cpu = CPU
 nav-badge-head-station = kopstation
 nav-badge-io-device = I/O-apparaat
@@ -390,9 +411,6 @@ empty-nav-unplaced-text = Apparaten staan hier zodra de locatie een kast heeft.
 empty-nav-unplaced-done = Alle apparaten geplaatst
 empty-nav-unplaced-done-text = Elk apparaat van { $p0 } is geplaatst.
 list-continues-row = De lijst gaat verder op pagina { $p0 } ›
-find-results-one = 1 resultaat
-find-updated-fewer-one = Voorbeeld bijgewerkt: 1 resultaat minder
-find-updated-more-one = Voorbeeld bijgewerkt: 1 resultaat meer
 empty-nav-terminals = Nog geen klemmen
 empty-nav-terminals-text = Plaats een klem met Tekenen ▸ Klem…; hij komt in de klemmenstrook die u daar kiest.
 

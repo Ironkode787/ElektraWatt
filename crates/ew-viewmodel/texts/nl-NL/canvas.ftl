@@ -224,20 +224,30 @@ retag-pair = { $p0 } heet nu { $p1 }
 terminal-in-sentence = { $p0 } klem { $p1 }
 pin-in-sentence = { $p0 } pin { $p1 } ({ $p2 })
 marker-export = PDF geëxporteerd naar { $p0 }
-marker-recovered = { $p0 } wijzigingen uit het journaal hersteld
-marker-recovered-one = 1 wijziging uit het journaal hersteld
+marker-recovered = { $p0 ->
+        [one] 1 wijziging uit het journaal hersteld
+       *[other] { $p0 } wijzigingen uit het journaal hersteld
+    }
 label-paste-outside = deels buiten het tekengebied
 label-paste-retag = { $p0 } wordt { $p1 }: een kenmerk volgt de pagina waarop zijn apparaat getekend staat
 label-paste = { $p0 } plakken
 label-paste-and = { $p0 } en { $p1 }
-label-paste-symbols = { $p0 } symbolen
-label-paste-symbols-one = 1 symbool
-label-paste-wires = { $p0 } draden
-label-paste-wires-one = 1 draad
-label-paste-other = { $p0 } andere elementen
-label-paste-other-one = 1 ander element
-label-paste-dropped = ; { $p0 } draden weggelaten: hun andere eind was niet gekopieerd
-label-paste-dropped-one = ; 1 draad weggelaten: het andere eind was niet gekopieerd
+label-paste-symbols = { $p0 ->
+        [one] 1 symbool
+       *[other] { $p0 } symbolen
+    }
+label-paste-wires = { $p0 ->
+        [one] 1 draad
+       *[other] { $p0 } draden
+    }
+label-paste-other = { $p0 ->
+        [one] 1 ander element
+       *[other] { $p0 } andere elementen
+    }
+label-paste-dropped = { $p0 ->
+        [one] ; 1 draad weggelaten: het andere eind was niet gekopieerd
+       *[other] ; { $p0 } draden weggelaten: hun andere eind was niet gekopieerd
+    }
 tool-paste = Plakken
 hint-paste = Klik of { $p0 } om te plakken; { $p1 } stopt
 overview-page-title = Ventieleiland { $p0 }
@@ -288,29 +298,45 @@ page-grid-fit-foot = Pagina { $p0 } bevat { $p1 } items en { $p2 } draden. Op he
 terminal-form-title = Klemmen plaatsen
 terminal-levels-one = 1: een klem met één etage
 terminal-levels-two = 2: een blok met twee etages, één klem en één artikel met een nummer op elke etage
-canvas-choose-part-strip = Artikel kiezen voor { $p0 } klemmen zonder artikel…
-canvas-choose-part-strip-one = Artikel kiezen voor 1 klem zonder artikel…
+canvas-choose-part-strip = { $p0 ->
+        [one] Artikel kiezen voor 1 klem zonder artikel…
+       *[other] Artikel kiezen voor { $p0 } klemmen zonder artikel…
+    }
 node-candidate-under = { $p0 } (onder { $p1 })
 node-candidate-top = { $p0 } (hoogste niveau)
 preview-none = Er is geen voorbeeld open
 preview-header = Voorbeeld: { IN_SENTENCE($p0) } · vanaf revisie { $p1 }
 preview-title = Voorbeeld: { IN_SENTENCE($p0) }
 preview-stale = verouderd
-preview-records = { $p0 } elementen
-preview-records-one = 1 element
-preview-parts-new = { $p0 } nieuwe artikelen
-preview-parts-new-one = 1 nieuw artikel
-preview-parts-skipped = { $p0 } al in het project
-preview-parts-skipped-one = 1 al in het project
+preview-records = { $p0 ->
+        [one] 1 element
+       *[other] { $p0 } elementen
+    }
+preview-parts-new = { $p0 ->
+        [one] 1 nieuw artikel
+       *[other] { $p0 } nieuwe artikelen
+    }
+preview-parts-skipped = { $p0 ->
+        [one] 1 al in het project
+       *[other] { $p0 } al in het project
+    }
 preview-import-summary = { $p0 } · { $p1 }
-preview-tags-count = { $p0 } kenmerken
-preview-tags-count-one = 1 kenmerk
-preview-xrefs-count = { $p0 } kruisverwijzingsteksten
-preview-xrefs-count-one = 1 kruisverwijzingstekst
-preview-changes-count = { $p0 } wijzigingen
-preview-changes-count-one = 1 wijziging
-preview-pages-count = { $p0 } pagina's
-preview-pages-count-one = 1 pagina
+preview-tags-count = { $p0 ->
+        [one] 1 kenmerk
+       *[other] { $p0 } kenmerken
+    }
+preview-xrefs-count = { $p0 ->
+        [one] 1 kruisverwijzingstekst
+       *[other] { $p0 } kruisverwijzingsteksten
+    }
+preview-changes-count = { $p0 ->
+        [one] 1 wijziging
+       *[other] { $p0 } wijzigingen
+    }
+preview-pages-count = { $p0 ->
+        [one] 1 pagina
+       *[other] { $p0 } pagina's
+    }
 preview-entities = Entiteiten
 preview-notices = Wijzigingen
 preview-tags = Kenmerken
@@ -332,8 +358,10 @@ page-copy-lead-one = Pagina { $p0 } kopiëren
 page-copy-drawn-elsewhere = Ook getekend op pagina's die niet gekopieerd worden, dus hun kopieën tekenen alleen wat op deze pagina's staat: { $p0 }
 page-copy-frozen-cleared = Vastgezette kenmerken die het hernoemen laat zoals ze zijn; de kopieën krijgen het kenmerk van het schema op hun nieuwe pagina: { $p0 }
 page-copy-continued = Onderbrekingspunten waarvan de kopieën de punten buiten de kopie voortzetten: { $p0 }
-page-copy-texts = { $p0 } teksten die een gekopieerd apparaat of onderbrekingspunt noemen, krijgen de naam van de kopie
-page-copy-texts-one = 1 tekst die een gekopieerd apparaat of onderbrekingspunt noemt, krijgt de naam van de kopie
+page-copy-texts = { $p0 ->
+        [one] 1 tekst die een gekopieerd apparaat of onderbrekingspunt noemt, krijgt de naam van de kopie
+       *[other] { $p0 } teksten die een gekopieerd apparaat of onderbrekingspunt noemen, krijgen de naam van de kopie
+    }
 page-copy-texts-left = Teksten die blijven zoals ze zijn, omdat gekopieerde apparaten het kenmerk deelden dat ze noemen: { $p0 }
 page-copy-titles = Paginatitels die wijzigen: { $p0 }
 page-copy-bus = Busapparaten waarvan de kopieën een eigen buslijn en adres nodig hebben: { $p0 }
@@ -423,10 +451,14 @@ tip-generated-page = Deze pagina wordt gegenereerd uit een rapportblok.
 tip-wheel-zooms = Het muiswiel zoomt de pagina. Het kan de pagina ook schuiven, Ctrl met het wiel zoomt dan (Beeld ▸ Muiswiel schuift het tekenvlak).
 cable-new-title = Nieuwe kabel
 connect-cores-title = Aders verbinden
-cable-wires-count = { $p0 } draden
-cable-wires-count-one = 1 draad
-bus-cable-lines-count = { $p0 } buslijnen
-bus-cable-lines-count-one = de buslijn
+cable-wires-count = { $p0 ->
+        [one] 1 draad
+       *[other] { $p0 } draden
+    }
+bus-cable-lines-count = { $p0 ->
+        [one] de buslijn
+       *[other] { $p0 } buslijnen
+    }
 picker-symbol-other-grid = Dit symbool is getekend op het verbindingsraster { $p0 }, en deze pagina gebruikt { $p1 }. Plaatsen zet het hier neer met zijn aansluitpunten op het raster van deze pagina.
 route-folio = folio { $p0 }
 route-preview-lead = Routeren: { $p0 }. { $p1 } draden krijgen een nieuwe route, { $p2 } daarvan door u getekend en onderbroken. Er is nog niets veranderd.

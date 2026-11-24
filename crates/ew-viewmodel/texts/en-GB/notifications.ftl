@@ -61,10 +61,14 @@ announce-device = { $p0 }, { $p1 }, folio { $p2 }
 announce-device-unplaced = { $p0 }, { $p1 }
 announce-device-connected = { $p0 }, { $p1 }, { $p2 }
 announce-device-kind = Device
-announce-cps = { $p0 } connection points
-announce-cps-one = 1 connection point
-announce-wires = { $p0 } wires
-announce-wires-one = 1 wire
+announce-cps = { $p0 ->
+        [one] 1 connection point
+       *[other] { $p0 } connection points
+    }
+announce-wires = { $p0 ->
+        [one] 1 wire
+       *[other] { $p0 } wires
+    }
 announce-wire = { $p0 }, { $p1 }, { $p2 } to { $p3 }
 announce-wire-no-potential = { $p0 }, { $p1 } to { $p2 }
 announce-wire-unnumbered = Unnumbered wire
@@ -109,7 +113,10 @@ banner-damaged-copy-unnamed-no-library = This project is open read-only: the dev
 banner-damaged-copy-record-no-library = This project is open read-only: { $p0 } is damaged. No library on this computer holds it, so the copy cannot be updated from one.
 banner-damaged-copy-left-out-no-library = This project is open read-only: { $p0 } is damaged. No library on this computer holds it; use Save as for a copy of the project without it.
 banner-damaged-copies-left-out-no-library = This project is open read-only: { $p0 } are damaged. No library on this computer holds them; use Save as for a copy of the project without them.
-banner-findings = { $p0 } integrity findings were found when the project was opened.
+banner-findings = { $p0 ->
+        [one] 1 integrity finding was found when the project was opened
+       *[other] { $p0 } integrity findings were found when the project was opened
+    }.
 banner-settings-bad = The settings file could not be read; defaults are used and the old file was kept as { $p0 }.
 banner-settings-write = The settings could not be written.
 banner-recent-removed = { $p0 } could not be opened and was removed from the recent projects.
@@ -162,22 +169,34 @@ toast-paste-fitted-one = The paste was fitted to this page's { $p0 } grid: one i
 toast-page-grid-set = Page { $p0 } now has the { $p1 } grid.
 toast-page-grid-fitted-none = Page { $p0 } now has the { $p1 } grid: every item stood on it already, and its wires were drawn anew. Undo takes it all back in one step.
 toast-page-grid-fitted = Page { $p0 } now has the { $p1 } grid: { $p2 } items moved onto it and its wires were drawn anew. Undo takes it all back in one step.
-toast-wires-unrouted = { $p0 } wires found no way and are drawn as thin dashed lines: move the items apart and choose Route.
-toast-wires-unrouted-one = One wire found no way and is drawn as a thin dashed line: move the items apart and choose Route.
+toast-wires-unrouted = { $p0 ->
+        [one] One wire found no way and is drawn as a thin dashed line: move the items apart and choose Route
+       *[other] { $p0 } wires found no way and are drawn as thin dashed lines: move the items apart and choose Route
+    }.
 
 # FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
 toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list.
 toast-device-unplaced-no-part = { $p0 } has no symbol on a page now; it stays in the Devices navigator.
-toast-deleted-wires = { $p0 } wires that ended at the deleted symbols were deleted with them.
-toast-deleted-wires-one = 1 wire that ended at the deleted symbols was deleted with them.
-toast-cut-terminals = Cut { $p0 } terminals.
-toast-cut-terminals-one = Cut 1 terminal.
-toast-cut-symbols = Cut { $p0 } symbols.
-toast-cut-symbols-one = Cut 1 symbol.
-toast-cut-wires = { $p0 } wires that ended at them are removed with them; a paste keeps the wires between the cut items only.
-toast-cut-wires-one = 1 wire that ended at them is removed with them; a paste keeps the wires between the cut items only.
-toast-terminals-undrawn = { $p0 } terminals are no longer drawn; they stay in the project and its lists.
-toast-terminals-undrawn-one = 1 terminal is no longer drawn; it stays in the project and its lists.
+toast-deleted-wires = { $p0 ->
+        [one] 1 wire that ended at the deleted symbols was deleted with them
+       *[other] { $p0 } wires that ended at the deleted symbols were deleted with them
+    }.
+toast-cut-terminals = { $p0 ->
+        [one] Cut 1 terminal
+       *[other] Cut { $p0 } terminals
+    }.
+toast-cut-symbols = { $p0 ->
+        [one] Cut 1 symbol
+       *[other] Cut { $p0 } symbols
+    }.
+toast-cut-wires = { $p0 ->
+        [one] 1 wire that ended at them is removed with them; a paste keeps the wires between the cut items only
+       *[other] { $p0 } wires that ended at them are removed with them; a paste keeps the wires between the cut items only
+    }.
+toast-terminals-undrawn = { $p0 ->
+        [one] 1 terminal is no longer drawn; it stays in the project and its lists
+       *[other] { $p0 } terminals are no longer drawn; they stay in the project and its lists
+    }.
 toast-devices-unplaced = { $p0 } have no symbol on a page now; they stay in the Devices navigator and the parts list.
 toast-devices-unplaced-no-part = { $p0 } have no symbol on a page now; they stay in the Devices navigator.
 toast-device-retagged = { $p0 } (now { $p1 })
@@ -219,15 +238,19 @@ toast-open = Open
 toast-export-cancelled = Export cancelled; no file written.
 toast-export-failed = Export failed: { $p0 }; check that the folder is writable and the file is not open in another program.
 toast-export-internal = Export failed: an internal error.
-toast-recovered = Recovered { $p0 } changes; save to keep them.
-toast-recovered-one = Recovered 1 change; save to keep it.
+toast-recovered = { $p0 ->
+        [one] Recovered 1 change; save to keep it
+       *[other] Recovered { $p0 } changes; save to keep them
+    }.
 
 # FT-549: the counted outcomes.
 toast-bridged = Added { $p0 } bridges between { $p1 } terminals.
 toast-bridged-one = Added 1 bridge between { $p1 } terminals.
 toast-check = Check: { $p0 }.
-toast-marker-count = { $p0 } wires carry a marker.
-toast-marker-count-one = 1 wire carries a marker.
+toast-marker-count = { $p0 ->
+        [one] 1 wire carries a marker
+       *[other] { $p0 } wires carry a marker
+    }.
 job-kind-pdf = PDF export
 job-kind-print = Print set
 toast-print-printed = Sent { $p0 } to the printer.
@@ -264,12 +287,18 @@ recovery-count = Unsaved changes: { $p0 }
 recovery-last-change = Last change: { $p0 }
 recovery-last-change-utc = { $p0 } UTC
 elapsed-just-now = just now
-elapsed-minutes = { $p0 } minutes ago
-elapsed-minutes-one = 1 minute ago
-elapsed-hours = { $p0 } hours ago
-elapsed-hours-one = 1 hour ago
-elapsed-days = { $p0 } days ago
-elapsed-days-one = 1 day ago
+elapsed-minutes = { $p0 ->
+        [one] 1 minute ago
+       *[other] { $p0 } minutes ago
+    }
+elapsed-hours = { $p0 ->
+        [one] 1 hour ago
+       *[other] { $p0 } hours ago
+    }
+elapsed-days = { $p0 ->
+        [one] 1 day ago
+       *[other] { $p0 } days ago
+    }
 recovery-moved = The project changed on disk since.
 recovery-discard = Discard…
 recovery-failed-moved = the project changed on disk in the same places; recovery needs the merge panel
@@ -388,7 +417,6 @@ toast-enclosure-new-shown = Created the enclosure { $p0 } at { $p1 }; the page s
 toast-enclosure-drawn = Drew { $p0 } of { $p1 } on page { $p2 }.
 toast-enclosure-new-page = Created the enclosure { $p0 } at { $p1 } and drew it on the new panel layout page { $p2 }.
 job-done-one = 1 page, { $p1 } KiB
-banner-findings-one = 1 integrity finding was found when the project was opened.
 toast-convert = Convert to connection
 toast-show-block = Show report block
 note-action-select-unlisted = Select them
@@ -418,8 +446,10 @@ banner-reimported = Re-imported { $p0 }.
 # WP-S3.09 D4: the banner while the import job runs.
 banner-importing = Importing { $p0 }…
 toast-cable-new = Created cable { $p0 } with { $p1 }.
-toast-cable-new-cores = { $p0 } cores
-toast-cable-new-cores-one = 1 core
+toast-cable-new-cores = { $p0 ->
+        [one] 1 core
+       *[other] { $p0 } cores
+    }
 toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }.
 toast-cable-wires = Cable { $p0 } made from { $p1 }.
 toast-cable-wires-changed = Cable { $p0 } now carries { $p1 }.
@@ -439,8 +469,10 @@ toast-route-nothing = Nothing to route: no wire would run better.
 toast-wire-error = The wire makes an error: { $p0 }.
 toast-route-done-selected = Routed { $p0 } selected wires: { $p1 }.
 toast-route-done-selected-one = Routed 1 selected wire: { $p0 }.
-toast-route-nothing-selected = Nothing to route among the { $p0 } selected items: no wire would run better.
-toast-route-nothing-selected-one = Nothing to route in the 1 selected item: no wire would run better.
+toast-route-nothing-selected = { $p0 ->
+        [one] Nothing to route in the 1 selected item: no wire would run better
+       *[other] Nothing to route among the { $p0 } selected items: no wire would run better
+    }.
 toast-route-kept = Nothing changed: { $p0 } wires keep the routes they have.
 toast-route-kept-one = Nothing changed: 1 wire keeps the route it has.
 toast-lists-frame = Every list of the project, the table of contents among them, now prints on { $p0 }; the frames of the drawn pages and the section dividers stay as they were.

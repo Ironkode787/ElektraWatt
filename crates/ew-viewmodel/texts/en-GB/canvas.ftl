@@ -255,20 +255,30 @@ terminal-in-sentence = { $p0 } terminal { $p1 }
 # FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
 pin-in-sentence = { $p0 } pin { $p1 } ({ $p2 })
 marker-export = Exported PDF to { $p0 }
-marker-recovered = Recovered { $p0 } changes from the journal
-marker-recovered-one = Recovered 1 change from the journal
+marker-recovered = { $p0 ->
+        [one] Recovered 1 change from the journal
+       *[other] Recovered { $p0 } changes from the journal
+    }
 label-paste-outside = some of it outside the drawing area
 label-paste-retag = { $p0 } becomes { $p1 }: a tag follows the page its device is drawn on
 label-paste = Paste { $p0 }
 label-paste-and = { $p0 } and { $p1 }
-label-paste-symbols = { $p0 } symbols
-label-paste-symbols-one = 1 symbol
-label-paste-wires = { $p0 } wires
-label-paste-wires-one = 1 wire
-label-paste-other = { $p0 } other items
-label-paste-other-one = 1 other item
-label-paste-dropped = ; { $p0 } wires left out: their other end was not copied
-label-paste-dropped-one = ; 1 wire left out: its other end was not copied
+label-paste-symbols = { $p0 ->
+        [one] 1 symbol
+       *[other] { $p0 } symbols
+    }
+label-paste-wires = { $p0 ->
+        [one] 1 wire
+       *[other] { $p0 } wires
+    }
+label-paste-other = { $p0 ->
+        [one] 1 other item
+       *[other] { $p0 } other items
+    }
+label-paste-dropped = { $p0 ->
+        [one] ; 1 wire left out: its other end was not copied
+       *[other] ; { $p0 } wires left out: their other end was not copied
+    }
 tool-paste = Paste
 hint-paste = Click or { $p0 } to paste; { $p1 } ends
 overview-page-title = Valve terminal { $p0 }
@@ -320,29 +330,45 @@ page-grid-fit-foot = Page { $p0 } holds { $p1 } items and { $p2 } wires. On the 
 terminal-form-title = Place terminals
 terminal-levels-one = 1: a terminal of one level
 terminal-levels-two = 2: a block of two levels, one terminal and one part with a number on each level
-canvas-choose-part-strip = Choose part for { $p0 } terminals without one…
-canvas-choose-part-strip-one = Choose part for 1 terminal without one…
+canvas-choose-part-strip = { $p0 ->
+        [one] Choose part for 1 terminal without one…
+       *[other] Choose part for { $p0 } terminals without one…
+    }
 node-candidate-under = { $p0 } (under { $p1 })
 node-candidate-top = { $p0 } (top level)
 preview-none = No preview is open
 preview-header = Preview: { $p0 } · as of rev { $p1 }
 preview-title = Preview: { $p0 }
 preview-stale = stale
-preview-records = { $p0 } items
-preview-records-one = 1 item
-preview-parts-new = { $p0 } new parts
-preview-parts-new-one = 1 new part
-preview-parts-skipped = { $p0 } already in the project
-preview-parts-skipped-one = 1 already in the project
+preview-records = { $p0 ->
+        [one] 1 item
+       *[other] { $p0 } items
+    }
+preview-parts-new = { $p0 ->
+        [one] 1 new part
+       *[other] { $p0 } new parts
+    }
+preview-parts-skipped = { $p0 ->
+        [one] 1 already in the project
+       *[other] { $p0 } already in the project
+    }
 preview-import-summary = { $p0 } · { $p1 }
-preview-tags-count = { $p0 } tags
-preview-tags-count-one = 1 tag
-preview-xrefs-count = { $p0 } cross-reference texts
-preview-xrefs-count-one = 1 cross-reference text
-preview-changes-count = { $p0 } changes
-preview-changes-count-one = 1 change
-preview-pages-count = { $p0 } pages
-preview-pages-count-one = 1 page
+preview-tags-count = { $p0 ->
+        [one] 1 tag
+       *[other] { $p0 } tags
+    }
+preview-xrefs-count = { $p0 ->
+        [one] 1 cross-reference text
+       *[other] { $p0 } cross-reference texts
+    }
+preview-changes-count = { $p0 ->
+        [one] 1 change
+       *[other] { $p0 } changes
+    }
+preview-pages-count = { $p0 ->
+        [one] 1 page
+       *[other] { $p0 } pages
+    }
 preview-entities = Entities
 preview-notices = Changes
 preview-tags = Tags
@@ -365,8 +391,10 @@ page-copy-lead-one = Copy page { $p0 }
 page-copy-drawn-elsewhere = Also drawn on pages that are not copied, so their copies draw only what stands on these pages: { $p0 }
 page-copy-frozen-cleared = Frozen tags the rename leaves as they are; the copies take the scheme's tag on their new page: { $p0 }
 page-copy-continued = Interruption points whose copies continue the points outside the copy: { $p0 }
-page-copy-texts = { $p0 } texts that name a copied device or interruption point take the copy's name
-page-copy-texts-one = 1 text that names a copied device or interruption point takes the copy's name
+page-copy-texts = { $p0 ->
+        [one] 1 text that names a copied device or interruption point takes the copy's name
+       *[other] { $p0 } texts that name a copied device or interruption point take the copy's name
+    }
 page-copy-texts-left = Texts left as they are, because copied devices shared the tag they name: { $p0 }
 page-copy-titles = Page titles that change: { $p0 }
 page-copy-bus = Bus devices whose copies need a bus line and an address of their own: { $p0 }
@@ -470,10 +498,14 @@ tip-generated-page = This page is generated from a report block.
 tip-wheel-zooms = The mouse wheel zooms the page. It can scroll the page instead, Ctrl with the wheel then zooms (View ▸ Mouse wheel scrolls).
 cable-new-title = New cable
 connect-cores-title = Connect cores
-cable-wires-count = { $p0 } wires
-cable-wires-count-one = 1 wire
-bus-cable-lines-count = { $p0 } bus lines
-bus-cable-lines-count-one = the bus line
+cable-wires-count = { $p0 ->
+        [one] 1 wire
+       *[other] { $p0 } wires
+    }
+bus-cable-lines-count = { $p0 ->
+        [one] the bus line
+       *[other] { $p0 } bus lines
+    }
 picker-symbol-other-grid = This symbol is drawn on the { $p0 } connection grid, and this page uses { $p1 }. Place puts it here with its connection points on this page's grid.
 route-folio = folio { $p0 }
 route-preview-lead = Route: { $p0 }. { $p1 } wires get a new route, { $p2 } of them drawn by you and broken. Nothing has changed yet.

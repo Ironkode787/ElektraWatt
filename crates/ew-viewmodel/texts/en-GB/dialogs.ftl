@@ -8,8 +8,10 @@
 prompt-open-image-title = Insert an image
 prompt-export-dxf-title = Export DXF: choose a folder for the set
 confirm-export-dxf-replace-title = Replace the DXF set in { $p0 }?
-confirm-export-dxf-replace-text = The { $p0 } files of the earlier DXF export go, with every change made to them since; undo does not bring them back.
-confirm-export-dxf-replace-text-one = The 1 file of the earlier DXF export goes, with every change made to it since; undo does not bring it back.
+confirm-export-dxf-replace-text = { $p0 ->
+        [one] The 1 file of the earlier DXF export goes, with every change made to it since; undo does not bring it back
+       *[other] The { $p0 } files of the earlier DXF export go, with every change made to them since; undo does not bring them back
+    }.
 dialog-replace = Replace
 dialog-close = Close
 dialog-save = Save
@@ -104,8 +106,10 @@ new-project-empty-what = One empty page, with the program's frame and title bloc
 new-project-other = Another project…
 new-project-other-what = Choose a project to start from: its settings, and its pages only if you tick the box.
 new-project-for-new = used for new projects
-new-project-copy-pages = Also copy its { $p0 } pages and the devices on them
-new-project-copy-pages-one = Also copy its page and the devices on it
+new-project-copy-pages = { $p0 ->
+        [one] Also copy its page and the devices on it
+       *[other] Also copy its { $p0 } pages and the devices on them
+    }
 new-project-pages-note = Without it, the project starts with one empty page.
 new-project-default-name = New project
 new-project-need-name = Type a name for the project.

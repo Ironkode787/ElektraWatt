@@ -49,8 +49,10 @@ layout-blocked = Blocked by { $p0 }
 layout-rail-end = At the rail end
 layout-live-rail = { $p0 }, { $p1 } at { $p2 } mm, { $p3 }
 layout-live-plate = { $p0 }, plate at { $p1 }, { $p2 } mm
-layout-findings = { $p0 } findings
-layout-findings-one = 1 finding
+layout-findings = { $p0 ->
+        [one] 1 finding
+       *[other] { $p0 } findings
+    }
 layout-findings-none = no findings
 layout-mode-free = Free
 layout-mode-push = Push
@@ -67,8 +69,10 @@ auto-fill-ok = Fill
 auto-fill-order-schematic = Schematic
 auto-fill-order-dt = DT
 auto-fill-devices-all = Ticked: the cabinet's devices and those whose part goes on a rail; sensors, cylinders, motors and valve terminals without a location are not. A ticked device without a location takes the cabinet's.
-auto-fill-devices-marked = Ticked: the { $p0 } devices marked in Unplaced devices.
-auto-fill-devices-marked-one = Ticked: the device marked in Unplaced devices.
+auto-fill-devices-marked = { $p0 ->
+        [one] Ticked: the device marked in Unplaced devices
+       *[other] Ticked: the { $p0 } devices marked in Unplaced devices
+    }.
 auto-fill-cause-all-placed = Every device of { $p0 } is placed already.
 auto-fill-cause-none = No device has the location { $p0 } yet: give devices this location in Properties, under Structure.
 layout-show-item-numbers = Show item numbers
@@ -81,8 +85,10 @@ enclosure-create-only = Create only
 enclosure-not-layout = This page is not a panel layout page. The enclosure is drawn on a new panel layout page after it; Create only makes the enclosure without drawing it.
 enclosure-has-one = { $p1 } has the enclosure { $p0 } already: the button draws it.
 enclosure-layout-title = Cabinet layout { $p0 }
-auto-fill-devices = { $p0 } devices
-auto-fill-devices-one = 1 device
+auto-fill-devices = { $p0 ->
+        [one] 1 device
+       *[other] { $p0 } devices
+    }
 surface-plate = plate
 surface-plate-of = { $p0 } plate
 rack-new-title = New station
@@ -227,36 +233,58 @@ rack-channel-bad = "{ $p0 }" cannot be taken here.
 rack-put-blank = Blanking plate
 rack-draw-on-new-page = Draw on a new page
 arrange-lead = Arrange and route: { $p0 }. { $p1 }; { $p2 }. Nothing has changed yet.
-arrange-symbols = { $p0 } symbols move
-arrange-symbols-one = 1 symbol moves
+arrange-symbols = { $p0 ->
+        [one] 1 symbol moves
+       *[other] { $p0 } symbols move
+    }
 arrange-across = { $p0 }, { $p1 } of them across the sheet
-arrange-wires = { $p0 } wires are routed
-arrange-wires-one = 1 wire is routed
+arrange-wires = { $p0 ->
+        [one] 1 wire is routed
+       *[other] { $p0 } wires are routed
+    }
 arrange-yours = { $p0 }, { $p1 } of them drawn by you
 arrange-figures = { $p0 }, { $p1 }, { $p2 }, { $p3 }, { $p4 }
-arrange-crossings = { $p0 } crossings
-arrange-crossings-one = 1 crossing
-arrange-bends = { $p0 } bends
-arrange-bends-one = 1 bend
-arrange-straight = { $p0 } wires straight
-arrange-straight-one = 1 wire straight
-arrange-through = { $p0 } wires through a text
-arrange-through-one = 1 wire through a text
-arrange-faults = { $p0 } faults
-arrange-faults-one = 1 fault
+arrange-crossings = { $p0 ->
+        [one] 1 crossing
+       *[other] { $p0 } crossings
+    }
+arrange-bends = { $p0 ->
+        [one] 1 bend
+       *[other] { $p0 } bends
+    }
+arrange-straight = { $p0 ->
+        [one] 1 wire straight
+       *[other] { $p0 } wires straight
+    }
+arrange-through = { $p0 ->
+        [one] 1 wire through a text
+       *[other] { $p0 } wires through a text
+    }
+arrange-faults = { $p0 ->
+        [one] 1 fault
+       *[other] { $p0 } faults
+    }
 arrange-now = Now: { $p0 }
 arrange-then = Then: { $p0 }
 arrange-heading-parts = Symbols
 arrange-heading-wires = Wires you drew yourself
 arrange-heading-left = Left as it is
-arrange-right = { $p0 } steps right
-arrange-right-one = 1 step right
-arrange-left = { $p0 } steps left
-arrange-left-one = 1 step left
-arrange-up = { $p0 } steps up
-arrange-up-one = 1 step up
-arrange-down = { $p0 } steps down
-arrange-down-one = 1 step down
+arrange-right = { $p0 ->
+        [one] 1 step right
+       *[other] { $p0 } steps right
+    }
+arrange-left = { $p0 ->
+        [one] 1 step left
+       *[other] { $p0 } steps left
+    }
+arrange-up = { $p0 ->
+        [one] 1 step up
+       *[other] { $p0 } steps up
+    }
+arrange-down = { $p0 ->
+        [one] 1 step down
+       *[other] { $p0 } steps down
+    }
 arrange-a-symbol = a symbol without a tag
 arrange-unticked = stays where it is (you unticked it)
 arrange-his = gets a new route
@@ -277,13 +305,19 @@ arrange-in-way-crossings = in its place { $p0 } the wires would cross more than 
 arrange-in-way-no-gain = in its place { $p0 } the page would be no better; left where it stands
 arrange-hint = Unticking a row plans the page again with that symbol where it stands, or that wire as it runs: what you see is what Apply does.
 arrange-hold-b = Hold B: the page as it is now.
-arrange-moved = { $p0 } symbols moved
-arrange-moved-one = 1 symbol moved
-arrange-routed = { $p0 } wires routed
-arrange-routed-one = 1 wire routed
+arrange-moved = { $p0 ->
+        [one] 1 symbol moved
+       *[other] { $p0 } symbols moved
+    }
+arrange-routed = { $p0 ->
+        [one] 1 wire routed
+       *[other] { $p0 } wires routed
+    }
 arrange-blocked = Nothing to arrange: { $p0 }
-arrange-blocked-more = And { $p0 } more: hover here, or see Notifications.
-arrange-blocked-more-one = And 1 more: hover here, or see Notifications.
+arrange-blocked-more = { $p0 ->
+        [one] And 1 more: hover here, or see Notifications
+       *[other] And { $p0 } more: hover here, or see Notifications
+    }.
 arrange-blocked-symbol = { $p0 }: { $p1 }.
 arrange-blocked-unrouted = { $p0 } has no route: it is drawn as a dashed line.
 arrange-held-order = The strip at { $p0 } stays as it stands: its terminals are wired to the card in another order than they stand in.
@@ -291,5 +325,7 @@ arrange-held-room = The strip at { $p0 } stays as it stands: its card's channels
 arrange-held-part = The strip at { $p0 } stays as it stands: { $p1 } is where it would go.
 arrange-held-sheet = The strip at { $p0 } stays as it stands: opened, it would leave the drawing area.
 arrange-held-worse = The strip at { $p0 } stays as it stands: opened in its order, its wires would cross more than now. Look at the terminals wired out of that order.
-arrange-blocked-faults = { $p0 } faults stay on the page; Check project names them.
-arrange-blocked-faults-one = 1 fault stays on the page; Check project names it.
+arrange-blocked-faults = { $p0 ->
+        [one] 1 fault stays on the page; Check project names it
+       *[other] { $p0 } faults stay on the page; Check project names them
+    }.

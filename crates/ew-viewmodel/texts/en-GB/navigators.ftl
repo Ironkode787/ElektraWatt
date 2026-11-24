@@ -202,13 +202,22 @@ find-folios = Folios (comma-separated)
 find-run = Find
 find-replace-all = Replace all
 find-close = Close
-find-results = { $p0 } results
+find-results = { $p0 ->
+        [one] 1 result
+       *[other] { $p0 } results
+    }
 find-no-results = No results
 find-truncated = More than 10,000 results: refine the search
 find-stale = stale
 find-replaced = Replaced { $p0 }; run again to refresh
-find-updated-fewer = Preview updated: { $p0 } fewer results
-find-updated-more = Preview updated: { $p0 } more results
+find-updated-fewer = { $p0 ->
+        [one] Preview updated: 1 fewer result
+       *[other] Preview updated: { $p0 } fewer results
+    }
+find-updated-more = { $p0 ->
+        [one] Preview updated: 1 more result
+       *[other] Preview updated: { $p0 } more results
+    }
 find-updated-same = Preview updated: the same results
 find-not-replaced = not replaced: { $p0 }
 find-card-line = { $p0 } results on { $p1 } records · { $p2 } tags, { $p3 } cross-reference texts
@@ -296,16 +305,26 @@ table-cells = cells
 table-import-title = Import { $p0 }
 table-import-nothing = Nothing to import: the file matches the project.
 table-import-counts = { $p0 }, { $p1 }, { $p2 }, { $p3 }, { $p4 }, { $p5 }
-table-import-changed = { $p0 } cells changed
-table-import-changed-one = 1 cell changed
-table-import-kept = { $p0 } cells kept
-table-import-kept-one = 1 cell kept
-table-import-refused = { $p0 } cells refused
-table-import-refused-one = 1 cell refused
-table-import-unknown = { $p0 } unknown rows
-table-import-unknown-one = 1 unknown row
-table-import-missing = { $p0 } rows not in the file
-table-import-missing-one = 1 row not in the file
+table-import-changed = { $p0 ->
+        [one] 1 cell changed
+       *[other] { $p0 } cells changed
+    }
+table-import-kept = { $p0 ->
+        [one] 1 cell kept
+       *[other] { $p0 } cells kept
+    }
+table-import-refused = { $p0 ->
+        [one] 1 cell refused
+       *[other] { $p0 } cells refused
+    }
+table-import-unknown = { $p0 ->
+        [one] 1 unknown row
+       *[other] { $p0 } unknown rows
+    }
+table-import-missing = { $p0 ->
+        [one] 1 row not in the file
+       *[other] { $p0 } rows not in the file
+    }
 table-import-conflicts = { $p0 } conflicts
 table-import-conflict-kept = 1 conflict: the project's value is kept
 table-import-conflicts-kept = { $p0 } conflicts: the project's values are kept
@@ -365,8 +384,10 @@ nav-front-matter = Front matter
 nav-fluid-terminals = Valve terminals
 nav-fluid-devices = Fluid devices
 nav-fluid-media = Media
-nav-badge-consumers = { $p0 } consumers
-nav-badge-consumers-one = 1 consumer
+nav-badge-consumers = { $p0 ->
+        [one] 1 consumer
+       *[other] { $p0 } consumers
+    }
 nav-badge-cpu = CPU
 nav-badge-head-station = head station
 nav-badge-io-device = I/O device
@@ -410,9 +431,6 @@ empty-nav-unplaced-done = All devices placed
 empty-nav-unplaced-done-text = Every device of { $p0 } is placed.
 list-continues-row = The list continues on page { $p0 } ›
 # Ruling 6: the count texts' singular.
-find-results-one = 1 result
-find-updated-fewer-one = Preview updated: 1 fewer result
-find-updated-more-one = Preview updated: 1 more result
 empty-nav-terminals = No terminals yet
 empty-nav-terminals-text = Place a terminal with Draw ▸ Terminal…; it goes into the strip you choose there.
 

@@ -144,8 +144,10 @@ bar-cable = Kabel
 bar-report = Rapport
 
 # A card that waits for Apply, in the status bar and on the Preview tab (the owner's test of 0.3.0-rc.1).
-status-waiting = { $p0 } wijzigingen wachten op Toepassen
-status-waiting-one = 1 wijziging wacht op Toepassen
+status-waiting = { $p0 ->
+        [one] 1 wijziging wacht op Toepassen
+       *[other] { $p0 } wijzigingen wachten op Toepassen
+    }
 status-waiting-open = Er staat een voorbeeld open
 status-waiting-tip = Toon het voorbeeld, waar Toepassen de wijzigingen doorvoert
 bar-new-station = Nieuw station
