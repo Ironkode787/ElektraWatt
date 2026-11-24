@@ -30,11 +30,7 @@ impl ShellModel {
 
     /// Exactly one black box of the focused page is selected (`box.grip`, `box.add_cp`).
     pub fn one_black_box_selected(&self) -> bool {
-        self.canvas().is_some_and(|c| {
-            let t = &c.page().tables;
-            matches!(self.selection().items.as_slice(), [one]
-                if t.reps.iter().any(|r| r.id == one.0 && r.black_box.is_some()))
-        })
+        self.selected_box().is_some()
     }
 
     /// The one selected black box of the page shown.

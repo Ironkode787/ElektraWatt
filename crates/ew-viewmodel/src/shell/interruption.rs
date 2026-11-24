@@ -839,13 +839,9 @@ impl ShellModel {
     /// The one selected black box and the grid cursor's page point.
     fn box_and_cursor(&self) -> Result<(TableRep, (i64, i64)), Outcome> {
         let c = self.canvas().ok_or(Outcome::refused(key!("reason-no-page")))?;
-        let t = &c.page().tables;
-        let rep = match self.selection().items.as_slice() {
-            [one] => t.reps.iter().find(|r| r.id == one.0 && r.black_box.is_some()),
-            _ => None,
-        }
-        .cloned()
-        .ok_or(Outcome::refused(key!("reason-one-black-box")))?;
+        let rep = self
+            .selected_box()
+            .ok_or(Outcome::refused(key!("reason-one-black-box")))?;
         let cursor = c.cursor().ok_or(Outcome::refused(key!("reason-no-cursor")))?;
         Ok((rep, c.page().snapper.snap_grid(cursor).page_nm))
     }
@@ -880,15 +876,10 @@ impl ShellModel {
     /// black box centred on it as a group, its size kept, committed as `box.reshape` with `centre`. A box stored with a
     /// pin on its corner is put right without a resize.
     pub(crate) fn act_box_centre_pins(&mut self) -> Outcome {
-        let Some(c) = self.canvas() else {
+        if self.canvas().is_none() {
             return Outcome::refused(key!("reason-no-page"));
-        };
-        let t = &c.page().tables;
-        let Some(rep) = (match self.selection().items.as_slice() {
-            [one] => t.reps.iter().find(|r| r.id == one.0 && r.black_box.is_some()),
-            _ => None,
-        })
-        .cloned() else {
+        }
+        let Some(rep) = self.selected_box() else {
             return Outcome::refused(key!("reason-one-black-box"));
         };
         let Some(b) = &rep.black_box else {
