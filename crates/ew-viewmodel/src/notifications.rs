@@ -592,6 +592,34 @@ mod tests {
         );
     }
 
+    /// Each offer carries its own parameters: of two toasts that offer Connect, running the earlier one takes the
+    /// earlier wire, which is spent, and the later toast keeps its own.
+    #[test]
+    fn an_offer_runs_its_own_parameters_once() {
+        let mut log = NotificationLog::default();
+        let connect = |wire: &str| {
+            Some(Offer {
+                params: Some(serde_json::json!({ "wire": wire })),
+                ..Offer::new(NoteAction::Connect, Validity::SymbolDraft)
+            })
+        };
+        let first = log.push(Note::new("edit", "Placed -K1.".into()).offering([connect("a")]));
+        let second = log.push(Note::new("edit", "Placed -K2.".into()).offering([connect("b")]));
+        assert_eq!(
+            log.take_params(first, NoteAction::Connect),
+            Some(serde_json::json!({ "wire": "a" }))
+        );
+        assert_eq!(
+            log.take_params(first, NoteAction::Connect),
+            None,
+            "spent by its first run"
+        );
+        assert_eq!(
+            log.take_params(second, NoteAction::Connect),
+            Some(serde_json::json!({ "wire": "b" }))
+        );
+    }
+
     #[test]
     fn action_words_round_trip() {
         for a in [NoteAction::Undo, NoteAction::Open] {
