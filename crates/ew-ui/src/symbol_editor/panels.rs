@@ -221,7 +221,7 @@ fn varies() -> &'static str {
 /// `owner` names what the rows belong to, for the editor's accessible name ("x (mm) of Line 1").
 fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Value> {
     let t = theme::current(ui.ctx());
-    let name = strings::format(strings::Key::run_time("symbol-owned"), &[&r.label, owner]);
+    let name = strings::format(key!("symbol-owned"), &[&r.label, owner]);
     let mut out = None;
     let row = ui.horizontal(|ui| {
         ui.set_min_height(t.size_row);

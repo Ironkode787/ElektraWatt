@@ -139,7 +139,7 @@ impl EditorView {
         let draft = &editor.draft;
         let response = ui.interact(rect, ui.scope_id().with("symbol-canvas"), Sense::click_and_drag());
         let name = strings::format(
-            strings::Key::run_time("symbol-canvas"),
+            key!("symbol-canvas"),
             &[&ew_viewmodel::shell::symbol_editor::display_name(draft)],
         );
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Canvas, true, &name));

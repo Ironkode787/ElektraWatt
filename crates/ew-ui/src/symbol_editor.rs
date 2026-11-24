@@ -680,13 +680,10 @@ impl EditorView {
                 // A preview is named by the symbol, its variant and its pins (doc 07 §5).
                 let letter = char::from(b'A' + variant).to_string();
                 let name = if pins.is_empty() {
-                    strings::format(
-                        strings::Key::run_time("symbol-variant-name-plain"),
-                        &[&symbol_name, &letter],
-                    )
+                    strings::format(key!("symbol-variant-name-plain"), &[&symbol_name, &letter])
                 } else {
                     strings::format(
-                        strings::Key::run_time("symbol-variant-name"),
+                        key!("symbol-variant-name"),
                         &[&symbol_name, &letter, &pins.join(", ")],
                     )
                 };
@@ -1144,7 +1141,7 @@ impl EditorView {
         // after a save); the editor keeps it until it is saved or discarded.
         if editor.in_hand() {
             let name = strings::format(
-                strings::Key::run_time("symbol-start-continue"),
+                key!("symbol-start-continue"),
                 &[&ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)],
             );
             if way(ui, IconId::pencil, &name, label(editor.state_key())).clicked() {
@@ -1414,7 +1411,7 @@ fn grid_controls(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     let words = |(num, den): (i64, i64)| ew_viewmodel::status::grid_words(num, den);
     let grid = editor.draft.symbol.grid;
     let tip = strings::format(
-        strings::Key::run_time("symbol-snap-tip"),
+        key!("symbol-snap-tip"),
         &[&words((grid.num() as i64, grid.den() as i64))],
     );
     let caption = label(key!("symbol-snap-step"));

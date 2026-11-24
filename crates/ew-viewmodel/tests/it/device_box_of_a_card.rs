@@ -121,7 +121,7 @@ fn an_untouched_card_s_box_saves_nothing_and_a_placed_pin_lays_it_out() {
     let rev = s.revision();
     let said = failed(&mut s, "symbol.save", json!({}));
     assert!(
-        said.ends_with(strings::text(strings::Key::run_time("reason-part-unchanged"))),
+        said.ends_with(strings::text(ew_viewmodel::key!("reason-part-unchanged"))),
         "{said}"
     );
     assert!(!laid_out(&s), "Save wrote no layout");

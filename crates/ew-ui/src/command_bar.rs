@@ -650,10 +650,7 @@ impl CommandBarHost {
         let mut model = command_bar(shell);
         if shell.symbol_editor().is_some() {
             model.collapsed = false;
-            model.tabs = vec![(
-                model.tab,
-                strings::text(strings::Key::run_time("symbol-title")).to_owned(),
-            )];
+            model.tabs = vec![(model.tab, strings::text(key!("symbol-title")).to_owned())];
             model.workspaces.clear();
         }
         if !model.collapsed {

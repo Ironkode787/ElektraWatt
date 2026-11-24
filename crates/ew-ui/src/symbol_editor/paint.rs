@@ -100,7 +100,7 @@ pub(super) fn paint(
                 painter.text(
                     p + Vec2::new(8.0, -8.0),
                     egui::Align2::LEFT_BOTTOM,
-                    label(strings::Key::run_time("symbol-anchor")),
+                    label(ew_viewmodel::key!("symbol-anchor")),
                     theme::font(&t.type_small),
                     t.canvas_snap.color32(),
                 );

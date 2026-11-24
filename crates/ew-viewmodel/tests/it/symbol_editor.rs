@@ -1839,7 +1839,7 @@ fn refusals_of_the_editors_actions_are_in_words() {
             "{action}"
         );
     }
-    assert_eq!(strings::text(strings::Key::run_time("symbol-image")), "Image");
+    assert_eq!(strings::text(ew_viewmodel::key!("symbol-image")), "Image");
     shell.shutdown();
 }
 
