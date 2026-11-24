@@ -285,6 +285,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/join_level.rs` |  | `rep.join_device` for a terminal (doc 08 §6.3, FT-1878): a terminal joins another terminal of its strip as that one's next level, so that a block of two levels with a number on each is one terminal with one part. |
 | `src/commands/languages.rs` |  | `project.languages.set` (`SetProjectLanguages`): the project's languages and printed formats (doc 03 §5 `ProjectLanguages`, `Formatting`; doc 16 §9.2 step 8). |
 | `src/commands/layout.rs` | large | The `layout.*` commands (doc 12 §3): layout spaces, enclosures with their plate, carriers and placements, each one undo step. |
+| `src/commands/layout/assemblies.rs` |  | The layout's commands that place an assembly with its members, and the auto-fill of a rail. |
 | `src/commands/library.rs` |  | `library.embed` (`EmbedLibraryCopies`, FT-167): embeds library items into the project as copies with their lineage (doc 05 §13.2, doc 07 §3.1). |
 | `src/commands/library_update.rs` | large | `library.update` (`UpdateLibraryCopies`, FR-PRT-014, FR-SYM-016) and the update classification of doc 07 §4.5 ([`classify_update`]), which the session's update plan shows on the card. |
 | `src/commands/macro_insert.rs` |  | `macro.insert` (doc 07 §3.5, §4.6): inserts a window or page macro in one transaction, with its values, its placeholder groups and its closure as parameters, so a command log replays the insertion exactly on a machine with no library installed (D7). |
