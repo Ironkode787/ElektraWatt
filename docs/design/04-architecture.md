@@ -374,14 +374,17 @@ One path, from the place a thing is found to the words on a screen or a page.
    | `ew-reports` | the name of a list kind, a column's heading, a word in a cell |
    | `ew-api` | what the session refuses or names beyond those: an edit of a table, a navigator's words, a stamp on a print |
    | `ew-viewmodel` | what the window says: labels, hints, toasts |
-   | `ew` | what the command line says |
+
+   The command line is an edge that speaks one language. Its own sentences are English, written where they are
+   printed, and one printer spells the prefix of an error, a warning and a notice. What it prints of the
+   layers below reaches it as a `Text` and is rendered in English. It has no text files: an entry in a second
+   language that no program prints is carried unused.
 
 3. **A seam carries a `Text`, never a `String`:** a command's error, a finding, a session error's refusal, an
    action's outcome, an enable check's reason, the sentences of a notification, a cell's word and a column's
    heading. The type is the guard: a `String` for a person exists only after rendering.
 4. **Rendering happens once, at the edge:** `ew_l10n::render(text, language)`. The window renders in the window's
-   language; a page, a list, an export and a stamp in the project's language; the command line in English unless
-   it is given a language. en-GB is the mandatory language and the fallback, and every language holds every key.
+   language; a page, a list, an export and a stamp in the project's language; the command line in English. en-GB is the mandatory language and the fallback, and every language holds every key.
 5. **Keys are checked when the code is built.** Each owning crate declares its text folder once; the one generator
    of `ew-l10n` writes the key table, and `text!` and `key!` fail the build on an unknown key or a wrong argument.
    A key is named through the macro of the crate that owns it, so a search finds the owner. A closed set names

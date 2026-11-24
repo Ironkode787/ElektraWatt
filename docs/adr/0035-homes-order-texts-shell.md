@@ -1,6 +1,6 @@
 # ADR-0035: One home for each thing, an order of crates, one path for a text, and a shell that decides what is said
 
-**Status:** Accepted (the release manager, 2026-11-23, on the conditions in [the plan](../plan/m3.5-architecture.md) section 4) · **Date:** 2026-11-23 ·
+**Status:** Accepted (the release manager, 2026-11-23, on the conditions in [the plan](../plan/m3.5-architecture.md) section 4; amended 2026-11-24, amendment 1) · **Date:** 2026-11-23 ·
 **Deciders:** the release manager (the redesign); the project owner (the items of the owner's list in
 [the plan](../plan/m3.5-architecture.md))
 **Amends:** [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md) amendment 5 (the source of the edges),
@@ -65,7 +65,7 @@
    string beside each pattern, pairs of English and Dutch words in code, and English built in code and shown to
    a person go.
 9. **A text is rendered once, at the edge:** the window in its language, a page, a list, an export and a stamp in
-   the project's language, the command line in English unless given a language. en-GB is mandatory and the
+   the project's language, the command line in English. en-GB is mandatory and the
    fallback; every language holds every key.
 10. **A finding carries its text.** `Finding` holds the key of its rule's pattern and its arguments; its en-GB
     message is that pattern rendered, not a second string. The rule messages are a part of the one catalogue, and
@@ -94,6 +94,15 @@
     forms are kept side by side under their names in the one home, and each caller keeps its form; making them
     one, like every other change of what the program does, says or stores, is decided item by item from the
     owner's list of the plan.
+
+### Amendment 1 (release manager, 2026-11-24): the command line keeps its sentences
+
+Decision 9 gave the command line a text folder of its own. Built, it was 482 entries in each of two languages
+and about 2,000 lines more: a sentence that was read in the code where it is printed became a key with numbered
+arguments, and the Dutch entries were printed by no program and read by no check. The command line is an edge
+with one language. Its own sentences stay English in the code, one printer spells the prefix of an error, a
+warning and a notice, and what comes from the layers below is a `Text` rendered in English. A text folder for
+the command line is added on the day it is given a language.
 
 ## Alternatives considered
 
