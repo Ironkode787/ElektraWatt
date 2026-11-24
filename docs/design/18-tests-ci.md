@@ -799,6 +799,6 @@ hosted versions. **NFR-DOC-02** is met: `docs-gen` writes a reference page for e
 `docs` as `reference/rules/<id>`. **NFR-DOC-03** is met for tutorials 1, 2, 4 and 6 and the headless tutorial: each window
 tutorial is a script run as a test with its page lint (`bin/elektrawatt/tests/it/tutorials.rs`), and the headless one's
 commands run on a copy of the sample (`bin/ew/tests/it/headless_tutorial.rs`). **NFR-I18N-07** is met for 0.1.0's part:
-`docs/book/po/nl.po` translates the introduction, the tutorials page and the tutorials, `ci/translation-status.py`
-reports the shares and fails on an untranslated tutorial or introduction message, and Weblate comes at 1.0.
+`docs/book/po/nl.po` translates the introduction, the tutorials page and the tutorials, the rule `translations` of
+`cargo xtask rules` fails on an untranslated tutorial or introduction message, and Weblate comes at 1.0.
 

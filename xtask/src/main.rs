@@ -30,6 +30,7 @@ mod licence;
 mod raw_read;
 mod repo;
 mod symbols;
+mod translations;
 mod ui_strings;
 
 use std::path::{Path, PathBuf};
@@ -238,6 +239,7 @@ const RULES: &[(&str, Rule)] = &[
     ("ui-strings", |root, _| ui_strings::check(root)),
     ("greyed", |root, _| greyed::check(root)),
     ("design-docs", |root, _| design_docs::check(root)),
+    ("translations", |root, _| translations::check(root)),
 ];
 
 /// `rules`: every repository rule, then `gen --check`. Prints one line per rule and each violation.

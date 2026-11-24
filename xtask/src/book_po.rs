@@ -43,23 +43,23 @@ const ALIKE: f64 = 0.6;
 
 /// One entry of a PO file.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-struct Entry {
+pub(crate) struct Entry {
     /// Comment lines other than the ones below, as they stand.
     comments: Vec<String>,
     /// `#:` references.
-    refs: Vec<String>,
+    pub(crate) refs: Vec<String>,
     /// `#,` flags.
     flags: Vec<String>,
     /// `#| msgid`: the English the translation was made for, of a fuzzy entry.
     previous: Option<String>,
-    msgid: String,
-    msgstr: String,
+    pub(crate) msgid: String,
+    pub(crate) msgstr: String,
     /// `#~`: a translation whose message the template no longer has.
-    obsolete: bool,
+    pub(crate) obsolete: bool,
 }
 
 impl Entry {
-    fn fuzzy(&self) -> bool {
+    pub(crate) fn fuzzy(&self) -> bool {
         self.flags.iter().any(|f| f == "fuzzy")
     }
 }
@@ -339,7 +339,7 @@ fn unquote(line: &str) -> Result<String> {
 }
 
 /// The entries of a PO file, the header first.
-fn parse(text: &str) -> Result<Vec<Entry>> {
+pub(crate) fn parse(text: &str) -> Result<Vec<Entry>> {
     #[derive(Clone, Copy, PartialEq)]
     enum Field {
         None,

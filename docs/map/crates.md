@@ -1409,6 +1409,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/raw_read.rs` | large | The raw-read rule of `cargo xtask rules`: the guard of ADR-0001 amendments 2, 4 and 5 for the raw readers of `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`. |
 | `src/repo.rs` |  | Helpers for the repository-wide checks: running git and listing the committed files. |
 | `src/symbols.rs` |  | `symbols-qet10`: seals the native starter library documents and generates the QET edition. |
+| `src/translations.rs` |  | The translation status as a rule of `cargo xtask rules` (NFR-I18N-07): the Dutch guide translates every message of the introduction and of the tutorials (the pages of `src/tutorials/`) that the template `messages.pot` holds, none of them empty or fuzzy. |
 | `src/ui_strings.rs` |  | The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal with a letter reaches an egui text call in `crates/ew-ui/src`. |
 
 ## No head comment
