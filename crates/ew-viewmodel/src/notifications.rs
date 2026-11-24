@@ -514,10 +514,12 @@ mod tests {
     fn the_tone_is_the_result_s_else_success_with_an_action_else_info() {
         let mut log = NotificationLog::default();
         let plain = log.push(Note::new("edit", "Placed -K1".into()));
-        let open = log.push(Note::new("export", "Exported PDF".into()).offering([Some(Offer::new(
-            NoteAction::Open,
-            Validity::Open { path: PathBuf::new() },
-        ))]));
+        let open = log.push(
+            Note::new("export", "Exported PDF".into()).offering([Some(Offer::new(
+                NoteAction::Open,
+                Validity::Open { path: PathBuf::new() },
+            ))]),
+        );
         let checked = log.push(Note::new("edit", "Check: 1 error, 0 warnings".into()).toned(NoteTone::Error));
         let tone = |s| log.get(s).map(Notification::tone);
         assert_eq!(tone(plain), Some(NoteTone::Info));

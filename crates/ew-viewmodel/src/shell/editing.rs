@@ -443,7 +443,8 @@ impl ShellModel {
                             ..o
                         });
                         let undo = self.undo_offer(NoteAction::Undo);
-                        self.notes.push(Note::of("edit", sentences).offering([undo, connect]));
+                        self.notes
+                            .push(Note::of("edit", sentences).offering([undo, connect]));
                     }
                     (None, Some(without)) => self.notify_wired(sentences, without),
                     (None, None) => {

@@ -72,7 +72,13 @@ impl ShellModel {
     /// else in a toast and the status line), unless the step said it on screen itself (`said`: a banner, a toast, the
     /// HUD's notice, the dialog's own line) or one of the places above shows it (a button that is not greyed
     /// and was refused stayed silent).
-    fn report(&mut self, outcome: Outcome, action: Option<&str>, said: bool, drew_row: impl Fn(&str) -> bool) {
+    fn report(
+        &mut self,
+        outcome: Outcome,
+        action: Option<&str>,
+        said: bool,
+        drew_row: impl Fn(&str) -> bool,
+    ) {
         if self.nav_rename_error().is_some() {
             return;
         }

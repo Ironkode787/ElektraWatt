@@ -215,7 +215,11 @@ impl ShellModel {
     /// Shows `text` as a toast of `key` and logs it (the toasts of edits map to key `edit`); `undo` offers Undo of the step
     /// just committed, valid while it is the next undo step.
     pub(super) fn notify_with(&mut self, text: String, key: &'static str, undo: bool) {
-        let undo = if undo { self.undo_offer(NoteAction::Undo) } else { None };
+        let undo = if undo {
+            self.undo_offer(NoteAction::Undo)
+        } else {
+            None
+        };
         self.notes.push(Note::new(key, text).offering([undo]));
     }
 
@@ -261,14 +265,31 @@ impl ShellModel {
     }
 
     /// `action` offered while the open project session lasts; `select` the records it acts on.
-    pub(super) fn session_offer(&self, action: NoteAction, select: Vec<ew_api::output::Uuid>) -> Option<Offer> {
-        self.project.as_ref().map(|p| Offer::new(action, Validity::Session { epoch: p.epoch, select }))
+    pub(super) fn session_offer(
+        &self,
+        action: NoteAction,
+        select: Vec<ew_api::output::Uuid>,
+    ) -> Option<Offer> {
+        self.project.as_ref().map(|p| {
+            Offer::new(
+                action,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select,
+                },
+            )
+        })
     }
 
     /// Shows `text` as a toast of key `edit` whose action `action` acts on `select` while the project session is open:
     /// the rack of a station, Route these too… on a page, Go to page, Swap two valves, Show item numbers, Fit the
     /// layout to the sheet, New station….
-    pub(super) fn notify_offer(&mut self, text: String, action: NoteAction, select: Vec<ew_api::output::Uuid>) {
+    pub(super) fn notify_offer(
+        &mut self,
+        text: String,
+        action: NoteAction,
+        select: Vec<ew_api::output::Uuid>,
+    ) {
         let offer = self.session_offer(action, select);
         self.notes.push(Note::new("edit", text).offering([offer]));
     }
