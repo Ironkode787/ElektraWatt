@@ -293,17 +293,7 @@ fn a_value_typed_one_character_a_frame_loses_no_keystroke() {
 
 /// Every shape the last frame painted, nested ones flattened.
 fn painted(h: &Harness<'_, App>) -> Vec<egui::Shape> {
-    fn walk(shape: &egui::Shape, out: &mut Vec<egui::Shape>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            s => out.push(s.clone()),
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut out);
-    }
-    out
+    support::shapes(h).into_iter().map(|(s, _)| s).collect()
 }
 
 /// The filled rects of `colour` painted.

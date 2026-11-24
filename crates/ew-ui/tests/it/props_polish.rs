@@ -50,21 +50,15 @@ fn focused_field(h: &Harness<'_, App>) -> egui::Rect {
 
 /// The texts the last frame painted, each with its galley's rectangle.
 fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect)> {
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((
+    support::texts(h)
+        .iter()
+        .map(|t| {
+            (
                 t.galley.text().to_owned(),
                 t.galley.rect.translate(t.pos.to_vec2()),
-            )),
-            _ => {}
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut out);
-    }
-    out
+            )
+        })
+        .collect()
 }
 
 /// The rectangle of the painted text `text` inside `inside`.

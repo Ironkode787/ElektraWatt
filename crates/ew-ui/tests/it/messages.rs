@@ -682,22 +682,16 @@ fn the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
 
 /// The texts the last frame painted, each with its galley's rectangle and whether it was cut with an ellipsis.
 fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, bool)> {
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect, bool)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((
+    support::texts(h)
+        .iter()
+        .map(|t| {
+            (
                 t.galley.text().to_owned(),
                 t.galley.rect.translate(t.pos.to_vec2()),
                 t.galley.elided,
-            )),
-            _ => {}
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut out);
-    }
-    out
+            )
+        })
+        .collect()
 }
 
 /// The sample's folio 104 with the first two junctions of its 0V rail joined by a wire and both wiring orders listing

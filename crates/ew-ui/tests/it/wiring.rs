@@ -376,17 +376,10 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
     // The hovered link is underlined: a 1-px `canvas.hover` line along its bottom.
     let hover = ew_ui::theme::current(&h.ctx).canvas_hover.color32();
-    fn lines(shape: &egui::Shape, colour: egui::Color32, n: &mut usize) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| lines(s, colour, n)),
-            egui::Shape::LineSegment { stroke, .. } if stroke.color == colour => *n += 1,
-            _ => {}
-        }
-    }
-    let mut underlines = 0;
-    for c in &h.output().shapes {
-        lines(&c.shape, hover, &mut underlines);
-    }
+    let underlines = support::shapes(&h)
+        .iter()
+        .filter(|(s, _)| matches!(s, egui::Shape::LineSegment { stroke, .. } if stroke.color == hover))
+        .count();
     assert_eq!(underlines, 1, "the link's underline");
     // The tooltip says the gesture.
     let tip = format!("Click to go to {label}");
@@ -405,17 +398,10 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     let go = "Click the link or press F to go there";
     assert_eq!(h.state().shell().link_preview().unwrap().go, go);
     h.step();
-    fn walk(shape: &egui::Shape, texts: &mut Vec<String>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, texts)),
-            egui::Shape::Text(t) => texts.push(t.galley.text().to_owned()),
-            _ => {}
-        }
-    }
-    let mut texts = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut texts);
-    }
+    let texts: Vec<String> = support::texts(&h)
+        .iter()
+        .map(|t| t.galley.text().to_owned())
+        .collect();
     assert!(texts.iter().any(|t| t == go), "the popup's line in {texts:?}");
     for _ in 0..30 {
         h.hover_at(at);

@@ -667,18 +667,10 @@ fn an_editor_opened_out_of_view_scrolls_into_view() {
 
 /// The texts the last frame painted, with where each starts.
 fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Pos2)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.pos)),
-            _ => {}
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut out);
-    }
-    out
+    support::texts(h)
+        .iter()
+        .map(|t| (t.galley.text().to_owned(), t.pos))
+        .collect()
 }
 
 /// Doc 16a §6.12: Create enclosure with its Create disabled at open (its part emptied

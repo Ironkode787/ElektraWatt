@@ -139,22 +139,17 @@ fn the_next_failure_replaces_the_windows_banner_not_the_shells() {
 
 /// The clipped texts the last frame painted: (text, its rectangle, its clip rectangle).
 fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, egui::Rect)> {
-    fn walk(shape: &egui::Shape, clip: egui::Rect, out: &mut Vec<(String, egui::Rect, egui::Rect)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, clip, out)),
-            egui::Shape::Text(t) => out.push((
+    support::shapes(h)
+        .into_iter()
+        .filter_map(|(s, clip)| match s {
+            egui::Shape::Text(t) => Some((
                 t.galley.text().to_owned(),
                 t.galley.rect.translate(t.pos.to_vec2()),
                 clip,
             )),
-            _ => {}
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, c.clip_rect, &mut out);
-    }
-    out
+            _ => None,
+        })
+        .collect()
 }
 
 /// At 1920 × 1080 the refused Star source row's error line is drawn inside the pane's
@@ -262,14 +257,11 @@ fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
             .map(|n| n.rect())
             .find(|r| !toast.contains_rect(*r));
         // Its first frame is a sizing pass, which paints nothing.
-        fn on(shape: &egui::Shape, fill: egui::Color32, tip: egui::Rect) -> bool {
-            match shape {
-                egui::Shape::Vec(v) => v.iter().any(|s| on(s, fill, tip)),
-                egui::Shape::Rect(r) => r.fill == fill && r.rect.contains_rect(tip),
-                _ => false,
-            }
-        }
-        if tip.is_some_and(|tip| h.output().shapes.iter().any(|c| on(&c.shape, inverse, tip))) {
+        if tip.is_some_and(|tip| {
+            support::shapes(&h).iter().any(
+                |(s, _)| matches!(s, egui::Shape::Rect(r) if r.fill == inverse && r.rect.contains_rect(tip)),
+            )
+        }) {
             shown = true;
             break;
         }

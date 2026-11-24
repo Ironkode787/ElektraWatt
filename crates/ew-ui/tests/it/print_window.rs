@@ -151,21 +151,6 @@ fn no_page_chosen_shows_the_empty_state_and_disables_both_print_buttons() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Every shape of the last frame with its clip rectangle.
-fn shapes(h: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
-    fn walk(shape: &egui::Shape, clip: egui::Rect, out: &mut Vec<(egui::Shape, egui::Rect)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, clip, out)),
-            s => out.push((s.clone(), clip)),
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, c.clip_rect, &mut out);
-    }
-    out
-}
-
 /// A Pages text the parser refuses shows one sentence in words, once, under the field, in doc 16a
 /// §6.1's Error state (the field's boundary in `color.error`, the error icon before the sentence); the preview shows
 /// the empty state.
@@ -197,7 +182,7 @@ fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     assert!(line.top() >= field.bottom(), "{line:?} under {field:?}");
     let t = ew_ui::theme::current(&h.ctx);
     let error = t.error.color32();
-    let all = shapes(&h);
+    let all = support::shapes(&h);
     assert!(
         all.iter().any(|(s, _)| matches!(s, egui::Shape::Rect(r)
             if r.stroke.color == error && r.rect == field)),
@@ -238,7 +223,7 @@ fn the_first_focus_is_print_and_shows_its_focus_ring() {
     assert_eq!(focused, ["Print…"]);
     let button = h.get_by_role_and_label(egui::Role::Button, "Print…").rect();
     let t = ew_ui::theme::current(&h.ctx);
-    let rings: Vec<(egui::Rect, egui::Rect)> = shapes(&h)
+    let rings: Vec<(egui::Rect, egui::Rect)> = support::shapes(&h)
         .into_iter()
         .filter_map(|(s, clip)| match s {
             egui::Shape::Rect(r) if r.stroke.color == t.focus.color32() && r.rect.contains_rect(button) => {
@@ -272,7 +257,7 @@ fn the_preview_draws_the_papers_whole_edge() {
     run_until_built(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
     let edge = egui::Stroke::new(t.border_width, t.border_control.color32());
-    let sheets: Vec<(egui::Rect, egui::Rect)> = shapes(&h)
+    let sheets: Vec<(egui::Rect, egui::Rect)> = support::shapes(&h)
         .into_iter()
         .filter_map(|(s, clip)| match s {
             egui::Shape::Rect(r) if r.stroke == edge && r.stroke_kind == egui::StrokeKind::Outside => {

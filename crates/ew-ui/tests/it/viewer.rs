@@ -485,17 +485,10 @@ fn canvas_tab_badges_are_chips_not_bracketed_words() {
     let generated = tabs.iter().find(|(l, _)| l.starts_with("2 ")).unwrap();
     assert!(generated.0.ends_with(", generated"), "{}", generated.0);
     // The chips' words are painted inside their tabs.
-    let mut painted = Vec::new();
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Pos2)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.pos)),
-            _ => {}
-        }
-    }
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut painted);
-    }
+    let painted: Vec<(String, egui::Pos2)> = support::texts(&h)
+        .iter()
+        .map(|t| (t.galley.text().to_owned(), t.pos))
+        .collect();
     for ((_, rect), word) in [(qet, "QET 10 px"), (generated, "generated")] {
         assert!(
             painted.iter().any(|(t, p)| t == word && rect.contains(*p)),

@@ -153,17 +153,10 @@ fn part_names_are_whole_in_device_from_part() {
         settle(&mut h);
         settle(&mut h);
         settle(&mut h);
-        fn walk(shape: &egui::Shape, out: &mut Vec<(String, bool)>) {
-            match shape {
-                egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-                egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.galley.elided)),
-                _ => {}
-            }
-        }
-        let mut texts = Vec::new();
-        for c in &h.output().shapes {
-            walk(&c.shape, &mut texts);
-        }
+        let texts: Vec<(String, bool)> = support::texts(&h)
+            .iter()
+            .map(|t| (t.galley.text().to_owned(), t.galley.elided))
+            .collect();
         // Each part row's description: the first line of its tooltip.
         let names: Vec<String> = h
             .get_all_by_role(egui::Role::Button)
@@ -214,17 +207,10 @@ fn a_parts_function_rows_stay_inside_the_row_and_read_in_words() {
     open_part_picker(&mut h);
     open_every_part(&mut h);
     // Each painted text, its rectangle.
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.visual_bounding_rect())),
-            _ => {}
-        }
-    }
-    let mut texts = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut texts);
-    }
+    let texts: Vec<(String, egui::Rect)> = support::texts(&h)
+        .iter()
+        .map(|t| (t.galley.text().to_owned(), t.visual_bounding_rect()))
+        .collect();
     // The function rows: their tooltip is "<n> of <m> <function>".
     let rows: Vec<(egui::Rect, String)> = h
         .get_all_by_role(egui::Role::Button)

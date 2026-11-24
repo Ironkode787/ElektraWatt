@@ -413,21 +413,17 @@ fn the_scrolled_preview_lists_have_an_edge_under_the_summary_line() {
     let subtle = t.border_subtle.color32();
     // The horizontal `border.subtle` lines in the summary line's column, between it and the first list.
     let edges = |h: &Harness<'_, App>| {
-        fn walk(shape: &egui::Shape, colour: egui::Color32, out: &mut Vec<[egui::Pos2; 2]>) {
-            match shape {
-                egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, colour, out)),
+        let lines: Vec<[egui::Pos2; 2]> = support::shapes(h)
+            .into_iter()
+            .filter_map(|(s, _)| match s {
                 egui::Shape::LineSegment { points, stroke }
-                    if stroke.color == colour && points[0].y == points[1].y =>
+                    if stroke.color == subtle && points[0].y == points[1].y =>
                 {
-                    out.push(*points);
+                    Some(points)
                 }
-                _ => {}
-            }
-        }
-        let mut lines = Vec::new();
-        for c in &h.output().shapes {
-            walk(&c.shape, subtle, &mut lines);
-        }
+                _ => None,
+            })
+            .collect();
         lines
             .into_iter()
             .filter(|p| {

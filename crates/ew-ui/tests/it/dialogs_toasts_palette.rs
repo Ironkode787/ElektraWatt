@@ -608,17 +608,7 @@ fn a_greyed_commands_toast_title_stands_whole() {
             .any(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str())),
         "the toast's title"
     );
-    fn walk(shape: &egui::Shape, out: &mut Vec<std::sync::Arc<egui::Galley>>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push(t.galley.clone()),
-            _ => {}
-        }
-    }
-    let mut galleys = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut galleys);
-    }
+    let galleys: Vec<_> = support::texts(&h).into_iter().map(|t| t.galley).collect();
     let title = galleys
         .iter()
         .find(|g| g.text() == TITLE)

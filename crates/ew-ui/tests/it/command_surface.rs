@@ -540,17 +540,11 @@ fn view_show_switches_show_only_their_check() {
     support::open_menu(&mut h, &["View", "Show"]);
     settle(&mut h);
     // The shapes other than text, painted in a row's check column (its left 32 px), smaller than the row's fill.
-    fn walk(shape: &egui::Shape, out: &mut Vec<Rect>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(_) | egui::Shape::Noop => {}
-            other => out.push(other.visual_bounding_rect()),
-        }
-    }
-    let mut painted = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut painted);
-    }
+    let painted: Vec<Rect> = support::shapes(&h)
+        .into_iter()
+        .filter(|(s, _)| !matches!(s, egui::Shape::Text(_) | egui::Shape::Noop))
+        .map(|(s, _)| s.visual_bounding_rect())
+        .collect();
     let in_column = |label: &str| {
         let row = support::menu_node(&h, label).rect();
         let column = Rect::from_min_max(row.left_top(), egui::pos2(row.left() + 32.0, row.bottom()));

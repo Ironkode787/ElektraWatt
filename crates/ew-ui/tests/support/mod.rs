@@ -367,6 +367,32 @@ pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
     panic!("the preview image did not arrive");
 }
 
+/// Every shape the last frame painted, nested ones flattened, each with its clip rectangle.
+pub fn shapes(harness: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
+    fn walk(shape: &egui::Shape, clip: egui::Rect, out: &mut Vec<(egui::Shape, egui::Rect)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, clip, out)),
+            s => out.push((s.clone(), clip)),
+        }
+    }
+    let mut out = Vec::new();
+    for c in &harness.output().shapes {
+        walk(&c.shape, c.clip_rect, &mut out);
+    }
+    out
+}
+
+/// Every text the last frame painted, in painting order.
+pub fn texts(harness: &Harness<'_, App>) -> Vec<egui::epaint::TextShape> {
+    shapes(harness)
+        .into_iter()
+        .filter_map(|(s, _)| match s {
+            egui::Shape::Text(t) => Some(t),
+            _ => None,
+        })
+        .collect()
+}
+
 /// The surface a settle checks, for [`assert_accessible`]'s lines: the open dialog's title, the first run, or the
 /// window.
 pub fn surface_name(harness: &Harness<'_, App>) -> String {

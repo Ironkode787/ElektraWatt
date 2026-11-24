@@ -457,18 +457,10 @@ fn assert_options_inside_the_window(h: &Harness<'_, App>) {
 
 /// The texts the last frame painted, with where each starts.
 fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Pos2)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.pos)),
-            _ => {}
-        }
-    }
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut out);
-    }
-    out
+    support::texts(h)
+        .iter()
+        .map(|t| (t.galley.text().to_owned(), t.pos))
+        .collect()
 }
 
 /// The minimal part chooser (G-PP run, finding 1): the main switch -101Q1's Parts row, emptied, opens a list of the
@@ -1269,26 +1261,16 @@ fn a_prose_value_wraps_and_is_never_cut() {
 
 /// The texts painted inside the row whose group is named `label`, each with whether it was cut (elided).
 fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, bool, egui::Pos2)>) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.galley.elided, t.pos)),
-            _ => {}
-        }
-    }
     let rows: Vec<egui::Rect> = h
         .get_all_by_role(egui::Role::Group)
         .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
         .map(|g| g.rect())
         .collect();
     assert!(!rows.is_empty(), "the row {label}");
-    let mut out = Vec::new();
-    for c in &h.output().shapes {
-        walk(&c.shape, &mut out);
-    }
-    out.into_iter()
-        .filter(|(_, _, p)| rows.iter().any(|r| r.contains(*p)))
-        .map(|(t, cut, _)| (t, cut))
+    support::texts(h)
+        .iter()
+        .filter(|t| rows.iter().any(|r| r.contains(t.pos)))
+        .map(|t| (t.galley.text().to_owned(), t.galley.elided))
         .collect()
 }
 

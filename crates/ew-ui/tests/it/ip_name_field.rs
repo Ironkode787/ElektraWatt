@@ -290,20 +290,9 @@ fn the_tool_options_card_is_whole_while_its_name_field_is_used() {
 /// Whether the frame paints the tool options card in `fill`: a filled rectangle of the card's width in that colour
 /// (the card's fill whole, or at 40 %).
 fn card_painted(h: &Harness<'_, App>, fill: egui::Color32) -> bool {
-    fn walk(shape: &egui::Shape, fill: egui::Color32, found: &mut bool) {
-        match shape {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, fill, found)),
-            egui::Shape::Rect(r) => {
-                *found |= r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0
-            }
-            _ => {}
-        }
-    }
-    let mut found = false;
-    for c in &h.output().shapes {
-        walk(&c.shape, fill, &mut found);
-    }
-    found
+    support::shapes(h).iter().any(|(s, _)| {
+        matches!(s, egui::Shape::Rect(r) if r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0)
+    })
 }
 
 /// The field shows the typed name after the focus leaves it and after a point takes it; empty, it shows
