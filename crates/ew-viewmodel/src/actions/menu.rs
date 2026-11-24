@@ -323,50 +323,9 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 item
             })
             .collect(),
-        Submenu::PageNavigator => {
-            let nav = model.navigator();
-            let mut items = Vec::new();
-            for meta in metas {
-                if meta.id == "pages.mode" {
-                    for mode in crate::navigator::NavMode::ALL {
-                        let mut item = item_of(meta, model);
-                        item.label = strings::text(mode.label_key()).to_owned();
-                        item.params = json!({ "mode": mode.word() });
-                        item.checked = nav.mode == mode;
-                        items.push(item);
-                    }
-                } else if meta.id == "pages.sort" {
-                    for sort in crate::navigator::NavSort::ALL {
-                        let mut item = item_of(meta, model);
-                        item.label = strings::text(sort.label_key()).to_owned();
-                        item.params = json!({ "by": sort.word() });
-                        item.checked = nav.sort == sort;
-                        items.push(item);
-                    }
-                }
-            }
-            items
-        }
+        Submenu::PageNavigator => page_navigator_items(metas, model),
         // One checked item per navigator; the message panel has its own item, View ▸ Messages.
-        Submenu::Navigators => {
-            let mut items = Vec::new();
-            for kind in crate::navigators::NavKind::ALL
-                .into_iter()
-                .filter(|k| *k != crate::navigators::NavKind::Messages)
-            {
-                let mut item = item_of(meta, model);
-                item.label = strings::text(crate::layout::nav_title_key(kind)).to_owned();
-                let open = model.navigator_open(kind);
-                item.params = if open {
-                    json!({ "kind": kind.word(), "on": false })
-                } else {
-                    json!({ "kind": kind.word() })
-                };
-                item.checked = open;
-                items.push(item);
-            }
-            items
-        }
+        Submenu::Navigators => navigator_items(meta, model),
         Submenu::Pan | Submenu::Revision => metas.iter().map(|m| item_of(m, model)).collect(),
         // One item per UI language, under its own name.
         Submenu::Language => strings::languages()
@@ -379,58 +338,9 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 item
             })
             .collect(),
-        Submenu::Workspace => {
-            let active = model.workspace();
-            let mut items = Vec::new();
-            for meta in metas {
-                if meta.id == "view.workspace_load" {
-                    for name in model.workspace_names() {
-                        let mut item = item_of(meta, model);
-                        item.checked = name == active;
-                        item.params = json!({ "name": name });
-                        item.label = workspace_label(&name);
-                        item.shortcut = String::new();
-                        items.push(item);
-                    }
-                } else {
-                    items.push(item_of(meta, model));
-                }
-            }
-            items
-        }
-        Submenu::OpenRecent => {
-            let names = model.recent_names();
-            if names.is_empty() {
-                let mut item = item_of(meta, model);
-                item.label = strings::text(key!("menu-no-recent")).to_owned();
-                item.enabled = false;
-                return vec![item];
-            }
-            names
-                .into_iter()
-                .enumerate()
-                .map(|(i, name)| {
-                    let mut item = item_of(meta, model);
-                    item.label = name;
-                    item.params = json!({ "index": i });
-                    item
-                })
-                .collect()
-        }
-        Submenu::UiScale => {
-            let current = model.settings().ui_scale;
-            UI_SCALES
-                .iter()
-                .map(|&scale| {
-                    let mut item = item_of(meta, model);
-                    item.label = scale_label(scale).to_owned();
-                    item.params = json!({ "scale": scale });
-                    item.shortcut = String::new();
-                    item.checked = (current - scale).abs() < 1e-3;
-                    item
-                })
-                .collect()
-        }
+        Submenu::Workspace => workspace_items(metas, model),
+        Submenu::OpenRecent => recent_items(meta, model),
+        Submenu::UiScale => ui_scale_items(meta, model),
         // One item per tutorial, each with its own start, under a line that says what a tutorial is.
         Submenu::Tutorials => std::iter::once(heading_item(meta, model, key!("submenu-tutorials-what")))
             .chain(tutorials().map(|(name, title)| {
@@ -454,99 +364,13 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }))
             .collect(),
         // The stations by tag: Rack and slots… of each; Attach cards to each that takes cards, while cards wait.
-        Submenu::RackEditor | Submenu::AttachCards => {
-            let session = model.project_session();
-            let stations = if submenu == Submenu::RackEditor {
-                model.plc_stations()
-            } else {
-                session
-                    .map(ew_api::Session::plc_stations_for_cards)
-                    .unwrap_or_default()
-            };
-            let waiting = session.is_some_and(|s| !s.plc_cards_without_cpu().is_empty());
-            let mut items = target_items(
-                meta,
-                model,
-                stations
-                    .into_iter()
-                    .map(|(id, tag)| (tag, json!({ "station": id.to_string() })))
-                    .collect(),
-                key!("reason-no-station"),
-            );
-            if submenu == Submenu::AttachCards && !waiting {
-                for item in items.iter_mut().filter(|i| i.enabled) {
-                    item.enabled = false;
-                    item.reason = Some(strings::text(key!("reason-no-cards-without-cpu")).to_owned());
-                }
-            }
-            items
-        }
+        Submenu::RackEditor | Submenu::AttachCards => station_items(submenu, meta, model),
         // The parts that fit where the station view's cursor stands, each by number, description and what it gives; the
         // part it has already is checked.
-        Submenu::ModuleParts => {
-            let current = model
-                .station_device()
-                .and_then(|d| model.device_part(d))
-                .map(|c| json!(c.to_string()));
-            // The view's catalogue as made for its state, read in place: the bar asks every frame.
-            let shown = model.station_shown();
-            let mut items = target_items(
-                meta,
-                model,
-                shown
-                    .iter()
-                    .flat_map(|s| &s.catalogue)
-                    .filter(|p| p.unfit.is_none())
-                    .map(|p| (p.words(), json!({ "part": p.copy.to_string() })))
-                    .collect(),
-                key!("rack-no-part-fits"),
-            );
-            for item in &mut items {
-                item.checked = current.is_some() && item.params.get("part") == current.as_ref();
-            }
-            items
-        }
+        Submenu::ModuleParts => module_part_items(meta, model),
         // The schematic pages by folio and title, then a new page; Move to page's read as moves ("To page 101 …") and
         // leave out the page the module is drawn on (FT-2134).
-        Submenu::ModulePages => {
-            let moving = meta.id == "plc.module_move";
-            let (to, to_new) = if moving {
-                (key!("rack-move-to"), key!("rack-move-to-new-page"))
-            } else {
-                (key!("rack-next-draw-on"), key!("rack-draw-on-new-page"))
-            };
-            let on: Vec<String> = match (moving, model.station_device(), model.project_session()) {
-                (true, Some(device), Some(session)) => {
-                    let pages: Vec<_> = session
-                        .electrical_drawings(device)
-                        .into_iter()
-                        .map(|(_, p)| p)
-                        .collect();
-                    model
-                        .page_rows()
-                        .iter()
-                        .filter(|r| pages.contains(&r.id))
-                        .map(|r| r.folio.clone())
-                        .collect()
-                }
-                _ => Vec::new(),
-            };
-            target_items(
-                meta,
-                model,
-                model
-                    .schematic_pages()
-                    .into_iter()
-                    .filter(|(folio, _)| !on.contains(folio))
-                    .map(|(folio, title)| {
-                        let label = strings::format(to, &[&folio, &title]);
-                        (label.trim().to_owned(), json!({ "folio": folio }))
-                    })
-                    .chain([(strings::text(to_new).to_owned(), json!({ "folio": "new" }))])
-                    .collect(),
-                key!("reason-rack-draw-page"),
-            )
-        }
+        Submenu::ModulePages => module_page_items(meta, model),
         Submenu::PlcAddressing => {
             let items = model.plc_addressing_items();
             if items.is_empty() {
@@ -573,79 +397,9 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         }
         // Put a station on this page: on a bus-topology page the stations and bus devices it does not draw yet, each put
         // there whole, else the entry greyed with its reason; then the ports the Bus panel lists as not drawn yet.
-        Submenu::BusPorts => {
-            let mut items = Vec::new();
-            if let Some(put) = metas.iter().find(|m| m.id == "bus.put_station") {
-                let stations = model.stations_off_page(None);
-                if stations.is_empty() {
-                    items.push(item_of(put, model));
-                } else {
-                    items.push(heading_item(put, model, key!("submenu-bus-stations")));
-                    items.extend(stations.into_iter().map(|(id, tag)| {
-                        let mut item = item_of(put, model);
-                        item.label = tag;
-                        item.params = json!({ "station": id.to_string() });
-                        item
-                    }));
-                    items.push(heading_item(meta, model, key!("submenu-bus-one-port")));
-                }
-            }
-            let bus_page = model.page_rows().get(model.page_index()).map(|r| &r.kind)
-                == Some(&ew_api::PageType::BusTopology);
-            if !bus_page {
-                items.extend(nothing_item(meta, model, key!("reason-port-bus-page")));
-                return items;
-            }
-            let table = model
-                .project_session()
-                .map(|s| s.navigator_table(crate::navigators::NavKind::Bus));
-            let ports = table.iter().flat_map(|t| &t.nodes).filter_map(|n| {
-                let (device, port) = crate::shell::undrawn_port(&n.key)?;
-                Some((n.label.clone(), json!({ "device": device, "port": port })))
-            });
-            items.extend(target_items(
-                meta,
-                model,
-                ports.collect(),
-                key!("reason-no-undrawn-port"),
-            ));
-            items
-        }
-        Submenu::MinFont => {
-            let current = model.settings().min_font_pt;
-            MIN_FONT_CHOICES
-                .iter()
-                .map(|&pt| {
-                    let mut item = item_of(meta, model);
-                    item.label = match pt {
-                        0 => strings::text(key!("min-font-off")).to_owned(),
-                        pt => strings::format(key!("min-font-pt"), &[&pt.to_string()]),
-                    };
-                    item.params = json!({ "pt": pt });
-                    item.shortcut = String::new();
-                    item.checked = pt == current;
-                    item
-                })
-                .collect()
-        }
-        Submenu::Theme | Submenu::Density => {
-            let (prefix, choices, current): (&str, &[&str], &str) = if submenu == Submenu::Theme {
-                ("theme", &THEMES, &model.settings().theme)
-            } else {
-                ("density", &DENSITIES, &model.settings().density)
-            };
-            choices
-                .iter()
-                .map(|value| {
-                    let mut item = item_of(meta, model);
-                    item.label = strings::text(Key::run_time(&format!("{prefix}-{value}"))).to_owned();
-                    item.params = json!({ "value": value });
-                    item.shortcut = String::new();
-                    item.checked = *value == current;
-                    item
-                })
-                .collect()
-        }
+        Submenu::BusPorts => bus_port_items(metas, meta, model),
+        Submenu::MinFont => min_font_items(meta, model),
+        Submenu::Theme | Submenu::Density => look_items(submenu, meta, model),
         Submenu::Graphic => {
             let active = match model.tool_ghost() {
                 Some(Ghost::Graphic { shape, .. }) => Some(shape),
@@ -687,6 +441,285 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 .collect()
         }
     }
+}
+
+/// One checked item per navigator.
+fn navigator_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let mut items = Vec::new();
+    for kind in crate::navigators::NavKind::ALL
+        .into_iter()
+        .filter(|k| *k != crate::navigators::NavKind::Messages)
+    {
+        let mut item = item_of(meta, model);
+        item.label = strings::text(crate::layout::nav_title_key(kind)).to_owned();
+        let open = model.navigator_open(kind);
+        item.params = if open {
+            json!({ "kind": kind.word(), "on": false })
+        } else {
+            json!({ "kind": kind.word() })
+        };
+        item.checked = open;
+        items.push(item);
+    }
+    items
+}
+
+/// The workspaces, the active one checked.
+fn workspace_items(metas: &[&ActionMeta], model: &ShellModel) -> Vec<ActionItem> {
+    let active = model.workspace();
+    let mut items = Vec::new();
+    for meta in metas {
+        if meta.id == "view.workspace_load" {
+            for name in model.workspace_names() {
+                let mut item = item_of(meta, model);
+                item.checked = name == active;
+                item.params = json!({ "name": name });
+                item.label = workspace_label(&name);
+                item.shortcut = String::new();
+                items.push(item);
+            }
+        } else {
+            items.push(item_of(meta, model));
+        }
+    }
+    items
+}
+
+/// The recent projects, most recent first.
+fn recent_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let names = model.recent_names();
+    if names.is_empty() {
+        let mut item = item_of(meta, model);
+        item.label = strings::text(key!("menu-no-recent")).to_owned();
+        item.enabled = false;
+        return vec![item];
+    }
+    names
+        .into_iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let mut item = item_of(meta, model);
+            item.label = name;
+            item.params = json!({ "index": i });
+            item
+        })
+        .collect()
+}
+
+/// The UI scales, the one in use checked.
+fn ui_scale_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let current = model.settings().ui_scale;
+    UI_SCALES
+        .iter()
+        .map(|&scale| {
+            let mut item = item_of(meta, model);
+            item.label = scale_label(scale).to_owned();
+            item.params = json!({ "scale": scale });
+            item.shortcut = String::new();
+            item.checked = (current - scale).abs() < 1e-3;
+            item
+        })
+        .collect()
+}
+
+/// The minimum text sizes, the one in use checked.
+fn min_font_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let current = model.settings().min_font_pt;
+    MIN_FONT_CHOICES
+        .iter()
+        .map(|&pt| {
+            let mut item = item_of(meta, model);
+            item.label = match pt {
+                0 => strings::text(key!("min-font-off")).to_owned(),
+                pt => strings::format(key!("min-font-pt"), &[&pt.to_string()]),
+            };
+            item.params = json!({ "pt": pt });
+            item.shortcut = String::new();
+            item.checked = pt == current;
+            item
+        })
+        .collect()
+}
+
+/// The themes or the densities, the one in use checked.
+fn look_items(submenu: Submenu, meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let (prefix, choices, current): (&str, &[&str], &str) = if submenu == Submenu::Theme {
+        ("theme", &THEMES, &model.settings().theme)
+    } else {
+        ("density", &DENSITIES, &model.settings().density)
+    };
+    choices
+        .iter()
+        .map(|value| {
+            let mut item = item_of(meta, model);
+            item.label = strings::text(Key::run_time(&format!("{prefix}-{value}"))).to_owned();
+            item.params = json!({ "value": value });
+            item.shortcut = String::new();
+            item.checked = *value == current;
+            item
+        })
+        .collect()
+}
+
+/// The Page navigator's modes and orders, each checked when it is the navigator's.
+fn page_navigator_items(metas: &[&ActionMeta], model: &ShellModel) -> Vec<ActionItem> {
+    let nav = model.navigator();
+    let mut items = Vec::new();
+    for meta in metas {
+        if meta.id == "pages.mode" {
+            for mode in crate::navigator::NavMode::ALL {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(mode.label_key()).to_owned();
+                item.params = json!({ "mode": mode.word() });
+                item.checked = nav.mode == mode;
+                items.push(item);
+            }
+        } else if meta.id == "pages.sort" {
+            for sort in crate::navigator::NavSort::ALL {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(sort.label_key()).to_owned();
+                item.params = json!({ "by": sort.word() });
+                item.checked = nav.sort == sort;
+                items.push(item);
+            }
+        }
+    }
+    items
+}
+
+/// The stations of the Rack editor… and Attach cards to a station… submenus.
+fn station_items(submenu: Submenu, meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let session = model.project_session();
+    let stations = if submenu == Submenu::RackEditor {
+        model.plc_stations()
+    } else {
+        session
+            .map(ew_api::Session::plc_stations_for_cards)
+            .unwrap_or_default()
+    };
+    let waiting = session.is_some_and(|s| !s.plc_cards_without_cpu().is_empty());
+    let mut items = target_items(
+        meta,
+        model,
+        stations
+            .into_iter()
+            .map(|(id, tag)| (tag, json!({ "station": id.to_string() })))
+            .collect(),
+        key!("reason-no-station"),
+    );
+    if submenu == Submenu::AttachCards && !waiting {
+        for item in items.iter_mut().filter(|i| i.enabled) {
+            item.enabled = false;
+            item.reason = Some(strings::text(key!("reason-no-cards-without-cpu")).to_owned());
+        }
+    }
+    items
+}
+
+/// The parts a module of the station can be (the module of the station view first).
+fn module_part_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let current = model
+        .station_device()
+        .and_then(|d| model.device_part(d))
+        .map(|c| json!(c.to_string()));
+    // The view's catalogue as made for its state, read in place: the bar asks every frame.
+    let shown = model.station_shown();
+    let mut items = target_items(
+        meta,
+        model,
+        shown
+            .iter()
+            .flat_map(|s| &s.catalogue)
+            .filter(|p| p.unfit.is_none())
+            .map(|p| (p.words(), json!({ "part": p.copy.to_string() })))
+            .collect(),
+        key!("rack-no-part-fits"),
+    );
+    for item in &mut items {
+        item.checked = current.is_some() && item.params.get("part") == current.as_ref();
+    }
+    items
+}
+
+/// The pages a module is drawn on or can be moved to (Draw on a page…, Move to page…).
+fn module_page_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let moving = meta.id == "plc.module_move";
+    let (to, to_new) = if moving {
+        (key!("rack-move-to"), key!("rack-move-to-new-page"))
+    } else {
+        (key!("rack-next-draw-on"), key!("rack-draw-on-new-page"))
+    };
+    let on: Vec<String> = match (moving, model.station_device(), model.project_session()) {
+        (true, Some(device), Some(session)) => {
+            let pages: Vec<_> = session
+                .electrical_drawings(device)
+                .into_iter()
+                .map(|(_, p)| p)
+                .collect();
+            model
+                .page_rows()
+                .iter()
+                .filter(|r| pages.contains(&r.id))
+                .map(|r| r.folio.clone())
+                .collect()
+        }
+        _ => Vec::new(),
+    };
+    target_items(
+        meta,
+        model,
+        model
+            .schematic_pages()
+            .into_iter()
+            .filter(|(folio, _)| !on.contains(folio))
+            .map(|(folio, title)| {
+                let label = strings::format(to, &[&folio, &title]);
+                (label.trim().to_owned(), json!({ "folio": folio }))
+            })
+            .chain([(strings::text(to_new).to_owned(), json!({ "folio": "new" }))])
+            .collect(),
+        key!("reason-rack-draw-page"),
+    )
+}
+
+/// The Bus ports submenu: Put a station on this page and its stations, then the ports of the bus page.
+fn bus_port_items(metas: &[&ActionMeta], meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+    let mut items = Vec::new();
+    if let Some(put) = metas.iter().find(|m| m.id == "bus.put_station") {
+        let stations = model.stations_off_page(None);
+        if stations.is_empty() {
+            items.push(item_of(put, model));
+        } else {
+            items.push(heading_item(put, model, key!("submenu-bus-stations")));
+            items.extend(stations.into_iter().map(|(id, tag)| {
+                let mut item = item_of(put, model);
+                item.label = tag;
+                item.params = json!({ "station": id.to_string() });
+                item
+            }));
+            items.push(heading_item(meta, model, key!("submenu-bus-one-port")));
+        }
+    }
+    let bus_page =
+        model.page_rows().get(model.page_index()).map(|r| &r.kind) == Some(&ew_api::PageType::BusTopology);
+    if !bus_page {
+        items.extend(nothing_item(meta, model, key!("reason-port-bus-page")));
+        return items;
+    }
+    let table = model
+        .project_session()
+        .map(|s| s.navigator_table(crate::navigators::NavKind::Bus));
+    let ports = table.iter().flat_map(|t| &t.nodes).filter_map(|n| {
+        let (device, port) = crate::shell::undrawn_port(&n.key)?;
+        Some((n.label.clone(), json!({ "device": device, "port": port })))
+    });
+    items.extend(target_items(
+        meta,
+        model,
+        ports.collect(),
+        key!("reason-no-undrawn-port"),
+    ));
+    items
 }
 
 /// The Window menu's list of open tabs: one checked item per tab of the focused group, dispatching `tab.activate`.
