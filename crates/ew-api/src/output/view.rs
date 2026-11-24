@@ -1074,7 +1074,7 @@ pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
         .at(1)
         .map_or(1, |n| n.0.max(1));
     let texts = pin_texts(q, r, &symbol.item);
-    let line = crate::part_box::pin_text_line().unwrap_or(0);
+    let line = ew_scene::page::pin_text_line().unwrap_or(0);
     // How far the longest text of the side `dir` reaches into the box from it.
     let side = |dir: &ew_schema::Dir4| {
         let turned = matches!(dir, ew_schema::Dir4::Up | ew_schema::Dir4::Down);
@@ -1091,7 +1091,7 @@ pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
                 } else if turned && signs {
                     line
                 } else {
-                    crate::part_box::pin_text_length(&t.text)
+                    ew_scene::page::pin_text_length(&t.text)
                 };
                 ew_scene::page::PIN_TEXT_GAP.0 + reach
             })

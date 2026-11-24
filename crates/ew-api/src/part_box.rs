@@ -138,23 +138,6 @@ pub fn card_share(pins: usize, room: i64) -> usize {
     }
 }
 
-/// The length in nanometres of the pin text `text` on one line in style `data.small` with the bundled fonts: how far a
-/// text of a top or bottom side, turned a quarter, reaches into the box.
-pub fn pin_text_length(text: &str) -> i64 {
-    let Some(style) = ew_text::builtin().resolve("data.small") else {
-        return 0;
-    };
-    ew_text::bundled().shape(text, &style, None).advance().0
-}
-
-/// The height in nanometres of one line of pin text (style `data.small` with the bundled fonts: its ascent and descent,
-/// as the scene's text box measures it); `None` without the style.
-pub fn pin_text_line() -> Option<i64> {
-    let style = ew_text::builtin().resolve("data.small")?;
-    let m = ew_text::bundled().vertical_metrics(&style);
-    Some(m.ascent.0.saturating_add(m.descent.0))
-}
-
 fn horizontal(side: &Dir4) -> bool {
     matches!(side, Dir4::Up | Dir4::Down)
 }
