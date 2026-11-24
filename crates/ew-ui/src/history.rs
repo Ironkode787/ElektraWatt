@@ -388,7 +388,7 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
                 meta.push_str(&format!(" · {}", e.row.pages.join(", ")));
             }
             ui.add(
-                egui::Label::new(crate::components::small_tertiary(&t, meta))
+                egui::Label::new(crate::components::small_tertiary(t, meta))
                     .selectable(false)
                     .truncate(),
             );

@@ -103,7 +103,7 @@ fn under(ui: &mut Ui, t: &theme::Tokens, text: &str) {
 
 /// A line in `type.small`, secondary, wrapped.
 fn secondary(ui: &mut Ui, t: &theme::Tokens, text: &str) {
-    ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
+    ui.add(egui::Label::new(crate::components::small_secondary(t, text)).wrap());
 }
 
 /// The step's title, what it is, whether it can be changed later, then its fields and its Result (or, on the

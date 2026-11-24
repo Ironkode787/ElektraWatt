@@ -282,7 +282,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
     ui.add_space(t.space_2);
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
-        ui.label(crate::components::body_strong(&t, title));
+        ui.label(crate::components::body_strong(t, title));
     });
     let mut first = opened;
     for (i, f) in form.fields.iter().enumerate() {
@@ -364,7 +364,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
         ui.label(crate::components::small_tertiary(
-            &t,
+            t,
             strings::text(key!("palette-form-hint")),
         ));
     });

@@ -129,7 +129,7 @@ fn typeface_line(
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         ui.label(crate::components::body_strong(
-            &t,
+            t,
             strings::text(key!("text-styles-typeface-title")),
         ));
         ui.label(RichText::new(&line.words).color(t.text_primary.color32()));

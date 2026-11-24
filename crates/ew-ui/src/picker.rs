@@ -886,7 +886,7 @@ fn edit_buttons(
     });
     // The reason stands under the buttons too, where the eye is after the click.
     if let Some(why) = refusal {
-        ui.add(egui::Label::new(crate::components::small_secondary(&t, why)).wrap());
+        ui.add(egui::Label::new(crate::components::small_secondary(t, why)).wrap());
     }
 }
 

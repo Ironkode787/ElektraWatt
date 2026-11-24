@@ -160,7 +160,7 @@ fn toast(
     events: &mut Vec<Event>,
 ) -> (bool, bool) {
     let width = toast_width(t, ui.ctx().content_rect().width());
-    let frame = crate::components::raised_frame(&t, t.space_4).show(ui, |ui| {
+    let frame = crate::components::raised_frame(t, t.space_4).show(ui, |ui| {
         let inner = width - 2.0 * t.space_4;
         ui.set_width(inner);
         ui.horizontal_top(|ui| {

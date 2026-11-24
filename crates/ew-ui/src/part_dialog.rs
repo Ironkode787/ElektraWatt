@@ -531,7 +531,7 @@ fn size_fields(
 ) -> bool {
     let mut save = false;
     let hint = |ui: &mut Ui, k: strings::Key<'static>| {
-        ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(k))).wrap());
+        ui.add(egui::Label::new(crate::components::small_secondary(t, strings::text(k))).wrap());
     };
     for f in ew_viewmodel::ew_api::SIZE_FIELDS {
         let label = ew_viewmodel::shell::part_dialog::size_label(f);

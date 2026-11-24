@@ -588,7 +588,7 @@ fn field_line(ui: &mut Ui, t: &crate::theme::Tokens, label_width: f32, line: Str
         ui.spacing_mut().interact_size.y = 0.0;
         ui.horizontal(|ui| {
             ui.add_space(label_width + t.space_3);
-            ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
+            ui.add(egui::Label::new(crate::components::small_secondary(t, line)).wrap());
         });
     });
 }

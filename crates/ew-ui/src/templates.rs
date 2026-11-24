@@ -33,7 +33,7 @@ fn under(ui: &mut Ui, t: &theme::Tokens, indent: f32, text: &str) {
 
 /// A line in `type.small`, secondary, wrapped.
 fn small(ui: &mut Ui, t: &theme::Tokens, text: &str) {
-    ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
+    ui.add(egui::Label::new(crate::components::small_secondary(t, text)).wrap());
 }
 
 /// A label in the dialog's label column (`size.dialog.label`), then `space.3`, then `field` in the rest of the row.
