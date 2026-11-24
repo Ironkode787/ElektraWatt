@@ -14,7 +14,7 @@ pub(super) fn import_table_error_line(e: &ew_api::output::TableImportError) -> S
         .next()
         .map(|c| c.to_lowercase().collect::<String>())
         .unwrap_or_default();
-    format!("error: {first}{}", chars.as_str())
+    error_line(format_args!("{first}{}", chars.as_str()))
 }
 
 impl Leaf for ImportTableArgs {
@@ -37,7 +37,7 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
     let bytes = match read_bounded(&a.file, ew_api::catalog::table_limits().max_input_bytes) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {}: {e}", a.file.display());
+            error(format_args!("{}: {e}", a.file.display()));
             return 2;
         }
     };
@@ -59,7 +59,7 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
         match open_reader(&dir, "import table") {
             Ok((s, _)) => s,
             Err(e) => {
-                eprintln!("error: {}: {e}", dir.display());
+                error(format_args!("{}: {e}", dir.display()));
                 return 2;
             }
         }
@@ -82,7 +82,7 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
     let mut applied = false;
     if a.apply && import.command.is_some() {
         if let Err(e) = session.apply_table_import(&import, ew_api::Submit::from(origin)) {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -90,7 +90,7 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
             .save()
             .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
         {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             session.close();
             return 2;
         }
@@ -209,11 +209,11 @@ pub(super) fn read_map_and_table(
     file: &Path,
 ) -> Result<(ew_api::catalog::ColumnMap, ew_api::catalog::ImportInput), i32> {
     let map = ew_api::catalog::read_column_map(map).map_err(|e| {
-        eprintln!("error: the column map: {e}");
+        error(format_args!("the column map: {e}"));
         2
     })?;
     let input = ew_api::catalog::read_input(file, &ew_api::catalog::Limits::default()).map_err(|e| {
-        eprintln!("error: {e}");
+        error(e);
         2
     })?;
     Ok((map, input))
@@ -296,7 +296,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
     let (import, cmd) = match session.catalog_parts(&input, &map, &master, a.as_of) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -312,7 +312,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
         {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("error: {e}");
+                error(e);
                 session.close();
                 return 2;
             }
@@ -324,7 +324,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
             .save()
             .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
         {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             session.close();
             return 2;
         }
@@ -374,7 +374,7 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     let parts = match ew_api::import::read_parts_tables(&a.file, &session) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -389,7 +389,7 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -401,7 +401,7 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
         .save()
         .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
     {
-        eprintln!("error: the save failed: {e:?}");
+        error(save_failed(&e));
         session.close();
         return 2;
     }
@@ -452,7 +452,7 @@ pub(super) fn unique_stem(used: &mut std::collections::BTreeSet<String>, stem: &
 /// connection, has an error finding or was refused.
 fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary) -> i32 {
     let Some(out) = &a.out else {
-        eprintln!("error: `--batch` needs `--out <dir>` for the projects and reports");
+        error("`--batch` needs `--out <dir>` for the projects and reports");
         return 2;
     };
     // The symbol map of the folder binds every file of it (doc 14 §4.17).
@@ -462,7 +462,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
     {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -474,17 +474,17 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
             .filter(|p| p.is_file() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("qet")))
             .collect(),
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     files.sort();
     if files.is_empty() {
-        eprintln!("error: {}: no .qet files", dir.display());
+        error(format_args!("{}: no .qet files", dir.display()));
         return 2;
     }
     if let Err(e) = std::fs::create_dir_all(out) {
-        eprintln!("error: {}: {e}", out.display());
+        error(format_args!("{}: {e}", out.display()));
         return 2;
     }
     let mut summary = String::from(
@@ -539,7 +539,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         ));
         let report_file = out.join(format!("{stem}.report.md"));
         if let Err(e) = write_report(&report_file, &report.render(ReportFormat::Markdown)) {
-            eprintln!("error: {}: {e}", report_file.display());
+            error(format_args!("{}: {e}", report_file.display()));
             write_failed = true;
             refused += 1;
             summary.push_str(&row("the report was not written", counts));
@@ -585,7 +585,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         total.saturating_sub(refused)
     ));
     if let Err(e) = write_report(&out.join("summary.md"), &summary) {
-        eprintln!("error: {}: {e}", out.join("summary.md").display());
+        error(format_args!("{}: {e}", out.join("summary.md").display()));
         return 2;
     }
     println!("summary written to {}", out.join("summary.md").display());
@@ -623,7 +623,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         Some(dir) => match StarterLibrary::from_dir(dir) {
             Ok(l) => l,
             Err(e) => {
-                eprintln!("error: starter content: {e}");
+                error(format_args!("starter content: {e}"));
                 return 2;
             }
         },
@@ -634,13 +634,13 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         return run_import_qet_batch(a, dir, &library);
     }
     let Some(file) = &a.file else {
-        eprintln!("error: give the QElectroTech project file, or `--batch <dir>`");
+        error("give the QElectroTech project file, or `--batch <dir>`");
         return 2;
     };
     let bytes = match std::fs::read(file) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {}: {e}", file.display());
+            error(format_args!("{}: {e}", file.display()));
             return 2;
         }
     };
@@ -652,7 +652,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let library = match library.with_symbol_map_beside(file) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -662,7 +662,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let imported = match import_qet(&name, bytes, &library) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -737,7 +737,7 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
             Some(path) => match write_report(path, &text) {
                 Ok(()) => say(format!("report written to {}", path.display())),
                 Err(e) => {
-                    eprintln!("error: {}: {e}", path.display());
+                    error(format_args!("{}: {e}", path.display()));
                     return 2;
                 }
             },
@@ -759,13 +759,13 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
                         warn_unreleased(unstable, &mut std::io::stderr());
                     }
                     Err(e) => {
-                        eprintln!("error: {e}");
+                        error(e);
                         return 2;
                     }
                 }
             }
             Err(_) => {
-                eprintln!("error: the imported records do not make a project; nothing was written");
+                error("the imported records do not make a project; nothing was written");
                 return 2;
             }
         }
@@ -824,7 +824,7 @@ pub(super) fn run_reimport_qet(
         ew_api::Session::open_read_only(project, env!("CARGO_PKG_VERSION"))
             .map(|(s, _)| s)
             .map_err(|e| {
-                eprintln!("error: {}: {e}", project.display());
+                error(format_args!("{}: {e}", project.display()));
                 2
             })
     };
@@ -834,7 +834,7 @@ pub(super) fn run_reimport_qet(
     let detected = match session.detect_qet_lineage(name, bytes.clone(), library) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -845,7 +845,7 @@ pub(super) fn run_reimport_qet(
     let reimport = match session.reimport_qet(name, bytes, library, detected.lineage()) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -878,7 +878,7 @@ pub(super) fn run_reimport_qet(
         return 0;
     }
     if let Err(e) = session.apply_reimport(reimport) {
-        eprintln!("error: {e}");
+        error(e);
         session.close();
         return 2;
     }
@@ -887,7 +887,7 @@ pub(super) fn run_reimport_qet(
             .save()
             .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
         {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             session.close();
             return 2;
         }
@@ -920,23 +920,23 @@ impl Leaf for ImportCsvArgs {
 pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
     use ew_api::import::{CreateError, ImportMode, create_project, import_tables, read_tables};
     let Some(content) = a.content.clone().or_else(content_dir) else {
-        eprintln!(
-            "error: `import csv` needs the starter content (`--content <dir>` or EW_CONTENT_DIR): the tables name its \
+        error(format_args!(
+            "`import csv` needs the starter content (`--content <dir>` or EW_CONTENT_DIR): the tables name its \
              symbols, function definitions and forms; nothing was written"
-        );
+        ));
         return 2;
     };
     let library = match StarterLibrary::from_dir(&content) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("error: starter content: {}: {e}", content.display());
+            error(format_args!("starter content: {}: {e}", content.display()));
             return 2;
         }
     };
     let inputs = match read_tables(&a.tables) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -948,7 +948,7 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
     let batch = match import_tables(&inputs, &library, mode) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -981,10 +981,10 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
     let tables = inputs.len();
     let (records, documents) = (batch.records.len(), batch.lib.len());
     let (code, written) = if !a.lenient && errors > 0 {
-        eprintln!(
-            "error: the import made {} under `--strict` (the default); nothing was written",
+        error(format_args!(
+            "the import made {} under `--strict` (the default); nothing was written",
             plural(errors, "error finding", "error findings")
-        );
+        ));
         (1, false)
     } else {
         match create_project(
@@ -1004,11 +1004,11 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
                 (0, true)
             }
             Err(e @ CreateError::Model(_)) => {
-                eprintln!("error: {e}; nothing was written");
+                error(format_args!("{e}; nothing was written"));
                 (1, false)
             }
             Err(e) => {
-                eprintln!("error: {e}");
+                error(e);
                 return 2;
             }
         }

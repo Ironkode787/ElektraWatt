@@ -26,7 +26,7 @@ pub(super) fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
 
 /// The refusal of a subcommand that is not a reader, given an `.ewz` as its project.
 pub(super) fn ewz_refusal(path: &Path) -> String {
-    format!("error: {}: {}", path.display(), ew_api::ewz::READ_ONLY)
+    error_line(format_args!("{}: {}", path.display(), ew_api::ewz::READ_ONLY))
 }
 
 /// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
@@ -38,7 +38,7 @@ pub(super) fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
         None => {
             let found = std::env::current_dir().ok().and_then(|cwd| find_project(&cwd));
             if found.is_none() {
-                eprintln!("error: no project directory given and none found above the current directory");
+                error("no project directory given and none found above the current directory");
             }
             found
         }
@@ -61,7 +61,7 @@ pub(super) fn open_reader(
 /// not list it ([`ew_api::unread_files`]): a file added by hand is otherwise silently not there.
 pub(super) fn warn_unread(report: &ew_api::OpenReport, out: &mut dyn std::io::Write) {
     for file in ew_api::unread_files(report) {
-        let _ = writeln!(out, "warning: {}", printable(&file));
+        let _ = writeln!(out, "{}", warning_line(printable(&file)));
     }
 }
 
@@ -78,7 +78,7 @@ pub(super) fn open_projection_and_session(
     let (session, opened) = match open_reader(&dir, "sql") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return Err(2);
         }
     };
@@ -86,7 +86,7 @@ pub(super) fn open_projection_and_session(
         .check(&ew_api::checks::PRE_DELIVERY, CheckMode::Release)
         .with_integrity(ew_api::integrity_items(&opened));
     let projection = session.sql_projection(Some(&report)).map_err(|e| {
-        eprintln!("error: {e}");
+        error(e);
         2
     })?;
     Ok((projection, session))
@@ -132,7 +132,7 @@ pub(super) fn open_for_writing_from(
         return Err(2);
     }
     if let Some(from) = &opened.migrated_from {
-        eprintln!("error: {}", older_format(dir, from));
+        error(older_format(dir, from));
         session.close();
         return Err(2);
     }
@@ -183,7 +183,7 @@ pub(super) fn open_editing_to(
     let (mut session, opened) = match ew_api::Session::open(dir, store, options, recovery) {
         Ok(r) => r,
         Err(e) => {
-            let _ = writeln!(errors, "error: {}: {e}", dir.display());
+            let _ = writeln!(errors, "{}", error_line(format_args!("{}: {e}", dir.display())));
             return Err(2);
         }
     };
@@ -208,19 +208,19 @@ pub(super) fn open_editing_to(
                         Some((part, library)) => format!("the library copy of part {part} from {library}"),
                         None => "the library copy of its part".to_owned(),
                     };
-                    format!(
-                        "error: {}: the project opens read-only: the device {device} uses {copy}, which is damaged; \
+                    error_line(format_args!(
+                        "{}: the project opens read-only: the device {device} uses {copy}, which is damaged; \
                          update the copy from its library first; nothing was written",
                         dir.display()
-                    )
+                    ))
                 }
                 // A copy no device names, by its own words and the record that names it.
-                (ew_api::ReadOnlyReason::Integrity, Some(damaged)) => format!(
-                    "error: {}: the project opens read-only: {} is damaged; update the copy from its library first; \
+                (ew_api::ReadOnlyReason::Integrity, Some(damaged)) => error_line(format_args!(
+                    "{}: the project opens read-only: {} is damaged; update the copy from its library first; \
                      nothing was written",
                     dir.display(),
                     damaged.words
-                ),
+                )),
                 _ => read_only_refusal(dir, reason),
             };
             let _ = writeln!(errors, "{refusal}");
@@ -231,7 +231,7 @@ pub(super) fn open_editing_to(
     }
     // An image kept but not drawn is named as the window's open banner names it.
     for notice in undrawn_notices(&session) {
-        let _ = writeln!(errors, "notice: {notice}");
+        let _ = writeln!(errors, "{}", notice_line(notice));
     }
     Ok((session, opened))
 }
@@ -240,11 +240,11 @@ pub(super) fn open_editing_to(
 /// read-only (`ew recover` refuses a held lock with `ew apply`'s text). The reason is in words,
 /// those the window uses, with no session ID, process ID or `@`.
 pub(super) fn read_only_refusal(dir: &Path, reason: &ew_api::ReadOnlyReason) -> String {
-    format!(
-        "error: {}: the project opens read-only: {}; nothing was written",
+    error_line(format_args!(
+        "{}: the project opens read-only: {}; nothing was written",
         dir.display(),
         read_only_words(reason)
-    )
+    ))
 }
 
 /// A read-only reason in words. Text from the lock file and the system passes through [`printable`].
@@ -264,7 +264,7 @@ pub(super) fn read_only_words(reason: &ew_api::ReadOnlyReason) -> String {
         R::NotWritable(message) => format!("the project folder cannot be written ({})", printable(message)),
         R::Integrity => "it has integrity findings; `ew check` lists them".to_owned(),
         R::Format(why) => format!("it was {why}"),
-        R::LockLost(_) => "the lock was taken over".to_owned(),
+        R::LockLost(_) => ew_api::text!("saveerr-lock-lost").to_string(),
     }
 }
 
@@ -283,11 +283,19 @@ pub(super) fn older_format(dir: &Path, from: &str) -> String {
 /// journal holds unsaved changes, which a new save would hide (doc 05 section 8.3). It names the command that replays
 /// or discards them, `ew recover`, and no follow-up number.
 pub(super) fn journal_refusal(dir: &Path) -> String {
-    format!(
-        "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with `ew \
+    error_line(format_args!(
+        "{}: a crashed session left unsaved changes in its journal; replay or discard them first with `ew \
          recover`; nothing was written",
         dir.display()
-    )
+    ))
+}
+
+/// The refusal of a typed confirmation that did not match.
+pub(super) const NOT_CONFIRMED: &str = "not confirmed; nothing was changed";
+
+/// The refusal of a save that failed, its error as the store gives it.
+pub(super) fn save_failed(e: &impl std::fmt::Debug) -> String {
+    format!("the save failed: {e:?}")
 }
 
 /// Whether `ew` talks to a person: stdin and stdout are both a terminal. A human-only subcommand asks its typed word
@@ -300,7 +308,9 @@ pub(super) fn is_terminal() -> bool {
 /// The refusal of a human-only subcommand without a terminal ([`is_terminal`]): `why` says how it is confirmed,
 /// `nothing` what was not done (`changed`, `removed`).
 pub(super) fn human_only(why: &str, nothing: &str) -> String {
-    format!("error: HumanOnly: needs an interactive terminal ({why}); nothing was {nothing}")
+    error_line(format_args!(
+        "HumanOnly: needs an interactive terminal ({why}); nothing was {nothing}"
+    ))
 }
 
 /// `text` with its control characters and the Unicode bidirectional controls escaped: text from a project or state

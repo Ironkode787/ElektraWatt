@@ -29,14 +29,14 @@ pub(super) fn run_apply(a: &ApplyCli) -> i32 {
     let text = match std::fs::read_to_string(log_file) {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("error: {}: {e}", log_file.display());
+            error(format_args!("{}: {e}", log_file.display()));
             return 2;
         }
     };
     let log = match CmdLog::parse(&text) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(&e);
             return i32::from(e.exit_code());
         }
     };
@@ -88,7 +88,7 @@ pub(super) fn run_apply(a: &ApplyCli) -> i32 {
     let (code, committed) = match &result {
         Ok(receipts) => (0, receipts.len()),
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             (i32::from(e.exit_code()), e.committed())
         }
     };
@@ -112,7 +112,7 @@ pub(super) fn run_apply(a: &ApplyCli) -> i32 {
             code
         }
         Err(e) => {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             session.close();
             2
         }
@@ -139,7 +139,7 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
     };
     let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
     let Some(tiers) = ew_api::library::LibraryTiers::for_user(system, a.company.clone()) else {
-        eprintln!("error: no data and cache directories (set EW_DATA_DIR and EW_CACHE_DIR)");
+        error(NO_USER_DIRECTORIES);
         return 2;
     };
     let open = || {
@@ -153,7 +153,7 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
         };
         let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
         ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep).map_err(|e| {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             2
         })
     };
@@ -166,7 +166,7 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
     let done = match done {
         Ok(done) => done,
         Err(refusal) => {
-            eprintln!("error: {}: {refusal}", dir.display());
+            error(format_args!("{}: {refusal}", dir.display()));
             return if refusal.key() == "refusal-update-copies-save" {
                 2
             } else {
@@ -203,7 +203,7 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
     let (mut session, _) = match open_reader(dir, "apply") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -212,14 +212,14 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
     let (code, committed) = match &result {
         Ok(receipts) => (0, receipts.len()),
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             (i32::from(e.exit_code()), e.committed())
         }
     };
     let diff = match session.diff_from(&before) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e:?}");
+            error(format_args!("{e:?}"));
             return 2;
         }
     };
@@ -331,10 +331,10 @@ pub(super) fn run_schema(name: &str) -> i32 {
             0
         }
         None => {
-            eprintln!(
-                "error: unknown schema `{}` (a command name of `ew commands`, or a result schema `ew.<command>-result/<n>`)",
+            error(format_args!(
+                "unknown schema `{}` (a command name of `ew commands`, or a result schema `ew.<command>-result/<n>`)",
                 name.escape_debug()
-            );
+            ));
             2
         }
     }

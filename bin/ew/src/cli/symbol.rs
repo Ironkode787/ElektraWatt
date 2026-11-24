@@ -6,6 +6,7 @@
 use ew_api::symbols::{self, SymbolDraft};
 use std::path::PathBuf;
 
+use super::error;
 use super::tree::{Leaf, group};
 use crate::catalogue::{Exit, OK, USAGE_ETC, exit};
 
@@ -87,7 +88,7 @@ pub(super) fn run(args: SymbolArgs) -> i32 {
             code
         }
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             2
         }
     }

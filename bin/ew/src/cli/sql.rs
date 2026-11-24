@@ -44,7 +44,7 @@ pub(super) fn run_sql(a: &SqlCli) -> i32 {
         SqlSource::File(f) => match std::fs::read_to_string(f) {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("error: {}: {e}", f.display());
+                error(format_args!("{}: {e}", f.display()));
                 return 2;
             }
         },
@@ -88,7 +88,7 @@ pub(super) fn run_sql(a: &SqlCli) -> i32 {
         Some(path) => match write_report(path, &text) {
             Ok(()) => println!("result written to {}", path.display()),
             Err(e) => {
-                eprintln!("error: {}: {e}", path.display());
+                error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
@@ -100,17 +100,17 @@ pub(super) fn run_sql(a: &SqlCli) -> i32 {
     0
 }
 
-/// `ew sql`'s line when the statement panicked.
-pub(super) const QUERY_PANICKED: &str = "error: the query stopped on an internal error; nothing was changed";
+/// `ew sql`'s refusal when the statement panicked.
+pub(super) const QUERY_PANICKED: &str = "the query stopped on an internal error; nothing was changed";
 
 /// Runs `ew sql`'s statement, `run`, inside `catch_unwind` (NFR-REL-12): its result, or the line to print
-/// (`error: <the SQL error>`, or [`QUERY_PANICKED`] when it panicked). The query reads a projection image only, so a
+/// (`error: ` and the SQL error, or [`QUERY_PANICKED`] when it panicked). The query reads a projection image only, so a
 /// panic changes nothing.
 pub(super) fn guarded_query<T>(run: impl FnOnce() -> Result<T, ew_api::sql::SqlError>) -> Result<T, String> {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)) {
         Ok(Ok(t)) => Ok(t),
-        Ok(Err(e)) => Err(format!("error: {e}")),
-        Err(_) => Err(QUERY_PANICKED.to_owned()),
+        Ok(Err(e)) => Err(error_line(e)),
+        Err(_) => Err(error_line(QUERY_PANICKED)),
     }
 }
 
@@ -121,13 +121,13 @@ pub(super) fn write_sql_xlsx(
     set: &ew_api::sql::ResultSet,
 ) -> i32 {
     let Some(path) = out else {
-        eprintln!("error: {XLSX_NEEDS_OUT}");
+        error(XLSX_NEEDS_OUT);
         return 2;
     };
     let date = match source_date() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -139,7 +139,7 @@ pub(super) fn write_sql_xlsx(
     }) {
         Ok(Ok(b)) => b,
         Ok(Err(e)) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
         Err(line) => {
@@ -148,7 +148,7 @@ pub(super) fn write_sql_xlsx(
         }
     };
     if let Err(e) = write_atomically(path, &bytes) {
-        eprintln!("error: {}: {e}", path.display());
+        error(format_args!("{}: {e}", path.display()));
         return 2;
     }
     println!("result written to {}", path.display());
@@ -192,7 +192,7 @@ pub(super) fn run_sql_dump(a: &SqlDumpCli) -> i32 {
             0
         }
         Err(e) => {
-            eprintln!("error: {}: {e}", out.display());
+            error(format_args!("{}: {e}", out.display()));
             2
         }
     }

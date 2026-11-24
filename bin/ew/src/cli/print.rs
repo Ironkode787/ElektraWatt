@@ -35,14 +35,14 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let date = match source_date() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     let (session, _) = match open_reader(&dir, "print") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -59,7 +59,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let set = match session.print_set(&options) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -67,7 +67,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let scale = (0..set.pages.len()).map(|i| set.percent(i)).min().unwrap_or(100);
     let notices: Vec<String> = set.notices.iter().map(ToString::to_string).collect();
     for n in &notices {
-        eprintln!("notice: {n}");
+        notice(n);
     }
     let result = |adapter: &str, out: Option<String>| results::PrintResult {
         schema: results::PrintResult::SCHEMA.to_owned(),
@@ -81,7 +81,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     };
     if let Some(out) = &a.out {
         if let Err(e) = write_atomically(out, &set.pdf) {
-            eprintln!("error: {}: {e}", out.display());
+            error(format_args!("{}: {e}", out.display()));
             return 2;
         }
         if a.json {
@@ -118,7 +118,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let outcome = match adapter.print(&job) {
         Ok(o) => o,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };

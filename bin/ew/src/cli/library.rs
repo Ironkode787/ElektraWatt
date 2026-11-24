@@ -16,15 +16,27 @@ pub(super) fn content_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+/// The refusal when the OS gives no user data and cache directories for the library tiers.
+pub(super) const NO_USER_DIRECTORIES: &str =
+    "no data and cache directories (set EW_DATA_DIR and EW_CACHE_DIR)";
+
+/// The note after a write a stale library lock refused.
+pub(super) const TAKE_OVER_NOTE: &str = "note: pass `--take-over` to take the stale lock over";
+
+/// The refusal of a library key or ID that names no library of the tiers.
+pub(super) fn no_library(library: &str) -> String {
+    format!("no library `{library}` (see `ew lib list`)")
+}
+
 /// Opens the tiers of `ew lib` (exit code 2 on failure).
 pub(super) fn open_libraries(company: &[PathBuf]) -> Result<ew_api::library::Registry, i32> {
     let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
     let Some(tiers) = ew_api::library::LibraryTiers::for_user(system, company.to_vec()) else {
-        eprintln!("error: no data and cache directories (set EW_DATA_DIR and EW_CACHE_DIR)");
+        error(NO_USER_DIRECTORIES);
         return Err(2);
     };
     ew_api::library::Registry::open(&tiers).map_err(|e| {
-        eprintln!("error: the libraries cannot be opened: {e}");
+        error(format_args!("the libraries cannot be opened: {e}"));
         2
     })
 }
@@ -142,7 +154,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 }
             }
             for f in reg.findings() {
-                eprintln!("warning: {f}");
+                warning(f);
             }
             0
         }
@@ -169,7 +181,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 let hits = match reg.try_search(&q) {
                     Ok(h) => h,
                     Err(e) => {
-                        eprintln!("error: {e}");
+                        error(e);
                         return 2;
                     }
                 };
@@ -270,7 +282,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
         // `--rebuild` is required, so it is always set: the old parser refused `lib index` without it.
         LibSub::Index(IndexCli { rebuild: _required }) => {
             if let Err(e) = reg.rebuild_index() {
-                eprintln!("error: the index cannot be rebuilt: {e}");
+                error(format_args!("the index cannot be rebuilt: {e}"));
                 return 2;
             }
             match reg.index_counts() {
@@ -290,7 +302,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                     0
                 }
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     2
                 }
             }
@@ -326,7 +338,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 0
             }
             Err(e) => {
-                eprintln!("error: {e}");
+                error(e);
                 2
             }
         },
@@ -340,13 +352,13 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 .find(|l| l.key == *library || l.id.to_string() == *library)
                 .map(|l| (l.id, l.key.clone()))
             else {
-                eprintln!("error: no library `{library}` (see `ew lib list`)");
+                error(no_library(library));
                 return 2;
             };
             let collection = match ew_api::qet_collection::read_collection(dir) {
                 Ok(c) => c,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
@@ -418,7 +430,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                     0
                 }
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     2
                 }
             }
@@ -436,7 +448,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 .find(|l| l.key == *library || l.id.to_string() == *library)
                 .map(|l| (l.id, l.key.clone()))
             else {
-                eprintln!("error: no library `{library}` (see `ew lib list`)");
+                error(no_library(library));
                 return 2;
             };
             let (map, input) = match read_map_and_table(map, file) {
@@ -500,12 +512,12 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                     0
                 }
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(&e);
                     if matches!(
                         e,
                         ew_api::catalog::CatalogError::Library(ew_api::library::LibraryError::Stale { .. })
                     ) {
-                        eprintln!("note: pass `--take-over` to take the stale lock over");
+                        eprintln!("{TAKE_OVER_NOTE}");
                     }
                     2
                 }
@@ -518,6 +530,8 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
 /// stands, and the index is brought up to date on the next open or write.
 pub(super) fn index_warning(w: &ew_api::library::WriteReport) -> Option<String> {
     w.index_error.as_deref().map(|e| {
-        format!("warning: the library's search index was not updated ({e}); it is rebuilt on the next open or write")
+        warning_line(format_args!(
+            "the library's search index was not updated ({e}); it is rebuilt on the next open or write"
+        ))
     })
 }

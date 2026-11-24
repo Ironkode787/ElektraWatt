@@ -6,6 +6,7 @@
 
 use ew_api::cli_results as results;
 
+use super::error;
 use super::tree::{Leaf, QueriesCli, QueryCli, usage};
 use super::{open_reader, reader_dir};
 use crate::catalogue::{Exit, OK, exit};
@@ -35,7 +36,10 @@ pub(super) fn run_query(a: &QueryCli) -> i32 {
     };
     // An unknown name is refused before the project is opened.
     if ew_api::queries::query(name).is_none() {
-        eprintln!("error: {}", ew_api::queries::QueryError::Unknown(name.to_owned()));
+        error(format_args!(
+            "{}",
+            ew_api::queries::QueryError::Unknown(name.to_owned())
+        ));
         return 2;
     }
     let Some(dir) = reader_dir(project.as_ref()) else {
@@ -44,14 +48,14 @@ pub(super) fn run_query(a: &QueryCli) -> i32 {
     let session = match open_reader(&dir, "query") {
         Ok((session, _)) => session,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let answer = match session.run_query(name, key, a.explain) {
         Ok(answer) => answer,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };

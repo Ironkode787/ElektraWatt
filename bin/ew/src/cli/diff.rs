@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use ew_api::Session;
 
 use super::DiffArgs;
+use super::error;
 use super::tree::Leaf;
 use crate::catalogue::{Exit, exit};
 
@@ -39,21 +40,21 @@ pub(super) fn run_diff(a: &DiffArgs) -> i32 {
         return run_textconv(file);
     }
     let (Some(from), Some(to)) = (&a.from, &a.to) else {
-        eprintln!("error: `ew diff` compares two sides: ew diff <from> <to>");
+        error("`ew diff` compares two sides: ew diff <from> <to>");
         return 2;
     };
     let opened = open_side(from, Some(to)).and_then(|f| Ok((f, open_side(to, Some(from))?)));
     let (left, right) = match opened {
         Ok(sides) => sides,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     let entries = match left.diff_to(&right) {
         Ok(e) => e,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -193,7 +194,7 @@ fn run_textconv(file: &Path) -> i32 {
     let bytes = match std::fs::read(file) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {}: {e}", file.display());
+            error(format_args!("{}: {e}", file.display()));
             return 2;
         }
     };

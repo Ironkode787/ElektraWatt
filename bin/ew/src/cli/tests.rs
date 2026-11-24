@@ -104,16 +104,16 @@ fn p(args: &[&str]) -> Result<Top, String> {
 
 /// clap's whole rendering of a usage error of the subcommand whose usage line is `usage`.
 fn usage_error(message: &str, usage: &str) -> Result<Top, String> {
-    Err(format!(
-        "error: {message}\n\nUsage: {usage}\n\nFor more information, try '--help'.\n"
-    ))
+    Err(error_line(format_args!(
+        "{message}\n\nUsage: {usage}\n\nFor more information, try '--help'.\n"
+    )))
 }
 
 /// clap's whole rendering of a value that the flag's value parser refuses with `message`.
 fn invalid(value: &str, flag: &str, message: &str) -> Result<Top, String> {
-    Err(format!(
-        "error: invalid value '{value}' for '{flag}': {message}\n\nFor more information, try '--help'.\n"
-    ))
+    Err(error_line(format_args!(
+        "invalid value '{value}' for '{flag}': {message}\n\nFor more information, try '--help'.\n"
+    )))
 }
 
 /// The row export of a line (`export cables|bom|wires|terminals|report`), as its run takes it.

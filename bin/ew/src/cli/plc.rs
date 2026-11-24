@@ -13,7 +13,7 @@ use ew_api::plc_exchange::{
 
 /// The line of a refused exchange.
 fn refusal(e: &PlcExchangeError) -> String {
-    format!("error: {e}")
+    error_line(e)
 }
 
 fn origin(subcommand: &str) -> ew_api::Origin {
@@ -31,7 +31,7 @@ fn save(session: &mut ew_api::Session) -> bool {
             true
         }
         Err(e) => {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             false
         }
     }
@@ -80,7 +80,7 @@ pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
     let date = match document_date() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -104,13 +104,15 @@ pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
         }
     };
     if let Err(e) = write_atomically(out, &export.bytes) {
-        eprintln!("error: {}: {e}", out.display());
+        error(format_args!("{}: {e}", out.display()));
         session.close();
         return 2;
     }
     if let Some(record) = &export.record {
         if let Err(e) = session.execute(record) {
-            eprintln!("error: the file is written, but the exchange is not recorded: {e}");
+            error(format_args!(
+                "the file is written, but the exchange is not recorded: {e}"
+            ));
             session.close();
             return 2;
         }
@@ -121,7 +123,7 @@ pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
     }
     session.close();
     for w in &export.warnings {
-        eprintln!("warning: {w}");
+        warning(w);
     }
     let [stations, modules, channels, tags] = export.counts;
     let plural = |n: usize, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
@@ -257,7 +259,7 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
     let bytes = match read_bounded(&a.file, ew_api::plc_exchange::max_file_bytes()) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {}: {e}", a.file.display());
+            error(format_args!("{}: {e}", a.file.display()));
             return 2;
         }
     };
@@ -269,11 +271,11 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
         {
             Ok(r) => Some(r),
             Err(e) => {
-                eprintln!(
-                    "error: {}: {e}; the choices are a JSON object from a change's key or a parked object's ID to \
+                error(format_args!(
+                    "{}: {e}; the choices are a JSON object from a change's key or a parked object's ID to \
                      `ours`, `theirs` or `create`",
                     path.display()
-                );
+                ));
                 return 2;
             }
         },
@@ -281,7 +283,7 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
     let date = match document_date() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -295,7 +297,7 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
         match open_reader(&dir, "import plc") {
             Ok((s, _)) => s,
             Err(e) => {
-                eprintln!("error: {}: {e}", dir.display());
+                error(format_args!("{}: {e}", dir.display()));
                 return 2;
             }
         }
@@ -321,7 +323,7 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
             .preview(&import.apply)
             .and_then(|preview| session.commit(preview));
         if let Err(e) = committed {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -354,7 +356,7 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
     let bytes = match read_bounded(&a.file, ew_api::catalog::table_limits().max_input_bytes) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {}: {e}", a.file.display());
+            error(format_args!("{}: {e}", a.file.display()));
             return 2;
         }
     };
@@ -365,7 +367,7 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
     let preview = session
         .instrument_list(a.config.as_deref(), &bytes)
         .map_err(|e| refusal(&e))
-        .and_then(|command| session.preview(&command).map_err(|e| format!("error: {e}")));
+        .and_then(|command| session.preview(&command).map_err(error_line));
     let preview = match preview {
         Ok(p) => p,
         Err(line) => {
@@ -377,7 +379,7 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
     let notices = preview.outcome().notices.clone();
     if a.apply {
         if let Err(e) = session.commit(preview) {
-            eprintln!("error: {e}");
+            error(e);
             session.close();
             return 2;
         }
@@ -422,7 +424,7 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
         Some(path) => match read_bounded(path, ew_api::plc_exchange::max_file_bytes()) {
             Ok(b) => Some(b),
             Err(e) => {
-                eprintln!("error: {}: {e}", path.display());
+                error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
@@ -430,7 +432,7 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
     let session = match open_reader(&dir, "plc status") {
         Ok((s, _)) => s,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };

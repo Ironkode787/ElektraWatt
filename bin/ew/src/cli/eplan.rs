@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use ew_api::eplan;
 
 use super::tree::Leaf;
+use super::{TAKE_OVER_NOTE, error, no_library, save_failed};
 use super::{library::index_warning, library::open_libraries, open::project_dir};
 use crate::catalogue::{Exit, exit};
 
@@ -111,14 +112,14 @@ pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
             let text = match std::fs::read_to_string(path) {
                 Ok(t) => t,
                 Err(e) => {
-                    eprintln!("error: {}: {e}", path.display());
+                    error(format_args!("{}: {e}", path.display()));
                     return 2;
                 }
             };
             match eplan::ReportMap::from_toml(&text) {
                 Ok(m) => (m, ew_api::catalog::source_key_for(&path.to_string_lossy())),
                 Err(e) => {
-                    eprintln!("error: the column map: {e}");
+                    error(format_args!("the column map: {e}"));
                     return 2;
                 }
             }
@@ -126,7 +127,7 @@ pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
         (None, Some(name)) => match eplan::report_presets().remove(name) {
             Some(m) => (m, name.clone()),
             None => {
-                eprintln!("error: no preset `{name}`");
+                error(format_args!("no preset `{name}`"));
                 return 2;
             }
         },
@@ -134,20 +135,20 @@ pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
     };
     let key = a.key.clone().unwrap_or(default_key);
     if let Err(e) = ew_api::catalog::check_source_key(&key) {
-        eprintln!("error: {e}");
+        error(e);
         return 2;
     }
     let input = match ew_api::catalog::read_input(&a.file, &ew_api::catalog::table_limits()) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     let batch = match eplan::report_batch(&input, &map, &key) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -176,7 +177,7 @@ pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
             0
         }
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             2
         }
     }
@@ -203,7 +204,7 @@ pub(super) fn run_import_eplan_parts(a: &ImportEplanPartsArgs) -> i32 {
         Some(path) => match eplan::fndef_map_file(path) {
             Ok(m) => m,
             Err(e) => {
-                eprintln!("error: {e}");
+                error(e);
                 return 2;
             }
         },
@@ -212,7 +213,7 @@ pub(super) fn run_import_eplan_parts(a: &ImportEplanPartsArgs) -> i32 {
     let input = match ew_api::catalog::read_input(&a.file, &ew_api::catalog::Limits::default()) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -244,7 +245,7 @@ fn into_library(
         .find(|l| l.key == library || l.id.to_string() == library)
         .map(|l| (l.id, l.key))
     else {
-        eprintln!("error: no library `{library}` (see `ew lib list`)");
+        error(no_library(library));
         return 2;
     };
     match eplan::import_into_library(&mut reg, id, input, fndefs, (a.as_of, a.bump, a.take_over), edz) {
@@ -273,12 +274,12 @@ fn into_library(
             0
         }
         Err(e) => {
-            eprintln!("error: {e}");
+            error(&e);
             if matches!(
                 e,
                 ew_api::catalog::CatalogError::Library(ew_api::library::LibraryError::Stale { .. })
             ) {
-                eprintln!("note: pass `--take-over` to take the stale lock over");
+                eprintln!("{TAKE_OVER_NOTE}");
             }
             2
         }
@@ -304,7 +305,7 @@ fn update_project(
         ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION"))
             .map(|(s, _)| s)
             .map_err(|e| {
-                eprintln!("error: {}: {e}", dir.display());
+                error(format_args!("{}: {e}", dir.display()));
                 2
             })
     };
@@ -326,7 +327,7 @@ fn update_session(
     let import = match session.eplan_parts(input, fndefs, a.as_of) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -334,7 +335,7 @@ fn update_session(
     let updates = match session.update_parts_from_import(&import) {
         Ok(u) => u,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -382,14 +383,14 @@ fn update_session(
         .preview_with(&plan.command, ew_api::Submit::from(origin))
         .and_then(|preview| session.commit(preview));
     if let Err(e) = result {
-        eprintln!("error: {e}");
+        error(e);
         return 2;
     }
     if let Err(e) = session
         .save()
         .map(|r| super::revision::warn_unreleased(r.unstable, &mut std::io::stderr()))
     {
-        eprintln!("error: the save failed: {e:?}");
+        error(save_failed(&e));
         return 2;
     }
     println!("{n} part copies updated in one step; saved");

@@ -114,10 +114,10 @@ pub(super) fn run_revision_with(
             match serde_json::from_value::<ew_api::PartyRole>(serde_json::Value::String(role.clone())) {
                 Ok(r) if !matches!(r, ew_api::PartyRole::Unknown(_)) => Some(r),
                 _ => {
-                    eprintln!(
-                        "error: `{role}` is not a party role (customer, end_user, panel_builder, author, checker, \
+                    error(format_args!(
+                        "`{role}` is not a party role (customer, end_user, panel_builder, author, checker, \
                          engineer); nothing was changed"
-                    );
+                    ));
                     return 2;
                 }
             }
@@ -156,21 +156,20 @@ pub(super) fn run_revision_with(
     // The release's housekeeping: a run record that could not be removed, as the project opened or a run
     // was settled.
     for trouble in session.take_release_troubles() {
-        eprintln!("warning: {trouble}");
+        warning(trouble);
     }
     session.close();
     code
 }
 
 /// The warning after a save that wrote an unreleased format.
-pub(crate) const UNRELEASED_SAVE: &str = "warning: saved in a format that is not released yet; released versions of \
-                                          ElektraWatt open this project read-only";
+pub(crate) const UNRELEASED_SAVE: &str = "saved in a format that is not released yet; released versions of ElektraWatt open this project read-only";
 
 /// After a save: [`UNRELEASED_SAVE`] on `errors` when the manifest it wrote is marked `unstable`; the exit
 /// code stays the save's.
 pub(crate) fn warn_unreleased(unstable: bool, errors: &mut dyn std::io::Write) {
     if unstable {
-        let _ = writeln!(errors, "{UNRELEASED_SAVE}");
+        let _ = writeln!(errors, "{}", warning_line(UNRELEASED_SAVE));
     }
 }
 
@@ -187,7 +186,7 @@ pub(super) fn save_revision(
             0
         }
         Err(e) => {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             2
         }
     }
@@ -204,13 +203,13 @@ pub(super) fn approve_revision(
     today: ew_api::catalog::Date,
 ) -> i32 {
     let Some(label) = session.open_revision_label() else {
-        eprintln!("error: the project has no open revision; nothing was approved");
+        error("the project has no open revision; nothing was approved");
         return 1;
     };
     let gate = match session.release_gate(&label, items) {
         Ok(g) => g,
         Err(e) => {
-            eprintln!("error: {e}; nothing was approved");
+            error(format_args!("{e}; nothing was approved"));
             return 1;
         }
     };
@@ -218,11 +217,11 @@ pub(super) fn approve_revision(
     if !blocked.is_empty() {
         let listing: String = blocked.iter().map(|f| finding_line(f)).collect();
         let _ = output.write_all(listing.as_bytes());
-        eprintln!(
-            "error: the release gate has {} unwaived error(s) besides {}; nothing was approved",
+        error(format_args!(
+            "the release gate has {} unwaived error(s) besides {}; nothing was approved",
             blocked.len(),
             ew_api::FOUR_EYES_RULE
-        );
+        ));
         return 1;
     }
     let role = ew_api::role_name(checker);
@@ -254,7 +253,7 @@ pub(super) fn approve_revision(
         "{summary}Type the revision label `{label}` to approve it{acknowledge}, anything else to abort: "
     );
     if !typed_word(input, output, &prompt, &label) {
-        eprintln!("error: not confirmed; nothing was changed");
+        error(NOT_CONFIRMED);
         return 1;
     }
     let approval = ew_api::Approval {
@@ -268,7 +267,7 @@ pub(super) fn approve_revision(
             let listing: String = list.iter().map(finding_line).collect();
             let _ = output.write_all(listing.as_bytes());
         }
-        eprintln!("error: {e}; nothing was approved");
+        error(format_args!("{e}; nothing was approved"));
         return 1;
     }
     save_revision(session, output, &format!("approved revision {label} as {role}"))
@@ -330,7 +329,7 @@ pub(super) fn release_revision(
         }
         Ok(_) => {}
         Err(e) => {
-            eprintln!("error: {e}; nothing was released");
+            error(format_args!("{e}; nothing was released"));
             return release_exit(&e);
         }
     }
@@ -339,14 +338,14 @@ pub(super) fn release_revision(
         Err(ew_api::ReleaseError::Blocked(blockers)) => {
             let listing: String = blockers.iter().map(finding_line).collect();
             let _ = output.write_all(listing.as_bytes());
-            eprintln!(
-                "error: release of {label} refused: the gate has {} blocker(s); nothing was released",
+            error(format_args!(
+                "release of {label} refused: the gate has {} blocker(s); nothing was released",
                 blockers.len()
-            );
+            ));
             return 1;
         }
         Err(e) => {
-            eprintln!("error: {e}; nothing was released");
+            error(format_args!("{e}; nothing was released"));
             return release_exit(&e);
         }
     };
@@ -363,11 +362,8 @@ pub(super) fn release_revision(
             worktree.display()
         ));
         if plan.archive_in_worktree {
-            summary.push_str(&format!(
-                "warning: the archive root lies inside the git worktree {}; archives are never added to git, so name a \
-                 root outside it with --archive-dir <dir>\n",
-                worktree.display()
-            ));
+            summary.push_str(&warning_line(format_args!("the archive root lies inside the git worktree {}; archives are never added to git, so name a \
+                 root outside it with --archive-dir <dir>\n", worktree.display())));
         }
     }
     let prompt = format!(
@@ -375,7 +371,7 @@ pub(super) fn release_revision(
          abort: "
     );
     if !typed_word(input, output, &prompt, label) {
-        eprintln!("error: not confirmed; nothing was changed");
+        error(NOT_CONFIRMED);
         return 1;
     }
     let ctx = ew_api::ReleaseContext {
@@ -392,7 +388,7 @@ pub(super) fn release_revision(
                 let listing: String = list.iter().map(finding_line).collect();
                 let _ = output.write_all(listing.as_bytes());
             }
-            eprintln!("error: {e}");
+            error(&e);
             release_exit(&e)
         }
     }
@@ -440,18 +436,18 @@ pub(super) fn settle_release(
 ) -> i32 {
     let label = &found.label;
     if let Some(why) = &found.foreign {
-        eprintln!(
-            "error: release of {label} refused: {why}; it is kept. Name another archive folder with --archive-dir \
+        error(format_args!(
+            "release of {label} refused: {why}; it is kept. Name another archive folder with --archive-dir \
              <dir>; nothing was changed"
-        );
+        ));
         return 1;
     }
     if let (Some(refusal), Some(unproven)) = (&found.refusal, &found.unproven) {
-        eprintln!(
-            "error: release of {label} refused: {unproven}, and it cannot be completed ({refusal}); it is kept. Remove \
+        error(format_args!(
+            "release of {label} refused: {unproven}, and it cannot be completed ({refusal}); it is kept. Remove \
              the file by hand if you know it is a leftover, or name another archive folder with --archive-dir <dir>; \
              nothing was changed"
-        );
+        ));
         return 1;
     }
     let mut summary = format!(
@@ -490,7 +486,7 @@ pub(super) fn settle_release(
                 0
             }
             Err(e) => {
-                eprintln!("error: {e}");
+                error(&e);
                 release_exit(&e)
             }
         },
@@ -514,12 +510,12 @@ pub(super) fn settle_release(
                 0
             }
             Err(e) => {
-                eprintln!("error: {e}");
+                error(&e);
                 release_exit(&e)
             }
         },
         _ => {
-            eprintln!("error: not confirmed; nothing was changed");
+            error(NOT_CONFIRMED);
             1
         }
     }
@@ -535,7 +531,9 @@ pub(super) fn withdraw_revision(
     output: &mut dyn std::io::Write,
 ) -> i32 {
     let Some(id) = session.released_revision(label) else {
-        eprintln!("error: the project has no released revision {label}; nothing was withdrawn");
+        error(format_args!(
+            "the project has no released revision {label}; nothing was withdrawn"
+        ));
         return 1;
     };
     let prompt = format!(
@@ -543,7 +541,7 @@ pub(super) fn withdraw_revision(
          `{label}` to withdraw it, anything else to abort: "
     );
     if !typed_word(input, output, &prompt, label) {
-        eprintln!("error: not confirmed; nothing was changed");
+        error(NOT_CONFIRMED);
         return 1;
     }
     let cmd = ew_api::AnyCommand {
@@ -551,7 +549,7 @@ pub(super) fn withdraw_revision(
         params: serde_json::json!({"revision": id.to_string(), "reason": reason}),
     };
     if let Err(e) = session.execute(&cmd) {
-        eprintln!("error: {e}; nothing was withdrawn");
+        error(format_args!("{e}; nothing was withdrawn"));
         return 1;
     }
     save_revision(session, output, &format!("withdrew revision {label}"))

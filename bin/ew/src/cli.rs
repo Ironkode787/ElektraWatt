@@ -535,6 +535,37 @@ fn json_text(v: serde_json::Result<serde_json::Value>) -> String {
     }
 }
 
+/// `error: ` and `text`: a refusal of `ew`, for a writer a caller injects or a caller that prints it. With
+/// [`warning_line`] and [`notice_line`] the one place the prefix of such a line is spelt.
+fn error_line(text: impl std::fmt::Display) -> String {
+    format!("error: {text}")
+}
+
+/// `warning: ` and `text`.
+fn warning_line(text: impl std::fmt::Display) -> String {
+    format!("warning: {text}")
+}
+
+/// `notice: ` and `text`.
+fn notice_line(text: impl std::fmt::Display) -> String {
+    format!("notice: {text}")
+}
+
+/// Prints [`error_line`] on stderr.
+fn error(text: impl std::fmt::Display) {
+    eprintln!("{}", error_line(text));
+}
+
+/// Prints [`warning_line`] on stderr.
+fn warning(text: impl std::fmt::Display) {
+    eprintln!("{}", warning_line(text));
+}
+
+/// Prints [`notice_line`] on stderr.
+fn notice(text: impl std::fmt::Display) {
+    eprintln!("{}", notice_line(text));
+}
+
 /// `n` with the singular or plural noun: `1 file`, `2 files`.
 fn plural(n: usize, one: &str, many: &str) -> String {
     format!("{n} {}", if n == 1 { one } else { many })

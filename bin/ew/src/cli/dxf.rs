@@ -13,6 +13,7 @@ use ew_api::dxf::{DxfError, DxfOptions, Space, Unit};
 use super::open::{open_for_writing, project_dir};
 use super::revision::warn_unreleased;
 use super::tree::Leaf;
+use super::{error, error_line, save_failed};
 use crate::catalogue::{Exit, exit};
 
 /// What a DXF drawing becomes (`--as`).
@@ -155,11 +156,13 @@ pub(super) fn read_input(path: &Path) -> Result<(String, Vec<u8>), i32> {
     let mut bytes = Vec::new();
     let read = std::fs::File::open(path).and_then(|f| f.take(limit + 1).read_to_end(&mut bytes));
     if let Err(e) = read {
-        eprintln!("error: {}: {e}", path.display());
+        error(format_args!("{}: {e}", path.display()));
         return Err(2);
     }
     if bytes.len() as u64 > limit {
-        eprintln!("error: {name} is larger than the {limit} bytes an import reads");
+        error(format_args!(
+            "{name} is larger than the {limit} bytes an import reads"
+        ));
         return Err(2);
     }
     Ok((name, bytes))
@@ -168,10 +171,8 @@ pub(super) fn read_input(path: &Path) -> Result<(String, Vec<u8>), i32> {
 /// The words of a refused DXF import, with the flag that answers a missing unit.
 fn refused(e: &DxfError) -> String {
     match e {
-        DxfError::NoUnit => {
-            "error: the drawing names no unit; give it with --units (mm, cm, m, in, …)".to_owned()
-        }
-        other => format!("error: {other}"),
+        DxfError::NoUnit => error_line("the drawing names no unit; give it with --units (mm, cm, m, in, …)"),
+        other => error_line(other),
     }
 }
 
@@ -223,7 +224,7 @@ pub(super) fn run_import_dwg(a: &ImportDwgArgs) -> i32 {
     };
     let converter = a.converter.clone().or_else(dwg_converter_variable);
     let Some(converter) = converter else {
-        eprintln!("error: {}", ew_api::dxf::DwgError::NoConverter);
+        error(ew_api::dxf::DwgError::NoConverter);
         return 2;
     };
     let dxf = match ew_api::dxf::convert_dwg(
@@ -235,7 +236,7 @@ pub(super) fn run_import_dwg(a: &ImportDwgArgs) -> i32 {
     ) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -287,14 +288,14 @@ fn import(
                     0
                 }
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     2
                 }
             }
         }
         DxfTarget::Outline => {
             let (Some(library), Some(part)) = (&a.library, &a.part) else {
-                eprintln!("error: `--as outline` needs `--library <dir>` and `--part <part-number>`");
+                error("`--as outline` needs `--library <dir>` and `--part <part-number>`");
                 return 2;
             };
             match ew_api::dxf::import_part_outline(library, part, &name, &bytes, a.units) {
@@ -306,14 +307,14 @@ fn import(
                     0
                 }
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     2
                 }
             }
         }
         DxfTarget::Underlay => {
             let Some(folio) = &a.on else {
-                eprintln!("error: `--as underlay` needs `--on <folio>`");
+                error("`--as underlay` needs `--on <folio>`");
                 return 2;
             };
             let source = ew_api::output::UnderlaySource::Dxf(a.options());
@@ -358,7 +359,7 @@ fn import(
                 .save()
                 .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
             {
-                eprintln!("error: the save failed: {e:?}");
+                error(save_failed(&e));
                 session.close();
                 return 2;
             }
@@ -404,7 +405,7 @@ fn place(
         .save()
         .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
     {
-        eprintln!("error: the save failed: {e:?}");
+        error(save_failed(&e));
         session.close();
         return 2;
     }

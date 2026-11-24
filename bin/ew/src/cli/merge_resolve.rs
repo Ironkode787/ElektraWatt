@@ -8,6 +8,7 @@ use ew_api::{Conflict, ConflictBody};
 
 use super::MergeResolveArgs;
 use super::tree::{Leaf, TakeArg};
+use super::{error, save_failed};
 use crate::catalogue::{Exit, exit};
 
 impl Leaf for MergeResolveArgs {
@@ -82,7 +83,7 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         .map(|(id, _)| serde_json::json!({"conflict": id.to_string(), "take": take}))
         .collect();
     if choices.is_empty() {
-        eprintln!("error: {}; nothing was changed", selection(a));
+        error(format_args!("{}; nothing was changed", selection(a)));
         session.close();
         return 2;
     }
@@ -92,7 +93,7 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         params: serde_json::json!({ "choices": choices }),
     };
     if let Err(e) = session.execute(&command) {
-        eprintln!("error: {e}");
+        error(e);
         session.close();
         return 1;
     }
@@ -115,7 +116,7 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
             0
         }
         Err(e) => {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             2
         }
     };

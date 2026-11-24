@@ -10,6 +10,7 @@ use ew_api::AnyCommand;
 use ew_api::cli_results as results;
 use ew_api::routing::{InTheWay, Reason, RoutePlan, RouteScope, Side};
 
+use super::error;
 use super::tree::Leaf;
 use super::{RouteArgs, open_for_writing, open_reader, project_dir, reader_dir};
 use crate::catalogue::{Exit, exit};
@@ -51,7 +52,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         match ew_api::output::Uuid::parse_str(s.trim()) {
             Ok(id) => selection.push(id),
             Err(_) => {
-                eprintln!("error: `{s}` in --selection is not a record ID");
+                error(format_args!("`{s}` in --selection is not a record ID"));
                 return 2;
             }
         }
@@ -61,7 +62,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
             return 2;
         };
         open_reader(&dir, "route").map(|(s, _)| s).map_err(|e| {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             2
         })
     } else {
@@ -81,7 +82,9 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     let folios = match &a.page {
         Some(f) => {
             if session.page_draft(f).is_none() {
-                eprintln!("error: the page order has no drawn page with the folio `{f}`");
+                error(format_args!(
+                    "the page order has no drawn page with the folio `{f}`"
+                ));
                 return 2;
             }
             vec![f.clone()]
@@ -129,7 +132,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
                 params,
             };
             if let Err(e) = session.execute(&cmd) {
-                eprintln!("error: folio {folio}: {e}; nothing was saved");
+                error(format_args!("folio {folio}: {e}; nothing was saved"));
                 return 2;
             }
             changed = true;
@@ -138,7 +141,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     }
     let saved = changed && !a.dry_run;
     if saved && let Err(e) = session.save() {
-        eprintln!("error: {e}; nothing was saved");
+        error(format_args!("{e}; nothing was saved"));
         return 2;
     }
     session.close();

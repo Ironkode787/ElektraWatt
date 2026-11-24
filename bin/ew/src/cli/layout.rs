@@ -8,6 +8,7 @@
 use ew_api::cli_results as results;
 use ew_api::output::PageLayout;
 
+use super::error;
 use super::tree::Leaf;
 use super::{LayoutArgs, open_reader, reader_dir};
 use crate::catalogue::{Exit, exit};
@@ -29,14 +30,14 @@ pub(super) fn run_layout(a: &LayoutArgs) -> i32 {
     let session = match open_reader(&dir, "layout") {
         Ok((session, _)) => session,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let pages = match session.layout_report(a.page.as_deref()) {
         Ok(pages) => pages,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };

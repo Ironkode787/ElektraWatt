@@ -87,6 +87,11 @@ impl Leaf for ReportCli {
 }
 
 /// `ew export cables|bom|wires|terminals|report` of its line ([`RowsCli::export`] and its kin).
+/// What a row or table export says once its file is written.
+pub(super) fn export_written(path: &Path) -> String {
+    format!("export written to {}", path.display())
+}
+
 pub(super) fn run_export(a: &ExportArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
@@ -94,7 +99,7 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
     let (session, _) = match open_reader(&dir, "export") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -114,7 +119,7 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
             match session.export(what) {
                 Ok(e) => (e.csv, e.rows, Vec::new()),
                 Err(e) => {
-                    eprintln!("error: {}", export_refusal(what, &e));
+                    error(export_refusal(what, &e));
                     return 2;
                 }
             }
@@ -140,7 +145,7 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
                     (r.csv, r.rows, r.strips)
                 }
                 Err(e) => {
-                    eprintln!("error: {}", rows_refusal(&e));
+                    error(rows_refusal(&e));
                     return 2;
                 }
             }
@@ -229,7 +234,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
             let date = match source_date() {
                 Ok(d) => d,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
@@ -249,7 +254,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
                 }
                 (e, _, _) => rows_refusal(e),
             };
-            eprintln!("error: {text}");
+            error(text);
             return 2;
         }
     };
@@ -263,11 +268,11 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
     match &a.out {
         Some(path) => {
             if let Err(e) = write_atomically(path, &bytes) {
-                eprintln!("error: {}: {e}", path.display());
+                error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
             if !a.json {
-                println!("export written to {}", path.display());
+                println!("{}", export_written(path));
             }
         }
         // `--format xlsx` needs `--out` (its line is refused without); a CSV goes to stdout.
@@ -278,7 +283,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
             }
             Some(_) => {}
             None => {
-                eprintln!("error: {XLSX_NEEDS_OUT}");
+                error(XLSX_NEEDS_OUT);
                 return 2;
             }
         },
@@ -348,7 +353,7 @@ pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
     let (session, _) = match open_reader(&dir, "export") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -358,7 +363,7 @@ pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
     {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -376,7 +381,7 @@ pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
             let date = match source_date() {
                 Ok(d) => d,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
@@ -385,7 +390,7 @@ pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
             match ew_api::output::xlsx(tables, &meta) {
                 Ok(b) => (b, None, "xlsx", None),
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             }
@@ -394,11 +399,11 @@ pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
     match (&a.out, &text) {
         (Some(path), _) => {
             if let Err(e) = write_atomically(path, &bytes) {
-                eprintln!("error: {}: {e}", path.display());
+                error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
             if !a.json {
-                println!("export written to {}", path.display());
+                println!("{}", export_written(path));
             }
         }
         (None, Some(csv)) if !a.json => {
@@ -408,7 +413,7 @@ pub(super) fn run_export_nav_table(a: &TableCli) -> i32 {
         (None, Some(_)) => {}
         // A line with `--format xlsx` and no `--out` is refused before this runs.
         (None, None) => {
-            eprintln!("error: {XLSX_NEEDS_OUT}");
+            error(XLSX_NEEDS_OUT);
             return 2;
         }
     }
@@ -441,9 +446,9 @@ pub(super) fn write_rows(a: &ExportArgs, csv: &str, rows: usize) -> i32 {
     match &a.out {
         Some(path) => match write_report(path, csv) {
             Ok(()) if a.json => {}
-            Ok(()) => println!("export written to {}", path.display()),
+            Ok(()) => println!("{}", export_written(path)),
             Err(e) => {
-                eprintln!("error: {}: {e}", path.display());
+                error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
@@ -512,7 +517,7 @@ pub(super) fn finish_export_report_csv(
 /// `ew export report --format pdf`: the page export restricted to the block's folios.
 pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, block: &str) -> i32 {
     let Some(out) = &a.out else {
-        eprintln!("error: `export report --format pdf` needs `--out <file.pdf>`");
+        error("`export report --format pdf` needs `--out <file.pdf>`");
         return 2;
     };
     let q = session.query();
@@ -521,14 +526,14 @@ pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, b
     let (id, b, folios) = match found {
         Ok(f) => f,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     let date = match source_date() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -544,12 +549,12 @@ pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, b
     let pdf = match session.export_pdf(&options) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     if let Err(e) = write_atomically(out, &pdf.bytes) {
-        eprintln!("error: {}: {e}", out.display());
+        error(format_args!("{}: {e}", out.display()));
         return 2;
     }
     if a.json {
@@ -656,19 +661,19 @@ pub(super) fn run_export_ewz(a: &EwzCli) -> i32 {
     let (session, _) = match open_reader(&dir, "export ewz") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let packed = match session.export_ewz() {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     if let Err(e) = write_atomically(out, &packed.bytes) {
-        eprintln!("error: {}: {e}", out.display());
+        error(format_args!("{}: {e}", out.display()));
         return 2;
     }
     if a.json {
@@ -712,19 +717,19 @@ pub(super) fn run_extract(a: &ExtractArgs) -> i32 {
     let archive = match ew_api::ewz::read_file(&vfs, &a.file) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!(
-                "error: {}: the .ewz is refused: {e}; nothing was written",
+            error(format_args!(
+                "{}: the .ewz is refused: {e}; nothing was written",
                 a.file.display()
-            );
+            ));
             return 2;
         }
     };
     let Some(into) = a.into.clone().or_else(|| ew_api::ewz::default_target(&a.file)) else {
-        eprintln!("error: {}: not an .ewz file name", a.file.display());
+        error(format_args!("{}: not an .ewz file name", a.file.display()));
         return 2;
     };
     if let Err(e) = ew_api::ewz::extract(&vfs, &archive, &into) {
-        eprintln!("error: {e}");
+        error(e);
         return 2;
     }
     let files = archive.entries.len();
@@ -823,14 +828,14 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
     let date = match source_date() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     let (session, _) = match open_reader(&dir, "export") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -849,12 +854,12 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             let pdf = match session.export_pdf(&options) {
                 Ok(p) => p,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
             if let Err(e) = write_atomically(&a.out, &pdf.bytes) {
-                eprintln!("error: {}: {e}", a.out.display());
+                error(format_args!("{}: {e}", a.out.display()));
                 return 2;
             }
             if a.json {
@@ -883,12 +888,12 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             let svg = match session.export_svg(&options) {
                 Ok(s) => s,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
             if let Err(e) = write_svg_set(&a.out, &svg.files) {
-                eprintln!("error: {e}");
+                error(e);
                 return 2;
             }
             if a.json {
@@ -911,7 +916,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             let dxf = match session.export_dxf(&options, &a.dxf_layers, a.dxf_dwg_links) {
                 Ok(d) => d,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
@@ -922,7 +927,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .chain(dxf.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
                 .collect();
             if let Err(e) = write_file_set(&a.out, &ew_api::output::DXF_SET_EXTENSIONS, "DXF", &files) {
-                eprintln!("error: {e}");
+                error(e);
                 return 2;
             }
             if a.json {
@@ -955,7 +960,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             let png = match session.export_png(&options, a.dpi) {
                 Ok(p) => p,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    error(e);
                     return 2;
                 }
             };
@@ -965,7 +970,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .map(|f| (f.name.as_str(), f.bytes.as_slice()))
                 .collect();
             if let Err(e) = write_file_set(&a.out, &["png"], "PNG", &files) {
-                eprintln!("error: {e}");
+                error(e);
                 return 2;
             }
             if a.json {
@@ -1017,24 +1022,24 @@ pub(super) fn run_render(a: &RenderArgs) -> i32 {
     let (session, _) = match open_reader(&dir, "render") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let png = match session.render_png(&a.page, a.dpi) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
     let Some(file) = png.files.first() else {
-        eprintln!("error: the page order has no folio `{}`", a.page);
+        error(format_args!("the page order has no folio `{}`", a.page));
         return 2;
     };
     let out = a.out.clone().unwrap_or_else(|| PathBuf::from(&file.name));
     if let Err(e) = write_atomically(&out, &file.bytes) {
-        eprintln!("error: {}: {e}", out.display());
+        error(format_args!("{}: {e}", out.display()));
         return 2;
     }
     if a.json {

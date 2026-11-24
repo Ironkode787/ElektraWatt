@@ -17,10 +17,10 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     for name in [&a.active, &a.release].into_iter().flatten() {
         if scheme(name).is_none() {
             let names: Vec<&str> = ew_api::checks::SCHEMES.iter().map(|s| s.name).collect();
-            eprintln!(
-                "error: `{name}` is not a shipped check scheme; the schemes are: {}; nothing was changed",
+            error(format_args!(
+                "`{name}` is not a shipped check scheme; the schemes are: {}; nothing was changed",
                 names.join(", ")
-            );
+            ));
             return 1;
         }
     }
@@ -40,7 +40,7 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     if !confirm_typed(a, &mut input, &mut output) {
-        eprintln!("error: not confirmed; nothing was changed");
+        error(NOT_CONFIRMED);
         return 1;
     }
     let Some(dir) = project_dir(a.project.as_ref()) else {
@@ -55,7 +55,7 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
         Err(code) => return code,
     };
     if let Err(e) = session.execute(&checks_set_command(a)) {
-        eprintln!("error: {e}");
+        error(e);
         session.close();
         return 1;
     }
@@ -66,7 +66,7 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
             0
         }
         Err(e) => {
-            eprintln!("error: the save failed: {e:?}");
+            error(save_failed(&e));
             2
         }
     };
@@ -136,14 +136,14 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
     ) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let report = match ew_api::verify::verify_derived(&session) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -203,12 +203,12 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
     };
     let read = |path: &Path| match read_bounded(path, VERIFY_MIGRATION_READ_LIMIT) {
         Ok(b) if b.len() as u64 > VERIFY_MIGRATION_READ_LIMIT => {
-            eprintln!("error: {}: the file is larger than 1 GiB", path.display());
+            error(format_args!("{}: the file is larger than 1 GiB", path.display()));
             None
         }
         Ok(b) => Some(b),
         Err(e) => {
-            eprintln!("error: {}: {e}", path.display());
+            error(format_args!("{}: {e}", path.display()));
             None
         }
     };
@@ -224,7 +224,7 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
             match ew_api::migration::parse_expected(&String::from_utf8_lossy(&bytes)) {
                 Ok(e) => e,
                 Err(e) => {
-                    eprintln!("error: {}: {e}", path.display());
+                    error(format_args!("{}: {e}", path.display()));
                     return 2;
                 }
             }
@@ -233,14 +233,14 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
     let (session, _) = match open_reader(&dir, "verify-migration") {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let report = match ew_api::migration::verify_migration(&session, reference.into(), &expected) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {e}");
+            error(e);
             return 2;
         }
     };
@@ -320,23 +320,13 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
         Ok(f) => f,
         Err(e) => return usage(&e),
     };
-    let dir = match &*a.project {
-        Some(d) => d.clone(),
-        None => {
-            let found = std::env::current_dir().ok().and_then(|cwd| find_project(&cwd));
-            match found {
-                Some(d) => d,
-                None => {
-                    eprintln!("error: no project directory given and none found above the current directory");
-                    return 2;
-                }
-            }
-        }
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
+        return 2;
     };
     let (mut session, opened) = match ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -360,10 +350,10 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
                     if let Some(name) = &named {
                         // The name comes from the project file: escaped so control characters cannot reach the
                         // terminal.
-                        eprintln!(
-                            "notice: project scheme '{}' is not shipped by this build; using pre-delivery",
+                        notice(format_args!(
+                            "project scheme '{}' is not shipped by this build; using pre-delivery",
                             name.escape_debug()
-                        );
+                        ));
                     }
                     scheme("pre-delivery")
                 }
@@ -371,10 +361,10 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
         }
     };
     let Some(sch) = sch else {
-        eprintln!(
-            "error: unknown scheme `{}`",
+        error(format_args!(
+            "unknown scheme `{}`",
             a.scheme.as_deref().unwrap_or("pre-delivery")
-        );
+        ));
         return 2;
     };
     // The integrity findings of opening (EW-CORE-001 … 019) join the report: in release mode the "n r"

@@ -12,6 +12,7 @@ use ew_api::git::{self, ConfigScope, GitExe};
 
 use super::tree::Leaf;
 use super::{GitSetupArgs, is_terminal};
+use super::{NOT_CONFIRMED, error};
 use crate::catalogue::{Exit, exit};
 
 impl Leaf for GitSetupArgs {
@@ -36,11 +37,11 @@ pub(super) fn run_git_setup(a: &GitSetupArgs) -> i32 {
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     let Ok(cwd) = std::env::current_dir() else {
-        eprintln!("error: the current directory cannot be read");
+        error("the current directory cannot be read");
         return 2;
     };
     let Ok(exe) = std::env::current_exe() else {
-        eprintln!("error: the path of `ew` cannot be read");
+        error("the path of `ew` cannot be read");
         return 2;
     };
     let [image, mount] = super::appimage();
@@ -62,14 +63,14 @@ fn run_git_setup_with(
     let root = match git::worktree_root(&vfs, cwd) {
         Ok(Some(root)) => root,
         Ok(None) => {
-            eprintln!(
-                "error: {} is not in a git worktree; nothing was changed",
+            error(format_args!(
+                "{} is not in a git worktree; nothing was changed",
                 cwd.display()
-            );
+            ));
             return 2;
         }
         Err(e) => {
-            eprintln!("error: {}: {e}", cwd.display());
+            error(format_args!("{}: {e}", cwd.display()));
             return 2;
         }
     };
@@ -92,10 +93,10 @@ fn run_git_setup_with(
         .collect();
     if !a.yes {
         if !terminal {
-            eprintln!(
-                "error: `ew git setup` writes git's configuration only with your consent: run it on a terminal to be \
+            error(format_args!(
+                "`ew git setup` writes git's configuration only with your consent: run it on a terminal to be \
                  asked, or pass --yes; nothing was changed"
-            );
+            ));
             return 2;
         }
         let place = match scope {
@@ -125,7 +126,7 @@ fn run_git_setup_with(
         let mut answer = String::new();
         let _ = input.read_line(&mut answer);
         if !matches!(answer.trim(), "y" | "Y" | "yes" | "Yes") {
-            eprintln!("error: not confirmed; nothing was changed");
+            error(NOT_CONFIRMED);
             return 2;
         }
     }
@@ -141,28 +142,28 @@ fn run_git_setup_with(
                 match git::own_hooks(&vfs, &root, &hooks) {
                     Ok(true) => {}
                     Ok(false) => {
-                        eprintln!(
-                            "error: git runs the hooks of this repository from {}, outside it (core.hooksPath), so \
+                        error(format_args!(
+                            "git runs the hooks of this repository from {}, outside it (core.hooksPath), so \
                              other repositories run them too; run `ew git setup` without --hooks, and add `ew check \
                              --integrity --after-merge` to that post-merge hook by hand; nothing was changed",
                             hooks.display()
-                        );
+                        ));
                         return 2;
                     }
                     // The error names the path that failed.
                     Err(e) => {
-                        eprintln!("error: {e}; nothing was changed");
+                        error(format_args!("{e}; nothing was changed"));
                         return 2;
                     }
                 }
                 if let Err(e) = probe_hook(&hooks, &hook) {
-                    eprintln!("error: {e}; nothing was changed");
+                    error(format_args!("{e}; nothing was changed"));
                     return 2;
                 }
                 Some(hooks)
             }
             Err(e) => {
-                eprintln!("error: the hooks directory: {e}; nothing was changed");
+                error(format_args!("the hooks directory: {e}; nothing was changed"));
                 return 2;
             }
         }
@@ -171,7 +172,7 @@ fn run_git_setup_with(
     };
     for (key, value) in &config {
         if let Err(e) = exe_git.config_set(&root, key, value, scope) {
-            eprintln!("error: {key}: {e}");
+            error(format_args!("{key}: {e}"));
             return 2;
         }
     }
@@ -189,7 +190,7 @@ fn run_git_setup_with(
                 let _ = writeln!(output, "{rel}: {} written", written.join(" and "));
             }
             Err(e) => {
-                eprintln!("error: {rel}: {e}");
+                error(format_args!("{rel}: {e}"));
                 return 2;
             }
         }
@@ -203,7 +204,7 @@ fn run_git_setup_with(
                 let _ = writeln!(output, "the post-merge hook is up to date: {}", p.display());
             }
             Err(e) => {
-                eprintln!("error: {e}");
+                error(e);
                 return 2;
             }
         }

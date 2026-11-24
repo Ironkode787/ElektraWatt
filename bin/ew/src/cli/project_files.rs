@@ -16,6 +16,7 @@ use super::{
     open_editing, open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word,
     warn_unread,
 };
+use super::{NOT_CONFIRMED, error, error_line};
 use crate::catalogue::{Exit, exit};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -87,7 +88,7 @@ fn run_fmt_with(
             ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep)
         };
         reader.map_err(|e| {
-            eprintln!("error: {}: {e}", dir.display());
+            error(format_args!("{}: {e}", dir.display()));
             2
         })
     } else {
@@ -203,7 +204,7 @@ fn fmt_older(check: bool, dir: &Path, from: &str) -> (i32, String) {
     if check {
         (1, format!("fmt: {}", older_format(dir, from)))
     } else {
-        (2, format!("error: {}", older_format(dir, from)))
+        (2, error_line(older_format(dir, from)))
     }
 }
 
@@ -259,7 +260,7 @@ fn run_repair(a: &FmtArgs, store: ew_api::StoreOptions, err: &mut dyn std::io::W
         return 2;
     }
     if let Some(from) = &report.migrated_from {
-        let _ = writeln!(err, "error: {}", older_format(&dir, from));
+        let _ = writeln!(err, "{}", error_line(older_format(&dir, from)));
         session.close();
         return 2;
     }
@@ -359,14 +360,14 @@ fn repair_outcome(
             (0, out, err)
         }
         Err(what) => {
-            err.push_str(&format!(
-                "error: {}: after the repair the project {what}; the repaired generation {} stays; the backup {} \
+            err.push_str(&error_line(format_args!(
+                "{}: after the repair the project {what}; the repaired generation {} stays; the backup {} \
                  holds generation {}, and `ew extract` makes a project of it in a new folder\n",
                 dir.display(),
                 repaired.generation,
                 backup.path.display(),
                 backup.generation
-            ));
+            )));
             if json {
                 out.push_str(&results::to_text(&results::FmtRepairResult {
                     reopen_finding: Some(what),
@@ -483,12 +484,12 @@ fn beyond_repair_refusal(dir: &Path, report: &ew_api::OpenReport) -> String {
         || "a finding beyond those the open lists".to_owned(),
         ew_api::fmt::finding_words,
     );
-    format!(
-        "error: {}: {what} forces read-only, and `ew fmt --repair` discards only lines that are not JSON or not UTF-8 \
+    error_line(format_args!(
+        "{}: {what} forces read-only, and `ew fmt --repair` discards only lines that are not JSON or not UTF-8 \
          (EW-CORE-005); nothing was written; resolve it first (`ew check` lists the findings), then run `ew fmt \
          --repair` again",
         dir.display()
-    )
+    ))
 }
 
 /// The refusal of a repair that `ew_api::fmt::repair` stopped: before the save nothing was written; a failed save
@@ -498,51 +499,51 @@ fn repair_refusal(dir: &Path, e: &RepairError) -> String {
     match e {
         // A file changed between the repair's open and its backup: the project is as it was, and a
         // new run finds it as it is now.
-        RepairError::Pack(ew_api::ewz::PackError::ChangedSinceOpen { path }) => format!(
-            "error: {d}: the backup cannot be packed: {path} changed on disk since the repair opened the project; \
+        RepairError::Pack(ew_api::ewz::PackError::ChangedSinceOpen { path }) => error_line(format_args!(
+            "{d}: the backup cannot be packed: {path} changed on disk since the repair opened the project; \
              nothing was written; run `ew fmt --repair` again"
-        ),
-        RepairError::Pack(_) => format!(
-            "error: {d}: {e}; nothing was written; keep a copy of the project folder and correct the broken lines by \
+        )),
+        RepairError::Pack(_) => error_line(format_args!(
+            "{d}: {e}; nothing was written; keep a copy of the project folder and correct the broken lines by \
              hand"
-        ),
-        RepairError::BackupTaken(path) => format!(
-            "error: {d}: {} already exists and does not hold this generation's backup; nothing was written; move it out \
+        )),
+        RepairError::BackupTaken(path) => error_line(format_args!(
+            "{d}: {} already exists and does not hold this generation's backup; nothing was written; move it out \
              of the folder, then run `ew fmt --repair` again",
             path.display()
-        ),
-        RepairError::Backup { path, error } => format!(
-            "error: {d}: the backup {} cannot be written: {error}; nothing was written; make its folder writable, then \
+        )),
+        RepairError::Backup { path, error } => error_line(format_args!(
+            "{d}: the backup {} cannot be written: {error}; nothing was written; make its folder writable, then \
              run `ew fmt --repair` again",
             path.display()
-        ),
-        RepairError::Format(f @ FmtError::Content { .. }) => format!(
-            "error: {d}: {f}; nothing was written; correct that line by hand, then run `ew fmt --repair` again"
-        ),
+        )),
+        RepairError::Format(f @ FmtError::Content { .. }) => error_line(format_args!(
+            "{d}: {f}; nothing was written; correct that line by hand, then run `ew fmt --repair` again"
+        )),
         RepairError::Save {
             error: error @ ew_api::SaveError::Incomplete { .. },
             backup,
             ..
-        } => format!(
-            "error: {d}: the repair's save is incomplete: {error}; the repaired generation is decided and completes at \
+        } => error_line(format_args!(
+            "{d}: the repair's save is incomplete: {error}; the repaired generation is decided and completes at \
              the next open; the backup is {}",
             backup.path.display()
-        ),
-        RepairError::Save { error, backup, .. } => format!(
-            "error: {d}: the repair's save failed: {error}; the backup {} stays; run `ew fmt --repair` again",
+        )),
+        RepairError::Save { error, backup, .. } => error_line(format_args!(
+            "{d}: the repair's save failed: {error}; the backup {} stays; run `ew fmt --repair` again",
             backup.path.display()
-        ),
-        other => format!("error: {d}: {other}; nothing was written"),
+        )),
+        other => error_line(format_args!("{d}: {other}; nothing was written")),
     }
 }
 
 /// The refusal text of a format that wrote nothing (or, after its commit point, completes at the next open).
 fn fmt_refusal(e: &FmtError) -> String {
     match e {
-        FmtError::Save(ew_api::SaveError::Incomplete { .. }) => {
-            format!("error: {e}; the new generation is decided and completes at the next open")
-        }
-        _ => format!("error: {e}; nothing was written"),
+        FmtError::Save(ew_api::SaveError::Incomplete { .. }) => error_line(format_args!(
+            "{e}; the new generation is decided and completes at the next open"
+        )),
+        _ => error_line(format_args!("{e}; nothing was written")),
     }
 }
 
@@ -690,9 +691,12 @@ fn run_recover_with(
                 if !terminal {
                     let _ = writeln!(
                         errors,
-                        "error: the project is in the older format {from}: saving the replay converts it, and \
+                        "{}",
+                        error_line(format_args!(
+                            "the project is in the older format {from}: saving the replay converts it, and \
                          confirming that needs an interactive terminal (type `{UPGRADE_WORD}` there) or `ew recover \
                          --replay --yes`; nothing was saved and the journal is kept"
+                        ))
                     );
                     session.close();
                     return 2;
@@ -706,7 +710,8 @@ fn run_recover_with(
                 if !typed_word(input, asked, &prompt, UPGRADE_WORD) {
                     let _ = writeln!(
                         errors,
-                        "error: not confirmed; nothing was saved and the journal is kept"
+                        "{}",
+                        error_line("not confirmed; nothing was saved and the journal is kept")
                     );
                     session.close();
                     return 1;
@@ -768,7 +773,7 @@ fn run_recover_with(
                     0
                 }
                 Err(e) => {
-                    let _ = writeln!(errors, "error: the save failed: {e}");
+                    let _ = writeln!(errors, "{}", error_line(format_args!("the save failed: {e}")));
                     if !matches!(e, ew_api::SaveError::Incomplete { .. }) {
                         // The session was dropped without its clean close.
                         let _ = writeln!(
@@ -787,7 +792,7 @@ fn run_recover_with(
                  `{DISCARD_WORD}` to delete it, anything else to abort: "
             );
             if !typed_word(input, output, &prompt, DISCARD_WORD) {
-                let _ = writeln!(errors, "error: not confirmed; nothing was discarded");
+                let _ = writeln!(errors, "{}", error_line("not confirmed; nothing was discarded"));
                 session.close();
                 return 1;
             }
@@ -877,7 +882,7 @@ fn run_upgrade_with(
                 opened
             }
             Err(e) => {
-                let _ = writeln!(errors, "error: {}: {e}", dir.display());
+                let _ = writeln!(errors, "{}", error_line(format_args!("{}: {e}", dir.display())));
                 return 2;
             }
         };
@@ -927,8 +932,11 @@ fn run_upgrade_with(
         if !terminal {
             let _ = writeln!(
                 errors,
-                "error: the project is in the older format {from}: confirming its upgrade needs an interactive \
+                "{}",
+                error_line(format_args!(
+                    "the project is in the older format {from}: confirming its upgrade needs an interactive \
                  terminal (type `{UPGRADE_WORD}` there) or `ew upgrade --yes`; nothing was changed"
+                ))
             );
             session.close();
             return 2;
@@ -939,7 +947,7 @@ fn run_upgrade_with(
              upgrade it, anything else to abort: "
         );
         if !typed_word(input, output, &prompt, UPGRADE_WORD) {
-            let _ = writeln!(errors, "error: not confirmed; nothing was changed");
+            let _ = writeln!(errors, "{}", error_line(NOT_CONFIRMED));
             session.close();
             return 1;
         }
@@ -962,7 +970,7 @@ fn run_upgrade_with(
             0
         }
         Err(e) => {
-            let _ = writeln!(errors, "error: the save failed: {e}");
+            let _ = writeln!(errors, "{}", error_line(format_args!("the save failed: {e}")));
             if let Some(backup) = backup {
                 let _ = writeln!(errors, "the backup stays at {}", backup.display());
             }
@@ -1006,24 +1014,26 @@ fn replay_refusal(e: &ew_api::RecoverError) -> (i32, String) {
     match e {
         ew_api::RecoverError::Replay(ew_api::ReplayError::Collisions(c)) => (
             1,
-            format!(
-                "error: the replay is refused: {} of the journal changed on disk too; the journal is kept and nothing \
+            error_line(format_args!(
+                "the replay is refused: {} of the journal changed on disk too; the journal is kept and nothing \
                  was saved (`ew recover --discard` deletes it)",
                 plural(c.len(), "field", "fields")
-            ),
+            )),
         ),
         ew_api::RecoverError::Replay(ew_api::ReplayError::Invalid(why)) => (
             1,
-            format!(
-                "error: the journal does not replay: {}; the journal is kept and nothing was saved",
+            error_line(format_args!(
+                "the journal does not replay: {}; the journal is kept and nothing was saved",
                 printable(why)
-            ),
+            )),
         ),
         ew_api::RecoverError::Io(e) => (
             2,
-            format!("error: the replay cannot be journalled: {e}; the journal is kept and nothing was saved"),
+            error_line(format_args!(
+                "the replay cannot be journalled: {e}; the journal is kept and nothing was saved"
+            )),
         ),
-        ew_api::RecoverError::Nothing => (2, "error: no journal to replay; nothing was saved".to_owned()),
+        ew_api::RecoverError::Nothing => (2, error_line("no journal to replay; nothing was saved")),
     }
 }
 

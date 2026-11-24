@@ -59,7 +59,7 @@ pub(super) fn run_assets_purge_with(
         open_reader(&dir, "project assets purge")
             .map(|(s, _)| s)
             .map_err(|e| {
-                eprintln!("error: {}: {e}", dir.display());
+                error(format_args!("{}: {e}", dir.display()));
                 2
             })
     } else {
@@ -80,7 +80,7 @@ pub(super) fn run_assets_purge_with(
     let plan = match session.purge_preview() {
         Ok(plan) => plan,
         Err(e) => {
-            eprintln!("error: {e}; nothing was removed");
+            error(format_args!("{e}; nothing was removed"));
             session.close();
             return refused(&e);
         }
@@ -109,7 +109,7 @@ pub(super) fn run_assets_purge_with(
         plan.remove.len()
     );
     if !typed_word(input, output, &prompt, PURGE_WORD) {
-        eprintln!("error: not confirmed; nothing was removed");
+        error("not confirmed; nothing was removed");
         session.close();
         return 1;
     }
@@ -125,7 +125,7 @@ pub(super) fn run_assets_purge_with(
             0
         }
         Err(e) => {
-            eprintln!("error: {e}");
+            error(&e);
             refused(&e)
         }
     };
