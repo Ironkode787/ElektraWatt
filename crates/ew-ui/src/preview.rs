@@ -100,17 +100,15 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
         .iter()
         .map(|e| {
             // The change word in a 64-px column (padded to its width in the row's font).
-            // The change word, the kind and the fields in the UI language.
-            let (change, kind) = ew_viewmodel::preview::entity_words(e);
+            // The change word, the kind and the fields in the UI language, a content hash left out.
+            let [change, kind, label, fields] = ew_viewmodel::preview::change_line(e);
             let mut r = vec![
                 (format!("{change} "), t.text_tertiary),
                 (format!("{kind} "), t.text_secondary),
-                (e.label.clone(), t.text_primary),
+                (label, t.text_primary),
             ];
-            // The fields in words, a content hash left out (`field_words`).
-            let fields = ew_viewmodel::preview::field_words(&e.kind, &e.fields);
             if !fields.is_empty() {
-                r.push((format!(" ({})", fields.join(", ")), t.text_tertiary));
+                r.push((fields, t.text_tertiary));
             }
             r
         })

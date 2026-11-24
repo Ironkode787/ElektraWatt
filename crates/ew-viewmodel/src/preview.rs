@@ -59,6 +59,20 @@ pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
         .collect()
 }
 
+/// A changed record's line as the Preview tab and the history's popup show it, in the UI language: its change word,
+/// its kind in a sentence, its label, and its changed fields in words in brackets (` (part number, quantity)`), empty
+/// for none.
+pub fn change_line(e: &PreviewEntity) -> [String; 4] {
+    let (change, kind) = entity_words(e);
+    let fields = field_words(&e.kind, &e.fields);
+    let fields = if fields.is_empty() {
+        String::new()
+    } else {
+        format!(" ({})", fields.join(", "))
+    };
+    [change.to_owned(), kind, e.label.clone(), fields]
+}
+
 /// A changed record's line in words (W52 F6): its change word ("changed", "gewijzigd") and its kind in a
 /// sentence ("device", "apparaat") in the UI language.
 pub fn entity_words(e: &PreviewEntity) -> (&'static str, String) {

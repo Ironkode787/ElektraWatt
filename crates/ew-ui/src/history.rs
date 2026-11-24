@@ -427,13 +427,8 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         .take(MAX_CHANGES)
         .map(|e| {
             // In the UI language, as the Preview tab's line.
-            let (change, kind) = ew_viewmodel::preview::entity_words(e);
-            let mut line = format!("{change} {kind} {}", e.label);
-            let fields = ew_viewmodel::preview::field_words(&e.kind, &e.fields);
-            if !fields.is_empty() {
-                line.push_str(&format!(" ({})", fields.join(", ")));
-            }
-            line
+            let [change, kind, label, fields] = ew_viewmodel::preview::change_line(e);
+            format!("{change} {kind} {label}{fields}")
         })
         .collect();
     // The popup is as wide as its longest line, from `size.dialog.small` up to a share of the window
