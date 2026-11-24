@@ -114,7 +114,7 @@ pub use cell::{
     anchor_point_of, cell_in_grid, default_frame_grid, frame_form_from_settings, frame_form_of, frame_grid,
 };
 pub use channel_index::{ChannelsByCp, ChannelsByModule, ModuleChannelIds};
-pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps};
+pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point};
 pub use cps::{Cp, FunctionCps};
 pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,

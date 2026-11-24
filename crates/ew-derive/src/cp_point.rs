@@ -210,9 +210,10 @@ fn segment_cp_end(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Op
 }
 
 /// The page point `(i, j)` grid steps from a strip segment's origin in its symbol frame: the step vector
-/// turns with the orientation; on a grid-point origin the result is the exact grid point, else the origin
-/// plus the rounded offset (the rule of `ew-scene`). `None` on overflow.
-fn segment_point(grid: Grid, rep: &Representation, i: i64, j: i64) -> Option<Pt2> {
+/// turns with the orientation; on a grid-point origin the result is the exact grid point (the rounding of each
+/// absolute coordinate, so no 1 nm drift), else the origin plus the rounded offset. `None` on overflow. The page
+/// scene places a segment's terminals by it.
+pub fn segment_point(grid: Grid, rep: &Representation, i: i64, j: i64) -> Option<Pt2> {
     let v = rep.orient.checked_apply(Pt2::new(Nm(i), Nm(j)))?;
     let axis = |origin: Nm, steps: i64| {
         let k = grid.snap(origin);

@@ -14,7 +14,7 @@ use ew_derive::ew_schema::{
     ConnectionKind, Device, Dir4, Endpoint, Function, FunctionKind, Junction, JunctionStyle, JunctionWiring,
     Page, Representation, SymbolDef,
 };
-use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
+use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{
     CpRef, FunctionCps, PageRef, PotentialNameOf, PotentialPartition, Q, box_caption, cp_label, cp_point,
     free_text, group_marker, live_connections,
@@ -519,80 +519,19 @@ pub struct TableJunction {
     pub sequence: Vec<Uuid>,
 }
 
-/// What draws a function CP on the page: its point, direction and representation (the scene's rules: the
-/// representations in ID order, the first that draws the CP wins; symbol CPs, else the box's CPs, then the CPs
-/// of the terminals a strip segment draws, side 1 leaving up and side 2 down, turned with the segment).
-type DrawnCps = BTreeMap<(Id<Function>, u16), (Pt2, Dir, Id<Representation>)>;
-
-/// The drawn CPs of a page (see [`DrawnCps`]), from the page's memoised representation views (`page_reps`).
-fn drawn_cps(q: &Q, page: Id<Page>) -> DrawnCps {
-    // A point within 1 nm of a grid position is the grid's own number for it (the scene's rule).
-    let grid = q
-        .pages()
-        .get(page)
-        .map_or(ew_derive::ew_units::Grid::MM4, |p| p.grid);
-    let mut map = DrawnCps::new();
-    let views = q.get::<PageRepsOf>(page);
-    let mut views: Vec<&ew_scene::page::RepView> = views.iter().collect();
-    views.sort_by_key(|v| v.rep.id);
-    for rv in views {
-        let Some(def) = &rv.symbol else { continue };
-        let rep = &rv.rep;
-        let rid = rep.id;
-        let o = orient_index(rep.orient);
-        let mut put = |function: Id<Function>, idx: u16, at: Option<Pt2>, dir: Dir| {
-            let Some(at) = at else { return };
-            map.entry((function, idx))
-                .or_insert((grid.settle_point(at), dir, rid));
-        };
-        let placed = |offset: Pt2| rep.pos.checked_add(rep.orient.checked_apply(offset)?);
-        for cp in def.cps.iter() {
-            let Some((function, idx)) = rep.fn_cp_of(cp) else {
-                continue;
-            };
-            put(function, idx, placed(cp.pos), orient_dir(o, dir_of(&cp.dir)));
+/// The direction a wire leaves a drawn CP in, in the tables' terms: the scene's ([`ew_scene::page::drawn_cps`]), and a
+/// direction of a newer format as `Up` turned with the representation `rep` that draws the CP.
+fn table_dir(q: &Q, dir: &Dir4, rep: Uuid) -> Dir {
+    match dir {
+        Dir4::Unknown(_) => {
+            let o = q
+                .reps()
+                .get(Id::from_uuid(rep))
+                .map_or(0, |r| orient_index(r.orient));
+            orient_dir(o, Dir::Up)
         }
-        if def.cps.is_empty()
-            && let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first())
-        {
-            for cp in &b.cps {
-                put(function, cp.idx, placed(cp.pos), orient_dir(o, dir_of(&cp.dir)));
-            }
-        }
-        // A strip segment: one point per drawn terminal and side (the scene's rule).
-        if !rv.terminals.is_empty() {
-            let grid = def.grid;
-            let bottom = grid.snap(ew_scene::symbol::lower(def, Orient2::R0).bounds.max().y);
-            for (k, t) in rv.terminals.iter().enumerate() {
-                let Ok(step) = i64::try_from(k + 1) else { break };
-                let side1 = segment_point(grid, rep, step, 0);
-                let side2 = segment_point(grid, rep, step, bottom);
-                for &i in &t.side1 {
-                    put(t.function, i, side1, orient_dir(o, Dir::Up));
-                }
-                for &i in &t.side2 {
-                    put(t.function, i, side2, orient_dir(o, Dir::Down));
-                }
-            }
-        }
+        known => dir_of(known),
     }
-    map
-}
-
-/// The page point `(i, j)` grid steps from a strip segment's origin in its symbol frame (the scene's rule: the
-/// step vector turns with the orientation; on a grid-point origin the exact grid point, else the origin plus the
-/// rounded offset). `None` on overflow.
-fn segment_point(grid: ew_derive::ew_units::Grid, rep: &Representation, i: i64, j: i64) -> Option<Pt2> {
-    let v = rep.orient.apply(Pt2::new(Nm(i), Nm(j)));
-    let axis = |origin: Nm, steps: i64| {
-        let k = grid.snap(origin);
-        if grid.at(k) == Some(origin) {
-            grid.at(k.checked_add(steps)?)
-        } else {
-            Some(Nm(origin.0.checked_add(grid.at(steps)?.0)?))
-        }
-    };
-    Some(Pt2::new(axis(rep.pos.x, v.x.0)?, axis(rep.pos.y, v.y.0)?))
 }
 
 /// The page rectangle in page coordinates (the scene's `page_rect`).
@@ -683,7 +622,10 @@ impl Session {
             i64::try_from(page.grid.num()).unwrap_or(i64::MAX),
             i64::try_from(page.grid.den()).unwrap_or(1),
         );
-        let drawn = drawn_cps(&q, page_id);
+        let drawn = ew_scene::page::drawn_cps(
+            crate::output::view::page_grid(&q, page_ref),
+            &q.get::<PageRepsOf>(page_id),
+        );
         let styles = crate::output::layers::text_style_table(&q);
         // The tags where the scene's tag rule placed them, from the labels layer the page draws.
         let labels = crate::output::layers::page_layer(&q, page_ref, ew_dl::Layer::Labels);
@@ -800,10 +742,10 @@ impl Session {
             let Some(at) = cp_point(&q, function, idx, page_id) else {
                 continue;
             };
-            let Some(&(_, dir, rep)) = drawn.get(&(function, idx)) else {
+            let Some((_, dir, rep)) = drawn.get(&(function.as_uuid(), idx)) else {
                 continue;
             };
-            let dir = Some(dir);
+            let (dir, rep) = (Some(table_dir(&q, dir, *rep)), *rep);
             // Ordered below, by the connections' own order.
             let connections: Vec<Uuid> = q
                 .idx()
@@ -823,7 +765,7 @@ impl Session {
                 id: id.as_uuid(),
                 function: function.as_uuid(),
                 idx,
-                rep: rep.as_uuid(),
+                rep,
                 label: cp_label(&q, CpRef { function, idx }),
                 at: pt(at),
                 dir,
@@ -932,9 +874,9 @@ impl Session {
             };
             let end = |e: &Endpoint| -> Option<RouteEnd> {
                 match e {
-                    Endpoint::Cp(f, idx) => drawn.get(&(*f, *idx)).map(|(pos, dir, _)| RouteEnd {
+                    Endpoint::Cp(f, idx) => drawn.get(&(f.as_uuid(), *idx)).map(|(pos, dir, rep)| RouteEnd {
                         pos: *pos,
-                        dir: Some(match dir {
+                        dir: Some(match table_dir(&q, dir, *rep) {
                             Dir::Up => Dir4::Up,
                             Dir::Down => Dir4::Down,
                             Dir::Left => Dir4::Left,

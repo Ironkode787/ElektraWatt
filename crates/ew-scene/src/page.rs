@@ -39,7 +39,8 @@
 //! - **Order.** Representations, connections and junctions are sorted by ID, whatever order the caller
 //!   gives them in, so a record shuffle never changes a display list (AC-14).
 //! - **CP positions** follow the rule of where a function CP is drawn, whose home is `ew-derive` (`cp_point`,
-//!   ARCH §3.4); this module computes them itself from the view: symbol CP `c` of a representation sits at
+//!   ARCH §3.4); this module places them from the view by that rule (`ew_derive::rep_drawn_cps`,
+//!   `ew_derive::segment_point`) and hands them out ([`drawn_cps`]): symbol CP `c` of a representation sits at
 //!   `pos + orient(c.pos)`, on the grid's own number where that lies within 1 nm of a position of the page's grid
 //!   (`Grid::settle_point`; this holds for every CP below), and draws the function CP of its `pin_map` entry, else `(functions[0], c.fn_cp)`;
 //!   when several representations on the page draw the same function CP, the smallest representation ID
@@ -905,47 +906,53 @@ pub(crate) fn sorted_connections(view: &PageView) -> Vec<&ConnectionView> {
 
 /// The drawn function CPs of the page (see the module documentation).
 pub(crate) fn cp_map(view: &PageView) -> CpMap {
-    drawn_cps(view)
+    page_drawn_cps(view)
         .into_iter()
         .map(|(k, (pos, dir, _))| (k, (pos, dir)))
         .collect()
 }
 
 /// [`cp_map`] with the representation that draws each CP.
-fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
+fn page_drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
+    drawn_cps(view.grid, &view.reps)
+}
+
+/// The function CPs that the representations `reps` draw on a page of `grid`, by `(function, CP index)`: each CP's
+/// point, the direction a wire leaves it and the representation that draws it (see the module documentation). The
+/// page tables of `ew-api` read them.
+pub fn drawn_cps(grid: Grid, reps: &[RepView]) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
+    let mut sorted: Vec<&RepView> = reps.iter().collect();
+    sorted.sort_by_key(|r| r.rep.id);
     let mut map: BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> = BTreeMap::new();
-    for rv in sorted_reps(view) {
+    for rv in sorted {
         let Some(def) = &rv.symbol else { continue };
         let rep = &rv.rep;
-        let mut put = |function: Id<Function>, idx: u16, offset: Pt2, dir: &Dir4| {
-            let pos = view.grid.settle_point(rep.pos + rep.orient.apply(offset));
-            let dir = symbol::transform_dir(dir, rep.orient);
-            map.entry((function.as_uuid(), idx))
-                .or_insert((pos, dir, rep.id.as_uuid()));
-        };
-        for cp in def.cps.iter() {
-            let Some((function, idx)) = rep.fn_cp_of(cp) else {
+        // The symbol's CPs, else a black box's CPs of `Representation.box` (the derivation's rule). A direction of a
+        // newer format stays unknown.
+        for cp in ew_derive::rep_drawn_cps(rep, def) {
+            let Some(at) = rep
+                .orient
+                .checked_apply(cp.local)
+                .and_then(|p| rep.pos.checked_add(p))
+            else {
                 continue;
             };
-            put(function, idx, cp.pos, &cp.dir);
-        }
-        // A black box: the CPs of `Representation.box`, when the symbol has none.
-        if def.cps.is_empty()
-            && let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first())
-        {
-            for cp in &b.cps {
-                put(function, cp.idx, cp.pos, &cp.dir);
-            }
+            let dir = cp.dir.unwrap_or(Dir4::Unknown(serde_json::Value::Null));
+            map.entry((cp.function.as_uuid(), cp.idx)).or_insert((
+                grid.settle_point(at),
+                dir,
+                rep.id.as_uuid(),
+            ));
         }
         // A strip segment: one point per drawn terminal and side.
         if !rv.terminals.is_empty() {
-            let grid = def.grid;
-            let bottom = grid.snap(symbol::lower(def, Orient2::R0).bounds.max().y);
+            let seg_grid = def.grid;
+            let bottom = seg_grid.snap(symbol::lower(def, Orient2::R0).bounds.max().y);
             for (k, t) in rv.terminals.iter().enumerate() {
                 let Ok(step) = i64::try_from(k + 1) else { break };
                 let points = (
-                    segment_point(grid, rep, step, 0),
-                    segment_point(grid, rep, step, bottom),
+                    ew_derive::segment_point(seg_grid, rep, step, 0),
+                    ew_derive::segment_point(seg_grid, rep, step, bottom),
                 );
                 let (Some(side1), Some(side2)) = points else { break };
                 for (idx, at, dir) in t
@@ -956,7 +963,7 @@ fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
                 {
                     let dir = symbol::transform_dir(&dir, rep.orient);
                     map.entry((t.function.as_uuid(), idx)).or_insert((
-                        view.grid.settle_point(at),
+                        grid.settle_point(at),
                         dir,
                         rep.id.as_uuid(),
                     ));
@@ -965,23 +972,6 @@ fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
         }
     }
     map
-}
-
-/// The page point `(i, j)` grid steps from a strip segment's origin in its symbol frame. The step vector
-/// turns with the orientation; on a grid-point origin the result is the exact grid point (the rounding
-/// of each absolute coordinate, so no 1 nm drift), else the origin plus the rounded offset. `None` on
-/// overflow.
-fn segment_point(grid: Grid, rep: &Representation, i: i64, j: i64) -> Option<Pt2> {
-    let v = rep.orient.apply(Pt2::new(Nm(i), Nm(j)));
-    let axis = |origin: Nm, steps: i64| {
-        let k = grid.snap(origin);
-        if grid.at(k) == Some(origin) {
-            grid.at(k.checked_add(steps)?)
-        } else {
-            Some(Nm(origin.0.checked_add(grid.at(steps)?.0)?))
-        }
-    };
-    Some(Pt2::new(axis(rep.pos.x, v.x.0)?, axis(rep.pos.y, v.y.0)?))
 }
 
 pub(crate) fn polyline_of(view: &PageView, cps: &CpMap, c: &Connection, page: Rect) -> Option<Vec<Pt2>> {
@@ -1590,7 +1580,7 @@ impl Builder<'_> {
         let stroke = wire_stroke(view.grid);
         // The vertical leads of the symbols drawn alone: (x, the insertion point's y, the pin's y).
         let reps: BTreeMap<Uuid, &RepView> = view.reps.iter().map(|r| (r.rep.id.as_uuid(), r)).collect();
-        let leads: Vec<(i64, i64, i64)> = drawn_cps(view)
+        let leads: Vec<(i64, i64, i64)> = page_drawn_cps(view)
             .values()
             .filter(|(_, dir, _)| matches!(dir, Dir4::Up | Dir4::Down))
             .filter_map(|(at, _, rep)| {
@@ -1706,7 +1696,7 @@ impl Builder<'_> {
     /// The lines of the page's bridges (module documentation, "Bridges"): per bridge in the view's order, per row of
     /// its terminals, the points it joins along the line, at least two; the line runs from the first to the last.
     pub(crate) fn bridge_rows(view: &PageView) -> Vec<Vec<Pt2>> {
-        let cps = drawn_cps(view);
+        let cps = page_drawn_cps(view);
         let reps: BTreeMap<Uuid, &RepView> = view.reps.iter().map(|r| (r.rep.id.as_uuid(), r)).collect();
         let mut out = Vec::new();
         for bridge in &view.bridges {
@@ -2313,7 +2303,7 @@ pub(crate) type DrawnCp = (Id<Function>, u16, Pt2, Dir4);
 /// first one's by ID, as [`cp_map`] has it.
 pub(crate) fn cp_owners(view: &PageView) -> BTreeMap<Uuid, Vec<DrawnCp>> {
     let mut out: BTreeMap<Uuid, Vec<DrawnCp>> = BTreeMap::new();
-    for ((function, idx), (pos, dir, rep)) in drawn_cps(view) {
+    for ((function, idx), (pos, dir, rep)) in page_drawn_cps(view) {
         out.entry(rep)
             .or_default()
             .push((Id::from_uuid(function), idx, pos, dir));
