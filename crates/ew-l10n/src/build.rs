@@ -12,8 +12,8 @@ use std::path::Path;
 /// into the build's output directory, and has cargo run the build script again when the folder changes:
 ///
 /// - `texts.rs`: `TEXTS`, every one-line text of the en-GB files that takes only positional arguments (`{ $p0 }`,
-///   `{ $p1 }`, …), sorted by key, with its English: the arguments written `{0}`, `{1}`, … and a literal brace
-///   (`{"{"}`, `{"}"}`) as the brace;
+///   `{ $p1 }`, …), sorted by key, with its English: the arguments written `{0}`, `{1}`, … and a string literal
+///   (`{"{"}`, `{", "}`) as its text;
 /// - `keys.rs`: `KEYS`, every text key of the en-GB files, sorted by bytes;
 /// - `sources.rs`: `SOURCES`, every file of every language as (language, its text), the languages and each
 ///   language's files in name order.
@@ -110,31 +110,32 @@ pub fn generate(folder: &str) {
 }
 
 /// The table's form of a one-line Fluent value, or `None` when it holds anything but positional arguments and
-/// literal braces.
+/// string literals without escapes.
 fn template(value: &str) -> Option<String> {
     let mut out = String::new();
     let mut rest = value;
     while let Some(open) = rest.find('{') {
         out.push_str(&rest[..open]);
+        let after = rest[open + 1..].trim_start();
+        if let Some(literal) = after.strip_prefix('"') {
+            // A string literal: its text up to the closing quote, then the closing brace.
+            let end = literal.find('"')?;
+            if literal[..end].contains('\\') {
+                return None;
+            }
+            out.push_str(&literal[..end]);
+            rest = literal[end + 1..].trim_start().strip_prefix('}')?;
+            continue;
+        }
         let close = open + rest[open..].find('}')?;
         let inner = rest[open + 1..close].trim();
-        if let Some(n) = inner
+        let n = inner
             .strip_prefix("$p")
-            .filter(|n| n.len() == 1 && n.as_bytes()[0].is_ascii_digit())
-        {
-            out.push('{');
-            out.push_str(n);
-            out.push('}');
-            rest = &rest[close + 1..];
-        } else if inner == "\"{\"" {
-            out.push('{');
-            rest = &rest[close + 1..];
-        } else if rest[open..].starts_with("{\"}\"}") {
-            out.push('}');
-            rest = &rest[open + "{\"}\"}".len()..];
-        } else {
-            return None;
-        }
+            .filter(|n| n.len() == 1 && n.as_bytes()[0].is_ascii_digit())?;
+        out.push('{');
+        out.push_str(n);
+        out.push('}');
+        rest = &rest[close + 1..];
     }
     out.push_str(rest);
     Some(out)

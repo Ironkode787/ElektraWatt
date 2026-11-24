@@ -11,9 +11,13 @@
 //! marks would change the bytes a text prints. The pseudo-locale of the window's tests ([`pseudo`]) and the decimal
 //! comma of a pattern's `DECIMAL` ([`decimal`]) are here too.
 
+use std::borrow::Cow;
+
 use fluent_bundle::concurrent::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 use fluent_syntax::ast::Entry;
+
+use crate::{Text, TextArg};
 
 /// A function a pattern may call, by its name: `NAME($x)` gives `f(tag, x)` for a string `x`, with `tag` the tag of the
 /// language that formats it; another value passes unchanged, and no argument gives none.
@@ -42,6 +46,7 @@ pub enum OnError {
 pub struct Language {
     bundle: FluentBundle<FluentResource>,
     keys: Vec<String>,
+    tag: String,
 }
 
 impl Language {
@@ -78,7 +83,11 @@ impl Language {
             }));
             let _ = bundle.add_resource(resource);
         }
-        Language { bundle, keys }
+        Language {
+            bundle,
+            keys,
+            tag: tag.to_owned(),
+        }
     }
 
     /// The key of every message of its sources, in their order.
@@ -129,6 +138,72 @@ impl Language {
             .format_pattern(pattern, Some(&fluent_args), &mut errors);
         (on_error == OnError::Keep || errors.is_empty()).then(|| text.into_owned())
     }
+
+    /// `text` formatted: the value of its key with its arguments, the positional ones as `$p0`, `$p1`, … and the named
+    /// ones by their names; an argument that is a text, or a list of them, is formatted in this language first. `None`
+    /// when the key has no value here, or by `on_error` when a pattern resolves with an error (with [`OnError::Keep`] an
+    /// argument that is a text without a value here is written as its English).
+    pub fn text(&self, text: &Text, on_error: OnError) -> Option<String> {
+        let mut owned: Vec<(Cow<'_, str>, Formatted)> = Vec::new();
+        for (i, arg) in text.args().iter().enumerate() {
+            owned.push((Cow::Owned(format!("p{i}")), self.arg(arg, on_error)?));
+        }
+        for (name, arg) in text.named() {
+            owned.push((Cow::Borrowed(*name), self.arg(arg, on_error)?));
+        }
+        let args: Vec<(&str, Value<'_>)> = owned
+            .iter()
+            .map(|(name, value)| match value {
+                Formatted::Words(s) => (name.as_ref(), Value::Text(s)),
+                Formatted::Number(s) => (name.as_ref(), Value::Number(s)),
+            })
+            .collect();
+        self.format(text.key(), None, &args, on_error)
+    }
+
+    /// An argument of a text as its pattern reads it.
+    fn arg(&self, arg: &TextArg, on_error: OnError) -> Option<Formatted> {
+        Some(match arg {
+            TextArg::Number(n) => Formatted::Number(n.to_string()),
+            other => Formatted::Words(self.words(other, on_error)?),
+        })
+    }
+
+    /// An argument in words: a value as it is, a number in digits, a text and each item of a list in this language.
+    fn words(&self, arg: &TextArg, on_error: OnError) -> Option<String> {
+        let text = |t: &Text| match (self.text(t, on_error), on_error) {
+            (Some(s), _) => Some(s),
+            (None, OnError::Keep) => Some(t.to_string()),
+            (None, OnError::Miss) => None,
+        };
+        match arg {
+            TextArg::Plain(s) => Some(s.clone()),
+            TextArg::Number(n) => Some(n.to_string()),
+            TextArg::Ml(m) => Some(crate::in_language(m, &self.tag)),
+            TextArg::Text(t) => text(t),
+            TextArg::List(list) => {
+                let n = list.items.len();
+                let mut out = String::new();
+                for (i, item) in list.items.iter().enumerate() {
+                    match i {
+                        0 => {}
+                        i if i + 1 == n => out.push_str(&text(&list.last)?),
+                        _ => out.push_str(&text(&list.between)?),
+                    }
+                    out.push_str(&self.words(item, on_error)?);
+                }
+                Some(out)
+            }
+        }
+    }
+}
+
+/// An argument of a text, formatted for its pattern.
+enum Formatted {
+    /// Words, a string to the pattern.
+    Words(String),
+    /// A number written as text, a number to the pattern.
+    Number(String),
 }
 
 /// The parse errors of the Fluent source `source` (empty when it parses): for the tests.
@@ -188,4 +263,47 @@ pub fn pseudo(text: &str) -> String {
     out.extend(std::iter::repeat_n('~', pad));
     out.push('⟧');
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::List;
+
+    /// A text with named arguments, a number, a nested text and a list renders each in the language: the list by its
+    /// joining rule, the number for an ordinal; a nested key the language lacks fails with `Miss` and is written in
+    /// English with `Keep`.
+    #[test]
+    fn a_text_renders_its_arguments_in_the_language() {
+        let nl = Language::new(
+            "nl-NL",
+            [
+                "msg = { $who } heeft { $items } op de { NUMBER($nth, type: \"ordinal\") ->\n    [one] {$nth}ste\n   *[other] {$nth}e\n} plaats\nword = apparaat\ncomma = {\", \"}\nand = {\" en \"}\n",
+            ],
+            &[],
+            true,
+        );
+        let word = |key| Text::checked_by_macro(key, "device", Vec::new());
+        let sep = |key, english| Text::checked_by_macro(key, english, Vec::new());
+        let items = List::new(
+            vec!["-K1".into(), word("word").into(), "-K3".into()],
+            sep("comma", ", "),
+            sep("and", " and "),
+        );
+        let text = Text::checked_by_macro("msg", "?", Vec::new())
+            .with("who", word("word"))
+            .with("items", items.clone())
+            .with("nth", TextArg::Number(3));
+        assert_eq!(
+            nl.text(&text, OnError::Miss).as_deref(),
+            Some("apparaat heeft -K1, apparaat en -K3 op de 3e plaats")
+        );
+        assert_eq!(TextArg::List(items).to_string(), "-K1, device and -K3");
+        let missing = text.with("who", word("no-such-word"));
+        assert_eq!(nl.text(&missing, OnError::Miss), None);
+        assert!(
+            nl.text(&missing, OnError::Keep)
+                .is_some_and(|s| s.starts_with("device heeft"))
+        );
+    }
 }

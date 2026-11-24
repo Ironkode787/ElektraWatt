@@ -24,18 +24,51 @@ pub mod render;
 pub struct Text {
     key: &'static str,
     args: Vec<TextArg>,
+    /// The arguments by name (`{ $device }`), in the order they were given: a pattern with named variables.
+    named: Vec<(&'static str, TextArg)>,
     /// The English of the key in its crate's table, the arguments written `{0}`, `{1}`, …; `?` for a key the table
     /// does not hold. A key has one entry in one crate, so it follows from the key: equality and `Debug` leave it out.
     english: &'static str,
 }
 
-/// An argument of a [`Text`]: a value written as it is (a tag, a number, a name), or a text by key.
+/// An argument of a [`Text`]: a value written as it is (a tag, a name), a name a person wrote in several languages, a
+/// number, a text by key, or a list of them.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TextArg {
     /// A value that no language changes.
     Plain(String),
     /// Words by key, in the reader's language.
     Text(Text),
+    /// A name a person wrote in several languages (a medium's name): the reader's language exactly, else the neutral
+    /// text or the first language.
+    Ml(ew_mltext::MlText),
+    /// A number, which a pattern may select on or write as an ordinal (`NUMBER($n, type: "ordinal")`).
+    Number(i64),
+    /// Arguments joined by the joining rule of the reader's language.
+    List(List),
+}
+
+/// Arguments joined into one: each item in the reader's language, `between` between two items, `last` between the
+/// last two (`a, b and c`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct List {
+    /// The items, in order.
+    pub items: Vec<TextArg>,
+    /// The words between two items (`, `).
+    pub between: Box<Text>,
+    /// The words between the last two items (` and `); `between` where the language has none of its own.
+    pub last: Box<Text>,
+}
+
+impl List {
+    /// `items` joined by `between`, the last two by `last`.
+    pub fn new(items: Vec<TextArg>, between: Text, last: Text) -> List {
+        List {
+            items,
+            between: Box::new(between),
+            last: Box::new(last),
+        }
+    }
 }
 
 impl Text {
@@ -43,7 +76,24 @@ impl Text {
     /// arguments and passes the key's English from the crate's table; call the macro instead.
     #[doc(hidden)]
     pub fn checked_by_macro(key: &'static str, english: &'static str, args: Vec<TextArg>) -> Text {
-        Text { key, args, english }
+        Text {
+            key,
+            args,
+            named: Vec::new(),
+            english,
+        }
+    }
+
+    /// The same text with the argument `name` (a variable `{ $name }` of the key's pattern) set to `value`; a second
+    /// value of one name replaces the first.
+    #[must_use]
+    pub fn with(mut self, name: &'static str, value: impl Into<TextArg>) -> Text {
+        let value = value.into();
+        match self.named.iter_mut().find(|(k, _)| *k == name) {
+            Some(slot) => slot.1 = value,
+            None => self.named.push((name, value)),
+        }
+        self
     }
 
     /// The key: a key of the table of the crate that made the text, and of its text files.
@@ -54,6 +104,11 @@ impl Text {
     /// The arguments, in the order of `{0}`, `{1}`, ….
     pub fn args(&self) -> &[TextArg] {
         &self.args
+    }
+
+    /// The arguments by name, in the order they were given.
+    pub fn named(&self) -> &[(&'static str, TextArg)] {
+        &self.named
     }
 }
 
@@ -85,16 +140,18 @@ impl fmt::Display for Text {
 
 impl fmt::Debug for Text {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Text")
-            .field("key", &self.key)
-            .field("args", &self.args)
-            .finish()
+        let mut d = f.debug_struct("Text");
+        d.field("key", &self.key).field("args", &self.args);
+        if !self.named.is_empty() {
+            d.field("named", &self.named);
+        }
+        d.finish()
     }
 }
 
 impl PartialEq for Text {
     fn eq(&self, other: &Text) -> bool {
-        self.key == other.key && self.args == other.args
+        self.key == other.key && self.args == other.args && self.named == other.named
     }
 }
 
@@ -125,6 +182,20 @@ impl fmt::Display for TextArg {
         match self {
             TextArg::Plain(s) => f.write_str(s),
             TextArg::Text(t) => write!(f, "{t}"),
+            TextArg::Number(n) => write!(f, "{n}"),
+            TextArg::Ml(m) => f.write_str(&in_language(m, "en-GB")),
+            TextArg::List(list) => {
+                let n = list.items.len();
+                for (i, item) in list.items.iter().enumerate() {
+                    match i {
+                        0 => {}
+                        i if i + 1 == n => write!(f, "{}", list.last)?,
+                        _ => write!(f, "{}", list.between)?,
+                    }
+                    write!(f, "{item}")?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -151,6 +222,42 @@ impl From<Text> for TextArg {
     fn from(t: Text) -> TextArg {
         TextArg::Text(t)
     }
+}
+
+impl From<List> for TextArg {
+    fn from(l: List) -> TextArg {
+        TextArg::List(l)
+    }
+}
+
+/// `m` in the language `tag`: its text of exactly that tag, else its neutral text or its first language.
+pub(crate) fn in_language(m: &ew_mltext::MlText, tag: &str) -> String {
+    tag.parse::<ew_mltext::LangTag>()
+        .ok()
+        .and_then(|t| m.text_for(&t))
+        .or_else(|| m.neutral_or_first())
+        .unwrap_or_default()
+        .to_owned()
+}
+
+/// Whether `key` is in `keys`, a crate's `KEYS` sorted by bytes: the lookup behind a crate's `has_key`, which `key!`
+/// runs when the code is built.
+#[doc(hidden)]
+pub const fn key_in(keys: &[&str], key: &str) -> bool {
+    let (mut low, mut high) = (0, keys.len());
+    while low < high {
+        let mid = low + (high - low) / 2;
+        let o = order(keys[mid], key);
+        if o == 0 {
+            return true;
+        }
+        if o < 0 {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    false
 }
 
 /// How `a` orders against `b` by bytes, in a const context: negative, zero or positive.
@@ -213,14 +320,15 @@ pub const fn arity(template: &str) -> usize {
 /// before its modules; its `build.rs` has called [`build::generate`] on the folder. The `crate` it is given names the
 /// crate in the macros it makes, so that they find its table from any crate. The crate gets
 ///
-/// - `TEXTS`, its key table, and `text_english(key)`, the English of a key of it; `SOURCES`, its text files, which a
-///   front end that shows its texts loads;
+/// - `TEXTS`, its key table, and `text_english(key)`, the English of a key of it; `KEYS`, every key of its en-GB
+///   files, and `has_key(key)`; `SOURCES`, its text files, which a front end that shows its texts loads;
 /// - `text!("key", args…)`, the [`Text`] of a key of the table with as many arguments (each a `String`, a `&str` or a
 ///   [`Text`]) as its English takes;
-/// - `key!("key")`, a key of the table as it is, for a crate that hands a key to a front end.
+/// - `key!("key")`, a key of its text files as it is: for a crate that hands a key to a front end, and for a pattern
+///   whose arguments are named ([`Text::with`]).
 ///
-/// Both macros fail the build on a key the table lacks, and `text!` on a wrong number of arguments; the documentation
-/// of each crate that declares its folder shows the failure.
+/// `text!` fails the build on a key the table lacks and on a wrong number of arguments, `key!` on a key the text files
+/// lack; the documentation of each crate that declares its folder shows the failure.
 #[macro_export]
 macro_rules! texts {
     ($c:tt) => {
@@ -228,12 +336,18 @@ macro_rules! texts {
     };
     (@ $c:tt $d:tt) => {
         include!(concat!(env!("OUT_DIR"), "/texts.rs"));
+        include!(concat!(env!("OUT_DIR"), "/keys.rs"));
         include!(concat!(env!("OUT_DIR"), "/sources.rs"));
 
         /// The English text of `key`, its arguments written `{0}`, `{1}`, …, or `None` for a key that [`TEXTS`] does
         /// not hold.
         pub const fn text_english(key: &str) -> Option<&'static str> {
             $crate::english_in(TEXTS, key)
+        }
+
+        /// Whether `key` is a key of this crate's en-GB text files ([`KEYS`]).
+        pub const fn has_key(key: &str) -> bool {
+            $crate::key_in(KEYS, key)
         }
 
         /// The text of the key `$k`, a string literal of this crate's [`TEXTS`], with the arguments that follow it
@@ -256,14 +370,14 @@ macro_rules! texts {
             }};
         }
 
-        /// The text key `$k`, a string literal of this crate's [`TEXTS`], for a crate that hands a key to a front
-        /// end: a key that the table lacks fails the build.
+        /// The text key `$k`, a string literal of this crate's [`KEYS`]: a key that the text files lack fails the
+        /// build.
         #[macro_export]
         macro_rules! key {
             ($d k:literal) => {
                 const {
                     assert!(
-                        $d $c::text_english($d k).is_some(),
+                        $d $c::has_key($d k),
                         concat!("unknown text key: ", $d k)
                     );
                     $d k
