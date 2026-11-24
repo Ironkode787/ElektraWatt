@@ -14,7 +14,7 @@ use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session};
 use serde_json::{Map, Value, json};
 
 use super::{DocRequest, Mode, Outcome, Prompt, ShellModel, dir_name, failed, open_error_key, string_param};
-use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
+use crate::first_run::{self, FirstRun, FirstRunStep, STARTS};
 use crate::help;
 use crate::key;
 use crate::notifications::NoteTone;
@@ -327,7 +327,7 @@ impl ShellModel {
         let start = match string_param(p, "start") {
             Err(e) => return e,
             Ok(None) => "none",
-            Ok(Some(s)) if START_CHOICES.contains(&s) => s,
+            Ok(Some(s)) if STARTS.iter().any(|(_, start)| *start == s) => s,
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["start"]),
         };
         self.onboarding.first_run = None;

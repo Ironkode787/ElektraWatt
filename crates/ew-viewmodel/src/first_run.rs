@@ -66,7 +66,8 @@ pub struct FirstRun {
     pub step: FirstRunStep,
 }
 
-/// The Start step's buttons and the start each one takes (the screen and the fit test read this one list).
+/// The Start step's buttons and the start each one takes: where the first-run flow can lead (the `start` of
+/// `first_run.finish`; the screen and the fit test read this one list).
 pub const STARTS: [(Key<'static>, &str); 5] = [
     (key!("firstrun-start-wizard"), "wizard"),
     (key!("firstrun-start-sample"), "sample"),
@@ -88,9 +89,6 @@ pub fn footer(step: FirstRunStep) -> Vec<(Key<'static>, &'static str)> {
     }
     out
 }
-
-/// Where the first-run flow can lead (the `start` of `first_run.finish`).
-pub const START_CHOICES: [&str; 5] = ["wizard", "sample", "qet", "new", "none"];
 
 /// The action each start choice runs, with its parameters; `None` for "none".
 pub fn start_action(choice: &str) -> Option<&'static str> {
@@ -133,7 +131,7 @@ mod tests {
 
     #[test]
     fn every_start_choice_but_none_runs_an_action() {
-        for c in START_CHOICES {
+        for (_, c) in STARTS {
             assert_eq!(start_action(c).is_some(), c != "none", "{c}");
             if let Some(a) = start_action(c) {
                 assert!(crate::actions::find(a).is_some(), "{a}");
