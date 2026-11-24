@@ -36,6 +36,7 @@ use serde_json::{Value, json};
 use crate::app::Event;
 use crate::components::{self, Kind, Tip};
 use crate::icons::{self, IconId};
+use crate::theme::shares::CATALOGUE_MIN;
 use crate::theme::{self, Tokens, TypeToken};
 
 /// A module dragged by its card to another slot.
@@ -244,9 +245,6 @@ fn section(ui: &mut Ui, t: &Tokens, title: &str) {
     );
     ui.add_space(t.space_2);
 }
-
-/// The catalogue's narrowest width.
-const CATALOGUE_MIN: f32 = 280.0;
 
 /// The part of a station view's pane `full` that holds the rack and its lists: the pane without the catalogue, which
 /// takes a quarter of it at the right, within what its rows need and what a wide window gives.

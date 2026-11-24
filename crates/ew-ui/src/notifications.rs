@@ -29,6 +29,7 @@ use serde_json::json;
 use crate::app::Event;
 use crate::components::{self, Tip as _};
 use crate::icons::{self, IconId};
+use crate::theme::shares::TOAST_SHARE;
 use crate::theme::{self, Tokens};
 
 /// The actions of `n` as text links in `type.small` SemiBold `color.accent`, each disabled while it is not valid (an
@@ -100,10 +101,6 @@ pub(crate) fn tone_icon(t: &Tokens, tone: NoteTone) -> (IconId, theme::Rgba) {
         NoteTone::Success => (IconId::circle_check, t.success),
     }
 }
-
-/// The share of the window's width a toast takes once that is wider than `size.toast` (doc 16a §2: the UI
-/// grows with the space it has).
-pub(crate) const TOAST_SHARE: f32 = 0.22;
 
 /// The rows a toast's line wraps to before it is cut (a refusal's reason is never cut at one line; what does
 /// not fit in four rows is in the HUD, the log and the tooltip).

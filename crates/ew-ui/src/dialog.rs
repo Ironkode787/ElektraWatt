@@ -15,18 +15,11 @@ use ew_viewmodel::dialogs::{DialogAnswer, DialogButton, DialogSpec};
 
 use crate::components::{self, Kind, Tip};
 use crate::theme;
+use crate::theme::shares::{FORM_SHARE, PREVIEW_SHARE, SMALL_SHARE};
 
 /// The width of the main resolution, 1920 × 1080 points (doc 16a §2): the window every default layout is designed
 /// for.
 pub(crate) const MAIN_WIDTH: f32 = 1920.0;
-
-/// The share of the window a form dialog takes once that is wider than `size.dialog.form`
-/// (the UI grows with the space it has).
-pub(crate) const FORM_SHARE: f32 = 0.45;
-
-/// The share of the window a small dialog that holds a list (the Show changes popup, the parts card) takes once that
-/// is wider than `size.dialog.small`.
-pub(crate) const SMALL_SHARE: f32 = 0.3;
 
 /// A form dialog's width in a window `window` wide: `size.dialog.form`, growing with the window ([`FORM_SHARE`]).
 pub(crate) fn form_width(t: &crate::theme::Tokens, window: f32) -> f32 {
@@ -44,9 +37,6 @@ pub(crate) fn fields_form_width(t: &crate::theme::Tokens, window: f32) -> f32 {
 pub(crate) fn small_width(t: &crate::theme::Tokens, window: f32) -> f32 {
     grown(t.size_dialog_small, SMALL_SHARE, window)
 }
-
-/// The share of the window the print pre-dialog takes once that is wider than `size.dialog.preview` (1248 px at 1920).
-pub(crate) const PREVIEW_SHARE: f32 = 0.65;
 
 /// The print pre-dialog's width in a window `window` wide: `size.dialog.preview`, growing with the window
 /// ([`PREVIEW_SHARE`]).

@@ -26,11 +26,8 @@ use ew_viewmodel::strings;
 
 use crate::app::Event;
 use crate::icons::{self, IconId};
+use crate::theme::shares::PALETTE_SHARE;
 use crate::theme::{self, Tokens};
-
-/// The share of the window the command palette and the place picker take once that is wider than `size.palette`
-/// (the UI grows with the space it has, never a width chosen for the floor).
-pub(crate) const PALETTE_SHARE: f32 = 0.4;
 
 /// The label of `entry` with the characters the query's best alignment matches in `type.body.strong`;
 /// `query` is the text after the prefix.

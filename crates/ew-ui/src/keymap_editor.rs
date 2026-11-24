@@ -21,10 +21,7 @@ use serde_json::json;
 use crate::app::Event;
 use crate::components::{self, Kind};
 use crate::theme;
-
-/// The share of the window's height the list may take before it scrolls (doc 16a §2: a list dialog fits its content
-/// up to a share of the window, so it grows at 1920 × 1080).
-const LIST_SHARE: f32 = 0.5;
+use crate::theme::shares::KEYMAP_LIST_SHARE;
 
 /// The most a row's keys column takes of the columns' room (it fits its widest chips below that).
 const KEYS_SHARE: f32 = 0.25;
@@ -80,10 +77,10 @@ fn record(ui: &Ui, action: &'static str, events: &mut Vec<Event>) {
 }
 
 /// The number of whole rows of `row_height` the list shows in a window `window_height` high with `rows` rows: as many
-/// as fit in [`LIST_SHARE`] of the window, never fewer than one, never more than there are (the list never
+/// as fit in [`KEYMAP_LIST_SHARE`] of the window, never fewer than one, never more than there are (the list never
 /// ends in a half-cut row, and it grows with the window).
 pub(crate) fn visible_rows(window_height: f32, row_height: f32, rows: usize) -> usize {
-    let fit = (window_height * LIST_SHARE / row_height.max(1.0)).floor() as usize;
+    let fit = (window_height * KEYMAP_LIST_SHARE / row_height.max(1.0)).floor() as usize;
     fit.max(1).min(rows)
 }
 

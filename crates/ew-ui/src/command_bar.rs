@@ -28,6 +28,7 @@ use serde_json::{Value, json};
 use crate::app::Event;
 use crate::components::Tip as _;
 use crate::icons::{self, IconId};
+use crate::theme::shares::SEARCH_SHARE;
 use crate::theme::{self, Density, Tokens};
 
 /// The id of the app button; the app menu's popup id derives from it ([`app_menu_id`]).
@@ -83,10 +84,6 @@ struct RowLayout {
 pub(crate) fn bar_height(t: &Tokens, collapsed: bool) -> f32 {
     t.size_tab_row + if collapsed { 0.0 } else { t.size_command_row } + t.border_width
 }
-
-/// The width of `text` in `font`.
-/// The share of the tab row the command search takes once that is wider than `size.search.width` (FT-798).
-pub(crate) const SEARCH_SHARE: f32 = 0.2;
 
 /// The command search's width in a tab row `row` wide: [`SEARCH_SHARE`] of the row, never under `size.search.width`
 /// (FT-798, FT-1730; doc 16a §2: no cap beside the tab row's empty middle at 2560): 384 at 1920, 512 at 2560.
