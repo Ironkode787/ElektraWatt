@@ -274,7 +274,7 @@ the enrolments, counsel's opinions and ADR-0030 are no longer gate items; the CC
 binary are accepted by the owner as a distribution fact, without a counsel brief. The text below is kept as the
 record of the design. The repository's licence rules are unchanged: REUSE headers, the licence map (§2.1), the
 permissive/GPL boundary and the dependency checks stay in force. The signing identities that sign release binaries
-stay a release item (WP-S6.07). The `blocked:LG-2` merge block was removed.
+stay a release item. The `blocked:LG-2` merge block was removed.
 
 These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1 as a checklist item at 0.1.0 and, from 1.0, also LG-4 and the
 steward checklist of §3.10 (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01).
@@ -541,8 +541,8 @@ features.
 |---|---|---|---|---|---|
 | **WBSO** (Dutch R&D payroll-tax credit) | High, for the pilot panel builder's staff | Developer hours of the employer's staff | Company-side; applied for in advance by the employer (**verify** procedure and period rules with RVO); requires LG-1 to be clear about ownership | None: a tax credit to the employer is not monetisation of EW | M0 |
 | **NLnet / NGI Zero** (e.g. the NGI0 Commons Fund) | High | Milestone grants, typically €5k–€50k for a first proposal (unverified); free support services such as audits and REUSE help (unverified) | OSI/FSF licence (met); public results; check current calls, because EU NGI funding after 2025 is uncertain (**verify**) | None (grant) | Proposal 1 at the first call after LG-1 is signed (plan month 3, gate G-M0); proposal 2 at gate G-M1; proposal 3 at gate G-M2 (global plan §13.2) |
-| GitHub Sponsors | Low to medium | Maintainer time, CI hardware | `FUNDING.yml`; individual or organisation accounts | Donations within actual costs are not monetisation (G11) | When the steward holds the GitHub organisation (WP-S0.05, LG-4), not only at the first binary release (global plan §13.2) |
-| Open Collective with an EU fiscal host | Medium | Transparent budget; invoices to companies | Host fees (about 10 %, unverified) | Within actual costs; the public ledger supports NFR-COMP-07 | As GitHub Sponsors: once the steward holds the organisation (WP-S0.05, LG-4) |
+| GitHub Sponsors | Low to medium | Maintainer time, CI hardware | `FUNDING.yml`; individual or organisation accounts | Donations within actual costs are not monetisation (G11) | When the steward holds the GitHub organisation (LG-4), not only at the first binary release (global plan §13.2) |
+| Open Collective with an EU fiscal host | Medium | Transparent budget; invoices to companies | Host fees (about 10 %, unverified) | Within actual costs; the public ledger supports NFR-COMP-07 | As GitHub Sponsors: once the steward holds the organisation (LG-4) |
 | Manufacturer data partnerships | Strategic | Mostly in kind: open data packs, 3D models, verified address maps; sometimes cash | Explicit redistribution licence per pack; the funder gets no say in rules or reports (GV-05) | None, as long as no paid EW service is offered | Outreach after MVP; the first manufacturer-reviewed pack is a non-gating 1.0 target, because its timing depends on a third party (IDEA-091, PQ-32) |
 | Sponsored features and bounties | Medium | A specific profile (Komax, Rittal WT), an importer | Public RFC or issue; normal review | None (cost recovery) | 1.0 |
 | Corporate sponsor tiers | Medium to high, later | Panel builders, wholesalers, manufacturers | Tiers on the KiCad model; a logo on the website, no influence | Within actual costs | after 1.0 |

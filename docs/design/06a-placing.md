@@ -40,7 +40,7 @@ the crossings of their plain shapes), and route only the winner* (this design's 
 page with rails or many nets the estimate did not foresee what the router draws: plans it liked were refused
 afterwards and the page fell back to Route's plan, and a chain of stages, each ranked by the estimate, undid its
 own earlier choices. A page has tens of parts and tens of nets and a run of the router takes a fraction of a
-second, so the real answer is affordable and the estimate went (ADR-0034, amended 2026-11-20).
+second, so the real answer is affordable and the estimate went (ADR-0034).
 
 ### 4.2 Units, relations and trees
 

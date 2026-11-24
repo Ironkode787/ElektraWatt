@@ -1021,13 +1021,13 @@ Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.
 
 ## ew-testdir
 
-`crates/ew-testdir` · MIT OR Apache-2.0 · tier tests · depends on none · used by none · in tests by `elektrawatt`, `ew`, `ew-api`, `ew-library`, `ew-sqlview`, `ew-store`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-testdir` · MIT OR Apache-2.0 · tier tests · depends on none · used by none · in tests by `elektrawatt`, `ew`, `ew-api`, `ew-commands`, `ew-format`, `ew-import-eplan`, `ew-library`, `ew-print`, `ew-scene`, `ew-sqlview`, `ew-store`, `ew-testkit`, `ew-ui`, `ew-viewmodel`, `xtask`
 
-The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree, and a font file of any size for a project's typeface ([`font_of_size`]). A dev-only helper crate without dependencies, so any crate may take it as a dev-dependency.
+The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree, the comparison of an expected file with its re-bless ([`compare_or_bless`], [`bless`]), and a font file of any size for a project's typeface ([`font_of_size`]). A dev-only helper crate without dependencies, so any crate may take it as a dev-dependency.
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/lib.rs` |  | The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree, and a font file of any size for a project's typeface ([`font_of_size`]). |
+| `src/lib.rs` |  | The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree, the comparison of an expected file with its re-bless ([`compare_or_bless`], [`bless`]), and a font file of any size for a project's typeface ([`font_of_size`]). |
 
 ## ew-testids
 
@@ -1047,7 +1047,7 @@ The test kit, a crate only tests depend on: the builder DSL that speaks the comm
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/dsl.rs` | large | The builder DSL (doc 20 §3.2 path (b)): typed methods that create one record each through the commands of doc 06 §3.1 and return the IDs the commands minted. |
+| `src/dsl.rs` |  | The builder of the tests: typed methods that issue one command each through a [`CommandSink`] and return the IDs the commands minted. |
 | `src/lib.rs` |  | The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]) and a synthetic parts library ([`library`]). |
 | `src/library.rs` |  | A synthetic parts library (IX-9, NFR-PERF-21): `n` parts and their manufacturers as library documents of one library, deterministic for a given `n` and library ID. |
 
@@ -1391,23 +1391,25 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/start.rs` | large | `start`: a run folder outside the repository with the copies the run needs, the composed prompt, the prelude and, unless `--stateless`, a keeper. |
 | `src/blind/stateless.rs` |  | `--stateless` (D6): no keeper and no socket, for agent shells that block loopback or kill detached processes. |
 | `src/blind/stop.rs` |  | `stop`: the epilogue, the product's exit, the exports of the copied `ew` and the report. |
-| `src/blind/testkit.rs` |  | Helpers of the harness's unit tests: temporary folders and a run folder with a fake world. |
+| `src/blind/testkit.rs` |  | Helpers of the harness's unit tests: a run folder with a fake world. |
 | `src/blind/visual.rs` | large | The visual run's side of the protocol (visual spec §3 and §4): `do` sends mouse and key inputs and answers with one frame, `look` paints the current frame again (or a zoom of it), and nothing textual reaches the agent. |
 | `src/book_po.rs` |  | `book-po`: the user guide's translation catalogue, made from the pages and never kept by hand. |
 | `src/check.rs` |  | `check [-p <package>]... |
 | `src/code_map.rs` |  | `outline` and `where`: the items of a Rust file with their line spans, and a name's definitions and uses, read from the files of the worktree on every run (no index kept), so that a reader opens only the lines it needs. |
 | `src/crate_map.rs` |  | `gen-maps`, its second half: the crate map `docs/map/crates.md`, every workspace crate with the first sentences of its crate comment, its licence, its tier, the workspace crates it depends on and is used by, and under it each source file with the first sentence of its head comment, a file of more than 1,000 lines marked large. |
 | `src/deps.rs` | large | The rule `layers`: the rules between crates of `ci/dep-rules.toml`. |
+| `src/design_docs.rs` |  | The rule of `cargo xtask rules` that a design document says what is (docs/design/04-architecture.md §19): no file of `docs/design` holds a note headed "As built", a dated amendment (the word "amended" or "amendment" with a date on its line) or the number of a backlog row, a decision of the owner's list or a work package (`FT-`, `ID-`, `WP-`); and none is larger than [`CEILING`], but the documents read by identifier ([`BY_IDENTIFIER`]). |
 | `src/docs_gen.rs` | large | `docs-gen`: the generated reference pages of the user documentation book (NFR-DOC-06). |
 | `src/features.rs` | large | The feature rule of `cargo xtask rules`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and `banned_crates` in `ci/dep-rules.toml`. |
 | `src/generate.rs` |  | `gen [--check]`: every generated file of the repository, written by one command in one order. |
+| `src/greyed.rs` |  | The rule of `cargo xtask rules` that a greyed control says why (docs/design/04-architecture.md §13.3). |
 | `src/icons.rs` |  | `gen-icons`: the icon table of `ew-ui` (doc 16a §4.11). |
 | `src/licence.rs` | large | The licence rule of `cargo xtask rules`: the licence-map and licence-boundary check of docs/design/19-open-source-governance.md §5.1 (rules LR-01 … LR-04, NFR-LIC-01, NFR-LIC-02, NFR-LIC-10, NFR-MAINT-02), driven by `ci/licence-map.toml`. |
 | `src/main.rs` |  | The development commands of ElektraWatt: one command that checks a change, one that regenerates the generated files, and the repository rules they share. |
 | `src/raw_read.rs` | large | The raw-read rule of `cargo xtask rules`: the guard of ADR-0001 amendments 2, 4 and 5 for the raw readers of `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`. |
 | `src/repo.rs` |  | Helpers for the repository-wide checks: running git and listing the committed files. |
 | `src/symbols.rs` |  | `symbols-qet10`: seals the native starter library documents and generates the QET edition. |
-| `src/ui_strings.rs` |  | The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src` except the allowlist `ci/ui-strings-allow.txt`. |
+| `src/ui_strings.rs` |  | The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal with a letter reaches an egui text call in `crates/ew-ui/src`. |
 
 ## No head comment
 

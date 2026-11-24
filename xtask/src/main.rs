@@ -20,9 +20,11 @@ mod check;
 mod code_map;
 mod crate_map;
 mod deps;
+mod design_docs;
 mod docs_gen;
 mod features;
 mod generate;
+mod greyed;
 mod icons;
 mod licence;
 mod raw_read;
@@ -234,6 +236,8 @@ const RULES: &[(&str, Rule)] = &[
         check_anonymisation_at(root, false, &ws.files)
     }),
     ("ui-strings", |root, _| ui_strings::check(root)),
+    ("greyed", |root, _| greyed::check(root)),
+    ("design-docs", |root, _| design_docs::check(root)),
 ];
 
 /// `rules`: every repository rule, then `gen --check`. Prints one line per rule and each violation.
