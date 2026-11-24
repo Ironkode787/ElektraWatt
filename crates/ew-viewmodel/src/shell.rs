@@ -122,6 +122,8 @@ mod list_look;
 pub(crate) mod tools;
 // Where the outcome of an act of the window is said.
 mod said;
+// The typed readers of the selection.
+mod selected;
 // The history panel and context restore.
 mod undo_panel;
 // The wiring tools' host duties.

@@ -27,19 +27,6 @@ fn on_pin(grid: PageGridMap, pin: (i64, i64), p: (i64, i64)) -> bool {
 }
 
 impl ShellModel {
-    /// The one selected black box of the page shown.
-    fn selected_box(&self) -> Option<TableRep> {
-        let t = &self.canvas()?.page().tables;
-        match self.selection().items.as_slice() {
-            [one] => t
-                .reps
-                .iter()
-                .find(|r| r.id == one.0 && r.black_box.is_some())
-                .cloned(),
-            _ => None,
-        }
-    }
-
     /// The page point of `x_mm`/`y_mm` (a sheet point, the menu's) and `true`; without them the pointer's, else the
     /// grid cursor's, else the box's middle, and `false` (the pin then follows the pointer until a click puts it).
     fn pin_point(&self, p: &Map<String, Value>, rep: &TableRep) -> Result<((i64, i64), bool), Outcome> {

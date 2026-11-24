@@ -283,42 +283,6 @@ impl ShellModel {
 }
 
 impl ShellModel {
-    /// The terminals of the window selection (D9): (terminal function, terminal device) for each item — a
-    /// representation with one function, a function, or a device (its function) — each terminal once, in selection
-    /// order; `None` when an item is none of these or not a terminal.
-    pub(super) fn selected_terminals(&self) -> Option<Vec<(Uuid, Uuid)>> {
-        let project = self.project.as_ref()?;
-        let q = project.session.query();
-        let mut out: Vec<(Uuid, Uuid)> = Vec::new();
-        for item in &self.tools.selection.items {
-            let text = item.0.to_string();
-            let function = if let Some(rep) = text.parse().ok().and_then(|id| q.reps().get(id)) {
-                let [function] = rep.functions.as_slice() else {
-                    return None;
-                };
-                *function
-            } else if let Some(id) = text.parse().ok().filter(|id| q.functions().get(*id).is_some()) {
-                id
-            } else {
-                // A device: its function (a terminal has one; the lowest ID when it has several).
-                let device = text.parse().ok().filter(|id| q.devices().get(*id).is_some())?;
-                q.functions()
-                    .iter()
-                    .filter(|(_, f)| f.device == Some(device))
-                    .map(|(id, _)| id)
-                    .min()?
-            };
-            let f = q.functions().get(function)?;
-            let device = f.device?;
-            q.devices().get(device)?.aspects.terminal.as_ref()?;
-            let pair = (function.as_uuid(), device.as_uuid());
-            if !out.iter().any(|(x, _)| *x == pair.0) {
-                out.push(pair);
-            }
-        }
-        Some(out)
-    }
-
     /// The level (doc 08 §6.3) of the terminal CP `idx` of function `function` as the page shown draws it; 1 for a CP
     /// without a level or one the page does not draw.
     fn cp_level(&self, function: &str, idx: u16) -> u8 {

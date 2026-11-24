@@ -500,26 +500,6 @@ impl ShellModel {
         self.form_done(ACTION, out)
     }
 
-    /// The selected terminals of `tables` with their points, when they stand in one row (one `y`); else none.
-    fn selected_terminal_row(&self, tables: &PageTables) -> Vec<(EntityRef, (i64, i64))> {
-        let row: Vec<(EntityRef, (i64, i64))> = tables
-            .reps
-            .iter()
-            .filter(|r| r.terminal && self.tools.selection.contains(EntityRef(r.id)))
-            .map(|r| (EntityRef(r.id), r.pos))
-            .collect();
-        if row.iter().any(|(_, at)| at.1 != row[0].1.1) {
-            return Vec::new();
-        }
-        row
-    }
-
-    /// Whether two or more terminals of one row are selected on the page shown (Spacing…'s condition).
-    pub fn terminal_row_selected(&self) -> bool {
-        self.canvas()
-            .is_some_and(|c| self.selected_terminal_row(&c.page().tables).len() >= 2)
-    }
-
     /// The spacing of the next terminal row in grid steps: the one last chosen, in this session or an earlier one
     /// (the user setting `terminal_spacing`, FT-1791), else the default.
     pub(crate) fn terminal_spacing(&self) -> u32 {

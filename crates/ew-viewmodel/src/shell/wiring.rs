@@ -39,22 +39,6 @@ impl ShellModel {
         self.tools.notice.as_deref()
     }
 
-    /// Exactly one junction is selected on the focused page (`junction.open`'s condition).
-    pub fn one_junction_selected(&self) -> bool {
-        self.canvas().is_some_and(|c| {
-            let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
-            matches!(kinds.as_slice(), [(_, EntityKind::Junction)])
-        })
-    }
-
-    /// Exactly one connection is selected on the focused page (`tool.route_edit`'s condition).
-    pub fn one_connection_selected(&self) -> bool {
-        self.canvas().is_some_and(|c| {
-            let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
-            matches!(kinds.as_slice(), [(_, EntityKind::Connection)])
-        })
-    }
-
     /// Which way the handle under the pointer moves, while Select is idle and a press there would drag a segment or a
     /// bend of the selected line (the window's pointer shape over it); `None` elsewhere.
     pub fn grip_under_pointer(&self) -> Option<crate::tools::route_edit::GripMove> {

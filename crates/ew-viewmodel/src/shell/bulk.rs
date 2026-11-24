@@ -19,8 +19,6 @@
 //! **The purge step** lists `Session::purge_preview`'s files in a confirmation and commits `project.assets.purge` with
 //! exactly the listed hashes from the GUI origin. The command is `HumanOnly`: headless the action refuses.
 
-use std::collections::BTreeSet;
-
 use ew_api::output::Uuid;
 use ew_api::{AnyCommand, PurgeError, Submit};
 use serde_json::{Map, Value, json};
@@ -566,42 +564,6 @@ impl ShellModel {
             "page.renumber",
             json!({ "scope": scope, "start": start, "step": step, "keep_gaps": keep_gaps }),
         )
-    }
-
-    /// The devices of the selection: a selected device, the device of a selected function or of a selected
-    /// representation's function; sorted, once each.
-    pub(super) fn selected_devices(&self) -> Vec<String> {
-        let Some(project) = &self.project else {
-            return Vec::new();
-        };
-        let q = project.session.query();
-        let mut out: BTreeSet<Uuid> = BTreeSet::new();
-        for e in &self.tools.selection.items {
-            // The typed row IDs come from the canonical text, fixed by inference (the shell names no schema type).
-            let text = e.0.to_string();
-            let device = text
-                .parse()
-                .ok()
-                .filter(|d| q.devices().get(*d).is_some())
-                .or_else(|| {
-                    text.parse()
-                        .ok()
-                        .and_then(|f| q.functions().get(f))
-                        .and_then(|f| f.device)
-                })
-                .or_else(|| {
-                    text.parse()
-                        .ok()
-                        .and_then(|r| q.reps().get(r))
-                        .and_then(|r| r.functions.first().copied())
-                        .and_then(|f| q.functions().get(f))
-                        .and_then(|f| f.device)
-                });
-            if let Some(d) = device {
-                out.insert(d.as_uuid());
-            }
-        }
-        out.into_iter().map(|u| u.to_string()).collect()
     }
 
     /// `devices.renumber {scope?, scheme?, include_frozen?, only_nonconforming?}` (Tools, Renumber devices…):

@@ -115,48 +115,6 @@ impl ShellModel {
         Ok(Rows { table, rows })
     }
 
-    /// The devices of the window selection (D9): a device itself, a function's device, a representation's functions'
-    /// devices; each once, in selection order.
-    pub(super) fn selected_record_devices(&self) -> Vec<Uuid> {
-        let Some(project) = &self.project else {
-            return Vec::new();
-        };
-        let q = project.session.query();
-        let mut out: Vec<Uuid> = Vec::new();
-        let push = |u: Uuid, out: &mut Vec<Uuid>| {
-            if !out.contains(&u) {
-                out.push(u);
-            }
-        };
-        for item in &self.tools.selection.items {
-            let text = item.0.to_string();
-            if let Ok(id) = text.parse()
-                && q.devices().get(id).is_some()
-            {
-                push(item.0, &mut out);
-                continue;
-            }
-            if let Ok(id) = text.parse()
-                && let Some(f) = q.functions().get(id)
-            {
-                if let Some(d) = f.device {
-                    push(d.as_uuid(), &mut out);
-                }
-                continue;
-            }
-            if let Ok(id) = text.parse()
-                && let Some(rep) = q.reps().get(id)
-            {
-                for f in &rep.functions {
-                    if let Some(d) = q.functions().get(*f).and_then(|f| f.device) {
-                        push(d.as_uuid(), &mut out);
-                    }
-                }
-            }
-        }
-        out
-    }
-
     /// A printed tag of device `device` as the window shows it: a strip's tag not derived yet in words
     /// ([`crate::navigators::strip_label`]), any other tag (an unnumbered device's `-?K?` too) as it is.
     pub fn device_tag_label(&self, device: Uuid, tag: &str) -> String {

@@ -16,10 +16,11 @@
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-use ew_api::output::{PageTables, SymbolShape, TableRep};
+use ew_api::output::{SymbolShape, TableRep};
 use serde_json::{Map, Value, json};
 
 use super::canvas_actions::point_mm;
+use super::selected::selected_ips;
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::{CanvasModel, CanvasPage};
 use crate::key;
@@ -32,7 +33,7 @@ use crate::tools::ip::{
 use crate::tools::wire::PageGridMap;
 use crate::tools::{
     CanvasEvent, IpDir, IpExternal, IpMemory, IpTool, PickerMode, ProjectIps, ToolKey, ToolOutput, WireTool,
-    black_box, selection_kinds,
+    black_box,
 };
 
 /// EW's interruption-point forms: the source form, the target form, and the documents to embed.
@@ -84,33 +85,9 @@ impl IpDir {
 /// The sort key of an arranged IP: its potential name, its name, its function ID and its position (y, x).
 type ArrangeKey = (Option<String>, String, String, (i64, i64));
 
-/// The interruption points of a page that a selection holds: their table rows, in selection order.
-fn selected_ips<'t>(model: &ShellModel, tables: &'t PageTables) -> Vec<&'t TableRep> {
-    selection_kinds(model.selection(), tables)
-        .into_iter()
-        .filter_map(|(e, _)| tables.reps.iter().find(|r| r.id == e.0 && r.ip.is_some()))
-        .collect()
-}
-
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
-
-    /// How many interruption points of the focused page are selected (`ip.continue_on` wants one, `ip.arrange_selected`
-    /// two or more).
-    pub fn selected_ip_count(&self) -> usize {
-        self.canvas()
-            .map_or(0, |c| selected_ips(self, &c.page().tables).len())
-    }
-
-    /// Exactly one black box of the focused page is selected (`box.grip`, `box.add_cp`).
-    pub fn one_black_box_selected(&self) -> bool {
-        self.canvas().is_some_and(|c| {
-            let t = &c.page().tables;
-            matches!(self.selection().items.as_slice(), [one]
-                if t.reps.iter().any(|r| r.id == one.0 && r.black_box.is_some()))
-        })
-    }
 
     /// The project's external references as the IP tool's field offers them: (ID text, printed text
     /// `<device>:<connection>`, each part the reference holds; empty for one without both, which only its ID names), in
