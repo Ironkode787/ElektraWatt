@@ -1272,6 +1272,86 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// A file with members this version does not know (at the top, in a table of its own and inside the known
+    /// tables), members missing, and values it cannot take (a choice it does not offer, a size out of range, a
+    /// duplicated list entry, an empty template folder) reads leniently and is written back as these bytes: the
+    /// unknown members kept, the missing ones at their defaults, the wrong values at their fallbacks, keys sorted. The
+    /// file written reads back to the same settings and the same bytes.
+    #[test]
+    fn a_file_with_unknown_missing_and_wrong_members_is_read_and_written_as_these_bytes() {
+        let file = "version = 1\nzzz = \"later\"\ntheme = \"purple\"\nlanguage = \"nl\"\nui_scale = 1.7\n\
+            min_font_pt = 30\nterminal_spacing = 0\nrecent_projects = [\"b\", \"a\", \"b\"]\n\
+            tips_seen = [\"wheel\", \"wheel\"]\ncomes_from = \"vi\"\nworkspace = \"../x\"\nreduce_motion = true\n\
+            [future]\nkey = 3\n[window]\nwidth = 800\nheight = 600\nmonitor = \"left\"\n\
+            [parts]\nfavourites = [\"b/2\", \"a/1\", \"a/1\"]\nkeep = 1\n\
+            [properties]\ncollapsed = [\"device/z\", \"device/a\", \"device/z\"]\nnote = \"x\"\n\
+            [[templates]]\ndir = \"\"\nname = \"none\"\n[[templates]]\ndir = \"/w/t.ew\"\n";
+        let read = Settings::parse(file).expect("a lenient read");
+        let written = read.to_toml();
+        assert_eq!(
+            written,
+            "canvas_backend = \"auto\"\ncomes_from = \"\"\ndensity = \"comfortable\"\nfirst_run_done = false\n\
+            keymap = \"ew\"\nlanguage = \"nl\"\nrecent_projects = [\"b\", \"a\"]\nreduce_motion = true\n\
+            theme = \"system\"\ntips_seen = [\"wheel\"]\nui_scale = 1.0\nupdate_check = false\nversion = 1\n\
+            workspace = \"Schematic\"\nzzz = \"later\"\n\n[future]\nkey = 3\n\n[parts]\nfavourites = [\"a/1\", \"b/2\"]\n\
+            keep = 1\n\n[properties]\ncollapsed = [\"device/a\", \"device/z\"]\nnote = \"x\"\n\n[[templates]]\n\
+            dir = \"/w/t.ew\"\nname = \"t.ew\"\n\n[window]\nmonitor = \"left\"\n"
+        );
+        let again = Settings::parse(&written).expect("its own file");
+        assert_eq!(again, read);
+        assert_eq!(again.to_toml(), written);
+        // Every member set: its file, and the same settings read back.
+        let full = Settings {
+            recent_projects: vec!["/w/a.ew".to_owned()],
+            ui_scale: 1.25,
+            first_run_done: true,
+            language: "nl".to_owned(),
+            keymap: "kicad".to_owned(),
+            theme: "dark".to_owned(),
+            density: "compact".to_owned(),
+            comes_from: "eplan".to_owned(),
+            update_check: true,
+            basic_project: Some("/w/t.ew".to_owned()),
+            templates: vec![TemplateEntry::new(
+                "/w/t.ew".to_owned(),
+                Some("Company".to_owned()),
+            )],
+            workspace: "PLC".to_owned(),
+            canvas_backend: "cpu".to_owned(),
+            properties_collapsed: vec!["device/identity".to_owned()],
+            properties_show_advanced: true,
+            author_name: Some("A. Engineer".to_owned()),
+            dwg_converter: Some("/opt/oda".to_owned()),
+            window: crate::window::WindowGeometry::from_toml(
+                &toml::from_str("x = 10\ny = 20\nwidth = 800\nheight = 600\nmaximized = false\n").unwrap(),
+            ),
+            parts_favourites: vec!["a/1".to_owned()],
+            parts_recent: vec!["b/2".to_owned()],
+            min_font_pt: 14,
+            reduce_motion: Some(false),
+            wheel_scrolls: true,
+            tips: false,
+            tips_seen: vec!["wheel".to_owned()],
+            terminal_spacing: Some(4),
+            symbols_recent: vec!["library:l:s".to_owned()],
+            extra: toml::Table::new(),
+        };
+        let written = full.to_toml();
+        assert_eq!(
+            written,
+            "author_name = \"A. Engineer\"\nbasic_project = \"/w/t.ew\"\ncanvas_backend = \"cpu\"\n\
+            comes_from = \"eplan\"\ndensity = \"compact\"\ndwg_converter = \"/opt/oda\"\nfirst_run_done = true\n\
+            keymap = \"kicad\"\nlanguage = \"nl\"\nmin_font_pt = 14\nrecent_projects = [\"/w/a.ew\"]\n\
+            reduce_motion = false\nsymbols_recent = [\"library:l:s\"]\nterminal_spacing = 4\ntheme = \"dark\"\n\
+            tips = false\ntips_seen = [\"wheel\"]\nui_scale = 1.25\nupdate_check = true\nversion = 1\n\
+            wheel_scrolls = true\nworkspace = \"PLC\"\n\n[parts]\nfavourites = [\"a/1\"]\nrecent = [\"b/2\"]\n\n\
+            [properties]\ncollapsed = [\"device/identity\"]\nshow_advanced = true\n\n[[templates]]\n\
+            dir = \"/w/t.ew\"\nname = \"Company\"\n\n[window]\nheight = 600\nmaximized = false\nwidth = 800\nx = 10\n\
+            y = 20\n"
+        );
+        assert_eq!(Settings::parse(&written), Some(full));
+    }
+
     #[test]
     fn a_round_trip_keeps_unknown_keys() {
         let dir = temp_dir("roundtrip");
