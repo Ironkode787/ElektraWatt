@@ -932,16 +932,16 @@ impl Session {
         let invalid = |t: crate::Text| Err(LayoutEditError::Refused(t));
         let length_text = || {
             if comma(&q) {
-                text!("props-length-comma")
+                text!("refusal-layout-length-comma")
             } else {
-                text!("props-length")
+                text!("refusal-layout-length")
             }
         };
         let pair_text = || {
             if comma(&q) {
-                text!("props-lengths-two-comma")
+                text!("refusal-layout-lengths-two-comma")
             } else {
-                text!("props-lengths-two")
+                text!("refusal-layout-lengths-two")
             }
         };
         let command = |name: &str, params: Value| {
@@ -990,10 +990,10 @@ impl Session {
             // re-test set it on two tubes and only the first kept it).
             ("connection", "medium") => {
                 let Some((function, idx)) = self.line_end_cp(edit.target) else {
-                    return invalid(text!("props-tube-no-port"));
+                    return invalid(text!("refusal-layout-tube-no-port"));
                 };
                 if text.parse::<Uuid>().is_err() {
-                    return invalid(text!("props-medium-choose"));
+                    return invalid(text!("refusal-layout-medium-choose"));
                 }
                 let also: Vec<Value> = edit
                     .others
@@ -1011,10 +1011,10 @@ impl Session {
             ("device", "medium") => {
                 let Some((function, idx)) = super::properties::source_port(&q, Id::from_uuid(edit.target))
                 else {
-                    return invalid(text!("props-device-no-fluid-port"));
+                    return invalid(text!("refusal-layout-device-no-fluid-port"));
                 };
                 if text.parse::<Uuid>().is_err() {
-                    return invalid(text!("props-medium-choose"));
+                    return invalid(text!("refusal-layout-medium-choose"));
                 }
                 command(
                     "fluid.medium.define",
@@ -1038,7 +1038,7 @@ impl Session {
             }
             ("placement", _) => {
                 let Some(p) = q.table::<Placement>().get(Id::from_uuid(edit.target)) else {
-                    return invalid(text!("props-placement-gone"));
+                    return invalid(text!("refusal-layout-placement-gone"));
                 };
                 let pid = p.id.as_uuid().to_string();
                 let on_rail = matches!(p.carrier, CarrierRef::Carrier(_));
@@ -1071,13 +1071,13 @@ impl Session {
                         let k = if on_rail {
                             match RAIL_TURNS.iter().position(|t| t.eq_ignore_ascii_case(text)) {
                                 Some(i) => (i * 2) as u8,
-                                None => return invalid(text!("props-choose-flip")),
+                                None => return invalid(text!("refusal-layout-choose-flip")),
                             }
                         } else {
                             let t = text.trim_end_matches('°').trim();
                             match ["0", "90", "180", "270"].iter().position(|r| *r == t) {
                                 Some(i) => i as u8,
-                                None => return invalid(text!("props-choose-angle")),
+                                None => return invalid(text!("refusal-layout-choose-angle")),
                             }
                         };
                         let mut params =
@@ -1096,7 +1096,7 @@ impl Session {
                                 .find(|c| part_number(&q, *c).eq_ignore_ascii_case(text))
                         });
                         let Some(copy) = copy else {
-                            return invalid(text!("props-placement-no-part", tag(&q, p.device), text));
+                            return invalid(text!("refusal-layout-placement-no-part", tag(&q, p.device), text));
                         };
                         command(
                             "layout.move",
@@ -1105,14 +1105,14 @@ impl Session {
                     }
                     "locked" => match parse_bool(text) {
                         Some(on) => command("layout.lock", json!({"placement": pid, "locked": on})),
-                        None => invalid(text!("props-choose-yes-no")),
+                        None => invalid(text!("refusal-layout-choose-yes-no")),
                     },
-                    _ => invalid(text!("props-row-not-here")),
+                    _ => invalid(text!("refusal-layout-row-not-here")),
                 }
             }
             ("carrier", _) => {
                 let Some(c) = q.table::<Carrier>().get(Id::from_uuid(edit.target)) else {
-                    return invalid(text!("props-carrier-gone"));
+                    return invalid(text!("refusal-layout-carrier-gone"));
                 };
                 let cid = c.id.as_uuid().to_string();
                 let axis = RailAxis::of(&c.path);
@@ -1120,7 +1120,7 @@ impl Session {
                 match name {
                     "pe_bond" => match parse_bool(text) {
                         Some(on) => command("layout.carrier.edit", json!({"carrier": cid, "pe_bond": on})),
-                        None => invalid(text!("props-choose-yes-no")),
+                        None => invalid(text!("refusal-layout-choose-yes-no")),
                     },
                     "part" => {
                         let kind = if c.kind == CarrierKind::Rail {
@@ -1137,9 +1137,9 @@ impl Session {
                                 json!({"carrier": cid, "part": id.as_uuid().to_string()}),
                             ),
                             None => invalid(if kind == PartKind::Rail {
-                                text!("props-no-rail-part", text)
+                                text!("refusal-layout-no-rail-part", text)
                             } else {
-                                text!("props-no-duct-part", text)
+                                text!("refusal-layout-no-duct-part", text)
                             }),
                         }
                     }
@@ -1156,10 +1156,10 @@ impl Session {
                     }
                     "length" => {
                         let Some(a) = axis else {
-                            return invalid(text!("props-row-not-here"));
+                            return invalid(text!("refusal-layout-row-not-here"));
                         };
                         let Some(l) = parse_mm(text).filter(|l| *l > 0) else {
-                            return invalid(text!("props-length-above-zero"));
+                            return invalid(text!("refusal-layout-length-above-zero"));
                         };
                         let start = (i128::from(a.start.x.0), i128::from(a.start.y.0));
                         let (du, dv) = a.dir.rotate((l, 0));
@@ -1170,10 +1170,10 @@ impl Session {
                     }
                     "width" | "height" => {
                         let CarrierParams::Duct(d) = &c.params else {
-                            return invalid(text!("props-row-not-here"));
+                            return invalid(text!("refusal-layout-row-not-here"));
                         };
                         let Some(l) = parse_mm(text).filter(|l| *l > 0) else {
-                            return invalid(text!("props-length-above-zero"));
+                            return invalid(text!("refusal-layout-length-above-zero"));
                         };
                         let (w, h) = if name == "width" {
                             (l, i128::from(d.height.0))
@@ -1192,7 +1192,7 @@ impl Session {
                             json!({"carrier": cid, "params": {"duct": duct}}),
                         )
                     }
-                    _ => invalid(text!("props-row-not-here")),
+                    _ => invalid(text!("refusal-layout-row-not-here")),
                 }
             }
             ("mounting_surface", "pe_bond") => match parse_bool(text) {
@@ -1200,7 +1200,7 @@ impl Session {
                     "layout.surface.edit",
                     json!({"surface": edit.target.to_string(), "pe_bond": on}),
                 ),
-                None => invalid(text!("props-choose-yes-no")),
+                None => invalid(text!("refusal-layout-choose-yes-no")),
             },
             ("enclosure", "position") => {
                 let v = parse_mm_list(&q, text, 3).or_else(|| {
@@ -1212,9 +1212,9 @@ impl Session {
                 let Some(v) = v else {
                     // The row shows three lengths (x, y, z), so its refusal asks for three.
                     return invalid(if comma(&q) {
-                        text!("props-lengths-three-comma")
+                        text!("refusal-layout-lengths-three-comma")
                     } else {
-                        text!("props-lengths-three")
+                        text!("refusal-layout-lengths-three")
                     });
                 };
                 command(
@@ -1237,7 +1237,7 @@ impl Session {
             ("page", "surface" | "label_mode" | "labels" | "datum") => {
                 let page: Id<Page> = Id::from_uuid(edit.target);
                 if q.pages().get(page).is_none() {
-                    return invalid(text!("props-page-gone"));
+                    return invalid(text!("refusal-layout-page-gone"));
                 }
                 let view = q.get::<PageSurfaceView>(page).as_ref().clone();
                 let mut scale = None;
@@ -1271,13 +1271,13 @@ impl Session {
                             // A surface ID that names no surface (a deleted one, or a stale list): no ID in
                             // the words.
                             (None, []) if as_id.is_some() => {
-                                return invalid(text!("props-surface-gone"));
+                                return invalid(text!("refusal-layout-surface-gone"));
                             }
                             (None, []) => {
-                                return invalid(text!("props-no-surface", text));
+                                return invalid(text!("refusal-layout-no-surface", text));
                             }
                             (None, _) => {
-                                return invalid(text!("props-surface-many", text));
+                                return invalid(text!("refusal-layout-surface-many", text));
                             }
                         };
                         // A page still drawn not to scale takes the fitting scale with the view.
@@ -1301,7 +1301,7 @@ impl Session {
                         let Some((show, _)) =
                             LABELS.iter().find(|(_, w)| w.eq_ignore_ascii_case(text.trim()))
                         else {
-                            return invalid(text!("props-choose-labels"));
+                            return invalid(text!("refusal-layout-choose-labels"));
                         };
                         labels = Some(*show);
                     }
@@ -1309,7 +1309,7 @@ impl Session {
                         mode = match text.to_ascii_lowercase().as_str() {
                             "abbreviated" => "abbreviated",
                             "full" => "full",
-                            _ => return invalid(text!("props-choose-label-mode")),
+                            _ => return invalid(text!("refusal-layout-choose-label-mode")),
                         }
                     }
                     _ => {
@@ -1323,7 +1323,7 @@ impl Session {
                     }
                 }
                 let Some(surface) = surface else {
-                    return invalid(text!("props-surface-first"));
+                    return invalid(text!("refusal-layout-surface-first"));
                 };
                 let (x, y) = datum.unwrap_or((0, 0));
                 let mut params = json!({"page": edit.target.to_string(), "surface": surface.as_uuid().to_string(),
@@ -1336,7 +1336,7 @@ impl Session {
                 }
                 command("page.surface_view.set", params)
             }
-            _ => invalid(text!("props-row-not-here")),
+            _ => invalid(text!("refusal-layout-row-not-here")),
         }
     }
 
