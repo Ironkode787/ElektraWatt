@@ -655,6 +655,9 @@ fn attached(tx: &TxBuilder<'_>, f: Id<Function>, ep: u16) -> Vec<Text> {
     out
 }
 
+/// One copy to update: the held document, the new document, its key, and whether the hash changed.
+type Update = (LibDocument, LibDocument, AnyKey, bool);
+
 impl Command for UpdateLibraryCopies {
     const NAME: &'static str = "library.update";
 
@@ -662,162 +665,11 @@ impl Command for UpdateLibraryCopies {
         CommandMeta::edit(Self::NAME).bulk()
     }
 
-    #[allow(clippy::too_many_lines)]
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        let name = Self::NAME;
-        if self.copies.is_empty() {
-            return Err(CmdError::invalid_params(
-                name,
-                "/copies",
-                text!("refusal-params-no-library-document"),
-            ));
-        }
-        // (held document, new document, key, whether the hash changed)
-        let mut updates: Vec<(LibDocument, LibDocument, AnyKey, bool)> = Vec::new();
-        let mut seen = BTreeSet::new();
-        let mut primary = None;
-        for (i, value) in self.copies.iter().enumerate() {
-            let at = format!("/copies/{i}");
-            let (doc, l) = read_copy(name, &at, value)?;
-            let kind = doc.kind().expect("an implemented kind");
-            let key = (kind, l.id);
-            if !seen.insert(key) {
-                return Err(CmdError::invalid_params(
-                    name,
-                    at,
-                    text!("refusal-params-copy-twice"),
-                ));
-            }
-            primary.get_or_insert(key);
-            let Some(held) = tx.row(&key) else {
-                return Err(CmdError::invalid_params(
-                    name,
-                    at,
-                    text!(
-                        "refusal-library-update-not-held",
-                        crate::words::document(tx, &doc)
-                    ),
-                ));
-            };
-            let held = row_document(&held).expect("a library copy row");
-            let held_version = held_version_of(&held);
-            let new_version = held_version_of(&doc);
-            let Some(new_core) = ew_schema::semver_core(new_version.trim()) else {
-                return Err(CmdError::invalid_params(
-                    name,
-                    format!("{at}/version"),
-                    text!("refusal-library-update-not-semver", new_version.to_string()),
-                ));
-            };
-            if ew_schema::semver_core(held_version.trim()).is_some_and(|h| new_core < h) {
-                return Err(CmdError::invalid_params(
-                    name,
-                    format!("{at}/version"),
-                    text!(
-                        "refusal-library-update-downgrade",
-                        new_version.to_string(),
-                        held_version.to_string()
-                    ),
-                ));
-            }
-            let changed = held_sha_of(&held) != Some(l.claimed);
-            updates.push((held, doc, key, changed));
-        }
-        // the explicit mappings, by copy
-        let mut maps: BTreeMap<AnyId, (usize, &CpMapParam)> = BTreeMap::new();
-        for (j, m) in self.cp_maps.iter().enumerate() {
-            if !seen.iter().any(|(_, id)| *id == m.copy) {
-                return Err(CmdError::invalid_params(
-                    name,
-                    format!("/cp_maps/{j}/copy"),
-                    text!("refusal-library-update-map-copy", m.copy.to_string()),
-                ));
-            }
-            if maps.insert(m.copy, (j, m)).is_some() {
-                return Err(CmdError::invalid_params(
-                    name,
-                    format!("/cp_maps/{j}/copy"),
-                    text!("refusal-params-copy-twice"),
-                ));
-            }
-        }
-        let mut remap: BTreeMap<(Id<Function>, u16), u16> = BTreeMap::new();
-        let mut blocked: Vec<TextArg> = Vec::new();
-        for (held, new, key, changed) in &updates {
-            let (old_cps, new_cps) = (
-                copy_cps(held).unwrap_or_default(),
-                copy_cps(new).unwrap_or_default(),
-            );
-            let explicit: BTreeMap<u16, u16> = match maps.get(&key.1) {
-                None => BTreeMap::new(),
-                Some((j, m)) => explicit_map(&m.map, &old_cps, &new_cps).map_err(|(k, side, why)| {
-                    CmdError::invalid_params(name, format!("/cp_maps/{j}/map/{k}/{side}"), why)
-                })?,
-            };
-            if !changed {
-                continue;
-            }
-            pin_moves(tx, held, new, &explicit, &mut remap, &mut blocked)?;
-        }
-        if !blocked.is_empty() {
-            return tx.reject(text!(
-                "refusal-library-update-blocked",
-                crate::words::list(blocked)
-            ));
-        }
-        // The closure documents to embed, and the new version's items the project would lack.
-        let project = tx.project().id.as_uuid();
-        let mut embed: Vec<(AnyKey, LibDocument)> = Vec::new();
-        for (i, value) in self.embed.iter().enumerate() {
-            let at = format!("/embed/{i}");
-            let (doc, l) = check_copy(name, &at, value, project)?;
-            let key = (doc.kind().expect("an implemented kind"), l.id);
-            if seen.contains(&key) || embed.iter().any(|(k, _)| *k == key) {
-                return Err(CmdError::invalid_params(
-                    name,
-                    at,
-                    text!("refusal-params-copy-twice"),
-                ));
-            }
-            if tx.row(&key).is_some() {
-                return Err(CmdError::invalid_params(
-                    name,
-                    at,
-                    text!(
-                        "refusal-library-update-embed-held",
-                        crate::words::document(tx, &doc)
-                    ),
-                ));
-            }
-            embed.push((key, doc));
-        }
-        let mut missing: Vec<TextArg> = Vec::new();
-        let mut listed: BTreeSet<AnyKey> = BTreeSet::new();
-        for (held, new, _, changed) in &updates {
-            if !changed {
-                continue;
-            }
-            let before = named_items(held);
-            for item in named_items(new).difference(&before) {
-                let lacking = tx.row(item).is_none() && !embed.iter().any(|(k, _)| k == item);
-                if lacking && listed.insert(*item) {
-                    missing.push(
-                        text!(
-                            "refusal-library-update-missing-copy",
-                            crate::words::record(tx, *item),
-                            crate::words::document(tx, new)
-                        )
-                        .into(),
-                    );
-                }
-            }
-        }
-        if !missing.is_empty() {
-            return tx.reject(text!(
-                "refusal-library-update-missing",
-                crate::words::list(missing)
-            ));
-        }
+        let (updates, seen) = self.read_updates(tx)?;
+        let primary = updates.first().map(|(_, _, key, _)| *key);
+        let remap = self.pin_remap(tx, &updates, &seen)?;
+        let embed = self.checked_embeds(tx, &updates, &seen)?;
         for (_, doc) in embed {
             match doc {
                 LibDocument::Part(c) => tx.put(c),
@@ -873,31 +725,223 @@ impl Command for UpdateLibraryCopies {
         for part in parts {
             crate::commands::box_follow::follow_part_boxes(tx, part, &remap)?;
         }
-        for (rep, before) in drawn {
-            let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
-            for a in rep_cps(tx, &rep) {
-                let Some(b) = before.iter().find(|b| {
-                    b.function == a.function
-                        && remap.get(&(b.function, b.idx)).copied().unwrap_or(b.idx) == a.idx
-                }) else {
-                    continue;
-                };
-                if let Ok(d) = sub(a.pos, b.pos)
-                    && d != Pt2::ORIGIN
-                {
-                    moves.entry((a.function, a.idx)).or_insert(d);
-                }
-            }
-            if !moves.is_empty() {
-                let grid = tx.require::<Page>(rep.page)?.grid;
-                follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-update"))?;
-            }
-        }
+        follow_drawn_cps(tx, drawn, &remap)?;
         Ok(Outcome {
             primary,
             ..Outcome::default()
         })
     }
+}
+
+impl UpdateLibraryCopies {
+    /// The copies to update: each read, given once, held by the project, with a semantic version that is no
+    /// downgrade. The updates, and the keys of the copies.
+    fn read_updates(&self, tx: &TxBuilder<'_>) -> Result<(Vec<Update>, BTreeSet<AnyKey>), CmdError> {
+        let name = Self::NAME;
+        if self.copies.is_empty() {
+            return Err(CmdError::invalid_params(
+                name,
+                "/copies",
+                text!("refusal-params-no-library-document"),
+            ));
+        }
+        let mut updates: Vec<Update> = Vec::new();
+        let mut seen = BTreeSet::new();
+        for (i, value) in self.copies.iter().enumerate() {
+            let at = format!("/copies/{i}");
+            let (doc, l) = read_copy(name, &at, value)?;
+            let kind = doc.kind().expect("an implemented kind");
+            let key = (kind, l.id);
+            if !seen.insert(key) {
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    text!("refusal-params-copy-twice"),
+                ));
+            }
+            let Some(held) = tx.row(&key) else {
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    text!(
+                        "refusal-library-update-not-held",
+                        crate::words::document(tx, &doc)
+                    ),
+                ));
+            };
+            let held = row_document(&held).expect("a library copy row");
+            let held_version = held_version_of(&held);
+            let new_version = held_version_of(&doc);
+            let Some(new_core) = ew_schema::semver_core(new_version.trim()) else {
+                return Err(CmdError::invalid_params(
+                    name,
+                    format!("{at}/version"),
+                    text!("refusal-library-update-not-semver", new_version.to_string()),
+                ));
+            };
+            if ew_schema::semver_core(held_version.trim()).is_some_and(|h| new_core < h) {
+                return Err(CmdError::invalid_params(
+                    name,
+                    format!("{at}/version"),
+                    text!(
+                        "refusal-library-update-downgrade",
+                        new_version.to_string(),
+                        held_version.to_string()
+                    ),
+                ));
+            }
+            let changed = held_sha_of(&held) != Some(l.claimed);
+            updates.push((held, doc, key, changed));
+        }
+        Ok((updates, seen))
+    }
+
+    /// The function CPs whose index the update changes: the explicit mappings, one per updated copy, and the pins each
+    /// changed copy moves; refused when a pin that something is attached at would go.
+    fn pin_remap(
+        &self,
+        tx: &TxBuilder<'_>,
+        updates: &[Update],
+        seen: &BTreeSet<AnyKey>,
+    ) -> Result<BTreeMap<(Id<Function>, u16), u16>, CmdError> {
+        let name = Self::NAME;
+        // the explicit mappings, by copy
+        let mut maps: BTreeMap<AnyId, (usize, &CpMapParam)> = BTreeMap::new();
+        for (j, m) in self.cp_maps.iter().enumerate() {
+            if !seen.iter().any(|(_, id)| *id == m.copy) {
+                return Err(CmdError::invalid_params(
+                    name,
+                    format!("/cp_maps/{j}/copy"),
+                    text!("refusal-library-update-map-copy", m.copy.to_string()),
+                ));
+            }
+            if maps.insert(m.copy, (j, m)).is_some() {
+                return Err(CmdError::invalid_params(
+                    name,
+                    format!("/cp_maps/{j}/copy"),
+                    text!("refusal-params-copy-twice"),
+                ));
+            }
+        }
+        let mut remap: BTreeMap<(Id<Function>, u16), u16> = BTreeMap::new();
+        let mut blocked: Vec<TextArg> = Vec::new();
+        for (held, new, key, changed) in updates {
+            let (old_cps, new_cps) = (
+                copy_cps(held).unwrap_or_default(),
+                copy_cps(new).unwrap_or_default(),
+            );
+            let explicit: BTreeMap<u16, u16> = match maps.get(&key.1) {
+                None => BTreeMap::new(),
+                Some((j, m)) => explicit_map(&m.map, &old_cps, &new_cps).map_err(|(k, side, why)| {
+                    CmdError::invalid_params(name, format!("/cp_maps/{j}/map/{k}/{side}"), why)
+                })?,
+            };
+            if !changed {
+                continue;
+            }
+            pin_moves(tx, held, new, &explicit, &mut remap, &mut blocked)?;
+        }
+        if !blocked.is_empty() {
+            return tx.reject(text!(
+                "refusal-library-update-blocked",
+                crate::words::list(blocked)
+            ));
+        }
+        Ok(remap)
+    }
+
+    /// The closure documents to embed, each checked, given once and not held; refused when a changed copy's new
+    /// version names an item the project would lack.
+    fn checked_embeds(
+        &self,
+        tx: &TxBuilder<'_>,
+        updates: &[Update],
+        seen: &BTreeSet<AnyKey>,
+    ) -> Result<Vec<(AnyKey, LibDocument)>, CmdError> {
+        let name = Self::NAME;
+        let project = tx.project().id.as_uuid();
+        let mut embed: Vec<(AnyKey, LibDocument)> = Vec::new();
+        for (i, value) in self.embed.iter().enumerate() {
+            let at = format!("/embed/{i}");
+            let (doc, l) = check_copy(name, &at, value, project)?;
+            let key = (doc.kind().expect("an implemented kind"), l.id);
+            if seen.contains(&key) || embed.iter().any(|(k, _)| *k == key) {
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    text!("refusal-params-copy-twice"),
+                ));
+            }
+            if tx.row(&key).is_some() {
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    text!(
+                        "refusal-library-update-embed-held",
+                        crate::words::document(tx, &doc)
+                    ),
+                ));
+            }
+            embed.push((key, doc));
+        }
+        let mut missing: Vec<TextArg> = Vec::new();
+        let mut listed: BTreeSet<AnyKey> = BTreeSet::new();
+        for (held, new, _, changed) in updates {
+            if !changed {
+                continue;
+            }
+            let before = named_items(held);
+            for item in named_items(new).difference(&before) {
+                let lacking = tx.row(item).is_none() && !embed.iter().any(|(k, _)| k == item);
+                if lacking && listed.insert(*item) {
+                    missing.push(
+                        text!(
+                            "refusal-library-update-missing-copy",
+                            crate::words::record(tx, *item),
+                            crate::words::document(tx, new)
+                        )
+                        .into(),
+                    );
+                }
+            }
+        }
+        if !missing.is_empty() {
+            return tx.reject(text!(
+                "refusal-library-update-missing",
+                crate::words::list(missing)
+            ));
+        }
+        Ok(embed)
+    }
+}
+
+/// The routes of the connections at the representations of an updated symbol follow the CPs the new drawing moves
+/// (`drawn`: each representation with where its CPs stood before the update; `remap`: the CPs' new indices).
+fn follow_drawn_cps(
+    tx: &mut TxBuilder<'_>,
+    drawn: Vec<(Arc<Representation>, Vec<RepCp>)>,
+    remap: &BTreeMap<(Id<Function>, u16), u16>,
+) -> Result<(), CmdError> {
+    for (rep, before) in drawn {
+        let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
+        for a in rep_cps(tx, &rep) {
+            let Some(b) = before.iter().find(|b| {
+                b.function == a.function && remap.get(&(b.function, b.idx)).copied().unwrap_or(b.idx) == a.idx
+            }) else {
+                continue;
+            };
+            if let Ok(d) = sub(a.pos, b.pos)
+                && d != Pt2::ORIGIN
+            {
+                moves.entry((a.function, a.idx)).or_insert(d);
+            }
+        }
+        if !moves.is_empty() {
+            let grid = tx.require::<Page>(rep.page)?.grid;
+            follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-update"))?;
+        }
+    }
+    Ok(())
 }
 
 fn held_version_of(doc: &LibDocument) -> String {
