@@ -16,7 +16,7 @@
 //! (kind, member, value), else one `fields.set_many` with one entry per (kind, member, value) in the order of first
 //! appearance ([`compile`]).
 //!
-//! **Texts**: every text an item here returns is a text key, checked by `text_key!`
+//! **Texts**: every text an item here returns is a text key, checked by `key!`
 //! ([`cell_reason_key`], [`GestureCell::reason_text`], [`GestureKind::word_key`], [`rows_word_key`]); the view model
 //! gives the texts under the old names.
 

@@ -58,7 +58,7 @@ pub struct LayoutEdit {
 pub enum LayoutEditError {
     /// The text does not read, in words for the user ("Type a length in millimetres, such as 158.").
     Invalid(String),
-    /// The text does not read: the key of the window's words (checked by `text_key!`), in the window's language.
+    /// The text does not read: the key of the window's words (checked by `key!`), in the window's language.
     Refused(&'static str),
 }
 
