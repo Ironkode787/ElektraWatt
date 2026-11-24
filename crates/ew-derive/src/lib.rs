@@ -111,7 +111,8 @@ pub use assembly::{
 pub use bom::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, RepAnchorCell, anchor_point,
-    anchor_point_of, cell_in_grid, default_frame_grid, frame_form_from_settings, frame_form_of, frame_grid,
+    anchor_point_of, cell_in_grid, column_label, default_frame_grid, drawn_column_label, drawn_row_label,
+    frame_form_from_settings, frame_form_of, frame_grid, row_label,
 };
 pub use channel_index::{ChannelsByCp, ChannelsByModule, ModuleChannelIds};
 pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point};

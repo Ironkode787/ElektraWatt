@@ -5,7 +5,7 @@
 //! the labels and the title-block origin, all in page coordinates (nm, y down).
 
 use ew_dl::Pen;
-use ew_schema::{FormDef, FrameGrid};
+use ew_schema::FormDef;
 use ew_units::{Grid, Nm, Pt2, Rect, arith};
 use serde_json::Value;
 
@@ -88,8 +88,12 @@ impl FrameGeometry {
             margin,
             column_edges,
             row_edges,
-            column_labels: column_labels(grid),
-            row_labels: row_labels(grid),
+            column_labels: (0..usize::from(grid.columns.count))
+                .map(|k| ew_derive::drawn_column_label(grid, k))
+                .collect(),
+            row_labels: (0..usize::from(grid.rows.count))
+                .map(|k| ew_derive::drawn_row_label(grid, k))
+                .collect(),
             title_block_origin: title_block.map(|_| Pt2::new(margin, bottom)),
             show_grid: grid
                 .extra
@@ -126,59 +130,9 @@ fn edge(header: Option<Grid>, step: Grid, k: i64) -> Nm {
     Nm(i64::try_from(q).unwrap_or(i64::MAX))
 }
 
-fn column_labels(grid: &FrameGrid) -> Vec<String> {
-    let c = &grid.columns;
-    (0..usize::from(c.count))
-        .map(|k| {
-            c.labels.get(k).map_or_else(
-                || (u32::from(c.start_index) + k as u32).to_string(),
-                |l| l.as_str().to_owned(),
-            )
-        })
-        .collect()
-}
-
-fn row_labels(grid: &FrameGrid) -> Vec<String> {
-    let r = &grid.rows;
-    let letters: Vec<char> = ('A'..='Z')
-        .filter(|c| !(r.skip_io && (*c == 'I' || *c == 'O')))
-        .collect();
-    (0..usize::from(r.count))
-        .map(|k| {
-            r.labels
-                .get(k)
-                .map_or_else(|| letter_label(&letters, k), |l| l.as_str().to_owned())
-        })
-        .collect()
-}
-
-/// `A … Z`, then `AA, AB …` (bijective base-n over `letters`).
-fn letter_label(letters: &[char], mut k: usize) -> String {
-    let n = letters.len();
-    let mut out = Vec::new();
-    loop {
-        out.push(letters[k % n]);
-        if k < n {
-            break;
-        }
-        k = k / n - 1;
-    }
-    out.iter().rev().collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn letters() {
-        let l: Vec<char> = ('A'..='Z').collect();
-        assert_eq!(letter_label(&l, 0), "A");
-        assert_eq!(letter_label(&l, 7), "H");
-        assert_eq!(letter_label(&l, 25), "Z");
-        assert_eq!(letter_label(&l, 26), "AA");
-        assert_eq!(letter_label(&l, 27), "AB");
-    }
 
     #[test]
     fn edges_are_exact() {

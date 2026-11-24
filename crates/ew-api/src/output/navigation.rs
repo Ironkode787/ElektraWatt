@@ -121,41 +121,19 @@ pub struct PageCells {
     columns: Vec<String>,
 }
 
-/// The printed column labels of `frame` in grid order.
+/// The printed column labels of `frame` in grid order, as the cell rule reads them (`ew_derive::column_label`).
 fn column_labels(frame: &FrameGrid) -> Vec<String> {
-    if frame.columns.labels.is_empty() {
-        (0..u32::from(frame.columns.count))
-            .map(|c| (u32::from(frame.columns.start_index) + c).to_string())
-            .collect()
-    } else {
-        frame
-            .columns
-            .labels
-            .iter()
-            .take(usize::from(frame.columns.count))
-            .map(|l| l.as_str().to_owned())
-            .collect()
-    }
+    (0..u32::from(frame.columns.count))
+        .map_while(|c| ew_derive::column_label(frame, c))
+        .collect()
 }
 
-/// The printed row labels of `frame` in grid order (letters `A … Z`, skipping `I` and `O` when asked; rows beyond
-/// the letters have no label, as in `ew_derive`'s cell rule).
+/// The printed row labels of `frame` in grid order, as the cell rule reads them (`ew_derive::row_label`: rows beyond
+/// the letters or the frame's labels have none).
 fn row_labels(frame: &FrameGrid) -> Vec<String> {
-    if frame.rows.labels.is_empty() {
-        ('A'..='Z')
-            .filter(|c| !(frame.rows.skip_io && matches!(c, 'I' | 'O')))
-            .take(usize::from(frame.rows.count))
-            .map(String::from)
-            .collect()
-    } else {
-        frame
-            .rows
-            .labels
-            .iter()
-            .take(usize::from(frame.rows.count))
-            .map(|l| l.as_str().to_owned())
-            .collect()
-    }
+    (0..u32::from(frame.rows.count))
+        .map_while(|r| ew_derive::row_label(frame, r))
+        .collect()
 }
 
 impl PageCells {

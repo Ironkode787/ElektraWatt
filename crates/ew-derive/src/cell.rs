@@ -354,16 +354,8 @@ pub fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
         frame.rows.height,
         frame.rows.count,
     )?;
-    let column_label = if frame.columns.labels.is_empty() {
-        (u32::from(frame.columns.start_index) + c).to_string()
-    } else {
-        frame.columns.labels.get(c as usize)?.as_str().to_owned()
-    };
-    let row_label = if frame.rows.labels.is_empty() {
-        letter(r, frame.rows.skip_io)?
-    } else {
-        frame.rows.labels.get(r as usize)?.as_str().to_owned()
-    };
+    let column_label = column_label(frame, c)?;
+    let row_label = row_label(frame, r)?;
     Some(Cell {
         column: u32::from(frame.columns.start_index) + c,
         row: r,
@@ -407,10 +399,67 @@ fn axis_cell(x: (i128, i128), origin: (i128, i128), step: Grid, count: u16) -> O
     }
 }
 
-/// The `r`-th row letter of `A..Z`, skipping `I` and `O` when `skip_io`; `None` beyond `Z`.
-fn letter(r: u32, skip_io: bool) -> Option<String> {
-    let mut letters = ('A'..='Z').filter(|c| !(skip_io && matches!(c, 'I' | 'O')));
-    letters.nth(r as usize).map(String::from)
+/// The row letters of a frame: `A … Z`, without `I` and `O` when `skip_io`.
+fn row_letters(skip_io: bool) -> impl Iterator<Item = char> {
+    ('A'..='Z').filter(move |c| !(skip_io && matches!(c, 'I' | 'O')))
+}
+
+/// The printed label of row `r` (0-based) of `frame` as the cell rule reads it: the frame's own label, else the `r`-th
+/// row letter; `None` past the frame's labels or past `Z`. Cell-at and Go to read a frame's rows so; the page draws
+/// them by [`drawn_row_label`].
+pub fn row_label(frame: &FrameGrid, r: u32) -> Option<String> {
+    if frame.rows.labels.is_empty() {
+        row_letters(frame.rows.skip_io).nth(r as usize).map(String::from)
+    } else {
+        frame.rows.labels.get(r as usize).map(|l| l.as_str().to_owned())
+    }
+}
+
+/// The printed label of column `c` (0-based) of `frame` as the cell rule reads it: the frame's own label, else the
+/// number `start_index + c`; `None` past the frame's labels. The page draws them by [`drawn_column_label`].
+pub fn column_label(frame: &FrameGrid, c: u32) -> Option<String> {
+    if frame.columns.labels.is_empty() {
+        Some((u32::from(frame.columns.start_index) + c).to_string())
+    } else {
+        frame
+            .columns
+            .labels
+            .get(c as usize)
+            .map(|l| l.as_str().to_owned())
+    }
+}
+
+/// The label the page draws on row `k` (0-based) of `frame`: the frame's own label, else the row letters `A … Z`, then
+/// `AA, AB …`, also past the frame's labels and past `Z`, where [`row_label`] has none.
+pub fn drawn_row_label(frame: &FrameGrid, k: usize) -> String {
+    frame.rows.labels.get(k).map_or_else(
+        || letter_label(&row_letters(frame.rows.skip_io).collect::<Vec<_>>(), k),
+        |l| l.as_str().to_owned(),
+    )
+}
+
+/// The label the page draws on column `k` (0-based) of `frame`: the frame's own label, else the number
+/// `start_index + k`, also past the frame's labels, where [`column_label`] has none.
+pub fn drawn_column_label(frame: &FrameGrid, k: usize) -> String {
+    let c = &frame.columns;
+    c.labels.get(k).map_or_else(
+        || (u32::from(c.start_index) + k as u32).to_string(),
+        |l| l.as_str().to_owned(),
+    )
+}
+
+/// `A … Z`, then `AA, AB …` (bijective base-n over `letters`).
+fn letter_label(letters: &[char], mut k: usize) -> String {
+    let n = letters.len();
+    let mut out = Vec::new();
+    loop {
+        out.push(letters[k % n]);
+        if k < n {
+            break;
+        }
+        k = k / n - 1;
+    }
+    out.iter().rev().collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -542,4 +591,19 @@ fn graphic_centre(graphics: &[Primitive]) -> Option<Pt2> {
     let x = i64::try_from((x0 + x1) / 2).ok()?;
     let y = i64::try_from((y0 + y1) / 2).ok()?;
     Some(Pt2::new(Nm(x), Nm(y)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn letters() {
+        let l: Vec<char> = ('A'..='Z').collect();
+        assert_eq!(letter_label(&l, 0), "A");
+        assert_eq!(letter_label(&l, 7), "H");
+        assert_eq!(letter_label(&l, 25), "Z");
+        assert_eq!(letter_label(&l, 26), "AA");
+        assert_eq!(letter_label(&l, 27), "AB");
+    }
 }
