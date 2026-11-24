@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{BoxCp, BoxSpec, Connection, Dir4, Endpoint, Function, Kind, Page, Representation};
-use ew_units::{Grid, Nm, Pt2};
+use ew_units::{Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -219,6 +219,40 @@ fn shift_primitive(shape: &mut ew_schema::Primitive, d: Pt2) {
     }
 }
 
+/// The refusal of a point that would leave the drawable range.
+fn out_of_range<T>(tx: &TxBuilder<'_>) -> Result<T, CmdError> {
+    tx.reject(text!("refusal-box-reshape-out-of-range"))
+}
+
+/// The representation's frame: its position and orientation on the page, and the page's grid.
+#[derive(Clone, Copy)]
+struct Frame {
+    pos: Pt2,
+    orient: Orient2,
+    grid: Grid,
+}
+
+impl Frame {
+    /// The absolute page point of a relative box point (`pos + orient(v)`).
+    fn abs(self, v: Pt2) -> Result<Pt2, OutOfRange> {
+        if !point_in_range(v) {
+            return Err(OutOfRange);
+        }
+        add(self.pos, self.orient.apply(v))
+    }
+
+    /// A pin's or a corner's point as the page draws it: on the grid's own number where it lies within 1 nm of a
+    /// grid position (`Grid::settle_point`, docs/design/06a-drafting.md §2.1).
+    fn drawn(self, v: Pt2) -> Result<Pt2, OutOfRange> {
+        self.abs(v).map(|p| self.grid.settle_point(p))
+    }
+
+    /// The relative box point of an absolute page point.
+    fn rel(self, p: Pt2) -> Result<Pt2, OutOfRange> {
+        sub(p, self.pos).map(|d| self.orient.inverse().apply(d))
+    }
+}
+
 impl Command for ReshapeBox {
     const NAME: &'static str = "box.reshape";
 
@@ -236,7 +270,11 @@ impl Command for ReshapeBox {
             return tx.reject(text!("refusal-box-reshape-slots"));
         }
         let page = tx.require::<Page>(rep.page)?;
-        let grid = page.grid;
+        let frame = Frame {
+            pos: rep.pos,
+            orient: rep.orient,
+            grid: page.grid,
+        };
         if self.outline.len() < 3 {
             return Err(CmdError::invalid_params(
                 Self::NAME,
@@ -244,197 +282,23 @@ impl Command for ReshapeBox {
                 text!("refusal-box-reshape-few-vertices"),
             ));
         }
-        let out_of_range = |tx: &TxBuilder<'_>| -> Result<Outcome, CmdError> {
-            tx.reject(text!("refusal-box-reshape-out-of-range"))
-        };
-        // Absolute page points of relative box points (`pos + orient(v)`), and back.
-        let abs = |v: Pt2| -> Result<Pt2, OutOfRange> {
-            if !point_in_range(v) {
-                return Err(OutOfRange);
-            }
-            add(rep.pos, rep.orient.apply(v))
-        };
-        // A pin's or a corner's point as the page draws it: on the grid's own number where it lies within 1 nm of a
-        // grid position (`Grid::settle_point`, docs/design/06a-drafting.md §2.1).
-        let drawn = |v: Pt2| abs(v).map(|p| grid.settle_point(p));
-        let inverse = rep.orient.inverse();
-        let rel = |p: Pt2| -> Result<Pt2, OutOfRange> { sub(p, rep.pos).map(|d| inverse.apply(d)) };
-        let mut new_abs: Vec<Pt2> = Vec::with_capacity(self.outline.len());
-        for (i, v) in self.outline.iter().enumerate() {
-            let Ok(p) = abs(*v) else { return out_of_range(tx) };
-            // A vertex of the old outline is untouched and keeps its place, also off the grid (a drifted box)
-            if !old.outline.contains(v) {
-                require_on_grid(tx, rep.page, p, &format!("/outline/{i}"))?;
-            }
-            new_abs.push(p);
-        }
-        let mut old_abs: Vec<Pt2> = Vec::with_capacity(old.outline.len());
-        for v in &old.outline {
-            let Ok(p) = abs(*v) else { return out_of_range(tx) };
-            old_abs.push(p);
-        }
+        let (new_abs, old_abs) = self.absolute_outlines(tx, rep.page, &old, frame)?;
         let mut notices: Vec<Text> = Vec::new();
         let cps: Vec<BoxCp> = match &self.cps {
             Some(cps) => {
-                let mut seen = BTreeSet::new();
-                for (i, cp) in cps.iter().enumerate() {
-                    if !seen.insert(cp.idx) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/cps/{i}/idx"),
-                            text!("refusal-box-cp-index-twice"),
-                        ));
-                    }
-                    let Ok(p) = abs(cp.pos) else {
-                        return out_of_range(tx);
-                    };
-                    // A pin the box has is untouched and keeps its place, as an untouched vertex does: also 1 nm
-                    // beside the grid's number of its position (the box's place plus the pin's offset, each rounded,
-                    // in a file of an earlier candidate). A pin that is new or moved stands on the grid.
-                    let kept = old.cps.iter().any(|c| c.idx == cp.idx && c.pos == cp.pos);
-                    if !kept {
-                        require_on_grid(tx, rep.page, p, &format!("/cps/{i}/pos"))?;
-                    }
-                    if !edges(&new_abs).any(|(_, a, b)| on_segment(p, a, b)) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/cps/{i}/pos"),
-                            text!("refusal-box-reshape-cp-off-outline"),
-                        ));
-                    }
-                    // Two pins never stand on one point (a dragged pin landed on its neighbour's).
-                    let at = grid.settle_point(p);
-                    let twice = cps[..i].iter().any(|o| drawn(o.pos) == Ok(at));
-                    if twice {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/cps/{i}/pos"),
-                            text!("refusal-box-reshape-cp-shared"),
-                        ));
-                    }
-                    // A pin never stands on a corner; one stored there stays until it is moved.
-                    if !kept && self.outline.iter().any(|v| drawn(*v) == Ok(at)) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/cps/{i}/pos"),
-                            text!("refusal-box-reshape-cp-on-corner"),
-                        ));
-                    }
-                }
-                // A box's own pins have names; a box of a part draws the part's pins, edited in its device box.
-                if let Some(i) = cps.iter().position(|c| c.name.is_some()) {
-                    let of_part = rep
-                        .functions
-                        .first()
-                        .and_then(|f| tx.get::<Function>(*f))
-                        .and_then(|f| f.device)
-                        .and_then(|d| tx.get::<ew_schema::Device>(d))
-                        .is_some_and(|d| !d.parts.is_empty());
-                    if of_part {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/cps/{i}/name"),
-                            text!("refusal-box-pin-of-part"),
-                        ));
-                    }
-                }
+                self.check_given_cps(tx, &rep, &old, frame, &new_abs, cps)?;
                 cps.clone()
             }
             None => {
-                let area = signed_area2(&new_abs);
-                let old_area = signed_area2(&old_abs);
-                // Each CP's new point and direction; the CPs of an axis-aligned edge are placed as a group below.
-                let mut placed: Vec<Option<(Pt2, Dir4)>> = vec![None; old.cps.len()];
-                let mut groups: BTreeMap<usize, Vec<(usize, Pt2)>> = BTreeMap::new();
-                for (k, cp) in old.cps.iter().enumerate() {
-                    let Ok(p) = abs(cp.pos) else {
-                        return out_of_range(tx);
-                    };
-                    // Of two edges at a corner, the one the CP leaves by its direction.
-                    let containing: Vec<(usize, Pt2, Pt2)> = edges(&old_abs)
-                        .filter(|(_, a, b)| on_segment(p, *a, *b))
-                        .collect();
-                    let leaves = |a: Pt2, b: Pt2| {
-                        outward(a, b, old_area).and_then(|d| ew_derive::oriented_dir(&d, inverse))
-                            == Some(cp.dir.clone())
-                    };
-                    let edge = containing
-                        .iter()
-                        .find(|(_, a, b)| leaves(*a, *b))
-                        .or(containing.first())
-                        .copied();
-                    match edge {
-                        Some((i, ..)) if i < new_abs.len() => {
-                            let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
-                            if na.x == nb.x || na.y == nb.y {
-                                groups.entry(i).or_default().push((k, p));
-                            } else {
-                                notices.push(text!(
-                                    "notice-box-cp-to-vertex",
-                                    cp.idx.to_string(),
-                                    i.to_string()
-                                ));
-                                placed[k] = Some((na, cp.dir.clone()));
-                            }
-                        }
-                        _ => {
-                            let (j, na, nb) = edges(&new_abs)
-                                .min_by_key(|(j, a, b)| (dist2(p, nearest_on_edge(grid, *a, *b, p)), *j))
-                                .unwrap_or((0, new_abs[0], new_abs[1]));
-                            let q = nearest_on_edge(grid, na, nb, p);
-                            let dir = outward(na, nb, area)
-                                .and_then(|d| ew_derive::oriented_dir(&d, inverse))
-                                .unwrap_or_else(|| cp.dir.clone());
-                            notices.push(match edge {
-                                Some((i, ..)) => text!(
-                                    "notice-box-cp-edge-gone",
-                                    cp.idx.to_string(),
-                                    j.to_string(),
-                                    i.to_string()
-                                ),
-                                None => text!("notice-box-cp-off-edge", cp.idx.to_string(), j.to_string()),
-                            });
-                            placed[k] = Some((q, dir));
-                        }
-                    }
-                }
-                for (i, mut group) in groups {
-                    let (a, b) = (old_abs[i], old_abs[(i + 1) % old_abs.len()]);
-                    let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
-                    // Along x on a horizontal edge, else along y.
-                    let along_x = na.y == nb.y && na.x != nb.x;
-                    let coord = |p: Pt2| if along_x { p.x.0 } else { p.y.0 };
-                    let onto = |c: i64| {
-                        if along_x {
-                            Pt2::new(Nm(c), na.y)
-                        } else {
-                            Pt2::new(na.x, Nm(c))
-                        }
-                    };
-                    group.sort_by_key(|(k, p)| (coord(*p), *k));
-                    let extent = |p: Pt2, q: Pt2| (coord(p).min(coord(q)), coord(p).max(coord(q)));
-                    let at: Vec<i64> = group.iter().map(|(_, p)| coord(*p)).collect();
-                    let points = if !self.centre && extent(a, b) == extent(na, nb) {
-                        at
-                    } else {
-                        let Some(points) = centred(grid, coord(na), coord(nb), &at) else {
-                            return tx.reject(text!(
-                                "refusal-box-reshape-too-small",
-                                crate::words::symbol(tx, self.rep),
-                                group.len().to_string(),
-                                (group.len() + 1).to_string()
-                            ));
-                        };
-                        points
-                    };
-                    for ((k, _), c) in group.iter().zip(points) {
-                        placed[*k] = Some((onto(c), old.cps[*k].dir.clone()));
-                    }
+                let (mut placed, groups) =
+                    edge_of_each_cp(tx, &old, frame, &new_abs, &old_abs, &mut notices)?;
+                for (k, at, dir) in self.place_edge_groups(tx, &old, frame, &new_abs, &old_abs, groups)? {
+                    placed[k] = Some((at, dir));
                 }
                 let mut out = Vec::with_capacity(old.cps.len());
                 for (cp, at) in old.cps.iter().zip(placed) {
                     let Some((at, dir)) = at else { continue };
-                    let Ok(pos) = rel(at) else {
+                    let Ok(pos) = frame.rel(at) else {
                         return out_of_range(tx);
                     };
                     out.push(BoxCp {
@@ -448,51 +312,194 @@ impl Command for ReshapeBox {
                 out
             }
         };
-        // The connections at the box's CPs: a CP that is no longer drawn must not be connected on the page; the
-        // others follow their CP.
-        let function: Option<Id<Function>> = rep.functions.first().copied();
-        let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
-        if let Some(f) = function {
-            for cp in &old.cps {
-                let Ok(before) = drawn(cp.pos) else {
-                    return out_of_range(tx);
-                };
-                match cps.iter().find(|c| c.idx == cp.idx) {
-                    Some(c) => {
-                        let Ok(after) = drawn(c.pos) else {
-                            return out_of_range(tx);
-                        };
-                        let Ok(d) = sub(after, before) else {
-                            return out_of_range(tx);
-                        };
-                        if d != Pt2::ORIGIN {
-                            moves.insert((f, cp.idx), d);
-                        }
-                    }
-                    None => {
-                        let connected = tx.connections_of_function(f).into_iter().any(|cid| {
-                            tx.get::<Connection>(cid).is_some_and(|c| {
-                                c.page == Some(rep.page)
-                                    && [&c.a, &c.b]
-                                        .into_iter()
-                                        .any(|e| matches!(e, Endpoint::Cp(g, i) if *g == f && *i == cp.idx))
-                            })
-                        });
-                        if connected {
-                            return tx.reject(text!("refusal-box-reshape-cp-connected", cp.idx.to_string()));
-                        }
-                        notices.push(text!("notice-box-cp-not-drawn", cp.idx.to_string()));
-                    }
-                }
+        let moves = cp_moves(tx, &rep, &old, frame, &cps, &mut notices)?;
+        follow_moved_cps(
+            tx,
+            rep.page,
+            frame.grid,
+            &moves,
+            text!("refusal-move-what-reshape"),
+        )?;
+        self.store(tx, &rep, &old, frame, cps)?;
+        Ok(Outcome {
+            notices,
+            ..Outcome::primary((Kind::Representation, self.rep.cast()))
+        })
+    }
+}
+
+impl ReshapeBox {
+    /// The new and the old outline in absolute page points; a vertex of the new outline that the old one does not
+    /// have stands on the grid.
+    fn absolute_outlines(
+        &self,
+        tx: &TxBuilder<'_>,
+        page: Id<Page>,
+        old: &BoxSpec,
+        frame: Frame,
+    ) -> Result<(Vec<Pt2>, Vec<Pt2>), CmdError> {
+        let mut new_abs: Vec<Pt2> = Vec::with_capacity(self.outline.len());
+        for (i, v) in self.outline.iter().enumerate() {
+            let Ok(p) = frame.abs(*v) else {
+                return out_of_range(tx);
+            };
+            // A vertex of the old outline is untouched and keeps its place, also off the grid (a drifted box)
+            if !old.outline.contains(v) {
+                require_on_grid(tx, page, p, &format!("/outline/{i}"))?;
+            }
+            new_abs.push(p);
+        }
+        let mut old_abs: Vec<Pt2> = Vec::with_capacity(old.outline.len());
+        for v in &old.outline {
+            let Ok(p) = frame.abs(*v) else {
+                return out_of_range(tx);
+            };
+            old_abs.push(p);
+        }
+        Ok((new_abs, old_abs))
+    }
+
+    /// With `cps`: each given CP has an index of its own, stands on the grid unless the box has it unchanged, lies on
+    /// the new outline, shares no point with an earlier one and stands on no corner unless kept; and a box of a part
+    /// takes no pin names.
+    fn check_given_cps(
+        &self,
+        tx: &TxBuilder<'_>,
+        rep: &Representation,
+        old: &BoxSpec,
+        frame: Frame,
+        new_abs: &[Pt2],
+        cps: &[BoxCp],
+    ) -> Result<(), CmdError> {
+        let mut seen = BTreeSet::new();
+        for (i, cp) in cps.iter().enumerate() {
+            if !seen.insert(cp.idx) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/cps/{i}/idx"),
+                    text!("refusal-box-cp-index-twice"),
+                ));
+            }
+            let Ok(p) = frame.abs(cp.pos) else {
+                return out_of_range(tx);
+            };
+            // A pin the box has is untouched and keeps its place, as an untouched vertex does: also 1 nm
+            // beside the grid's number of its position (the box's place plus the pin's offset, each rounded,
+            // in a file of an earlier candidate). A pin that is new or moved stands on the grid.
+            let kept = old.cps.iter().any(|c| c.idx == cp.idx && c.pos == cp.pos);
+            if !kept {
+                require_on_grid(tx, rep.page, p, &format!("/cps/{i}/pos"))?;
+            }
+            if !edges(new_abs).any(|(_, a, b)| on_segment(p, a, b)) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/cps/{i}/pos"),
+                    text!("refusal-box-reshape-cp-off-outline"),
+                ));
+            }
+            // Two pins never stand on one point (a dragged pin landed on its neighbour's).
+            let at = frame.grid.settle_point(p);
+            let twice = cps[..i].iter().any(|o| frame.drawn(o.pos) == Ok(at));
+            if twice {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/cps/{i}/pos"),
+                    text!("refusal-box-reshape-cp-shared"),
+                ));
+            }
+            // A pin never stands on a corner; one stored there stays until it is moved.
+            if !kept && self.outline.iter().any(|v| frame.drawn(*v) == Ok(at)) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/cps/{i}/pos"),
+                    text!("refusal-box-reshape-cp-on-corner"),
+                ));
             }
         }
-        follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-reshape"))?;
-        // The position becomes the outline's smallest corner; what is stored relative to it moves the other way.
+        // A box's own pins have names; a box of a part draws the part's pins, edited in its device box.
+        if let Some(i) = cps.iter().position(|c| c.name.is_some()) {
+            let of_part = rep
+                .functions
+                .first()
+                .and_then(|f| tx.get::<Function>(*f))
+                .and_then(|f| f.device)
+                .and_then(|d| tx.get::<ew_schema::Device>(d))
+                .is_some_and(|d| !d.parts.is_empty());
+            if of_part {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/cps/{i}/name"),
+                    text!("refusal-box-pin-of-part"),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Without `cps`, the CPs of each axis-aligned edge (from [`edge_of_each_cp`]) placed as a group: kept along an
+    /// edge whose extent did not change (unless `centre`), else centred on it. Each grouped CP's index among the box's
+    /// CPs, with its new point and direction.
+    fn place_edge_groups(
+        &self,
+        tx: &TxBuilder<'_>,
+        old: &BoxSpec,
+        frame: Frame,
+        new_abs: &[Pt2],
+        old_abs: &[Pt2],
+        groups: BTreeMap<usize, Vec<(usize, Pt2)>>,
+    ) -> Result<Vec<(usize, Pt2, Dir4)>, CmdError> {
+        let mut placed = Vec::new();
+        for (i, mut group) in groups {
+            let (a, b) = (old_abs[i], old_abs[(i + 1) % old_abs.len()]);
+            let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
+            // Along x on a horizontal edge, else along y.
+            let along_x = na.y == nb.y && na.x != nb.x;
+            let coord = |p: Pt2| if along_x { p.x.0 } else { p.y.0 };
+            let onto = |c: i64| {
+                if along_x {
+                    Pt2::new(Nm(c), na.y)
+                } else {
+                    Pt2::new(na.x, Nm(c))
+                }
+            };
+            group.sort_by_key(|(k, p)| (coord(*p), *k));
+            let extent = |p: Pt2, q: Pt2| (coord(p).min(coord(q)), coord(p).max(coord(q)));
+            let at: Vec<i64> = group.iter().map(|(_, p)| coord(*p)).collect();
+            let points = if !self.centre && extent(a, b) == extent(na, nb) {
+                at
+            } else {
+                let Some(points) = centred(frame.grid, coord(na), coord(nb), &at) else {
+                    return tx.reject(text!(
+                        "refusal-box-reshape-too-small",
+                        crate::words::symbol(tx, self.rep),
+                        group.len().to_string(),
+                        (group.len() + 1).to_string()
+                    ));
+                };
+                points
+            };
+            for ((k, _), c) in group.iter().zip(points) {
+                placed.push((*k, onto(c), old.cps[*k].dir.clone()));
+            }
+        }
+        Ok(placed)
+    }
+
+    /// The new representation: its position becomes the outline's smallest corner, and what is stored relative to it
+    /// (the outline, the CPs, the inner graphics) moves the other way.
+    fn store(
+        &self,
+        tx: &mut TxBuilder<'_>,
+        rep: &Representation,
+        old: &BoxSpec,
+        frame: Frame,
+        cps: Vec<BoxCp>,
+    ) -> Result<(), CmdError> {
         let corner = Pt2::new(
             self.outline.iter().map(|v| v.x).min().unwrap_or(Nm::ZERO),
             self.outline.iter().map(|v| v.y).min().unwrap_or(Nm::ZERO),
         );
-        let Ok(pos) = abs(corner) else {
+        let Ok(pos) = frame.abs(corner) else {
             return out_of_range(tx);
         };
         let back = |v: Pt2| sub(v, corner);
@@ -511,7 +518,7 @@ impl Command for ReshapeBox {
         for shape in &mut inner {
             shift_primitive(shape, Pt2::ORIGIN - corner);
         }
-        let mut next = (*rep).clone();
+        let mut next = rep.clone();
         next.pos = pos;
         next.box_ = Some(BoxSpec {
             outline,
@@ -521,11 +528,128 @@ impl Command for ReshapeBox {
             extra: old.extra.clone(),
         });
         tx.put(next);
-        Ok(Outcome {
-            notices,
-            ..Outcome::primary((Kind::Representation, self.rep.cast()))
-        })
+        Ok(())
     }
+}
+
+/// Without `cps`, the edge each CP of the box lay on (of two at a corner, the one it leaves by its direction): a CP
+/// whose edge is axis-aligned on the new outline joins that edge's group, to be placed with it; one whose edge is
+/// slanted goes to the edge's first vertex; one whose edge is gone, or that lay on no edge, goes to the nearest grid
+/// point of the nearest edge. Each CP's new point and direction where it is placed here, and the groups.
+#[allow(clippy::type_complexity)]
+fn edge_of_each_cp(
+    tx: &TxBuilder<'_>,
+    old: &BoxSpec,
+    frame: Frame,
+    new_abs: &[Pt2],
+    old_abs: &[Pt2],
+    notices: &mut Vec<Text>,
+) -> Result<(Vec<Option<(Pt2, Dir4)>>, BTreeMap<usize, Vec<(usize, Pt2)>>), CmdError> {
+    let inverse = frame.orient.inverse();
+    let area = signed_area2(new_abs);
+    let old_area = signed_area2(old_abs);
+    let mut placed: Vec<Option<(Pt2, Dir4)>> = vec![None; old.cps.len()];
+    let mut groups: BTreeMap<usize, Vec<(usize, Pt2)>> = BTreeMap::new();
+    for (k, cp) in old.cps.iter().enumerate() {
+        let Ok(p) = frame.abs(cp.pos) else {
+            return out_of_range(tx);
+        };
+        // Of two edges at a corner, the one the CP leaves by its direction.
+        let containing: Vec<(usize, Pt2, Pt2)> =
+            edges(old_abs).filter(|(_, a, b)| on_segment(p, *a, *b)).collect();
+        let leaves = |a: Pt2, b: Pt2| {
+            outward(a, b, old_area).and_then(|d| ew_derive::oriented_dir(&d, inverse)) == Some(cp.dir.clone())
+        };
+        let edge = containing
+            .iter()
+            .find(|(_, a, b)| leaves(*a, *b))
+            .or(containing.first())
+            .copied();
+        match edge {
+            Some((i, ..)) if i < new_abs.len() => {
+                let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
+                if na.x == nb.x || na.y == nb.y {
+                    groups.entry(i).or_default().push((k, p));
+                } else {
+                    notices.push(text!(
+                        "notice-box-cp-to-vertex",
+                        cp.idx.to_string(),
+                        i.to_string()
+                    ));
+                    placed[k] = Some((na, cp.dir.clone()));
+                }
+            }
+            _ => {
+                let (j, na, nb) = edges(new_abs)
+                    .min_by_key(|(j, a, b)| (dist2(p, nearest_on_edge(frame.grid, *a, *b, p)), *j))
+                    .unwrap_or((0, new_abs[0], new_abs[1]));
+                let q = nearest_on_edge(frame.grid, na, nb, p);
+                let dir = outward(na, nb, area)
+                    .and_then(|d| ew_derive::oriented_dir(&d, inverse))
+                    .unwrap_or_else(|| cp.dir.clone());
+                notices.push(match edge {
+                    Some((i, ..)) => text!(
+                        "notice-box-cp-edge-gone",
+                        cp.idx.to_string(),
+                        j.to_string(),
+                        i.to_string()
+                    ),
+                    None => text!("notice-box-cp-off-edge", cp.idx.to_string(), j.to_string()),
+                });
+                placed[k] = Some((q, dir));
+            }
+        }
+    }
+    Ok((placed, groups))
+}
+
+/// The connections at the box's CPs: a CP that is no longer drawn must not be connected on the page; the others
+/// follow their CP. The moves of the CPs that moved, by function and index.
+fn cp_moves(
+    tx: &TxBuilder<'_>,
+    rep: &Representation,
+    old: &BoxSpec,
+    frame: Frame,
+    cps: &[BoxCp],
+    notices: &mut Vec<Text>,
+) -> Result<BTreeMap<(Id<Function>, u16), Pt2>, CmdError> {
+    let function: Option<Id<Function>> = rep.functions.first().copied();
+    let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
+    if let Some(f) = function {
+        for cp in &old.cps {
+            let Ok(before) = frame.drawn(cp.pos) else {
+                return out_of_range(tx);
+            };
+            match cps.iter().find(|c| c.idx == cp.idx) {
+                Some(c) => {
+                    let Ok(after) = frame.drawn(c.pos) else {
+                        return out_of_range(tx);
+                    };
+                    let Ok(d) = sub(after, before) else {
+                        return out_of_range(tx);
+                    };
+                    if d != Pt2::ORIGIN {
+                        moves.insert((f, cp.idx), d);
+                    }
+                }
+                None => {
+                    let connected = tx.connections_of_function(f).into_iter().any(|cid| {
+                        tx.get::<Connection>(cid).is_some_and(|c| {
+                            c.page == Some(rep.page)
+                                && [&c.a, &c.b]
+                                    .into_iter()
+                                    .any(|e| matches!(e, Endpoint::Cp(g, i) if *g == f && *i == cp.idx))
+                        })
+                    });
+                    if connected {
+                        return tx.reject(text!("refusal-box-reshape-cp-connected", cp.idx.to_string()));
+                    }
+                    notices.push(text!("notice-box-cp-not-drawn", cp.idx.to_string()));
+                }
+            }
+        }
+    }
+    Ok(moves)
 }
 
 /// `box.redraw` (`RedrawBoxes`: Redraw them, after a part's device box changed): several black boxes reshaped as
