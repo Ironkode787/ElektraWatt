@@ -12,12 +12,14 @@
 //! "4 errors, 25 warnings, 12 infos" on one line; a refusal's reason wrapped up to [`LINE_ROWS`] rows), and the action as a text link in `type.small` SemiBold
 //! `color.accent` (Undo, Open; disabled once it is no longer valid), and a 24-px Dismiss icon button. Each is a polite
 //! live region. Without a canvas (the start page) they stand at the window's top right under the command bar. Each
-//! goes 8 seconds after the frame that first showed it, on the window's clock ([`crate::app::App`] keeps the times); the
+//! goes 8 seconds after the frame that first showed it, on the window's clock ([`ToastHost`] keeps the times); the
 //! log keeps it.
 //!
 //! **The log.** A popover above the status bar's notifications field, newest first, with each one's action while it is
 //! valid; Escape, Close or a click beside it closes it (`notifications.show`, `ui.dismiss`). It never takes the focus
 //! by itself. Its empty state says so.
+
+use std::time::Duration;
 
 use egui::{Align, Align2, Context, Layout, Rect, RichText, Ui, Vec2};
 use ew_viewmodel::key;
@@ -372,6 +374,179 @@ pub(crate) fn show_toasts(
             }
         });
     (hovered, focused, Some(shown.response.rect))
+}
+
+/// How long a toast stays on screen, measured by the window's frame clock.
+const TOAST_SECONDS: f64 = 8.0;
+
+/// Where the toasts stand in a frame: the page pane and the station's pane on show, the command bar's bottom edge,
+/// the banner's rectangle and the symbol editor's toast corner.
+pub(crate) struct ToastPlace {
+    pub(crate) page_pane: Option<Rect>,
+    pub(crate) station_pane: Option<Rect>,
+    pub(crate) bar_bottom: f32,
+    pub(crate) banner: Option<Rect>,
+    pub(crate) corner: Option<egui::Pos2>,
+}
+
+/// The window's toasts over the frames (doc 16a §6.10): when each was first painted, its fade, whether a hover holds
+/// it, and where the stack stands.
+#[derive(Default)]
+pub(crate) struct ToastHost {
+    /// The visible toasts by serial and the frame time (egui's `input.time`, seconds) of the frame that first painted
+    /// each: a toast goes after 8 seconds measured by the window, never by the model. The frame clock is
+    /// the wall clock in the window and the harness's steps in a test, so no test depends on how fast a loaded machine
+    /// runs.
+    since: std::collections::BTreeMap<u64, f64>,
+    /// The opacity each visible toast was painted with in the last frame (its fade in and out on the frame
+    /// clock), and the frame time of that frame (a hovered toast's clock stands still between two frames).
+    opacity: std::collections::BTreeMap<u64, f32>,
+    clock: Option<f64>,
+    /// The toasts the pointer was on in the last frame (their clocks stand still).
+    hovered: Vec<u64>,
+    /// The toasts stand at the canvas's bottom right, clear of where a tool works ([`toasts_low`]), and the stack's
+    /// rectangle in the last frame.
+    low: bool,
+    stack: Option<Rect>,
+}
+
+impl ToastHost {
+    /// The opacity each visible toast was painted with in the last frame, by serial (tests).
+    pub(crate) fn opacities(&self) -> Vec<(u64, f32)> {
+        self.opacity.iter().map(|(s, a)| (*s, *a)).collect()
+    }
+
+    /// Paints the visible toasts of `shell` at `place`, each at its opacity on the frame clock.
+    pub(crate) fn show(
+        &mut self,
+        ctx: &Context,
+        shell: &ShellModel,
+        tokens: &Tokens,
+        place: &ToastPlace,
+        events: &mut Vec<Event>,
+    ) {
+        let mut anchor = toast_anchor(tokens, ctx, place.page_pane, place.bar_bottom);
+        // The banner lies over the top edge of the canvas; the toasts start below it.
+        if let Some(banner) = place.banner {
+            anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
+        }
+        // In the symbol editor, the toasts stand on its canvas, under the header row with Close editor (FT-1714).
+        if let Some(corner) = place.corner {
+            anchor.y = anchor.y.max(corner.y + tokens.space_4);
+            anchor.x = anchor.x.min(corner.x - tokens.space_4);
+        }
+        // Doc 16a §6.10: while a tool works where the toasts stand, they move to the canvas's bottom right.
+        self.low = toasts_low(
+            self.low,
+            shell.tool().name() != "select",
+            place.page_pane,
+            // The tool's press decides, never a move of the pointer.
+            ctx.input(|i| {
+                i.pointer
+                    .any_pressed()
+                    .then(|| i.pointer.interact_pos())
+                    .flatten()
+            }),
+            self.stack,
+        );
+        let pivot = match (place.page_pane, place.station_pane) {
+            (Some(pane), _) if self.low => {
+                // Above the zoom control (doc 16a §5.5).
+                let zoom = crate::hud::zoom_rect(tokens, pane);
+                anchor = egui::pos2(anchor.x, zoom.top() - tokens.space_4);
+                egui::Align2::RIGHT_BOTTOM
+            }
+            // In a station's view the top right holds the catalogue and its filter: the toasts stand at the bottom
+            // right of the rack's lists, where the view is empty longest.
+            (None, Some(pane)) => {
+                let lists = crate::station_view::lists_rect(pane);
+                anchor = egui::pos2(lists.right() - tokens.space_4, lists.bottom() - tokens.space_4);
+                egui::Align2::RIGHT_BOTTOM
+            }
+            _ => egui::Align2::RIGHT_TOP,
+        };
+        let dialog_open = shell.dialog().is_some();
+        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest. SM25b m4:
+        // below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
+        let under_modal =
+            dialog_open || shell.picker().is_some() || ctx.memory(|m| m.top_modal_layer().is_some());
+        // Doc 16a §4.12, §6.10: each toast fades in and out over `motion.base` on the frame clock.
+        let frame_time = ctx.input(|i| i.time);
+        let fade = f64::from(tokens.motion_base) / 1000.0;
+        // Hovering a toast pauses it (doc 16a §6.10): the clock of a toast the pointer was on in the last frame stands
+        // still for the time since that frame.
+        let step = self.clock.map_or(0.0, |last| (frame_time - last).max(0.0));
+        self.clock = Some(frame_time);
+        let was_paused = std::mem::take(&mut self.hovered);
+        for serial in &was_paused {
+            if let Some(since) = self.since.get_mut(serial) {
+                *since += step;
+            }
+        }
+        self.opacity = shell
+            .notifications()
+            .visible()
+            .iter()
+            .map(|n| {
+                let age = self.since.get(&n.serial).map_or(0.0, |s| frame_time - s);
+                // A toast that stays fades in and never out.
+                let age = if n.stays() { age.min(fade) } else { age };
+                (n.serial, toast_opacity(age, TOAST_SECONDS, fade))
+            })
+            .collect();
+        let (hovered, focused, stack) =
+            show_toasts(ctx, shell, (anchor, pivot), under_modal, &self.opacity, events);
+        // Doc 16a §6.10: a hover pauses a toast only once the pointer has moved onto it (a
+        // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
+        // pointer at rest is not paused, so it fades on time. A toast that holds the keyboard focus
+        // is paused too.
+        let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
+        self.stack = stack;
+        self.hovered = hovered
+            .into_iter()
+            .filter(|serial| pointer_moved || was_paused.contains(serial))
+            .chain(focused)
+            .collect();
+    }
+
+    /// The toasts' timeouts, which are the window's: 8 seconds each after the frame that first showed it, a Dismiss
+    /// in `events` when it is up; a toast that stays (a consequence the person may not want) has none. Asks for the
+    /// frames that paint the fades.
+    pub(crate) fn expire(
+        &mut self,
+        ctx: &Context,
+        shell: &ShellModel,
+        tokens: &Tokens,
+        events: &mut Vec<Event>,
+    ) {
+        let frame_time = ctx.input(|i| i.time);
+        let fade = f64::from(tokens.motion_base) / 1000.0;
+        let visible: Vec<(u64, bool)> = shell
+            .notifications()
+            .visible()
+            .iter()
+            .map(|n| (n.serial, n.stays()))
+            .collect();
+        self.since.retain(|s, _| visible.iter().any(|(v, _)| v == s));
+        for (serial, stays) in visible {
+            let age = frame_time - *self.since.entry(serial).or_insert(frame_time);
+            if stays {
+                if age < fade {
+                    ctx.request_repaint();
+                }
+                continue;
+            }
+            if age >= TOAST_SECONDS {
+                events.push(Event::DismissToast(serial));
+            } else if age < fade || age >= TOAST_SECONDS - fade {
+                // In a fade: every frame until it ends.
+                ctx.request_repaint();
+            } else {
+                let to_fade = Duration::from_secs_f64((TOAST_SECONDS - fade - age).max(0.0));
+                ctx.request_repaint_after(to_fade.min(Duration::from_millis(500)));
+            }
+        }
+    }
 }
 
 /// The notifications log while its popover is open.

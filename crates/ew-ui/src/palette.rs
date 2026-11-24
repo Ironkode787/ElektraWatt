@@ -186,13 +186,8 @@ pub fn show(
     };
     let (_, rest) = palette::split_prefix(&state.query);
     // The form's first row takes the focus once, when the form opens.
-    let form_key = Id::unique("command-palette-form");
-    let form_opened = ctx.data_mut(|d| {
-        let was: Option<&'static str> = d.get_temp(form_key).flatten();
-        let now = form.map(|f| f.action);
-        d.insert_temp(form_key, now);
-        now.is_some() && was != now
-    });
+    let form_opened =
+        crate::components::opened(ctx, Id::unique("command-palette-form"), form.map(|f| f.action));
     // FT-1635: a click beside it closes it, as Escape does.
     crate::components::overlay_backdrop(ctx, Id::unique("command-palette"), false, events);
     let area = egui::Area::new(Id::unique("command-palette")).order(egui::Order::Foreground);

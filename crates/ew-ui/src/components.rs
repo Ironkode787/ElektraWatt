@@ -822,6 +822,54 @@ pub(crate) fn card_frame(t: &Tokens) -> egui::Frame {
         .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_4)))
 }
 
+/// Whether the surface `id` opened in this frame: `now` is what it shows (`None` while closed), and it opened when
+/// that differs from what it showed when this was last asked (a dialog of a new opening, the palette's form of another
+/// action). Asked once a frame for each surface that keeps its first focus (doc 16a §6.12).
+pub(crate) fn opened<T: Clone + PartialEq + Send + Sync + 'static>(
+    ctx: &egui::Context,
+    id: egui::Id,
+    now: Option<T>,
+) -> bool {
+    ctx.data_mut(|d| {
+        let was: Option<T> = d.get_temp::<Option<T>>(id).flatten();
+        let opened = now.is_some() && was != now;
+        d.insert_temp(id, now);
+        opened
+    })
+}
+
+/// The frame of a band across an area (doc 16a §6.11: the banner, the template band): `fill`, `space.4` by `space.2`
+/// padding, no border.
+pub(crate) fn band_frame(t: &Tokens, fill: Rgba) -> egui::Frame {
+    egui::Frame::NONE
+        .fill(fill.color32())
+        .inner_margin(egui::Margin::symmetric(
+            theme::margin_px(t.space_4),
+            theme::margin_px(t.space_2),
+        ))
+}
+
+/// The row of a band, one control high: `icon` in `icon_colour` at `icon.md`, `words`, then each of `buttons` (its
+/// kind, its label and the event a click on it gives).
+pub(crate) fn band_row(
+    ui: &mut Ui,
+    t: &Tokens,
+    (icon, icon_colour): (IconId, Rgba),
+    words: RichText,
+    buttons: Vec<(Kind, &str, Event)>,
+    events: &mut Vec<Event>,
+) {
+    ui.set_min_height(t.size_control);
+    let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_md), Sense::hover());
+    icons::paint(ui.painter(), icon, r, icon_colour.color32(), t.icon_stroke);
+    ui.label(words);
+    for (kind, label, event) in buttons {
+        if button(ui, kind, label, true, 0.0).clicked() {
+            events.push(event);
+        }
+    }
+}
+
 /// The status of a card: as of its revision, stale, or failed with its sentence.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) enum CardStatus {

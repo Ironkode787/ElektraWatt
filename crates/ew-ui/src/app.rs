@@ -214,9 +214,6 @@ impl Platform for NoPlatform {
     }
 }
 
-/// How long a toast stays on screen, measured by the window's frame clock.
-const TOAST_SECONDS: f64 = 8.0;
-
 /// The opacity of the tool options card while the tool's ghost is under it (doc 16a §5.5).
 const OPTIONS_FADED_OPACITY: f32 = 0.4;
 
@@ -241,21 +238,8 @@ pub struct App {
     properties: PropertiesPane,
     /// The find pane.
     find: FindPane,
-    /// The visible toasts by serial and the frame time (egui's `input.time`, seconds) of the frame that first painted
-    /// each: a toast goes after 8 seconds measured by the window, never by the model. The frame clock is
-    /// the wall clock in the window and the harness's steps in a test, so no test depends on how fast a loaded machine
-    /// runs.
-    toast_since: std::collections::BTreeMap<u64, f64>,
-    /// The opacity each visible toast was painted with in the last frame (its fade in and out on the frame
-    /// clock), and the frame time of that frame (a hovered toast's clock stands still between two frames).
-    toast_opacity: std::collections::BTreeMap<u64, f32>,
-    toast_clock: Option<f64>,
-    /// The toasts the pointer was on in the last frame (their clocks stand still).
-    toast_hovered: Vec<u64>,
-    /// The toasts stand at the canvas's bottom right, clear of where a tool works ([`crate::notifications::toasts_low`]),
-    /// and the stack's rectangle in the last frame.
-    toasts_low: bool,
-    toast_stack: Option<egui::Rect>,
+    /// The toasts over the frames: their times, fades and place.
+    toasts: crate::notifications::ToastHost,
     /// The running jobs by number and the frame time (egui's `input.time`, seconds) the window first saw each (the
     /// elapsed time and the 200 ms rule; the frame clock, like the toasts').
     job_started: std::collections::BTreeMap<u64, f64>,
@@ -272,16 +256,8 @@ pub struct App {
     /// The keymap the bindings were built for: the preset and the user keymap's version.
     bindings_for: (ew_viewmodel::keymap::Preset, u64),
     title: String,
-    palette_was_open: bool,
-    /// The picker's step in the previous frame: `None` closed, else the part whose symbol it asks for. Its filter
-    /// field takes the focus when it opens and when it moves on to a part's symbols.
-    picker_was_open: Option<Option<usize>>,
     /// The Join chooser's type-ahead text.
     chooser_typing: crate::chooser::TypeAhead,
-    /// The opening of the dialog the last frame showed ([`ShellModel::dialog_generation`]): a dialog opened since is a
-    /// new one, which takes its first focus (doc 16a §6.12), even when it replaced the last in one frame (the
-    /// collision dialog after Renumber) or is of the same kind (rebuilt by a second change).
-    dialog_was: Option<u64>,
     /// The file dialog that is open off the window's thread, with the request it answers.
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
     /// The prints running off the window's thread, each with the receiver of its end.
@@ -301,9 +277,6 @@ pub struct App {
     paste_in_place: bool,
     /// The IP tool's name field in the tool strip: `ip.name` on Enter.
     ip_name: String,
-    /// Whether the IP tool's fields were shown in the last frame: the frame the tool is chosen in gives its name
-    /// field the focus.
-    ip_shown: bool,
     /// The Wire marker tool's cross-section and colours fields: `marker.fields` on Enter.
     marker_csa: String,
     marker_colours: String,
@@ -340,9 +313,6 @@ pub struct App {
     alt_alone: bool,
     /// Whether Alt was down in the last frame.
     alt_down: bool,
-    /// Whether the shell's focus was on the command bar in the last frame (F6 arrives: the active tab takes egui's
-    /// focus).
-    bar_had_focus: bool,
     /// The actions the frame dispatched, oldest first, at most [`DISPATCH_LOG`] (tests: CB2).
     dispatch_log: std::collections::VecDeque<(&'static str, Value)>,
 }
@@ -378,12 +348,7 @@ impl App {
             navigators: std::collections::BTreeMap::new(),
             properties: PropertiesPane::new(),
             find: FindPane::new(),
-            toast_since: std::collections::BTreeMap::new(),
-            toast_opacity: std::collections::BTreeMap::new(),
-            toast_clock: None,
-            toast_hovered: Vec::new(),
-            toasts_low: false,
-            toast_stack: None,
+            toasts: crate::notifications::ToastHost::default(),
             job_started: std::collections::BTreeMap::new(),
             waker_set: false,
             area_splitters: 0,
@@ -395,10 +360,7 @@ impl App {
             bindings: Vec::new(),
             bindings_for: (ew_viewmodel::keymap::Preset::Ew, u64::MAX),
             title: String::new(),
-            palette_was_open: false,
-            picker_was_open: None,
             chooser_typing: crate::chooser::TypeAhead::default(),
-            dialog_was: None,
             pending_pick: None,
             pending_prints: Vec::new(),
             applied_scale: None,
@@ -407,7 +369,6 @@ impl App {
             request_paste: false,
             paste_in_place: false,
             ip_name: String::new(),
-            ip_shown: false,
             drawing_fields_epoch: None,
             marker_csa: String::new(),
             marker_colours: String::new(),
@@ -426,7 +387,6 @@ impl App {
             disk_polled: (0.0, ew_viewmodel::ew_api::external::POLL_EVERY.as_secs_f64()),
             alt_alone: false,
             alt_down: false,
-            bar_had_focus: false,
             dispatch_log: std::collections::VecDeque::new(),
         }
     }
@@ -484,7 +444,7 @@ impl App {
 
     /// The opacity each visible toast was painted with in the last frame, by serial (tests).
     pub fn toast_opacities(&self) -> Vec<(u64, f32)> {
-        self.toast_opacity.iter().map(|(s, a)| (*s, *a)).collect()
+        self.toasts.opacities()
     }
 
     /// How many times navigator `kind`'s pane built its rows, and how many rows its last frame painted (tests).
@@ -655,12 +615,40 @@ impl App {
                 egui::Rect::from_min_max(egui::pos2(content.left(), bar_bottom), content.max)
             }
         };
-        let frame = egui::Frame::NONE
-            .fill(tokens.warning_subtle.color32())
-            .inner_margin(egui::Margin::symmetric(
-                crate::theme::margin_px(tokens.space_4),
-                crate::theme::margin_px(tokens.space_2),
+        let frame = crate::components::band_frame(tokens, tokens.warning_subtle);
+        let mut buttons = Vec::new();
+        if self.shell.can_discard_journal() {
+            buttons.push((
+                crate::components::Kind::Primary,
+                strings::text(key!("action-file-discard-journal")),
+                Event::Action("file.discard_journal", Value::Null),
             ));
+        }
+        // Doc 16a §6.11: the held-saves banner's one Primary reopens the choice; a message over
+        // it (a refused save) keeps it.
+        if self.shell.external_choice_waiting() {
+            buttons.push((
+                crate::components::Kind::Primary,
+                strings::text(key!("banner-external-choose")),
+                Event::Action("external.review", Value::Null),
+            ));
+        }
+        // FT-1499: the damaged-copy banner's one Primary updates the copies from their
+        // libraries; a banner of a copy no library holds offers nothing.
+        if self.shell.damaged_update_offered() {
+            buttons.push((
+                crate::components::Kind::Primary,
+                strings::text(key!("action-library-update-damaged")),
+                Event::Action("library.update_damaged", Value::Null),
+            ));
+        }
+        if self.shell.banner_dismissable() {
+            buttons.push((
+                crate::components::Kind::Subtle,
+                strings::text(key!("banner-dismiss")),
+                Event::DismissBanner,
+            ));
+        }
         let inner_width = (area.width() - 2.0 * tokens.space_4).max(0.0);
         let response = egui::Area::new(egui::Id::unique("banner"))
             .fixed_pos(area.min)
@@ -670,69 +658,14 @@ impl App {
                 frame.show(ui, |ui| {
                     ui.set_width(inner_width);
                     ui.horizontal_wrapped(|ui| {
-                        ui.set_min_height(tokens.size_control);
-                        let (r, _) =
-                            ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
-                        crate::icons::paint(
-                            ui.painter(),
-                            crate::icons::IconId::alert_triangle,
-                            r,
-                            tokens.warning_icon.color32(),
-                            tokens.icon_stroke,
+                        crate::components::band_row(
+                            ui,
+                            tokens,
+                            (crate::icons::IconId::alert_triangle, tokens.warning_icon),
+                            egui::RichText::new(banner).color(tokens.text_primary.color32()),
+                            buttons,
+                            events,
                         );
-                        ui.label(egui::RichText::new(banner).color(tokens.text_primary.color32()));
-                        if self.shell.can_discard_journal()
-                            && crate::components::button(
-                                ui,
-                                crate::components::Kind::Primary,
-                                strings::text(key!("action-file-discard-journal")),
-                                true,
-                                0.0,
-                            )
-                            .clicked()
-                        {
-                            events.push(Event::Action("file.discard_journal", Value::Null));
-                        }
-                        // Doc 16a §6.11: the held-saves banner's one Primary reopens the choice; a message over
-                        // it (a refused save) keeps it.
-                        if self.shell.external_choice_waiting()
-                            && crate::components::button(
-                                ui,
-                                crate::components::Kind::Primary,
-                                strings::text(key!("banner-external-choose")),
-                                true,
-                                0.0,
-                            )
-                            .clicked()
-                        {
-                            events.push(Event::Action("external.review", Value::Null));
-                        }
-                        // FT-1499: the damaged-copy banner's one Primary updates the copies from their
-                        // libraries; a banner of a copy no library holds offers nothing.
-                        if self.shell.damaged_update_offered()
-                            && crate::components::button(
-                                ui,
-                                crate::components::Kind::Primary,
-                                strings::text(key!("action-library-update-damaged")),
-                                true,
-                                0.0,
-                            )
-                            .clicked()
-                        {
-                            events.push(Event::Action("library.update_damaged", Value::Null));
-                        }
-                        if self.shell.banner_dismissable()
-                            && crate::components::button(
-                                ui,
-                                crate::components::Kind::Subtle,
-                                strings::text(key!("banner-dismiss")),
-                                true,
-                                0.0,
-                            )
-                            .clicked()
-                        {
-                            events.push(Event::DismissBanner);
-                        }
                     });
                 });
             });
@@ -951,52 +884,36 @@ impl App {
             Panel::top("template-band")
                 .resizable(false)
                 .show_separator_line(false)
-                .frame(
-                    egui::Frame::NONE
-                        .fill(tokens.accent_subtle.color32())
-                        .inner_margin(egui::Margin::symmetric(
-                            crate::theme::margin_px(tokens.space_4),
-                            crate::theme::margin_px(tokens.space_2),
-                        )),
-                )
+                .frame(crate::components::band_frame(&tokens, tokens.accent_subtle))
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.set_min_height(tokens.size_control);
-                        let (r, _) =
-                            ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
-                        crate::icons::paint(
-                            ui.painter(),
-                            crate::icons::IconId::file_stack,
-                            r,
-                            tokens.accent.color32(),
-                            tokens.icon_stroke,
-                        );
-                        ui.label(
+                        crate::components::band_row(
+                            ui,
+                            &tokens,
+                            (crate::icons::IconId::file_stack, tokens.accent),
                             egui::RichText::new(strings::format(key!("template-band"), &[&name]))
                                 .font(crate::theme::font(&tokens.type_body_strong))
                                 .color(tokens.text_primary.color32()),
+                            vec![(
+                                crate::components::Kind::Secondary,
+                                strings::text(key!("template-band-close")),
+                                Event::Action("file.close", Value::Null),
+                            )],
+                            &mut events,
                         );
-                        if crate::components::button(
-                            ui,
-                            crate::components::Kind::Secondary,
-                            strings::text(key!("template-band-close")),
-                            true,
-                            0.0,
-                        )
-                        .clicked()
-                        {
-                            events.push(Event::Action("file.close", Value::Null));
-                        }
                     });
                 });
         }
         // F6 reached the command bar: its active tab takes egui's keyboard focus.
         let bar_has_focus = self.shell.focus() == Some(Focus::CommandBar);
-        if bar_has_focus && !self.bar_had_focus {
+        if crate::components::opened(
+            &ctx,
+            egui::Id::unique("command-bar-focus"),
+            bar_has_focus.then_some(()),
+        ) {
             let tab = crate::command_bar::tab_id(self.shell.command_tab());
             ctx.memory_mut(|m| m.request_focus(tab));
         }
-        self.bar_had_focus = bar_has_focus;
         // `size.status` high (doc 16a §5.8).
         Panel::bottom("status-bar")
             .exact_size(tokens.size_status)
@@ -1149,15 +1066,21 @@ impl App {
         for group in 0..crate::canvas::GROUPS {
             self.canvas.set_chrome_obstacles(group, chrome.clone());
         }
+        // The palette, the picker and a dialog take their first focus in the frame they open (the picker's when it
+        // moves on to a part's symbols too; a dialog's when it replaced the last in one frame, the collision dialog
+        // after Renumber, or is of the same kind, rebuilt by a second change: [`ShellModel::dialog_generation`]).
         let palette_open = self.shell.palette().is_some();
         palette::show(
             &ctx,
             &self.shell,
-            palette_open && !self.palette_was_open,
+            crate::components::opened(
+                &ctx,
+                egui::Id::unique("palette-opened"),
+                palette_open.then_some(()),
+            ),
             self.command_bar.search_rect(),
             &mut events,
         );
-        self.palette_was_open = palette_open;
         let picker_step = self.shell.picker().map(|p| p.part);
         if !held_for_picker.is_empty() {
             ctx.input_mut(|i| i.events.extend(held_for_picker));
@@ -1165,10 +1088,9 @@ impl App {
         crate::picker::show(
             &ctx,
             &self.shell,
-            picker_step.is_some() && picker_step != self.picker_was_open,
+            crate::components::opened(&ctx, egui::Id::unique("picker-opened"), picker_step),
             &mut events,
         );
-        self.picker_was_open = picker_step;
         // The Place tool's Join chooser (doc 16a §6.22).
         crate::chooser::show(
             &ctx,
@@ -1187,108 +1109,24 @@ impl App {
         // The toasts and the notifications log.
         // At the canvas's top right (doc 16a §6.10).
         let bar_bottom = self.command_bar.bar_rect().map_or(0.0, |r| r.bottom());
-        let mut anchor = crate::notifications::toast_anchor(&tokens, &ctx, self.page_pane, bar_bottom);
-        // The banner lies over the top edge of the canvas; the toasts start below it.
-        if let Some(banner) = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events) {
-            anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
-        }
-        // In the symbol editor, the toasts stand on its canvas, under the header row with Close editor (FT-1714).
-        if let Some(corner) = self.symbol_editor_view.toast_corner {
-            anchor.y = anchor.y.max(corner.y + tokens.space_4);
-            anchor.x = anchor.x.min(corner.x - tokens.space_4);
-        }
-        // Doc 16a §6.10: while a tool works where the toasts stand, they move to the canvas's bottom right.
-        self.toasts_low = crate::notifications::toasts_low(
-            self.toasts_low,
-            self.shell.tool().name() != "select",
-            self.page_pane,
-            // The tool's press decides, never a move of the pointer.
-            ctx.input(|i| {
-                i.pointer
-                    .any_pressed()
-                    .then(|| i.pointer.interact_pos())
-                    .flatten()
-            }),
-            self.toast_stack,
-        );
-        let pivot = match (self.page_pane, self.station_pane) {
-            (Some(pane), _) if self.toasts_low => {
-                // Above the zoom control (doc 16a §5.5).
-                let zoom = crate::hud::zoom_rect(&tokens, pane);
-                anchor = egui::pos2(anchor.x, zoom.top() - tokens.space_4);
-                egui::Align2::RIGHT_BOTTOM
-            }
-            // In a station's view the top right holds the catalogue and its filter: the toasts stand at the bottom
-            // right of the rack's lists, where the view is empty longest.
-            (None, Some(pane)) => {
-                let lists = crate::station_view::lists_rect(pane);
-                anchor = egui::pos2(lists.right() - tokens.space_4, lists.bottom() - tokens.space_4);
-                egui::Align2::RIGHT_BOTTOM
-            }
-            _ => egui::Align2::RIGHT_TOP,
+        let banner = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events);
+        let place = crate::notifications::ToastPlace {
+            page_pane: self.page_pane,
+            station_pane: self.station_pane,
+            bar_bottom,
+            banner,
+            corner: self.symbol_editor_view.toast_corner,
         };
-        let dialog_open = self.shell.dialog().is_some();
-        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest. SM25b m4:
-        // below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
-        let under_modal =
-            dialog_open || self.shell.picker().is_some() || ctx.memory(|m| m.top_modal_layer().is_some());
-        // Doc 16a §4.12, §6.10: each toast fades in and out over `motion.base` on the frame clock.
-        let frame_time = ctx.input(|i| i.time);
-        let fade = f64::from(tokens.motion_base) / 1000.0;
-        // Hovering a toast pauses it (doc 16a §6.10): the clock of a toast the pointer was on in the last frame stands
-        // still for the time since that frame.
-        let step = self.toast_clock.map_or(0.0, |last| (frame_time - last).max(0.0));
-        self.toast_clock = Some(frame_time);
-        let was_paused = std::mem::take(&mut self.toast_hovered);
-        for serial in &was_paused {
-            if let Some(since) = self.toast_since.get_mut(serial) {
-                *since += step;
-            }
-        }
-        self.toast_opacity = self
-            .shell
-            .notifications()
-            .visible()
-            .iter()
-            .map(|n| {
-                let age = self.toast_since.get(&n.serial).map_or(0.0, |s| frame_time - s);
-                // A toast that stays fades in and never out.
-                let age = if n.stays() { age.min(fade) } else { age };
-                (
-                    n.serial,
-                    crate::notifications::toast_opacity(age, TOAST_SECONDS, fade),
-                )
-            })
-            .collect();
-        let (hovered, focused, stack) = crate::notifications::show_toasts(
-            &ctx,
-            &self.shell,
-            (anchor, pivot),
-            under_modal,
-            &self.toast_opacity,
-            &mut events,
-        );
-        // Doc 16a §6.10: a hover pauses a toast only once the pointer has moved onto it (a
-        // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
-        // pointer at rest is not paused, so it fades on time. A toast that holds the keyboard focus
-        // is paused too.
-        let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
-        self.toast_stack = stack;
-        self.toast_hovered = hovered
-            .into_iter()
-            .filter(|serial| pointer_moved || was_paused.contains(serial))
-            .chain(focused)
-            .collect();
+        self.toasts.show(&ctx, &self.shell, &tokens, &place, &mut events);
         crate::notifications::show_log(&ctx, &self.shell, &mut events);
         let opening = self.shell.dialog().map(|_| self.shell.dialog_generation());
         about::show(
             &ctx,
             &self.shell,
-            opening.is_some() && opening != self.dialog_was,
+            crate::components::opened(&ctx, egui::Id::unique("dialog-opened"), opening),
             form_key,
             &mut events,
         );
-        self.dialog_was = opening;
         // The start-up offer, while no other dialog is open.
         if self.shell.dialog().is_none() {
             crate::startup::show(&ctx, &self.shell, &mut events);
@@ -1317,35 +1155,7 @@ impl App {
         if !events.is_empty() {
             ctx.request_repaint();
         }
-        // The toasts' timeouts are the window's: 8 seconds each after the frame that first showed it; a toast that stays
-        // (a consequence the person may not want) has none.
-        let visible: Vec<(u64, bool)> = self
-            .shell
-            .notifications()
-            .visible()
-            .iter()
-            .map(|n| (n.serial, n.stays()))
-            .collect();
-        self.toast_since
-            .retain(|s, _| visible.iter().any(|(v, _)| v == s));
-        for (serial, stays) in visible {
-            let age = frame_time - *self.toast_since.entry(serial).or_insert(frame_time);
-            if stays {
-                if age < fade {
-                    ctx.request_repaint();
-                }
-                continue;
-            }
-            if age >= TOAST_SECONDS {
-                events.push(Event::DismissToast(serial));
-            } else if age < fade || age >= TOAST_SECONDS - fade {
-                // In a fade: every frame until it ends.
-                ctx.request_repaint();
-            } else {
-                let to_fade = Duration::from_secs_f64((TOAST_SECONDS - fade - age).max(0.0));
-                ctx.request_repaint_after(to_fade.min(Duration::from_millis(500)));
-            }
-        }
+        self.toasts.expire(&ctx, &self.shell, &tokens, &mut events);
         let dispatch_started = self.clock.now();
         // The window repaints after an action that changed the model or the tool's marks without pointer motion
         // (an undo, a key-driven commit, a gesture's release; window check): once at once, and once
@@ -1805,8 +1615,8 @@ impl App {
         // tool, so D turns the direction.
         // Noted every frame (noted only while the tool ran, so the tool chosen a second time kept the keys
         // from the name).
-        let was_shown = std::mem::replace(&mut self.ip_shown, ip);
-        let ip_focus = ip && !was_shown && ctx.pointer_latest_pos().is_some_and(|p| !pane.contains(p));
+        let ip_focus = crate::components::opened(ctx, egui::Id::unique("ip-fields-opened"), ip.then_some(()))
+            && ctx.pointer_latest_pos().is_some_and(|p| !pane.contains(p));
         // The layout place tool, or a placement dragged by Select.
         let layout = self
             .shell
