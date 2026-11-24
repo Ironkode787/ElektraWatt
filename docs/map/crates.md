@@ -249,7 +249,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-commands
 
-`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
 `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`.
 
@@ -437,7 +437,7 @@ Display-list IR: paths, glyph runs, images, groups, symbol instances, link sourc
 
 ## ew-drafting
 
-`crates/ew-drafting` · GPL-3.0-or-later · tier drawing · depends on `ew-ids`, `ew-units` · used by `ew-api`, `ew-scene` · in tests by none
+`crates/ew-drafting` · GPL-3.0-or-later · tier drawing · depends on `ew-ids`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-scene` · in tests by none
 
 Schematic drafting (docs/design/06a-drafting.md, ADR-0034): how a page is judged, where its texts stand and where its wires run.
 
