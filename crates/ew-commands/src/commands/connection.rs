@@ -176,10 +176,9 @@ pub(crate) fn point_bevels(tx: &mut TxBuilder<'_>, junctions: &[Id<Junction>]) -
     Ok(())
 }
 
-/// Creates an IP function and its one representation; returns the function.
-#[allow(clippy::too_many_arguments)]
-fn new_ip(
-    tx: &mut TxBuilder<'_>,
+/// A new interruption point for [`new_ip`]: its function's FnDef and IP members, and its one representation's page,
+/// symbol, position, orientation and type.
+struct NewIp {
     def: Id<FnDef>,
     spec: IpSpec,
     page: Id<Page>,
@@ -187,7 +186,19 @@ fn new_ip(
     pos: Pt2,
     orient: Orient2,
     rep_type: RepType,
-) -> Result<Id<Function>, CmdError> {
+}
+
+/// Creates an IP function and its one representation; returns the function.
+fn new_ip(tx: &mut TxBuilder<'_>, ip: NewIp) -> Result<Id<Function>, CmdError> {
+    let NewIp {
+        def,
+        spec,
+        page,
+        symbol,
+        pos,
+        orient,
+        rep_type,
+    } = ip;
     // One of EW's forms is never turned, and is its direction's.
     crate::normalise::ip_form::check_new(tx, symbol, orient, &spec.direction)?;
     let function: Id<Function> = tx.mint();
@@ -886,13 +897,15 @@ impl Command for PlaceIp {
         };
         let function = new_ip(
             tx,
-            def,
-            spec,
-            self.page,
-            self.symbol,
-            self.pos,
-            self.orient,
-            RepType::MultiLine,
+            NewIp {
+                def,
+                spec,
+                page: self.page,
+                symbol: self.symbol,
+                pos: self.pos,
+                orient: self.orient,
+                rep_type: RepType::MultiLine,
+            },
         )?;
         Ok(Outcome::primary((Kind::Function, function.cast())))
     }
@@ -974,13 +987,15 @@ impl Command for ContinueIp {
         };
         let function = new_ip(
             tx,
-            original.def,
-            partner,
-            self.page,
-            symbol,
-            pos,
-            orient,
-            rep.rep_type.clone(),
+            NewIp {
+                def: original.def,
+                spec: partner,
+                page: self.page,
+                symbol,
+                pos,
+                orient,
+                rep_type: rep.rep_type.clone(),
+            },
         )?;
         Ok(Outcome::primary((Kind::Function, function.cast())))
     }
@@ -1275,8 +1290,60 @@ impl Command for DrawToIp {
             return tx.reject(text!("refusal-draw-to-ip-fluid"));
         }
         refuse_fluid_mismatch(tx, &kind, &[&self.a])?;
-        // The start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
-        // before anything is inserted.
+        self.check_start_on_page(tx)?;
+        let spec = IpSpec {
+            name: self.ip.name.clone(),
+            direction: self.ip.direction.clone(),
+            star_source: self.ip.star_source,
+            sort: self.ip.sort,
+            external: self.ip.external,
+            group: None,
+            extra: Extra::new(),
+        };
+        let function = new_ip(
+            tx,
+            NewIp {
+                def,
+                spec,
+                page: self.page,
+                symbol: self.ip.symbol,
+                pos: self.ip.pos,
+                orient: self.ip.orient,
+                rep_type: RepType::MultiLine,
+            },
+        )?;
+        if crate::geometry::cp_position(tx, function, idx, self.page).is_none() {
+            return tx.reject(text!("refusal-draw-to-ip-symbol-cp"));
+        }
+        let new_id: Id<Connection> = tx.mint();
+        let (mut split_page, mut made) = (None, Vec::new());
+        let a = resolve_end(tx, &self.a, ("/a", false), new_id, (&mut split_page, &mut made))?;
+        let b = Endpoint::Cp(function, idx);
+        require_route(tx, self.page, &a, &b, &self.route, "/route")?;
+        let key = (Kind::Connection, new_id.cast());
+        tx.insert(Connection {
+            id: new_id,
+            v: 1,
+            a,
+            b,
+            page: Some(self.page),
+            route: self.route.clone(),
+            kind,
+            overrides: WireOverrides::default(),
+            number: NumberSpec::default(),
+            source_ref: None,
+            computed: false,
+            extra: Extra::new(),
+        })?;
+        point_bevels(tx, &made)?;
+        Ok(Outcome::primary(key))
+    }
+}
+
+impl DrawToIp {
+    /// The start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
+    /// before anything is inserted.
+    fn check_start_on_page(&self, tx: &TxBuilder<'_>) -> Result<(), CmdError> {
         let (drawn, other) = match &self.a {
             EndpointParam::Cp { function, .. } => {
                 // A representation draws the CP when it lists the function; a terminal's CP is also drawn by its
@@ -1325,50 +1392,7 @@ impl Command for DrawToIp {
                 )),
             };
         }
-        let spec = IpSpec {
-            name: self.ip.name.clone(),
-            direction: self.ip.direction.clone(),
-            star_source: self.ip.star_source,
-            sort: self.ip.sort,
-            external: self.ip.external,
-            group: None,
-            extra: Extra::new(),
-        };
-        let function = new_ip(
-            tx,
-            def,
-            spec,
-            self.page,
-            self.ip.symbol,
-            self.ip.pos,
-            self.ip.orient,
-            RepType::MultiLine,
-        )?;
-        if crate::geometry::cp_position(tx, function, idx, self.page).is_none() {
-            return tx.reject(text!("refusal-draw-to-ip-symbol-cp"));
-        }
-        let new_id: Id<Connection> = tx.mint();
-        let (mut split_page, mut made) = (None, Vec::new());
-        let a = resolve_end(tx, &self.a, ("/a", false), new_id, (&mut split_page, &mut made))?;
-        let b = Endpoint::Cp(function, idx);
-        require_route(tx, self.page, &a, &b, &self.route, "/route")?;
-        let key = (Kind::Connection, new_id.cast());
-        tx.insert(Connection {
-            id: new_id,
-            v: 1,
-            a,
-            b,
-            page: Some(self.page),
-            route: self.route.clone(),
-            kind,
-            overrides: WireOverrides::default(),
-            number: NumberSpec::default(),
-            source_ref: None,
-            computed: false,
-            extra: Extra::new(),
-        })?;
-        point_bevels(tx, &made)?;
-        Ok(Outcome::primary(key))
+        Ok(())
     }
 }
 

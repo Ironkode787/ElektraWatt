@@ -2230,27 +2230,7 @@ impl Command for PlaceAssembly {
             order.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
         // Override 2: one read set for every device the command reads, their placements included.
         note_rail_reads(tx, rail, &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>());
-        let mut on_rail: BTreeMap<Id<Device>, Vec<Id<Placement>>> = BTreeMap::new();
-        let mut unplaced = Vec::new();
-        for d in &devices {
-            let placements = tx.placements_of_device(d.id);
-            if placements.is_empty() {
-                if is_mountable(&q, d.id) {
-                    unplaced.push(std::sync::Arc::clone(d));
-                }
-                continue;
-            }
-            let here: Vec<Id<Placement>> = placements
-                .into_iter()
-                .filter(|p| {
-                    tx.get::<Placement>(*p)
-                        .is_some_and(|p| p.carrier == CarrierRef::Carrier(rail))
-                })
-                .collect();
-            if !here.is_empty() {
-                on_rail.insert(d.id, here);
-            }
-        }
+        let (on_rail, unplaced) = members_by_place(tx, &q, rail, &devices);
         if unplaced.is_empty() {
             return tx.reject(text!("refusal-layout-assembly-placed", tag(tx, root)));
         }
@@ -2280,26 +2260,16 @@ impl Command for PlaceAssembly {
             .collect();
         let base = rail_items(&q, rail);
         let mut mem = base.clone();
+        let on = AssemblyOnRail {
+            q: &q,
+            rail,
+            axis: &axis,
+            order: &order,
+            names: &names,
+        };
         match block_s {
-            Some(s_left) => {
-                let (offsets, block) = block_of(members.iter().map(|m| &m.item));
-                let item = match members.as_slice() {
-                    [one] => tag(tx, one.device.id),
-                    _ => text!("refusal-layout-the-assembly", tag(tx, root)).into(),
-                };
-                let wording = Wording {
-                    carrier: rail,
-                    mode: self.mode.unwrap_or(PlaceMode::Free),
-                    item,
-                    names: &names,
-                };
-                let r = resolve_items(tx, &q, &mem, axis.length, block, s_left, &wording)?;
-                apply_moved(&mut mem, &r.moved);
-                for (m, off) in members.iter().zip(offsets) {
-                    mem.push(item_at(&m.item, r.s_left.saturating_add(off)));
-                }
-            }
-            None => insert_members(tx, &q, rail, &axis, &order, on_rail, &members, &names, &mut mem)?,
+            Some(s_left) => self.place_block(tx, &on, root, &members, s_left, &mut mem)?,
+            None => insert_members(tx, &on, on_rail, &members, &mut mem)?,
         }
         let neighbours = moved_poses(tx, &axis, &base, &mem)?;
         let mut poses = Vec::with_capacity(members.len());
@@ -2329,23 +2299,104 @@ impl Command for PlaceAssembly {
     }
 }
 
+/// What `layout.place_assembly` places an assembly's members by: the base snapshot, the rail and its axis, the order
+/// of the members, and the tag of each placement the command mints.
+#[derive(Clone, Copy)]
+struct AssemblyOnRail<'a> {
+    q: &'a Q,
+    rail: Id<Carrier>,
+    axis: &'a RailAxis,
+    order: &'a [Id<Device>],
+    names: &'a BTreeMap<Id<Placement>, String>,
+}
+
+impl PlaceAssembly {
+    /// `layout.place_assembly` when no member is on the rail: the new members as one block, its left end at `s_left`,
+    /// resolved by the command's mode.
+    fn place_block(
+        &self,
+        tx: &TxBuilder<'_>,
+        on: &AssemblyOnRail<'_>,
+        root: Id<Device>,
+        members: &[Member],
+        s_left: i128,
+        mem: &mut Vec<RailItem>,
+    ) -> Result<(), CmdError> {
+        let (offsets, block) = block_of(members.iter().map(|m| &m.item));
+        let item = match members {
+            [one] => tag(tx, one.device.id),
+            _ => text!("refusal-layout-the-assembly", tag(tx, root)).into(),
+        };
+        let wording = Wording {
+            carrier: on.rail,
+            mode: self.mode.unwrap_or(PlaceMode::Free),
+            item,
+            names: on.names,
+        };
+        let r = resolve_items(tx, on.q, mem, on.axis.length, block, s_left, &wording)?;
+        apply_moved(mem, &r.moved);
+        for (m, off) in members.iter().zip(offsets) {
+            mem.push(item_at(&m.item, r.s_left.saturating_add(off)));
+        }
+        Ok(())
+    }
+}
+
+/// The assembly's members by where they are: the placements of each member on `rail`, and the members not placed
+/// anywhere that can be mounted.
+#[allow(clippy::type_complexity)]
+fn members_by_place(
+    tx: &TxBuilder<'_>,
+    q: &Q,
+    rail: Id<Carrier>,
+    devices: &[std::sync::Arc<Device>],
+) -> (
+    BTreeMap<Id<Device>, Vec<Id<Placement>>>,
+    Vec<std::sync::Arc<Device>>,
+) {
+    let mut on_rail: BTreeMap<Id<Device>, Vec<Id<Placement>>> = BTreeMap::new();
+    let mut unplaced = Vec::new();
+    for d in devices {
+        let placements = tx.placements_of_device(d.id);
+        if placements.is_empty() {
+            if is_mountable(q, d.id) {
+                unplaced.push(std::sync::Arc::clone(d));
+            }
+            continue;
+        }
+        let here: Vec<Id<Placement>> = placements
+            .into_iter()
+            .filter(|p| {
+                tx.get::<Placement>(*p)
+                    .is_some_and(|p| p.carrier == CarrierRef::Carrier(rail))
+            })
+            .collect();
+        if !here.is_empty() {
+            on_rail.insert(d.id, here);
+        }
+    }
+    (on_rail, unplaced)
+}
+
 /// `layout.place_assembly` when some members are on the rail: each new member, in member
 /// order, is pushed in after its predecessor (its doubled centre the smallest value above the predecessor's, so that
 /// [`resolve`] starts it at the predecessor's end plus the minimum gap), else before its first placed successor; the
 /// in-memory list `mem` carries every member placed so far, so a member this command placed and a later insertion
 /// pushes is re-posed in memory and inserted once, at its final place.
-#[allow(clippy::too_many_arguments)]
 fn insert_members(
     tx: &TxBuilder<'_>,
-    q: &Q,
-    rail: Id<Carrier>,
-    axis: &RailAxis,
-    order: &[Id<Device>],
+    rail_of: &AssemblyOnRail<'_>,
     mut on: BTreeMap<Id<Device>, Vec<Id<Placement>>>,
     members: &[Member],
-    names: &BTreeMap<Id<Placement>, String>,
     mem: &mut Vec<RailItem>,
 ) -> Result<(), CmdError> {
+    let AssemblyOnRail {
+        q,
+        rail,
+        axis,
+        order,
+        names,
+    } = *rail_of;
     for m in members {
         let at = order.iter().position(|d| *d == m.device.id).unwrap_or(0);
         let items_of = |mem: &[RailItem], d: &Id<Device>| -> Vec<RailItem> {
@@ -2803,31 +2854,7 @@ impl Command for CreateEnclosureFromPart {
                 ));
             }
         }
-        let existing = tx
-            .iter::<LayoutSpace>()
-            .into_iter()
-            .find(|s| s.location == self.location)
-            .map(|s| s.id);
-        if let Some(space) = existing {
-            if let Some(e) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == space) {
-                // The location's designation with its sign (`+J-E-2416`), as a tag prints it.
-                let q = Q::new(tx.base_model());
-                let codes = q
-                    .try_get::<StructurePath>(self.location)
-                    .ok()
-                    .map(|p| p.codes.clone())
-                    .filter(|c| !c.is_empty())
-                    .unwrap_or_else(|| vec![node.code.as_str().to_owned()]);
-                // "Location +{location} already has enclosure {tag}; a location has one
-                // enclosure. Choose another location, or edit {tag}."
-                let tag = tag(tx, e.device);
-                return tx.reject(text!(
-                    "refusal-layout-location-has-enclosure",
-                    codes.join("+"),
-                    tag
-                ));
-            }
-        }
+        let existing = self.space_without_enclosure(tx, &node)?;
         let plate = plate_copy_id(&section);
         if plate.is_some_and(|p| !tx.exists::<LibCopy<Part>>(p)) {
             // The copy is not held, so its part number is not known here.
@@ -2841,18 +2868,7 @@ impl Command for CreateEnclosureFromPart {
         // the lowest n ≥ 1 that no device's tag UC<n> holds (another enclosure's counter, or a frozen UC<n> of an
         // older project); its plate the child U1.
         let letter = ident(name, "UC")?;
-        let held: BTreeSet<String> = tx
-            .iter::<Device>()
-            .into_iter()
-            .filter_map(|d| match &d.tag.frozen {
-                Some(f) => Some(f.text.as_str().to_owned()),
-                None if d.tag.letter == letter && d.tag.scheme == TagScheme::Default => {
-                    d.tag.counter.map(|c| format!("UC{c}"))
-                }
-                None => None,
-            })
-            .collect();
-        let n = (1u32..).find(|n| !held.contains(&format!("UC{n}"))).unwrap_or(1);
+        let n = free_enclosure_counter(tx, &letter);
         let structure = StructureAssignment {
             location: Some(Slot::Node(self.location)),
             function: self.function.map(Slot::Node),
@@ -2894,6 +2910,60 @@ impl Command for CreateEnclosureFromPart {
         )?;
         Ok(Outcome::primary((Kind::Enclosure, enclosure.cast())))
     }
+}
+
+impl CreateEnclosureFromPart {
+    /// The layout space of the location, when it has one: refused when it holds an enclosure already (a location has
+    /// one enclosure).
+    fn space_without_enclosure(
+        &self,
+        tx: &TxBuilder<'_>,
+        node: &StructureNode,
+    ) -> Result<Option<Id<LayoutSpace>>, CmdError> {
+        let existing = tx
+            .iter::<LayoutSpace>()
+            .into_iter()
+            .find(|s| s.location == self.location)
+            .map(|s| s.id);
+        if let Some(space) = existing {
+            if let Some(e) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == space) {
+                // The location's designation with its sign (`+J-E-2416`), as a tag prints it.
+                let q = Q::new(tx.base_model());
+                let codes = q
+                    .try_get::<StructurePath>(self.location)
+                    .ok()
+                    .map(|p| p.codes.clone())
+                    .filter(|c| !c.is_empty())
+                    .unwrap_or_else(|| vec![node.code.as_str().to_owned()]);
+                // "Location +{location} already has enclosure {tag}; a location has one
+                // enclosure. Choose another location, or edit {tag}."
+                let tag = tag(tx, e.device);
+                return tx.reject(text!(
+                    "refusal-layout-location-has-enclosure",
+                    codes.join("+"),
+                    tag
+                ));
+            }
+        }
+        Ok(existing)
+    }
+}
+
+/// The lowest n ≥ 1 that no device's tag UC<n> holds (another enclosure's counter, or a frozen UC<n> of an older
+/// project), `letter` being UC.
+fn free_enclosure_counter(tx: &TxBuilder<'_>, letter: &Ident) -> u32 {
+    let held: BTreeSet<String> = tx
+        .iter::<Device>()
+        .into_iter()
+        .filter_map(|d| match &d.tag.frozen {
+            Some(f) => Some(f.text.as_str().to_owned()),
+            None if d.tag.letter == *letter && d.tag.scheme == TagScheme::Default => {
+                d.tag.counter.map(|c| format!("UC{c}"))
+            }
+            None => None,
+        })
+        .collect();
+    (1u32..).find(|n| !held.contains(&format!("UC{n}"))).unwrap_or(1)
 }
 
 /// The enclosure device or its plate device as `layout.enclosure.create_from_part` makes it: one piece of `part`.
