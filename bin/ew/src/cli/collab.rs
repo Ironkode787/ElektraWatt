@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use ew_api::git::{self, ConfigScope, GitExe};
 
-use super::GitSetupArgs;
+use super::{GitSetupArgs, is_terminal};
 
 /// The most folder levels below the worktree's root that `ew git setup` looks for project folders in.
 const PROJECT_DEPTH: usize = 4;
@@ -19,8 +19,7 @@ const PROJECT_DEPTH: usize = 4;
 /// worktree, git missing or refusing, a foreign `post-merge` hook, write errors). Nothing is written before the consent,
 /// and a foreign hook refuses before anything is written.
 pub(super) fn run_git_setup(a: &GitSetupArgs) -> i32 {
-    use std::io::IsTerminal;
-    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let terminal = is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     let Ok(cwd) = std::env::current_dir() else {

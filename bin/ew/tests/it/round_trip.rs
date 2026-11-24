@@ -15,7 +15,7 @@ use ew_api::output::sheet::{read_rows, sheet_names};
 use ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
 use sha2::{Digest, Sha256};
 
-use crate::support::{EwTmp, Tmp, args, stderr, stdout};
+use crate::support::{Tmp, args, stderr, stdout};
 use crate::tables::{expected_file, sheet};
 
 /// The columns of the Terminal strips table, as `ew export table strips` heads them.

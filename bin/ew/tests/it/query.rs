@@ -7,7 +7,7 @@
 use ew_api::cli_results as results;
 use serde_json::{Value, json};
 
-use crate::support::{EwTmp, Tmp, args, stderr, stdout, tree};
+use crate::support::{Tmp, args, stderr, stdout, tree};
 
 /// `schema` compiled by the independent validator under the name `url`.
 fn compile(url: &str, schema: Value) -> (boon::Schemas, boon::SchemaIndex) {

@@ -9,7 +9,7 @@ use std::path::Path;
 
 use ew_api::cli_results as results;
 
-use crate::support::{EwTmp, Tmp, page_file, stderr, stdout};
+use crate::support::{Tmp, page_file, stderr, stdout};
 
 #[test]
 fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {

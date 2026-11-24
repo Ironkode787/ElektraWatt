@@ -4,14 +4,14 @@
 //! What the modules of the `ew` integration tests share: the path of the binary under test, the isolation of a run,
 //! the paths of the sample and the test tables, what a test finds in a project by content (a page by its folio, a
 //! device file, the generation; the sample's IDs are made by its script), a renumbering log, the small readers of an
-//! output, and [`EwTmp`], the runs of `ew` inside an [`ew_testdir::Tmp`].
+//! output, and [`Tmp`], the runs of `ew` inside an [`ew_testdir::Tmp`].
 
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-pub use ew_testdir::{CONTENT, SAMPLE, Tmp, copy_dir};
+pub use ew_testdir::{CONTENT, SAMPLE, copy_dir};
 
 /// The test tables' parts table (`fixtures/tables/`, the importer's test inputs).
 pub const PARTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables/parts.csv");
@@ -135,19 +135,46 @@ pub fn stderr(o: &Output) -> String {
     String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
-/// The runs of `ew` and the small projects of a test, on its [`Tmp`].
-pub trait EwTmp {
+/// A test's fresh folder ([`ew_testdir::Tmp`], removed on drop) with the runs of `ew` and the small projects made in
+/// it. It stands where the folder's path is read, as the folder does.
+pub struct Tmp(ew_testdir::Tmp);
+
+impl std::ops::Deref for Tmp {
+    type Target = ew_testdir::Tmp;
+
+    fn deref(&self) -> &ew_testdir::Tmp {
+        &self.0
+    }
+}
+
+impl AsRef<Path> for Tmp {
+    fn as_ref(&self) -> &Path {
+        self.0.as_ref()
+    }
+}
+
+impl Tmp {
+    /// A new, empty folder whose name starts with `stem`.
+    pub fn new(stem: &str) -> Tmp {
+        Tmp(ew_testdir::Tmp::new(stem))
+    }
+
     /// `ew` in this directory with its user directories inside it, no starter content, no display and no
     /// `SOURCE_DATE_EPOCH`; not yet run.
-    fn ew_command<S: AsRef<OsStr>>(&self, args: &[S]) -> Command;
+    pub fn ew_command<S: AsRef<OsStr>>(&self, args: &[S]) -> Command {
+        let mut cmd = Command::new(bin_exe());
+        cmd.args(args).current_dir(self.dir());
+        isolate(&mut cmd, self.dir());
+        cmd
+    }
 
-    /// Runs [`EwTmp::ew_command`].
-    fn ew<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
+    /// Runs [`Tmp::ew_command`].
+    pub fn ew<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
         self.ew_command(args).output().unwrap()
     }
 
     /// Runs `ew` with the starter content of the source tree when `content`.
-    fn ew_with<S: AsRef<OsStr>>(&self, args: &[S], content: bool) -> Output {
+    pub fn ew_with<S: AsRef<OsStr>>(&self, args: &[S], content: bool) -> Output {
         let mut cmd = self.ew_command(args);
         if content {
             cmd.env("EW_CONTENT_DIR", CONTENT);
@@ -156,7 +183,7 @@ pub trait EwTmp {
     }
 
     /// Runs `ew` with `SOURCE_DATE_EPOCH` as given (unset by default).
-    fn ew_at<S: AsRef<OsStr>>(&self, args: &[S], epoch: Option<&str>) -> Output {
+    pub fn ew_at<S: AsRef<OsStr>>(&self, args: &[S], epoch: Option<&str>) -> Output {
         let mut cmd = self.ew_command(args);
         if let Some(e) = epoch {
             cmd.env("SOURCE_DATE_EPOCH", e);
@@ -164,25 +191,8 @@ pub trait EwTmp {
         cmd.output().unwrap()
     }
 
-    /// The OS state directory of the user directories of [`EwTmp::ew_command`], where a writer keeps its journal.
-    fn state_dir(&self) -> PathBuf;
-
-    /// A small saved project `name`: one page, no report blocks.
-    fn tiny(&self, name: &str) -> PathBuf;
-
-    /// Runs `ew <args> --out <dir>/<file>` and returns the file's bytes, after a successful run.
-    fn written<S: AsRef<OsStr>>(&self, args: &[S], file: &str) -> Vec<u8>;
-}
-
-impl EwTmp for Tmp {
-    fn ew_command<S: AsRef<OsStr>>(&self, args: &[S]) -> Command {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args).current_dir(self.dir());
-        isolate(&mut cmd, self.dir());
-        cmd
-    }
-
-    fn state_dir(&self) -> PathBuf {
+    /// The OS state directory of the user directories of [`Tmp::ew_command`], where a writer keeps its journal.
+    pub fn state_dir(&self) -> PathBuf {
         let home = self.path("home");
         if cfg!(windows) {
             home.join("localappdata").join("ElektraWatt").join("state")
@@ -191,7 +201,8 @@ impl EwTmp for Tmp {
         }
     }
 
-    fn tiny(&self, name: &str) -> PathBuf {
+    /// A small saved project `name`: one page, no report blocks.
+    pub fn tiny(&self, name: &str) -> PathBuf {
         let project = serde_json::from_str(
             r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
         )
@@ -212,7 +223,8 @@ impl EwTmp for Tmp {
         dir
     }
 
-    fn written<S: AsRef<OsStr>>(&self, args: &[S], file: &str) -> Vec<u8> {
+    /// Runs `ew <args> --out <dir>/<file>` and returns the file's bytes, after a successful run.
+    pub fn written<S: AsRef<OsStr>>(&self, args: &[S], file: &str) -> Vec<u8> {
         let out = self.path(file);
         let mut all: Vec<OsString> = args.iter().map(|a| a.as_ref().to_owned()).collect();
         all.push("--out".into());

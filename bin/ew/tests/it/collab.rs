@@ -16,7 +16,7 @@ use std::process::{Command, Output, Stdio};
 use serde_json::{Value, json};
 
 use crate::merge_driver::{colour_conflict, page, page_with, shield_id};
-use crate::support::{EwTmp as _, SAMPLE, Tmp};
+use crate::support::{SAMPLE, Tmp};
 
 /// The ID of the sample's device `tag`, as `ew sql` reads it.
 fn device_id(tag: &str) -> String {

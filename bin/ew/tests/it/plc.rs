@@ -9,11 +9,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::process::Output;
 
-use crate::support::{EwTmp, Tmp, stderr, stdout};
-
-fn ew(t: &Tmp, args: &[&OsStr]) -> Output {
-    t.ew(args)
-}
+use crate::support::{Tmp, stderr, stdout};
 
 fn ok(o: &Output) -> String {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(o));
@@ -26,8 +22,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
     let project = t.sample("sample.ew");
     let aml = t.path("PLC1.aml");
 
-    let o = ew(
-        &t,
+    let o = t.ew(
         &[
             "export".as_ref(),
             "plc-aml".as_ref(),
@@ -52,8 +47,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
     assert!(snapshot.contains("\"$k\":\"exchange_record\""));
 
     let status = |file: &Path| {
-        ok(&ew(
-            &t,
+        ok(&t.ew(
             &[
                 "plc".as_ref(),
                 "status".as_ref(),
@@ -80,7 +74,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
             project.as_os_str(),
         ];
         args.extend(extra);
-        ew(&t, &args)
+        t.ew(&args)
     };
     let text = ok(&import(&[]));
     assert!(
@@ -107,7 +101,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
         "{}",
         stderr(&o)
     );
-    let o = ew(&t, &["export".as_ref(), "plcopen".as_ref(), project.as_os_str()]);
+    let o = t.ew(&["export".as_ref(), "plcopen".as_ref(), project.as_os_str()]);
     assert_eq!(o.status.code(), Some(2));
     assert!(stderr(&o).contains("give `--out <file>`"), "{}", stderr(&o));
 }
@@ -122,8 +116,7 @@ fn the_tag_table_and_the_gvl_are_written_under_both_names() {
         ("plcopen", "io.xml"),
     ] {
         let out = t.path(file);
-        let o = ew(
-            &t,
+        let o = t.ew(
             &[
                 "export".as_ref(),
                 word.as_ref(),
@@ -145,8 +138,7 @@ fn the_tag_table_and_the_gvl_are_written_under_both_names() {
             .unwrap()
             .contains("IO_ElektraWatt")
     );
-    let o = ew(
-        &t,
+    let o = t.ew(
         &[
             "export".as_ref(),
             "plcopen".as_ref(),
@@ -181,7 +173,7 @@ fn an_instrument_list_is_previewed_and_applied() {
             project.as_os_str(),
         ];
         args.extend(extra);
-        ew(&t, &args)
+        t.ew(&args)
     };
     let text = ok(&run(&[]));
     // The first spare output of the output card; the sample has no analogue input.

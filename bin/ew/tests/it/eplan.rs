@@ -5,7 +5,7 @@
 //! the terms notice, again as a no-op, and the previewed update of a project's part copy (AC-38) that `--apply`
 //! commits.
 
-use crate::support::{EwTmp, Tmp, args, stderr, stdout};
+use crate::support::{Tmp, args, stderr, stdout};
 
 /// The synthetic EDZ of `ew-import-eplan`'s tests: the part 2904602 in a 7-Zip container.
 const EDZ_7Z: &str = concat!(

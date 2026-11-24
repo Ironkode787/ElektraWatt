@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::support::{EwTmp, PARTS, Tmp, args, generation, stderr, stdout, tree};
+use crate::support::{PARTS, Tmp, args, generation, stderr, stdout, tree};
 
 /// A command log of one new page, written into `t` as `page.ewcmd`.
 fn page_log(t: &Tmp) -> PathBuf {

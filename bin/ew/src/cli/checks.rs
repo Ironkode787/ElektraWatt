@@ -9,7 +9,6 @@ use super::*;
 /// exposure class `HumanOnly` accepts (ADR-0008 amendment 3), after the confirmation typed on a controlling
 /// terminal (doc 17 section 2.3, FR-EXT-030); without a terminal nothing is opened.
 pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
-    use std::io::IsTerminal;
     // 1. The read-only part: every named scheme ships (doc 15 section 4.9); else exit 1 without asking.
     for name in [&a.active, &a.release].into_iter().flatten() {
         if scheme(name).is_none() {
@@ -23,10 +22,10 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     }
     // 2. Without a controlling terminal (CI, a pipe, a script) a HumanOnly command is never submitted (doc 17
     //    section 2.3, FR-EXT-030); the project is not opened, so nothing is locked or journalled.
-    if !(std::io::stdin().is_terminal() && std::io::stdout().is_terminal()) {
+    if !is_terminal() {
         eprintln!(
-            "error: HumanOnly: needs an interactive terminal (`project checks set` is confirmed by typing the \
-             scheme name); nothing was changed"
+            "{}",
+            human_only("`project checks set` is confirmed by typing the scheme name", "changed")
         );
         return 2;
     }

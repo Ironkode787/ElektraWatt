@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::Output;
 
 use crate::support::{
-    CONTENT, EwTmp as _, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr,
+    CONTENT, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr,
     stdout, tree,
 };
 
@@ -32,7 +32,7 @@ impl QetTmp for Tmp {
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
-/// `ew <args>` in a fresh folder of its own ([`EwTmp::ew`]).
+/// `ew <args>` in a fresh folder of its own ([`Tmp::ew`]).
 fn ew(args: &[&std::ffi::OsStr]) -> Output {
     Tmp::new("ew-cli-run").ew(args)
 }

@@ -4,7 +4,7 @@
 //! `ew import dxf` (doc 14 §13): a drawing as a new graphic page of a project, again as a second page, refused in words
 //! without a unit; and its blocks as symbol drafts with their connection points on the native grid (FR-IMP-034).
 
-use crate::support::{EwTmp, Tmp, args, stderr, stdout};
+use crate::support::{Tmp, args, stderr, stdout};
 
 /// A DXF of `$INSUNITS` `units` (none when `None`) with a block `TERM4` of a rectangle and four pin attribute
 /// definitions, one insert of it and a line.

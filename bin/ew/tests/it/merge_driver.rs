@@ -9,7 +9,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::process::Output;
 
-use crate::support::{EwTmp as _, SAMPLE, Tmp, page_file};
+use crate::support::{SAMPLE, Tmp, page_file};
 
 /// The shield wire's overrides in the common ancestor of these merges (the sample's shield has none).
 pub(crate) const SHIELD_OVERRIDES: &str = r#""overrides":{"csa":"2.5"}"#;

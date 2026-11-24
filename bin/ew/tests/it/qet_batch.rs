@@ -4,7 +4,7 @@
 //! `ew import qet --batch <dir> --out <dir>` (FR-IMP-023): a project and a report per file, a summary of all, a file that
 //! cannot be read a row of it, `--strict` an exit code.
 
-use crate::support::{EwTmp, Tmp, args, stderr, stdout};
+use crate::support::{Tmp, args, stderr, stdout};
 
 const GOOD: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;

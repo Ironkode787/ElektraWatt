@@ -13,7 +13,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 
-use crate::support::{EwTmp, SAMPLE, Tmp, args, stderr, stdout};
+use crate::support::{SAMPLE, Tmp, args, stderr, stdout};
 use ew_api::file::FILE_SET_MARK;
 
 /// The pixel size of a PNG (its IHDR chunk).

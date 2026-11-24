@@ -20,7 +20,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::support::{
-    EwTmp, PARTS, SAMPLE, TABLES, Tmp, args, device_file, generation, renumber_log, stderr, stdout, tree,
+    PARTS, SAMPLE, TABLES, Tmp, args, device_file, generation, renumber_log, stderr, stdout, tree,
 };
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 

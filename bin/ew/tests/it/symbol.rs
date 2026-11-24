@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde_json::{Value, json};
 
-use crate::support::{EwTmp, Tmp, args, stderr, stdout};
+use crate::support::{Tmp, args, stderr, stdout};
 
 /// A valid one-pin draft keyed `key`, from the template.
 fn valid(tmp: &Tmp, key: &str) -> Value {

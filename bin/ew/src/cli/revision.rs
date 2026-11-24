@@ -35,8 +35,7 @@ pub(super) fn today() -> ew_api::catalog::Date {
 /// each submitted from the confirmed origin only after the person types the revision label on a controlling terminal
 /// (doc 15 section 5.4, doc 17 section 2.3); without a terminal nothing is opened (exit 2).
 pub(super) fn run_revision(a: &RevisionArgs) -> i32 {
-    use std::io::IsTerminal;
-    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let terminal = is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     run_revision_with(
@@ -90,8 +89,11 @@ pub(super) fn run_revision_with(
     let subcommand = revision_subcommand(&a.action);
     if !terminal {
         eprintln!(
-            "error: HumanOnly: needs an interactive terminal (`{subcommand}` is confirmed by typing the revision \
-             label); nothing was changed"
+            "{}",
+            human_only(
+                &format!("`{subcommand}` is confirmed by typing the revision label"),
+                "changed"
+            )
         );
         return 2;
     }

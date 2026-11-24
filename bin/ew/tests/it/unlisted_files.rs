@@ -4,7 +4,7 @@
 //! A file added to a project by hand that `manifest.json` does not list is not read, and the commands that open the
 //! project say so on stderr instead of the file being silently not there (FT-1879).
 
-use crate::support::{EwTmp, Tmp, args, stderr};
+use crate::support::{Tmp, args, stderr};
 
 #[test]
 fn a_reader_and_a_writer_name_a_library_file_the_manifest_does_not_list() {

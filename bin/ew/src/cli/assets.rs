@@ -13,8 +13,7 @@ pub(super) const PURGE_WORD: &str = "purge";
 /// purge of exactly the listed files. `--preview` needs no terminal; without one the purge itself exits 2 before the
 /// project is opened.
 pub(super) fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
-    use std::io::IsTerminal;
-    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let terminal = is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     run_assets_purge_with(
@@ -36,8 +35,14 @@ pub(super) fn run_assets_purge_with(
 ) -> i32 {
     if !a.preview && !terminal {
         eprintln!(
-            "error: HumanOnly: needs an interactive terminal (`project assets purge` is confirmed by typing \
-             `{PURGE_WORD}`; `--preview` lists the files without one); nothing was removed"
+            "{}",
+            human_only(
+                &format!(
+                    "`project assets purge` is confirmed by typing `{PURGE_WORD}`; `--preview` lists the files \
+                     without one"
+                ),
+                "removed"
+            )
         );
         return 2;
     }

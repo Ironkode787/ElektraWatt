@@ -11,7 +11,7 @@ use ew_api::cli_results as results;
 use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repaired, Rewrite};
 
 use super::{
-    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing,
+    FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, human_only, is_terminal, journal_refusal, older_format, open_editing,
     open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word, warn_unread,
 };
 
@@ -530,8 +530,7 @@ fn fmt_refusal(e: &FmtError) -> String {
 /// an older format `--replay` asks the upgrade's typed word (or takes `--yes`) before it replays, and saves with the
 /// upgrade's backup.
 pub(super) fn run_recover(a: &RecoverArgs) -> i32 {
-    use std::io::IsTerminal;
-    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let terminal = is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     let mut errors = std::io::stderr().lock();
@@ -554,11 +553,10 @@ fn run_recover_with(
     store: ew_api::StoreOptions,
 ) -> i32 {
     if a.action == RecoverAction::Discard && !terminal {
-        let _ = writeln!(
-            errors,
-            "error: HumanOnly: needs an interactive terminal (`recover --discard` is confirmed by typing \
-             `{DISCARD_WORD}`; `ew recover` prints the summary without one); nothing was discarded"
+        let why = format!(
+            "`recover --discard` is confirmed by typing `{DISCARD_WORD}`; `ew recover` prints the summary without one"
         );
+        let _ = writeln!(errors, "{}", human_only(&why, "discarded"));
         return 2;
     }
     let Some(dir) = project_dir(a.project.as_ref()) else {
@@ -766,8 +764,7 @@ fn run_recover_with(
 /// writes the backup beside the project folder first. `--check` is a reader: no lock, nothing written, and it takes an
 /// `.ewz`, which the upgrade itself refuses as every writer does.
 pub(super) fn run_upgrade(a: &UpgradeArgs) -> i32 {
-    use std::io::IsTerminal;
-    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let terminal = is_terminal();
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     let mut errors = std::io::stderr().lock();

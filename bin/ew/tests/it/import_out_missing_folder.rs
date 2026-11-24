@@ -4,7 +4,7 @@
 //! `ew import qet --out a/b.ew` where the folder `a` does not exist makes it and writes the project there (FT-1868):
 //! before, the import ran and then wrote nothing.
 
-use crate::support::{EwTmp as _, Tmp, args, stderr};
+use crate::support::{Tmp, args, stderr};
 
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 

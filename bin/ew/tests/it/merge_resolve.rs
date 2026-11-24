@@ -12,7 +12,7 @@ use std::process::Output;
 use ew_api::Conflict;
 
 use crate::merge_driver::{colour_conflict, page, page_with, shield_id};
-use crate::support::{EwTmp as _, Tmp};
+use crate::support::{Tmp};
 
 fn colour(c: &str) -> String {
     format!(r#""overrides":{{"csa":"2.5","colour":["{c}"]}}"#)

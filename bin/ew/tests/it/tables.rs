@@ -19,7 +19,7 @@ use ew_api::catalog::{SourceFormat, table_limits};
 use ew_api::output::sheet::{SheetTable, read_sheet, sheet_names};
 use ew_api::zip::{ZipLimits, read as unzip};
 
-use crate::support::{EwTmp, SAMPLE, Tmp, args, stderr, stdout};
+use crate::support::{SAMPLE, Tmp, args, stderr, stdout};
 
 /// The expected files of the `ew` tests.
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");

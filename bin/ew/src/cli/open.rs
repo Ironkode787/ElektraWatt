@@ -290,6 +290,19 @@ pub(super) fn journal_refusal(dir: &Path) -> String {
     )
 }
 
+/// Whether `ew` talks to a person: stdin and stdout are both a terminal. A human-only subcommand asks its typed word
+/// only then, and `git setup` its question.
+pub(super) fn is_terminal() -> bool {
+    use std::io::IsTerminal;
+    std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
+}
+
+/// The refusal of a human-only subcommand without a terminal ([`is_terminal`]): `why` says how it is confirmed,
+/// `nothing` what was not done (`changed`, `removed`).
+pub(super) fn human_only(why: &str, nothing: &str) -> String {
+    format!("error: HumanOnly: needs an interactive terminal ({why}); nothing was {nothing}")
+}
+
 /// `text` with its control characters and the Unicode bidirectional controls escaped: text from a project or state
 /// file (a journal's command name, a finding about a file's content, a lock record's user) never reaches the terminal
 /// as a control sequence, nor reorders the line it prints in (U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to
