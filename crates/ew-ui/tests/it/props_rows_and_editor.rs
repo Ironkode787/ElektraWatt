@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Properties polish in the window (kittest, no rendering), on a writable copy of the sample: the
+//! The rows and the editor of Properties in the window (kittest, no rendering), on a writable copy of the sample: the
 //! Device row's link with its tooltip, its click and F; the editor's text centred; no popup for a
 //! choice list with no match; the list under the value cell; Home and End scrolling the cursor row
 //! into view; a pre-filled form field replaced by what is typed.

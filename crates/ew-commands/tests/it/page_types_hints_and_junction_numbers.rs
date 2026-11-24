@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Medium-severity review findings: junction clean-up keeps assigned numbers (F10), `device.place` and
-//! `rep.move` checks and hints (F11), `affected_pages` for potentials, bonds and conductors (F14), and the
-//! rule ID of a prevent-rule rejection (F17).
+//! Junction clean-up keeps assigned numbers, `device.place` and `rep.move` check the page type and take hints,
+//! `affected_pages` names the pages of potentials, bonds and conductors, and a prevent rule's rejection carries its
+//! rule ID, while an engine without prevent rules commits what one would refuse.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -13,7 +13,7 @@ use common::reason as rejection_reason;
 use common::*;
 use ew_commands::commands::{
     ConnectHint, CreateDevice, DefinePotential, DeleteSelection, EndpointParam, KindName, MoveReps,
-    PlaceSymbol, PlaceTarget, TargetRef,
+    PlaceSymbol, PlaceTarget, SetFields, TargetRef,
 };
 use ew_commands::{CmdError, CommandRegistry, Engine, EngineOptions};
 use ew_ids::Id;
@@ -368,6 +368,24 @@ fn a_prevent_rule_rejection_carries_its_rule_id() {
         other => panic!("expected Prevented, got {other:?}"),
     }
     assert_eq!(err.to_string(), "EW-TEST-001: no candidate passes");
+}
+
+/// The engine alone has no prevent rule (its hook defaults to `NoPrevent`; the session plugs in the hook of
+/// `ew-checks`): a duplicate terminal designation commits. `AddTerminals` itself refuses one, so it is made through
+/// `fields.set` of `terminal.designation`.
+#[test]
+fn an_engine_without_prevent_rules_commits_a_duplicate_designation() {
+    let mut e = engine(mini_model());
+    // The strip DEV_X1031 holds terminals "1", "2" and "3": rename the second one to "1".
+    let cmd = SetFields {
+        kind: KindName::Device,
+        targets: vec![DEV_T2.cast()],
+        path: "terminal.designation".into(),
+        value: serde_json::json!("1"),
+        copies: Vec::new(),
+    };
+    e.execute(&cmd)
+        .expect("duplicate terminal designations commit while no prevent rule is wired");
 }
 
 // ---------------------------------------------------------------------------------------------------------

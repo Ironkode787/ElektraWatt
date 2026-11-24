@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test polish in the view model: a renamed interruption point says so, and
+//! In the view model, a renamed interruption point says so, and
 //! a stale refusal leaves the canvas hint.
 
 use crate::common;
