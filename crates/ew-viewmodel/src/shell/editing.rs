@@ -288,13 +288,9 @@ impl ShellModel {
         let Some(copy) = row.copy.or_else(|| session.starter_symbol_copy(&row.key)) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
-        let mut copies = match session.symbol_embed(&row.key) {
-            Ok(params) => params.map(copies_of).unwrap_or_default(),
-            Err(error) => {
-                return Outcome::Failed {
-                    message: error.to_string(),
-                };
-            }
+        let mut copies = match embedding(session, &row.key, None) {
+            Ok(copies) => copies,
+            Err(out) => return out,
         };
         // Its valves and its supply stand in it with their symbols.
         if let Some(c) = self.canvas() {
@@ -777,14 +773,7 @@ impl ShellModel {
             .cloned()
             .ok_or(no_row.clone())?;
         let project = self.project.as_ref().ok_or(no_row.clone())?;
-        let copies = project
-            .session
-            .symbol_embed(key)
-            .map_err(|e| Outcome::Failed {
-                message: e.to_string(),
-            })?
-            .map(copies_of)
-            .unwrap_or_default();
+        let copies = embedding(&project.session, key, None)?;
         if row.copy.is_none() {
             row.copy = project.session.starter_symbol_copy(key);
         }
@@ -887,19 +876,9 @@ impl ShellModel {
         let Some(copy) = row.copy.or_else(|| project.session.starter_symbol_copy(&row.key)) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
-        let mut copies: Vec<Value> = match part {
-            Some(part) => match project.session.starter_embed_part(part, &row.key) {
-                Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
-                Ok(params) => params.map(copies_of).unwrap_or_default(),
-            },
-            None => match project.session.symbol_embed(&row.key) {
-                Ok(params) => params.map(copies_of).unwrap_or_default(),
-                Err(error) => {
-                    return Outcome::Failed {
-                        message: error.to_string(),
-                    };
-                }
-            },
+        let mut copies = match embedding(&project.session, &row.key, part) {
+            Ok(copies) => copies,
+            Err(out) => return out,
         };
         let fndefs: Vec<ew_api::output::Uuid> = interfaces.iter().map(|i| i.fndef).collect();
         for doc in project.session.port_fndef_copies(&fndefs) {
@@ -1122,20 +1101,11 @@ impl ShellModel {
         // template function (part-first), every FnDef the part's
         // template needs and a library part's closure. The tool names a starter symbol by the copy ID its embedding
         // gives it.
-        let copies: Vec<Value> = match (&self.project, part_copy) {
-            (None, _) => Vec::new(),
-            (Some(project), Some(part_copy)) => match project.session.starter_embed_part(part_copy, &row.key)
-            {
-                Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
-                Ok(params) => params.map(copies_of).unwrap_or_default(),
-            },
-            (Some(project), None) => match project.session.symbol_embed(&row.key) {
-                Ok(params) => params.map(copies_of).unwrap_or_default(),
-                Err(error) => {
-                    return Outcome::Failed {
-                        message: error.to_string(),
-                    };
-                }
+        let copies: Vec<Value> = match &self.project {
+            None => Vec::new(),
+            Some(project) => match embedding(&project.session, &row.key, part_copy) {
+                Ok(copies) => copies,
+                Err(out) => return out,
             },
         };
         let mut row = row;
@@ -2250,6 +2220,25 @@ fn text_with_key(key: Key<'_>, chord: &str) -> String {
 }
 
 /// The library documents of a `{"copies": [...]}` parameter object (FT-656).
+/// The library documents a placement of symbol `key` carries (FT-656: the embedding travels in the placement itself,
+/// one undo step, and the recorded command replays without a library): with the part copy `part`, every FnDef its
+/// template needs and a library part's closure, else the starter symbol with its FnDef. A part whose FnDefs the
+/// project lacks is refused in words; a symbol that cannot be embedded fails with its message.
+fn embedding(session: &Session, key: &str, part: Option<Uuid>) -> Result<Vec<Value>, Outcome> {
+    match part {
+        Some(part) => match session.starter_embed_part(part, key) {
+            Err(keys) => Err(failed(key!("error-part-fndef-missing"), &[&keys.join(", ")])),
+            Ok(params) => Ok(params.map(copies_of).unwrap_or_default()),
+        },
+        None => match session.symbol_embed(key) {
+            Ok(params) => Ok(params.map(copies_of).unwrap_or_default()),
+            Err(error) => Err(Outcome::Failed {
+                message: error.to_string(),
+            }),
+        },
+    }
+}
+
 fn copies_of(params: Value) -> Vec<Value> {
     match params {
         Value::Object(mut m) => match m.remove("copies") {
