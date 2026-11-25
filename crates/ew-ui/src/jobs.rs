@@ -123,11 +123,11 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 crate::components::status_badge(ui, crate::components::Badge::Done);
                 // A table's end names its size only.
                 ui.label(match pages {
-                    // One page in the singular.
-                    Some(pages @ 1) => {
-                        strings::format(key!("job-done-one"), &[&pages.to_string(), &kib.to_string()])
-                    }
-                    Some(pages) => strings::format(key!("job-done"), &[&pages.to_string(), &kib.to_string()]),
+                    Some(pages) => strings::format_counted(
+                        ew_viewmodel::count_key!("job-done"),
+                        usize::try_from(*pages).unwrap_or(usize::MAX),
+                        &[&kib.to_string()],
+                    ),
                     None => strings::format(key!("job-done-table"), &[&kib.to_string()]),
                 });
                 if let Some(m) = now {

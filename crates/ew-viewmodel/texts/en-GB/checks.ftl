@@ -15,16 +15,22 @@ check-warning = 1 warning
 check-warnings = { $p0 } warnings
 check-info = 1 info
 check-infos = { $p0 } infos
-check-waived-one = 1 waived
-check-waived = { $p0 } waived
-check-pending-one = 1 pending
-check-pending = { $p0 } pending
+check-waived = { $p0 ->
+        [one] 1 waived
+       *[other] { $p0 } waived
+    }
+check-pending = { $p0 ->
+        [one] 1 pending
+       *[other] { $p0 } pending
+    }
 # After an earlier check, the toast leads with what changed since, then the project's totals.
 check-since = { $p0 } since the last check; project: { $p1 }
 check-unchanged = no change
 # The same counts as the last check, other findings (the new ones counted).
-check-changed-one = 1 finding changed
-check-changed = { $p0 } findings changed
+check-changed = { $p0 ->
+        [one] 1 finding changed
+       *[other] { $p0 } findings changed
+    }
 severity-error = Error
 severity-warning = Warning
 severity-info = Info
@@ -53,10 +59,14 @@ revision-no-author = { $p0 } has no author yet: set it first (Set revision autho
 revision-gate-error = The release gate cannot run: { $p0 }.
 
 # FIX41b rulings 1 and 4: the rule by its title, the noun in the count's number.
-revision-approve-blocked = The release gate has { $p0 } errors besides the four-eyes rule; correct or waive them first:
-revision-approve-blocked-one = The release gate has 1 error besides the four-eyes rule; correct or waive it first:
-revision-release-blocked = The release is blocked by { $p0 } findings of the release gate:
-revision-release-blocked-one = The release is blocked by 1 finding of the release gate:
+revision-approve-blocked = { $p0 ->
+        [one] The release gate has 1 error besides the four-eyes rule; correct or waive it first:
+       *[other] The release gate has { $p0 } errors besides the four-eyes rule; correct or waive them first:
+    }
+revision-release-blocked = { $p0 ->
+        [one] The release is blocked by 1 finding of the release gate:
+       *[other] The release is blocked by { $p0 } findings of the release gate:
+    }
 revision-finding = { $p0 }: { $p1 }
 revision-more = and { $p0 } more
 revision-waivers = { $p0 ->
@@ -98,16 +108,20 @@ revision-waiver = { $p0 } on { $p1 }
 revision-waiver-gone = a waiver whose finding the check no longer reports
 approve-read-only = the project is open read-only
 approve-four-eyes = the { $p0 } is the author's party; the four-eyes rule needs a checker of another party
-approve-blocked = the release gate has { $p0 } errors besides the four-eyes rule
-approve-blocked-one = the release gate has 1 error besides the four-eyes rule
+approve-blocked = { $p0 ->
+        [one] the release gate has 1 error besides the four-eyes rule
+       *[other] the release gate has { $p0 } errors besides the four-eyes rule
+    }
 approve-unacknowledged = the sign-off does not acknowledge the safety waivers in force: { $p0 }
 release-error-person = a release needs a person at the window, never a script, a replay or a plugin
 release-error-read-only = the project is open read-only
 release-error-gate = the release gate cannot run: { $p0 }
 release-error-git-consent = the project folder is in a git repository; tick “Commit and tag in git” to agree to the commit and the tag { $p0 }
 revision-release-cannot = The release cannot start: { $p0 }.
-release-error-blocked = the release gate has { $p0 } findings that block it
-release-error-blocked-one = the release gate has 1 finding that blocks it
+release-error-blocked = { $p0 ->
+        [one] the release gate has 1 finding that blocks it
+       *[other] the release gate has { $p0 } findings that block it
+    }
 release-error-archive-root = the archive folder { $p0 } cannot be used: { $p1 }
 release-error-incomplete = the archive { $p0 } exists already: an earlier release stopped before its stamp; settle it first (Settle the incomplete release…)
 release-error-tag-exists = the git tag { $p0 } exists already, and a release never moves a tag

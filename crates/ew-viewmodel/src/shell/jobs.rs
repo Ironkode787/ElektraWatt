@@ -658,8 +658,7 @@ impl ShellModel {
         };
         let text = match devices.len() {
             0 => return,
-            1 => strings::text(key!("toast-parts-unlisted-one")).to_owned(),
-            n => strings::format(key!("toast-parts-unlisted"), &[&n.to_string()]),
+            n => strings::format_count(crate::count_key!("toast-parts-unlisted"), n),
         };
         let select: Vec<ew_api::output::Uuid> = devices.iter().map(|d| d.as_uuid()).collect();
         // Its own key, so it stands beside the toast of the step that added the list (with its Undo). Beside Select

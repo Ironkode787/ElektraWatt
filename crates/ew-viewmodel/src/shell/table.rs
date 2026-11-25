@@ -701,10 +701,9 @@ impl ShellModel {
         let blocking = gesture.blocking();
         if blocking > 0 {
             self.props.card = Some(card);
-            if blocking == 1 {
-                return failed(key!("error-table-blocking-one"), &[]);
-            }
-            return failed(key!("error-table-blocking"), &[&blocking.to_string()]);
+            return Outcome::Failed {
+                message: strings::format_count(crate::count_key!("error-table-blocking"), blocking),
+            };
         }
         let Some(rev) = self.revision() else {
             return Outcome::Done;

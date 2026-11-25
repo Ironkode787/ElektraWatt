@@ -63,11 +63,15 @@ bond-kind-fe_pe = FE–PE-verbinding
 bond-kind-equipotential = Potentiaalvereffening
 bond-kind-shield = Afschermingsverbinding
 number-decimal-point = ,
-count-wire = { $p0 } draad
-count-wires = { $p0 } draden
+count-wires = { $p0 ->
+        [one] { $p0 } draad
+       *[other] { $p0 } draden
+    }
 count-tubes = { $p0 } slangen
-count-box-pin = { $p0 } aansluitpunt
-count-box-pins = { $p0 } aansluitpunten
+count-box-pins = { $p0 ->
+        [one] { $p0 } aansluitpunt
+       *[other] { $p0 } aansluitpunten
+    }
 mltext-replace = De neutrale tekst vervangen
 mltext-keep = Behouden
 category-identity = Identiteit

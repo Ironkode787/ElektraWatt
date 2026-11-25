@@ -31,13 +31,10 @@ pub const MAX_RECENT_PARTS: usize = 20;
 /// The UI scales the user can choose, as factors on the native scale (to 300 %, FR-UI-027).
 pub const UI_SCALES: [f32; 6] = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 
-/// The label of the UI scale `scale` (`100 %`): the text of `scale-<per cent>`, one key per scale of [`UI_SCALES`], so
-/// that every list of scales (View ▸ UI scale, the first run) takes its labels from the one list of scales.
-pub fn scale_label(scale: f32) -> &'static str {
-    crate::strings::text(crate::strings::Key::run_time(&format!(
-        "scale-{}",
-        (scale * 100.0).round()
-    )))
+/// The label of the UI scale `scale` (`100 %`): its per cent in the pattern `scale`, so that every list of scales
+/// (View ▸ UI scale, the first run) takes its labels from the one list of scales, [`UI_SCALES`].
+pub fn scale_label(scale: f32) -> String {
+    crate::strings::format(crate::key!("scale"), &[&(scale * 100.0).round().to_string()])
 }
 
 /// The choices of View ▸ Minimum text size: off, then 12, 14 and 16 pt.
@@ -1441,7 +1438,7 @@ mod tests {
             };
             assert_eq!(Settings::parse(&s.to_toml()).unwrap().ui_scale, scale);
         }
-        let labels: Vec<&str> = UI_SCALES.iter().map(|s| scale_label(*s)).collect();
+        let labels: Vec<String> = UI_SCALES.iter().map(|s| scale_label(*s)).collect();
         assert_eq!(labels, ["100 %", "125 %", "150 %", "200 %", "250 %", "300 %"]);
         assert_eq!(Settings::parse("ui_scale = 1.1\n").unwrap().ui_scale, 1.0);
         assert_eq!(Settings::parse("ui_scale = 2\n").unwrap().ui_scale, 2.0);

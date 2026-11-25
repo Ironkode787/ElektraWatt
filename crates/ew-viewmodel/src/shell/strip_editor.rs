@@ -296,29 +296,21 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
-        let n = count.to_string();
+        let count = usize::try_from(count).unwrap_or(usize::MAX);
         let text = match before_row {
             Some(i) => {
-                let key = if count == 1 {
-                    key!("toast-strip-inserted-one")
-                } else {
-                    key!("toast-strip-inserted")
-                };
                 // The terminal in words, as in the toast ("terminal 5 of -X1031").
                 let terminal = strings::format(
                     key!("accessory-at-terminal"),
                     &[&rows.words(s), &rows.node(i).label],
                 );
-                strings::format(key, &[&n, &terminal])
+                strings::format_counted(crate::count_key!("toast-strip-inserted"), count, &[&terminal])
             }
-            None => {
-                let key = if count == 1 {
-                    key!("toast-strip-appended-one")
-                } else {
-                    key!("toast-strip-appended")
-                };
-                strings::format(key, &[&n, &rows.words(s)])
-            }
+            None => strings::format_counted(
+                crate::count_key!("toast-strip-appended"),
+                count,
+                &[&rows.words(s)],
+            ),
         };
         self.notify(text, true);
         // The cursor on the first new row.
@@ -455,11 +447,7 @@ impl ShellModel {
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
             let n = accessories.len();
-            let text = if n == 1 {
-                strings::text(key!("toast-accessories-removed-one")).to_owned()
-            } else {
-                strings::format(key!("toast-accessories-removed"), &[&n.to_string()])
-            };
+            let text = strings::format_count(crate::count_key!("toast-accessories-removed"), n);
             self.notify(text, true);
             if let Some(n) = self.generic_mut(NavKind::Strips) {
                 n.marked.clear();
@@ -525,16 +513,16 @@ impl ShellModel {
         if out == Outcome::Done {
             let n = moved.len();
             let strip = rows.words(s);
-            let text = if n == 1 {
-                // The one terminal in words ("terminal 15 of -X1031").
-                let terminal = strings::format(
+            // The one terminal in words ("terminal 15 of -X1031"), more by their strip.
+            let place = if n == 1 {
+                strings::format(
                     key!("accessory-at-terminal"),
                     &[&strip, &rows.node(moved[0]).label],
-                );
-                strings::format(key!("toast-strip-moved-one"), &[&n.to_string(), &terminal])
+                )
             } else {
-                strings::format(key!("toast-strip-moved"), &[&n.to_string(), &strip])
+                strip
             };
+            let text = strings::format_counted(crate::count_key!("toast-strip-moved"), n, &[&place]);
             self.notify(strings::sentence_start(&text).into_owned(), true);
         }
         out

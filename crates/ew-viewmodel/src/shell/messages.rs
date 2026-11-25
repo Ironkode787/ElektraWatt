@@ -1064,7 +1064,7 @@ pub(crate) fn check_summary(c: MessageCounts, before: Option<(MessageCounts, usi
         })
         .collect();
         let changes = if changes.is_empty() && new > 0 {
-            count(new, key!("check-changed-one"), key!("check-changed"))
+            strings::format_count(crate::count_key!("check-changed"), new)
         } else if changes.is_empty() {
             strings::text(key!("check-unchanged")).to_owned()
         } else {
@@ -1078,12 +1078,12 @@ pub(crate) fn check_summary(c: MessageCounts, before: Option<(MessageCounts, usi
     // The waived and pending counts qualify the title ("Check · 4 waived · 1 pending"), so the line of
     // severity counts stays one line in the toast.
     let qualifiers: Vec<String> = [
-        (c.waived, key!("check-waived-one"), key!("check-waived")),
-        (c.pending, key!("check-pending-one"), key!("check-pending")),
+        (c.waived, crate::count_key!("check-waived")),
+        (c.pending, crate::count_key!("check-pending")),
     ]
     .into_iter()
-    .filter(|(n, _, _)| *n > 0)
-    .map(|(n, one, many)| count(n, one, many))
+    .filter(|(n, _)| *n > 0)
+    .map(|(n, key)| strings::format_count(key, n))
     .collect();
     if qualifiers.is_empty() {
         strings::format(key!("toast-check"), &[&parts.join(", ")])

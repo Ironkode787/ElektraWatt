@@ -327,8 +327,10 @@ reason-table-off = Schakel eerst over naar de tabel
 reason-table-not-editing = Er wordt geen cel bewerkt
 reason-table-mark-fill = Markeer de rijen die u wilt vullen
 reason-table-invalid = Sommige cellen zijn ongeldig of dubbelzinnig
-error-table-blocking = { $p0 } cellen zijn ongeldig of dubbelzinnig; los ze eerst op of laat ze weg.
-error-table-blocking-one = 1 cel is ongeldig of dubbelzinnig; los haar eerst op of laat haar weg.
+error-table-blocking = { $p0 ->
+        [one] 1 cel is ongeldig of dubbelzinnig; los haar eerst op of laat haar weg.
+       *[other] { $p0 } cellen zijn ongeldig of dubbelzinnig; los ze eerst op of laat ze weg.
+    }
 error-table-read-only = { $p0 } is hier alleen-lezen: { $p1 }.
 error-table-key-column = De sleutelkolom { $p0 } kan niet worden verborgen.
 error-table-not-ambiguous = Cel { $p0 } heeft geen lezingen om uit te kiezen.

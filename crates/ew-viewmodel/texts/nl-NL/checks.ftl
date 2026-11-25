@@ -15,15 +15,21 @@ check-warning = 1 waarschuwing
 check-warnings = { $p0 } waarschuwingen
 check-info = 1 info
 check-infos = { $p0 } info's
-check-waived-one = 1 vrijgesteld
-check-waived = { $p0 } vrijgesteld
-check-pending-one = 1 wachtend
-check-pending = { $p0 } wachtend
+check-waived = { $p0 ->
+        [one] 1 vrijgesteld
+       *[other] { $p0 } vrijgesteld
+    }
+check-pending = { $p0 ->
+        [one] 1 wachtend
+       *[other] { $p0 } wachtend
+    }
 # After an earlier check, the toast leads with what changed since, then the project's totals.
 check-since = { $p0 } sinds de vorige controle; project: { $p1 }
 check-unchanged = geen wijziging
-check-changed-one = 1 bevinding gewijzigd
-check-changed = { $p0 } bevindingen gewijzigd
+check-changed = { $p0 ->
+        [one] 1 bevinding gewijzigd
+       *[other] { $p0 } bevindingen gewijzigd
+    }
 severity-error = Fout
 severity-warning = Waarschuwing
 severity-info = Info
@@ -50,10 +56,14 @@ revision-incomplete-title = De onvolledige vrijgave van { $p0 } afhandelen?
 revision-approve-text = De controleur keurt de opgeslagen inhoud van { $p0 } goed, geschreven door de { $p1 }. De vrijgavepoort draait eerst op het opgeslagen project; de goedkeuring wordt opgeslagen.
 revision-no-author = { $p0 } heeft nog geen auteur: stel die eerst in (Auteur van revisie instellen…) en sla dan op.
 revision-gate-error = De vrijgavepoort kan niet draaien: { $p0 }.
-revision-approve-blocked = De vrijgavepoort heeft { $p0 } fouten naast de vier-ogenregel; corrigeer ze of stel ze eerst vrij:
-revision-approve-blocked-one = De vrijgavepoort heeft 1 fout naast de vier-ogenregel; corrigeer die of stel die eerst vrij:
-revision-release-blocked = De vrijgave wordt geblokkeerd door { $p0 } bevindingen van de vrijgavepoort:
-revision-release-blocked-one = De vrijgave wordt geblokkeerd door 1 bevinding van de vrijgavepoort:
+revision-approve-blocked = { $p0 ->
+        [one] De vrijgavepoort heeft 1 fout naast de vier-ogenregel; corrigeer die of stel die eerst vrij:
+       *[other] De vrijgavepoort heeft { $p0 } fouten naast de vier-ogenregel; corrigeer ze of stel ze eerst vrij:
+    }
+revision-release-blocked = { $p0 ->
+        [one] De vrijgave wordt geblokkeerd door 1 bevinding van de vrijgavepoort:
+       *[other] De vrijgave wordt geblokkeerd door { $p0 } bevindingen van de vrijgavepoort:
+    }
 revision-finding = { $p0 }: { $p1 }
 revision-more = en nog { $p0 }
 revision-waivers = { $p0 ->
@@ -91,16 +101,20 @@ revision-waiver = { $p0 } op { $p1 }
 revision-waiver-gone = een vrijstelling waarvan de controle de bevinding niet meer meldt
 approve-read-only = het project is alleen-lezen geopend
 approve-four-eyes = de { $p0 } is de partij van de auteur; de vier-ogenregel vraagt om een controleur van een andere partij
-approve-blocked = de vrijgavepoort heeft { $p0 } fouten naast de vier-ogenregel
-approve-blocked-one = de vrijgavepoort heeft 1 fout naast de vier-ogenregel
+approve-blocked = { $p0 ->
+        [one] de vrijgavepoort heeft 1 fout naast de vier-ogenregel
+       *[other] de vrijgavepoort heeft { $p0 } fouten naast de vier-ogenregel
+    }
 approve-unacknowledged = de goedkeuring erkent de geldende veiligheidsvrijstellingen niet: { $p0 }
 release-error-person = een vrijgave vraagt om een persoon aan het venster, nooit een script, een herhaling of een plug-in
 release-error-read-only = het project is alleen-lezen geopend
 release-error-gate = de vrijgavepoort kan niet draaien: { $p0 }
 release-error-git-consent = de projectmap staat in een git-repository; vink “Committen en taggen in git” aan om in te stemmen met de commit en de tag { $p0 }
 revision-release-cannot = De vrijgave kan niet beginnen: { $p0 }.
-release-error-blocked = de vrijgavepoort heeft { $p0 } bevindingen die haar blokkeren
-release-error-blocked-one = de vrijgavepoort heeft 1 bevinding die haar blokkeert
+release-error-blocked = { $p0 ->
+        [one] de vrijgavepoort heeft 1 bevinding die haar blokkeert
+       *[other] de vrijgavepoort heeft { $p0 } bevindingen die haar blokkeren
+    }
 release-error-archive-root = de archiefmap { $p0 } kan niet worden gebruikt: { $p1 }
 release-error-incomplete = het archief { $p0 } bestaat al: een eerdere vrijgave stopte vóór haar stempel; handel die eerst af (De onvolledige vrijgave afhandelen…)
 release-error-tag-exists = de git-tag { $p0 } bestaat al, en een vrijgave verplaatst nooit een tag

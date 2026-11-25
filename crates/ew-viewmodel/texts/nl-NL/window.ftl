@@ -6,12 +6,8 @@
 # with the same arguments; a message missing here falls back to en-GB. Product and file names, rule IDs, command
 # names, key caps, identifiers and units are not translated.
 
-scale-100 = 100 %
-scale-125 = 125 %
-scale-150 = 150 %
-scale-200 = 200 %
-scale-250 = 250 %
-scale-300 = 300 %
+# A UI scale in per cent.
+scale = { $p0 } %
 min-font-off = Uit
 min-font-pt = { $p0 } pt
 status-handle-moves-up-down = Deze greep gaat alleen omhoog en omlaag: druk op ↑ of ↓.

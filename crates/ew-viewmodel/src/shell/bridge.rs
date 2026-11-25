@@ -267,12 +267,11 @@ impl ShellModel {
                 let outcome = self.commit_from_host(&cmd);
                 if matches!(outcome, Outcome::Done) {
                     let bridges = connections.len();
-                    let key = if bridges == 1 {
-                        key!("toast-bridged-one")
-                    } else {
-                        key!("toast-bridged")
-                    };
-                    let text = strings::format(key, &[&bridges.to_string(), &terminals.len().to_string()]);
+                    let text = strings::format_counted(
+                        crate::count_key!("toast-bridged"),
+                        bridges,
+                        &[&terminals.len().to_string()],
+                    );
                     self.notify(text, true);
                 }
                 outcome
@@ -384,11 +383,7 @@ impl ShellModel {
                 let n = cmd.params["targets"].as_array().map_or(0, Vec::len);
                 let outcome = self.commit_from_host(&cmd);
                 if outcome == Outcome::Done {
-                    let text = if n == 1 {
-                        strings::format(key!("toast-unbridged-one"), &["1"])
-                    } else {
-                        strings::format(key!("toast-unbridged"), &[&n.to_string()])
-                    };
+                    let text = strings::format_count(crate::count_key!("toast-unbridged"), n);
                     self.notify(text, true);
                 }
                 outcome

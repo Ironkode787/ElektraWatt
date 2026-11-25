@@ -1180,14 +1180,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         Some(Ghost::Box { cps, .. }) => format!(
             "{} \u{b7} {}",
             hint(),
-            strings::format(
-                if cps == 1 {
-                    key!("count-box-pin")
-                } else {
-                    key!("count-box-pins")
-                },
-                &[&cps.to_string()]
-            )
+            strings::format_count(crate::count_key!("count-box-pins"), cps)
         ),
         Some(Ghost::Text { text, bind, .. }) => {
             let shown = bind.map_or(text, |b| format!("{{{b}}}"));
@@ -1357,14 +1350,7 @@ fn place_prompt(
             .unwrap_or_else(|| strings::choice_words(&crate::tools::symbol_name(&symbol).replace('-', "_")))
     });
     if hints > 0 {
-        let count = strings::format(
-            if hints == 1 {
-                key!("count-wire")
-            } else {
-                key!("count-wires")
-            },
-            &[&hints.to_string()],
-        );
+        let count = strings::format_count(crate::count_key!("count-wires"), hints);
         what = format!(
             "{what} \u{b7} {}",
             strings::format(

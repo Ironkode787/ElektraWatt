@@ -27,19 +27,29 @@ notice-ip-into-box-source = Niet geplaatst: de draad van een bron vertrekt links
 notice-ip-into-box-target = Niet geplaatst: de draad van een doel vertrekt rechts, bij de punt van de pijl, dus op { $p0 } zou de pijl in de box liggen. Maak er een bron van, of houd Alt ingedrukt om het naast de box te plaatsen en er een draad naartoe te trekken
 notice-ip-second-source = Niet geplaatst: { $p0 } heeft al een bron op pagina { $p1 }; druk op { $p2 } voor een doel, of markeer één bron als de ster
 notice-ip-second-source-unbound = Niet geplaatst: { $p0 } heeft al een bron op pagina { $p1 }; gebruik { $p2 } voor een doel, of markeer één bron als de ster
-toast-strip-inserted = { $p0 } klemmen ingevoegd vóór { $p1 }.
-toast-strip-inserted-one = 1 klem ingevoegd vóór { $p1 }.
-toast-strip-appended = { $p0 } klemmen ingevoegd aan het einde van { $p1 }.
-toast-strip-appended-one = 1 klem ingevoegd aan het einde van { $p1 }.
-toast-strip-moved = { $p0 } klemmen van { $p1 } verplaatst.
-toast-strip-moved-one = { $p1 } verplaatst.
+toast-strip-inserted = { $p0 ->
+        [one] 1 klem ingevoegd vóór { $p1 }
+       *[other] { $p0 } klemmen ingevoegd vóór { $p1 }
+    }.
+toast-strip-appended = { $p0 ->
+        [one] 1 klem ingevoegd aan het einde van { $p1 }
+       *[other] { $p0 } klemmen ingevoegd aan het einde van { $p1 }
+    }.
+toast-strip-moved = { $p0 ->
+        [one] { $p1 } verplaatst
+       *[other] { $p0 } klemmen van { $p1 } verplaatst
+    }.
 toast-accessory-added = { $p0 } toegevoegd na { $p1 }.
 toast-accessory-added-first = { $p0 } toegevoegd aan het begin van { $p1 }.
 toast-accessory-added-before = { $p0 } toegevoegd vóór { $p1 }.
-toast-accessories-removed = { $p0 } toebehoren verwijderd.
-toast-accessories-removed-one = 1 toebehoren verwijderd.
-toast-unbridged = { $p0 } bruggen verwijderd.
-toast-unbridged-one = 1 brug verwijderd.
+toast-accessories-removed = { $p0 ->
+        [one] 1 toebehoren verwijderd
+       *[other] { $p0 } toebehoren verwijderd
+    }.
+toast-unbridged = { $p0 ->
+        [one] 1 brug verwijderd
+       *[other] { $p0 } bruggen verwijderd
+    }.
 toast-cores-swapped = Aders { $p0 } en { $p1 } van { $p2 } verwisseld.
 announce-tool = { $p0 }: { $p1 }
 announce-selected = { $p0 } geselecteerd
@@ -208,8 +218,10 @@ toast-recovered = { $p0 ->
         [one] 1 wijziging hersteld; sla op om haar te bewaren
        *[other] { $p0 } wijzigingen hersteld; sla op om ze te bewaren
     }.
-toast-bridged = { $p0 } bruggen toegevoegd tussen { $p1 } klemmen.
-toast-bridged-one = 1 brug toegevoegd tussen { $p1 } klemmen.
+toast-bridged = { $p0 ->
+        [one] 1 brug toegevoegd tussen { $p1 } klemmen
+       *[other] { $p0 } bruggen toegevoegd tussen { $p1 } klemmen
+    }.
 toast-check = Controle: { $p0 }.
 toast-marker-count = { $p0 ->
         [one] 1 draad draagt een markering
@@ -237,7 +249,10 @@ job-as-of = vanaf revisie { $p0 }
 job-progress = pagina { $p0 } van { $p1 }
 job-elapsed = { $p0 } s
 job-cancel = Annuleren
-job-done = { $p0 } pagina's, { $p1 } KiB
+job-done = { $p0 ->
+        [one] 1 pagina, { $p1 } KiB
+       *[other] { $p0 } pagina's, { $p1 } KiB
+    }
 job-now = rev { $p0 } geëxporteerd; het model staat nu op rev { $p1 }
 job-cancelled = geannuleerd; geen bestand geschreven
 job-failed = mislukt: { $p0 }
@@ -310,8 +325,10 @@ job-kind-read = Importbestand lezen
 job-done-table = { $p0 } KiB
 toast-export-table = { $p0 } geëxporteerd: { $p1 } KiB, in { $p2 }.
 toast-export-table-again = { $p0 } opnieuw geëxporteerd: { $p1 } KiB, in { $p2 }.
-toast-table-imported = { $p0 } gewijzigde cellen geïmporteerd uit { $p1 }.
-toast-table-imported-one = 1 gewijzigde cel geïmporteerd uit { $p1 }.
+toast-table-imported = { $p0 ->
+        [one] 1 gewijzigde cel geïmporteerd uit { $p1 }
+       *[other] { $p0 } gewijzigde cellen geïmporteerd uit { $p1 }
+    }.
 toast-check-qualified = Controle · { $p1 }: { $p0 }.
 toast-section-new = Sectie { $p0 } { $p1 } gemaakt, folio's { $p2 } tot en met { $p3 }. Een nieuwe pagina met een folio in dat bereik komt erin.
 history-header = { $p0 } stappen · cursor op { $p1 }
@@ -367,7 +384,6 @@ toast-enclosure-new = Kast { $p0 } bij { $p1 } gemaakt.
 toast-enclosure-new-shown = Kast { $p0 } bij { $p1 } gemaakt; de pagina toont de montageplaat.
 toast-enclosure-drawn = { $p0 } van { $p1 } getekend op pagina { $p2 }.
 toast-enclosure-new-page = Kast { $p0 } bij { $p1 } gemaakt en getekend op de nieuwe paneellayoutpagina { $p2 }.
-job-done-one = 1 pagina, { $p1 } KiB
 toast-convert = Omzetten in verbinding
 toast-show-block = Rapportblok tonen
 note-action-select-unlisted = Selecteren
@@ -408,14 +424,18 @@ toast-bus-cable = Kabel { $p0 } draagt { $p1 }.
 toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }.
 toast-report-block-empty = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }; het heeft nog niets te tonen en maakt dus geen pagina. { $p2 }.
 toast-report-block-had = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }. De set had er al een op pagina { $p2 }: ga ernaartoe, of maak dit ongedaan.
-toast-parts-unlisted = { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een, of Type nog onbekend… zet ze met een omschrijving in de lijst tot het bekend is.
-toast-parts-unlisted-one = 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een, of Type nog onbekend… zet het met een omschrijving in de lijst tot het bekend is.
+toast-parts-unlisted = { $p0 ->
+        [one] 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een, of Type nog onbekend… zet het met een omschrijving in de lijst tot het bekend is
+       *[other] { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een, of Type nog onbekend… zet ze met een omschrijving in de lijst tot het bekend is
+    }.
 toast-parts-list-opened = De stuklijst van de set op pagina { $p0 } geopend; er komt geen tweede. Rapport… op het tabblad Uitvoer voegt nog een lijst toe.
 toast-back-to-editor = Terug naar de editor
 toast-route-done = { $p0 } draden gerouteerd: { $p1 }.
 toast-route-done-one = 1 draad gerouteerd: { $p0 }.
-toast-route-applied = { $p0 } draden op { $p1 } gerouteerd.
-toast-route-applied-one = 1 draad op { $p1 } gerouteerd.
+toast-route-applied = { $p0 ->
+        [one] 1 draad op { $p1 } gerouteerd
+       *[other] { $p0 } draden op { $p1 } gerouteerd
+    }.
 toast-route-nothing = Niets te routeren: geen draad zou beter lopen.
 toast-wire-error = De draad geeft een fout: { $p0 }.
 toast-route-done-selected = { $p0 } geselecteerde draden gerouteerd: { $p1 }.
@@ -424,8 +444,10 @@ toast-route-nothing-selected = { $p0 ->
         [one] Niets te routeren in het ene geselecteerde element: geen draad zou beter lopen
        *[other] Niets te routeren onder de { $p0 } geselecteerde elementen: geen draad zou beter lopen
     }.
-toast-route-kept = Niets veranderd: { $p0 } draden houden de route die ze hebben.
-toast-route-kept-one = Niets veranderd: 1 draad houdt de route die hij heeft.
+toast-route-kept = { $p0 ->
+        [one] Niets veranderd: 1 draad houdt de route die hij heeft
+       *[other] Niets veranderd: { $p0 } draden houden de route die ze hebben
+    }.
 toast-lists-frame = Elke lijst van het project, ook de inhoudsopgave, wordt nu afgedrukt op { $p0 }; de kaders van de getekende pagina's en de sectiescheidingen blijven zoals ze waren.
 toast-drawing-imported = { $p0 } geïmporteerd als pagina { $p1 }.
 toast-underlay-placed = { $p0 } onder pagina { $p1 } gelegd.

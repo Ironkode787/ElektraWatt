@@ -63,11 +63,15 @@ bond-kind-fe_pe = FE–PE bond
 bond-kind-equipotential = Equipotential bond
 bond-kind-shield = Shield bond
 number-decimal-point = .
-count-wire = { $p0 } wire
-count-wires = { $p0 } wires
+count-wires = { $p0 ->
+        [one] { $p0 } wire
+       *[other] { $p0 } wires
+    }
 count-tubes = { $p0 } tubes
-count-box-pin = { $p0 } connection point
-count-box-pins = { $p0 } connection points
+count-box-pins = { $p0 ->
+        [one] { $p0 } connection point
+       *[other] { $p0 } connection points
+    }
 mltext-replace = Replace the neutral text
 mltext-keep = Keep it
 category-identity = Identity

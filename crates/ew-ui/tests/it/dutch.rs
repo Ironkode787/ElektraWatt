@@ -230,12 +230,8 @@ fn settings(scale: f32) {
         ],
     );
     support::assert_fits(&h);
-    let label = if scale == 1.0 {
-        strings::text(key!("scale-100"))
-    } else {
-        strings::text(key!("scale-200"))
-    };
-    support::menu_node(&h, label).click();
+    let label = ew_viewmodel::settings::scale_label(scale);
+    support::menu_node(&h, &label).click();
     step(&mut h);
     assert_eq!(h.state().shell().settings().ui_scale, scale);
     dispatch(&mut h, "help.shortcuts", json!({}));

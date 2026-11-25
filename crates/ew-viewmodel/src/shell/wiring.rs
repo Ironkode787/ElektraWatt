@@ -828,8 +828,7 @@ impl ShellModel {
                     strings::format_count(crate::count_key!("toast-route-nothing-selected"), selected)
                 }
                 (false, _) => strings::text(key!("toast-route-nothing")).to_owned(),
-                (true, 1) => strings::text(key!("toast-route-kept-one")).to_owned(),
-                (true, n) => strings::format(key!("toast-route-kept"), &[&n.to_string()]),
+                (true, n) => strings::format_count(crate::count_key!("toast-route-kept"), n),
             };
             let text = std::iter::once(lead)
                 .chain(rows)
@@ -879,8 +878,7 @@ impl ShellModel {
         };
         let kept = match kept {
             0 => None,
-            1 => Some(strings::text(key!("route-kept-one")).to_owned()),
-            n => Some(strings::format(key!("route-kept"), &[&n.to_string()])),
+            n => Some(strings::format_count(crate::count_key!("route-kept"), n)),
         };
         let text = std::iter::once(lead)
             .chain(rows)
@@ -1107,14 +1105,9 @@ impl ShellModel {
     /// many wires it routed.
     pub(super) fn apply_route_card(&mut self, card: crate::properties::Card) -> Outcome {
         let toast = match &card.origin {
-            crate::properties::CardOrigin::Route { page, routed, .. } => strings::format(
-                if *routed == 1 {
-                    key!("toast-route-applied-one")
-                } else {
-                    key!("toast-route-applied")
-                },
-                &[&routed.to_string(), page],
-            ),
+            crate::properties::CardOrigin::Route { page, routed, .. } => {
+                strings::format_counted(crate::count_key!("toast-route-applied"), *routed, &[page])
+            }
             _ => String::new(),
         };
         let fresh = self.revision() == Some(card.preview.base_rev) && card.preview.result.is_ok();

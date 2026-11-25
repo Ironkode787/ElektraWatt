@@ -352,8 +352,10 @@ reason-table-off = Switch to the table first
 reason-table-not-editing = No cell is being edited
 reason-table-mark-fill = Mark the rows to fill
 reason-table-invalid = Some cells are invalid or ambiguous
-error-table-blocking = { $p0 } cells are invalid or ambiguous; resolve them or leave them out first.
-error-table-blocking-one = 1 cell is invalid or ambiguous; resolve it or leave it out first.
+error-table-blocking = { $p0 ->
+        [one] 1 cell is invalid or ambiguous; resolve it or leave it out first.
+       *[other] { $p0 } cells are invalid or ambiguous; resolve them or leave them out first.
+    }
 error-table-read-only = { $p0 } is read-only here: { $p1 }.
 error-table-key-column = The key column { $p0 } cannot be hidden.
 error-table-not-ambiguous = Cell { $p0 } has no readings to choose from.

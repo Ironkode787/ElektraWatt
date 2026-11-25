@@ -381,8 +381,10 @@ macro-conflict-address = Het PLC-adres { $p0 } is bezet
 macro-conflict-process-tag = Het proceskenmerk { $p0 } is in gebruik
 macro-conflicts = Conflicten
 macro-no-conflicts = Geen conflicten
-macro-failed = De macro botst met dit project en kan hier niet worden ingevoegd ({ $p0 } conflicten)
-macro-failed-one = De macro botst met dit project en kan hier niet worden ingevoegd (1 conflict)
+macro-failed = { $p0 ->
+        [one] De macro botst met dit project en kan hier niet worden ingevoegd (1 conflict)
+       *[other] De macro botst met dit project en kan hier niet worden ingevoegd ({ $p0 } conflicten)
+    }
 macro-failed-other = De macro kan hier niet worden ingevoegd: { $p0 }
 macro-value-set = Waardenset
 macro-value-set-defaults = Standaardwaarden
@@ -478,8 +480,10 @@ route-reason-four-way = Geen weg voor { $p0 }: het zou een vierde arm aan een af
 route-his = U tekende deze draad en hij is onderbroken; hij krijgt een nieuwe route: { $p0 }.
 route-against-order = De draad { $p0 } en de andere van zijn potentiaal zijn in een andere volgorde bedraad dan hun symbolen staan: bedraad ze in de volgorde van de symbolen voor een rechte rail.
 route-selection-hint = Selecteer niets om de hele pagina te routeren.
-route-kept = { $p0 } draden houden de route die ze hebben.
-route-kept-one = 1 draad houdt de route die hij heeft.
+route-kept = { $p0 ->
+        [one] 1 draad houdt de route die hij heeft.
+       *[other] { $p0 } draden houden de route die ze hebben.
+    }
 route-preview-lead-his = Routeren: { $p0 }. { $p1 } door u getekende draden krijgen een nieuwe route. Er is nog niets veranderd.
 route-preview-lead-his-one = Routeren: { $p0 }. 1 door u getekende draad krijgt een nieuwe route. Er is nog niets veranderd.
 route-more = nog { $p0 }

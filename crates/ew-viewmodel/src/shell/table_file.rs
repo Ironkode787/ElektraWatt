@@ -412,12 +412,9 @@ impl ShellModel {
                     self.record.steps.push(RecordedCommand { cmd: name, params });
                 }
                 self.refresh_rows();
-                let toast = if changed == 1 {
-                    key!("toast-table-imported-one")
-                } else {
-                    key!("toast-table-imported")
-                };
-                self.notify(strings::format(toast, &[&changed.to_string(), &c.source]), true);
+                let toast =
+                    strings::format_counted(crate::count_key!("toast-table-imported"), changed, &[&c.source]);
+                self.notify(toast, true);
                 Outcome::Done
             }
             Err(TableApplyError::Stale(..)) => {

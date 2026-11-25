@@ -640,8 +640,7 @@ impl Card {
         let (rule, rest) = split_rule_code(message);
         let text = match m.conflicts.len() {
             0 => strings::format(key!("macro-failed-other"), &[rest]),
-            1 => strings::text(key!("macro-failed-one")).to_owned(),
-            n => strings::format(key!("macro-failed"), &[&n.to_string()]),
+            n => strings::format_count(crate::count_key!("macro-failed"), n),
         };
         Some(FailedLead {
             text,

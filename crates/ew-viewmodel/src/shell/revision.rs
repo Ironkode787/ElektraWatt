@@ -187,12 +187,6 @@ pub(crate) fn trouble_text(t: &ReleaseTrouble) -> String {
     strings::format(key, &[&t.file_name(), io_cause(t.kind)])
 }
 
-/// The key of a count's text: `one` for exactly one, `many` otherwise ("counts take their noun's
-/// number").
-fn counted(n: usize, one: Key<'static>, many: Key<'static>) -> Key<'static> {
-    if n == 1 { one } else { many }
-}
-
 /// Why the release gate cannot run, in words (never the `Display` text).
 fn gate_words(e: &GateError) -> String {
     match e {
@@ -242,10 +236,9 @@ fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value)
         // Reasons the sentence "The approval was refused: …." takes.
         ApproveError::ReadOnly => strings::text(key!("approve-read-only")).to_owned(),
         ApproveError::FourEyes { role } => strings::format(key!("approve-four-eyes"), &[&role_words(role)]),
-        ApproveError::Blocked(list) => strings::format(
-            counted(list.len(), key!("approve-blocked-one"), key!("approve-blocked")),
-            &[&list.len().to_string()],
-        ),
+        ApproveError::Blocked(list) => {
+            strings::format_count(crate::count_key!("approve-blocked"), list.len())
+        }
         ApproveError::Unacknowledged(ids) => {
             let named: Vec<String> = ids
                 .iter()
@@ -280,14 +273,9 @@ fn release_words(e: &ReleaseError, paths: &[PathBuf]) -> String {
         ReleaseError::HumanOnly { .. } => text(key!("release-error-person")),
         ReleaseError::Gate(g) => strings::format(key!("release-error-gate"), &[&gate_words(g)]),
         ReleaseError::ReadOnly => text(key!("release-error-read-only")),
-        ReleaseError::Blocked(list) => strings::format(
-            counted(
-                list.len(),
-                key!("release-error-blocked-one"),
-                key!("release-error-blocked"),
-            ),
-            &[&list.len().to_string()],
-        ),
+        ReleaseError::Blocked(list) => {
+            strings::format_count(crate::count_key!("release-error-blocked"), list.len())
+        }
         ReleaseError::ArchiveRoot { root, why } => {
             strings::format(key!("release-error-archive-root"), &[&file_name(root), why])
         }
@@ -722,13 +710,9 @@ impl ShellModel {
                         ));
                     }
                 } else {
-                    body.push(strings::format(
-                        counted(
-                            blockers.len(),
-                            key!("revision-approve-blocked-one"),
-                            key!("revision-approve-blocked"),
-                        ),
-                        &[&blockers.len().to_string()],
+                    body.push(strings::format_count(
+                        crate::count_key!("revision-approve-blocked"),
+                        blockers.len(),
                     ));
                     list = finding_list(blockers.into_iter());
                 }
@@ -908,13 +892,9 @@ impl ShellModel {
             Err(ReleaseError::Blocked(findings)) => {
                 list = finding_list(findings.iter());
                 (
-                    vec![strings::format(
-                        counted(
-                            findings.len(),
-                            key!("revision-release-blocked-one"),
-                            key!("revision-release-blocked"),
-                        ),
-                        &[&findings.len().to_string()],
+                    vec![strings::format_count(
+                        crate::count_key!("revision-release-blocked"),
+                        findings.len(),
                     )],
                     true,
                 )
@@ -1374,7 +1354,7 @@ mod tests {
     use ew_api::{ApproveError, CmdError, GateError, Origin, ReleaseError, ReleaseTrouble, TroubleKind};
     use serde_json::Value;
 
-    use super::{approve_words, command_failed, counted, refusal_text, release_words, trouble_text};
+    use super::{approve_words, command_failed, refusal_text, release_words, trouble_text};
     use crate::key;
     use crate::strings;
 
@@ -1656,29 +1636,23 @@ mod tests {
     /// The counts of the blocked dialogs take their noun's number, for one and for two.
     #[test]
     fn the_blocked_counts_take_their_nouns_number() {
-        let text = |n: usize, one, many| strings::format(counted(n, one, many), &[&n.to_string()]);
-        let (approve_one, approve) = (
-            key!("revision-approve-blocked-one"),
-            key!("revision-approve-blocked"),
-        );
-        let (release_one, release) = (
-            key!("revision-release-blocked-one"),
-            key!("revision-release-blocked"),
-        );
+        let text = |n: usize, key| strings::format_count(key, n);
+        let approve = crate::count_key!("revision-approve-blocked");
+        let release = crate::count_key!("revision-release-blocked");
         assert_eq!(
-            text(1, approve_one, approve),
+            text(1, approve),
             "The release gate has 1 error besides the four-eyes rule; correct or waive it first:"
         );
         assert_eq!(
-            text(2, approve_one, approve),
+            text(2, approve),
             "The release gate has 2 errors besides the four-eyes rule; correct or waive them first:"
         );
         assert_eq!(
-            text(1, release_one, release),
+            text(1, release),
             "The release is blocked by 1 finding of the release gate:"
         );
         assert_eq!(
-            text(2, release_one, release),
+            text(2, release),
             "The release is blocked by 2 findings of the release gate:"
         );
     }

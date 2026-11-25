@@ -895,10 +895,19 @@ pub fn sentence_start(part: &str) -> Cow<'_, str> {
 /// for one and for any other count in the UI language. The key is a [`CountKey`], made by
 /// [`count_key!`](crate::count_key), which checks it at compile time.
 pub fn format_count(key: CountKey, count: usize) -> String {
+    format_counted(key, count, &[])
+}
+
+/// [`format_count`] with the further arguments `args` as `{ $p1 }`, `{ $p2 }`, …: a text whose words for one differ
+/// from those for any other count ("Inserted 1 terminal before 5.", "Inserted 3 terminals before 5.").
+pub fn format_counted(key: CountKey, count: usize, args: &[&str]) -> String {
     let count = count.to_string();
+    let all: Vec<&str> = std::iter::once(count.as_str())
+        .chain(args.iter().copied())
+        .collect();
     current()
-        .format_with(key.as_str(), &[&count], true)
-        .or_else(|| en_gb().format_with(key.as_str(), &[&count], true))
+        .format_with(key.as_str(), &all, true)
+        .or_else(|| en_gb().format_with(key.as_str(), &all, true))
         .unwrap_or_else(|| "?".to_owned())
 }
 

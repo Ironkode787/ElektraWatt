@@ -39,19 +39,29 @@ notice-ip-second-source = Not placed: { $p0 } already has a source on page { $p1
 
 # Cycle-40 review: the same, when `tool.ip_direction` has no key: the action by its title.
 notice-ip-second-source-unbound = Not placed: { $p0 } already has a source on page { $p1 }; use { $p2 } for a target, or mark one source as the star
-toast-strip-inserted = Inserted { $p0 } terminals before { $p1 }.
-toast-strip-inserted-one = Inserted 1 terminal before { $p1 }.
-toast-strip-appended = Inserted { $p0 } terminals at the end of { $p1 }.
-toast-strip-appended-one = Inserted 1 terminal at the end of { $p1 }.
-toast-strip-moved = Moved { $p0 } terminals of { $p1 }.
-toast-strip-moved-one = Moved { $p1 }.
+toast-strip-inserted = { $p0 ->
+        [one] Inserted 1 terminal before { $p1 }
+       *[other] Inserted { $p0 } terminals before { $p1 }
+    }.
+toast-strip-appended = { $p0 ->
+        [one] Inserted 1 terminal at the end of { $p1 }
+       *[other] Inserted { $p0 } terminals at the end of { $p1 }
+    }.
+toast-strip-moved = { $p0 ->
+        [one] Moved { $p1 }
+       *[other] Moved { $p0 } terminals of { $p1 }
+    }.
 toast-accessory-added = Added { $p0 } after { $p1 }.
 toast-accessory-added-first = Added { $p0 } at the start of { $p1 }.
 toast-accessory-added-before = Added { $p0 } before { $p1 }.
-toast-accessories-removed = Removed { $p0 } accessories.
-toast-accessories-removed-one = Removed 1 accessory.
-toast-unbridged = Removed { $p0 } bridges.
-toast-unbridged-one = Removed 1 bridge.
+toast-accessories-removed = { $p0 ->
+        [one] Removed 1 accessory
+       *[other] Removed { $p0 } accessories
+    }.
+toast-unbridged = { $p0 ->
+        [one] Removed 1 bridge
+       *[other] Removed { $p0 } bridges
+    }.
 toast-cores-swapped = Swapped cores { $p0 } and { $p1 } of { $p2 }.
 announce-tool = { $p0 }: { $p1 }
 announce-selected = { $p0 } selected
@@ -246,8 +256,10 @@ toast-recovered = { $p0 ->
     }.
 
 # The counted outcomes.
-toast-bridged = Added { $p0 } bridges between { $p1 } terminals.
-toast-bridged-one = Added 1 bridge between { $p1 } terminals.
+toast-bridged = { $p0 ->
+        [one] Added 1 bridge between { $p1 } terminals
+       *[other] Added { $p0 } bridges between { $p1 } terminals
+    }.
 toast-check = Check: { $p0 }.
 toast-marker-count = { $p0 ->
         [one] 1 wire carries a marker
@@ -275,7 +287,10 @@ job-as-of = as of rev { $p0 }
 job-progress = page { $p0 } of { $p1 }
 job-elapsed = { $p0 } s
 job-cancel = Cancel
-job-done = { $p0 } pages, { $p1 } KiB
+job-done = { $p0 ->
+        [one] 1 page, { $p1 } KiB
+       *[other] { $p0 } pages, { $p1 } KiB
+    }
 job-now = exported rev { $p0 }; the model is now at rev { $p1 }
 job-cancelled = cancelled; no file written
 job-failed = failed: { $p0 }
@@ -352,10 +367,12 @@ job-kind-read = Import read
 job-done-table = { $p0 } KiB
 toast-export-table = Exported { $p0 }: { $p1 } KiB, in { $p2 }.
 toast-export-table-again = Exported { $p0 } again: { $p1 } KiB, in { $p2 }.
-toast-table-imported = Imported { $p0 } changed cells from { $p1 }.
+toast-table-imported = { $p0 ->
+        [one] Imported 1 changed cell from { $p1 }
+       *[other] Imported { $p0 } changed cells from { $p1 }
+    }.
 # The toast of one cell, the refusal with several tables shown and none focused, and the link preview's line
 # when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
-toast-table-imported-one = Imported 1 changed cell from { $p1 }.
 toast-check-qualified = Check · { $p1 }: { $p0 }.
 toast-section-new = Section { $p0 } { $p1 } made, folios { $p2 } to { $p3 }. A new page with a folio in that range joins it.
 history-header = { $p0 } steps · cursor at { $p1 }
@@ -415,7 +432,6 @@ toast-enclosure-new = Created the enclosure { $p0 } at { $p1 }.
 toast-enclosure-new-shown = Created the enclosure { $p0 } at { $p1 }; the page shows its mounting plate.
 toast-enclosure-drawn = Drew { $p0 } of { $p1 } on page { $p2 }.
 toast-enclosure-new-page = Created the enclosure { $p0 } at { $p1 } and drew it on the new panel layout page { $p2 }.
-job-done-one = 1 page, { $p1 } KiB
 toast-convert = Convert to connection
 toast-show-block = Show report block
 note-action-select-unlisted = Select them
@@ -456,14 +472,18 @@ toast-bus-cable = Cable { $p0 } carries { $p1 }.
 toast-report-block-new = Added the report block { $p0 } from folio { $p1 }.
 toast-report-block-empty = Added the report block { $p0 } from folio { $p1 }; it has nothing to list yet, so it makes no page. { $p2 }.
 toast-report-block-had = Added the report block { $p0 } from folio { $p1 }. The set already had one on page { $p2 }: go to it, or undo this one.
-toast-parts-unlisted = { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one, or Type not known yet… lists them by a description until it is known.
-toast-parts-unlisted-one = 1 device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one, or Type not known yet… lists it by a description until it is known.
+toast-parts-unlisted = { $p0 ->
+        [one] 1 device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one, or Type not known yet… lists it by a description until it is known
+       *[other] { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one, or Type not known yet… lists them by a description until it is known
+    }.
 toast-parts-list-opened = Opened the set's parts list on page { $p0 }; it makes no second one. Report… on the Output tab adds another list.
 toast-back-to-editor = Back to the editor
 toast-route-done = Routed { $p0 } wires: { $p1 }.
 toast-route-done-one = Routed 1 wire: { $p0 }.
-toast-route-applied = Routed { $p0 } wires on { $p1 }.
-toast-route-applied-one = Routed 1 wire on { $p1 }.
+toast-route-applied = { $p0 ->
+        [one] Routed 1 wire on { $p1 }
+       *[other] Routed { $p0 } wires on { $p1 }
+    }.
 toast-route-nothing = Nothing to route: no wire would run better.
 toast-wire-error = The wire makes an error: { $p0 }.
 toast-route-done-selected = Routed { $p0 } selected wires: { $p1 }.
@@ -472,8 +492,10 @@ toast-route-nothing-selected = { $p0 ->
         [one] Nothing to route in the 1 selected item: no wire would run better
        *[other] Nothing to route among the { $p0 } selected items: no wire would run better
     }.
-toast-route-kept = Nothing changed: { $p0 } wires keep the routes they have.
-toast-route-kept-one = Nothing changed: 1 wire keeps the route it has.
+toast-route-kept = { $p0 ->
+        [one] Nothing changed: 1 wire keeps the route it has
+       *[other] Nothing changed: { $p0 } wires keep the routes they have
+    }.
 toast-lists-frame = Every list of the project, the table of contents among them, now prints on { $p0 }; the frames of the drawn pages and the section dividers stay as they were.
 toast-drawing-imported = Imported { $p0 } as page { $p1 }.
 toast-underlay-placed = Placed { $p0 } under page { $p1 }.

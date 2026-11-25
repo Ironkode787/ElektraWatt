@@ -416,8 +416,10 @@ macro-conflicts = Conflicts
 macro-no-conflicts = No conflicts
 
 # FX38d: a failed macro card leads with what blocks the apply in words; the rule code follows in secondary text.
-macro-failed = The macro clashes with this project and cannot be inserted here ({ $p0 } conflicts)
-macro-failed-one = The macro clashes with this project and cannot be inserted here (1 conflict)
+macro-failed = { $p0 ->
+        [one] The macro clashes with this project and cannot be inserted here (1 conflict)
+       *[other] The macro clashes with this project and cannot be inserted here ({ $p0 } conflicts)
+    }
 macro-failed-other = The macro cannot be inserted here: { $p0 }
 macro-value-set = Value set
 macro-value-set-defaults = Defaults
@@ -524,8 +526,10 @@ route-reason-four-way = No way for { $p0 }: it would be a fourth arm at a juncti
 route-his = You drew this wire and it is broken; it gets a new route: { $p0 }.
 route-against-order = The wire { $p0 } and the others of its potential are wired in another order than their symbols stand: wire them in the order of the symbols for a straight rail.
 route-selection-hint = Select nothing to route the whole page.
-route-kept = { $p0 } wires keep the routes they have.
-route-kept-one = 1 wire keeps the route it has.
+route-kept = { $p0 ->
+        [one] 1 wire keeps the route it has.
+       *[other] { $p0 } wires keep the routes they have.
+    }
 route-preview-lead-his = Route: { $p0 }. { $p1 } wires you drew get a new route. Nothing has changed yet.
 route-preview-lead-his-one = Route: { $p0 }. 1 wire you drew gets a new route. Nothing has changed yet.
 route-more = { $p0 } more

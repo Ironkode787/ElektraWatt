@@ -5,12 +5,8 @@
 # the bars of the panes, the View settings and the messages of a script. One message per key; `{ $p0 }`, `{ $p1 }`,
 # ... are the arguments, always strings. The source language and the fallback of every other.
 
-scale-100 = 100 %
-scale-125 = 125 %
-scale-150 = 150 %
-scale-200 = 200 %
-scale-250 = 250 %
-scale-300 = 300 %
+# A UI scale in per cent.
+scale = { $p0 } %
 min-font-off = Off
 min-font-pt = { $p0 } pt
 status-handle-moves-up-down = This handle moves up and down only: press ↑ or ↓.
