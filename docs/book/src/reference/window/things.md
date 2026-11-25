@@ -71,7 +71,10 @@ An interruption point ends a potential on this page; it goes on at the point of 
 arrow points the way the signal flows: a source at the page's right edge, its target at the left edge of another page.
 
 To make one: **Draw ▸ Connect ▸ Interruption point**, type its name and click where it goes
-([Interruption point](tools.md#interruption-point)).
+([Interruption point](tools.md#interruption-point)). **Edit ▸ Move to page** makes them for you: the selected symbols
+go to the page you pick, and each wire to a symbol that stays behind becomes a pair of interruption points named by
+its potential, the source where the wire left the page, the target at the moved pin. A preview lists the pairs
+first; **Apply** moves, one Undo takes it back. A net that runs through two junctions is refused: move it by hand.
 
 To change one: select it and change its name or its direction in Properties. A right click offers **Go to partner**
 and **Continue on page…**. Its rows are explained under [Function](../properties.md#function).

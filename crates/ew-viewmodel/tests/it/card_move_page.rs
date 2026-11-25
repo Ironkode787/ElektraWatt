@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A drawn card is put on another page from its station's view (Move to page, `plc.module_move`): its box
-//! moves, and the card stays the same module in its slot with its channels and their symbol names; a card whose wire
-//! would be left behind is refused in words and stays (doc 10 §6).
+//! moves, and the card stays the same module in its slot with its channels and their symbol names; a wire to what
+//! stays behind is kept as a pair of interruption points, which a preview lists before anything moves (doc 10 §6,
+//! doc 06 §3.4), and the selected symbols of a page move the same way (Edit ▸ Move to page).
 
 use crate::common::{Tmp, done, new_project};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -128,8 +129,26 @@ fn move_to_page_puts_a_drawn_card_on_another_page_as_the_same_card() {
     s.shutdown();
 }
 
+/// The pairs the preview lists, one line each.
+fn pairs(s: &ShellModel) -> Vec<String> {
+    s.preview_pane()
+        .notice_words()
+        .into_iter()
+        .filter(|n| n.contains("is kept as the pair of interruption points"))
+        .collect()
+}
+
+/// The interruption points the page `folio` draws.
+fn points_on(s: &mut ShellModel, folio: &str) -> usize {
+    done(s, "page.goto", json!({"folio": folio}));
+    let page = s.canvas().expect("the page").page();
+    page.tables.reps.iter().filter(|r| r.ip.is_some()).count()
+}
+
+/// A wired card's Move to page takes the move of the selected symbols: on the sample's PLC page its supply wire runs
+/// through a chain of junctions, which the move refuses in words naming the wire, and the card stays.
 #[test]
-fn a_card_whose_wire_would_be_left_behind_is_refused_in_words_and_stays() {
+fn a_card_whose_wire_runs_through_two_junctions_is_refused_in_words_and_stays() {
     let tmp = Tmp::new("card-move-page-wired");
     let mut s = tmp.sample_in(Mode::Headless, true, "104");
     done(&mut s, "plc.rack_editor", json!({"station": "tag:-104A1"}));
@@ -137,9 +156,81 @@ fn a_card_whose_wire_would_be_left_behind_is_refused_in_words_and_stays() {
     let before = slot_one(&s);
     let out = s.dispatch("plc.module_move", &json!({"folio": "103"}));
     assert!(
-        matches!(&out, Outcome::Failed { message } if !message.is_empty()),
+        matches!(&out, Outcome::Failed { message } if message.contains("runs through more than one junction")),
         "refused in words: {out:?}"
     );
     assert_eq!(slot_one(&s), before, "the card stays where it was");
+    s.shutdown();
+}
+
+/// Edit ▸ Move to page lists the other schematic pages, not the page shown, and moves the selected symbols: the first
+/// symbol of the sample's page 102 with a wire to what stays behind shows the preview of its pairs first, nothing
+/// moved; Apply moves it and makes the pairs, one point of each on each page; one Undo takes them back.
+#[test]
+fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() {
+    let tmp = Tmp::new("selection-move-page");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    let entries: Vec<String> = ew_viewmodel::actions::menu_model(&s)
+        .iter()
+        .flat_map(|m| &m.entries)
+        .find_map(|e| e.submenu(ew_viewmodel::actions::Submenu::MovePages))
+        .expect("Edit ▸ Move to page")
+        .iter()
+        .map(|i| i.label.clone())
+        .collect();
+    assert!(
+        entries.iter().any(|e| e.starts_with("To page 103")),
+        "{entries:?}"
+    );
+    assert!(
+        !entries.iter().any(|e| e.starts_with("To page 102")),
+        "{entries:?}"
+    );
+    let (on_102, on_103) = (points_on(&mut s, "102"), points_on(&mut s, "103"));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let devices: Vec<_> = s
+        .canvas()
+        .expect("page 102")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.device)
+        .collect();
+    let mut listed = 0;
+    for d in devices {
+        done(&mut s, "nav.show", json!({"record": d.to_string()}));
+        done(&mut s, "edit.move_to_page", json!({"folio": "103"}));
+        listed = pairs(&s).len();
+        if listed > 0 {
+            break;
+        }
+        // A move without a pair is made at once: undone, the next symbol is tried.
+        done(&mut s, "edit.undo", json!({}));
+        done(&mut s, "page.goto", json!({"folio": "102"}));
+    }
+    assert!(
+        listed > 0,
+        "a symbol of page 102 with a wire to what stays behind"
+    );
+    assert_eq!(points_on(&mut s, "103"), on_103, "nothing moves before Apply");
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "preview.apply", json!({}));
+    assert_eq!(
+        points_on(&mut s, "102"),
+        on_102 + listed,
+        "a source point of each pair"
+    );
+    assert_eq!(
+        points_on(&mut s, "103"),
+        on_103 + listed,
+        "a target point of each pair"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(
+        (points_on(&mut s, "102"), points_on(&mut s, "103")),
+        (on_102, on_103),
+        "one undo step"
+    );
     s.shutdown();
 }

@@ -31,7 +31,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The page's drawing
 
-- FT-2135 `ew-commands, ew-viewmodel, ew-ui`: Moving symbols to another page loses their wires to what stays behind (release notes 0.3.5, §7). What a draughtsman expects is a move: Move to page… for a selection, in which each wire that would cross pages becomes a pair of interruption points named by its potential (the source where the wire left, the target at the moved pin), listed in a preview before anything changes. It is the cross-page move of doc 06 §3.4 that `rep.move` rejects (FR-CON-043). A PLC card's Move to page (`plc.module_move`) takes the same move: today it refuses a card whose wire to a device left behind would leave an end on the old page, where doc 10 §6 asks for that wire kept as a pair of interruption points (the card's case was FT-2134). Design first: the names of the points, where the marks stand on both pages, what a wire with a junction does, one undo step. Not in 0.3.5's third candidate, which is step 15's hygiene alone (owner); it waits with FT-2146.
 
 #### A command's words
 

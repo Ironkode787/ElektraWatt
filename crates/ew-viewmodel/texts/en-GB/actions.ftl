@@ -482,6 +482,7 @@ action-edit-cut = Cut
 action-edit-copy = Copy
 action-edit-paste-clip = Paste
 action-edit-paste-in-place = Paste in place
+action-edit-move-to-page = Move to page
 action-edit-duplicate = Duplicate
 action-edit-select-all = Select all
 action-edit-copy-tags = Copy tag list

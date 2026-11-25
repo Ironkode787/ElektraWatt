@@ -234,6 +234,7 @@ reason-no-toast = Er wordt geen notificatie getoond
 reason-changed-meanwhile = Intussen gewijzigd: bewerk opnieuw
 reason-bulk = Meer dan 500 records
 reason-identifiers = Identificaties wijzigen
+reason-move-keeps-wires = Draden naar wat achterblijft worden paren onderbrekingspunten
 reason-bulk-command = De opdracht wordt eerst als voorbeeld getoond
 reason-rebuilt = Opnieuw opgebouwd op de huidige waarden
 error-no-row = Er is geen eigenschapsrij { $p0 }

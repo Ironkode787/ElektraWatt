@@ -405,6 +405,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_paste_in_place(p),
         )),
     )),
+    // Move to page: the selected symbols onto another schematic page, a wire to what stays behind kept as a pair of
+    // interruption points (doc 06 §3.4).
+    with_params(
+        "folio:text",
+        in_canvas(act(
+            "edit.move_to_page",
+            Command,
+            Menu::Edit,
+            &[],
+            selection_editable,
+            sub(Menu::Edit, Submenu::MovePages, false),
+            |s, p| s.act_move_to_page(p),
+        )),
+    ),
     in_canvas(act(
         "edit.duplicate",
         Command,

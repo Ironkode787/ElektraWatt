@@ -253,6 +253,7 @@ reason-no-toast = No notification is shown
 reason-changed-meanwhile = Changed meanwhile: edit again
 reason-bulk = More than 500 records
 reason-identifiers = Identifiers change
+reason-move-keeps-wires = Wires to what stays behind become pairs of interruption points
 reason-bulk-command = The command is previewed first
 reason-rebuilt = Rebuilt on the current values
 error-no-row = There is no property row { $p0 }

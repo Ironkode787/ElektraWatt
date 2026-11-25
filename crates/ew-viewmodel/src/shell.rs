@@ -94,6 +94,7 @@ pub(crate) use jobs::file_url_of;
 mod layout;
 // The message panel.
 mod messages;
+mod move_page;
 mod navigation;
 mod navigators;
 pub(crate) use navigators::undrawn_port;

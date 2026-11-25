@@ -485,6 +485,7 @@ action-edit-cut = Knippen
 action-edit-copy = Kopiëren
 action-edit-paste-clip = Plakken
 action-edit-paste-in-place = Op dezelfde plaats plakken
+action-edit-move-to-page = Naar pagina verplaatsen
 action-edit-duplicate = Dupliceren
 action-edit-select-all = Alles selecteren
 action-edit-copy-tags = Kenmerklijst kopiëren

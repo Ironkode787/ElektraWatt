@@ -131,7 +131,8 @@ impl ShellModel {
     /// `plc.module_move {folio}` (Move to page): the drawings on electrical pages of the module or the head
     /// under the cursor move to the schematic page `folio` where they stand, with one `rep.move` (one undo step), so the
     /// device keeps its channels, bindings, slot and wires drawn with it; the page is shown. A wire whose other end
-    /// stays behind is refused in the move's words, the view staying; a module drawn on that page already is refused.
+    /// stays behind is kept as a pair of interruption points, which a preview card lists first
+    /// ([`ShellModel::move_card`]); a module drawn on that page already is refused.
     /// `folio` `new`: a new page after the module's own, made and taken in one step, which the toast names.
     pub(crate) fn act_plc_module_move(&mut self, p: &Map<String, Value>) -> Outcome {
         let cursor = self.station_tab().and_then(|t| t.cursor);
@@ -162,6 +163,9 @@ impl ShellModel {
                     .parse::<u32>()
             {
                 params["number"] = json!(number);
+            }
+            if let Some(card) = self.move_card("rep.move_to_new_page", &mut params) {
+                return card;
             }
             let out = self.rack_commit(cursor, "rep.move_to_new_page", params);
             if out != Outcome::Done {
@@ -204,11 +208,11 @@ impl ShellModel {
                 strings::text(key!("reason-rack-move-same-page")).to_owned(),
             );
         }
-        let out = self.rack_commit(
-            cursor,
-            "rep.move",
-            json!({"reps": reps, "page": page.to_string()}),
-        );
+        let mut params = json!({"reps": reps, "page": page.to_string()});
+        if let Some(card) = self.move_card("rep.move", &mut params) {
+            return card;
+        }
+        let out = self.rack_commit(cursor, "rep.move", params);
         if out == Outcome::Done {
             let _ = self.dispatch("page.goto", &json!({ "folio": folio }));
         }

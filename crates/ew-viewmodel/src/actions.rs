@@ -165,6 +165,8 @@ pub enum Submenu {
     ModuleParts,
     /// A station's view, Draw on a page: one item per schematic page, then a new page.
     ModulePages,
+    /// Edit, Move to page: one item per other schematic page, then a new page.
+    MovePages,
     /// PLC, Addresses: the addressing commands of each configuration project
     /// ([`ShellModel::plc_addressing_items`]).
     PlcAddressing,
@@ -227,6 +229,7 @@ impl Submenu {
             Submenu::AttachCards => key!("action-plc-attach-cards"),
             Submenu::ModuleParts => key!("action-plc-module-replace"),
             Submenu::ModulePages => key!("action-plc-module-draw"),
+            Submenu::MovePages => key!("action-edit-move-to-page"),
             Submenu::PlcAddressing => key!("submenu-plc-addressing"),
             Submenu::SymbolPolicy => key!("action-plc-symbol-policy"),
             Submenu::InstrumentList => key!("action-plc-instrument-list"),

@@ -155,6 +155,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `edit.copy` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_copy` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-copy` |
 | `edit.paste_clip` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_paste_clip` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-paste-clip` |
 | `edit.paste_in_place` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_paste_in_place` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-paste-in-place` |
+| `edit.move_to_page` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_move_to_page` `crates/ew-viewmodel/src/shell/move_page.rs` | `action-edit-move-to-page` |
 | `edit.duplicate` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_duplicate` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-duplicate` |
 | `edit.copy_tags` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_copy_tags` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-copy-tags` |
 | `edit.select_all` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_select_all` `crates/ew-viewmodel/src/shell/properties.rs` | `action-edit-select-all` |

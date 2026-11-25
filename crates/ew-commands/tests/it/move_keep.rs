@@ -180,7 +180,7 @@ fn a_wire_to_a_symbol_that_stays_becomes_a_pair_of_interruption_points() {
     assert_eq!((joined.page, joined.route.len()), (Some(PAGE_101), 0));
     assert!(
         r.outcome.notices.iter().any(|n| n.to_string().ends_with(&format!(
-            "is kept as the pair of interruption points {}.",
+            "is kept as the pair of interruption points {}",
             source.0
         ))),
         "{:?}",

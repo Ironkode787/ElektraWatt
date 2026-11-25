@@ -357,7 +357,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         Submenu::ModuleParts => module_part_items(meta, model),
         // The schematic pages by folio and title, then a new page; Move to page's read as moves ("To page 101 …") and
         // leave out the page the module is drawn on.
-        Submenu::ModulePages => module_page_items(meta, model),
+        Submenu::ModulePages | Submenu::MovePages => module_page_items(meta, model),
         Submenu::PlcAddressing => {
             let items = model.plc_addressing_items();
             if items.is_empty() {
@@ -622,14 +622,20 @@ fn module_part_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
 
 /// The pages a module is drawn on or can be moved to (Draw on a page…, Move to page…).
 fn module_page_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
-    let moving = meta.id == "plc.module_move";
+    let moving = matches!(meta.id, "plc.module_move" | "edit.move_to_page");
     let (to, to_new) = if moving {
         (key!("rack-move-to"), key!("rack-move-to-new-page"))
     } else {
         (key!("rack-next-draw-on"), key!("rack-draw-on-new-page"))
     };
-    let on: Vec<String> = match (moving, model.station_device(), model.project_session()) {
-        (true, Some(device), Some(session)) => {
+    let on: Vec<String> = match (meta.id, model.station_device(), model.project_session()) {
+        // The selection's own page.
+        ("edit.move_to_page", ..) => model
+            .canvas()
+            .map(|c| c.page().folio.clone())
+            .into_iter()
+            .collect(),
+        ("plc.module_move", Some(device), Some(session)) => {
             let pages: Vec<_> = session
                 .electrical_drawings(device)
                 .into_iter()
