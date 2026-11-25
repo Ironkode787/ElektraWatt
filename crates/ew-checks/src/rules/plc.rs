@@ -19,7 +19,7 @@
 //! # Prevent mode
 //!
 //! EW-PLC-001 and EW-PLC-007 carry the catalogue's prevent letter, so release mode reports them, and their prevent
-//! evaluation refuses an edit that creates an overlap or a duplicate symbol (FT-726): the configuration projects that
+//! evaluation refuses an edit that creates an overlap or a duplicate symbol: the configuration projects that
 //! the touched channels, devices, parts and configuration projects belong to are checked before and after the batch,
 //! and the batch is refused when a channel joins a group of channels it was not in ([`new_group_members`]); a repair
 //! of a held overlap and an unrelated edit of a project that holds one commit.
@@ -207,7 +207,7 @@ fn channel_targets(f: &Finding) -> impl Iterator<Item = Id<Channel>> + '_ {
 }
 
 /// The prevent half of a rule whose findings group channels (EW-PLC-001's overlaps, EW-PLC-007's duplicate symbols),
-/// judged per channel (FT-726): an error finding after the batch is a violation when one of its channels was in no
+/// judged per channel: an error finding after the batch is a violation when one of its channels was in no
 /// group before, or when a touched channel's group gained a channel it was not grouped with. So a repair of a held
 /// group (a channel moved out of it) and an edit that leaves the groups alone or only shrinks them commit, even though
 /// the shrunk group is a finding of another key; a new overlap or duplicate is refused.
@@ -571,7 +571,7 @@ pub const DUPLICATE_SYMBOL: RuleMeta = RuleMeta {
 /// carry. Under the configuration project's strict IEC policy (the default) symbols compare cleaned into identifiers
 /// (doc 10 §3.4: "TA05-V-15" and "TA05_V_15" collide), else exactly. One finding per cleaned symbol, every channel
 /// that carries it as a target, discriminator `symbol`, the symbol of the first channel in natural order printed; the
-/// channels listed in natural order. Its prevent half refuses the edit that creates a duplicate (FT-726).
+/// channels listed in natural order. Its prevent half refuses the edit that creates a duplicate.
 #[derive(Clone, Copy, Debug)]
 pub struct DuplicateSymbol;
 
@@ -751,7 +751,7 @@ pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
 ///   from it.
 ///
 /// Both read the module's part, so a part whose `plc` section is not of confidence `verified` marks the findings as
-/// resting on unverified data (FT-323's PLC half, `part_confidence(copy, "plc")`).
+/// resting on unverified data (the PLC half, `part_confidence(copy, "plc")`).
 #[derive(Clone, Copy, Debug)]
 pub struct DiffersFromMap;
 
@@ -965,7 +965,7 @@ impl Rule for TbdAddress {
 // ---------------------------------------------------------------------------------------------------------
 // EW-PLC-018
 
-/// EW-PLC-018 "Module drawn with its channels unbound" (the rc.2 tutorials): conflict, o r, warning, module.
+/// EW-PLC-018 "Module drawn with its channels unbound": conflict, o r, warning, module.
 pub const PINS_UNBOUND: RuleMeta = RuleMeta {
     id: "EW-PLC-018",
     message: key!("rule-ew-plc-018"),

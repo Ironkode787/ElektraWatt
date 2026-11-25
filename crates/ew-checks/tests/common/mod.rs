@@ -76,7 +76,7 @@ pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
 }
 
 /// Asserts that every shipped language, en-GB among them, words every finding by its pattern without an error, so no
-/// finding falls back to another language (FT-680).
+/// finding falls back to another language.
 pub fn assert_worded(findings: &[ew_checks::Finding]) {
     use ew_checks::messages::{LANGUAGES, format};
     for f in findings {

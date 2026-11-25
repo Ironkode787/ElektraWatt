@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rules of the EW-PLC and EW-BUS packs' 1.0 content (WP-S1.24): each with a failing and a passing fixture, run
+//! The rules of the EW-PLC and EW-BUS packs' 1.0 content: each with a failing and a passing fixture, run
 //! in the `full` scheme with the 1.0 content, every message rendered byte for byte from its en-GB pattern and worded
 //! by nl-NL; the prevent halves of EW-PLC-007 and EW-PLC-011.
 
@@ -51,12 +51,9 @@ fn forms(f: &[ew_checks::Finding]) -> Vec<String> {
 
 /// The record ID text of channel `n` of `module`.
 fn ch(module: u128, n: u16) -> String {
-    v5::plc_channel_id::<Device, ()>(
-        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)),
-        n,
-    )
-    .as_uuid()
-    .to_string()
+    v5::plc_channel_id::<Device, ()>(ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)), n)
+        .as_uuid()
+        .to_string()
 }
 
 /// A card `-A1` of channel kind `kind` (its own station) with channels 0 and 1; channel 0 bound to its pin 0, which a
@@ -183,7 +180,7 @@ fn ew_plc_005_and_007_judge_the_cleaned_symbol() {
     assert!(found(&m, "EW-PLC-007").is_empty());
 }
 
-/// FT-726: the prevent half of EW-PLC-007 refuses the edit that gives a second channel the same symbol, and not an
+/// The prevent half of EW-PLC-007 refuses the edit that gives a second channel the same symbol, and not an
 /// edit that leaves an existing duplicate alone.
 #[test]
 fn ew_plc_007_prevents_a_new_duplicate() {
@@ -946,9 +943,7 @@ fn an_iolink_window_counts_its_whole_width() {
     assert!(found(&m, "EW-PLC-008").is_empty());
     let q = ew_derive::Q::new(&m);
     let port = q
-        .get::<ew_derive::ChannelAddresses>(ew_ids::Id::from_uuid(
-            ew_ids::Uuid::from_u128(CARD),
-        ))
+        .get::<ew_derive::ChannelAddresses>(ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(CARD)))
         .first()
         .map(|e| e.address.clone());
     assert!(
@@ -984,7 +979,7 @@ fn ew_iol_001_and_002_class_mode_window() {
     );
 }
 
-/// FT-323: a bus finding that rests on the port part's `bus` section is marked "based on non-verified part data" when
+/// A bus finding that rests on the port part's `bus` section is marked "based on non-verified part data" when
 /// that section's confidence is not `verified`, and not otherwise.
 #[test]
 fn a_bus_finding_on_unverified_part_data_is_marked() {

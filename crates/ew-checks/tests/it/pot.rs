@@ -8,8 +8,8 @@ use crate::common;
 
 use common::*;
 use ew_checks::Severity;
-use ew_schema::Kind;
 use ew_model::Model;
+use ew_schema::Kind;
 use serde_json::{Value, json};
 
 const STRIP: u128 = 0x400;
@@ -451,7 +451,7 @@ fn pot011_cases() {
                     );
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
                     // Plain words from the Fluent pattern, never the derivation's arm-and-root text:
-                    // the potential once, first; then which junction, where, and the wires that meet there (FT-933).
+                    // the potential once, first; then which junction, where, and the wires that meet there.
                     let p = &f[0].subject;
                     assert_eq!(
                         f[0].message(),
@@ -824,7 +824,7 @@ const W30: u128 = 0x2030;
 /// W30) joined through an interruption-point pair "SUP" and a terminal on page 2: wire W1 from the 0 V CP to the point
 /// on page 1, wire W2 from its partner to the terminal's one side, wire W27 from its other side to the PE CP. The 0 V
 /// reaches W27 only through the terminal's short, which no page's nets hold, so W27 is no drawn bond: 0 V and PE meet
-/// (since FT-1821 a 0 V carried in by the point alone is earthed by W27); `bond` adds the bond the fix declares.
+/// (a 0 V carried in by the point alone is earthed by W27); `bond` adds the bond the fix declares.
 /// `(w1, w27)` are the IDs of W1 and W27.
 fn zero_volt_through_a_terminal_with(bond: bool, (w1, w27): (u128, u128)) -> Model {
     let mut fx = Fx::base();
@@ -882,7 +882,7 @@ fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
         assert_eq!(fix.label, "Declare 0 V–PE bond (PELV)");
         assert_eq!(fix.command, "bond.create");
         // W1 and W27 split 0 V from PE (W30 leaves a PE CP on each side); W27 has an end on the PE-role CP, so it
-        // comes first (D3).
+        // comes first.
         assert_eq!(
             fix.params,
             json!({

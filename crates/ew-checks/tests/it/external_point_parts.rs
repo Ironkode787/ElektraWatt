@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An external point whose reference holds only what is known of the far end (FT-1876, doc 06 §3.5): a location and
+//! An external point whose reference holds only what is known of the far end (doc 06 §3.5): a location and
 //! a device, an address alone, or nothing. It prints what its reference holds, and EW-CORE-034 still asks for the
 //! cable, naming the connection by what is known.
 
 use crate::common;
 
 use common::*;
-use ew_schema::Kind;
 use ew_model::Model;
+use ew_schema::Kind;
 use serde_json::{Value, json};
 
 /// An external interruption point `n` named `name` whose reference holds `reference` (members of the record), wired

@@ -714,7 +714,7 @@ const PL_STRIP2: u128 = 0xf10a;
 const K9: u128 = 0xeb;
 const PL_K9: u128 = 0xf10b;
 
-/// The plate with -X1031 and -X1032 each declaring the end bracket (D3), -X1031 moved to `s1031` and -X1032 placed on
+/// The plate with -X1031 and -X1032 each declaring the end bracket, -X1031 moved to `s1031` and -X1032 placed on
 /// R2 with its left end at `s`.
 fn bracketed(s1031: f64, s: f64) -> Fx {
     let mut fx = plate();
@@ -971,9 +971,7 @@ fn a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line() {
     let q = ew_derive::Q::new(&m);
     for i in 0..N {
         let lines: Vec<(String, ew_derive::LineSource)> = q
-            .get::<ew_derive::DevicePartLines>(ew_ids::Id::from_uuid(
-                ew_ids::Uuid::from_u128(strip(i)),
-            ))
+            .get::<ew_derive::DevicePartLines>(ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(strip(i))))
             .iter()
             .filter(|l| l.source == ew_derive::LineSource::GroupAccessory)
             .map(|l| (l.qty.to_string(), l.source))

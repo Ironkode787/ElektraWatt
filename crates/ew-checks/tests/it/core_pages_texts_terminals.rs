@@ -563,7 +563,7 @@ fn rds003_reports_a_letter_against_the_function_category() {
 }
 
 /// EW-RDS-003 judges a device by its part's category where the part has one, as the device browser files and letters
-/// it (FT-1667): a contactor's main function is its coil, of category Relay, but the part is SwitchingPower, letter Q.
+/// it: a contactor's main function is its coil, of category Relay, but the part is SwitchingPower, letter Q.
 #[test]
 fn rds003_reads_the_parts_category_before_the_functions() {
     let contactor = |letter: &str| {

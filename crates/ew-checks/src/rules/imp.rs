@@ -247,7 +247,7 @@ pub const IMP: &[RuleMeta] = &[
         C,
         I,
     ),
-    // The EPLAN report spreadsheets (WP-S3.18, doc 14 §5.4).
+    // The EPLAN report spreadsheets (doc 14 §5.4).
     imp(
         "EW-IMP-206",
         key!("rule-ew-imp-206"),
@@ -264,7 +264,7 @@ pub const IMP: &[RuleMeta] = &[
         H,
         I,
     ),
-    // The DXF and DWG imports (WP-S3.19, doc 14 §6). EW-IMP-256 is the symbol wizard's, in a draft's details only.
+    // The DXF and DWG imports (doc 14 §6). EW-IMP-256 is the symbol wizard's, in a draft's details only.
     imp(
         "EW-IMP-251",
         key!("rule-ew-imp-251"),

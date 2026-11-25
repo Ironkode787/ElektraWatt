@@ -77,7 +77,7 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
             assert!(has(m.id, Some("hint"), lang), "{lang} has no hint for {}", m.id);
         }
     }
-    // FT-680: every other shipped language has the title and the hint of every rule, and the pattern of every rule
+    // Every other shipped language has the title and the hint of every rule, and the pattern of every rule
     // whose en-GB message has one (the rule tables check that a finding carries its arguments, `assert_worded`).
     for lang in LANGUAGES.iter().filter(|l| **l != DEFAULT_LANGUAGE) {
         let absent: Vec<String> = rules()
@@ -94,7 +94,7 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
     }
 }
 
-/// FT-680: the rule system's own findings (a rule that stopped with an internal error, a pack whose data table does
+/// The rule system's own findings (a rule that stopped with an internal error, a pack whose data table does
 /// not load), which no fixture raises, word their English and their Dutch from their arguments.
 #[test]
 fn nl_nl_words_the_rule_system_s_findings() {
@@ -131,7 +131,7 @@ fn nl_nl_words_the_rule_system_s_findings() {
     assert!(render(&pack, "nl-NL").starts_with("pakket EW-POT is niet volledig beoordeeld"));
 }
 
-/// FT-912: every word a rule prints where a record has no name of its own (the en-GB messages `word-…`) has its text in
+/// Every word a rule prints where a record has no name of its own (the en-GB messages `word-…`) has its text in
 /// every shipped language, and a Dutch pattern prints the Dutch words and decimal commas.
 #[test]
 fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
@@ -167,7 +167,7 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "een apparaat zonder aanduiding is niet geplaatst in de layout van een locatie; plaats het op een rail of op de \
          montageplaat"
     );
-    // FT-1600: a connection's junction end, and an end on another page, in Dutch.
+    // A connection's junction end, and an end on another page, in Dutch.
     let unrouted = built(
         "EW-CORE-073",
         "",

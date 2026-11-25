@@ -806,7 +806,7 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-LAY-010 (D12), one finding per case, each with its discriminator (the `form` argument):
+/// EW-LAY-010, one finding per case, each with its discriminator (the `form` argument):
 ///
 /// - per placement, the first of: on a duct (`on_duct`: a duct carries no placements); a rail pose beside the rail's
 ///   axis (`off_axis`), turned other than 0° or 180° (`rail_turn`), or with `s` outside `[0, L]` (`off_rail`); a

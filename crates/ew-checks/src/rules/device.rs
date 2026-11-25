@@ -65,7 +65,7 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
 
 /// EW-CORE-041: a device without a part use (FR-CHK-024; D-04, EF-04, EF-19). The device half only: a device that
 /// is not placed is EW-LAY-001's. The exemption of a device "supplied by others" (`supply_scope =
-/// by_others`, FR-DEV-037) waits for the attribute (FT-209): until it exists the rule fires for
+/// by_others`, FR-DEV-037) waits for the attribute: until it exists the rule fires for
 /// such devices too. Left out: a strip (its terminals carry the parts), a PLC configuration device and a device without
 /// functions that is no cable (nothing is drawn or wired, so nothing is ordered), and an earth connection, a device
 /// drawn only with earth or ground symbols and given no part. A cable without a cable part is
@@ -100,7 +100,7 @@ impl Rule for DeviceWithoutPart {
 }
 
 /// Whether EW-CORE-041 reports `device`: a device without a part use that is no strip and is a cable (its cable type,
-/// rc.3: the window offers Choose a cable type… on the finding) or has functions, and is no earth connection (an
+/// which the window offers to choose on the finding) or has functions, and is no earth connection (an
 /// earth or ground symbol stands for a connection to earth, nothing to buy: `ew_derive::layout::is_earth_connection`).
 /// The parts list leaves it out; the window says how many there are when it shows the list.
 pub fn lacks_part(q: &Q, device: Id<Device>) -> bool {

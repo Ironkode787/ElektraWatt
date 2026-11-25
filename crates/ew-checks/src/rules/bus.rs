@@ -254,7 +254,7 @@ fn plug_termination(q: &Q, f: Id<Function>) -> Option<OnOff> {
 /// An external end claims no element: the partner terminates its own end. A segment with one end (a lone port) and
 /// a ring (no end) are checked only for elements that are On inside them. Only a terminated line bus is checked
 /// (PROFIBUS DP, CANopen, and a bus of a newer format): an Ethernet link, IO-Link and AS-Interface have no termination
-/// (FT-1922: a drawn line gives its ports a physical net, a PROFINET star's too).
+/// (a drawn line gives its ports a physical net, a PROFINET star's too).
 #[derive(Clone, Copy, Debug)]
 pub struct Termination;
 

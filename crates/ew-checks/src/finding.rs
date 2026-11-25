@@ -153,7 +153,7 @@ pub struct Finding {
     pub text: Text,
     /// A quick fix, where the rule offers one.
     pub fix: Option<QuickFix>,
-    /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, FT-323's marker,
+    /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, the marker,
     /// [`ew_derive::part_confidence`]): the finding is then marked as resting on unverified data.
     pub unverified_data: bool,
     /// The import code a live finding stands for in the migration report as well (one row per

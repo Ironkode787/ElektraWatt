@@ -7,8 +7,8 @@
 use crate::common;
 
 use common::*;
-use ew_schema::PotentialType;
 use ew_model::{EndpointKey, Model};
+use ew_schema::PotentialType;
 
 /// The potential at `e` and its type.
 fn potential(m: &Model, e: Ep) -> (Option<ew_derive::PotentialId>, Option<PotentialType>) {

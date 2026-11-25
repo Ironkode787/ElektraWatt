@@ -215,7 +215,7 @@ fn core052_cases() {
     single_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
     let single = single_fx.build();
     let single_unpaired = findings_of(&single, "EW-CORE-051");
-    // Two points flagged as the star source of one name (FT-901's second message).
+    // Two points flagged as the star source of one name (the second message).
     let mut stars_fx = Fx::base();
     for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
         stars_fx.func(f, page);
@@ -250,7 +250,7 @@ fn core052_cases() {
                     assert_eq!(f[0].code, "103052", "case {c}");
                     assert_eq!(f[0].targets.len(), 3, "case {c}");
                     assert_eq!(f[0].discriminator, "star-source", "case {c}");
-                    // FT-901: the remedy in words, no ID tie-break.
+                    // The remedy in words, no ID tie-break.
                     assert_eq!(
                         f[0].message(),
                         "interruption point X: 2 source points and no star source; set all but one to target, or \
@@ -635,7 +635,7 @@ fn core065_does_not_run_online() {
     assert!(findings_of(&m, "EW-CORE-065").is_empty());
 }
 
-/// rc.5 (a persona carried 24 V to another page): two target points of one name and no source wait for their
+/// A 24 V carried to another page: two target points of one name and no source wait for their
 /// source, each on its own; they are never tied to each other, so each is reported without a partner.
 #[test]
 fn two_targets_of_one_name_are_never_tied_to_each_other() {

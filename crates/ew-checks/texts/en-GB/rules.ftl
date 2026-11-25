@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The rule messages in en-GB (doc 15 §3.8; WP-S1.16 D6): the mandatory language and the fallback of every other.
+# The rule messages in en-GB (doc 15 §3.8): the mandatory language and the fallback of every other.
 # Every registered rule has `rule-<id lower case>` with `.title` (the catalogue title) and `.hint`. A rule whose
 # findings carry arguments also has the message's value, which renders the finding's message byte for byte. An
 # integrity rule of opening a project (`INTEGRITY`) has its `.title` and `.hint`, since its findings reach the Messages
@@ -408,7 +408,7 @@ rule-ew-core-084 = pack { $pack } was not evaluated in full: its data table { $f
     .title = Rule pack not evaluated
     .hint = Restore the pack's data file or trust the project, so that the pack can run.
 
-## EW-FL: fluid power (WP-S1.20 D16)
+## EW-FL: fluid power
 
 rule-ew-fl-001 = { $form ->
         [many] { $valve }: working ports { $ports } are open; connect, plug or blank them
@@ -1102,7 +1102,7 @@ rule-ew-term-006 = { $terminal } lies on wire { $wire } without joining it; conn
     .title = Terminal on a wire it does not join
     .hint = Connect the terminal into the wire, or move it off the wire.
 
-## WP-S1.17 part 8 (COL49): collisions after a merge
+## collisions after a merge
 
 rule-ew-core-013 = { $collision } after a merge; { $keeper ->
         [frozen] the record with the frozen tag
@@ -1114,7 +1114,7 @@ rule-ew-core-013 = { $collision } after a merge; { $keeper ->
     .title = Collision after a merge
     .hint = Renumber the newer device with the quick fix, or give one of the records another number.
 
-## EW-IMP: the import findings of the migration report (WP-S3.09 D9)
+## EW-IMP: the import findings of the migration report
 
 rule-ew-imp-001 =
     .title = Input limit exceeded; item or file refused
@@ -1216,7 +1216,7 @@ rule-ew-imp-114 =
     .title = Imported text styles not bound to slot kinds
     .hint = Apply the text style the slot kind names.
 
-# The quick fixes' labels (FT-1482, ID-1457): the window's text of a fix by its key (`QuickFix::key`); the en-GB
+# The quick fixes' labels: the window's text of a fix by its key (`QuickFix::key`); the en-GB
 # text is the fix's English label, which the CLI and the JSON print.
 fix-take-proposed-size = Take the proposed size
 fix-drop-override = drop override
@@ -1235,7 +1235,7 @@ fix-draw-valves = Draw its valves in the valve terminal
 fix-plug-open-ports = Plug the open ports
 fix-text-style-minimum = Set to 1.2 mm
 
-# The words a rule prints where a record has no name of its own (FT-912): a rule passes them to its pattern by key,
+# The words a rule prints where a record has no name of its own: a rule passes them to its pattern by key,
 # and each language prints its own.
 word-device = device
 word-cable = cable

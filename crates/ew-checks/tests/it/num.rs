@@ -8,8 +8,8 @@ use crate::common;
 use common::*;
 use ew_checks::{CheckMode, FULL, Severity, run};
 use ew_derive::Q;
-use ew_schema::Kind;
 use ew_model::Model;
+use ew_schema::Kind;
 use serde_json::json;
 
 const DEV: u128 = 0x301;

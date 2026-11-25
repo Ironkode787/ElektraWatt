@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Rule data of EW-POT-006 "PE undersized" (doc 08 §8.2, D-38; FR-CHK-020, STD M-04; WP-S1.16 D5).
+# Rule data of EW-POT-006 "PE undersized" (doc 08 §8.2, D-38; FR-CHK-020, STD M-04).
 #
 # The minimum cross-section of a copper protective conductor for the largest associated line conductor S, as the
 # rule implements it. It follows the sizing rule of IEC 60364-5-54 (clause 543.1.2, the table of minimum

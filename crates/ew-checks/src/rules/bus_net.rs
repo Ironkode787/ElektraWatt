@@ -28,7 +28,7 @@ fn port_words(q: &Q, f: Id<Function>) -> String {
 }
 
 /// The part port that a drawn port comes from: the first port with the same interface and label among the bus
-/// sections of its device's parts, with the confidence of that part's `bus` section (FT-323: a finding that rests on
+/// sections of its device's parts, with the confidence of that part's `bus` section (a finding that rests on
 /// it is marked when it is not verified).
 fn part_port(q: &Q, function: &Function, port: &BusPort) -> Option<(PartBusPort, Confidence)> {
     let device = q.devices().get(function.device?)?;

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The rule messages in nl-NL (doc 15 §3.8; WP-S1.16 D6). A rule or attribute missing here falls back to en-GB; until
+# The rule messages in nl-NL (doc 15 §3.8). A rule or attribute missing here falls back to en-GB; until
 # 1.0 the message test lists the missing ones as warnings.
 
 rule-ew-core-001 =
@@ -1122,7 +1122,7 @@ rule-ew-term-006 = { $terminal } ligt op draad { $wire } zonder die te verbinden
     .title = Klem op een draad die hij niet verbindt
     .hint = Neem de klem op in de draad, of haal hem van de draad af.
 
-## WP-S1.17 part 8 (COL49): botsingen na samenvoegen
+## botsingen na samenvoegen
 
 rule-ew-core-013 = { $collision } na samenvoegen; { $keeper ->
         [frozen] het record met het vastgezette kenmerk
@@ -1134,7 +1134,7 @@ rule-ew-core-013 = { $collision } na samenvoegen; { $keeper ->
     .title = Botsing na samenvoegen
     .hint = Hernummer het nieuwere apparaat met de snelle oplossing, of geef een van de records een ander nummer.
 
-## EW-IMP: de importbevindingen van het migratierapport (WP-S3.09 D9)
+## EW-IMP: de importbevindingen van het migratierapport
 
 rule-ew-imp-001 =
     .title = Invoerlimiet overschreden; item of bestand geweigerd
@@ -1236,7 +1236,7 @@ rule-ew-imp-114 =
     .title = Geïmporteerde tekststijlen niet aan slotsoorten gebonden
     .hint = Pas de tekststijl toe die de slotsoort noemt.
 
-# De labels van de snelle oplossingen (FT-1482, ID-1457), per sleutel (`QuickFix::key`).
+# De labels van de snelle oplossingen, per sleutel (`QuickFix::key`).
 fix-take-proposed-size = De voorgestelde doorsnede nemen
 fix-drop-override = overschrijving verwijderen
 fix-anchor-graphics-centre = anker op het midden van de grafische elementen
@@ -1254,7 +1254,7 @@ fix-draw-valves = De ventielen in het ventieleiland tekenen
 fix-plug-open-ports = Blindstoppen op de open poorten zetten
 fix-text-style-minimum = Op 1,2 mm zetten
 
-# De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; een regel geeft ze
+# De woorden die een regel afdrukt waar een record geen eigen naam heeft, per sleutel; een regel geeft ze
 # bij hun sleutel aan zijn patroon door.
 word-device = apparaat
 word-cable = kabel

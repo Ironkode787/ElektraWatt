@@ -6,10 +6,10 @@
 //! An open item is an **open** finding (not waived, not superseded) of an **open-item rule** in **release mode** of the
 //! project's release scheme ([`release_scheme_of`]), through the engine's own path ([`run_table_rules`]), so a finding
 //! is listed exactly when `ew check --mode release` prints it open. The open-item rules are data here
-//! ([`OPEN_ITEM_RULES`]), not a [`RuleMeta`](crate::RuleMeta) member (D8); the rule catalogue snapshot and the
+//! ([`OPEN_ITEM_RULES`]), not a [`RuleMeta`](crate::RuleMeta) member; the rule catalogue snapshot and the
 //! generated rule pages show them.
 //!
-//! **Contract (D8):** no open-item rule reads the page order (`PageOrder`): the `open_items` report kind of
+//! **Contract:** no open-item rule reads the page order (`PageOrder`): the `open_items` report kind of
 //! `ew-reports` paginates the list inside the page order, so a rule that read it would close a query cycle. Adding such
 //! a rule to the table is a stop for the lane.
 
@@ -98,7 +98,7 @@ fn table_rules() -> Vec<&'static dyn Rule> {
 
 /// The open items of the snapshot: the open findings of the open-item rules in release mode of the
 /// project's release scheme, else `pre-delivery` ([`release_scheme_of`]), that [`open_item_of`] places, in the
-/// engine's canonical order. Only the table's rules run (D8), every finding of each (EW-BUS-001's `duplicate` ones
+/// engine's canonical order. Only the table's rules run, every finding of each (EW-BUS-001's `duplicate` ones
 /// take part in supersession), and the filter keeps the open items; the engine's own findings of the run (EW-CORE-081
 /// for a waiver of another rule, EW-CORE-083, EW-CORE-084) are not open items.
 ///
@@ -121,7 +121,7 @@ mod tests {
     use crate::rule;
     use crate::scheme::PRE_DELIVERY;
 
-    /// OI-4 (D8): every rule of the table is registered, and runs in release mode of the shipped release scheme.
+    /// OI-4: every rule of the table is registered, and runs in release mode of the shipped release scheme.
     #[test]
     fn every_open_item_rule_is_registered() {
         for o in OPEN_ITEM_RULES {
@@ -146,7 +146,7 @@ mod tests {
                     assert!(
                         OPEN_ITEM_RULES.iter().any(|o| o.rule == m.id),
                         "{} supersedes the open-item rule {s} but is not in OPEN_ITEM_RULES: add {} to the table \
-                         (WP-S3.06 D7) or change the table, or the open-items list differs from `ew check`",
+                         or change the table, or the open-items list differs from `ew check`",
                         m.id,
                         m.id
                     );

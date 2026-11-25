@@ -8,8 +8,8 @@ use crate::common;
 
 use common::*;
 use ew_checks::Severity;
-use ew_schema::Kind;
 use ew_model::Model;
+use ew_schema::Kind;
 use serde_json::{Value, json};
 
 /// A function definition with an FE-role CP 1.
@@ -223,17 +223,13 @@ fn pot005_the_built_in_bu_of_a_dc_control_wire_is_silent() {
     ] {
         let m = default_coloured(&def);
         let q = ew_derive::Q::new(&m);
-        let wire = ew_ids::Id::<ew_schema::Connection>::from_uuid(
-            ew_ids::Uuid::from_u128(0x2001),
-        );
+        let wire = ew_ids::Id::<ew_schema::Connection>::from_uuid(ew_ids::Uuid::from_u128(0x2001));
         let props = q.get::<ew_derive::ConnWireProps>(wire);
         let colour = props[0].1.colour.clone().expect("a colour");
         assert!(
             matches!(
                 colour.value.codes(),
-                [ew_schema::ColourCode::Iec(
-                    ew_schema::IecColour::Bu
-                )]
+                [ew_schema::ColourCode::Iec(ew_schema::IecColour::Bu)]
             ),
             "{def}: {colour:?}"
         );
@@ -498,7 +494,7 @@ fn n_def() -> Value {
     json!({"name": "N", "ptype": "n"})
 }
 
-/// A 1P+N breaker drawn as two functions of one device (FT-1903): 0x1003's pole 0→1 switches N towards the load
+/// A 1P+N breaker drawn as two functions of one device: 0x1003's pole 0→1 switches N towards the load
 /// -K4098 (CP 0), 0x1004's pole 0→1 switches L towards it (CP 1). With `one_device` false, 0x1004 has its own device.
 fn poles(one_device: bool) -> Model {
     let mut fx = base(&none());
@@ -579,7 +575,7 @@ fn pot013_cases() {
                 "a two-pole switch flagged to switch N with L",
                 switch(&flags, &n_def(), true),
             ),
-            // rc.5 (a first-timer's two-pole breaker, whose definition had no flag): a device whose one function opens
+            // A two-pole breaker whose definition had no flag: a device whose one function opens
             // the phase as well switches the neutral with it.
             Case::silent(
                 "a two-pole breaker that opens L and N, without the flag",
@@ -829,11 +825,11 @@ fn pot021_cases() {
             Case::silent("the A2 net linked to the supply's −", coils(true, true)),
             Case::silent("no supply at all: unfed, not unreturned", coils(false, false)),
             Case::silent(
-                "two loads in series between + and −: the middle net is returned through the second (FT-681)",
+                "two loads in series between + and −: the middle net is returned through the second",
                 series(),
             ),
             Case::silent(
-                "a two-pin black-box supply is neither a load nor a source (FT-1398)",
+                "a two-pin black-box supply is neither a load nor a source",
                 black_box_circuit(),
             ),
         ],

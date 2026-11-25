@@ -158,7 +158,7 @@ fn identifier_set(q: &Q) -> Option<&'static IdentifierSet> {
 }
 
 /// A device whose tag is its own letter code and counter: not a terminal (its tag is its strip's) and with a tag (an
-/// earth connection has none, `ew_derive::layout::is_earth_connection`, FT-1820).
+/// earth connection has none, `ew_derive::layout::is_earth_connection`).
 fn own_tag_device(q: &Q, device: Id<Device>) -> Option<std::sync::Arc<Device>> {
     let d = q.devices().get(device)?;
     (d.aspects.terminal.is_none() && !ew_derive::layout::is_earth_connection(q, d)).then(|| d.clone())
@@ -365,7 +365,7 @@ impl Rule for LetterAgainstFunction {
             return Vec::new();
         };
         // The part's category where it has one, as the device browser files and letters it: a contactor's main
-        // function is its coil (Relay), its part switches power (FT-1667). A black box keeps its function's: an
+        // function is its coil (Relay), its part switches power. A black box keeps its function's: an
         // imported element's tag was drawn before any part said what it is.
         let black_box = def.item.contact_kind == ew_schema::ContactKind::BlackBox;
         let part = (!black_box).then(|| ew_derive::main_part(q, device)).flatten();

@@ -6,8 +6,8 @@
 //! # Determinism
 //!
 //! Every order, text, target and fingerprint here follows the project's content and printed keys, never the IDs of
-//! a new project: definitions rank in natural order of their names (D9), the discriminator member
-//! of a potential without a definition is its first member CP by printed text (D8), and a note of a bond
+//! a new project: definitions rank in natural order of their names, the discriminator member
+//! of a potential without a definition is its first member CP by printed text, and a note of a bond
 //! closure is reported by the potential of its subject that prints first. An ID decides only between two
 //! things that print alike.
 
@@ -75,10 +75,10 @@ impl PinWords {
 /// discriminators.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct PotTargets {
-    /// The display targets: every definition (D9), or, without one, the function of every member CP (interruption
+    /// The display targets: every definition, or, without one, the function of every member CP (interruption
     /// points included), so a finding shows on whichever of them is selected.
     pub targets: Vec<Target>,
-    /// The identity the fingerprint is computed from (D8): the potential's identity definition (its smallest
+    /// The identity the fingerprint is computed from: the potential's identity definition (its smallest
     /// definition ID, the potential's ID, as before), or the function of its discriminator member. A waiver keeps
     /// matching when a member or a further definition is added or removed.
     pub key: Vec<Target>,
@@ -249,7 +249,7 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
                 // EW-POT-011's message in plain words, from its Fluent pattern: which junction or group of
-                // interruption points, where, and the wires that meet there (FT-933); the note's detail stays the
+                // interruption points, where, and the wires that meet there; the note's detail stays the
                 // derivation's own text. The message leads with the potential, so the Messages row, which shows a
                 // subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
@@ -430,7 +430,7 @@ pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
 ///   suffix of a potential without a definition). Each conflict is one sentence in the trade's words: what is wired
 ///   to what (connection points by tag and pin, definitions by name and point, each with what it is: "neutral N",
 ///   "plus L+", "24 V", "DC"), on which page, why that is a fault and what to do (the attributes `conflict-…` of
-///   the rule's message). The definitions rank in natural order of their names (D9): the first applies its values,
+///   the rule's message). The definitions rank in natural order of their names: the first applies its values,
 ///   every definition is a target. Which pairs of roles are a fault is `role_compatible`'s (`ew-derive`).
 /// - **0 V joined to PE** (the attribute `conflict-earth`): a 0 V that meets protective earth other than by a wire
 ///   drawn straight from a 0 V point to an earth point (that wire is the bond, doc 08 §3.7). When the member CPs
@@ -2470,7 +2470,7 @@ pub const TWO_POTENTIAL_NAMES: RuleMeta = RuleMeta {
 };
 
 /// EW-POT-017: definitions with different names in one potential (doc 08 §3.5, FR-CON-012, D-24); the first in
-/// natural order names the potential (D9). Before, a derivation note only. One finding per potential, every
+/// natural order names the potential. Before, a derivation note only. One finding per potential, every
 /// definition a target, keyed on the potential's identity, discriminator `names`, the names in natural order.
 #[derive(Clone, Copy, Debug)]
 pub struct TwoPotentialNames;
@@ -2636,7 +2636,7 @@ fn load_sides(q: &Q, p: PotentialId) -> Vec<(Id<Function>, u16, PotentialId)> {
     out
 }
 
-/// Whether the sourceless `p` lies in a series chain of loads between two potentials that have a source (FT-681: two
+/// Whether the sourceless `p` lies in a series chain of loads between two potentials that have a source (two
 /// coils in series between + and −): the loads on `p`, and on the sourceless potentials they lead to, reach at least
 /// two distinct potentials with a source on their other sides.
 fn returned_in_series(q: &Q, p: PotentialId) -> bool {

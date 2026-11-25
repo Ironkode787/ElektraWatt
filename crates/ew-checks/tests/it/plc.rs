@@ -27,12 +27,9 @@ const VALVE_PART: u128 = 0x601;
 
 /// The record ID text of channel `n` of module `module` (the v5 ID N1 gives it).
 fn ch(module: u128, n: u16) -> String {
-    v5::plc_channel_id::<Device, ()>(
-        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)),
-        n,
-    )
-    .as_uuid()
-    .to_string()
+    v5::plc_channel_id::<Device, ()>(ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)), n)
+        .as_uuid()
+        .to_string()
 }
 
 /// The fixture; `meta` is the part's `meta` (its confidence marks).
@@ -253,7 +250,7 @@ fn refused(rule: &str, before: &ew_model::Model, after: &ew_model::Model, keys: 
         .count()
 }
 
-/// FT-726: the prevent half of EW-PLC-001 judges per channel. A new overlap, and a channel joining a held group, are
+/// The prevent half of EW-PLC-001 judges per channel. A new overlap, and a channel joining a held group, are
 /// refused; a repair that moves one of three channels out of their held group commits (the group of two left is a
 /// finding of another key), and so does an edit of a channel that leaves the groups alone.
 #[test]
@@ -285,7 +282,7 @@ fn ew_plc_001_prevents_a_new_overlap_and_lets_a_repair_commit() {
     );
 }
 
-/// FT-726: deleting a module moves the automatic module after it onto a held manual address: the batch's touched keys
+/// deleting a module moves the automatic module after it onto a held manual address: the batch's touched keys
 /// resolve in the snapshot before it, where the deleted module still names its configuration project, so the new
 /// overlap is refused.
 #[test]
@@ -326,7 +323,7 @@ fn ew_plc_001_prevents_the_overlap_a_deletion_creates() {
     );
 }
 
-/// FT-726: a `library.update` touches only the part copy; the modules that use it are checked, so a new map that
+/// A `library.update` touches only the part copy; the modules that use it are checked, so a new map that
 /// puts channels 0 and 1 of each module on one bit is refused.
 #[test]
 fn ew_plc_001_prevents_the_overlap_a_part_update_creates() {
@@ -346,7 +343,7 @@ fn ew_plc_001_prevents_the_overlap_a_part_update_creates() {
     );
 }
 
-/// FT-726: the prevent half of EW-PLC-007 lets the repair of a held triple commit, and refuses a fourth channel.
+/// The prevent half of EW-PLC-007 lets the repair of a held triple commit, and refuses a fourth channel.
 #[test]
 fn ew_plc_007_lets_a_repair_of_a_held_duplicate_commit() {
     let symbols = |carriers: &[u16]| {
@@ -556,7 +553,7 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
     assert!(findings_of(&fx.build(), "EW-PLC-012").is_empty());
 }
 
-/// PA-5 (FT-323's PLC half): a part whose `plc` section is of confidence `test` marks EW-PLC-012's findings.
+/// PA-5 (the PLC half): a part whose `plc` section is of confidence `test` marks EW-PLC-012's findings.
 #[test]
 fn ew_plc_012_marks_findings_on_a_test_section() {
     let mut fx = fixture_with(&json!({"confidence": {"plc": "test"}}));

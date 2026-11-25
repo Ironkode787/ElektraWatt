@@ -10,8 +10,8 @@ use crate::common;
 use common::*;
 use ew_checks::{CheckMode, PRE_DELIVERY, Severity, prevent, run};
 use ew_derive::Q;
-use ew_schema::{AnyId, Kind};
 use ew_model::Model;
+use ew_schema::{AnyId, Kind};
 use serde_json::{Value, json};
 
 // ---------------------------------------------------------------------------------------------------------

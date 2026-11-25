@@ -89,7 +89,7 @@ fn ew_core_011_reports_each_conflict_in_words_as_a_release_error() {
 }
 
 /// A conflict on a connection whose end is a junction names that end in words, in en-GB
-/// and in nl-NL (FT-680, FT-912).
+/// and in nl-NL.
 #[test]
 fn ew_core_011_names_a_junction_end_in_words() {
     let mut fx = Fx::base();

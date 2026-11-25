@@ -141,7 +141,7 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
 /// project's colour profile declares (FR-CHK-032, D-17, MF-11). A foreign code (`{"foreign": "BR"}`), which only a
 /// lenient import stores, and an undeclared company code are reported; a code of a newer format is not judged.
 /// One finding per conductor: target the conductor, discriminator `colour`. Prevent mode refuses a batch that gives
-/// a touched conductor such a colour (FT-261); a conductor that already held it is reported by the online and
+/// a touched conductor such a colour; a conductor that already held it is reported by the online and
 /// release runs, not refused, so a lenient import's project stays editable.
 ///
 /// The "use BN" quick fix of the import finding EW-IMP-008 is not carried here: its alias table
