@@ -395,6 +395,27 @@ pub enum ReportSeverity {
     Error,
 }
 
+impl From<crate::import::Severity> for ReportSeverity {
+    fn from(severity: crate::import::Severity) -> ReportSeverity {
+        match severity {
+            crate::import::Severity::Info => ReportSeverity::Info,
+            crate::import::Severity::Warning => ReportSeverity::Warning,
+            crate::import::Severity::Error => ReportSeverity::Error,
+        }
+    }
+}
+
+impl ReportSeverity {
+    /// The word a line of the command line gives it: `info`, `warning`, `error`.
+    pub fn word(self) -> &'static str {
+        match self {
+            ReportSeverity::Info => "info",
+            ReportSeverity::Warning => "warning",
+            ReportSeverity::Error => "error",
+        }
+    }
+}
+
 /// One finding of a mapped parts import.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -407,6 +428,17 @@ pub struct ReportRow {
     pub line: Option<u64>,
     /// The message.
     pub message: String,
+}
+
+impl From<&crate::import::ReportEntry> for ReportRow {
+    fn from(e: &crate::import::ReportEntry) -> ReportRow {
+        ReportRow {
+            code: e.code.to_string(),
+            severity: e.severity.into(),
+            line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
+            message: e.message.clone(),
+        }
+    }
 }
 
 /// `ew sql dump --json` ([`SQL_DUMP`]).
@@ -1516,6 +1548,18 @@ pub struct TableReportRow {
     pub line: Option<u64>,
     /// The message.
     pub message: String,
+}
+
+impl From<&crate::import::ReportEntry> for TableReportRow {
+    fn from(e: &crate::import::ReportEntry) -> TableReportRow {
+        TableReportRow {
+            code: e.code.to_string(),
+            severity: e.severity.into(),
+            file: e.location.as_ref().map(|l| l.file.clone()),
+            line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
+            message: e.message.clone(),
+        }
+    }
 }
 
 /// `ew fmt --json` ([`FMT`]): the files not in canonical form (with `--check`: those a format would rewrite; without:

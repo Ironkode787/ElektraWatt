@@ -240,38 +240,22 @@ pub(super) fn row_counts(i: &ew_api::catalog::PartsImport) -> results::RowCounts
     }
 }
 
-/// The report of a mapped parts import, one JSON row per finding.
-pub(super) fn report_rows(i: &ew_api::catalog::PartsImport) -> Vec<results::ReportRow> {
-    i.report
-        .entries
-        .iter()
-        .map(|e| results::ReportRow {
-            code: e.code.to_string(),
-            severity: match e.severity {
-                ew_api::catalog::Severity::Info => results::ReportSeverity::Info,
-                ew_api::catalog::Severity::Warning => results::ReportSeverity::Warning,
-                ew_api::catalog::Severity::Error => results::ReportSeverity::Error,
-            },
-            line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
-            message: e.message.clone(),
-        })
-        .collect()
+/// The report of a catalogue import, one JSON row per finding.
+pub(super) fn report_rows(report: &ew_api::catalog::ImportReport) -> Vec<results::ReportRow> {
+    report.entries.iter().map(results::ReportRow::from).collect()
 }
 
-/// Prints the report of a mapped parts import: one line per finding (unmapped columns, rejected rows, split part
-/// numbers, aliases, new manufacturers).
-pub(super) fn print_catalog_rows(i: &ew_api::catalog::PartsImport) {
-    for e in &i.report.entries {
-        let severity = match e.severity {
-            ew_api::catalog::Severity::Info => "info",
-            ew_api::catalog::Severity::Warning => "warning",
-            ew_api::catalog::Severity::Error => "error",
+/// Prints the report of a catalogue import, one line per finding (unmapped columns, rejected rows, split part
+/// numbers, aliases, new manufacturers, symbols not converted): `<code> <severity>: <where>: <message>`, where is
+/// the table line when the finding has one, else its file.
+pub(super) fn print_catalog_rows(report: &ew_api::catalog::ImportReport) {
+    for e in &report.entries {
+        let severity = results::ReportSeverity::from(e.severity).word();
+        let at = match &e.location {
+            Some(l) if l.line.is_some() => format!("line {}: ", l.line.unwrap_or_default()),
+            Some(l) if !l.file.is_empty() => format!("{}: ", l.file),
+            _ => String::new(),
         };
-        let at = e
-            .location
-            .as_ref()
-            .and_then(|l| l.line)
-            .map_or_else(String::new, |n| format!("line {n}: "));
         println!("{} {severity}: {at}{}", e.code, e.message);
     }
 }
@@ -302,7 +286,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
         }
     };
     if !a.json {
-        print_catalog_rows(&import);
+        print_catalog_rows(&import.report);
     }
     let (mut created, mut skipped) = (0, 0);
     if let Some(cmd) = cmd {
@@ -336,7 +320,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
                 created,
                 skipped,
                 rows: Some(row_counts(&import)),
-                report: report_rows(&import),
+                report: report_rows(&import.report),
             })
         );
     } else {
@@ -958,11 +942,7 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
         }
     };
     for r in &rows {
-        let severity = match r.severity {
-            results::ReportSeverity::Info => "info",
-            results::ReportSeverity::Warning => "warning",
-            results::ReportSeverity::Error => "error",
-        };
+        let severity = r.severity.word();
         let at = match (&r.file, r.line) {
             (Some(f), Some(l)) => format!("{}:{l}: ", printable(f)),
             (Some(f), None) => format!("{}: ", printable(f)),
@@ -1033,18 +1013,5 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
 
 /// The findings of a table import as result rows, in the report's order.
 pub(super) fn table_report_rows(entries: &[ew_api::import::ReportEntry]) -> Vec<results::TableReportRow> {
-    entries
-        .iter()
-        .map(|e| results::TableReportRow {
-            code: e.code.to_string(),
-            severity: match e.severity {
-                Severity::Info => results::ReportSeverity::Info,
-                Severity::Warning => results::ReportSeverity::Warning,
-                Severity::Error => results::ReportSeverity::Error,
-            },
-            file: e.location.as_ref().map(|l| l.file.clone()),
-            line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
-            message: e.message.clone(),
-        })
-        .collect()
+    entries.iter().map(results::TableReportRow::from).collect()
 }

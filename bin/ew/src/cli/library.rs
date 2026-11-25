@@ -372,24 +372,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                                 library: key.clone(),
                                 symbols: done.symbols,
                                 not_converted: done.refused.len(),
-                                report: done
-                                    .report
-                                    .entries
-                                    .iter()
-                                    .map(|e| results::ReportRow {
-                                        code: e.code.to_string(),
-                                        severity: match e.severity {
-                                            ew_api::catalog::Severity::Info => results::ReportSeverity::Info,
-                                            ew_api::catalog::Severity::Warning => {
-                                                results::ReportSeverity::Warning
-                                            }
-                                            ew_api::catalog::Severity::Error =>
-                                                results::ReportSeverity::Error,
-                                        },
-                                        line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
-                                        message: e.message.clone(),
-                                    })
-                                    .collect(),
+                                report: report_rows(&done.report),
                                 written: write.as_ref().map(|w| results::LibWrite {
                                     added: w.added.len(),
                                     updated: w.updated.len(),
@@ -400,13 +383,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         );
                         return 0;
                     }
-                    for e in &done.report.entries {
-                        let at = e
-                            .location
-                            .as_ref()
-                            .map_or_else(String::new, |l| format!("{}: ", l.file));
-                        println!("{} {:?}: {at}{}", e.code, e.severity, e.message);
-                    }
+                    print_catalog_rows(&done.report);
                     let written = write.as_ref().map_or_else(
                         || "nothing to write".to_owned(),
                         |w| {
@@ -473,7 +450,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                                 library: target.1.clone(),
                                 source: input.name().to_string(),
                                 rows: row_counts(&done.import),
-                                report: report_rows(&done.import),
+                                report: report_rows(&done.import.report),
                                 written: done.write.as_ref().map(|w| results::LibWrite {
                                     added: w.added.len(),
                                     updated: w.updated.len(),
@@ -487,7 +464,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         }
                         return 0;
                     }
-                    print_catalog_rows(&done.import);
+                    print_catalog_rows(&done.import.report);
                     let written = done.write.as_ref().map_or_else(
                         || "nothing to write".to_owned(),
                         |w| {

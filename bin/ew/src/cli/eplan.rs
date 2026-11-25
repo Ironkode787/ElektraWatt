@@ -250,7 +250,7 @@ fn into_library(
     };
     match eplan::import_into_library(&mut reg, id, input, fndefs, (a.as_of, a.bump, a.take_over), edz) {
         Ok(done) => {
-            super::print_catalog_rows(&done.import);
+            super::print_catalog_rows(&done.import.report);
             let written = done.write.as_ref().map_or_else(
                 || "nothing to write".to_owned(),
                 |w| {
@@ -331,7 +331,7 @@ fn update_session(
             return 2;
         }
     };
-    super::print_catalog_rows(&import);
+    super::print_catalog_rows(&import.report);
     let updates = match session.update_parts_from_import(&import) {
         Ok(u) => u,
         Err(e) => {

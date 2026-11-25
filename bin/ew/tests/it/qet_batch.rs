@@ -41,6 +41,12 @@ fn a_collection_folder_is_converted_into_a_library() {
         "{}",
         stdout(&out)
     );
+    // The file not converted, in the catalogue report's one line form: the severity as a word, then the file.
+    assert!(
+        stdout(&out).lines().any(|l| l.contains(" error: bad.elmt: ")),
+        "{}",
+        stdout(&out)
+    );
 }
 
 #[test]

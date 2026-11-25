@@ -182,11 +182,7 @@ fn refused(e: &DxfError) -> String {
 /// Prints an import's findings, one `<code> <severity>: <message>` each.
 pub(super) fn print_findings(entries: &[ew_api::import::ReportEntry]) {
     for e in entries {
-        let severity = match e.severity {
-            ew_api::import::Severity::Info => "info",
-            ew_api::import::Severity::Warning => "warning",
-            ew_api::import::Severity::Error => "error",
-        };
+        let severity = ew_api::cli_results::ReportSeverity::from(e.severity).word();
         println!("{} {severity}: {}", e.code, e.message);
     }
 }
