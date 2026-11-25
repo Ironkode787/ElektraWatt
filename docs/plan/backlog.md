@@ -34,7 +34,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### A command's words
 
-- FT-2138 `ew-scene, ew-api`: A strip segment draws a terminal's side 1 at the top, a terminal drawn alone has side 1 at the bottom; and `props.set` on a plain wire's `connection/derived.csa` is refused in a cable's words ("The cable … sets this") where the override action works (seen in a fix lane, 2026-11-23).
+- FT-2138 `ew-scene, ew-library`: A strip segment draws a terminal's side 1 at the top, a terminal drawn alone has side 1 at the bottom. Left in the backlog round (2026-11-25): turning either side moves side 1 under the wires already drawn to it, the strip segment's on every project's strip pages, the starter symbols' (`ew.iec.terminal`, `ew.iec.terminal-pe`, a new version) on the sample's 18 terminals of pages 101 to 103, whose supply wires would then enter on the far side; it needs a decision on redrawing those.
 
 ### The placer and the router
 

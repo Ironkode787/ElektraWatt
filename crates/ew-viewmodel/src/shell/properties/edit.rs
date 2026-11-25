@@ -446,7 +446,16 @@ impl ShellModel {
                 None => return failed(key!("error-bad-param"), &["choice"]),
             },
         };
-        let started = self.begin_edit(&key, RowAction::Edit, Some(value.clone()));
+        // A derived row sets its authored partner, as its Override does (Enter or F2 there, `props.edit`).
+        let overrides = self.props_find(&key).is_some_and(|(_, r)| {
+            !r.actions.contains(&RowAction::Edit) && r.actions.contains(&RowAction::Override)
+        });
+        let action = if overrides {
+            RowAction::Override
+        } else {
+            RowAction::Edit
+        };
+        let started = self.begin_edit(&key, action, Some(value.clone()));
         if started != Outcome::Done {
             return started;
         }

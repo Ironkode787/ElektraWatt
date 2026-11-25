@@ -72,13 +72,17 @@ impl ShellModel {
     }
 
     /// The tag of the cable whose core gives the value of the derived row `key` (a wire's cross-section or colour), which
-    /// is changed at the cable; `None` for any other row.
+    /// is changed at the cable; `None` for any other row, among them a row its Override sets (a size from the rating
+    /// of a protecting device names that device's Parts row too).
     pub fn cable_row(&self, key: &str) -> Option<String> {
         let (_, row) = self.props.sheet().and_then(|sheet| find_row(sheet, key))?;
         let Some(ew_api::output::SourceLink::Record { id, row: to }) = &row.source else {
             return None;
         };
-        if to != ew_api::output::CABLE_SOURCE_ROW || !is_derived(row) {
+        if to != ew_api::output::CABLE_SOURCE_ROW
+            || !is_derived(row)
+            || row.actions.contains(&RowAction::Override)
+        {
             return None;
         }
         self.project.as_ref()?.session.device_tag(*id)

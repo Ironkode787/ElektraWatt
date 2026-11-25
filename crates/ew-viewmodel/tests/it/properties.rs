@@ -147,6 +147,30 @@ fn a_wire_override_and_its_reset() {
     shell.shutdown();
 }
 
+/// `props.set` on a plain wire's derived cross-section does what its Override does (FT-2138): the value becomes the
+/// wire's override in one step, never a refusal in a cable's words.
+#[test]
+fn props_set_on_a_wires_derived_value_overrides_it() {
+    let tmp = Tmp::new("props-set-derived");
+    let mut shell = writable(&tmp, "102");
+    done(&mut shell, "select.set", json!({"refs": [W29]}));
+    let before = steps(&shell);
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "connection/derived.csa", "value": "1.0"}),
+    );
+    assert_eq!(steps(&shell), before + 1);
+    assert_eq!(text(&shell, "connection/derived.csa"), "1 mm²");
+    assert_eq!(
+        provenance(&shell, "connection/derived.csa"),
+        Provenance::Overridden {
+            note: "override (CDP)".into()
+        }
+    );
+    shell.shutdown();
+}
+
 /// The references of -X1021's 8 terminals (the sample's script numbers them 1 to 8).
 fn terminals() -> Vec<String> {
     (1..=8).map(|i| format!("tag:-X1021:{i}")).collect()
