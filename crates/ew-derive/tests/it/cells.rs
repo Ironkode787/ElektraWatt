@@ -944,8 +944,14 @@ fn a_row_past_z_is_a_cell_labelled_as_the_page_draws_it() {
     let (a, b) = frame
         .header_band
         .map_or((0, 1), |h| (i128::from(h.num()), i128::from(h.den())));
-    let (c, d) = (i128::from(frame.rows.height.num()), i128::from(frame.rows.height.den()));
-    let col = (i128::from(frame.columns.width.num()), i128::from(frame.columns.width.den()));
+    let (c, d) = (
+        i128::from(frame.rows.height.num()),
+        i128::from(frame.rows.height.den()),
+    );
+    let col = (
+        i128::from(frame.columns.width.num()),
+        i128::from(frame.columns.width.den()),
+    );
     // The middle of row 27 (0-based) in the first column.
     let y = i64::try_from((2 * a * d + 55 * c * b) / (2 * b * d)).expect("a coordinate");
     let x = i64::try_from((2 * a * col.1 + col.0 * b) / (2 * b * col.1)).expect("a coordinate");

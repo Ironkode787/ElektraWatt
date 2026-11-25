@@ -31,8 +31,14 @@ fn an_unknown_colour_code_prints_one_word() {
 #[test]
 fn a_newer_potential_type_prints_other() {
     use ew_schema::PotentialType;
-    assert_eq!(ew_derive::potential_type_text(&PotentialType::Unknown(serde_json::json!("x"))), "other");
-    assert_eq!(ew_derive::potential_type_text(&PotentialType::Undefined), "undefined");
+    assert_eq!(
+        ew_derive::potential_type_text(&PotentialType::Unknown(serde_json::json!("x"))),
+        "other"
+    );
+    assert_eq!(
+        ew_derive::potential_type_text(&PotentialType::Undefined),
+        "undefined"
+    );
     assert_eq!(ew_derive::potential_type_text(&PotentialType::LPlus), "L+");
 }
 
@@ -42,7 +48,11 @@ fn a_cross_section_with_its_unit_is_the_lists_form() {
     let dec = |s: &str| -> Csa { serde_json::from_value(serde_json::json!(s)).expect("a cross-section") };
     assert_eq!(ew_derive::csa_with_unit(&dec("2.5")).as_deref(), Some("2.5 mm²"));
     assert_eq!(ew_derive::csa_with_unit(&Csa::Awg(-1)).as_deref(), Some("AWG2/0"));
-    assert_eq!(ew_derive::csa_text(&dec("2.5")).as_deref(), Some("2.5"), "a wire marker's form");
+    assert_eq!(
+        ew_derive::csa_text(&dec("2.5")).as_deref(),
+        Some("2.5"),
+        "a wire marker's form"
+    );
 }
 
 /// A channel without a derived address is "no address" in a sentence, in the reader's language.

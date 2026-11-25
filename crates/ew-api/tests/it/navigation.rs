@@ -700,7 +700,15 @@ fn a_cells_rectangle_is_where_the_page_draws_its_edges() {
         let (r, c) = (label.row_index as usize, label.column_index as usize);
         let top_left = sheet(geometry.column_edges[c], geometry.row_edges[r]);
         let bottom_right = sheet(geometry.column_edges[c + 1], geometry.row_edges[r + 1]);
-        assert_eq!([x0, y0, x1, y1], [top_left.x.0, top_left.y.0, bottom_right.x.0, bottom_right.y.0], "{label}");
-        assert_eq!(cells.cell_at((x0, y0)).map(|c| c.to_string()), Some(label.to_string()), "{label}");
+        assert_eq!(
+            [x0, y0, x1, y1],
+            [top_left.x.0, top_left.y.0, bottom_right.x.0, bottom_right.y.0],
+            "{label}"
+        );
+        assert_eq!(
+            cells.cell_at((x0, y0)).map(|c| c.to_string()),
+            Some(label.to_string()),
+            "{label}"
+        );
     }
 }
