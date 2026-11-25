@@ -251,7 +251,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-commands
 
-`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-caex`, `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-caex`, `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `ew`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
 `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`.
 
@@ -734,7 +734,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 | `src/diff.rs` |  | The first difference between two models ([`crate::Model::content_diff`]): what [`crate::Model::content_eq`] calls unequal, named for a diagnosis (the save-and-reload oracle of the command fuzzer). |
 | `src/entity.rs` |  | The entity kinds of the model: the sealed [`Entity`] trait that ties each `ew-schema` record type to its [`Kind`], its table and its ID type, the kind-erased row [`AnyRow`] of the op layer and its key [`AnyKey`]. |
 | `src/error.rs` |  | The error of loading, applying and planning. |
-| `src/fixture.rs` |  | The mini project as typed records: two pages of a small control cabinet (placeholders only), shared by the in-crate tests and, through the feature `testkit`, by the tests of `ew-commands`; with the record, library and valve helpers they build their own records with. |
+| `src/fixture.rs` |  | The mini project as typed records: two pages of a small control cabinet (placeholders only), shared by the in-crate tests and, in a debug build, by the tests of `ew-commands`; with the record, library and valve helpers they build their own records with. |
 | `src/index.rs` |  | Base reverse indexes (ARCH §4.1, ADR-0001 decision 5): pure reverse-FK maps, each key with its own `changed_at`, maintained by delta by [`Model::apply_with`](crate::Model::apply_with) and [`Model::apply_history`](crate::Model::apply_history), rebuilt on load, never saved. |
 | `src/invariants.rs` | large | The structural invariants of ADR-0009 decision 2, evaluated on the candidate snapshot at the end of a batch, limited to the touched keys and their index neighbours (decision 1), or on every record for the integrity check (decision 5), and the model's one delete-time rule (EW-INV-021, ADR-0009 amendment 7), evaluated by [`Model::apply_with`] only. |
 | `src/lib.rs` |  | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants and link delete policies. |
@@ -1176,7 +1176,7 @@ Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`,
 
 ## ew-viewmodel
 
-`crates/ew-viewmodel` · GPL-3.0-or-later · tier shell · depends on `ew-api`, `ew-dl`, `ew-l10n`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by `ew-viewmodel`
+`crates/ew-viewmodel` · GPL-3.0-or-later · tier shell · depends on `ew-api`, `ew-dl`, `ew-l10n`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by none
 
 Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command mapping, property-grid rows with provenance and message lists, each with a revision stamp; and the model of the application shell.
 
@@ -1404,7 +1404,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/deps.rs` | large | The rule `layers`: the rules between crates of `ci/dep-rules.toml`. |
 | `src/design_docs.rs` |  | The rule of `cargo xtask rules` that a design document says what is (docs/design/04-architecture.md §19): no file of `docs/design` holds a note headed "As built", a dated amendment (the word "amended" or "amendment" with a date on its line) or the number of a backlog row, a decision of the owner's list or a work package (`FT-`, `ID-`, `WP-`); and none is larger than [`CEILING`], but the documents read by identifier ([`BY_IDENTIFIER`]). |
 | `src/docs_gen.rs` | large | `docs-gen`: the generated reference pages of the user documentation book (NFR-DOC-06). |
-| `src/features.rs` | large | The feature rule of `cargo xtask rules`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and `banned_crates` in `ci/dep-rules.toml`. |
+| `src/features.rs` |  | The feature rule of `cargo xtask rules`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and `banned_crates` in `ci/dep-rules.toml`. |
 | `src/generate.rs` |  | `gen [--check]`: every generated file of the repository, written by one command in one order. |
 | `src/greyed.rs` |  | The rule of `cargo xtask rules` that a greyed control says why (docs/design/04-architecture.md §13.3). |
 | `src/icons.rs` |  | `gen-icons`: the icon table of `ew-ui` (doc 16a §4.11). |

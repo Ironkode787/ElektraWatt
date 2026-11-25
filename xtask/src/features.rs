@@ -229,8 +229,6 @@ pub struct Dep {
 pub struct Package {
     /// Package name.
     pub name: String,
-    /// Its directory relative to the workspace root, `/`-separated (`crates/ew-ui`; empty for the root).
-    pub dir: String,
     /// Declared direct dependencies.
     pub deps: Vec<Dep>,
     /// The package's `[features]` table.
@@ -244,12 +242,6 @@ pub fn from_metadata(metadata: &cargo_metadata::Metadata) -> Vec<Package> {
         .iter()
         .map(|p| Package {
             name: p.name.to_string(),
-            dir: p
-                .manifest_path
-                .parent()
-                .and_then(|d| d.strip_prefix(&metadata.workspace_root).ok())
-                .map(|d| d.as_str().replace('\\', "/"))
-                .unwrap_or_default(),
             deps: p
                 .dependencies
                 .iter()
@@ -533,7 +525,6 @@ mod tests {
     fn package(name: &str, deps: Vec<Dep>, features: &[(&str, &[&str])]) -> Package {
         Package {
             name: name.into(),
-            dir: format!("crates/{name}"),
             deps,
             features: features
                 .iter()
