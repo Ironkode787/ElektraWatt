@@ -279,8 +279,7 @@ const TYPED_PLC: [(&str, &str); 5] = [
 
 /// Why a cell is read-only (in this order), as a text key, `None` for an editable cell: "derived", "generated", "no
 /// record of this kind", "edit in the property grid", "not editable in this table" (the view model's `cell_reason`
-/// gives the text). A column without a route reads its [`NavColumn::read_only`](super::NavColumn): the
-/// builder's "derived" is `table-reason-derived`, any other `table-reason-no-command`.
+/// gives the text). A column without a route that is not derived has no command yet (`table-reason-no-command`).
 pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Option<&'static str> {
     let c = table.columns.get(column)?;
     if let Some(reason) = strip_reason(table, node, column) {
@@ -296,10 +295,7 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
         return Some(key!("table-reason-generated"));
     }
     let Some((kind, path)) = &c.route else {
-        return Some(match c.read_only.as_deref() {
-            Some("derived") => key!("table-reason-derived"),
-            _ => key!("table-reason-no-command"),
-        });
+        return Some(key!("table-reason-no-command"));
     };
     if row_targets(node, kind).is_empty() && define_point(node, kind, path).is_none() {
         return Some(key!("table-no-record"));

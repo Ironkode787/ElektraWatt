@@ -10,6 +10,7 @@ use ew_ids::Id;
 
 use super::connections::{push_wire_row, wire_list_rows};
 use super::{Builder, NavOpen, NavRole, cell_of, folio_pages, row_entity, row_segment};
+use super::{plain, plains};
 
 /// Potentials: the potential overview's rows, each with the physical-wire rows of the wire list whose potential
 /// cell names it (a bond wire's `A ⇄ B` names both).
@@ -50,11 +51,11 @@ pub(super) fn potentials_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Potential,
             &segment,
-            name.clone(),
+            plain(name.clone()),
             Vec::new(),
             vec![record],
             Vec::new(),
-            Some(texts),
+            Some(plains(texts)),
             facets,
         );
         // The overview's row entity: the bond, the potential's definition, or (a potential without one) its CP.

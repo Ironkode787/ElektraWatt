@@ -26,33 +26,33 @@ use ew_schema::{
     Sha256,
 };
 
-use super::columns::column;
-use super::{Builder, NavColumn, NavRole, kind_text};
+use super::{Builder, NavRole, kind_text};
+use super::{plain, plains};
 use crate::library::{IndexState, LibraryInfo, Tier};
 use crate::{CopyState, Session};
 use ew_derive::short_tag;
 
-/// The Macros navigator's columns (key, label); the first is the key column.
+/// The Macros navigator's columns (key, the key of its heading); the first is the key column.
 pub(super) const MACRO_COLUMNS: [(&str, &str); 6] = [
-    ("name", "Name"),
-    ("kind", "Kind"),
-    ("version", "Version"),
-    ("library", "Library"),
-    ("devices", "Devices"),
-    ("variables", "Variables"),
+    ("name", key!("column-name")),
+    ("kind", key!("column-kind")),
+    ("version", key!("column-version")),
+    ("library", key!("column-library")),
+    ("devices", key!("column-devices")),
+    ("variables", key!("column-variables")),
 ];
 
-/// The Libraries navigator's columns (key, label); the first is the key column. A library row fills Tier, Licence
+/// The Libraries navigator's columns (key, the key of its heading); the first is the key column. A library row fills Tier, Licence
 /// and Access and puts its index state under State; a copy row fills State and Used by.
 pub(super) const LIBRARY_COLUMNS: [(&str, &str); 8] = [
-    ("name", "Name"),
-    ("kind", "Kind"),
-    ("tier", "Tier"),
-    ("version", "Version"),
-    ("licence", "Licence"),
-    ("access", "Access"),
-    ("state", "State"),
-    ("used_by", "Used by"),
+    ("name", key!("column-name")),
+    ("kind", key!("column-kind")),
+    ("tier", key!("column-tier")),
+    ("version", key!("column-version")),
+    ("licence", key!("column-licence")),
+    ("access", key!("column-access")),
+    ("state", key!("column-state")),
+    ("used_by", key!("column-used-by")),
 ];
 
 /// The most device tags a copy's Used by cell names before "+<n>".
@@ -60,14 +60,6 @@ const USED_BY_SHOWN: usize = 4;
 
 /// The label of the group of the project's own copies.
 const IN_PROJECT: &str = "In this project";
-
-/// The columns of a list (key, label).
-pub(super) fn columns(list: &[(&str, &str)]) -> Vec<NavColumn> {
-    list.iter()
-        .enumerate()
-        .map(|(i, (k, l))| column(k, l, i == 0, None))
-        .collect()
-}
 
 /// A tier's name in words.
 pub(crate) fn tier_word(t: Tier) -> &'static str {
@@ -838,11 +830,11 @@ impl Session {
                     Some(tnode),
                     NavRole::Library,
                     &format!("library:{}", lib.id),
-                    lib.name.clone(),
+                    plain(lib.name.clone()),
                     badges,
                     Vec::new(),
                     Vec::new(),
-                    Some(cells),
+                    Some(plains(cells)),
                     facets,
                 );
             }
@@ -894,11 +886,11 @@ impl Session {
                 Some(gnode),
                 NavRole::LibCopy,
                 &format!("copy:{}", s.copy),
-                label,
+                plain(label),
                 badges,
                 records,
                 Vec::new(),
-                Some(cells),
+                Some(plains(cells)),
                 facets,
             );
         }
@@ -911,7 +903,7 @@ fn tier_group(b: &mut Builder, tier: Tier) -> u32 {
         None,
         NavRole::Tier,
         &format!("tier:{}", tier.name()),
-        tier_word(tier).to_owned(),
+        plain(tier_word(tier).to_owned()),
         Vec::new(),
         Vec::new(),
         Vec::new(),
@@ -929,7 +921,7 @@ fn project_group(b: &mut Builder) -> u32 {
         None,
         NavRole::ProjectCopies,
         "project",
-        IN_PROJECT.to_owned(),
+        plain(IN_PROJECT.to_owned()),
         Vec::new(),
         Vec::new(),
         Vec::new(),
@@ -980,11 +972,11 @@ fn macro_row(
         Some(parent),
         NavRole::Macro,
         segment,
-        name,
+        plain(name),
         badges,
         vec![c.id.as_uuid()],
         Vec::new(),
-        Some(cells),
+        Some(plains(cells)),
         facets,
     );
 }

@@ -17,6 +17,7 @@ use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawable, device_drawables, folios, group, row_entity,
     row_segment, sorted,
 };
+use super::{plain, plains};
 use crate::Session;
 use ew_derive::short_tag;
 
@@ -153,11 +154,11 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                 Some(parent),
                 NavRole::Connection,
                 &format!("line:{}", t.id.as_uuid()),
-                format!("{} → {}", t.tag, other.text).trim().to_owned(),
+                plain(format!("{} → {}", t.tag, other.text).trim()),
                 Vec::new(),
                 records,
                 drawables,
-                row_cells,
+                row_cells.map(plains),
                 facets,
             );
             b.nodes[n as usize].kinds = vec!["connection".to_owned()];
@@ -170,7 +171,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             parent,
             NavRole::Device,
             &format!("device:{}", d.as_uuid()),
-            short_tag(q, d),
+            plain(short_tag(q, d)),
             Vec::new(),
             vec![d.as_uuid()],
             drawables,
@@ -196,7 +197,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Section,
             "fluid:terminals",
-            "Valve terminals".to_owned(),
+            plain("Valve terminals".to_owned()),
         );
         for vt in terminals {
             listed.insert(vt);
@@ -233,7 +234,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Section,
             "fluid:devices",
-            "Fluid devices".to_owned(),
+            plain("Fluid devices".to_owned()),
         );
         for d in others {
             let n = device_row(b, Some(g), d);
@@ -250,7 +251,13 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         .collect();
     ranked_m.sort();
     if !ranked_m.is_empty() {
-        let g = group(b, None, NavRole::Section, "fluid:media", "Media".to_owned());
+        let g = group(
+            b,
+            None,
+            NavRole::Section,
+            "fluid:media",
+            plain("Media".to_owned()),
+        );
         // A medium's badge counts its consumers, as the medium table's Count does (the badge counted its
         // lines, "1 lines", beside a Count of 2).
         let rows = q.get::<ew_derive::MediumRows>(());
@@ -263,7 +270,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                 Some(g),
                 NavRole::Medium,
                 &format!("medium:{}", id.as_uuid()),
-                name,
+                plain(name),
                 vec![format!("{count} consumers")],
                 vec![id.as_uuid()],
                 Vec::new(),
@@ -315,11 +322,11 @@ pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Connection,
             &format!("tube:{}", row_segment(&r.id)),
-            label,
+            plain(label),
             Vec::new(),
             vec![record],
             drawables,
-            Some(texts),
+            Some(plains(texts)),
             facets,
         );
         b.nodes[n as usize].kinds = vec!["connection".to_owned()];
@@ -345,11 +352,11 @@ pub(super) fn media_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Medium,
             &format!("medium:{}", row_segment(&r.id)),
-            label,
+            plain(label),
             Vec::new(),
             vec![record],
             Vec::new(),
-            Some(texts),
+            Some(plains(texts)),
             vec![("kind".to_owned(), NavRole::Medium.word().to_owned())],
         );
         b.nodes[n as usize].kinds = vec!["medium".to_owned()];

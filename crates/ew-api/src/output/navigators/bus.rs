@@ -12,6 +12,7 @@ use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::Function;
 
 use super::{Builder, NavRole, base_facets, device_drawables, drawable, folios, group, sorted};
+use super::{plain, plains};
 use ew_derive::short_tag;
 
 /// The bus navigator's columns (FR-UI-006) with the keys of their labels: a port row's device, interface, bus, role,
@@ -124,11 +125,11 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             Some(parent),
             NavRole::BusPort,
             &format!("bus_port:{}", f.as_uuid()),
-            format!("{device} {interface}").trim().to_owned(),
+            plain(format!("{device} {interface}").trim().to_owned()),
             badges,
             vec![f.as_uuid()],
             drawables,
-            Some(cells),
+            Some(plains(cells)),
             facets,
         );
         b.nodes[n as usize].kinds = vec!["function".to_owned()];
@@ -146,7 +147,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "nets:logical",
-            text!("nav-bus-logical").to_string(),
+            plain(text!("nav-bus-logical").to_string()),
         );
         for (_, id) in ranked_l {
             let Some(net) = lnets.get(id) else { continue };
@@ -158,7 +159,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                 Some(g),
                 NavRole::Net,
                 &format!("logical_net:{}", id.as_uuid()),
-                label,
+                plain(label),
                 Vec::new(),
                 vec![id.as_uuid()],
                 Vec::new(),
@@ -198,7 +199,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "nets:physical",
-            text!("nav-bus-physical").to_string(),
+            plain(text!("nav-bus-physical").to_string()),
         );
         for (_, id) in ranked_p {
             let Some(net) = pnets.get(id) else { continue };
@@ -206,7 +207,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                 Some(g),
                 NavRole::Net,
                 &format!("physical_net:{}", id.as_uuid()),
-                net.name.to_string(),
+                plain(net.name.to_string()),
                 Vec::new(),
                 vec![id.as_uuid()],
                 Vec::new(),
@@ -219,7 +220,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                     Some(node),
                     NavRole::Segment,
                     &format!("segment:{}", i + 1),
-                    text!("nav-bus-segment", (i + 1).to_string()).to_string(),
+                    plain(text!("nav-bus-segment", (i + 1).to_string()).to_string()),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -261,7 +262,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                                     Some(s),
                                     NavRole::Ip,
                                     &format!("member:{k}"),
-                                    label,
+                                    plain(label),
                                     vec!["external".to_owned()],
                                     vec![f.as_uuid()],
                                     Vec::new(),
@@ -277,7 +278,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                                 Some(s),
                                 NavRole::Cable,
                                 &format!("cable:{}:{k}", c.as_uuid()),
-                                short_tag(q, *c),
+                                plain(short_tag(q, *c)),
                                 Vec::new(),
                                 vec![c.as_uuid()],
                                 drawables,
@@ -307,7 +308,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "ports:none",
-            text!("nav-bus-no-net").to_string(),
+            plain(text!("nav-bus-no-net").to_string()),
         );
         for (_, f) in loose {
             port_row(b, g, f, Vec::new());
@@ -345,14 +346,14 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "ports:undrawn",
-            text!("nav-bus-undrawn").to_string(),
+            plain(text!("nav-bus-undrawn").to_string()),
         );
         for (_, id, tag, label) in undrawn {
             let n = b.push(
                 Some(g),
                 NavRole::Device,
                 &format!("undrawn:{}:{label}", id.as_uuid()),
-                format!("{tag} {label}").trim().to_owned(),
+                plain(format!("{tag} {label}").trim().to_owned()),
                 vec!["not drawn".to_owned()],
                 vec![id.as_uuid()],
                 Vec::new(),

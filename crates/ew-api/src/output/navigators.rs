@@ -320,24 +320,21 @@ impl NavRole {
     }
 }
 
-/// One column of a navigator's table.
+/// One column of a navigator's table, its heading a [`crate::Text`] as the session builds it and a string once rendered
+/// ([`NavTable::render`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct NavColumn {
+pub struct NavColumn<W = String> {
     /// The column key (`folio`, `designation`).
     pub key: String,
-    /// The column label (`Folio`, `Designation`).
-    pub label: String,
-    /// The key of its header's words in the session's texts (`column-…`), which the window shows in its language;
-    /// `None` for a column without words of its own, whose label the window shows as it stands.
-    pub label_key: Option<&'static str>,
-    /// Whether the column is derived (drawn italic in table mode).
+    /// The heading (`Folio`, `Designation`): the session's `column-…` words, or the list's heading for a column of a
+    /// list kind.
+    pub label: W,
+    /// Whether the column is derived (drawn italic in table mode, and read-only for that reason).
     pub derived: bool,
     /// Whether it is the key column (frozen at the left in table mode).
     pub key_column: bool,
     /// The edit route `(kind, path)` of the edit mapping (doc 16 §7.2), `None` for a read-only column.
     pub route: Option<(String, String)>,
-    /// Why the column is read-only, when it is.
-    pub read_only: Option<String>,
     /// A strip-editor column whose cells compile through `Session::strip_edit`; `None` elsewhere.
     pub strip_cell: Option<super::strip_edit::StripCell>,
 }
@@ -366,9 +363,10 @@ pub struct NavOpen {
     pub select: Vec<Uuid>,
 }
 
-/// One node of a navigator's tree.
+/// One node of a navigator's tree, its label and cells [`crate::Text`]s as the session builds them and strings once
+/// rendered ([`NavTable::render`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct NavNode {
+pub struct NavNode<W = String> {
     /// The node's key, unique in the table and stable across revisions.
     pub key: String,
     /// The index of the parent node, `None` at the top level.
@@ -376,7 +374,7 @@ pub struct NavNode {
     /// What the node is.
     pub role: NavRole,
     /// The printed label.
-    pub label: String,
+    pub label: W,
     /// The fixed badge words (`unplaced`, `frozen`, `spare`, `generated`, `QET grid`, `main`, `aux`, `external`).
     pub badges: Vec<String>,
     /// The records the row stands for.
@@ -394,30 +392,99 @@ pub struct NavNode {
     /// What Enter opens.
     pub open: Option<NavOpen>,
     /// The cell texts, aligned with the table's columns, for a `table_row` node; empty otherwise.
-    pub cells: Vec<String>,
+    pub cells: Vec<W>,
     /// Whether the node is a row of the table.
     pub table_row: bool,
-    /// The filter tokens: the label and the cells, sorted and deduplicated ([`tokens`]).
+    /// The filter tokens: the rendered label's and cells', and those the session adds (a structure node's aliases),
+    /// sorted and deduplicated ([`tokens`]).
     pub tokens: Vec<String>,
     /// The facets `(name, value)`; a flag has the value `""`.
     pub facets: Vec<(String, String)>,
-    /// The natural keys: the label's, then one per cell.
+    /// The natural keys of the rendered words: the label's, then one per cell. Before rendering, the label's key alone
+    /// where the session ranks the node in its own order.
     pub natural: Vec<NaturalKey>,
 }
 
-/// The table of one navigator at one revision.
+/// The table of one navigator at one revision: its words [`crate::Text`]s as the session builds it
+/// ([`Session::navigator_texts`]), strings once rendered ([`NavTable::render`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct NavTable {
+pub struct NavTable<W = String> {
     /// The navigator.
     pub kind: NavKind,
     /// The revision it was built at.
     pub rev: u64,
     /// The table's columns.
-    pub columns: Vec<NavColumn>,
+    pub columns: Vec<NavColumn<W>>,
     /// The nodes in tree order.
-    pub nodes: Vec<NavNode>,
+    pub nodes: Vec<NavNode<W>>,
     /// Every record and drawable ID to the nodes that carry it, in node order.
     pub index: BTreeMap<Uuid, Vec<u32>>,
+}
+
+impl NavTable<crate::Text> {
+    /// The table in words: every heading, label and cell by `words` (the window's in its language, the command
+    /// line's in English), with each node's filter tokens and natural keys of those words.
+    pub fn render(self, words: impl Fn(&crate::Text) -> String) -> NavTable {
+        let columns = (self.columns.into_iter())
+            .map(|c| NavColumn {
+                label: words(&c.label),
+                key: c.key,
+                derived: c.derived,
+                key_column: c.key_column,
+                route: c.route,
+                strip_cell: c.strip_cell,
+            })
+            .collect();
+        let nodes = (self.nodes.into_iter())
+            .map(|n| {
+                let label = words(&n.label);
+                let cells: Vec<String> = n.cells.iter().map(&words).collect();
+                let mut tokens = n.tokens;
+                tokens.extend(node_tokens(&label, &cells));
+                tokens.sort();
+                tokens.dedup();
+                let mut natural = n.natural;
+                if natural.is_empty() {
+                    natural.push(natural_key(&label));
+                }
+                natural.extend(cells.iter().map(|c| natural_key(c)));
+                NavNode {
+                    key: n.key,
+                    parent: n.parent,
+                    role: n.role,
+                    label,
+                    badges: n.badges,
+                    records: n.records,
+                    kinds: n.kinds,
+                    define_at: n.define_at,
+                    drawables: n.drawables,
+                    open: n.open,
+                    cells,
+                    table_row: n.table_row,
+                    tokens,
+                    facets: n.facets,
+                    natural,
+                }
+            })
+            .collect();
+        NavTable {
+            kind: self.kind,
+            rev: self.rev,
+            columns,
+            nodes,
+            index: self.index,
+        }
+    }
+}
+
+/// A value of a navigator that no language changes (a tag, a folio, a list's cell as printed), as a text.
+fn plain(value: impl Into<String>) -> crate::Text {
+    crate::Text::bare(crate::TextArg::Plain(value.into()))
+}
+
+/// Values that no language changes, as texts ([`plain`]).
+fn plains(values: Vec<String>) -> Vec<crate::Text> {
+    values.into_iter().map(plain).collect()
 }
 
 /// The filter tokens of a text: case-folded and NFC, split at whitespace, at `- . _ : / + = ( ) ,` and
@@ -460,22 +527,11 @@ pub fn nav_natural_key(text: &str) -> NaturalKey {
     natural_key(text)
 }
 
-/// The tokens of a label and its cells, sorted and deduplicated.
+/// The tokens of a label and its cells.
 fn node_tokens(label: &str, cells: &[String]) -> Vec<String> {
-    let mut t: Vec<String> = std::iter::once(label)
-        .chain(cells.iter().map(String::as_str))
-        .flat_map(tokens)
-        .collect();
-    t.sort();
-    t.dedup();
-    t
-}
-
-/// The natural keys of a label and its cells.
-fn natural(label: &str, cells: &[String]) -> Vec<NaturalKey> {
     std::iter::once(label)
         .chain(cells.iter().map(String::as_str))
-        .map(natural_key)
+        .flat_map(tokens)
         .collect()
 }
 
@@ -491,7 +547,7 @@ pub(super) fn state_word(s: &DeviceState) -> &'static str {
 
 /// A table under construction.
 struct Builder {
-    nodes: Vec<NavNode>,
+    nodes: Vec<NavNode<crate::Text>>,
 }
 
 impl Builder {
@@ -502,11 +558,11 @@ impl Builder {
         parent: Option<u32>,
         role: NavRole,
         segment: &str,
-        label: String,
+        label: crate::Text,
         badges: Vec<String>,
         records: Vec<Uuid>,
         drawables: Vec<Drawable>,
-        cells: Option<Vec<String>>,
+        cells: Option<Vec<crate::Text>>,
         facets: Vec<(String, String)>,
     ) -> u32 {
         let key = match parent {
@@ -528,8 +584,8 @@ impl Builder {
             key,
             parent,
             role,
-            tokens: node_tokens(&label, &cells),
-            natural: natural(&label, &cells),
+            tokens: Vec::new(),
+            natural: Vec::new(),
             label,
             badges,
             records,
@@ -545,7 +601,7 @@ impl Builder {
     }
 
     /// The table with its index.
-    fn finish(self, kind: NavKind, rev: u64) -> NavTable {
+    fn finish(self, kind: NavKind, rev: u64) -> NavTable<crate::Text> {
         let mut index: BTreeMap<Uuid, Vec<u32>> = BTreeMap::new();
         for (i, n) in self.nodes.iter().enumerate() {
             let i = u32::try_from(i).unwrap_or(u32::MAX);
@@ -575,14 +631,20 @@ impl Session {
     /// merge evidence (the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
     /// change of that evidence without a new revision shows at the next revision.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
-        self.navigator_table_in(kind, None)
+        self.navigator_texts_in(kind, None).render(ToString::to_string)
     }
 
-    /// [`Session::navigator_table`] with the texts of the fluid tables (a port role, a line kind, a length source) and
+    /// [`Session::navigator_table`] before its words are rendered: every heading, label and cell a [`crate::Text`],
+    /// which the window renders in its language ([`NavTable::render`]).
+    pub fn navigator_texts(&self, kind: NavKind) -> NavTable<crate::Text> {
+        self.navigator_texts_in(kind, None)
+    }
+
+    /// [`Session::navigator_texts`] with the texts of the fluid tables (a port role, a line kind, a length source) and
     /// the groups the navigators name in words (the connections' Bridges, a group without a potential, a function, a
     /// location or a manufacturer: "(none)") in language `lang` (`en-GB`, `nl-NL`; `None` or another: neutral, as
     /// their CSV prints them), as the window shows them.
-    pub fn navigator_table_in(&self, kind: NavKind, lang: Option<&str>) -> NavTable {
+    pub fn navigator_texts_in(&self, kind: NavKind, lang: Option<&str>) -> NavTable<crate::Text> {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
         let q = self.query();
@@ -617,6 +679,12 @@ impl Session {
 pub(super) fn words_in(t: &crate::Text, lang: Option<&str>) -> String {
     let tag = lang.and_then(|l| l.parse::<ew_mltext::LangTag>().ok());
     crate::output::print::in_print_language(t, tag.as_ref())
+}
+
+/// The columns of navigator `kind`'s table, their headings as texts: the headings of [`Session::navigator_texts`]
+/// without building its rows (a heading pasted in another language).
+pub fn navigator_columns(kind: NavKind) -> Vec<NavColumn<crate::Text>> {
+    columns_of(kind)
 }
 
 /// The page order's folio and position of every drawn page.
@@ -689,7 +757,7 @@ impl Drawable {
 // The node helpers the providers share (each provider is its own file in `navigators/`)
 
 /// A plain group node (no records, no cells): a potential, a strip heading, a section, an aspect, a manufacturer.
-fn group(b: &mut Builder, parent: Option<u32>, role: NavRole, segment: &str, label: String) -> u32 {
+fn group(b: &mut Builder, parent: Option<u32>, role: NavRole, segment: &str, label: crate::Text) -> u32 {
     b.push(
         parent,
         role,
@@ -982,9 +1050,8 @@ mod tests {
 
     /// TB1: each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
     /// a scalar `FieldType`, and the catalogue's identifier flag (which table mode's policy reads) is set exactly for
-    /// the identifier rows (the terminal designation, the potential's name and the structure node's code); every
-    /// column of every navigator carries the route or the read-only reason of the precedence at column level
-    /// ("derived" before "no command yet").
+    /// the identifier rows (the terminal designation, the potential's name and the structure node's code); a column of
+    /// any other navigator has no route.
     #[test]
     fn the_editable_columns_are_scalar_fields_set_routes_of_the_catalogue() {
         use crate::output::{EditRoute, field_catalogue};
@@ -1034,7 +1101,6 @@ mod tests {
                 .find(|c| c.key == key)
                 .unwrap_or_else(|| panic!("{nav:?}: no column {key}"));
             assert_eq!(col.route, Some((kind.to_owned(), path.to_owned())));
-            assert_eq!(col.read_only, None);
             assert!(!col.derived);
         }
         for nav in NavKind::ALL {
@@ -1042,21 +1108,10 @@ mod tests {
                 let listed = EDITABLE_COLUMNS
                     .iter()
                     .any(|(n, k, _, _)| *n == nav.source() && *k == c.key);
-                match (listed, c.derived) {
-                    (true, _) => assert!(c.route.is_some(), "{nav:?}.{}", c.key),
-                    (false, true) => {
-                        assert_eq!(c.read_only.as_deref(), Some("derived"), "{nav:?}.{}", c.key);
-                        assert_eq!(c.route, None);
-                    }
-                    (false, false) => {
-                        assert_eq!(
-                            c.read_only.as_deref(),
-                            Some("no command yet"),
-                            "{nav:?}.{}",
-                            c.key
-                        );
-                        assert_eq!(c.route, None);
-                    }
+                if listed {
+                    assert!(c.route.is_some(), "{nav:?}.{}", c.key);
+                } else {
+                    assert_eq!(c.route, None, "{nav:?}.{}", c.key);
                 }
             }
         }

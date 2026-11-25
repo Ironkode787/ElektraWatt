@@ -13,6 +13,7 @@ use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::Representation;
 
 use super::{Builder, NavRole, base_facets, drawable, folios, group, sorted};
+use super::{plain, plains};
 
 /// Interruption points: name → point rows, from the interruption-point pairing.
 pub(super) fn ips_table(q: &Q, b: &mut Builder) {
@@ -43,7 +44,7 @@ pub(super) fn ips_table(q: &Q, b: &mut Builder) {
                     None,
                     NavRole::Name,
                     &format!("name:{}", info.name),
-                    info.name.clone(),
+                    plain(info.name.clone()),
                 );
                 names.insert(info.name.clone(), n);
                 n
@@ -89,11 +90,15 @@ pub(super) fn ips_table(q: &Q, b: &mut Builder) {
             Some(gnode),
             NavRole::Ip,
             &format!("ip:{}", info.function.as_uuid()),
-            if pc.is_empty() { info.name.clone() } else { pc },
+            if pc.is_empty() {
+                plain(info.name.clone())
+            } else {
+                plain(pc)
+            },
             badges,
             vec![info.function.as_uuid()],
             drawables,
-            Some(cells),
+            Some(plains(cells)),
             facets,
         );
     }

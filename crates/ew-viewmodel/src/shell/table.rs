@@ -1332,15 +1332,16 @@ impl ShellModel {
         };
         let fold = |s: &str| s.trim().to_lowercase();
         // A column's header in the window's language, in any shipped language (a copy made in en-GB, a
-        // `table_export` file) by the key of the session's texts the column carries, or as its key.
+        // `table_export` file) by the column's heading, or as its key.
+        let headings = ew_api::output::navigator_columns(view.table.kind);
         let labels: Vec<Vec<String>> = view
             .shown
             .iter()
             .map(|i| {
                 let c = &view.table.columns[*i];
                 let mut names = vec![fold(&c.label), fold(&c.key)];
-                if let Some(key) = c.label_key {
-                    names.extend(strings::shipped_texts(key).into_iter().map(|(_, t)| fold(t)));
+                if let Some(h) = headings.get(*i) {
+                    names.extend(strings::shipped_renders(&h.label).iter().map(|t| fold(t)));
                 }
                 names
             })

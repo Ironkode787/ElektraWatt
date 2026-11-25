@@ -284,34 +284,24 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
         .expect("the navigator's table")
 }
 
-/// Every navigator's column header has its text in both locales, the en-GB one
-/// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
-/// in nl-NL the window's tables show the
-/// Dutch headers and the Devices tree its badges, its group without a function ("(geen)") and its kinds in Dutch, the
+/// Every navigator's column heading has its words in both locales, the en-GB ones the label `ew-api` gives; in nl-NL
+/// the window's tables show the Dutch headers and the Devices tree its badges, its group without a function ("(geen)") and its kinds in Dutch, the
 /// generic rule's kinds by their segments' words ("3P-handschakelaar", "Geluiddemper").
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
         ew_api::Session::open_read_only(std::path::Path::new(crate::common::SAMPLE), "test").unwrap();
-    let mut wanted = BTreeSet::new();
     let mut wrong = Vec::new();
     for kind in NavKind::ALL {
-        for c in session.navigator_table(kind).columns {
-            let key = c.key.replace('_', "-");
-            let own = format!("column-{}-{key}", kind.source().word());
-            let key = if strings::has_key(&own) {
-                own
-            } else {
-                format!("column-{key}")
-            };
-            if strings::lookup(&key) != Some(c.label.as_str()) {
-                wrong.push(format!("{key}: {:?} is not {:?}", strings::lookup(&key), c.label));
+        let english = session.navigator_table(kind).columns;
+        for (c, shown) in ew_api::output::navigator_columns(kind).iter().zip(english) {
+            let words = strings::shipped_renders(&c.label);
+            if words.len() != 2 || words[0] != shown.label {
+                wrong.push(format!("{kind:?} {}: {words:?} for {:?}", c.key, shown.label));
             }
-            wanted.insert(key);
         }
     }
     assert_eq!(wrong, Vec::<String>::new());
-    assert_eq!(missing(&wanted), Vec::<String>::new());
     let tmp = Tmp::new("ft1264");
     let mut shell = tmp.sample_shell("102");
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));

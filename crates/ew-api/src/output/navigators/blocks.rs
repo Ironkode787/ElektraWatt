@@ -11,6 +11,7 @@ use ew_derive::{PageOrder, PageRef, Q};
 use ew_ids::{Id, Uuid};
 
 use super::{Builder, NavOpen, NavRole, group};
+use super::{plain, plains};
 
 pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
     use ew_schema::{ReportBlock, ReportSource, Section};
@@ -81,7 +82,7 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
                     ),
                     _ => ("section:front".to_owned(), "Front matter".to_owned()),
                 };
-                let n = group(b, None, NavRole::Section, &segment, label);
+                let n = group(b, None, NavRole::Section, &segment, plain(label));
                 sections.insert(number, n);
                 n
             }
@@ -91,11 +92,11 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
             Some(snode),
             NavRole::ReportBlock,
             &format!("report_block:{id}"),
-            cells[0].clone(),
+            plain(cells[0].clone()),
             Vec::new(),
             vec![id],
             Vec::new(),
-            Some(cells),
+            Some(plains(cells)),
             facets,
         );
         // A paged block opens its first generated page with the block selected (R30 F9).

@@ -13,6 +13,7 @@ use ew_mltext::natural_key;
 use ew_rds::Aspect;
 
 use super::{Builder, NavRole, group, row_entity, tokens};
+use super::{plain, plains};
 
 /// Structure identifiers: aspect → structure nodes (nested by `parent`), the structure-node rows of the
 /// structure overview with a `usage` column (the devices and pages that name the node). A node's aliases are filter
@@ -60,7 +61,7 @@ pub(super) fn structure_table(q: &Q, b: &mut Builder) {
             Some(a) => (NavRole::StructureNode, a.as_str()),
             None => (NavRole::StructureNode, "unknown"),
         };
-        let anode = group(b, None, role, &format!("aspect:{word}"), word.to_owned());
+        let anode = group(b, None, role, &format!("aspect:{word}"), plain(word.to_owned()));
         let mine: Vec<&(Id<StructureNode>, Vec<String>)> =
             rows.iter().filter(|(id, _)| aspect_of(*id) == aspect).collect();
         // Parents first (by depth), then natural designation; a parent outside the aspect puts the node under it.
@@ -84,11 +85,11 @@ pub(super) fn structure_table(q: &Q, b: &mut Builder) {
                 Some(parent),
                 NavRole::StructureNode,
                 &format!("structure_node:{}", id.as_uuid()),
-                texts.first().cloned().unwrap_or_default(),
+                plain(texts.first().cloned().unwrap_or_default()),
                 Vec::new(),
                 vec![id.as_uuid()],
                 Vec::new(),
-                Some(texts.clone()),
+                Some(plains(texts.clone())),
                 facets,
             );
             if let Some(node) = q.structure_nodes().get(*id) {

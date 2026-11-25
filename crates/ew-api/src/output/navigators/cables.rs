@@ -13,6 +13,7 @@ use ew_ids::{Id, Uuid};
 use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawables, device_drawables, folios, row_entity,
 };
+use super::{plain, plains};
 
 // Cables: the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
 /// the headings are dropped.
@@ -47,11 +48,11 @@ pub(super) fn cables_table(q: &Q, b: &mut Builder) {
                     None,
                     NavRole::Cable,
                     &format!("cable:{cable}"),
-                    label,
+                    plain(label),
                     Vec::new(),
                     vec![cable],
                     drawables,
-                    Some(texts),
+                    Some(plains(texts)),
                     facets,
                 );
                 cables.insert(cable, n);
@@ -94,11 +95,11 @@ pub(super) fn cables_table(q: &Q, b: &mut Builder) {
                     Some(parent),
                     NavRole::Conductor,
                     &format!("conductor:{core}"),
-                    label,
+                    plain(label),
                     Vec::new(),
                     vec![cable, core],
                     drawables,
-                    Some(texts),
+                    Some(plains(texts)),
                     facets,
                 );
             }

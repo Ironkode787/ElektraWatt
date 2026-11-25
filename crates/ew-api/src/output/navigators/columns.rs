@@ -13,57 +13,45 @@ use super::libraries;
 use super::messages::MESSAGE_COLUMNS;
 use super::plc::PLC_COLUMNS;
 use super::{NavColumn, NavKind};
+use crate::{Text, TextArg};
 
-/// A column of a report kind or of this module: its label, no route, read-only with "no command yet" unless a route
-/// is given.
-pub(super) fn column(key: &str, label: &str, key_column: bool, route: Option<(&str, &str)>) -> NavColumn {
+/// A column with its heading, no route.
+fn column(key: &str, label: Text, key_column: bool) -> NavColumn<Text> {
     NavColumn {
         key: key.to_owned(),
-        label: label.to_owned(),
-        label_key: None,
+        label,
         derived: false,
         key_column,
-        route: route.map(|(k, p)| (k.to_owned(), p.to_owned())),
-        read_only: route.is_none().then(|| "no command yet".to_owned()),
+        route: None,
         strip_cell: None,
     }
 }
 
-/// A column named by the key `text` of its header's words: its label their English.
-fn keyed(key: &str, text: &'static str, key_column: bool) -> NavColumn {
-    NavColumn {
-        label_key: Some(text),
-        ..column(key, crate::text_english(text).unwrap_or(text), key_column, None)
-    }
+/// A column headed by the session's words of the key `text` (`column-…`).
+pub(super) fn keyed(key: &str, text: &'static str, key_column: bool) -> NavColumn<Text> {
+    let label = Text::checked_by_macro(text, crate::text_english(text).unwrap_or("?"), Vec::new());
+    column(key, label, key_column)
 }
 
-/// The key of the header's words of column `key` of navigator `kind` in the session's texts: `column-<navigator>-<key>`
-/// where that navigator's header differs, else `column-<key>`, the key's `_` read as `-`; `None` for a column with
-/// no words of its own.
-fn column_key(kind: NavKind, key: &str) -> Option<&'static str> {
-    let key = key.replace('_', "-");
-    let find = |wanted: String| {
-        crate::TEXTS
-            .binary_search_by(|(k, _)| (*k).cmp(wanted.as_str()))
-            .ok()
-            .map(|i| crate::TEXTS[i].0)
-    };
-    find(format!("column-{}-{key}", kind.source().word())).or_else(|| find(format!("column-{key}")))
-}
-
-/// The columns of a report kind, the first one the key column.
-fn kind_columns(kind: &ReportKind) -> Vec<NavColumn> {
+/// The columns of a report kind, the first one the key column, each headed by the list's own heading (in every
+/// language of the list texts) except the columns `own` heads by the session's words (key, `column-…`), where the
+/// navigator words a heading apart from the printed list.
+fn kind_columns(kind: &ReportKind, own: &[(&str, &'static str)]) -> Vec<NavColumn<Text>> {
     ew_reports::Registry::builtin()
         .get(kind)
         .map(|k| {
-            k.columns()
-                .iter()
-                .enumerate()
-                .map(|(i, c)| column(&c.key, &crate::output::view::neutral(&c.label), i == 0, None))
+            (k.columns().iter().enumerate())
+                .map(|(i, c)| match own.iter().find(|(key, _)| *key == c.key) {
+                    Some((_, text)) => keyed(&c.key, text, i == 0),
+                    None => column(&c.key, Text::bare(TextArg::Ml(c.label.clone())), i == 0),
+                })
                 .collect()
         })
         .unwrap_or_default()
 }
+
+/// A wire's, a core's and a potential's colour reads "Aderkleur" in the navigators, where the lists print "Kleur".
+const CORE_COLOUR: [(&str, &str); 1] = [("colour", key!("column-colour"))];
 
 /// The editable columns of table mode: (navigator, column key, route kind, route path).
 /// Every other column is read-only.
@@ -161,14 +149,11 @@ const STRIP_CELLS: [(&str, crate::output::strip_edit::StripCell); 3] = [
 ];
 
 /// The columns of a navigator with the editable-cell routes and the derived flags.
-pub(super) fn columns_of(kind: NavKind) -> Vec<NavColumn> {
+pub(super) fn columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
     // The PLC grid has the PLC navigator's columns.
     let kind = kind.source();
     let mut columns = plain_columns_of(kind);
     for c in &mut columns {
-        if c.label_key.is_none() {
-            c.label_key = column_key(kind, &c.key);
-        }
         if kind == NavKind::Strips
             && let Some((_, cell)) = STRIP_CELLS.iter().find(|(k, _)| *k == c.key)
         {
@@ -177,44 +162,42 @@ pub(super) fn columns_of(kind: NavKind) -> Vec<NavColumn> {
         if DERIVED_COLUMNS.contains(&(kind, c.key.as_str())) {
             c.derived = true;
             c.route = None;
-            c.read_only = Some("derived".to_owned());
         } else if let Some((_, _, k, p)) = EDITABLE_COLUMNS
             .iter()
             .find(|(n, key, _, _)| *n == kind && *key == c.key)
         {
             c.route = Some(((*k).to_owned(), (*p).to_owned()));
-            c.read_only = None;
         }
     }
     columns
 }
 
 /// The columns of a navigator before the editable-cell routes.
-fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
-    let own = |keys: &[(&str, &'static str)]| -> Vec<NavColumn> {
+fn plain_columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
+    let own = |keys: &[(&str, &'static str)]| -> Vec<NavColumn<Text>> {
         keys.iter()
             .enumerate()
             .map(|(i, (k, text))| keyed(k, text, i == 0))
             .collect()
     };
     match kind.source() {
-        NavKind::Pages => vec![
-            column("folio", "Folio", true, None),
-            column("title", "Title", false, None),
-            column("type", "Type", false, None),
-            column("frame", "Frame", false, None),
-            column("generated", "Generated", false, None),
+        NavKind::Pages => own(&[
+            ("folio", key!("column-folio")),
+            ("title", key!("column-title")),
+            ("type", key!("column-type")),
+            ("frame", key!("column-frame")),
+            ("generated", key!("column-generated")),
             // The page change status of doc 15 §5.6.
-            column("changed_in", "Changed in", false, None),
-        ],
-        NavKind::Devices => kind_columns(&ReportKind::StructureOverview),
-        NavKind::Connections => kind_columns(&ReportKind::WireList),
+            ("changed_in", key!("column-changed-in")),
+        ]),
+        NavKind::Devices => kind_columns(&ReportKind::StructureOverview, &[]),
+        NavKind::Connections => kind_columns(&ReportKind::WireList, &CORE_COLOUR),
         // `pos` after `strip`, `bridge_part` after `bridge`; the list's own `strip` column is the first, and its `level`
         // column is the printed list's alone.
         NavKind::Strips => {
             let mut c = own(&[("strip", key!("column-strip"))]);
-            c.push(column("pos", "Pos", false, None));
-            for mut k in kind_columns(&ReportKind::TerminalDiagram)
+            c.push(keyed("pos", key!("column-pos"), false));
+            for mut k in kind_columns(&ReportKind::TerminalDiagram, &[])
                 .into_iter()
                 .filter(|k| k.key != "strip" && k.key != "level")
             {
@@ -222,7 +205,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
                 let bridge = k.key == "bridge";
                 c.push(k);
                 if bridge {
-                    c.push(column("bridge_part", "Bridge part", false, None));
+                    c.push(keyed("bridge_part", key!("column-bridge-part"), false));
                 }
             }
             c
@@ -230,7 +213,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         // The cable overview's columns (a core row's From and To are the far ends of its
         // wires, as the cable diagram prints them), then a core's derived potential, its shield flag and pair.
         NavKind::Cables => {
-            let mut c = kind_columns(&ReportKind::CableOverviewDiagrams);
+            let mut c = kind_columns(&ReportKind::CableOverviewDiagrams, &CORE_COLOUR);
             c.extend(
                 [
                     ("potential", key!("column-potential")),
@@ -242,20 +225,12 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             c
         }
         // The PLC grid's own columns; the first, Address, is the key column.
-        NavKind::Plc | NavKind::PlcGrid => PLC_COLUMNS
-            .iter()
-            .enumerate()
-            .map(|(i, (k, text))| keyed(k, text, i == 0))
-            .collect(),
-        NavKind::Bus => BUS_COLUMNS
-            .iter()
-            .enumerate()
-            .map(|(i, (k, text))| keyed(k, text, i == 0))
-            .collect(),
+        NavKind::Plc | NavKind::PlcGrid => own(&PLC_COLUMNS),
+        NavKind::Bus => own(&BUS_COLUMNS),
         // The fluid navigator's table mode lists its tubes (`NavKind::source`).
-        NavKind::Fluid | NavKind::Tubes => kind_columns(&ReportKind::TubeList),
-        NavKind::Media => kind_columns(&ReportKind::MediumOverview),
-        NavKind::Potentials => kind_columns(&ReportKind::PotentialOverview),
+        NavKind::Fluid | NavKind::Tubes => kind_columns(&ReportKind::TubeList, &[]),
+        NavKind::Media => kind_columns(&ReportKind::MediumOverview, &[]),
+        NavKind::Potentials => kind_columns(&ReportKind::PotentialOverview, &CORE_COLOUR),
         NavKind::Ips => own(&[
             ("name", key!("column-name")),
             ("page_cell", key!("column-page-cell")),
@@ -264,11 +239,11 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             ("external", key!("column-external")),
         ]),
         NavKind::Structure => {
-            let mut c = kind_columns(&ReportKind::StructureOverview);
-            c.push(column("usage", "Usage", false, None));
+            let mut c = kind_columns(&ReportKind::StructureOverview, &[]);
+            c.push(keyed("usage", key!("column-usage"), false));
             c
         }
-        NavKind::Parts => kind_columns(&ReportKind::PartsSummary),
+        NavKind::Parts => kind_columns(&ReportKind::PartsSummary, &[]),
         NavKind::Blocks => own(&[
             ("title", key!("column-title")),
             ("kind", key!("column-kind")),
@@ -278,22 +253,20 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         ]),
         // The device (the key column, as the tree row names it in table mode), Part,
         // W × H (mm), Mount.
-        NavKind::Unplaced => vec![
-            column("device", "Device", true, None),
-            column("part", "Part", false, None),
-            column("size", "W × H (mm)", false, None),
-            column("mount", "Mount", false, None),
-        ],
+        NavKind::Unplaced => own(&[
+            ("device", key!("column-device")),
+            ("part", key!("column-part")),
+            ("size", key!("column-size")),
+            ("mount", key!("column-mount")),
+        ]),
         // The Macros and Libraries navigators' own columns.
-        NavKind::Macros => libraries::columns(&libraries::MACRO_COLUMNS),
-        NavKind::Libraries => libraries::columns(&libraries::LIBRARY_COLUMNS),
+        NavKind::Macros => own(&libraries::MACRO_COLUMNS),
+        NavKind::Libraries => own(&libraries::LIBRARY_COLUMNS),
         // Every column is derived and read-only; `rule` is the key column.
         NavKind::Messages => MESSAGE_COLUMNS
             .iter()
             .map(|(k, text)| NavColumn {
                 derived: true,
-                route: None,
-                read_only: Some("derived".to_owned()),
                 ..keyed(k, text, *k == "rule")
             })
             .collect(),

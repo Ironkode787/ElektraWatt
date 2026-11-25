@@ -179,19 +179,21 @@ struct Locale {
 }
 
 impl Locale {
-    /// The language `tag` from the Fluent sources `sources`, formatted for the keys of `en_gb` (its own keys when
-    /// it is en-GB). A resource that does not parse is a defect the tests catch (`every_shipped_resource_parses`); the
+    /// The language `tag` from the Fluent sources `sources` of the shipped language `shipped` (`nl-NL` for `nl`: a
+    /// name written in several languages reads in it), formatted for the keys of `en_gb` (its own keys when it is
+    /// en-GB). A resource that does not parse is a defect the tests catch (`every_shipped_resource_parses`); the
     /// entries that parse are still served, and a duplicate entry keeps the first (the tests reject duplicates). A
     /// pattern that resolves with an error keeps the text Fluent writes.
     fn from_sources<'s>(
         tag: &str,
+        shipped: &str,
         sources: impl IntoIterator<Item = &'s str>,
         en_gb: Option<&Language>,
     ) -> Locale {
         // `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
         // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it.
         let language = Language::new(
-            tag,
+            shipped,
             sources,
             &[("IN_SENTENCE", |_, label| in_sentence(label))],
             false,
@@ -273,13 +275,13 @@ fn arguments(values: &[String]) -> Vec<(&'static str, Value<'_>)> {
 /// en-GB, loaded once.
 fn en_gb() -> &'static Locale {
     static EN: OnceLock<Locale> = OnceLock::new();
-    EN.get_or_init(|| Locale::from_sources("en-GB", sources("en-GB"), None))
+    EN.get_or_init(|| Locale::from_sources("en-GB", "en-GB", sources("en-GB"), None))
 }
 
 /// nl-NL, loaded once on its first use; its tag is the settings value `nl`.
 fn nl_nl() -> &'static Locale {
     static NL: OnceLock<Locale> = OnceLock::new();
-    NL.get_or_init(|| Locale::from_sources("nl", sources("nl-NL"), en_gb().language.as_ref()))
+    NL.get_or_init(|| Locale::from_sources("nl", "nl-NL", sources("nl-NL"), en_gb().language.as_ref()))
 }
 
 /// The languages loaded besides en-GB: the pseudo-locale once selected, and the test languages of a debug build.
@@ -390,6 +392,7 @@ pub fn rule_language() -> &'static str {
 pub fn register_locale_for_tests(tag: &str, source: &str) {
     let locale: &'static Locale = Box::leak(Box::new(Locale::from_sources(
         tag,
+        tag,
         [source],
         en_gb().language.as_ref(),
     )));
@@ -436,6 +439,15 @@ pub fn shipped_texts(key: &str) -> Vec<(&'static str, &'static str)> {
     [("en-GB", en_gb()), ("nl-NL", nl_nl())]
         .into_iter()
         .filter_map(|(tag, l)| Some((tag, *l.texts.get(key)?)))
+        .collect()
+}
+
+/// `text` rendered in each shipped language that has words for it (`en-GB` first): a column heading pasted from a
+/// copy made in another language.
+pub fn shipped_renders(text: &ew_api::Text) -> Vec<String> {
+    [en_gb(), nl_nl()]
+        .into_iter()
+        .filter_map(|l| l.language.as_ref()?.text_with(text, OnError::Miss, &|_| None))
         .collect()
 }
 

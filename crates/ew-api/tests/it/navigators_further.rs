@@ -101,7 +101,8 @@ const NAMED: [&str; 7] = ["L1", "L2", "L3", "N", "PE", "24V", "0V"];
 fn the_navigators_group_words_read_in_the_tables_language() {
     let s = common::sample();
     let label = |kind: NavKind, key: &str, lang: Option<&str>| {
-        s.navigator_table_in(kind, lang)
+        s.navigator_texts_in(kind, lang)
+            .render(ToString::to_string)
             .nodes
             .iter()
             .find(|n| n.key.ends_with(key))

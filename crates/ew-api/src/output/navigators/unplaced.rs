@@ -9,6 +9,7 @@
 use ew_derive::Q;
 
 use super::{Builder, NavRole};
+use super::{plain, plains};
 use crate::output::layout_edit::mm_text;
 
 /// The Unplaced devices tree (doc 16 §5.2's row): one location node per layout space (its
@@ -33,7 +34,7 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Location,
             &format!("space:{}", sid.as_uuid()),
-            location,
+            plain(location),
             Vec::new(),
             vec![space.location.as_uuid()],
             Vec::new(),
@@ -81,11 +82,11 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
                 Some(lnode),
                 NavRole::Device,
                 &format!("device:{}", d.as_uuid()),
-                label,
+                plain(label),
                 badges,
                 vec![d.as_uuid()],
                 Vec::new(),
-                Some(cells),
+                Some(plains(cells)),
                 vec![("kind".to_owned(), "device".to_owned())],
             );
         }

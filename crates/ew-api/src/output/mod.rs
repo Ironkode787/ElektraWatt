@@ -160,7 +160,7 @@ pub use natures::Natures;
 pub use navigators::{
     Drawable, EARTH_CONNECTION, FIX_ALL, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail,
     MacroVariable, NOT_DRAWN, NaturalKey, NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid,
-    names_subject, nav_natural_key, tokens as nav_tokens, v5,
+    names_subject, nav_natural_key, navigator_columns, tokens as nav_tokens, v5,
 };
 pub use panel::{
     LEGEND_COLUMNS, LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelPlacement, PanelTables,

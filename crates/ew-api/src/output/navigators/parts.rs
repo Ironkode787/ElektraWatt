@@ -12,6 +12,7 @@ use ew_ids::Id;
 use ew_schema::Device;
 
 use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, group, row_segment};
+use super::{plain, plains};
 use ew_derive::short_tag;
 
 /// Parts in use: manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
@@ -40,7 +41,7 @@ pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                     None,
                     NavRole::Manufacturer,
                     &format!("manufacturer:{maker}"),
-                    maker.clone(),
+                    plain(maker.clone()),
                 );
                 makers.insert(maker, n);
                 n
@@ -56,11 +57,11 @@ pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             Some(mnode),
             NavRole::Part,
             &format!("part:{}", row_segment(&r.id)),
-            number.clone(),
+            plain(number.clone()),
             Vec::new(),
             devices.iter().map(|d| d.as_uuid()).collect(),
             Vec::new(),
-            Some(texts),
+            Some(plains(texts)),
             facets,
         );
         for d in devices {
@@ -73,7 +74,7 @@ pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                 Some(pnode),
                 NavRole::Device,
                 &format!("device:{}", d.as_uuid()),
-                short_tag(q, d),
+                plain(short_tag(q, d)),
                 Vec::new(),
                 vec![d.as_uuid()],
                 drawables,

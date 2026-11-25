@@ -848,7 +848,8 @@ impl ShellModel {
             } else {
                 let mut table = project
                     .session
-                    .navigator_table_in(k, Some(strings::rule_language()));
+                    .navigator_texts_in(k, Some(strings::rule_language()))
+                    .render(nav_words);
                 table_in_words(&mut table, project);
                 table
             };
@@ -868,7 +869,7 @@ impl ShellModel {
             .is_some_and(|n| n.table().is_none_or(|t| Some(t.rev) != rev))
             && let Some(project) = &self.project
         {
-            let mut table = project.session.navigator_table(NavKind::Pages);
+            let mut table = project.session.navigator_texts(NavKind::Pages).render(nav_words);
             table_in_words(&mut table, project);
             bump(&self.calls, |c| c.navigator_table += 1);
             if let Some(n) = self.pages_table.as_mut() {
@@ -1949,6 +1950,15 @@ fn json_map(v: Value) -> Map<String, Value> {
     }
 }
 
+/// A navigator's words in the UI language: a value no language changes (a tag, a folio) as it is, any other text
+/// rendered ([`strings::render`]).
+pub(super) fn nav_words(text: &ew_api::Text) -> String {
+    match (text.is_bare(), text.args()) {
+        (true, [ew_api::TextArg::Plain(value)]) => value.clone(),
+        _ => strings::render(text),
+    }
+}
+
 /// A library row's tier, access and index state in the UI language: the tier by its facet, the access
 /// by the `writable` facet, the state cell's index words and an unreadable profile's note by their closed English forms
 /// (`ew-api`'s `index_word` and `ew_derive::unreadable_profile`), any other note as it is.
@@ -2012,12 +2022,6 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
 pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &super::Project) {
     // The PLC grid's texts are the PLC navigator's.
     let nav = table.kind.source().word();
-    // Each header by the key the session names it by.
-    for c in &mut table.columns {
-        if let Some(text) = c.label_key.and_then(strings::lookup) {
-            c.label = text.to_owned();
-        }
-    }
     let lang = strings::rule_language();
     let report = (table.kind == NavKind::Messages && lang != "en-GB").then(|| {
         project

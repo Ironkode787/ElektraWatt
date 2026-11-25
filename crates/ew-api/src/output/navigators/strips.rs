@@ -13,6 +13,7 @@ use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{Device, DeviceState};
 
 use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, row_entity, state_word};
+use super::{plain, plains};
 use ew_derive::short_tag;
 
 /// The strips of the project in natural tag order.
@@ -82,7 +83,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Strip,
             &format!("strip:{}", strip.as_uuid()),
-            tag.clone(),
+            plain(tag.clone()),
             badges,
             vec![strip.as_uuid()],
             drawables,
@@ -128,11 +129,11 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                     Some(snode),
                     NavRole::Accessory,
                     &format!("accessory:{}", a.index),
-                    a.word.to_owned(),
+                    plain(a.word.to_owned()),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
-                    Some(cells),
+                    Some(plains(cells)),
                     facets,
                 );
                 next_accessory += 1;
@@ -207,11 +208,11 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                 Some(snode),
                 NavRole::Terminal,
                 &key,
-                label,
+                plain(label),
                 badges,
                 vec![t],
                 drawables,
-                Some(cells),
+                Some(plains(cells)),
                 facets,
             );
             push_accessories(b, Some(k));

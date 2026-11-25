@@ -17,13 +17,14 @@ use super::{
     Builder, Drawable, FIX_ALL, NavKind, NavOpen, NavRole, NavTable, connection_drawables, device_drawables,
     drawable, drawn_as_members, folios, group, sorted,
 };
+use super::{plain, plains};
 use crate::Session;
 
 impl Session {
     /// The Messages table of the migration report (d, T11): the tree of [`Session::navigator_table`]'s
     /// Messages from a run of the `migration` scheme at the release mode, the import runs' findings among the live
     /// ones.
-    pub fn migration_table(&self) -> NavTable {
+    pub fn migration_table(&self) -> NavTable<crate::Text> {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
         let q = self.query();
@@ -124,12 +125,9 @@ fn target_drawables(
     }
 }
 
-/// Sets a node's first natural key to its rank (its index), so that the default label sort keeps the provider's order.
+/// Sets a node's label key to its rank (its index), so that the default label sort keeps the provider's order.
 fn rank(b: &mut Builder, at: u32) {
-    let r = natural_key(&at.to_string());
-    if let Some(first) = b.nodes[at as usize].natural.first_mut() {
-        *first = r;
-    }
+    b.nodes[at as usize].natural = vec![natural_key(&at.to_string())];
 }
 
 impl Session {
@@ -171,7 +169,7 @@ impl Session {
                 None,
                 NavRole::Severity,
                 &format!("severity:{word}"),
-                label.to_owned(),
+                plain(label.to_owned()),
             );
             rank(b, snode);
             let rules: std::collections::BTreeSet<&'static str> =
@@ -200,8 +198,8 @@ impl Session {
                     NavRole::Rule,
                     &format!("rule:{rule}"),
                     match meta.map(|m| m.title()) {
-                        Some(title) if !title.is_empty() => format!("{rule} {title}"),
-                        _ => rule.to_owned(),
+                        Some(title) if !title.is_empty() => plain(format!("{rule} {title}")),
+                        _ => plain(rule),
                     },
                     badges,
                     Vec::new(),
@@ -366,11 +364,11 @@ fn finding_node(
         Some(parent),
         NavRole::Finding,
         &format!("finding:{}", f.fingerprint),
-        label,
+        plain(label),
         badges,
         records,
         drawables,
-        Some(cells),
+        Some(plains(cells)),
         facets,
     );
     rank(b, at);

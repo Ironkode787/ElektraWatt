@@ -17,6 +17,7 @@ use super::{
     Builder, Drawable, NOT_DRAWN, NavOpen, NavRole, base_facets, device_drawables, drawable, folios, group,
     sorted,
 };
+use super::{plain, plains};
 use crate::Session;
 use ew_derive::short_tag;
 
@@ -176,7 +177,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                 None,
                 NavRole::Section,
                 "cards:none",
-                text!("nav-plc-no-cpu").to_string(),
+                plain(text!("nav-plc-no-cpu").to_string()),
             );
             for (card, tag) in cards {
                 let drawables = device_drawables(q, &folios, card);
@@ -190,7 +191,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     Some(group),
                     NavRole::Module,
                     &format!("module:{}", card.as_uuid()),
-                    tag,
+                    plain(tag),
                     badges,
                     vec![card.as_uuid()],
                     drawables,
@@ -206,7 +207,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::ConfigProject,
             &format!("{}:{}", NavRole::ConfigProject.word(), cfg.as_uuid()),
-            name.clone(),
+            plain(name.clone()),
             Vec::new(),
             vec![cfg.as_uuid()],
             Vec::new(),
@@ -236,7 +237,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                 Some(cnode),
                 NavRole::Station,
                 &format!("station:{}", station.as_uuid()),
-                station_tag.clone(),
+                plain(station_tag.clone()),
                 badges,
                 vec![station.as_uuid()],
                 drawables,
@@ -295,7 +296,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                                         Some(snode),
                                         NavRole::Rack,
                                         &format!("rack:{rack}"),
-                                        format!("Rack {rack}"),
+                                        plain(format!("Rack {rack}")),
                                         Vec::new(),
                                         Vec::new(),
                                         Vec::new(),
@@ -321,7 +322,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                             Some(parent),
                             NavRole::Module,
                             &format!("module:{}", r.module.as_uuid()),
-                            module_tag.clone(),
+                            plain(module_tag.clone()),
                             badges,
                             vec![r.module.as_uuid()],
                             drawables,
@@ -424,11 +425,11 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     Some(mnode),
                     NavRole::Channel,
                     &format!("channel:{ch}"),
-                    label,
+                    plain(label),
                     badges,
                     vec![ch, r.module.as_uuid()],
                     Vec::new(),
-                    Some(cells),
+                    Some(plains(cells)),
                     facets,
                 );
                 let node = &mut b.nodes[n as usize];
@@ -538,7 +539,7 @@ fn push_bus_port(
         Some(parent),
         NavRole::BusPort,
         &format!("bus_port:{}", f.as_uuid()),
-        bus_port_label(port),
+        plain(bus_port_label(port)),
         Vec::new(),
         vec![f.as_uuid()],
         drawables,

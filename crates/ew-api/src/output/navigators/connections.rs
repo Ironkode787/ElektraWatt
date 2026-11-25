@@ -16,6 +16,7 @@ use super::{
     Builder, Drawable, NavRole, base_facets, cell_of, connection_drawables, folios, group, row_entity,
     row_segment,
 };
+use super::{plain, plains};
 
 /// One data row of the wire list as the Connections and Potentials navigators show it.
 pub(super) struct WireListRow {
@@ -138,11 +139,11 @@ pub(super) fn push_wire_row(b: &mut Builder, parent: u32, w: &WireListRow, table
         Some(parent),
         NavRole::Connection,
         &format!("connection:{}", w.segment),
-        w.label.clone(),
+        plain(w.label.clone()),
         Vec::new(),
         w.records.clone(),
         w.drawables.clone(),
-        table_row.then(|| w.cells.clone()),
+        table_row.then(|| plains(w.cells.clone())),
         facets,
     )
 }
@@ -156,7 +157,7 @@ pub(super) fn connections_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         let parent = if w.bridge {
             *bridges.get_or_insert_with(|| {
                 let words = super::words_in(&text!("nav-bridges"), lang);
-                group(b, None, NavRole::Section, "section:Bridges", words)
+                group(b, None, NavRole::Section, "section:Bridges", plain(words))
             })
         } else {
             let name = if w.potential.is_empty() {
@@ -172,7 +173,7 @@ pub(super) fn connections_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                         None,
                         NavRole::Potential,
                         &format!("potential:{name}"),
-                        name.clone(),
+                        plain(name.clone()),
                     );
                     groups.insert(name, g);
                     g

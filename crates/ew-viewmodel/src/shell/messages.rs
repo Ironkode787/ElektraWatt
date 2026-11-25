@@ -303,8 +303,9 @@ impl ShellModel {
         let mut table = if state.migration && project.session.has_lineage() {
             project.session.migration_table()
         } else {
-            project.session.navigator_table(NavKind::Messages)
-        };
+            project.session.navigator_texts(NavKind::Messages)
+        }
+        .render(super::navigators::nav_words);
         super::navigators::table_in_words(&mut table, project);
         messages::with_release_notes(table, notes)
     }

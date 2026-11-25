@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use ew_derive::{PageOrder, PageRef};
 
 use super::{Builder, NavOpen, NavRole};
+use super::{plain, plains};
 use crate::Session;
 use crate::output::PageRow;
 use crate::output::view::page_frame_id;
@@ -37,7 +38,7 @@ impl Session {
                         None,
                         NavRole::Section,
                         &skey,
-                        slabel,
+                        plain(slabel),
                         Vec::new(),
                         Vec::new(),
                         Vec::new(),
@@ -76,11 +77,11 @@ impl Session {
                 Some(parent),
                 NavRole::Page,
                 &format!("p:{}", row.id),
-                row.folio.clone(),
+                plain(row.folio.clone()),
                 badges,
                 records,
                 Vec::new(),
-                Some(cells),
+                Some(plains(cells)),
                 vec![
                     ("page".to_owned(), row.folio.to_lowercase()),
                     ("kind".to_owned(), "page".to_owned()),

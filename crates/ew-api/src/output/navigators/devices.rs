@@ -19,6 +19,7 @@ use super::{
     Builder, Drawable, EARTH_CONNECTION, Keyed, NOT_DRAWN, NavRole, Ranked, drawable, drawn_as_members,
     folios, sorted, state_word,
 };
+use super::{plain, plains};
 
 /// One device of the Devices table: the device row with its cells (from the structure overview).
 struct DeviceRow {
@@ -91,7 +92,7 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                     None,
                     NavRole::Function,
                     &fseg,
-                    flabel,
+                    plain(flabel),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -108,7 +109,7 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             Some(fnode),
             NavRole::Location,
             &lseg,
-            llabel,
+            plain(llabel),
             Vec::new(),
             Vec::new(),
             Vec::new(),
@@ -201,11 +202,11 @@ fn device_node(
         Some(parent),
         NavRole::Device,
         &format!("device:{}", d.as_uuid()),
-        label,
+        plain(label),
         badges,
         vec![d.as_uuid()],
         drawables,
-        Some(row.cells.clone()),
+        Some(plains(row.cells.clone())),
         facets,
     );
 
@@ -244,7 +245,7 @@ fn device_node(
             Some(node),
             NavRole::Function,
             &format!("function:{}", f.as_uuid()),
-            label,
+            plain(label),
             badges,
             vec![f.as_uuid()],
             ds.clone(),
@@ -261,7 +262,7 @@ fn device_node(
                 Some(fnode),
                 NavRole::Representation,
                 &format!("representation:{}", x.record),
-                x.place(),
+                plain(x.place()),
                 badges,
                 vec![x.record],
                 vec![x.clone()],
