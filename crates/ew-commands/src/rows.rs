@@ -26,7 +26,6 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
 }
 
 /// The compact JSON text of a row (its canonical bytes, up to the leading `$k`).
-#[cfg(feature = "testkit")]
 pub fn row_text(row: &AnyRow) -> Result<String, CmdError> {
     row_json(row).map(|v| v.to_string())
 }
