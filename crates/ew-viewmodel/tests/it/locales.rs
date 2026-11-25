@@ -722,7 +722,7 @@ fn the_wordings_the_stem_match_forced_are_back() {
     assert_eq!(text(&en, "field-word-parties"), "parties");
     assert_eq!(text(&en, "field-word-termination"), "termination");
     assert_eq!(text(&nl, "field-word-git-tag"), "git-tag");
-    assert_eq!(text(&nl, "field-word-process-tag"), "proceskenmerk");
+    assert_eq!(text(&nl, "column-process-tag"), "proceskenmerk");
     assert_eq!(
         text(&nl, "field-connection-overrides-wire-part"),
         "draadartikel overschreven"

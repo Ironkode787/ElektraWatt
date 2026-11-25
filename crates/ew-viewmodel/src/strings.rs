@@ -470,7 +470,8 @@ const LABEL_WORDS: &[(&str, &str)] = &[
 /// grid's row labels, the collision dialog's field headings and the tools' texts that name a field: the
 /// field's own `field-<kind>-<path>` text (`.` and `_` as `-`, a list item as `-item`; a row whose humanised name would
 /// not read well, "Wire number", "Colour override"), else its last member's `field-word-<member>` text ("Number",
-/// "Nummer"), else that member humanised (underscores to spaces, the word list applied, the first letter capitalised:
+/// "Nummer"), else the words of the choice or the column of that name (`choice-<member>`, `column-<member>`: one word
+/// under one key), else that member humanised (underscores to spaces, the word list applied, the first letter capitalised:
 /// an open set's key, a part's technical data). A list item carries its position (`Connection point 2`).
 pub fn field_label(kind: &str, path: &str) -> String {
     let mut generic = String::with_capacity(path.len());
@@ -503,12 +504,19 @@ pub fn field_label(kind: &str, path: &str) -> String {
         return format!("{label}{item}");
     }
     let last = last_member(&generic);
-    let word = format!("field-word-{}", last.replace('_', "-"));
+    let member = last.replace('_', "-");
+    let word = format!("field-word-{member}");
     // A list's item by its singular where the list has one ("Connection point 2").
     let singular = (!item.is_empty())
         .then(|| lookup(&format!("{word}-item")))
         .flatten();
-    if let Some(label) = singular.or_else(|| lookup(&word)) {
+    // One word is kept under one key: a member named as a choice or a column reads in that key's words.
+    let named = || {
+        lookup(&word)
+            .or_else(|| lookup(&format!("choice-{member}")))
+            .or_else(|| lookup(&format!("column-{member}")))
+    };
+    if let Some(label) = singular.or_else(named) {
         return format!("{label}{item}");
     }
     let words: Vec<String> = last
@@ -1172,11 +1180,17 @@ mod tests {
                 .find(|s| !s.is_empty())
                 .unwrap_or(path)
                 .trim_end_matches(']');
-            let word = format!("field-word-{}", last.replace('_', "-"));
-            if !has_key(&own) && !has_key(&word) {
+            let member = last.replace('_', "-");
+            let words = [
+                own,
+                format!("field-word-{member}"),
+                format!("choice-{member}"),
+                format!("column-{member}"),
+            ];
+            if !words.iter().any(|k| has_key(k)) {
                 missing.insert(format!("en-GB: {kind} {path}"));
             }
-            if !nl.contains(own.as_str()) && !nl.contains(word.as_str()) {
+            if !words.iter().any(|k| nl.contains(k.as_str())) {
                 missing.insert(format!("nl-NL: {kind} {path}"));
             }
         }

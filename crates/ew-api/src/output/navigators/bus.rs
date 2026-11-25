@@ -19,11 +19,11 @@ use ew_derive::short_tag;
 /// address, termination and nets. The address and termination, which are edited here, follow the port's name, so that
 /// a table at the default rail width shows them.
 pub(super) const BUS_COLUMNS: [(&str, &str); 8] = [
-    ("device", key!("column-device")),
+    ("device", key!("choice-device")),
     ("interface", key!("column-interface")),
     ("address", key!("column-address")),
     ("termination", key!("column-termination")),
-    ("bus", key!("column-bus")),
+    ("bus", key!("choice-bus")),
     ("role", key!("column-role")),
     ("logical_net", key!("column-logical-net")),
     ("physical_net", key!("column-physical-net")),

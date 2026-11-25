@@ -181,9 +181,9 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
     };
     match kind.source() {
         NavKind::Pages => own(&[
-            ("folio", key!("column-folio")),
+            ("folio", key!("choice-folio")),
             ("title", key!("column-title")),
-            ("type", key!("column-type")),
+            ("type", key!("choice-type")),
             ("frame", key!("column-frame")),
             ("generated", key!("column-generated")),
             // The page change status of doc 15 §5.6.
@@ -204,7 +204,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
                 let bridge = k.key == "bridge";
                 c.push(k);
                 if bridge {
-                    c.push(keyed("bridge_part", key!("column-bridge-part"), false));
+                    c.push(keyed("bridge_part", key!("choice-bridge-part"), false));
                 }
             }
             c
@@ -215,8 +215,8 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
             let mut c = kind_columns(&ReportKind::CableOverviewDiagrams, &CORE_COLOUR);
             c.extend(
                 [
-                    ("potential", key!("column-potential")),
-                    ("shield", key!("column-shield")),
+                    ("potential", key!("choice-potential")),
+                    ("shield", key!("choice-shield")),
                     ("pair", key!("column-pair")),
                 ]
                 .map(|(k, text)| keyed(k, text, false)),
@@ -231,7 +231,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
         NavKind::Media => kind_columns(&ReportKind::MediumOverview, &[]),
         NavKind::Potentials => kind_columns(&ReportKind::PotentialOverview, &CORE_COLOUR),
         NavKind::Ips => own(&[
-            ("name", key!("column-name")),
+            ("name", key!("choice-name")),
             ("page_cell", key!("column-page-cell")),
             ("direction", key!("column-direction")),
             ("partner", key!("column-partner")),
@@ -247,13 +247,13 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn<Text>> {
             ("title", key!("column-title")),
             ("kind", key!("column-kind")),
             ("first_folio", key!("column-first-folio")),
-            ("section", key!("column-section")),
-            ("pages", key!("column-pages")),
+            ("section", key!("choice-section")),
+            ("pages", key!("choice-pages")),
         ]),
         // The device (the key column, as the tree row names it in table mode), Part,
         // W × H (mm), Mount.
         NavKind::Unplaced => own(&[
-            ("device", key!("column-device")),
+            ("device", key!("choice-device")),
             ("part", key!("column-part")),
             ("size", key!("column-size")),
             ("mount", key!("column-mount")),

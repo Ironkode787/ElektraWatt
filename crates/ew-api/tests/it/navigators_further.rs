@@ -502,7 +502,10 @@ fn ips_structure_blocks() {
     );
     assert!(rows.iter().all(|n| n.cells[4] != "0"), "no embedded block");
     let wl = rows.iter().find(|n| n.cells[2] == "907").unwrap();
-    assert_eq!(wl.cells[1], "Wire list", "the kind by its name, as the window shows it");
+    assert_eq!(
+        wl.cells[1], "Wire list",
+        "the kind by its name, as the window shows it"
+    );
     assert_eq!(
         wl.open.as_ref().map(|o| o.page),
         Some(page_id(&s, "907")),

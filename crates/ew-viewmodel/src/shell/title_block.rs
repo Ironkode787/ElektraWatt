@@ -52,7 +52,7 @@ const AUTHOR_ROLE: &str = "author";
 
 /// The title-block paths the form edits, each with its label and its source (doc 09 §2.6's paths): the one list.
 const FIELDS: &[(&str, Key<'static>, Source)] = &[
-    ("page.title", key!("field-word-title"), Source::PageText("title")),
+    ("page.title", key!("column-title"), Source::PageText("title")),
     (
         "page.description",
         key!("field-word-description"),

@@ -34,18 +34,18 @@ use ew_derive::short_tag;
 
 /// The Macros navigator's columns (key, the key of its heading); the first is the key column.
 pub(super) const MACRO_COLUMNS: [(&str, &str); 6] = [
-    ("name", key!("column-name")),
+    ("name", key!("choice-name")),
     ("kind", key!("column-kind")),
     ("version", key!("column-version")),
-    ("library", key!("column-library")),
-    ("devices", key!("column-devices")),
+    ("library", key!("choice-library")),
+    ("devices", key!("choice-devices")),
     ("variables", key!("column-variables")),
 ];
 
 /// The Libraries navigator's columns (key, the key of its heading); the first is the key column. A library row fills Tier, Licence
 /// and Access and puts its index state under State; a copy row fills State and Used by.
 pub(super) const LIBRARY_COLUMNS: [(&str, &str); 8] = [
-    ("name", key!("column-name")),
+    ("name", key!("choice-name")),
     ("kind", key!("column-kind")),
     ("tier", key!("column-tier")),
     ("version", key!("column-version")),

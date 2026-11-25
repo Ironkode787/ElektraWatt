@@ -506,10 +506,10 @@ fn table(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<
     };
     let room = ui.available_width();
     let headers = [
-        strings::text(key!("column-name")),
+        strings::text(key!("choice-name")),
         strings::text(key!("column-part-number")),
         strings::text(key!("column-rating")),
-        strings::text(key!("column-library")),
+        strings::text(key!("choice-library")),
     ];
     // The columns after the name are as wide as their widest text (the header's included) and `space.3`, each at
     // most a share of the table; the name takes the rest and elides, whole in the row's tooltip.
