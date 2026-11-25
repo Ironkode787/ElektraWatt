@@ -762,29 +762,22 @@ fn is_keyboard_event(e: &egui::Event) -> bool {
     )
 }
 
-/// The first of the dropped files that doc 16 §4.8 maps onto the Image tool: every file that is no QElectroTech
-/// project, parts table, spreadsheet or project folder or archive (those drops are other flows). A file the asset store
-/// does not accept is refused by `image.file` with the store's text.
+/// The first of the dropped files, which the window's one drop flow, the Image tool (doc 16 §4.8), takes: a folder is
+/// none. A file the asset store does not accept is refused by `image.file` with the store's text.
 pub(crate) fn dropped_image(files: &[PathBuf]) -> Option<&PathBuf> {
-    files.iter().find(|f| {
-        let ext = f
-            .extension()
-            .map(|e| e.to_string_lossy().to_ascii_lowercase())
-            .unwrap_or_default();
-        !f.is_dir() && !matches!(ext.as_str(), "qet" | "ew" | "ewz" | "csv" | "xlsx")
-    })
+    files.iter().find(|f| !f.is_dir())
 }
 
 #[cfg(test)]
 mod drop_tests {
     use super::*;
 
+    /// The first dropped file goes to the Image tool, whatever its kind (the store says why it takes no other).
     #[test]
-    fn only_files_of_no_other_drop_flow_go_to_the_image_tool() {
+    fn the_first_dropped_file_goes_to_the_image_tool() {
         let p = |s: &str| PathBuf::from(s);
-        let files = [p("plant.QET"), p("parts.csv"), p("logo.svg"), p("photo.png")];
-        assert_eq!(dropped_image(&files), Some(&files[2]));
-        assert_eq!(dropped_image(&files[..2]), None);
+        let files = [p("plant.QET"), p("logo.svg")];
+        assert_eq!(dropped_image(&files), Some(&files[0]));
         assert_eq!(dropped_image(&[p("noext")]), Some(&p("noext")));
         assert_eq!(dropped_image(&[]), None);
     }
