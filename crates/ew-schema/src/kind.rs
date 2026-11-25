@@ -383,7 +383,7 @@ impl Kind {
         Kind::ALL.into_iter().find(|k| k.name() == name)
     }
 
-    /// The per-kind schema version `$v` this reader implements (1 for every kind in v0).
+    /// The per-kind schema version `$v` this reader implements: its entry of [`SCHEMA_VERSIONS`], else 1.
     pub fn schema_version(self) -> u16 {
         SCHEMA_VERSIONS
             .iter()
@@ -398,53 +398,9 @@ impl fmt::Display for Kind {
     }
 }
 
-/// The per-kind schema versions of the implemented kinds: the single place a `$v` bump happens. A bump
-/// breaks its kind and is allowed only in a format major (doc 05 §10.2); it ships a migration step.
-pub const SCHEMA_VERSIONS: &[(Kind, u16)] = &[
-    (Kind::Project, 1),
-    (Kind::PlcConfigProject, 1),
-    (Kind::LogicalNet, 1),
-    (Kind::PhysicalNet, 1),
-    (Kind::Medium, 1),
-    (Kind::ImportLineage, 1),
-    (Kind::StructureNode, 1),
-    (Kind::Section, 1),
-    (Kind::ExternalRef, 1),
-    (Kind::Page, 1),
-    (Kind::Device, 1),
-    (Kind::Function, 1),
-    (Kind::Representation, 1),
-    (Kind::Connection, 1),
-    (Kind::Junction, 1),
-    (Kind::Conductor, 1),
-    (Kind::Channel, 1),
-    (Kind::PotentialDef, 1),
-    (Kind::MediumDef, 1),
-    (Kind::Bond, 1),
-    (Kind::DeviceLink, 1),
-    (Kind::PageItem, 1),
-    (Kind::StructureBox, 1),
-    (Kind::ReportBlock, 1),
-    (Kind::MacroInstance, 1),
-    (Kind::LayoutSpace, 1),
-    (Kind::Enclosure, 1),
-    (Kind::MountingSurface, 1),
-    (Kind::Carrier, 1),
-    (Kind::Placement, 1),
-    (Kind::Revision, 1),
-    (Kind::Waiver, 1),
-    (Kind::ExchangeRecord, 1),
-    (Kind::ForeignId, 1),
-    (Kind::ImportRun, 1),
-    (Kind::Conflict, 1),
-    (Kind::Part, 1),
-    (Kind::Symbol, 1),
-    (Kind::Fndef, 1),
-    (Kind::Form, 1),
-    (Kind::Macro, 1),
-    (Kind::Manufacturer, 1),
-    (Kind::PlcProfile, 1),
-];
+/// The per-kind schema versions `$v` that are not 1: the single place a `$v` bump happens, and empty while every kind
+/// is at 1. A bump breaks its kind and is allowed only in a format major (doc 05 §10.2); it ships a migration step.
+pub const SCHEMA_VERSIONS: &[(Kind, u16)] = &[];
 
 /// Members that hold personal data (NFR-PRIV-06), as paths into a kind's JSON: `a.b` descends into an
 /// object member, `a[]` into the elements of an array. Exports, the SQL projection and MCP omit or
