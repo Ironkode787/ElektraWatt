@@ -17,9 +17,36 @@ pub(super) struct Reported {
     message: Option<String>,
     /// The action whose failure raised it: the open palette form's when the form ran it.
     by: Option<String>,
+    /// Where the step running now said its failure or refusal itself ([`ShellModel::said_at`]).
+    placed: Option<Said>,
+}
+
+/// A place on screen where a step says its failure or refusal itself, so that it is not said again (doc 16a P3).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(super) enum Said {
+    /// Under the Properties row of this key.
+    Row(String),
+    /// Under the fields of the palette's parameter form.
+    Form,
+    /// Under the rack of a station's view.
+    Station,
+    /// With the symbol editor's draft.
+    Editor,
 }
 
 impl ShellModel {
+    /// Records that the step running now said its failure or refusal at `place`.
+    pub(super) fn said_at(&mut self, place: Said) {
+        self.reported.placed = Some(place);
+    }
+
+    /// Shows `message` under the Properties row `row`, and records that it is said there.
+    pub(super) fn error_under_row(&mut self, row: impl Into<String>, message: impl AsRef<str>) {
+        let row = row.into();
+        self.props.set_error(row.clone(), message);
+        self.said_at(Said::Row(row));
+    }
+
     /// Runs `step` on the shell, says its outcome where the person looks and returns it. A banner that changed across
     /// the step was the shell's own (raised, replaced or cleared for its own reason): the banner this raised before is
     /// then forgotten. `drew_row` answers whether the Properties pane drew the row of a key in its last frame (a
@@ -45,6 +72,7 @@ impl ShellModel {
         let notice = self.tool_notice().map(str::to_owned);
         let dialog = self.dialog().cloned();
         let generation = self.dialog_generation();
+        self.reported.placed = None;
         let outcome = step(self);
         let said_outcome = outcome.clone();
         let banner_changed = self.banner() != before.as_deref();
@@ -112,37 +140,14 @@ impl ShellModel {
             }
             _ => return,
         };
-        let in_form = self
-            .palette()
-            .and_then(|p| p.form.as_ref())
-            .is_some_and(|f| f.error.as_deref() == Some(message.as_str()));
-        if in_form {
-            return;
-        }
-        let under_row = action.is_some_and(|a| a.starts_with("props."))
-            && self
-                .properties()
-                .error()
-                // The pane shows the message with a capital first, so it is that form that is the same.
-                .is_some_and(|(row, shown)| shown == strings::sentence_start(&message) && drew_row(row));
-        if under_row {
-            return;
-        }
-        // A refusal a station's view shows under its rack is not made a banner as well (P3).
-        if self
-            .station_tab()
-            .and_then(|s| s.error.as_ref())
-            .is_some_and(|(_, e)| *e == message)
-        {
-            return;
-        }
-        // A refusal the symbol editor shows with its draft is not made a banner as well (P3).
-        if self
-            .symbol_editor()
-            .and_then(|e| e.error.as_deref())
-            .is_some_and(|e| message.ends_with(e))
-        {
-            return;
+        // What the step said itself, under the palette's form, under a drawn Properties row (a `props.*` action's),
+        // under a station's rack or with the symbol editor's draft, is not made a banner as well (P3).
+        match self.reported.placed.take() {
+            Some(Said::Row(row)) if action.is_some_and(|a| a.starts_with("props.")) && drew_row(&row) => {
+                return;
+            }
+            Some(Said::Form | Said::Station | Said::Editor) => return,
+            _ => {}
         }
         if refused {
             // The pointer's moves over a canvas (`canvas.pointer`, sent while it moves) are no act of the person.

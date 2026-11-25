@@ -528,7 +528,11 @@ impl ShellModel {
 
     fn set_palette_form_error(&mut self, error: Option<String>) {
         if let Some(form) = self.palette.as_mut().and_then(|p| p.form.as_mut()) {
+            let said = error.is_some();
             form.error = error;
+            if said {
+                self.said_at(super::said::Said::Form);
+            }
         }
     }
 

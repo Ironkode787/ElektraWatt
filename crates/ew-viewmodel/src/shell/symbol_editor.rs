@@ -678,7 +678,10 @@ impl ShellModel {
                 if let Some(editor) = &mut self.symbol_editor {
                     match &mut editor.device_box {
                         Some(b) => b.error = Some(message.clone()),
-                        None => editor.error = Some(message.clone()),
+                        None => {
+                            editor.error = Some(message.clone());
+                            self.said_at(super::said::Said::Editor);
+                        }
                     }
                 }
                 failed(key!("symbol-operation-failed"), &[&message])

@@ -519,6 +519,7 @@ impl ShellModel {
     pub(super) fn rack_refuse(&mut self, place: Option<StationCursor>, why: String) -> Outcome {
         if let Some(tab) = self.station_tab_mut() {
             tab.error = Some((place, why.clone()));
+            self.said_at(crate::shell::said::Said::Station);
         }
         Outcome::Failed { message: why }
     }
@@ -548,8 +549,12 @@ impl ShellModel {
                 .iter()
                 .any(|(m, a)| m.is_some() && !a.is_empty() && after.iter().any(|(n, b)| n == m && b != a));
         if let Some(tab) = self.station_tab_mut() {
+            let said = error.is_some();
             tab.error = error.map(|e| (place, e));
             tab.note = moved.then(|| strings::text(key!("rack-addresses-moved")).to_owned());
+            if said {
+                self.said_at(crate::shell::said::Said::Station);
+            }
         }
         out
     }

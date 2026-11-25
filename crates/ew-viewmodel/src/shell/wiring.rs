@@ -544,7 +544,7 @@ impl ShellModel {
         p.insert("on".to_owned(), Value::Bool(on));
         let out = self.act_wire_numbers(&p);
         match &out {
-            Outcome::Failed { message } => self.props.set_error(key.to_owned(), message.clone()),
+            Outcome::Failed { message } => self.error_under_row(key.to_owned(), message.clone()),
             _ => {
                 self.props.edit = None;
                 self.props.error = None;

@@ -346,7 +346,7 @@ impl ShellModel {
                     (RowValue::One { text, .. }, "connection") if text != "?" => json!({ "frozen": text }),
                     _ => {
                         let message = strings::text(key!("props-cannot-freeze")).to_owned();
-                        self.props.set_error(key.to_owned(), message.clone());
+                        self.error_under_row(key.to_owned(), message.clone());
                         return Outcome::Failed { message };
                     }
                 };
@@ -389,7 +389,7 @@ impl ShellModel {
         }
         if edits.is_empty() {
             let message = strings::text(key!("props-cannot-freeze")).to_owned();
-            self.props.set_error(row.key.clone(), message.clone());
+            self.error_under_row(row.key.clone(), message.clone());
             return Outcome::Failed { message };
         }
         // The base of a stale card's check: the member as the sheet shows it now.
@@ -635,7 +635,7 @@ impl ShellModel {
         };
         if let Err(message) = &card.preview.result {
             let message = message.clone();
-            self.props.set_error(card.edit.row.clone(), message.clone());
+            self.error_under_row(card.edit.row.clone(), message.clone());
             return Outcome::Failed { message };
         }
         if card.preview.base_rev == rev {
@@ -656,7 +656,7 @@ impl ShellModel {
         });
         if now != edit.base || !same_targets {
             let message = strings::text(key!("props-changed-meanwhile")).to_owned();
-            self.props.set_error(edit.row.clone(), message);
+            self.error_under_row(edit.row.clone(), message);
             self.props.edit = Some(EditBuffer {
                 row: edit.row.clone(),
                 buffer: edit.typed.clone(),

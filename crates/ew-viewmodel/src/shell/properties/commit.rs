@@ -145,17 +145,17 @@ impl ShellModel {
             (Err(InputError::Invalid(why)), _) => {
                 // The reason in the window's language.
                 let message = crate::shell::tools::rejected_words(&why.to_string(), Some(&why));
-                self.props.set_error(key.to_owned(), message.clone());
+                self.error_under_row(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
             (Err(InputError::UnknownPart(typed)), _) => {
                 let message = strings::format(key!("error-no-part"), &[&typed]);
-                self.props.set_error(key.to_owned(), message.clone());
+                self.error_under_row(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
             (Err(InputError::NotOneOf { typed, options }), _) => {
                 let message = crate::properties::not_one_of_text(&section.kind, &row.path, &typed, &options);
-                self.props.set_error(key.to_owned(), message.clone());
+                self.error_under_row(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
         };
@@ -249,7 +249,7 @@ impl ShellModel {
                     .find(|(id, name)| id.to_string() == typed || name.eq_ignore_ascii_case(typed.trim()))
                 else {
                     let message = strings::format(key!("props-plc-unknown"), &[typed.trim()]);
-                    self.props.set_error(key.to_owned(), message.clone());
+                    self.error_under_row(key.to_owned(), message.clone());
                     return Outcome::Failed { message };
                 };
                 params.insert("config".to_owned(), Value::String(config.to_string()));
@@ -281,7 +281,7 @@ impl ShellModel {
                 Some(RowValue::One { json, .. }) => Some(json),
                 Some(RowValue::Varies { .. }) if row.path != member => {
                     let message = strings::text(key!("props-member-varies")).to_owned();
-                    self.props.set_error(key.to_owned(), message.clone());
+                    self.error_under_row(key.to_owned(), message.clone());
                     return Outcome::Failed { message };
                 }
                 _ => None,
@@ -289,7 +289,7 @@ impl ShellModel {
         };
         let Some(new) = compose(&member, &row.path, base.as_ref(), &value) else {
             let message = strings::text(key!("props-cannot-compose")).to_owned();
-            self.props.set_error(key.to_owned(), message.clone());
+            self.error_under_row(key.to_owned(), message.clone());
             return Outcome::Failed { message };
         };
         // A value equal to the current one builds no command.
@@ -356,7 +356,7 @@ impl ShellModel {
             Ok(c) => c,
             Err(ew_api::output::LayoutEditError::Refused(reason)) => {
                 let message = crate::shell::text_words(&reason);
-                self.props.set_error(row.key.clone(), message.clone());
+                self.error_under_row(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
         };
@@ -455,7 +455,7 @@ impl ShellModel {
             }
             Err(e) => {
                 let message = message_of(&Err(e));
-                self.props.set_error(row.key.clone(), message.clone());
+                self.error_under_row(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
         };
@@ -621,7 +621,7 @@ impl ShellModel {
                     };
                     self.props.tag_proposal = Some(proposal);
                 }
-                self.props.set_error(row, shown);
+                self.error_under_row(row, shown);
                 self.props.card = None;
                 Outcome::Failed { message }
             }
@@ -695,7 +695,7 @@ impl ShellModel {
                 }
             }
             Outcome::Failed { message } => {
-                self.props.set_error(edit.row.clone(), message.clone());
+                self.error_under_row(edit.row.clone(), message.clone());
             }
             Outcome::Refused { .. } => {}
         }
@@ -774,7 +774,7 @@ impl ShellModel {
             shown.clone()
         };
         self.props.choices = None;
-        self.props.set_error(key.to_owned(), shown);
+        self.error_under_row(key.to_owned(), shown);
         self.props.tag_proposal = Some(crate::properties::TagProposal {
             row: key.to_owned(),
             tag: proposal.tag,

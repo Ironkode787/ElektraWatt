@@ -554,7 +554,7 @@ impl ShellModel {
         };
         let out = self.run_commit(&cmd);
         match &out {
-            Outcome::Failed { message } => self.props.set_error(key.to_owned(), message.clone()),
+            Outcome::Failed { message } => self.error_under_row(key.to_owned(), message.clone()),
             _ => {
                 self.props.edit = None;
                 self.props.error = None;

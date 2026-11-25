@@ -53,12 +53,12 @@ impl ShellModel {
             // double-click and typing did nothing); its button goes to the cable.
             if let Some(tag) = self.cable_row(key) {
                 let message = strings::format(key!("props-set-by-cable"), &[&tag]);
-                self.props.set_error(key.to_owned(), message.clone());
+                self.error_under_row(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
             // A generated page's row says under it why, with the button to where it is changed.
             if let (Some(_), Outcome::Failed { message }) = (self.row_offer(key), &out) {
-                self.props.set_error(key.to_owned(), message.clone());
+                self.error_under_row(key.to_owned(), message.clone());
             }
             // Tips 2 and 3.
             self.tip_for_refused_row(&section, &row, &out);
