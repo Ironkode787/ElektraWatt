@@ -330,7 +330,7 @@
         },
         "document_title": {
           "$ref": "#/$defs/MlText",
-          "description": "The cover subtitle (\"Electrical Definition\", doc 20 §4.1), distinct from `long_description`\n(doc 03 §5). Appended, since 0.1."
+          "description": "The cover subtitle (\"Electrical Definition\"), distinct from `long_description`\n(doc 03 §5). Appended, since 0.1."
         },
         "drawing_id": {
           "anyOf": [
@@ -610,7 +610,7 @@
           "additionalProperties": {
             "$ref": "#/$defs/TextStyleSpec"
           },
-          "description": "The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the\ntable takes the entry's size and weight, any other key adds a style. Absent is the built-in table.",
+          "description": "The text styles as overrides of the built-in table, by style key (ADR-0032): a key of the\ntable takes the entry's size and weight, any other key adds a style. Absent is the built-in table.",
           "type": "object"
         },
         "typeface": {
