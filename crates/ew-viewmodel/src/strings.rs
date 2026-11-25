@@ -439,21 +439,6 @@ pub fn shipped_texts(key: &str) -> Vec<(&'static str, &'static str)> {
         .collect()
 }
 
-/// The headers of navigator `nav`'s column `key` (`nav` its word, `pages`) in each shipped language, en-GB first: its
-/// `column-<nav>-<key>` text, else `column-<key>` (a header copied in one language pastes in another).
-pub fn column_labels(nav: &str, key: &str) -> Vec<&'static str> {
-    let key = key.replace('_', "-");
-    [en_gb(), nl_nl()]
-        .into_iter()
-        .filter_map(|l| {
-            l.texts
-                .get(format!("column-{nav}-{key}").as_str())
-                .or_else(|| l.texts.get(format!("column-{key}").as_str()))
-                .copied()
-        })
-        .collect()
-}
-
 /// The line kinds of a fluid line (T25), in schema order: the Line kind row shows each as its
 /// `choice-<kind>` text.
 pub const LINE_KINDS: &[&str] = &["working", "pilot", "exhaust", "drain", "flexible"];

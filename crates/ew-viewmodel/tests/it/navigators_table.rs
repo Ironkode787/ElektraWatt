@@ -1027,6 +1027,43 @@ fn copy_then_paste_back_changes_nothing_in_either_language() {
     shell.shutdown();
 }
 
+/// A header copied from the Fluid table in the other language is a header: with only Tube part on show beside the
+/// key column, its Dutch header "Slangartikel" pasted alone in an en-GB window pastes no cell.
+#[test]
+fn a_fluid_table_header_in_the_other_language_is_a_header() {
+    let tmp = Tmp::new("paste-fluid-header");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "201");
+    done(&mut shell, "navigator.show", json!({"kind": "fluid"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "fluid", "on": true}),
+    );
+    let table = shell.nav(NavKind::Fluid).and_then(|n| n.table()).cloned().expect("the tube table");
+    let hide: Vec<String> = table
+        .columns
+        .iter()
+        .filter(|c| c.key != "part" && !c.key_column)
+        .map(|c| c.key.clone())
+        .collect();
+    done(&mut shell, "table.columns", json!({"kind": "fluid", "hide": hide}));
+    let row = table.nodes.iter().find(|n| n.table_row).expect("a tube row").key.clone();
+    done(
+        &mut shell,
+        "table.cell",
+        json!({"kind": "fluid", "row": row, "column": "part"}),
+    );
+    let n = steps(&shell);
+    done(
+        &mut shell,
+        "table.paste",
+        json!({"kind": "fluid", "text": "Slangartikel\r\n"}),
+    );
+    assert!(shell.properties().card().is_none(), "the header row is no cell");
+    assert_eq!(steps(&shell), n);
+    shell.shutdown();
+}
+
 /// A table cell of an enumerated field takes the words its refusal lists, in en-GB and nl-NL: Strips ▸
 /// State "Not fitted" and "Reserve", stored as `not_fitted` and `spare`.
 #[test]
