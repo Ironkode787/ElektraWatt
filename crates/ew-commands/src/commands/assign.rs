@@ -37,7 +37,7 @@ pub enum AssignModeParam {
 }
 
 /// `part.assign` (`AssignPart`): assigns a part to devices in one undo step, embedding the
-/// library copies it needs (D7: the command carries the documents, never reads a library).
+/// library copies it needs (the command carries the documents, never reads a library).
 ///
 /// Each document of `copies` (the `lib/` JSON form, the part's closure as the caller resolved it) is checked as
 /// `library.embed` checks it, at `/copies/i`; a copy the project holds with the same hash is reused (not inserted
@@ -55,7 +55,7 @@ pub enum AssignModeParam {
 /// part (the primary) has nothing to follow. A placed strip whose terminal the change widened pushes the items after
 /// it on its rail, as a growing strip does, in every mode.
 ///
-/// `qty` defaults to 1. Template functions are not matched onto existing functions (D8: part-first placement
+/// `qty` defaults to 1. Template functions are not matched onto existing functions (part-first placement
 /// does that). Rejected, with the pointer: an empty device list (`/devices`), a device listed twice or that does
 /// not exist (`/devices/i`), `part` neither held nor in `copies` (`/part`), a copy listed twice or held at another
 /// version (`/copies/i`), `replace` without `from` and `from` with another mode (`/from`), a device that does not
@@ -288,7 +288,7 @@ impl Command for AssignPart {
             extra: ew_schema::Extra::new(),
         };
         for d in &self.devices {
-            // D7: the command adds a copy when the device did not use the part before.
+            // The command adds a copy when the device did not use the part before.
             let before: Vec<Id<Part>> = tx
                 .require::<Device>(*d)?
                 .parts

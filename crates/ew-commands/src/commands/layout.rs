@@ -8,7 +8,7 @@
 //!
 //! The deletes are `Bulk` (previewed on a fork first) when they remove or rehome more than [`LAYOUT_BULK_ABOVE`]
 //! placements. An occupied carrier goes only through `layout.carrier.delete` with `then` (doc 12 §3.6): every other
-//! delete that would take a placement along is refused by the forbid policy of `placement.carrier` (D4).
+//! delete that would take a placement along is refused by the forbid policy of `placement.carrier`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -59,7 +59,7 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 // ---------------------------------------------------------------------------------------------------------
 // Parameter types
 
-/// What a placement sits on (D3): `{"carrier": id}` (a rail) or `{"surface": id}` (the plate itself).
+/// What a placement sits on: `{"carrier": id}` (a rail) or `{"surface": id}` (the plate itself).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PlaceOnParam {
@@ -79,7 +79,7 @@ impl PlaceOnParam {
     }
 }
 
-/// The kind of a new carrier (D3).
+/// The kind of a new carrier.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CarrierKindParam {
@@ -89,7 +89,7 @@ pub enum CarrierKindParam {
     Duct,
 }
 
-/// A carrier's parameters (D3, doc 12 §2.4), tagged by its kind as stored: `{"rail": {"profile": …}}` or
+/// A carrier's parameters (doc 12 §2.4), tagged by its kind as stored: `{"rail": {"profile": …}}` or
 /// `{"duct": {"width": …, "height": …}}`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
@@ -186,7 +186,7 @@ fn is_strip_with_terminals(tx: &TxBuilder<'_>, device: &Device) -> bool {
     device.aspects.strip.is_some() && !tx.terminals_of_strip(device.id).is_empty()
 }
 
-/// The part use a placement realises when it names none (D6, D8 (5) and (7)): the first part use whose part mounts
+/// The part use a placement realises when it names none (D8 (5) and (7)): the first part use whose part mounts
 /// (a mount kind other than `none` and `on_parent`), else the first whose part has no mount kind (an unknown
 /// footprint). `None` for a strip with terminals, a device without parts and one whose parts all mount on their
 /// parent or not at all.
@@ -205,7 +205,7 @@ fn primary_part(tx: &TxBuilder<'_>, device: &Device) -> Option<PartRef> {
 }
 
 /// The part a placement realises for the checks: its own, else the device's primary part (an imported `None` still
-/// means the primary, D6).
+/// means the primary).
 fn realised_part(tx: &TxBuilder<'_>, device: &Device, part: Option<&PartRef>) -> Option<PartRef> {
     match part {
         Some(p) => Some(p.clone()),
@@ -213,7 +213,7 @@ fn realised_part(tx: &TxBuilder<'_>, device: &Device, part: Option<&PartRef>) ->
     }
 }
 
-/// The clip point of a placement in its part frame (D5): the part's `rail_offset`, else its centre; a strip's left end
+/// The clip point of a placement in its part frame: the part's `rail_offset`, else its centre; a strip's left end
 /// at the middle of its tallest terminal; `(0, 0)` for an unknown footprint.
 fn placement_clip(tx: &TxBuilder<'_>, device: &Device, part: Option<&PartRef>) -> (i128, i128) {
     if part.is_none() && is_strip_with_terminals(tx, device) {
@@ -331,7 +331,7 @@ fn check_fit(
     Ok(())
 }
 
-/// Refuses a pose outside the target's degrees of freedom or off its rail (D5).
+/// Refuses a pose outside the target's degrees of freedom or off its rail.
 fn check_pose_on(tx: &TxBuilder<'_>, target: &Target, pose: &Pose3) -> Result<(), CmdError> {
     check_pose(target.on, pose).or_else(|e: PoseError| tx.reject(pose_words(&e)))
 }
@@ -452,7 +452,7 @@ fn checked_params(
     }
 }
 
-/// Checks a carrier path (`/path`, D5).
+/// Checks a carrier path (`/path`).
 fn checked_path(name: &'static str, kind: &CarrierKind, path: &[Pt2]) -> Result<(), CmdError> {
     check_path(kind, path).map_err(|e: PathError| {
         CmdError::invalid_params(
@@ -479,10 +479,10 @@ fn require_part(tx: &TxBuilder<'_>, name: &'static str, at: &str, part: Id<Part>
 // ---------------------------------------------------------------------------------------------------------
 // Layout spaces
 
-/// `layout.space.create` (`CreateLayoutSpace`, D6): creates the layout space of a location (FR-LAY-001).
+/// `layout.space.create` (`CreateLayoutSpace`): creates the layout space of a location (FR-LAY-001).
 ///
 /// Rejected: a node that does not exist (`/location`) or is not a location; a location that already has a layout space
-/// (one per location at the MVP, D3; the refusal names the first). Interactive. Outcome: the new space.
+/// (one per location at the MVP, the refusal names the first). Interactive. Outcome: the new space.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateLayoutSpace {
@@ -558,8 +558,8 @@ fn insert_space(
     Ok(id)
 }
 
-/// `layout.space.delete` (`DeleteLayoutSpace`, D6): deletes a layout space with its enclosure, surfaces and carriers
-/// (the cascades of D4). Refused while a placement sits in it (the forbid policy of `placement.carrier`: empty its
+/// `layout.space.delete` (`DeleteLayoutSpace`): deletes a layout space with its enclosure, surfaces and carriers
+/// (the cascades). Refused while a placement sits in it (the forbid policy of `placement.carrier`: empty its
 /// carriers with `layout.carrier.delete` first). Interactive; `Bulk` above 200 placements. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -599,17 +599,17 @@ impl Command for DeleteLayoutSpace {
 // ---------------------------------------------------------------------------------------------------------
 // Enclosures
 
-/// `layout.enclosure.create` (`CreateEnclosure`, D6, FR-LAY-002): places an enclosure device in a layout space and
+/// `layout.enclosure.create` (`CreateEnclosure`, FR-LAY-002): places an enclosure device in a layout space and
 /// creates its mounting plate.
 ///
 /// The device's first part use whose part carries an enclosure section gives the outer `W × H`; the section's `plate`
 /// names the plate part. The `plate` surface's `device` is the first child of the enclosure device (in ID order) that
 /// uses the plate part, if any; its frame centres the plate in the enclosure and its usable polygon is the plate
-/// rectangle (D5: `ew_derive::layout::plate_frame`; the plate size from its mounting-plate section, else its `mech`).
+/// rectangle (`ew_derive::layout::plate_frame`; the plate size from its mounting-plate section, else its `mech`).
 /// `pose` defaults to the identity, `pe_bond` (the plate's) to false.
 ///
 /// Rejected: a space or device that does not exist (`/space`, `/device`); a space that already has an enclosure (one
-/// per space at the MVP, D3); a device whose parts carry no enclosure section ("the device has no enclosure part").
+/// per space at the MVP); a device whose parts carry no enclosure section ("the device has no enclosure part").
 /// Interactive. Outcome: the new enclosure.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -735,8 +735,8 @@ fn insert_enclosure(
     Ok(enclosure)
 }
 
-/// `layout.enclosure.delete` (`DeleteEnclosure`, D6): deletes an enclosure with its surfaces and carriers (the cascades
-/// of D4); the enclosure device stays. Refused while a placement sits in it (the forbid policy of `placement.carrier`).
+/// `layout.enclosure.delete` (`DeleteEnclosure`): deletes an enclosure with its surfaces and carriers (the cascades
+/// of the layout); the enclosure device stays. Refused while a placement sits in it (the forbid policy of `placement.carrier`).
 /// Interactive; `Bulk` above 200 placements. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -776,9 +776,9 @@ impl Command for DeleteEnclosure {
 // ---------------------------------------------------------------------------------------------------------
 // Carriers
 
-/// `layout.carrier.add` (`AddCarrier`, D6): adds a rail or a duct to a mounting surface.
+/// `layout.carrier.add` (`AddCarrier`): adds a rail or a duct to a mounting surface.
 ///
-/// The path is in the surface frame (`u` right, `v` up) and axis-parallel (D5): a rail two points on one horizontal or
+/// The path is in the surface frame (`u` right, `v` up) and axis-parallel: a rail two points on one horizontal or
 /// vertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one
 /// (a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);
 /// parameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a
@@ -858,7 +858,7 @@ impl Command for AddCarrier {
     }
 }
 
-/// `layout.carrier.edit` (`EditCarrier`, D6): changes a carrier's surface, part, path, parameters or PE bond.
+/// `layout.carrier.edit` (`EditCarrier`): changes a carrier's surface, part, path, parameters or PE bond.
 ///
 /// Moving it to another surface moves its placements with it (their poses are relative to it), into the other space's
 /// layout file when the surface belongs to another space. `part: null` removes the part. The path and parameters are
@@ -970,7 +970,7 @@ impl Command for EditCarrier {
     }
 }
 
-/// `layout.carrier.delete` (`DeleteCarrier`, D6, doc 12 §3.6): deletes a carrier; the only way to delete an occupied
+/// `layout.carrier.delete` (`DeleteCarrier`, doc 12 §3.6): deletes a carrier; the only way to delete an occupied
 /// one.
 ///
 /// `then` says what happens to its placements: `remove_placements` removes them; `rehome_to_surface` moves each to the
@@ -1126,7 +1126,7 @@ fn rail_pose(tx: &TxBuilder<'_>, axis: &RailAxis, s: i128, like: &Pose3) -> Resu
     })
 }
 
-/// How a mode's refusal names what it resolves (D5's texts): the rail, whether it swaps, the item, and the devices of
+/// How a mode's refusal names what it resolves (the texts): the rail, whether it swaps, the item, and the devices of
 /// placements this command is about to insert (they are not in the transaction yet).
 struct Wording<'n> {
     carrier: Id<Carrier>,
@@ -1138,7 +1138,7 @@ struct Wording<'n> {
     names: &'n BTreeMap<Id<Placement>, String>,
 }
 
-/// D5's refusal of a mode, in words: the rail by its label in a sentence ("rail 1"), devices by their tags.
+/// The refusal of a mode, in words: the rail by its label in a sentence ("rail 1"), devices by their tags.
 fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> Text {
     let item = w.item.clone();
     let swap = w.mode == PlaceMode::Swap;
@@ -1213,7 +1213,7 @@ fn sentence_start(item: &TextArg) -> TextArg {
     }
 }
 
-/// The rail item of a device about to be placed or moved (D4): its extent from [`rail_extent`] (the shape
+/// The rail item of a device about to be placed or moved: its extent from [`rail_extent`] (the shape
 /// `placement_geometry` places), its bracket width when it is a strip, its lock and its placement; with the extent, whose
 /// `clip` turns a clip point into the footprint's left edge (`s0 = s_clip − clip`).
 fn drop_item(
@@ -1257,7 +1257,7 @@ fn resolve_items(
         .or_else(|e| tx.reject(snap_text(tx, q, wording, e)))
 }
 
-/// Resolves a placement dropped on a rail with a mode (D4, D5): the rail's items from `rail_occupancy` on the base
+/// Resolves a placement dropped on a rail with a mode: the rail's items from `rail_occupancy` on the base
 /// snapshot (the same [`rail_items`] the tool's ghost reads), the placement's own extent from [`rail_extent`], then
 /// [`resolve_items`]; the pose's `t.x` is the intended clip point, turned into the footprint's left edge and back.
 ///
@@ -1295,7 +1295,7 @@ fn resolve_on_rail(tx: &TxBuilder<'_>, d: &Dropped<'_>) -> Result<Resolved, CmdE
     Ok(Resolved { pose, neighbours })
 }
 
-/// Where a mode applies (D4): `Some((rail, axis, mode))` for a mode on a rail; `None` without a mode, and for free on a
+/// Where a mode applies: `Some((rail, axis, mode))` for a mode on a rail; `None` without a mode, and for free on a
 /// surface (the explicit pose); push or swap on a surface is refused. A duct never gets here: its pose check refuses.
 fn mode_on_rail(
     tx: &TxBuilder<'_>,
@@ -1324,7 +1324,7 @@ fn move_neighbours(tx: &mut TxBuilder<'_>, neighbours: Vec<(Id<Placement>, Pose3
 // ---------------------------------------------------------------------------------------------------------
 // Placements
 
-/// `layout.place` (`PlaceDevice`, D6, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit
+/// `layout.place` (`PlaceDevice`, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit
 /// pose, or, with `mode` on a rail, where the mode resolves it.
 ///
 /// Without `mode` the pose is taken exactly as given. With `mode` on a rail the pose's `t.x` is the intended clip
@@ -1473,7 +1473,7 @@ impl Command for PlaceDevice {
     }
 }
 
-/// `layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.
+/// `layout.move` (`MovePlacement`): gives a placement another pose, optionally on another rail or surface.
 ///
 /// The pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier
 /// changes. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved
@@ -1486,7 +1486,7 @@ impl Command for PlaceDevice {
 /// profile checked when the part changes, and with `mode` the resolver reads the new part's extent; without `part`
 /// the realised part is unchanged. Rejected: a placement, carrier or surface that does not exist (`/placement`,
 /// `/carrier`); a part the device does not use (`/part`); a part that would give the device a second placement of one
-/// (device, part, function); an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's
+/// (device, part, function); an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; the
 /// refusals of the mode. Interactive. Outcome: the placement.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1595,7 +1595,7 @@ impl Command for MovePlacement {
     }
 }
 
-/// `layout.remove` (`RemovePlacement`, D6): removes a placement; the device becomes unplaced. Rejected: a placement
+/// `layout.remove` (`RemovePlacement`): removes a placement; the device becomes unplaced. Rejected: a placement
 /// that does not exist (`/placement`). Interactive. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1625,7 +1625,7 @@ impl Command for RemovePlacement {
     }
 }
 
-/// `layout.lock` (`LockPlacement`, D6): locks or unlocks a placement (a locked one is excluded from push, swap and
+/// `layout.lock` (`LockPlacement`): locks or unlocks a placement (a locked one is excluded from push, swap and
 /// auto-fill, doc 12 §2.3). Rejected: a placement that does not exist (`/placement`). Interactive. Outcome: the
 /// placement.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1734,7 +1734,7 @@ impl Command for ResetLayoutLabels {
     }
 }
 
-/// D7: when `part.assign` adds the one copy `new` to `device` (modes `replace` and `replace_all`, the part not used
+/// When `part.assign` adds the one copy `new` to `device` (modes `replace` and `replace_all`, the part not used
 /// before), the placements of the device whose part copy left the device follow `new`, in the same transaction. A
 /// placement without a part (the primary) and one whose copy the device still uses stay. `before` is the device's part
 /// copies in its part-use order before the change.

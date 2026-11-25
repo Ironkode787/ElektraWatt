@@ -264,7 +264,7 @@ fn dp_master() -> BusPort {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// BU-7j: the registry row
+// The registry row
 
 #[test]
 fn bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open() {
@@ -281,9 +281,9 @@ fn bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// BU-7g: part.assign and the joins
+// part.assign and the joins
 
-/// BU-7g: assigning the CPU to a black box with two DP-port functions gives the lower-ID function the port and leaves
+/// Assigning the CPU to a black box with two DP-port functions gives the lower-ID function the port and leaves
 /// the other port-less, without a notice; the black box itself (no bus-port FnDef) gets nothing.
 #[test]
 fn assign_gives_the_lower_id_function_the_port_and_a_device_without_one_gets_nothing() {
@@ -358,9 +358,9 @@ fn ports_pair_in_list_order_with_functions_in_id_order() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// BU-7h: never rewritten
+// Never rewritten
 
-/// BU-7h: a carried port with a set address survives `part.assign replace` to a part that declares another bus and
+/// A carried port with a set address survives `part.assign replace` to a part that declares another bus and
 /// role (notice N5-b), `replace_all` to a part without a bus section and `fields.set parts []` (no notice); after
 /// `fields.set bus_port null` an unrelated edit leaves the function port-less, and a new bus part seeds it again.
 #[test]
@@ -444,9 +444,9 @@ fn a_joining_function_takes_a_removed_port_and_the_older_function_stays_port_les
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// BU-7i: a newer format and a passive port
+// A newer format and a passive port
 
-/// BU-7i: a port of a newer format seeds nothing, with notice N5-c.
+/// A port of a newer format seeds nothing, with notice N5-c.
 #[test]
 fn a_port_of_a_newer_format_is_not_applied() {
     let mut e = engine(model());
@@ -461,7 +461,7 @@ fn a_port_of_a_newer_format_is_not_applied() {
     );
 }
 
-/// BU-7i: a connector part's passive port with its termination on seeds `not_applicable` and `on`.
+/// A connector part's passive port with its termination on seeds `not_applicable` and `on`.
 #[test]
 fn a_passive_connector_port_has_no_address_and_keeps_its_termination() {
     let mut e = engine(model());

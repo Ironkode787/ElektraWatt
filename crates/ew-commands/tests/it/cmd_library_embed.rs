@@ -95,7 +95,7 @@ fn copy_json(kind: &str, library: u128, item: u128, body: Value) -> (AnyId, Valu
         LibDocument::Macro(c) => sha_of(&c.item),
         other => panic!("not a part-one kind: {:?}", other.kind()),
     };
-    // The command's hash function agrees with the rule (D2; the format's is checked in ew-api).
+    // The command's hash function agrees with the rule (the format's is checked in ew-api).
     let computed = library_copy_hash(&doc).expect("a known kind");
     let hex: String = computed.iter().map(|b| format!("{b:02x}")).collect();
     assert_eq!(

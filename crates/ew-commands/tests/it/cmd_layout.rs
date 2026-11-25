@@ -186,7 +186,7 @@ fn place(device: Id<Device>, on: PlaceOnParam, pose: Pose3) -> PlaceDevice {
     }
 }
 
-/// LM-2: one layout space per location, the second refused naming the first; a node that is not a location refused;
+/// One layout space per location, the second refused naming the first; a node that is not a location refused;
 /// the location's structure node cannot be deleted while the space exists, and can once it is gone.
 #[test]
 fn a_location_has_one_layout_space() {
@@ -256,9 +256,9 @@ fn a_location_has_one_layout_space() {
     e.execute(&delete_node).unwrap();
 }
 
-/// LM-3: -UC1's enclosure part (750 × 1000 × 420 mm, plate 650 × 900 mm) gives one enclosure and one plate surface
+/// -UC1's enclosure part (750 × 1000 × 420 mm, plate 650 × 900 mm) gives one enclosure and one plate surface
 /// whose device is the child carrying the plate, its frame at (50, 50, 0) mm and its usable rectangle (0, 0)–(650, 900)
-/// mm; a device without an enclosure part is refused with D6's text; a second enclosure in the space is refused.
+/// mm; a device without an enclosure part is refused with the text; a second enclosure in the space is refused.
 #[test]
 fn an_enclosure_brings_its_plate() {
     let mut e = engine(model());
@@ -319,7 +319,7 @@ fn an_enclosure_brings_its_plate() {
     assert_eq!(e.history().cursor(), 2, "one step each");
 }
 
-/// LM-4: a rail (two points, its profile from its part's rail section) and a 40 × 60 mm duct on an orthogonal polyline
+/// A rail (two points, its profile from its part's rail section) and a 40 × 60 mm duct on an orthogonal polyline
 /// are added; a profile that differs from the part's, a diagonal segment and the wrong parameters are refused at their
 /// pointer.
 #[test]
@@ -360,7 +360,7 @@ fn carriers_are_axis_parallel() {
     assert_eq!(pointer(e.execute(&mixed)), "/params");
 }
 
-/// LM-4: an occupied rail is refused without `then`; with `remove_placements` the preview lists the placement and the
+/// An occupied rail is refused without `then`; with `remove_placements` the preview lists the placement and the
 /// rail and the commit is one step (undone in one); with `rehome_to_surface` the placement moves to the plate at the
 /// equivalent surface pose (the 18 × 90 mm MCB at s = 96 mm on the rail from (20, 800) mm: origin (107, 755) mm).
 #[test]
@@ -423,7 +423,7 @@ fn an_occupied_rail_goes_only_with_then() {
     assert!(get(&e, rail).is_none());
 }
 
-/// LM-5: place, move, lock and remove are one undo step each; `part` is the device's part, or for a device with an
+/// Place, move, lock and remove are one undo step each; `part` is the device's part, or for a device with an
 /// accessory and two mountable part uses the first mountable one.
 #[test]
 fn placements_are_one_step_each() {
@@ -498,7 +498,7 @@ fn placements_are_one_step_each() {
     assert!(rows::<Placement>(&e).is_empty());
 }
 
-/// LM-5: a TS 35 device on a TS 32 rail, a pose off the rail or off its axis, a second placement of one (device, part,
+/// A TS 35 device on a TS 32 rail, a pose off the rail or off its axis, a second placement of one (device, part,
 /// function) and a part the device does not use are each refused; so is a move onto an unfit rail.
 #[test]
 fn lm5_placement_refusals() {
@@ -618,7 +618,7 @@ fn a_part_that_does_not_mount_is_refused_on_a_surface() {
     assert_eq!(e.history().cursor(), start + 3, "the refusals took no step");
 }
 
-/// LM-6: deleting a placed device removes its placement in the same transaction, listed in the preview; an occupied
+/// Deleting a placed device removes its placement in the same transaction, listed in the preview; an occupied
 /// carrier cannot go with its enclosure or space, and an enclosure's device cannot be deleted; the plate's device is
 /// unlinked from its surface.
 #[test]
@@ -675,7 +675,7 @@ fn a_placement_never_outlives_its_device() {
     );
 }
 
-/// LM-7: `part.assign replace` of the placed copy by a new one moves the placement's `part` in the same step;
+/// `part.assign replace` of the placed copy by a new one moves the placement's `part` in the same step;
 /// `replace_all` by a copy the device already uses removes the placed copy without adding one, and the placement keeps
 /// its `part` (EW-LAY-003 reports it).
 #[test]
@@ -780,8 +780,8 @@ fn replace_all_moves_one_placement_of_two() {
     );
 }
 
-/// A fork of a part copy (`part.edit_copy`, D20) re-points a carrier's part (a part-copy link) and a placement's
-/// `part` (the use it realises, D4 and D7) with the device's part uses.
+/// A fork of a part copy (`part.edit_copy`) re-points a carrier's part (a part-copy link) and a placement's
+/// `part` (the use it realises) with the device's part uses.
 #[test]
 fn a_part_fork_repoints_carriers_and_placements() {
     let Layout { mut e, rail, .. } = layout();

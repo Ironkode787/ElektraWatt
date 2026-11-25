@@ -8,7 +8,7 @@
 //! resolve   an AnyCommand is validated once against the engine's registry into its typed command
 //! run       Command::run against a TxBuilder on the current snapshot (exposure checked first)
 //! normalise the normaliser registry, passes until quiet: at most three productive passes and a
-//!           confirming one (D1)
+//!           confirming one
 //! validate  Model::apply_with: structural invariants, the delete-time rule EW-INV-021, the PreventHook
 //! commit    swap in the candidate Model, Rev + 1, push to History
 //! notify    append a Change {rev, touched keys, touched pages} to the change feed

@@ -28,7 +28,7 @@
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
 //! pass sees it in the next pass. The pipeline runs passes until one changes nothing. [`MAX_PASSES`]
-//! counts **productive** passes (D1): up to three passes may change something, then a confirming pass
+//! counts **productive** passes: up to three passes may change something, then a confirming pass
 //! must change nothing; a fourth productive pass is non-convergence, a bug
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
@@ -185,7 +185,7 @@ mod tests {
         result
     }
 
-    /// D1: `MAX_PASSES` counts productive passes; one confirming pass follows them.
+    /// `MAX_PASSES` counts productive passes; one confirming pass follows them.
     #[test]
     fn max_passes_counts_productive_passes_and_one_confirming_pass() {
         assert_eq!(passes(0).expect("normal"), 1);

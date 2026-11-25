@@ -66,7 +66,7 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// A representation of a **terminal** joins another terminal of its strip as that terminal's next level, the whole
 /// terminal with it (doc 08 §6.3; `join_level`). Otherwise:
 ///
-/// It takes one of D1's two ways:
+/// It takes one of the two ways:
 ///
 /// - **A slot first.** When `device` has an unplaced normal function of the representation's FnDef (a part's template
 ///   slot, FR-UI-017; the one of the lowest template entry, then the lowest ID), the representation draws that
@@ -296,7 +296,7 @@ impl Command for JoinDevice {
         }
         let others = self.check_source_may_go(tx, function, &source_device)?;
         let target = tx.require::<Device>(self.device)?;
-        // D1: a slot of the FnDef first, the lowest template entry, then the lowest ID.
+        // A slot of the FnDef first, the lowest template entry, then the lowest ID.
         let mut slots: Vec<(u16, Id<Function>)> = tx
             .functions_of_device(self.device)
             .into_iter()

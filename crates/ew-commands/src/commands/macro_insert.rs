@@ -499,7 +499,7 @@ fn drop_records(fragment: &mut Fragment, dropped: &mut BTreeSet<Uuid>) {
 /// or a page macro's pages after `page`, in one transaction (one undo step).
 ///
 /// `copies` holds the macro's document and the documents of its closure the project does not hold (the `lib/` JSON
-/// form; the session resolves them, D7); `macro` is the macro's copy ID, held or in `copies`. The pipeline: the variant
+/// form; the session resolves them); `macro` is the macro's copy ID, held or in `copies`. The pipeline: the variant
 /// the page takes (a window macro: the first whose representation type the page's type takes; a page macro: the first);
 /// the values (`values` over the value set `value_set` over the defaults), coerced and written at their bindings; the
 /// placeholder groups whose `include` is false dropped with what cannot stand without them; then `edit.paste`'s effects

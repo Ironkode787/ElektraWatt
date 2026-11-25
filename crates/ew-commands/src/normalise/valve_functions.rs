@@ -92,7 +92,7 @@ impl Normaliser for ValveFunctions {
                 continue;
             };
             let Some(part) = valve_part(tx, &dev) else {
-                continue; // no valve part: nothing changes (D6 e)
+                continue; // no valve part: nothing changes
             };
             if !valve_part_changed(tx, &dev, part.id) {
                 continue;

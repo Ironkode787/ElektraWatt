@@ -831,7 +831,7 @@ fn what_of(field: &str) -> Text {
     }
 }
 
-/// D3 (doc 06 §5.7: CPs never leave the connection grid, in any tool and any origin): a position at which
+/// (doc 06 §5.7: CPs never leave the connection grid, in any tool and any origin): a position at which
 /// a command places or to which it moves a representation must lie on the connection grid of its page
 /// (`Page.grid`, ADR-0027) and within ±[`MAX_COORD`]. Front-ends snap before they submit. `field` is the
 /// JSON Pointer of the parameter (`/pos`), from which both refusals name the point in words: the range
@@ -856,7 +856,7 @@ pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str
     ))
 }
 
-/// D3 for a split point: the point at which a junction is placed on connection `w` (drawn on `page`) by
+/// The point at which a junction is placed on connection `w` (drawn on `page`) by
 /// `connection.draw` or a `device.place` hint. It is accepted when it is on the grid like any position
 /// ([`require_on_grid`]), or, per coordinate that is off the grid, when that coordinate is the constant
 /// coordinate of an axis-aligned segment of `w`'s route that contains the point and equals that
@@ -896,7 +896,7 @@ pub fn require_split_point(
     require_on_grid(tx, page, at, field)
 }
 
-/// D3 for a route given to `connection.draw` or `connection.route` on `page` (an empty route has no
+/// The same for a route given to `connection.draw` or `connection.route` on `page` (an empty route has no
 /// geometry and passes):
 ///
 /// - an end at a CP that a representation on `page` draws must be exactly that CP's position (route

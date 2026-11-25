@@ -220,7 +220,7 @@ impl Fx {
     }
 }
 
-/// SN-2 (free): a device overlapping its neighbours goes to the nearest gap where it fits (nothing else moves); a
+/// A device overlapping its neighbours goes to the nearest gap where it fits (nothing else moves); a
 /// position that fits is kept; no gap wide enough is refused naming the rail by its label and the device by its tag.
 #[test]
 fn free_takes_the_nearest_gap() {
@@ -273,7 +273,7 @@ fn free_takes_the_nearest_gap() {
     assert_eq!(refused, "No gap on rail 2 is wide enough for -?B1 (300 mm).");
 }
 
-/// SN-3 (push): a device dropped between two inserts there and moves the ones to its right in the same step (one undo
+/// A device dropped between two inserts there and moves the ones to its right in the same step (one undo
 /// restores all); a locked neighbour that would move refuses; a neighbour pushed past the rail end refuses.
 #[test]
 fn push_inserts_and_moves_the_right_neighbours() {
@@ -359,7 +359,7 @@ fn a_locked_placement_moves_by_itself_only() {
     assert_eq!(clip10(&f.e, k2), 3000, "nothing else moved");
 }
 
-/// SN-4 (swap): a placement dropped onto another exchanges with it, the segment between re-laid and nothing else
+/// A placement dropped onto another exchanges with it, the segment between re-laid and nothing else
 /// moved; an empty spot, another rail, a device not placed yet and a locked target refuse.
 #[test]
 fn swap_exchanges_within_one_rail() {
@@ -404,7 +404,7 @@ fn swap_exchanges_within_one_rail() {
     assert_eq!(refused, "Swapping would move -?K5, which is locked.");
 }
 
-/// D4: on a surface only free is accepted (the explicit pose); push and swap are refused. On a duct the pose check
+/// On a surface only free is accepted (the explicit pose); push and swap are refused. On a duct the pose check
 /// refuses first, as without a mode.
 #[test]
 fn modes_on_a_surface() {
@@ -429,7 +429,7 @@ fn modes_on_a_surface() {
     assert_eq!(f.e.model().table::<Placement>().get(&pl).unwrap().pose, pose);
 }
 
-/// SN-5 (clearance): two parts with 5 mm pads keep a 10 mm gap in free mode; a flipped placement's pads swap; without a
+/// Two parts with 5 mm pads keep a 10 mm gap in free mode; a flipped placement's pads swap; without a
 /// mode the pads are not applied (the pose as given).
 #[test]
 fn clearance_pads_space_the_snapping() {
@@ -569,7 +569,7 @@ fn a_concurrent_clearance_edit_of_a_neighbours_part_copy_conflicts_at_merge() {
     );
 }
 
-/// SN-7: without `mode` the JSON form is unchanged (no `mode` member); with it, `mode` round-trips.
+/// Without `mode` the JSON form is unchanged (no `mode` member); with it, `mode` round-trips.
 #[test]
 fn mode_is_an_optional_member() {
     let rail: Id<Carrier> = id(0xb2);
@@ -589,7 +589,7 @@ fn mode_is_an_optional_member() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// SN-7: the ghost equals the commit. Bounds: rail 1 of 600 mm, up to 6 devices (18 or 45 mm) placed at random clip
+// The ghost equals the commit. Bounds: rail 1 of 600 mm, up to 6 devices (18 or 45 mm) placed at random clip
 // points first (no mode), then one drop (a new device placed, or a placed one moved, at a random clip point in
 // [0, 600] mm, either turn) in a random mode; 48 cases.
 

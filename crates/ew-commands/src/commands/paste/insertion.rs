@@ -544,7 +544,7 @@ impl Insertion<'_> {
                 // A held copy of the same version is reused as it is (also a project-local item of this project).
                 Some(row) => {
                     if held_sha(&row) != Some(claimed) && adapted.contains(&id.as_uuid()) {
-                        // D22: the held version serves the pasted records unless a CP of theirs disappears.
+                        // The held version serves the pasted records unless a CP of theirs disappears.
                         let held = row_document(&row).expect("a held library copy");
                         let diff = classify_update(&doc, &held);
                         let index = self.adapt.iter().position(|a| *a == id).expect("listed in adapt");

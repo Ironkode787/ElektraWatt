@@ -104,7 +104,7 @@ fn bad(at: impl Into<String>, message: Text) -> CmdError {
     CmdError::invalid_params(EditPartCopy::NAME, at, message)
 }
 
-/// The part members without the editable ones (D20; with `local`, also [`PART_EDITABLE_LOCAL`]), for the "other
+/// The part members without the editable ones (with `local`, also [`PART_EDITABLE_LOCAL`]), for the "other
 /// members unchanged" check.
 fn fixed_members(part: &Part, local: bool) -> Map<String, Value> {
     let mut m = match serde_json::to_value(part) {
@@ -125,7 +125,7 @@ fn fixed_members(part: &Part, local: bool) -> Map<String, Value> {
     m
 }
 
-/// The edited item of `raw`, with D21's checks at their pointers; the technical data are put into key order.
+/// The edited item of `raw`, with the checks at their pointers; the technical data are put into key order.
 fn read_part(raw: &Value) -> Result<Part, CmdError> {
     let Value::Object(map) = raw else {
         return Err(bad("/part", text!("refusal-part-edit-not-object")));
@@ -446,7 +446,7 @@ mod tests {
         }
     }
 
-    /// R7: every part-copy link of the link table is one the command re-points.
+    /// Every part-copy link of the link table is one the command re-points.
     #[test]
     fn part_copy_links_are_all_repointed() {
         let links: Vec<String> = LINKS

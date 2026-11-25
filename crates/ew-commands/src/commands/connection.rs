@@ -249,7 +249,7 @@ fn new_ip(tx: &mut TxBuilder<'_>, ip: NewIp) -> Result<Id<Function>, CmdError> {
 ///   tool found the route) is stored only with a route. An end at an existing junction appends the new connection to
 ///   that junction's sequence.
 /// - `page` defaults to the page of a split connection, else none (a page-less bridge).
-/// - On a page, the geometry must be on the page's connection grid (D3, doc 06 §5.7,
+/// - On a page, the geometry must be on the page's connection grid (doc 06 §5.7,
 ///   `geometry::require_route`): a split point, every route vertex, and route ends that meet their CPs
 ///   exactly.
 /// - Rejected: both ends the same endpoint (CI-01); both ends on the same connection; a named record
@@ -632,7 +632,7 @@ impl Command for ConnectMany {
 
 /// `connection.route`: replaces a connection's route (FR-CON-007): the route editor's, so the route is the person's
 /// and its `computed` mark is cleared (docs/design/06a-drafting.md §2.4). Connectivity is unchanged. On a page
-/// the route must be on the page's connection grid and its ends must meet their CPs (D3,
+/// the route must be on the page's connection grid and its ends must meet their CPs (
 /// `geometry::require_route`). Outcome: the connection. Coalesce route drags with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -751,7 +751,7 @@ pub enum WiringChoice {
 /// `junction.edit`: style, wiring and sequence of a junction (FR-CON-005, doc 06 §3.5).
 ///
 /// Each given member replaces the stored one; `sequence` must be a permutation of the connections ending
-/// at the junction (else rejected). It takes no coordinates, so the grid rule of D3 has nothing to check
+/// at the junction (else rejected). It takes no coordinates, so the grid rule has nothing to check
 /// here: a junction's position is set (on the grid) by `connection.draw`. Outcome: the junction. Coalesce
 /// consecutive reorders with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1396,7 +1396,7 @@ impl DrawToIp {
     }
 }
 
-/// `ip.arrange` (`ArrangeIps`, FR-XRF-013, D12): interruption points of one page exchanged into a new
+/// `ip.arrange` (`ArrangeIps`, FR-XRF-013): interruption points of one page exchanged into a new
 /// order.
 ///
 /// - `ips` are IP functions in the new order: at least two, none twice, each with exactly one representation, all

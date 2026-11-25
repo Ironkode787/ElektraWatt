@@ -54,11 +54,11 @@ const DEV_M3: Id<Device> = id(0xb03);
 const fn k(n: u128) -> Id<Device> {
     id(0xb10 + n)
 }
-/// K9: a device of another location.
+/// A device of another location.
 const DEV_K9: Id<Device> = id(0xb19);
 const DEV_X5: Id<Device> = id(0xb20);
 const DEV_E55: Id<Device> = id(0xb21);
-/// W1: a device without functions (exempt).
+/// A device without functions (exempt).
 const DEV_W1: Id<Device> = id(0xb22);
 /// The assembly B1 whose member B2 is TS 32.
 const DEV_B1: Id<Device> = id(0xb30);
@@ -128,7 +128,7 @@ const FULL: Spec = Spec {
 
 fn model(spec: &Spec) -> Model {
     let (p, mut records, _) = mini_project_parts();
-    // The pages without a form take the default frame grid, so that a representation has an anchor cell (AS-4).
+    // The pages without a form take the default frame grid, so that a representation has an anchor cell.
     for r in &mut records {
         if let Record::Page(page) = r {
             page.form = None;
@@ -342,7 +342,7 @@ fn placed(e: &Engine, device: Id<Device>) -> bool {
     rows::<Placement>(e).iter().any(|p| p.device == device)
 }
 
-/// AS-2 (fixture): with no member on the rail the members go as one block at `s` in member order (position first),
+/// With no member on the rail the members go as one block at `s` in member order (position first),
 /// abutting; each records its primary part; one undo step.
 #[test]
 fn a_block_lands_in_member_order() {
@@ -375,7 +375,7 @@ fn a_block_lands_in_member_order() {
     );
 }
 
-/// AS-2 (fixture): the block in free mode goes to the nearest gap where it fits; in push mode it stays at `s` and
+/// The block in free mode goes to the nearest gap where it fits; in push mode it stays at `s` and
 /// pushes the placement to its right as one item.
 #[test]
 fn the_block_resolves_as_one_item() {
@@ -427,7 +427,7 @@ fn override3_a_member_pushed_in_the_same_command_lands_once() {
     );
 }
 
-/// AS-2 (fixture): every refusal of `layout.place_assembly`; an unfit member refuses the whole command.
+/// Every refusal of `layout.place_assembly`; an unfit member refuses the whole command.
 #[test]
 fn place_assembly_refusals() {
     let mut f = fx();
@@ -530,7 +530,7 @@ fn auto_fill_next_fits_and_reports() {
     assert_eq!(clip10(&f.e, k(4)), 450);
 }
 
-/// AS-3 (fixture): a part's clearance pads space the fill: 18 mm + 5 mm pads.
+/// A part's clearance pads space the fill: 18 mm + 5 mm pads.
 #[test]
 fn the_pads_space_the_fill() {
     let mut f = fx();
@@ -550,7 +550,7 @@ fn the_pads_space_the_fill() {
     assert_eq!(clips(&f.e, &[k(1), k(2)]), vec![32, 55]);
 }
 
-/// AS-3 (fixture): an item that fits nowhere is left with a notice and the fill continues; nothing placed at all, a
+/// An item that fits nowhere is left with a notice and the fill continues; nothing placed at all, a
 /// duct, an empty list and a bad list are refused.
 #[test]
 fn auto_fill_refusals() {
@@ -629,7 +629,7 @@ fn auto_fill_lists_the_unplaced_that_fit() {
     );
 }
 
-/// AS-4: schematic order is page order, then row, then column of the main representation's anchor cell; devices
+/// Schematic order is page order, then row, then column of the main representation's anchor cell; devices
 /// without one last, by DT.
 #[test]
 fn as4_schematic_order() {
@@ -656,7 +656,7 @@ fn as4_schematic_order() {
     );
 }
 
-/// AS-4: an assembly's members travel as one block at the place of the first of them, in member order.
+/// An assembly's members travel as one block at the place of the first of them, in member order.
 #[test]
 fn an_assembly_stays_one_block() {
     let mut f = fx();
@@ -673,7 +673,7 @@ fn an_assembly_stays_one_block() {
     );
 }
 
-/// AS-4: more than 200 devices in the list is `Bulk`; the engine refuses it without a preview and commits it through
+/// More than 200 devices in the list is `Bulk`; the engine refuses it without a preview and commits it through
 /// one.
 #[test]
 fn a_large_fill_is_bulk() {
@@ -717,7 +717,7 @@ fn from_part(copies: Vec<Value>) -> CreateEnclosureFromPart {
     }
 }
 
-/// AS-5: from the enclosure part and its plate passed as copies: one space, the enclosure device UC1 (the scheme's
+/// From the enclosure part and its plate passed as copies: one space, the enclosure device UC1 (the scheme's
 /// tag, not frozen) with its part, the plate its child U1, one enclosure and one plate surface (frame (50, 50, 0) mm, usable
 /// (0, 0)–(650, 900) mm, its device the child); one undo removes all and the embedded copies; a second call refused.
 #[test]
@@ -796,7 +796,7 @@ fn an_enclosure_from_its_part() {
     assert_eq!(lines(e.model()), before, "all gone, the copies included");
 }
 
-/// AS-5: a part without an enclosure section, a plate part not held, a function node that is not a function; a
+/// A part without an enclosure section, a plate part not held, a function node that is not a function; a
 /// location with a space and no enclosure reuses the space.
 #[test]
 fn create_from_part_refusals_and_reuse() {
@@ -855,7 +855,7 @@ fn create_from_part_refusals_and_reuse() {
     assert_eq!(get(&e, enclosure).unwrap().space, space);
 }
 
-/// AS-6: each such edit changes its one member (whole records compared); a turned enclosure pose refused; missing
+/// Each such edit changes its one member (whole records compared); a turned enclosure pose refused; missing
 /// records at their pointers.
 #[test]
 fn the_edits_change_one_member() {
@@ -1066,7 +1066,7 @@ fn mv(placement: Id<Placement>, s: i64, part: Option<u128>, mode: Option<PlaceMo
     }
 }
 
-/// AS-8: `layout.move {part}`: another part use of the device (the resolver reads its extent with `mode`); a part the
+/// `layout.move {part}`: another part use of the device (the resolver reads its extent with `mode`); a part the
 /// device does not use, a duplicate key and an unfit part refused; without `part` the realised part stays.
 #[test]
 fn move_realises_another_part() {

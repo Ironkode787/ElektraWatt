@@ -288,8 +288,8 @@ pub enum StartDir {
 /// whose part has no range in `dir` takes the start anyway, with a notice that it has no effect. A start equal to the
 /// current one writes nothing. One undo step. Outcome: the first module.
 ///
-/// Renders nothing by itself: only the modules whose start value changes are re-addressed (the per-module cut-off
-/// of D9: a manual start outside the automatic path moves no other module, doc 10 §3.1).
+/// Renders nothing by itself: only the modules whose start value changes are re-addressed (the per-module cut-off:
+/// a manual start outside the automatic path moves no other module, doc 10 §3.1).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetStart {
@@ -882,7 +882,7 @@ impl Command for Readdress {
 /// address as the derived one, every manual channel address becomes `auto`. Every manual value that stays gets a
 /// notice with both values (`channel 3 of -201U5 keeps its manual address Q10.3 (derived: Q2.3)`, `module -201U5 keeps
 /// its manual output start Q10 (automatic: Q2)`), or with the reason (`module -201U3 keeps its manual output start
-/// Q1: as an automatic start it would move the addresses of other modules`). **Bulk**; one undo step. Rejected as
+/// As an automatic start it would move the addresses of other modules`). **Bulk**; one undo step. Rejected as
 /// [`Readdress`]. Outcome: the first module, or the configuration project.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

@@ -36,7 +36,7 @@ pub enum Exposure {
 
 impl Exposure {
     /// Whether an origin may submit a command of this class. `HumanOnly` is accepted from the GUI and
-    /// from a CLI subcommand that a human confirmed on a terminal (`Origin::Cli { confirmed: true }`, D7),
+    /// from a CLI subcommand that a human confirmed on a terminal (`Origin::Cli { confirmed: true }`),
     /// and refused for an unconfirmed CLI submission, command logs, scripts, MCP, plugins and Python;
     /// `Import` is accepted from the GUI, the CLI and an import origin; `Internal` only from [`Origin::External`].
     pub fn allows(self, origin: &Origin) -> bool {

@@ -51,7 +51,7 @@ pub trait Command: Serialize + DeserializeOwned + JsonSchema + Send + Sync + 'st
     fn meta() -> CommandMeta;
 
     /// The cost of this instance on the snapshot `model` it would run on; the metadata's default unless
-    /// overridden (`edit.delete` counts the records its delete plan removes, D4).
+    /// overridden (`edit.delete` counts the records its delete plan removes).
     fn cost(&self, model: &Model) -> Cost {
         let _ = model;
         Self::meta().cost

@@ -377,7 +377,7 @@ proptest! {
         }
     }
 
-    /// Undo restores the exact bytes of the previous state, redo those of the step (AC-18).
+    /// Undo restores the exact bytes of the previous state, redo those of the step.
     #[test]
     fn every_step_undoes_to_exact_bytes(sequence in steps(false)) {
         let mut e = engine(mini_model());

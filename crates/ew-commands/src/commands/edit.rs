@@ -20,7 +20,7 @@ use crate::meta::{CommandMeta, Cost};
 use crate::tx::TxBuilder;
 
 /// Deletions that remove more than this many records (the targets and everything their delete plan
-/// takes along) run as bulk commands (doc 06 §3.1, D4).
+/// takes along) run as bulk commands (doc 06 §3.1).
 pub const BULK_ABOVE: usize = 500;
 
 /// `edit.delete`: removes the selected records with everything the delete policies take along
@@ -32,7 +32,7 @@ pub const BULK_ABOVE: usize = 500;
 /// delete leaves them so); one with a terminal still drawn is refused in words, naming it and its page
 /// ([`strip_terminals`]). A target that does not exist at the start is `NotFound`; a forbid link (a referenced
 /// structure node) rejects the whole command (`ModelError::Referenced`). Cost:
-/// `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
+/// `Bulk` when the plan removes or changes more than 500 records (the plan is computed once by
 /// `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
 /// `/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along.
 ///

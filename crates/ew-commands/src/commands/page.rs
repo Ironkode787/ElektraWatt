@@ -899,7 +899,7 @@ impl Command for SetSurfaceView {
             LabelsParam::Both => LayoutLabels::Both,
             LabelsParam::TagsOrNumbers => LayoutLabels::TagsOrNumbers,
         });
-        // The page's view: the first by ID (a file may hold more; the page draws the first, D9).
+        // The page's view: the first by ID (a file may hold more; the page draws the first).
         let existing = tx
             .page_items_on_page(self.page)
             .into_iter()

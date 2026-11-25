@@ -369,7 +369,7 @@ fn replace_part(device: Id<Device>, from: Id<Part>, to: Id<Part>) -> ew_commands
     }
 }
 
-/// `valve.add` of a single-solenoid part gives the valve function and coil 14 from the part (D7: `fndef` is not
+/// `valve.add` of a single-solenoid part gives the valve function and coil 14 from the part (`fndef` is not
 /// needed), and N2 binds the coil by the map; a bistable part assigned in its place adds coil 12, with its designation
 /// override, which N2 binds to channel 2p + 1; assigning the single-solenoid part again removes coil 12 and unbinds its
 /// channel with a notice. Each is one undo step.
@@ -581,7 +581,7 @@ fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
     );
 }
 
-/// D6 (d), as built at 1.0: a new valve part whose valve entry names another valve FnDef replaces the valve
+/// As built at 1.0: a new valve part whose valve entry names another valve FnDef replaces the valve
 /// function's definition in place, with a notice; the preview shows the notice and commits nothing.
 #[test]
 fn n_fl_1_replaces_the_valve_function_of_another_valve_type_in_place() {
@@ -635,7 +635,7 @@ fn pneumatic_body(item: ew_ids::Uuid, cps: &[&str]) -> LibCopy<ew_schema::FnDef>
     body
 }
 
-/// D6 (d), what follows the replaced valve function (doc 11 §4.2): the old body has two ports "2" (CPs 1 and 2) and a
+/// What follows the replaced valve function (doc 11 §4.2): the old body has two ports "2" (CPs 1 and 2) and a
 /// port "4"; the new one only "2" and "1", in another order. The line at port 1 follows to its new index; of the two
 /// ports "2", which become one, the first keeps its closure and its medium definition and the second's go, without a
 /// panic; the closure at port 4, which the new valve lacks, goes; each is said in a notice, and one undo brings it all

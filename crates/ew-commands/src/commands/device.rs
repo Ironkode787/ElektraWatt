@@ -169,7 +169,7 @@ pub enum PlaceTarget {
         letter: Ident,
     },
     /// One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place`
-    /// only; AC-28).
+    /// only).
     NewTerminal {
         /// The strip device.
         #[schemars(with = "UuidS")]
@@ -232,7 +232,7 @@ pub struct ConnectHint {
 ///   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
 ///   entry must not be a black box (`box.black` places those). A part without a function template takes
 ///   `template` 0 and gets one main function of the symbol's FnDef.
-/// - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
+/// - `new_terminal`: one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
 ///   structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
 ///   function `{def: the symbol's FnDef}`, then placed. With `part` (part-first placement of a terminal part) the
 ///   terminal also gets `parts: [the part, quantity 1]`; the part copy must exist and, when it has a function
@@ -617,7 +617,7 @@ fn zero() -> Pt2 {
 /// variant or shape it keeps verbatim) and `items` with a cross-page `page` are rejected. A moved wire marker writes
 /// a clean list (its entries naming a connection that does not exist or is not on its page are dropped).
 ///
-/// **Re-solved routes and connect on move** (D15; both optional, so a script's move keeps the follow):
+/// **Re-solved routes and connect on move** (both optional, so a script's move keeps the follow):
 /// after the follow, each entry of `routes` replaces a connection's route exactly as `connection.route` would (errors
 /// prefixed `/routes/<i>`); then each hint of `connect` makes a wire from
 /// the named representation's symbol CP as a `device.place` hint does, with the straight route between its ends (a
@@ -1644,7 +1644,7 @@ impl Command for ResetRepTexts {
 }
 
 /// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
-/// quick fix of MF-13, doc 07 §3.6).
+/// quick fix, doc 07 §3.6).
 ///
 /// The policy is a per-representation override, `Representation.anchor`: `anchor`
 /// is `origin`, `graphic_centre`, `{"slot": <kind>}` or `{"named": [x, y]}`, and `null` removes the override,

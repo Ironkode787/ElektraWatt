@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal.insert` and `terminal.move` (D4; acceptance SE1, SE2) and `strip.accessories`
-//! through `fields.set` (D5; SE3), on the mini project's -X1031 grown to twenty terminals
+//! `terminal.insert` and `terminal.move` (acceptance SE1, SE2) and `strip.accessories`
+//! through `fields.set` (SE3), on the mini project's -X1031 grown to twenty terminals
 //! designated 1 … 20 at seq 1 … 20, the groups 1–4 "Pneumatics", 5–10 "Spare", 11–14 "Pneumatics" and 15–20
 //! "Spare", and the bridge BR1 from :1 to :3. The same examples on a whole project run in `ew-testkit`
 //! (`tests/terminal_insert_move.rs`).

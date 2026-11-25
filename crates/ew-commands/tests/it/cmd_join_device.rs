@@ -208,7 +208,7 @@ fn invalid_at<T: Debug>(r: Result<T, CmdError>, at: &str, needle: &str) {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The two ways (D1)
+// The two ways
 
 /// A device without a slot of the FnDef whose main function is a coil takes the contact as a new auxiliary function:
 /// the function record moves (same ID, so every wire is untouched), the emptied source device goes, the
@@ -373,7 +373,7 @@ fn a_black_box_is_refused_before_the_join_reads_its_cps() {
     let mut e = engine(model);
     let rev = e.model().rev();
     let wires_before = wires(&e, FN_K2, FN_K2);
-    // a coil relay (D2), a device with an unplaced slot (D1) and a part whose template draws CP 5 only
+    // a coil relay (D2), a device with an unplaced slot and a part whose template draws CP 5 only
     for target in [DEV_K1, DEV_K3, DEV_K5] {
         invalid_at(e.execute(&join(REP_K2, target)), "/rep", "a black box");
     }

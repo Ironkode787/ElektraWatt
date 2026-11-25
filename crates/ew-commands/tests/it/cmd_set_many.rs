@@ -242,7 +242,7 @@ fn a_closed_revision_in_an_entry_is_refused_at_its_target() {
     );
 }
 
-/// D2's tag-collision refusal applies to an entry as to `fields.set`: G1 takes F2's letter and counter on page 102.
+/// The tag-collision refusal applies to an entry as to `fields.set`: G1 takes F2's letter and counter on page 102.
 #[test]
 fn a_counter_collision_is_refused_as_fields_set_refuses_it() {
     let model = mini_model();

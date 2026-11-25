@@ -100,7 +100,7 @@ fn refusal(e: &mut Engine, cmd: &Connect) -> String {
     }
 }
 
-/// T1: a fluid line to an electrical CP; T2: a wire to a fluid port; T3: a hydraulic port with a pneumatic one.
+/// A fluid line to an electrical CP; T2: a wire to a fluid port; T3: a hydraulic port with a pneumatic one.
 #[test]
 fn the_fluid_refusals_t1_to_t3_are_in_words() {
     let mut e = engine(fluid_model());
@@ -611,7 +611,7 @@ fn a_working_line_to_two_cylinders_links_nothing() {
     );
 }
 
-/// D15: N-FL-4 runs after `bus_ports` and the bus nets that follow it (doc 06 §3.2 row 16).
+/// N-FL-4 runs after `bus_ports` and the bus nets that follow it (doc 06 §3.2 row 16).
 #[test]
 fn drives_link_runs_after_bus_ports() {
     let order = ew_commands::normalise::order();
@@ -625,7 +625,7 @@ fn drives_link_runs_after_bus_ports() {
     assert!(at("bus_nets") > at("bus_ports"), "{order:?}");
 }
 
-/// T4: a valve does not drive the terminal that holds it.
+/// A valve does not drive the terminal that holds it.
 #[test]
 fn a_valve_cannot_drive_its_terminal() {
     let mut e = engine(actuator_model());
@@ -653,7 +653,7 @@ fn set_line_kind(c: Id<Connection>, kind: &str) -> SetFields {
     }
 }
 
-/// D18: `line_kind` sets a fluid line's kind in one undo step; T11 on a wire.
+/// `line_kind` sets a fluid line's kind in one undo step; T11 on a wire.
 #[test]
 fn the_line_kind_of_a_fluid_line_is_set_and_undone() {
     let mut e = engine(fluid_model());

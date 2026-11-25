@@ -40,7 +40,7 @@ pub struct ApplyImport {
     pub run: ImportRun,
     /// Whether the import makes an empty project's first state: a non-undoable checkpoint.
     pub checkpoint: bool,
-    /// The hashes a re-import carries from its base for the records it keeps ([`ReimportPlan::carried`], D12); empty
+    /// The hashes a re-import carries from its base for the records it keeps ([`ReimportPlan::carried`]); empty
     /// for an import into a new project.
     pub carried: BTreeMap<AnyId, RecordHash>,
 }
@@ -117,7 +117,7 @@ impl ReimportPlan {
     }
 
     /// Whether Apply writes anything: a record to apply, a conflict or a removal to record. A re-import of the same
-    /// source writes nothing (IC-12).
+    /// source writes nothing.
     pub fn writes(&self) -> bool {
         self.rows
             .iter()
@@ -125,7 +125,7 @@ impl ReimportPlan {
     }
 }
 
-/// The source keys of the records of `model` whose `source_ref` names the lineage `lineage` (D10's share of the
+/// The source keys of the records of `model` whose `source_ref` names the lineage `lineage` (the share of the
 /// batch's source keys).
 ///
 /// # Errors
@@ -367,7 +367,7 @@ pub fn plan_reimport(
     Ok(plan)
 }
 
-/// The hash of D11: the first 128 bits of SHA-256 over the record's canonical line without its `source_ref` member
+/// The hash: the first 128 bits of SHA-256 over the record's canonical line without its `source_ref` member
 /// (doc 05 §3.1: `$k` first, then the members in declaration order), as 32 lower-case hex digits.
 ///
 /// # Errors
@@ -416,7 +416,7 @@ impl DynCommand for ApplyImport {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         // The batch's library documents are checked as `library.embed` checks a copy (its identity and its hash),
         // without the library rule: the import's own library is project-local (doc 05 §13.2).
-        // A re-import keeps the copies the project holds (D12: this project's version is kept).
+        // A re-import keeps the copies the project holds (this project's version is kept).
         fn put_copy<T: ew_model::Entity>(tx: &mut TxBuilder<'_>, copy: T, keep_held: bool) {
             if !keep_held || !tx.exists::<T>(copy.id()) {
                 tx.put(copy);
@@ -559,7 +559,7 @@ impl DynCommand for ApplyImport {
 mod tests {
     use super::*;
 
-    /// D11's hash is taken over the record's canonical line without its `source_ref` member: `$k`
+    /// The hash is taken over the record's canonical line without its `source_ref` member: `$k`
     /// first, the members in declaration order.
     #[test]
     fn the_record_hash_is_over_the_canonical_line_without_source_ref() {

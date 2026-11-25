@@ -38,7 +38,7 @@ pub const MM10: i64 = 10_000_000;
 
 /// One position step of the tests on the connection grid of the fixture pages (QET 10 px =
 /// `7_937_500/3` nm): three grid steps, 30 px = 7.9375 mm, exactly representable, so every multiple of
-/// `G` is on the grid (D3). Representation positions, move deltas, split points and route vertices of the
+/// `G` is on the grid. Representation positions, move deltas, split points and route vertices of the
 /// tests are multiples of `G`.
 pub const G: i64 = 7_937_500;
 

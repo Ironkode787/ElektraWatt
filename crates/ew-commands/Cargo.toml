@@ -64,7 +64,7 @@ ew-l10n = { path = "../ew-l10n" }
 [dev-dependencies]
 automod.workspace = true
 # The crate's own integration tests read records through `testkit` (`rows`, `Preview::ops`, history ops;
-# F9: without the feature those untracked row dumps are crate-private).
+# Without the feature those untracked row dumps are crate-private).
 ew-commands = { path = ".", features = ["testkit"] }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }

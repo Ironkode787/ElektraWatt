@@ -277,7 +277,7 @@ fn a_hint_whose_target_vanished_is_dropped_and_reported() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F14: pages affected by potentials
+// Pages affected by potentials
 
 fn define_at(at: EndpointParam) -> DefinePotential {
     DefinePotential {
@@ -317,7 +317,7 @@ fn potential_define_at_a_junction_notifies_the_junction_page() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F17: the rule ID of a prevent rejection
+// The rule ID of a prevent rejection
 
 struct RejectAll;
 
@@ -389,7 +389,7 @@ fn an_engine_without_prevent_rules_commits_a_duplicate_designation() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F10: junction clean-up keeps assigned numbers
+// Junction clean-up keeps assigned numbers
 
 const JX: Id<Junction> = id(0x5100);
 const WA: Id<Connection> = id(0x4300);

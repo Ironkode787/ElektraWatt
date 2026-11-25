@@ -115,7 +115,7 @@ fn pointer(err: CmdError) -> String {
 }
 
 /// PS6's command half: a project-local copy is rewritten in place (same IDs and version, the hash of the new item);
-/// undo restores the records byte for byte. D20: `part.edit_copy` is Bulk: it runs only through a preview.
+/// undo restores the records byte for byte. `part.edit_copy` is Bulk: it runs only through a preview.
 #[test]
 fn a_project_local_copy_is_edited_in_place() {
     let mut e = engine(model());
@@ -145,7 +145,7 @@ fn a_project_local_copy_is_edited_in_place() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// PS7's command half (D20, R7): a copy from a library forks: one new project-local copy with the fork's item ID,
+/// PS7's command half (R7): a copy from a library forks: one new project-local copy with the fork's item ID,
 /// the original's version and `meta.source.fork_of`; every part-copy link of the link table that named the original
 /// names the fork (part use, strip accessory, assembly configuration, a connection's wire part, a potential
 /// definition's wire part); the original copy stays unchanged; undo restores every record.

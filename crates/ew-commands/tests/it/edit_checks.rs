@@ -111,7 +111,7 @@ fn set_device(device: Id<Device>, path: &str, value: serde_json::Value) -> SetFi
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F1: checked coordinates
+// Checked coordinates
 
 /// The largest coordinate on `grid` that is at most `MAX_COORD`.
 fn largest_on_grid(grid: Grid) -> i64 {
@@ -215,7 +215,7 @@ fn a_record_without_json_form_is_an_error_not_null() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F2: junction clean-up converges in one pass
+// Junction clean-up converges in one pass
 
 fn junction_on_102(j: Id<Junction>, sequence: Vec<Id<Connection>>) -> Record {
     Record::Junction(junction(j, PAGE_102, sequence))
@@ -296,7 +296,7 @@ fn a_50_long_chain_cleans_up_in_one_pass() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F3: collision-only renumbering
+// collision-only renumbering
 
 #[test]
 fn editing_an_unrelated_field_of_a_colliding_device_changes_only_that_field() {
@@ -356,7 +356,7 @@ fn moving_onto_a_colliding_page_renumbers_the_moved_device() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F4: preview identity
+// Preview identity
 
 #[test]
 fn a_preview_from_another_engine_is_re_run() {
@@ -406,7 +406,7 @@ fn a_preview_from_another_engine_at_a_different_revision_is_re_run() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// F5: transient delete planning
+// Transient delete planning
 
 fn delete(targets: Vec<TargetRef>) -> DeleteSelection {
     DeleteSelection { targets }
@@ -436,7 +436,7 @@ fn delete_main_function_and_device_in_either_order() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// D2: fields.set collisions
+// fields.set collisions
 
 #[test]
 fn setting_a_colliding_counter_is_rejected_with_the_next_free_one() {
@@ -469,7 +469,7 @@ fn setting_a_colliding_counter_is_rejected_with_the_next_free_one() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// D3: the connection grid
+// The connection grid
 
 fn place_ip(pos: Pt2) -> PlaceIp {
     PlaceIp {
@@ -615,7 +615,7 @@ fn junction_edit_takes_no_coordinates_and_works_off_the_grid() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// D4: the cost of edit.delete counts the planned records
+// The cost of edit.delete counts the planned records
 
 #[test]
 fn edit_delete_cost_counts_planned_records() {

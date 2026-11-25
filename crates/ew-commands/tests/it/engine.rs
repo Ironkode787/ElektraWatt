@@ -198,7 +198,7 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     assert_eq!(CreatePage::meta().cost, Cost::Interactive);
     assert!(Exposure::HumanOnly.allows(&Origin::Gui));
     assert!(!Exposure::HumanOnly.allows(&Origin::Mcp { client: "x".into() }));
-    // D7: a CLI submission of a human-only command needs the terminal confirmation.
+    // A CLI submission of a human-only command needs the terminal confirmation.
     let cli = |confirmed| Origin::Cli {
         subcommand: "purge".into(),
         confirmed,

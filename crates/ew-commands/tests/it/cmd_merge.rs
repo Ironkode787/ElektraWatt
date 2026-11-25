@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Conflict records in the editing layer: `merge.resolve` takes ours or
-//! theirs in one undo step, and `edit.delete` removes a record's conflict in the same transaction (CR-4).
+//! theirs in one undo step, and `edit.delete` removes a record's conflict in the same transaction.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -113,7 +113,7 @@ fn taking_the_deleting_side_deletes_the_record_with_its_conflict() {
     assert_eq!(conflicts(&e), 0);
 }
 
-/// CR-4: deleting the record removes its conflict in the same transaction; one undo restores both.
+/// Deleting the record removes its conflict in the same transaction; one undo restores both.
 #[test]
 fn deleting_a_record_removes_its_conflict_and_undo_restores_both() {
     let mut e = engine(colour_conflict());

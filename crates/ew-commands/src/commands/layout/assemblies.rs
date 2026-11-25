@@ -248,7 +248,7 @@ fn unplaced_members(q: &Q, root: Id<Device>) -> Vec<Id<Device>> {
 ///
 /// Rejected: a device or carrier that does not exist (`/device`, `/carrier`); a duct or a surface ("An assembly is
 /// placed on a rail."); `mode: swap`; a device without an assembly; nothing to place; `s` missing when no member is on
-/// the rail (`/s`); an unfit member; D5's refusals of the mode. Interactive; `Bulk` when it places more than 200.
+/// the rail (`/s`); an unfit member; the refusals of the mode. Interactive; `Bulk` when it places more than 200.
 /// Outcome: the first new placement.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -536,7 +536,7 @@ fn space_of_carrier(q: &Q, carrier: Id<Carrier>) -> Option<Id<LayoutSpace>> {
     Some(q.table::<Enclosure>().get(enclosure)?.space)
 }
 
-/// `layout.auto_fill`'s default list (D6): the unplaced devices of the rail's space whose primary part does not
+/// `layout.auto_fill`'s default list: the unplaced devices of the rail's space whose primary part does not
 /// refuse the rail's profile, in the order of `unplaced(space)`.
 fn fill_list(q: &Q, carrier: Id<Carrier>) -> Vec<Id<Device>> {
     let Some(space) = space_of_carrier(q, carrier) else {

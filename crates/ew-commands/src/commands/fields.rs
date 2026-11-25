@@ -1532,7 +1532,7 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
     Ok(())
 }
 
-/// D2: a counter or letter set through `fields.set` that makes the device's page-based tag collide on its
+/// A counter or letter set through `fields.set` that makes the device's page-based tag collide on its
 /// page is refused with the next free counter as the remedy, never replaced silently (automatic
 /// renumbering, FR-NUM-029, applies only to new devices, moves and page changes). A cable on no page is checked in
 /// the project's scope, in words that name no page. A tag that the edit leaves unchanged, another

@@ -358,7 +358,7 @@ fn the_open_revision_can_be_deleted_a_released_one_cannot() {
     assert!(revision(&e, v2).is_open());
 }
 
-/// RL-6: deleting a page drops the open revision's note on it in the same transaction, by
+/// Deleting a page drops the open revision's note on it in the same transaction, by
 /// `edit.delete` and by `page.delete`; a released revision's note on it stays (history, not a link); undo restores
 /// the note with the page.
 #[test]
@@ -522,7 +522,7 @@ fn scripted() -> [Origin; 3] {
     ]
 }
 
-/// RL-2 (EW-REL-004's prevent half, FR-REV-002): under `V{major}.{minor}` "2" is refused with the rule and the next
+/// Under `V{major}.{minor}` "2" is refused with the rule and the next
 /// label; an open revision follows every label; a historic released revision precedes the open one.
 #[test]
 fn create_prevents_a_label_out_of_format_or_order() {
@@ -560,7 +560,7 @@ fn create_prevents_a_label_out_of_format_or_order() {
         .expect("history before the open revision");
 }
 
-/// RL-2 for `fields.set label` on the open revision: a label out of the format or not after every other
+/// For `fields.set label` on the open revision: a label out of the format or not after every other
 /// revision's is prevented with the rule and nothing changes; an in-order label is accepted.
 #[test]
 fn fields_set_label_prevents_a_label_out_of_format_or_order() {
@@ -586,7 +586,7 @@ fn fields_set_label_prevents_a_label_out_of_format_or_order() {
     assert_eq!(revision(&e, v2).label.as_str(), "V3.0");
 }
 
-/// RL-2 in the other formats: `two_digit` proposes 03 after 02, `letter` J after H (I is skipped, so "I" is out of
+/// In the other formats: `two_digit` proposes 03 after 02, `letter` J after H (I is skipped, so "I" is out of
 /// the format); a format of a newer build is not judged.
 #[test]
 fn create_follows_the_project_label_format() {
@@ -613,7 +613,7 @@ fn create_follows_the_project_label_format() {
         .expect("not judged");
 }
 
-/// RL-3: with V1.0 released and nothing open, a content edit opens V2.0 in the same transaction, with the ID
+/// With V1.0 released and nothing open, a content edit opens V2.0 in the same transaction, with the ID
 /// `v5(V1.0, "next")` and no author; one undo removes both, redo restores both; a further edit opens nothing more.
 #[test]
 fn a_content_edit_after_a_release_opens_the_next_revision() {
@@ -645,7 +645,7 @@ fn a_content_edit_after_a_release_opens_the_next_revision() {
     assert_eq!(e.model().table::<Revision>().len(), 2);
 }
 
-/// RL-3's other half: an edit of revisions only (here a withdrawal) opens nothing; comments and transmittals are not
+/// The other half: an edit of revisions only (here a withdrawal) opens nothing; comments and transmittals are not
 /// content either (both reserved kinds without commands at MVP); without a released revision nothing opens; the label
 /// follows the project's format.
 #[test]
@@ -675,7 +675,7 @@ fn only_a_content_edit_after_a_release_opens_a_revision() {
     assert_eq!(open_revision(&e).expect("opened").label.as_str(), "03");
 }
 
-/// D3's edge cases: a taken ID chains the formula deterministically; a label format of a newer build opens nothing
+/// The edge cases: a taken ID chains the formula deterministically; a label format of a newer build opens nothing
 /// and leaves a notice.
 #[test]
 fn the_automatic_revision_chains_a_taken_id_and_skips_a_newer_format() {
@@ -705,7 +705,7 @@ fn the_automatic_revision_chains_a_taken_id_and_skips_a_newer_format() {
     );
 }
 
-/// RL-4: `fields.set` refuses `author` and `checker` from every origin with D4's text; an open revision
+/// `fields.set` refuses `author` and `checker` from every origin with the text; an open revision
 /// takes no checker when created.
 #[test]
 fn the_roles_are_not_set_by_fields_set() {
@@ -749,7 +749,7 @@ fn the_roles_are_not_set_by_fields_set() {
     );
 }
 
-/// RL-4: `revision.set_author` sets the open revision's author from the GUI; it refuses a released revision,
+/// `revision.set_author` sets the open revision's author from the GUI; it refuses a released revision,
 /// a missing one and the checker's role; from a script origin it is refused with the exposure error.
 #[test]
 fn set_author_sets_the_open_revision_author_from_a_person_only() {
@@ -807,7 +807,7 @@ fn set_author_sets_the_open_revision_author_from_a_person_only() {
     );
 }
 
-/// RL-5: `revision.withdraw` adds the withdrawal record `v5(revision, "withdrawal")` with the label, `withdraws`
+/// `revision.withdraw` adds the withdrawal record `v5(revision, "withdrawal")` with the label, `withdraws`
 /// and the reason; the released record stays byte for byte; undo removes the record. Refused: an open revision, a
 /// blank reason, a second withdrawal, a withdrawal record, a script origin.
 #[test]
@@ -880,7 +880,7 @@ fn approve(revision: Id<Revision>, checker: PartyRole) -> ApproveRevision {
     }
 }
 
-/// RG-1 and RG-2 at the command (D9, D-34): `revision.approve` writes the checker and the complete sign-off of the
+/// At the command (D-34): `revision.approve` writes the checker and the complete sign-off of the
 /// open revision from a person; undo takes both back. Refused: a script origin (exposure), the author's party as
 /// checker, a released revision, an open revision without an author, a scheme that does not ship, a waiver that does
 /// not exist or is listed twice.
@@ -1017,7 +1017,7 @@ fn release(revision: Id<Revision>) -> ReleaseRevision {
     }
 }
 
-/// RA-1 and RA-6 at the command: `revision.release` stamps the signed-off open revision from a person: state
+/// At the command: `revision.release` stamps the signed-off open revision from a person: state
 /// Released, the date kept, and the release record with the sign-off as `approval`, the archive's name and hash, the
 /// generation, the content digest, the profile, the packs, the page digests, the changed pages and the tag. It is not
 /// undoable (a barrier: the archive and the tag are outside the history). Refused: a script origin (exposure), a

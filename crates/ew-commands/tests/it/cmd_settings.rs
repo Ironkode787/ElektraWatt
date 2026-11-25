@@ -152,7 +152,7 @@ fn settings_set_null_removes_and_equal_values_change_nothing() {
     assert_eq!(p.op_count(), 0);
 }
 
-/// TS-3 (ADR-0032 decision 6, FR-SYM-013): `text_styles` replaces the typed member as a whole in one undo step, `{}`
+/// `text_styles` replaces the typed member as a whole in one undo step, `{}`
 /// and `null` remove it, and a value outside the rules is refused at the member path.
 #[test]
 fn settings_set_text_styles_replaces_the_member_and_undoes() {

@@ -145,9 +145,9 @@ fn is_the_first_row_of_the_registry_before_n1() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// D2, D3: stations and the configuration project on demand
+// Stations and the configuration project on demand
 
-/// PW-2's engine half: the first station creates `PLC1` with the TIA profile, the CPU as its `cpu` and the v5 ID.
+/// The engine half: the first station creates `PLC1` with the TIA profile, the CPU as its `cpu` and the v5 ID.
 #[test]
 fn the_first_station_creates_plc1() {
     let mut e = engine(model());
@@ -172,7 +172,7 @@ fn the_first_station_creates_plc1() {
     );
 }
 
-/// D3: a second station joins the only configuration project, with a notice that names it.
+/// A second station joins the only configuration project, with a notice that names it.
 #[test]
 fn a_second_station_joins_plc1() {
     let mut e = engine(model());
@@ -195,7 +195,7 @@ fn a_second_station_joins_plc1() {
     );
 }
 
-/// D3: with several configuration projects, a station joins the first by name, and the notice says so.
+/// With several configuration projects, a station joins the first by name, and the notice says so.
 #[test]
 fn with_several_configuration_projects_a_station_joins_the_first_by_name() {
     let mut e = engine(model());
@@ -226,7 +226,7 @@ fn with_several_configuration_projects_a_station_joins_the_first_by_name() {
     );
 }
 
-/// D2: a station part with I/O ranges also gives the device an integrated module, whose channels N1 creates.
+/// A station part with I/O ranges also gives the device an integrated module, whose channels N1 creates.
 #[test]
 fn a_station_with_io_carries_an_integrated_module() {
     let mut e = engine(model());
@@ -238,9 +238,9 @@ fn a_station_with_io_carries_an_integrated_module() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// D2, D4: modules
+// D4: modules
 
-/// PW-1's engine half: modules attach to the only station in placement order, positions 1 and 2, with the notice;
+/// The engine half: modules attach to the only station in placement order, positions 1 and 2, with the notice;
 /// each module's channels exist with v5 IDs.
 #[test]
 fn modules_attach_to_the_only_station() {
@@ -268,7 +268,7 @@ fn modules_attach_to_the_only_station() {
     }
 }
 
-/// PW-3's engine half: without a station the module stays unattached with its channels and the notice; with two
+/// The engine half: without a station the module stays unattached with its channels and the notice; with two
 /// stations it stays unattached with D4's other notice.
 #[test]
 fn a_module_without_one_station_stays_unattached() {
@@ -364,7 +364,7 @@ fn a_module_below_a_station_keeps_its_place() {
     assert!(!has_notice(&r, "attached to"), "{:?}", notices(&r));
 }
 
-/// D2: N0 never rewrites or re-adds an aspect: a removed aspect stays removed through unrelated edits and a part
+/// N0 never rewrites or re-adds an aspect: a removed aspect stays removed through unrelated edits and a part
 /// list whose PLC part is unchanged; only another PLC part triggers it again.
 #[test]
 fn never_rewrites_or_re_adds_an_aspect() {
@@ -427,8 +427,8 @@ fn never_rewrites_or_re_adds_an_aspect() {
     assert_eq!(e.model().table::<PlcConfigProject>().iter().count(), 1);
 }
 
-/// PW-4's engine half: each placement is one undo step; undo of the first removes the station and `PLC1` and
-/// nothing else, redo restores identical IDs; a second run with the same seed gives the same model (PW-8).
+/// the engine half: each placement is one undo step; undo of the first removes the station and `PLC1` and
+/// nothing else, redo restores identical IDs; a second run with the same seed gives the same model.
 #[test]
 fn undo_and_redo_of_a_placement_and_twice_run_determinism() {
     let run = || {
@@ -456,7 +456,7 @@ fn undo_and_redo_of_a_placement_and_twice_run_determinism() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// D6: the channel members through `fields.set`
+// The channel members through `fields.set`
 
 fn station_with_card() -> (Engine, Id<Device>, Id<Channel>) {
     let mut e = engine(model());
@@ -465,7 +465,7 @@ fn station_with_card() -> (Engine, Id<Device>, Id<Channel>) {
     (e, m, ew_ids::v5::plc_channel_id(m, 0))
 }
 
-/// PW-5's engine half: symbol, comment, state and every address form, each one undo step.
+/// The engine half: symbol, comment, state and every address form, each one undo step.
 #[test]
 fn channel_members_are_settable() {
     let (mut e, _, c0) = station_with_card();
@@ -511,7 +511,7 @@ fn channel_members_are_settable() {
     assert_eq!(row(&e, c0).state, Some(ChannelState::Reserved));
 }
 
-/// D6: a text that the profile does not parse is refused with the profile's example; values of a newer format are
+/// A text that the profile does not parse is refused with the profile's example; values of a newer format are
 /// refused; a configuration project whose profile this build does not ship reads no address text.
 #[test]
 fn channel_values_outside_the_profile_and_this_build_are_refused() {
@@ -570,7 +570,7 @@ fn channel_values_outside_the_profile_and_this_build_are_refused() {
         .expect("a word needs no profile");
 }
 
-/// D6: a module without a station reads its address texts with the shipped default profile.
+/// A module without a station reads its address texts with the shipped default profile.
 #[test]
 fn a_module_without_a_station_reads_addresses_with_the_default_profile() {
     let mut e = engine(model());
@@ -581,7 +581,7 @@ fn a_module_without_a_station_reads_addresses_with_the_default_profile() {
     assert!(matches!(row(&e, c0).address, AddrSpec::Manual(_)));
 }
 
-/// D6: a configuration project's name is settable and unique; its profile is not settable here; a device link's
+/// A configuration project's name is settable and unique; its profile is not settable here; a device link's
 /// kind is settable, a kind of a newer format refused.
 #[test]
 fn configuration_project_name_and_device_link_kind() {
