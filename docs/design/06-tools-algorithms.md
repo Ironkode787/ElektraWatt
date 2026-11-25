@@ -117,7 +117,10 @@ stateDiagram-v2
   program's). A junction that already joins three wires is not an end target.
 - Without a way the ghost is the dashed right-angled line of an unrouted wire, the line the page then
   draws, and the HUD says "No clear route: the wire stays a dashed line without a route. Click free points to lead
-  it, or route it later with Route."; a commit then stores the wire without a route. After a fixed bend from which no
+  it, or route it later with Route."; a commit then stores the wire without a route, and its toast says so with Undo
+  ("One wire found no way and is drawn as a thin dashed line: …"). The window draws an unrouted wire's dashes at
+  least a point wide over the page's thin pen, so that it is seen at an ordinary zoom; the paper and the PDF keep the
+  thin pen. After a fixed bend from which no
   clear route leads on, the wire is routed from its start as if drawn anew (its fixed bends dropped), else stored
   unrouted. Where the route crosses a text the HUD says "The route crosses a text: keeping clear of it is a far longer
   way." After a click that places a bend the HUD says "Bend placed: click a connection point to end the wire." While

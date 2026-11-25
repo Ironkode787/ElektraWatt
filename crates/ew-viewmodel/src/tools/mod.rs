@@ -323,6 +323,9 @@ pub enum Ghost {
         name: String,
         /// `source`, `target` or `undirected`.
         direction: &'static str,
+        /// Whether the direction is chosen (D, `tool.ip_direction`, the star, an external reference) rather than
+        /// found by the point's place on the page, which the click decides.
+        chosen: bool,
         /// Whether it is the star source of its name.
         star: bool,
         /// The insertion point on the page, nm; `None` before the first pointer or cursor move.
@@ -488,6 +491,8 @@ pub struct Follows {
     pub retag: bool,
     /// A drawn wire: an error finding it brings is said at once.
     pub wire_errors: bool,
+    /// A wire drawn without a route (the tool found no clear way): a toast says so and what to do.
+    pub unrouted: bool,
     /// The Graphic tool's shape: tip 1 when it is a line ending on a connection point.
     pub line_tip: bool,
     /// A box placement on a bus page that draws a device which exists already.

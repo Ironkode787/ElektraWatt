@@ -655,6 +655,8 @@ impl CanvasHost {
             }
             (None, None) => {}
         }
+        // The wires without a route, dashed as the page draws them but wide enough to be seen.
+        paint_unrouted(ui, rect, ppp, &transform, &shown);
         // The wire-colour view, under the conflicts and the highlights.
         let wire_strokes = paint_wire_colours(ui, rect, ppp, &transform, shell, group);
         // The conflict overlay, under the highlights.

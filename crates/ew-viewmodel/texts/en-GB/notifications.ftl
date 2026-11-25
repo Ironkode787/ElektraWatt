@@ -244,6 +244,8 @@ toast-ip-placed-target-lone = { $p0 } at { $p1 } has no source yet: place where 
 toast-ip-placed-target-lone-no-cell = { $p0 } has no source yet: place where { $p0 } comes from, its source. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
 toast-undo = Undo
 toast-close = Close
+# A toast that says again what the visible toast of its key says, with the times in a row (it ran again).
+note-said-again = { $p0 } ({ $p1 }×)
 
 # The jobs, the notifications and the recovery dialog.
 toast-open = Open

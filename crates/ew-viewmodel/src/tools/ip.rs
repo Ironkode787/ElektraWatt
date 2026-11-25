@@ -1256,6 +1256,7 @@ impl Tool for IpTool {
         Some(Ghost::Ip {
             name: self.shown.clone(),
             direction: self.shown_dir.word(),
+            chosen: self.auto_direction(pos).1,
             star: self.star,
             at_nm: pos,
             external: self.external.as_ref().map(|e| e.label.clone()),

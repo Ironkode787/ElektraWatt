@@ -692,6 +692,7 @@ fn ghost_json(shell: &ShellModel) -> String {
         Some(Ghost::Ip {
             name,
             direction,
+            chosen: _,
             star,
             at_nm,
             external,

@@ -204,7 +204,8 @@ pub(crate) struct Note {
     pub(crate) tone: Option<NoteTone>,
     /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
     pub(crate) keep: Option<String>,
-    /// What its toast shows where that is shorter than its text ([`Notification::shown`]).
+    /// What its toast shows where that is shorter than its text ([`Notification::shown`]); the log may add the times
+    /// in a row ([`NotificationLog::push`]).
     pub(crate) brief: Option<String>,
 }
 
@@ -258,9 +259,12 @@ pub struct Notification {
     pub(crate) tone: Option<NoteTone>,
     /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
     pub(crate) keep: Option<String>,
-    /// What its toast shows where that is shorter than its text: the first of several reasons and how many more. The
-    /// toast's tooltip and the log show the whole text.
+    /// What its toast shows where that differs from its text: the first of several reasons and how many more, and the
+    /// times in a row its key's toast said it ([`NotificationLog::push`]). The toast's tooltip and the log show the
+    /// whole text.
     pub(crate) brief: Option<String>,
+    /// How many times in a row its key's toast said its text, it included (1: the first).
+    pub(crate) repeats: usize,
 }
 
 impl Notification {
@@ -354,10 +358,25 @@ pub struct NotificationLog {
 }
 
 impl NotificationLog {
-    /// Adds `note` as the newest toast and log entry; returns its serial.
-    pub(crate) fn push(&mut self, note: Note) -> u64 {
+    /// Adds `note` as the newest toast and log entry; returns its serial. A toast that says what the visible toast of
+    /// its key says counts the times in a row on its brief ("… (2×)"), so that a second run that changes nothing is
+    /// seen to have run (Arrange and route with nothing to arrange); the log keeps the text.
+    pub(crate) fn push(&mut self, mut note: Note) -> u64 {
         self.serials += 1;
         let serial = self.serials;
+        let text = note.sentences.join(" ");
+        let repeats = self
+            .visible()
+            .iter()
+            .find(|n| n.key == note.key && n.text == text)
+            .map_or(1, |n| n.repeats + 1);
+        if repeats > 1 {
+            let shown = note.brief.take().unwrap_or_else(|| text.clone());
+            note.brief = Some(strings::format(
+                key!("note-said-again"),
+                &[&shown, &repeats.to_string()],
+            ));
+        }
         let entries = &self.entries;
         self.visible.retain(|s| {
             entries
@@ -371,7 +390,8 @@ impl NotificationLog {
         }
         self.entries.push_back(Notification {
             serial,
-            text: note.sentences.join(" "),
+            text,
+            repeats,
             key: note.key,
             sentences: note.sentences,
             offers: note.offers,
@@ -547,6 +567,38 @@ mod tests {
             ("Nothing to arrange", Some("-K1: no room. And 2 more.".into()))
         );
         assert_eq!(log.entries().next().map(|n| n.text.as_str()), Some(whole));
+    }
+
+    /// A persona run: a second Arrange and route with nothing to arrange showed the first toast as it stood, so
+    /// nothing said it ran. A toast that says again what the visible toast of its key says counts the times in a row;
+    /// another text, or the same text after the toast left, starts again, and the log keeps the text.
+    #[test]
+    fn a_toast_said_again_counts_the_times_in_a_row() {
+        let mut log = NotificationLog::default();
+        let nothing =
+            || Note::new("edit", "Nothing to arrange: the page is arranged.".into()).toned(NoteTone::Info);
+        let first = log.push(nothing());
+        let second = log.push(nothing());
+        let third = log.push(nothing());
+        let lines = |log: &NotificationLog, s| log.get(s).map(|n| n.lines().1.map(Cow::into_owned));
+        assert_eq!(lines(&log, first), Some(Some("The page is arranged.".into())));
+        assert_eq!(
+            lines(&log, second),
+            Some(Some("The page is arranged. (2×)".into()))
+        );
+        assert_eq!(
+            lines(&log, third),
+            Some(Some("The page is arranged. (3×)".into()))
+        );
+        assert_eq!(
+            log.get(third).map(|n| n.text.as_str()),
+            Some("Nothing to arrange: the page is arranged.")
+        );
+        assert!(log.dismiss(third));
+        let after = log.push(nothing());
+        assert_eq!(lines(&log, after), Some(Some("The page is arranged.".into())));
+        let other = log.push(Note::new("edit", "Placed -K1.".into()));
+        assert_eq!(log.get(other).map(Notification::shown), Some("Placed -K1."));
     }
 
     /// The line under a toast's title starts with a capital where it started lowercase; the text

@@ -272,6 +272,36 @@ pub(super) fn paint_conflicts(
     }
 }
 
+/// Paints the wires of the page on show that have no route over the page in the window: the page draws
+/// such a wire dashed 4:2 mm in its thinnest pen, under a pixel wide at an ordinary zoom (at 113 % it could not be
+/// seen); the window draws it over that as the same dashes at least [`UNROUTED_PT`] wide, in the sheet's ink. The
+/// paper and the PDF keep the thin pen.
+pub(super) fn paint_unrouted(
+    ui: &egui::Ui,
+    rect: egui::Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    page: &CanvasPage,
+) {
+    let to_pt = |p: (i64, i64)| {
+        let s = t.to_screen((p.0 as f64, p.1 as f64));
+        rect.min + egui::Vec2::new(s.0 as f32, s.1 as f32) / ppp
+    };
+    // A millimetre of the sheet in points, for the dashes.
+    let mm = (to_pt((1_000_000, 0)).x - to_pt((0, 0)).x).abs();
+    let stroke = egui::Stroke::new(UNROUTED_PT, egui::Color32::BLACK);
+    let painter = ui.painter_at(rect);
+    for c in page.tables.connections.iter().filter(|c| !c.stored_route) {
+        let pts: Vec<egui::Pos2> = c.polyline.iter().map(|p| to_pt(*p)).collect();
+        if pts.len() >= 2 {
+            painter.extend(egui::Shape::dashed_line(&pts, stroke, 4.0 * mm, 2.0 * mm));
+        }
+    }
+}
+
+/// The width of an unrouted wire's dashes in the window, in logical points ([`paint_unrouted`]).
+pub const UNROUTED_PT: f32 = 1.0;
+
 /// The hovered link's text underlined, as a link (doc 16a §7.2's hover, P4): a 1-px `canvas.hover` line
 /// along the bottom of the link's rectangle on screen, when the link leads somewhere.
 pub(super) fn paint_link_underline(

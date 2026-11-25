@@ -220,7 +220,9 @@ in an ellipsis, with the whole text in the tooltip, the HUD and the log.
 
 **A toast may show a brief of its text**: where several reasons stack, the toast shows the first and how many more ("And 2 more: hover
 here, or see Notifications"), and its tooltip and the log show the whole text. Arrange and route's "Nothing to
-arrange" is a result toast: its title, then what stands in the way as its line.
+arrange" is a result toast: its title, then what stands in the way as its line. **A toast that says again** what the
+visible toast of its key says counts the times in a row at its end ("… (2×)"), so that a second Arrange and route with
+nothing to arrange is seen to have run; the log keeps each entry's text.
 
 **A toast fades out as it fades in:** its opacity rises from 0 to
 1 over `motion.base` from the frame that first paints it, stands at 1, and falls to 0 over the last `motion.base` of

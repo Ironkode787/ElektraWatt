@@ -1774,6 +1774,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(crate::tools::Ghost::Ip {
             name,
             direction,
+            chosen: _,
             star,
             at_nm,
             external,

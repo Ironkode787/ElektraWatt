@@ -210,6 +210,8 @@ toast-ip-placed-target-lone = { $p0 } op { $p1 } heeft nog geen bron: plaats waa
 toast-ip-placed-target-lone-no-cell = { $p0 } heeft nog geen bron: plaats waar { $p0 } vandaan komt, zijn bron. Een voeding van buiten de tekening: kies Voeding komt hier binnen… in het rechtermuismenu.
 toast-undo = Ongedaan maken
 toast-close = Sluiten
+# Een toast die opnieuw zegt wat de zichtbare toast van zijn sleutel zegt, met het aantal keren op rij.
+note-said-again = { $p0 } ({ $p1 }×)
 toast-open = Openen
 toast-export-cancelled = Export geannuleerd; geen bestand geschreven.
 toast-export-failed = Exporteren mislukt: { $p0 }; controleer of de map beschrijfbaar is en het bestand niet in een ander programma open is.

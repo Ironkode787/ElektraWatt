@@ -337,7 +337,8 @@ fn the_same_page_routes_the_same_wires() {
 }
 
 /// Without a clear route the ghost is the unrouted line, right-angled and never a diagonal, the hint says so,
-/// and the commit stores the wire unrouted, drawn on the page as the ghost showed it; with a fixed bend from which no
+/// and the commit stores the wire unrouted, drawn on the page as the ghost showed it, which a toast says; with a fixed
+/// bend from which no
 /// clear way leads on, the same: no L tail through the box is stored (such a tail ran through a pin and along
 /// another wire).
 #[test]
@@ -385,6 +386,16 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     assert_eq!(new.len(), 1);
     assert!(!new[0].stored_route, "stored unrouted");
     assert_eq!(new[0].polyline, ghost, "the page draws the line the ghost showed");
+    // A toast says it where the person looks, with Undo (a persona run saw the status line only).
+    let toast = p.s.notifications().newest_visible().cloned().expect("a toast");
+    assert_eq!(
+        toast.text,
+        "One wire found no way and is drawn as a thin dashed line: move the items apart and choose Route."
+    );
+    assert_eq!(
+        toast.action(),
+        Some(ew_viewmodel::notifications::NoteAction::Undo)
+    );
     // The hint stays with the drawn wire until the next one starts.
     assert_eq!(
         (p.s.tool().state(), p.s.tool_hint().as_str()),

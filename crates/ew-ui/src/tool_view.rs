@@ -252,6 +252,10 @@ pub(crate) struct IpFields<'a> {
     pub focus: bool,
     /// The ghost's direction word (`source`, `target`; a star source is `source`), for the Source | Target choice.
     pub direction: Option<&'a str>,
+    /// Whether that direction is chosen: a direction the point's place on the page decides selects neither choice,
+    /// so the card never shows one the click does not place (Source stood on the card while a click in the page's
+    /// left quarter placed a target).
+    pub chosen: bool,
 }
 
 /// The ID of the IP tool's name field: the HUD reads whether it holds the keys.
@@ -282,6 +286,7 @@ pub(crate) fn ip_fields(
         externals,
         focus,
         direction,
+        chosen,
     } = *shown;
     ui.label(strings::text(key!("action-ip-name")));
     let id = ip_name_field_id();
@@ -339,7 +344,7 @@ pub(crate) fn ip_fields(
         ];
         let labels: Vec<(&str, bool)> = choices
             .iter()
-            .map(|(word, key)| (strings::text(*key), *word == direction))
+            .map(|(word, key)| (strings::text(*key), chosen && *word == direction))
             .collect();
         if let Some(i) = segmented(ui, strings::text(key!("action-tool-ip-direction")), &labels) {
             events.push(crate::app::Event::Action(

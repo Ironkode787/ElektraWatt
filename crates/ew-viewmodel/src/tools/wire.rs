@@ -1565,9 +1565,12 @@ impl Tool for WireTool {
     /// refusal of that wire); once a click placed a bend, that a bend is placed; while no clear route is
     /// found, and after a wire drawn so until the next one starts, that the wire stays unrouted (not a refusal).
     fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
-        // A drawn wire that brings an error says so at once, in the finding's words.
+        // A drawn wire that brings an error says so at once, in the finding's words; one drawn without a route (no
+        // clear way found) says so in a toast, where the person looks (the status line alone was not seen).
+        let drawn = matches!(cmd.name(), "connection.draw" | "connection.draw_many");
         super::Follows {
-            wire_errors: matches!(cmd.name(), "connection.draw" | "connection.draw_many"),
+            wire_errors: drawn,
+            unrouted: drawn && self.direct,
             ..super::Follows::default()
         }
     }

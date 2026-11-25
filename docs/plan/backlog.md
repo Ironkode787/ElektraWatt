@@ -19,7 +19,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The window's finish
 
-- FT-2145 `ew-viewmodel, ew-ui`: Three things a persona run met at the window and no lane took (2026-11-23). Interruption points placed on a supply page while the bar showed Source came out as targets, four EW-CORE-051 errors that the person mended in Properties; not reproduced, it needs the run's order of keys and clicks. A second Arrange and route on a page with nothing to arrange leaves the first ask's toast standing, so nothing shows that it ran again. And a wire the Wire tool finds no way for is said in the status line only, and its dashed line could not be seen on the page at 113 %.
 - FT-2140 `ew-viewmodel, ew-ui`: The strip table has Delete on whole rows and Ctrl+Delete (`strip.delete_rows`, with its card) for the same thing; and "Remove them from the project" says "them" for one terminal (seen by the lane that built the first, 2026-11-23).
 - FT-2141 `ew-viewmodel`: The Dutch glossary and several action labels say "artikel" for a part where the locale test and the window's other words say "onderdeel" (seen in a fix lane, 2026-11-23).
 - FT-2115 `ew-ui`: A persona run typed an interruption point's name, pressed Enter and then D, and D did nothing; the

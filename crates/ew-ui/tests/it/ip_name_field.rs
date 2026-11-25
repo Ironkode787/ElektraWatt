@@ -572,8 +572,9 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     );
 }
 
-/// Source and Target stand beside the name field as two choices, the ghost's direction
-/// chosen; a click on the other one turns the ghost, as D does.
+/// Source and Target stand beside the name field as two choices; a direction the point's place decides selects
+/// neither (the card showed Source where the click placed a target), and a click on one chooses it and turns the
+/// ghost, as D does.
 #[test]
 fn source_and_target_are_two_choices_beside_the_name() {
     let tmp = Tmp::new();
@@ -590,7 +591,7 @@ fn source_and_target_are_two_choices_beside_the_name() {
         "source" => ("Source", "Target"),
         _ => ("Target", "Source"),
     };
-    assert_eq!(chosen(&h, now), Some(true));
+    assert_eq!(chosen(&h, now), Some(false), "found by the place, not chosen");
     assert_eq!(chosen(&h, other), Some(false));
     h.get_all_by_role(egui::Role::Tab)
         .find(|n| n.accesskit_node().label().as_deref() == Some(other))
@@ -711,4 +712,79 @@ fn the_ip_name_commits_on_enter_and_escape_leaves_it_without_the_name() {
     type_in_name_field(&mut h, "X9");
     press(&mut h, Key::Enter);
     assert_eq!(ghost_name(&h), "X9", "Enter commits");
+}
+
+/// A persona run: points placed on the supply page while the tool options card showed Source came out as targets
+/// (with the pointer on the card the ghost has the last point's direction, and a click in the page's left quarter
+/// places a target). The card selects a direction only while one is chosen, and a chosen one is placed wherever the
+/// click lands.
+#[test]
+fn the_card_selects_a_direction_only_while_one_is_chosen() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(&tmp, "101");
+    support::bar_button(&h, "Interruption").click();
+    settle(&mut h);
+    let selected = |h: &Harness<'_, App>| -> Vec<String> {
+        h.get_all_by_role(egui::Role::Tab)
+            .filter(|n| n.accesskit_node().is_selected() == Some(true))
+            .filter_map(|n| n.accesskit_node().label())
+            .filter(|l| l == "Source" || l == "Target")
+            .collect()
+    };
+    assert_eq!(
+        selected(&h),
+        Vec::<String>::new(),
+        "the page's place decides: neither"
+    );
+    let canvas = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas")
+        .rect();
+    let left = |height: f32| {
+        egui::pos2(
+            canvas.left() + canvas.width() * 0.15,
+            canvas.top() + canvas.height() * height,
+        )
+    };
+    let placed = |h: &mut Harness<'_, App>, left: egui::Pos2| {
+        let before = ips(h);
+        h.event(egui::Event::PointerMoved(left));
+        settle(h);
+        for pressed in [true, false] {
+            h.event(egui::Event::PointerButton {
+                pos: left,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+        }
+        settle(h);
+        let new: Vec<String> = h
+            .state()
+            .shell()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .reps
+            .iter()
+            .filter(|r| !before.iter().any(|(id, _)| *id == r.id.to_string()))
+            .filter_map(|r| r.ip.as_ref().map(|ip| ip.direction.clone()))
+            .collect();
+        new
+    };
+    assert_eq!(
+        placed(&mut h, left(0.4)),
+        ["target"],
+        "the left quarter's direction"
+    );
+    // Source chosen on the card: selected there, and placed in the left quarter too.
+    h.get_all_by_role(egui::Role::Tab)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Source"))
+        .expect("the card's Source")
+        .click();
+    settle(&mut h);
+    assert_eq!(selected(&h), ["Source"]);
+    assert_eq!(placed(&mut h, left(0.6)), ["source"], "the chosen direction");
 }

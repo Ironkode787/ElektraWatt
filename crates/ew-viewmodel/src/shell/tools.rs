@@ -746,6 +746,11 @@ impl ShellModel {
         // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit` replaces it.
         let out = self.run_commit(cmd);
         let done = out == Outcome::Done;
+        // A wire without a route is said in a toast; an error it brings, said next, takes the toast's place.
+        if done && follows.unrouted {
+            let text = strings::format_count(crate::count_key!("toast-wires-unrouted"), 1);
+            self.notify(text, true);
+        }
         if done && follows.wire_errors {
             self.say_wire_errors(&errors_before);
         }

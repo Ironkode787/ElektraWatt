@@ -309,7 +309,9 @@ installed library's symbol by its key as well as by its address, before its firs
   and fro; undirected is a choice of a placed point's Direction in Properties), and the rotate and mirror
   keys are not offered. The tool takes the name first when it is chosen from the bar or a menu (the name field has
   the keys, its name selected; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed
-  name without a source starts with its source where the page's quarters say nothing, a typed name stays until it is
+  name without a source starts with its source where the page's quarters say nothing, the tool options card's Source
+  and Target select a direction only while one is chosen (D, the card, the star, an external reference), never one
+  the point's place on the page decides, so the card never shows a direction the click does not place, a typed name stays until it is
   changed, so that after the pair each click places one more target of the same source,
   the pointer as near a pin as the Wire tool catches one puts the point's CP on it, in either form (a source's CP is at its tail), but on a drawn box's pin the arrow never lies along or in the box: on the box's lower side the point stands one grid step below the pin and on its upper side two steps above it (its cross-reference under the arrow needs the room), joined to the pin by a straight wire (`connection.draw_to_ip` with that route; the ghost shows it there), on its left side a target and on its right side a source stand on the pin, and a source on the left side or a target on the right side, whose arrow would point into the box, is refused in words (Alt places it free), a drop on a pin is not refused for room, Alt places a point unjoined and a point left within 6 mm of a pin without a wire says so on placing (EW-POT-009 then offers to join the two), a free point too close to another is refused with the grid steps and millimetres the two must stand apart, the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
   source is drawn)"), and a point whose arrow, name or
