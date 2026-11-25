@@ -665,6 +665,21 @@ fn a_bad_report_block_row_is_dropped() {
     }
 }
 
+/// The kind of a report block row is any report kind of this build by its stored spelling, the bus, PLC and fluid
+/// lists among them; a name that is no kind is refused with the kinds there are.
+#[test]
+fn a_report_block_row_takes_every_report_kind() {
+    for kind in ["bus_cable_list", "plc_card_list", "tube_list", "medium_overview"] {
+        let csv = format!("{BLOCK_HEAD}R1,{kind},{FORM},3,,,\n");
+        let b = run(&[("report_blocks.csv", &csv)]);
+        assert_eq!(blocks(&b), 1, "{kind}: {:?}", errors(&b, 2));
+    }
+    let csv = format!("{BLOCK_HEAD}R1,bus_lists,{FORM},3,,,\n");
+    let b = run(&[("report_blocks.csv", &csv)]);
+    expect_error(&b, 2, "report_blocks.csv", "R1", "`bus_lists` is not one of");
+    assert_eq!(blocks(&b), 0);
+}
+
 // ---- structure.csv ----------------------------------------------------------------------------------------
 
 fn structure_nodes(b: &ImportBatch) -> Vec<ew_ids::Id<ew_schema::StructureNode>> {

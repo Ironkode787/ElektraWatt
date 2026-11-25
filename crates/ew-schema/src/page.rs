@@ -540,10 +540,23 @@ impl ReportKind {
     /// format.
     pub fn name(&self) -> Option<&'static str> {
         let stored = serde_json::to_value(self).ok()?;
-        crate::track::variant_names(ReportKind::deserialize)
+        Self::names()
             .iter()
             .copied()
             .find(|name| Some(*name) == stored.as_str())
+    }
+
+    /// The stored spelling of every kind of this build, in the enum's order: the one list of report kinds.
+    pub fn names() -> &'static [&'static str] {
+        crate::track::variant_names(ReportKind::deserialize)
+    }
+
+    /// The kind whose stored spelling is `name`; `None` for a name that is no kind of this build.
+    pub fn from_name(name: &str) -> Option<ReportKind> {
+        Self::names()
+            .contains(&name)
+            .then(|| serde_json::from_value(Value::String(name.to_owned())).ok())
+            .flatten()
     }
 }
 

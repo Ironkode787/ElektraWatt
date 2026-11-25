@@ -48,28 +48,6 @@ const PAGE_KINDS: &[(&str, PageType)] = &[
     ("external_document", PageType::ExternalDocument),
 ];
 
-const REPORT_KINDS: &[(&str, ReportKind)] = &[
-    ("profile_tables", ReportKind::ProfileTables),
-    ("part_data", ReportKind::PartData),
-    ("toc", ReportKind::Toc),
-    ("structure_overview", ReportKind::StructureOverview),
-    ("parts_summary", ReportKind::PartsSummary),
-    ("parts_list", ReportKind::PartsList),
-    ("device_list", ReportKind::DeviceList),
-    ("terminal_diagram", ReportKind::TerminalDiagram),
-    ("terminal_overview", ReportKind::TerminalOverview),
-    ("cable_overview_diagrams", ReportKind::CableOverviewDiagrams),
-    ("wire_list", ReportKind::WireList),
-    ("plc_overview", ReportKind::PlcOverview),
-    ("io_list", ReportKind::IoList),
-    ("potential_overview", ReportKind::PotentialOverview),
-    ("revision_overview", ReportKind::RevisionOverview),
-    ("open_items", ReportKind::OpenItems),
-    ("numbering_report", ReportKind::NumberingReport),
-    ("enclosure_legend", ReportKind::EnclosureLegend),
-    ("check_report", ReportKind::CheckReport),
-];
-
 const ROLES: &[(&str, PartyRole)] = &[
     ("customer", PartyRole::Customer),
     ("end_user", PartyRole::EndUser),
@@ -410,12 +388,17 @@ pub(crate) fn emit_surface_views(cx: &mut Cx<'_>, table: Option<&Table>) {
 pub(crate) fn emit_report_blocks(cx: &mut Cx<'_>, table: Option<&Table>) {
     let Some(table) = table else { return };
     let mut seen = std::collections::BTreeMap::<String, ()>::new();
+    // Every report kind of this build, by its stored spelling.
+    let kinds: Vec<(&str, ReportKind)> = ReportKind::names()
+        .iter()
+        .filter_map(|name| Some((*name, ReportKind::from_name(name)?)))
+        .collect();
     for row in table.rows() {
         if !fresh(&mut cx.findings, row, &seen) {
             continue;
         }
         let mut r = row.reader();
-        let kind = r.req_choice("kind", REPORT_KINDS);
+        let kind = r.req_choice("kind", &kinds);
         let form = r.req("form").map(str::to_owned);
         let section = r.text("section").map(str::to_owned);
         let first_folio = r.uint::<u32>("first_folio");
