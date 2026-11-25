@@ -120,6 +120,7 @@ pub use host::{
 };
 pub use measure::{MeasureTool, distance_nm, measure_label};
 pub use overlay::{Anchor, Dash, MarkerKind, Overlay, OverlayItem, Style, Token, paths_on_sheet};
+pub(crate) use select::selected_terminal_reps;
 pub use select::{SelectTool, band_selection, block_grips, grabbed_label, label_grip, terminal_clamps};
 pub use snap::{FineKind, Snap, SnapKind, Snapper};
 

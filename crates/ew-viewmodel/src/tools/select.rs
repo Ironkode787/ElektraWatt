@@ -512,12 +512,14 @@ pub fn label_grip(cx: &ToolCx<'_>) -> Option<super::Overlay> {
 /// The most selected terminals whose clamp letters show.
 pub const CLAMP_LETTERS_MOST: usize = 4;
 
-/// The selected terminals drawn alone on the page, as their symbols: selected as the symbol (a click) or as the device
-/// (`select.set` by tag), in the page tables' order.
-pub fn selected_terminal_reps<'t>(cx: &'t ToolCx<'_>) -> Vec<&'t ew_api::output::TableRep> {
-    let selected = |id| cx.selection.items.contains(&EntityRef(id));
-    cx.page
-        .tables
+/// The selected terminals drawn on the page `tables` holds, as their symbols: selected as the symbol (a click) or as
+/// the device (`select.set` by tag), in the page tables' order.
+pub(crate) fn selected_terminal_reps<'t>(
+    selection: &super::Selection,
+    tables: &'t ew_api::output::PageTables,
+) -> Vec<&'t ew_api::output::TableRep> {
+    let selected = |id| selection.items.contains(&EntityRef(id));
+    tables
         .reps
         .iter()
         .filter(|r| r.terminal && (selected(r.id) || r.device.is_some_and(selected)))
@@ -530,7 +532,7 @@ pub fn selected_terminal_reps<'t>(cx: &'t ToolCx<'_>) -> Vec<&'t ew_api::output:
 /// terminal, and with more than [`CLAMP_LETTERS_MOST`] selected, whose letters would hide the symbols.
 pub fn terminal_clamps(cx: &ToolCx<'_>) -> Option<super::Overlay> {
     let t = &cx.page.tables;
-    let selected = selected_terminal_reps(cx);
+    let selected = selected_terminal_reps(cx.selection, t);
     if selected.len() > CLAMP_LETTERS_MOST {
         return None;
     }

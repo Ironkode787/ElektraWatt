@@ -176,14 +176,14 @@ impl ShellModel {
         out.into_iter().map(|u| u.to_string()).collect()
     }
 
-    /// The selected terminals of `tables` with their points, when they stand in one row (one `y`); else none.
+    /// The selected terminals of `tables` (by their symbols or their devices) with their points, when they stand in
+    /// one row (one `y`); else none.
     pub(super) fn selected_terminal_row(&self, tables: &PageTables) -> Vec<(EntityRef, (i64, i64))> {
-        let row: Vec<(EntityRef, (i64, i64))> = tables
-            .reps
-            .iter()
-            .filter(|r| r.terminal && self.tools.selection.contains(EntityRef(r.id)))
-            .map(|r| (EntityRef(r.id), r.pos))
-            .collect();
+        let row: Vec<(EntityRef, (i64, i64))> =
+            crate::tools::selected_terminal_reps(&self.tools.selection, tables)
+                .into_iter()
+                .map(|r| (EntityRef(r.id), r.pos))
+                .collect();
         if row.iter().any(|(_, at)| at.1 != row[0].1.1) {
             return Vec::new();
         }

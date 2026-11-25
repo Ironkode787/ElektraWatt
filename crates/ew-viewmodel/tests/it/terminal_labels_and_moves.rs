@@ -370,3 +370,39 @@ fn spacing_lays_a_terminal_row_apart_and_respaces_one_that_stands() {
     assert_eq!(gaps(&new), [1], "remembered: {all:?}");
     s.shutdown();
 }
+
+/// Spacing… takes terminals selected by their tag (`select.set` selects the devices) as it takes their symbols.
+#[test]
+fn spacing_follows_a_selection_made_by_tag() {
+    let tmp = Tmp::new("terminal-spacing-by-tag");
+    let mut s = common::new_project(&tmp);
+    let gaps = |s: &ShellModel| {
+        let page = s.canvas().unwrap().page();
+        let mut x: Vec<i64> = page
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.terminal)
+            .map(|r| page.snapper.grid_index_of(r.pos.0))
+            .collect();
+        x.sort_unstable();
+        x.windows(2).map(|w| w[1] - w[0]).collect::<Vec<_>>()
+    };
+    done(
+        &mut s,
+        "tool.place_terminal",
+        json!({"strip": "new", "tag": "-X7", "count": 3, "spacing": 3}),
+    );
+    done(&mut s, "nav.goto", json!({ "text": "101-D2" }));
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    assert_eq!(gaps(&s), [3, 3]);
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["tag:-X7:1", "tag:-X7:2", "tag:-X7:3"]}),
+    );
+    assert!(s.terminal_row_selected(), "the gate sees the row");
+    done(&mut s, "terminals.spacing", json!({"steps": 1}));
+    assert_eq!(gaps(&s), [1, 1]);
+    s.shutdown();
+}
