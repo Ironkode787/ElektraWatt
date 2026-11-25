@@ -633,3 +633,49 @@ fn supply_marks_in_a_row_each_print_where_they_come_from() {
     assert_eq!(printed, 3, "each mark of the row prints where it comes from");
     d.shell_mut().shutdown();
 }
+
+/// A persona's way through the Potential panel: a voltage typed into its field and Enter. Enter is the panel's
+/// Apply (`ip.supply_apply`) even while the field has the keys, so the panel takes every row and closes; it only left
+/// the field when the panel's keys came after a focused field's.
+#[test]
+fn enter_typed_in_a_voltage_field_applies_the_panel() {
+    use ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    for (name, y) in [("L1", 400), ("PE", 460)] {
+        crate::wires_and_cables::fill(&mut d, "Interruption point name", name);
+        d.input(&Input::Hover { at: (900, y) });
+        d.settle();
+        d.input(&click((900, y)));
+        d.settle();
+    }
+    d.input(&key("escape"));
+    d.settle();
+    let ids: Vec<String> = tables(&mut d)
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some())
+        .map(|r| r.id.to_string())
+        .collect();
+    let shell = d.shell_mut();
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    assert!(d.shell_mut().supply_panel().is_some(), "the panel asks");
+    let steps = d.shell_mut().recorded_commands().len();
+    crate::wires_and_cables::fill(&mut d, "Voltage, L1", "230 V AC");
+    assert!(d.shell_mut().supply_panel().is_none(), "Enter in the field applies the panel");
+    assert!(
+        d.shell_mut().recorded_commands()[steps..]
+            .iter()
+            .any(|c| c.cmd == "potential.define" && c.params["name"] == json!("L1")),
+        "L1 is defined"
+    );
+}

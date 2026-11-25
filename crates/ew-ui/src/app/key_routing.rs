@@ -31,8 +31,9 @@ impl App {
     }
 
     /// The keys of what lies over the window, in order: Escape for an open menu, the collapsed bar's popover, the
-    /// palette, a dialog or a popup, and the start-up offer; then nothing more while a dialog or a popup is open or a
-    /// text field outside the palette has the focus. `true` when the routing ends here.
+    /// palette, a dialog or a popup, the start-up offer, and the Potential panel's ([`App::panel_keys`]); then nothing
+    /// more while a dialog or a popup is open or a text field outside the palette has the focus. `true` when the routing
+    /// ends here.
     fn popup_keys(&mut self, ctx: &egui::Context, palette_open: bool, events: &mut Vec<Event>) -> bool {
         let dialog_open = self.shell.dialog().is_some();
         // The junction sequence editor is a popup like the picker: Escape closes it, its own keys
@@ -69,7 +70,31 @@ impl App {
             }
             return true;
         }
+        // The supply marks' Potential panel's keys come before a focused field's: Enter typed in a voltage applies
+        // every row, as the panel's Apply does.
+        if !overlay && self.panel_keys(ctx, events) {
+            return true;
+        }
         dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open)
+    }
+
+    /// The chords of the supply marks' Potential panel (the keymap's `supply_panel` context) while it is open and no
+    /// menu is: matched before a text field of the panel takes the key. `true` when one matched.
+    fn panel_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) -> bool {
+        if self.shell.supply_panel().is_none() || egui::Popup::is_any_open(ctx) {
+            return false;
+        }
+        let hit = self
+            .bindings
+            .iter()
+            .filter(|b| b.context == Context::SupplyPanel && !b.physical)
+            .find(|b| ctx.input_mut(|i| i.consume_shortcut(&b.shortcut)))
+            .map(|b| b.action);
+        let Some(action) = hit else {
+            return false;
+        };
+        events.push(Event::Action(action, Value::Null));
+        true
     }
 
     /// The keys a pane keeps before the shortcuts: Escape with a Properties editor or a station's tag field open
