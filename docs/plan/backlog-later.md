@@ -7,8 +7,8 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 ## Checks
 
 - FT-693 `ew-commands, ew-checks`: **Medium.** EW-REL-004 on `fields.set` of a revision's `label`: today only `revision.create` applies the prevent half; part 3's gate or a prevent on the field.
-- FT-947 `ew-checks`: No completeness finding names an interruption point whose CP has no connection; add one (the checker's ruling 4) (FIXPT41, cycle 42).
-- FT-956 `ew-checks, ew-commands`: EW-LAY-003's quick fix "Realise the primary part" can be refused on a duplicate (device, part, function) key (E42, cycle 42).
+- FT-947 `ew-checks`: No completeness finding names an interruption point whose CP has no connection; add one (the checker's ruling 4).
+- FT-956 `ew-checks, ew-commands`: EW-LAY-003's quick fix "Realise the primary part" can be refused on a duplicate (device, part, function) key.
 - FT-977 `ew-checks`: **Medium.** Cap the device list in EW-CORE-043's message ("used by X and N more", in en and nl-NL), so that the message stops growing with the project and the two OI-3 overflows of the open-items table go away …
 - FT-1294 `WP-S1.31, ew-checks`: EW-CORE-013's keeper order does not model a released number (doc 15 §6.4 step (1), frozen or released); a released device number should keep its tag.
 - FT-1466 `ew-commands, ew-checks`: Acknowledged import findings: the run's `acknowledged` member and an acknowledge command (doc 14 §2.5; WP-S3.09 FP-2).
@@ -22,8 +22,8 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 
 - FT-247 `WP-S1.22`: The composite command of `ew apply --one-step`: the whole log as one undo step (doc 17 §3.5), needed once the GUI or a long-lived session runs a log; the CLI's on-disk result is already …
 - FT-255 `WP-S1.22`: `--omit-personal-data` for the page exports (doc 17 §3.3); a usage error today.
-- FT-731 `ew (CLI)`: Moves to WP-S1.18 part 5 *Not built in cycle 41* (ID-958): an open follow-up of the complete package): Low. `ew revision approve --as <role>`: refuse a role that names no declared party, with the …
-- FT-733 `ew (CLI)`: Moves to WP-S1.18 part 5 *Not built in cycle 41* (ID-958): an open follow-up of the complete package): Low. `ew check --gate`: run the release gate and print its blockers without approving or …
+- FT-731 `ew (CLI)`: WP-S1.18 part 5, low: `ew revision approve --as <role>`: refuse a role that names no declared party, with the …
+- FT-733 `ew (CLI)`: WP-S1.18 part 5, low: `ew check --gate`: run the release gate and print its blockers without approving or …
 - FT-736 `ew (CLI)`: `ew` has no `library update` command: `update_from_library` is reached from the session and the window only.
 - FT-788 `ew (CLI)`: The `ew` CLI ignores the settings key `libraries.company`: `ew lib` and `ew import parts` read only `--company`.
 - FT-1176 `WP-S1.22, ew`: `ew` finds the starter content through `--content` or `EW_CONTENT_DIR` only; let it find the content beside its executable, as the window does (WP-S6.06 FP-1).
@@ -43,17 +43,16 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-254 `WP-S3.04`: `ew export png` (FR-OUT-014) over the export job, one PNG per page.
 - FT-259 `WP-S3.05`: The "GN/YE" alias of doc 14 §4.12 in the table reader's colour parser (a slash-separated foreign notation).
 - FT-264 `WP-S3.03`: A2's Folios column in the assembly BOM prints the pages of the devices it covers, not only the head's page.
-- FT-385 `WP-S3.03`: `report_block.delete` and `report_block.set`, and an editable list of report blocks in the company-standard wizard instead of the fixed golden layout.
+- FT-385 `WP-S3.03`: `report_block.delete` and `report_block.set`, and an editable list of report blocks in the company-standard wizard instead of the fixed `standard` layout.
 - FT-407 `WP-S3.02`: Embedded raster `data:` URIs in SVG assets accepted when the decoded bytes pass the raster sniff (PNG or JPEG, the size limits of doc 05 §13.3) and drawn where rasters are drawn; refused in v0 by …
-- FT-699 `ew-scene`: The pin designations of a black box designations print beside the channel address texts that part 2 prints inside the box.
 - FT-703 `ew-api, ew-scene`: A free text bound to `page.last_changed_in` prints the page-notes value in the digest branch (only the title block takes the digest-based value).
-- FT-885 `ew-scene`: The BOM's cells have no left padding, and row 17's text ends flush against the Tags rule (W41a, cycle 41).
+- FT-885 `ew-scene`: The BOM's cells have no left padding, and row 17's text ends flush against the Tags rule.
 - FT-897 `ew-scene`: The PSU's label overlaps the breaker's pin labels, the PSU's pin labels are specks, the PLC card's pin labels are turned 90° and tiny (t0052), and the cross-reference labels at the page arrows …
-- FT-917 `ew-scene`: A black box's pin labels overlap each other already unturned, not only after a turn; with FT-699 (pin designations beside the channel addresses) and FT-825 (card pin labels tiny and turned) (W41b …
-- FT-921 `ew-scene`: On 201 and 202 PART DATA's 35-character order code prints at the 1.8 mm floor with about 0.3 mm to spare; look at it at 1920 × 1080 with FT-920 (A42, cycle 42).
-- FT-931 `ew-scene`: An interruption point's arrow and name are drawn over the PSU box's bottom line, and the fuse's "4 A" is pushed under the 24V label (with FT-897) (play-test rv-vis-5, cycle 41).
+- FT-917 `ew-scene, ew-derive`: The pin texts of a black box and a card, one cause (FT-699 and FT-825 joined here): a black box's pin labels overlap each other already unturned, not only after a turn; its pin designations print beside the channel address texts printed inside the box; and on the canvas a card's PLC addresses and pin labels are tiny and turned. The text sizes belong to the derivation profile (ADR-0032 decision 4), so enlarging them changes every printed drawing, and "1 Q0.0" needs about 7 mm against a pin pitch of 5.3 mm: a decision on the profile, not a window fix.
+- FT-921 `ew-scene`: A 35-character order code in PART DATA prints at the 1.8 mm floor with about 0.3 mm to spare; look at it at 1920 × 1080 with FT-920.
+- FT-931 `ew-scene`: An interruption point's arrow and name are drawn over the PSU box's bottom line, and the fuse's "4 A" is pushed under the 24V label (with FT-897).
 - FT-938 `ew-scene`: Embedded-block spacing: on 201 order code 2 ends about 0.4 mm inside the right rule with no visible padding; the legend's header row has the rows' size and weight, so only the grey fill marks it …
-- FT-979 `ew-scene`: On a rail the labels of abutting 20 mm unknown-footprint items (E56, S56 beside F55 on Golden A's rail 2 after `auto_fill`) collide at 300 %; check also whether the dashed unknown square is centred …
+- FT-979 `ew-scene`: On a rail the labels of abutting 20 mm unknown-footprint items (after `auto_fill`) collide at 300 %; check also whether the dashed unknown square is centred …
 - FT-1589 `ew-derive`: A layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5).
 - FT-1683 `ew-scene, ew-viewmodel`: Interruption points one or two grid steps apart cannot print their texts: the name stands above the arrow and the cross-reference below. The interruption point tool does not place such a point (0.2.0), but the Wire tool's interruption point key still ends wires one step apart in points whose texts overlap. Print a crowded point's texts in line with its arrow (the name over its own wire, the reference beyond the free end), as dense drawings do; the tool's rule can then go.
 - FT-1856 `ew-scene, ew-commands, ew-viewmodel, ew-ui`: The later steps of a valve terminal drawn over several pages (WP-S2.23 built its smallest whole form): a cut or a valve dragged across pages on the canvas; a moved valve's actuator column carried to the other page instead of its tubes continuing through interruption points; supply plates drawn at their place inside the terminal and supply ports repeated on each part; two parts in rows on one page; an automatic re-split when a wider valve pushes a part past its page.
@@ -64,7 +63,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-684 `ew-import-tables`: **Medium.** The tables importer's `template` column cannot pick a later entry of the same FnDef (it takes the first entry naming the FnDef; writing `template_entry` from the column would lift it once the builder …
 - FT-1419 `ew-import-tables`: The `route` column of `connections.csv` accepts only connection-point ends a symbol draws, no junction, black-box or strip-segment end (FT51e).
 - FT-1484 `ew-import-tables, ew-derive`: A `route` end at a terminal-strip segment (FT-1419's rest): its position comes from ew-derive's segment layout and ew-import-tables has no edge to ew-derive; design how the importer resolves it (an …
-- FT-1729 `ew-import-tables`: The tables importer maps the names of page types and report kinds through two lists kept by hand (`PAGE_TYPES`, `REPORT_KINDS` in `emit/project.rs`); read the names from the schema's own.
+- FT-1729 `ew-import-tables`: The tables importer maps the names of page types, aspects and party roles through lists kept by hand (`PAGE_KINDS`, `ASPECTS`, `ROLES` in `emit/project.rs`); read the names from the schema's own, as it reads the report kinds' (`ReportKind::names()`).
 - FT-1737 `ew-print, ew-api`: Printing draws no underlays: the switch that includes them reaches the exports only (`--underlays`, WP-S3.19).
 - FT-1738 `ew-import-dxf`: A part's drilling pattern from a DXF (the second half of FR-IMP-035) needs the feature pattern of the panel work (M4).
 - FT-1739 `docs`: Doc 14 §11 still describes a `fuzz/` crate that the repository no longer has.
@@ -75,8 +74,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1754 `ew-import-dxf`: The DXF reader's memory budget (192 MiB) and the costs it charges per entity and item are estimates: about 150,000 plain entities fit, so a legal large drawing can be refused. Measure a few real drawings and set the budget from that. The Unix half of the DWG converter's kill test has not run.
 - FT-1755 `ew-scene`: A hostile PDF placed as an underlay is bounded in pages and pixels but not in time: hayro renders without a time limit.
 - FT-727 `ew-viewmodel, ew-ui, ew-commands`: EW-PLC-012's second quick fix, "open the part's PLC section" (doc 10 §3.10): the part editor has no PLC section, and `part.edit_copy` refuses a change of sections (doc 07 D20). It needs the PLC section in the part editor first.
-- FT-825 `ew-scene, ew-derive`: Canvas legibility of PLC addresses and card pin labels: the text sizes belong to the derivation profile (ADR-0032 decision 4), so enlarging them changes every printed drawing, and "1 Q0.0" needs about 7 mm against a pin pitch of 5.3 mm. A decision on the profile, not a window fix.
-- FT-1758 `ew-reports`: The I/O list cannot take the passed terminals, the signal range and the F-address: its twenty columns fill 248 of the house table's 261 mm on Golden A. They are in `api_v1_plc_channel`; the printed list needs shorter headers or a choice of columns.
+- FT-1758 `ew-reports`: The I/O list cannot take the passed terminals, the signal range and the F-address: its twenty columns fill 248 of the house table's 261 mm. They are in `api_v1_plc_channel`; the printed list needs shorter headers or a choice of columns.
 - FT-1759 `ew-schema, ew-derive`: A module with two channel kinds on one card (16 DI and 16 DO) cannot be described: a channel specification has one kind (older than M3).
 - FT-1762 `ew-commands, ew-viewmodel`: A command's notices are plain English texts, and the Preview tab shows them as they are, so a Dutch window reads English there (re-address's old → new, the overview generator, the instrument list). Wording them through the locale files changes the notice type at about 75 command sites.
 - FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
@@ -94,7 +92,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-351 `WP-S1.19a`: The part linter rejects an invalid designation pattern (`ChannelSpec.designation`, `pin_of`) and an invalid map expression (`bit_of`, `channel`) at import with the reason of `PatternError` (an …
 - FT-1307 `WP-S7.05`: The user guide has no page "After a crash" (the crash log, the start-up offer, Recover) (WP-S6.05 FP-4).
 - FT-1449 `content`: Standard-based size profiles once their cross-sections are checked against licensed copies (WP-S7.03 FP-3, §13 O4).
-- FT-1450 `content, Golden A`: The divider form, deferred by WP-S7.03 §13 O1 since it changes Golden A (WP-S7.03 FP-4).
+- FT-1450 `content`: The divider form of WP-S7.03 (FP-4) is not built.
 - FT-1731 `ew-schema, ew-derive, ew-checks`: The valve terminal's pilot supply (`valve_terminal.pilot_supply`, doc 11 §3.2): no pilot gallery is derived and EW-FL-010 does not check the X port (WP-S1.25).
 - FT-1735 `ew-derive, ew-scene`: ISO 1219-2 component codes as a second identifier set on pneumatic devices (FR-FLU-023, Could).
 - FT-1577 `ew-library`: Interruption point forms for vertical current paths (the arrow pointing down at a page's bottom edge), if users ask for them beside WP-S2.19 D16's two right-pointing forms.
@@ -120,7 +118,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-186 `WP-S1.16`: Quick fixes as previewed commands (doc 15 §2.6), first EW-TERM-002's "renumber 1–n, keep labels as function text".
 - FT-192 `WP-S1.16`: The remaining pre-delivery rules of doc 20 §18.1 (EF rows other than EF-08: EW-POT-013, EW-PLC-012, EW-BUS-001, EW-CORE-041, EW-LAY-001, EW-POT-006, EW-CORE-034, EW-POT-009, -003, -005, EW-CORE-061 …
 - FT-198 `WP-S1.11`: The `tag_case` gap: EW-TERM-002 and EW-RDS-004 compare under `settings.formatting.tag_case`, numbering and the command layer do not; one comparison key for checks, numbering and the prevent hook.
-- FT-209 `WP-S1.13`: EW-CORE-041's Golden A excess waits for it (FT-638)): "Supplied by others": the device attribute `supply_scope` (`own`, `by_others`; FR-DEV-037) in `ew-schema` and the model, the golden fixture marks …
+- FT-209 `WP-S1.13`: "Supplied by others": the device attribute `supply_scope` (`own`, `by_others`; FR-DEV-037) in `ew-schema` and the model …
 - FT-238 `WP-S1.16`: EW-CORE-065's manufacturer-spelling half: a manufacturer name in a part description or part record that differs from the master's name and aliases (FR-PRT-002, D-18).
 - FT-273 `WP-S1.13`: `assembly.detach` (clear `parent` and `position`; a child-scheme tag that followed its position is handled by N-FL-2) and the push insert of N-FL-2 (later siblings shift, the preview lists every …
 - FT-280 `WP-S1.12`: An ADR-0008 amendment that makes the electrical members of the project supply settable by a Bulk command with a preview and semantic validation (as amendment 3 does for the project settings), then …
@@ -147,9 +145,9 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-808 `schema steward`: WP-S4.01 FP-5: a carrier designation member (R1, D1) for the legend's DT cell, a format member doc 03 §16 does not name.
 - FT-837 `ew-commands`: `edit.delete` cannot target layout records: `KindName` is not extended to the five layout kinds (WP-S4.01 part 1, ID-924), so a placement, carrier or space is removed only by its `layout.*` command …
 - FT-840 `ew-commands`: No edit command exists for `layout_space.name`, `enclosure.pose` and the plate surface's `pe_bond` (set only at creation; the review's part-2 finding 7).
-- FT-887 `ew-api, ew`: An embedded report block can be named only by its ID (it has no folio), for example in `ew export report --block`; a friendlier name later (S41b's Q4, cycle 41).
-- FT-907 `ew-api`: `ew query potential_name` takes a wire, a junction or a terminal; D11's form "a potential by name" is not built (E41, cycle 41).
-- FT-908 `ew-api`: `ew query wire_props_of --explain` prints no `provenance` line, though D12 names it among the queries that back a property-grid row (E41, cycle 41).
+- FT-887 `ew-api, ew`: An embedded report block can be named only by its ID (it has no folio), for example in `ew export report --block`; a friendlier name later.
+- FT-907 `ew-api`: `ew query potential_name` takes a wire, a junction or a terminal; D11's form "a potential by name" is not built.
+- FT-908 `ew-api`: `ew query wire_props_of --explain` prints no `provenance` line, though D12 names it among the queries that back a property-grid row.
 - FT-957 `ew-commands`: `layout.enclosure.create_from_part`'s refusal cannot name the plate part the project does not hold ("the enclosure part names a plate part that the project does not hold; add it to copies"); name it …
 - FT-1058 `ew-commands`: The "too far" refusals "the arrangement moves a connection point too far" (`crates/ew-commands/src/commands/connection.rs`) and "the exchange moves a connection point too far" (`exchange.rs`) name …
 - FT-1455 `docs/book`: A hosted, versioned online guide, one folder per release (WP-S7.05 FP-1).
@@ -159,7 +157,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1580 `ew-commands`: Splitting a four-way junction into two three-arm junctions, beside EW-CORE-072's report (WP-S2.19 OQ6).
 - FT-1601 `docs`: The rule notes of EW-CORE-067 to -070, -072 and -073 say "No standard: a project-hygiene rule." because the IEC 61082-1 clauses they follow are unverified; verify the clauses and cite them in the …
 - FT-1609 `ew-commands`: `macro.insert` with a turned orientation refuses a fragment that holds one of EW's interruption-point forms (ID-1509 (5)); insert it instead with those points unturned at their turned positions and …
-- FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it (FT-458's ruling, ID-650). It is a command default: 95 test files rely on it and a changed default changes how an existing command log replays, so it needs a decision under ADR-0011 first.
+- FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it, `page.new` taking the setting too (FT-458's ruling, ID-650; FT-458 joined here). It is a command default: 95 test files rely on it and a changed default changes how an existing command log replays, so it needs a decision under ADR-0011 first.
 - FT-1852 `ew-commands, ew-derive`: Tube numbering per project with a prefix (T1, T2, …) beside the per-page scheme. Not asked for first; build it only if a shop asks.
 
 ## Packaging and release
@@ -172,10 +170,10 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 ## Reports and export
 
 - FT-704 `ew-reports, ew-api`: **Medium.** `revision_rows` for the CSV and navigator consumers lacks the digest-based changed pages and the generated pages (only folio 911's drawn cell gets them at draw time).
-- FT-920 `ew-reports, ew-scene`: PART DATA's label column is a weight (3 : 10); size it to the widest fixed label instead ("Order Code 2"), so that the part number gets the rest (A42, cycle 42; the ruling on the LB-9 stop).
-- FT-922 `ew-reports`: The legend's Qty column prints a carrier's length without its unit (m), by ruling 6; decide whether the header or the cell carries the unit (A42, cycle 42).
-- FT-923 `ew-reports, ew-scene`: On 902 the PART DATA codes sit under an empty label column (the enclosure's part lines carry no label); look at it with FT-920 (A42, cycle 42).
-- FT-966 `ew-reports`: Golden A's generated table of contents reads "A report page…" for the generated report pages (P42, cycle 42).
+- FT-920 `ew-reports, ew-scene`: PART DATA's label column is a weight (3 : 10); size it to the widest fixed label instead ("Order Code 2"), so that the part number gets the rest.
+- FT-922 `ew-reports`: The legend's Qty column prints a carrier's length without its unit (m), by ruling 6; decide whether the header or the cell carries the unit.
+- FT-923 `ew-reports, ew-scene`: On 902 the PART DATA codes sit under an empty label column (the enclosure's part lines carry no label); look at it with FT-920.
+- FT-966 `ew-reports`: A generated table of contents reads "A report page…" for the generated report pages.
 - FT-1855 `ew-reports, ew-derive`: A sequence table derived from the actuator list (step, movement, output, the sensor that ends it), in place of drawing GRAFCET or function diagrams. Not in M5.
 
 ## Revisions and release
@@ -223,7 +221,6 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-444 `WP-S2.04`: Black-box connection points and the FnDef (lane C's ruling 13, an interim): a box CP that draws no FnDef connection point (one added by Edit ▸ Add connection point, or any CP of a box drawn without a …
 - FT-445 `WP-S2.04`: Text slots that follow a reshaped black box: after `box.reshape` widens or moves an edge, the box's text slots stay where the black-box symbol's rectangle puts them; they follow the outline (their …
 - FT-453 `WP-S2.05`: A same-project paste keeps a child device's parent: today a child whose parent was not copied loses its parent, position and child scheme (WP-S2.05 §8.4 effect 4); when the fragment's project is the …
-- FT-458 `WP-S2.06`: `page.new` takes the grid of the basic project's setting "grid for new pages" (FR-PAG-031) once it exists; until then it keeps `page.create`'s default, the QET 10 px grid (lane G's ruling Q1).
 - FT-477 `WP-S2.05`: Images travel in project fragments: Copy carries an image's asset (a fragment section for assets) so that Paste places it; today Copy treats an image as an unknown item (its asset is not in the …
 - FT-488 `WP-S2.14`: Finding-count badges ("E 2") on navigator rows and the `has:finding` filter facet, fed by the message panel's findings of the current revision.
 - FT-489 `WP-S2.06`: Persist each navigator's view, sort, filter, visible columns, column order and widths in the per-user view state `.ew/u-<hash>/view.json` (doc 16 §2.5, §5.3).
@@ -268,20 +265,20 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-852 `ew-ui`: At the 1280 × 800 floor a start-up banner covers the sheet's top border at fit-to-window (W40b).
 - FT-853 `ew-ui, ew-viewmodel`: The Parts list button's disabled tooltip reads "Open parts list: The project has no parts list: it needs a parts list report block": a capital after the colon and no full stop; the prefix is built in …
 - FT-861 `ew-ui (properties.rs, label_column, value_need)`: The Properties label column gives way for all rows to any value that fits whole, prose included, so one medium prose value cuts labels such as Manufacturer or Order number on every row at the floor. …
-- FT-868 `ew-viewmodel, ew-ui`: No window control sets a panel page's surface view: only the command `page.surface_view.set` does, and the Properties panel shows none (A41, cycle 41).
-- FT-872 `ew-viewmodel, ew-ui`: The release's steps show no progress through the job model: the release runs synchronously (B41, cycle 41).
-- FT-873 `ew-ui`: The revision commands sit in the Check ▸ Revision submenu only, not on the Check tab's command bar (B41, cycle 41).
-- FT-900 `ew-viewmodel, ew-scene`: Low (UI). After a placement nothing is selected, and the page arrows are a few pixels at 69 % (play-test rv-vis-4, cycle 40).
-- FT-911 `ew-ui`: "Not now" beside a danger button lacks the primary button's emphasis (FIX41b, cycle 41).
-- FT-932 `ew-ui, ew-scene`: At the default 69 % the tag and part texts beside a placed symbol are a few pixels high and need a zoom to read (with FT-900) (play-test rv-vis-5, cycle 41).
-- FT-974 `ew-viewmodel, ew-api`: Properties shows "Object no longer exists" for a selected placement until part 4's Properties rows for layout records exist (F42, cycle 42).
-- FT-975 `ew-ui, ew-viewmodel`: The Unplaced devices navigator's empty state "No panel layout yet" offers the action "Enclosure…", which part 4 builds; wire it then (F42, cycle 42).
+- FT-868 `ew-viewmodel, ew-ui`: No window control sets a panel page's surface view: only the command `page.surface_view.set` does, and the Properties panel shows none.
+- FT-872 `ew-viewmodel, ew-ui`: The release's steps show no progress through the job model: the release runs synchronously.
+- FT-873 `ew-ui`: The revision commands sit in the Check ▸ Revision submenu only, not on the Check tab's command bar.
+- FT-900 `ew-viewmodel, ew-scene`: Low (UI). After a placement nothing is selected, and the page arrows are a few pixels at 69 %.
+- FT-911 `ew-ui`: "Not now" beside a danger button lacks the primary button's emphasis.
+- FT-932 `ew-ui, ew-scene`: At the default 69 % the tag and part texts beside a placed symbol are a few pixels high and need a zoom to read (with FT-900).
+- FT-974 `ew-viewmodel, ew-api`: Properties shows "Object no longer exists" for a selected placement until part 4's Properties rows for layout records exist.
+- FT-975 `ew-ui, ew-viewmodel`: The Unplaced devices navigator's empty state "No panel layout yet" offers the action "Enclosure…", which part 4 builds; wire it then.
 - FT-976 `ew-ui`: In the Unplaced devices table at the 1280 × 800 floor the derived columns' fx marks cost width and Mount scrolls out of view (F42); W42c adds that Part is cut as well ("…", "5…"); a fix that scales …
-- FT-982 `ew-ui, ew-scene`: The interruption point ghost's label covers the device's pin labels (doc 16a §7.3) (W42b, cycle 42).
-- FT-983 `ew-ui`: When the HUD moves under the tab bar, a toast hides its end ("… R r") (doc 16a §5.5, §6.10) (W42b, cycle 42).
-- FT-984 `ew-ui`: At 1920 × 1080 a toast covers the refused point it reports (doc 16a §6.10) (W42b, cycle 42).
-- FT-985 `ew-ui`: In the device picker the names are cut short at the floor although the row has free space (doc 16a §6.22) (W42b, cycle 42).
-- FT-990 `ew-ui, ew-api`: The Unplaced devices table leaves W × H and Mount blank for E56 and S56 where the list shows "unknown size" (doc 16a P7) (W42c, cycle 42).
+- FT-982 `ew-ui, ew-scene`: The interruption point ghost's label covers the device's pin labels (doc 16a §7.3).
+- FT-983 `ew-ui`: When the HUD moves under the tab bar, a toast hides its end ("… R r") (doc 16a §5.5, §6.10).
+- FT-984 `ew-ui`: At 1920 × 1080 a toast covers the refused point it reports (doc 16a §6.10).
+- FT-985 `ew-ui`: In the device picker the names are cut short at the floor although the row has free space (doc 16a §6.22).
+- FT-990 `ew-ui, ew-api`: The Unplaced devices table leaves W × H and Mount blank for E56 and S56 where the list shows "unknown size" (doc 16a P7).
 - FT-1145 `ew-ui`: At 1920 the Properties label "Connection point overrides" is elided although the 40 % label column has room (W47.2; doc 16a §6.8 as built in cycle 39); let the label take the width the column has.
 - FT-1451 `ew-viewmodel`: A ready-made sample basic project offered by the new-project flow (WP-S7.03 FP-5, §13 O6).
 - FT-1457 `docs/book, ew-ui`: Screenshots and screencasts regenerated from kittest flows with alternative text (doc 16 §13, NFR-A11Y-06; WP-S7.05 FP-3).
