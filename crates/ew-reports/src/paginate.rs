@@ -10,9 +10,9 @@
 //!     NewPage break:  close the page if it has rows; the next page uses the next form of the chain
 //!     NewFolio break: close the page; the next folio (previous + 1) restarts the form chain
 //!     for row in group:
-//!       h = height(row.kind)                       # one list-area row; a group row of a profile table none
+//!       h = takes(row.kind)                        # one list-area row; a group row of a profile table none
 //!       keep-with-next: a group header or heading needs room for itself and up to the next data row
-//!       if used + need > capacity and the page has rows:
+//!       if used + need > rows and the page has rows:
 //!         close the page; open the next (continuation form)
 //!       place(row)
 //!   a run's last page under LAST_PAGE_ROWS data rows: the page before ends as many rows earlier, where it keeps as many
@@ -40,7 +40,6 @@ use ew_mltext::MlText;
 use ew_schema::{
     ContinuationPolicy, EmptyPolicy, GroupBreak, ReportBlock, ReportKind, ReportSource, Section,
 };
-use ew_units::Nm;
 
 use crate::layout::Layouts;
 use crate::rowset::{RowKind, RowSet, RowSetStatus};
@@ -188,8 +187,8 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<Slice> {
             .filter(|r| r.kind == RowKind::Data)
             .count()
     };
-    // The pages whose room is lowered, by page index, and by how much.
-    let mut short: Vec<(usize, Nm)> = Vec::new();
+    // The pages whose room is lowered, by page index, and by how many rows.
+    let mut short: Vec<(usize, i64)> = Vec::new();
     loop {
         let (slices, ends) = fill(set, spec, layouts, &short);
         // The first short last page of a run whose page before, in the same run, can give it rows and keep as many.
@@ -205,17 +204,13 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<Slice> {
         let Some((page, want)) = found else {
             return slices;
         };
-        let height = layouts.page(idx(slices[page].sub)).data;
-        short.push((
-            page,
-            Nm(height.0.saturating_mul(i64::try_from(want).unwrap_or(0))),
-        ));
+        short.push((page, i64::try_from(want).unwrap_or(0)));
     }
 }
 
 /// The pages of a row set filled in order, each page's room lowered by `short` (by page index), and for each page
 /// whether it ends a run (the last page, or the last before a group break).
-fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, Nm)]) -> (Vec<Slice>, Vec<bool>) {
+fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, i64)]) -> (Vec<Slice>, Vec<bool>) {
     let n = len_u32(set.rows.len());
     let groups: Vec<(Option<usize>, Range<u32>)> = if set.groups.is_empty() {
         vec![(None, 0..n)]
@@ -249,7 +244,7 @@ fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, Nm)]
         for i in range.clone() {
             let row = &set.rows[idx(i)];
             let layout = layouts.page(idx(page.sub));
-            let h = layout.height(row.kind);
+            let h = layout.takes(row.kind);
             let mut need = h;
             if matches!(row.kind, RowKind::GroupHeader | RowKind::Heading) {
                 // Keep-with-next (doc 09 §3.2): the header or heading stays with at least one data row.
@@ -257,11 +252,11 @@ fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, Nm)]
                     let next = &set.rows[idx(j)];
                     match next.kind {
                         RowKind::Data => {
-                            need = Nm(need.0.saturating_add(layout.height(next.kind).0));
+                            need = need.saturating_add(layout.takes(next.kind));
                             break;
                         }
                         RowKind::GroupHeader | RowKind::Heading => {
-                            need = Nm(need.0.saturating_add(layout.height(next.kind).0));
+                            need = need.saturating_add(layout.takes(next.kind));
                         }
                         RowKind::GroupFooter => break,
                     }
@@ -270,12 +265,12 @@ fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, Nm)]
             let room = short
                 .iter()
                 .filter(|(p, _)| *p == out.len())
-                .fold(layout.capacity.0, |c, (_, s)| c.saturating_sub(s.0));
-            if page.used.0.saturating_add(need.0) > room && page.has_rows() {
+                .fold(layout.rows, |c, (_, s)| c.saturating_sub(*s));
+            if page.used.saturating_add(need) > room && page.has_rows() {
                 page = page.close_into(&mut out, Next::Page, i);
                 ends.resize(out.len(), false);
                 // Re-measure on the new page's form.
-                page.place(i, layouts.page(idx(page.sub)).height(row.kind), *group);
+                page.place(i, layouts.page(idx(page.sub)).takes(row.kind), *group);
             } else {
                 page.place(i, h, *group);
             }
@@ -351,7 +346,8 @@ pub fn number(slices: &[Slice], set: &RowSet, spec: &BlockSpec, layouts: &Layout
 /// The page being filled.
 struct Open {
     rows: Range<u32>,
-    used: Nm,
+    /// The list-area rows it uses.
+    used: i64,
     group: Option<usize>,
     folio: u32,
     sub: u32,
@@ -361,7 +357,7 @@ impl Open {
     fn new(folio: u32, sub: u32, start: u32) -> Open {
         Open {
             rows: start..start,
-            used: Nm::ZERO,
+            used: 0,
             group: None,
             folio,
             sub,
@@ -372,9 +368,9 @@ impl Open {
         !self.rows.is_empty()
     }
 
-    fn place(&mut self, i: u32, h: Nm, group: Option<usize>) {
+    fn place(&mut self, i: u32, h: i64, group: Option<usize>) {
         self.rows.end = i + 1;
-        self.used = Nm(self.used.0.saturating_add(h.0));
+        self.used = self.used.saturating_add(h);
         if self.group.is_none() {
             self.group = group;
         }

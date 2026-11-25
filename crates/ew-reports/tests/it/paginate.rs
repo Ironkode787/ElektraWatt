@@ -13,7 +13,6 @@ use ew_reports::{
     Row, RowId, RowKey, RowKind, RowSet, paginate,
 };
 use ew_schema::{FormDef, ReportBlock, Section};
-use ew_units::Nm;
 
 fn form(n: u128) -> Id<FormDef> {
     Id::from_uuid(Uuid::from_u128(n))
@@ -447,15 +446,8 @@ mod properties {
     use ew_mltext::natural_key;
     use proptest::prelude::*;
 
-    /// Heights are in units of 1 mm.
-    const U: i64 = 1_000_000;
-
     fn arb_layout(form_id: Id<FormDef>) -> impl Strategy<Value = PageLayout> {
-        (1i64..10, 1i64..=30).prop_map(move |(data, rows)| PageLayout {
-            form: form_id,
-            capacity: Nm(data * U * rows),
-            data: Nm(data * U),
-        })
+        (1i64..=30).prop_map(move |rows| PageLayout { form: form_id, rows })
     }
 
     /// Groups of items; an item is `true` for a heading row, `false` for a data row.
@@ -521,16 +513,16 @@ mod properties {
             }
             prop_assert_eq!(next, len);
 
-            // (b) the used height is within the capacity unless the page holds a single row.
+            // (b) the rows used are within the page's rows unless the page holds a single row.
             for p in &pages {
                 let layout = layouts.chain.iter().find(|l| l.form == p.form).unwrap();
                 let used: i64 = set.rows[p.rows.start as usize..p.rows.end as usize]
                     .iter()
-                    .map(|r| layout.height(r.kind).0)
+                    .map(|r| layout.takes(r.kind))
                     .sum();
                 prop_assert!(
-                    used <= layout.capacity.0 || p.rows.len() == 1,
-                    "page {} uses {used} of {}", p.label, layout.capacity.0
+                    used <= layout.rows || p.rows.len() == 1,
+                    "page {} uses {used} of {}", p.label, layout.rows
                 );
             }
 

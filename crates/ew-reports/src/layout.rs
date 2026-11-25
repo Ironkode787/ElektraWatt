@@ -6,23 +6,20 @@
 
 use ew_derive::{DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
 use ew_ids::Id;
-use ew_schema::{FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock};
-use ew_units::Nm;
+use ew_schema::{FormDef, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock};
 
 use crate::rowset::RowKind;
 
 /// The longest continuation chain followed; a longer or cyclic chain repeats its last form.
 const MAX_CHAIN: usize = 16;
 
-/// The pagination geometry of one form: its list area's rows of 6.52 mm.
+/// The pagination geometry of one form: the rows its list area holds (each 6.52 mm high).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageLayout {
     /// The form.
     pub form: Id<FormDef>,
-    /// The height available to rows: the list area's rows.
-    pub capacity: Nm,
-    /// The height of a row.
-    pub data: Nm,
+    /// The rows a page of the form holds.
+    pub rows: i64,
 }
 
 impl PageLayout {
@@ -34,19 +31,15 @@ impl PageLayout {
 
     /// The geometry of a frame's list area: `rows` rows of 6.52 mm (doc 09 §3.8).
     pub fn listed(form: Id<FormDef>, rows: i64) -> PageLayout {
-        PageLayout {
-            form,
-            capacity: Nm(HOUSE_ROW_HEIGHT.0.saturating_mul(rows)),
-            data: HOUSE_ROW_HEIGHT,
-        }
+        PageLayout { form, rows }
     }
 
-    /// The height of a row of `kind`: a data row and a heading take one row; a group row (the title or caption of a
-    /// profile table) takes none.
-    pub fn height(&self, kind: RowKind) -> Nm {
+    /// The rows a row of `kind` takes: a data row and a heading one; a group row (the title or caption of a profile
+    /// table) none.
+    pub fn takes(&self, kind: RowKind) -> i64 {
         match kind {
-            RowKind::Data | RowKind::Heading => self.data,
-            RowKind::GroupHeader | RowKind::GroupFooter => Nm::ZERO,
+            RowKind::Data | RowKind::Heading => 1,
+            RowKind::GroupHeader | RowKind::GroupFooter => 0,
         }
     }
 }

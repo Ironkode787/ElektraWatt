@@ -55,17 +55,12 @@ fn an_earlier_forms_data_area_is_ignored() {
     }}));
     let without = model_with_form(serde_json::json!({}));
     let layouts = Layouts::of_form(&Q::new(&with_area), id);
-    assert_eq!(layouts, Layouts::of_form(&Q::new(&without), id));
-    assert_eq!(
-        layouts.first().data.0,
-        H,
-        "a row of the list area, not the template's"
-    );
+    assert_eq!(layouts, Layouts::of_form(&Q::new(&without), id), "the rows of the list area, not the template's");
 }
 
 /// The house layout: 23 rows of 6.52 mm.
 #[test]
 fn the_house_layout_holds_23_rows() {
     let l = PageLayout::house(form(1));
-    assert_eq!((l.capacity.0, l.data.0), (23 * H, H));
+    assert_eq!(l.rows, 23);
 }
