@@ -42,10 +42,10 @@ const VERSION: &str = "0.1.0";
 /// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1)
 /// was added, 0.8.0 since the fieldbus parts were added (the CPU with PROFINET and PROFIBUS DP
 /// EW-GEN-CPU-2, the remote I/O head EW-GEN-RIO-1, the PROFIBUS cable EW-GEN-CBL-2 and the Ethernet cable
-/// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3), 0.9.0
+/// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8, 0.9.0
 /// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
-/// generic PROFINET device EW-GEN-PND-1), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
-/// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function, the basic
+/// generic PROFINET device EW-GEN-PND-1), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1),
+/// 0.10.0 since the two solenoid valves have the valve as their main function, the basic
 /// pneumatic parts were added and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
 /// §2.7), 0.11.0 since the multipin valve terminal EW-GEN-VTP-1 was added and the valve terminal EW-GEN-VTM-1 says
 /// that it has a bus node, 0.12.0 since that terminal's bus node has its PROFIBUS DP interface and the
@@ -61,8 +61,7 @@ const VERSION: &str = "0.1.0";
 /// program knows has a generic cable and plug (the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
 /// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
 /// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description and the three-wire PNP proximity sensor
-/// EW-GEN-PRX-1 was added, 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added (a
-/// persona run found no part for a block of two levels).
+/// EW-GEN-PRX-1 was added, 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added.
 const LIBRARY_VERSION: &str = "0.20.0";
 /// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description.
 const PART_VERSION: &str = "0.1.1";
@@ -1097,7 +1096,7 @@ fn defs() -> Vec<Def> {
         },
         // A generic valve terminal without Golden A's parts: a terminal of four valve positions whose eight
         // output channels have no pins (solenoid 14 of position p on channel 2p, 12 on 2p+1), a 5/2 valve with an
-        // internal coil, and a supply plate that taps galleries 1, 3 and 5. The persona round: the terminal is a
+        // internal coil, and a supply plate that taps galleries 1, 3 and 5. The terminal is a
         // station of its own with integrated outputs, so that a device placed from it is a valve terminal (its
         // part's solenoid-position map says so, normaliser N0) without a head beside it.
         Def {
@@ -1123,7 +1122,7 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"positions": 4}})),
             unit: None,
         },
-        // The same terminal with a PROFINET bus node (a persona run wanted a manifold on PROFINET).
+        // The same terminal with a PROFINET bus node.
         Def {
             number: "EW-GEN-VTM-2",
             kind: None,
@@ -1216,7 +1215,7 @@ fn defs() -> Vec<Def> {
             ),
             unit: None,
         },
-        // The persona re-test placed the supply plate from Device and got an empty box with no connection point: its
+        // Placing the supply plate from Device gave an empty box with no connection point: its
         // main function is the supply plate's (ports 1, 3 and 5, the symbol ew.iso.valve-supply-plate); the overview
         // draws it by that function as it draws the valves.
         Def {
@@ -1236,7 +1235,7 @@ fn defs() -> Vec<Def> {
                 {"gallery": "supply1", "tap": "1"}, {"gallery": "exhaust3", "tap": "3"}, {"gallery": "exhaust5", "tap": "5"}]}})),
             unit: None,
         },
-        // The persona round: no tube part existed, so the Tube part choice offered valves. Three polyurethane tubes
+        // No tube part existed, so the Tube part choice offered valves. Three polyurethane tubes
         // (doc 11 §2.6 `fluid.tube`, sold by the metre) and two push-in fittings (`fluid.fitting`); no template.
         tube(
             "EW-GEN-TUB-6",
@@ -1337,7 +1336,7 @@ fn defs() -> Vec<Def> {
                 "M12-stekker, A-gecodeerd, voor IO-Link",
             ],
         ),
-        // The persona re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter
+        // The job's cylinder and air supply kept their "no part" warnings, for want of a starter
         // part. A double-acting cylinder and a service unit for the air-supply point, each on its symbol's FnDef.
         Def {
             number: "EW-GEN-CYL-1",
@@ -2524,7 +2523,7 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
     }
 }
 
-/// A persona run, entry 16: a search for a signal lamp finds the door's lamps in red, green and yellow.
+/// A search for a signal lamp finds the door's lamps in red, green and yellow.
 #[test]
 fn the_door_lamps_are_found_by_colour() {
     let reg = Registry::starter_only();
