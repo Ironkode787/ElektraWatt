@@ -105,6 +105,18 @@ pub struct Inputs {
     pub start: Option<String>,
 }
 
+impl Inputs {
+    /// These inputs cut to the prelude and the first `step` steps after it: the steps, the outcomes they are compared
+    /// with (counted from the first prelude step, as the transcript is), and no epilogue or transcript of the whole run.
+    fn until(&mut self, step: usize) {
+        self.steps.truncate(step);
+        self.outcomes.truncate(self.prelude.len() + step);
+        self.epilogue.clear();
+        self.epilogue_range = None;
+        self.transcript = None;
+    }
+}
+
 fn epilogue_range(turns: &[Turn]) -> Option<[u32; 2]> {
     turns
         .iter()
@@ -272,10 +284,7 @@ pub fn replay_until(
     at: &Path,
 ) -> Result<(usize, String)> {
     let total = inputs.steps.len();
-    inputs.steps.truncate(step);
-    inputs.outcomes.truncate(step);
-    inputs.epilogue_range = None;
-    inputs.transcript = None;
+    inputs.until(step);
     if inputs.visual && inputs.paint_into.is_none() {
         inputs.paint_into = Some(at.join("frames"));
     }
@@ -917,6 +926,31 @@ mod tests {
         );
     }
     /// A visual recording replays at its run's window size and scale (a 2560 recording at 2560); at the
+    /// `replay --until` with a prelude of two steps: the outcomes are counted from the first prelude step, so step 1
+    /// after the prelude keeps three of them, and the whole run's epilogue is not expected of the cut run.
+    #[test]
+    fn a_run_cut_after_its_prelude_keeps_the_prelude_outcomes() {
+        let step = |n: u32| (format!("a{n}"), Value::Null);
+        let mut inputs = Inputs {
+            prelude: vec![step(1), step(2)],
+            steps: vec![step(3), step(4), step(5)],
+            outcomes: (1..=5).map(|n| serde_json::json!({"action": format!("a{n}")})).collect(),
+            epilogue: "== page.describe 101 ==\n".to_owned(),
+            epilogue_range: Some([5, 5]),
+            transcript: None,
+            stale: None,
+            visual: false,
+            paint_into: None,
+            geometry: crate::blind::visual::Geometry::DEFAULT,
+            start: None,
+        };
+        inputs.until(1);
+        assert_eq!(inputs.steps, vec![step(3)]);
+        let kept: Vec<&str> = inputs.outcomes.iter().map(|o| o["action"].as_str().unwrap()).collect();
+        assert_eq!(kept, ["a1", "a2", "a3"]);
+        assert!(inputs.epilogue.is_empty() && inputs.epilogue_range.is_none());
+    }
+
     /// default no flag is added.
     #[test]
     fn a_visual_replay_runs_at_the_recorded_geometry() {
