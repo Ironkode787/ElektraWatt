@@ -437,8 +437,7 @@ impl ShellModel {
                 .cell_copies(terminal, &[], Some(c.page().tables.page)),
             _ => Vec::new(),
         };
-        // Placed by Place, not by the Black box tool, it says at once that it is drawn as a box and how (a persona
-        // run pressed Place on a power supply and only the hint bar said that the tool had changed).
+        // Placed by Place, not by the Black box tool, it says at once that it is drawn as a box and how.
         let drawn_as_box = !self.tools.black_box_pick
             && self
                 .tools
@@ -551,7 +550,7 @@ impl ShellModel {
                 .with_slots(slots)
                 .with_drawn_as_box(drawn_as_box),
         ));
-        // The hint alone went unread: the first click came before it (a persona run).
+        // The hint alone went unread: the first click came before it.
         if drawn_as_box
             && slots.is_none()
             && let Some(number) = named

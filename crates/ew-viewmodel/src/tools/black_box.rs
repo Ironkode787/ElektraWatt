@@ -760,8 +760,7 @@ impl BlackBoxTool {
             State::Outline { first, at } => {
                 let mut items = Vec::new();
                 let current = self.current(cx);
-                // While the rectangle has no area the first corner is marked, so the click visibly registered
-                // (the tester saw nothing after the first click).
+                // While the rectangle has no area the first corner is marked, so the click visibly registered.
                 // A ring around the cross, so the fixed corner stands out from the pointer's grid marker at
                 // 100 % zoom (the 7-pixel cross alone was missed).
                 if current.is_none() {

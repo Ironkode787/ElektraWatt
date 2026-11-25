@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Undo of a drawing setting names the setting (a persona run read "Undone: Set drawing data" for Print wire
-//! numbers). On the sample's 101.
+//! The Undo of a drawing setting names the setting.
+//! On the sample's 101.
 
 use crate::common;
 

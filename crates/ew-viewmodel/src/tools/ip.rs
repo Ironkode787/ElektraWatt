@@ -1200,7 +1200,7 @@ impl Tool for IpTool {
             // feeds, for the source, and after the pair is whole, for further
             // targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A chosen Target
             // stays until the person chooses another, the source still missing or not (a potential goes on at many
-            // targets; a persona run's marks turned source one after another and every one was placed as a source
+            // targets; marks turned source one after another and every one was placed as a source
             // it did not mean); a chosen Source does not, since a name has one source (its next point is a target).
             if self.typed.is_some() && self.external.is_none() {
                 if self.chosen == Some(IpDir::Source) && direction == IpDir::Source {

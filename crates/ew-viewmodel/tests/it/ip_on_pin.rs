@@ -195,7 +195,7 @@ fn assert_connects(s: &ShellModel, before: &PageTables, pin: &TableCp, name: &st
     );
 }
 
-/// The play-test's drop: the "5V" point's CP on the free pin -102S3:14 (EF-09). The HUD says it
+/// The drop: the "5V" point's CP on the free pin -102S3:14 (EF-09). The HUD says it
 /// before the click, the dwell previews the connection, the click adds the point and one route-less connection in one
 /// undo step, the toast says it, and EW-POT-009 no longer reports the pin.
 #[test]
@@ -655,7 +655,7 @@ fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
         })
     );
     // The ghost stays where it was dropped: its CP on the pin and the new point's. Target was chosen, and a chosen
-    // direction holds until the person chooses another (a persona run's marks all turned source after a target).
+    // direction holds until the person chooses another.
     let pos = ghost_pos(&s);
     cursor(&mut s, pos);
     assert_eq!(

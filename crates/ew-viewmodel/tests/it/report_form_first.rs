@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Report…'s form opens on the parts list, the Output tab's own list, never on the first kind of the alphabet; and the
-//! words "cable list" find the cable overview in the command search, whose Report… then opens on it (a persona run
-//! read "Bus cable list" chosen and did not know the cable list it wanted was "Cable overview and diagrams").
+//! words "cable list" find the cable overview in the command search, whose Report… then opens on it.
 
 use crate::common;
 

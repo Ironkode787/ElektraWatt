@@ -386,13 +386,13 @@ pub const fn place(
 /// The split buttons: the main action runs the default, the chevron opens its variants (doc 16a §5.2).
 pub const SPLITS: &[(&str, &[&str])] = &[
     ("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"]),
-    // Enclosure… and the plate a layout page shows (the persona looked for both beside Rail and Duct), and Fit the
-    // layout to the sheet (a persona run looked for it there and found it only in the empty page's menu).
+    // Enclosure… and the plate a layout page shows, and Fit the
+    // layout to the sheet.
     (
         "layout.enclosure_new",
         &["layout.enclosure_new", "layout.choose_plate", "layout.fit_sheet"],
     ),
-    // New station… and New part…, for a card or a head station of one's own (a persona run looked for it on the PLC tab).
+    // New station… and New part…, for a card or a head station of one's own.
     ("plc.new_station", &["plc.new_station", "part.new"]),
 ];
 
@@ -576,7 +576,7 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
         reason = items[0].reason.clone();
     }
     // A command whose name does not tell it from its neighbour's has a line in its tooltip on what it does: the
-    // `tooltip-` key of its ID (a persona took Route page for drawing the page's wires again).
+    // `tooltip-` key of its ID.
     let label = match strings::lookup(&format!("tooltip-{}", meta.id.replace(['.', '_'], "-"))) {
         Some(how) => format!("{}\n{how}", item.label),
         None => item.label,
@@ -1035,8 +1035,8 @@ pub struct HudModel {
     /// since D is then a letter of the name, not the tool's key. `None` for
     /// another tool, or while a refusal stands in the prompt.
     pub field_prompt: Option<String>,
-    /// The ways on the prompt names, as buttons after it (a persona did not find Unplaced devices among the
-    /// rail's icons): a layout page's Give location…, Unplaced devices and Auto-fill rail…, a list's pages beside.
+    /// The ways on the prompt names, as buttons after it:
+    /// a layout page's Give location…, Unplaced devices and Auto-fill rail…, a list's pages beside.
     pub buttons: Vec<HudButton>,
 }
 
@@ -1437,7 +1437,7 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
                 &key_name(model, "edit.delete_selection"),
             ],
         );
-        // A terminal says which of its clamps is the cabinet's side (a persona run could not tell).
+        // A terminal says which of its clamps is the cabinet's side.
         match model.terminal_sides_hint() {
             Some(sides) => format!("{line} · {sides}"),
             None => line,
@@ -1452,8 +1452,8 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
     } else if model.page_rows().get(model.page_index()).map(|r| &r.kind)
         == Some(&ew_api::PageType::PanelLayout)
     {
-        // A layout page names its first step while it shows no plate (the persona read only that it
-        // takes no symbols), and the Select hint once it does.
+        // A layout page names its first step while it shows no plate,
+        // and the Select hint once it does.
         // Its ways on are buttons beside the words (the rail's icons have no words).
         let button = |label: String, action: &'static str, params: serde_json::Value| HudButton {
             label,
@@ -1469,7 +1469,7 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
         };
         match model.panel_tables() {
             None => strings::text(key!("hud-layout-start")).to_owned(),
-            // A plate with no device on it says the next step (a persona did not find it).
+            // A plate with no device on it says the next step.
             Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
                 buttons.push(unplaced());
                 buttons.push(button(
@@ -1496,8 +1496,7 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
             Some(_) => hint(),
         }
     } else if let Some(list) = model.list_pages(model.page_index()) {
-        // A list of more than one page says which page this is, with its way to the pages beside it (a
-        // persona missed the plugs on the parts list's second page).
+        // A list of more than one page says which page this is, with its way to the pages beside it.
         let ways = [
             (list.previous, key!("hud-list-previous")),
             (list.next, key!("hud-list-next")),

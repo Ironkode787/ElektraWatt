@@ -171,7 +171,7 @@ impl ShellModel {
             }
             // A tube's medium by its name; choosing one commits the medium's ID. While the project has none, the usual
             // media of New medium… (a list with one entry, New medium…, offered no ready medium), each made and
-            // set in one step. New medium… stands last (the persona re-test met a text box that refused every text).
+            // set in one step. New medium… stands last.
             (crate::properties::EditRoute::Command { command }, _) if command == "fluid.medium.define" => {
                 let f = filter.to_lowercase();
                 let media = p.session.media();

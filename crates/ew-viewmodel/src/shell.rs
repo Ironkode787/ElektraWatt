@@ -702,7 +702,7 @@ struct Project {
 }
 
 /// The spacing of a terminal row in grid steps until the user sets another: three, the least pitch at which the
-/// terminals' numbers and the strip's designation stand clear of the neighbours' leads (three persona runs at two).
+/// terminals' numbers and the strip's designation stand clear of the neighbours' leads.
 const TERMINAL_SPACING_DEFAULT: u32 = 3;
 
 /// How far a single picked terminal steps off a terminal of its strip it would stand on, in grid steps, where the page

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The frame of the lists is set where a person finds it (a persona run): a generated page's read-only Form row says
+//! The frame of the lists is set where a person finds it: a generated page's read-only Form row says
 //! why under it and offers the way to Frame of the lists in the project's Properties, which gives every list the
 //! frame chosen in one step. On the sample, its parts list 901.
 
@@ -72,8 +72,8 @@ fn a_lists_form_row_points_to_frame_of_the_lists_which_sets_every_list() {
 }
 
 /// The generated table of contents is a list: Frame of the lists frames it too, and the toast says so beside the
-/// frames of the drawn pages, which stay (a persona re-test set it and read the Frames row's "Table of contents"
-/// entry unchanged). The sample's contents on page 2.
+/// frames of the drawn pages, which stay.
+/// The sample's contents on page 2.
 #[test]
 fn frame_of_the_lists_frames_the_table_of_contents_too() {
     let tmp = Tmp::new("lists-frame-toc");

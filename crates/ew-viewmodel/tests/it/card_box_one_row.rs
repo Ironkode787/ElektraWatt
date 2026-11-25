@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A PLC card's box is laid out in one row whichever way it is placed (doc 10 §3.6): Insert device and Place by two
-//! corners (a persona run's path, which gave the older two-row form: pins 1 to 5 on the upper edge, the rest on the
-//! lower one), the Black box tool with the part, and Place here from the station view each give the box Draw on a page
+//! corners,
+//! the Black box tool with the part, and Place here from the station view each give the box Draw on a page
 //! gives, its channel pins on one edge.
 
 use crate::common::{Tmp, click_at, done, grid_point, new_project, tables};

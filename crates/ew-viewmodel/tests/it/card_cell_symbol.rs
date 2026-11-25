@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A card drawn in cells prints in a channel's cell the channel's own text, its symbol name, where nothing is
-//! wired to it yet, so the page says what an input is for before its device is drawn (doc 10 §3.6). A persona run gave
+//! wired to it yet, so the page says what an input is for before its device is drawn (doc 10 §3.6). A person gave
 //! the symbol names in the station view and saw empty cells.
 
 use crate::common::{Tmp, done};

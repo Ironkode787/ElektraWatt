@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! "Show advanced (n)" counts the advanced rows the Properties filter leaves, and goes when none does (a persona run
-//! typed "wire", pressed "Show advanced (2)", read "Hide advanced (2)" and saw no row come). The sample's project rows.
+//! "Show advanced (n)" counts the advanced rows the Properties filter leaves, and goes when none does
+//! ", read "Hide advanced (2)" and saw no row come). The sample's project rows.
 
 use crate::common;
 

@@ -838,8 +838,7 @@ impl ShellModel {
         if levels == 2 {
             self.join_row_in_pairs(first.as_deref());
         }
-        // The selection is the row's terminals and nothing else (a persona found every terminal of the page selected
-        // after a row, the placements' own selection being made a dispatch later against no page before).
+        // The selection is the row's terminals and nothing else.
         self.tools.placed = false;
         let laid: Vec<EntityRef> = self
             .canvas()

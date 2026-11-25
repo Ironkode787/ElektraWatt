@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Print wire numbers is found where a person looks for a project-wide switch (a persona run): a checkbox in the
+//! Print wire numbers is found where a person looks for a project-wide switch: a checkbox in the
 //! project's Properties that the filter "wire" finds, its state in the command search, a toast that says what it now
 //! is for the whole project; Number wires by potential says what it did, also while the numbers are not printed.
 

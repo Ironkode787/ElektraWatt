@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test bugs of a calibration round, on a fresh project through the text interface: the Device
+//! The bugs found on a fresh project through the text interface: the Device
 //! picker's empty text, and `select.set` with a terminal's list-form tag.
 
 use crate::common;
@@ -102,7 +102,7 @@ fn the_new_strip_toasts_example_is_the_tag_it_takes() {
     assert_eq!(label.split(':').next(), Some("-101X1"));
 }
 
-/// `select.set` with a terminal's list-form tag (`-101X1:2`, the play-test's `-X1011:2`) selects the terminal device,
+/// `select.set` with a terminal's list-form tag (`-101X1:2`, also `-X1011:2`) selects the terminal device,
 /// and the next transform takes it as the representation the page shows of it (as Delete and Cut do) instead of refusing "Nothing is selected".
 #[test]
 fn select_set_by_a_terminals_list_form_tag_then_mirror_mirrors_it() {

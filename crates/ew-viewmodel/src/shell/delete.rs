@@ -22,7 +22,7 @@ use crate::tools::{CanvasEvent, EntityKind, ResultNote, selection_kinds, transfo
 
 /// The wires on the page tables `t` drawn to a connection point of the representations `reps` (whose drawing symbol
 /// is one of them) that the selection `drawn` does not name, in page-table order: once the symbols go such a wire would
-/// be drawn on no page, so the delete takes it with it (a persona run met one it could not find or click).
+/// be drawn on no page, so the delete takes it with it.
 fn wires_at(t: &PageTables, reps: &[EntityRef], drawn: &crate::tools::Selection) -> Vec<EntityRef> {
     let mut wires: Vec<EntityRef> = Vec::new();
     for c in t.cps.iter().filter(|c| reps.contains(&EntityRef(c.rep))) {

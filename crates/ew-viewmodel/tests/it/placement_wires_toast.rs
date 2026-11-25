@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A placement says which wires it made, and how to place without them, and that toast stays up while the next
-//! placements come (persona runs placed a row of devices and terminals and read only the last one's toast, while
-//! earlier ones had drawn wires). On a page of a new project of the test's own.
+//! placements come.
+//! On a page of a new project of the test's own.
 
 use crate::common;
 

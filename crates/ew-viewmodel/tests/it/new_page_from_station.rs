@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! New page… asked for while a station's view is in front: its Connection grid comes filled with the grid of the page
-//! tab beside the view, as it does from a page (a persona re-test met it empty in the PLC workspace).
+//! tab beside the view, as it does from a page.
 
 use crate::common;
 

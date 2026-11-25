@@ -3,7 +3,7 @@
 
 //! A strip cut on one page and pasted on another takes the tag of its new page (doc 06 §3.6). The paste's ghost says
 //! so before the click, its toast offers Keep beside Undo, which freezes the old tag in one step, and a block put down
-//! by the frame is moved in to stand inside the drawing area (a persona's block touched the frame's edge).
+//! by the frame is moved in to stand inside the drawing area.
 
 use crate::common;
 

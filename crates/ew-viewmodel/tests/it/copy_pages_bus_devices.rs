@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Copy pages… of a page with a bus device says what its copy still needs (a persona run's copied valve terminal
-//! joined the PLC, and no finding or word said it needed a bus connection and an address): the card names the bus
+//! Copy pages… of a page with a bus device says what its copy still needs:
+//! the card names the bus
 //! devices, and the toast after Apply says to draw their bus line and give each its address. The sample's 201, its
 //! valve terminal on PROFIBUS.
 

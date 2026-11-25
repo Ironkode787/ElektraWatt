@@ -107,7 +107,7 @@ impl ShellModel {
             }
             return out;
         }
-        // Several terminals: Choose part… for them all, Bridge terminals (a persona run looked for it here) and Spacing…
+        // Several terminals: Choose part… for them all, Bridge terminals and Spacing…
         // for a row of them.
         let terminal = |e: &ew_dl::EntityRef| tables.reps.iter().any(|r| r.id == e.0 && r.terminal);
         if kinds.len() > 1 && kinds.iter().all(|(e, k)| *k == EntityKind::Rep && terminal(e)) {
@@ -1304,7 +1304,7 @@ impl ShellModel {
         }
     }
 
-    /// Delete on a Devices row (a persona run found none for a strip left drawn nowhere): `navigator.delete`, greyed
+    /// Delete on a Devices row: `navigator.delete`, greyed
     /// with `edit.delete`'s words where it refuses the device: a strip whose terminal is still drawn, the first in strip
     /// order, and its page.
     fn device_delete_entry(&self, device: Uuid, out: &mut Vec<ActionItem>) {

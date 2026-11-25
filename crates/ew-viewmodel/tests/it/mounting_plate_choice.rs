@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Mounting plate… opens the page's Surface choice whatever the Properties pane held (a persona run ran it from the
-//! command search while the filter "scale" hid the row, and nothing he could see happened). The sample's layout 902.
+//! Mounting plate… opens the page's Surface choice whatever the Properties pane held.
+//! The sample's layout 902.
 
 use crate::common;
 

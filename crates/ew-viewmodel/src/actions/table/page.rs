@@ -56,8 +56,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_title_block(p),
         ),
     ),
-    // Page, Connection grid…: the page's grid, asked and fitted where it holds items (a persona looked for it on
-    // the Page tab). In the Order group: a fourth entry of Pages would turn that group into a submenu.
+    // Page, Connection grid…: the page's grid, asked and fitted where it holds items.
+    // In the Order group: a fourth entry of Pages would turn that group into a submenu.
     placed(
         place(Group::Order, 8, CommandSize::Small, None),
         "ew-qet-grid",
@@ -98,8 +98,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Fit the layout to the sheet: the layout page takes the whole sheet at the fitting scale, centred, as a new view
     // does (doc 12 §5.1), once its legend box has gone to its own page; in Page ▸ Order, the page's context menu and
-    // Enclosure's split on the Draw tab's layout group (a persona run looked there and found it only in the empty
-    // page's menu).
+    // Enclosure's split on the Draw tab's layout group.
     act(
         "layout.fit_sheet",
         Command,

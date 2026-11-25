@@ -863,7 +863,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // Type not known yet…: in the part dialog, and in the command search (placeholder, stand-in, TBD) and the Parts
-    // row's menu beside Choose part…, which open the dialog with its field (a persona run found it four steps deep).
+    // row's menu beside Choose part…, which open the dialog with its field.
     with_params(
         "description?:text",
         act(
@@ -901,7 +901,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // New part… in Edit, and in New station…'s split on the PLC tab, where a person makes a card or a head station of
-    // his own (a persona run looked for it there).
+    // his own.
     with_params(
         "symbol?:text, from?:text, plc?:text, cable?:bool",
         act(

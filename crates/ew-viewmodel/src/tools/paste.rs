@@ -147,8 +147,8 @@ impl PasteTool {
     }
 
     /// The anchor `anchor` (page nm) moved so that the block's symbols and wires stand two grid steps inside the
-    /// frame's drawing area, their numbers clear of it, where the block fits in it (a persona's block centred on a click
-    /// near the frame touched its edge); a block wider or taller than the area stays where it is on that axis, and is
+    /// frame's drawing area, their numbers clear of it, where the block fits in it;
+    /// a block wider or taller than the area stays where it is on that axis, and is
     /// refused there.
     fn inside(&self, anchor: (i64, i64), cx: &ToolCx<'_>) -> (i64, i64) {
         let Some(area) = super::ip::drawing_area(cx.page) else {

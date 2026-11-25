@@ -45,8 +45,7 @@
 //! **A click beside a point**. A click that takes no target leaves a free point; where that point lies
 //! right beside a connection point (within the targets' reach or one grid step of it, whichever is more) the hint says
 //! so at once: a start that took nothing, a bend placed beside the point, and, once the wire ends elsewhere, the wire
-//! that bends there without joining it (a persona's clicks a few pixels off the ports drew tubes to the wrong ports
-//! without a word).
+//! that bends there without joining it.
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
@@ -954,8 +953,8 @@ impl Default for WireTool {
 }
 
 impl WireTool {
-    /// A hint's key in the words of what the tool draws: a tube's and a port's on a fluid page (a persona read the Wire
-    /// tool's "connection point" as other than his ports, and could not tell which of his clicks ended a tube), else a
+    /// A hint's key in the words of what the tool draws: a tube's and a port's on a fluid page,
+    /// else a
     /// wire's. The two tools work alike: a click on a port ends the tube as one on a pin ends a wire.
     fn said(&self, wire: Key<'static>, tube: Key<'static>) -> Key<'static> {
         if self.kind == Some("fluid") { tube } else { wire }
@@ -1566,8 +1565,7 @@ impl Tool for WireTool {
     /// refusal of that wire); once a click placed a bend, that a bend is placed; while no clear route is
     /// found, and after a wire drawn so until the next one starts, that the wire stays unrouted (not a refusal).
     fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
-        // A drawn wire that brings an error says so at once, in the finding's words (a persona run joined L and N by
-        // two missed clicks and nothing said so).
+        // A drawn wire that brings an error says so at once, in the finding's words.
         super::Follows {
             wire_errors: matches!(cmd.name(), "connection.draw" | "connection.draw_many"),
             ..super::Follows::default()
@@ -1578,8 +1576,7 @@ impl Tool for WireTool {
         if self.full_junction && matches!(self.state, State::Routing { .. }) {
             return super::Hint::plain(key!("hint-wire-full-junction"));
         }
-        // While routing, what a click at the point will do where it is no bend (the persona re-test's bend clicks
-        // landed on another tube and made tees, or beside the start port and did nothing).
+        // While routing, what a click at the point will do where it is no bend.
         if let State::Routing {
             start, end: Some(t), ..
         } = &self.state

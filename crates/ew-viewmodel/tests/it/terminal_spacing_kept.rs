@@ -60,8 +60,8 @@ fn the_next_terminal_row_takes_the_spacing_of_an_earlier_session() {
     s.shutdown();
 }
 
-/// Untold, a row lays its terminals three grid steps apart, the value the Terminal… form opens on (three persona runs
-/// at two found the numbers against the neighbours' leads); the choice of two stays in the list.
+/// Untold, a row lays its terminals three grid steps apart, the value the Terminal… form opens on;
+/// the choice of two stays in the list.
 #[test]
 fn a_row_untold_lays_its_terminals_three_grid_steps_apart() {
     let tmp = Tmp::new("terminal-spacing-default");

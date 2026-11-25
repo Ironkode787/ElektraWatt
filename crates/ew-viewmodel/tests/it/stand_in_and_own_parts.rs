@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The stand-in part and a part of one's own are found where a person looks (persona runs): Type not known yet… in
+//! The stand-in part and a part of one's own are found where a person looks: Type not known yet… in
 //! the command search under the words a person types and in the Parts row's menu beside Choose part…, opening the part
 //! dialog with its field; Make variable says what it is; Remove from my parts library… in the search under "delete
 //! part" and "remove part"; New part… on the PLC tab. On the sample's 102, its contactor -102Q1.
@@ -32,7 +32,7 @@ fn the_stand_in_part_and_an_own_part_are_found_where_a_person_looks() {
     for q in ["delete part", "remove part"] {
         assert!(found(&mut s, q).iter().any(|id| id == "part.remove_own"), "{q}");
     }
-    // A person who wants a PLC card of his own asks for it by those words too (persona re-test).
+    // A person who wants a PLC card of his own asks for it by those words too.
     for q in ["new part", "card", "module"] {
         assert!(found(&mut s, q).iter().any(|id| id == "part.new"), "{q}");
     }

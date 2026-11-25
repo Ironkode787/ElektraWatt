@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cable… with nothing selected says what to select (a persona run read "Nothing is selected" and did not know what):
+//! Cable… with nothing selected says what to select:
 //! the wires that become the cable's cores. On the sample's 101.
 
 use crate::common;

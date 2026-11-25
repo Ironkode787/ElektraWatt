@@ -557,7 +557,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 out.push(field(StatusKind::Cursor, text, Tone::Normal));
             }
             out.push(field(StatusKind::Grid, grid_text(model), Tone::Normal));
-            // How to move about the page, as the wheel is set (nothing told the persona how to pan).
+            // How to move about the page, as the wheel is set.
             let tip = if model.settings().wheel_scrolls {
                 key!("status-tip-zoom-scrolls")
             } else {

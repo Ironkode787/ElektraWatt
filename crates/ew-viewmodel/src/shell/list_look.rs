@@ -443,7 +443,7 @@ impl ShellModel {
     /// The project's sheet gets Frame of the lists in Main: the frame every list prints on (each list's report block
     /// keeps its own Form, doc 09 §3.8), its value the frame they share by name, or each named where they differ; a
     /// choice of the project's forms sets it on every list at once ([`ShellModel::commit_lists_frame`]). A generated
-    /// page's read-only Form row points here (a persona run did not find where a list's frame is set).
+    /// page's read-only Form row points here.
     pub(super) fn lists_frame_in_row(
         &self,
         sheet: &mut crate::properties::PropertySheet,
@@ -503,7 +503,7 @@ impl ShellModel {
         }
     }
 
-    /// Where the read-only row `key` of a generated page is changed (a persona run tried each row for thirty turns): the
+    /// Where the read-only row `key` of a generated page is changed: the
     /// Form row in Frame of the lists of the project's Properties; the columns, the caption and the legend line in List
     /// columns…, the rows of one's own in Rows of your own… (each on the Output tab); every other row on the list's
     /// report block, selected in Properties. `None` for a row that is not a generated page's.

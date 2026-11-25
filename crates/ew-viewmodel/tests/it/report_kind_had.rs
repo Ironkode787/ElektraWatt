@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Report… for a kind of list the set already has as a page (a persona run made a second cable overview beside the
-//! generated one, and nothing said so): the form says where it is under its Report field, and after Create the toast
+//! Report… for a kind of list the set already has as a page:
+//! the form says where it is under its Report field, and after Create the toast
 //! names that page with Go to page beside Undo. The sample's cable overview from 906.
 
 use crate::common;

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Output ▸ Parts list pressed again says that it opened the set's list and made no second one (a persona re-test
-//! pressed it twice, saw page 901 stay and could not tell whether a second list was made). The sample's 901.
+//! Output ▸ Parts list pressed again says that it opened the set's list and made no second one.
+//! The sample's 901.
 
 use crate::common;
 

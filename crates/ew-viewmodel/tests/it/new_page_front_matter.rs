@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! New page… asked for on a front-matter page: a layout page, whose kind no section holds yet, is proposed in the first
-//! section as a wiring page is, never in the front matter (a persona run's layout page, proposed 101, became 3 in the
-//! front matter when its kind was chosen).
+//! section as a wiring page is, never in the front matter.
 
 use crate::common;
 

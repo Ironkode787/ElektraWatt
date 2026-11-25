@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Tube tool works as the Wire tool does (a click on a port ends the tube, as one on a pin ends a wire), and its
-//! hint says so in a tube's words (a persona read "connection point" and "wire" on a fluid page and could not tell
-//! which of his clicks ended a tube). The sample's fluid page 201 and its wiring page 101.
+//! hint says so in a tube's words.
+//! The sample's fluid page 201 and its wiring page 101.
 
 use crate::common;
 

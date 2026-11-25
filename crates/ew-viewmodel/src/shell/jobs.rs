@@ -230,7 +230,7 @@ impl ShellModel {
 
     /// Shows a placement's sentences `made` that name the wires it made, with Undo, as a toast of key `wired`: the next
     /// placement's toast (key `edit`) leaves it up, and the next placement that made wires adds its sentences to it,
-    /// so no wire made goes unsaid (a persona run placed five devices in a row and read only the last one's toast).
+    /// so no wire made goes unsaid.
     /// `without` is its last sentence, the way to place without wires, said once at the end.
     pub(super) fn notify_wired(&mut self, made: Vec<String>, without: String) {
         let mut sentences = match self.notes.visible().iter().find(|n| n.key == WIRED) {
@@ -644,8 +644,7 @@ impl ShellModel {
         };
         let select: Vec<ew_api::output::Uuid> = devices.iter().map(|d| d.as_uuid()).collect();
         // Its own key, so it stands beside the toast of the step that added the list (with its Undo). Beside Select
-        // them, Type not known yet… lists them by a description (a persona run had left a type open on purpose and
-        // found no way to list the device).
+        // them, Type not known yet… lists them by a description.
         let offers = [
             self.session_offer(NoteAction::SelectUnlisted, select.clone()),
             self.session_offer(NoteAction::ListUnlisted, select),
@@ -906,8 +905,8 @@ impl ShellModel {
                 let now = current
                     .filter(|(epoch, rev)| *epoch == entry.epoch && *rev != entry.rev)
                     .map(|(_, rev)| rev);
-                // The file's name, the page count, the size and the folder it is in (a persona run could not tell
-                // where the files went); a DXF set's folder, which holds one file per page. A file this session's log
+                // The file's name, the page count, the size and the folder it is in;
+                // a DXF set's folder, which holds one file per page. A file this session's log
                 // already names as exported says "again", so a second export visibly changes the toast it replaces.
                 let again = self.notes.entries().any(|n| {
                     n.key == "export"

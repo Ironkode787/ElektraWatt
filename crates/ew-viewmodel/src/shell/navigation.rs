@@ -1412,8 +1412,7 @@ impl ShellModel {
                     let _ = self.act_navigator_select(&select);
                 }
                 self.dismiss_export_toasts();
-                // It opens the list the set has, never a second one, and says so (a persona re-test pressed it again
-                // and could not tell whether a second list was made).
+                // It opens the list the set has, never a second one, and says so.
                 self.notify(strings::format(key!("toast-parts-list-opened"), &[&folio]), false);
                 self.notify_unlisted();
                 Outcome::Done
@@ -1645,8 +1644,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The keyboard focus on the page a page row opened, so that a tool's key works at once (a persona pressed W after
-    /// opening a page from the list and the list, which kept the focus, refused it).
+    /// The keyboard focus on the page a page row opened, so that a tool's key works at once.
     fn focus_opened_page(&mut self) {
         if let Some(g) = self.area.as_ref().map(|a| a.focused) {
             self.focus = Some(Focus::Canvas(g));

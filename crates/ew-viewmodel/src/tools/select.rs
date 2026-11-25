@@ -509,7 +509,7 @@ pub fn label_grip(cx: &ToolCx<'_>) -> Option<super::Overlay> {
     ]))
 }
 
-/// The most selected terminals whose clamp letters show (a persona run: twenty-four letters hid twelve symbols).
+/// The most selected terminals whose clamp letters show.
 pub const CLAMP_LETTERS_MOST: usize = 4;
 
 /// The selected terminals drawn alone on the page, as their symbols: selected as the symbol (a click) or as the device

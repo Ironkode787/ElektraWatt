@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout's scale and fitting the plate where a person looks (a persona run): Fit the layout to the sheet is a
+//! The layout's scale and fitting the plate where a person looks: Fit the layout to the sheet is a
 //! button of the Draw tab's layout group on a layout page, and a scale at which the layout runs over the frame says
 //! so in a toast whose action fits it. The sample's panel layout 902 (1:5).
 

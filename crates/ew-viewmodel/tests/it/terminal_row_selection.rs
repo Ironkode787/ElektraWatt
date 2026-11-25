@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! After a Terminal… row the selection is the row's terminals and nothing else: a persona found every terminal of the
+//! After a Terminal… row the selection is the row's terminals and nothing else: every terminal of the
 //! page selected, "15 selected", where a Delete would have removed the strip already drawn.
 
 use crate::common;

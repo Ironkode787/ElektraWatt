@@ -418,7 +418,7 @@ impl ShellModel {
             .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
         // The wires it made, after what it placed: the one by its two pins, two or more by their count and the
         // first; then the way to place without them, its key from the keymap as the interruption point's
-        // toast takes it (a persona run did not see that a placement had drawn a wire).
+        // toast takes it.
         let wires = wires.filter(|(_, list)| !list.is_empty());
         let without = wires.is_some().then(|| {
             strings::format(

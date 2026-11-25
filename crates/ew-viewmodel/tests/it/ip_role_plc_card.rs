@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test's findings in the view model.
+//! The findings in the view model.
 //!
 //! The page-arrow tool offers the target role for a name whose source stands on another page (EW-CORE-052 is
 //! project-wide), its HUD names the role and the key that changes it, D goes on from the offered role, and a refused

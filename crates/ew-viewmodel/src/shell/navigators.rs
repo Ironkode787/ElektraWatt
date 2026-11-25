@@ -568,8 +568,7 @@ impl ShellModel {
                             (node.role == ew_api::output::NavRole::Macro && node.key.contains("macro:"))
                                 .then(|| DragSource::Macro(node.key.clone()))
                         })
-                        // A card row of the PLC navigator drops onto a station's row, which attaches it (the persona
-                        // run m3-p4 dragged one and nothing happened).
+                        // A card row of the PLC navigator drops onto a station's row, which attaches it.
                         .or_else(|| {
                             (k == NavKind::Plc && node.role == ew_api::output::NavRole::Module)
                                 .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
@@ -682,8 +681,7 @@ impl ShellModel {
         // The kind chosen (a first wiring page was proposed into the front matter, a fluid page into the wiring
         // section): the section for pages of that kind takes the page unless the open page stands in it.
         // A page of a kind the front matter does not hold, asked for on a front-matter page while no section is for its
-        // kind, goes where a wiring page goes (a persona run's layout page, asked for on the title page, became 3 in the
-        // front matter).
+        // kind, goes where a wiring page goes.
         let front_kind = kind.is_none_or(|k| matches!(k, "title_page" | "table_of_contents"));
         let for_kind = kind.and_then(|k| self.section_for_kind(k)).or_else(|| {
             current
@@ -753,7 +751,7 @@ impl ShellModel {
 
     /// The folio New page proposes in the section numbered `number`: the first free number after its last page
     /// (its highest page number, a divider and generated pages counted), else its first free number past its divider
-    /// page (the persona typed the section's first folio, its divider's); `None` for no such section or a full
+    /// page; `None` for no such section or a full
     /// one.
     pub(super) fn section_free_folio(&self, number: &str) -> Option<u32> {
         let labels = self.page_labels();

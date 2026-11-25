@@ -100,7 +100,7 @@ impl FormDialog {
         match (self.action, field) {
             ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
             ("cable.from_wires", "type") => Some(strings::text(key!("form-cable-type-note"))),
-            // The length can wait (a persona met it only in the check's findings).
+            // The length can wait.
             ("cable.from_wires" | "bus.cable", "length") => {
                 Some(strings::text(key!("form-cable-length-note")))
             }
@@ -348,8 +348,7 @@ impl ShellModel {
             if name == "system" {
                 super::supply_place::own_names_field(form);
             }
-            // Copy pages takes a folio offset or a folio to go after, never both: typing into one clears the other (a
-            // persona run filled both and nothing said that the offset won).
+            // Copy pages takes a folio offset or a folio to go after, never both: typing into one clears the other.
             if form.action == super::page_copy::ACTION
                 && !value.trim().is_empty()
                 && let Some(other) = match name {

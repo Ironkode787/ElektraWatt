@@ -707,7 +707,7 @@ pub struct PropertiesState {
     pub(crate) filter: String,
     /// The proposal of a refused tag-letter edit (FR-NUM-029): accepted by `props.accept_tag_proposal`.
     pub(crate) tag_proposal: Option<TagProposal>,
-    /// The Medium row whose New medium… opened the form: the medium it makes is set there (the persona re-test).
+    /// The Medium row whose New medium… opened the form: the medium it makes is set there.
     pub(crate) medium_for: Option<String>,
 }
 
@@ -910,7 +910,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
             // The PLC a bus device belongs to, or Add to PLC.
             "derived.plc",
             "derived.structure.location",
-            // A fluid source's medium (the persona re-test: a person starts at the source).
+            // A fluid source's medium.
             "derived.medium",
             // Any other fluid device's ports with the medium each carries.
             "derived.port",
@@ -1098,7 +1098,7 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
 }
 
 /// The number of Advanced rows of `sheet` that the Properties filter `filter` leaves (the "Show advanced (n)" link,
-/// which goes at 0: under a filter the link toggled to "Hide advanced (2)" and no row came, a persona run).
+/// which goes at 0: under a filter the link toggled to "Hide advanced (2)" and no row came).
 pub fn advanced_count(sheet: &PropertySheet, filter: &str) -> usize {
     sheet
         .sections
@@ -2257,12 +2257,12 @@ pub enum RowMenuItem {
         on: bool,
     },
     /// Function text over its path on a device's Function text row, while one of its symbols is selected:
-    /// `text.function_over_path` (a persona run typed the text and found nothing print it).
+    /// `text.function_over_path`.
     FunctionOverPath,
 }
 
 /// What an entry of the row's actions menu does, its tooltip, where its label does not say it (Make variable read as the
-/// stand-in part to a persona run); `None` for the others.
+/// stand-in part); `None` for the others.
 pub fn menu_tip(item: RowMenuItem) -> Option<&'static str> {
     match item {
         RowMenuItem::MakeVariable => Some(strings::text(key!("props-tip-make-variable"))),

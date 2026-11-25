@@ -129,8 +129,8 @@ impl ShellModel {
         self.tools.announcement.as_deref()
     }
 
-    /// The active tool's status hint; while the picker's strip chooser is open, what it waits for instead
-    /// (play-test rv-txt-2: the switch to the strip list was silent). The keys it names are the keymap's.
+    /// The active tool's status hint; while the picker's strip chooser is open, what it waits for instead.
+    /// The keys it names are the keymap's.
     pub fn tool_hint(&self) -> String {
         if self.strip_chooser_open() {
             return strings::text(key!("hint-choose-strip")).to_owned();
@@ -549,7 +549,7 @@ impl ShellModel {
         // refusal is sticky for the rest of its gesture: its release keeps it and the post-release hover keeps it, so
         // the user reads it after the gesture; the next primary press, key press, page change or tool change clears it
         // (window re-check W1). While the tool is still busy a move or a dwell clears it first: a valid move ends the
-        // refusal and brings the ghost back, and a refused one sets the notice again at once (round 5, R1).
+        // refusal and brings the ghost back, and a refused one sets the notice again at once.
         let idle = self.tools.tool.state() == "idle";
         let keeps = self.tools.notice_sticky
             && match ev {
@@ -873,8 +873,7 @@ impl ShellModel {
 
     /// Every placement answers with its result line (the tag and the cell, and the wires it drew), said at the end of
     /// the dispatch once the page tables show it. A Terminal… row places its terminals in one dispatch and names the
-    /// last: the wires of the terminals before it are said too (a persona run read only the last terminal's
-    /// placement).
+    /// last: the wires of the terminals before it are said too.
     fn note_placement(
         &mut self,
         json: &Value,
@@ -1328,7 +1327,7 @@ impl ShellModel {
             message: result.as_ref().err().map(ToString::to_string),
         };
         // A paste that brings a cut device back to another page says before the click that its tag follows the page,
-        // as its toast says after it (a persona missed the toast's sentence and kept the old tag in mind).
+        // as its toast says after it.
         if cmd.name() == "edit.paste" {
             for c in &derived.tags {
                 if let Some((_, was)) = self.tools.cut_tags.iter().find(|(d, _)| *d == c.key.as_uuid())

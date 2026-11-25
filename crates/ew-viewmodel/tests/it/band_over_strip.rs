@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A rubber band drawn left to right selects every symbol whose drawing lies inside it, whatever its texts do: a
-//! persona's band over a row of terminals left the first out, because the strip's designation it prints stood outside
+//! A band over a row of terminals left the first out, because the strip's designation it prints stood outside
 //! the band.
 
 use crate::common;

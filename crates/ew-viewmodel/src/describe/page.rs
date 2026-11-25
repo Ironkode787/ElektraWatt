@@ -128,7 +128,7 @@ fn variant_letter(orient: u8) -> char {
 /// The tag a representation names: its device's short tag, read off the labels of its connection points (a CP's
 /// label is `tag:designation`, a terminal's `tag/clamp` or, without clamps, its tag alone, an interruption point's
 /// its name); `None` without one. A terminal's tag is the strip's and its own designation (`-X1011:2`), so that two
-/// terminals of one strip never read alike (play-test rv-txt-2).
+/// terminals of one strip never read alike.
 pub(crate) fn rep_tag(rep: &TableRep, cps: &[&TableCp]) -> Option<String> {
     let label = &cps.first()?.label;
     // A terminal's label is `-X1031:11/a` (its tag is `-X1031:11`), or `-X1011:2` when its function names no clamps

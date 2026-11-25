@@ -509,8 +509,7 @@ fn the_forms_refusals_name_its_fields() {
     s.shutdown();
 }
 
-/// The form takes a folio offset or a folio to go after, never both: typing into one clears the other (a persona run
-/// typed an offset beside the prefilled "after" and nothing said which won).
+/// The form takes a folio offset or a folio to go after, never both: typing into one clears the other.
 #[test]
 fn the_offset_and_the_folio_after_clear_each_other() {
     let tmp = Tmp::new("copy-offset-or-after");

@@ -64,7 +64,7 @@ fn the_parts_list_says_which_devices_it_leaves_out() {
 }
 
 /// The toast's Type not known yet… selects the same devices and opens their part dialog on its description field, so
-/// a device whose type is left open on purpose is listed (a persona run found no way to list it).
+/// a device whose type is left open on purpose is listed.
 #[test]
 fn type_not_known_yet_lists_the_devices_left_out() {
     let tmp = Tmp::new("parts-unlisted-tbd");

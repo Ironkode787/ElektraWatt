@@ -494,7 +494,7 @@ impl ShellModel {
     /// The row key of Print wire numbers in the project's Properties ([`ShellModel::wire_numbers_in_row`]).
     pub(super) const WIRE_NUMBERS_ROW: &'static str = "project/settings.drawing.wire_numbers";
 
-    /// The project's sheet gets Print wire numbers as a checkbox of Main (the switch three of four persona runs looked
+    /// The project's sheet gets Print wire numbers as a checkbox of Main (the switch looked
     /// for there and under the filter "wire"); ticking it runs `project.wire_numbers` ([`ShellModel::commit_text`]).
     pub(super) fn wire_numbers_in_row(&self, sheet: &mut PropertySheet) {
         let on = self.wire_numbers_on();
@@ -790,8 +790,7 @@ impl ShellModel {
     /// changes until Apply.
     pub(crate) fn act_layout_route(&mut self) -> Outcome {
         let ids = self.route_selection_ids();
-        // A Route on a selection says so, and how to route the page (a persona run read "Routed 1 wire" and had to
-        // guess that the selection was the scope).
+        // A Route on a selection says so, and how to route the page.
         let selected = ids.len();
         let hint = (selected > 0).then(|| strings::text(key!("route-selection-hint")).to_owned());
         let scope = if ids.is_empty() {
@@ -1048,8 +1047,7 @@ impl ShellModel {
         let Some(grid) = self.canvas().map(|c| PageGridMap::new(c.page().tables.grid)) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        // A segment moves across itself only: a step along it moves nothing, and says so in the status line (a persona
-        // run's arrow key did nothing without a word).
+        // A segment moves across itself only: a step along it moves nothing, and says so in the status line.
         let steps = match grip_move(&line, part) {
             GripMove::UpDown => (0, dy),
             GripMove::Sideways => (dx, 0),

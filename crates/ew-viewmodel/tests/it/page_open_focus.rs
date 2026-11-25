@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Opening a page from the Pages list (Enter, a double click) puts the keyboard focus on the page, so that a tool's key
-//! works at once: a persona pressed W after opening a page and the list, which kept the focus, refused it.
+//! works at once: a person pressed W after opening a page and the list, which kept the focus, refused it.
 
 use crate::common;
 

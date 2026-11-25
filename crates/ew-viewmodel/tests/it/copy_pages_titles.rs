@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Copy pages… renames the copies' titles and descriptions too (a persona run's copies kept "Inst 1 - …"): the form's
+//! Copy pages… renames the copies' titles and descriptions too: the form's
 //! rename table opens with one empty row, a row added is empty too, the card lists the titles that change, and the
 //! copy carries them.
 

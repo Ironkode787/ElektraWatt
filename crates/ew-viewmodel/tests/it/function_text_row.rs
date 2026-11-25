@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A device's Function text row says where the text prints and offers the way to print it (a persona run typed a
-//! function text, saw it nowhere on the page and found nothing that said how): its help names the place and Function
+//! A device's Function text row says where the text prints and offers the way to print it:
+//! its help names the place and Function
 //! text over its path, and its … menu runs that. The sample's page 102, its contactor -102Q1.
 
 use crate::common;

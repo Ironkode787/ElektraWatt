@@ -16,8 +16,8 @@
 //! switch, a push-button, a sensor) never takes a PLC output's pin, and a point that names a conductor (`N`, `PE`, `L1`,
 //! a supply's `+`) never takes a point of a potential named for another one, nor do a terminal's two sides join two
 //! potentials of different names (a sensor joined to an output, a neutral to a phase); a valve's working port
-//! never takes another valve's exhaust port as a hit, nor the other way round (EW-FL-012's conflict, the persona
-//! re-test: two valves stacked had their exhausts joined to the working ports), and an in-line fitting's port (a flow
+//! never takes another valve's exhaust port as a hit, nor the other way round (EW-FL-012's conflict:
+//! two valves stacked had their exhausts joined to the working ports), and an in-line fitting's port (a flow
 //! control, a check valve, a coupling: `ew_derive::is_fitting`) never takes another fitting's (four flow controls set side
 //! by side in a row were joined by tubes). A terminal's ghost CP never takes a CP of a terminal of its own
 //! strip as a hit: two terminals of one strip are joined by a bridge, never by a

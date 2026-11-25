@@ -253,7 +253,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // Output ▸ Reports ▸ Report block…, `report_block.create` through its form; on the Output tab as Report, where
-    // every list page is made (three of three personas looked for it there), and on the Page tab beside New page,
+    // every list page is made, and on the Page tab beside New page,
     // since a report block is put on a page (the owner looked for it there).
     with_params(
         "kind:text, folio:text, title?:text",

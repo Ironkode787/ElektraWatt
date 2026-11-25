@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A wire drawn that brings an error finding says so at once, in the finding's words, with Undo (a persona run joined L
-//! and N of a supply by two missed clicks; the page showed it red and "1 Error" stood in Properties, but nothing said
-//! what had happened). On a copy of the sample, its power supply on 101.
+//! A wire drawn that brings an error finding says so at once, in the finding's words, with Undo.
+//! On a copy of the sample, its power supply on 101.
 
 use crate::common;
 

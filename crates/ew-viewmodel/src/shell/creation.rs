@@ -403,8 +403,7 @@ static STRIP_NEW: Spec = Spec {
 
 /// The report kinds Output ▸ Reports ▸ Report block… adds: every registered kind whose blocks fill pages of their own
 /// (`ew_api::output::page_report_kinds`), the parts list first, as the Output tab leads with its Parts list,
-/// then ordered by their words in the UI language (the form opened on the first, which was "Bus cable list", a persona
-/// run).
+/// then ordered by their words in the UI language (the form opened on the first, which was "Bus cable list").
 pub fn report_kinds() -> Vec<&'static str> {
     let mut kinds = ew_api::output::page_report_kinds();
     kinds.sort_by_cached_key(|k| (*k != "parts_list", report_kind_words(k).to_lowercase()));
@@ -412,7 +411,7 @@ pub fn report_kinds() -> Vec<&'static str> {
 }
 
 /// The kind of [`report_kinds`] that the command search's `query` finds best, by its words or by its search words
-/// (`report-kind-<kind>-words`, comma-separated: "cable list" for the cable overview, which a persona run looked for by
+/// (`report-kind-<kind>-words`, comma-separated: "cable list" for the cable overview, looked for by
 /// that name), with its palette rank (`crate::palette::rank`, the words weighed as an ID, the search words as an
 /// alias); `None` when none aligns.
 pub(super) fn report_kind_found(query: &str, uses: usize, enabled: bool) -> Option<(i64, &'static str)> {

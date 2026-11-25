@@ -703,7 +703,7 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
         .map(ew_viewmodel::properties::menu_label)
         .collect();
     let n = labels.len();
-    // Type not known yet… stands beside Choose part… (a persona run looked for the stand-in part there).
+    // Type not known yet… stands beside Choose part….
     assert_eq!(
         labels[n - 4..],
         ["Choose part…", "Type not known yet…", "Add part…", "Edit part…"],

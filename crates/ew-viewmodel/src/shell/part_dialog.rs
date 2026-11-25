@@ -57,8 +57,7 @@ pub struct PartChooser {
     /// The active row (0-based); `None` until the person chooses one (Enter took a first row the person had
     /// not chosen).
     pub cursor: Option<usize>,
-    /// Whether Type not known yet…'s field opens with the dialog (the command search's Type not known yet…, a persona
-    /// run's stand-in part four steps deep).
+    /// Whether Type not known yet…'s field opens with the dialog (the command search's Type not known yet…).
     pub naming: bool,
 }
 

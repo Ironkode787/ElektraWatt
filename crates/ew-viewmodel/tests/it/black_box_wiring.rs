@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Findings of a play-test through the tools: a black box drawn with two corners from a part,
+//! Findings through the tools: a black box drawn with two corners from a part,
 //! then moved by one grid step with the keyboard move (M), mirrored top to bottom (Y) or turned (R), takes a wire on
 //! every pin with the Wire tool (each wire ended in an interruption point with P), and a mirror or a half turn keeps
 //! the box where it was.

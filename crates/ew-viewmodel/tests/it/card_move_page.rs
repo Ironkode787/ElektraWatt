@@ -3,7 +3,7 @@
 
 //! A drawn card is put on another page from its station's view (Move to page, `plc.module_move`): its box
 //! moves, and the card stays the same module in its slot with its channels and their symbol names; a card whose wire
-//! would be left behind is refused in words and stays (doc 10 §6). A persona run found only Go to page there.
+//! would be left behind is refused in words and stays (doc 10 §6).
 
 use crate::common::{Tmp, done, new_project};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -57,7 +57,7 @@ fn move_entries(s: &ShellModel) -> Vec<String> {
         .expect("Move to page's entries")
 }
 
-/// Persona re-test: Move to page's entries read as moves, not as Draw on page's, leave out the card's own page, and
+/// Move to page's entries read as moves, not as Draw on page's, leave out the card's own page, and
 /// "To a new page" makes the page after the card's, in its section, and moves the card there in one undo step.
 #[test]
 fn move_to_a_new_page_makes_the_page_and_moves_the_card_in_one_step() {

@@ -900,7 +900,7 @@ fn route_routes_a_selected_wire_again_and_leaves_his_route_alone_otherwise() {
     done(&mut s, "layout.route", json!({}));
     assert_eq!(describe_line(&s, "card "), None, "no card");
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
-    // It says that the selection was the scope, and how to route the page (a persona run had to guess).
+    // It says that the selection was the scope, and how to route the page.
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(said.starts_with("Routed 1 selected wire: "), "{said}");
     assert!(
@@ -1970,7 +1970,7 @@ fn the_canvas_fits_again_after_the_arrange_preview_closes() {
 }
 
 /// A zoomed page fits when Arrange and route opens its card, and fits again into what the card's pane leaves: the
-/// proposal is the whole page (a persona run saw it cropped to its top half behind the card).
+/// proposal is the whole page.
 #[test]
 fn a_zoomed_page_fits_when_the_arrange_preview_opens() {
     let tmp = Tmp::new("ar6");

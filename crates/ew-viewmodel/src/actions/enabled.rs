@@ -1006,7 +1006,7 @@ pub(super) fn selection_editable(m: &ShellModel) -> Result<(), Key<'static>> {
 /// An editable page whose selection is shown and holds no tube: a cable's cores are wires (Cable…).
 pub(super) fn cable_wires(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
-    // Nothing selected says what to select (a persona run read "Nothing is selected" and did not know what).
+    // Nothing selected says what to select.
     match selection_shown(m) {
         Err(k) if k == key!("reason-nothing-selected") => return Err(key!("reason-cable-select-wires")),
         other => other?,

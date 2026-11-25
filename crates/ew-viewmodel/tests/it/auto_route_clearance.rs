@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Wire tool's auto-route keeps wires apart and out of
-//! boxes. In a new project, the play-test's situation is built through the window's own path: a 1P+N breaker from
+//! boxes. In a new project, the situation is built through the window's own path: a 1P+N breaker from
 //! its starter part, the power supply's black box from its part (two clicks), then the L wire from the breaker's
 //! first pole to the box's L and the N wire from its second pole to the box's N, each a click on the one CP and a
 //! click on the other. The L wire must not run across the box or over a representation's texts (but where it leaves
@@ -72,9 +72,9 @@ fn cps_of(s: &ShellModel, rep: &TableRep) -> Vec<TableCp> {
         .collect()
 }
 
-/// The play-test's page: the breaker -F1 (EW-GEN-MCB-2) with its two bottom pins, the black box of the power supply
+/// The page: the breaker -F1 (EW-GEN-MCB-2) with its two bottom pins, the black box of the power supply
 /// (EW-GEN-PSU-1) whose top-left corner is 15 grid steps right of and 5 above the breaker's first bottom pin, 12 × 10
-/// steps (frame t0014 of the play-test, measured).
+/// steps (measured).
 struct Page {
     s: ShellModel,
     breaker: TableRep,

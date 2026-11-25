@@ -247,8 +247,7 @@ impl Query {
     }
 
     /// Whether every typed number with points stands in one cell (the label or one cell) as typed, not right after a
-    /// letter or digit: a wire's number `1.1` matches "Wire 1.1 has" and "1.12", not "-1E1:X1" or "11.1" (a persona's
-    /// filter by the wire's number filtered nothing).
+    /// letter or digit: a wire's number `1.1` matches "Wire 1.1 has" and "1.12", not "-1E1:X1" or "11.1".
     fn numbers_in_one_cell(&self, label: &str, cells: &[String]) -> bool {
         self.numbers.iter().all(|n| {
             std::iter::once(label)
@@ -951,7 +950,7 @@ mod tests {
     }
 
     /// A typed number with points matches as typed: a wire's number `1.1` finds the finding that names the wire, not
-    /// every message with two 1s in it (a persona's filter by the wire's number filtered nothing).
+    /// every message with two 1s in it.
     #[test]
     fn a_wire_number_matches_as_typed() {
         let q = Query::parse("1.1");

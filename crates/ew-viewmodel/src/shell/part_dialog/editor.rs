@@ -323,7 +323,7 @@ impl ShellModel {
     /// discard is. Refused in words for a part that is not in My parts.
     pub(crate) fn act_part_remove_own(&mut self, p: &Map<String, Value>) -> Outcome {
         // The part named, else the part editor's, else the part Edit part… would open: the selected device's, the
-        // Libraries navigator's row (a persona run looked for it where parts are listed and in the command search).
+        // Libraries navigator's row.
         let copy = match (self.part_edit_copy(p), &self.dialog) {
             (Ok(Some(c)), _) if p.contains_key("part") => c,
             (_, Some(Dialog::PartEdit(e))) if !p.contains_key("part") => e.draft.copy,

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Interruption point tool keeps the direction a person chose (a persona run chose Target, and after each target
-//! the tool turned to Source by itself: every later mark was a source it did not mean): with Target chosen and no
+//! The Interruption point tool keeps the direction a person chose:
+//! with Target chosen and no
 //! source drawn yet, the next points are targets too, and the bar says that the name still has no source and that D
 //! makes the point its source. The check then says of each target where it stands and what it lacks, in a
 //! draughtsman's words.

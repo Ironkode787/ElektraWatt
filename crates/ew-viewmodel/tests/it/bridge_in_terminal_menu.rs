@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Bridge terminals is in the menu of selected terminals (a persona run selected two terminals and looked there), and
+//! Bridge terminals is in the menu of selected terminals, and
 //! the command search finds it under "bridge". Two terminals of one strip on the sample's 103.
 
 use crate::common;

@@ -1045,7 +1045,7 @@ impl ShellModel {
             params["form_copies"] = copies;
         }
         // Without a title of its own the block is titled by its report's name, so its pages read "912 Tube list" in
-        // the page tree, not a bare folio (the persona re-test): in every language the program ships, so that its pages
+        // the page tree, not a bare folio: in every language the program ships, so that its pages
         // print it in the project's language (doc 09 §3.8). A title typed stays as typed.
         params["title"] = if title.is_empty() {
             report_kind_title(&kind)
@@ -1057,8 +1057,8 @@ impl ShellModel {
         }
         let had = self.list_pages_of(&kind);
         let out = self.host_create("report_block.create", params);
-        // A list of that kind already a page of the set (a persona run made a second cable overview beside the
-        // generated one): the toast says where, with Go to page beside Undo.
+        // A list of that kind already a page of the set:
+        // the toast says where, with Go to page beside Undo.
         if out == Outcome::Done
             && let Some((folio_had, page)) = had.first()
         {

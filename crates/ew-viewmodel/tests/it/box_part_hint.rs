@@ -24,7 +24,7 @@ fn placing_a_part_without_a_symbol_says_it_is_drawn_as_a_box() {
         "{}",
         s.tool_hint()
     );
-    // A toast says so as the tool changes: the hint went unread, the first click came before it (a persona run).
+    // A toast says so as the tool changes: the hint went unread, the first click came before it.
     const SAID: &str = "EW-GEN-PSU-1 has no symbol of its own and is drawn as a box, by the Black box tool: click its \
                         first corner, then its opposite corner.";
     let said =
