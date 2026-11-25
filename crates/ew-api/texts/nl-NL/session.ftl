@@ -34,7 +34,6 @@ refusal-words-copy-at-version = { $p0 } in versie { $p1 }
 refusal-words-part-kind = { $p0 }
 refusal-words-cp-other-page = een aansluitpunt van een andere pagina
 # The property grid's own parse errors: a typed value that is not one of its field's type.
-refusal-input-detail = { $p0 }
 refusal-input-scale = `{ $p0 }` is geen schaal; typ 1:n met n een geheel getal van 1 tot en met 4294967295
 refusal-input-decimal = `{ $p0 }` is geen decimaal getal
 refusal-input-awg = `{ $p0 }` is geen AWG-maat

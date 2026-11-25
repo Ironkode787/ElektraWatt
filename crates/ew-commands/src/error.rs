@@ -327,7 +327,7 @@ fn serde_message_text(m: &str) -> Text {
         return text!("refusal-serde-duplicate-field", name);
     }
     // A type's own message (`Error::custom`) as it is.
-    text!("refusal-serde-other", clip(m))
+    Text::bare(clip(m))
 }
 
 /// What serde got (its `Unexpected`), in words where it is a plain kind.
@@ -458,7 +458,7 @@ pub fn ident_error_text(e: &ew_mltext::TextError) -> Text {
         E::NoLanguages => text!("refusal-ident-no-languages"),
         E::UnsortedLanguages => text!("refusal-ident-unsorted-languages"),
         // A reason of a newer `ew-mltext`, as it prints.
-        _ => text!("refusal-serde-other", e.to_string()),
+        _ => Text::bare(e.to_string()),
     }
 }
 

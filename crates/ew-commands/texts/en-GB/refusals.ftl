@@ -221,7 +221,6 @@ refusal-major-fndef = the FnDef changes
 refusal-major-category = the category changes
 refusal-major-template = a template function is added or removed
 refusal-major-macro-variable = macro variable { $p0 } is removed
-refusal-serde-other = { $p0 }
 # A model error a window form can reach: a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
 refusal-model-referenced = { $p0 } cannot be removed: { $p1 } still names it
 refusal-model-stale = the project changed while the edit was being prepared; run it again

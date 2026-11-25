@@ -156,6 +156,9 @@ impl Language {
         on_error: OnError,
         own: &dyn Fn(&Text) -> Option<String>,
     ) -> Option<String> {
+        if text.is_bare() {
+            return self.words(text.args().first()?, on_error, own);
+        }
         let mut owned: Vec<(Cow<'_, str>, Formatted)> = Vec::new();
         for (i, arg) in text.args().iter().enumerate() {
             owned.push((Cow::Owned(format!("p{i}")), self.arg(arg, on_error, own)?));

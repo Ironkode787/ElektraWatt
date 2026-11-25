@@ -84,6 +84,22 @@ impl Text {
         }
     }
 
+    /// A value that stands where a text is and has no words of its own (a list of texts joined, a reader's message
+    /// as it is): it reads as the value, in the reader's language. Its key is empty and no text file holds it.
+    pub fn bare(value: impl Into<TextArg>) -> Text {
+        Text {
+            key: "",
+            args: vec![value.into()],
+            named: Vec::new(),
+            english: "{0}",
+        }
+    }
+
+    /// Whether it is a bare value ([`Text::bare`]).
+    pub fn is_bare(&self) -> bool {
+        self.key.is_empty()
+    }
+
     /// The same text with the argument `name` (a variable `{ $name }` of the key's pattern) set to `value`; a second
     /// value of one name replaces the first.
     #[must_use]

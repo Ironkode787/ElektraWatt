@@ -223,7 +223,6 @@ cell-join-star-at = { $p0 } ster bij { $p1 }
 cell-join-chain = { $p0 } keten
 cell-join-chain-on = { $p0 } keten op { $p1 }
 cell-daisy-chain = keten op { $p0 }
-cell-via = { $p0 }
 cell-via-between = { "; " }
 cell-bridge-plug-in = insteekbrug
 cell-bridge-saddle = zadelbrug

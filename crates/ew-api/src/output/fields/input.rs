@@ -157,9 +157,9 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
         let int: String = t[..t.len() - 4].to_owned();
         let frac: String = t[t.len() - 3..].to_owned();
         let decimal = Dec3::parse_lenient(&format!("{int}.{frac}"))
-            .map_err(|e| invalid(text!("refusal-input-detail", e.to_string())))?;
+            .map_err(|e| invalid(crate::Text::bare(e.to_string())))?;
         let thousands = Dec3::parse_lenient(&format!("{int}{frac}"))
-            .map_err(|e| invalid(text!("refusal-input-detail", e.to_string())))?;
+            .map_err(|e| invalid(crate::Text::bare(e.to_string())))?;
         return Err(InputError::Ambiguous {
             choices: vec![
                 (

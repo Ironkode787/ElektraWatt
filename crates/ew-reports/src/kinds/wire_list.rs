@@ -132,7 +132,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
         Cell::Empty
     } else {
         let between = || text!("cell-via-between");
-        words_cell(&text!("cell-via", List::new(via, between(), between())))
+        words_cell(&ew_l10n::Text::bare(List::new(via, between(), between())))
     };
     let part = rec
         .props

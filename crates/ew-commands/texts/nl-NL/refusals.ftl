@@ -222,7 +222,6 @@ refusal-major-fndef = de functiedefinitie verandert
 refusal-major-category = de categorie verandert
 refusal-major-template = er wordt een sjabloonfunctie toegevoegd of verwijderd
 refusal-major-macro-variable = de macrovariabele { $p0 } wordt verwijderd
-refusal-serde-other = { $p0 }
 # A model error a window form can reach: a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
 refusal-model-referenced = { $p0 } kan niet worden verwijderd: { $p1 } verwijst er nog naar
 refusal-model-stale = het project is gewijzigd terwijl de bewerking werd voorbereid; voer haar opnieuw uit

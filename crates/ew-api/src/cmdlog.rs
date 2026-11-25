@@ -469,7 +469,7 @@ impl Session {
                     text,
                     n.to_string(),
                     ew_commands::comma_joined(names)
-                        .unwrap_or_else(|| ew_commands::text!("refusal-serde-other", ""))
+                        .unwrap_or_else(|| crate::Text::bare(""))
                 ))
             }
         }
@@ -488,7 +488,7 @@ impl Session {
                     // An `id:` reference stands for its own text, as written.
                     Some(("id", uuid)) => Ok(Value::String(uuid.to_owned())),
                     _ => serde_json::to_value(id)
-                        .map_err(|e| ew_commands::text!("refusal-serde-other", e.to_string())),
+                        .map_err(|e| crate::Text::bare(e.to_string())),
                 }
             }
             Value::Object(map) => map

@@ -223,7 +223,6 @@ cell-join-star-at = { $p0 } star at { $p1 }
 cell-join-chain = { $p0 } chain
 cell-join-chain-on = { $p0 } chain on { $p1 }
 cell-daisy-chain = chain on { $p0 }
-cell-via = { $p0 }
 cell-via-between = { "; " }
 cell-bridge-plug-in = plug-in
 cell-bridge-saddle = saddle
