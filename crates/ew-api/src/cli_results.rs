@@ -6,8 +6,8 @@
 //! Every subcommand that prints a result takes `--json`: stdout is then one JSON object whose first member is
 //! `"$schema": "ew.<command>-result/1"` (the command's words joined by `-`). Each result is a type here (or, for
 //! `ew check` and `ew sql`, in the crate that builds it: [`CheckResult`], [`SqlResult`]); the type is the schema, so
-//! the printed object and the published file `bin/ew/schemas/<name>.schema.json` cannot drift. [`RESULTS`] lists
-//! every result; [`schema_files`] renders the published directory, [`schema_text`] one file of it.
+//! the printed object and its published schema (the user guide's reference, `cargo xtask gen`) cannot drift.
+//! [`RESULTS`] lists every result; [`schema_files`] renders the schema files, [`schema_text`] one of them.
 //!
 //! [`to_text`] prints a result: two-space indentation, members in byte-wise key order (`$schema` sorts first), LF and
 //! a final newline, so one result always prints to the same bytes.
@@ -22,16 +22,13 @@ use serde_json::Value;
 pub use ew_checks::report::CheckResult;
 pub use ew_sqlview::SqlResult;
 
-/// One published result schema: its name and the subcommand that prints it.
+/// One published result schema: its name and its type's schema. The subcommand that prints it names it in its
+/// `Leaf` (`bin/ew`); a flag's own result (`--repair` of `ew fmt`) is named by the flag's word after the command's
+/// (`ew.fmt-repair-result/1`).
 #[derive(Clone, Copy, Debug)]
 pub struct ResultSchema {
     /// The schema name, `ew.<command>-result/<n>`.
     pub name: &'static str,
-    /// The subcommand path that prints it, words joined by a space (`export pdf`).
-    pub command: &'static str,
-    /// The flag that selects this result instead of the subcommand's own (`--repair` of `ew fmt`, whose result is
-    /// `ew.fmt-repair-result/1`); `None` for the subcommand's own result.
-    pub flag: Option<&'static str>,
     schema: fn() -> Value,
 }
 
@@ -83,260 +80,174 @@ pub const SQL: &str = ew_sqlview::SQL_RESULT_SCHEMA;
 pub const RESULTS: &[ResultSchema] = &[
     ResultSchema {
         name: ApplyResult::SCHEMA,
-        command: "apply",
-        flag: None,
         schema: schema_of::<ApplyResult>,
     },
     ResultSchema {
         name: CHECK,
-        command: "check",
-        flag: None,
         schema: schema_of::<CheckResult>,
     },
     ResultSchema {
         name: CommandsResult::SCHEMA,
-        command: "commands",
-        flag: None,
         schema: schema_of::<CommandsResult>,
     },
     ResultSchema {
         name: DiffResult::SCHEMA,
-        command: "diff",
-        flag: None,
         schema: schema_of::<DiffResult>,
     },
     ResultSchema {
         name: ExportRowsResult::BOM,
-        command: "export bom",
-        flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: ExportRowsResult::CABLES,
-        command: "export cables",
-        flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: ExportDxfResult::SCHEMA,
-        command: "export dxf",
-        flag: None,
         schema: schema_of::<ExportDxfResult>,
     },
     ResultSchema {
         name: ExportEwzResult::SCHEMA,
-        command: "export ewz",
-        flag: None,
         schema: schema_of::<ExportEwzResult>,
     },
     ResultSchema {
         name: ExportPdfResult::SCHEMA,
-        command: "export pdf",
-        flag: None,
         schema: schema_of::<ExportPdfResult>,
     },
     ResultSchema {
         name: ExportPngResult::SCHEMA,
-        command: "export png",
-        flag: None,
         schema: schema_of::<ExportPngResult>,
     },
     ResultSchema {
         name: ExportReportResult::SCHEMA,
-        command: "export report",
-        flag: None,
         schema: schema_of::<ExportReportResult>,
     },
     ResultSchema {
         name: ExportSvgResult::SCHEMA,
-        command: "export svg",
-        flag: None,
         schema: schema_of::<ExportSvgResult>,
     },
     ResultSchema {
         name: ExportTableResult::SCHEMA,
-        command: "export table",
-        flag: None,
         schema: schema_of::<ExportTableResult>,
     },
     ResultSchema {
         name: ExportTerminalsResult::SCHEMA,
-        command: "export terminals",
-        flag: None,
         schema: schema_of::<ExportTerminalsResult>,
     },
     ResultSchema {
         name: ExportRowsResult::WIRES,
-        command: "export wires",
-        flag: None,
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: ExtractResult::SCHEMA,
-        command: "extract",
-        flag: None,
         schema: schema_of::<ExtractResult>,
     },
     ResultSchema {
         name: FmtRepairResult::SCHEMA,
-        command: "fmt",
-        flag: Some("--repair"),
         schema: schema_of::<FmtRepairResult>,
     },
     ResultSchema {
         name: FmtResult::SCHEMA,
-        command: "fmt",
-        flag: None,
         schema: schema_of::<FmtResult>,
     },
     ResultSchema {
         name: ImportCsvResult::SCHEMA,
-        command: "import csv",
-        flag: None,
         schema: schema_of::<ImportCsvResult>,
     },
     ResultSchema {
         name: ImportPartsResult::SCHEMA,
-        command: "import parts",
-        flag: None,
         schema: schema_of::<ImportPartsResult>,
     },
     ResultSchema {
         name: ImportPlcResult::AML,
-        command: "import plc-aml",
-        flag: None,
         schema: schema_of::<ImportPlcResult>,
     },
     ResultSchema {
         name: ImportPlcResult::XLSX,
-        command: "import plc-xlsx",
-        flag: None,
         schema: schema_of::<ImportPlcResult>,
     },
     ResultSchema {
         name: ImportQetResult::SCHEMA,
-        command: "import qet",
-        flag: None,
         schema: schema_of::<ImportQetResult>,
     },
     ResultSchema {
         name: ImportTableResult::SCHEMA,
-        command: "import table",
-        flag: None,
         schema: schema_of::<ImportTableResult>,
     },
     ResultSchema {
         name: LayoutResult::SCHEMA,
-        command: "layout",
-        flag: None,
         schema: schema_of::<LayoutResult>,
     },
     ResultSchema {
         name: LibCreateResult::SCHEMA,
-        command: "lib create",
-        flag: None,
         schema: schema_of::<LibCreateResult>,
     },
     ResultSchema {
         name: LibImportPartsResult::SCHEMA,
-        command: "lib import parts",
-        flag: None,
         schema: schema_of::<LibImportPartsResult>,
     },
     ResultSchema {
         name: LibImportQetElementsResult::SCHEMA,
-        command: "lib import qet-elements",
-        flag: None,
         schema: schema_of::<LibImportQetElementsResult>,
     },
     ResultSchema {
         name: LibIndexResult::SCHEMA,
-        command: "lib index",
-        flag: None,
         schema: schema_of::<LibIndexResult>,
     },
     ResultSchema {
         name: LibListResult::SCHEMA,
-        command: "lib list",
-        flag: None,
         schema: schema_of::<LibListResult>,
     },
     ResultSchema {
         name: LibSearchResult::SCHEMA,
-        command: "lib search",
-        flag: None,
         schema: schema_of::<LibSearchResult>,
     },
     ResultSchema {
         name: MergeResolveResult::SCHEMA,
-        command: "merge resolve",
-        flag: None,
         schema: schema_of::<MergeResolveResult>,
     },
     ResultSchema {
         name: PlcStatusResult::SCHEMA,
-        command: "plc status",
-        flag: None,
         schema: schema_of::<PlcStatusResult>,
     },
     ResultSchema {
         name: PrintResult::SCHEMA,
-        command: "print",
-        flag: None,
         schema: schema_of::<PrintResult>,
     },
     ResultSchema {
         name: QueriesResult::SCHEMA,
-        command: "queries",
-        flag: None,
         schema: schema_of::<QueriesResult>,
     },
     ResultSchema {
         name: QueryResult::SCHEMA,
-        command: "query",
-        flag: None,
         schema: schema_of::<QueryResult>,
     },
     ResultSchema {
         name: RecoverResult::SCHEMA,
-        command: "recover",
-        flag: None,
         schema: schema_of::<RecoverResult>,
     },
     ResultSchema {
         name: RenderResult::SCHEMA,
-        command: "render",
-        flag: None,
         schema: schema_of::<RenderResult>,
     },
     ResultSchema {
         name: RouteResult::SCHEMA,
-        command: "route",
-        flag: None,
         schema: schema_of::<RouteResult>,
     },
     ResultSchema {
         name: SqlDumpResult::SCHEMA,
-        command: "sql dump",
-        flag: None,
         schema: schema_of::<SqlDumpResult>,
     },
     ResultSchema {
         name: SQL,
-        command: "sql",
-        flag: None,
         schema: schema_of::<SqlResult>,
     },
     ResultSchema {
         name: VerifyDerivedResult::SCHEMA,
-        command: "verify-derived",
-        flag: None,
         schema: schema_of::<VerifyDerivedResult>,
     },
     ResultSchema {
         name: VerifyMigrationResult::SCHEMA,
-        command: "verify-migration",
-        flag: None,
         schema: schema_of::<VerifyMigrationResult>,
     },
 ];
@@ -358,21 +269,13 @@ pub fn schema_text(name: &str) -> Option<String> {
     result(name).map(|r| render(&r.schema()))
 }
 
-/// The files of `bin/ew/schemas/`: one `<name>.schema.json` per result and the catalogue `index.json`
-/// (`{"results": [{"command", "name", "schema"}]}`), as `(file name, contents)` sorted by file name.
+/// The published result schemas: one `<name>.schema.json` per result, as `(file name, contents)` sorted by file
+/// name. Their `index.json`, which names each result's subcommand, is written by the catalogue of `bin/ew`.
 pub fn schema_files() -> Vec<(String, String)> {
     let mut files: Vec<(String, String)> = RESULTS
         .iter()
         .map(|r| (r.file_name(), render(&r.schema())))
         .collect();
-    let index: Vec<Value> = RESULTS
-        .iter()
-        .map(|r| serde_json::json!({ "name": r.name, "command": r.command, "schema": r.file_name() }))
-        .collect();
-    files.push((
-        "index.json".into(),
-        render(&serde_json::json!({ "results": index })),
-    ));
     files.sort();
     files
 }
@@ -1903,20 +1806,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn names_are_sorted_distinct_and_well_formed() {
+    fn names_are_sorted_and_distinct() {
         let names: Vec<&str> = RESULTS.iter().map(|r| r.name).collect();
         let mut sorted = names.clone();
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(names, sorted);
-        for r in RESULTS {
-            let mut words = r.command.replace(' ', "-");
-            if let Some(flag) = r.flag {
-                // A flag's own result: its word after the command's (`ew.fmt-repair-result/1`).
-                words = format!("{words}-{}", flag.trim_start_matches("--"));
-            }
-            assert_eq!(r.name, format!("ew.{words}-result/1"), "{}", r.command);
-        }
     }
 
     #[test]

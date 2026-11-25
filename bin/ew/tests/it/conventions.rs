@@ -5,10 +5,9 @@
 //! result schemas (one of them is in `tests/it/cli.rs`), with the page and row output subcommands under the same rules
 //! (their outputs are checked in `tests/outputs.rs`).
 //!
-//! The result schemas under `bin/ew/schemas/` are an equality snapshot of `ew_api::cli_results::schema_files()`;
-//! `EW_CLI_BLESS=1 cargo nextest run -p ew --test it -E 'test(/^conventions::/)'` rewrites the directory. Every `--json` output is
-//! checked three ways: it validates against its committed schema file (an independent JSON Schema validator,
-//! `boon`), it deserialises into its type (`deny_unknown_fields`) and re-serialises byte for byte, and a second run
+//! The result schemas are `ew_api::cli_results::schema_files()`, written into the user guide's reference by
+//! `cargo xtask gen`. Every `--json` output is checked three ways: it validates against its schema (an independent
+//! JSON Schema validator, `boon`), it deserialises into its type (`deny_unknown_fields`) and re-serialises byte for byte, and a second run
 //! prints the same bytes.
 
 use std::collections::BTreeMap;
@@ -71,26 +70,25 @@ fn the_result_schemas_are_written_where_the_reference_is_asked_for() {
     let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(|d| PathBuf::from(d).join("results")) else {
         return;
     };
-    let _ = std::fs::remove_dir_all(&dir);
+    // Not emptied first: the catalogue's reference test writes the index here (`gen` empties the reference).
     std::fs::create_dir_all(&dir).unwrap();
     for (name, text) in schema_files() {
         std::fs::write(dir.join(name), text).unwrap();
     }
 }
 
-/// The schema files and their index: every result of the index has its file, every file is a draft 2020-12
-/// document the independent validator compiles, LF with a final newline.
+/// The schema files: every published result has its file, a draft 2020-12 document the independent validator
+/// compiles, LF with a final newline.
 #[test]
 fn every_result_schema_compiles() {
     let files = schema_files();
-    let index: serde_json::Value = serde_json::from_str(&files["index.json"]).unwrap();
-    for r in index["results"].as_array().unwrap() {
-        let file = r["schema"].as_str().unwrap();
-        let text = files.get(file).unwrap_or_else(|| panic!("{file} missing"));
+    for r in results::RESULTS {
+        let file = r.file_name();
+        let text = files.get(&file).unwrap_or_else(|| panic!("{file} missing"));
         assert!(text.ends_with("}\n") && !text.contains('\r'), "{file}");
         let schema: serde_json::Value = serde_json::from_str(text).unwrap();
-        assert_eq!(schema["title"], r["name"], "{file}");
-        let _ = compile(r["name"].as_str().unwrap());
+        assert_eq!(schema["title"], r.name, "{file}");
+        let _ = compile(r.name);
     }
 }
 
@@ -118,15 +116,7 @@ pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &s
         out.starts_with(&format!("{{\n  \"$schema\": \"{name}\"")),
         "the first member names {name}: {out}"
     );
-    let index: serde_json::Value = serde_json::from_str(&schema_files()["index.json"]).unwrap();
-    assert!(
-        index["results"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|r| r["name"] == name),
-        "{name} is in index.json"
-    );
+    assert!(results::result(name).is_some(), "{name} is published");
     let value: serde_json::Value = serde_json::from_str(out).unwrap_or_else(|e| panic!("{name}: {e}: {out}"));
     let (schemas, index) = compile(name);
     if let Err(e) = schemas.validate(&value, index) {

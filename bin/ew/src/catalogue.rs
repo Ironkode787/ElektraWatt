@@ -7,7 +7,7 @@
 //! The paths and the flags (name, value, repetition) come from walking clap's tree in declaration order, skipping
 //! clap's own help and version; the exit codes and the result of each path are its `Leaf` beside its run function
 //! (`cli/tree.rs`), which the walk reads as it goes ([`crate::cli::entries`]). The tests below tie the entries to the
-//! published result schemas ([`ew_api::cli_results::RESULTS`]).
+//! published result schemas ([`ew_api::cli_results::RESULTS`]) and write their index.
 //! It is the source of the CLI snapshot and the CLI reference.
 
 /// One flag of a subcommand.
@@ -243,45 +243,59 @@ mod tests {
         assert_eq!(names, [("create".to_owned(), vec!["--version".to_owned()])]);
     }
 
-    /// Every result-printing entry takes `--json` and names a published schema whose subcommand is the entry's path;
-    /// every published result belongs to one entry: as its result, or (a result of a flag, `fmt --repair`'s) as the
-    /// result of an entry of that path that takes the flag and `--json`; every entry that takes a project takes
-    /// `--project`.
+    /// The published result that a flag of `e` selects instead of the entry's own: the one named by the flag's word
+    /// after the path's (`fmt --repair`: `ew.fmt-repair-result/1`).
+    fn flag_results(e: &Entry) -> impl Iterator<Item = &'static ew_api::cli_results::ResultSchema> + '_ {
+        e.flags.iter().filter_map(|f| {
+            let flag = f.name.trim_start_matches("--");
+            ew_api::cli_results::result(&format!("ew.{}-{flag}-result/1", e.path.join("-")))
+        })
+    }
+
+    /// Every published result with the subcommand that prints it, in name order: an entry's own result, then the
+    /// results of its flags.
+    ///
+    /// # Panics
+    ///
+    /// When an entry names a result that is not published.
+    fn result_commands(entries: &[Entry]) -> Vec<(&'static ew_api::cli_results::ResultSchema, String)> {
+        let mut out: Vec<_> = entries
+            .iter()
+            .flat_map(|e| {
+                let own = e.result.map(|name| {
+                    ew_api::cli_results::result(name).unwrap_or_else(|| panic!("{name} is not published"))
+                });
+                own.into_iter()
+                    .chain(flag_results(e))
+                    .map(|r| (r, e.path.join(" ")))
+            })
+            .collect();
+        out.sort_by_key(|(r, _)| r.name);
+        out
+    }
+
+    /// Every result-printing entry takes `--json` and names its result by its path (`ew.<words>-result/1`); a flag's
+    /// result is printed by an entry that takes `--json`; every published result is printed by exactly one entry or
+    /// flag; every entry has a success exit.
     #[test]
     fn results_and_flags_follow_the_conventions() {
         let entries = catalogue();
-        let mut named = BTreeSet::new();
         for e in &entries {
             let has = |n: &str| e.flags.iter().any(|f| f.name == n);
             match e.result {
                 Some(name) => {
                     assert!(has("--json"), "{:?} prints a result without `--json`", e.path);
-                    let r = ew_api::cli_results::result(name)
-                        .unwrap_or_else(|| panic!("{name} is not published"));
-                    assert_eq!(r.command, e.path.join(" "), "{name}");
-                    assert_eq!(r.flag, None, "{name} is a flag's result");
-                    assert!(named.insert(name), "{name} twice");
+                    assert_eq!(name, format!("ew.{}-result/1", e.path.join("-")), "{:?}", e.path);
                 }
                 None => assert!(!has("--json"), "{:?} takes `--json` without a result", e.path),
             }
+            for r in flag_results(e) {
+                assert!(has("--json"), "{} without `--json`", r.name);
+            }
             assert!(e.exits.iter().any(|x| x.code == 0), "{:?}", e.path);
         }
-        for r in ew_api::cli_results::RESULTS {
-            let Some(flag) = r.flag else { continue };
-            let takes = entries
-                .iter()
-                .filter(|e| e.path.join(" ") == r.command)
-                .filter(|e| e.flags.iter().any(|f| f.name == flag))
-                .filter(|e| e.flags.iter().any(|f| f.name == "--json"))
-                .count();
-            assert_eq!(
-                takes, 1,
-                "{}: no entry `{} {flag}` with `--json`",
-                r.name, r.command
-            );
-            assert!(named.insert(r.name), "{} twice", r.name);
-        }
-        let published: BTreeSet<&str> = ew_api::cli_results::RESULTS.iter().map(|r| r.name).collect();
+        let named: Vec<&str> = result_commands(&entries).iter().map(|(r, _)| r.name).collect();
+        let published: Vec<&str> = ew_api::cli_results::RESULTS.iter().map(|r| r.name).collect();
         assert_eq!(named, published);
     }
 
@@ -289,7 +303,8 @@ mod tests {
     // The CLI reference
     //
     // The catalogue is a module of the `ew` binary, which has no library target, so this unit test writes the
-    // reference (`cli.json`: paths, flags, exits, results) where `EW_REFERENCE_DIR` asks for it, for the user guide.
+    // reference (`cli.json`: paths, flags, exits, results; and `results/index.json`: each result with its subcommand)
+    // where `EW_REFERENCE_DIR` asks for it, for the user guide.
 
     #[derive(serde::Serialize)]
     struct SnapshotFile {
@@ -357,8 +372,19 @@ mod tests {
         let Some(dir) = std::env::var_os("EW_REFERENCE_DIR").map(std::path::PathBuf::from) else {
             return;
         };
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("cli.json"), snapshot_text(&catalogue())).unwrap();
+        let entries = catalogue();
+        std::fs::create_dir_all(dir.join("results")).unwrap();
+        std::fs::write(dir.join("cli.json"), snapshot_text(&entries)).unwrap();
+        // The index of the result schemas, which `ew-api` writes beside it: each result with its subcommand.
+        let index: Vec<serde_json::Value> = result_commands(&entries)
+            .into_iter()
+            .map(|(r, command)| serde_json::json!({ "name": r.name, "command": command, "schema": r.file_name() }))
+            .collect();
+        std::fs::write(
+            dir.join("results/index.json"),
+            ew_api::cli_results::to_text(&serde_json::json!({ "results": index })),
+        )
+        .unwrap();
     }
 
     /// The snapshot's form: entries sorted by path, flags and exits in table order, the result name or `null`.
