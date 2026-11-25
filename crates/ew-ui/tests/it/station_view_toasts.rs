@@ -31,7 +31,9 @@ fn the_toasts_leave_the_todo_buttons_free() {
         .station_todo()
         .into_iter()
         .filter_map(|step| match step.fix? {
-            TodoFix::Action { label, .. } | TodoFix::OnPage { label, .. } => Some(label),
+            TodoFix::Action { label, .. }
+            | TodoFix::OnPage { label, .. }
+            | TodoFix::OwnPages { label, .. } => Some(label),
             TodoFix::ChoosePart { .. } => None,
         })
         .collect();

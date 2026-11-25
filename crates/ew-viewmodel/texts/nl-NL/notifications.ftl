@@ -481,6 +481,7 @@ toast-fix-all-fix-mark-cp-unused = { $p0 } pennen als niet gebruikt gemarkeerd.
 toast-fix-all-left = { $p0 } oplossingen zijn weggelaten: wat ze veranderen, is sinds de controle veranderd.
 toast-card-redrawn = { $p0 } is in één rij getekend: Schikken en routeren tekent zijn draden naar de nieuwe pinnen.
 toast-card-terminals-faced = De klemmen die met { $p0 } verbonden zijn, hebben de draad naar de kaart nu op hun pin die naar de kaart wijst: Schikken en routeren tekent de draden.
+toast-rack-own-pages = Elke kaart staat op een eigen pagina: { $p0 }.
 toast-module-moved-new-page = { $p0 } staat op de nieuwe pagina { $p1 }.
 banner-template-saved = Het sjabloon "{ $p0 }" is gemaakt en staat in de lijst van sjablonen.
 banner-template-saved-used = Het sjabloon "{ $p0 }" is gemaakt. Nieuwe projecten beginnen ermee.

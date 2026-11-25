@@ -48,9 +48,10 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   right (doc 16a §6.10): EW-PLC-011's findings on the station with the error icon and word and Show,
   a module without a part (Choose part…), then each side of the station on no page of its kind: the devices no
   electrical page draws (`Session::off_electrical_pages`; a drawing on a bus page or as positions on a fluid page does
-  not count), a station with bus interfaces on no bus page, a valve terminal on no fluid page; each button acts on the
-  page the view stands on when it is of that kind, on a new page when the project has none, else lists the pages of
-  the kind and New page…; a valve terminal without an overview page (Make the overview page, `plc.rack_next
+  not count), a station with bus interfaces on no bus page, a valve terminal on no fluid page; the electrical side's
+  button draws each card on a page of its own, and All on one page… beside it lists the schematic pages and New page…
+  ([10](10-plc-data.md) §2.3); each other button acts on the page the view stands on when it is of that kind, on a new
+  page when the project has none, else lists the pages of the kind and New page…; a valve terminal without an overview page (Make the overview page, `plc.rack_next
   {step: overview}`). An overview page belongs with the terminal's fluid diagram, as the reference set's 201 and 202
   share their section with its fluid pages 203–206: the first one follows the terminal's first fluid page (the
   first, by section and folio, that draws the terminal or a device under it) in that page's section, at the folio doc

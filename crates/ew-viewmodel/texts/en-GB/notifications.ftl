@@ -529,6 +529,7 @@ toast-fix-all-fix-mark-cp-unused = { $p0 } pins marked not used.
 toast-fix-all-left = { $p0 } fixes are left out: what they change has changed since the check.
 toast-card-redrawn = { $p0 } is drawn in one row: Arrange and route draws its wires to the new pins.
 toast-card-terminals-faced = The terminals wired to { $p0 } take its wire on their pin that faces the card: Arrange and route draws the wires.
+toast-rack-own-pages = Each card is drawn on a page of its own: { $p0 }.
 toast-module-moved-new-page = { $p0 } stands on the new page { $p1 }.
 banner-template-saved = The template "{ $p0 }" is made and in the list of templates.
 banner-template-saved-used = The template "{ $p0 }" is made. New projects start from it.

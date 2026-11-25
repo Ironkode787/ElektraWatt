@@ -16,7 +16,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
-- FT-2142 `ew-commands, ew-viewmodel, ew-ui`: **Owner, 2026-11-23: Draw on a page puts each card of a station on a page of its own by default**, the station's head on the first; all on one page stays a choice (doc 10 §2.3; release notes 0.3.5, §7). It needs the pages made in the station's section with titles from the cards, the choice in the Draw on a page list, and Draw on page of one card unchanged. Not in 0.3.5's third candidate, which is step 15's hygiene alone (owner); it waits with FT-2146.
 - FT-2139 `ew-viewmodel, ew-ui`: In the station view's channel table, Enter after a refused function text opens the next row's cell and leaves two edit boxes on screen, and the error line above To do shifts the table by a row while it stands; `plc.module_goto` closes the rack tab after an Escape in the view; the rack bar's menu is not fitted to its widest entry as the other menus are (seen in fix lanes, 2026-11-23).
 
 #### The window's finish

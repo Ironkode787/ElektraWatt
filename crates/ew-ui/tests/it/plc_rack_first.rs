@@ -38,6 +38,14 @@ fn new_project(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
 }
 
 /// The station whose view is on show.
+/// The To do's All on one page…, page 101 chosen: the station and its modules drawn there.
+fn all_on_page_101(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) {
+    h.get_by_label("All on one page…").click();
+    settle(h);
+    support::menu_node(h, "101 Control").click();
+    settle(h);
+}
+
 fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> Uuid {
     h.state()
         .shell()
@@ -116,7 +124,7 @@ fn a_station_is_made_as_a_rack_and_filled() {
         view.rows.iter().all(|r| r.module.is_none() || !r.drawn),
         "drawn nowhere yet"
     );
-    h.get_by_label("Draw on page 101");
+    h.get_by_label("Draw each card on a page of its own");
     h.get_by_label("Put it on a new bus page");
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
@@ -483,7 +491,7 @@ fn the_station_view_names_its_station_and_holds_still() {
 }
 
 /// Draw on this page put the station on page 1 without a word. From a view opened on a page that is no
-/// electrical page, Draw on an electrical page… lists the schematic pages by folio and title, and New page…, which
+/// electrical page, All on one page… lists the schematic pages by folio and title, and New page…, which
 /// makes a schematic page and draws there; the page drawn on is shown, and the station's tab stays beside it.
 #[test]
 fn draw_on_a_page_lists_the_pages() {
@@ -498,7 +506,7 @@ fn draw_on_a_page_lists_the_pages() {
     h.get_by_label("Create").click();
     settle(&mut h);
     let station = station_of(&h);
-    h.get_by_label("Draw on an electrical page…").click();
+    h.get_by_label("All on one page…").click();
     settle(&mut h);
     support::menu_node(&h, "101 Control");
     support::menu_node(&h, "New page…").click();
@@ -572,8 +580,7 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Draw on page 101").click();
-    settle(&mut h);
+    all_on_page_101(&mut h);
     let rows = channel_rows(&mut h);
     assert_eq!(rows.len(), 16, "two modules of eight channels");
     assert!(
@@ -583,7 +590,7 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// After Create, Draw on page 101 (the page the view was opened from) puts the station's box and each module's on
+/// After Create, All on one page… with page 101 (the page the view was opened from) puts the station's box and each module's on
 /// that page in one undo step, the input modules in slot order along the foot, a row over the first where the
 /// drawing area is full, the station above them; then nothing is left to draw: the view's To do list no longer
 /// offers it, and each row names its page.
@@ -619,8 +626,7 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
         .iter()
         .filter_map(|r| r.module)
         .collect();
-    h.get_by_label("Draw on page 101").click();
-    settle(&mut h);
+    all_on_page_101(&mut h);
     assert!(h.state().shell().station_tab().is_none(), "the page is shown");
     let mut expected = modules;
     expected.push(station);
@@ -650,7 +656,7 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
     assert!(
-        h.query_by_label("Draw on page 101").is_none(),
+        h.query_by_label("Draw each card on a page of its own").is_none(),
         "nothing is left to draw"
     );
     assert_eq!(
@@ -689,8 +695,7 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
         .iter()
         .filter_map(|r| r.module)
         .collect();
-    h.get_by_label("Draw on page 101").click();
-    settle(&mut h);
+    all_on_page_101(&mut h);
     let channels = channel_rows(&mut h);
     let shell = h.state().shell();
     let page = shell.canvas().expect("page 101").page();
@@ -1128,7 +1133,7 @@ fn a_new_stations_tag_says_where_its_number_comes_from() {
             .ends_with("A tag gets its number when it is drawn on a page.")),
         "{todo:?}"
     );
-    h.get_by_label("Draw on page 101");
+    h.get_by_label("Draw each card on a page of its own");
     let card = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| {

@@ -29,7 +29,7 @@ fn sides(d: &mut Driver) -> Vec<String> {
     d.shell_mut()
         .station_todo()
         .into_iter()
-        .filter(|t| matches!(t.fix, Some(TodoFix::OnPage { .. })))
+        .filter(|t| matches!(t.fix, Some(TodoFix::OnPage { .. } | TodoFix::OwnPages { .. })))
         .map(|t| t.text)
         .collect()
 }
@@ -48,24 +48,26 @@ fn run_todo(d: &mut Driver, station: Uuid, placed: &mut i64) {
         let todo = d.shell_mut().station_todo();
         let Some(item) = todo
             .iter()
-            .find(|t| matches!(t.fix, Some(TodoFix::OnPage { .. })))
+            .find(|t| matches!(t.fix, Some(TodoFix::OnPage { .. } | TodoFix::OwnPages { .. })))
         else {
             return;
         };
         assert_ne!(last.as_ref(), Some(&item.text), "the step before left its line");
         last = Some(item.text.clone());
-        let Some(TodoFix::OnPage {
-            label, folio, pages, ..
-        }) = &item.fix
-        else {
-            unreachable!()
+        // A button that names its page, and Each card on a page of its own, act at once; the others ask.
+        let (label, asks, pages) = match &item.fix {
+            Some(TodoFix::OnPage {
+                label, folio, pages, ..
+            }) => (label, folio.is_none(), pages),
+            Some(TodoFix::OwnPages { label, pages }) => (label, false, pages),
+            _ => unreachable!(),
         };
         let button = d
             .find(label)
             .unwrap_or_else(|| panic!("the button {label} of {:?}", item.text));
         d.input(&click(button));
         d.settle();
-        if folio.is_none() {
+        if asks {
             let choice = pages.first().map_or_else(
                 || "New page…".to_owned(),
                 |(f, t)| format!("{f} {t}").trim().to_owned(),
@@ -167,7 +169,7 @@ fn every_station_kinds_todo_runs_to_its_end() {
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
     assert!(
-        d.find("Draw on an electrical page…").is_some(),
+        d.find("Draw each card on a page of its own").is_some(),
         "{:?}",
         sides(&mut d)
     );

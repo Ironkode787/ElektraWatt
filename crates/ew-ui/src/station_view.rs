@@ -1516,9 +1516,30 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: &StationShown, event
                         None => page_menu(t, &button, pages, next, events),
                     }
                 }
+                // Each card on a page of its own at once; All on one page… lists the pages that take them all.
+                Some(TodoFix::OwnPages { label, .. }) => {
+                    let draw = components::button(ui, Kind::Secondary, label, None, 0.0);
+                    if draw.clicked() {
+                        events.push(Event::Action("plc.rack_next", json!({ "step": "draw" })));
+                    }
+                }
                 None => {}
             }
         });
+        // Each card on a page of its own: its alternative under the line's text, All on one page… with the pages.
+        if let Some(TodoFix::OwnPages { pages, .. }) = &item.fix {
+            ui.horizontal(|ui| {
+                ui.add_space(t.icon_sm + ui.spacing().item_spacing.x);
+                let one = ui.add(egui::Link::new(small(
+                    t,
+                    strings::text(key!("rack-draw-one-page")),
+                    t.accent,
+                )));
+                let next =
+                    |folio: &str| Event::Action("plc.rack_next", json!({ "step": "draw", "folio": folio }));
+                page_menu(t, &one, pages, next, events);
+            });
+        }
         ui.add_space(t.space_2);
     }
 }

@@ -156,16 +156,22 @@ slot: moving a module up or down swaps two modules' positions (`assembly.attach`
 view says when addresses moved. Only a module part goes into a rack: the window refuses any other device in words,
 `plc.remove_from_rack` takes a device out again (and, for a device that nothing describes as a module, its aspect and
 its channels), and EW-PLC-017 reports a device in that state with that command as its fix. A copy of a station drops the
-station's own module with `plc_station`, so N0 makes the paste a station again. Draw on page `<folio> <title>` (the
-page in front; beside it the other schematic pages and New page…) is one
+station's own module with `plc_station`, so N0 makes the paste a station again. **Draw on a page puts each card on a
+page of its own** (Draw each card on a page of its own, `plc.rack_next {step: draw}`): a page that holds a CPU, its
+cards, their terminals and the field devices is more than a sheet reads. Each module the electrical pages do not draw
+gets a new page, in slot order, the station's head on the first; the pages are made in the station's section, after
+the schematic page its head stands on, else after the schematic page the view was opened from, else where New page
+puts a wiring page, each after the one before, titled from its card (`PLC 8 DI`: what it gives the PLC, else its part
+number). All of it is one undo step; a refusal takes back what was made. All on one page… lists the schematic pages and
+New page…, the one chosen taking the head and every card. Each page, or the one page, is one
 `plc.draw_station {station, page, symbol, boxes}`: the window lays the station's box and its modules' out in slot order
 (a module with channel pins as one row of pins along one edge, its inputs at the foot of the page and its outputs at
 its head, [06a](06a-drafting.md) §7.5; any other device by the black box tool's pin layout over its part's pattern,
 under what the page draws, or where that would pass the drawing area's foot in the first clear place inside it from
 its head, as a module of outputs, and off the page's wires), and
 the command gives a device made without functions its part's template functions before it draws the black-box entry;
-a device drawn already is left alone, except a further box of a module drawn in parts. **Decided, not built:** Draw on a page puts each card on a page of its own by default, the station's head on the first, and keeps all on one page as a choice: a page that holds a CPU, its cards, their terminals and the field devices is more than a sheet reads. A
-module row's Draw… draws that module the same way. N3 binds the channels of a module that gains its main function in
+a device drawn already is left alone, except a further box of a module drawn in parts. A
+module row's Draw… draws that module on the page chosen, as all on one page lays it out. N3 binds the channels of a module that gains its main function in
 the transaction, so a module drawn from the rack is bound to its pins as one drawn by hand; EW-PLC-018 reports a drawn
 module with every channel unbound (an earlier build's drawing), its fix `plc.bind_pins`.
 

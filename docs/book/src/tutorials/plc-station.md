@@ -47,7 +47,7 @@ Three words of the program, in the trade's meaning:
    The tab is the station's now: the input module has the addresses I0.0–I0.7, the output module Q0.0–Q0.7, each
    card says **not drawn**, and **To do** under the table says that they are drawn on no page yet. One Undo takes
    the whole station back.
-9. Choose **Draw on a page…** in the To do list and pick page **1**.
+9. Choose **All on one page…** in the To do list and pick page **1**.
    Page 1 shows, and the CPU -1A1 and its modules -1A1-A1 and -1A1-A2 stand on it as boxes. Each module is a low,
    wide box with its channels' pins in one row: the input module at the foot of the page with its pins on its upper
    edge, the output module at the head of the page with its pins on its lower edge, the supply
@@ -78,8 +78,8 @@ Three words of the program, in the trade's meaning:
 ## What you learnt
 
 - **New station** builds a station the way TIA Portal does: its head part first, then its modules slot by slot
-  from the catalogue, and **Create** makes them all in one step. **Draw on a page…** draws them all at once, bound
-  to their pins.
+  from the catalogue, and **Create** makes them all in one step. **Draw each card on a page of its own** draws each
+  module on a new page, **All on one page…** draws them all on the page you pick, bound to their pins.
 - The slot order gives the addresses, and the PLC grid shows them channel by channel, where you type the symbols.
 - The PLC overview is a report page, made by a report block and kept up to date by EW.
 - **Export to PLC** hands the hardware and the symbols to the PLC software.

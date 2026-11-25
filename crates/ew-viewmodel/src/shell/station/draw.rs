@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A station drawn on pages from its view: Draw on a page… (the boxes of the station and its cards laid out on a
-//! schematic page, `plc.draw_station`), the To do list's next step (`plc.rack_next`), and Place here on a PLC part
-//! (`plc.module_place`).
+//! schematic page, `plc.draw_station`; by default each card on a page of its own), the To do list's next step
+//! (`plc.rack_next`), and Place here on a PLC part (`plc.module_place`).
 //!
 //! The box layout ([`ShellModel::station_boxes`]) takes the page's free place, its drawing area's right and foot from
 //! `Session::station_draw_params` and lays the boxes out here, in the view-model.
@@ -201,8 +201,9 @@ impl ShellModel {
     /// drawn now: a card of inputs as near the foot as there is room, beside the boxes drawn now that are no card where
     /// its line has room, not under them, a card of outputs as near the head, each line from the left; a card that finds
     /// no room is named under `left` and waits for another page. A device whose part has no
-    /// black-box entry is left out. `None` without the page shown, its frame or the catalogue.
-    fn station_boxes(&mut self, station: Uuid, page: Uuid) -> Option<Value> {
+    /// black-box entry is left out. With `keep` only those devices are laid out (a page of their own). `None` without the
+    /// page shown, its frame or the catalogue.
+    fn station_boxes(&mut self, station: Uuid, page: Uuid, keep: Option<&[Uuid]>) -> Option<Value> {
         use ew_api::part_box::BoxSteps;
         const SIZE: (i64, i64, i64) = (39_687_500, 31_750_000, 7_937_500);
         /// One box to lay out: a box of a device that is no card, by its pins, or a card's.
@@ -211,6 +212,13 @@ impl ShellModel {
             Card(BoxSteps),
         }
         let mut params = self.project_session()?.station_draw_params(station, page)?;
+        if let (Some(keep), Some(devices)) = (keep, params["devices"].as_array_mut()) {
+            devices.retain(|d| {
+                d[0].as_str()
+                    .and_then(|d| d.parse::<Uuid>().ok())
+                    .is_some_and(|d| keep.contains(&d))
+            });
+        }
         let page_grid = self.canvas()?.page().tables.grid;
         let grid = crate::tools::wire::PageGridMap::new(page_grid);
         // What the page draws already, and the highest line a card stands on: two gaps under the frame's head.
@@ -532,7 +540,7 @@ impl ShellModel {
             s.rack_refuse(cursor, why)
         };
         let page = self.page_rows().get(self.page_index()).map(|r| r.id);
-        let Some(mut params) = page.and_then(|page| self.station_boxes(station, page)) else {
+        let Some(mut params) = page.and_then(|page| self.station_boxes(station, page, None)) else {
             return back(self, strings::text(key!("reason-rack-no-frame")).to_owned());
         };
         // The cards that find no room on the page, by their tags (`station_boxes`).
@@ -567,23 +575,7 @@ impl ShellModel {
         });
         match out {
             Outcome::Done => {
-                if let Some(text) = self.retagged_words("plc.draw_station", &retag) {
-                    self.notify_offer(text, crate::notifications::NoteAction::Rack, vec![station]);
-                }
-                // A card wider than the drawing area: its first box is drawn, the toast says where the rest is drawn.
-                let rest: Vec<String> = self.project_session().map_or_else(Vec::new, |s| {
-                    s.cards_drawn_in_part(station)
-                        .into_iter()
-                        .filter_map(|c| s.device_tag(c))
-                        .collect()
-                });
-                if !rest.is_empty() {
-                    self.notify_offer(
-                        strings::format(key!("rack-card-rest"), &[&rest.join(", ")]),
-                        crate::notifications::NoteAction::Rack,
-                        vec![station],
-                    );
-                }
+                self.drawn_toasts(station, &retag);
                 if !left.is_empty() {
                     self.notify_offer(no_room, crate::notifications::NoteAction::Rack, vec![station]);
                 }
@@ -592,6 +584,176 @@ impl ShellModel {
             Outcome::Failed { message } => back(self, message),
             Outcome::Refused { reason: reason_key } => back(self, strings::render(&reason_key)),
         }
+    }
+
+    /// The toasts after a station's boxes were drawn: the tags the drawing changed, and a card wider than the drawing
+    /// area, whose first box is drawn, with where the rest is drawn.
+    fn drawn_toasts(&mut self, station: Uuid, retag: &[(Uuid, String)]) {
+        if let Some(text) = self.retagged_words("plc.draw_station", retag) {
+            self.notify_offer(text, crate::notifications::NoteAction::Rack, vec![station]);
+        }
+        let rest: Vec<String> = self.project_session().map_or_else(Vec::new, |s| {
+            s.cards_drawn_in_part(station)
+                .into_iter()
+                .filter_map(|c| s.device_tag(c))
+                .collect()
+        });
+        if !rest.is_empty() {
+            self.notify_offer(
+                strings::format(key!("rack-card-rest"), &[&rest.join(", ")]),
+                crate::notifications::NoteAction::Rack,
+                vec![station],
+            );
+        }
+    }
+
+    /// Draw on a page's default (doc 10 §2.3): the devices of `station` that no electrical page draws, each module on a
+    /// new page of its own in slot order, the station's head on the first, each page laid out as Draw on a page lays
+    /// out one (`station_boxes`) and drawn with one `plc.draw_station`, all in one undo step. The pages are made in the
+    /// station's section: after the schematic page its head stands on, else after the schematic page the view was
+    /// opened from, else where New page puts a wiring page; each after the one before, titled from its card (`PLC
+    /// 8 DI`, the head's page from its first card). The first page is shown, and a toast names the pages. A refusal
+    /// takes back what was made and is said in the view.
+    fn draw_own_pages(&mut self, station: Uuid) -> Outcome {
+        let cursor = self.station_tab().and_then(|t| t.cursor);
+        let back = |s: &mut Self, why: String| {
+            let _ = s.open_station(StationTab {
+                station: Some(station),
+                ..StationTab::default()
+            });
+            s.rack_refuse(cursor, why)
+        };
+        let Some(view) = self.rack_view(station) else {
+            return back(self, strings::text(key!("reason-rack-closed")).to_owned());
+        };
+        let off = self
+            .project_session()
+            .map(|s| s.off_electrical_pages(station))
+            .unwrap_or_default();
+        // The pages: the head with the first module, then each module, in slot order, each with its title.
+        let title = |r: Option<&ew_api::output::RackRow>| match r.map(|r| {
+            if r.gives.is_empty() {
+                r.part_number.clone()
+            } else {
+                r.gives.clone()
+            }
+        }) {
+            Some(words) if !words.is_empty() => strings::format(key!("rack-card-page-title"), &[&words]),
+            _ => strings::text(key!("rack-draw-page-title")).to_owned(),
+        };
+        let head: Vec<Uuid> = off.iter().copied().filter(|d| *d == station).collect();
+        let modules: Vec<&ew_api::output::RackRow> = view
+            .rows
+            .iter()
+            .filter(|r| r.module.is_some_and(|m| m != station && off.contains(&m)))
+            .collect();
+        let mut pages: Vec<(Vec<Uuid>, String)> = Vec::new();
+        for (i, row) in modules.iter().enumerate() {
+            let mut devices = if i == 0 { head.clone() } else { Vec::new() };
+            devices.extend(row.module);
+            pages.push((devices, title(Some(row))));
+        }
+        if pages.is_empty() && !head.is_empty() {
+            pages.push((head, title(None)));
+        }
+        if pages.is_empty() {
+            return back(self, strings::text(key!("reason-rack-drawn")).to_owned());
+        }
+        // The page the first one follows: the head's schematic page, else the schematic page the view was opened from.
+        let schematic = |s: &Self, folio: Option<&String>| {
+            s.page_rows()
+                .iter()
+                .find(|r| Some(&r.folio) == folio && r.kind.is_schematic())
+                .map(|r| r.id)
+        };
+        let mut after = schematic(self, view.head.page.as_ref()).or_else(|| {
+            let shown = self.page_rows().get(self.page_index()).map(|r| r.folio.clone());
+            schematic(self, shown.as_ref())
+        });
+        let start = self.revision();
+        // Every step after the first goes into the first one's undo step.
+        let fold = |s: &mut Self, before| {
+            if s.revision() != before
+                && before != start
+                && let Some(p) = &mut s.project
+            {
+                p.session.fold_last_step();
+            }
+        };
+        let mut made: Vec<String> = Vec::new();
+        let mut retag: Vec<(Uuid, String)> = Vec::new();
+        for (devices, title) in pages {
+            let folio = match after {
+                Some(page) => {
+                    self.new_page_proposal(Some(&format!("p:{page}")), Some("multi_line"))
+                        .0
+                }
+                None => self.free_folio("multi_line"),
+            };
+            let rev = self.revision();
+            let page_made = self.dispatch(
+                "page.new",
+                &json!({ "folio": folio, "type": "multi_line", "title": title }),
+            );
+            fold(self, rev);
+            let opened = match page_made {
+                Outcome::Done => self.dispatch("page.goto", &json!({ "folio": folio })),
+                other => other,
+            };
+            let rev = self.revision();
+            let page = self.page_rows().get(self.page_index()).map(|r| r.id);
+            let drawn = match (
+                opened,
+                page.and_then(|p| self.station_boxes(station, p, Some(&devices))),
+            ) {
+                (Outcome::Done, Some(mut params)) => {
+                    let left = params
+                        .as_object_mut()
+                        .and_then(|m| m.remove("left"))
+                        .and_then(|v| v.as_array().cloned())
+                        .unwrap_or_default();
+                    if left.is_empty() {
+                        retag.extend(self.redrawn_tags("plc.draw_station", &params));
+                        self.run_commit(&ew_api::AnyCommand {
+                            name: "plc.draw_station".into(),
+                            params,
+                        })
+                    } else {
+                        Outcome::Failed {
+                            message: strings::format(key!("rack-card-no-room"), &[&title, &folio]),
+                        }
+                    }
+                }
+                (Outcome::Done, None) => Outcome::Failed {
+                    message: strings::text(key!("reason-rack-no-frame")).to_owned(),
+                },
+                (other, _) => other,
+            };
+            fold(self, rev);
+            if drawn != Outcome::Done {
+                // What was made goes back with it, silently: the refusal is said in the view.
+                if self.revision() != start {
+                    self.history.unsaid = true;
+                    let _ = self.dispatch("edit.undo", &Value::Null);
+                    self.history.unsaid = false;
+                }
+                let why = match drawn {
+                    Outcome::Failed { message } => message,
+                    Outcome::Refused { reason } => strings::render(&reason),
+                    Outcome::Done => String::new(),
+                };
+                return back(self, why);
+            }
+            made.push(folio);
+            after = page;
+        }
+        let _ = self.dispatch("page.goto", &json!({ "folio": made[0] }));
+        self.drawn_toasts(station, &retag);
+        self.notify(
+            strings::format(key!("toast-rack-own-pages"), &[&made.join(", ")]),
+            true,
+        );
+        Outcome::Done
     }
 
     /// `plc.rack_next {step, folio?}`: what is left to do for the station on show, from its To do list, on the page
@@ -638,7 +800,9 @@ impl ShellModel {
                 }
                 self.rack_refuse(cursor, why)
             }
-            // The station and its cards not drawn yet, in a row in slot order, one undo step.
+            // The station and its cards not drawn yet, each card on a page of its own and the head on the first, one
+            // undo step; a page named takes them all, in a row in slot order.
+            Ok(Some("draw")) if matches!(string_param(p, "folio"), Ok(None)) => self.draw_own_pages(station),
             Ok(Some("draw")) => self.draw_from_rack(station, None, p),
             Ok(Some("overview")) => self.act_fluid_generate_overview(&Map::from_iter([(
                 "station".to_owned(),

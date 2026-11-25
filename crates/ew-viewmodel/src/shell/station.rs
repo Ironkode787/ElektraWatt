@@ -123,6 +123,15 @@ pub enum TodoFix {
         /// The pages of the kind, folio and title, that it asks between (New page… after them).
         pages: Vec<(String, String)>,
     },
+    /// The station's devices on electrical pages (doc 10 §2.3): the button draws each card on a page of its own, the
+    /// station's head on the first (`plc.rack_next {step: draw}`); All on one page… lists the schematic pages and New
+    /// page…, the one chosen taking them all (`plc.rack_next {step: draw, folio}`).
+    OwnPages {
+        /// The button's words.
+        label: String,
+        /// The schematic pages, folio and title, that All on one page… lists.
+        pages: Vec<(String, String)>,
+    },
 }
 
 impl ShellModel {
@@ -616,11 +625,10 @@ impl ShellModel {
             };
             out.push(step(
                 text,
-                on_page(
-                    "draw",
-                    &[ew_api::PageType::MultiLine, ew_api::PageType::SingleLine],
-                    self.schematic_pages(),
-                ),
+                Some(TodoFix::OwnPages {
+                    label: strings::text(key!("rack-draw-own-pages")).to_owned(),
+                    pages: self.schematic_pages(),
+                }),
             ));
         }
         // A card wider than the drawing area, drawn one box at a time (docs/design/06a-drafting.md §7.5): the rest goes

@@ -394,7 +394,7 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
         "{:?}",
         shown.todo
     );
-    h.get_by_label("Draw on page 101");
+    h.get_by_label("Draw each card on a page of its own");
     // Its part taken away: the row says so, never an empty cell, and offers the way out.
     dispatch(
         &mut h,
