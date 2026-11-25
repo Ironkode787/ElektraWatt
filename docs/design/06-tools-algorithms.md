@@ -191,6 +191,10 @@ outside the drawing area → None, reported by FR-CHK-035
 ```
 
 - A point exactly on a boundary belongs to the right or lower cell, the documented rule (FR-PAG-020).
+- A cell is labelled as the page draws it (`ew_derive::column_label`, `row_label`): a column by the frame's own label,
+  else the number `start_index + index`, also past the frame's labels; a row by the frame's own label, else the
+  letters `A … Z` (without `I` and `O` when the frame skips them), then `AA, AB …`. Every column and row of the frame
+  has a cell.
 - **Pitfall.** A stored coordinate is rounded to the nearest nm, so a point on a QET boundary can land up to
   0.5 nm to its left. Anchors always sit on the page's connection grid `g`, so the lookup first converts the point
   to its grid index `k = round(x / g)` and evaluates the formula on the exact rational `k·g`, which rounding cannot

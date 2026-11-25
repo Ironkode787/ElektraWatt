@@ -115,10 +115,11 @@ pub struct PageCells {
     columns: Vec<String>,
 }
 
-/// The printed column labels of `frame` in grid order, as the cell rule reads them (`ew_derive::column_label`).
+/// The printed column labels of `frame` in grid order, as the page draws them and the cell rule reads them
+/// (`ew_derive::column_label`).
 fn column_labels(frame: &FrameGrid) -> Vec<String> {
-    (0..u32::from(frame.columns.count))
-        .map_while(|c| ew_derive::column_label(frame, c))
+    (0..usize::from(frame.columns.count))
+        .map(|c| ew_derive::column_label(frame, c))
         .collect()
 }
 

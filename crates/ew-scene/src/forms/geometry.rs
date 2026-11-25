@@ -89,7 +89,7 @@ impl FrameGeometry {
             column_edges,
             row_edges,
             column_labels: (0..usize::from(grid.columns.count))
-                .map(|k| ew_derive::drawn_column_label(grid, k))
+                .map(|k| ew_derive::column_label(grid, k))
                 .collect(),
             row_labels: (0..usize::from(grid.rows.count))
                 .map(|k| ew_derive::row_label(grid, k))

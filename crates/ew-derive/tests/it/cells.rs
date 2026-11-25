@@ -480,10 +480,15 @@ fn explicit_labels_and_start_index() {
     fx.record(0x103)["grid"] = json!({"num": 1_000_000, "den": 1});
     let m = fx.build();
     let mm = |x: i64, y: i64| pt(x * 1_000_000, y * 1_000_000);
-    // Page 101: band 10 mm, 20 mm cells; two labels for three columns, so column index 2 has none.
+    // Page 101: band 10 mm, 20 mm cells; two labels for three columns, so column index 2 is the number the page draws
+    // past the labels, start index 1 + 2.
     assert_eq!(cell_str(&m, PAGE, mm(11, 11)).as_deref(), Some("AI"));
     assert_eq!(cell_str(&m, PAGE, mm(31, 31)).as_deref(), Some("BII"));
-    assert_eq!(cell_str(&m, PAGE, mm(51, 11)), None, "missing label");
+    assert_eq!(
+        cell_str(&m, PAGE, mm(51, 11)).as_deref(),
+        Some("A3"),
+        "past the labels"
+    );
     assert_eq!(cell_str(&m, PAGE, mm(11, 71)).as_deref(), Some("DI"));
     assert_eq!(cell_str(&m, PAGE, mm(11, 91)), None, "below the last row");
     // Page 102: start index 5; 24 letters with I and O skipped, so row 24 is past Z: AA, as the page draws it.

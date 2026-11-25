@@ -317,7 +317,7 @@ pub fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
         frame.rows.height,
         frame.rows.count,
     )?;
-    let column_label = column_label(frame, c)?;
+    let column_label = column_label(frame, c as usize);
     let row_label = row_label(frame, r as usize);
     Some(Cell {
         column: u32::from(frame.columns.start_index) + c,
@@ -367,18 +367,14 @@ fn row_letters(skip_io: bool) -> impl Iterator<Item = char> {
     ('A'..='Z').filter(move |c| !(skip_io && matches!(c, 'I' | 'O')))
 }
 
-/// The printed label of column `c` (0-based) of `frame` as the cell rule reads it: the frame's own label, else the
-/// number `start_index + c`; `None` past the frame's labels. The page draws them by [`drawn_column_label`].
-pub fn column_label(frame: &FrameGrid, c: u32) -> Option<String> {
-    if frame.columns.labels.is_empty() {
-        Some((u32::from(frame.columns.start_index) + c).to_string())
-    } else {
-        frame
-            .columns
-            .labels
-            .get(c as usize)
-            .map(|l| l.as_str().to_owned())
-    }
+/// The label of column `k` (0-based) of `frame`, as the page draws it and the cell rule, Cell-at and Go to read it: the
+/// frame's own label, else the number `start_index + k`, also past the frame's labels.
+pub fn column_label(frame: &FrameGrid, k: usize) -> String {
+    let c = &frame.columns;
+    c.labels.get(k).map_or_else(
+        || (u32::from(c.start_index) + k as u32).to_string(),
+        |l| l.as_str().to_owned(),
+    )
 }
 
 /// The label of row `k` (0-based) of `frame`, as the page draws it and the cell rule, Cell-at and Go to read it: the
@@ -386,16 +382,6 @@ pub fn column_label(frame: &FrameGrid, c: u32) -> Option<String> {
 pub fn row_label(frame: &FrameGrid, k: usize) -> String {
     frame.rows.labels.get(k).map_or_else(
         || letter_label(&row_letters(frame.rows.skip_io).collect::<Vec<_>>(), k),
-        |l| l.as_str().to_owned(),
-    )
-}
-
-/// The label the page draws on column `k` (0-based) of `frame`: the frame's own label, else the number
-/// `start_index + k`, also past the frame's labels, where [`column_label`] has none.
-pub fn drawn_column_label(frame: &FrameGrid, k: usize) -> String {
-    let c = &frame.columns;
-    c.labels.get(k).map_or_else(
-        || (u32::from(c.start_index) + k as u32).to_string(),
         |l| l.as_str().to_owned(),
     )
 }
