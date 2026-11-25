@@ -51,7 +51,7 @@ pub fn numbered(device: &Device) -> bool {
         && device.tag.scheme == TagScheme::Default
 }
 
-/// Whether a device is an earth connection, which has no tag and so takes no counter and holds none (FT-1820): no part
+/// Whether a device is an earth connection, which has no tag and so takes no counter and holds none: no part
 /// use, and every function an earth point (`ew_derive::layout::is_earth_connection` read in the transaction).
 pub(crate) fn earth_connection(tx: &TxBuilder<'_>, device: &Device) -> bool {
     let functions = tx.functions_of_device(device.id);

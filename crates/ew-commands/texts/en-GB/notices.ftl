@@ -5,7 +5,7 @@
 # refusing. One message per key; `{ $p0 }`, `{ $p1 }`, ... are the arguments, always strings. The source language and
 # the fallback of every other.
 
-# FT-1819: what a command or a normaliser dropped or adjusted instead of refusing (`Outcome.notices`), by key.
+# What a command or a normaliser dropped or adjusted instead of refusing (`Outcome.notices`), by key.
 notice-words-and = { $p0 } and { $p1 }
 notice-none = none
 notice-nothing = nothing

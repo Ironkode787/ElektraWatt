@@ -131,7 +131,7 @@ commands! {
     page::ReorderPages,
     page::SetSurfaceView,
     page::SetPageGrid,
-    // A copy of pages for a second installation (FT-1862)
+    // A copy of pages for a second installation
     page_copy::CopyPages,
     structure::CreateStructureNode,
     structure::CreateSection,
@@ -169,7 +169,7 @@ commands! {
     // The strip editor's insert and move
     terminal::InsertTerminals,
     terminal::MoveTerminals,
-    // The wire to a card on the terminal's pin that faces it (FT-2083)
+    // The wire to a card on the terminal's pin that faces it
     face_card::FaceCard,
     fields::SetFields,
     fields::SetManyFields,
@@ -216,22 +216,22 @@ commands! {
     revision::CreateRevision,
     revision::SetRevisionAuthor,
     revision::WithdrawRevision,
-    // The sign-off (D9)
+    // The sign-off
     revision::ApproveRevision,
-    // The release's stamp (D13)
+    // The release's stamp
     revision::ReleaseRevision,
     company::SetCompany,
     typeface::SetTypeface,
     frames::SetFrameDefaults,
     languages::SetProjectLanguages,
     checks::SetCheckSchemes,
-    // Waiver recording (D7)
+    // Waiver recording
     checks::WaiveFinding,
     checks::FixAll,
     checks::UnwaiveFinding,
-    // Conflict records (D19)
+    // Conflict records
     merge::ResolveConflicts,
-    // An external change (D22)
+    // An external change
     external::ApplyExternal,
     assets::PurgeAssets,
     exchange::ExchangeSymbol,
@@ -244,7 +244,7 @@ commands! {
     items::PlaceMarker,
     parts::ImportParts,
     assign::AssignPart,
-    // A part whose type is not known yet (FT-1878)
+    // A part whose type is not known yet
     placeholder::AssignPlaceholder,
     library_update::UpdateLibraryCopies,
     macro_insert::InsertMacro,

@@ -48,7 +48,7 @@ mod assemblies;
 use assemblies::rail_in_sentence;
 pub use assemblies::{AutoFill, FillOrder, PlaceAssembly};
 
-/// The layout deletes are `Bulk` when they remove or rehome more than this many placements (D6).
+/// The layout deletes are `Bulk` when they remove or rehome more than this many placements.
 pub const LAYOUT_BULK_ABOVE: usize = 200;
 
 /// A present member (a value or `null`) as `Some`.
@@ -1931,7 +1931,7 @@ fn in_transaction(tx: &TxBuilder<'_>, q: &Q, grown: Id<Placement>, items: &mut [
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Set-up and edits (FT-840)
+// Set-up and edits
 
 /// An identifier this module spells as a literal.
 fn ident(name: &'static str, text: &str) -> Result<Ident, CmdError> {
@@ -2046,7 +2046,7 @@ impl Command for CreateEnclosureFromPart {
             Some(s) => s,
             None => insert_space(tx, self.location, None)?,
         };
-        // The scheme's tags, not frozen ones (FT-1899): the enclosure UC<n>, whose page-less tag prints no page, with
+        // The scheme's tags, not frozen ones: the enclosure UC<n>, whose page-less tag prints no page, with
         // the lowest n ≥ 1 that no device's tag UC<n> holds (another enclosure's counter, or a frozen UC<n> of an
         // older project); its plate the child U1.
         let letter = ident(name, "UC")?;
@@ -2175,7 +2175,7 @@ fn enclosure_device(
     }
 }
 
-/// `layout.space.edit` (`EditLayoutSpace`, FT-840): renames a layout space; `name: null` clears its name. Nothing else
+/// `layout.space.edit` (`EditLayoutSpace`): renames a layout space; `name: null` clears its name. Nothing else
 /// changes. Rejected: a space that does not exist (`/space`); `name` absent (`/name`). Interactive. Outcome: the space.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -2220,7 +2220,7 @@ impl Command for EditLayoutSpace {
     }
 }
 
-/// `layout.enclosure.edit` (`EditEnclosure`, FT-840): moves an enclosure in its layout space. The pose is a translation
+/// `layout.enclosure.edit` (`EditEnclosure`): moves an enclosure in its layout space. The pose is a translation
 /// with the identity rotation at this version (bayed suites are 1.x). Nothing else changes. Rejected: an
 /// enclosure that does not exist (`/enclosure`); a turned pose. Interactive. Outcome: the enclosure.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -2258,7 +2258,7 @@ impl Command for EditEnclosure {
     }
 }
 
-/// `layout.surface.edit` (`EditSurface`, FT-840): sets whether a mounting surface (the plate) is bonded to protective
+/// `layout.surface.edit` (`EditSurface`): sets whether a mounting surface (the plate) is bonded to protective
 /// earth. Nothing else changes. Rejected: a surface that does not exist (`/surface`). Interactive. Outcome: the surface.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

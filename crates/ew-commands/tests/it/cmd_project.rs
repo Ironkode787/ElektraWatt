@@ -887,7 +887,7 @@ fn fields_set_on_the_project_refuses_other_members_targets_and_values() {
     );
     assert_eq!(path, "/path");
     assert!(message.contains("settable: master.description"), "{message}");
-    // The master data a title block prints and the parties are settable (FT-1686).
+    // The master data a title block prints and the parties are settable.
     for (member, value) in [
         ("master.drawing_id", json!("D-0001")),
         ("master.created", json!("2026-11-12")),

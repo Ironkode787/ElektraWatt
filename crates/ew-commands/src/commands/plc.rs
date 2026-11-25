@@ -138,7 +138,7 @@ pub fn is_on_module(
 ///
 /// With `attach_at`, the device of the endpoint's function first becomes a child of the channel's module at that
 /// position, as `assembly.attach` makes it (with its checks), so that a device wired off the card is attached and
-/// bound in one undo step (FT-774).
+/// bound in one undo step.
 ///
 /// In a command log (and the blind harness's `command.run`) the channel and the CP may also be named by tags:
 /// the channel as `<module tag>#<number>` or `<module tag>:<designation>`, the function as `<device tag>`
@@ -1424,7 +1424,7 @@ pub struct StationBox {
 /// drawing of that function: a card drawn one box at a time (docs/design/06a-drafting.md §7.5), its inputs and its
 /// outputs, or a row wider than the drawing area. Any other device an electrical page draws already, and one whose part
 /// has no black-box entry, is left as it is. `replace` names drawings on the page of the devices of `boxes` that these
-/// boxes draw again (a card of the older two-row form drawn in one row, FT-1897): they are deleted first, in the same
+/// boxes draw again (a card of the older two-row form drawn in one row): they are deleted first, in the same
 /// step, and the devices, their functions, channels and connections stay. Refused in words: a
 /// device that is no station; a box of a device the station does not hold; a drawing to replace that is no
 /// representation on the page of a device of `boxes`; nothing left to draw. `copies` are library

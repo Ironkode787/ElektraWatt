@@ -6,7 +6,7 @@
 # falls back to en-GB. Product and file names, rule IDs, command names, key caps, identifiers and units are not
 # translated.
 
-# FT-1337 (ID-1359): a command's own refusal by key (`ew_commands::TEXTS`), grouped by command; the CLI prints the English.
+# A command's own refusal by key (`ew_commands::TEXTS`), grouped by command; the CLI prints the English.
 # The records in words (`words.rs`) and the geometry's sentences (`geometry.rs`).
 refusal-words-device-gone = een apparaat dat niet in het project staat
 refusal-words-function-no-device = een functie zonder apparaat
@@ -124,7 +124,7 @@ refusal-params-no-terminal = noem ten minste één klem
 refusal-params-no-page = noem ten minste één pagina
 refusal-params-no-module = noem ten minste één module
 refusal-params-positions-one-based = posities beginnen bij 1
-# An image the asset gate refuses (FT-1504): each `AssetError`, and an unsafe SVG's finding and its advice.
+# An image the asset gate refuses: each `AssetError`, and an unsafe SVG's finding and its advice.
 refusal-asset-unknown-format = geen SVG-, PNG- of JPEG-bestand
 refusal-asset-too-large = het { $p0 }-bestand heeft { $p1 } bytes, meer dan de grens van { $p2 }
 refusal-asset-too-many-nodes = het SVG-bestand heeft meer dan { $p0 } elementen
@@ -151,7 +151,7 @@ refusal-asset-advice-self-contained = verwijder gekoppelde of ingesloten afbeeld
 refusal-asset-advice-simplify = vereenvoudig de tekening (minder geneste groepen, klonen, markeringen en stijlregels) en exporteer haar opnieuw als eenvoudige SVG met presentatieattributen in plaats van een stijlblad (Inkscape: "Plain SVG"; CorelDRAW: Styling options "Presentation attributes")
 refusal-asset-advice-scale = schaal de tekening naar een normaal paginaformaat, houd filterwaarden klein en exporteer haar opnieuw als eenvoudige SVG
 refusal-asset-advice-flatten = vlak de transformaties af en verwijder convolutiefilters, en exporteer daarna opnieuw als eenvoudige SVG
-# The detail of other crates' errors (FT-1494): serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.
+# The detail of other crates' errors: serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.
 refusal-serde-at = { $p0 } op regel { $p1 }, kolom { $p2 }
 refusal-serde-invalid-type = ongeldig type: { $p0 }, verwacht: { $p1 }
 refusal-serde-invalid-value = ongeldige waarde: { $p0 }, verwacht: { $p1 }
@@ -219,7 +219,7 @@ refusal-major-category = de categorie verandert
 refusal-major-template = er wordt een sjabloonfunctie toegevoegd of verwijderd
 refusal-major-macro-variable = de macrovariabele { $p0 } wordt verwijderd
 refusal-serde-other = { $p0 }
-# A model error a window form can reach (FT-1488): a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
+# A model error a window form can reach: a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
 refusal-model-referenced = { $p0 } kan niet worden verwijderd: { $p1 } verwijst er nog naar
 refusal-model-stale = het project is gewijzigd terwijl de bewerking werd voorbereid; voer haar opnieuw uit
 refusal-model-duplicate = { $p0 } staat twee keer in het project
@@ -375,7 +375,7 @@ refusal-ip-continue-not-ip = de functie is geen onderbrekingspunt; kies een onde
 refusal-ip-continue-external = een extern aansluitpunt vormt nooit een paar; het kan niet worden voortgezet
 refusal-ip-continue-same-page = de doelpagina is de pagina van het onderbrekingspunt; zet het op een andere pagina voort
 refusal-ip-continue-no-rep = het onderbrekingspunt heeft geen representatie om voort te zetten
-# WP-S2.19 D16: de pijlvormen van EW's onderbrekingspunt.
+# de pijlvormen van EW's onderbrekingspunt.
 refusal-ip-form-turned = de pijl van een onderbrekingspunt wijst in de richting van het signaal: wijzig in plaats daarvan de richting
 refusal-ip-form-direction = een onderbrekingspunt met de richting bron wordt getekend met de uitgaande pijl, een doelpunt met de inkomende pijl
 refusal-ip-form-missing = het project bevat de { $p0 } pijl van { $p1 } niet: plaats eerst één onderbrekingspunt met die richting
@@ -876,7 +876,7 @@ refusal-plc-module-part-use = `plc_module.part_use` van de module is { $p0 }, da
 refusal-plc-start-input = een ingang
 refusal-plc-start-output = een uitgang
 refusal-plc-start-area = `{ $p0 }` is geen begin van { $p1 }: het begin van { $p1 } ligt in gebied { $p2 }, zoals { $p3 }
-# WP-S1.24: re-addressing and the tag-based profile.
+# re-addressing and the tag-based profile.
 refusal-plc-scope-empty = noem de modules die opnieuw geadresseerd worden, of hun configuratieproject
 refusal-plc-tag-based = profiel { $p0 } leidt de adressen af uit het station en het slot, dus er wordt er geen ingetypt; geef auto, excluded of tbd
 refusal-plc-freeze-tag-based = configuratieproject { $p0 } gebruikt profiel { $p1 }, dat de adressen afleidt uit het station en het slot, dus er verschuift geen adres en er valt niets vast te zetten

@@ -576,7 +576,7 @@ fn function_moves(
 /// The moves of the pins of the functions that use the copy `held` when it becomes `new`, the patterns paired by
 /// designation (`cp_mapping`, with the explicit pairs `explicit`): each endpoint that moves into `remap` ((function, old
 /// endpoint) → new endpoint); a pin that goes while something is attached to it, in words, into `blocked`. Shared by
-/// `library.update` and `part.edit_copy` (FT-1766: a corrected card's wire stays at its pin). Rejected: one endpoint
+/// `library.update` and `part.edit_copy` (a corrected card's wire stays at its pin). Rejected: one endpoint
 /// moved to two places.
 pub(crate) fn pin_moves(
     tx: &TxBuilder<'_>,
@@ -595,7 +595,7 @@ pub(crate) fn pin_moves(
         for (endpoint, _, to) in function_moves(tx, f, held, new, &old_cps, &new_cps, &target) {
             match to {
                 None => {
-                    // The pin by its printed designation, an interruption point's by its name (FT-1556).
+                    // The pin by its printed designation, an interruption point's by its name.
                     for what in attached(tx, f, endpoint) {
                         blocked.push(
                             text!(
@@ -720,8 +720,7 @@ impl Command for UpdateLibraryCopies {
                 LibDocument::Unknown(_) => unreachable!("read_copy refuses an unknown kind"),
             }
         }
-        // The drawn boxes of an updated part's devices take its pins and sockets, each kept pin under its new index
-        // (FT-1766).
+        // The drawn boxes of an updated part's devices take its pins and sockets, each kept pin under its new index.
         for part in parts {
             crate::commands::box_follow::follow_part_boxes(tx, part, &remap)?;
         }

@@ -147,7 +147,7 @@ impl Command for RenumberDevices {
             DeviceScope::Project => tx.iter::<Device>().into_iter().map(|d| d.id).collect(),
         };
         // The full tags that devices keeping a frozen tag print: a device in scope that prints one of them gives its
-        // counter up and takes a free one (FT-1658: "Renumber the newer" of a duplicate whose keeper is frozen
+        // counter up and takes a free one ("Renumber the newer" of a duplicate whose keeper is frozen
         // changed nothing, the frozen tag being no counter).
         let q = Q::new(tx.base_model());
         let full = |d: Id<Device>| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.full.clone());

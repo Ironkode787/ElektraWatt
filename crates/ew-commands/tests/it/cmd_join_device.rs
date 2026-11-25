@@ -289,7 +289,7 @@ fn free_other_functions_go_with_the_join() {
     assert_eq!(get(&e, FN_K4_A).and_then(|f| f.device), Some(DEV_K1));
 }
 
-/// FT-1860: a function of another kind than a contact (the lamp -H1) joins a device whose family takes no auxiliary
+/// A function of another kind than a contact (the lamp -H1) joins a device whose family takes no auxiliary
 /// contacts as a second symbol of its own: an auxiliary function of -K1, the lamp's emptied device gone.
 #[test]
 fn a_lamp_joins_a_relay_as_a_second_symbol_of_its_own() {
@@ -313,7 +313,7 @@ fn each_refusal_names_its_pointer_and_writes_nothing() {
     invalid_at(e.execute(&join(REP_IP_101, DEV_K1)), "/rep", "interruption point");
     invalid_at(e.execute(&join(REP_T1, DEV_K1)), "/device", "is no terminal of");
     // `/device`: the representation's own device; a device whose family takes no auxiliary contacts; a terminal, which
-    // takes no further function (FT-1860: a function of another kind than a contact joins any other device); a part
+    // takes no further function (a function of another kind than a contact joins any other device); a part
     // whose template draws other CPs than the connected ones.
     invalid_at(e.execute(&join(REP_K2, DEV_K2)), "/device", "name another device");
     invalid_at(

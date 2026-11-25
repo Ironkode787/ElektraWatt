@@ -613,7 +613,7 @@ fn create_follows_the_project_label_format() {
         .expect("not judged");
 }
 
-/// RL-3 (D3): with V1.0 released and nothing open, a content edit opens V2.0 in the same transaction, with the ID
+/// RL-3: with V1.0 released and nothing open, a content edit opens V2.0 in the same transaction, with the ID
 /// `v5(V1.0, "next")` and no author; one undo removes both, redo restores both; a further edit opens nothing more.
 #[test]
 fn a_content_edit_after_a_release_opens_the_next_revision() {
@@ -705,7 +705,7 @@ fn the_automatic_revision_chains_a_taken_id_and_skips_a_newer_format() {
     );
 }
 
-/// RL-4 (D4): `fields.set` refuses `author` and `checker` from every origin with D4's text; an open revision
+/// RL-4: `fields.set` refuses `author` and `checker` from every origin with D4's text; an open revision
 /// takes no checker when created.
 #[test]
 fn the_roles_are_not_set_by_fields_set() {
@@ -749,7 +749,7 @@ fn the_roles_are_not_set_by_fields_set() {
     );
 }
 
-/// RL-4 (D4): `revision.set_author` sets the open revision's author from the GUI; it refuses a released revision,
+/// RL-4: `revision.set_author` sets the open revision's author from the GUI; it refuses a released revision,
 /// a missing one and the checker's role; from a script origin it is refused with the exposure error.
 #[test]
 fn set_author_sets_the_open_revision_author_from_a_person_only() {
@@ -807,7 +807,7 @@ fn set_author_sets_the_open_revision_author_from_a_person_only() {
     );
 }
 
-/// RL-5 (D5): `revision.withdraw` adds the withdrawal record `v5(revision, "withdrawal")` with the label, `withdraws`
+/// RL-5: `revision.withdraw` adds the withdrawal record `v5(revision, "withdrawal")` with the label, `withdraws`
 /// and the reason; the released record stays byte for byte; undo removes the record. Refused: an open revision, a
 /// blank reason, a second withdrawal, a withdrawal record, a script origin.
 #[test]
@@ -1017,7 +1017,7 @@ fn release(revision: Id<Revision>) -> ReleaseRevision {
     }
 }
 
-/// RA-1 and RA-6 at the command (D13): `revision.release` stamps the signed-off open revision from a person: state
+/// RA-1 and RA-6 at the command: `revision.release` stamps the signed-off open revision from a person: state
 /// Released, the date kept, and the release record with the sign-off as `approval`, the archive's name and hash, the
 /// generation, the content digest, the profile, the packs, the page digests, the changed pages and the tag. It is not
 /// undoable (a barrier: the archive and the tag are outside the history). Refused: a script origin (exposure), a

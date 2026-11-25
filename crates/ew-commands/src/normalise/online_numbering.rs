@@ -20,8 +20,8 @@
 //! So moving -101F1's main representation onto a folio that already has an -F1 renumbers the moved device,
 //! never the one that stayed, and editing an unrelated field of a device whose tag already collided in a
 //! lenient or legacy project changes nothing but that field (FR-NUM-029 renumbers only when an edit
-//! *makes* a tag collide). `fields.set` of a colliding counter or letter is rejected by the command itself
-//! (D2), so this normaliser renumbers only new devices, moves and page changes.
+//! *makes* a tag collide). `fields.set` of a colliding counter or letter is rejected by the command itself,
+//! so this normaliser renumbers only new devices, moves and page changes.
 
 use std::collections::{BTreeMap, BTreeSet};
 

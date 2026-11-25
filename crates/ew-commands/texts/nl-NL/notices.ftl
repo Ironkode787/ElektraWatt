@@ -5,7 +5,7 @@
 # refusing. Every key of the en-GB file of the same name, with the same arguments; a message missing here falls back
 # to en-GB. Product and file names, rule IDs, command names, key caps, identifiers and units are not translated.
 
-# FT-1819: wat een opdracht of een normaliseerder wegliet of aanpaste in plaats van te weigeren (`Outcome.notices`).
+# wat een opdracht of een normaliseerder wegliet of aanpaste in plaats van te weigeren (`Outcome.notices`).
 notice-words-and = { $p0 } en { $p1 }
 notice-none = geen
 notice-nothing = niets

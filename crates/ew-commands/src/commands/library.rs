@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `library.embed` (`EmbedLibraryCopies`, FT-167): embeds library items into the project as copies with
+//! `library.embed` (`EmbedLibraryCopies`): embeds library items into the project as copies with
 //! their lineage (doc 05 §13.2, doc 07 §3.1).
 
 use std::collections::BTreeSet;
@@ -29,7 +29,7 @@ use crate::tx::TxBuilder;
 ///   both" copy belongs to a paste, not to embedding);
 /// - its `library_id` is not the project's: a project-local item is created in the project, not embedded (a
 ///   project-local part copy is `parts.import`'s), but a form of the project's own (a frame or a title block made
-///   outside the program, FT-1859) is embedded as any other form;
+///   outside the program) is embedded as any other form;
 /// - its `sha256` is the hash of the item's own members (the rule of EW-CORE-014): the copy is consistent
 ///   with the hash it claims (the hash does not prove where the copy came from).
 ///
@@ -67,7 +67,7 @@ pub(crate) fn check_copy(
     project: ew_ids::Uuid,
 ) -> Result<(LibDocument, Lineage), CmdError> {
     let (doc, l) = read_copy(command, at, value)?;
-    // A form of the project's own is embedded as it is (FT-1859): no command makes one yet, so a person's frame or
+    // A form of the project's own is embedded as it is: no command makes one yet, so a person's frame or
     // title block comes in this way.
     if l.library == project && !matches!(doc, LibDocument::Form(_)) {
         return Err(CmdError::invalid_params(

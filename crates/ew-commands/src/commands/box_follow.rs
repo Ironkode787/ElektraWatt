@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The drawn boxes of a corrected part follow it (FT-1766, doc 10 §2.6): `part.edit_copy` and `library.update` give
+//! The drawn boxes of a corrected part follow it (doc 10 §2.6): `part.edit_copy` and `library.update` give
 //! each box a device of the part draws the pins and sockets the part has now.
 
 use std::collections::{BTreeMap, BTreeSet};

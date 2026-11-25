@@ -297,7 +297,7 @@ fn a_module_without_one_station_stays_unattached() {
     );
 }
 
-/// FT-823: modules drawn before the CPU attach to it when it arrives, in the same transaction, in placement order;
+/// modules drawn before the CPU attach to it when it arrives, in the same transaction, in placement order;
 /// with a second station nothing more attaches (the user chooses, EW-PLC-008 says so).
 #[test]
 fn waiting_modules_attach_when_the_first_station_arrives() {

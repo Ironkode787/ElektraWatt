@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The words of the PLC exchange (FT-2080): every key `ew-plc` names an object, a field or a merge state by is a text
+//! The words of the PLC exchange: every key `ew-plc` names an object, a field or a merge state by is a text
 //! of the window's files, so a notice never prints `?` and the window renders each in its language.
 
 use ew_commands::text_english;

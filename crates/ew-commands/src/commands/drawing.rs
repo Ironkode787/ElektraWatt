@@ -63,7 +63,7 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 /// object this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,
 /// FR-CON-031) chooses how crossing wires are drawn; absent means plain. `marker_mode` (`all`, `deviations`,
 /// `explicit` or `none`; FR-CON-024) chooses which wires carry a wire marker; absent means the
-/// as-built rule (a connection's `show_marker`). `wire_numbers` (`true` or `false`; FT-1692) prints every wire's number
+/// as-built rule (a connection's `show_marker`). `wire_numbers` (`true` or `false`) prints every wire's number
 /// on the page; absent means none. `wire_numbering` (`per_wire` or `per_potential`; doc 08 §5.2) chooses what a wire's
 /// number is: its own `{page}.{counter}`, or its potential's code; absent means per wire. `plc_address_at_terminals`
 /// (`true` or `false`; FR-PLC-018, doc 10 §3.5) prints the

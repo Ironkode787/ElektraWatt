@@ -1068,7 +1068,7 @@ fn create_cable_letter_defaults_to_w_and_rejects_duplicate_cores() {
     assert_eq!(r.created.len(), 1);
 }
 
-/// The wires a conductor lists become its core in the creating transaction (FT-1685: the Cable form makes the cable
+/// The wires a conductor lists become its core in the creating transaction (the Cable form makes the cable
 /// and puts the wires in it in one step); a wire listed twice is refused and nothing changes.
 #[test]
 fn create_cable_makes_the_listed_wires_its_cores() {

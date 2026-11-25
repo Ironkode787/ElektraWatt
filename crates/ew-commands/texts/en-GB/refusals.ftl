@@ -5,7 +5,7 @@
 # (`refusal-words-…`). One message per key; `{ $p0 }`, `{ $p1 }`, ... are the arguments, always strings. The source
 # language and the fallback of every other.
 
-# FT-1337 (ID-1359): a command's own refusal by key (`ew_commands::TEXTS`), grouped by command; the CLI prints the English.
+# A command's own refusal by key (`ew_commands::TEXTS`), grouped by command; the CLI prints the English.
 # The records in words (`words.rs`) and the geometry's sentences (`geometry.rs`).
 refusal-words-device-gone = a device that is not in the project
 refusal-words-function-no-device = a function without a device
@@ -123,7 +123,7 @@ refusal-params-no-terminal = name at least one terminal
 refusal-params-no-page = name at least one page
 refusal-params-no-module = name at least one module
 refusal-params-positions-one-based = positions are 1-based
-# An image the asset gate refuses (FT-1504): each `AssetError`, and an unsafe SVG's finding and its advice.
+# An image the asset gate refuses: each `AssetError`, and an unsafe SVG's finding and its advice.
 refusal-asset-unknown-format = not an SVG, PNG or JPEG file
 refusal-asset-too-large = the { $p0 } file has { $p1 } bytes, more than the limit of { $p2 }
 refusal-asset-too-many-nodes = the SVG file has more than { $p0 } elements
@@ -150,7 +150,7 @@ refusal-asset-advice-self-contained = remove linked or embedded images and fonts
 refusal-asset-advice-simplify = simplify the drawing (fewer nested groups, clones, markers and style rules) and export it again as a plain SVG with presentation attributes rather than a style sheet (Inkscape: "Plain SVG"; CorelDRAW: Styling options "Presentation attributes")
 refusal-asset-advice-scale = scale the drawing to a normal page size, keep filter values small, and export it again as a plain SVG
 refusal-asset-advice-flatten = flatten the transforms and remove convolution filters, then export it again as a plain SVG
-# The detail of other crates' errors (FT-1494): serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.
+# The detail of other crates' errors: serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.
 refusal-serde-at = { $p0 } at line { $p1 } column { $p2 }
 refusal-serde-invalid-type = invalid type: { $p0 }, expected { $p1 }
 refusal-serde-invalid-value = invalid value: { $p0 }, expected { $p1 }
@@ -218,7 +218,7 @@ refusal-major-category = the category changes
 refusal-major-template = a template function is added or removed
 refusal-major-macro-variable = macro variable { $p0 } is removed
 refusal-serde-other = { $p0 }
-# A model error a window form can reach (FT-1488): a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
+# A model error a window form can reach: a record still named, a stale step, a duplicate, an invariant by its code; a record by its kind.
 refusal-model-referenced = { $p0 } cannot be removed: { $p1 } still names it
 refusal-model-stale = the project changed while the edit was being prepared; run it again
 refusal-model-duplicate = { $p0 } is in the project twice
@@ -374,7 +374,7 @@ refusal-ip-continue-not-ip = the function is not an interruption point; pick an 
 refusal-ip-continue-external = an external connection point never pairs; it cannot be continued
 refusal-ip-continue-same-page = the target page is the page of the interruption point; continue it on another page
 refusal-ip-continue-no-rep = the interruption point has no representation to continue
-# WP-S2.19 D16: EW's interruption-point forms.
+# EW's interruption-point forms.
 refusal-ip-form-turned = an interruption point's arrow points the way its signal flows: change its direction instead
 refusal-ip-form-direction = a source interruption point is drawn with the outgoing arrow, a target with the incoming arrow
 refusal-ip-form-missing = the project does not hold the { $p0 } arrow of { $p1 }: place one interruption point of that direction first
@@ -875,7 +875,7 @@ refusal-plc-module-part-use = the module's `plc_module.part_use` is { $p0 }, whi
 refusal-plc-start-input = an input
 refusal-plc-start-output = an output
 refusal-plc-start-area = `{ $p0 }` is not { $p1 } start: { $p1 } start is in area { $p2 }, like { $p3 }
-# WP-S1.24: re-addressing and the tag-based profile.
+# re-addressing and the tag-based profile.
 refusal-plc-scope-empty = name the modules to re-address, or their configuration project
 refusal-plc-tag-based = profile { $p0 } renders its addresses from the station and the slot, so none is typed; give auto, excluded or tbd
 refusal-plc-freeze-tag-based = configuration project { $p0 } uses profile { $p1 }, which renders its addresses from the station and the slot, so no address moves and there is none to freeze

@@ -178,7 +178,7 @@ pub struct PasteFragment {
     /// The fragment.
     pub fragment: Fragment,
     /// The library copies (copy IDs) the project holds in another version that the paste uses as the project holds
-    /// them instead of refusing (FT-396's "Use the project's copy"); each must name a copy of
+    /// them instead of refusing ("Use the project's copy"); each must name a copy of
     /// `fragment.copies` that the project holds with another hash, and the change from the pasted version to the held
     /// one must not be major (`classify_update`). Empty by default, and then left out of the parameters.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

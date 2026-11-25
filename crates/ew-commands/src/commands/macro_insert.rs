@@ -3,7 +3,7 @@
 
 //! `macro.insert` (doc 07 §3.5, §4.6): inserts a window or page macro in one transaction,
 //! with its values, its placeholder groups and its closure as parameters, so a command log replays the insertion
-//! exactly on a machine with no library installed (D7).
+//! exactly on a machine with no library installed.
 //!
 //! The macro's variant is a project fragment (`#ew-fragment v1` in its object form, widened for macros by ADR-0011
 //! amendment 5); the insertion itself is `edit.paste`'s engine with three differences: the new IDs are

@@ -7,7 +7,7 @@
 //! digest covers, the project row, library copies and waivers included; not revisions, transmittals or comments)
 //! and the project has a released revision but no open one, it adds the open revision that collects the edit:
 //! `Revision {label: <next label>, state: open}` with no author (there is no user identity at MVP; Revision ▸ Set
-//! author writes it, FT-668). The label is the label format's next label after every label in the format
+//! author writes it). The label is the label format's next label after every label in the format
 //! (`settings.revision_label`, absent meaning `V{major}.{minor}`; withdrawal records repeat a label and are passed
 //! over), so after V1.0 it is V2.0. The ID is `v5(latest released revision, "next")`
 //! ([`ew_ids::v5::revision_next_id`]), the latest being the released revision with the greatest label in the format

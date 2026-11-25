@@ -374,7 +374,7 @@ fn serde_want(want: &str) -> ew_l10n::TextArg {
 
 /// A violation of the value encodings, by key: every [`ew_schema::SchemaError`], its English the
 /// error's own text. A JSON Pointer is an argument of its own key, `refusal-words-pointer`, so the window names the
-/// member in words (FT-1552); its English is the pointer.
+/// member in words; its English is the pointer.
 pub fn schema_error_text(e: &ew_schema::SchemaError) -> Text {
     use ew_schema::SchemaError as E;
     let pointer = |p: &String| text!("refusal-words-pointer", p);

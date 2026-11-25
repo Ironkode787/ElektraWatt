@@ -736,7 +736,7 @@ fn supply_set_edits_one_member() {
     assert_eq!(invalid_path(supply(&mut e, "bogus", json!(1)), c), "/path");
     // A whole member group is no member.
     assert_eq!(invalid_path(supply(&mut e, "origin", json!({})), c), "/path");
-    // The electrical members (ADR-0008 amendment 6, FT-1928), each set alone.
+    // The electrical members (ADR-0008 amendment 6), each set alone.
     for (path, value) in [
         ("phases", json!(3)),
         ("u_nom", json!("400")),
@@ -773,7 +773,7 @@ fn supply_set_edits_one_member() {
     assert_eq!(origin.and_then(|o| o.source), None);
 }
 
-/// A schematic project without a supply (a new one's) takes one with its first member set (FT-1928); a basic project
+/// A schematic project without a supply (a new one's) takes one with its first member set; a basic project
 /// has none to set.
 #[test]
 fn supply_set_makes_a_new_projects_supply_and_is_rejected_on_a_basic_one() {
@@ -857,7 +857,7 @@ fn library_embed_validates_every_copy() {
         invalid_path(e.execute(&embed(vec![bad_sha])), c),
         "/copies/0/sha256"
     );
-    // A form of the project's own embeds (FT-1859, `own_forms.rs`); another project-local item is refused
+    // A form of the project's own embeds (`own_forms.rs`); another project-local item is refused
     // (`cmd_library_embed.rs`).
     invalid_path(e.execute(&embed(vec![json!({"$k": "bogus"})])), c);
     assert_eq!(invalid_path(e.execute(&embed(vec![])), c), "/copies");
@@ -966,7 +966,7 @@ fn library_embed_of_a_named_fndef_undoes_to_the_state_before() {
     let embedded = e.model().clone();
     let restored = e
         .undo(&ew_commands::Origin::Gui)
-        .expect("FT-316: the undo of the embedding is not refused");
+        .expect("the undo of the embedding is not refused");
     assert_eq!(restored.label, "library.embed");
     assert!(!has_fndef(&e, fndef));
     assert!(

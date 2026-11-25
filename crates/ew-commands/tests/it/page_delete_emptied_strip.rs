@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `page.delete` with `delete_devices`: a strip whose terminals all go with the page goes too, rather than staying
-//! behind empty (FT-1865).
+//! behind empty.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 

@@ -325,7 +325,7 @@ fn every_refusal_has_its_pointer() {
         let err = e.preview(&cmd).map(|_| ()).unwrap_err();
         assert_eq!(pointer(err), at, "{cmd:?}");
     }
-    // FT-1766: a project-local copy takes a new CP pattern (the part editor's PLC form); its mechanical data stay
+    // A project-local copy takes a new CP pattern (the part editor's PLC form); its mechanical data stay
     // fixed (above).
     let pins = edit(
         local.id,
@@ -380,7 +380,7 @@ fn technical_data_are_sorted() {
     assert_eq!(keys, ["characteristic", "rated_current"]);
 }
 
-/// PS4's command half (D16): `fields.set` with `copies` embeds the closure in the same transaction (one undo step),
+/// PS4's command half: `fields.set` with `copies` embeds the closure in the same transaction (one undo step),
 /// reuses a held copy of the same hash, and refuses another version at `/copies/<i>`; `fields.set_many` likewise,
 /// and refuses `copies` on an entry.
 #[test]

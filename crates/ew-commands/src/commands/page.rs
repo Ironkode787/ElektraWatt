@@ -1002,7 +1002,7 @@ impl Command for SetPageGrid {
             .into_iter()
             .map(|id| tx.require::<Junction>(id))
             .collect::<Result<_, _>>()?;
-        // The straight wires between pins of two symbols, which the fit keeps in line or gives room (FT-2010).
+        // The straight wires between pins of two symbols, which the fit keeps in line or gives room.
         let mut pins = BTreeMap::new();
         for (n, r) in reps.iter().enumerate() {
             for c in crate::geometry::rep_cps(tx, r) {

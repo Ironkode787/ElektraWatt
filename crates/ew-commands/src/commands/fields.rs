@@ -66,7 +66,7 @@ use ew_l10n::{Text, TextArg};
 /// The project row (kind `project`, its one ID as the target) takes its master data (`master.description`, the project
 /// description that title blocks and bound free texts print, FR-SYM-024; the long description, the document title, the
 /// project reference, the drawing ID, the object ID, the manufacturing year, the created and edited dates) and its
-/// `parties` as a whole, every one a title block prints (FT-1686), and its `control_voltage` (in V) and
+/// `parties` as a whole, every one a title block prints, and its `control_voltage` (in V) and
 /// `rated_consumption` (in A), another unit refused at `/value`; the other project members keep their own commands.
 ///
 /// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment`,
@@ -177,7 +177,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             // The line kind of a fluid line (`kind.fluid.line_kind`), refused on another connection.
             "line_kind",
             // A fluid line's tube part override (`kind.fluid.tube.part`) and manual length (`kind.fluid.length`), the
-            // tube table's cells (WP-S2.13); refused on another connection.
+            // tube table's cells; refused on another connection.
             "tube_part",
             "tube_length",
             "number",
@@ -228,7 +228,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "continuation",
             "empty",
             "manual",
-            // The form its pages print on (FT-1859), one the project holds.
+            // The form its pages print on, one the project holds.
             "form",
             // An embedded block's rectangle: a legend moved or resized on its layout page.
             "embedded.rect",

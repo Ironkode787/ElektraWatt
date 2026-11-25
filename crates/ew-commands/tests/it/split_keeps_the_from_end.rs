@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A device put onto a wire leaves the wire's record on the part that keeps the wire's From end (FR-CON-008, doc 06
-//! §5.3), so the number the page printed for the wire stays where it was printed (FT-1918).
+//! §5.3), so the number the page printed for the wire stays where it was printed.
 
 use crate::common;
 

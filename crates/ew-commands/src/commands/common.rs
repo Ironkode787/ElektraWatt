@@ -117,15 +117,15 @@ pub enum KindName {
     LogicalNet,
     /// `physical_net`.
     PhysicalNet,
-    /// `layout_space` (FT-837): `edit.delete` only.
+    /// `layout_space`: `edit.delete` only.
     LayoutSpace,
-    /// `enclosure` (FT-837): `edit.delete` only.
+    /// `enclosure`: `edit.delete` only.
     Enclosure,
-    /// `mounting_surface` (FT-837): `edit.delete` only.
+    /// `mounting_surface`: `edit.delete` only.
     MountingSurface,
-    /// `carrier` (FT-837): `edit.delete` only.
+    /// `carrier`: `edit.delete` only.
     Carrier,
-    /// `placement` (FT-837): `edit.delete` only.
+    /// `placement`: `edit.delete` only.
     Placement,
 }
 

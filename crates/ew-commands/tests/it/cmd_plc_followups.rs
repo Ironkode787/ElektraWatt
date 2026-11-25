@@ -561,7 +561,7 @@ fn sha_text(v: &Value) -> String {
     format!("sha256:{hex}")
 }
 
-/// N1 after `library.update` (FT-830 keeps the copy's ID): a new version of the module's part with four DO channels
+/// N1 after `library.update` (which keeps the copy's ID): a new version of the module's part with four DO channels
 /// instead of two DI channels creates channels 2 and 3 and turns channels 0 and 1 into outputs, in the same step.
 #[test]
 fn a_library_update_of_the_module_part_re_instantiates_its_channels() {

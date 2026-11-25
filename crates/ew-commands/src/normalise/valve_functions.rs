@@ -19,7 +19,7 @@
 //!   override on that CP. (c) A coil function of the device that is no entry of the valve part's template (the old
 //!   part's, after a part change) is removed; a channel bound to it is unbound with the notice `solenoid <s> of <valve>
 //!   went with the old part; <channel> is unbound`, unless N2 binds the channel again in the same step. (d) A valve
-//!   part whose valve entry names another FnDef **replaces the valve function's definition in place** (WP-S1.25): the
+//!   part whose valve entry names another FnDef **replaces the valve function's definition in place**: the
 //!   function keeps its ID, its representations and its role; every CP is matched by designation to the new FnDef's
 //!   CP, and the connections, closures and medium definitions at a CP follow it to the new index; those at a port the
 //!   new valve lacks are deleted, each listed in a notice; of two old ports with one designation, which become one new

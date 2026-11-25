@@ -27,7 +27,7 @@ use crate::tx::TxBuilder;
 use ew_format::library_copy_hash;
 use ew_l10n::Text;
 
-/// The members of a part that `part.edit_copy` edits (D20); every other member must equal the copy's.
+/// The members of a part that `part.edit_copy` edits; every other member must equal the copy's.
 pub const PART_EDITABLE: [&str; 10] = [
     "manufacturer",
     "part_number",
@@ -42,7 +42,7 @@ pub const PART_EDITABLE: [&str; 10] = [
 ];
 
 /// The members a project-local copy may change besides [`PART_EDITABLE`]: the domain sections, the CP pattern and
-/// the function template, which the part editor's bus and PLC forms make (FT-1766), and the device box. A copy from a
+/// the function template, which the part editor's bus and PLC forms make, and the device box. A copy from a
 /// library keeps its sections; its fork takes the others ([`PART_EDITABLE_FORK`]).
 pub const PART_EDITABLE_LOCAL: [&str; 4] = ["sections", "cp_pattern", "function_template", "box"];
 
@@ -51,7 +51,7 @@ pub const PART_EDITABLE_LOCAL: [&str; 4] = ["sections", "cp_pattern", "function_
 /// for the project as its identity is.
 pub const PART_EDITABLE_FORK: [&str; 3] = ["cp_pattern", "function_template", "box"];
 
-/// The order units a part takes (D21).
+/// The order units a part takes.
 const UNITS: [&str; 3] = ["piece", "m", "set"];
 
 /// `part.edit_copy` (`EditPartCopy`): edits the identity, description, category, unit
@@ -71,7 +71,7 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 /// `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
 /// `type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech_data` may differ
 /// from the copy's, and also `cp_pattern`, `function_template` and `box` (the part's pins and its device box)
-/// and of a project-local copy `sections` (the part editor's bus and PLC forms, FT-1766): the devices that use the
+/// and of a project-local copy `sections` (the part editor's bus and PLC forms): the devices that use the
 /// copy take the new connection points; a bus port a function carries keeps its value, N5. So no edit of a library
 /// copy changes its sections, and no edit changes the contacts or the mechanical data. `copies` carries library documents the edit names that the project lacks (a manufacturer),
 /// embedded as `part.assign` embeds its closure.
@@ -245,7 +245,7 @@ where
     Ok(())
 }
 
-/// Whether the command re-points a part-copy link of the link table (D20): `true` for the kinds [`repoint_kind`] is
+/// Whether the command re-points a part-copy link of the link table: `true` for the kinds [`repoint_kind`] is
 /// called with in `run`. A link from another kind fails `part_copy_links_are_all_repointed` (R7).
 #[cfg(test)]
 fn repointed_link(link: &LinkDecl) -> bool {
@@ -319,7 +319,7 @@ impl Command for EditPartCopy {
             return tx.reject(text!("refusal-part-edit-unchanged"));
         }
         // A pin the correction numbers again keeps what is connected to it, the patterns paired by designation as
-        // `library.update` pairs them (FT-1766: a wire at L+ stayed at the pin that took L+'s number); a pin it takes
+        // `library.update` pairs them (a wire at L+ stayed at the pin that took L+'s number); a pin it takes
         // away while something is connected to it is refused in words.
         let mut remap = std::collections::BTreeMap::new();
         let mut blocked = Vec::new();
@@ -396,13 +396,13 @@ impl Command for EditPartCopy {
                     }
                 }
                 // A placement names the part use it realises by its copy (not a link); it follows the
-                // use to the fork, as a replaced part follows in `part.assign` (D7).
+                // use to the fork, as a replaced part follows in `part.assign`.
                 repoint_kind::<ew_schema::Placement>(tx, "part.copy", self.copy, id)?;
                 id
             }
         };
         // The drawn boxes of its devices take the pins and sockets the part has now, each kept pin under its new
-        // index (FT-1766).
+        // index.
         crate::commands::box_follow::follow_part_boxes(tx, primary, &remap)?;
         Ok(Outcome::primary((Kind::Part, primary.cast())))
     }

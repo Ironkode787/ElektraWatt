@@ -396,7 +396,7 @@ impl Command for CreateReportBlock {
     }
 }
 
-/// The plate a panel page shows: the surface of its first view by ID, as the page draws it (D9).
+/// The plate a panel page shows: the surface of its first view by ID, as the page draws it.
 fn shown_surface(tx: &TxBuilder<'_>, page: Id<Page>) -> Option<Id<ew_schema::MountingSurface>> {
     let mut items: Vec<_> = tx.page_items_on_page(page).into_iter().collect();
     items.sort();
@@ -467,11 +467,11 @@ impl Command for CreateExternalRef {
     }
 }
 
-/// `ip.supply_in` (`MarkSupplyIn`, FT-1699): the interruption points `points` are where the supply comes into the
+/// `ip.supply_in` (`MarkSupplyIn`): the interruption points `points` are where the supply comes into the
 /// drawing set from another one (L1, L2, L3, N, PE from another drawing), or signals from another cabinet: each
 /// becomes an external point of one external reference, the device (or address) `device` at the location node coded
 /// `location`, in one transaction. Either may be left out where it is not known, both for a far end not known (doc 06
-/// §3.5, FT-1876).
+/// §3.5).
 ///
 /// The location node is the first location node of that code, else a new top-level one; the reference is the first of
 /// that location and device (each given or not) without a connection or another project, else a new one. The

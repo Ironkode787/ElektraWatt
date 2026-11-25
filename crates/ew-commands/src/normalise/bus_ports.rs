@@ -11,7 +11,7 @@
 //! **Trigger.** (i) A device of the transaction that is new, or whose bus part names another part copy than in the
 //! base snapshot: placement and `box.black` from a part, `device.create`, `part.assign` in every mode, `fields.set`
 //! on `parts`, a paste or a macro; and a device whose bus part copy the transaction changed so that its ports differ
-//! (`library.update` keeps the copy's ID across versions, FT-830). (ii) A bus-port function that is new in the transaction or whose `device` changed
+//! (`library.update` keeps the copy's ID across versions). (ii) A bus-port function that is new in the transaction or whose `device` changed
 //! in it (`device.place` with `join_device`, `rep.join_device`), on a device with a bus part.
 //!
 //! **Effect.** The part's ports in list order, the first of each (`interface`, `port_label`) pair; a port whose `bus`

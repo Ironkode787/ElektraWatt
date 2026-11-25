@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid 1.0 commands (doc 11 §4.3, WP-S1.25): `fluid.medium.edit`, `fluid.medium.define`, `fluid.tube.set`,
+//! The fluid 1.0 commands (doc 11 §4.3): `fluid.medium.edit`, `fluid.medium.define`, `fluid.tube.set`,
 //! `fluid.length.set`, the `fluid` member of `project.settings.set`, normaliser N-FL-5 (`tube_tags`), `valve.add`'s
-//! refusal of a PLC part (FT-1576) and invariant EW-INV-025 (FI-06).
+//! refusal of a PLC part and invariant EW-INV-025 (FI-06).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -394,7 +394,7 @@ fn the_line_tag_scheme_numbers_new_fluid_lines_per_page() {
     assert_eq!(counter(&e, plain), Some(NumberSpec::Unassigned));
 }
 
-/// FT-1576: `valve.add` refuses a part with a PLC section, which normaliser N0 would attach to a station.
+/// `valve.add` refuses a part with a PLC section, which normaliser N0 would attach to a station.
 #[test]
 fn valve_add_refuses_a_plc_module_part() {
     let mut module_part = part(id(0x7a50), "MODULE-4");
@@ -419,7 +419,7 @@ fn valve_add_refuses_a_plc_module_part() {
     );
 }
 
-/// FT-1576 on the other path that makes a valve: `valve.set_occupancy` refuses a PLC part for a new valve as `valve.add`
+/// On the other path that makes a valve: `valve.set_occupancy` refuses a PLC part for a new valve as `valve.add`
 /// does, and makes nothing.
 #[test]
 fn valve_set_occupancy_refuses_a_plc_module_part() {

@@ -5,7 +5,7 @@
 //!
 //! Trigger: a device of this transaction that carries the `plc_module` aspect and is new, gained the
 //! aspect, or changed its parts or the aspect's `part_use`; and a module whose PLC part copy this transaction changed
-//! (`library.update`, which keeps the copy's ID across versions, FT-830: a new channel count or kind). The module's
+//! (`library.update`, which keeps the copy's ID across versions: a new channel count or kind). The module's
 //! PLC section is the one of the part use `plc_module.part_use`, else of the first part use whose part has a PLC
 //! section: the rule of `ew_derive::module_part`, so N1 instantiates exactly the channels the derivation reads.
 //!
@@ -201,7 +201,7 @@ impl Normaliser for ChannelInstantiation {
                 continue;
             }
             let section = module_section(tx, &dev);
-            // Every spec's channels, numbered on from the spec before (a card of two kinds, FT-1766).
+            // Every spec's channels, numbered on from the spec before (a card of two kinds).
             let count = section.as_ref().map_or(0, PlcSection::channel_count);
             let kind_of = |n: u16| {
                 section

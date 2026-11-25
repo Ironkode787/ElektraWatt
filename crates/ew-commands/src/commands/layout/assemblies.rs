@@ -72,7 +72,7 @@ fn member(tx: &mut TxBuilder<'_>, q: &Q, device: std::sync::Arc<Device>) -> Memb
     mint_member(tx, m)
 }
 
-/// The block of the items of `members` laid at their minimum gaps (D6): each member's offset from the block's left
+/// The block of the items of `members` laid at their minimum gaps: each member's offset from the block's left
 /// edge, and the item the block resolves as: the block's width, its pads the first member's before and the last
 /// member's after (a strip's bracket width counts as its pad), not a strip, no placement. One member is its own item.
 fn block_of<'a>(members: impl Iterator<Item = &'a RailItem>) -> (Vec<i128>, RailItem) {
@@ -774,7 +774,7 @@ fn fill_refusal(
     })
 }
 
-/// Sorts `layout.auto_fill`'s candidates in `order` (D6).
+/// Sorts `layout.auto_fill`'s candidates in `order`.
 fn sort_candidates(tx: &TxBuilder<'_>, q: &Q, order: FillOrder, candidates: &mut [Candidate]) {
     match order {
         FillOrder::Dt => candidates.sort_by_cached_key(|(_, d)| (natural_key(&full_tag(q, d.id)), d.id)),
@@ -798,7 +798,7 @@ fn sort_candidates(tx: &TxBuilder<'_>, q: &Q, order: FillOrder, candidates: &mut
 }
 
 /// `layout.auto_fill`'s units in candidate order: a device alone, or the candidates of one assembly as one block at
-/// the place of the first of them, in [`member_order`] (D6).
+/// the place of the first of them, in [`member_order`].
 fn fill_units(tx: &TxBuilder<'_>, q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<Candidate>> {
     let mut units: Vec<(Option<Id<Device>>, Vec<Candidate>)> = Vec::new();
     let mut unit_of_root: BTreeMap<Id<Device>, usize> = BTreeMap::new();

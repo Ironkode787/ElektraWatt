@@ -8,7 +8,7 @@
 //! the origin `import`. On the fork it embeds the batch's library documents, checked as `library.embed` checks a copy, puts the
 //! records, writes the lineage (`last_source_sha256`, `last_run`) and the [`ImportRun`] with its findings and the
 //! `source` hash of every imported record; the normalisers run, and then the `ew` hash of every record they changed is
-//! added (D11). The prevent hook does not judge the transaction, so a prevent rule's violation stays in the model for
+//! added. The prevent hook does not judge the transaction, so a prevent rule's violation stays in the model for
 //! the lenient findings (doc 14 §3.3); the structural invariants hold, and a normaliser that removes an imported
 //! record refuses the import. Into an empty project it is a non-undoable checkpoint (ADR-0021 decision 3); into a
 //! lineage of an existing project one undoable step.
@@ -53,7 +53,7 @@ impl ApplyImport {
 // -------------------------------------------------------------------------------------------------------------------
 // Re-import
 
-/// The class of one record of a re-import (D12), in the order the card lists them.
+/// The class of one record of a re-import, in the order the card lists them.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum ReimportClass {
     /// Not in the base: applied.
@@ -95,7 +95,7 @@ pub struct ReimportRow {
     pub members: Vec<MemberChange>,
 }
 
-/// What a re-import of a batch into its lineage does (D12): every record of the batch and of the base classed, the
+/// What a re-import of a batch into its lineage does: every record of the batch and of the base classed, the
 /// records to apply, the base hashes of the records kept and the run entries of the conflicts and removals.
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct ReimportPlan {
@@ -210,8 +210,8 @@ fn reimport_entry(code: &str, row: &ReimportRow, file: &str) -> ew_schema::RunEn
     }
 }
 
-/// The re-import of `records` (a batch imported into a lineage of `model`) against `base`, the lineage's last run
-/// (D11, D12). Per record, with "current" the hash of the record in `model` now and the base's `ew` hash (else its
+/// The re-import of `records` (a batch imported into a lineage of `model`) against `base`, the lineage's last run.
+/// Per record, with "current" the hash of the record in `model` now and the base's `ew` hash (else its
 /// `source` hash) the record as committed:
 /// - **unchanged**: the source hash is the base's and current is the committed one;
 /// - **changed in the source**: the source hash differs, current is the committed one: applied;
@@ -274,7 +274,7 @@ pub fn plan_reimport(
             ReimportClass::Added | ReimportClass::SourceChanged => plan.apply.push(record.clone()),
             ReimportClass::Conflict => {
                 // The base's committed hash stays the base of the next re-import, so this project's version stays
-                // "changed here" (D11): the new source becomes the source hash.
+                // "changed here": the new source becomes the source hash.
                 let committed =
                     based.map_or_else(|| source.clone(), |b| b.ew.clone().unwrap_or(b.source.clone()));
                 plan.carried.insert(
@@ -436,7 +436,7 @@ impl DynCommand for ApplyImport {
                 LibDocument::Unknown(_) => {}
             }
         }
-        // The source of an underlay the batch places is no image: it takes no image gate (WP-S3.19).
+        // The source of an underlay the batch places is no image: it takes no image gate.
         let underlays: std::collections::BTreeSet<ew_schema::Sha256> = self
             .records
             .iter()

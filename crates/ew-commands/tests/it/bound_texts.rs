@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Texts bound to a symbol (FT-1875; doc 06 §3.8): `item.place` of a free text with `of` and a symbol's name; refused
+//! Texts bound to a symbol (doc 06 §3.8): `item.place` of a free text with `of` and a symbol's name; refused
 //! in words where the name and the symbol do not fit; such a text moves with its symbol whichever command moves it,
 //! once when the command moves it too, and goes with the symbol when that is deleted.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.

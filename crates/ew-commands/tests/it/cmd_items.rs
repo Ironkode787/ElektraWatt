@@ -1291,7 +1291,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
     })
     .unwrap();
     assert_eq!(drawing(&e), None, "an object left empty is removed");
-    // FT-1692: the wire numbers on, then removed with `null`.
+    // The wire numbers on, then removed with `null`.
     let numbers = |on: Option<bool>| SetDrawing {
         crossings: None,
         marker_mode: None,
@@ -1303,7 +1303,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
     assert_eq!(drawing(&e), Some(json!({"wire_numbers": true})));
     e.execute(&numbers(None)).unwrap();
     assert_eq!(drawing(&e), None);
-    // FT-1725: the PLC address at terminals on.
+    // The PLC address at terminals on.
     e.execute(&SetDrawing {
         crossings: None,
         marker_mode: None,

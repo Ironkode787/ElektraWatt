@@ -15,7 +15,7 @@
 //! new `LogicalNet` of their bus system is made, named for the bus system (`PROFIBUS DP`, then `PROFIBUS DP 2` …),
 //! with the CP of the segment's one `master` or `controller` port as its master, and all take it. Ports in different
 //! nets are left as they are (EW-BUS-010 reports them). The physical net goes the same way over every port of the
-//! segment, a plug's too (FT-1922: a drawn line made the logical net only, so its segments, EW-BUS-004 and the bus
+//! segment, a plug's too (a drawn line made the logical net only, so its segments, EW-BUS-004 and the bus
 //! overview saw nothing): the one the ports name, else a new `PhysicalNet` of copper named as a new logical net is,
 //! which every port without one takes. N6 never changes a net a port names, so it is idempotent: after a run the
 //! segment's ports name their nets and a second run changes nothing.

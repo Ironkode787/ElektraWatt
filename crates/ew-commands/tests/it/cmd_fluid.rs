@@ -246,7 +246,7 @@ fn walks_a_ring_of_three_junctions_to_its_end() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// valve.set_occupancy (D9)
+// valve.set_occupancy
 
 const MODULE: Id<Device> = id(0x7500);
 const PART_MODULE: Id<Part> = id(0x7501);
@@ -428,7 +428,7 @@ fn a_plate_given_another_part_takes_that_parts_template_functions() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// fluid.port.close (D10)
+// fluid.port.close
 
 fn close(f: Id<Function>, idx: u16, kind: Option<ClosureKindParam>) -> ClosePort {
     ClosePort {
@@ -485,7 +485,7 @@ fn refusal_of(e: &mut Engine, cmd: &dyn ew_commands::DynCommand) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// N-FL-4 drives_link (D15) and device.link (T4)
+// N-FL-4 drives_link and device.link (T4)
 
 const VALVE_DEF: Id<FnDef> = id(0x7600);
 const CYL_DEF: Id<FnDef> = id(0x7601);
@@ -641,7 +641,7 @@ fn a_valve_cannot_drive_its_terminal() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// fields.set line_kind (D18)
+// fields.set line_kind
 
 fn set_line_kind(c: Id<Connection>, kind: &str) -> SetFields {
     SetFields {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The layout assembly commands at the command layer, on a fixture: `layout.place_assembly` and
-//! `layout.auto_fill`, `layout.enclosure.create_from_part` and `layout.move {part}`, the FT-840 edits and
+//! `layout.auto_fill`, `layout.enclosure.create_from_part` and `layout.move {part}`, the layout edits and
 //! `edit.delete` on the layout kinds. Every refusal is asserted whole; each command is one undo step. The
 //! numbers on a whole project are `ew-api`'s `tests/it/layout_assembly.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -530,7 +530,7 @@ fn auto_fill_next_fits_and_reports() {
     assert_eq!(clip10(&f.e, k(4)), 450);
 }
 
-/// AS-3 (fixture): a part's clearance pads space the fill (D3): 18 mm + 5 mm pads.
+/// AS-3 (fixture): a part's clearance pads space the fill: 18 mm + 5 mm pads.
 #[test]
 fn the_pads_space_the_fill() {
     let mut f = fx();
@@ -718,7 +718,7 @@ fn from_part(copies: Vec<Value>) -> CreateEnclosureFromPart {
 }
 
 /// AS-5: from the enclosure part and its plate passed as copies: one space, the enclosure device UC1 (the scheme's
-/// tag, not frozen, FT-1899) with its part, the plate its child U1, one enclosure and one plate surface (frame (50, 50, 0) mm, usable
+/// tag, not frozen) with its part, the plate its child U1, one enclosure and one plate surface (frame (50, 50, 0) mm, usable
 /// (0, 0)–(650, 900) mm, its device the child); one undo removes all and the embedded copies; a second call refused.
 #[test]
 fn an_enclosure_from_its_part() {
@@ -855,7 +855,7 @@ fn create_from_part_refusals_and_reuse() {
     assert_eq!(get(&e, enclosure).unwrap().space, space);
 }
 
-/// AS-6: each FT-840 edit changes its one member (whole records compared); a turned enclosure pose refused; missing
+/// AS-6: each such edit changes its one member (whole records compared); a turned enclosure pose refused; missing
 /// records at their pointers.
 #[test]
 fn the_edits_change_one_member() {

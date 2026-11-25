@@ -317,7 +317,7 @@ fn a_port_function_joining_a_cpu_gets_its_uncarried_port() {
     assert_eq!(port(&e, first), Some(dp_master()), "unchanged");
 }
 
-/// The `rep.join_device` clause of the bus-port join (FT-841): a DP-port function (no contact) joins a CPU that has
+/// The `rep.join_device` clause of the bus-port join: a DP-port function (no contact) joins a CPU that has
 /// no unplaced slot of its FnDef when the CPU's bus part has a port no function carries; N5 then gives it the port.
 #[test]
 fn rep_join_device_takes_a_port_function_onto_a_cpu_with_a_free_port() {
@@ -326,7 +326,7 @@ fn rep_join_device_takes_a_port_function_onto_a_cpu_with_a_free_port() {
         rep: REP_LOOSE,
         device: DEV_CPU,
     })
-    .expect("FT-841: a bus-port function joins a device with a free bus port");
+    .expect("a bus-port function joins a device with a free bus port");
     assert_eq!(port(&e, FN_LOOSE), Some(dp_master()));
 }
 

@@ -16,7 +16,7 @@ use crate::meta::CommandMeta;
 use crate::tx::TxBuilder;
 
 /// The member paths of the supply that `project.supply.set` edits (the `SupplySpec` JSON form): its electrical
-/// members and its origin (ADR-0008 amendment 6, FT-1928).
+/// members and its origin (ADR-0008 amendment 6).
 pub const SETTABLE_SUPPLY: &[&str] = &[
     "phases",
     "neutral",

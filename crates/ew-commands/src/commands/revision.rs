@@ -444,7 +444,7 @@ pub struct ApprovedPack {
 
 /// `revision.approve` (`ApproveRevision`): the checker's sign-off on the open revision (doc 15 §5.4; FR-REV-005,
 /// FR-REV-021): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs,
-/// scheme, waivers_ack}`, the one path that writes the checker of an open revision (D4). A later content edit
+/// scheme, waivers_ack}`, the one path that writes the checker of an open revision. A later content edit
 /// changes the content digest, and EW-REL-001 then reports the sign-off as stale; approving again replaces it.
 ///
 /// The session submits it after the release gate on the saved generation (`ew_api::Session::approve`): the gate's

@@ -61,7 +61,7 @@ fn macro_body() -> Value {
     })
 }
 
-/// `sha256:<hex>` of the compact JSON of `item` in Rust member order (D2), computed here without
+/// `sha256:<hex>` of the compact JSON of `item` in Rust member order, computed here without
 /// `ew-commands` or `ew-format`.
 fn sha_of<T: serde::Serialize>(item: &T) -> String {
     use sha2::Digest;

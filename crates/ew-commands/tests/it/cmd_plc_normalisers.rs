@@ -581,7 +581,7 @@ fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
     );
 }
 
-/// D6 (d), as built at 1.0 (WP-S1.25): a new valve part whose valve entry names another valve FnDef replaces the valve
+/// D6 (d), as built at 1.0: a new valve part whose valve entry names another valve FnDef replaces the valve
 /// function's definition in place, with a notice; the preview shows the notice and commits nothing.
 #[test]
 fn n_fl_1_replaces_the_valve_function_of_another_valve_type_in_place() {

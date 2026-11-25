@@ -287,7 +287,7 @@ fn external_of(e: &ew_commands::Engine, f: Id<Function>) -> Option<Id<ExternalRe
     }
 }
 
-/// FT-1699: two points marked as where the supply comes in become external points of one new reference at a new
+/// Two points marked as where the supply comes in become external points of one new reference at a new
 /// location node, in one undo step; a second mark of the same place reuses both; the mark comes off again; a
 /// target that is no interruption point is refused.
 #[test]

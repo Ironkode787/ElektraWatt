@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal.face_card` (`FaceCard`, docs/design/06a-drafting.md §4.8, doc 10 §3.6, FT-2083): the wire to a PLC card on
+//! `terminal.face_card` (`FaceCard`, docs/design/06a-drafting.md §4.8, doc 10 §3.6): the wire to a PLC card on
 //! the terminal's pin that faces the card.
 
 use std::collections::BTreeSet;

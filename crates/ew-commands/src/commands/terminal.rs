@@ -339,7 +339,7 @@ fn designation_of(tx: &TxBuilder<'_>, t: Id<Device>) -> String {
         .unwrap_or_else(|| "?".to_owned())
 }
 
-/// `terminal.insert`: new terminals of a strip at a position, the following terminals moved up (D4).
+/// `terminal.insert`: new terminals of a strip at a position, the following terminals moved up.
 ///
 /// Let s be the `seq` of `before` (absent: one more than the strip's highest `seq`, or 1 for an empty strip) and n
 /// the number of terminals. In one transaction every terminal of the strip with `seq ≥ s` gets `seq + n` (its tag
@@ -714,7 +714,7 @@ pub struct ConductorSpec {
     /// Twisted pair number.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pair: Option<u8>,
-    /// The drawn connections that become this core, in the same transaction (the Cable form, FT-1685): each a
+    /// The drawn connections that become this core, in the same transaction (the Cable form): each a
     /// wire, or a core of any cable, which then leaves its core.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<UuidS>")]

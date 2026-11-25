@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `rep.join_device` for a terminal (doc 08 §6.3, FT-1878): a terminal joins another terminal of its strip as that
+//! `rep.join_device` for a terminal (doc 08 §6.3): a terminal joins another terminal of its strip as that
 //! one's next level, so that a block of two levels with a number on each is one terminal with one part.
 
 use std::collections::BTreeSet;

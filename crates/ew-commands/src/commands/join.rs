@@ -23,7 +23,7 @@ use crate::tx::TxBuilder;
 use ew_l10n::Text;
 
 /// Whether the first part use of `device` whose part has bus ports has one that no function of the device carries (by
-/// interface and port label), as normaliser N5 pairs them (FT-841).
+/// interface and port label), as normaliser N5 pairs them.
 fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
     let Some(ports) = device.parts.iter().find_map(|u| {
         tx.get::<LibCopy<Part>>(u.part.copy)
@@ -46,7 +46,7 @@ fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
     })
 }
 
-/// Whether a device takes a function of FnDef `def` as a further function of its own whatever its family (FT-1860): the
+/// Whether a device takes a function of FnDef `def` as a further function of its own whatever its family: the
 /// device drawn with a second symbol, such as a supply drawn once for its input and once for its outputs, or an element
 /// brought in from another program drawn for a device that has a part. A contact joins by D2's family rule instead and a
 /// bus port by its free port; a terminal (it goes into a strip), an interruption point and a graphic join no device.
@@ -76,7 +76,7 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// - **Else a new auxiliary function.** The representation's function moves to `device` as an auxiliary function
 ///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay. A contact needs a
 ///   device whose family takes auxiliary functions (D2, below); a function of another kind that a device takes as its
-///   own whatever its family ([`joins_any_device`]) joins any device but a terminal or a strip (FT-1860).
+///   own whatever its family ([`joins_any_device`]) joins any device but a terminal or a strip.
 ///
 /// The source device has no other representation and its other functions (of its part) are neither drawn nor wired
 /// (D3, widened so that a coil placed from a valve part joins another valve); it is removed in the same
@@ -92,7 +92,7 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// is a contact (NO, NC, change-over) and the device's family takes no auxiliary functions (its main function is no
 /// coil and none of its parts' templates names the FnDef; terminals and strips never do), or the FnDef joins no device
 /// ([`joins_any_device`]: a terminal, an interruption point, a graphic), or the device is a terminal or a strip, unless the FnDef is a bus
-/// port and the device's bus part has a port that no function of the device carries yet (FT-841: normaliser N5 then
+/// port and the device's bus part has a port that no function of the device carries yet (normaliser N5 then
 /// gives the joined function that port); a connected CP the function
 /// would no longer have on `device` (`/device`; its part's template draws other CPs). Interactive. Outcome: the
 /// representation.
@@ -416,8 +416,8 @@ impl JoinDevice {
     }
 
     /// D2, where the target has no slot of the FnDef: a contact joins a device whose family takes auxiliary functions,
-    /// a bus port a device whose bus part has a free port (FT-841), and a function of another kind any device but a
-    /// terminal or a strip (FT-1860).
+    /// a bus port a device whose bus part has a free port, and a function of another kind any device but a
+    /// terminal or a strip.
     fn check_takes_fndef(&self, tx: &TxBuilder<'_>, f: &Function, target: &Device) -> Result<(), CmdError> {
         // D2: a contact joins a device whose family takes auxiliary functions.
         let contact = tx.get::<LibCopy<FnDef>>(f.def).is_some_and(|d| {
@@ -438,13 +438,13 @@ impl JoinDevice {
             tx.get::<LibCopy<Part>>(u.part.copy)
                 .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == f.def))
         });
-        // FT-841: a bus-port FnDef joins a device whose bus part has a port no function carries yet
+        // A bus-port FnDef joins a device whose bus part has a port no function carries yet
         let bus_port = tx
             .get::<LibCopy<FnDef>>(f.def)
             .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort);
         let free_port = bus_port && has_free_bus_port(tx, target);
         let auxiliary = contact && !terminal_or_strip(target) && (coil || templated);
-        // FT-1860: a function of another kind is the device drawn once more, on any device but a terminal or a strip.
+        // A function of another kind is the device drawn once more, on any device but a terminal or a strip.
         let any = tx
             .get::<LibCopy<FnDef>>(f.def)
             .is_some_and(|d| joins_any_device(&d.item));

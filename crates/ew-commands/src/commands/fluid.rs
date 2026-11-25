@@ -95,7 +95,7 @@ pub enum OccupancyParam {
 /// - *empty:* the child at the position is removed as above.
 ///
 /// Refused: a device without valve positions; a position outside them; a new valve of a part with a PLC section (a
-/// station or module part, as `valve.add` refuses it; FT-1576). Interactive, one undo step. Outcome: the
+/// station or module part, as `valve.add` refuses it). Interactive, one undo step. Outcome: the
 /// child at the position, else the module.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

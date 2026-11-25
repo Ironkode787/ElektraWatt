@@ -861,7 +861,7 @@ impl Command for DrawValves {
 /// requested one, else the lowest free position of the module (1, 2, …). The module, the part copy and the FnDef
 /// copy must exist. Rejected: position 0 (at `/position`); a requested position another child of the module holds
 /// (no push insert in v0); a part with a PLC section (a station or module part, which normaliser N0 would attach to a
-/// station instead; FT-1576). The slot-count bound of the module's part is EW-FL-013's prevent rule. The
+/// station instead). The slot-count bound of the module's part is EW-FL-013's prevent rule. The
 /// coil-to-channel binding follows from the module part's solenoid-position
 /// map through normaliser N2 (`solenoid_binding`) when the module has channels; `plc.bind_channel` binds
 /// otherwise. The state (spare valves) and the function text are set with `fields.set`.
@@ -890,7 +890,7 @@ pub struct AddValve {
     pub structure: StructureAssignment,
 }
 
-/// Refuses a PLC station or module part as a valve: normaliser N0 would attach it to a station (FT-1576).
+/// Refuses a PLC station or module part as a valve: normaliser N0 would attach it to a station.
 pub(crate) fn refuse_plc_part(tx: &TxBuilder<'_>, part: &LibCopy<ew_schema::Part>) -> Result<(), CmdError> {
     if part.item.sections.plc.is_some() {
         return tx.reject(text!(

@@ -893,7 +893,7 @@ impl Insertion<'_> {
                     }
                     // Effect 6: the copies are numbered by the target's normalisers. A child tag counts under its
                     // parent, which online numbering does not number: a child whose parent comes along keeps its
-                    // counter under the new parent, as `macro.insert` keeps it (FT-743).
+                    // counter under the new parent, as `macro.insert` keeps it.
                     let parent_pasted = d.tag.scheme == TagScheme::Child
                         && d.parent.is_some_and(|p| pasted_devices.contains(&p.as_uuid()));
                     if !self.keep_counter.contains(&old) && !parent_pasted {

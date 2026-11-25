@@ -9,10 +9,10 @@
 //! snapshot, or the device is new. So placing a part, creating a device with parts, `part.assign`, `fields.set` on
 //! `parts`, a paste or a macro all reach it through the registry; a device whose aspect a person removed keeps no
 //! aspect until its PLC part changes, and an edit of an unrelated member never adds one. A part copy that the
-//! transaction changes (`library.update`, which keeps the copy's ID across versions, FT-830) triggers every device that
+//! transaction changes (`library.update`, which keeps the copy's ID across versions) triggers every device that
 //! uses it when the copy had no PLC section in the base snapshot.
 //!
-//! **Effect** (D2). From the section's role:
+//! **Effect**. From the section's role:
 //! - `module`: `plc_module {slot: positional, start: auto}` without `part_use` (absent names the first part use
 //!   with a PLC section, which is the one N0 read). Then D4, for a device without a station ancestor: with exactly
 //!   one station in the project, the device becomes that station's last child (`parent` = the station, `position`
@@ -25,14 +25,14 @@
 //!   `plc_module {integrated: true}` on the same device. The role is `valve_terminal` when the section maps solenoids
 //!   to valve positions (`positions`: the part carries valves); else `head_station` when the device's parts declare
 //!   bus ports and none of them is a `master` or a `controller` port (a remote I/O head); else `cpu`. The
-//!   configuration project (D3): with none in the project, one is created in the same transaction, named `PLC<n>`
+//!   configuration project: with none in the project, one is created in the same transaction, named `PLC<n>`
 //!   (the lowest free n), pinned to the shipped TIA international profile, `cpu` the station when it is a CPU, ID
 //!   `v5(station, "plc_config_project")`; with one, the station joins it (a CPU becomes its `cpu` when it has none);
 //!   with several, the first by (name, ID). Joining gives a notice that names the configuration project. D4 never
 //!   attaches a card to a valve terminal.
 //! - a role of a newer format: nothing.
 //!
-//! **A station's arrival** (FT-823). When this run gives a device `plc_station` and the project then holds exactly one
+//! **A station's arrival**. When this run gives a device `plc_station` and the project then holds exactly one
 //! station, every module without a station ancestor (a card drawn before the CPU: N0 gave it `plc_module` with the
 //! notice "no PLC station: place a CPU first") becomes that station's child by D4, in the order of the modules' main
 //! representations' anchor cells, in the same transaction as the station. An integrated module is the station itself
@@ -115,7 +115,7 @@ fn triggered(tx: &TxBuilder<'_>, dev: &Device) -> Option<PlcSection> {
 }
 
 /// The devices that use a part copy this transaction changed, in ID order: `library.update` replaces a copy's content
-/// under its ID (FT-830), so N0 and N5 look at its devices as if their parts had changed.
+/// under its ID, so N0 and N5 look at its devices as if their parts had changed.
 pub(crate) fn devices_of_changed_parts(tx: &TxBuilder<'_>) -> Vec<Id<Device>> {
     let changed: std::collections::BTreeSet<Id<Part>> = tx
         .changed_of(Kind::Part)
@@ -183,7 +183,7 @@ fn takes_cards(d: &Device) -> bool {
         .is_some_and(|s| s.role != StationRole::ValveTerminal)
 }
 
-/// The configuration project a new station joins (D3), creating `PLC<n>` when the project has none. A CPU is the
+/// The configuration project a new station joins, creating `PLC<n>` when the project has none. A CPU is the
 /// project's CPU when it creates it or joins one without; a valve terminal never is.
 fn config_project_for(
     tx: &mut TxBuilder<'_>,
@@ -329,7 +329,7 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
     Ok(true)
 }
 
-/// FT-823: after a station arrived, the modules that waited for one (no station ancestor, not integrated) attach to
+/// After a station arrived, the modules that waited for one (no station ancestor, not integrated) attach to
 /// the project's only station by D4, in the order of their main representations' anchor cells (ties by ID). With
 /// several stations nothing happens here: EW-PLC-008 asks the user to attach them.
 fn attach_waiting_modules(tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {

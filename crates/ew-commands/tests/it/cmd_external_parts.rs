@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! External points whose far end is known in part or not at all (FT-1876, doc 06 §3.5): `ip.supply_in` and
+//! External points whose far end is known in part or not at all (doc 06 §3.5): `ip.supply_in` and
 //! `external_ref.create` take a device or an address alone, a location alone, or nothing.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -58,7 +58,7 @@ fn ip_supply_in_takes_an_address_alone_or_a_far_end_not_known() {
     );
 }
 
-/// A location written with its sign (`+UP`) is the node `UP`, the one a mark without the sign finds (FT-1901); the
+/// A location written with its sign (`+UP`) is the node `UP`, the one a mark without the sign finds; the
 /// sign alone is refused.
 #[test]
 fn ip_supply_in_takes_a_location_with_or_without_its_sign() {

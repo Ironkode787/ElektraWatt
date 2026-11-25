@@ -468,7 +468,7 @@ fn hint_wire(
         crate::geometry::require_route(tx, page, &a, &to, route, &format!("/connect/{i}/route"))?;
         route.to_vec()
     };
-    // A fluid port joined to a fluid port is a working fluid line (FT-1733, doc 06 §2.2), any other hint a wire.
+    // A fluid port joined to a fluid port is a working fluid line (doc 06 §2.2), any other hint a wire.
     let fluid = |e: &Endpoint| {
         matches!(e, Endpoint::Cp(f, idx)
             if matches!(crate::commands::connection::cp_fluid_class(tx, *f, *idx), ew_model::FluidPortClass::Fluid(_)))
@@ -1102,7 +1102,7 @@ impl Command for MoveReps {
     }
 }
 
-/// `rep.move_to_new_page` (FT-2134): a new page and the representations moved onto it, in one undo step. The page
+/// `rep.move_to_new_page`: a new page and the representations moved onto it, in one undo step. The page
 /// comes after the page of the first representation, in its section, its folio `number`, else proposed as `page.create`
 /// proposes one after a page (a folio in use or outside the section is refused as `page.create` refuses it), with that
 /// page's type, frame form, structure and grid, titled `title`; the representations then move

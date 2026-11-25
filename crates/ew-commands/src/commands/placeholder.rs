@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `part.placeholder` (`AssignPlaceholder`, doc 07 §3.3, FT-1878): a part that belongs to a device and whose type is
+//! `part.placeholder` (`AssignPlaceholder`, doc 07 §3.3): a part that belongs to a device and whose type is
 //! not known yet.
 
 use ew_ids::Id;

@@ -208,7 +208,7 @@ fn turns(tx: &TxBuilder<'_>, c: &RepCp, page: Id<Page>, ax: usize) -> bool {
         })
 }
 
-/// What the grid fit keeps room for beside the gaps between the items it moves ([`fit`], doc 06 §8 item 3, FT-2010).
+/// What the grid fit keeps room for beside the gaps between the items it moves ([`fit`], doc 06 §8 item 3).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub(crate) struct FitRoom {
     /// The drawing area as the router reads it, its least and greatest corners: an item with pins on a side that faces
@@ -279,7 +279,7 @@ const FIT_SLACK: i128 = 2;
 /// face each other along x when their boxes share some height, along y when they share some width after the x pass;
 /// items whose boxes overlapped along the axis keep no rule between them. So no two items that stood apart end on one
 /// another, things that face each other keep their order, and two pins more than a step apart keep a grid line between
-/// them for a wire; what is given up is the exact nearest point of an item pushed on. With `room` (FT-2010) an item
+/// them for a wire; what is given up is the exact nearest point of an item pushed on. With `room` an item
 /// with pins facing an edge of the drawing area whose wires turn along it, which stood a step or more from it, keeps a
 /// grid line for each between, a step apart and a step from the edge and from the item (pushed on from the near edge,
 /// taken back from the far one as far as its gaps allow); an item wired straight to
@@ -375,7 +375,7 @@ fn fit_axis(
             .max();
         let mut raise = |v: i128| need = Some(need.map_or(v, |n| n.max(v)));
         // Pins facing the near edge keep a grid line each, a step from the edge and from one another, and a step from
-        // the item (FT-2010).
+        // the item.
         if let Some((e0, _)) = edges
             && item.faces[ax][0] > 0
             && lo - e0 >= step
@@ -441,7 +441,7 @@ fn fit_axis(
     Ok(shift)
 }
 
-/// The grid index each member of a row goes to in [`fit_axis`] (doc 06 §8 item 3, FT-1935); `None` for an item of no
+/// The grid index each member of a row goes to in [`fit_axis`] (doc 06 §8 item 3); `None` for an item of no
 /// row. A row is three or more items of one extent `across` whose points stood at one pitch of a `step` or more along
 /// the axis: its first goes to its nearest grid point, the others follow at one pitch of whole steps, the old pitch's
 /// nearest that keeps the gap between every two of them by `keep`.
@@ -1101,7 +1101,7 @@ pub fn route_defect(route: &[Pt2]) -> Option<RouteDefect> {
 mod tests {
     use super::*;
 
-    /// FT-1935: twelve narrow symbols in a row two QET steps apart (5.29 mm, less than a 4 mm step between their
+    /// twelve narrow symbols in a row two QET steps apart (5.29 mm, less than a 4 mm step between their
     /// bodies) went each to its own nearest 4 mm point and were pushed on by turns; as a row they keep one pitch.
     #[test]
     fn a_row_that_had_one_pitch_keeps_one() {
@@ -1138,7 +1138,7 @@ mod tests {
     const STEP: i64 = 4_000_000;
     const SLACK: i64 = 2;
 
-    /// FT-2010: a card whose two supply pins face the drawing area's left edge 1.98 steps from it, their wires turning
+    /// A card whose two supply pins face the drawing area's left edge 1.98 steps from it, their wires turning
     /// along it, keeps two grid lines between, a step from the edge, from each other and from the card, a way out for
     /// each wire; a box whose pin faces the right edge as far keeps one. The card went to its nearest grid point 2.3
     /// steps from the edge, the box towards the edge.
@@ -1173,7 +1173,7 @@ mod tests {
         assert!(hi + STEP <= last + SLACK, "the box's right edge at {hi} nm");
     }
 
-    /// FT-2010: two terminals wired straight down from a contactor's first two pins (5.29 mm apart, so on the 4 mm
+    /// Two terminals wired straight down from a contactor's first two pins (5.29 mm apart, so on the 4 mm
     /// grid only its first stands on a grid line); the first terminal stays in line with the first pin, and the second,
     /// which cannot, keeps a step of room beside its line from the first, whose corner stood a quarter step beside it.
     /// And a symbol pushed on by its neighbour takes the one wired straight under it along.
