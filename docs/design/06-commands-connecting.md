@@ -211,8 +211,8 @@ installed library's symbol by its key as well as by its address, before its firs
   the middle of its body (its graphics' bounding box, a black box's outline), not about its insertion point, so a
   turned cylinder does not land on its neighbour. Four quarter turns bring it back exactly; its wires and tubes
   follow its connection points.
-- **Cross-page move** (Move to page… for a selection: the canvas menu of selected symbols and Edit ▸ Move to page…,
-  the other schematic pages and To a new page; a PLC card's Move to page; `rep.move` with a target page) keeps
+- **Cross-page move** (Edit ▸ Move to page for the selected symbols, a list of the other schematic pages and To a
+  new page; a PLC card's Move to page; `rep.move` with a target page) keeps
   identities and, because it is a move, connectivity (FR-CON-004): each wire whose other end stays behind is
   kept as a **pair of interruption points**, and the window lists the pairs in a preview before anything changes
   (FR-CON-043); Apply moves, one undo step. `rep.move` makes the pairs with `keep` (the two forms of the
