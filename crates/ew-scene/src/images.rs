@@ -47,9 +47,8 @@ pub enum SvgError {
 impl std::fmt::Display for SvgError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SvgError::Hazard(h) => {
-                write!(f, "the SVG is refused: {}; {}", h.describe(), h.advice())
-            }
+            // The words and the advice are the commands' (`asset_error_text`); a log names the hazard.
+            SvgError::Hazard(h) => write!(f, "the SVG is refused ({h:?})"),
             SvgError::Parse(e) => write!(f, "the SVG cannot be parsed: {e}"),
         }
     }
@@ -492,19 +491,6 @@ mod tests {
             Err(SvgError::Hazard(_) | SvgError::Parse(_))
         ));
         assert!(matches!(svg_items(b"<html/>", r), Err(SvgError::Parse(_))));
-    }
-
-    #[test]
-    fn a_refused_svg_says_how_to_export_again() {
-        for h in [
-            ew_schema::SvgHazard::ForeignObject,
-            ew_schema::SvgHazard::TooComplex,
-        ] {
-            assert_eq!(
-                SvgError::Hazard(h).to_string(),
-                format!("the SVG is refused: {}; {}", h.describe(), h.advice())
-            );
-        }
     }
 
     #[test]

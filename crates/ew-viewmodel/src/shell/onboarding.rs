@@ -462,8 +462,8 @@ impl ShellModel {
                 self.wizard_prepare_preview();
                 Outcome::Done
             }
-            Err(key) => {
-                let message = strings::text(key).to_owned();
+            Err(why) => {
+                let message = why.words();
                 w.error = Some(message.clone());
                 Outcome::Failed { message }
             }

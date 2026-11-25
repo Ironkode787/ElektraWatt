@@ -497,8 +497,8 @@ pub fn path_error_text(e: &ew_derive::layout::PathError) -> Text {
     }
 }
 
-/// An image the asset gate refuses, by key: every [`ew_schema::AssetError`], its English the
-/// error's own text, so the CLI prints what it printed.
+/// An image the asset gate refuses, by key: every [`ew_schema::AssetError`]; for an SVG refused by the rejecter, what
+/// was found and how to export the file again (the one wording of a hazard).
 pub fn asset_error_text(e: &ew_schema::AssetError) -> Text {
     use ew_schema::{AssetError as E, SvgHazard as H};
     match e {
@@ -559,11 +559,11 @@ pub fn asset_error_text(e: &ew_schema::AssetError) -> Text {
 mod tests {
     use super::*;
 
-    /// Every asset refusal's keyed English is the error's own text, byte for byte.
+    /// Every asset refusal but an SVG hazard's keyed English is the error's own text, byte for byte.
     #[test]
     fn every_asset_refusal_keeps_its_english() {
-        use ew_schema::{AssetError as E, AssetFormat as F, SvgHazard as H};
-        let mut errors = vec![
+        use ew_schema::{AssetError as E, AssetFormat as F};
+        let errors = vec![
             E::UnknownFormat,
             E::TooLarge {
                 format: F::Png,
@@ -579,22 +579,6 @@ mod tests {
             E::Damaged(F::Png),
             E::Base64,
         ];
-        errors.extend(
-            [
-                H::NotUtf8,
-                H::DoctypeSubset,
-                H::Entity,
-                H::Script,
-                H::EventAttribute,
-                H::ForeignObject,
-                H::ExternalReference,
-                H::Malformed,
-                H::TooComplex,
-                H::HugeNumber,
-                H::Unsupported,
-            ]
-            .map(E::UnsafeSvg),
-        );
         for e in &errors {
             assert_eq!(asset_error_text(e).to_string(), e.to_string());
         }

@@ -35,62 +35,6 @@ pub enum SvgHazard {
     Unsupported,
 }
 
-impl SvgHazard {
-    /// What the hazard is, in words.
-    pub const fn describe(self) -> &'static str {
-        match self {
-            SvgHazard::NotUtf8 => "it is not UTF-8 text",
-            SvgHazard::DoctypeSubset => "it has a DOCTYPE with an internal subset",
-            SvgHazard::Entity => "it declares an entity",
-            SvgHazard::Script => "it has a script",
-            SvgHazard::EventAttribute => "it has an event attribute",
-            SvgHazard::ForeignObject => "it has a foreignObject element",
-            SvgHazard::ExternalReference => "it references something outside the document",
-            SvgHazard::Malformed => "its markup cannot be followed",
-            SvgHazard::TooComplex => {
-                "its elements nest too deep or reference each other in too long a chain or a circle"
-            }
-            SvgHazard::HugeNumber => "it has a number too large to draw",
-            SvgHazard::Unsupported => "it uses transform-origin or feConvolveMatrix",
-        }
-    }
-
-    /// How to export the file again so that it passes, in words.
-    pub const fn advice(self) -> &'static str {
-        match self {
-            SvgHazard::NotUtf8 | SvgHazard::Malformed => "export it again as a plain SVG in UTF-8",
-            SvgHazard::DoctypeSubset | SvgHazard::Entity => {
-                "this is the editing data Illustrator writes with \"Preserve Illustrator Editing Capabilities\": save \
-                 the SVG again with that option off (File > Save As, SVG Options), or save it from Inkscape as \
-                 \"Plain SVG\""
-            }
-            SvgHazard::Script | SvgHazard::EventAttribute => {
-                "a drawing's image never runs code: remove the scripts and interactivity, then export it again as a \
-                 plain SVG"
-            }
-            SvgHazard::ForeignObject => {
-                "it holds HTML: export it again as a plain SVG, in Illustrator with \"Preserve Illustrator Editing \
-                 Capabilities\" off, in draw.io after selecting all labels and clearing \"Formatted Text\" and \
-                 \"Word Wrap\" (Text tab, Advanced) before File > Export as > SVG"
-            }
-            SvgHazard::ExternalReference => {
-                "remove linked or embedded images and fonts (convert text to outlines) and export it again as a plain \
-                 SVG; add a raster picture as its own PNG or JPEG file"
-            }
-            SvgHazard::TooComplex => {
-                "simplify the drawing (fewer nested groups and clones of clones) and export it again as a plain SVG \
-                 (Inkscape: \"Plain SVG\")"
-            }
-            SvgHazard::HugeNumber => {
-                "scale the drawing to a normal page size, keep filter values small, and export it again as a plain SVG"
-            }
-            SvgHazard::Unsupported => {
-                "flatten the transforms and remove convolution filters, then export it again as a plain SVG"
-            }
-        }
-    }
-}
-
 /// The deepest element nesting an SVG asset may have: the parser recurses once per level, so a deeper document
 /// would overflow its stack.
 pub const MAX_SVG_DEPTH: usize = 64;
@@ -765,11 +709,6 @@ mod tests {
         bytes.extend_from_slice(&[0xff, 0xfe]);
         bytes.extend_from_slice(b"</text></svg>");
         assert_eq!(sniff(&bytes), Err(AssetError::UnsafeSvg(SvgHazard::NotUtf8)));
-        assert!(
-            AssetError::UnsafeSvg(SvgHazard::Script)
-                .to_string()
-                .contains("it has a script")
-        );
     }
 
     /// A hex colour or a fragment name is skipped whole, so its digits are not an exponent; a `.` right
@@ -865,32 +804,6 @@ mod tests {
             sniff(comment.as_bytes()),
             Err(AssetError::UnsafeSvg(SvgHazard::Entity))
         );
-    }
-
-    /// Every refusal says what the hazard is and how to export the file again.
-    #[test]
-    fn every_refusal_says_how_to_export_again() {
-        let hazards = [
-            SvgHazard::NotUtf8,
-            SvgHazard::DoctypeSubset,
-            SvgHazard::Entity,
-            SvgHazard::Script,
-            SvgHazard::EventAttribute,
-            SvgHazard::ForeignObject,
-            SvgHazard::ExternalReference,
-            SvgHazard::Malformed,
-            SvgHazard::TooComplex,
-            SvgHazard::HugeNumber,
-            SvgHazard::Unsupported,
-        ];
-        for h in hazards {
-            assert_eq!(
-                AssetError::UnsafeSvg(h).to_string(),
-                format!("the SVG file is refused: {}; {}", h.describe(), h.advice()),
-                "{h:?}"
-            );
-            assert!(h.advice().contains("SVG"), "{h:?}");
-        }
     }
 
     /// What drawing programs write passes: an external DOCTYPE identifier, comments (also ones that mention

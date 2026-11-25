@@ -205,9 +205,9 @@ impl fmt::Display for AssetError {
             ),
             AssetError::Damaged(format) => write!(f, "the {} header is damaged or cut short", format.ext()),
             AssetError::Base64 => f.write_str("not base64 text (standard alphabet, padded)"),
-            AssetError::UnsafeSvg(h) => {
-                write!(f, "the SVG file is refused: {}; {}", h.describe(), h.advice())
-            }
+            // The words and the advice are the application's (`ew_commands::asset_error_text`); a log names the
+            // hazard.
+            AssetError::UnsafeSvg(h) => write!(f, "the SVG file is refused ({h:?})"),
         }
     }
 }

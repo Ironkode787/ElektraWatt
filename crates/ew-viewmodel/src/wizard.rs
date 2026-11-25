@@ -613,23 +613,26 @@ struct Logo {
 impl Logo {
     /// Reads and sniffs the logo file at `path`: an SVG, PNG or JPEG file of at most [`ew_api::MAX_LOGO_BYTES`],
     /// whose size is checked before the file is read.
-    fn read(path: &str) -> Result<Logo, Key<'static>> {
+    fn read(path: &str) -> Result<Logo, Refusal> {
         let len = std::fs::metadata(path)
             .map_err(|_| key!("wizard-error-logo"))?
             .len();
         if usize::try_from(len).map_or(true, |n| n > ew_api::MAX_LOGO_BYTES) {
-            return Err(key!("wizard-error-logo-size"));
+            return Err(key!("wizard-error-logo-size").into());
         }
         let bytes = std::fs::read(path).map_err(|_| key!("wizard-error-logo"))?;
         // The file may have grown since its size was read.
         if bytes.len() > ew_api::MAX_LOGO_BYTES {
-            return Err(key!("wizard-error-logo-size"));
+            return Err(key!("wizard-error-logo-size").into());
         }
         // The gate of an image brought in, with the pixel limit.
         let format = match ew_api::asset_ref_of(&bytes) {
             Ok(reference) => reference.format,
-            Err(ew_api::AssetError::UnsafeSvg(hazard)) => return Err(svg_refusal_key(hazard)),
-            Err(_) => return Err(key!("wizard-error-logo")),
+            // What the rejecter found and how to export the logo again, as the asset gate words it.
+            Err(e @ ew_api::AssetError::UnsafeSvg(_)) => {
+                return Err(Refusal::Logo(ew_api::asset_error_text(&e)));
+            }
+            Err(_) => return Err(key!("wizard-error-logo").into()),
         };
         let digest = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
             (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
@@ -642,15 +645,31 @@ impl Logo {
     }
 }
 
-/// The wizard's text key for a refused SVG logo: what was found and how to export the logo again.
-fn svg_refusal_key(hazard: ew_api::SvgHazard) -> Key<'static> {
-    use ew_api::SvgHazard as H;
-    match hazard {
-        H::DoctypeSubset | H::Entity | H::ForeignObject => key!("wizard-error-logo-svg-editing"),
-        H::Script | H::EventAttribute => key!("wizard-error-logo-svg-active"),
-        H::ExternalReference => key!("wizard-error-logo-svg-external"),
-        H::TooComplex | H::HugeNumber | H::Unsupported => key!("wizard-error-logo-svg-complex"),
-        H::NotUtf8 | H::Malformed => key!("wizard-error-logo"),
+/// Why the wizard refuses a value: a reason of its own by key, or the asset gate's refusal of the logo file.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Refusal {
+    /// A reason of the wizard.
+    Reason(Key<'static>),
+    /// The asset gate's refusal of an SVG logo: what was found and how to export it again.
+    Logo(ew_api::Text),
+}
+
+impl From<Key<'static>> for Refusal {
+    fn from(key: Key<'static>) -> Refusal {
+        Refusal::Reason(key)
+    }
+}
+
+impl Refusal {
+    /// The refusal in the window's language.
+    pub fn words(&self) -> String {
+        match self {
+            Refusal::Reason(key) => strings::text(*key).to_owned(),
+            Refusal::Logo(why) => strings::format(
+                key!("wizard-error-logo-refused"),
+                &[&crate::shell::tools::rejected_words("", Some(why))],
+            ),
+        }
     }
 }
 
@@ -690,7 +709,7 @@ impl Draft {
     ///
     /// The reason key when the name is no field or the value is not valid for it (for the logo: a file that cannot
     /// be read, or that is no SVG, PNG or JPEG file within the asset store's limits).
-    pub fn set(&mut self, key: &str, value: &str) -> Result<(), Key<'static>> {
+    pub fn set(&mut self, key: &str, value: &str) -> Result<(), Refusal> {
         let meta = field_meta(key).ok_or(key!("wizard-error-field"))?;
         validate(meta, value)?;
         if key == LOGO_FIELD {
@@ -1461,7 +1480,7 @@ impl Wizard {
         match draft.set(field, text) {
             Ok(()) => draft.example(self.step),
             Err(why) => {
-                let mut out = vec![strings::text(why).to_owned()];
+                let mut out = vec![why.words()];
                 out.extend(self.draft.example(self.step));
                 out
             }
@@ -1742,42 +1761,51 @@ mod tests {
     #[test]
     fn validation_refuses_bad_values_with_a_reason() {
         let mut d = Draft::default();
-        assert_eq!(d.set("csa_control", "0"), Err(key!("wizard-error-csa")));
+        assert_eq!(d.set("csa_control", "0"), Err(key!("wizard-error-csa").into()));
         assert_eq!(d.set("csa_control", "0.5"), Ok(()));
-        assert_eq!(d.set("csa_mains", "abc"), Err(key!("wizard-error-csa")));
+        assert_eq!(d.set("csa_mains", "abc"), Err(key!("wizard-error-csa").into()));
         assert_eq!(
             d.set("device_format", "{page}{letter}"),
-            Err(key!("wizard-error-format"))
+            Err(key!("wizard-error-format").into())
         );
         assert_eq!(
             d.set("device_format", "{letter}{counter}"),
-            Err(key!("wizard-error-format"))
+            Err(key!("wizard-error-format").into())
         );
         assert_eq!(d.set("device_format", "{page}-{letter}{counter}"), Ok(()));
         assert_eq!(
             d.set("device_format", "{page}{letter}{counter"),
-            Err(key!("wizard-error-format"))
+            Err(key!("wizard-error-format").into())
         );
-        assert_eq!(d.set("function_node", "P 01"), Err(key!("wizard-error-node")));
+        assert_eq!(
+            d.set("function_node", "P 01"),
+            Err(key!("wizard-error-node").into())
+        );
         assert_eq!(d.set("function_node", ""), Ok(()));
-        assert_eq!(d.set("xref", "kicad"), Err(key!("wizard-error-choice")));
-        assert_eq!(d.set("first_revision", "V 1"), Err(key!("wizard-error-revision")));
-        assert_eq!(d.set("first_revision", "01"), Err(key!("wizard-error-revision")));
+        assert_eq!(d.set("xref", "kicad"), Err(key!("wizard-error-choice").into()));
+        assert_eq!(
+            d.set("first_revision", "V 1"),
+            Err(key!("wizard-error-revision").into())
+        );
+        assert_eq!(
+            d.set("first_revision", "01"),
+            Err(key!("wizard-error-revision").into())
+        );
         assert_eq!(d.set("first_revision", "V0.1"), Ok(()));
         assert_eq!(
             d.set("sections", "1 100-99 X"),
-            Err(key!("wizard-error-sections"))
+            Err(key!("wizard-error-sections").into())
         );
         assert_eq!(
             d.set("sections", "1 100-199 A\n2 150-250 B"),
-            Err(key!("wizard-error-sections"))
+            Err(key!("wizard-error-sections").into())
         );
         assert_eq!(
             d.set("sections", "1 100-199 A\n1 200-299 B"),
-            Err(key!("wizard-error-sections"))
+            Err(key!("wizard-error-sections").into())
         );
         assert_eq!(d.set("sections", "1 100-199 A\n2 200-299 B"), Ok(()));
-        assert_eq!(d.set("nope", "x"), Err(key!("wizard-error-field")));
+        assert_eq!(d.set("nope", "x"), Err(key!("wizard-error-field").into()));
         assert_eq!(d.get("csa_control"), "0.5");
     }
 
@@ -2009,11 +2037,11 @@ mod tests {
         let mut d = Draft::default();
         assert_eq!(
             d.set(LOGO_FIELD, &text.to_string_lossy()),
-            Err(key!("wizard-error-logo"))
+            Err(key!("wizard-error-logo").into())
         );
         assert_eq!(
             d.set(LOGO_FIELD, &dir.join("missing.svg").to_string_lossy()),
-            Err(key!("wizard-error-logo"))
+            Err(key!("wizard-error-logo").into())
         );
         assert_eq!(d.get(LOGO_FIELD), "", "a refused file leaves the field as it was");
         // A file above the 512 KiB limit is refused by its size, before it is read.
@@ -2023,7 +2051,7 @@ mod tests {
         std::fs::write(&big, &bytes).unwrap();
         assert_eq!(
             d.set(LOGO_FIELD, &big.to_string_lossy()),
-            Err(key!("wizard-error-logo-size"))
+            Err(key!("wizard-error-logo-size").into())
         );
         bytes.truncate(ew_api::MAX_LOGO_BYTES);
         std::fs::write(&big, &bytes).unwrap();
@@ -2068,48 +2096,45 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// A refused SVG logo says what the rejecter found and how to export it again, as the asset gate words it.
     #[test]
     fn a_refused_svg_logo_says_how_to_export_again() {
+        use ew_api::SvgHazard as H;
         let dir = crate::shell::fresh_test_dir("ew-wizard-logo-svg");
         let cases = [
             (
                 r#"<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY ns_svg "http://www.w3.org/2000/svg"> ]><svg xmlns="&ns_svg;" viewBox="0 0 4 4"/>"#,
-                key!("wizard-error-logo-svg-editing"),
+                H::Entity,
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><foreignObject width="4" height="4"/></svg>"#,
-                key!("wizard-error-logo-svg-editing"),
+                H::ForeignObject,
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4" onload="x()"/>"#,
-                key!("wizard-error-logo-svg-active"),
+                H::EventAttribute,
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><image href="https://example.invalid/a.png" width="4" height="4"/></svg>"#,
-                key!("wizard-error-logo-svg-external"),
+                H::ExternalReference,
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><path d="M0 0 A1e30 1 0 0 1 2 2"/></svg>"#,
-                key!("wizard-error-logo-svg-complex"),
+                H::HugeNumber,
             ),
         ];
-        for (i, (svg, key)) in cases.iter().enumerate() {
+        for (i, (svg, hazard)) in cases.iter().enumerate() {
             let path = dir.join(format!("logo-{i}.svg"));
             std::fs::write(&path, svg.as_bytes()).unwrap();
-            assert_eq!(
-                Draft::default().set(LOGO_FIELD, &path.to_string_lossy()),
-                Err(*key),
-                "{key:?}"
+            let refused = Draft::default().set(LOGO_FIELD, &path.to_string_lossy());
+            let want = ew_api::asset_error_text(&ew_api::AssetError::UnsafeSvg(*hazard));
+            assert_eq!(refused, Err(Refusal::Logo(want)), "{hazard:?}");
+            let words = refused.unwrap_err().words();
+            assert!(
+                words.starts_with("The logo is not accepted: the SVG file is refused: ")
+                    && words.contains("SVG"),
+                "{hazard:?}: {words}"
             );
-        }
-        for key in [
-            "wizard-error-logo-svg-editing",
-            "wizard-error-logo-svg-active",
-            "wizard-error-logo-svg-external",
-            "wizard-error-logo-svg-complex",
-        ] {
-            let text = crate::strings::lookup(key).expect("a text for the refusal");
-            assert!(text.contains("plain SVG"), "{key}: {text}");
         }
         let _ = std::fs::remove_dir_all(&dir);
     }

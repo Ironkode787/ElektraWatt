@@ -78,22 +78,3 @@ fn every_exporter_file_gets_its_ruled_verdict() {
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
-
-#[test]
-fn refused_exporter_files_say_how_to_export_again() {
-    for (path, expected) in CORPUS {
-        let Some(hazard) = expected else { continue };
-        let Err(error) = sniff(&read(path)) else {
-            panic!("{path}: accepted");
-        };
-        let text = error.to_string();
-        assert!(
-            text.contains(hazard.advice()),
-            "{path}: the advice is missing: {text}"
-        );
-        assert!(
-            text.contains("plain SVG") || text.contains("Plain SVG"),
-            "{path}: the advice does not name a plain SVG: {text}"
-        );
-    }
-}
