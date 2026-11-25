@@ -12,10 +12,10 @@ use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure,
     ExchangeRecord, ExternalRef, FnDef, ForeignId, FormDef, Function, ImportLineage, ImportRun, Junction,
-    Kind, LayoutSpace, LibCopy, LogicalNet, MacroDef, MacroInstance, Manufacturer, Medium, MediumDef,
-    MountingSurface, Page, PageItem, Part, PhysicalNet, Placement, PlcConfigProject, PlcProfileDef,
-    PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section, StructureBox,
-    StructureNode, SymbolDef, Waiver,
+    Kind, LayoutSpace, LibCopy, LibDocument, LogicalNet, MacroDef, MacroInstance, Manufacturer, Medium,
+    MediumDef, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement, PlcConfigProject,
+    PlcProfileDef, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
@@ -136,6 +136,31 @@ macro_rules! entities {
     (records { $($records:tt)* } library { $($library:tt)* }) => {
         entities_of_tables! { $($records)* $($library)* }
         entities_of_records! { $($records)* }
+        entities_of_library! { $($library)* }
+    };
+}
+
+/// The conversion of a library document into its row, for the kinds that are library copies.
+macro_rules! entities_of_library {
+    ($( $variant:ident : $ty:ty, $marker:ty, $($field:ident).+ ; )*) => {
+        impl AnyRow {
+            /// The row of a library document of an implemented kind; the document itself back, boxed, for a
+            /// document of a kind this reader does not implement ([`LibDocument::Unknown`]).
+            pub fn from_document(doc: LibDocument) -> Result<AnyRow, Box<LibDocument>> {
+                Ok(match doc {
+                    $( LibDocument::$variant(c) => AnyRow::$variant(Arc::new(c)), )*
+                    other => return Err(Box::new(other)),
+                })
+            }
+
+            /// The library document of a library copy row; `None` for a record or the project row.
+            pub fn to_document(&self) -> Option<LibDocument> {
+                Some(match self {
+                    $( AnyRow::$variant(c) => LibDocument::$variant((**c).clone()), )*
+                    _ => return None,
+                })
+            }
+        }
     };
 }
 

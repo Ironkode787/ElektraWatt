@@ -26,9 +26,7 @@ use crate::lock::{
     Acquire, Holder, Identity, Lock, LockInfo, LockRecord, OsProbe, PROJECT_LOCK, ProcessProbe, STALE_AFTER,
     TAKEOVER_SETTLE, TakeoverError,
 };
-use crate::rows::{
-    all_keys, document_row, file_of, follow_closure, is_library, record_row, row_line_key, row_text,
-};
+use crate::rows::{all_keys, file_of, follow_closure, is_library, record_row, row_line_key, row_text};
 use crate::vfs::{EntryKind, OsVfs, Vfs, is_transient, join};
 
 mod external;

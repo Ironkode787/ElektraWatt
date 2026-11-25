@@ -581,7 +581,7 @@ impl Store {
             broken.other_quarantined = other_quarantined.contains(file);
         }
         for doc in loaded.kept_docs {
-            if let Some(row) = document_row(*doc.original) {
+            if let Ok(row) = AnyRow::from_document(*doc.original) {
                 self.untouched_docs.insert(row.key(), (doc.text, row));
             }
         }

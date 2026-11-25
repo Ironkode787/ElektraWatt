@@ -597,3 +597,27 @@ fn a_library_update_of_the_module_part_re_instantiates_its_channels() {
         );
     }
 }
+
+/// `library.update` of an address profile the project holds takes the new version, as for every other library kind.
+#[test]
+fn a_library_update_of_a_held_address_profile_takes_the_new_version() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/plc-profiles/iec-61131-3.json");
+    let text = std::fs::read_to_string(path).expect("the profile file");
+    let held = LibDocument::from_json(&text).expect("a library document");
+    let (p, records, mut lib) = mini_project_parts();
+    lib.push(held.clone());
+    let mut e = engine(Model::from_records(p, records, lib).expect("a valid model"));
+    let mut v = serde_json::to_value(held).expect("a library document");
+    v["version"] = json!("0.2.0");
+    v["label"] = json!("IEC 61131-3 (2)");
+    v["sha256"] = json!(sha_text(&v));
+    let update = ew_commands::AnyCommand {
+        name: "library.update".into(),
+        params: json!({ "copies": [v] }),
+    };
+    let preview = e.preview(&update).expect("library.update previews");
+    e.commit(preview).expect("library.update");
+    let copies = rows::<LibCopy<ew_schema::PlcProfileDef>>(&e);
+    assert_eq!(copies.len(), 1);
+    assert_eq!(copies[0].item.label, "IEC 61131-3 (2)");
+}

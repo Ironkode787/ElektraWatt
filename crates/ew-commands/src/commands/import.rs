@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow};
-use ew_schema::{AnyId, ImportLineage, ImportRun, Kind, LibDocument, Record, RecordHash, Sha256};
+use ew_schema::{AnyId, ImportLineage, ImportRun, Kind, Record, RecordHash, Sha256};
 use serde_json::Value;
 
 use crate::command::{DynCommand, Outcome};
@@ -416,23 +416,13 @@ impl DynCommand for ApplyImport {
         // The batch's library documents are checked as `library.embed` checks a copy (its identity and its hash),
         // without the library rule: the import's own library is project-local (doc 05 §13.2).
         // A re-import keeps the copies the project holds (this project's version is kept).
-        fn put_copy<T: ew_model::Entity>(tx: &mut TxBuilder<'_>, copy: T, keep_held: bool) {
-            if !keep_held || !tx.exists::<T>(copy.id()) {
-                tx.put(copy);
-            }
-        }
         let keep = !self.checkpoint;
         for (i, value) in self.lib.iter().enumerate() {
             let (doc, _) = super::library::read_copy(Self::NAME, &format!("/lib/{i}"), value)?;
-            match doc {
-                LibDocument::Part(c) => put_copy(tx, c, keep),
-                LibDocument::Symbol(c) => put_copy(tx, c, keep),
-                LibDocument::Fndef(c) => put_copy(tx, c, keep),
-                LibDocument::Form(c) => put_copy(tx, c, keep),
-                LibDocument::Macro(c) => put_copy(tx, c, keep),
-                LibDocument::Manufacturer(c) => put_copy(tx, c, keep),
-                LibDocument::PlcProfile(c) => put_copy(tx, c, keep),
-                LibDocument::Unknown(_) => {}
+            if let Ok(copy) = ew_model::AnyRow::from_document(doc)
+                && (!keep || tx.row(&copy.key()).is_none())
+            {
+                tx.put_row(copy);
             }
         }
         // The source of an underlay the batch places is no image: it takes no image gate.

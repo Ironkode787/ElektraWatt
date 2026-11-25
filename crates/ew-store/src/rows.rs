@@ -21,20 +21,6 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
     AnyRow::from_record(record).ok()
 }
 
-/// The row of a library document of an implemented kind.
-pub(crate) fn document_row(doc: LibDocument) -> Option<AnyRow> {
-    Some(match doc {
-        LibDocument::Part(d) => AnyRow::of(d),
-        LibDocument::Symbol(d) => AnyRow::of(d),
-        LibDocument::Fndef(d) => AnyRow::of(d),
-        LibDocument::Form(d) => AnyRow::of(d),
-        LibDocument::Macro(d) => AnyRow::of(d),
-        LibDocument::Manufacturer(d) => AnyRow::of(d),
-        LibDocument::PlcProfile(d) => AnyRow::of(d),
-        LibDocument::Unknown(_) => return None,
-    })
-}
-
 /// The canonical bytes of a row's file content: the line of a record (without LF), or the whole pretty
 /// document of a library copy (with its final LF).
 pub(crate) fn row_text(row: &AnyRow) -> Result<String, FormatError> {
@@ -63,7 +49,7 @@ pub(crate) fn value_row(kind: Kind, value: Value) -> Result<AnyRow, String> {
     let value = Value::Object(map);
     if kind.is_library() {
         let doc = LibDocument::from_value(value).map_err(|e| e.to_string())?;
-        document_row(doc).ok_or_else(|| format!("{kind} is not an implemented library kind"))
+        AnyRow::from_document(doc).map_err(|_| format!("{kind} is not an implemented library kind"))
     } else {
         let record = Record::from_value(value).map_err(|e| e.to_string())?;
         record_row(record).ok_or_else(|| format!("{kind} is not an implemented kind"))

@@ -22,7 +22,7 @@ use serde_json::Value;
 
 use super::device::{allowed_rep_types, step_axis, step_route, steps_nm};
 use super::library::check_copy;
-use super::library_update::{ChangeClass, classify_update, row_document};
+use super::library_update::{ChangeClass, classify_update};
 use crate::command::{Command, Outcome};
 use crate::commands::edit::BULK_ABOVE;
 use crate::error::CmdError;

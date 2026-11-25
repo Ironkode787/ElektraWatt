@@ -179,21 +179,15 @@ impl Command for EmbedLibraryCopies {
                 let item = crate::words::document_item(tx, &doc);
                 return tx.reject(text!("refusal-library-embed-held", item));
             }
-            docs.push((kind, doc));
+            docs.push(doc);
         }
         let mut primary = None;
-        for (kind, doc) in docs {
-            let id = match doc {
-                LibDocument::Part(c) => tx.insert(c)?.cast(),
-                LibDocument::Symbol(c) => tx.insert(c)?.cast(),
-                LibDocument::Fndef(c) => tx.insert(c)?.cast(),
-                LibDocument::Form(c) => tx.insert(c)?.cast(),
-                LibDocument::Macro(c) => tx.insert(c)?.cast(),
-                LibDocument::Manufacturer(c) => tx.insert(c)?.cast(),
-                LibDocument::PlcProfile(c) => tx.insert(c)?.cast(),
-                LibDocument::Unknown(_) => unreachable!("rejected above"),
+        for doc in docs {
+            let Ok(row) = ew_model::AnyRow::from_document(doc) else {
+                unreachable!("rejected above")
             };
-            primary.get_or_insert((kind, id));
+            let key = tx.insert_row(row)?;
+            primary.get_or_insert(key);
         }
         Ok(Outcome {
             primary,

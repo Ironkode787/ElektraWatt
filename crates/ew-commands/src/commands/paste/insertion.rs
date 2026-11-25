@@ -5,20 +5,6 @@
 
 use super::*;
 
-/// The SHA-256 a held library copy row claims.
-pub(super) fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
-    use ew_model::AnyRow;
-    match row {
-        AnyRow::Part(c) => Some(c.sha256),
-        AnyRow::Symbol(c) => Some(c.sha256),
-        AnyRow::Fndef(c) => Some(c.sha256),
-        AnyRow::Form(c) => Some(c.sha256),
-        AnyRow::Manufacturer(c) => Some(c.sha256),
-        AnyRow::PlcProfile(c) => Some(c.sha256),
-        _ => None,
-    }
-}
-
 /// How one reference of a fragment record resolves.
 pub(super) enum Resolved {
     /// It names this ID now.
@@ -523,29 +509,25 @@ impl Insertion<'_> {
                     text!("refusal-params-detail", crate::error::schema_error_text(&e)),
                 )
             })?;
-            let (id, claimed): (Id<()>, ew_schema::Sha256) = match &doc {
-                LibDocument::Part(c) => (c.id.cast(), c.sha256),
-                LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
-                LibDocument::Fndef(c) => (c.id.cast(), c.sha256),
-                LibDocument::Form(c) => (c.id.cast(), c.sha256),
-                // A part's closure holds its manufacturer.
-                LibDocument::Manufacturer(c) => (c.id.cast(), c.sha256),
-                // a fragment carries the closure of its records (doc 07 §3.5), which names no macro and no
-                // address profile
-                LibDocument::Macro(_) | LibDocument::PlcProfile(_) | LibDocument::Unknown(_) => {
-                    return Err(self.invalid(&at, text!("refusal-paste-library-kind")));
-                }
+            // a fragment carries the closure of its records (doc 07 §3.5), which names no macro and no address
+            // profile (a part's closure holds its manufacturer)
+            let (kind, meta) = match (doc.kind(), doc.copy_meta()) {
+                (Some(kind), Some(meta)) if !matches!(kind, Kind::Macro | Kind::PlcProfile) => (kind, meta),
+                _ => return Err(self.invalid(&at, text!("refusal-paste-library-kind"))),
             };
-            let kind = doc.kind().expect("an implemented library kind");
+            let (id, claimed): (Id<()>, ew_schema::Sha256) = (Id::from_uuid(meta.id), meta.sha256);
             if !usable.insert((kind, id.as_uuid())) {
                 return Err(self.invalid(&at, text!("refusal-params-copy-twice")));
             }
             match tx.row(&(kind, id)) {
                 // A held copy of the same version is reused as it is (also a project-local item of this project).
                 Some(row) => {
-                    if held_sha(&row) != Some(claimed) && adapted.contains(&id.as_uuid()) {
+                    let Some(held) = row.to_document() else {
+                        unreachable!("the key is of a library kind")
+                    };
+                    let held_sha = held.copy_meta().map(|m| m.sha256);
+                    if held_sha != Some(claimed) && adapted.contains(&id.as_uuid()) {
                         // The held version serves the pasted records unless a CP of theirs disappears.
-                        let held = row_document(&row).expect("a held library copy");
                         let diff = classify_update(&doc, &held);
                         let index = self.adapt.iter().position(|a| *a == id).expect("listed in adapt");
                         if diff.class == ChangeClass::Major {
@@ -561,7 +543,7 @@ impl Insertion<'_> {
                             ));
                         }
                         used.insert(id.as_uuid());
-                    } else if held_sha(&row) != Some(claimed) {
+                    } else if held_sha != Some(claimed) {
                         return Err(self.invalid(
                             &at,
                             text!(

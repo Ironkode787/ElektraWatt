@@ -181,16 +181,10 @@ impl Model {
             .collect::<Vec<_>>();
         let lib_rows = lib
             .into_iter()
-            .filter_map(|d| match d {
-                LibDocument::Part(d) => Some(AnyRow::of(d)),
-                LibDocument::Symbol(d) => Some(AnyRow::of(d)),
-                LibDocument::Fndef(d) => Some(AnyRow::of(d)),
-                LibDocument::Form(d) => Some(AnyRow::of(d)),
-                LibDocument::Macro(d) => Some(AnyRow::of(d)),
-                LibDocument::Manufacturer(d) => Some(AnyRow::of(d)),
-                LibDocument::PlcProfile(d) => Some(AnyRow::of(d)),
-                other => {
-                    unknown_lib.push(other);
+            .filter_map(|d| match AnyRow::from_document(d) {
+                Ok(row) => Some(row),
+                Err(other) => {
+                    unknown_lib.push(*other);
                     None
                 }
             })

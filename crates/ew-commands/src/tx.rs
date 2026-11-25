@@ -663,16 +663,22 @@ impl<'a> TxBuilder<'a> {
     /// Inserts a new record; its ID must be free.
     pub fn insert<T: Entity>(&mut self, record: T) -> Result<RowId<T>, CmdError> {
         let id = record.id();
-        let key = T::key(id);
+        self.insert_row(T::wrap(Arc::new(record)))?;
+        Ok(id)
+    }
+
+    /// Inserts a new kind-erased row; its key must be free.
+    pub fn insert_row(&mut self, row: AnyRow) -> Result<AnyKey, CmdError> {
+        let key = row.key();
         if self.row(&key).is_some() {
             return Err(CmdError::internal(format!(
                 "{}: insert of an existing record {}:{}",
                 self.source, key.0, key.1
             )));
         }
-        self.put(record);
+        self.put_row(row);
         self.inserted.push(key);
-        Ok(id)
+        Ok(key)
     }
 
     /// Changes a record in place.

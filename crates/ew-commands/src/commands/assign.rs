@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 
-use ew_schema::{Device, Kind, LibCopy, LibDocument, Part, PartRef, PartUse};
+use ew_schema::{Device, Kind, LibCopy, Part, PartRef, PartUse};
 use ew_units::Dec3;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -114,20 +114,18 @@ pub(crate) fn embed_closure(
                 text!("refusal-params-copy-twice"),
             ));
         }
-        if let Some(held) = tx.row(&key) {
-            let held_hash = held_sha(&held);
-            if held_hash != Some(l.claimed) {
-                let version = held_version(&held).unwrap_or_default();
+        if let Some(held) = tx.row(&key).and_then(|r| r.to_document()) {
+            let Some(meta) = held.copy_meta() else {
+                unreachable!("a held copy is of an implemented kind")
+            };
+            if meta.sha256 != l.claimed {
                 return Err(CmdError::invalid_params(
                     command,
                     at,
                     text!(
                         "refusal-assign-held-other-hash",
-                        crate::commands::library_update::row_document(&held).map_or_else(
-                            || ew_derive::text::record_other().into(),
-                            |d| crate::words::document_item(tx, &d)
-                        ),
-                        version.to_string()
+                        crate::words::document_item(tx, &held),
+                        meta.version.to_string()
                     ),
                 ));
             }
@@ -136,62 +134,12 @@ pub(crate) fn embed_closure(
         new.push(doc);
     }
     for doc in new {
-        match doc {
-            LibDocument::Part(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::Symbol(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::Fndef(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::Form(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::Macro(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::Manufacturer(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::PlcProfile(c) => {
-                tx.insert(c)?;
-            }
-            LibDocument::Unknown(_) => unreachable!("check_copy refuses an unknown kind"),
-        }
+        let Ok(row) = ew_model::AnyRow::from_document(doc) else {
+            unreachable!("check_copy refuses an unknown kind")
+        };
+        tx.insert_row(row)?;
     }
     Ok(seen)
-}
-
-/// The hash a held library copy row claims.
-pub(crate) fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
-    use ew_model::AnyRow;
-    Some(match row {
-        AnyRow::Part(c) => c.sha256,
-        AnyRow::Symbol(c) => c.sha256,
-        AnyRow::Fndef(c) => c.sha256,
-        AnyRow::Form(c) => c.sha256,
-        AnyRow::Macro(c) => c.sha256,
-        AnyRow::Manufacturer(c) => c.sha256,
-        AnyRow::PlcProfile(c) => c.sha256,
-        _ => return None,
-    })
-}
-
-/// The version a held library copy row carries.
-pub(crate) fn held_version(row: &ew_model::AnyRow) -> Option<String> {
-    use ew_model::AnyRow;
-    Some(match row {
-        AnyRow::Part(c) => c.version.clone(),
-        AnyRow::Symbol(c) => c.version.clone(),
-        AnyRow::Fndef(c) => c.version.clone(),
-        AnyRow::Form(c) => c.version.clone(),
-        AnyRow::Macro(c) => c.version.clone(),
-        AnyRow::Manufacturer(c) => c.version.clone(),
-        AnyRow::PlcProfile(c) => c.version.clone(),
-        _ => return None,
-    })
 }
 
 impl Command for AssignPart {

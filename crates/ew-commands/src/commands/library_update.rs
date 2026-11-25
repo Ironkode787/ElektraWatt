@@ -321,19 +321,6 @@ pub(crate) fn cp_mapping(
     out
 }
 
-/// A held library copy row as a document.
-pub(crate) fn row_document(row: &AnyRow) -> Option<LibDocument> {
-    Some(match row {
-        AnyRow::Part(c) => LibDocument::Part((**c).clone()),
-        AnyRow::Symbol(c) => LibDocument::Symbol((**c).clone()),
-        AnyRow::Fndef(c) => LibDocument::Fndef((**c).clone()),
-        AnyRow::Form(c) => LibDocument::Form((**c).clone()),
-        AnyRow::Macro(c) => LibDocument::Macro((**c).clone()),
-        AnyRow::Manufacturer(c) => LibDocument::Manufacturer((**c).clone()),
-        _ => return None,
-    })
-}
-
 /// A CP mapping of one copy for `library.update`: pairs `[old_idx, new_idx]` of the held copy's and the new
 /// document's CP indices.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -671,16 +658,10 @@ impl Command for UpdateLibraryCopies {
         let remap = self.pin_remap(tx, &updates, &seen)?;
         let embed = self.checked_embeds(tx, &updates, &seen)?;
         for (_, doc) in embed {
-            match doc {
-                LibDocument::Part(c) => tx.put(c),
-                LibDocument::Symbol(c) => tx.put(c),
-                LibDocument::Fndef(c) => tx.put(c),
-                LibDocument::Form(c) => tx.put(c),
-                LibDocument::Macro(c) => tx.put(c),
-                LibDocument::Manufacturer(c) => tx.put(c),
-                LibDocument::PlcProfile(c) => tx.put(c),
-                LibDocument::Unknown(_) => unreachable!("check_copy refuses an unknown kind"),
-            }
+            let Ok(row) = AnyRow::from_document(doc) else {
+                unreachable!("check_copy refuses an unknown kind")
+            };
+            tx.put_row(row);
         }
         // The representations of an updated symbol, with where their CPs stand before the update: the routes of their
         // connections follow the CPs the new drawing moves.
@@ -706,19 +687,13 @@ impl Command for UpdateLibraryCopies {
             if !changed {
                 continue;
             }
-            match new {
-                LibDocument::Part(c) => {
-                    parts.push(c.id);
-                    tx.put(c);
-                }
-                LibDocument::Symbol(c) => tx.put(c),
-                LibDocument::Fndef(c) => tx.put(c),
-                LibDocument::Form(c) => tx.put(c),
-                LibDocument::Macro(c) => tx.put(c),
-                LibDocument::Manufacturer(c) => tx.put(c),
-                LibDocument::PlcProfile(c) => tx.put(c),
-                LibDocument::Unknown(_) => unreachable!("read_copy refuses an unknown kind"),
+            if let LibDocument::Part(c) = &new {
+                parts.push(c.id);
             }
+            let Ok(row) = AnyRow::from_document(new) else {
+                unreachable!("read_copy refuses an unknown kind")
+            };
+            tx.put_row(row);
         }
         // The drawn boxes of an updated part's devices take its pins and sockets, each kept pin under its new index.
         for part in parts {
@@ -768,7 +743,9 @@ impl UpdateLibraryCopies {
                     ),
                 ));
             };
-            let held = row_document(&held).expect("a library copy row");
+            let Some(held) = held.to_document() else {
+                unreachable!("the key is of a library kind")
+            };
             let held_version = held_version_of(&held);
             let new_version = held_version_of(&doc);
             let Some(new_core) = ew_schema::semver_core(new_version.trim()) else {
