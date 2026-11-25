@@ -616,39 +616,53 @@ impl Router {
         for _ in 0..PASSES {
             let mut changed = false;
             for w in failed.clone() {
-                let old = self.route_of(w).to_vec();
-                self.lift(w);
-                match self
-                    .search(w, &[], Relax::default())
-                    .filter(|_| !self.fourth_arm(w))
-                {
-                    Some(f) => {
-                        self.lay(w, f.route);
-                        failed.remove(&w);
-                        searched.push(w);
-                        changed = true;
+                let laid = self.search_again(w, &[], |r, f, _| {
+                    if r.fourth_arm(w) {
+                        return false;
                     }
-                    None if old.is_empty() => {}
-                    None => self.lay(w, old),
+                    r.lay(w, f.route);
+                    true
+                });
+                if laid {
+                    failed.remove(&w);
+                    searched.push(w);
+                    changed = true;
                 }
             }
             for w in searched.clone() {
-                let old = self.route_of(w).to_vec();
-                self.lift(w);
-                let was = self.price(w, &old);
-                match self.search(w, &[], Relax::default()) {
-                    Some(f) if f.route != old && f.cost < was => {
-                        self.lay(w, f.route);
-                        changed = true;
+                changed |= self.search_again(w, &[], |r, f, old| {
+                    if f.route == old || f.cost >= r.price(w, old) {
+                        return false;
                     }
-                    _ => self.lay(w, old),
-                }
+                    r.lay(w, f.route);
+                    true
+                });
             }
             if !changed {
                 break;
             }
         }
         (searched, failed)
+    }
+
+    /// Wire `w` lifted and searched again, with the texts `full` at their full price: its new route stays where `keep`
+    /// takes it (`keep` lays it, and may judge the page with it laid), else its old route is put back. Whether the new
+    /// route stays.
+    fn search_again(
+        &mut self,
+        w: WireId,
+        full: &[u32],
+        keep: impl FnOnce(&mut Self, search::Found, &[Pt]) -> bool,
+    ) -> bool {
+        let old = self.route_of(w).to_vec();
+        self.lift(w);
+        let kept = self
+            .search(w, full, Relax::default())
+            .is_some_and(|f| keep(self, f, &old));
+        if !kept {
+            self.lay(w, old);
+        }
+        kept
     }
 
     /// Job `w` on its stored route, where it has one (a job without a way, §3.8).
@@ -702,21 +716,18 @@ impl Router {
                     })
                     .filter_map(|k| u32::try_from(k).ok())
                     .collect();
-                let old = self.route_of(w).to_vec();
-                self.lift(w);
-                match self.search(w, &full, Relax::default()) {
-                    Some(f) if f.route != old => {
-                        self.lay(w, f.route);
-                        let now = measure(&self.page);
-                        if now.key() < (q.faults, q.unrouted, cost) && now.faults <= q.faults {
-                            cost = now.cost;
-                            changed = true;
-                        } else {
-                            self.lay(w, old);
-                        }
+                changed |= self.search_again(w, &full, |r, f, old| {
+                    if f.route == old {
+                        return false;
                     }
-                    _ => self.lay(w, old),
-                }
+                    r.lay(w, f.route);
+                    let now = measure(&r.page);
+                    let better = now.key() < (q.faults, q.unrouted, cost) && now.faults <= q.faults;
+                    if better {
+                        cost = now.cost;
+                    }
+                    better
+                });
             }
             if !changed {
                 return;
@@ -832,20 +843,18 @@ impl Router {
             return;
         }
         for w in fresh {
-            let old = self.route_of(w).to_vec();
-            self.lift(w);
-            match self.search(w, &[], Relax::default()) {
-                Some(f) if f.route != old => {
-                    self.lay(w, f.route);
-                    let now = measure(&self.page);
-                    if now.key() < q.key() {
-                        q = now;
-                    } else {
-                        self.lay(w, old);
-                    }
+            self.search_again(w, &[], |r, f, old| {
+                if f.route == old {
+                    return false;
                 }
-                _ => self.lay(w, old),
-            }
+                r.lay(w, f.route);
+                let now = measure(&r.page);
+                let better = now.key() < q.key();
+                if better {
+                    q = now;
+                }
+                better
+            });
         }
     }
 }
