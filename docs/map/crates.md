@@ -942,8 +942,6 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 |---|---|---|
 | `src/anchor.rs` |  | The cross-reference anchor of a symbol in its own frame (FR-SYM-010, FR-XRF-005, D-14; doc 06 §5.1). |
 | `src/asset.rs` | large | Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3), the embedded sources of underlays (a PDF or a DXF the user embedded) and the project's typeface (a TrueType or OpenType file, doc 09 §4.8), which no image gate takes ([`pixel_limit`]). |
-| `src/asset/work.rs` |  | The arithmetic of the two work bounds of [`super::svg_hazard`] (doc 18 §11.1 TM-18): upper bounds of what usvg 0.48.1 (with svgtypes 0.16.1, kurbo 0.13.1, simplecss 0.2.2 and roxmltree 0.21.1) does with an admitted document, computed from the raw text without parsing it the way usvg does. |
-| `src/asset/work/tests.rs` |  | The work bounds' arithmetic, hostile documents generated here (no committed binaries), and the real-exporter corpus kept under the limits. |
 | `src/bus.rs` |  | The bus model (doc 03 §14, doc 10 §2.7): the `BusPort` aspect of a function and the record kinds `logical_net` (rank 12) and `physical_net` (13) in `project.jsonl`. |
 | `src/conflict.rs` |  | Conflict records (doc 05 §11.2, §11.4): the `conflict` record (rank 255, the file of its target). |
 | `src/connect.rs` |  | Connectivity records (ADR-0007, doc 03 §9, §12, doc 08 §2): `connection` (rank 34), `junction` (35), `conductor` (36), `potential_def` (38) and `bond` (41). |

@@ -167,9 +167,9 @@ The asset store below lives in `ew-model`, `ew-commands` and `ew-store` (ADR-002
 - **SVG** is rendered by EW's own pipeline and never executed. **Sniffing is not sanitising**,
   so `ew_schema::svg_hazard` runs inside the sniff and
   refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject`, any `href` that is not
-  `#…` (embedded `data:` images too), nesting deeper than 64, reference cycles, expansion past 200,000
-  elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`;
-  the parse runs inside `catch_unwind` (threat-model row TM-18, [18](18-quality-security-release.md) §11). An accepted
+  `#…` (embedded `data:` images too), nesting deeper than 64, reference chains longer than 32 or circular, numbers
+  above 1e9, `transform-origin` and `feConvolveMatrix`, after the caps of 8 MiB and 100,000 elements; the parse runs
+  inside `catch_unwind` (threat-model row TM-18, [18](18-quality-security-release.md) §11). An accepted
   SVG is parsed by usvg 0.48.1 in `ew-scene` and drawn as `ew-dl` paths. **What renders:** SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are not built. **The drawn SVG subset:** gradients are drawn in their mean colour, even-odd fills as
   non-zero; text, embedded images, clip paths, masks and filters are not drawn. **No silent loss:** an image an export cannot draw (its asset missing, or refused by the sniff) is reported as
   `PageFinding::Image` (missing or refused) among the export's findings. The rejecter's limits are not calibrated against

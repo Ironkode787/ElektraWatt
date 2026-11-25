@@ -140,7 +140,7 @@ refusal-asset-svg-event-attribute = het heeft een gebeurtenisattribuut
 refusal-asset-svg-foreign-object = het heeft een foreignObject-element
 refusal-asset-svg-external-reference = het verwijst naar iets buiten het document
 refusal-asset-svg-malformed = de opmaak ervan is niet te volgen
-refusal-asset-svg-too-complex = de opbouw ervan is te diep, te complex of cyclisch
+refusal-asset-svg-too-complex = de elementen ervan zijn te diep genest of verwijzen naar elkaar in een te lange keten of een kring
 refusal-asset-svg-huge-number = het bevat een getal dat te groot is om te tekenen
 refusal-asset-svg-unsupported = het gebruikt transform-origin of feConvolveMatrix
 refusal-asset-advice-plain-utf8 = exporteer het opnieuw als eenvoudige SVG in UTF-8
@@ -148,7 +148,7 @@ refusal-asset-advice-editing-data = dit zijn de bewerkingsgegevens die Illustrat
 refusal-asset-advice-no-code = een afbeelding in een tekening voert nooit code uit: verwijder de scripts en de interactiviteit en exporteer haar daarna opnieuw als eenvoudige SVG
 refusal-asset-advice-html = het bevat HTML: exporteer het opnieuw als eenvoudige SVG, in Illustrator met "Preserve Illustrator Editing Capabilities" uit, in draw.io na het selecteren van alle labels en het uitzetten van "Formatted Text" en "Word Wrap" (tabblad Text, Advanced) vóór File > Export as > SVG
 refusal-asset-advice-self-contained = verwijder gekoppelde of ingesloten afbeeldingen en lettertypen (zet tekst om in contouren) en exporteer het opnieuw als eenvoudige SVG; voeg een rasterafbeelding toe als een eigen PNG- of JPEG-bestand
-refusal-asset-advice-simplify = vereenvoudig de tekening (minder geneste groepen, klonen, markeringen en stijlregels) en exporteer haar opnieuw als eenvoudige SVG met presentatieattributen in plaats van een stijlblad (Inkscape: "Plain SVG"; CorelDRAW: Styling options "Presentation attributes")
+refusal-asset-advice-simplify = vereenvoudig de tekening (minder geneste groepen en klonen van klonen) en exporteer haar opnieuw als eenvoudige SVG (Inkscape: "Plain SVG")
 refusal-asset-advice-scale = schaal de tekening naar een normaal paginaformaat, houd filterwaarden klein en exporteer haar opnieuw als eenvoudige SVG
 refusal-asset-advice-flatten = vlak de transformaties af en verwijder convolutiefilters, en exporteer daarna opnieuw als eenvoudige SVG
 # The detail of other crates' errors: serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.

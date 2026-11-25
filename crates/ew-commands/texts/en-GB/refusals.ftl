@@ -139,7 +139,7 @@ refusal-asset-svg-event-attribute = it has an event attribute
 refusal-asset-svg-foreign-object = it has a foreignObject element
 refusal-asset-svg-external-reference = it references something outside the document
 refusal-asset-svg-malformed = its markup cannot be followed
-refusal-asset-svg-too-complex = its structure is too deep, too complex or cyclic
+refusal-asset-svg-too-complex = its elements nest too deep or reference each other in too long a chain or a circle
 refusal-asset-svg-huge-number = it has a number too large to draw
 refusal-asset-svg-unsupported = it uses transform-origin or feConvolveMatrix
 refusal-asset-advice-plain-utf8 = export it again as a plain SVG in UTF-8
@@ -147,7 +147,7 @@ refusal-asset-advice-editing-data = this is the editing data Illustrator writes 
 refusal-asset-advice-no-code = a drawing's image never runs code: remove the scripts and interactivity, then export it again as a plain SVG
 refusal-asset-advice-html = it holds HTML: export it again as a plain SVG, in Illustrator with "Preserve Illustrator Editing Capabilities" off, in draw.io after selecting all labels and clearing "Formatted Text" and "Word Wrap" (Text tab, Advanced) before File > Export as > SVG
 refusal-asset-advice-self-contained = remove linked or embedded images and fonts (convert text to outlines) and export it again as a plain SVG; add a raster picture as its own PNG or JPEG file
-refusal-asset-advice-simplify = simplify the drawing (fewer nested groups, clones, markers and style rules) and export it again as a plain SVG with presentation attributes rather than a style sheet (Inkscape: "Plain SVG"; CorelDRAW: Styling options "Presentation attributes")
+refusal-asset-advice-simplify = simplify the drawing (fewer nested groups and clones of clones) and export it again as a plain SVG (Inkscape: "Plain SVG")
 refusal-asset-advice-scale = scale the drawing to a normal page size, keep filter values small, and export it again as a plain SVG
 refusal-asset-advice-flatten = flatten the transforms and remove convolution filters, then export it again as a plain SVG
 # The detail of other crates' errors: serde's, the encodings', an identifier's, a carrier path's, the PLC texts' and a major update's.

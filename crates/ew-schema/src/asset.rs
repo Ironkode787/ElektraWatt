@@ -12,10 +12,10 @@
 //! - [`sniff`]: what the asset store does once, when bytes are imported: it reads the magic bytes and the
 //!   intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or `width`/`height`) and applies the size limits. It
 //!   decodes no image and renders nothing. An SVG must also pass [`svg_hazard`].
-//! - [`svg_hazard`]: the conservative pre-parse rejecter of SVG assets (doc 18 §11 TM-18): sniffing is not
-//!   sanitising, so every SVG the store admits is first scanned for a DOCTYPE internal subset, entity declarations,
-//!   scripts and event attributes, `foreignObject`, and references that leave the document; any of them refuses the
-//!   asset before a parser or a renderer sees it.
+//! - [`svg_hazard`]: the plain rejecter of SVG assets (doc 18 §11 TM-18): sniffing is not sanitising, so every SVG
+//!   the store admits is first read for a DOCTYPE internal subset, entity declarations, scripts and event attributes,
+//!   `foreignObject`, references that leave the document, and the nesting, reference chains and numbers the parser
+//!   does not survive; any of them refuses the asset before a parser or a renderer sees it.
 //! - [`sha256_mentions`]: the asset hashes a text mentions (the asset purge).
 //! - [`base64_encode`] and [`base64_decode`]: the standard alphabet with padding (RFC 4648 §4), the encoding of
 //!   asset bytes inside JSON (command parameters, journal lines).
@@ -201,15 +201,8 @@ pub enum SvgHazard {
     /// Markup the scanner cannot follow (an unclosed comment, CDATA section, processing instruction, tag or
     /// attribute value, an unknown declaration): refused rather than guessed.
     Malformed,
-    /// Structure the parser cannot bear: nesting deeper than [`MAX_SVG_DEPTH`], a cycle of references
-    /// (through descendants, through class rules or through a rule with any other selector), an expansion through
-    /// references beyond [`MAX_SVG_EXPANSION`], marker content that can carry a marker property (its own attributes,
-    /// an ancestor's, a class whose rule names one, or any element when a rule with another selector names one), a
-    /// style sheet with more selector groups than [`MAX_SVG_CSS_RULES`] or more cloned declarations than
-    /// [`MAX_SVG_CSS_DECLARATIONS`] (upper bounds counted without parsing, so no string, comment or at-rule hides
-    /// them), a long run of close-path commands, path segments beyond [`MAX_SVG_PATH_SEGMENTS`] or an arc of more
-    /// than [`MAX_SVG_ARC_PIECES`] pieces, marker applications beyond [`MAX_SVG_MARKER_WORK`] or style
-    /// matching and application beyond [`MAX_SVG_CSS_WORK`].
+    /// Elements the parser does not survive: nesting deeper than [`MAX_SVG_DEPTH`], or a chain of references longer
+    /// than [`MAX_SVG_REF_DEPTH`] or a cycle of them.
     TooComplex,
     /// A number beyond [`MAX_SVG_NUMBER`] in an attribute or a style sheet.
     HugeNumber,
@@ -229,7 +222,9 @@ impl SvgHazard {
             SvgHazard::ForeignObject => "it has a foreignObject element",
             SvgHazard::ExternalReference => "it references something outside the document",
             SvgHazard::Malformed => "its markup cannot be followed",
-            SvgHazard::TooComplex => "its structure is too deep, too complex or cyclic",
+            SvgHazard::TooComplex => {
+                "its elements nest too deep or reference each other in too long a chain or a circle"
+            }
             SvgHazard::HugeNumber => "it has a number too large to draw",
             SvgHazard::Unsupported => "it uses transform-origin or feConvolveMatrix",
         }
@@ -258,9 +253,8 @@ impl SvgHazard {
                  SVG; add a raster picture as its own PNG or JPEG file"
             }
             SvgHazard::TooComplex => {
-                "simplify the drawing (fewer nested groups, clones, markers and style rules) and export it again as a \
-                 plain SVG with presentation attributes rather than a style sheet (Inkscape: \"Plain SVG\"; CorelDRAW: \
-                 Styling options \"Presentation attributes\")"
+                "simplify the drawing (fewer nested groups and clones of clones) and export it again as a plain SVG \
+                 (Inkscape: \"Plain SVG\")"
             }
             SvgHazard::HugeNumber => {
                 "scale the drawing to a normal page size, keep filter values small, and export it again as a plain SVG"
@@ -606,65 +600,22 @@ fn svg_elements(bytes: &[u8]) -> usize {
         .count()
 }
 
-mod work;
-
-/// The deepest element nesting an SVG asset may have (the parser recurses per level).
+/// The deepest element nesting an SVG asset may have: the parser recurses once per level, so a deeper document
+/// would overflow its stack.
 pub const MAX_SVG_DEPTH: usize = 64;
-/// The most elements an SVG asset may expand to through its references (`use`, clip paths, masks, patterns,
-/// markers, filters), counted with multiplicity (usvg converts a referenced subtree once per reference).
-pub const MAX_SVG_EXPANSION: u64 = 200_000;
-/// The longest chain of references an SVG asset may have (`use` of an element that holds a `use`, a clip path whose
-/// content references a mask, and so on): the parser recurses once per link and allows 1024.
+/// The longest chain of references an SVG asset may have (`use` of an element that holds a `use`, a gradient that
+/// takes its stops from another, a clip path whose content references a mask, and so on): the parser recurses or
+/// walks once per link, and walks a cycle of `href` links that returns to neither end for ever.
 pub const MAX_SVG_REF_DEPTH: usize = 32;
 /// The largest magnitude of a number in an attribute or a style sheet of an SVG asset (huge arc radii
 /// and filter values make the parser allocate without bound or panic).
 pub const MAX_SVG_NUMBER: f64 = 1.0e9;
-/// The most selector groups an SVG asset's style sheets may hold, an upper bound counted without parsing (every
-/// group needs a `,` or a `{`): usvg matches every rule against every element (`usvg` 0.48.1
-/// `parser/svgtree/parse.rs`), and the CSS parser makes one rule per group (audit of simplecss 0.2.2,
-/// `supply-chain/audits.toml`). The largest real exporter file seen holds a bound of 82.
-pub const MAX_SVG_CSS_RULES: u64 = 4_096;
-/// The most declarations an SVG asset's style sheets may hold once every selector group has its own copy of its
-/// rule's declarations: for a plain sheet this is the exact count of the copies the CSS parser makes (per rule, its
-/// selector groups times its declarations); a sheet that is not plain falls back to the raw group bound times its
-/// `:` count (audit of simplecss 0.2.2, `supply-chain/audits.toml`: "selector-group x declaration clone growth").
-/// The largest real exporter file seen holds a bound of 3,526.
-pub const MAX_SVG_CSS_DECLARATIONS: u64 = 262_144;
-/// The most marker work an SVG asset may cause, in elements converted: usvg converts a marker's content
-/// once per vertex it is drawn at, and the vertices of a shape are those of the path it makes of it (an arc's cubic
-/// pieces included). The bound sums, over every shape conversion (the document's and every reference's, as the
-/// expansion counts them) that can carry a marker property, its segments times the largest marker content a
-/// `marker-mid` names plus the largest a `marker-start` and a `marker-end` name. The same element budget as
-/// [`MAX_SVG_EXPANSION`]; the largest real exporter file seen (Visio, arrowheads through class rules) holds a bound
-/// of 48, so the limit has a margin of over 4,000 (`asset/work/tests.rs` asserts the corpus bounds).
-pub const MAX_SVG_MARKER_WORK: u64 = 200_000;
-/// The most style work an SVG asset may cause, in match steps: usvg matches every style rule against every
-/// element it parses (clones of `use` included), simplecss backtracks through the ancestors once per descendant
-/// combinator, and every matching rule's declarations are applied. The bound sums, over every element conversion,
-/// each selector's most expensive match at the element's depth (`asset/work.rs`), the declarations of every rule
-/// that may match it times their insertion cost, and its own `style` declarations. The largest real exporter file
-/// seen (Inkscape, a 2,791-element map whose commented sheet is not plain) holds a bound of 430,667,782, so the limit
-/// 2^34 (17,179,869,184) has a margin of about 40 (`asset/work/tests.rs` asserts the corpus bounds).
-pub const MAX_SVG_CSS_WORK: u64 = 1 << 34;
-/// The most path segments an SVG asset may convert to: over every shape conversion (the
-/// document's and every reference's), the segments of the path usvg makes of it, an arc's cubic pieces included
-/// (kurbo cuts an arc whose radius is scaled up over a long chord, or a radius in `em` from nested font sizes, into
-/// thousands to millions of pieces; the scan counts a radius in `em`, `ex` or `%` as `f32::MAX`, so one circle,
-/// ellipse or rounded rectangle with such a radius is over the limit). 2^22 (4,194,304): the largest real exporter
-/// file seen (Illustrator, a 2,552-element map) holds a bound of 33,896, a margin of over 120 (`asset/work/tests.rs`
-/// asserts the corpus bounds).
-pub const MAX_SVG_PATH_SEGMENTS: u64 = 1 << 22;
-/// The most cubic pieces one elliptical arc of path data may make: svgtypes 0.16.1 hands an arc's
-/// pieces out of a buffer it drains from the front (`Vec::remove(0)`), so an arc of `n` pieces costs about `n²/2`
-/// moves. kurbo makes at most 55 (the scan's bound) of an arc whose radius is at most [`MAX_SVG_NUMBER`]; more only
-/// come from radii scaled up over a chord much longer than the smaller radius, which no drawing needs. A path with
-/// such an arc counts as unbounded.
-pub const MAX_SVG_ARC_PIECES: u64 = 64;
 
 /// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (doc 05 §13.3,
-/// doc 18 §11 TM-18). Sniffing is not sanitising: the sniffer reads only the root element, so this scanner reads the
-/// whole document as markup (comments skipped, CDATA read as text) and refuses, conservatively (ASCII case is ignored,
-/// so `<SCRIPT` counts):
+/// doc 18 §11 TM-18): the plain rejecter. Sniffing is not sanitising: the sniffer reads only the root element and
+/// [`sniff`] caps the size ([`MAX_SVG_BYTES`]) and the elements ([`MAX_SVG_NODES`]), so this reader reads the whole
+/// document as markup (comments skipped, CDATA read as text, character references decoded as the parser decodes
+/// them) and refuses, conservatively (ASCII case is ignored, so `<SCRIPT` counts):
 ///
 /// - a DOCTYPE with an internal subset, and any entity declaration ([`SvgHazard::DoctypeSubset`],
 ///   [`SvgHazard::Entity`]); a DOCTYPE with only an external identifier (`PUBLIC "-//W3C//DTD SVG 1.1//EN" "…"`, as
@@ -678,104 +629,27 @@ pub const MAX_SVG_ARC_PIECES: u64 = 64;
 ///   `embed`, `object` and `include` elements ([`SvgHazard::ExternalReference`]); an embedded `data:` image counts
 ///   as such a reference (EW draws an SVG asset's paths, not images inside it);
 /// - text that is not UTF-8, and markup it cannot follow ([`SvgHazard::NotUtf8`], [`SvgHazard::Malformed`]);
-/// - what the parser's audit found it cannot bear (the cargo-vet audit of usvg 0.48.1 and its dependencies,
-///   2026-10-23): nesting deeper than [`MAX_SVG_DEPTH`]; a cycle of references between elements (`url(#…)` and
-///   `href="#…"`, through descendants, through the class rules a class selects and through a rule with any other
-///   selector, any length); an expansion through references beyond [`MAX_SVG_EXPANSION`]; marker content that can
-///   carry a marker property, from its own attributes, an ancestor's, a class whose rule names one, or any element
-///   when a rule with another selector names one; a style sheet with selectors of more than six compound parts, more
-///   selector groups than [`MAX_SVG_CSS_RULES`] (an upper bound computed from the raw text without parsing) or more
-///   cloned declarations than [`MAX_SVG_CSS_DECLARATIONS`] (exact for a plain sheet, the raw bound otherwise), more
-///   than 64 comments or more than 64 KiB; more than 16 `drop-shadow(` functions; a run of more than 16 close-path
-///   commands in path data ([`SvgHazard::TooComplex`]); a number beyond [`MAX_SVG_NUMBER`] in an attribute or a style
-///   sheet ([`SvgHazard::HugeNumber`]), where a hex colour (`#D63E25`) and a fragment name (`url(#g1e30)`) are not
-///   numbers; and the two constructs that panic the parser, `transform-origin` and `feConvolveMatrix`
-///   ([`SvgHazard::Unsupported`]).
+/// - the elements beyond what the parser survives ([`SvgHazard::TooComplex`]): nesting deeper than [`MAX_SVG_DEPTH`],
+///   and a chain of references longer than [`MAX_SVG_REF_DEPTH`] or a cycle of them, the references being the
+///   `href="#…"` and `url(#…)` of an element's attributes, each counted from the element and from every ancestor
+///   with an id;
+/// - a number beyond [`MAX_SVG_NUMBER`] in an attribute or a style sheet ([`SvgHazard::HugeNumber`]), where a hex
+///   colour (`#D63E25`) and a fragment name (`url(#g1e30)`) are not numbers;
+/// - `transform-origin` and `feConvolveMatrix`, which panic the parser ([`SvgHazard::Unsupported`]).
 ///
-/// A style sheet's references follow the classes and selectors that use them: an element's `class` tokens reach the
-/// class rules of those classes, and every element reaches the rule with any other selector (the *wild* rule). A
-/// wild rule that references an element with an id other than a gradient is therefore a cycle and is refused; a wild
-/// rule may reference gradients, which are not graph nodes.
+/// What it lets through costs time and memory only while the drawing is made, with the parse inside `catch_unwind`:
+/// the parser stops expanding references at a million nodes, and what a style sheet, markers, a reference made in a
+/// style sheet or long path data cost is not bounded beyond the caps (doc 18 §11 TM-18).
 ///
-/// A style sheet with escapes, at-rules, braces in comments or strings that can move a rule boundary is read
-/// conservatively as one rule that may apply to every element (so it may not reference an element with an id other
-/// than a gradient, nor carry a marker property when the document has markers); a quoted string that simplecss reads
-/// as a plain value keeps the sheet exact. Real exporters' sheets are plain (Illustrator, Inkscape, CorelDRAW,
-/// Visio) or carry no such reference (`@keyframes`, comments).
-///
-/// Three work bounds follow, computed from the same pass (arithmetic in `asset/work.rs`) and refused as
-/// [`SvgHazard::TooComplex`]:
-///
-/// - *path segments*: over every shape conversion, marker or not, the segments of the path usvg
-///   makes of it; beyond [`MAX_SVG_PATH_SEGMENTS`], or any arc of path data beyond [`MAX_SVG_ARC_PIECES`] pieces
-///   (svgtypes drains them quadratically);
-/// - *marker applications*: over every shape conversion (the document's and every reference's) that can
-///   carry a marker property (its own, an ancestor's, a class rule's, or any when a `use` converts it again), its
-///   path segments (one per command, the move-to svgtypes inserts after a close-path, and every cubic piece kurbo
-///   cuts an arc into) times the largest marker content a `marker-mid` names, plus the largest a `marker-start` and a
-///   `marker-end` name; beyond [`MAX_SVG_MARKER_WORK`];
-/// - *style work*: over every element conversion, each selector's most expensive simplecss match at the
-///   element's depth (the backtracking over ancestors per descendant combinator), the declarations of every rule
-///   that may match it and of its `style` attribute times their insertion cost; beyond [`MAX_SVG_CSS_WORK`].
-///   Selectors are known exactly in a plain sheet; in any other sheet every span that can end a valid selector is
-///   one (with comments that can host a statement), and a sheet with an escape is one selector of all its parts.
-///
-/// Where the scan cannot tell what usvg will apply, it counts the larger case: a radius in `em` or `ex` resolves from
-/// the `font-size` chain (default 12) and one in `%` from the root viewport, but each is as large as `f32` allows where
-/// CSS may set a font size (for `em`, `ex`), a nested `svg` or `symbol` sets another viewport (for `%`) or a `use`
-/// converts the shape again (for all three); path data it cannot follow is bounded from its digits, a combinator it cannot tell walks
-/// every ancestor and the sibling, and a rule's declarations may apply to every element unless its selector requires
-/// a class.
-///
-/// Calibrated against real exporters' files (`tests/fixtures/svg-exporters/`).
-///
-/// Linear in the length of the file (the reference graph is walked a few times; a style sheet's selectors cost
-/// their compounds times the 64 depths). The drawing pipeline parses an admitted SVG
-/// with external references disabled and inside `catch_unwind` besides, so this is the first of two guards,
-/// not the only one.
+/// Linear in the length of the file.
 pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
-    svg_work(bytes).err()
+    let mut scan = Plain::default();
+    read_markup(bytes, &mut scan).or_else(|| scan.finish())
 }
 
-/// The work bounds of an admitted SVG document (the counts its limits are checked against).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-struct Work {
-    /// Elements converted, references expanded ([`MAX_SVG_EXPANSION`]).
-    expansion: u64,
-    /// Path segments of every shape conversion ([`MAX_SVG_PATH_SEGMENTS`]).
-    segments: u64,
-    /// Marker content elements converted ([`MAX_SVG_MARKER_WORK`]).
-    markers: u64,
-    /// Style match and application steps ([`MAX_SVG_CSS_WORK`]).
-    css: u64,
-}
-
-/// The upper bound [`svg_hazard`] uses for the segments usvg 0.48.1 makes of the path data `d`, for the
-/// test that checks it against usvg itself (`ew-scene`); not part of the asset API.
-#[doc(hidden)]
-pub fn svg_path_segment_bound(d: &str) -> u64 {
-    work::path_segments(d)
-}
-
-/// The upper bound [`svg_hazard`] uses for the path segments of every shape conversion of an admitted document, or
-/// `None` when it refuses it, for the test that checks the resolution of `em`, `ex` and `%` radii against usvg
-/// itself (`ew-scene`); not part of the asset API.
-#[doc(hidden)]
-pub fn svg_segment_bound(bytes: &[u8]) -> Option<u64> {
-    svg_work(bytes).ok().map(|work| work.segments)
-}
-
-/// [`svg_hazard`]'s scan: the first refusal, or the work bounds of an admitted document.
-fn svg_work(bytes: &[u8]) -> Result<Work, SvgHazard> {
-    let mut scan = Scan::default();
-    if let Some(hazard) = read_markup(bytes, &mut scan) {
-        return Err(hazard);
-    }
-    scan.finish()
-}
-
-/// [`svg_hazard`]'s markup reader: the first refusal while reading, with the document's facts left in `scan`.
-fn read_markup(bytes: &[u8], scan: &mut Scan) -> Option<SvgHazard> {
+/// The plain rejecter's markup reader: the first refusal while reading, with the document's references left in
+/// `scan`.
+fn read_markup(bytes: &[u8], scan: &mut Plain) -> Option<SvgHazard> {
     let Ok(text) = std::str::from_utf8(bytes) else {
         return Some(SvgHazard::NotUtf8);
     };
@@ -805,7 +679,6 @@ fn read_markup(bytes: &[u8], scan: &mut Scan) -> Option<SvgHazard> {
             let Some(end) = find(i + 4, "-->") else {
                 return Some(SvgHazard::Malformed);
             };
-            scan.non_element();
             i = end + 3;
             continue;
         }
@@ -853,7 +726,6 @@ fn read_markup(bytes: &[u8], scan: &mut Scan) -> Option<SvgHazard> {
             if target == "xml-stylesheet" {
                 return Some(SvgHazard::ExternalReference);
             }
-            scan.non_element();
             i = end + 2;
             continue;
         }
@@ -919,26 +791,25 @@ fn read_markup(bytes: &[u8], scan: &mut Scan) -> Option<SvgHazard> {
                 let Some(end) = lower[j + 1..].find(char::from(q)).map(|k| j + 1 + k) else {
                     return Some(SvgHazard::Malformed);
                 };
-                // ASCII lowercasing preserves byte offsets; keep the original case for the ambiguity check.
                 value = &text[j + 1..end];
                 j = end + 1;
             }
-            // XML normalizes literal attribute whitespace before decoding references. A literal TAB becomes a
-            // space, while `&#9;` remains a TAB; graph keys and ambiguity comparisons must see the parser's values.
+            // XML normalizes literal attribute whitespace before decoding references, as the parser reads the value.
             let Some(value) = decode_attribute_refs(value) else {
                 return Some(SvgHazard::Malformed);
             };
             // roxmltree keeps namespace declarations out of `attributes()` and usvg copies only None/SVG/XLink/XML
-            // attributes, so `xmlns` and `xmlns:*` are not attributes of the element (review finding 8).
+            // attributes, so `xmlns` and `xmlns:*` are not attributes of the element.
             if attr == "xmlns" || attr.starts_with("xmlns:") {
                 continue;
             }
-            if let Some(h) = attribute_hazard(attr, &value.to_ascii_lowercase()) {
+            let value = value.to_ascii_lowercase();
+            if let Some(h) = attribute_hazard(attr, &value) {
                 return Some(h);
             }
             attrs.push((local_name(attr), value));
         }
-        if let Some(h) = scan.open(name, &mut attrs, self_closing) {
+        if let Some(h) = scan.open(name, &attrs, self_closing) {
             return Some(h);
         }
         i = j;
@@ -946,1053 +817,134 @@ fn read_markup(bytes: &[u8], scan: &mut Scan) -> Option<SvgHazard> {
     None
 }
 
-/// One element of the document, in document order: its parent's record, whether it carries a marker property
-/// attribute, and its class tokens.
-struct Record {
-    parent: Option<usize>,
-    marker_attr: bool,
-    classes: Vec<String>,
-    /// Its ancestors (0 for the root).
-    depth: usize,
-    /// The segments of the path usvg makes of it when it is a shape ([`work::shape_segments`]), else 0: with its
-    /// font size known (index bit 0 clear) or the worst case (set), and its viewport known (bit 1 clear) or the
-    /// worst case (set); [`Scan::finish`] chooses.
-    segment_cases: [u64; 4],
-    /// Upper bounds of its font size and of its viewport's larger side; `None` when unknown.
-    font: Option<f64>,
-    viewport: Option<f64>,
-    /// The markers its own marker attributes and `style` name, per property.
-    markers: work::MarkerTargets,
-    /// The declarations (`:` count) and bytes of its `style` attribute, applied to it and to each clone.
-    style: (u64, u64),
-}
-
-/// A graph node (an element with an id, gradients and stops excepted).
-struct Node {
-    /// The elements of its subtree, itself included.
-    size: u64,
-    /// Its references and those of its subtree: target key → count.
-    refs: std::collections::BTreeMap<String, u64>,
-    /// Its element's record.
-    record: usize,
-    /// Whether an element of its subtree (itself included) carries a marker property attribute.
-    marker_attr: bool,
-    /// Whether its element is a `marker`.
-    is_marker: bool,
-}
-
-/// The state of [`svg_hazard`]'s structural checks: the open elements, the record of every element, the reference
-/// graph and the style sheet.
+/// What the plain rejecter keeps of a document while it reads it: the open elements, the text of an open `style`
+/// element and the references between the elements with an id.
 #[derive(Default)]
-struct Scan {
-    /// The open elements: local name, graph node (an element with an `id`, gradients and stops excepted) and record.
-    open: Vec<(String, Option<usize>, usize)>,
-    /// The graph node of each id.
-    ids: std::collections::BTreeMap<String, usize>,
-    /// Every non-empty id seen, gradients and stops included: a repeat is refused.
-    seen_ids: std::collections::BTreeSet<String>,
-    /// The graph nodes, in document order.
-    nodes: Vec<Node>,
-    /// Every element, in document order.
-    records: Vec<Record>,
-    /// The elements of the document.
-    elements: u64,
-    /// Every reference with its count, from any element: the document's own conversion makes each one once (a
-    /// reference inside an element with an id counts here too, not only in that node's edges).
-    all_refs: std::collections::BTreeMap<String, u64>,
-    /// The ids `use` elements reference: usvg converts their subtrees again under the `use`, where they inherit
-    /// the `use`'s marker properties.
-    use_targets: std::collections::BTreeSet<String>,
-    /// The markers each class rule names, per property.
-    class_markers: std::collections::BTreeMap<String, [std::collections::BTreeSet<String>; 3]>,
-    /// The most attributes of an element, and the longest value per attribute name.
-    max_attrs: u64,
-    value_len: std::collections::BTreeMap<String, u64>,
-    /// Per open element (and the document before the root, index 0), the nodes that are not elements since its
-    /// last element child; the most seen before an element.
-    gaps: Vec<u64>,
-    max_gap: u64,
-    /// The selectors of every style sheet.
-    selectors: Vec<work::Selector>,
-    /// The declarations (count, bytes) usvg may apply to every element, and to the elements with each class.
-    apply_all: (u64, u64),
-    apply_class: std::collections::BTreeMap<String, (u64, u64)>,
-    /// Whether a style sheet or `style` attribute holds `inherit` (usvg then walks the ancestors per declaration)
-    /// or may hold the `font` shorthand (fourteen attributes per declaration).
-    css_inherit: bool,
-    css_font: bool,
-    /// Whether a style sheet, a `style` attribute or a `font` attribute mentions `font`, so CSS may set a
-    /// `font-size` the scan's chain does not see: every `em` and `ex` then counts as the worst case.
-    font_css: bool,
-    /// Whether a nested `svg` or `symbol` sets another viewport: a shape that a reference from inside it converts
-    /// (marker, pattern, clip or mask content) resolves `%` there, so every `%` counts as the worst case.
-    nested_viewport: bool,
-    /// The ids each class rule references, by class.
-    class_targets: std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
-    /// The classes whose rule names a marker property.
-    marker_classes: std::collections::BTreeSet<String>,
-    /// Whether a rule with a selector other than a plain class exists, and the ids its rules reference.
-    css_wild: bool,
-    wild_targets: std::collections::BTreeSet<String>,
-    /// Whether a wild rule names a marker property.
-    css_marker_wild: bool,
-    /// The comments in style sheets.
-    css_comments: usize,
-    /// The upper bound of the selector groups of every style sheet so far.
-    css_rules: u64,
-    /// The declarations of every style sheet so far: exactly each plain rule's `groups × max(colons, 1)`, the raw
-    /// `groups_bound × colons` for a sheet that is not plain.
-    css_declarations: u64,
-    /// The character data and CDATA text of the open `style` element, as roxmltree merges them.
-    style_text: String,
-    drop_shadows: usize,
-    /// The `href` of each gradient, pattern and filter with an id: the parser follows these chains until a link
-    /// returns to the current or the first element, so any other cycle in them never ends (review fix 5).
-    chains: std::collections::BTreeMap<String, String>,
+struct Plain {
+    /// The open elements, innermost last: the local name and the node of an element with an id.
+    open: Vec<(String, Option<usize>)>,
+    /// The text of the open `style` element (roxmltree merges its chunks into one text node).
+    style: String,
+    /// The elements with an id or a reference, in document order: each with its id and the ids it references, itself
+    /// or (for an element with an id) a descendant.
+    nodes: Vec<(Option<String>, Vec<String>)>,
 }
 
-/// A frame of the reference walk: the node, its edges (target, count) and the next edge to follow.
-type Frame = (usize, Vec<(usize, u64)>, usize);
-
-impl Scan {
-    fn open(&mut self, name: &str, attrs: &mut [(&str, String)], self_closing: bool) -> Option<SvgHazard> {
+impl Plain {
+    /// A start tag `name` with its attributes (lower case).
+    fn open(&mut self, name: &str, attrs: &[(&str, String)], self_closing: bool) -> Option<SvgHazard> {
         if self.open.len() >= MAX_SVG_DEPTH {
             return Some(SvgHazard::TooComplex);
         }
-        // usvg parses each `style` element's own text node; nesting one inside another would split the buffer.
-        if name == "style" && self.open.iter().any(|(open, _, _)| open == "style") {
-            return Some(SvgHazard::TooComplex);
-        }
-        // Namespace handling differs between the scanner and usvg. Refuse conflicting local id/class/href
-        // values before building records or references, comparing exact XML-normalized decoded values (case kept).
-        // Identical values are unambiguous, including a literal paired with its character-reference spelling.
-        for local in ["id", "class", "href"] {
-            let mut values = attrs
-                .iter()
-                .filter(|(attr, _)| *attr == local)
-                .map(|(_, value)| value);
-            if let Some(first) = values.next() {
-                if values.any(|value| value != first) {
-                    return Some(SvgHazard::TooComplex);
-                }
-            }
-        }
-        // What this element's relative lengths resolve against. The font size follows the `font-size` chain
-        // from usvg's default; the viewport is the root's, unknown under a nested `svg` or `symbol` (usvg converts
-        // their content in their own viewport). CSS and `use` are applied in `finish`.
-        let parent = self.open.last().map(|(_, _, record)| *record);
-        let parent_font = parent.map_or(Some(work::DEFAULT_FONT_SIZE), |p| self.records[p].font);
-        let font_sizes: Vec<String> = attrs
-            .iter()
-            .filter(|(a, _)| *a == "font-size")
-            .map(|(_, v)| v.to_ascii_lowercase())
-            .collect();
-        let font = work::font_size_bound(parent_font, font_sizes.iter().map(String::as_str));
-        let viewport = match parent {
-            None => {
-                let lower: Vec<(&str, String)> =
-                    attrs.iter().map(|(a, v)| (*a, v.to_ascii_lowercase())).collect();
-                work::root_viewport(&lower)
-            }
-            Some(_) if matches!(name, "svg" | "symbol") => {
-                self.nested_viewport = true;
-                None
-            }
-            Some(p) => self.records[p].viewport,
-        };
-        // Path data is case-sensitive (absolute and relative commands): the shape's segments are bounded first, in
-        // the four cases `finish` chooses from (font size known or worst, viewport known or worst).
-        let segments = if work::has_radii(name) {
-            let mut cases = [0u64; 4];
-            for (k, case) in cases.iter_mut().enumerate() {
-                let worst = work::Lengths::WORST;
-                let lengths = work::Lengths {
-                    font: font.filter(|_| k & 1 == 0).unwrap_or(worst.font),
-                    viewport: viewport.filter(|_| k & 2 == 0).unwrap_or(worst.viewport),
-                };
-                *case = work::shape_segments(name, attrs, lengths);
-            }
-            cases
-        } else {
-            [work::shape_segments(name, attrs, work::Lengths::WORST); 4]
-        };
-        if attrs
-            .iter()
-            .any(|(a, v)| *a == "font" || (*a == "style" && v.to_ascii_lowercase().contains("font")))
-        {
-            self.font_css = true;
-        }
-        // All following hazard/graph logic retains the scanner's conservative ASCII-insensitive behaviour.
-        for (_, value) in attrs.iter_mut() {
-            value.make_ascii_lowercase();
-        }
-        // What a selector match on this element can cost: its attribute count and value lengths, and the
-        // nodes before it that are not elements (the previous-sibling walk).
-        self.max_attrs = self.max_attrs.max(attrs.len() as u64);
-        for (attr, value) in attrs.iter() {
-            let len = value.len() as u64;
-            let longest = self.value_len.entry((*attr).to_owned()).or_insert(0);
-            *longest = (*longest).max(len);
-        }
-        let gap = self.gap_slot();
-        let before = std::mem::take(gap);
-        self.max_gap = self.max_gap.max(before);
-        let id = attrs
-            .iter()
-            .find(|(a, _)| *a == "id")
-            .map(|(_, v)| v.trim().to_owned());
-        if let Some(id) = &id {
-            // usvg resolves `<use>` to the first element with an id and every `url(#…)` to the last; duplicate ids
-            // are invalid SVG that no exporter writes, so the scanner refuses them rather than follow either.
-            if !id.is_empty() && !self.seen_ids.insert(id.clone()) {
-                return Some(SvgHazard::TooComplex);
-            }
-        }
-        if let (Some(id), true) = (
-            &id,
-            matches!(name, "lineargradient" | "radialgradient" | "pattern" | "filter"),
-        ) {
-            let href = attrs
-                .iter()
-                .find(|(a, _)| *a == "href")
-                .and_then(|(_, v)| v.trim().strip_prefix('#'));
-            if let Some(target) = href {
-                // The first chain of an id wins, as the parser's first element with the id does.
-                self.chains
-                    .entry(id.clone())
-                    .or_insert_with(|| target.trim().to_owned());
-            }
-        }
-        let record = self.records.len();
-        self.records.push(Record {
-            parent: self.open.last().map(|(_, _, record)| *record),
-            marker_attr: false,
-            classes: Vec::new(),
-            depth: self.open.len(),
-            segment_cases: segments,
-            font,
-            viewport,
-            markers: Default::default(),
-            style: (0, 0),
-        });
-        let node = match id {
-            Some(id) if !matches!(name, "lineargradient" | "radialgradient" | "stop") && !id.is_empty() => {
-                let k = self.nodes.len();
-                self.nodes.push(Node {
-                    size: 0,
-                    refs: std::collections::BTreeMap::new(),
-                    record,
-                    marker_attr: false,
-                    is_marker: name == "marker",
-                });
-                self.ids.entry(id).or_insert(k);
-                Some(k)
-            }
-            _ => None,
-        };
-        self.open.push((name.to_owned(), node, record));
-        self.gaps.push(0);
-        self.count_element();
         for (attr, value) in attrs {
-            let value = value.as_str();
-            work::attribute_markers(attr, value, &mut self.records[record].markers);
-            if *attr == "style" {
-                let found = work::declaration_markers(value);
-                for (kind, targets) in self.records[record].markers.iter_mut().zip(found) {
-                    kind.extend(targets);
-                }
-                self.records[record].style = (value.matches(':').count() as u64, value.len() as u64);
-                self.css_inherit |= value.contains("inherit");
-                self.css_font |= work::may_hold_font_shorthand(value);
-            }
-            if name == "use" && *attr == "href" {
-                if let Some(target) = value.trim().strip_prefix('#') {
-                    self.use_targets.insert(target.trim().to_owned());
-                }
-            }
-            if *attr == "transform-origin" {
+            if *attr == "transform-origin" || (*attr == "style" && value.contains("transform-origin")) {
                 return Some(SvgHazard::Unsupported);
             }
             if let (false, Some(h)) = (matches!(*attr, "id" | "class" | "href"), numbers(value)) {
                 return Some(h);
             }
-            if *attr == "d" && close_run(value) > 16 {
-                return Some(SvgHazard::TooComplex);
-            }
-            if *attr == "style" && value.contains("transform-origin") {
-                return Some(SvgHazard::Unsupported);
-            }
-            self.drop_shadows += value.matches("drop-shadow(").count();
+        }
+        let id = attrs
+            .iter()
+            .find(|(a, _)| *a == "id")
+            .map(|(_, id)| id.trim().to_owned())
+            .filter(|id| !id.is_empty());
+        let mut targets: Vec<String> = Vec::new();
+        for (attr, value) in attrs {
             if *attr == "href" {
                 if let Some(target) = value.trim().strip_prefix('#') {
-                    self.reference(target.trim());
+                    targets.push(target.trim().to_owned());
                 }
             }
-            for target in url_targets(value) {
-                self.reference(&target);
-            }
-            if *attr == "class" {
-                let classes: Vec<String> = value.split_ascii_whitespace().map(str::to_owned).collect();
-                for class in &classes {
-                    self.reference(&format!("\u{0}class:{class}"));
-                }
-                self.records[record].classes = classes;
-            }
-            if matches!(*attr, "marker-start" | "marker-mid" | "marker-end" | "marker")
-                || (*attr == "style" && value.contains("marker"))
-            {
-                self.records[record].marker_attr = true;
-                // The element is already on the open stack: itself and every open node learn of the attribute.
-                for (_, node, _) in &self.open {
-                    if let Some(k) = node {
-                        self.nodes[*k].marker_attr = true;
-                    }
-                }
-            }
+            targets.extend(url_targets(value));
         }
-        if self_closing {
-            if let Some(h) = self.close() {
-                return Some(h);
-            }
+        // A reference made inside an element is made by every ancestor with an id too: the parser converts the
+        // referenced content as part of each of them.
+        for k in self.open.iter().filter_map(|(_, n)| *n) {
+            self.nodes[k].1.extend(targets.iter().cloned());
+        }
+        let has_id = id.is_some();
+        let node = (has_id || !targets.is_empty()).then(|| {
+            self.nodes.push((id, targets));
+            self.nodes.len() - 1
+        });
+        if !self_closing {
+            self.open.push((name.to_owned(), node.filter(|_| has_id)));
         }
         None
     }
 
-    /// Pop the innermost element; a closed `style` element's whole text is analysed once.
+    /// An end tag: the innermost element closes; a closed `style` element's whole text is checked once.
     fn close(&mut self) -> Option<SvgHazard> {
-        if let Some((name, _, _)) = self.open.pop() {
-            self.gaps.truncate(self.open.len() + 1);
-            if name == "style" {
-                let text = std::mem::take(&mut self.style_text);
-                return self.style_sheet(&text);
+        match self.open.pop() {
+            Some((name, _)) if name == "style" => {
+                let text = std::mem::take(&mut self.style);
+                text_hazard(&text)
+                    .or_else(|| {
+                        text.contains("transform-origin")
+                            .then_some(SvgHazard::Unsupported)
+                    })
+                    .or_else(|| numbers(&text))
             }
-        }
-        None
-    }
-
-    /// The count of nodes that are not elements since the innermost open element's last element child (the
-    /// document's before the root).
-    fn gap_slot(&mut self) -> &mut u64 {
-        self.gaps.resize(self.open.len() + 1, 0);
-        &mut self.gaps[self.open.len()]
-    }
-
-    /// A node that is not an element (text, a comment, a CDATA section, a processing instruction): one more step
-    /// for a previous-sibling walk that passes it.
-    fn non_element(&mut self) {
-        let gap = self.gap_slot();
-        *gap = gap.saturating_add(1);
-    }
-
-    /// One more element in every open node's subtree and in the document.
-    fn count_element(&mut self) {
-        self.elements += 1;
-        for (_, node, _) in &self.open {
-            if let Some(k) = node {
-                self.nodes[*k].size += 1;
-            }
+            _ => None,
         }
     }
 
-    /// A reference to `target` from the innermost element: an edge from every open node, or from the document.
-    fn reference(&mut self, target: &str) {
-        for (_, node, _) in &self.open {
-            if let Some(k) = node {
-                *self.nodes[*k].refs.entry(target.to_owned()).or_insert(0) += 1;
-            }
-        }
-        *self.all_refs.entry(target.to_owned()).or_insert(0) += 1;
-    }
-
-    /// Character data: outside `style` the text checks; inside it every chunk is kept for [`Scan::style_sheet`],
-    /// which runs once when the element closes (roxmltree merges the chunks into one text node).
+    /// Character data: inside `style` it is kept for [`Plain::close`]; elsewhere the text checks.
     fn text(&mut self, text: &str) -> Option<SvgHazard> {
-        self.non_element();
-        if self.open.last().is_some_and(|(name, _, _)| name == "style") {
-            self.style_text.push_str(text);
+        if self.open.last().is_some_and(|(name, _)| name == "style") {
+            self.style.push_str(text);
             return None;
         }
         text_hazard(text)
     }
 
-    /// The checks of one `<style>` element's whole text: the text hazards and per-sheet checks, the document-wide
-    /// group and declaration bounds, and the references of the sheet (exactly when it is plain, as one wild rule
-    /// otherwise).
-    fn style_sheet(&mut self, text: &str) -> Option<SvgHazard> {
-        if let Some(h) = text_hazard(text) {
-            return Some(h);
-        }
-        if text.len() > 64 * 1024 {
-            return Some(SvgHazard::TooComplex);
-        }
-        if text.contains("transform-origin") {
-            return Some(SvgHazard::Unsupported);
-        }
-        if let Some(h) = numbers(text) {
-            return Some(h);
-        }
-        self.css_comments += text.matches("/*").count();
-        self.drop_shadows += text.matches("drop-shadow(").count();
-        self.css_inherit |= text.contains("inherit");
-        self.css_font |= work::may_hold_font_shorthand(text);
-        self.font_css |= text.contains("font");
-        // The group bound without parsing: every selector group needs a `,` or a `{`. The declaration bound is
-        // exact for a plain sheet (below); a sheet that is not plain keeps the raw product of the group bound and
-        // the `:` count, a declaration needing a `:`.
-        let groups_bound = text.matches(',').count() as u64 + text.matches('{').count() as u64;
-        self.css_rules = self.css_rules.saturating_add(groups_bound);
-        if self.css_rules > MAX_SVG_CSS_RULES {
-            return Some(SvgHazard::TooComplex);
-        }
-        let Some((clean, plain)) = plain_style_sheet(text) else {
-            return Some(SvgHazard::Malformed);
-        };
-        if !plain {
-            // A string that can move a rule boundary, an escape, an at-rule or braces in comments can hide a rule
-            // from the split, so the six-part check runs on the raw preludes (the text before each `{` back to the
-            // previous `{` or `}`) and the whole sheet is one rule that may apply to every element.
-            let mut at = 0;
-            while let Some(k) = clean[at..].find(['{', '}']) {
-                let delimiter = at + k;
-                if clean.as_bytes()[delimiter] == b'{' && !prelude_within_part_cap(&clean[at..delimiter]) {
-                    return Some(SvgHazard::TooComplex);
-                }
-                at = delimiter + 1;
-            }
-            self.css_declarations = self
-                .css_declarations
-                .saturating_add(groups_bound.saturating_mul(text.matches(':').count() as u64));
-            if self.css_declarations > MAX_SVG_CSS_DECLARATIONS {
-                return Some(SvgHazard::TooComplex);
-            }
-            // The candidate selectors ([`work::sheet_selectors`], or the whole sheet up to the group bound
-            // times when an escape can hide a boundary or the candidates are too many). Each rule takes one block's
-            // declarations: at most every
-            // `:` and every byte of the sheet, applied to the elements of the class its selector's last compound
-            // requires, or to every element.
-            let colons = text.matches(':').count() as u64;
-            let block = (colons, text.len() as u64);
-            // More candidates than the rule bound (cuts at `/` are not counted by it) fall back to the whole sheet:
-            // simplecss makes at most `groups_bound` rules, so memory stays bounded.
-            match work::sheet_selectors(text, &clean).filter(|spans| spans.len() as u64 <= MAX_SVG_CSS_RULES)
-            {
-                Some(spans) => {
-                    for span in spans {
-                        self.selectors.push(work::Selector {
-                            shape: work::uniform(span),
-                            copies: 1,
-                        });
-                        let apply = match work::last_class(span.trim()) {
-                            Some(class) => self.apply_class.entry(class).or_insert((0, 0)),
-                            None => &mut self.apply_all,
-                        };
-                        apply.0 = apply.0.saturating_add(block.0);
-                        apply.1 = apply.1.saturating_add(block.1);
-                    }
-                }
-                None => {
-                    self.selectors.push(work::Selector {
-                        shape: work::uniform(text),
-                        copies: groups_bound.max(1),
-                    });
-                    self.apply_all.0 = self
-                        .apply_all
-                        .0
-                        .saturating_add(groups_bound.saturating_mul(block.0));
-                    self.apply_all.1 = self
-                        .apply_all
-                        .1
-                        .saturating_add(groups_bound.saturating_mul(block.1));
-                }
-            }
-            self.css_wild = true;
-            self.wild_targets.extend(url_targets(text));
-            if text.contains("marker") {
-                self.css_marker_wild = true;
-            }
-            return None;
-        }
-        // Rule preludes: the text before each `{` back to the previous `}`; its body up to the next `}`. The loop
-        // records into locals first: text outside the bodies that names a reference or a marker makes the whole
-        // sheet wild, and the class rules recorded before that decision stay (more edges are conservative).
-        let mut class_targets: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
-            std::collections::BTreeMap::new();
-        let mut marker_classes = std::collections::BTreeSet::new();
-        let mut wild = false;
-        let mut wild_targets = std::collections::BTreeSet::new();
-        let mut marker_wild = false;
-        // The declarations simplecss clones into the rule groups of this sheet, exactly.
-        let mut declarations = 0u64;
-        let mut outside = String::new();
-        let mut rest = clean.as_str();
-        while let Some(open) = rest.find('{') {
-            let prelude = rest[..open].rsplit('}').next().unwrap_or("");
-            outside.push_str(prelude);
-            if !prelude_within_part_cap(prelude) {
-                return Some(SvgHazard::TooComplex);
-            }
-            let groups: Vec<&str> = prelude.split(',').collect();
-            let after = &rest[open + 1..];
-            let (body, next) = match after.find('}') {
-                Some(close) => (&after[..close], Some(&after[close + 1..])),
-                None => (after, None),
-            };
-            let per_group = (body.matches(':').count() as u64).max(1);
-            declarations = declarations.saturating_add((groups.len() as u64).saturating_mul(per_group));
-            // Each group is a selector; its rule's declarations apply to the elements of the class its last
-            // compound requires, or to every element.
-            for group in &groups {
-                let group = group.trim();
-                self.selectors.push(work::Selector {
-                    shape: work::group_shape(group),
-                    copies: 1,
-                });
-                let apply = match work::last_class(group) {
-                    Some(class) => self.apply_class.entry(class).or_insert((0, 0)),
-                    None => &mut self.apply_all,
-                };
-                apply.0 = apply.0.saturating_add(per_group);
-                apply.1 = apply.1.saturating_add(body.len() as u64);
-            }
-            let targets = url_targets(body);
-            let carries_marker = body.contains("marker");
-            let markers = work::declaration_markers(body);
-            // A class rule selects only plain class names; every other selector is a wild rule.
-            let class_rule = groups.iter().all(|g| {
-                g.trim().strip_prefix('.').is_some_and(|class| {
-                    !class.is_empty()
-                        && class
-                            .bytes()
-                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'-'))
-                })
-            });
-            if class_rule {
-                for g in &groups {
-                    if let Some(class) = g.trim().strip_prefix('.') {
-                        class_targets
-                            .entry(class.to_owned())
-                            .or_default()
-                            .extend(targets.iter().cloned());
-                        if carries_marker {
-                            marker_classes.insert(class.to_owned());
-                        }
-                        let entry = self.class_markers.entry(class.to_owned()).or_default();
-                        for (kind, found) in entry.iter_mut().zip(&markers) {
-                            kind.extend(found.iter().cloned());
-                        }
-                    }
-                }
-            } else {
-                wild = true;
-                wild_targets.extend(targets);
-                if carries_marker {
-                    marker_wild = true;
-                }
-            }
-            match next {
-                Some(next) => rest = next,
-                None => {
-                    rest = "";
-                    break;
-                }
+    /// The checks that need the whole document: no chain of references longer than [`MAX_SVG_REF_DEPTH`] links and no
+    /// cycle of them, from any element. Depth-first with the longest chain from each node kept, so linear
+    /// in the references; it never descends deeper than the bound.
+    fn finish(self) -> Option<SvgHazard> {
+        // The parser resolves a reference to an element with the id; with several, any may be the one.
+        let mut by_id: std::collections::BTreeMap<&str, Vec<usize>> = std::collections::BTreeMap::new();
+        for (k, (id, _)) in self.nodes.iter().enumerate() {
+            if let Some(id) = id {
+                by_id.entry(id.as_str()).or_default().push(k);
             }
         }
-        self.css_declarations = self.css_declarations.saturating_add(declarations);
-        if self.css_declarations > MAX_SVG_CSS_DECLARATIONS {
-            return Some(SvgHazard::TooComplex);
-        }
-        outside.push_str(rest);
-        if outside.contains("url(") || outside.contains("marker") {
-            wild = true;
-            wild_targets.extend(url_targets(text));
-            marker_wild |= text.contains("marker");
-        }
-        for (class, targets) in class_targets {
-            self.class_targets.entry(class).or_default().extend(targets);
-        }
-        self.marker_classes.extend(marker_classes);
-        self.css_wild |= wild;
-        self.wild_targets.extend(wild_targets);
-        self.css_marker_wild |= marker_wild;
-        None
-    }
-
-    /// The checks that need the whole document: style-sheet totals, marker rules, cycles and the expansion.
-    fn finish(mut self) -> Result<Work, SvgHazard> {
-        // A `style` element still open at the end of the file is analysed too.
-        if self.open.iter().any(|(name, _, _)| name == "style") {
-            let text = std::mem::take(&mut self.style_text);
-            if let Some(h) = self.style_sheet(&text) {
-                return Err(h);
-            }
-        }
-        if self.css_comments > 64 || self.drop_shadows > 16 {
-            return Err(SvgHazard::TooComplex);
-        }
-        if chain_hazard(&self.chains) {
-            return Err(SvgHazard::TooComplex);
-        }
-        // The graph: node k, then one class node per class rule (in the map's order), then the wild node.
-        let n = self.nodes.len();
-        let class_keys: Vec<&str> = self.class_targets.keys().map(String::as_str).collect();
-        let class_index: std::collections::BTreeMap<&str, usize> = class_keys
-            .iter()
-            .enumerate()
-            .map(|(position, class)| (*class, n + position))
-            .collect();
-        let wild = n + class_keys.len();
-        let total_nodes = wild + usize::from(self.css_wild);
-        let index = |key: &str| -> Option<usize> {
-            if let Some(class) = key.strip_prefix("\u{0}class:") {
-                class_index.get(class).copied()
-            } else {
-                self.ids.get(key).copied()
-            }
-        };
-        let edges = |k: usize| -> Vec<(usize, u64)> {
-            if k < n {
-                let mut out: Vec<(usize, u64)> = self.nodes[k]
-                    .refs
-                    .iter()
-                    .filter_map(|(target, count)| index(target).map(|j| (j, *count)))
-                    .collect();
-                if self.css_wild {
-                    out.push((wild, 1));
-                }
-                out
-            } else if let Some(class) = class_keys.get(k - n) {
-                self.class_targets
-                    .get(*class)
-                    .map(|targets| {
-                        targets
-                            .iter()
-                            .filter_map(|target| index(target).map(|j| (j, 1)))
-                            .collect()
-                    })
-                    .unwrap_or_default()
-            } else {
-                self.wild_targets
-                    .iter()
-                    .filter_map(|target| index(target).map(|j| (j, 1)))
-                    .collect()
-            }
-        };
-        let size = |k: usize| -> u64 { if k < n { self.nodes[k].size } else { 0 } };
-        // Iterative depth-first walk: a grey node met again is a cycle; a black node's cost is final.
-        let mut cost: Vec<Option<u64>> = vec![None; total_nodes];
-        let mut depth = vec![0usize; total_nodes];
-        let mut grey = vec![false; total_nodes];
-        // The nodes in the order they finish: every node after the targets of its edges.
-        let mut order: Vec<usize> = Vec::with_capacity(total_nodes);
-        for root in 0..total_nodes {
-            if cost[root].is_some() {
-                continue;
-            }
-            let mut stack: Vec<Frame> = vec![(root, edges(root), 0)];
-            grey[root] = true;
-            while let Some((k, out, at)) = stack.last_mut() {
-                if let Some(&(j, _)) = out.get(*at) {
-                    *at += 1;
-                    if grey[j] {
-                        return Err(SvgHazard::TooComplex);
-                    }
-                    if cost[j].is_none() {
-                        grey[j] = true;
-                        let e = edges(j);
-                        stack.push((j, e, 0));
-                    }
-                    continue;
-                }
-                let k = *k;
-                let total = out.iter().fold(size(k), |acc, (j, c)| {
-                    acc.saturating_add(c.saturating_mul(cost[*j].unwrap_or(0)))
-                });
-                if total > MAX_SVG_EXPANSION {
-                    return Err(SvgHazard::TooComplex);
-                }
-                // The longest chain of references from this node (class and wild nodes are no link of their own).
-                let below = out.iter().map(|(j, _)| depth[*j]).max().unwrap_or(0);
-                depth[k] = below + usize::from(k < n);
-                if depth[k] > MAX_SVG_REF_DEPTH {
-                    return Err(SvgHazard::TooComplex);
-                }
-                cost[k] = Some(total);
-                grey[k] = false;
-                order.push(k);
-                stack.pop();
-            }
-        }
-        // Whether an element or one of its ancestors carries a marker property (an attribute, its `style`, or a
-        // class whose rule names one): records come in document order, every parent before its children.
-        let mut chain_bad = vec![false; self.records.len()];
-        for (r, record) in self.records.iter().enumerate() {
-            chain_bad[r] = record.marker_attr
-                || record.classes.iter().any(|c| self.marker_classes.contains(c))
-                || record.parent.is_some_and(|parent| chain_bad[parent]);
-        }
-        let has_markers = self.nodes.iter().any(|node| node.is_marker);
-        // Marker content may not itself carry a marker property, from any source: a marker whose subtree holds
-        // such an element, or a class or wild rule that names one, can nest marker expansion without bound (usvg
-        // inherits the marker properties; only the same marker re-entering itself is stopped).
-        if has_markers {
-            if self.css_marker_wild {
-                return Err(SvgHazard::TooComplex);
-            }
-            let bad = |k: usize| -> bool {
-                if k < n {
-                    chain_bad[self.nodes[k].record] || self.nodes[k].marker_attr
-                } else if let Some(class) = class_keys.get(k - n) {
-                    self.marker_classes.contains(*class)
-                } else {
-                    self.css_marker_wild
-                }
-            };
-            // One breadth-first search from every marker node at once, over the graph above.
-            let mut seen = vec![false; total_nodes];
-            let mut queue = std::collections::VecDeque::new();
-            for (k, node) in self.nodes.iter().enumerate() {
-                if node.is_marker {
-                    seen[k] = true;
-                    queue.push_back(k);
-                }
-            }
-            while let Some(k) = queue.pop_front() {
-                if bad(k) {
-                    return Err(SvgHazard::TooComplex);
-                }
-                for (j, _) in edges(k) {
-                    if !seen[j] {
-                        seen[j] = true;
-                        queue.push_back(j);
-                    }
-                }
-            }
-        }
-        let cost: Vec<u64> = cost.into_iter().map(|c| c.unwrap_or(0)).collect();
-        // The sum of a per-element weight over every conversion of an element: the document converts each element
-        // once, and every reference (wherever it is) converts its target's subtree once more, with the references
-        // inside that subtree, as `cost` counts elements. Subtree sums come from a reverse pass over the records
-        // (every parent before its children), node sums in `order` (every node after its edges' targets).
-        let instances = |weight: &[u64]| -> u64 {
-            let mut subtree = weight.to_vec();
-            for r in (0..self.records.len()).rev() {
-                if let Some(parent) = self.records[r].parent {
-                    subtree[parent] = subtree[parent].saturating_add(subtree[r]);
-                }
-            }
-            let mut node_weight = vec![0u64; total_nodes];
-            for &k in &order {
-                let own = if k < n { subtree[self.nodes[k].record] } else { 0 };
-                node_weight[k] = edges(k).iter().fold(own, |acc, (j, c)| {
-                    acc.saturating_add(c.saturating_mul(node_weight[*j]))
-                });
-            }
-            let direct = weight.iter().fold(0u64, |acc, w| acc.saturating_add(*w));
-            let referenced = self.all_refs.iter().fold(0u64, |acc, (target, c)| {
-                acc.saturating_add(c.saturating_mul(index(target).map_or(0, |k| node_weight[k])))
-            });
-            let wild_weight = if self.css_wild { node_weight[wild] } else { 0 };
-            direct.saturating_add(referenced).saturating_add(wild_weight)
-        };
-        let mut work = Work {
-            expansion: instances(&vec![1; self.records.len()]),
-            ..Work::default()
-        };
-        if work.expansion > MAX_SVG_EXPANSION {
-            return Err(SvgHazard::TooComplex);
-        }
-        // The path segments usvg makes of every shape conversion, with or without markers: an arc of a tiny radius
-        // over a long chord is thousands of cubic pieces, and a radius in `em` can be as large as f32 allows.
-        // A shape inside a `use` target is converted again under the `use`'s ancestors and viewport, so its
-        // `em`, `ex` and `%` radii count as the worst case there; when CSS can set a font size, every `em` and `ex`
-        // does; when a nested `svg` or `symbol` sets another viewport, every `%` does. Otherwise they resolve from
-        // the font-size chain and the root viewport.
-        let mut converted_again = vec![false; self.records.len()];
-        for target in &self.use_targets {
-            if let Some(&k) = self.ids.get(target.as_str()) {
-                converted_again[self.nodes[k].record] = true;
-            }
-        }
-        for r in 0..self.records.len() {
-            if let Some(parent) = self.records[r].parent {
-                converted_again[r] |= converted_again[parent];
-            }
-        }
-        let segments: Vec<u64> = self
-            .records
-            .iter()
-            .zip(&converted_again)
-            .map(|(record, again)| {
-                let case =
-                    usize::from(self.font_css || *again) | usize::from(self.nested_viewport || *again) << 1;
-                record.segment_cases[case]
-            })
-            .collect();
-        work.segments = instances(&segments);
-        if work.segments > MAX_SVG_PATH_SEGMENTS {
-            return Err(SvgHazard::TooComplex);
-        }
-        // marker applications. The largest marker content (its expansion cost) each property names
-        // anywhere; a shape that can carry a marker property (its own or an ancestor's, or any when a `use`
-        // converts it again under other ancestors) is drawn with at most one start, one end and one mid marker per
-        // segment.
-        if has_markers {
-            let mut largest = [0u64; 3];
-            let mut consider = |kind: usize, target: &String| {
-                let content = self
-                    .ids
-                    .get(target.as_str())
-                    .filter(|k| self.nodes[**k].is_marker)
-                    .map_or(0, |k| cost[*k]);
-                largest[kind] = largest[kind].max(content);
-            };
-            for record in &self.records {
-                for (kind, targets) in record.markers.iter().enumerate() {
-                    targets.iter().for_each(|t| consider(kind, t));
-                }
-            }
-            for kinds in self.class_markers.values() {
-                for (kind, targets) in kinds.iter().enumerate() {
-                    targets.iter().for_each(|t| consider(kind, t));
-                }
-            }
-            let weight: Vec<u64> = (0..self.records.len())
-                .map(|r| {
-                    if segments[r] > 0 && (chain_bad[r] || converted_again[r]) {
-                        segments[r]
-                            .saturating_mul(largest[1])
-                            .saturating_add(largest[0])
-                            .saturating_add(largest[2])
-                    } else {
-                        0
-                    }
-                })
-                .collect();
-            work.markers = instances(&weight);
-            if work.markers > MAX_SVG_MARKER_WORK {
-                return Err(SvgHazard::TooComplex);
-            }
-        }
-        // style work. Per element conversion, every selector's most expensive match at the element's
-        // depth, then the declarations of every rule that may match it and of its own `style` attribute: each
-        // inserts up to fourteen attributes (the `font` shorthand) or three (`marker`), an insertion searches the
-        // element's attributes (its own and at most 256 attribute ids of usvg 0.48.1) and copies the value, and an
-        // `inherit` value walks the parsed tree's ancestors (its depth: the nesting times the reference chain, at
-        // most usvg's 1024).
-        let stats = work::Stats {
-            attrs: self.max_attrs,
-            value_len: &self.value_len,
-            sibling_walk: self.max_gap.saturating_add(1),
-        };
-        let mut per_depth = [0u64; work::DEPTHS];
-        for selector in &self.selectors {
-            let costs = work::selector_costs(&selector.shape, &stats);
-            for (total, c) in per_depth.iter_mut().zip(costs) {
-                *total = total.saturating_add(c.saturating_mul(selector.copies));
-            }
-        }
-        let chain = depth.iter().copied().max().unwrap_or(0) as u64;
-        let tree_depth = chain
-            .saturating_add(1)
-            .saturating_mul(work::DEPTHS as u64)
-            .min(1024);
-        let inserts: u64 = if self.css_font { 14 } else { 3 };
-        let insert = (1 + 256u64)
-            .saturating_add(self.max_attrs)
-            .saturating_mul(if self.css_inherit { 1 + tree_depth } else { 1 });
-        let apply = |(count, bytes): (u64, u64)| -> u64 {
-            count
-                .saturating_mul(inserts.saturating_mul(insert))
-                .saturating_add(bytes.saturating_mul(inserts))
-        };
-        let everywhere = apply(self.apply_all);
-        let weight: Vec<u64> = self
-            .records
-            .iter()
-            .map(|record| {
-                record.classes.iter().fold(
-                    per_depth[record.depth]
-                        .saturating_add(everywhere)
-                        .saturating_add(apply(record.style)),
-                    |acc, class| acc.saturating_add(self.apply_class.get(class).copied().map_or(0, apply)),
-                )
-            })
-            .collect();
-        work.css = instances(&weight);
-        if work.css > MAX_SVG_CSS_WORK {
-            return Err(SvgHazard::TooComplex);
-        }
-        Ok(work)
-    }
-}
-
-/// Whether every selector group of a `,`-separated prelude has at most six compound parts (white space, `>`, `+`
-/// and `~` separate parts): usvg matches every rule against every element, and a deeper descendant selector costs
-/// combinations of ancestor chains.
-fn prelude_within_part_cap(prelude: &str) -> bool {
-    prelude.split(',').all(|group| {
-        group
-            .split(|c: char| c.is_whitespace() || matches!(c, '>' | '+' | '~'))
-            .filter(|part| !part.is_empty())
-            .count()
-            <= 6
-    })
-}
-
-/// `text` with every comment removed (replaced by nothing), and whether the sheet is plain for the exact rule model:
-/// outside comments it has no `\` and no `@`, no unclosed string and no string whose content holds `{`, `}`, `;`,
-/// `(`, `)`, `\`, `,`, `/*` or `*/`, no comment holds a `{` or a `}`, and its braces alternate
-/// `{`, `}`, `{`, `}`, … starting with `{` (a final `{` without its `}` is allowed). `None` for an unclosed comment.
-fn plain_style_sheet(text: &str) -> Option<(String, bool)> {
-    let b = text.as_bytes();
-    let mut clean = Vec::with_capacity(b.len());
-    let mut plain = true;
-    // The index of the `)` whose span was last checked: a `(` below it lies inside that span.
-    let mut checked_until = 0;
-    let mut i = 0;
-    while i < b.len() {
-        if b[i] == b'/' && b.get(i + 1) == Some(&b'*') {
-            let start = i + 2;
-            let end = text[start..].find("*/").map(|end| start + end)?;
-            if b[start..end].iter().any(|c| matches!(c, b'{' | b'}')) {
-                plain = false;
-            }
-            i = end + 2;
-            continue;
-        }
-        match b[i] {
-            b'"' | b'\'' => {
-                // simplecss reads a quoted string as one value token. A string whose content holds a brace, a
-                // semicolon or parenthesis, a comment delimiter, a backslash or a comma (the group separator), or
-                // that is not closed, can move a rule boundary and makes the sheet not plain; any other string keeps
-                // it plain.
-                let quote = b[i];
-                let start = i + 1;
-                clean.push(quote);
-                i += 1;
-                let mut closed = false;
-                while i < b.len() {
-                    if b[i] == b'\\' {
-                        clean.push(b[i]);
-                        i += 1;
-                        if i < b.len() {
-                            clean.push(b[i]);
-                            i += 1;
-                        }
-                        continue;
-                    }
-                    clean.push(b[i]);
-                    i += 1;
-                    if b[i - 1] == quote {
-                        closed = true;
-                        break;
-                    }
-                }
-                let content = &text[start..i - usize::from(closed)];
-                if !closed
-                    || content
-                        .bytes()
-                        .any(|c| matches!(c, b'{' | b'}' | b';' | b'(' | b')' | b'\\' | b','))
-                    || content.contains("/*")
-                    || content.contains("*/")
-                {
-                    plain = false;
-                }
-            }
-            b'(' => {
-                // simplecss skips a function value to the next `)`: a brace or a `;` inside one would make the
-                // scanner's body split disagree with the parser. A `(` below the end of the span already checked
-                // lies inside the same `)`, so its span is checked once.
-                if i >= checked_until {
-                    if let Some(end) = text[i + 1..].find(')') {
-                        let end = i + 1 + end;
-                        let inside = &text[i + 1..end];
-                        if inside.bytes().any(|c| matches!(c, b'{' | b'}' | b';')) || inside.contains("/*") {
-                            plain = false;
-                        }
-                        checked_until = end;
-                    } else {
-                        plain = false;
-                        checked_until = b.len();
-                    }
-                }
-                clean.push(b[i]);
-                i += 1;
-            }
-            b'\\' => {
-                plain = false;
-                clean.push(b[i]);
-                i += 1;
-            }
-            b'@' => {
-                plain = false;
-                clean.push(b[i]);
-                i += 1;
-            }
-            _ => {
-                clean.push(b[i]);
-                i += 1;
-            }
-        }
-    }
-    let clean = String::from_utf8(clean).ok()?;
-    if plain {
-        let mut open = false;
-        for c in clean.bytes() {
-            match c {
-                b'{' if open => {
-                    plain = false;
-                    break;
-                }
-                b'{' => open = true,
-                b'}' if !open => {
-                    plain = false;
-                    break;
-                }
-                b'}' => open = false,
-                _ => {}
-            }
-        }
-    }
-    Some((clean, plain))
-}
-
-/// Whether the `href` chains of gradients, patterns and filters (id to target) hold a cycle or a chain of more than
-/// [`MAX_SVG_REF_DEPTH`] elements: the parser walks a chain once per attribute of each element on it (without
-/// recursion), so a long cycle-free chain costs the square of its length (review round 2), and a cycle that returns
-/// to neither end never ends (review fix 5). Each id has at most one link: one walk per id, each id finished once
-/// with the length of its chain, so the whole check is linear in the number of ids.
-fn chain_hazard(chains: &std::collections::BTreeMap<String, String>) -> bool {
-    // The length (elements, itself included) of the chain from each finished id; `None` while on the current walk.
-    let mut length: std::collections::BTreeMap<&str, Option<usize>> = std::collections::BTreeMap::new();
-    for start in chains.keys() {
-        let mut walk: Vec<&str> = Vec::new();
-        let mut at = start.as_str();
-        // The length of the chain after the walk's last element.
-        let tail = loop {
-            match length.get(at) {
-                Some(None) => return true,
-                Some(Some(n)) => break *n,
+        // The longest chain from each node; `None` while the node is on the walk's path.
+        let mut longest: Vec<Option<Option<usize>>> = vec![None; self.nodes.len()];
+        fn walk(
+            k: usize,
+            depth: usize,
+            nodes: &[(Option<String>, Vec<String>)],
+            by_id: &std::collections::BTreeMap<&str, Vec<usize>>,
+            longest: &mut [Option<Option<usize>>],
+        ) -> Option<usize> {
+            match longest[k] {
+                Some(Some(n)) => return Some(n),
+                Some(None) => return None,
                 None => {}
             }
-            length.insert(at, None);
-            walk.push(at);
-            match chains.get(at) {
-                Some(next) => at = next.as_str(),
-                // The last element of the chain (its target, or an id without a link): one more element.
-                None => break 0,
+            if depth > MAX_SVG_REF_DEPTH {
+                return None;
             }
-        };
-        let mut n = tail;
-        for id in walk.into_iter().rev() {
-            n += 1;
-            if n > MAX_SVG_REF_DEPTH {
-                return true;
+            longest[k] = Some(None);
+            let mut best = 0;
+            for target in &nodes[k].1 {
+                for &next in by_id.get(target.as_str()).into_iter().flatten() {
+                    best = best.max(walk(next, depth + 1, nodes, by_id, longest)? + 1);
+                }
             }
-            length.insert(id, Some(n));
+            longest[k] = Some(Some(best));
+            Some(best)
         }
+        for k in 0..self.nodes.len() {
+            match walk(k, 0, &self.nodes, &by_id, &mut longest) {
+                Some(n) if n <= MAX_SVG_REF_DEPTH => {}
+                _ => return Some(SvgHazard::TooComplex),
+            }
+        }
+        None
     }
-    false
 }
 
 /// `text` with its character references (`&#48;`, `&#x30;`) and the five predefined entities (`&lt;`, `&gt;`,
@@ -2159,22 +1111,6 @@ fn numbers(text: &str) -> Option<SvgHazard> {
         i = j.max(i + 1);
     }
     None
-}
-
-/// The longest run of close-path commands (`z`, separated by white space or commas) in path data.
-fn close_run(d: &str) -> usize {
-    let (mut best, mut run) = (0, 0);
-    for c in d.chars() {
-        match c {
-            'z' => {
-                run += 1;
-                best = best.max(run);
-            }
-            c if c.is_whitespace() || c == ',' => {}
-            _ => run = 0,
-        }
-    }
-    best
 }
 
 /// The local part of an XML name (`xlink:href` gives `href`).
@@ -2541,143 +1477,6 @@ mod tests {
     }
 
     #[test]
-    fn namespace_shadowed_ids_do_not_hide_reference_cycles() {
-        let shadowed = r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:f="urn:ignored" viewBox="0 0 4 4"><linearGradient f:id="d1" id="g1" href="#g2"/><linearGradient f:id="d2" id="g2" href="#g3"/><radialGradient f:id="d3" id="g3" href="#g2"/><rect width="4" height="4" fill="url(#g1)"/></svg>"##;
-        let decoy_after = shadowed
-            .replace(r#"f:id="d1" id="g1""#, r#"id="g1" f:id="d1""#)
-            .replace(r#"f:id="d2" id="g2""#, r#"id="g2" f:id="d2""#)
-            .replace(r#"f:id="d3" id="g3""#, r#"id="g3" f:id="d3""#);
-        let ordinary = shadowed
-            .replace(r#"f:id="d1" "#, "")
-            .replace(r#"f:id="d2" "#, "")
-            .replace(r#"f:id="d3" "#, "");
-        // Scanner and sniff only: this audited hostile cycle must never reach usvg.
-        for text in [ordinary.as_str(), shadowed, decoy_after.as_str()] {
-            assert_eq!(svg_hazard(text.as_bytes()), Some(SvgHazard::TooComplex), "{text}");
-            assert_eq!(
-                sniff(text.as_bytes()),
-                Err(AssetError::UnsafeSvg(SvgHazard::TooComplex)),
-                "{text}"
-            );
-        }
-    }
-
-    #[test]
-    fn conflicting_local_id_class_and_href_attributes_are_refused() {
-        for namespace in [
-            "urn:ignored",
-            "http://www.w3.org/2000/svg",
-            "http://www.w3.org/1999/xlink",
-            "http://www.w3.org/XML/1998/namespace",
-        ] {
-            let prefix = if namespace == "http://www.w3.org/XML/1998/namespace" {
-                "xml"
-            } else {
-                "f"
-            };
-            for attr in ["id", "class", "href"] {
-                // The leading # keeps every href local; case and whitespace differences must remain conflicts.
-                for (first, second, hazard) in [
-                    ("#first", "#second", Some(SvgHazard::TooComplex)),
-                    ("#First", "#first", Some(SvgHazard::TooComplex)),
-                    ("#first", "#first ", Some(SvgHazard::TooComplex)),
-                    ("#First", "#First", None),
-                    ("#First", "#&#70;irst", None),
-                    ("#first\tsecond", "#first second", None),
-                    ("#first\rsecond", "#first second", None),
-                    ("#first\nsecond", "#first second", None),
-                    ("#first\r\nsecond", "#first second", None),
-                    ("#first\tsecond", "#first&#9;second", Some(SvgHazard::TooComplex)),
-                    ("#first\rsecond", "#first&#13;second", Some(SvgHazard::TooComplex)),
-                    ("#first\nsecond", "#first&#10;second", Some(SvgHazard::TooComplex)),
-                    (
-                        "#first\r\nsecond",
-                        "#first&#13;&#10;second",
-                        Some(SvgHazard::TooComplex),
-                    ),
-                ] {
-                    for prefixed_first in [false, true] {
-                        let plain = format!(r#"{attr}="{first}""#);
-                        let prefixed = format!(r#"{prefix}:{attr}="{second}""#);
-                        let attributes = if prefixed_first {
-                            format!("{prefixed} {plain}")
-                        } else {
-                            format!("{plain} {prefixed}")
-                        };
-                        let text = format!(
-                            r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:{prefix}="{namespace}" viewBox="0 0 4 4"><g {attributes}/></svg>"#
-                        );
-                        assert_eq!(svg_hazard(text.as_bytes()), hazard, "{text}");
-                        assert_eq!(
-                            sniff(text.as_bytes()),
-                            hazard.map_or(Ok((AssetFormat::Svg, Some((4, 4)))), |h| Err(
-                                AssetError::UnsafeSvg(h)
-                            )),
-                            "{text}"
-                        );
-                    }
-                }
-            }
-        }
-        let declarations = r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:id="urn:id" xmlns:class="urn:class" xmlns:href="urn:href" id="drawing" class="drawing" viewBox="0 0 4 4"/>"#;
-        assert_eq!(svg_hazard(declarations.as_bytes()), None);
-        assert_eq!(
-            sniff(declarations.as_bytes()),
-            Ok((AssetFormat::Svg, Some((4, 4))))
-        );
-    }
-
-    #[test]
-    fn normalized_attribute_ids_do_not_hide_reference_cycles() {
-        // Scanner/sniff only: literal whitespace becomes a space before decoding character references.
-        for (literal, reference) in [
-            ("\t", "&#9;"),
-            ("\r", "&#13;"),
-            ("\n", "&#10;"),
-            ("\r\n", "&#13;&#10;"),
-        ] {
-            for decoys in [None, Some(false), Some(true)] {
-                let attributes = |n| {
-                    let id = format!("id=\"g{literal}{n}\"");
-                    let decoy = format!("f:id=\"g{reference}{n}\"");
-                    match decoys {
-                        None => id,
-                        Some(false) => format!("{decoy} {id}"),
-                        Some(true) => format!("{id} {decoy}"),
-                    }
-                };
-                let text = format!(
-                    r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:f="urn:ignored" viewBox="0 0 4 4"><linearGradient {} href="#g 2"/><linearGradient {} href="#g 3"/><radialGradient {} href="#g 2"/><rect width="4" height="4" fill="url('#g 1')"/></svg>"##,
-                    attributes(1),
-                    attributes(2),
-                    attributes(3)
-                );
-                assert_eq!(
-                    svg_hazard(text.as_bytes()),
-                    Some(SvgHazard::TooComplex),
-                    "{text:?}"
-                );
-                assert_eq!(
-                    sniff(text.as_bytes()),
-                    Err(AssetError::UnsafeSvg(SvgHazard::TooComplex)),
-                    "{text:?}"
-                );
-            }
-        }
-        // A referenced TAB remains a TAB in both the id and quoted funcIRI; its self-reference is a cycle.
-        let numeric_cycle = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><g id="g&#9;1" fill="url('#g&#9;1')"/></svg>"#;
-        assert_eq!(svg_hazard(numeric_cycle.as_bytes()), Some(SvgHazard::TooComplex));
-        assert_eq!(
-            sniff(numeric_cycle.as_bytes()),
-            Err(AssetError::UnsafeSvg(SvgHazard::TooComplex))
-        );
-        // Literal TAB normalizes to a space, so it differs from the referenced TAB in the id and is safe.
-        let safe = numeric_cycle.replace("url('#g&#9;1')", "url('#g\t1')");
-        assert_eq!(svg_hazard(safe.as_bytes()), None);
-        assert_eq!(sniff(safe.as_bytes()), Ok((AssetFormat::Svg, Some((4, 4)))));
-    }
-
-    #[test]
     fn ordinary_exporter_namespace_attributes_still_pass() {
         let text = r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:serif="http://www.serif.com/" inkscape:version="1.2.3" serif:version="2.0" viewBox="0 0 4 4"><g id="layer" inkscape:label="Layer 1" serif:id="layer"/></svg>"#;
         assert_eq!(svg_hazard(text.as_bytes()), None);
@@ -2707,487 +1506,6 @@ mod tests {
             sniff(comment.as_bytes()),
             Err(AssetError::UnsafeSvg(SvgHazard::Entity))
         );
-    }
-
-    /// A style sheet's references follow the classes and selectors that use them; the group and declaration
-    /// caps are upper bounds counted without parsing, and a rule with any other selector is followed from every
-    /// element.
-    #[test]
-    fn style_sheet_references_follow_the_classes_and_selectors_that_use_them() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
-            (
-                "a pattern through its class",
-                format!(
-                    r#"<svg {NS}><style>.p {{ fill: url(#pat) }}</style><pattern id="pat" width="1" height="1"><rect class="p" width="1" height="1"/></pattern></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "a clip path through a wild rule",
-                format!(
-                    r#"<svg {NS}><style>rect {{ clip-path: url(#c) }}</style><clipPath id="c"><rect width="1" height="1"/></clipPath></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "two classes, one without references",
-                format!(
-                    r#"<svg {NS}><style>.a {{ fill: url(#p) }} .b {{ fill: #fff }}</style><pattern id="p" width="1" height="1"><rect class="b" width="1" height="1"/></pattern><rect class="a" width="4" height="4"/></svg>"#
-                ),
-                None,
-            ),
-            (
-                "a wild rule that references a gradient",
-                format!(
-                    r#"<svg {NS}><style>rect {{ fill: url(#g) }}</style><linearGradient id="g"><stop offset="0"/></linearGradient><rect width="1" height="1"/></svg>"#
-                ),
-                None,
-            ),
-            (
-                "fifty-five selector groups",
-                format!(
-                    r#"<svg {NS}><style>{}</style></svg>"#,
-                    (0..55).map(|k| format!(".c{k}")).collect::<Vec<_>>().join(",") + " { fill: red }"
-                ),
-                None,
-            ),
-            (
-                "five thousand selector groups",
-                format!(
-                    r#"<svg {NS}><style>{}</style></svg>"#,
-                    (0..5_000).map(|k| format!(".c{k}")).collect::<Vec<_>>().join(",") + " { fill: red }"
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-        ];
-        for (what, text, expected) in &cases {
-            assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
-        }
-    }
-
-    /// comments are removed without a space before the rules are read, so a comment is no selector part; an
-    /// unclosed comment is markup the scanner cannot follow, and a brace in a comment makes the sheet wild.
-    #[test]
-    fn a_comment_is_not_a_selector_part() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
-            (
-                "a comment removed without a space",
-                format!(
-                    r#"<svg {NS}><style>.a/**/b {{ fill: url(#p) }}</style><pattern id="p" width="1" height="1"><rect class="a" width="1" height="1"/></pattern><rect class="a" width="4" height="4"/></svg>"#
-                ),
-                None,
-            ),
-            (
-                "a long comment before a class rule",
-                format!(
-                    r#"<svg {NS}><style>/* a, b c d e f g h */ .a {{ fill: url(#p) }}</style><pattern id="p" width="1" height="1"><rect class="b" width="1" height="1"/></pattern><rect class="a" width="4" height="4"/></svg>"#
-                ),
-                None,
-            ),
-            (
-                "an unclosed comment",
-                format!(r#"<svg {NS}><style>/* unclosed .a {{ fill: red }}</style></svg>"#),
-                Some(SvgHazard::Malformed),
-            ),
-            (
-                "a brace in a comment",
-                format!(
-                    r#"<svg {NS}><style>/* {{ */ .k {{ marker-end: url(#n) }}</style><marker id="m"><path d="M0 0 L1 1"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-        ];
-        for (what, text, expected) in &cases {
-            assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
-        }
-    }
-
-    /// roxmltree merges adjacent character data and CDATA sections into one text node, and usvg
-    /// parses that merged text; the scanner analyses the whole `<style>` element once.
-    #[test]
-    fn style_text_is_read_whole_across_cdata_sections() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
-        let split_marker = format!(
-            r#"<svg {NS}><style><![CDATA[.k {{ ]]><![CDATA[marker-end: url(#n) }}]]></style><marker id="m"><path class="k" d="M0 0 L1 1 L2 0"/></marker><marker id="n"><path class="k" d="M0 0 L1 1 L2 0"/></marker><path d="M0 0 L4 4" marker-end="url(#m)"/></svg>"#
-        );
-        assert_eq!(svg_hazard(split_marker.as_bytes()), Some(SvgHazard::TooComplex));
-        let split_transform = format!(
-            r#"<svg {NS}><style><![CDATA[rect {{ transform-]]><![CDATA[origin: - }}]]></style></svg>"#
-        );
-        assert_eq!(
-            svg_hazard(split_transform.as_bytes()),
-            Some(SvgHazard::Unsupported)
-        );
-        let mut chain = format!(r#"<svg {NS}>"#);
-        for i in 1..=30 {
-            let next = i + 1;
-            chain.push_str(&format!(
-                r#"<style><![CDATA[.k{i} {{ ]]><![CDATA[marker-end: url(#m{next}) }}]]></style>"#
-            ));
-            chain.push_str(&format!(
-                r#"<marker id="m{i}"><path class="k{i}" d="M0 0 L1 1"/><path class="k{i}" d="M0 0 L1 1"/></marker>"#
-            ));
-        }
-        chain.push_str(r#"<path d="M0 0 L4 4" style="marker-end: url(#m1)"/></svg>"#);
-        assert_eq!(svg_hazard(chain.as_bytes()), Some(SvgHazard::TooComplex));
-    }
-
-    /// simplecss honours quoted strings; a sheet with a string is read conservatively as one wild
-    /// rule, so a hidden marker or reference is still refused.
-    #[test]
-    fn css_strings_make_the_sheet_wild() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
-        let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
-            (
-                "a quoted brace hides the marker declaration",
-                format!(
-                    r#"<svg {NS}><style>.k {{ font-family: "}}"; marker-end: url(#n) }}</style><marker id="m"><path class="k" d="M0 0 L1 1 L2 0"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker><path d="M0 0 L4 4" marker-end="url(#m)"/></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "a quoted comment start hides the marker rule",
-                format!(
-                    r#"<svg {NS}><style>.a {{ font-family: "/*"; }} .k {{ marker-end: url(#n) }} /* */</style><marker id="m"><path class="k" d="M0 0 L1 1 L2 0"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker><path d="M0 0 L4 4" marker-end="url(#m)"/></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "three patterns behind a quoted brace",
-                format!(
-                    r#"<svg {NS}><style>.p1 {{ font-family: "}}"; fill: url(#pat2) }} .p2 {{ font-family: "}}"; fill: url(#pat3) }} .p3 {{ font-family: "}}"; fill: url(#pat1) }}</style><pattern id="pat1" width="1" height="1"><rect class="p1" width="1" height="1"/></pattern><pattern id="pat2" width="1" height="1"><rect class="p2" width="1" height="1"/></pattern><pattern id="pat3" width="1" height="1"><rect class="p3" width="1" height="1"/></pattern><rect width="1" height="1" fill="url(#pat1)"/></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "a quoted comment start without a target",
-                format!(r#"<svg {NS}><style>.a {{ font-family: "/*"; fill: red }}</style></svg>"#),
-                None,
-            ),
-        ];
-        for (what, text, expected) in &cases {
-            assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
-        }
-    }
-
-    /// A funcIRI target is read as svgtypes reads it — a quoted id runs to its closing
-    /// quote and keeps its inner white space, and the scan continues past the target — so a quoted reference cycle
-    /// is seen and the scan is linear. The 8,192-deep `url(#` attribute only calls the scanner: this guards against
-    /// the quadratic scan; neither its result nor the time is asserted.
-    #[test]
-    fn url_targets_read_quoted_ids_whole_and_in_linear_time() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let pattern_cycle = format!(
-            r#"<svg {NS}><defs><pattern id="pat a" width="1" height="1"><rect width="1" height="1" fill="url('#pat b')"/></pattern><pattern id="pat b" width="1" height="1"><rect width="1" height="1" fill="url('#pat c')"/></pattern><pattern id="pat c" width="1" height="1"><rect width="1" height="1" fill="url('#pat a')"/></pattern></defs><rect width="4" height="4" fill="url('#pat a')"/></svg>"#
-        );
-        assert_eq!(
-            svg_hazard(pattern_cycle.as_bytes()),
-            Some(SvgHazard::TooComplex),
-            "the quoted pattern cycle"
-        );
-        let clip_cycle = format!(
-            r#"<svg {NS}><clipPath id="clip a"><rect width="1" height="1" clip-path="url('#clip b')"/></clipPath><clipPath id="clip b"><rect width="1" height="1" clip-path="url('#clip c')"/></clipPath><clipPath id="clip c"><rect width="1" height="1" clip-path="url('#clip a')"/></clipPath><rect width="4" height="4" clip-path="url('#clip a')"/></svg>"#
-        );
-        assert_eq!(
-            svg_hazard(clip_cycle.as_bytes()),
-            Some(SvgHazard::TooComplex),
-            "the quoted clip-path cycle"
-        );
-        let gradient = format!(
-            r#"<svg {NS}><linearGradient id="g"><stop offset="0"/></linearGradient><rect width="1" height="1" fill="url( '#g' )"/></svg>"#
-        );
-        assert_eq!(svg_hazard(gradient.as_bytes()), None, "a spaced quoted gradient");
-        let quadratic = format!(
-            r#"<svg {NS}><rect width="1" height="1" fill="url(#{})"/></svg>"#,
-            "url(#".repeat(8_191)
-        );
-        let _ = svg_hazard(quadratic.as_bytes());
-    }
-
-    /// A string that holds nothing that can move a rule boundary keeps a style sheet plain;
-    /// a string with a brace, semicolon, parenthesis, comment delimiter or backslash makes it wild as before. The
-    /// 20,000-`(` sheet (the lead's quadratic path finding) only calls the scanner; no time is asserted.
-    #[test]
-    fn harmless_strings_keep_a_sheet_plain() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let quoted_font = format!(
-            r##"<svg {NS}><style>.txt {{ font-family: "Arial" }} .st0 {{ fill: url(#pat) }}</style><pattern id="pat" width="1" height="1"><rect width="1" height="1" fill="#fff"/></pattern><rect class="st0" width="1" height="1"/></svg>"##
-        );
-        assert_eq!(svg_hazard(quoted_font.as_bytes()), None, "a harmless string");
-        let brace_font = format!(
-            r##"<svg {NS}><style>.txt {{ font-family: "a}}b" }} .st0 {{ fill: url(#pat) }}</style><pattern id="pat" width="1" height="1"><rect width="1" height="1" fill="#fff"/></pattern><rect class="st0" width="1" height="1"/></svg>"##
-        );
-        assert_eq!(
-            svg_hazard(brace_font.as_bytes()),
-            Some(SvgHazard::TooComplex),
-            "a string that moves a rule boundary"
-        );
-        let marker_class = format!(
-            r#"<svg {NS}><style>.k {{ font-family: "x" ; marker-end: url(#n) }}</style><marker id="m"><path class="k" d="M0 0 L1 1"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker></svg>"#
-        );
-        assert_eq!(
-            svg_hazard(marker_class.as_bytes()),
-            Some(SvgHazard::TooComplex),
-            "the marker class is still seen"
-        );
-        let parentheses = format!(r#"<svg {NS}><style>{}</style></svg>"#, "(".repeat(20_000) + ")");
-        assert_eq!(
-            svg_hazard(parentheses.as_bytes()),
-            None,
-            "20,000 open parentheses"
-        );
-    }
-
-    /// simplecss skips a function value to the next `)` and parses text the scanner's body split
-    /// does not attribute to a rule; both make the sheet wild.
-    #[test]
-    fn plain_sheets_hide_nothing_in_parentheses_or_outside_bodies() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
-        let marker = format!(
-            r#"<svg {NS}><style>.b {{ fill: var(x }} ) ; marker-end: url(#n)</style><marker id="m"><path class="b" d="M0 0 L1 1 L2 0"/></marker><marker id="n"><path d="M0 0 L4 4"/></marker><path d="M0 0 L1 1 L2 0" marker-mid="url(#m)"/></svg>"#
-        );
-        assert_eq!(svg_hazard(marker.as_bytes()), Some(SvgHazard::TooComplex));
-        let cycle = format!(
-            r#"<svg {NS}><style>.b {{ fill: var(x }} ) ; clip-path: url(#a)</style><clipPath id="a"><rect width="1" height="1" clip-path="url(#b)"/></clipPath><clipPath id="b"><rect width="1" height="1" clip-path="url(#c)"/></clipPath><clipPath id="c"><rect class="b" width="1" height="1"/></clipPath><rect width="1" height="1" clip-path="url(#a)"/></svg>"#
-        );
-        assert_eq!(svg_hazard(cycle.as_bytes()), Some(SvgHazard::TooComplex));
-        let rgb = format!(
-            r#"<svg {NS}><style>.a {{ fill: rgb(1, 2, 3) }}</style><rect class="a" width="1" height="1"/></svg>"#
-        );
-        assert_eq!(svg_hazard(rgb.as_bytes()), None);
-    }
-
-    /// A `style` element inside a `style` element would split the gathered text; it is refused.
-    #[test]
-    fn a_style_inside_a_style_is_refused() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
-        let nested = format!(
-            r#"<svg {NS}><style>.a {{ fill: red }} /*<style>*/ .b {{ marker-end: url(#n) }}</style><marker id="m"><path d="M0 0 L1 1 L2 0"/></marker><marker id="n"><path d="M0 0 L4 4"/></marker><path d="M0 0 L1 1 L2 0" marker-mid="url(#m)"/></svg>"#
-        );
-        assert_eq!(svg_hazard(nested.as_bytes()), Some(SvgHazard::TooComplex));
-    }
-
-    /// The selector-group and declaration bounds are counted without parsing, so quoted braces and
-    /// hidden declarations cannot shrink them.
-    #[test]
-    fn css_bounds_need_no_parsing() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let groups = |prefix: &str, n: usize| {
-            (0..n)
-                .map(|k| format!("{prefix}{k}"))
-                .collect::<Vec<_>>()
-                .join(",")
-        };
-        let mut hidden = groups("g", 4_096);
-        hidden.push_str(" { font-family: \"}\";");
-        hidden.push_str(&"a:1;".repeat(10_000));
-        hidden.push('}');
-        let mut over = groups(".c", 2_048);
-        over.push_str(" {");
-        over.push_str(&"a:1;".repeat(129));
-        over.push('}');
-        let mut under = groups(".c", 2_048);
-        under.push_str(" {");
-        under.push_str(&"a:1;".repeat(127));
-        under.push('}');
-        let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
-            (
-                "a quoted brace hiding ten thousand declarations",
-                format!(r#"<svg {NS}><style>{hidden}</style></svg>"#),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "4,096 groups, at the group bound",
-                format!(
-                    r#"<svg {NS}><style>{} {{ fill: red }}</style></svg>"#,
-                    groups(".c", 4_096)
-                ),
-                None,
-            ),
-            (
-                "4,097 groups, over the group bound",
-                format!(
-                    r#"<svg {NS}><style>{} {{ fill: red }}</style></svg>"#,
-                    groups(".c", 4_097)
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "the declaration bound alone, over",
-                format!(r#"<svg {NS}><style>{over}</style></svg>"#),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "the declaration bound alone, under",
-                format!(r#"<svg {NS}><style>{under}</style></svg>"#),
-                None,
-            ),
-        ];
-        for (what, text, expected) in &cases {
-            assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
-        }
-    }
-
-    /// A plain sheet's declaration bound is the exact count of the copies simplecss makes
-    /// (each rule's selector groups times its declarations), not the raw group bound times the `:` count.
-    #[test]
-    fn plain_sheets_count_their_declarations_exactly() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let rules = |n: usize, declarations: usize| {
-            (0..n)
-                .map(|k| format!(".st{k} {{ {} }}", "a:1;".repeat(declarations)))
-                .collect::<String>()
-        };
-        let review = format!(r#"<svg {NS}><style>{}</style></svg>"#, rules(101, 26));
-        assert_eq!(svg_hazard(review.as_bytes()), None, "101 rules, 26 declarations");
-        let many = format!(r#"<svg {NS}><style>{}</style></svg>"#, rules(200, 10));
-        assert_eq!(svg_hazard(many.as_bytes()), None, "200 rules, 10 declarations");
-        let over = format!(
-            r#"<svg {NS}><style>{} {{ {} }}</style></svg>"#,
-            (0..2_048).map(|k| format!(".c{k}")).collect::<Vec<_>>().join(","),
-            "a:1;".repeat(129)
-        );
-        assert_eq!(
-            svg_hazard(over.as_bytes()),
-            Some(SvgHazard::TooComplex),
-            "2,048 groups, 129 declarations"
-        );
-    }
-
-    /// The six-part selector cap applies to every raw prelude of a
-    /// sheet that is not plain too, back to the previous `{` or `}`.
-    #[test]
-    fn the_part_cap_applies_to_sheets_that_are_not_plain() {
-        let hidden = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><style>.q { font-family: "a}b" } g * * * * * * * * { fill: red }</style></svg>"#;
-        assert_eq!(svg_hazard(hidden.as_bytes()), Some(SvgHazard::TooComplex));
-        let short = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><style>.q { font-family: "a}b" } .a .b { fill: red }</style></svg>"#;
-        assert_eq!(svg_hazard(short.as_bytes()), None);
-    }
-
-    /// An at-rule is skipped by the CSS parser but is read conservatively as one wild rule here; a
-    /// sheet with an at-rule but no reference still passes.
-    #[test]
-    fn at_rules_make_the_sheet_wild() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4""#;
-        let media = format!(
-            r#"<svg {NS}><style>@media print {{ rect {{ clip-path: url(#c) }} }}</style><clipPath id="c"><rect width="1" height="1"/></clipPath><rect width="1" height="1"/></svg>"#
-        );
-        assert_eq!(svg_hazard(media.as_bytes()), Some(SvgHazard::TooComplex));
-        let keyframes = format!(
-            r#"<svg {NS}><style>.blink {{ animation: blinking 1s infinite; }} @keyframes blinking {{ 50% {{ opacity: 0.0; }} }}</style></svg>"#
-        );
-        assert_eq!(svg_hazard(keyframes.as_bytes()), None);
-    }
-
-    /// Duplicate ids are refused (usvg resolves `<use>` first-wins and `url(#…)` last-wins, so the
-    /// scanner cannot follow both), as are two different `href`s on one element (a deliberate stricter-than-usvg
-    /// rule).
-    #[test]
-    fn repeated_ids_and_double_hrefs_are_refused() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
-        let repeated = format!(
-            r#"<svg {NS}><pattern id="p" width="1" height="1"><rect width="1" height="1" fill="url(#q)"/></pattern><pattern id="q" width="1" height="1"><rect width="1" height="1" fill="url(#p)"/></pattern><g id="p"/></svg>"#
-        );
-        assert_eq!(svg_hazard(repeated.as_bytes()), Some(SvgHazard::TooComplex));
-        let clip_paths = format!(
-            r#"<svg {NS}><clipPath id="a"><rect width="1" height="1"/></clipPath><clipPath id="a"><rect width="1" height="1" clip-path="url(#b)"/></clipPath><clipPath id="b"><rect width="1" height="1" clip-path="url(#c)"/></clipPath><clipPath id="c"><rect width="1" height="1" clip-path="url(#a)"/></clipPath><rect width="1" height="1" clip-path="url(#a)"/></svg>"#
-        );
-        assert_eq!(svg_hazard(clip_paths.as_bytes()), Some(SvgHazard::TooComplex));
-        let gradients = format!(r#"<svg {NS}><linearGradient id="g"/><linearGradient id="g"/></svg>"#);
-        assert_eq!(svg_hazard(gradients.as_bytes()), Some(SvgHazard::TooComplex));
-        let different = format!(r##"<svg {NS}><linearGradient id="a" href="#b" xlink:href="#c"/></svg>"##);
-        assert_eq!(svg_hazard(different.as_bytes()), Some(SvgHazard::TooComplex));
-        let same = format!(r##"<svg {NS}><linearGradient id="a" href="#b" xlink:href="#b"/></svg>"##);
-        assert_eq!(svg_hazard(same.as_bytes()), None);
-    }
-
-    /// marker content that can carry a marker property is refused from any source, and what real drawing
-    /// programs write (a marker used by a class, presentation attributes, a plain rule) still passes.
-    #[test]
-    fn marker_content_that_can_carry_a_marker_is_refused() {
-        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
-        let n = r#"<marker id="n"><path d="M0 0 L1 1"/></marker>"#;
-        let p = r#"<path d="M0 0 L1 1 L2 0"/>"#;
-        let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
-            (
-                "(a)",
-                format!(r#"<svg {NS}><g marker-mid="url(#n)"><marker id="m">{p}</marker></g>{n}</svg>"#),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(b)",
-                format!(r#"<svg {NS}><marker id="m" marker-mid="url(#n)">{p}</marker>{n}</svg>"#),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(c)",
-                format!(
-                    r#"<svg {NS}><style>.k {{ marker-mid: url(#n) }}</style><marker id="m"><path class="k" d="M0 0 L1 1 L2 0"/></marker>{n}</svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(d)",
-                format!(
-                    r#"<svg {NS}><style>.k {{ marker-mid: url(#n) }}</style><g class="k"><marker id="m">{p}</marker></g>{n}</svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(e)",
-                format!(
-                    r#"<svg {NS}><style>path {{ marker-mid: url(#n) }}</style><marker id="m">{p}</marker>{n}</svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(e2)",
-                format!(
-                    r#"<svg {NS}><style>path {{ marker-mid: url(#g) }}</style><linearGradient id="g"><stop offset="0"/></linearGradient><marker id="m">{p}</marker></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(f)",
-                format!(
-                    r##"<svg {NS}><defs><g id="arrow"><path d="M0 0 L1 1 L2 0" marker-mid="url(#n)"/></g></defs><marker id="m"><use href="#arrow"/></marker>{n}</svg>"##
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(g)",
-                format!(
-                    r#"<svg {NS}><marker id="m"><path class="k" d="M0 0 L1 1 L2 0"/></marker>{n}<style>.k {{ marker-mid: url(#n) }}</style></svg>"#
-                ),
-                Some(SvgHazard::TooComplex),
-            ),
-            (
-                "(i)",
-                format!(
-                    r##"<svg {NS}><style>.st2 {{ marker-end: url(#m) }} .st3 {{ fill: #00f }}</style><defs><g id="lend"><path d="M1 -1 L0 0 L1 1"/></g><marker id="m" class="st3"><use xlink:href="#lend"/></marker></defs><path class="st2" d="M0 0 L10 0"/></svg>"##
-                ),
-                None,
-            ),
-            (
-                "(j)",
-                format!(
-                    r#"<svg {NS}><defs><marker id="a" markerWidth="5" markerHeight="6" style="overflow:visible"><path d="M0 0 L5 3 L0 6 Z" style="fill:#000"/></marker></defs><path d="M0 0 L10 0" style="marker-end:url(#a)"/></svg>"#
-                ),
-                None,
-            ),
-            (
-                "(k)",
-                format!(
-                    r#"<svg {NS}><style>path {{ stroke: #000 }}</style><marker id="m">{p}</marker><path d="M0 0 L4 4" marker-end="url(#m)"/></svg>"#
-                ),
-                None,
-            ),
-        ];
-        for (letter, text, expected) in &cases {
-            assert_eq!(svg_hazard(text.as_bytes()), *expected, "{letter}");
-        }
     }
 
     /// Every refusal says what the hazard is and how to export the file again.
@@ -3238,8 +1556,8 @@ mod tests {
         assert_eq!(sniff(text.as_bytes()), Ok((AssetFormat::Svg, Some((80, 20)))));
     }
 
-    /// What the cargo-vet audit of usvg 0.48.1 and its dependencies found the parser cannot bear (stack
-    /// overflow, exponential expansion, panics) is refused before the parser runs (synthetic documents).
+    /// What the parser does not survive (a stack overflow, a walk without end, an allocation without bound, a panic)
+    /// is refused before it runs (synthetic documents).
     #[test]
     fn svgs_the_parser_cannot_bear_are_refused() {
         const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
@@ -3248,29 +1566,12 @@ mod tests {
             "<g>".repeat(MAX_SVG_DEPTH),
             "</g>".repeat(MAX_SVG_DEPTH)
         );
-        let mut bomb = format!(r#"<svg {NS} viewBox="0 0 4 4"><defs><path id="l0" d="M0 0 H1"/>"#);
-        for level in 1..8 {
-            bomb.push_str(&format!(r#"<g id="l{level}">"#));
-            for _ in 0..10 {
-                bomb.push_str(&format!(r##"<use href="#l{}"/>"##, level - 1));
-            }
-            bomb.push_str("</g>");
-        }
-        bomb.push_str(r##"</defs><use href="#l7"/></svg>"##);
         let cases: Vec<(&str, String, SvgHazard)> = vec![
             ("nesting beyond the limit", deep, SvgHazard::TooComplex),
             (
                 "a three-element clip-path cycle",
                 format!(
                     r##"<svg {NS} viewBox="0 0 4 4"><clipPath id="a" clip-path="url(#b)"><rect width="1" height="1"/></clipPath><clipPath id="b" clip-path="url(#c)"><rect width="1" height="1"/></clipPath><clipPath id="c"><rect width="1" height="1" clip-path="url(#a)"/></clipPath></svg>"##
-                ),
-                SvgHazard::TooComplex,
-            ),
-            ("a use expansion bomb", bomb, SvgHazard::TooComplex),
-            (
-                "a marker inside a marker",
-                format!(
-                    r##"<svg {NS} viewBox="0 0 4 4"><marker id="m"><path d="M0 0 L1 1 L2 0" marker-mid="url(#n)"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker></svg>"##
                 ),
                 SvgHazard::TooComplex,
             ),
@@ -3300,25 +1601,46 @@ mod tests {
                 ),
                 SvgHazard::Unsupported,
             ),
-            (
-                "a descendant selector of twenty parts",
-                format!(
-                    r#"<svg {NS} viewBox="0 0 4 4"><style>g {} {{ fill: red }}</style></svg>"#,
-                    "* ".repeat(19)
-                ),
-                SvgHazard::TooComplex,
-            ),
-            (
-                "a run of close-path commands",
-                format!(
-                    r#"<svg {NS} viewBox="0 0 4 4"><path d="M0 0 H1 {}"/></svg>"#,
-                    "Z".repeat(40)
-                ),
-                SvgHazard::TooComplex,
-            ),
         ];
         for (what, text, hazard) in &cases {
             assert_eq!(svg_hazard(text.as_bytes()), Some(*hazard), "{what}");
+        }
+    }
+
+    /// What only costs time and memory while the drawing is made passes the plain rejecter: an expansion through
+    /// references (the parser stops at a million nodes), markers inside markers, a long selector, a long run of
+    /// close-path commands and a reference made in a style sheet.
+    #[test]
+    fn what_only_costs_drawing_time_passes_the_plain_rejecter() {
+        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+        let mut bomb = format!(r#"<svg {NS} viewBox="0 0 4 4"><defs><path id="l0" d="M0 0 H1"/>"#);
+        for level in 1..8 {
+            bomb.push_str(&format!(r#"<g id="l{level}">"#));
+            for _ in 0..10 {
+                bomb.push_str(&format!(r##"<use href="#l{}"/>"##, level - 1));
+            }
+            bomb.push_str("</g>");
+        }
+        bomb.push_str(r##"</defs><use href="#l7"/></svg>"##);
+        let passes = [
+            bomb,
+            format!(
+                r##"<svg {NS} viewBox="0 0 4 4"><marker id="m"><path d="M0 0 L1 1 L2 0" marker-mid="url(#n)"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker></svg>"##
+            ),
+            format!(
+                r#"<svg {NS} viewBox="0 0 4 4"><style>g {} {{ fill: red }}</style></svg>"#,
+                "* ".repeat(19)
+            ),
+            format!(
+                r#"<svg {NS} viewBox="0 0 4 4"><path d="M0 0 H1 {}"/></svg>"#,
+                "Z".repeat(40)
+            ),
+            format!(
+                r##"<svg {NS} viewBox="0 0 4 4"><style>.k {{ clip-path: url(#c) }}</style><clipPath id="c"><rect class="k" width="1" height="1"/></clipPath></svg>"##
+            ),
+        ];
+        for text in &passes {
+            assert_eq!(svg_hazard(text.as_bytes()), None, "{text}");
         }
     }
 
