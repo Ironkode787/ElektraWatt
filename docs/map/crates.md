@@ -72,7 +72,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 
 ## ew-api
 
-`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-format`, `ew-ids`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-memo`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units`, `ew-zip` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
+`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-caex`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-format`, `ew-ids`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-memo`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-render-cpu`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units`, `ew-zip` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
 
 The `Session` facade shared by every front-end.
 
@@ -194,7 +194,7 @@ The `Session` facade shared by every front-end.
 
 ## ew-caex
 
-`crates/ew-caex` · MIT OR Apache-2.0 · tier records · depends on `ew-interop-api` · used by `ew-plc` · in tests by none
+`crates/ew-caex` · MIT OR Apache-2.0 · tier records · depends on `ew-interop-api` · used by `ew-api`, `ew-commands`, `ew-plc` · in tests by none
 
 The neutral PLC exchange image and its AutomationML form (doc 10 §4.2, §4.3).
 
@@ -249,7 +249,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-commands
 
-`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-caex`, `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
 `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`.
 
@@ -418,7 +418,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 
 ## ew-dl
 
-`crates/ew-dl` · MIT OR Apache-2.0 · tier values · depends on `ew-units` · used by `ew-api`, `ew-export`, `ew-import-dxf`, `ew-print`, `ew-render-cpu`, `ew-render2d`, `ew-scene`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`
+`crates/ew-dl` · MIT OR Apache-2.0 · tier values · depends on `ew-units` · used by `ew-api`, `ew-export`, `ew-import-dxf`, `ew-print`, `ew-render-cpu`, `ew-render2d`, `ew-scene`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`, `ew-testkit`
 
 Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, and entity tags.
 
@@ -631,7 +631,7 @@ The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022): 
 
 ## ew-interop-api
 
-`crates/ew-interop-api` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-schema` · used by `ew-caex`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-library` · in tests by none
+`crates/ew-interop-api` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-schema` · used by `ew-api`, `ew-caex`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-library` · in tests by `ew-testkit`
 
 The plain data of an import over `ew-schema` records: `ImportInput`, `ImportContext`, `ImportBatch`, `ImportReport` and `SourceRef`.
 
@@ -820,7 +820,7 @@ IEC 81346 reference-designation parser and formatter (strict and lenient), with 
 
 ## ew-render-cpu
 
-`crates/ew-render-cpu` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-units` · used by `ew-export`, `ew-print`, `ew-render2d`, `ew-ui` · in tests by `elektrawatt`, `ew-api`, `ew-testkit`
+`crates/ew-render-cpu` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-units` · used by `ew-api`, `ew-export`, `ew-print`, `ew-render2d`, `ew-ui` · in tests by `elektrawatt`, `ew-testkit`
 
 CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing.
 
@@ -872,7 +872,7 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2). |
 | `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
 | `src/kinds/io_list.rs` |  | `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5). |
-| `src/kinds/mod.rs` |  | The built-in report kinds (doc 09 §2.4). |
+| `src/kinds/mod.rs` |  | The built-in report kinds (doc 09 §2.4): [`builtin`] lists every kind this build derives, one module a kind or a family. |
 | `src/kinds/numbering_report.rs` |  | `numbering_report`: frozen tags and frozen wire numbers with their rule-derived values (FR-REP-022, FR-NUM-022, doc 09 §2.4). |
 | `src/kinds/open_items.rs` |  | `open_items`: the open-items list (FR-REP-021). |
 | `src/kinds/part_data.rs` |  | `part_data`: the embedded PART DATA box (FR-REP-028). |
@@ -893,7 +893,7 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/queries.rs` |  | The query families of the report engine: a block's arranged rows and its generated pages. |
 | `src/render.rs` |  | Value rendering rules (doc 09 §3.6): the display formatting of typed cells, applied late (FR-I18N-009), so the same [`Cell`] prints "0.75 mm²" in an English PDF and "0,75 mm²" in an nl-NL one while XLSX keeps the number. |
 | `src/rowset.rs` |  | `RowSet`: one row source for every consumer (doc 09 §2.3, ADR-0018). |
-| `src/table.rs` |  | The one table model of the table writers: report rows, the `ew sql` result and, from part 2, the navigator tables are a [`Table`], which the XLSX writer ([`crate::xlsx`]) and the CSV presets ([`crate::csv::table_csv`]) write. |
+| `src/table.rs` |  | The one table model of the table writers: report rows, the `ew sql` result and the navigator tables are a [`Table`], which the XLSX writer ([`crate::xlsx`]) and the CSV presets ([`crate::csv::table_csv`]) write. |
 | `src/words.rs` |  | The words of the lists by key (architecture §18): a column's heading, a word in a cell, the title of a box and the note of a list that is not derived stand in `texts/<language>/lists.ftl` and are made with `text!`. |
 | `src/xlsx.rs` | large | The own XLSX writer: [`xlsx()`] writes [`Table`]s as an Office Open XML workbook whose bytes depend on the tables and the [`WorkbookMeta`] only. |
 
@@ -1409,6 +1409,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/licence.rs` | large | The licence rule of `cargo xtask rules`: the licence-map and licence-boundary check of docs/design/19-open-source-governance.md §5.1 (rules LR-01 … LR-04, NFR-LIC-01, NFR-LIC-02, NFR-LIC-10, NFR-MAINT-02), driven by `ci/licence-map.toml`. |
 | `src/main.rs` |  | The development commands of ElektraWatt: one command that checks a change, one that regenerates the generated files, and the repository rules they share. |
 | `src/raw_read.rs` | large | The raw-read rule of `cargo xtask rules`: the guard of ADR-0001 amendments 2, 4 and 5 for the raw readers of `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`. |
+| `src/reexports.rs` |  | The re-export rule of `cargo xtask rules` (ADR-0035 decision 4, architecture §3 rule 7: a crate names what it uses): no `pub use` of another workspace crate, or of an item of one, outside the facades of [`FACADES`], so that every item has one path and a search on its crate finds its users. |
 | `src/repo.rs` |  | Helpers for the repository-wide checks: running git and listing the committed files. |
 | `src/symbols.rs` |  | `symbols-qet10`: seals the native starter library documents and generates the QET edition. |
 | `src/translations.rs` |  | The translation status as a rule of `cargo xtask rules` (NFR-I18N-07): the Dutch guide translates every message of the introduction and of the tutorials (the pages of `src/tutorials/`) that the template `messages.pot` holds, none of them empty or fuzzy. |
