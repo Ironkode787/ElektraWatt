@@ -1841,30 +1841,27 @@ pub(super) fn command_error_message(e: &CmdError, params: &Value) -> String {
     }
 }
 
-/// A command's own refusal in the window's language: its keyed text, an argument that is
-/// itself a text in the same language; without a text, the caller's English `reason`.
+/// A command's own refusal in the window's language: its keyed text through the one renderer
+/// ([`strings::render_with`]), with the shell's words for the keys it names in its own terms ([`own_words`]); a
+/// refusal without a key (one of the API's own) as its English `reason`.
 pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> String {
-    fn words(t: &ew_api::Text) -> String {
-        // A JSON Pointer names its member in words, as an invalid parameter does.
-        if let ("refusal-words-pointer", [ew_api::TextArg::Plain(pointer)]) = (t.key(), t.args()) {
-            return param_words(&Value::Null, pointer);
+    text.map_or_else(
+        || reason.to_owned(),
+        |t| own_words(t).unwrap_or_else(|| strings::render_with(t, &own_words)),
+    )
+}
+
+/// The shell's words for a text whose argument it names in its own terms: a JSON Pointer (`refusal-words-pointer`) as
+/// its member in words, as an invalid parameter names it, and a part kind (`refusal-words-part-kind`) by its choice's
+/// words; `None` for any other text.
+fn own_words(t: &ew_api::Text) -> Option<String> {
+    match (t.key(), t.args()) {
+        ("refusal-words-pointer", [ew_api::TextArg::Plain(pointer)]) => Some(param_words(&Value::Null, pointer)),
+        ("refusal-words-part-kind", [ew_api::TextArg::Plain(kind)]) => {
+            Some(strings::in_sentence(&strings::choice_text(kind)))
         }
-        // A part kind by its choice's words.
-        if let ("refusal-words-part-kind", [ew_api::TextArg::Plain(kind)]) = (t.key(), t.args()) {
-            return strings::in_sentence(&strings::choice_text(kind));
-        }
-        let args: Vec<String> = t
-            .args()
-            .iter()
-            .map(|a| match a {
-                ew_api::TextArg::Text(t) => words(t),
-                other => other.to_string(),
-            })
-            .collect();
-        let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        strings::format(Key::run_time(t.key()), &args)
+        _ => None,
     }
-    text.map_or_else(|| reason.to_owned(), words)
 }
 
 /// A command's notices (`Outcome::notices`, what it dropped or adjusted instead of refusing) in the window's

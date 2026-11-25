@@ -144,12 +144,18 @@ impl Language {
     /// when the key has no value here, or by `on_error` when a pattern resolves with an error (with [`OnError::Keep`] an
     /// argument that is a text without a value here is written as its English).
     pub fn text(&self, text: &Text, on_error: OnError) -> Option<String> {
+        self.text_with(text, on_error, &|_| None)
+    }
+
+    /// [`Language::text`], with the words `own` gives for an argument that is a text in place of that text's pattern:
+    /// a front end's own words for a key whose argument it names in its own terms (a JSON Pointer as a field's label).
+    pub fn text_with(&self, text: &Text, on_error: OnError, own: &dyn Fn(&Text) -> Option<String>) -> Option<String> {
         let mut owned: Vec<(Cow<'_, str>, Formatted)> = Vec::new();
         for (i, arg) in text.args().iter().enumerate() {
-            owned.push((Cow::Owned(format!("p{i}")), self.arg(arg, on_error)?));
+            owned.push((Cow::Owned(format!("p{i}")), self.arg(arg, on_error, own)?));
         }
         for (name, arg) in text.named() {
-            owned.push((Cow::Borrowed(*name), self.arg(arg, on_error)?));
+            owned.push((Cow::Borrowed(*name), self.arg(arg, on_error, own)?));
         }
         let args: Vec<(&str, Value<'_>)> = owned
             .iter()
@@ -162,16 +168,17 @@ impl Language {
     }
 
     /// An argument of a text as its pattern reads it.
-    fn arg(&self, arg: &TextArg, on_error: OnError) -> Option<Formatted> {
+    fn arg(&self, arg: &TextArg, on_error: OnError, own: &dyn Fn(&Text) -> Option<String>) -> Option<Formatted> {
         Some(match arg {
             TextArg::Number(n) => Formatted::Number(n.to_string()),
-            other => Formatted::Words(self.words(other, on_error)?),
+            other => Formatted::Words(self.words(other, on_error, own)?),
         })
     }
 
-    /// An argument in words: a value as it is, a number in digits, a text and each item of a list in this language.
-    fn words(&self, arg: &TextArg, on_error: OnError) -> Option<String> {
-        let text = |t: &Text| match (self.text(t, on_error), on_error) {
+    /// An argument in words: a value as it is, a number in digits, a text (by `own` where it has words for it) and
+    /// each item of a list in this language.
+    fn words(&self, arg: &TextArg, on_error: OnError, own: &dyn Fn(&Text) -> Option<String>) -> Option<String> {
+        let text = |t: &Text| match (own(t).or_else(|| self.text_with(t, on_error, own)), on_error) {
             (Some(s), _) => Some(s),
             (None, OnError::Keep) => Some(t.to_string()),
             (None, OnError::Miss) => None,
@@ -190,7 +197,7 @@ impl Language {
                         i if i + 1 == n => out.push_str(&text(&list.last)?),
                         _ => out.push_str(&text(&list.between)?),
                     }
-                    out.push_str(&self.words(item, on_error)?);
+                    out.push_str(&self.words(item, on_error, own)?);
                 }
                 Some(out)
             }

@@ -794,6 +794,19 @@ pub fn format(key: Key<'_>, args: &[&str]) -> String {
         .unwrap_or_else(|| "?".to_owned())
 }
 
+/// `text`, a text of the session, the commands or the shell, in the UI language through `ew_l10n`'s renderer (en-GB
+/// where the language has no words for its key; the pseudo-locale accents the en-GB words), with the words `own`
+/// gives for an argument that is a text in place of its pattern; `?` for a key without a text.
+pub fn render_with(text: &ew_api::Text, own: &dyn Fn(&ew_api::Text) -> Option<String>) -> String {
+    let in_language = |l: &Locale| l.language.as_ref()?.text_with(text, OnError::Keep, own);
+    let now = current();
+    match &now.language {
+        Some(_) => in_language(now).or_else(|| in_language(en_gb())),
+        None => in_language(en_gb()).map(|s| ew_l10n::render::pseudo(&s)),
+    }
+    .unwrap_or_else(|| "?".to_owned())
+}
+
 /// A sentence `text` without its closing full stop, so that another part can follow it inside the same sentence
 /// (every toast text ends with its full stop, doc 16a §8 item 5).
 pub fn without_stop(text: &str) -> &str {
