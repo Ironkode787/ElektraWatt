@@ -366,8 +366,8 @@ impl DraftPage {
         parts.sort_by_key(|p| p.id);
         let mut out = BTreeMap::new();
         for p in parts {
-            for pin in &p.pins {
-                out.insert(pin.id, (p.at.plus(pin.at), pin.side, p.id));
+            for (pin, at) in p.pin_points() {
+                out.insert(pin.id, (at, pin.side, p.id));
             }
         }
         out
@@ -414,6 +414,11 @@ impl Part {
     /// Its body on the page.
     pub fn bounds(&self) -> Rect {
         self.body.moved(self.at)
+    }
+
+    /// Each of its pins with its point on the page.
+    pub(crate) fn pin_points(&self) -> impl Iterator<Item = (&Pin, Pt)> {
+        self.pins.iter().map(|pin| (pin, self.at.plus(pin.at)))
     }
 }
 

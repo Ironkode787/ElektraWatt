@@ -201,11 +201,11 @@ impl Router {
         let first = page.junctions.iter().map(|j| (j.id, j.at)).collect();
         let mut pins = BTreeMap::new();
         for p in &page.parts {
-            for pin in &p.pins {
+            for (pin, at) in p.pin_points() {
                 pins.insert(
                     pin.id,
                     PinAt {
-                        at: p.at.plus(pin.at),
+                        at,
                         side: pin.side,
                         part: p.id,
                         body: p.bounds(),

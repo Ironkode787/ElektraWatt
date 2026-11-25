@@ -872,16 +872,8 @@ impl<'a> Sketch<'a> {
             });
         }
         // Every other wired pin of these parts with its first steps of wire.
-        let cornered: BTreeSet<PinId> = mini
-            .wires
-            .iter()
-            .flat_map(|w| w.ends)
-            .filter_map(|e| match e {
-                End::Pin(p) => Some(p),
-                End::Junction(_) => None,
-            })
-            .collect();
-        let wired: BTreeSet<PinId> = self.w.nets.iter().flat_map(|n| n.pins.iter().copied()).collect();
+        let cornered = mini.wired();
+        let wired = &self.wired;
         for part in mini.parts.clone() {
             for pin in &part.pins {
                 let Some(s) = pin.side else { continue };

@@ -619,8 +619,8 @@ fn junctions_follow(page: &DraftPage, by: &BTreeMap<PartId, Pt>) -> Vec<(crate::
     let mut pins: BTreeMap<PinId, (Pt, Option<Side>, Pt)> = BTreeMap::new();
     for part in &page.parts {
         let d = by.get(&part.id).copied().unwrap_or_default();
-        for pin in &part.pins {
-            pins.insert(pin.id, (part.at.plus(pin.at), pin.side, d));
+        for (pin, at) in part.pin_points() {
+            pins.insert(pin.id, (at, pin.side, d));
         }
     }
     let at: BTreeMap<JunctionId, Pt> = page.junctions.iter().map(|j| (j.id, j.at)).collect();

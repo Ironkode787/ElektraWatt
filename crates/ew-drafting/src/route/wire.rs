@@ -79,7 +79,7 @@ fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>, bef
     let mut points = page
         .parts
         .iter()
-        .flat_map(|p| p.pins.iter().map(|q| p.at.plus(q.at)))
+        .flat_map(|p| p.pin_points().map(|(_, at)| at))
         .chain(page.junctions.iter().map(|j| j.at));
     if points.any(|q| !end(q) && geom::on(q, line)) {
         return false;

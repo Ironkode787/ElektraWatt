@@ -81,8 +81,8 @@ impl<'a> Wiring<'a> {
         parts.sort_by_key(|p| p.id);
         let mut pins = BTreeMap::new();
         for (i, p) in parts.iter().enumerate() {
-            for pin in &p.pins {
-                pins.insert(pin.id, (i, p.at.plus(pin.at), pin.side));
+            for (pin, at) in p.pin_points() {
+                pins.insert(pin.id, (i, at, pin.side));
             }
         }
         // Union-find over the wires' ends.
