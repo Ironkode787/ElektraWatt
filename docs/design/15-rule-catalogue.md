@@ -201,20 +201,19 @@ has no offline mode: the 3D half is 1.0. AC-21's compared subset admits EW-LAYOU
 
 #### 4.5.5 EW-MFG
 
-Rules 001 … 006 need the export's machine profile; a scheme run without a profile evaluates EW-MFG-001 against
-"routed, manual or from part" and skips 002, 003 and 006 ([13](13-manufacturing-outputs.md) §4.6).
+EW-MFG-001, 004, 008 and 009 judge the project before a print, online and in release mode; 002, 003, 005 and 006
+are a machine export's pre-flight and need its profile ([13](13-manufacturing-outputs.md) §4.6, §7.3).
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (defects) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| EW-MFG-001 | Wire length unusable | A length that is not routed, estimated and accepted by the profile, manual or from part, or is stale; field records are out of scope; supersedes EW-REL-002 for lengths | completeness | x r | error (working mode: the row is excluded) | potential | 1.0 | FR-MFG-024, FR-CHK-058 | D-19 | 13 §4.6 |
+| EW-MFG-001 | Wires without a length | One finding for the project while a wire that is no core has no length (the wire list prints —), its targets those wires; an export by profile judges each wire's length by the profile; supersedes EW-REL-002 for lengths | completeness | o r x | info (an export by profile: error, the row excluded) | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
 | EW-MFG-002 | Outside the machine limits | Cross-section or wire type outside the machine's limits or magazine | conflict | x | warning (row to the manual list) | potential | 1.0 | FR-MFG-024, FR-MFG-051 | — | 13 §4.6 |
 | EW-MFG-003 | Ferrule or end treatment unavailable | A ferrule not in the machine's magazine, or an end treatment not in the profile's `end_treatments` | conflict | x | warning (manual list or finishing task) | potential | 1.0 | FR-MFG-024, FR-MFG-050 | — | 13 §4.6 |
-| EW-MFG-004 | Marker text does not fit | A marker text that exceeds its marker part (characters per line, lines) or its encoding | conflict | o x | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |
+| EW-MFG-004 | Marker text does not fit | A marker text that does not fit its stock after the shortening of 13 §5.2 (characters per line, lines), or its encoding | conflict | o x | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |
 | EW-MFG-005 | Duplicate wire number in the export | A duplicate created by the export mapping (`export_as`, company codes); duplicates in the model are EW-POT-015, which supersedes it per target | conflict | x r | error | project | 1.0 | FR-MFG-024 | — | 13 §4.6 |
 | EW-MFG-006 | Bundle too large | A bundle above the bin size (or split by a profile option) | conflict | x | warning | project | 1.0 | FR-MFG-024 | — | 13 §4.6 |
-| EW-MFG-007 | Twin ferrule unavailable | A twin ferrule required or chosen, but no twin part for that cross-section pair | completeness | o r | error | potential | 1.0 | FR-MFG-043, FR-CHK-058 | — | 13 §4.6 |
-| EW-MFG-008 | End treatment undetermined | No clamp data, no candidate part, or an IDC end on a class 5 conductor | completeness | o r | warning/error | potential | 1.0 | FR-CHK-058 | — | 13 §4.6 |
-| EW-MFG-009 | End override inconsistent | Another colour scheme, a cross-section or sleeve outside the range, the wrong stud | conflict | o r | error | potential | 1.0 | FR-MFG-042 | — | 13 §4.6 |
+| EW-MFG-008 | End cannot be made | A wire end the rule table cannot decide: a fine-stranded wire into an insulation-displacement clamp | completeness | o r | warning | potential | 1.0 | FR-MFG-005, FR-CHK-058 | — | 13 §4.6 |
+| EW-MFG-009 | End set by hand does not fit | An end set by hand whose ferrule part fits another size, a twin ferrule with no second wire on its clamp, or a ferrule of another collar colour than the workshop stock's ferrule of that size | conflict | o r | warning | potential | 1.0 | FR-MFG-007, FR-MFG-042 | — | 13 §4.6 |
 | EW-MFG-010 | Unverified manufacturing data | Output based on unverified constants or part sections; one finding per package, listing the sources | hygiene | r | info | project | 1.0 | FR-CHK-058, FR-CHK-046 | — | 13 §4.6 |
 | EW-MFG-011 | Feedback length deviation | A machine feedback length that deviates from the computed length beyond tolerance | hygiene | f | info | project | 1.x | FR-MFG-026 | — | 13 §4.6 |
 | EW-MFG-020 | Strip without an end plate | A strip whose terminals have parts and after whose last terminal no end plate stands: none of its parts names one, it was left off, none was added | completeness | o r | warning | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |

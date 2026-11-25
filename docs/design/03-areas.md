@@ -393,53 +393,49 @@ classDiagram
   direction LR
   class WireRecord {
     <<derived>>
-    +id: WireId
-    +number: Ident?
-    +bundle: Ident
-    +seq: u32
-    +potential: PotentialId
-    +csa: Csa
-    +colour: ColourSpec
-    +wire_part: PartRef?
-    +length: Nm with source
-    +route: Vec~DuctName~
-    +flags: WireFlags
+    +wire: PhysicalWire, From end first
+    +csa, colour, wire_part: with sources
+    +number: String?
+    +length: WireLength
+    +flags: field
   }
-  class WireEnd {
+  class EndRecord {
     <<derived>>
-    +locus: dt cp level clamp
     +treatment: EndTreatment
-    +sleeve_len: Nm?
-    +strip_len: Nm?
+    +part: PartRef?
+    +site: bool
+    +treated_by: Rule or Hand
     +marker: lines of text
-    +target_pos: three Nm?
-    +torque: Dec3?
   }
-  class FerruleData {
+  class EndOverride {
+    +treatment: TreatmentKind?
+    +part: PartRef?
+    +marker: text or none
+  }
+  class FerruleSection {
     <<partdata>>
-    +csa: Csa
+    +csa_min, csa_max: Dec3
     +twin: bool
     +insulated: bool
-    +colour: ColourCode
-    +sleeve_len: Nm
-    +crimp_profile: CrimpProfile
+    +sleeve: Nm?
+    +colour: ColourSpec?
+    +stud: Ident?
   }
-  class MfgSettings {
-    +ferrule_colour_scheme: Din or French
-    +marking: WireNo or Destination or SourceDest or Potential
-    +length_increment: Nm
-    +reserve: ReservePolicy
-    +treatment_rules: Vec~TreatmentRule~
-    +standard_ferrules: Vec~PartRef~
-    +label_sets: Vec~LabelSetDef~
-    +field_policy: FieldPolicy
-    +package: PackagePolicy
-    +machine_profiles: Vec~ProfileRef~
+  class WorkshopSettings {
+    +stock: Vec~PartRef~
+    +cut_increment: Nm?
+    +marking: Destination or WireNumber or BothEnds or Potential
+    +mark_cores, mark_jumpers: bool
+    +ferrules: EveryFineStrandedEnd or NotIntoSpringClamps
+    +two_wires: TwinFerrule or FerruleEach
+    +device_labels: OnDevice or OnDeviceAndBeside
+    +label_profile: ExportProfile?
   }
   class LabelRecord {
     <<derived>>
-    +kind: Wire or Terminal or Device or Cable or Plate
-    +lines: Vec~String~
+    +set: LabelSet
+    +lines: up to three
+    +copies: u8
     +marker_part: PartRef?
   }
   class ProductionPackage {
@@ -448,26 +444,28 @@ classDiagram
     +content_hash: Sha256
     +members: manifest wires cables terminals labels layout surfaces docs
   }
-  WireRecord "1" *-- "2" WireEnd
-  WireEnd ..> FerruleData
-  WireRecord ..> MfgSettings
-  LabelRecord ..> WireEnd
+  WireRecord "1" *-- "2" EndRecord
+  EndRecord ..> FerruleSection
+  EndRecord ..> EndOverride
+  WireRecord ..> WorkshopSettings
+  LabelRecord ..> EndRecord
   ProductionPackage ..> WireRecord
   ProductionPackage ..> LabelRecord
 ```
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| `WireRecord`: one production row per physical wire (FR-MFG-001) | D (Class II for routed lengths) | ID = physical wire ID (§9.2), number, kind (wire, core, bond), bundle and sequence (FR-LAY-054), potential, effective csa, colour and IEC 60757 code, wire part, length with source and breakdown, rounded once to `MfgSettings.length_increment`, route as duct names, page references, flags (door, twisted, shielded, pre-assembled, estimated CP, field, bond) | One row source feeds PDF, XLSX, CSV and `.ewpp` (ADR-0018); machine profiles only declare their resolution and never re-round ([13](13-manufacturing-outputs.md) §2.4, §3.3) | — |
-| `WireEnd` | D | locus "strip:terminal:level:clamp" (FR-MFG-002); `treatment: EndTreatment = Ferrule{part} \| TwinFerrule{part, partner} \| RingLug{part, stud} \| ForkLug \| PinLug \| Bare \| Connector{part} \| Undetermined{reason}`; sleeve and strip length, crimp profile; marker text as one entry per printed line; `target_pos?: [Nm; 3]` (a position in the plate frame, not a pose); torque; provenance | Selected by the ordered treatment rules over wire class, clamp type and cross-section (FR-MFG-005/006); an `EndOverride` in `WireOverrides.ends` wins (§9) | Chk: two wires on a clamp without twin permission |
-| Ferrule, wire, marker | L (part kinds, FR-PRT-024) | ferrule: csa, twin, insulated, colour (scheme-dependent), sleeve and total length, collar diameter, crimp profile, packaging | Machine magazines prefer their own ferrules | — |
-| `MfgSettings` | A, in `ProjectSettings` | ferrule colour scheme DIN 46228-4 or "French" (FR-MFG-007), ferrule policy, `treatment_rules` (ordered data), `standard_ferrules` (the shop's ranked set), marking scheme (FR-MFG-010), `label_sets`, `field_policy` (field wires and external-end cores), `package` policy (members, documentation languages, personal-data default), `length_increment` (default 10 mm) and `reserve` policy (default fixed 100 mm), both read by the length formula of [12](12-panel-layout.md) §9; embedded machine profiles (TOML data, FR-MFG-018) | From the basic project ([13](13-manufacturing-outputs.md) §2.3) | — |
-| `LabelRecord` | D | wire, terminal, device, cable and plate labels from one engine (FR-MFG-012); deterministic DT abbreviation (FR-MFG-011) | Exported in marking-software layouts | Chk: truncation |
+| `WireRecord`: one row of the wire list per physical wire (FR-MFG-001) | D | the physical wire (§9.2) with its From end first, effective csa and colour, the wire part (the chain's, else the stock's of its size and colour), the printed number (none for a core), the length and where it comes from (typed, with its cable, missing; the layout adds estimated and routed, rounded once to the cut increment), `flags.field`, two `EndRecord`s | `wire_record_set()` of `ew-derive`; one row source for the page, XLSX, CSV and `.ewpp` (ADR-0018); the consumables and the cut list read it ([13](13-manufacturing-outputs.md) §2.4, §3) | — |
+| `EndRecord` | D | treatment `Ferrule \| TwinFerrule{partner} \| RingLug \| Bare \| Connector \| External \| Unknown{reason}`, its part from the workshop stock, whether it is made on site, decided by rule (with the assumption made) or by hand; the marker text, one entry per printed line | The rule table over the clamp and the conductor class, the pairing on one clamp and the shop's settings ([13](13-manufacturing-outputs.md) §4); an `EndOverride` wins | Chk: EW-MFG-008, EW-MFG-009, EW-POT-010 |
+| `EndOverride` | A, `WireOverrides.end_a` and `end_b` (§9) | treatment, ferrule or ring lug part, marker text or none | On the connection that lands on the clamp, so a renumber or a re-route leaves it ([13](13-manufacturing-outputs.md) §2.3) | — |
+| Wire, ferrule, marker sections | L (FR-PRT-035) | `wire{csa, colour, class}`, `ferrule{csa_min, csa_max, twin, insulated, sleeve, colour, stud}`, `marker{marks, lines, chars}` ([07](07-symbols-parts-macros.md) §2.5) | Machine magazines prefer their own ferrules | — |
+| `WorkshopSettings` | A, `ProjectSettings.workshop` | the stock (wire, ferrule and marker parts in the shop's order) and the cut increment ([07](07-symbols-parts-macros.md) §2.5); the marker text (destination, wire number, both ends, potential), whether cores and jumpers are marked, ferrules (every fine-stranded end, or not into spring and push-in clamps), two wires in one clamp (one twin ferrule, or a ferrule each), device labels, the label files' export profile; the layout adds the reserve ([12](12-panel-layout.md) §9) | From the basic project ([13](13-manufacturing-outputs.md) §2.3) | — |
+| `LabelRecord` | D | label set (wire, terminal, strip, cable markers, device labels, tube markers, plates), what it labels, up to three lines, copies, marker part, whether it fits | `label_rows()`: one engine for every label, in the order applied; one label file per label set and marker part ([13](13-manufacturing-outputs.md) §5) | Chk: EW-MFG-004 |
 | `ProductionPackage` `.ewpp` | X, Class II | ZIP with deterministic member order: manifest, project, devices, wires, cables, terminals, labels, layout glTF, surface DXF, cut lists, checklists, PDF, machine exports; revision and content hash (FR-MFG-031/032) | Written by export; frozen into the as-built archive at release | Release refuses stale Class II inputs (FR-MFG-025) |
 
-**Example: W29.** -102F2:Out1 → -X1031:1 (1/a); 24VDC-1; 0.75 mm², DBU; 806 mm computed and stored unrounded in the
-route, 810 mm in the wire record after rounding once to the 10 mm project increment (FR-LAY-051); insulated
-0.75 mm² ferrules at both ends; folios 102 and 103.
+**Example: 102.8 of the sample.** -102Q1:14 → -102E1:X1; 24V/102Q1:14; 2.5 mm², DBU; no length typed (`—`); one twin
+ferrule 2 × 2.5 mm² with 102.7 at -102Q1:14 and a ferrule 2.5 at -102E1:X1; by destination marking the markers
+-102E1:X1 and -102Q1:14; page 102.
 
 **Equivalents.** EPLAN: Smart Production, wire-end treatment by wire class (2027), labelling schemes, wire lists;
 exports are proprietary. QET: wiring list view (0.200), no ferrules, no lengths.

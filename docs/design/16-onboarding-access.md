@@ -58,7 +58,7 @@ sample project, rendered with the current choices on a fork by `ew-render-cpu`.
 | 7 Revisions | label format, first label | revision settings | "V{major}.{minor}", V1.0 |
 | 8 Languages and formats | source language, date format, decimal separator; translation languages (1.0) | `ProjectLanguages`, `Formatting` | UI locale |
 | 9 Reports and checks | report blocks with folios; check scheme | `ReportBlock`s, `CheckSchemeRef` | the standard layout |
-| 10 Manufacturing (1.0) | ferrule colour scheme, marking scheme, reserve length | `MfgSettings` | DIN, destination marking, 100 mm |
+| 10 Manufacturing (1.0) | marker text, ferrules, two wires in one clamp, reserve length | `WorkshopSettings` | destination marking, ferrules on every fine-stranded end, twin ferrules, 100 mm |
 | 11 Review and create | summary, location of the basic project | basic project directory; default template in user settings | — |
 
 The wizard keeps a draft in the user configuration directory until it finishes. "Edit company standard" reopens

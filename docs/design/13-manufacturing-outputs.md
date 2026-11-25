@@ -2,10 +2,10 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
-**Purpose.** This document designs everything ElektraWatt (EW) hands to the panel shop: the production wire record,
-the ferrule and wire-end engine, wire and device marking, terminal-strip assembly lists, data-driven machine export
-profiles, drilling and cut data, verification checklists, the open production package `.ewpp`, the read-only wiring
-viewer and the as-built feedback loop. It elaborates the MFG rows of
+**Purpose.** This document designs everything ElektraWatt (EW) hands to the panel shop: the wire list as the fitter
+works from it, the treatment of each wire end, markers and the label files, the rework list after a change,
+terminal-strip assembly lists, data-driven machine export profiles, drilling and cut data, verification checklists,
+the open production package `.ewpp`, the read-only wiring viewer and the as-built feedback loop. It elaborates the MFG rows of
 [02b](02b-requirements-extended.md) §6 on top of the accepted [architecture](04-architecture.md) and the
 [domain model](03-domain-model.md) §17. Its governing rule is ADR-0018: one row source feeds the printed list, the
 spreadsheet, the package and the machine file, so they cannot disagree.
@@ -13,9 +13,9 @@ spreadsheet, the package and the machine file, so they cannot disagree.
 **Contents**
 1. [Scope and position](#1-scope-and-position)
 2. [Concepts and data](#2-concepts-and-data)
-3. [The production wire record](#3-the-production-wire-record)
-4. [Ferrule and wire-end engine](#4-ferrule-and-wire-end-engine)
-5. [Wire marking and labels](#5-wire-marking-and-labels)
+3. [The wire list](#3-the-wire-list)
+4. [End treatments](#4-end-treatments)
+5. [Markers and labels](#5-markers-and-labels)
 6. [Terminal-strip assembly lists](13-workshop-lists.md#6-terminal-strip-assembly-lists), with the
    consumables summary (§3.6) and the cut lists (§9.3) in [the workshop lists](13-workshop-lists.md)
 7. [Machine export profiles](#7-machine-export-profiles)
@@ -33,66 +33,68 @@ spreadsheet, the package and the machine file, so they cannot disagree.
 ## 1. Scope and position
 
 Manufacturing data is **derived, never authored twice**. A wire's ends come from the connection graph, its
-cross-section and colour from the potential-based inheritance chain, its length from a committed route, its ferrule
-from rules over part data, its marker text from the tag query. The only authored manufacturing facts are shop
-policies (`MfgSettings`), label-set definitions, embedded machine profiles and per-end overrides (§2.3).
+cross-section and colour from the potential-based inheritance chain, its length from what a person typed or from the
+layout, the treatment of each end from a rule table over the wire and its clamp, and the text of its markers from the
+tags and numbers the drawing prints. A person authors only the shop's choices (`WorkshopSettings`, §2.3), an end set by
+hand, a length typed by hand and the clamp data of a part.
 
 | Topic | Decided here | Decided elsewhere |
 |---|---|---|
-| Physical-wire identity, orientation (From/To), wire-end locus | Use only | [08](08-connections-terminals-cables.md) §3.8 |
-| Effective csa, colour, wire part with provenance | Use only | [08](08-connections-terminals-cables.md) §4, [03](03-domain-model.md) §9.5 |
-| Wire numbers, freezing at release | Use, duplicate pre-flight | [08](08-connections-terminals-cables.md) §5 |
-| Routing, wire length formula, calibration, bundles and sequence | Consumption, provenance, staleness | [12](12-panel-layout.md) (FR-LAY-042 … 055) |
-| Machining features per surface | DXF, hole table and cut-list output | [12](12-panel-layout.md) (FR-LAY-056, -057) |
-| `RowSet`, report kinds, forms, pagination, PDF, XLSX/CSV dialects, dates | Manufacturing row sources | [09](09-reports-forms-output.md) §2.3, §2.4, §4.3, §4.6 |
-| Clamp data, ferrule/wire/marker part kinds (L1, L6) | Which fields the engine reads | [07](07-symbols-parts-macros.md) §2.5 |
-| PLC rows, tube rows | Checklist, label and cut-list input | [10](10-plc-and-bus.md) §5, [11](11-fluid-power.md) §8.2 |
-| Deterministic ZIP rules, as-built archive | Package content and hashing | [05](05-project-format-and-persistence.md) §12, §14 |
-| Rule engine, final rule IDs, waivers | Rule content EW-MFG-001 … 011 | [15](15-checks-revisions-collaboration.md) |
-| Manufacturing workspace layout | Panels and commands it needs | [16](16-ux-ui.md) |
+| Physical-wire identity, orientation (From/To) | Use only | [08](08-connections-terminals-cables.md) §3.8 |
+| Effective csa, colour, wire part with provenance | Use only | [08](08-connections-terminals-cables.md) §4, [03](03-domain-model.md) §9.5, [07](07-symbols-parts-macros.md) §2.5 |
+| Wire numbers | Use only | [08](08-connections-terminals-cables.md) §5 |
+| The wire annotation a page prints beside a wire | How it stands to a marker (§5.1) | [08](08-connections-terminals-cables.md) §4.5 |
+| Routing, the length formula, the door, bundles | The length's place in the record (§3.3) | [12](12-panel-layout.md) §8, §9 |
+| `RowSet`, report kinds, printed columns, pagination, PDF, XLSX and CSV | The wire list's columns, the label files | [09](09-reports-forms-output.md) §2.3, §2.4, §3.8, §4.6 |
+| Clamp data; the wire, ferrule and marker sections; the workshop stock | Which members the derivation reads (§2.2) | [07](07-symbols-parts-macros.md) §2.5 |
+| The assembly list, the cut list, the consumables summary | What they read of the wire records (§2.4) | [the workshop lists](13-workshop-lists.md) |
+| Tube rows | The tube markers' text (§5.3) | [11](11-fluid-power.md) §8.2 |
+| The as-built archive | What the rework list compares (§3.5) | [05](05-project-format-and-persistence.md) §14 |
+| Rule engine, waivers | The rules of §4.6 | [15](15-checks-revisions-collaboration.md) |
+| The window | The commands and dialogs of §12 | [16](16-ux-ui.md) |
 
 ```mermaid
 flowchart LR
-  subgraph A["Model snapshot"]
+  subgraph A["Project"]
     C["Connections, junctions,<br/>IP pairs, bonds"]
-    P["Potential defs, profiles"]
-    T["Strips, terminals, bridges"]
-    K["Cables, conductors"]
-    L["Placements, carriers,<br/>committed routes"]
-    PC["Part copies: clamps (L1, L6),<br/>wire, ferrule, marker parts"]
-    S["MfgSettings, label sets,<br/>profile copies"]
+    P["Potentials, profiles"]
+    T["Strips, terminals"]
+    K["Cables, cores"]
+    PC["Parts: clamp data,<br/>wire, ferrule, marker sections"]
+    S["Workshop settings and stock,<br/>ends set by hand, typed lengths"]
   end
-  C --> PW["physical_wires_of(potential) (08)"]
+  C --> PW["physical_wires_of (08)"]
   P --> PW
-  PW --> WR["wire_records_of(potential)"]
-  L --> WR
-  PC --> EE["end-treatment engine (§4)"]
-  EE --> WR
-  S --> EE
-  WR --> LB["label_rows(set)"]
+  PW --> WR["wire_record_set()"]
+  PC --> WR
+  S --> WR
+  WR --> WL["wire_list (09)"]
+  WR --> LR["label_rows()"]
+  T --> LR
+  K --> LR
+  LR --> LB["labels, tube_labels"]
+  LB --> LF["label files, one per label set and marker part"]
+  WR --> RW["rework list"]
+  AR[("archive of a release")] --> RW
   T --> TA["assembly_rows(strip)"]
-  WR --> RS["RowSet (09)"]
-  LB --> RS
-  TA --> RS
-  RS --> PDF["Report pages"]
-  RS --> XL["XLSX / CSV"]
-  RS --> PKG[".ewpp export job"]
-  PKG --> MP["Machine profiles (TOML)"]
-  MP --> MF["Machine files + sidecar"]
-  PKG --> V["Wiring viewer"]
-  V -.->|"status log (1.x)"| O[("Order folder")]
-  MF -.->|"feedback CSV (1.x)"| O
-  O -.->|"previewed commands:<br/>comments, calibration"| A
+  WR --> WS["consumables, cut list"]
+  LR --> WS
+  WL --> OUT["page, XLSX, CSV"]
 ```
 
-**Crates.** `ew-mfg` (GPL) holds the queries, the end-treatment engine, the label engine, the profile interpreter
-and the package writer. It builds on `ew-reports` and `ew-panel` (committed routes, bundles and CP positions),
-writes the package records through the permissive `ew-ewpp` crate (ARCH §3) and implements the `Exporter`
-contract over an `ExportView` of a fork (FR-EXP-001). The queries of §2.5 are additions to the ARCH §6.4
-catalogue. The `.ewpp` export job needs PDF, DXF and glTF rendering (`ew-scene`, `ew-export`, `ew-panel`), which
-`ew-mfg` does not depend on; the job is therefore composed in `ew-api`, and `ew-mfg` receives the rendered members
-as bytes. The permissive `ew-ewpp` crate holds the package record types, JSON Schemas, the reader, the writer and
-the package diff; the GPL `ew-viewer` crate and the small `ew-wiring-viewer` binary serve the shop floor (ARCH §3).
+**Homes** ([04](04-architecture.md) §3.4). No crate is added for the workshop:
+
+- `ew-derive`: the query `wire_record_set()` (§2.4), a wire's length, the rule table of end treatments and the engine
+  that applies it, the marker text and the rule that shortens it, the label engine `label_rows()` and the comparison of
+  two states that gives the rework list. Each reads several records, and the checks read them too.
+- `ew-reports`: the columns of `wire_list`, the list kinds `labels` and `tube_labels`, the rework rows and the label
+  file writer.
+- `ew-checks`: the rules of §4.6. `ew-commands`: nothing new; `fields.set` writes a typed length and an end set by hand,
+  `project.settings.set` the members of `workshop`.
+- `ew-api`: opening the archive a rework list compares with, writing the label files, the rows of Properties and the
+  editable cells of the Connections table. `ew-viewmodel` and `ew-ui`: the commands and dialogs of §12.
+
+The machine export profiles (§7) and the package (§8) are composed in `ew-api` from these same rows.
 
 ---
 
@@ -102,223 +104,259 @@ the package diff; the GPL `ew-viewer` crate and the small `ew-wiring-viewer` bin
 
 | Term | Meaning |
 |---|---|
-| Wire | One physical conductor cut and made in the shop: a `PhysicalWire` of [08](08-connections-terminals-cables.md) §3.8 of kind Wire, or a bond wire. Its ID is the target-side carrier connection's UUID |
-| Core | A cable conductor (`Connection{kind: Core}`); a wire record of kind `core` |
-| Wire end | One termination of a wire: locus `dt:cp`, plus level and clamp on terminals (FR-MFG-002) |
-| End treatment | Ferrule, twin ferrule, ring, fork or pin lug, bare, connector contact (pre-assembled), or `Undetermined` |
-| Wire type key | The machine's identity of a wire stock: csa + colour (+ wire part), e.g. "0.75 DBU" |
-| Bundle, sequence | Wires produced and delivered together, and the wiring order inside a bundle (FR-LAY-054) |
-| Magazine | The wire types and ferrule reels loaded on a machine, declared in its profile |
-| Machine profile | Versioned TOML data that maps wire records to one machine's import format (FR-MFG-018) |
-| Label set | A definition of one marker kind: what text, which marker part, limits, optional code |
-| Package | The `.ewpp` ZIP: the self-contained hand-off to the shop (FR-MFG-031) |
-| Order | One assembly built from one package, with its serial number, status logs and feedback |
+| Wire | One conductor the fitter cuts from a reel and lands at both ends: a physical wire of [08](08-connections-terminals-cables.md) §3.8 that is no cable core. A bond wire is a wire |
+| Core | A conductor of a cable: cut with its cable; the fitter treats its ends, lands them and marks them where the shop does |
+| Jumper | A wire whose two ends land on one device (-101G1:+#1 to -101G1:+#2) |
+| Bridge | A plug-in, saddle, wire or inter-level bridge between terminals of a strip: mounted with the strip, never a wire |
+| End | Where a wire lands: a pin of a device, a clamp of a terminal, or an external point outside the project |
+| From end, To end | A wire's two ends in the orientation of [08](08-connections-terminals-cables.md) §3.8; every list, label and rework row reads a wire the same way round |
+| Site end, field wire | An end that is external, or on a device of another location than the cabinet's (the location of a layout space), is made on site, not in the shop; a wire with a site end is a field wire |
+| Clamp | The connection point of a part a conductor goes into; its kind and how many conductors it takes are part data |
+| End treatment | What the fitter puts on an end: a ferrule, a twin ferrule, a ring lug, a connector's contact, or nothing (bare) |
+| Marker | The printed sleeve or clip on a wire end that names the wire or its far end |
+| Wire annotation | The text a schematic page prints beside a wire: its number, cross-section and colours ([08](08-connections-terminals-cables.md) §4.5). It is no marker (§5.1) |
+| Label | Any printed mark of the workshop: a wire marker, a terminal or strip marker, a cable marker, a device label, a tube marker, a plate |
+| Label set | The labels of one kind (wire markers, terminal markers, …), printed on the marker part of the stock that marks them; one label file per label set and marker part |
+| Export profile | The columns of a label file with their headings, as data (§5.4) |
+| Rework list | What the fitter changes in a built cabinet between a release and now (§3.5) |
 
-### 2.2 Inputs read through queries
+### 2.2 What the derivation reads
 
-| Input | Source | Fields used |
+| Input | Source | Read for |
 |---|---|---|
-| Physical wires | `physical_wires_of(potential)` ([08](08-connections-terminals-cables.md) §3.8) | ID, ends, constituents, orientation, `core`, bond |
-| Effective properties | `wire_props_of(potential)` | csa, colour, wire part, insulation, flags, provenance |
-| Wire number | `Connection.number` of the carrier | printed number, frozen state |
-| Clamp data | Part copy L1 (CP pattern) and L6 (3D CPs) ([07](07-symbols-parts-macros.md) §2.5) | clamp kind, csa ranges (solid, fine, with ferrule), max conductors, twin permission, ferrule sleeve range, strip length, insertion depth, torque, stud size |
-| Wire part | Part section `wire` | IEC 60228 class, outer diameter, insulation type |
-| Ferrule and lug parts | Part section `ferrule` (part kinds Ferrule, Accessory) | csa, twin, insulated, colour scheme and colour, sleeve and total length, collar diameter, crimp profile, packaging, stud size (lugs) |
-| Marker parts | Part kind Marker | max characters per line, lines, printable code, carrier type |
-| Lengths and routes | Committed `Route` per wire, `RouteOverride` ([03](03-domain-model.md) §16) | length, edges, input hash; estimated lengths (FR-LAY-053) |
-| Bundles | `bundle_sequence(space)` ([12](12-panel-layout.md), FR-LAY-054) | bundle key, sequence, overrides |
-| Positions | Placements, carriers, L6 CP positions | target position per end in the plate frame |
-| Revision | `Revision`, `ReleaseRecord` | label, state, generation, release context date |
+| Physical wires, their ends and constituents | `physical_wires_of(potential)` ([08](08-connections-terminals-cables.md) §3.8) | rows, ends, jumpers, who shares a clamp |
+| Cross-section, colour, wire part | `wire_props_of(potential)` ([08](08-connections-terminals-cables.md) §4); the wire part the chain names, else the stock's of the wire's size and colour (`wire_part_of`, [07](07-symbols-parts-macros.md) §2.5) | columns, the ferrule's size, the conductor class |
+| Wire number | `wire_numbers()` ([08](08-connections-terminals-cables.md) §5.2) | the No. column, markers by number |
+| Tags | the device tag, `level_short_tag`, `cp_label` ([08](08-connections-terminals-cables.md) §3.8) | ends, marker texts, labels |
+| Clamp data | `CpData` of the part: `clamp_type`, `max_conductors`, `twin_ferrule`, `csa_min`, `csa_max` ([07](07-symbols-parts-macros.md) §2.5) | treatment, pairing, EW-POT-010 |
+| Conductor class | `sections.wire.class` of the wire's part | treatment |
+| Ferrules and lugs | the workshop stock's parts of section `ferrule`: `csa_min`, `csa_max`, `twin`, `insulated`, `sleeve`, `colour`, `stud` | the part of an end, its colour, the strip length |
+| Markers | the workshop stock's parts of section `marker`: `marks`, `lines`, `chars` | a label's marker part, the shortening of §5.2 |
+| Typed length | `WireOverrides.length` of the wire's connections, the carrier's first | length |
+| Cable | the core's conductor and its cable device | the No. and the length of a core |
+| Placements | the layout's placements and layout spaces ([12](12-panel-layout.md)) | the order of device labels; a site end, a door end |
+| Workshop settings | `ProjectSettings.workshop` (§2.3) | treatment, marking, rounding, label files |
+| A release | its as-built archive ([05](05-project-format-and-persistence.md) §14), opened read-only | the rework list's base |
 
-### 2.3 Authored manufacturing data
+### 2.3 Authored data
 
-The settings and the end overrides below are specified; not built: the code has no member of them yet, and a
-connection's `WireOverrides` holds no ends.
+The shop's choices are members of the one `WorkshopSettings` ([07](07-symbols-parts-macros.md) §2.5), beside its
+stock and its cut increment. Every member is optional and additive; an older build keeps it in `extra` and writes it
+back.
 
 ```rust
-pub struct MfgSettings {                     // in ProjectSettings (project.jsonl); defaults from the basic project
-    pub ferrule_colour_scheme: FerruleScheme,// Din46228_4 | French (FR-MFG-007); name as in 03 §17
-    pub length_increment: Nm,                // project length increment, default 10 mm; rounding once (§3.3)
-    pub reserve: ReservePolicy,              // as in 03 §17; both read by the length formula of 12 §9
-    pub ferrule_policy: FerrulePolicy,       // insulated, spring-clamp rule, two_wire, default sleeve per csa
-    pub treatment_rules: Vec<TreatmentRule>, // ordered data: (wire classes, clamp kind, csa range) → treatment (§4.2)
-    pub standard_ferrules: Vec<PartRef>,     // the shop's standard set, ranked
-    pub marking: MarkingScheme,              // WireNumber | Destination | SourceDestination | Potential (FR-MFG-010)
-    pub label_sets: Vec<LabelSetDef>,        // §5.3
-    pub machine_profiles: Vec<ProfileRef>,   // embedded profile copies in lib/profiles/ (05 §2.1)
-    pub field_policy: FieldPolicy,           // field wires and external-end cores: list, label, exclude from machines
-    pub package: PackagePolicy,              // members to include, docs languages, personal-data default
+pub struct WorkshopSettings {                 // ProjectSettings.workshop; absent: every default below
+    pub stock: Vec<PartRef>,                  // the wire, ferrule and marker parts the shop keeps, in its order (07 §2.5)
+    pub cut_increment: Option<Nm>,            // what a piece is rounded up to, 5 mm when absent (07 §2.5; here §3.3)
+    pub marking: Marking,                     // destination (default) | wire_number | both_ends | potential
+    pub mark_cores: bool,                     // default false: a core is known by its colour or number
+    pub mark_jumpers: bool,                   // default false: a jumper on one device carries no marker
+    pub ferrules: FerruleRule,                // every_fine_stranded_end (default) | not_into_spring_clamps
+    pub two_wires: TwoWires,                  // twin_ferrule (default) | ferrule_each
+    pub device_labels: DeviceLabels,          // on_device (default) | on_device_and_beside
+    pub label_profile: Option<ExportProfile>, // absent: the generic profile (§5.4)
 }
-pub enum TwoWirePolicy { PreferTwin, SeparateWhereAllowed, TwinOnly }
-
-// WireOverrides.ends of the carrier connection (03 §9; FR-MFG-042)
-pub struct EndOverride {
-    pub at: CpRef,                           // which physical end; keyed by CP, not by the carrier's endpoints
-    pub treatment: Option<TreatmentKind>,
-    pub part: Option<PartRef>,               // manual ferrule or lug
-    pub strip_len: Option<Nm>,
-    pub marker: Option<SmolStr>,             // explicit marker text
-    pub no_marker: bool,
+pub struct ExportProfile {
+    pub columns: Vec<ProfileColumn>,          // in file order: { key: a column key of the list, heading: String }
+    pub delimiter: Delimiter,                 // comma (default) | semicolon
+}
+pub struct EndOverride {                      // WireOverrides.end_a and .end_b: the end of this connection
+    pub treatment: Option<TreatmentKind>,     // ferrule | twin_ferrule | ring_lug | bare
+    pub part: Option<PartRef>,                // a ferrule or ring lug part the project holds
+    pub marker: Option<EndMarker>,            // {"text": "<marker>"} | "none"
 }
 ```
 
-- **Defaults** (PQ-22): destination marking, DIN 46228-4 colours, insulated ferrules on
-  fine-stranded wire, `TwoWirePolicy::PreferTwin`, fixed 100 mm reserve (the formula and its other terms belong to
-  [12](12-panel-layout.md) §9).
-- **End overrides** live on the wire's carrier connection, next to its `NumberSpec`. The number-transfer normaliser
-  of [08](08-connections-terminals-cables.md) §5.1 moves them with the number when the carrier changes, so a manual
-  lug survives a junction edit.
-- **Nothing about production status is authored in the project.** Status, actual lengths and technician actions
-  live in the order folder (§11.3). The project format stays free of timestamps (ARCH §7.3).
+- **An end set by hand lives on the connection that lands on the clamp**: in `end_a` when that connection's endpoint
+  `a` is the wire's end, else in `end_b`. A renumber, a re-route or a junction edit that keeps that connection leaves it
+  where it is, and no list of ends by CP can be left behind. The derivation reads it only where that endpoint is a
+  wire's end at a CP; Reset clears it.
+- **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
+  every override of a physical wire.
+- The layout's reserve ([12](12-panel-layout.md) §9) joins `WorkshopSettings` with the lengths the layout computes.
+- **Nothing about production status is authored in the project.** Status, actual lengths and technician actions live
+  in the order folder (§11.3); the project format stays free of timestamps (ARCH §7.3).
 
 ### 2.4 Derived records
 
-The production wire record below is specified; not built. What is built is the physical wire it is made from
-(`PhysicalWire` and its `WireEnd` of `crates/ew-derive/src/wires.rs`, [08](08-connections-terminals-cables.md) §3.8).
-
 ```rust
-pub struct WireRecord {                      // one per physical wire; grouped per potential (ARCH §6.3)
-    pub id: WireId,                          // carrier connection UUID
-    pub number: Option<Ident>,               // None for unnumbered cores
-    pub kind: WireKind,                      // Wire | Core{cable, core} | Bond{bond}
-    pub ends: [WireEnd; 2],                  // [From, To] by the 08 §3.8 orientation rule
-    pub potential: PotentialId, pub potential_name: Ident, pub signal: SignalId,
-    pub csa: Csa, pub colour: ColourSpec, pub wire_part: Option<PartRef>, pub wire_class: Option<u8>,
-    pub props_source: Provenance,            // e.g. level 2, profile "DBU/WH 24 V"
-    pub length: LengthInfo,                  // {mm, raw_mm, source, stale, rev, calibration}
-    pub route: SmallVec<[CarrierName; 6]>,   // duct names in path order
-    pub bundle: Option<BundleKey>, pub seq: Option<u32>,
-    pub flags: WireFlags,                    // door, twisted, shielded, pre_assembled, estimated_cp, field, bond
-    pub page_refs: SmallVec<[PageRef; 4]>,   // folio and cell of each end and of each IP passed
-    pub wire_type_key: SmolStr,              // "0.75 DBU"
+pub struct WireRecord {               // wire_record_set(): every physical wire once, in the numbering order (08 §5.2)
+    pub wire: PhysicalWire,           // oriented: ends[0] is the From end
+    pub csa: Option<Prov<Csa>>,       // the effective cross-section, colour and wire part with their sources (08 §4);
+    pub colour: Option<Prov<ColourSpec>>,   // the part is the chain's, else the stock's of this size and colour
+    pub wire_part: Option<PartRef>,
+    pub number: Option<String>,       // the printed number; None for a core and a wire drawn on no page
+    pub length: WireLength,           // §3.3: value() and whether there is one
+    pub flags: WireFlags,             // field: an end is a site end (§2.1)
+    pub ends: [EndRecord; 2],         // From, To
 }
-pub struct WireEnd {
-    pub cp: CpRef, pub locus: Locus,         // {dt_full, dt_display, cp, level?, clamp?}
-    pub treatment: EndTreatment,             // Ferrule{part} | TwinFerrule{part, partner} | RingLug{part, stud}
-                                             //   | ForkLug{..} | PinLug{..} | Bare | Connector{part} | Undetermined{reason}
-    pub sleeve_len: Option<Nm>, pub strip_len: Option<Nm>, pub crimp: Option<CrimpProfile>,
-    pub marker: SmallVec<[SmolStr; 2]>,      // one entry per printed line
-    pub target_pos: Option<[Nm; 3]>,         // plate frame; a position, not a Pose3 (as in 03 §17)
-    pub torque: Option<Dec3>,                // N·m, from L6
-    pub source: Provenance,                  // rule ID, magazine, standard set or override
+pub enum WireLength { Typed(Nm), WithCable(Id<Device>), Missing }   // the layout adds Estimated and Routed
+pub struct EndRecord {
+    pub treatment: EndTreatment,      // Ferrule{csa} | TwinFerrule{csa, partner} | RingLug | Bare | Connector
+                                      //   | External | Unknown{reason}
+    pub part: Option<Id<Part>>,       // the ferrule's or ring lug's part (§4.4)
+    pub site: bool,                   // made on site, not in the shop (§2.1)
+    pub treated_by: TreatedBy,        // Rule{row, assumed: Assumption} | Hand
+    pub marker: MarkerText,           // Lines(1 to 3 lines) | NotMarked(why) (§5)
+    pub marked_by: MarkedBy,          // Setting | Hand
+}
+pub struct LabelRecord {              // label_rows(): every label in the order it is applied (§5.3)
+    pub set: LabelSet,                // WireMarkers | TerminalMarkers | StripMarkers | CableMarkers | DeviceLabels
+                                      //   | TubeMarkers | Plates
+    pub target: LabelTarget,          // the wire end, terminal, strip, cable, device or tube end it labels
+    pub lines: SmallVec<[String; 3]>,
+    pub copies: u8,
+    pub marker_part: Option<Id<Part>>,    // the stock's marker that marks its set (§5.3)
+    pub fits: bool,                   // false: the text does not fit the marker part (§5.2)
 }
 ```
 
-`LabelRecord`, `TerminalAssemblyRow`, `MachineRow` and `ChecklistItem` follow in §5–§10. All are derived: none is
-persisted except as frozen copies in the as-built archive (FR-REV-011).
+The types are `ew-derive`'s; the cells and words that print them are `ew-reports`' and `ew_derive::text`'s. The
+consumables summary and the cut list read `csa`, `colour`, `wire_part`, `length` and `flags.field` of a wire, the
+`treatment` and `part` of each end the shop makes (a twin ferrule's part once for its two wires) and the `marker_part`
+of each label ([the workshop lists](13-workshop-lists.md) §3.6, §9.3). A record is never stored; a release freezes the
+lists it prints into its archive (FR-REV-011).
 
 ### 2.5 Queries and freshness
 
-| Query (key) | Depends on | Policy | Class |
+| Query | Reads | Policy | Class |
 |---|---|---|---|
-| `wire_records_of(potential)` | `physical_wires_of`, `wire_props_of`, numbers, committed routes, bundles, clamp data, settings | Memo | I (reads committed lengths; staleness via input hash) |
-| `clamp_occupancy(potential)` | physical wires, clamp data | Memo | I; shared with EW-POT-010 (§4.3) |
-| `wire_record_set(scope)` | `wire_records_of` over the potentials of a location or layout space | Cold, sorted | I |
-| `label_rows(label_set)` | wire records, terminals, devices, cables, tubes | Memo + LRU | I |
-| `assembly_rows(strip)` | `terminal_rows(strip)`, accessories, bridges, parts | Memo | I |
-| `checklist_rows(kind, scope)` | potentials, protective devices, PLC rows, change list | Memo | I |
-| `consumables(scope)` | `wire_record_set`, `label_rows` | Cold | I |
-| `machine_rows(profile)` | `wire_record_set`, profile | Cold, in the export job | II |
-| `mfg_change_list(base, current)` | `diff_query` over wire records, terminals, devices | Cold, in a job | II |
-| `.ewpp` export | all of the above on a fork | Job | II |
+| `wire_record_set()` | `physical_wires_of`, `wire_props_of`, `wire_numbers`, tags, clamp data, the workshop stock, settings | cold; a memo per potential where a measurement asks for it | I |
+| `label_rows()` | `wire_record_set()`, strips and terminals, cables, devices, placements, `tube_rows`, the stock's markers | cold | I |
+| the rework list | two `wire_record_set()` and two `label_rows()`, one of them read from an archive | computed when asked, in a job | II (the archive is a file) |
+| `assembly_rows(strip)`, `consumables`, `cut_list` | [the workshop lists](13-workshop-lists.md) | Memo, cold | I |
+| `checklist_rows(kind, scope)` | potentials, protective devices, PLC rows, the rework list | Memo | I |
+| `machine_rows(profile)` | `wire_record_set()`, profile | cold, in the export job | II |
+| `.ewpp` export | all of the above on a fork | job | II |
 
-A committed route is model data, so reading its length is a Class I read; what can be stale is the route's input
-hash (EW-LAY-011). A wire record therefore carries `length.stale = true` rather than silently passing on an old value
-(ARCH §6.5). A wire edit on folio 102 re-executes only the wire records of the touched potential, about 1 ms at M
-size (estimate), well inside the commit budget.
+A Class I list is always current; nothing is updated by hand. The rework list reads a file outside the project, so it
+is made when a person asks for it and is never stored.
 
 ---
 
-## 3. The production wire record
+## 3. The wire list
 
-### 3.1 Field catalogue
+### 3.1 One list, its rows and its columns
 
-The canonical JSON field names are those of `wires.json` (§8.3). Profiles address these names, never internal
-structs. Example values are the golden wire W29 on Golden A-R with the PM §6.8 routing inputs.
+**The wire list is one list kind, `wire_list`, and it is the fitter's sheet.** There is no second production list: a
+list that repeated the wire list's rows and columns would be a copy to keep in step. A project that wants the drawing
+set's list and the fitter's list apart makes two blocks of the one kind and gives each its printed columns
+(Output ▸ List columns…, [09](09-reports-forms-output.md) §3.8); their title and their columns are all that makes them
+two things.
 
-| # | Field | Type | Derived from | W29 |
-|---|---|---|---|---|
-| 1 | `id`, `key` | UUID, string | carrier connection ([08](08-connections-terminals-cables.md) §3.8); `key` = short stable wire key (§11.2) | the folio-103 connection IP 24VDC-1 → -X1031:1/a; `W7K2M9QXA` (illustrative) |
-| 2 | `number` | string? | `NumberSpec` of the carrier, printed by the scheme | `102.n` (counter in `expected/wires.csv`, ▲U-33) |
-| 3 | `kind` | `wire`, `core`, `bond` | connection kind, `Bond.via` | `wire` |
-| 4 | `bundle`, `seq` | string, int | `bundle_sequence(space)` | the -X1031 bundle ▲, by level |
-| 5 | `from.dt`, `from.dt_full`, `from.cp`, `from.level`, `from.clamp` | strings | `device_tag`, CP designation, terminal CP | `-102F2`, `=P01+J-E-2416-102F2`, `Out1`, —, — |
-| 6 | `to.*` | as above | as above | `-X1031`, `=P01+J-E-2416-X1031` ([03](03-domain-model.md) §8.4), `1`, `1`, `a` |
-| 7 | `potential`, `signal` | names | `potential_partition`, signal name | `24VDC-1`, `24VDC-1` |
-| 8 | `csa`, `csa_unit`, `colour`, `colour_name` | decimal string, code | `wire_props_of` | `0.75`, `mm2`, `DBU`, "dark blue" |
-| 9 | `props_source` | string | provenance | `profile:DBU/WH 24 V` |
-| 10 | `wire_part`, `wire_class` | part ref, int | profile wire part (FR-CON-033) | H05V-K 0.75 DBU ▲, 5 |
-| 11 | `length_mm`, `length_raw`, `length_source`, `length_stale`, `length_rev` | int, decimal, enum, bool, int | committed route or estimate | `810`, `806.0`, `routed`, `false`, revision of the route |
-| 12 | `from.treatment`, `from.part`, `from.sleeve_mm`, `from.strip_mm`, `from.crimp`, `from.twin_with` | §4 | end-treatment engine | ferrule, insulated 0.75 × 10 mm ▲, 10, trapezoidal ▲, — |
-| 13 | `to.*` (same) | §4 | same | same |
-| 14 | `from.marker`, `to.marker` | string lists | label engine (§5) | `["-X1031:1"]`, `["-102F2:Out1"]` |
-| 15 | `route` | names | route edges → carrier names | `["D1","D2","D4"]` |
-| 16 | `from.pos_mm`, `to.pos_mm` | 3 decimals | placement pose × L6 CP position | illustrative `["212.000","640.500","95.000"]` |
-| 17 | `from.torque_nm`, `to.torque_nm` | decimal? | L6 | — (push-in) |
-| 18 | `page_refs` | `folio-cell` list | `rep_anchor_cell` of the ends, IP cells | `102-H15`, `103-A1` (IP pair) plus both end cells |
-| 19 | `flags` | set | door, twisted, shielded, pre_assembled, estimated_cp, field, bond | `[]` |
-| 20 | `status` | enum | `open` at export; overlaid by the order's status log (§11.3) | `open` |
+**Rows.** One row per physical wire, cores included, in the numbering order of [08](08-connections-terminals-cables.md)
+§5.2, from `wire_record_set()`; then a heading "Bridges" and one row per bridge: its label (BR1), its first and last
+terminal, and in the From end cell its kind and span ("plug-in bridge, terminals 1–4"). A bridge has no length,
+treatment or marker: it is mounted with its strip ([the workshop lists](13-workshop-lists.md) §6).
 
-At MVP the wire list of folio 907 (FR-REP-014) already carries fields 1–3, 5–10 and 18, with lengths only as
-`manual` or `missing` and a wire part only where one is set explicitly (the profile-derived wire part of FR-CON-033
-is 1.0); it also prints the six bridges as bridge rows ([08](08-connections-terminals-cables.md) §6.5), which wire
-records exclude. The 1.0 record adds bundles, routed and estimated lengths, routes, end treatments, markers,
-positions, torque and flags. The printed list, the XLSX, the CSV and `wires.json` read the same `RowSet`
-(FR-MFG-001 acceptance).
+**Columns.** The key is what an export profile and the round trip address.
 
-### 3.2 Inclusion and flags
-
-| Physical wire | Wire record | Machine sets | Labels |
+| Key | Heading | The cell | Printed |
 |---|---|---|---|
-| Wire between two CPs of the layout space's location | `wire` | yes | yes |
-| Bond wire (`Bond.via`, W27) | `bond`, potential printed "0V ⇄ PE" | yes | yes |
-| Core of a pre-assembled cable (-106W1, -106W2: W35–W44) | `core`, `pre_assembled`; the connector end gets `Connector{part}` | no; manual list | cable markers; core markers by `core_id_mode` |
-| Core of a shop-cut cable | `core` | cable machines only | cable and core markers |
-| Wire or core with an end outside the location (W1–W3 from +J-E-206) | `field` | no | per `field_policy` (default: none) |
-| Bridge, Internal, Bus, Fluid, Overview connection | none (FR-TRM-007) | — | bridges appear in the assembly list (§6) |
+| `no` | No. | the wire number; a core, which has none, its cable and core (`-103W1 BN`) | yes |
+| `from`, `to` | From, To | the end's device or terminal (§3.2) | yes |
+| `from_cp`, `to_cp` | CP | the end's pin or clamp (§3.2) | yes |
+| `potential` | Potential | the potential's name; a bond wire `0V ⇄ PE` | |
+| `colour` | Colour | the effective colour code | yes |
+| `cross_section` | mm² | the effective cross-section | yes |
+| `source` | Source | where the cross-section and the colour come from ([08](08-connections-terminals-cables.md) §4) | |
+| `via` | Via | how the wire is joined: its junction and wiring, a daisy chain, the interruption points passed | |
+| `part` | Wire part | the wire part's number | |
+| `pages` | Pages | the pages the wire is drawn on | yes |
+| `length` | Length | the length in mm; `cable` for a core; `—` without one (§3.3) | yes |
+| `length_source` | Length from | typed, cable or missing; the layout adds estimated and routed | |
+| `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | yes |
+| `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | |
+| `from_strip`, `to_strip` | From strip, To strip | the strip length in mm: the ferrule's sleeve | |
+| `from_marker`, `to_marker` | From marker, To marker | the end's marker text (§5.2), its lines joined by ` / `; empty where the end carries none | yes |
 
-### 3.3 Lengths and their provenance
+A block without columns of its own prints the columns marked "printed", in this order: No., From, CP, To, CP, Colour,
+mm², Length, From end, To end, From marker, To marker, Pages (`ReportKindDef::printed`,
+[09](09-reports-forms-output.md) §3.8). The CSV and the XLSX of the list hold every column in the order of the table.
+The Connections navigator in table mode shows every column; Length, From end, To end, From marker and To marker are
+editable there (§12).
 
-`length_source` is `routed` (committed `RouteWires` result), `estimated` (FR-LAY-053), `manual`
-(`WireOverrides.length` on the carrier connection, [03](03-domain-model.md) §9, [12](12-panel-layout.md) §9), `from_part`
-(pre-assembled cores) or `missing`; the values mirror `LengthSource` of [08](08-connections-terminals-cables.md) §7.6.
-`length_raw` is the formula value before calibration and rounding (FR-LAY-051, -052). The property grid and
-`ew query wire_record <id> --explain` show the chain: "810 mm · routed rev 412 · stubs 85 + path 490 + Δz 95 +
-ends 36 + reserve 100 = 806 · ×1.00 · ↑10 mm".
+### 3.2 The end
 
-**Rounding happens once**, in `wire_records_of`, to the project's length increment (`MfgSettings.length_increment`,
-golden 10 mm); the committed `Route` keeps the unrounded calibrated length (FR-MFG-051). A machine profile's
-`length_increment_mm` declares only the machine's resolution, and profiles never re-round: if the project
-increment is a multiple of it (10 mm on a 1 mm machine), the machine file carries the wire-list value unchanged,
-which is what keeps AC-35's "row-identical to folio 907" true. Otherwise EW-MFG-002 flags the row "length differs
-from the wire list" and moves it to the manual list.
+- **A device end** is the device's tag and its pin, as the drawing names them: `-101Q1` and `1`. A pin the device has
+  twice prints its number as the drawing's labels do: `+#1`, `+#2`.
+- **A terminal end** is the terminal's tag, which holds the strip and the terminal (`-X1011:L1`; a level of a block with
+  a number of its own prints that number, [08](08-connections-terminals-cables.md) §6.3), and its clamp: the clamp's
+  letter where the part names clamps (`a`), else the CP's designation (`1`). The fitter reads strip, terminal, level
+  and clamp from two cells.
+- **An external end** prints `ext.` and the point's name (`ext. L1`), no pin: it is made outside the project.
+- **The From end comes first**, by the orientation of [08](08-connections-terminals-cables.md) §3.8, on every list,
+  label and rework row, so that a wire never reads reversed between two sheets.
+- **A tag prints without the structure its two ends share.** Inside one location a wire reads `-104A1-A2` to
+  `-104E1`; where its ends lie in two locations each end prints its own, `+FLD-104B1` and `+CAB-104A1-A2`, so the list
+  says that the wire leaves the cabinet and where it goes. Such an end, outside the cabinet's location, is a site end
+  (§2.1): the shop makes the other end, cuts the wire long enough and leaves this end for the site.
+- **A door end** (a device placed in the door, [12](12-panel-layout.md)) prints `(door)` after its tag, so that the
+  fitter takes the wire through the hinge loop.
+- **A core** is a row of the wire list: the fitter treats, lands and (where the shop does) marks its ends. It is cut
+  with its cable, which the cable list and the cut list carry; its Length cell says `cable`.
 
-### 3.4 Wire-list variants (FR-MFG-003)
+### 3.3 Lengths
 
-| Variant | Sort and group | Use |
+| `WireLength` | When | Length | Length from |
+|---|---|---|---|
+| `Typed(n)` | a constituent connection carries `WireOverrides.length` | n, as typed | typed |
+| `WithCable(cable)` | the wire is a core | `cable` | cable |
+| `Missing` | neither | `—` | missing |
+
+The layout adds `Estimated` and `Routed` ([12](12-panel-layout.md) §9), each a variant with its own data; nothing else
+changes. **Rounding happens once**: a length the program computes is rounded up to the project's cut increment
+(`workshop.cut_increment`, 5 mm when absent) in `wire_record_set()`, and a typed length prints as it was typed. The
+list, the labels, the cut list and a machine profile read the record and never round a wire's length again (§7.1).
+
+A length is typed in the Length cell of the Connections table or in the wire's Length row (Properties), in mm or with
+its unit ("2 m"); an empty value clears it. Properties says where a length comes from in words: "Typed by hand", "Cut
+with its cable -103W1", "No length: type it here, or the fitter measures the wire" (a text by key with its arguments,
+[04](04-architecture.md) §18). EW-MFG-001 (§4.6) says before a print how many wires have none.
+
+### 3.4 Order and grouping
+
+The list is in the numbering order. A block may group it by the device or strip of the From end (its `group` member,
+[09](09-reports-forms-output.md) §3.3), with a heading per device, for a shop that wires device by device. A machine's
+order (by wire type, then bundle) is the machine export's (§7).
+
+### 3.5 The rework list
+
+**Between which states.** The project as it is now and a release: by default the last released revision, whose archive
+the program finds where the project keeps its archives ([05](05-project-format-and-persistence.md) §14.2), or an
+archive file the person chooses. The archive opens read-only; `wire_record_set()` and `label_rows()` run on both
+states.
+
+**Which wire is which.** A wire of now is the wire of the release with the same ID; a wire whose carrier changed (a
+junction edit) is matched by its two end CPs, so it is not pulled and added again. The same matching gives the wire
+numbers before and after a change that a preview lists ([16](16-ux-ui.md) §7.6): one function of `ew-derive`.
+
+**What a row says.** One row per thing the fitter does, in the order he does it:
+
+| Action | When | The Change cell |
 |---|---|---|
-| Manual wiring | bundle, seq; grouped by From device | the technician's list and the viewer queue |
-| Machine set | wire type key (in magazine-slot order), then bundle, then seq | magazine machines; minimises changeovers |
-| Per device | device, CP order of its FnDef | device connection diagram (FR-REP-015) |
-| Change list | change kind, then device | rework (§3.5) |
+| Remove device, Remove terminal, Remove cable | a device label, terminal marker or cable marker of the release is gone | — |
+| Pull | a wire of the release is gone | — |
+| Replace | a kept wire changed its cross-section, colour or wire part | `size 1.5 → 2.5 mm²` and every other change |
+| Move end | an end of a kept wire lands on another CP | `end -104A1-A1:2 → -104A1-A1:4` and the markers that follow |
+| Re-make end | an end's treatment or part changed | `at -104E1:X2: twin 0.75 · 104.7 → ferrule 0.75` |
+| Check length | the length changed | `length 600 → 650 mm` |
+| Re-mark | a marker's text changed | `marker at -101Q1:1: -X1011:L1 → -X1012:L1` |
+| Re-label | a device, terminal, strip or cable label's text changed | the old and the new text |
+| Mount device, Add terminal, Add cable | a device label, terminal marker or cable marker is new | — |
+| Add | a wire is new | — |
 
-### 3.5 Change list (FR-MFG-004)
+A row with several changes takes the first action of the table that applies and lists every change. The columns are
+Action, No., From, CP, To, CP, Colour, mm², Length, From end, To end, From marker, To marker and Change; a pulled wire
+prints as the release had it, every other row as it is now.
 
-`mfg_change_list(base, current)` keys wire records by `id` and classifies:
+**What it does not report**: a wire that only moved on a page or took another route, a new number while no marker
+changes (with destination marking a renumber needs no work), a change of source that keeps the value (a size that
+moves from the wire to the profile), a potential renamed while no marker names it. Tubes are the fluid lists'.
 
-| Class | Condition |
-|---|---|
-| added / removed | ID only in current / only in base |
-| re-landed | same ID, an end CP differs |
-| changed | csa, colour, wire part, length (after rounding), treatment, ferrule part, marker text, bundle |
-| route-only | route differs, length equal: reported as info, no rework |
-| identity-changed | a removed and an added record with the same two end CPs and equal properties: shown as unchanged |
-
-The base is an as-built archive (`diff_query`, ADR-0013, FR-REV-015) or a second `.ewpp`; a historic revision
-without an archive (golden V1.0) cannot be a base. The package comparison needs only `wires.json`,
-`terminals.json` and `devices.json`, so it runs in the permissive `ew-ewpp` reader (FR-MFG-046) and in the viewer.
-Terminals and devices added or removed come from `terminals.json` and `devices.json`. The identity-changed rule
-absorbs carrier switches after junction edits ([08](08-connections-terminals-cables.md) §5.1).
+**Where it goes.** The Rework list… dialog shows the rows and exports them as XLSX and CSV through the list's writers;
+Labels for these changes… writes the label files of the new and changed markers and labels only (§5.4). A rework list
+is not a page of the drawing set: it compares with a file outside the project.
 
 ### 3.6 Consumables summary (FR-MFG-049)
 
@@ -326,199 +364,205 @@ In [the workshop lists](13-workshop-lists.md) §3.6.
 
 ---
 
-## 4. Ferrule and wire-end engine
+## 4. End treatments
 
 ### 4.1 Inputs per end
 
-For each wire end the engine reads: the wire class and csa (wire part, or the cable part's core data for cores); the
-clamp of the end CP (kind, accepted csa ranges, max conductors, twin permission, sleeve-length range, stud size);
-the other wires on the same clamp (`clamp_occupancy`); the settings; the active machine profile's magazine when
-the export targets a machine; and any `EndOverride`.
+For each end the engine reads: the wire's cross-section; its conductor class, `sections.wire.class` of the wire's part
+(the part the chain names, else the workshop stock's wire part of its size and colour, [07](07-symbols-parts-macros.md)
+§2.5), else fine-stranded (the assumption of §4.2); the clamp of the end's CP: its kind, how many conductors it takes,
+whether it takes a twin ferrule and its cross-section range (`CpData`); the other wires that land on the same CP; the
+workshop settings; and an end set by hand. An external end (`ext. L1`) is made outside the project: its treatment is
+`External`, printed `—`. A site end (§3.2) gets its treatment like any other; the shop does not make it.
 
-### 4.2 Treatment rules (data)
+### 4.2 The rule table
 
-Shipped as the default `treatment_rules` (FR-MFG-005, FR-MFG-008), editable in the basic project. Per-terminal
-acceptance is part data whose section confidence stays `unverified` for every vendor until checked
-([07](07-symbols-parts-macros.md) §2.5); rules reading it report at most a warning (FR-CHK-046,
-[15](15-checks-revisions-collaboration.md)). The table follows PM §7.3; the IDC row is EW's
-assumption **(verify)**.
+The rows are data in `ew-derive`, each with its source; the first row that matches gives the treatment. The table is
+**unverified** until a panel builder confirms it against his shop's practice: an end that a row decides says
+"rule (unverified)" in Properties, and a rule that reads it reports at most a warning (FR-CHK-046).
 
-| Clamp kind | Class 1/2 (solid, stranded) | Class 5/6 (fine-stranded) |
-|---|---|---|
-| Screw (rising cage, screw clamp) | bare | ferrule |
-| Push-in | bare | ferrule (policy may allow bare with pusher) |
-| Spring (operated cage clamp) | bare | ferrule; `Optional` per policy |
-| IDC | bare | not permitted → `Undetermined` (EW-MFG-008) |
-| Ring stud Mx | ring lug Mx | ring lug Mx |
-| Fork stud Mx | fork lug Mx | fork lug Mx |
-| Pin-lug clamp (where the part requires it) | pin lug | pin lug |
-| Connector pin (pre-assembled core) | `Connector{part}` from the cable part | same |
+| Row | Clamp | Conductor | Treatment | Source |
+|---|---|---|---|---|
+| 1 | plug (a connector's pin) | any | `connector`: the connector's own contact, which comes with the connector | the clamp is a contact, not a clamp |
+| 2 | ring stud | any | `ring lug` | a stud takes a closed lug (DIN 46234 ring lugs, verify) |
+| 3 | insulation displacement | fine-stranded | `Unknown`: the clamp does not take it (EW-MFG-008) | IDC clamps take solid and stranded conductors only |
+| 4 | insulation displacement | solid, stranded | `bare` | |
+| 5 | spring, push-in | fine-stranded, when the shop sets "not into spring or push-in clamps" | `bare` | the clamp holds fine strands itself (its maker's data) |
+| 6 | screw, spring, push-in, or not known | fine-stranded (IEC 60228 class 5 or 6) | `ferrule` of its size, or a twin ferrule by §4.3 | DIN 46228 ferrules; EN 60204-1 13.1.1 (verify the clause): the strands held together |
+| 7 | screw, spring, push-in, or not known | solid or stranded (class 1 or 2) | `bare` | a clamp takes them without a sleeve (IEC 60999-1, verify) |
+
+**Assumptions, said where they are made.** A clamp whose part has no clamp data is taken as a screw or spring clamp; a
+wire whose class nothing names is taken as fine-stranded, the common panel wire. An end decided under an assumption
+says so in Properties ("rule: fine-stranded wire, clamp kind not known") and in its source; the printed list prints the
+treatment only.
+
+**What the shop sets** (`WorkshopSettings`, §2.3): `ferrules` (every fine-stranded end, or not into spring and push-in
+clamps: row 5), `two_wires` (§4.3) and the order of its stock (§4.4). Fork and pin lugs are not made by this design: no
+part section describes them yet.
 
 ### 4.3 Two or more wires on one clamp
 
-`clamp_occupancy(potential)` lists, per clamp, the wires landing on it. Pairing runs before part selection and is
-shared with the electrical capacity rule EW-POT-010 (FR-CHK-021, [08](08-connections-terminals-cables.md) §8.1), so
-both see the same conductor count:
+The wires whose ends land on one CP share its clamp. Pairing runs on the ends no person has set by hand, after the
+table has given each its treatment:
 
 ```text
-for each clamp k with wires W (n = |W| ≥ 2), wires sorted by (csa desc, wire id):
-  pairs = []
-  pairable(a, b) = a.csa == b.csa and 0.5 mm² ≤ csa ≤ 2.5 mm² (the twin-ferrule range, PM §7.3) and k.twin_ok
-  PreferTwin, TwinOnly:  greedily pair pairable wires in sorted order
-  SeparateWhereAllowed:  pair greedily only while n − |pairs| > k.max_conductors
-  conductors = n − |pairs|
-  if conductors > k.max_conductors:                       → EW-POT-010 error naming k (electrical capacity)
-  elif policy.two_wire = TwinOnly and n − 2·|pairs| > 0:  → EW-MFG-007 error ("twin ferrule required")
-  each pair → TwinFerrule{partner}; each unpaired wire → single treatment by §4.2
+for each CP with wires W (|W| ≥ 2), sorted by cross-section (largest first), then number, then wire ID:
+  pairable(a, b) = both ferrule ends, equal cross-section,
+                   the clamp takes a twin ferrule (or its part does not say),
+                   and the shop's two_wires is twin_ferrule
+  pair greedily in that order; each pair → TwinFerrule{csa, partner}, every other end keeps its treatment
+  conductors = |W| − pairs
+  conductors > the clamp's maximum (where its part names one) → EW-POT-010, naming the clamp
 ```
 
-A twin ferrule counts as one conductor against `max_conductors`, which follows EN 60204-1 13.1.1 **(verify the
-clause; [standards](../research/standards.md) M-08 cites 13.1)**: more than one conductor only where the terminal is
-designed for it. This interprets FR-MFG-006: two wires on a clamp without twin permission are an error only if the
-clamp accepts one conductor; on a two-conductor clamp they get two single ferrules.
+A twin ferrule counts as one conductor, so EW-POT-010 and the treatment see the same count. Each wire of a pair prints
+`twin 2.5 · 102.8`: the size and the partner's number (a core's cable and core), so the fitter cuts both wires before he
+crimps them. Two wires of different sizes on one clamp get a ferrule each, as do two wires where the shop sets
+`ferrule_each`; three wires of one size give one pair and one single ferrule.
 
-### 4.4 Part selection
+### 4.4 The part of an end
 
-```text
-select(end, treatment):
-  if end has EndOverride.part: use it; validate (csa, scheme, sleeve range, stud) → EW-MFG-009 on mismatch
-  cands = ferrule-kind parts in the project's embedded library and standard set with
-          csa == wire.csa (twin: csa pair equal and part.twin), insulated == policy.insulated,
-          colour scheme == settings.ferrule_colour_scheme (insulated parts only),
-          sleeve_len ∈ clamp.sleeve_range        (unknown range: sleeve_len == policy.default_sleeve(csa), flag),
-          collar_d ≤ clamp.max_collar_d          (if specified),
-          lugs: stud == clamp.stud and csa ∈ part.csa_range
-  rank by: in active magazine (machine export) > rank in standard_ferrules > |sleeve − preferred| > natural part
-           number > part UUID
-  none → Undetermined{NoPart} (EW-MFG-008); twin with no twin part → EW-MFG-007
-  strip_len = sleeve_len + part.strip_offset (0 … 1 mm, part data, default 0)
-  crimp = part.crimp_profile; torque = clamp.torque
-```
+A ferrule end takes the first ferrule of the workshop stock (`workshop.stock`, in its order;
+[07](07-symbols-parts-macros.md) §2.5) whose section `ferrule` has no `stud`, holds the wire's size between `csa_min`
+and `csa_max`, and is `twin` for a twin ferrule and not for a single one. A ring lug takes the first stock part of
+section `ferrule` with a `stud` whose range holds the wire's size. Without such a part the end keeps its treatment and
+has no part: the list prints the treatment, and the consumables summary counts it under its size as "no ferrule found"
+([the workshop lists](13-workshop-lists.md) §3.6).
 
-Every input is ordered data and every tie is broken by a stable key, so selection is deterministic across platforms
-and thread counts (NFR-REL-07). The chosen part, the rule and the ranking reason form the end's provenance
-("Ferrule 0.75 × 10 mm, grey (DIN) · rule push-in × class 5 · magazine 'WT-36 shop'").
+**What the end cell prints** is the treatment, its size, the part's collar colour where the part names one (a code of
+IEC 60757) and, for a twin ferrule, the partner: `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare`,
+`connector`, and `?` for an end the table cannot decide. The strip length is the part's `sleeve` (the From strip and To
+strip columns, §3.1). A ferrule's colour is its part's: the program holds no colour table, and the shop's choice of DIN
+or another colour scheme is the choice of its stock.
 
-### 4.5 Colour schemes and units
+### 4.5 An end set by hand
 
-- **Scheme as project property** (FR-MFG-007). Insulated ferrule parts carry `colour_scheme` and `colour`. Switching
-  the scheme is a previewed settings command; the preview lists every end whose part changes. A manual ferrule of
-  the other scheme stays and raises EW-MFG-009. The DIN 46228-4 and "French" tables of PM §7.3 ship as data flagged
-  `verified = false`; the first use in a package raises EW-MFG-010 (info) until a reviewed change sets the flag.
-- **mm² and AWG** (FR-MFG-009, 1.x). Selection keys are `Csa::Metric(Dec3)` or `Csa::Awg(i8)`; no conversion is
-  applied for matching, only for display (FR-CON-032).
+In the Connections table's From end or To end cell, or in the wire's Properties (section From end or To end, row End),
+a person chooses ferrule, twin ferrule, ring lug or bare, or the rule's own; in the row Part, a ferrule or lug part the
+project holds. The choice is one `fields.set` of the connection's `end_a` or `end_b` (§2.3) and one undo step. The cell
+then prints in the text colour of a value, not of a derived one, and Properties shows the chip "set by hand" with
+Reset, which clears it and gives the rule's treatment back. An end set by hand takes no part in the pairing of §4.3; a
+twin ferrule set by hand pairs with the other end on its clamp that is set or paired as twin.
 
-### 4.6 Rules of the EW-MFG pack
+### 4.6 The rules of the check
 
-The pre-flight rules EW-MFG-001 … 006 are fixed by FR-MFG-024; EW-MFG-007 … 011 complete the pack, which ships with
-the `manufacturing` scheme under FR-CHK-058. The final rows are those of the catalogue in
-[15](15-checks-revisions-collaboration.md) §4.5.5. They run in the `manufacturing` check scheme (`extends =
-"pre-delivery"` plus EW-MFG; [15](15-checks-revisions-collaboration.md) §4.9) and, as export pre-flight, in the
-`export` mode of [15](15-checks-revisions-collaboration.md) §3.1. Rules 001 … 006 need the
-export's profile; a scheme run without a profile evaluates EW-MFG-001 against "routed, manual or from part" and
-skips 002, 003 and 006. EW-POT-015 supersedes EW-MFG-005 per target: duplicate wire numbers in the model are
-reported online by EW-POT-015, and EW-MFG-005 fires only for duplicates that the export mapping creates
-(`export_as`, company codes), which the model rule cannot see ([15](15-checks-revisions-collaboration.md) §3.6).
-The IEC 61439 routine-verification checklist of §10.2 is the report block that EW-CORE-024 requires under the
-`assembly-iec61439` scheme ([15](15-checks-revisions-collaboration.md) §4.9).
+The rules that say before a print what the fitter would ask. They run online and in release mode ([15](15-checks-revisions-collaboration.md)
+§3.1) and stand in Messages with the other findings; their words are their patterns in the rule texts.
 
-| Rule | Checks | Modes | Severity |
+| Rule | Says | Severity | Fix |
 |---|---|---|---|
-| EW-MFG-001 | Length routed, estimated and accepted by the profile, manual or from part; not missing, not stale. Field records (§3.2) are out of scope | export, release | error (excluded in working mode) |
-| EW-MFG-002 | csa and wire type within the machine's limits and magazine; length re-rounded by the profile (§3.3) | export | warning → manual list |
-| EW-MFG-003 | Ferrule in the machine's magazine; each end treatment in the profile's `end_treatments` (§7.1) | export | warning → manual list or finishing task |
-| EW-MFG-004 | Marker text fits its marker part (characters per line, lines) and its encoding | online, export | warning |
-| EW-MFG-005 | No duplicate wire number created by the export mapping (`export_as`, company codes); duplicates in the model are EW-POT-015, which supersedes it per target | export, release | error |
-| EW-MFG-006 | Bundle within the bin size | export | warning (or split by profile option) |
-| EW-MFG-007 | Twin ferrule required or chosen but no twin part of that csa pair exists | online, release | error |
-| EW-MFG-008 | End treatment undetermined (no clamp data, no candidate part, IDC with class 5) | online, release | warning; error in release |
-| EW-MFG-009 | Override inconsistent: other colour scheme, csa, sleeve outside range, wrong stud | online, release | error |
-| EW-MFG-010 | Output based on unverified constants or part sections (one finding per package, listing the sources) | release | info |
-| EW-MFG-011 | Feedback length deviates from the computed length beyond tolerance (1.x) | offline | info |
+| EW-MFG-001 | "40 wires have no length: the wire list prints — for them", one finding for the project while a wire that is no core has no length | info; the layout's lengths and a machine export set their own | Select them (the wires, which the Connections table then shows) |
+| EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
+| EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
+| EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |
+| EW-POT-010 | "-X1011:PE clamp a takes 1 conductor; 2 land on it", per clamp, only where the part names its capacity | error | — |
+
+A wire part that does not match the wire is EW-MFG-022 ([07](07-symbols-parts-macros.md) §2.5). The machine export's own
+rules (EW-MFG-002, 003, 005, 006) are §7.3's, EW-MFG-010 the package's (§8), EW-MFG-011 the feedback's (§11.4).
 
 ---
 
-## 5. Wire marking and labels
+## 5. Markers and labels
 
-### 5.1 Marking schemes (FR-MFG-010)
+### 5.1 Marking
 
-| Scheme | From end prints | To end prints | W29 |
-|---|---|---|---|
-| Wire number | number | number | `102.n` / `102.n` |
-| Destination (default) | remote end | remote end | `-X1031:1` / `-102F2:Out1` |
-| Source and destination | local / remote | local / remote | `-102F2:Out1 / -X1031:1` / reverse |
-| Potential | potential name | potential name | `24VDC-1` / `24VDC-1` |
+**The marker text is a project setting**, `WorkshopSettings.marking`, in Project properties ▸ Workshop:
 
-EN 60204-1 13.2.1 asks that every conductor be identifiable at each termination in line with the documentation;
-the marker text is a query over the same tags and numbers the drawing prints, so it cannot drift.
-
-### 5.2 Deterministic abbreviation (FR-MFG-011)
-
-```text
-marker_dt(end, ctx):                           ctx = the layout space (location +J-E-2416, function =P01)
-  blocks = rds::parse(dt_full)                 // [=P01][+J-E-2416][-102F2] or [=P01][+J-E-2416][-X1031]
-  drop the '=' block if it equals ctx.function
-  drop the '+' block if it equals ctx.location // canonical node: "+JE2416" can never appear (D-03)
-  text = product block + ":" + CP designation  // "#n" only where printed designations repeat (08 §3.8)
-  append ".level" only for terminals with more than one level; clamp letters are never printed
-  uniqueness: if two different full DTs abbreviate to the same text in one package, both keep the dropped block
-  fit: wrap at separators (":", "-") into ≤ marker.lines; if still too long, EW-MFG-004 lists the full text
-```
-
-A wire leaving the location keeps its target's `+` block: a marker for a wire to +J-E-206 reads
-`+J-E-206-…`. Strings are encoded per output; a character the encoding cannot carry (U+2212 minus in
-`-102G1:−#1` for CP1252) goes through the profile's transliteration map or raises EW-MFG-004.
-
-### 5.3 One label engine (FR-MFG-012)
-
-The label set and the label record below are specified; not built.
-
-```rust
-pub struct LabelSetDef {
-    pub kind: LabelKind,               // Wire | Terminal | Device | Cable | Strip | Bundle | Tube | Plate | Rating
-    pub filter: Option<RhaiExpr>,      // pure, sandboxed (ARCH §10.3)
-    pub lines: Vec<LineTemplate>,      // "{marker_dt}", "{number}", "{designation}", "{function_text}"
-    pub marker_part: Option<PartRef>,  // the label stock; supplies limits
-    pub code: CodeKind,                // None | Qr | DataMatrix (1.x, §11.2)
-    pub per: LabelMultiplicity,        // per end, per terminal level, per cable end, per device
-    pub sort: Vec<SortKey>,
-}
-pub struct LabelRecord { pub id: RowId, pub kind: LabelKind, pub target: EntityRef,
-                         pub lines: SmallVec<[SmolStr; 3]>, pub marker_part: Option<PartRef>,
-                         pub code: Option<SmolStr>, pub truncated: bool }
-```
-
-| Kind | Default text | Multiplicity |
+| Setting | Each end prints | 101.1 (-X1011:L1 → -101Q1:1) at -X1011:L1 / at -101Q1:1 |
 |---|---|---|
-| Wire marker | by marking scheme | two per wire |
-| Terminal marker | unique designation; optional second line function text ("1" / "1+") | per terminal and level |
-| Strip marker | strip tag (`-X1031`) | per strip, on its end bracket |
-| Device marker | `marker_dt` of the device | per device with a marker carrier |
-| Cable marker | cable tag, optional core count and type | both ends |
-| Bundle label | bundle key, wire count, first and last wire; lookup code at 1.x (§11.2) | per bundle bag |
-| Tube marker | tag or destination per [11](11-fluid-power.md) §8.2 (FR-FLU-013), e.g. "-203Q1:A" at the -201U3-Q1:2 end of F1 | per tube end |
-| Door or front plate | function text (`MlText`, per display language) | per device on the door |
-| Rating plate | §10.4 | per assembly |
+| Destination (default) | the far end (§5.2) | `-101Q1:1` / `-X1011:L1` |
+| Wire number | the wire's number | `101.1` / `101.1` |
+| Both ends | this end, then the far end, on two lines | `-X1011:L1`, `-101Q1:1` / `-101Q1:1`, `-X1011:L1` |
+| Potential | the potential's name | `L1` / `L1` |
 
-Terminal markers print the **unique designation**, not only the function text. Golden -X1031 keeps
-`label_mode = FunctionText` on the drawing so the pages look as before, but four physical markers reading "1+"
-would recreate D-12 on the hardware.
+A **core** carries no marker unless the shop sets `mark_cores`: its colour or number and its cable's marker identify it
+at each end, as EN 60204-1 13.2.1 allows. A **jumper** on one device carries none unless the shop sets `mark_jumpers`.
+A marker set by hand (§2.3, a text or "none") wins for its end. The wire list's marker columns print what each end
+carries; the label engine (§5.3) makes a label of it.
 
-### 5.4 Marking-software presets (FR-MFG-013)
+**The wire annotation is not a marker.** A schematic page prints beside a wire its number, cross-section and colours
+where the project's annotation mode asks ([08](08-connections-terminals-cables.md) §4.5): it is drawing notation. A
+marker is the printed sleeve on the wire's end in the cabinet. With wire-number marking both carry the number, so a
+fitter can match them; with destination marking they differ. Two things had one name, "wire marker", in the window and
+in Dutch ("adermarkering"); the drawing's is called the **wire annotation** ("draadaanduiding"), its tool Annotation,
+its project setting Wire annotations, and "wire marker" means the sleeve only. The stored names (`wire_marker`,
+`marker_mode`, `show_marker`) stay.
 
-Label exports use **label profiles** (`schema = "ew.label-profile/1"`), which share the TOML machinery of the machine
-profiles of §7 (row source `label_rows`, column map, transforms, encoding): one row per label, one column per text
-line, one column for the marker part (the label stock), plus a code column when set.
+### 5.2 The marker text and the rule that shortens it
 
-| Preset | Output | Status |
-|---|---|---|
-| Weidmüller M-Print PRO | CSV or XLSX in the import wizard layout | preview until validated with a partner |
-| Phoenix Contact MARKING system | CSV or XLSX | preview |
-| Brady Workstation | XLSX data import | preview (format unverified) |
-| Murrplastik marking software | CSV or XLSX | preview (format unverified) |
-| Generic | XLSX with every `LabelRecord` field | validated by the golden test |
+**The far end, as seen from the end the marker sits on.** The text is the far end's tag and pin as §3.2 prints them,
+without the structure the two ends share: within one location `-101Q1:1`; at the cabinet end of 104.4, whose far end is
+in the field, `+FLD-104B1:13`; at that field end, `+CAB-104A1-A2:L+`. A terminal is named by its tag (`-X1011:L1`); a
+level of a block prints its own number; the clamp letter and the side are never printed. A pin the device has twice
+prints its number (`-101G1:+#1`), as the drawing's labels do. The text is data a language does not change.
 
-Phoenix Contact clipx ENGINEER is a strip configurator, not a marking import; it is covered by §6.3 (1.x).
+**Shortening, the same every time.** Where the label's marker part names its lines and characters per line
+(`sections.marker.lines`, `chars`), a text that does not fit is shortened by these steps, in order, until it fits:
+
+1. The text as made, one line (two for Both ends).
+2. A line that begins with the product sign `-` loses it: `-104A1-A2:L+` becomes `104A1-A2:L+`. A structure sign
+   (`+`, `=`) is never dropped: it says where the far end is.
+3. A line too long is broken after its last `:` that leaves the first part within the line, else after its last `-` or
+   `+` that does, into the marker's further lines: `+CAB-104A1-A2:L+` on two lines of 12 is `+CAB-104A1-` and `A2:L+`.
+4. What still does not fit keeps its text whole: the label is marked "does not fit" and EW-MFG-004 names it. A
+   character is never cut, because a cut marker names a wrong place.
+
+The wire list prints the lines a label carries, joined by ` / `.
+
+### 5.3 The label engine
+
+`label_rows()` makes every label of the project in the order the fitter applies them, as `LabelRecord`s (§2.4). One
+engine serves every **label set**, the tube markers of the fluid lists among them.
+
+| Label set | One label per | Text | Copies | Order | Marker part (`marks`) |
+|---|---|---|---|---|---|
+| Wire markers | marked wire end | §5.1, §5.2 | 1 | the wire list's order, the From end before the To end | wire |
+| Terminal markers | terminal and level | the designation; a second line, the function text, where the strip prints function texts ([08](08-connections-terminals-cables.md) §6.1) | 1 | strips in natural tag order, terminals in mounting order | terminal |
+| Strip markers | strip | the strip's tag | 1 | natural tag order | terminal |
+| Cable markers | cable | the cable's tag | 2 (one per end) | natural tag order | cable |
+| Device labels | device with a part of its own that is no terminal, strip, cable, enclosure, plate, rail or duct | its tag as on the device itself (`-101Q1`) | 1; 2 where the shop sets labels on the device and beside it | placed devices in mounting order (carriers from the top, left to right), then the others in natural tag order | device |
+| Tube markers | tube end | the tube's tag, else the far end as seen from this end ([11](11-fluid-power.md) §8.2) | 1 | the tube list's order | wire |
+| Plates | device placed in the door | its function text in the project's language | 1 | mounting order of the door | device |
+
+A label's **marker part** is the first marker of the workshop stock whose `marks` is the set's (the table's last
+column). A label without one is printed by the label program on what the person chooses there.
+
+The list kind `labels` lists every label with the columns `set`, `for` ("101.1 at -X1011:L1"), `text_1`, `text_2`,
+`text_3`, `copies`, `marker_part` and `note` ("does not fit its marker part"); `tube_labels` lists the tube markers
+with the same columns. Both are lists of the report engine, so a person can print them and check them before the
+labels are printed, and `ew export report --kind labels` writes them as every list.
+
+### 5.4 Label files and the export profile
+
+**One file per label set and marker part**: Output ▸ Labels… writes, for each that has labels, one file into a folder
+the person chooses, named by the drawing's number, the set and the marker part's number (`SAMPLE-E Wire
+markers.csv`; with a marker part, its number after the set), as CSV or XLSX. Each file is written whole or not at all.
+
+**The columns are the export profile's**, `WorkshopSettings.label_profile`: each a column of the `labels` list with
+the heading the file prints. Without one of its own the project uses the **generic profile**, which every label program
+that imports a table takes, mapping its columns once in its import:
+
+| Heading | Column |
+|---|---|
+| Text 1 | `text_1` |
+| Text 2 | `text_2` |
+| Text 3 | `text_3` |
+| Copies | `copies` |
+| For | `for` |
+
+**The form of a file.** CSV: UTF-8 with a byte-order mark, CR LF line ends, a header row, the profile's delimiter (comma,
+or a semicolon), values as they are: never the formula guard of the Excel presets, which a label program would print
+([09](09-reports-forms-output.md) §4.6). XLSX: one sheet named after the set, a header row and text cells, without the
+`id` column and the hidden sheets of the round trip. A row is one label; its Copies tells the label program how many to
+print.
+
+**Presets of named label programs** are left out: a preset that names a program's columns is made from that program's
+published import format, when it is at hand. The profile is the one record of an export by profile; the machine
+exports of §7 extend it rather than add a second.
+
+**Labels for changes.** From the Rework list…, Labels for these changes… writes the same files with only the labels the
+rework list names: the markers of new, replaced and changed wire ends and the labels of mounted or changed devices,
+terminals, strips and cables.
 
 ---
 
@@ -623,8 +667,8 @@ GNYE = "GNYE"
 | Schleuniger CAYMAN Excel (FR-MFG-023) | Excel | Schleuniger part numbers via a part-number map | 1.x |
 | Native Komax WPCS, Perforex, Steinhauer, RiPanel AML (FR-MFG-027) | proprietary | only once vendors document them | Later (PARK-09) |
 
-**Label profiles** (`schema = "ew.label-profile/1"`) for marking software and label printers share this TOML
-machinery, the embedding as library copies and the trust rule; their presets are listed in §5.4. The TIA Portal
+**Label files** take their columns from the project's export profile (§5.4), which a machine profile extends; a
+preset of a named label program waits for its published format. The TIA Portal
 "PLC Tags" XLSX is not a profile: its round trip needs code, so it is a fixed-format exporter and importer in
 `ew-plc` ([10](10-plc-and-bus.md) §4.5, FR-PLC-036).
 
@@ -679,7 +723,7 @@ J-E-2416-V2.0.ewpp                ZIP per 05 §12: entries sorted, DOS time 1980
                                   rule applies, mode 0644, UTF-8 flag
   mimetype                        "application/vnd.elektrawatt.production+zip": first entry, stored
   manifest.json                   format, generator, project id, revision, mode, export date, content hash, member hashes
-  project.json                    project properties, parties (strippable), supply, structure nodes, MfgSettings used
+  project.json                    project properties, parties (strippable), supply, structure nodes, WorkshopSettings used
   devices.json                    full and displayed DT, parts, location, placement pose, plate position, CPs with 3D positions
   parts.json                      the part copies used, reduced to L0, L1, L3 and L6 (no prices, no 3D files)
   wires.json  wires.csv           wire records (§3); CSV = the generic profile output
@@ -687,7 +731,7 @@ J-E-2416-V2.0.ewpp                ZIP per 05 §12: entries sorted, DOS time 1980
   terminals.json                  strips, terminals, levels, clamps, bridges, accessories, assembly rows
   tubes.json                      tube list and cut lengths (11 §8.2, §8.3)
   consumables.csv                 §3.6
-  labels/<set>.csv                one file per label set
+  labels/<set>.csv                one file per label set and marker part (§5.4)
   layout/<space>.glb              glTF 2.0; node names = placement UUIDs; vendor meshes only where licensed (FR-LAY-022)
   surfaces/<surface>.dxf          drilling and cut-outs (§9); surfaces/<surface>-holes.csv
   cutlists.csv                    rails, ducts, busbars, tubes, shop-cut cables
@@ -966,50 +1010,47 @@ package; the manifest names the hand-off package ID it extends.
 
 ## 12. UI and UX touchpoints
 
-Personas P2 (wireman) and P1 (engineer) of [vision](00-vision-and-scope.md), journey J3. Layout details belong to
-[16](16-ux-ui.md) (workspace table, wizard step 10 for the `MfgSettings` defaults, usability task T11 "find W29 and
-both of its ends in the production package").
+The panel builder of [vision](00-vision-and-scope.md) who wires his cabinets himself or hands the lists to a fitter. The
+workshop has **no workspace of its own**: what it needs is a list page, the Connections navigator in table mode,
+Properties, two dialogs and Messages, each where the program already puts its kind of thing. Layout details belong to
+[16](16-ux-ui.md) and [16a](16a-design-language.md).
 
 | Touchpoint | Behaviour |
 |---|---|
-| Manufacturing workspace (FR-UI-003) | Left: label sets, machine profiles, orders. Centre: 3D or plate view. Bottom: wire table (shared with the wiring manager of FR-LAY-055) and pre-flight findings. Right: property grid |
-| Wire table | Virtualised, columns of §3.1, filters "since V2.0", "manual list", "undetermined ends"; selection highlights both ends on canvas and in 3D |
-| Property grid | Every manufacturing value with its provenance: length chain (§3.3), end treatment rule and ranking, marker abbreviation; override with marker and "reset to derived" |
-| End override | Context action "Assign ferrule…" on a wire end: candidate list from §4.4 with the reason each is accepted or rejected; commit is one command |
-| Label preview | Rendered markers at true size per marker part; truncated texts in a pattern plus colour (not colour alone, FR-UI-026) |
-| Export dialog | Profile, mode (working or release), personal-data option, pre-flight summary (machine, manual, excluded) with the first rows; release mode greys out until the scheme is clean |
-| Change list | "Wires changed since V2.0" as a filter and as a printable rework report |
-| Stale state | Lengths show "810 mm · re-route pending" while EW-LAY-011 is open (FR-UI-024) |
+| Output ▸ Workshop ▸ Wire list | Opens the first page of the project's wire list; a project without one opens Report block… on that kind, as Assembly lists, Cut list and Consumables beside it do ([the workshop lists](13-workshop-lists.md)) |
+| The wire list's pages | §3.1; Output ▸ List columns… chooses the printed columns of the list on show |
+| Connections navigator, table mode | Every column of §3.1. Length takes a length (§3.3); From end and To end a treatment or the rule's (§4.5); From marker and To marker a text, "none" or the setting's (§5.1). A value set by hand prints in the text colour, a derived one in the secondary colour ([16a](16a-design-language.md) §6.21); each edit is one `fields.set` and one undo step |
+| Properties of a wire | Length, with a chip that says where it comes from (§3.3); sections From end and To end, each named by its place ("From end · -X1011:L1 a"), with the rows End, Part and Marker; a derived value's chip says why ("rule: fine-stranded wire, clamp kind not known"), a value set by hand has the chip "set by hand" and Reset |
+| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
+| Output ▸ Workshop ▸ Labels… | A form dialog: which labels (all, or those changed since a release), one row per file with its label set, marker part and count, a tick each; the format (CSV or XLSX); the profile's columns with Change…; the folder. A line under the files names the findings of the labels ("1 marker does not fit its marker part") with Show. Export writes the files as a job; its toast names the folder with Open folder |
+| Output ▸ Workshop ▸ Rework list… | A dialog: Compare with (the released revisions whose archive is found, newest first; Archive file…), one line that counts the work ("1 device to remove, 3 wires to pull, …"), the rows of §3.5, Export… (XLSX or CSV) and Labels for these changes…. Without a release: "This project has no released revision yet: the rework list compares with a release. Release it on the Check tab, or choose an archive file" |
+| Messages | The rules of §4.6 with their fixes |
+| Draw ▸ Annotation | The drawing's wire annotation tool (§5.1); its project setting reads Wire annotations |
 
-**CLI** (FR-EXT-003): `ew export ewpp [--release] [--omit-personal-data]`, `ew export machine <profile>` with the
-shipped profile ids `generic-csv`, `generic-xlsx`, `komax-topconvert-csv` and `rittal-wt-csv`,
-`ew export labels <set>` (the set's label profile selects the preset, §5.4), `ew export drilling --surface <name>`,
-`ew check --scheme manufacturing`, `ew diff <a.ewpp> <b.ewpp> --wires` (a package mode of the `ew diff` of
-[17](17-extensibility.md) §3.3), `ew mfg asbuilt <order>` (1.0);
-`ew mfg feedback import`, `ew mfg import-status` (1.x). Jobsets (FR-EXT-010) chain them: the golden release jobset
-produces the PDF, BOM, wire list, terminal plans and the Komax CSV and stops at the first failing check.
+**Command line.** `ew export wires` writes the wire list (every column); `ew export labels --dir <folder> [--format
+csv|xlsx] [--since <revision>]` the label files; `ew export rework [--since <revision> | --archive <file>] [--format
+csv|xlsx] --out <file>` the rework list; `ew export report --kind labels` the labels list. `ew export machine`,
+`ew export ewpp` and the drilling export are §7, §8 and §9.
 
 ---
 
 ## 13. Outputs
 
-| Output | Format | Row source | Release | Requirement |
-|---|---|---|---|---|
-| Wire list (folio 907) | PDF, XLSX, CSV | `wire_list` ([09](09-reports-forms-output.md)) | MVP | FR-REP-014 |
-| Production wire list and variants | PDF, XLSX, CSV, `wires.json` | `wire_record_set` | 1.0 | FR-MFG-001 … 003 |
-| Change list | PDF, XLSX | `mfg_change_list` | 1.0 | FR-MFG-004 |
-| Consumables summary | PDF, XLSX, CSV, `consumables.csv` | `consumables` | 1.0 | FR-MFG-049 |
-| Label sets | CSV, XLSX per preset | `label_rows` | 1.0 | FR-MFG-012, -013 |
-| Terminal assembly list | PDF, XLSX, `terminals.json` | `assembly_rows` | 1.0 | FR-MFG-016 |
-| Machine files | CSV, XLSX per profile, manual list, `preflight.json` | `machine_rows` | 1.0 | FR-MFG-018 … 024 |
-| Drilling DXF, hole tables, cut lists | DXF, CSV, PDF | features, `hole_table`, `cut_list` | 1.0 | FR-MFG-028 … 030 |
-| Checklists | PDF, JSON | `checklist_rows` | 1.0 | FR-MFG-036 … 038 |
-| Rating plate data | label set, report block | project properties | 1.0 | FR-MFG-015, -040 |
-| `.ewpp` | ZIP | all of the above | 1.0 | FR-MFG-031, -032 |
-| Viewer | binary | `.ewpp` | 1.0 | FR-MFG-033 |
-| As-built package | ZIP | package + order folder | 1.0 | FR-MFG-039 |
-| Status log, feedback import, codes | JSONL, CSV | order folder | 1.x | FR-MFG-014, -026, -034 |
-| Configurator export | AML/XML | strips | 1.x | FR-MFG-017 |
+| Output | Format | Rows |
+|---|---|---|
+| Wire list (folio 907 of the standard layout) | PDF pages, XLSX, CSV | `wire_list` over `wire_record_set()` (§3) |
+| Label files | CSV or XLSX, one per label set and marker part | `labels` over `label_rows()` (§5) |
+| Labels list, tube labels | PDF pages, XLSX, CSV | `labels`, `tube_labels` (§5.3) |
+| Rework list | XLSX, CSV | two `wire_record_set()` and two `label_rows()` (§3.5) |
+| Assembly list, cut list, consumables summary | PDF pages, XLSX, CSV | `assembly_list`, `cut_list`, `consumables` ([the workshop lists](13-workshop-lists.md)) |
+| Machine files | CSV, XLSX per profile, manual list, `preflight.json` | `machine_rows` (§7) |
+| Drilling DXF, hole tables | DXF, CSV, PDF | features, `hole_table` (§9) |
+| Checklists | PDF, JSON | `checklist_rows` (§10) |
+| Rating plate data | label, report block | project properties (§10.4) |
+| `.ewpp` | ZIP | the outputs above (§8) |
+| Viewer | binary | `.ewpp` (§11.1) |
+| As-built package | ZIP | package and order folder (§11.5) |
+| Status log, feedback import, codes | JSONL, CSV | order folder (§11) |
 
 ---
 
@@ -1017,32 +1058,34 @@ produces the PDF, BOM, wire list, terminal plans and the Komax CSV and stops at 
 
 | # | Case | Handling |
 |---|---|---|
-| 1 | A junction edit changes a wire's carrier connection, so its ID changes | Number and end overrides move with the number-transfer normaliser; the change list matches by end CPs (§3.5) |
-| 2 | Four wires on "1+" of a TWIN strip (folio 103) | Locus `strip:terminal:level:clamp` is mandatory (FR-MFG-002); the clamp is picked once and never silently re-picked ([08](08-connections-terminals-cables.md) §6.3) |
-| 3 | Bridges drawn like wires | Bridge connections never form wire records (FR-TRM-007); they appear in the assembly list |
-| 4 | Mixed cross-sections on one clamp (-101F1:1: 2.5 + 1.5) | No twin ferrule; two singles if the clamp takes two conductors, else EW-POT-010 |
-| 5 | Pre-assembled cables (-106W1) | Cores are `pre_assembled`: manual list only; connector end from the part; route length against part length (FR-LAY-050) |
-| 6 | Field wires (W1–W3, incoming from +J-E-206) | Flag `field`; excluded from machine sets and default label sets; listed for site installation |
-| 7 | Ferrule colours mixed (DIN grey vs French blue at 0.75 mm²) | Scheme is a project property; overrides of the other scheme raise EW-MFG-009 |
-| 8 | Unverified constants (colour tables, clamp ranges, tap core diameters) | Tables shipped as data with `verified = false`, part sections with confidence `unverified` ([07](07-symbols-parts-macros.md) §2.5); EW-MFG-010 info; reports print "based on unverified data" |
+| 1 | A junction edit changes which connection carries a wire | An end set by hand lives on the connection at the clamp, not on the carrier (§2.3); the rework list matches the wire by its two end CPs (§3.5) |
+| 2 | Several wires on one clamp of a terminal | The end prints the terminal and its clamp (§3.2); pairing gives twin ferrules (§4.3); EW-POT-010 counts a twin as one conductor |
+| 3 | Bridges drawn like wires | A bridge is never a wire row: the list prints it in its bridge block, the assembly list mounts it ([the workshop lists](13-workshop-lists.md) §6) |
+| 4 | Two sizes on one clamp | No twin ferrule: a ferrule each, and EW-POT-010 where the clamp takes fewer conductors |
+| 5 | A cable's cores | Rows of the wire list, cut with the cable (Length `cable`), markers only where the shop marks cores (§5.1) |
+| 6 | A wire that leaves the cabinet | Each end prints its location (`+FLD-104B1`); the far end is a site end; the marker at the cabinet end names it with its location (§5.2) |
+| 7 | Ferrule colours mixed (DIN grey and another scheme's blue at 0.75 mm²) | A ferrule's colour is its part's; an end takes the stock's first ferrule of its size; an end set by hand to another collar colour of that size is EW-MFG-009 (§4.4) |
+| 8 | The rule table and part data not verified | The table says unverified (§4.2); an end decided under an assumption says which in Properties; a rule reading them reports at most a warning |
 | 9 | CP1252 cannot encode "−" (U+2212) or other identifiers | Per-profile transliteration; unmappable characters raise EW-MFG-004; identifiers are never silently altered elsewhere |
-| 10 | Excel turns "-X1031:1" into a formula or "1-2" into a date | Machine CSVs are not meant for Excel; XLSX writes strings as string cells; the `excel-*` presets guard formulas ([09](09-reports-forms-output.md) §4.6) |
-| 11 | Two devices abbreviate to the same marker text | Both keep the dropped block (§5.2); uniqueness is tested per package |
-| 12 | Marker longer than the stock allows | Wrap at separators, then EW-MFG-004 with the full text; never silent truncation |
-| 13 | Stale routes after a device move | Lengths flagged, release export refused (FR-MFG-025); working exports say "draft" |
-| 14 | Rounding per segment, or per profile, accumulates error or splits the wire list from the machine file | Round once, after calibration, to the project increment; profiles only declare their resolution (§3.3) |
+| 10 | Excel turns "-X1031:1" into a formula or "1-2" into a date | XLSX writes text as text cells; the Excel CSV presets guard formulas; a label file never does, since a label program would print the guard (§5.4) |
+| 11 | Two ends whose marker texts would read alike | Tags are unique in a project, and a text keeps the structure its two ends do not share (§5.2) |
+| 12 | A marker longer than its marker part | The steps of §5.2, then EW-MFG-004 with the whole text; never a cut text |
+| 13 | Stale lengths after a device move | Lengths flagged, release export refused (FR-MFG-025); working exports say "draft" ([12](12-panel-layout.md) §8.5) |
+| 14 | Rounding per segment, or per profile, accumulates error or splits the wire list from the machine file | Round once, where the record is made, to the cut increment; a typed length is not rounded; profiles only declare their resolution (§3.3) |
 | 15 | Non-determinism (thread order, wall clock, ZIP times, float formatting) | Ordered maps, stable tie-breaks, decimal strings, dates from the release context, ZIP rules of 05 §12 (NFR-REL-07) |
 | 16 | Vendor meshes in a package sent to a partner shop are redistribution | Only licence-flagged meshes; boxes otherwise (FR-LAY-022) |
 | 17 | Personal data in packages leaving the company | `--omit-personal-data` option (FR-EXP-009); technician codes are pseudonyms |
 | 18 | Package edited after export | Hash check in every reader; viewer banner |
-| 19 | Labels printed from an older package after rework | Wire keys resolve across packages; the viewer reports the change (§11.2) |
-| 20 | Unnumbered cores in machine files that need a wire ID | The "WireId" column carries the wire key (`key`, §11.2); numbers are never invented |
-| 21 | Spare terminals that are fed (-X1031:5, 7, 9) | State "spare (fed)" in the assembly list |
-| 22 | Door wiring | Hinge path and loop allowance from [12](12-panel-layout.md); flag `door`; sequenced last |
-| 23 | Devices without parts (S56, E56) | No clamp data → `Undetermined` ends and EW-MFG-008; release error |
+| 19 | Labels printed for a release, then the cabinet is changed | The rework list's Labels for these changes… prints the new and changed labels only (§5.4) |
+| 20 | A core has no wire number | Its No. cell prints its cable and core (`-103W1 BN`); a number is never invented |
+| 21 | Spare terminals that are fed | State "spare (fed)" in the assembly list |
+| 22 | Door wiring | The end prints `(door)` (§3.2); the hinge loop's allowance is the layout's ([12](12-panel-layout.md) §9) |
+| 23 | Devices without parts | No clamp data: the clamp is taken as not known and the wire as fine-stranded, which the end says (§4.2); the device gets no device label |
 | 24 | Machine "actual length" is the cut length | Used for traceability only, never as calibration input (§11.4) |
-| 25 | Twin-ferrule and lug ends on a wire-by-wire machine (-102F1:1, -XPE, the CPX FE screws) | The profile's `end_treatments`; the end becomes a finishing task in `manual.csv` (§7.1, §7.3) |
+| 25 | Twin-ferrule and lug ends on a wire-by-wire machine | The profile's `end_treatments`; the end becomes a finishing task in `manual.csv` (§7.1, §7.3) |
 | 26 | A label or checklist printing the package ID would change the hash it prints | Stamped members are written after the content hash and excluded from it (§8.2) |
+| 27 | A jumper between two pins of one device | A wire row with its ends and treatments; no markers unless the shop marks jumpers (§5.1) |
+| 28 | A renumber while ends are marked with the wire number | Every marker of a renumbered wire changes; the rework list lists each as Re-mark |
 
 ---
 

@@ -531,7 +531,7 @@ member has a reader:
 | | `sleeve` | the strip length the wire list prints |
 | | `colour` | the word the wire list and the consumables print for the ferrule the fitter takes |
 | | `stud` | a ring lug for that stud (`M4`), worded Ring lug |
-| `marker` | `marks` | the default marker of a label kind |
+| `marker` | `marks` | the marker part of a label set |
 | | `lines`, `chars` | whether a marker text fits (EW-MFG-004) |
 
 A wire's size and colour come from the project's colour and size rules and the overrides
@@ -544,9 +544,9 @@ prints the wire's colour, the one the drawing shows: a shop that cut by the part
 **The workshop stock.** `ProjectSettings.workshop: WorkshopSettings{stock: Vec<PartRef>, cut_increment?: Nm}`, a
 typed member of the project's settings. `stock` holds the wire, ferrule and marker parts the shop keeps, in its
 order of preference: a wire takes the first stock wire part of its size and colour, an end the first stock ferrule
-that fits it ([13](13-manufacturing-outputs.md) §4.4), a label kind the first stock marker that marks it unless its
-label set names one ([13](13-manufacturing-outputs.md) §5.3). `cut_increment` is what the cut list rounds a piece up
-to ([13](13-manufacturing-outputs.md) §9.3), 5 mm when absent. A new project starts with the starter's generic
+that fits it ([13](13-manufacturing-outputs.md) §4.4), a label set the first stock marker that marks it
+([13](13-manufacturing-outputs.md) §5.3). `cut_increment` is what the cut list rounds a piece up
+to ([13](13-manufacturing-outputs.md) §9.3) and a computed wire length once (13 §3.3), 5 mm when absent. A new project starts with the starter's generic
 ferrules and markers as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
 names its own; a project made before has none, and Project properties ▸ Workshop offers Add the generic stock.
 

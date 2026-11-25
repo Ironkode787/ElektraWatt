@@ -242,6 +242,10 @@ Every report block and navigator table exports from its `RowSet` with exactly th
   character is `=`, `+`, `-`, `@`, tab or CR gets a leading apostrophe, which the dialog says, and the Excel round-trip
   import (FR-EXP-004) strips exactly that prefix again; a number cell never gets it. `ew`, `rfc4180` and machine
   profiles never alter a value. XLSX is the format for Excel users.
+- **Label files** ([13](13-manufacturing-outputs.md) §5.4), read by a label program, have a form of their own: CSV in
+  UTF-8 with a byte-order mark, CR LF, a header row, the export profile's delimiter and every value as it is (never
+  the formula guard, which the label would print); or an XLSX of one sheet with a header row and text cells, without
+  the `id` column and the hidden sheets of the round trip.
 
 ### 4.7 Multi-language output
 

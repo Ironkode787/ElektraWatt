@@ -1,6 +1,6 @@
 # ADR-0018: Reports and forms engine; report blocks as derived pages; machine-export profiles as data
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-11-26 (amendment 5) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -116,7 +116,7 @@ columns = [
 
 ## Amendments
 
-Amendments 1 to 3 were accepted on 2026-10-18, amendment 4 on 2026-10-19. The decision text above is unchanged;
+Amendments 1 to 3 were accepted on 2026-10-18, amendment 4 on 2026-10-19, amendment 5 with the design it names. The decision text above is unchanged;
 these entries refine it.
 
 1. **Machine profiles, label profiles and the TIA tag XLSX** (2026-10-18;
@@ -140,6 +140,18 @@ these entries refine it.
    as n = ⌈D / (per − 1)⌉, where per is the TOC capacity (the TOC form's data area, else the profile's
    `toc.rows_per_page`, at least 2), and one confirming round checks it. If the confirming round needs more pages,
    the order is rebuilt with that count and EW-CORE-025 is raised, so no page is ever missing.
+5. **The wire list is the fitter's sheet; label files take an export profile that is project data** (2026-11-26, the
+   design of the wire for the workshop, accepted with it; [13](../design/13-manufacturing-outputs.md) §3.1, §5.4).
+   Decision 5 stands: one row source. The production wire record is the wire list's row: `wire_list` grows the
+   workshop's columns and prints them by default, and no second production list kind exists. Amendment 1's label
+   profiles are replaced: a label file takes its columns, their headings and its CSV delimiter from an **export
+   profile**, a typed member of the project's settings (`WorkshopSettings.label_profile`), not a TOML library copy;
+   it has no filter expression and no trust rule, and the generic profile serves every label program that imports a
+   table. A preset of a named label program ships only with that program's published import format. Machine profiles
+   (decision 6) extend the same record when they are built rather than add a second kind of profile.
+   *Alternatives that lost:* a production list beside the wire list (a copy of its rows and columns); TOML label
+   profiles embedded as library copies (a format, an embedding and a trust rule for a list of columns that one
+   setting holds).
 
 ## Consequences
 

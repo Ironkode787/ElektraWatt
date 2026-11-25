@@ -259,9 +259,9 @@ computed once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md)
 | `path` | graph edges along centrelines, including the slot entries, joints and user paths |
 | `Δz` | height of the CP above the plate minus the duct mid-depth, per end; forgetting it gives systematically short wires (PM §11 pitfall 4) |
 | `a` | per-end allowance: `strip_len + insertion_depth + bend allowance` (default 2 × OD, policy) |
-| `reserve` | `MfgSettings.reserve` ([03](03-domain-model.md) §17): fixed (default 100 mm) or proportional, plus a door extra and the hinge loop allowance |
+| `reserve` | `WorkshopSettings.reserve` ([03](03-domain-model.md) §17, added with the layout's lengths): fixed (default 100 mm) or proportional, plus a door extra and the hinge loop allowance |
 | family offset | per device family, from calibration (FR-LAY-052) |
-| `increment` | `MfgSettings.length_increment`: one project increment (default 10 mm); machine profiles only declare their resolution and never re-round (FR-MFG-051) |
+| `increment` | `WorkshopSettings.cut_increment`: the project's cut increment (5 mm when absent); machine profiles only declare their resolution and never re-round (FR-MFG-051) |
 
 All terms are `Nm`; the calibration factor is a rational (`1030/1000`). Every length carries a `LengthBreakdown`
 and a source, aligned with `LengthSource` of [08](08-connections-terminals-cables.md) §7.6: `Routed`, `Estimated`
