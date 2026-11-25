@@ -118,7 +118,7 @@ pub struct OverrideSources {
 pub struct PhysicalWires {
     /// The wires in ID order.
     pub wires: Vec<PhysicalWire>,
-    /// The notes of this derivation (also pushed to the `Q`).
+    /// The notes of this derivation that a rule reads (EW-POT-011, EW-POT-012, EW-POT-014).
     pub notes: Vec<DeriveNote>,
 }
 

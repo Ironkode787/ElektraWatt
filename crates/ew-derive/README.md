@@ -16,15 +16,6 @@ format, title-block binding set, identifier set and the TOC layout. A project pi
 `Project.derivation_profile`; the project's own settings win over the profile's defaults. A shipped profile is
 never changed; an output-changing fix ships as a new profile (ADR-0003).
 
-## Derivation notes
-
-A `DeriveNote` reports a fallback or a problem met while deriving: an unknown profile (an error, integrity code
-EW-CORE-018), a numbering scheme not applied, the default frame, a malformed shim, an overlapping colour-profile row pair, a query cycle. Notes are
-request-scoped: a set in canonical order, read by the owner of the `Q` through `Q::diagnostics()` (not reachable
-from a query body). `ew-api`'s `Session` surfaces them as findings. An unknown pinned profile is never silent
-(ADR-0003): display uses the newest shipped profile, the note is an error, and profile-dependent commands are
-refused (not built).
-
 ## Provisional shims
 
 These read data whose record shape is not decided yet. Each is a shim, to be replaced when the owning work
@@ -33,9 +24,8 @@ package types the data in `ew-schema`:
 | Shim | Reads | Replaced by |
 |---|---|---|
 | Numbering settings | `ProjectSettings.extra["numbering"]` in the JSON shape of doc 03 §5.1 | the typed `ProjectSettings.numbering` |
-| Frame defaults | `ProjectSettings.extra["frames"]` (doc 03 §5.1 `FrameDefaults`); a malformed member falls back to the default and is noted; with no frame configured the built-in QET-compatible A4 frame geometry (17 × 8 cells) applies and is noted | the typed member |
+| Frame defaults | `ProjectSettings.extra["frames"]` (doc 03 §5.1 `FrameDefaults`); a malformed member falls back to the default; with no frame configured the built-in QET-compatible A4 frame geometry (17 × 8 cells) applies | the typed member |
 | Company logo and notice | `Project.extra["ew.company"]` = `{"logo": <AssetRef>, "notice": <MlText>}` for `project.logo` and `project.notice` (the earlier `logo` form, a bare `"sha256:…"`, read by `ew_schema::company_logo`) | typed company data of the basic project (doc 07 §2.8) |
-| Revisions | reserved `revision` records, read leniently (`label`, `date`, `state`, `author`, `checker` as party roles); also `page_notes` and `release.changed_pages` for `page.last_changed_in` (the no-digest branch of doc 15 §5.6) | the typed `Revision` record (doc 03 §18) |
 
 ## Connectivity
 
@@ -45,8 +35,8 @@ them, and `wire_props(conn)` is a cold lookup into the per-potential map (ARCH �
 where the documents leave the data open:
 
 - **Pairing default.** An absent `ip_pairing` setting means star mode with project scope. The star source is the
-  point flagged `star_source`, else the single Source, else, with two or more Sources, the lowest-ID Source (noted),
-  else the lowest-ID point. A scoped pairing (function or location) on a page without the aspect node pairs
+  point flagged `star_source`, else the single Source, else, with two or more Sources, the lowest-ID Source
+  (EW-CORE-052), else the lowest-ID point. A scoped pairing (function or location) on a page without the aspect node pairs
   project-wide and is noted (EW-CORE-051).
 - **No conductor edge.** `Core` connections and the IP pairing suffice; the drawing graph has no separate
   conductor edge.
@@ -85,7 +75,7 @@ where the documents leave the data open:
 
 | Shim | Reads | Replaced by |
 |---|---|---|
-| Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) and are noted | the typed `ProjectSettings` members (doc 03 §5.1) |
+| Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) | the typed `ProjectSettings` members (doc 03 §5.1) |
 
 ## Cross-references
 
@@ -112,7 +102,7 @@ where the documents leave the data open:
   separator literal (FR-XRF-025). An empty `ip` format prints no text and no links.
 - Not cross-referenced: strip segments (never a target and never the main representation here, although
   `MainRep` keeps them for tags and the BOM), contact images of auxiliaries, an auxiliary drawn inside its own
-  device's black box (doc 06 §2.7). A second main function (EW-INV-002) is treated as an auxiliary and noted.
+  device's black box (doc 06 §2.7). A second main function (EW-INV-002) is treated as an auxiliary.
 - Not implemented: contact-image `show_unused` (the free contacts of the part, FR-PRT-009), the contact-image
   glyph and placement ("in-path", "on-component") and the `contact_image` settings member (FR-XRF-017,
   FR-XRF-018); only the text rows exist.
@@ -123,7 +113,7 @@ where the documents leave the data open:
 
 | Shim | Reads | Replaced by |
 |---|---|---|
-| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored, `key` defaults to `"custom"`, `structure` to `when_different`, `same_page` to `full`); absent: the pinned profile's `[xref]`; malformed: noted, the profile's | the typed `ProjectSettings.xref_format` |
+| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored, `key` defaults to `"custom"`, `structure` to `when_different`, `same_page` to `full`); absent: the pinned profile's `[xref]`; malformed: the profile's | the typed `ProjectSettings.xref_format` |
 
 ## Agreement with the command layer
 

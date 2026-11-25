@@ -28,9 +28,9 @@
 //!   [`TableView`] or [`IdxView`] hands out the `Model`, a raw `Table`, a raw index or an `Op`, so code
 //!   holding only `&Q` cannot read untracked (the `compile_fail` example on [`Q`] and
 //!   `tests/api.rs` guard it).
-//! - Untracked state stays out of reach as well: `Q`'s `Debug` prints no revision, and the evaluated keys
-//!   and [`DeriveNote`]s are read through [`Q::diagnostics`], which takes `&mut Q` (a second
-//!   `compile_fail` example guards it).
+//! - Untracked state stays out of reach as well: `Q`'s `Debug` prints no revision, and the evaluated keys are read
+//!   through [`Q::diagnostics`], which takes `&mut Q` (a second `compile_fail` example guards it). A
+//!   [`DeriveNote`] is part of the value that holds it, where a rule reads it.
 //! - The public surface of this crate carries no `Model` except as the input of [`Q::new`].
 //!
 //! # Families

@@ -9,9 +9,9 @@
 //! its text:
 //!
 //! ```ftl
-//! rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }{ $tail }.
-//!     .title = N switching
-//!     .hint = Move the contact into the line conductor, or use a device that opens L and N together.
+//! rule-ew-core-037 = shield { $core } is connected at neither end; connect it at one end or both
+//!     .title = Shield not connected
+//!     .hint = Connect the shield to an earthing point, or mark it as not connected on purpose.
 //! ```
 //!
 //! **A finding carries its text** ([`Finding::text`], ADR-0019 amendment 8): the key of its rule's pattern and its
