@@ -1118,9 +1118,10 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
                 idx: *idx,
             },
         )),
-        _ => text!("word-a-junction").into(),
+        _ => ew_derive::text::record(Kind::Junction).into(),
     };
-    let kind_words = kind.replace('_', " ");
+    let kind_words =
+        Kind::from_name(kind).map_or_else(ew_derive::text::record_other, ew_derive::text::record);
     let (en, target, mut args): (String, &str, Vec<(&'static str, TextArg)>) = match Kind::from_name(kind) {
         Some(Kind::Project) => ("the project".to_owned(), "project", vec![]),
         Some(Kind::Device) => {
@@ -1166,7 +1167,7 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
             }
             None => ("a connection".to_owned(), "a-connection", vec![]),
         },
-        _ => (format!("a {kind_words}"), "other", vec![]),
+        _ => (kind_words.to_string(), "other", vec![]),
     };
     args.push(("target", target.into()));
     args.push(("kind", kind_words.into()));

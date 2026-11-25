@@ -70,3 +70,16 @@ fn a_channel_without_an_address_is_worded_in_the_readers_language() {
         "TBD"
     );
 }
+
+/// A record kind has one table of words: a symbol and a wire among them, and a kind no record can be yet (a reserved
+/// kind) is `an item`.
+#[test]
+fn a_record_kind_is_worded_by_one_table() {
+    use ew_schema::Kind;
+    let words = |k: Kind| ew_derive::text::record(k).to_string();
+    assert_eq!(words(Kind::Representation), "a symbol");
+    assert_eq!(words(Kind::Connection), "a wire");
+    assert_eq!(words(Kind::Enclosure), "an enclosure");
+    assert_eq!(words(Kind::Comment), "an item");
+    assert_eq!(words(Kind::NetDef), "an item");
+}

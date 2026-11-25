@@ -28,6 +28,7 @@ line-kind-other = leiding
 
 tube-ends = { $p0 } → { $p1 }
 tube-end-junction = T-stuk
+junction-in = de aftakking in { $p0 }
 
 ## A medium the derivation names
 

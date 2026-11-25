@@ -295,30 +295,30 @@ fn refusals_name_the_key_and_what_the_query_takes() {
     assert_eq!(err("device_tag", "id:not-a-uuid"), "`id:not-a-uuid`: not a UUID");
     assert_eq!(
         err("device_tag", "folio:101"),
-        "`folio:101` names page 101 Supply 400 V AC; `device_tag` takes a device (`tag:-101F1` or \
+        "`folio:101` names a page 101 Supply 400 V AC; `device_tag` takes a device (`tag:-101F1` or \
          `id:<uuid>`)"
     );
     assert_eq!(
         err("channel_addresses", "tag:-101F1"),
-        "`tag:-101F1` names device -101F1, which is not a PLC module; `channel_addresses` takes a PLC module \
+        "`tag:-101F1` names a device -101F1, which is not a PLC module; `channel_addresses` takes a PLC module \
          (`tag:-104A1-A2`)"
     );
     // The channel form is a command-log reference, not this key: a terminal is a device of another kind.
     assert_eq!(
         err("channel_addresses", "-X1031:U"),
-        "`-X1031:U` names device -X1031:U, which is not a PLC module; `channel_addresses` takes a PLC module \
+        "`-X1031:U` names a device -X1031:U, which is not a PLC module; `channel_addresses` takes a PLC module \
          (`tag:-104A1-A2`)"
     );
     assert_eq!(err("page_order", "x"), "`page_order` takes no key: give `-`");
     assert_eq!(err("bom_rows", "tag:-101F1"), "`bom_rows` takes no key: give `-`");
     assert_eq!(
         err("potential_name", "tag:-101F1"),
-        "`tag:-101F1` names device -101F1, which is not a terminal; `potential_name` takes a wire or a junction \
+        "`tag:-101F1` names a device -101F1, which is not a terminal; `potential_name` takes a wire or a junction \
          (`id:<uuid>`) or a terminal (`tag:-X1011:L1`)"
     );
     assert_eq!(
         err("wire_props_of", "tag:-101F1"),
-        "`tag:-101F1` names device -101F1; `wire_props_of` takes a wire (`id:<uuid>`)"
+        "`tag:-101F1` names a device -101F1; `wire_props_of` takes a wire (`id:<uuid>`)"
     );
     assert_eq!(
         err("displayed_tag", "tag:-101F1"),
@@ -330,11 +330,11 @@ fn refusals_name_the_key_and_what_the_query_takes() {
     );
     assert_eq!(
         err("title_block", "tag:-101F1"),
-        "`tag:-101F1` names device -101F1; `title_block` takes a drawn page (`folio:101`)"
+        "`tag:-101F1` names a device -101F1; `title_block` takes a drawn page (`folio:101`)"
     );
     assert_eq!(
         err("plc_address_text", "folio:101"),
-        "`folio:101` names page 101 Supply 400 V AC; `plc_address_text` takes a function (`id:<uuid>`) \
+        "`folio:101` names a page 101 Supply 400 V AC; `plc_address_text` takes a function (`id:<uuid>`) \
          or a device (`tag:-201K1-Q2`, its main function)"
     );
     assert_eq!(
@@ -363,14 +363,14 @@ fn explain_names_the_dependencies_of_a_device_tag() {
   displayed  -101F1
   policy     Memo · device_tag · verified at rev 0 (miss) · changed at rev 0
   depends on
-    device -101F1 · tag specification: letter F, counter 1 (rev 0)
-    index functions by device at device -101F1 (rev 0)
+    a device -101F1 · tag specification: letter F, counter 1 (rev 0)
+    index functions by device at a device -101F1 (rev 0)
     function of -101F1 (rev 0)
     index reps by function at function of -101F1 (rev 0)
     main representation of -101F1 on folio 101 (rev 0)
     rep_structure_box(main representation of -101F1 on folio 101) (rev 0)
-    page 101 Supply 400 V AC (rev 0)
-    structure node +CAB (rev 0)
+    a page 101 Supply 400 V AC (rev 0)
+    a structure node +CAB (rev 0)
     project settings · identifier set, numbering rules, master data and derivation profile (rev 0)
   provenance numbering scheme 'page-based'
 "

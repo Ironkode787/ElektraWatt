@@ -11,8 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
-    ChannelsByCp, FunctionCps, Q, ValveSlot, ValveSlots, driven_device, reached_device,
-    valve_solenoids,
+    ChannelsByCp, FunctionCps, Q, ValveSlot, ValveSlots, driven_device, reached_device, valve_solenoids,
 };
 use ew_ids::Id;
 use ew_schema::{Channel, ContactKind, Device, DeviceState, Function, Kind};

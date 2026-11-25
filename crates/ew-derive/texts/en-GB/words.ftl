@@ -29,6 +29,7 @@ line-kind-other = line
 
 tube-ends = { $p0 } → { $p1 }
 tube-end-junction = tee
+junction-in = the junction in { $p0 }
 
 ## A medium the derivation names
 

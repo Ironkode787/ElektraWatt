@@ -176,7 +176,7 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
             (
                 "wire",
                 ew_checks::rules::page::connection_words(
-                    ew_checks::text!("word-the-junction-in", "C11"),
+                    ew_derive::text::junction_in("C11"),
                     ew_checks::text!("word-a-connection-point-of-another-page"),
                 ),
             ),

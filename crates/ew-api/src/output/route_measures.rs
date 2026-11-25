@@ -251,10 +251,10 @@ fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> crate::checks::rules
                 ),
             TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
                 Some(j) => match cell_text(q, page, j.at) {
-                    c if c.is_empty() => ew_checks::text!("word-a-junction").into(),
-                    c => ew_checks::text!("word-the-junction-in", c).into(),
+                    c if c.is_empty() => ew_derive::text::record(ew_schema::Kind::Junction).into(),
+                    c => ew_derive::text::junction_in(c).into(),
                 },
-                None => ew_checks::text!("word-a-junction").into(),
+                None => ew_derive::text::record(ew_schema::Kind::Junction).into(),
             },
         }
     };
@@ -279,10 +279,10 @@ fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::
                 ),
             TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
                 Some(j) => match cell_text(q, page, j.at) {
-                    c if c.is_empty() => text!("refusal-words-a-junction").into(),
-                    c => text!("refusal-words-junction-in", c).into(),
+                    c if c.is_empty() => ew_derive::text::record(ew_schema::Kind::Junction).into(),
+                    c => ew_derive::text::junction_in(c).into(),
                 },
-                None => text!("refusal-words-a-junction").into(),
+                None => ew_derive::text::record(ew_schema::Kind::Junction).into(),
             },
         }
     };

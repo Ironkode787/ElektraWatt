@@ -120,10 +120,11 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
             );
         };
         line(ui, &d.name, &t.type_body_strong, t.text_primary);
+        let words = ew_viewmodel::shell::text_words(&d.kind);
         let kind = if d.key.is_empty() {
-            d.kind.to_owned()
+            words
         } else {
-            strings::format(key!("library-copy-kind-key"), &[d.kind, &d.key])
+            strings::format(key!("library-copy-kind-key"), &[&words, &d.key])
         };
         line(ui, &kind, &t.type_small, t.text_secondary);
         let library = if d.library.is_empty() {

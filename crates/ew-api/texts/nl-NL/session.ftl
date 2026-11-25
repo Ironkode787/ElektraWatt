@@ -32,8 +32,6 @@ reason-swap-cores-unwired = Geen van beide aders heeft een verbinding
 # A damaged copy written from its library, with the version written.
 refusal-words-copy-at-version = { $p0 } in versie { $p1 }
 refusal-words-part-kind = { $p0 }
-refusal-words-junction-in = de aftakking in { $p0 }
-refusal-words-a-junction = een aftakking
 refusal-words-cp-other-page = een aansluitpunt van een andere pagina
 # The property grid's own parse errors: a typed value that is not one of its field's type.
 refusal-input-detail = { $p0 }

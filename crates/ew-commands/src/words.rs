@@ -112,7 +112,7 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Text
         .and_then(|f| f.device)
         .and_then(|d| existing_tag(tx, d));
     tag.map_or_else(
-        || text!("refusal-words-symbol-any"),
+        || ew_derive::text::record(Kind::Representation),
         |t| text!("refusal-words-symbol", t),
     )
 }
@@ -148,14 +148,10 @@ pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
     }
 }
 
-/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand: a symbol and a
-/// wire in the commands' words, every other kind in the derivation's ([`ew_derive::text::record`]).
+/// A record by its kind with its article only (`a device`… `an enclosure`, `a symbol`, `a wire`), where no model is at
+/// hand: the derivation's words ([`ew_derive::text::record`]).
 pub(crate) fn kind_words(kind: Kind) -> TextArg {
-    match kind {
-        Kind::Representation => text!("refusal-words-symbol-any").into(),
-        Kind::Connection => text!("refusal-words-wire-any").into(),
-        other => ew_derive::text::record(other).into(),
-    }
+    ew_derive::text::record(kind).into()
 }
 
 /// A library item by its name (a part's number, else the item's key, `ew.iec.mcb-1pn`), else its kind with its
@@ -371,7 +367,7 @@ pub(crate) fn wire(tx: &TxBuilder<'_>, id: ew_ids::Id<Connection>) -> Text {
     }
     match tx.get::<Connection>(id).and_then(|c| c.page) {
         Some(p) => text!("refusal-words-wire-on", page(tx, p)),
-        None => text!("refusal-words-wire-any"),
+        None => ew_derive::text::record(Kind::Connection),
     }
 }
 

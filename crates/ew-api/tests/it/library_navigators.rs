@@ -124,14 +124,14 @@ fn the_sample_s_copies_without_libraries() {
     assert_eq!(t.nodes[lamp.parent.unwrap() as usize].key, group.key);
     assert!(lamp.badges.is_empty());
     assert_eq!(cell(&t, lamp, "state"), "Current");
-    assert_eq!(cell(&t, lamp, "kind"), "Symbol");
+    assert_eq!(cell(&t, lamp, "kind"), "a symbol");
     assert!(!cell(&t, lamp, "version").is_empty(), "{lamp:?}");
     assert!(!cell(&t, lamp, "used_by").is_empty(), "{lamp:?}");
     // The copy is listed by its name in words, not its key
     let copy = row(&t, NavRole::LibCopy, "Title block QET A4");
     assert_eq!(copy.badges, ["source_missing"]);
     assert_eq!(cell(&t, copy, "state"), "Only in this project");
-    assert_eq!(cell(&t, copy, "kind"), "Form");
+    assert_eq!(cell(&t, copy, "kind"), "a form");
     assert!(
         copy.facets
             .contains(&("state".to_owned(), "source_missing".to_owned()))
@@ -139,7 +139,7 @@ fn the_sample_s_copies_without_libraries() {
     // The copy's detail names it in words, its key secondary, with its kind, version and state.
     let detail = s.library_copy_detail(&copy.key).expect("a copy row's detail");
     assert_eq!(detail.name, "Title block QET A4");
-    assert_eq!(detail.kind, "Form");
+    assert_eq!(detail.kind.to_string(), "a form");
     assert_eq!(detail.key, "ew.titleblock.qet-a4");
     assert_eq!(detail.state.to_string(), "Only in this project");
     assert!(!detail.version.is_empty());
@@ -379,7 +379,7 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     assert_eq!(m.badges, ["update_available"]);
     let libs = s.navigator_table(NavKind::Libraries);
     let copy = row(&libs, NavRole::LibCopy, "PSU 24 V DC");
-    assert_eq!(cell(&libs, copy, "kind"), "Macro");
+    assert_eq!(cell(&libs, copy, "kind"), "a macro");
     assert_eq!(cell(&libs, copy, "state"), "Update available (1.1.0)");
     assert!(
         !cell(&libs, copy, "used_by").is_empty(),

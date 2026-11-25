@@ -80,7 +80,7 @@ rule-ew-core-011 = { $form ->
             [connection-on] connection from { $from } to { $to } on folio { $page }
             [connection] connection from { $from } to { $to }
             [a-connection] a connection
-           *[other] a { $kind }
+           *[other] { $kind }
         }: { $side ->
             [ours-deleted] ours deleted it and theirs changed { $members }
             [theirs-deleted] theirs deleted it and ours changed { $members }
@@ -1240,7 +1240,6 @@ fix-text-style-minimum = Set to 1.2 mm
 word-device = device
 word-cable = cable
 word-without-a-tag = without a tag
-word-a-junction = a junction
 word-assembly = assembly
 word-a-location = a location
 word-a-device-without-designation = a device without designation
@@ -1269,7 +1268,6 @@ word-the-project = the project
 word-a-page = a page
 word-a-logical-bus-net = a logical bus net
 word-a-physical-bus-net = a physical bus net
-word-the-junction-in = the junction in { $p0 }
 word-a-connection-point-of-another-page = a connection point of another page
 word-its-target = its target
 word-the-station = the station

@@ -273,6 +273,12 @@ pub fn tube_ends(from: impl Into<TextArg>, to: impl Into<TextArg>) -> Text {
     text!("tube-ends", from, to)
 }
 
+/// A junction by the frame cell it stands in ("the junction in C11").
+pub fn junction_in(cell: impl Into<TextArg>) -> Text {
+    let cell: TextArg = cell.into();
+    text!("junction-in", cell)
+}
+
 /// A junction as the end of a tube ("tee").
 pub fn tube_end_junction() -> Text {
     text!("tube-end-junction")
@@ -294,14 +300,17 @@ pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>)
     text!("channel-of-module", number, module)
 }
 
-/// A record by its kind with its article only (`a device`… `an enclosure`), where no model is at hand; a
-/// representation and a connection, which the commands word as a symbol and a wire, as any other record.
+/// A record by its kind with its article only (`a device`… `an enclosure`, a representation `a symbol`, a connection `a
+/// wire`), where no model is at hand: the one table of a record kind's words. A kind that no record can be yet (a
+/// reserved kind) and a kind of a newer format are `an item` ([`record_other`]).
 pub fn record(kind: Kind) -> Text {
     match kind {
         Kind::Device => text!("record-device"),
         Kind::Function => text!("record-function"),
         Kind::Page => text!("record-page"),
         Kind::Junction => text!("record-junction"),
+        Kind::Representation => text!("record-representation"),
+        Kind::Connection => text!("record-connection"),
         Kind::Project => text!("record-project"),
         Kind::PlcConfigProject => text!("record-plc-config-project"),
         Kind::LogicalNet => text!("record-logical-net"),
@@ -314,7 +323,6 @@ pub fn record(kind: Kind) -> Text {
         Kind::Conductor => text!("record-conductor"),
         Kind::Channel => text!("record-channel"),
         Kind::PotentialDef => text!("record-potential-def"),
-        Kind::NetDef => text!("record-net-def"),
         Kind::MediumDef => text!("record-medium-def"),
         Kind::Bond => text!("record-bond"),
         Kind::DeviceLink => text!("record-device-link"),
@@ -322,20 +330,13 @@ pub fn record(kind: Kind) -> Text {
         Kind::StructureBox => text!("record-structure-box"),
         Kind::ReportBlock => text!("record-report-block"),
         Kind::MacroInstance => text!("record-macro-instance"),
-        Kind::PlaceholderGroup => text!("record-placeholder-group"),
         Kind::LayoutSpace => text!("record-layout-space"),
         Kind::Enclosure => text!("record-enclosure"),
         Kind::MountingSurface => text!("record-mounting-surface"),
         Kind::Carrier => text!("record-carrier"),
         Kind::Placement => text!("record-placement"),
-        Kind::RouteOverride => text!("record-route-override"),
-        Kind::CommittedRoute => text!("record-committed-route"),
-        Kind::RoutingPath => text!("record-routing-path"),
-        Kind::SurfaceFeature => text!("record-surface-feature"),
         Kind::Revision => text!("record-revision"),
         Kind::Waiver => text!("record-waiver"),
-        Kind::Comment => text!("record-comment"),
-        Kind::Transmittal => text!("record-transmittal"),
         Kind::ExchangeRecord => text!("record-exchange-record"),
         Kind::ForeignId => text!("record-foreign-id"),
         Kind::ImportRun => text!("record-import-run"),
@@ -347,8 +348,6 @@ pub fn record(kind: Kind) -> Text {
         Kind::Macro => text!("record-macro"),
         Kind::Manufacturer => text!("record-manufacturer"),
         Kind::PlcProfile => text!("record-plc-profile"),
-        Kind::MachineProfile => text!("record-machine-profile"),
-        Kind::LabelProfile => text!("record-label-profile"),
         _ => text!("record-other"),
     }
 }

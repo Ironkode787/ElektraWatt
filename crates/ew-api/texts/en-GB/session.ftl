@@ -31,8 +31,6 @@ reason-swap-cores-unwired = Neither core has a connection
 # A damaged copy written from its library, with the version written.
 refusal-words-copy-at-version = { $p0 } at version { $p1 }
 refusal-words-part-kind = { $p0 }
-refusal-words-junction-in = the junction in { $p0 }
-refusal-words-a-junction = a junction
 refusal-words-cp-other-page = a connection point of another page
 # The property grid's own parse errors: a typed value that is not one of its field's type.
 refusal-input-detail = { $p0 }

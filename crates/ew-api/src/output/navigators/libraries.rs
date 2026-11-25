@@ -95,20 +95,6 @@ pub(crate) fn copy_state(s: &CopyState) -> (&'static str, crate::Text) {
     }
 }
 
-/// A library item kind in words.
-fn kind_word(k: Kind) -> &'static str {
-    match k {
-        Kind::Part => "Part",
-        Kind::Symbol => "Symbol",
-        Kind::Fndef => "Function definition",
-        Kind::Form => "Form",
-        Kind::Macro => "Macro",
-        Kind::Manufacturer => "Manufacturer",
-        Kind::PlcProfile => "PLC profile",
-        _ => "Item",
-    }
-}
-
 /// A macro kind in words.
 fn macro_kind_word(k: &MacroKind) -> &'static str {
     match k {
@@ -272,7 +258,7 @@ pub(crate) fn frame_forms(q: &Q) -> Vec<(Uuid, crate::Text)> {
 /// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], a PLC
 /// profile's label else its `id@version`, else its key.
 fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
-    copy_name(q, kind, copy).unwrap_or_else(|| kind_word(kind).to_owned())
+    copy_name(q, kind, copy).unwrap_or_else(|| ew_derive::text::record(kind).to_string())
 }
 
 /// [`copy_label`] without its last fallback, the kind's word: `None` for a copy the project does not hold or one
@@ -519,8 +505,8 @@ pub struct MacroThumbnail {
 pub struct LibraryCopyDetail {
     /// The name, as the row lists it.
     pub name: String,
-    /// The kind in words (`Form`, `Function definition`).
-    pub kind: &'static str,
+    /// The kind in the derivation's words (`a form`, `a function definition`), in the UI language from its text.
+    pub kind: crate::Text,
     /// The item's key (`ew.titleblock.qet-a4`), empty without one: secondary text, after the name.
     pub key: String,
     /// The installed library's name, empty when no installed library holds the item.
@@ -715,7 +701,7 @@ impl Session {
             .unwrap_or_default();
         Some(LibraryCopyDetail {
             name: copy_label(&q, s.kind, copy),
-            kind: kind_word(s.kind),
+            kind: ew_derive::text::record(s.kind),
             key,
             library,
             version: s.version.clone(),
@@ -862,7 +848,7 @@ impl Session {
             };
             let cells = vec![
                 label.clone(),
-                kind_word(s.kind).to_owned(),
+                ew_derive::text::record(s.kind).to_string(),
                 String::new(),
                 s.version.clone(),
                 String::new(),

@@ -75,7 +75,7 @@ rule-ew-core-011 = { $form ->
             [connection-on] verbinding van { $from } naar { $to } op folio { $page }
             [connection] verbinding van { $from } naar { $to }
             [a-connection] een verbinding
-           *[other] een record van soort { $kind }
+           *[other] { $kind }
         }: { $side ->
             [ours-deleted] onze versie heeft het verwijderd en hun versie wijzigde { $members }
             [theirs-deleted] hun versie heeft het verwijderd en onze versie wijzigde { $members }
@@ -1259,7 +1259,6 @@ fix-text-style-minimum = Op 1,2 mm zetten
 word-device = apparaat
 word-cable = kabel
 word-without-a-tag = zonder kenmerk
-word-a-junction = een aftakking
 word-assembly = samenstelling
 word-a-location = een locatie
 word-a-device-without-designation = een apparaat zonder aanduiding
@@ -1288,7 +1287,6 @@ word-the-project = het project
 word-a-page = een pagina
 word-a-logical-bus-net = een logisch busnet
 word-a-physical-bus-net = een fysiek busnet
-word-the-junction-in = de aftakking in { $p0 }
 word-a-connection-point-of-another-page = een aansluitpunt van een andere pagina
 word-its-target = zijn doel
 word-the-station = het station
