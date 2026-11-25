@@ -318,7 +318,7 @@ impl ShellModel {
         rev: u64,
     ) -> Outcome {
         let submit = Submit::from(self.origin());
-        #[cfg(feature = "testkit")]
+        #[cfg(debug_assertions)]
         let fault = self.jobs.hooks.panic_at == Some("table-read");
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
@@ -330,7 +330,7 @@ impl ShellModel {
             ..ImportTableOptions::default()
         };
         let import = match ew_api::output::guard_table_read(&source, || {
-            #[cfg(feature = "testkit")]
+            #[cfg(debug_assertions)]
             if fault {
                 panic!("a test fault in the table read");
             }

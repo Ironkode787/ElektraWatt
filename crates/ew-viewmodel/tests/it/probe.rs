@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The tool host and the preview protocol with tools that exist only here (acceptance
-//! checks T1, T2, T3, the probe's part of T9 and the preview words of T10). Built only with the dev-only feature
-//! `testkit` (`required-features`), which `ShellModel::set_tool_for_tests` needs; `ci/dep-rules.toml` bans the feature
-//! on every non-dev edge, so the binaries never contain the seam.
+//! checks T1, T2, T3, the probe's part of T9 and the preview words of T10). `ShellModel::set_tool_for_tests`, which
+//! they need, is a debug build's: a release build, every shipped binary, never contains the seam.
 //!
 //! **The probe**: on a drag of a selected representation it shows the ghost of the selected entities moved by
 //! the snapped grid offset, on `Dwell(80)` it previews `rep.move` by that offset, on release it commits the same

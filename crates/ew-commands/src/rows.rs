@@ -4,9 +4,9 @@
 //! Kind-erased rows as JSON: the canonical record bytes compared by the algebraic tests (undo restores
 //! the exact bytes of every record, preview + commit = execute) and the field paths of the preview diff.
 //!
-//! These are untracked row dumps (ARCH §3 rule 1, ADR-0001 amendment 1): the module is crate-private and
-//! public only with the test-only feature `testkit`, so crates that depend on `ew-commands` (ew-api,
-//! ew-script, ew-plugin-host, …) cannot read records through it.
+//! These are untracked row dumps (ARCH §3 rule 1, ADR-0001 amendment 1): the module is crate-private in a
+//! release build and public in a debug build only, for the tests, so a shipped program of a crate that depends on
+//! `ew-commands` (ew-api, ew-script, ew-plugin-host, …) cannot read records through it.
 //!
 //! A row that has no JSON form (a coordinate beyond ±(2⁵³ − 1), ADR-0005) is a [`CmdError::Internal`],
 //! never a silent `null`.

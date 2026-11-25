@@ -467,7 +467,7 @@ fn check_deps(root: &Path, ws: &Workspace) -> Result<Violations> {
 }
 
 /// Test-only features and crates never reach a shipped binary (`ci/dep-rules.toml`: `banned_features`,
-/// `banned_crates`, `uniform_test_features`, `required_features`).
+/// `banned_crates`, `required_features`).
 fn check_features(root: &Path, ws: &Workspace) -> Result<Violations> {
     let (metadata, policy) = (&ws.metadata, &ws.policy);
     let rules = features::Rules {
@@ -476,7 +476,6 @@ fn check_features(root: &Path, ws: &Workspace) -> Result<Violations> {
     };
     let packages = features::from_metadata(metadata);
     let mut violations = features::check(&rules, &packages);
-    violations.extend(features::check_uniform(&policy.uniform_test_features, &packages));
     violations.extend(features::check_required(
         &policy.required_features,
         &features::resolved_from_metadata(metadata),

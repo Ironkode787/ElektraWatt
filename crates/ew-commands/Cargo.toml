@@ -14,14 +14,6 @@ publish = false
 [lints]
 workspace = true
 
-[features]
-# The row dumps (`rows`), `Preview::ops` and `HistoryEntry::transaction` for tests (ARCH §3 rule 1, F9). Test-only
-# by policy: the feature rule of `cargo xtask rules` allows it on dev-dependency edges only, and every package whose test build
-# reaches this crate requests it on one, so every test build compiles the crate the same way (ci/dep-rules.toml,
-# `[[uniform_test_features]]`). It also turns on ew-model's `testkit`, the fixture the crate's tests build on, so every
-# test build that reaches this crate compiles ew-model the same way.
-testkit = ["ew-model/testkit"]
-
 [dependencies]
 # The tracked read layer: the queries that commands, normalisers and previews read through a `Q`.
 ew-derive = { path = "../ew-derive" }
@@ -65,9 +57,6 @@ ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true
-# The crate's own integration tests read records through `testkit` (`rows`, `Preview::ops`, history ops;
-# Without the feature those untracked row dumps are crate-private).
-ew-commands = { path = ".", features = ["testkit"] }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }
 # The expected files and their re-bless (dev-only crate).

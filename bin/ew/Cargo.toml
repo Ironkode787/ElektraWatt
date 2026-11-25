@@ -37,8 +37,8 @@ ew-hack = { version = "0.3.5", path = "../../crates/ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
-# Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).
-ew-commands = { path = "../../crates/ew-commands", features = ["testkit"] }
+# tests/it/conventions.rs: the command registry the published command list is compared with.
+ew-commands = { path = "../../crates/ew-commands" }
 # The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../../crates/ew-testdir" }
 # tests/it/cli.rs: the SHA-256 of `ew export pdf` against `expected/pdf/sha256.txt` (G-M1-01).

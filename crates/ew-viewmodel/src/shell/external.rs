@@ -73,7 +73,7 @@ pub(crate) fn collision_count(rows: &[CollisionRow]) -> String {
 /// The collaboration state of the shell.
 #[derive(Default)]
 pub(crate) struct CollabState {
-    /// The environment the cloud detection reads, set by a test (feature `testkit`); `None`: the process's.
+    /// The environment the cloud detection reads, set by a test (a debug build's); `None`: the process's.
     pub(crate) cloud_env: Option<Vec<(String, std::ffi::OsString)>>,
     /// The `ew` executable `git.setup` configures, set by a test; `None`: the one beside this program.
     pub(crate) ew_exe: Option<PathBuf>,
@@ -90,9 +90,9 @@ pub(crate) struct CollabState {
     /// Whether the collision dialog of the held change was shown: a poll opens it once, never over another dialog and
     /// never again after Decide later (a refused save opens it again).
     pub(crate) collisions_shown: bool,
-    /// The migration chain the shell's stores open with, set by a test (feature `testkit`); `None`: the shipped one.
+    /// The migration chain the shell's stores open with, set by a test (a debug build's); `None`: the shipped one.
     pub(crate) migrations: Option<&'static ew_api::Migrations>,
-    /// The released formats the shell's stores save with, set by a test (feature `testkit`); `None`: the shipped list.
+    /// The released formats the shell's stores save with, set by a test (a debug build's); `None`: the shipped list.
     pub(crate) released: Option<&'static [&'static str]>,
 }
 
@@ -515,7 +515,7 @@ impl ShellModel {
     }
 
     /// An environment variable as the window reads it (the cloud detection, `$APPIMAGE`): a test's environment when one
-    /// is set (feature `testkit`), else the process's; `None` when unset or empty.
+    /// is set (a debug build's), else the process's; `None` when unset or empty.
     fn env_var(&self, name: &str) -> Option<std::ffi::OsString> {
         match &self.collab.cloud_env {
             Some(vars) => vars
@@ -539,29 +539,29 @@ impl ShellModel {
     }
 
     /// The environment the window reads from now on (the cloud detection, `$APPIMAGE`), instead of the process's
-    /// (feature `testkit`).
-    #[cfg(feature = "testkit")]
+    /// (a debug build's).
+    #[cfg(debug_assertions)]
     pub fn set_cloud_env_for_tests(&mut self, vars: Option<Vec<(String, std::ffi::OsString)>>) {
         self.collab.cloud_env = vars;
     }
 
-    /// The migration chain of the stores the shell opens from now on, instead of the shipped one (feature `testkit`): a
+    /// The migration chain of the stores the shell opens from now on, instead of the shipped one (a debug build's): a
     /// test's chain makes a project of an older format.
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub fn set_migrations_for_tests(&mut self, chain: Option<&'static ew_api::Migrations>) {
         self.collab.migrations = chain;
     }
 
-    /// The released formats of the stores the shell opens from now on, instead of the shipped list (feature
-    /// `testkit`): a list without this build's format makes every save mark its manifest `unstable`.
-    #[cfg(feature = "testkit")]
+    /// The released formats of the stores the shell opens from now on, instead of the shipped list (a debug
+    /// build's): a list without this build's format makes every save mark its manifest `unstable`.
+    #[cfg(debug_assertions)]
     pub fn set_released_for_tests(&mut self, released: Option<&'static [&'static str]>) {
         self.collab.released = released;
     }
 
-    /// The `ew` executable `git.setup` configures from now on, instead of the one beside this program (feature
-    /// `testkit`).
-    #[cfg(feature = "testkit")]
+    /// The `ew` executable `git.setup` configures from now on, instead of the one beside this program (a
+    /// debug build's).
+    #[cfg(debug_assertions)]
     pub fn set_ew_exe_for_tests(&mut self, path: Option<PathBuf>) {
         self.collab.ew_exe = path;
     }

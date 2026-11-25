@@ -61,15 +61,13 @@ None of these is project model data. They are repository, CI or local diagnostic
   tested per profile (NFR-REL-09).
 - **Committed computations** carry an `input_hash`. The determinism tests include routing (1.0), so the hash must be
   identical on every platform, or EW-LAY-011 would flag lengths as stale after a checkout on another OS.
-- **Test-build hooks.** Two features exist only for tests: `ew-commands/testkit` (the row dumps, `Preview::ops` and
-  the history's ops, ARCH §3 rule 1) and `ew-viewmodel/testkit` (the shell's tool, ID-source and job hooks). The
-  confirmation hook of `HumanOnly` subcommands (§3.15) is realised as an injected terminal, not a feature; the
-  `ew/test-confirm` ban stays as a guard. Both features are *uniform test features* (T1): every workspace package whose test build reaches the crate requests the feature on a
-  dev-dependency edge, so every test build compiles the crate the same way and a change rebuilds the crates above it
-  once, whatever the package set. `cargo xtask rules` fails on a missing request, naming the manifest line
-  to add, and on any request outside a dev edge. A build without dev-dependencies (`cargo build -p elektrawatt`,
-  clippy without `--all-targets`) still compiles them without the hooks, as the release does. The release pipeline
-  asserts that they are absent (CI-R-09).
+- **Test-build hooks.** The hooks the tests need are a debug build's (`cfg(debug_assertions)`), no feature: the
+  row dumps, `Preview::ops` and the history's ops of `ew-commands` (ARCH §3 rule 1), the structural check after every
+  command, the test fixture of `ew-model`, and the shell's tool, ID-source and job hooks of `ew-viewmodel`. So the
+  tests and a plain debug build (`cargo build -p elektrawatt`, the headless pictures, `ew`) compile every crate the
+  same way, and a change rebuilds the crates above it once (T1); a release build, every shipped binary, has none of
+  them. The confirmation hook of `HumanOnly` subcommands (§3.15) is realised as an injected terminal, not a feature;
+  the `ew/test-confirm` ban stays as a guard.
 
 ---
 
@@ -650,7 +648,7 @@ At 0.1.0 the release starts from a candidate tag `v<X.Y.Z>-rc.<n>`: `release.yml
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
 | CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 %. | Linux (lavapipe) | Merge |
 | CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer. | Linux | Merge |
-| CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-testids`, `ew-commands/testkit`, `ew-viewmodel/testkit` and `ew/test-confirm` in any non-test target; the uniform test features requested by every test build that reaches their crate, §2.2); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
+| CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-testids` and `ew/test-confirm` in any non-test target); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
 | CI-PR-10 legal-docs | `reuse lint` (NFR-LIC-01, NFR-LIC-02; 19 LR-01); licence-map check against `ci/licence-map.toml` (19 LR-02), including the collective copyright notice (NFR-LIC-10); no committed third-party fixture (19 LR-11); DCO (NFR-LIC-03); governance-file presence (NFR-DOC-08); RFC reference on PRs labelled `format-major`, `api-break` or `licence` (NFR-DOC-09); anonymisation guard (NFR-PRIV-09; 20 §3.5, 19 LR-12); mdBook and rustdoc build with link check (NFR-MAINT-08); F1 anchors (NFR-DOC-01); rule pages (NFR-DOC-02); generated references unchanged (NFR-DOC-06) | Linux | Merge |
 | CI-PR-10 docs-book | The user guide (§5.5): `cargo xtask docs-gen --check`; mdBook 0.5.4 from its release archive, pinned by version and SHA-256; `mdbook build docs/book` without network (`unshare --net`); `ci/check-book-links.py` over the built pages; the built book as an artifact (NFR-DOC-01, NFR-DOC-06) | Linux | Merge, once in the required checks |
 | CI-PR-11 storage | Samba share save/reopen and a case-sensitive APFS image (NFR-PLAT-05); ENOSPC/EACCES injection; read-only installation directory (NFR-PLAT-07); longest internal path ≤ 120; project path `Projecten Ü ñ 测试` (NFR-I18N-04) | Linux, Windows | Merge |

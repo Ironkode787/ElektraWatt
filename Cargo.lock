@@ -1143,7 +1143,6 @@ version = "0.3.5"
 dependencies = [
  "automod",
  "eframe",
- "ew-commands",
  "ew-dl",
  "ew-hack",
  "ew-print",
@@ -1399,7 +1398,6 @@ dependencies = [
  "automod",
  "ew-caex",
  "ew-checks",
- "ew-commands",
  "ew-derive",
  "ew-drafting",
  "ew-format",
@@ -2015,7 +2013,6 @@ dependencies = [
  "ew-testdir",
  "ew-testkit",
  "ew-units",
- "ew-viewmodel",
  "serde",
  "serde_json",
  "toml",

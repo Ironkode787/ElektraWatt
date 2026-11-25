@@ -282,7 +282,7 @@ fn nl_nl() -> &'static Locale {
     NL.get_or_init(|| Locale::from_sources("nl", sources("nl-NL"), en_gb().language.as_ref()))
 }
 
-/// The languages loaded besides en-GB: the pseudo-locale once selected, and the test languages of `testkit`.
+/// The languages loaded besides en-GB: the pseudo-locale once selected, and the test languages of a debug build.
 static LOADED: RwLock<Vec<&'static Locale>> = RwLock::new(Vec::new());
 
 /// The UI language now; `None` is en-GB.
@@ -348,7 +348,7 @@ pub fn locale() -> &'static str {
 }
 
 /// The languages View ▸ Language offers, as (settings value, the language's own name): the shipped ones
-/// ([`crate::settings::LANGUAGES`]), then the test languages of `testkit` under another tag. The pseudo-locale is never
+/// ([`crate::settings::LANGUAGES`]), then the test languages of a debug build under another tag. The pseudo-locale is never
 /// offered.
 pub fn languages() -> Vec<(&'static str, &'static str)> {
     let name = |l: &'static Locale| l.texts.get("language-name").copied().unwrap_or("?");
@@ -383,10 +383,10 @@ pub fn rule_language() -> &'static str {
     }
 }
 
-/// Test hook (`testkit`): loads the Fluent source `source` as the UI language `tag`, which
+/// Test hook (a debug build's): loads the Fluent source `source` as the UI language `tag`, which
 /// View ▸ Language then offers and [`set_locale`] selects; a message it lacks falls back to en-GB. A tag loaded
 /// before is replaced for later selections.
-#[cfg(feature = "testkit")]
+#[cfg(debug_assertions)]
 pub fn register_locale_for_tests(tag: &str, source: &str) {
     let locale: &'static Locale = Box::leak(Box::new(Locale::from_sources(
         tag,

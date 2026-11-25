@@ -14,16 +14,6 @@ publish = false
 [lints]
 workspace = true
 
-[features]
-# Test-only: `ShellModel::set_tool_for_tests`, which installs a tool outside the registry, so that the
-# probe tool of `tests/it/probe.rs` can exercise the commit path that no shipped tool takes; and
-# `ShellModel::set_id_source_for_tests`, the ID source of `tests/it/replay_order.rs`; and
-# `ShellModel::set_job_gate_for_tests` and `set_job_panic_for_tests`, the held gate and the fault of `tests/it/jobs.rs`.
-# A non-dev edge must never request it: `ci/dep-rules.toml` bans it outside dev-dependencies, and every package whose
-# test build reaches this crate requests it on a dev edge, this crate's own tests included (`[[uniform_test_features]]`;
-# the feature rule of `cargo xtask rules`). So the tests above need no `required-features` and are never skipped.
-testkit = []
-
 [dependencies]
 ew-api = { path = "../ew-api" }
 # The display list and the lengths of the pages the shell shows, named by their own crates (foundation edges, ARCH §3
@@ -46,10 +36,8 @@ ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true
-# The test hooks of `testkit` for this crate's own tests (`probe`, `replay_order`, `jobs`), and ew-commands' `testkit`:
-# both are uniform test features (ci/dep-rules.toml).
-ew-viewmodel = { path = ".", features = ["testkit"] }
-ew-commands = { path = "../ew-commands", features = ["testkit"] }
+# The row dumps of the tests (`ew_commands::rows`, a debug build's).
+ew-commands = { path = "../ew-commands" }
 # The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
 # The starter part versions of the tests (`ew_testkit::library::starter_version`,; dev-only edge).

@@ -3,7 +3,7 @@
 
 //! The PDF export as a job, the notifications and their log, and the exact
 //! counts. The flows that need a held gate or a fault run with `ShellModel::set_job_gate_for_tests` and
-//! `set_job_panic_for_tests` (feature `testkit`). The byte checks against the sample's digest are `ew-api`'s
+//! `set_job_panic_for_tests` (a debug build's). The byte checks against the sample's digest are `ew-api`'s
 //! `tests/export_job.rs` (JB2) and `bin/elektrawatt`'s headless test; here a one-page project keeps the jobs short.
 
 use std::path::Path;

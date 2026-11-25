@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The mini project as typed records: two pages of a small control cabinet (placeholders only), shared by the
-//! in-crate tests and, through the feature `testkit`, by the tests of `ew-commands`; with the record, library and
+//! in-crate tests and, in a debug build, by the tests of `ew-commands`; with the record, library and
 //! valve helpers they build their own records with. The JSON fixture builder of `ew-derive`'s tests is
 //! `ew-derive/tests/common/`.
 

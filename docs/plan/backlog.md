@@ -58,7 +58,6 @@ only as part of a change that holds on every page (doc 06a, "What Arrange and ro
 
 Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
 
-- FT-1775 `xtask, ew-commands, ew-viewmodel`: The test builds and a plain `cargo build` (the headless pictures, `ew`) compile every crate above `ew-commands` twice: the tests with the test-only `testkit` features of `ew-commands` and `ew-viewmodel` (`[[uniform_test_features]]`), the plain build without; `ew-commands`' `testkit` turns on `ew-model`'s, so a lower crate tested alone builds twice too. One flavour would save the second compile of the heavy crates (not measured).
 - FT-1937 `ew-scene, ew-viewmodel, ew-api, ew-commands, ew-reports, ew-drafting, ew-ui, ew-library`: **Step 15 of M3.5 (owner, 2026-11-23; it was the first step of M4): one concept, one place.** After the second candidate of 0.3.5 is cut; its work goes into the third. It starts with a scan of its own (owner, 2026-11-23). What it holds, the scan's questions, the spots the reviews named, the files to split, the five guards of its part 4 and the yardstick are in [m3.5.md](m3.5.md), "Step 15". No behaviour changes; the yardstick is not a test.
 
 What step 15 left, each with the reason it was not done in the step (a row changes behaviour only where it says so):

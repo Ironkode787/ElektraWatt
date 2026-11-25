@@ -86,8 +86,6 @@ ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true
-# The row dumps of the tests (feature `testkit`, a uniform test feature: ci/dep-rules.toml).
-ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }
 # The tests read and count rows through the untracked readers (`tests/it/external.rs`, `persistence.rs`) and apply

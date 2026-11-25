@@ -51,9 +51,6 @@ pub struct Policy {
     /// Crates that may only be dev-dependencies (the feature rule of `cargo xtask rules`).
     #[serde(default)]
     pub banned_crates: Vec<String>,
-    /// Test-only features that every test build reaching their crate requests (the feature rule of `cargo xtask rules`).
-    #[serde(default)]
-    pub uniform_test_features: Vec<crate::features::UniformTestFeature>,
     /// The source-level guard for a gated feature's readers (the raw-read rule of `cargo xtask rules`).
     #[serde(default)]
     pub raw_read: Option<crate::raw_read::RawReadPolicy>,

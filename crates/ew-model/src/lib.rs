@@ -131,9 +131,9 @@ mod op;
 mod prevent;
 mod rev;
 
-/// The small in-code test project as typed records, for this crate's tests and, through the feature `testkit`, for
+/// The small in-code test project as typed records, for this crate's tests and, in a debug build, for
 /// the tests of `ew-commands`.
-#[cfg(any(test, feature = "testkit"))]
+#[cfg(debug_assertions)]
 pub mod fixture;
 
 #[cfg(test)]

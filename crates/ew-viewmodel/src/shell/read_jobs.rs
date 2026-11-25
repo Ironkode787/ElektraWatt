@@ -70,7 +70,7 @@ impl ShellModel {
                     }
                     Ok(())
                 };
-                // A test fault (feature `testkit` only): the body panics, as a reader's panic would end it.
+                // A test fault (a debug build only): the body panics, as a reader's panic would end it.
                 hooks.fault("read");
                 stop("read")?;
                 let finish = read(ctl)?;

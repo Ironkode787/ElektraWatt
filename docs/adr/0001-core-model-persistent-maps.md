@@ -93,8 +93,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-59). A full `Op` carries the before and
    after rows, so handing ops, diffs or history entries to a front-end would be an untracked read by another route.
    The normal public surface of `ew-commands` therefore carries no row: diffs, preview ops and history entries are
-   summaries (op kind, record kind, key and the changed field paths). Full ops are reachable only under its
-   dev-only `testkit` feature, which `ci/dep-rules.toml` bans outside dev edges.
+   summaries (op kind, record kind, key and the changed field paths). Full ops are reachable only in a debug build
+   (`cfg(debug_assertions)`, the tests' build), which no release build compiles.
 4. **A type-aware raw-read guard** (2026-10-19, project owner (delegated), after the independent review of cycle 6;
    [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-94; task FT-32). The lexical check of
    amendment 2 recognises a raw-read call by its method name, and the review showed that this misses gated names in

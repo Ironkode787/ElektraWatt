@@ -74,8 +74,8 @@ pub struct HistoryEntry {
 }
 
 impl HistoryEntry {
-    /// The transaction (feature `testkit` only: its ops carry whole rows, F9).
-    #[cfg(feature = "testkit")]
+    /// The transaction (a debug build only: its ops carry whole rows, F9).
+    #[cfg(debug_assertions)]
     pub fn transaction(&self) -> &Transaction {
         &self.tx
     }

@@ -806,7 +806,7 @@ pub struct ShellModel {
     /// The ID aliases `@n` of this session's machine text; never stored.
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
-    /// entropy) except in a test that replays one script under different IDs (feature `testkit`).
+    /// entropy) except in a test that replays one script under different IDs (a debug build's).
     id_source: Option<fn() -> Box<dyn IdSource + Send>>,
     /// Today's date (`YYYY-MM-DD`) as the window last read it before an action; `None` headless. The shell never reads
     /// a clock: a form that offers a date (the PLC export's) starts with this one.
@@ -894,8 +894,8 @@ pub struct DispatchEntry {
     pub reason: Option<&'static str>,
 }
 
-/// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
-#[cfg(feature = "testkit")]
+/// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (a debug build's).
+#[cfg(debug_assertions)]
 pub type IdSourceFactory = fn() -> Box<dyn IdSource + Send>;
 
 /// The directory's own name, never its path.
@@ -2108,17 +2108,17 @@ impl ShellModel {
         strings::format(key!("hint-date"), &[&self.date_format().example()])
     }
 
-    /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
+    /// The source of new record IDs for every session the shell opens or creates from now on (a debug build
     /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). A guard runs one
     /// script under an ascending and a descending source: a shell output ordered by UUID then differs. The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub fn set_id_source_for_tests(&mut self, make: Option<IdSourceFactory>) {
         self.id_source = make;
     }
 
-    /// The open project's current snapshot (feature `testkit` only): the flow compares the model's
+    /// The open project's current snapshot (a debug build only): the flow compares the model's
     /// records before an edit and after its undo.
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub fn world_for_tests(&self) -> Option<ew_api::World> {
         self.project.as_ref().map(|p| p.session.world())
     }

@@ -564,7 +564,7 @@ impl ShellModel {
         let job_name = name.clone();
         let hooks = self.jobs.hooks.clone();
         let job = Job::spawn(options, move |_| {
-            // A test fault (feature `testkit` only): the job's body panics, as an importer's panic would end it.
+            // A test fault (a debug build only): the job's body panics, as an importer's panic would end it.
             hooks.fault("import");
             Ok(import_qet_batch(&job_name, bytes, &library))
         });
@@ -885,7 +885,7 @@ impl ShellModel {
         let job_name = name.clone();
         let hooks = self.jobs.hooks.clone();
         let job = Job::spawn(options, move |_| {
-            // A test fault (feature `testkit` only), as the import job has.
+            // A test fault (a debug build only), as the import job has.
             hooks.fault("reimport");
             Ok(find_reimport(
                 &lineages, &job_name, bytes, &library, proposed, accept,
@@ -1386,7 +1386,7 @@ impl ShellModel {
     }
 
     /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
-    /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
+    /// set a source (`set_id_source_for_tests`, a debug build's); the configuration's library tiers with the
     /// company libraries of the settings key `libraries.company` after any the configuration names.
     pub(super) fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
         let company = self.settings.company_libraries(self.config.config_dir.as_deref());

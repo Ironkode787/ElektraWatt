@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
-#[cfg(feature = "testkit")]
+#[cfg(debug_assertions)]
 use ew_api::ew_jobs::Gate;
 use ew_api::ew_jobs::{JobEnd, Waker};
 use ew_api::output::{ExportOptions, PageRow};
@@ -210,16 +210,16 @@ impl ShellModel {
         self.jobs.waker = waker;
     }
 
-    /// The test gate of the jobs started from now on (feature `testkit`; the product never sets one).
-    #[cfg(feature = "testkit")]
+    /// The test gate of the jobs started from now on (a debug build's; the product never sets one).
+    #[cfg(debug_assertions)]
     pub fn set_job_gate_for_tests(&mut self, gate: Option<Gate>) {
         self.jobs.hooks.gate = gate;
     }
 
-    /// A test fault of the export jobs started from now on (feature `testkit`): `Some("sibling")` makes the body panic
+    /// A test fault of the export jobs started from now on (a debug build's): `Some("sibling")` makes the body panic
     /// right after the sibling file is written and synced, before the rename; `Some("table-read")` makes the table
     /// import's read panic inside its guard.
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub fn set_job_panic_for_tests(&mut self, at: Option<&'static str>) {
         self.jobs.hooks.panic_at = at;
     }

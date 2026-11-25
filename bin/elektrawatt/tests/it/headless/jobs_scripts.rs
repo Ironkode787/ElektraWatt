@@ -5,7 +5,7 @@
 //! journal recovery as `ew.uiscript/1` scripts through the built binary, each run twice on its own copy of
 //! the sample with byte-identical transcripts; the export's PDF is `ew export pdf`'s; the `--record` log of the export
 //! script replayed onto a fresh copy gives equal records. The flows with a held gate run in `ew-viewmodel`'s
-//! `tests/it/jobs.rs` (feature `testkit`). A module of `tests/it/headless.rs`, whose `bin_exe` it uses.
+//! `tests/it/jobs.rs` (a debug build's). A module of `tests/it/headless.rs`, whose `bin_exe` it uses.
 
 use std::path::Path;
 use std::process::{Output, Stdio};

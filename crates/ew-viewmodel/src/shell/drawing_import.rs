@@ -140,7 +140,7 @@ impl ShellModel {
                     ..DxfOptions::default()
                 });
             move |ctl: &ew_api::ew_jobs::JobCtl| {
-                // A test fault (feature `testkit` only): the body panics, as a reader's panic would end it.
+                // A test fault (a debug build only): the body panics, as a reader's panic would end it.
                 hooks.fault("drawing");
                 ctl.checkpoint("drawing")?;
                 Ok(

@@ -158,25 +158,25 @@ pub struct JobsState {
     pub(crate) next: u64,
     /// The window's repaint request; `None` headless.
     pub(crate) waker: Option<Waker>,
-    /// The test gate and fault of the jobs started from now on (empty without the feature `testkit`).
+    /// The test gate and fault of the jobs started from now on (empty in a release build).
     pub(crate) hooks: TestHooks,
     /// The written file the window must hand to the system's file opener (Open PDF), taken once.
     pub(crate) open_request: Option<std::path::PathBuf>,
 }
 
-/// The test hooks of the export jobs (feature `testkit`): a gate and a fault. Without the feature the struct is empty,
+/// The test hooks of the export jobs (a debug build's): a gate and a fault. In a release build the struct is empty,
 /// no job gets a gate and the body checks no fault, so neither is compiled into the product.
 #[derive(Clone, Default)]
 pub(crate) struct TestHooks {
     /// The test gate (`ShellModel::set_job_gate_for_tests`).
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub(crate) gate: Option<Gate>,
     /// A test fault (`ShellModel::set_job_panic_for_tests`): the body panics at this step.
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub(crate) panic_at: Option<&'static str>,
 }
 
-#[cfg(feature = "testkit")]
+#[cfg(debug_assertions)]
 impl TestHooks {
     /// The gate a new job gets.
     pub(crate) fn gate(&self) -> Option<Gate> {
@@ -194,7 +194,7 @@ impl TestHooks {
     }
 }
 
-#[cfg(not(feature = "testkit"))]
+#[cfg(not(debug_assertions))]
 impl TestHooks {
     /// No gate.
     pub(crate) fn gate(&self) -> Option<Gate> {
@@ -487,7 +487,7 @@ fn export_body(
         &std::fs::OpenOptions::new(),
     )
     .map_err(failed)?;
-    // A test fault (feature `testkit` only): a panic with the sibling on disk.
+    // A test fault (a debug build only): a panic with the sibling on disk.
     hooks.fault("sibling");
     ctl.checkpoint("rename")?;
     staged.commit().map_err(failed)?;
@@ -509,7 +509,7 @@ fn dxf_body(job: DxfExportJob, ctl: &JobCtl, dir: &Path, hooks: &TestHooks) -> R
         .map(|f| (f.name.as_str(), f.text.as_bytes()))
         .chain(set.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
         .collect();
-    // A test fault (feature `testkit` only): a panic before the folder is touched.
+    // A test fault (a debug build only): a panic before the folder is touched.
     hooks.fault("sibling");
     ctl.checkpoint("rename")?;
     write_file_set(dir, &DXF_SET_EXTENSIONS, &files).map_err(|e| {

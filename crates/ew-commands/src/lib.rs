@@ -98,9 +98,9 @@ pub mod normalise;
 pub mod numbering;
 mod proxy;
 mod registry;
-#[cfg(feature = "testkit")]
+#[cfg(debug_assertions)]
 pub mod rows;
-#[cfg(not(feature = "testkit"))]
+#[cfg(not(debug_assertions))]
 mod rows;
 mod transaction;
 mod tx;

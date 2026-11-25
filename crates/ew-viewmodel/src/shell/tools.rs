@@ -313,9 +313,9 @@ impl ShellModel {
             .collect()
     }
 
-    /// Makes `tool` the active tool, as a tool of the registry would be (feature `testkit` only: the probe tool of
+    /// Makes `tool` the active tool, as a tool of the registry would be (a debug build only: the probe tool of
     /// the tests exercises the commit path, which no shipped tool takes).
-    #[cfg(feature = "testkit")]
+    #[cfg(debug_assertions)]
     pub fn set_tool_for_tests(&mut self, tool: Box<dyn Tool>) {
         self.activate_tool(tool);
         self.sync_views();

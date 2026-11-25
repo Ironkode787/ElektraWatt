@@ -18,7 +18,7 @@
 # - an importer depends on a workspace crate outside the permissive layer;
 # - a [[confined]] crate has a direct dependent outside its list, or is reachable from a forbidden crate.
 #
-# The feature rules below ([[banned_features]], banned_crates, [[uniform_test_features]], [[required_features]])
+# The feature rules below ([[banned_features]], banned_crates, [[required_features]])
 # keep test-only features and crates, and network clients, out of the shipped binaries.
 
 # Crates that may appear as dev-dependencies only (18 §5.2 CI-PR-09: egui_mcp in any non-test target).
@@ -104,7 +104,7 @@ crates = ["xtask"]
 
 # Their tests may also use these.
 [allowed_dev_edges]
-"ew-viewmodel" = ["ew-testdir", "ew-commands", "ew-viewmodel", "ew-testkit"]
+"ew-viewmodel" = ["ew-testdir", "ew-commands", "ew-testkit"]
 "ew-ui" = ["ew-testdir", "ew-commands"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
@@ -149,37 +149,6 @@ reason = "it gives wayland-sys its dlopen feature (no pkg-config probe, no libwa
 crate = "wayland-sys"
 feature = "dlopen"
 reason = "without it the build script probes pkg-config and the binary links libwayland (a system package on the CI image)"
-
-# The row dumps, `Preview::ops` and the history's ops of ew-commands (ARCH §3 rule 1, F9) are for tests only.
-[[banned_features]]
-crate = "ew-commands"
-feature = "testkit"
-allowed_kinds = ["dev"]
-
-# The test fixture of ew-model (`ew_model::fixture`) is for tests only.
-[[banned_features]]
-crate = "ew-model"
-feature = "testkit"
-allowed_kinds = ["dev"]
-
-# The probe tool's seam (`ShellModel::set_tool_for_tests`) is for tests only; the binaries never build
-# it, so no shipped path can install a tool that commits.
-[[banned_features]]
-crate = "ew-viewmodel"
-feature = "testkit"
-allowed_kinds = ["dev"]
-
-# RD43 T1: the two test-only features above are on in every test build, so no package set compiles their crates (and
-# everything above them) a second way. The feature rule of `cargo xtask rules` fails when a package whose test build reaches the
-# crate does not request the feature on a dev edge, and names the line to add. The seeded ID source needs no rule:
-# it is the dev-only crate ew-testids (banned_crates), which changes no feature of ew-ids.
-[[uniform_test_features]]
-crate = "ew-commands"
-feature = "testkit"
-
-[[uniform_test_features]]
-crate = "ew-viewmodel"
-feature = "testkit"
 
 [[banned_features]]
 crate = "rhai"

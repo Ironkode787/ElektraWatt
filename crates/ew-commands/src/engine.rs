@@ -141,8 +141,8 @@ impl Preview {
         &self.candidate
     }
 
-    /// The prepared ops (feature `testkit` only: they carry whole rows).
-    #[cfg(feature = "testkit")]
+    /// The prepared ops (a debug build only: they carry whole rows).
+    #[cfg(debug_assertions)]
     pub fn ops(&self) -> &[Op] {
         &self.ops
     }
@@ -503,10 +503,10 @@ impl Engine {
             };
             self.model = candidate;
             self.changes.push(change);
-            // In every test build (`testkit`) the whole project's structural check follows each changing command, so
-            // a command that leaves a record its next reader trips over fails where it is made. A shipped program
-            // never builds it.
-            #[cfg(feature = "testkit")]
+            // In every debug build (every test build) the whole project's structural check follows each changing
+            // command, so a command that leaves a record its next reader trips over fails where it is made. A shipped
+            // program, a release build, never builds it.
+            #[cfg(debug_assertions)]
             if let Err(e) = self.model.integrity_check() {
                 panic!(
                     "`{}` left the project failing its structural check: {e}",
