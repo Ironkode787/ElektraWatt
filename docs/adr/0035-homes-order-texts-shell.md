@@ -2,7 +2,7 @@
 
 **Status:** Accepted (the release manager, 2026-11-23, on the conditions in [the plan](../plan/m3.5-architecture.md) section 4; amended 2026-11-24, amendment 1) · **Date:** 2026-11-23 ·
 **Deciders:** the release manager (the redesign); the project owner (the items of the owner's list in
-[the plan](../plan/m3.5-architecture.md))
+[the plan](https://github.com/Ironkode787/ElektraWatt/blob/cf5d3e1fb778c424c56f8a6827e6058dce11cdb6/docs/plan/m3.5-architecture.md))
 **Amends:** [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md) amendment 5 (the source of the edges),
 [ADR-0019](0019-rule-engine-and-rule-packs.md) decision 1 and amendment 4 (a finding's message),
 [ADR-0014](0014-gui-toolkit-egui.md) decisions 3 and 4 (what the shell and a tool own),
@@ -157,7 +157,7 @@ the command line is added on the day it is given a language.
   [project format](../design/05-project-format-and-persistence.md) §4;
   [checks](../design/15-checks-revisions-collaboration.md) §3.8; [UX and UI](../design/16-ux-ui.md);
   [design language](../design/16a-design-language.md).
-- **Plan:** [the rework](../plan/m3.5-architecture.md): its map, its order and the owner's list.
+- **Plan:** [the rework](https://github.com/Ironkode787/ElektraWatt/blob/cf5d3e1fb778c424c56f8a6827e6058dce11cdb6/docs/plan/m3.5-architecture.md): its map, its order and the owner's list.
 - **ADRs:** [ADR-0001](0001-core-model-persistent-maps.md), [ADR-0008](0008-transactions-undo-preview.md),
   [ADR-0011](0011-format-versioning-and-migration.md), [ADR-0014](0014-gui-toolkit-egui.md),
   [ADR-0019](0019-rule-engine-and-rule-packs.md), [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md),

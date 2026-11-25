@@ -18,8 +18,7 @@ chapter by the section you need:
 
 The decisions behind this document and the alternatives that lost are in the [decision records](../adr/README.md);
 [ADR-0035](../adr/0035-homes-order-texts-shell.md) decides §3, §9, §13, §18 and §19. Where the code is not yet as
-this document says, the step that brings it over, or the row that waits, is in
-[the plan](../plan/m3.5-architecture.md).
+this document says, the row that brings it over is in [the backlog](../plan/backlog.md).
 
 **Conventions, also of the chapters.** D-nn are the defects of the reference drawing set
 ([reference-drawing.md](../research/reference-drawing.md) §3). "Golden project" is the reference project that was

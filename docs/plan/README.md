@@ -9,7 +9,7 @@ M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](https://github.com/Ironkode78
 |---|---|
 | [m3.5.md](m3.5.md) | The hygiene milestone that is running: the scan, the steps, the loop measured |
 | [m3.5-reference-project.md](m3.5-reference-project.md) | Step 9's design: what ends with the reference project, the sample that replaces it, the lanes |
-| [m3.5-architecture.md](m3.5-architecture.md) | Step 15's rework to the architecture of ADR-0035: the rule every lane keeps, the map by stage, the order, the owner's list |
+| [m3.5-architecture.md](m3.5-architecture.md) | Step 15's rework to the architecture of ADR-0035: the rule every lane keeps, what was decided and not built, the second scan |
 | [m5.md](m5.md) | The fluid milestone, decided and not started: its scope, its work packages, the order |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |
 | [backlog-later.md](backlog-later.md) | Unscheduled rows: a seed for planning, not a commitment |
