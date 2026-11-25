@@ -364,7 +364,11 @@ fn the_points_documents_are_embedded_only_when_the_move_cuts_a_wire() {
         ..move_to_101(&[0])
     })
     .expect("the move");
-    assert_eq!(row::<Representation>(&e, REPS[0]).page, PAGE_101, "the symbol moves");
+    assert_eq!(
+        row::<Representation>(&e, REPS[0]).page,
+        PAGE_101,
+        "the symbol moves"
+    );
     assert_eq!(held(&e), before, "no library copy is added");
     let mut e = engine(model(
         &[(0x4a0, cp(FNS[0], 0), cp(FNS[1], 0), vec![at(0), at(1)])],
@@ -375,7 +379,11 @@ fn the_points_documents_are_embedded_only_when_the_move_cuts_a_wire() {
         ..move_to_101(&[0])
     })
     .expect("the move");
-    assert_eq!(held(&e), (before.0 + 1, before.1 + 1), "the point's symbol and FnDef");
+    assert_eq!(
+        held(&e),
+        (before.0 + 1, before.1 + 1),
+        "the point's symbol and FnDef"
+    );
     let drawn = rows::<Representation>(&e)
         .into_iter()
         .filter(|r| r.symbol == keep.source)
