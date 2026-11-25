@@ -26,6 +26,15 @@ pub(super) fn project_open(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// An open project outside the template wizard: the left rail's entries by their keys.
+pub(super) fn rail_entries(m: &ShellModel) -> Result<(), Key<'static>> {
+    project_open(m)?;
+    if m.wizard().is_some() {
+        return Err(key!("reason-dialog-open"));
+    }
+    Ok(())
+}
+
 pub(super) fn writable(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.is_writable() {

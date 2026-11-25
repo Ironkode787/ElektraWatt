@@ -205,7 +205,8 @@ fn the_rail_model_and_rail_show() {
             .iter()
             .any(|b| b.word == "libraries" && b.active)
     );
-    done(&mut shell, "rail.show", json!({"pane": "cables"}));
+    // `rail.entry` (Ctrl+3) is what a click on the third entry does.
+    done(&mut shell, "rail.entry", json!({"n": 3}));
     assert_eq!(
         shell.layout().shown_in_place_of(PaneKind::Pages),
         Some(PaneKind::Navigator(NavKind::Cables))

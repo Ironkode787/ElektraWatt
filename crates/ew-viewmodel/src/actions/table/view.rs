@@ -223,6 +223,21 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_show_advanced(p),
         ),
     ),
+    // Ctrl+1 to Ctrl+9: the left rail's entry at that position, each key the next entry (doc 16a §5.4).
+    with_params(
+        "n:uint",
+        hidden(act(
+            "rail.entry",
+            View,
+            Menu::View,
+            &[
+                "Ctrl+1", "Ctrl+2", "Ctrl+3", "Ctrl+4", "Ctrl+5", "Ctrl+6", "Ctrl+7", "Ctrl+8", "Ctrl+9",
+            ],
+            rail_entries,
+            None,
+            |s, p| s.act_rail_entry(p),
+        )),
+    ),
     with_params(
         "side?:enum(left|right), pane:text",
         hidden(act(

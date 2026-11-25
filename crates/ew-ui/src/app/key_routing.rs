@@ -9,7 +9,7 @@ use super::*;
 impl App {
     /// The shell's shortcuts. Routing order: a focused text field, then an open popup or dialog, then the
     /// shortcuts; Escape closes the topmost popup or dialog and otherwise goes to the active canvas tool through
-    /// `ui.dismiss`. F1 is handled at the end of the frame, in every state. While a canvas has the
+    /// `ui.dismiss`. Help's keys are handled at the end of the frame, in every state. While a canvas has the
     /// focus, `[` and `]` are matched as the physical keys (no AltGr on QWERTZ and AZERTY, doc 16 §4.4).
     pub(super) fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         // The platform answers the last frame's request for the clipboard in this frame, or not at all.
@@ -81,8 +81,8 @@ impl App {
     }
 
     /// The keys a pane keeps before the shortcuts: Escape with a Properties editor or a station's tag field open
-    /// (Enter too for the tag), Escape as `ui.dismiss`, the history panel's row keys, Ctrl+1 to Ctrl+9 for the left
-    /// rail, Ctrl+Enter for an open parts import card. `true` when the routing ends here.
+    /// (Enter too for the tag), Escape as `ui.dismiss`, the history panel's row keys, and Apply's keys for an open
+    /// parts import card. `true` when the routing ends here.
     fn pane_keys(&mut self, ctx: &egui::Context, palette_open: bool, events: &mut Vec<Event>) -> bool {
         // Escape with a Properties editor open is the editor's (`props.cancel`), whether or not its field
         // still holds the focus: egui drops the focus on Escape before the frame, so `ui.dismiss` took it and the field
@@ -114,18 +114,13 @@ impl App {
         if !palette_open && crate::history::keys(ctx, events) {
             return true;
         }
-        // Ctrl+1 to Ctrl+9 pick the left rail's entries (doc 16a §5.4).
-        if !palette_open
-            && self.shell.has_project()
-            && self.shell.wizard().is_none()
-            && crate::rail::keys(ctx, &self.shell, events)
-        {
-            return true;
-        }
-        // Ctrl+Enter applies an open parts import card from anywhere (the card is a window of its own).
+        // The keys of `preview.apply` (Ctrl+Enter) apply an open parts import card from anywhere (the card is a window
+        // of its own).
         if !palette_open
             && self.shell.import_card_open()
-            && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter))
+            && (self.bindings.iter())
+                .filter(|b| b.action == "preview.apply")
+                .any(|b| ctx.input_mut(|i| i.consume_shortcut(&b.shortcut)))
         {
             events.push(Event::Action("preview.apply", Value::Null));
             return true;
@@ -332,16 +327,16 @@ impl App {
                 continue;
             }
             if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
-                // Ctrl+Enter in the find pane applies its open replace card.
-                let replace_card =
-                    self.shell.properties().card().is_some_and(|c| {
-                        matches!(c.origin, ew_viewmodel::properties::CardOrigin::Find { .. })
-                    });
-                let (action, params) = if binding.action == "find.replace_all" && replace_card {
-                    ("preview.apply", Value::Null)
-                } else {
-                    self.shell.shortcut_action(binding.action)
-                };
+                // `rail.entry`'s keys pick the left rail's entries in their order (Ctrl+1 to Ctrl+9, doc 16a §5.4).
+                if binding.action == "rail.entry" {
+                    let n = (self.bindings.iter())
+                        .filter(|b| b.action == "rail.entry")
+                        .position(|b| b.shortcut == binding.shortcut)
+                        .map_or(1, |i| i + 1);
+                    events.push(Event::Action("rail.entry", json!({ "n": n })));
+                    return;
+                }
+                let (action, params) = self.shell.shortcut_action(binding.action);
                 // A shortcut invocation counts for the palette's recents.
                 self.shell.note_shortcut_use(action);
                 events.push(Event::Action(action, params));

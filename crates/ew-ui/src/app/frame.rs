@@ -637,11 +637,14 @@ impl App {
         if self.shell.dialog().is_none() {
             crate::startup::show(ctx, &self.shell, events);
         }
-        // What the window names under the pointer goes to the shell, where the status bar says what F1 opens. F1
-        // opens it, else the thing on the page under the pointer, else the context (the focus, the selection, the
-        // tool, the screen).
+        // What the window names under the pointer goes to the shell, where the status bar says what F1 opens. The
+        // keys of `help.documentation` (F1 unless the keymap binds another) open it, else the thing on the page under
+        // the pointer, else the context (the focus, the selection, the tool, the screen), in every state.
         self.shell.set_help_under(crate::help::take(ctx));
-        if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1)) {
+        let help = (self.bindings.iter())
+            .filter(|b| b.action == "help.documentation")
+            .any(|b| ctx.input_mut(|i| i.consume_shortcut(&b.shortcut)));
+        if help {
             let params = ew_viewmodel::help::pointer_topic(&self.shell)
                 .map_or(Value::Null, |under| serde_json::json!({ "topic": under.topic }));
             events.push(Event::Action("help.documentation", params));

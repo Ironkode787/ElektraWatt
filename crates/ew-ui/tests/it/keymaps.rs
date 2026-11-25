@@ -194,3 +194,28 @@ fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
         );
     }
 }
+
+/// The keys that stood outside the keymap are its bindings: help and the left rail's entries take the keys a user
+/// keymap gives them, and their default keys then do nothing.
+#[test]
+fn a_rebound_help_and_rail_key_hold_and_the_default_keys_go() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(
+        &tmp,
+        FIRST_RUN_DONE,
+        Some(
+            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"Shift+F12\"\naction = \"help.documentation\"\n\
+             context = \"global\"\n\n[[bind]]\nkeys = \"Alt+1\"\nalt = \"Alt+2\"\naction = \"rail.entry\"\n\
+             context = \"global\"\n",
+        ),
+    );
+    assert_eq!(h.state().shell().banner(), None);
+    let log = actions_of(&mut h, Modifiers::SHIFT, Key::F12);
+    assert!(log.iter().any(|a| a == "help.documentation"), "{log:?}");
+    let log = actions_of(&mut h, Modifiers::NONE, Key::F1);
+    assert!(!log.iter().any(|a| a == "help.documentation"), "{log:?}");
+    let log = actions_of(&mut h, Modifiers::ALT, Key::Num2);
+    assert_eq!(log.first().map(String::as_str), Some("rail.entry"), "{log:?}");
+    let log = actions_of(&mut h, Modifiers::COMMAND, Key::Num2);
+    assert!(!log.iter().any(|a| a == "rail.entry"), "{log:?}");
+}

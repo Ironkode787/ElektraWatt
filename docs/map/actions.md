@@ -93,6 +93,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `view.wire_colours` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_wire_colours` `crates/ew-viewmodel/src/shell/wire_colours.rs` | `action-view-wire-colours` |
 | `props.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_props_show` `crates/ew-viewmodel/src/shell/properties.rs` | `action-props-show` |
 | `props.show_advanced` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_props_show_advanced` `crates/ew-viewmodel/src/shell/properties.rs` | `action-props-show-advanced`, `props-show-advanced` |
+| `rail.entry` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rail_entry` `crates/ew-viewmodel/src/shell/navigators.rs` | `action-rail-entry` |
 | `rail.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rail_show` `crates/ew-viewmodel/src/shell/navigators.rs` | `action-rail-show` |
 | `jobs.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_jobs_show` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-jobs-show` |
 | `report_block.new` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_new` `crates/ew-viewmodel/src/shell/creation/forms.rs` | `action-report-block-new`, `report-block-new-title`, `toast-report-block-new` |

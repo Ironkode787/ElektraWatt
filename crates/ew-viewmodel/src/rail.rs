@@ -61,7 +61,7 @@ pub struct RailButton {
     pub icon: &'static str,
     /// What a click does.
     pub target: RailTarget,
-    /// Its key, `Ctrl+1` to `Ctrl+9` by position, empty after the ninth.
+    /// Its key: the key of `rail.entry` at its position (`Ctrl+1` to `Ctrl+9`), empty after the last.
     pub shortcut: String,
     /// Whether it is the active entry.
     pub active: bool,
@@ -165,6 +165,7 @@ pub fn shown_pane(model: &ShellModel) -> Option<PaneKind> {
 /// The rails of `model`.
 pub fn rail(model: &ShellModel) -> RailModel {
     let shown = shown_pane(model);
+    let keys = crate::actions::find("rail.entry").map_or_else(Vec::new, |m| model.shortcuts_of(m));
     let left = LEFT
         .iter()
         .enumerate()
@@ -179,11 +180,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
                 label: strings::text(left_label(word, *pane)).to_owned(),
                 icon,
                 target: RailTarget::Pane(*pane),
-                shortcut: if i < 9 {
-                    format!("Ctrl+{}", i + 1)
-                } else {
-                    String::new()
-                },
+                shortcut: keys.get(i).cloned().unwrap_or_default(),
                 active,
             }
         })

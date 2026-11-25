@@ -317,6 +317,15 @@ impl ShellModel {
             };
             return (edit, params);
         }
+        // Replace all's keys in the find pane apply its open replace card.
+        if action == "find.replace_all"
+            && self
+                .properties()
+                .card()
+                .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::Find { .. }))
+        {
+            return ("preview.apply", Value::Null);
+        }
         // While an Arrange and route card is open, B shows the page as it is (docs/design/06a-drafting.md §7.3).
         if action == "tool.black_box" && self.arrange_shown() {
             return ("layout.arrange_as_is", Value::Null);
@@ -1200,6 +1209,29 @@ impl ShellModel {
     /// already shown with the column expanded, collapses the column. `project` is the Pages pane, `devices` the Devices
     /// navigator. The right rail's palettes are not panes yet: refused with the reason.
     pub(crate) fn act_rail_show(&mut self, p: &Map<String, Value>) -> Outcome {
+        self.rail_show(p)
+    }
+
+    /// `rail.entry {n}` (Ctrl+1 to Ctrl+9): what a click on the left rail's `n`-th entry does (from 1).
+    pub(crate) fn act_rail_entry(&mut self, p: &Map<String, Value>) -> Outcome {
+        let entry = p
+            .get("n")
+            .and_then(Value::as_u64)
+            .and_then(|n| usize::try_from(n).ok()?.checked_sub(1))
+            .and_then(|i| crate::rail::rail(self).left.into_iter().nth(i));
+        match entry.map(|b| (b.word, b.target)) {
+            Some((word, crate::rail::RailTarget::Pane(_))) => {
+                let mut show = Map::new();
+                show.insert("pane".into(), Value::from(word));
+                self.rail_show(&show)
+            }
+            Some((_, crate::rail::RailTarget::Action(action))) => self.dispatch(action, &Value::Null),
+            None => failed(key!("error-bad-param"), &["n"]),
+        }
+    }
+
+    /// `rail.show`'s run.
+    fn rail_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let side = match string_param(p, "side") {
             Err(e) => return e,
             Ok(None) => crate::rail::Side::Left,

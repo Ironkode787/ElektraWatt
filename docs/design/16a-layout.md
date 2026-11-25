@@ -188,7 +188,7 @@ Show · On"). Frame statistics is drawn with its icon where its siblings show th
   accent indicator bar (`radius.mark`) 4 px left of the button, inset 8 px top and bottom. Each has an accessible
   name and a tooltip with its key. This replaces the overflowing tab strip: every navigator is one click and
   one name away. Clicking the active one collapses the column (the canvas gets the width); Ctrl+1 to Ctrl+9 select by
-  position. Messages is not on the rail; it lives in the bottom dock.
+  position (the keys of `rail.entry`, which a keymap rebinds like any other). Messages is not on the rail; it lives in the bottom dock.
 - **The navigator panel** (`size.panel.left`, `color.surface.panel`, a 1-px `color.border.default` on its right): a
   `size.panel_header` header with the entry's name in `type.label` ("PROJECT") and its actions as 24-px icon buttons
   at the right ("More"); for the Project entry a **segmented control** "Pages | Devices" (§6.20) chooses the

@@ -9,7 +9,7 @@
 //! button is a named `Button` node with its key, so every navigator is one click and one name away. Ctrl+1 to
 //! Ctrl+9 select the left rail's entries by position.
 
-use egui::{Id, Key, Modifiers, Rect, Sense, Ui, pos2, vec2};
+use egui::{Id, Rect, Sense, Ui, pos2, vec2};
 use ew_viewmodel::rail::{RailButton, RailModel, RailTarget, Side};
 use ew_viewmodel::shell::ShellModel;
 use serde_json::{Value, json};
@@ -139,31 +139,4 @@ pub(crate) fn show_right(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event
         button(ui, &t, Side::Right, b, slot(&t, rect, i), events);
     }
     ui.allocate_rect(rect, Sense::hover());
-}
-
-/// Ctrl+1 to Ctrl+9 (doc 16a §5.4): the left rail's entry at that position; `true` when a key was taken.
-pub(crate) fn keys(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) -> bool {
-    const DIGITS: [Key; 9] = [
-        Key::Num1,
-        Key::Num2,
-        Key::Num3,
-        Key::Num4,
-        Key::Num5,
-        Key::Num6,
-        Key::Num7,
-        Key::Num8,
-        Key::Num9,
-    ];
-    let Some(i) = ctx.input_mut(|input| {
-        DIGITS
-            .iter()
-            .position(|k| input.consume_key(Modifiers::COMMAND, *k))
-    }) else {
-        return false;
-    };
-    let model = ew_viewmodel::rail::rail(shell);
-    if let Some(b) = model.left.get(i) {
-        events.push(click(Side::Left, b));
-    }
-    true
 }
