@@ -203,8 +203,8 @@ pub use profile::{
 pub use q::{Cycle, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
 pub use settings::{
-    DrawingSettingsQ, Member, SettingsMember, TextStyles, check_member as check_settings_member,
-    company_codes, text_styles,
+    DrawingSettingsQ, Member, SettingsIssue, SettingsMember, TextStyles,
+    check_member as check_settings_member, company_codes, text_styles,
 };
 pub use stitch::{EdgeKind, IpInfo, Level, PairMode, ShortSource, StitchGraph, StitchGraphQ};
 pub use strip_bridges::{BridgeGroup, StripBridges};

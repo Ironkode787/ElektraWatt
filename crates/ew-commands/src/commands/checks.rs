@@ -272,11 +272,16 @@ impl Command for FixAll {
             let fix = crate::registry::CommandRegistry::builtin()
                 .resolve(&cmd)
                 .map_err(|e| {
-                    CmdError::invalid_params(
-                        Self::NAME,
-                        "/fixes",
-                        text!("refusal-fix-all-bad", e.to_string()),
-                    )
+                    // The error as it prints, by key.
+                    let why: ew_l10n::TextArg = match e {
+                        CmdError::UnknownCommand { name } => text!("refusal-fix-all-unknown", name).into(),
+                        CmdError::InvalidParams { command, path, text } => {
+                            text!("refusal-fix-all-params", command, path, *text).into()
+                        }
+                        // `resolve` gives no other error.
+                        other => other.to_string().into(),
+                    };
+                    CmdError::invalid_params(Self::NAME, "/fixes", text!("refusal-fix-all-bad", why))
                 })?;
             last = fix.run(tx)?;
         }

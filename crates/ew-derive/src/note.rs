@@ -35,18 +35,6 @@ pub enum SchemeIssue {
     UnknownKey,
 }
 
-impl SchemeIssue {
-    /// Why the scheme is not applied, as a clause for messages.
-    pub fn describe(&self) -> &'static str {
-        match self {
-            SchemeIssue::CounterScope => "its counter scope is not \"page\"",
-            SchemeIssue::FormatWithoutPage => "its format has no {page} token",
-            SchemeIssue::FormatWithoutCounter => "its format lacks {letter} or {counter}",
-            SchemeIssue::UnknownKey => "the project's settings define no scheme of this key",
-        }
-    }
-}
-
 /// What a [`Connectivity`](DeriveNote::Connectivity) note found, as the facts a rule reads; the note's `detail` says it
 /// in English for a log.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

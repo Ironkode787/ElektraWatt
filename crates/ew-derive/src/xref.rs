@@ -157,47 +157,48 @@ impl Query for XrefSettingsOf {
 
 /// Reads a project `xref_format` member. Doc 03 §5.1 gives the scheme a display `name`, which the profile's
 /// type does not carry; the `key` is optional there and `structure` and `same_page` have defaults.
-fn read_format(v: &Value) -> Result<XrefFormat, String> {
+fn read_format(v: &Value) -> Result<XrefFormat, serde_json::Error> {
     let mut v = v.clone();
     if let Value::Object(m) = &mut v {
         m.remove("name");
         m.entry("key").or_insert_with(|| Value::from("custom"));
     }
-    serde_json::from_value::<XrefFormat>(v).map_err(|e| format!("not an xref format ({e})"))
+    serde_json::from_value::<XrefFormat>(v)
 }
 
-fn structure_rule(s: &str) -> Result<StructureRule, String> {
+fn structure_rule(s: &str) -> Option<StructureRule> {
     match s {
-        "when_different" | "when-different" => Ok(StructureRule::WhenDifferent),
-        "always" => Ok(StructureRule::Always),
-        other => Err(format!(
-            "structure {other:?} is not \"when_different\" or \"always\""
-        )),
+        "when_different" | "when-different" => Some(StructureRule::WhenDifferent),
+        "always" => Some(StructureRule::Always),
+        _ => None,
     }
 }
 
-fn same_page_rule(s: &str) -> Result<SamePage, String> {
+fn same_page_rule(s: &str) -> Option<SamePage> {
     match s {
-        "full" => Ok(SamePage::Full),
-        "zone_only" | "zone-only" => Ok(SamePage::ZoneOnly),
-        other => Err(format!("same_page {other:?} is not \"full\" or \"zone_only\"")),
+        "full" => Some(SamePage::Full),
+        "zone_only" | "zone-only" => Some(SamePage::ZoneOnly),
+        _ => None,
     }
 }
 
 /// Checks a project `xref_format` member as [`XrefSettingsOf`] reads it: `Err` with what is wrong.
-pub(crate) fn check_format_member(v: &Value) -> Result<(), String> {
-    let format = read_format(v)?;
-    structure_rule(&format.structure)?;
-    same_page_rule(&format.same_page)?;
-    for (name, f) in [
+pub(crate) fn check_format_member(v: &Value) -> Result<(), crate::SettingsIssue> {
+    use crate::SettingsIssue as I;
+    let format = read_format(v).map_err(I::NotXrefFormat)?;
+    structure_rule(&format.structure).ok_or_else(|| I::XrefStructure(format.structure.clone()))?;
+    same_page_rule(&format.same_page).ok_or_else(|| I::XrefSamePage(format.same_page.clone()))?;
+    for (member, f) in [
         ("ip", &format.ip),
         ("aux_to_main", &format.aux_to_main),
         ("main_to_aux", &format.main_to_aux),
     ] {
         if let Some(token) = crate::xref_format::unknown_token(f) {
-            return Err(format!(
-                "{name} {f:?}: unknown token {token:?} (it would print as text)"
-            ));
+            return Err(I::UnknownXrefToken {
+                member,
+                format: f.clone(),
+                token: token.to_owned(),
+            });
         }
     }
     Ok(())

@@ -167,7 +167,7 @@ impl CommandRegistry {
         let (entry, params) = self.entry_and_params(cmd)?;
         let name = entry.meta.name;
         crate::limits::check_limits(&params)
-            .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
+            .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.text)))?;
         (entry.parse)(params).map_err(|e| crate::error::params_error(name, "", &e))
     }
 

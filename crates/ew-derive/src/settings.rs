@@ -104,64 +104,154 @@ impl Member {
 /// - `process_tag_scheme`: a text that compiles as a regular expression ([`crate::plc::process_tag_scheme`]).
 /// - `fluid`: its shape (`ew_schema::FluidSettings`); the tube values are checked by the command (FI-05).
 ///
-/// `frames` and `derivation_profile` have no checker here and are refused with a message saying so.
-pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
+/// `frames` and `derivation_profile` have no checker here and are refused with an issue saying so.
+pub fn check_member(member: Member, value: &Value) -> Result<(), SettingsIssue> {
     match member {
         Member::Numbering => {
             let settings = serde_json::from_value::<crate::profile::NumberingSettings>(value.clone())
-                .map_err(|e| e.to_string())?;
+                .map_err(SettingsIssue::Serde)?;
             // A default that names no scheme falls back to the profile's scheme.
             if !settings.schemes.iter().any(|s| s.key == settings.default) {
-                return Err(format!(
-                    "the default `{}` names no scheme of `schemes`; tags would silently use the profile's \
-                     default scheme",
-                    settings.default
-                ));
+                return Err(SettingsIssue::NoDefaultScheme(settings.default));
             }
             for scheme in &settings.schemes {
                 let formats = std::iter::once(&scheme.format).chain(scheme.rules.iter().map(|r| &r.format));
                 for f in formats {
                     if let Some(token) = crate::tag::unknown_numbering_token(f) {
-                        return Err(format!(
-                            "scheme `{}`: format {f:?} has the unknown token {token:?}, which would print into \
-                             tags; tokens are {{letter}}, {{counter}}, {{subcounter}}, {{page}}, {{column}}, \
-                             {{row}}",
-                            scheme.key
-                        ));
+                        return Err(SettingsIssue::UnknownSchemeToken {
+                            scheme: scheme.key.clone(),
+                            format: f.clone(),
+                            token: token.to_owned(),
+                        });
                     }
                 }
                 if let Some(issue) = crate::tag::scheme_issue(scheme) {
-                    return Err(format!(
-                        "scheme `{}` would not be applied ({}); a scheme needs counter \
-                         scope \"page\" and formats with {{page}}, {{letter}} and {{counter}}",
-                        scheme.key,
-                        issue.describe()
-                    ));
+                    return Err(SettingsIssue::SchemeNotApplied {
+                        scheme: scheme.key.clone(),
+                        issue,
+                    });
                 }
             }
             Ok(())
         }
         Member::XrefFormat => crate::xref::check_format_member(value),
         Member::ColourProfile | Member::SizeProfile | Member::WireDefault => {
-            crate::wire_profile::check_member(member.name(), value)
+            crate::wire_profile::check_member(member, value)
         }
         Member::IpPairing => serde_json::from_value::<IpPairing>(value.clone())
             .map(drop)
-            .map_err(|e| e.to_string()),
+            .map_err(SettingsIssue::Serde),
         Member::TextStyles => ew_schema::check_text_styles(value)
             .map(drop)
-            .map_err(|e| format!("{}: {}", e.pointer, e.message)),
+            .map_err(SettingsIssue::TextStyles),
         Member::ProcessTagScheme => match value.as_str() {
-            Some(text) => crate::plc::process_tag_scheme(text).map(drop),
-            None => Err("the scheme is a text: a regular expression with named groups".to_owned()),
+            Some(text) => crate::plc::process_tag_scheme(text)
+                .map(drop)
+                .map_err(SettingsIssue::SchemeRegex),
+            None => Err(SettingsIssue::SchemeNotText),
         },
         Member::Fluid => serde_json::from_value::<ew_schema::FluidSettings>(value.clone())
             .map(drop)
-            .map_err(|e| e.to_string()),
-        Member::Frames | Member::DerivationProfile => {
-            Err(format!("`{}` has no value checker", member.name()))
-        }
+            .map_err(SettingsIssue::Serde),
+        Member::Frames | Member::DerivationProfile => Err(SettingsIssue::NoChecker(member)),
     }
+}
+
+/// Why [`check_member`] refuses a value: the facts, which the commands word.
+#[derive(Debug)]
+pub enum SettingsIssue {
+    /// The value does not read as the member's type: serde's error.
+    Serde(serde_json::Error),
+    /// `numbering`: `default` names no scheme of `schemes`.
+    NoDefaultScheme(String),
+    /// `numbering`: a scheme's format has a token that would print into tags.
+    UnknownSchemeToken {
+        /// The scheme's key.
+        scheme: String,
+        /// The format.
+        format: String,
+        /// The unknown token.
+        token: String,
+    },
+    /// `numbering`: a scheme `device_tag` would not apply.
+    SchemeNotApplied {
+        /// The scheme's key.
+        scheme: String,
+        /// Why it would not be applied.
+        issue: crate::note::SchemeIssue,
+    },
+    /// `xref_format`: the value does not read as an xref format (serde's error).
+    NotXrefFormat(serde_json::Error),
+    /// `xref_format`: `structure` is neither `when_different` nor `always`.
+    XrefStructure(String),
+    /// `xref_format`: `same_page` is neither `full` nor `zone_only`.
+    XrefSamePage(String),
+    /// `xref_format`: a format member has a token that would print as text.
+    UnknownXrefToken {
+        /// The member (`ip`, `aux_to_main`, `main_to_aux`).
+        member: &'static str,
+        /// The format.
+        format: String,
+        /// The unknown token.
+        token: String,
+    },
+    /// `size_profile`: a row's cross-section is not a positive number.
+    NotPositiveSize {
+        /// The row's index.
+        row: usize,
+        /// The cross-section as JSON.
+        csa: String,
+    },
+    /// `colour_profile`: `codes` is not a list.
+    CodesNotList,
+    /// `colour_profile`: a declaration has no `code` text.
+    CodeWithoutText {
+        /// The declaration's index.
+        index: usize,
+    },
+    /// `colour_profile`: a declared code is an IEC 60757 code.
+    CodeIsIec {
+        /// The declaration's index.
+        index: usize,
+        /// The code.
+        code: String,
+    },
+    /// `colour_profile`: a company code without an IEC 60757 `base`.
+    CodeWithoutBase {
+        /// The declaration's index.
+        index: usize,
+        /// The code.
+        code: String,
+    },
+    /// `colour_profile`: a row's company code is not declared in `codes`.
+    UndeclaredCode {
+        /// The row's index.
+        row: usize,
+        /// The code.
+        code: String,
+    },
+    /// `colour_profile`: a row's code is a foreign colour code.
+    ForeignCode {
+        /// The row's index.
+        row: usize,
+        /// The code.
+        code: String,
+    },
+    /// `colour_profile`: a row's value is no colour code.
+    NotColourCode {
+        /// The row's index.
+        row: usize,
+        /// The value as it reads.
+        value: String,
+    },
+    /// `text_styles`: the text styles' validator refuses it.
+    TextStyles(ew_schema::TextStyleError),
+    /// `process_tag_scheme`: the value is not a text.
+    SchemeNotText,
+    /// `process_tag_scheme`: the text does not compile as a regular expression (the engine's reason).
+    SchemeRegex(String),
+    /// `frames` and `derivation_profile`: no checker.
+    NoChecker(Member),
 }
 
 /// The company colour codes that [`check_member`] accepts for the `colour_profile` value `colour_profile`, as
@@ -365,15 +455,13 @@ mod tests {
     }
 
     #[test]
-    fn a_refused_numbering_scheme_says_what_a_scheme_needs() {
+    fn a_refused_numbering_scheme_says_why_it_would_not_apply() {
         let numbering = json!({"default": "plain", "schemes": [
             {"key": "plain", "format": "{counter}", "rules": []}]});
-        let message = check_member(Member::Numbering, &numbering).unwrap_err();
+        let issue = check_member(Member::Numbering, &numbering).unwrap_err();
         assert!(
-            message.ends_with(
-                "; a scheme needs counter scope \"page\" and formats with {page}, {letter} and {counter}"
-            ),
-            "{message}"
+            matches!(&issue, SettingsIssue::SchemeNotApplied { scheme, .. } if scheme == "plain"),
+            "{issue:?}"
         );
     }
 
@@ -381,35 +469,48 @@ mod tests {
     fn check_member_uses_the_derivation_parsers() {
         let numbering = json!({"default": "page-based", "schemes": [
             {"key": "page-based", "format": "{page}{letter}{counter}", "rules": []}]});
-        assert_eq!(check_member(Member::Numbering, &numbering), Ok(()));
+        assert!(check_member(Member::Numbering, &numbering).is_ok());
         assert!(
             check_member(Member::Numbering, &json!({"schemes": []})).is_err(),
             "no default"
         );
         assert!(check_member(Member::Numbering, &json!(7)).is_err());
         let flat = json!({"default": "flat", "schemes": [{"key": "flat", "format": "{letter}{counter}"}]});
-        let err = check_member(Member::Numbering, &flat).unwrap_err();
-        assert!(err.contains("`flat`") && err.contains("{page}"), "{err}");
+        let issue = err(Member::Numbering, flat);
+        assert!(
+            matches!(&issue, SettingsIssue::SchemeNotApplied { scheme, issue: crate::SchemeIssue::FormatWithoutPage }
+                if scheme == "flat"),
+            "{issue:?}"
+        );
 
         let xref = json!({"name": "QET", "ip": "{page}-{row}{column}", "aux_to_main": "({page}-{row}{column})",
             "main_to_aux": "∞ {list}", "matrix": {"per_row": 2, "max": 6, "overflow": "…"}});
-        assert_eq!(check_member(Member::XrefFormat, &xref), Ok(()));
+        assert!(check_member(Member::XrefFormat, &xref).is_ok());
         let mut bad = xref.clone();
         bad["structure"] = json!("sometimes");
-        let err = check_member(Member::XrefFormat, &bad).unwrap_err();
-        assert!(err.contains("sometimes"), "{err}");
-
-        assert_eq!(
-            check_member(Member::ColourProfile, &json!({"key": "k", "rows": []})),
-            Ok(())
+        let issue = err(Member::XrefFormat, bad);
+        assert!(
+            matches!(&issue, SettingsIssue::XrefStructure(s) if s == "sometimes"),
+            "{issue:?}"
         );
+
+        assert!(check_member(Member::ColourProfile, &json!({"key": "k", "rows": []})).is_ok());
         assert!(check_member(Member::ColourProfile, &json!({"rows": 3})).is_err());
         assert!(check_member(Member::SizeProfile, &json!({"rows": [{"class": "control"}]})).is_err());
         assert!(check_member(Member::Frames, &json!({})).is_err());
     }
 
-    fn err(member: Member, value: Value) -> String {
+    fn err(member: Member, value: Value) -> SettingsIssue {
         check_member(member, &value).expect_err("refused")
+    }
+
+    /// The unknown token of a refused numbering format.
+    fn token(issue: &SettingsIssue) -> &str {
+        match issue {
+            SettingsIssue::UnknownSchemeToken { token, .. }
+            | SettingsIssue::UnknownXrefToken { token, .. } => token,
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]
@@ -419,23 +520,26 @@ mod tests {
             Member::Numbering,
             json!({"default": "other", "schemes": [scheme("{page}{letter}{counter}")]}),
         );
-        assert!(e.contains("`other` names no scheme"), "{e}");
+        assert!(
+            matches!(&e, SettingsIssue::NoDefaultScheme(d) if d == "other"),
+            "{e:?}"
+        );
         let e = err(Member::Numbering, json!({"default": "page-based", "schemes": []}));
-        assert!(e.contains("names no scheme"), "{e}");
+        assert!(matches!(e, SettingsIssue::NoDefaultScheme(_)), "{e:?}");
         let e = err(
             Member::Numbering,
             json!({"default": "page-based", "schemes": [scheme("{page}{letter}{counter}{bogus}")]}),
         );
-        assert!(e.contains("{bogus}"), "{e}");
+        assert_eq!(token(&e), "{bogus}");
         let e = err(
             Member::Numbering,
             json!({"default": "page-based", "schemes": [scheme("{page}{letter}{counter}{page")]}),
         );
-        assert!(e.contains("unknown token \"{page\""), "{e}");
+        assert_eq!(token(&e), "{page");
         let rule = json!({"default": "page-based", "schemes": [{"key": "page-based",
             "format": "{page}{letter}{counter}",
             "rules": [{"select": {"aspect": "strip"}, "format": "{letter}{page}{cnt}"}]}]});
-        assert!(err(Member::Numbering, rule).contains("{cnt}"));
+        assert_eq!(token(&err(Member::Numbering, rule)), "{cnt}");
     }
 
     #[test]
@@ -444,10 +548,13 @@ mod tests {
             json!({"ip": ip, "aux_to_main": "({page}-{row}{column})", "main_to_aux": "∞ {list}",
                 "matrix": {"per_row": 2, "max": 6, "overflow": "…"}})
         };
-        assert_eq!(check_member(Member::XrefFormat, &xref("%F-%l%c %%")), Ok(()));
-        assert!(err(Member::XrefFormat, xref("{page}-{bogus}")).contains("{bogus}"));
-        assert!(err(Member::XrefFormat, xref("%F-%Z")).contains("%Z"));
-        assert!(err(Member::XrefFormat, xref("{page")).contains("unknown token"));
+        assert!(check_member(Member::XrefFormat, &xref("%F-%l%c %%")).is_ok());
+        assert_eq!(token(&err(Member::XrefFormat, xref("{page}-{bogus}"))), "{bogus}");
+        assert_eq!(token(&err(Member::XrefFormat, xref("%F-%Z"))), "%Z");
+        assert!(matches!(
+            err(Member::XrefFormat, xref("{page")),
+            SettingsIssue::UnknownXrefToken { member: "ip", .. }
+        ));
     }
 
     #[test]
@@ -455,30 +562,37 @@ mod tests {
         let colour =
             |codes: Value, colour: Value| json!({"key": "k", "codes": codes, "rows": [{"colour": colour}]});
         let dbu = json!([{"code": "DBU", "base": "BU", "shade": "dark"}]);
-        assert_eq!(
-            check_member(Member::ColourProfile, &colour(dbu.clone(), json!(["DBU"]))),
-            Ok(())
-        );
-        assert_eq!(
-            check_member(Member::ColourProfile, &colour(json!([]), json!(["GN", "YE"]))),
-            Ok(())
-        );
-        assert!(
-            err(Member::ColourProfile, colour(json!([]), json!(["DBU"]))).contains("neither an IEC 60757")
-        );
-        assert!(err(Member::ColourProfile, colour(dbu, json!([{"foreign": "BR"}]))).contains("foreign"));
+        assert!(check_member(Member::ColourProfile, &colour(dbu.clone(), json!(["DBU"]))).is_ok());
+        assert!(check_member(Member::ColourProfile, &colour(json!([]), json!(["GN", "YE"]))).is_ok());
+        assert!(matches!(
+            err(Member::ColourProfile, colour(json!([]), json!(["DBU"]))),
+            SettingsIssue::UndeclaredCode { row: 0, .. }
+        ));
+        assert!(matches!(
+            err(Member::ColourProfile, colour(dbu, json!([{"foreign": "BR"}]))),
+            SettingsIssue::ForeignCode { row: 0, .. }
+        ));
         let no_base = json!([{"code": "DBU"}]);
-        assert!(err(Member::ColourProfile, colour(no_base, json!(["DBU"]))).contains("base"));
+        assert!(matches!(
+            err(Member::ColourProfile, colour(no_base, json!(["DBU"]))),
+            SettingsIssue::CodeWithoutBase { index: 0, .. }
+        ));
         let iec = json!([{"code": "BK", "base": "BK"}]);
-        assert!(err(Member::ColourProfile, colour(iec, json!(["BK"]))).contains("is an IEC 60757 code"));
+        assert!(matches!(
+            err(Member::ColourProfile, colour(iec, json!(["BK"]))),
+            SettingsIssue::CodeIsIec { index: 0, .. }
+        ));
 
         let size = |csa: Value| json!({"key": "s", "rows": [{"class": "control", "csa": csa}]});
-        assert_eq!(check_member(Member::SizeProfile, &size(json!("0.75"))), Ok(()));
-        assert_eq!(
-            check_member(Member::SizeProfile, &size(json!({"awg": 18}))),
-            Ok(())
-        );
-        assert!(err(Member::SizeProfile, size(json!("thick"))).contains("not a positive number"));
-        assert!(err(Member::SizeProfile, size(json!("0"))).contains("not a positive number"));
+        assert!(check_member(Member::SizeProfile, &size(json!("0.75"))).is_ok());
+        assert!(check_member(Member::SizeProfile, &size(json!({"awg": 18}))).is_ok());
+        assert!(matches!(
+            err(Member::SizeProfile, size(json!("thick"))),
+            SettingsIssue::NotPositiveSize { row: 0, .. }
+        ));
+        assert!(matches!(
+            err(Member::SizeProfile, size(json!("0"))),
+            SettingsIssue::NotPositiveSize { row: 0, .. }
+        ));
     }
 }

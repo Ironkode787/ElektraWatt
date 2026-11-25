@@ -6,6 +6,7 @@
 //! derived values is previewed like a renumber.
 
 use ew_derive::Member;
+use ew_l10n::Text;
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -238,14 +239,14 @@ impl Command for SetProjectSettings {
             return self.set_fluid(tx);
         }
         if !self.value.is_null() {
-            ew_derive::check_settings_member(spec.member, &self.value).map_err(|detail| {
+            ew_derive::check_settings_member(spec.member, &self.value).map_err(|issue| {
                 CmdError::invalid_params(
                     Self::NAME,
                     "/value",
                     text!(
                         "refusal-settings-value",
                         spec.name.to_string(),
-                        detail.to_string()
+                        settings_issue_text(&issue)
                     ),
                 )
             })?;
@@ -277,7 +278,11 @@ impl SetProjectSettings {
                 CmdError::invalid_params(
                     Self::NAME,
                     "/value",
-                    text!("refusal-settings-value", "fluid".to_owned(), e.to_string()),
+                    text!(
+                        "refusal-settings-value",
+                        "fluid".to_owned(),
+                        crate::error::serde_error_text(&e)
+                    ),
                 )
             })?
         };
@@ -297,7 +302,7 @@ impl SetProjectSettings {
                 CmdError::invalid_params(
                     Self::NAME,
                     format!("/text_styles{}", e.pointer),
-                    text!("refusal-settings-text-styles", e.message.to_string()),
+                    text!("refusal-settings-text-styles", text_style_text(&e.problem)),
                 )
             })?
         };
@@ -305,5 +310,130 @@ impl SetProjectSettings {
         project.settings.text_styles = styles;
         tx.set_project(project)?;
         Ok(Outcome::default())
+    }
+}
+
+/// Why a settings member's value is refused ([`ew_derive::check_settings_member`]), by key.
+fn settings_issue_text(issue: &ew_derive::SettingsIssue) -> Text {
+    use ew_derive::SchemeIssue as S;
+    use ew_derive::SettingsIssue as I;
+    match issue {
+        I::Serde(e) => crate::error::serde_error_text(e),
+        I::NoDefaultScheme(default) => text!("refusal-settings-issue-default", default.clone()),
+        I::UnknownSchemeToken {
+            scheme,
+            format,
+            token,
+        } => text!(
+            "refusal-settings-issue-scheme-token",
+            scheme.clone(),
+            format!("{format:?}"),
+            format!("{token:?}")
+        ),
+        I::SchemeNotApplied { scheme, issue } => text!(
+            "refusal-settings-issue-scheme-unused",
+            scheme.clone(),
+            match issue {
+                S::CounterScope => text!("refusal-settings-issue-counter-scope"),
+                S::FormatWithoutPage => text!("refusal-settings-issue-no-page"),
+                S::FormatWithoutCounter => text!("refusal-settings-issue-no-counter"),
+                S::UnknownKey => text!("refusal-settings-issue-unknown-key"),
+            }
+        ),
+        I::NotXrefFormat(e) => text!("refusal-settings-issue-xref", crate::error::serde_error_text(e)),
+        I::XrefStructure(s) => text!("refusal-settings-issue-xref-structure", format!("{s:?}")),
+        I::XrefSamePage(s) => text!("refusal-settings-issue-xref-same-page", format!("{s:?}")),
+        I::UnknownXrefToken {
+            member,
+            format,
+            token,
+        } => text!(
+            "refusal-settings-issue-xref-token",
+            (*member).to_owned(),
+            format!("{format:?}"),
+            format!("{token:?}")
+        ),
+        I::NotPositiveSize { row, csa } => {
+            text!("refusal-settings-issue-size", row.to_string(), csa.clone())
+        }
+        I::CodesNotList => text!("refusal-settings-issue-codes"),
+        I::CodeWithoutText { index } => text!("refusal-settings-issue-code-text", index.to_string()),
+        I::CodeIsIec { index, code } => {
+            text!("refusal-settings-issue-code-iec", index.to_string(), code.clone())
+        }
+        I::CodeWithoutBase { index, code } => {
+            text!(
+                "refusal-settings-issue-code-base",
+                index.to_string(),
+                code.clone()
+            )
+        }
+        I::UndeclaredCode { row, code } => {
+            text!(
+                "refusal-settings-issue-row-undeclared",
+                row.to_string(),
+                code.clone()
+            )
+        }
+        I::ForeignCode { row, code } => {
+            text!(
+                "refusal-settings-issue-row-foreign",
+                row.to_string(),
+                code.clone()
+            )
+        }
+        I::NotColourCode { row, value } => {
+            text!(
+                "refusal-settings-issue-row-not-colour",
+                row.to_string(),
+                value.clone()
+            )
+        }
+        I::TextStyles(e) => text!(
+            "refusal-settings-issue-at",
+            e.pointer.clone(),
+            text_style_text(&e.problem)
+        ),
+        I::SchemeNotText => text!("refusal-settings-issue-scheme-text"),
+        I::SchemeRegex(reason) => text!("refusal-settings-issue-regex", reason.clone()),
+        I::NoChecker(member) => text!("refusal-settings-issue-no-checker", member.name().to_owned()),
+    }
+}
+
+/// What is wrong with a value for `text_styles` ([`ew_schema::check_text_styles`]), by key.
+fn text_style_text(problem: &ew_schema::TextStyleProblem) -> Text {
+    use ew_schema::TextStyleProblem as P;
+    match problem {
+        P::NotAnObject => text!("refusal-text-styles-object"),
+        P::Key { key, error } => text!(
+            "refusal-text-styles-key",
+            format!("{key:?}"),
+            crate::error::ident_error_text(error)
+        ),
+        P::StyleNotAnObject { key } => text!("refusal-text-styles-style", key.clone()),
+        P::NoSize { key } => text!("refusal-text-styles-no-size", key.clone()),
+        P::Size { key, size } => text!(
+            "refusal-text-styles-size",
+            size.0.to_string(),
+            key.clone(),
+            ew_schema::TEXT_STYLE_MIN_SIZE.0.to_string(),
+            ew_schema::TEXT_STYLE_MAX_SIZE.0.to_string()
+        ),
+        P::Weight { key, weight } => {
+            text!("refusal-text-styles-weight", weight.to_string(), key.clone())
+        }
+        P::Face { key, face } => text!(
+            "refusal-text-styles-face",
+            face.to_string(),
+            key.clone(),
+            crate::words::and_list(
+                ew_schema::TYPEFACES
+                    .iter()
+                    .filter_map(ew_schema::Typeface::word)
+                    .map(|w| format!("{w:?}").into())
+                    .collect()
+            )
+        ),
+        P::Entry(e) => crate::error::serde_error_text(e),
     }
 }

@@ -128,6 +128,12 @@ fn settings_set_refuses_invalid_values() {
             json!({"key": "s", "rows": [{"class": "control", "csa": "thick"}]}),
             "not a positive number",
         ),
+        (
+            "numbering",
+            json!({"default": "plain", "schemes": [{"key": "plain", "format": "{counter}", "rules": []}]}),
+            "(its format has no {page} token); a scheme needs counter scope \"page\" and formats with {page}, \
+             {letter} and {counter}",
+        ),
     ];
     for (member, value, needle) in cases {
         let (path, message) = invalid(&mut e, &set(member, value));

@@ -408,12 +408,59 @@ pub fn text_style_entry(
 }
 
 /// Why a value for `text_styles` is refused ([`check_text_styles`]).
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct TextStyleError {
     /// The JSON Pointer of the refused value below the member (`/tag.main/size`; empty for the whole value).
     pub pointer: String,
-    /// What is wrong.
-    pub message: String,
+    /// What is wrong: the facts, which the application words.
+    pub problem: TextStyleProblem,
+}
+
+/// What is wrong with a value for `text_styles` ([`TextStyleError`]).
+#[derive(Debug)]
+pub enum TextStyleProblem {
+    /// The value is not an object.
+    NotAnObject,
+    /// A style key is not an identifier.
+    Key {
+        /// The key as given.
+        key: String,
+        /// Why it is not an identifier.
+        error: ew_mltext::TextError,
+    },
+    /// A style is not an object.
+    StyleNotAnObject {
+        /// The style key.
+        key: String,
+    },
+    /// A style has no integer size.
+    NoSize {
+        /// The style key.
+        key: String,
+    },
+    /// A style's size lies outside [`TEXT_STYLE_MIN_SIZE`] … [`TEXT_STYLE_MAX_SIZE`].
+    Size {
+        /// The style key.
+        key: String,
+        /// The size given.
+        size: Nm,
+    },
+    /// A style's weight is not `regular` or `bold`.
+    Weight {
+        /// The style key.
+        key: String,
+        /// The weight given.
+        weight: Value,
+    },
+    /// A style's typeface is none of [`TYPEFACES`].
+    Face {
+        /// The style key.
+        key: String,
+        /// The typeface given.
+        face: Value,
+    },
+    /// The style does not read as a [`TextStyleSpec`].
+    Entry(serde_json::Error),
 }
 
 /// A JSON Pointer reference token (RFC 6901: `~` as `~0`, `/` as `~1`).
@@ -438,43 +485,39 @@ fn token(key: &str) -> String {
 /// assert_eq!(e.pointer, "/tag.main/size");
 /// ```
 pub fn check_text_styles(value: &Value) -> Result<BTreeMap<Ident, TextStyleSpec>, TextStyleError> {
-    let err = |pointer: String, message: String| TextStyleError { pointer, message };
+    let err = |pointer: String, problem: TextStyleProblem| TextStyleError { pointer, problem };
     let Value::Object(map) = value else {
-        return Err(err(
-            String::new(),
-            "text styles are an object of style key to {\"size\": <em height in nm>, \"weight\": …}"
-                .to_owned(),
-        ));
+        return Err(err(String::new(), TextStyleProblem::NotAnObject));
     };
     let mut out = BTreeMap::new();
     for (key, entry) in map {
         let at = format!("/{}", token(key));
-        let ident: Ident = key.parse().map_err(|e| {
+        let ident: Ident = key.parse().map_err(|error| {
             err(
                 at.clone(),
-                format!("the style key {key:?} is not an identifier: {e}"),
+                TextStyleProblem::Key {
+                    key: key.clone(),
+                    error,
+                },
             )
         })?;
         let Value::Object(members) = entry else {
-            return Err(err(
-                at,
-                format!("the style {key} is not an object {{\"size\": …, \"weight\": …}}"),
-            ));
+            return Err(err(at, TextStyleProblem::StyleNotAnObject { key: key.clone() }));
         };
         let size = members.get("size").and_then(Value::as_i64);
         let Some(size) = size.map(Nm) else {
             return Err(err(
                 format!("{at}/size"),
-                format!("the style {key} needs an integer size: the em height in nm"),
+                TextStyleProblem::NoSize { key: key.clone() },
             ));
         };
         if !text_style_size_ok(size) {
             return Err(err(
                 format!("{at}/size"),
-                format!(
-                    "the size {} nm of the style {key} lies outside {} … {} nm (0.5 mm … 50 mm em height)",
-                    size.0, TEXT_STYLE_MIN_SIZE.0, TEXT_STYLE_MAX_SIZE.0
-                ),
+                TextStyleProblem::Size {
+                    key: key.clone(),
+                    size,
+                },
             ));
         }
         // No let chain: the permissive crates build on Rust 1.85 (the MSRV their manifests declare).
@@ -484,7 +527,10 @@ pub fn check_text_styles(value: &Value) -> Result<BTreeMap<Ident, TextStyleSpec>
         {
             return Err(err(
                 format!("{at}/weight"),
-                format!("the weight {w} of the style {key} is unknown; weights are \"regular\" and \"bold\""),
+                TextStyleProblem::Weight {
+                    key: key.clone(),
+                    weight: w.clone(),
+                },
             ));
         }
         if let Some(f) = members
@@ -493,13 +539,14 @@ pub fn check_text_styles(value: &Value) -> Result<BTreeMap<Ident, TextStyleSpec>
         {
             return Err(err(
                 format!("{at}/face"),
-                format!(
-                    "the typeface {f} of the style {key} is unknown; typefaces are \"standard\", \"narrow\", \"mono\" and \"technical_drawing\""
-                ),
+                TextStyleProblem::Face {
+                    key: key.clone(),
+                    face: f.clone(),
+                },
             ));
         }
         let spec: TextStyleSpec =
-            serde_json::from_value(entry.clone()).map_err(|e| err(at.clone(), e.to_string()))?;
+            serde_json::from_value(entry.clone()).map_err(|e| err(at.clone(), TextStyleProblem::Entry(e)))?;
         out.insert(ident, spec);
     }
     Ok(out)
@@ -672,7 +719,10 @@ mod tests {
         );
         let w = e(json!({"tag.main": {"size": 4_000_000, "weight": "black"}}));
         assert_eq!(w.pointer, "/tag.main/weight");
-        assert!(w.message.contains("\"black\""), "{}", w.message);
+        assert!(
+            matches!(&w.problem, TextStyleProblem::Weight { weight, .. } if weight == "black"),
+            "{w:?}"
+        );
         let f = e(json!({"tag.main": {"size": 4_000_000, "face": "comic"}}));
         assert_eq!(f.pointer, "/tag.main/face");
         let ok = check_text_styles(&json!({

@@ -1078,7 +1078,11 @@ impl Command for ApplyInstrumentList {
                 CmdError::invalid_params(
                     Self::NAME,
                     format!("/rows/{i}/tag"),
-                    text!("refusal-plc-instrument-tag", row.tag.clone(), e.to_string()),
+                    text!(
+                        "refusal-plc-instrument-tag",
+                        row.tag.clone(),
+                        crate::error::ident_error_text(&e)
+                    ),
                 )
             })?;
             let (device, channel) = match known.get(&row.tag) {

@@ -7,6 +7,7 @@
 
 use std::io;
 
+use ew_l10n::Text;
 use serde_json::Value;
 
 /// The most bytes a parameter document may have, measured as compact JSON.
@@ -24,8 +25,8 @@ pub const MAX_PARAM_STRING: usize = 1024 * 1024;
 pub struct LimitViolation {
     /// The JSON Pointer of the offending value in the document (`""` for the root, `/route/1/0`).
     pub path: String,
-    /// What is wrong.
-    pub message: String,
+    /// What is wrong, by key.
+    pub text: Text,
 }
 
 /// Checks the size limits of a parameter document ([`MAX_PARAM_DEPTH`], [`MAX_PARAM_ITEMS`],
@@ -40,7 +41,7 @@ pub fn check_limits(instance: &Value) -> Result<(), LimitViolation> {
     if serde_json::to_writer(&mut counter, instance).is_err() || counter.bytes > MAX_PARAM_BYTES {
         return Err(violation(
             &Path::Root,
-            format!("the document is longer than the limit of {MAX_PARAM_BYTES} bytes"),
+            text!("refusal-limit-document", MAX_PARAM_BYTES.to_string()),
         ));
     }
     Ok(())
@@ -48,14 +49,15 @@ pub fn check_limits(instance: &Value) -> Result<(), LimitViolation> {
 
 /// `level` is the number of arrays and objects around `v`, not counting `v`.
 fn walk_limits(v: &Value, path: &Path<'_>, level: usize) -> Result<(), LimitViolation> {
-    let too_long = |what: &str, at: &Path<'_>, len: usize| {
-        violation(
-            at,
-            format!("the {what} is {len} bytes long; the limit is {MAX_PARAM_STRING} bytes"),
-        )
-    };
     match v {
-        Value::String(s) if s.len() > MAX_PARAM_STRING => Err(too_long("string", path, s.len())),
+        Value::String(s) if s.len() > MAX_PARAM_STRING => Err(violation(
+            path,
+            text!(
+                "refusal-limit-string",
+                s.len().to_string(),
+                MAX_PARAM_STRING.to_string()
+            ),
+        )),
         Value::Array(items) => {
             let level = level + 1;
             if level > MAX_PARAM_DEPTH {
@@ -64,9 +66,10 @@ fn walk_limits(v: &Value, path: &Path<'_>, level: usize) -> Result<(), LimitViol
             if items.len() > MAX_PARAM_ITEMS {
                 return Err(violation(
                     path,
-                    format!(
-                        "the array has {} items; the limit is {MAX_PARAM_ITEMS} items",
-                        items.len()
+                    text!(
+                        "refusal-limit-items",
+                        items.len().to_string(),
+                        MAX_PARAM_ITEMS.to_string()
                     ),
                 ));
             }
@@ -83,7 +86,14 @@ fn walk_limits(v: &Value, path: &Path<'_>, level: usize) -> Result<(), LimitViol
             for (key, value) in members {
                 let at = Path::Key(path, key);
                 if key.len() > MAX_PARAM_STRING {
-                    return Err(too_long("object key", &at, key.len()));
+                    return Err(violation(
+                        &at,
+                        text!(
+                            "refusal-limit-key",
+                            key.len().to_string(),
+                            MAX_PARAM_STRING.to_string()
+                        ),
+                    ));
                 }
                 walk_limits(value, &at, level)?;
             }
@@ -94,10 +104,7 @@ fn walk_limits(v: &Value, path: &Path<'_>, level: usize) -> Result<(), LimitViol
 }
 
 fn too_deep(path: &Path<'_>) -> LimitViolation {
-    violation(
-        path,
-        format!("the nesting is deeper than the limit of {MAX_PARAM_DEPTH} levels"),
-    )
+    violation(path, text!("refusal-limit-depth", MAX_PARAM_DEPTH.to_string()))
 }
 
 /// An `io::Write` that counts bytes and fails once the count exceeds [`MAX_PARAM_BYTES`].
@@ -167,9 +174,9 @@ impl Path<'_> {
     }
 }
 
-fn violation(path: &Path<'_>, message: impl Into<String>) -> LimitViolation {
+fn violation(path: &Path<'_>, text: Text) -> LimitViolation {
     LimitViolation {
         path: path.pointer(),
-        message: message.into(),
+        text,
     }
 }
