@@ -5,7 +5,7 @@ work itself, which is the default for anything small or anything that needs judg
 
 ## Roles
 
-- The main session is the product owner by delegation: it decides open product questions, golden changes, design
+- The main session is the product owner by delegation: it decides open product questions, changes of expected outputs, design
   taste and Dutch wording, and writes each decision into the document it changes.
 - Real-world actions stay the owner's: legal matters, GitHub settings, funding, the pilot, the go for a release.
 - The owner's hands-on test decides whether the program works. Automated checks and persona runs inform it; they do
