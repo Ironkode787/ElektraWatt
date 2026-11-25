@@ -32,7 +32,8 @@ worked on after it.
 |---|---|---|---|
 | `v0.3.5-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-22; its release build passed (run 19 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet; the rows open at the cut are worked on for a second candidate, with a review and a persona round before it (owner) |
 | `v0.3.5-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-23, with what was done between the candidates (below); its release build passed (run 20 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet. A third candidate follows after the hygiene step that the owner added to the milestone (step 15 of the plan) |
-| `v0.3.5-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-25, with what was done between the candidates (below); its release build passed (run 21 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet |
+| `v0.3.5-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-25, with what was done between the candidates (below); its release build passed (run 21 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner; a persona round on it led to a fourth candidate (below) |
+| `v0.3.5-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-25, with what was done between the candidates (below). Not tested by the owner yet |
 
 Before the first cut, on the tip that the release branch moves to: two reviews, each with its fixes. The first
 read everything from 0.3.0 to the end of the fix round's sweep, in four parts (the format, the model and the
@@ -88,6 +89,30 @@ the guide's translation check, the generated files and the advisories pass.
 At the third cut the fix round has eleven rows open and the step has left eighteen
 ([backlog](../../../plan/backlog.md), "0.3.5: the fix round" and "M3.5: what its own steps leave"); the notes'
 section 7 names what a reader would meet.
+
+**Between the third and the fourth candidate.** While the third candidate waited for the owner's test, personas
+ran four jobs on it (a second installation, parts and terminals of one's own, a layout and a drawing, and a new
+job: a PLC drawn card by card, then two sensors moved to a page of their own): 8, 7, 6 and 5 of 10, where the
+first three jobs had given 7, 6 and 6; no crash, nothing lost. Four of what they met came from this milestone's
+own changes, and the owner asked for each to be mended at its cause, not at its symptom. Move to page could not
+be found and failed without asking for the page: whether an action asks for its parameters was a flag kept
+beside its signature, so nine actions answered "Missing parameter" when started bare; the flag is gone, an action
+asks or refuses in words, and Move to page… stands where a person looks. The interruption point's card and the
+click could disagree: the direction is one state of the tool now. Two rows of the Messages tab shared a key: a
+navigator's keys are unique. The fourth, toasts that seemed stuck over the sheet, was the harness: its clock
+barely moved in a persona's turn. The clock moves by a person's time now, and with the cause known the owner
+still chose the new rule: no toast stays over the sheet, and an offer stays usable in the notifications list. A
+review of these changes found one major fault, in the persona harness and not in the program, mended at its
+cause (the checklist's RC-02). The new job was then run again: the move 7 of 10 where it was 1, the job as a
+whole 7 where it was 5, and none of the four came back. What that run and the round met beyond the four is in
+the backlog as rows by cause; one of them is the harness again (its click arrives and presses in one frame, so a
+name typed in a tool's field is taken one click late there). On the tree of the code, with nothing else
+building, the whole workspace with the deep run and the private corpus (7,858 tests, 9 of 9), the format guard,
+the guide's translation check, the generated files and the advisories pass.
+
+At the fourth cut the fix round has twenty-three rows open and the step has left nineteen
+([backlog](../../../plan/backlog.md), "0.3.5: the fix round" and "M3.5: what its own steps leave"): the thirteen
+new ones are what the persona runs met and no lane mended.
 
 ## 3. The release manager's decisions
 
