@@ -350,6 +350,10 @@ preview-parts-skipped = { $p0 ->
        *[other] { $p0 } already in the project
     }
 preview-import-summary = { $p0 } · { $p1 }
+preview-move-stays = { $p0 ->
+        [one] 1 selected text or box stays on page { $p1 }
+       *[other] { $p0 } selected texts and boxes stay on page { $p1 }
+    }
 preview-tags-count = { $p0 ->
         [one] 1 tag
        *[other] { $p0 } tags

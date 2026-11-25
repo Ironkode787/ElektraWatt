@@ -198,9 +198,9 @@ impl ShellModel {
         };
         bump(calls, |c| c.preview_entities += 1);
         self.preview.entities = project.session.preview_entities(preview);
-        // A copy of pages says first what it leaves out and what continues outside it.
+        // A copy of pages says first what it leaves out and what continues outside it; a move what stays.
         self.preview.notices = match &card.origin {
-            CardOrigin::PageCopy { rows, .. } => rows
+            CardOrigin::PageCopy { rows, .. } | CardOrigin::Bulk { rows } => rows
                 .iter()
                 .map(|words| crate::preview::PreviewNotice {
                     words: words.clone(),
@@ -299,7 +299,7 @@ impl ShellModel {
     /// the reason `reason`; Apply goes through [`ShellModel::apply_bulk_card`]. A refused preview opens no card and is
     /// the outcome's message.
     pub(super) fn preview_host_card(&mut self, name: &str, params: Value, reason: Key<'static>) -> Outcome {
-        self.preview_host_card_as(name, params, reason, CardOrigin::Bulk)
+        self.preview_host_card_as(name, params, reason, CardOrigin::Bulk { rows: Vec::new() })
     }
 
     /// [`ShellModel::preview_host_card`] with the card's origin (the part card).

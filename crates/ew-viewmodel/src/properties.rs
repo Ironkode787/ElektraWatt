@@ -266,8 +266,12 @@ pub enum CardOrigin {
     },
     /// The card of a `Bulk` command a dialog built: Page, Renumber pages… (`page.renumber`) and Tools, Renumber
     /// devices… (`numbering.renumber`); its targets and changes are the number of entity changes. Draw ▸ Bond's
-    /// `bond.create` (FT row 7 of the G-PP triage) uses the same card with its own reason.
-    Bulk,
+    /// `bond.create` (FT row 7 of the G-PP triage) uses the same card with its own reason. Move to page's card says in
+    /// `rows`, one line each in the tab's notices, what the move leaves on the page (the selected texts and boxes).
+    Bulk {
+        /// What the command leaves as it stands, one line each.
+        rows: Vec<String>,
+    },
     /// A gesture of a navigator's table: the card in the navigator's pane, with the gesture's cells, so that
     /// `table.resolve` and `table.drop` rebuild the command and a stale card retargets its rows.
     Table {
@@ -568,7 +572,7 @@ impl CardOrigin {
             CardOrigin::Import { .. } => "import",
             CardOrigin::Reorder { .. } => "reorder",
             CardOrigin::QuickFix { .. } => "fix",
-            CardOrigin::Bulk => "bulk",
+            CardOrigin::Bulk { .. } => "bulk",
             CardOrigin::Table { .. } => "table",
             CardOrigin::Macro(_) => "macro",
             CardOrigin::Part(_) => "part",

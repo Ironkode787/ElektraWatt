@@ -414,7 +414,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Edit,
             &[],
-            selection_editable,
+            symbols_selected,
             sub(Menu::Edit, Submenu::MovePages, false),
             |s, p| s.act_move_to_page(p),
         )),

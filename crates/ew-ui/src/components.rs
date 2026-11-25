@@ -1469,7 +1469,7 @@ pub(crate) fn bulk_strip(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event
     let Some(card) = shell
         .properties()
         .card()
-        .filter(|c| matches!(c.origin, CardOrigin::Bulk))
+        .filter(|c| matches!(c.origin, CardOrigin::Bulk { .. }))
     else {
         return;
     };

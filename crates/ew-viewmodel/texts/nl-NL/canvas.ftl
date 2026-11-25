@@ -320,6 +320,10 @@ preview-parts-skipped = { $p0 ->
        *[other] { $p0 } al in het project
     }
 preview-import-summary = { $p0 } · { $p1 }
+preview-move-stays = { $p0 ->
+        [one] 1 geselecteerde tekst of kader blijft op pagina { $p1 }
+       *[other] { $p0 } geselecteerde teksten en kaders blijven op pagina { $p1 }
+    }
 preview-tags-count = { $p0 ->
         [one] 1 kenmerk
        *[other] { $p0 } kenmerken

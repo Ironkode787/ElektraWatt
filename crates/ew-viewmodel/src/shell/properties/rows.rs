@@ -619,7 +619,7 @@ impl ShellModel {
         // A bulk card is a renumber dialog's, and Copy pages…'s.
         if matches!(
             card.origin,
-            CardOrigin::Bulk | CardOrigin::Part(_) | CardOrigin::PageCopy { .. }
+            CardOrigin::Bulk { .. } | CardOrigin::Part(_) | CardOrigin::PageCopy { .. }
         ) {
             return self.apply_bulk_card(card);
         }

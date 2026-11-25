@@ -982,7 +982,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         CardOrigin::Reorder { notices } => crate::properties::reorder_line(card, notices),
         CardOrigin::QuickFix { .. } => crate::properties::fix_line(card),
         // The Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
-        CardOrigin::Bulk
+        CardOrigin::Bulk { .. }
         | CardOrigin::Table { .. }
         | CardOrigin::Macro(_)
         | CardOrigin::Part(_)

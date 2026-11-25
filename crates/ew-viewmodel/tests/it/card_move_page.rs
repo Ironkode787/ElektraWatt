@@ -6,7 +6,7 @@
 //! stays behind is kept as a pair of interruption points, which a preview lists before anything moves (doc 10 §6,
 //! doc 06 §3.4), and the selected symbols of a page move the same way (Edit ▸ Move to page).
 
-use crate::common::{Tmp, done, new_project};
+use crate::common::{Tmp, done, new_project, refused};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
@@ -232,5 +232,92 @@ fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() 
         (on_102, on_103),
         "one undo step"
     );
+    s.shutdown();
+}
+
+/// Edit ▸ Move to page is greyed until symbols are selected: with nothing selected and with only a wire selected, it
+/// says to select the symbols to move, in the menu and on a call (it said "Nothing is selected" with a wire selected).
+#[test]
+fn move_to_page_asks_for_the_symbols_to_move() {
+    let tmp = Tmp::new("move-page-symbols");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    let gate = |s: &ShellModel| {
+        ew_viewmodel::actions::find("edit.move_to_page")
+            .expect("the action")
+            .enabled_now(s)
+            .err()
+            .map(|t| t.key())
+    };
+    done(&mut s, "select.set", json!({"ids": []}));
+    assert_eq!(gate(&s), Some("reason-move-select-symbols"), "nothing selected");
+    let wire = s.canvas().expect("page 102").page().tables.connections[0].id.to_string();
+    done(&mut s, "select.set", json!({"ids": [wire]}));
+    assert_eq!(gate(&s), Some("reason-move-select-symbols"), "a wire alone");
+    assert_eq!(
+        refused(&mut s, "edit.move_to_page", json!({"folio": "103"})),
+        "reason-move-select-symbols"
+    );
+    s.shutdown();
+}
+
+/// A selected text moved with a symbol stays on its page: the preview says so first, one line counted, even where the
+/// move keeps no wire as a pair; Apply moves the symbol and leaves the text, and one Undo takes the move back.
+#[test]
+fn a_text_selected_with_a_symbol_stays_and_the_preview_says_so() {
+    let tmp = Tmp::new("move-page-text-stays");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    let page = s.canvas().expect("page 102").page().tables.page.to_string();
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "item.place", "params": {
+            "page": page, "kind": {"free_text": {"text": "stays here", "at": [100_000_000, 100_000_000]}}
+        }}),
+    );
+    let text_on_102 = |s: &mut ShellModel| {
+        done(s, "page.goto", json!({"folio": "102"}));
+        let tables = &s.canvas().expect("page 102").page().tables;
+        tables.items.iter().find(|i| i.text.as_deref() == Some("stays here")).map(|i| i.id)
+    };
+    let text = text_on_102(&mut s).expect("the text").to_string();
+    let reps: Vec<String> = s
+        .canvas()
+        .expect("page 102")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter(|r| r.device.is_some())
+        .map(|r| r.id.to_string())
+        .collect();
+    let line = "1 selected text or box stays on page 102";
+    let mut moved = None;
+    for rep in reps {
+        done(&mut s, "select.set", json!({"ids": [rep, text]}));
+        let out = s.dispatch("edit.move_to_page", &json!({"folio": "103"}));
+        if out == Outcome::Done && s.properties().card().is_some() {
+            moved = Some(rep);
+            break;
+        }
+        // A symbol whose wires the move cannot keep: the next.
+        let _ = s.dispatch("preview.cancel", &json!({}));
+    }
+    let rep = moved.expect("a symbol of page 102 that moves");
+    assert!(
+        s.preview_pane().notice_words().iter().any(|n| n == line),
+        "{:?}",
+        s.preview_pane().notice_words()
+    );
+    let steps = s.revision();
+    done(&mut s, "preview.apply", json!({}));
+    assert_ne!(s.revision(), steps, "Apply moves");
+    assert!(text_on_102(&mut s).is_some(), "the text stays");
+    let on_102 = |s: &ShellModel| {
+        s.canvas().expect("page 102").page().tables.reps.iter().any(|r| r.id.to_string() == rep)
+    };
+    assert!(!on_102(&s), "the symbol moved");
+    done(&mut s, "edit.undo", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    assert!(on_102(&s), "one undo step");
     s.shutdown();
 }

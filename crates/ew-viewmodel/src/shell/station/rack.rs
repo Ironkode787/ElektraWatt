@@ -164,7 +164,7 @@ impl ShellModel {
             {
                 params["number"] = json!(number);
             }
-            if let Some(card) = self.move_card("rep.move_to_new_page", &mut params) {
+            if let Some(card) = self.move_card("rep.move_to_new_page", &mut params, None) {
                 return card;
             }
             let out = self.rack_commit(cursor, "rep.move_to_new_page", params);
@@ -209,7 +209,7 @@ impl ShellModel {
             );
         }
         let mut params = json!({"reps": reps, "page": page.to_string()});
-        if let Some(card) = self.move_card("rep.move", &mut params) {
+        if let Some(card) = self.move_card("rep.move", &mut params, None) {
             return card;
         }
         let out = self.rack_commit(cursor, "rep.move", params);

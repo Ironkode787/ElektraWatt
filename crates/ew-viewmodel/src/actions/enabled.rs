@@ -1159,6 +1159,20 @@ pub(super) fn selection_editable(m: &ShellModel) -> Result<(), Text> {
     selection_shown(m)
 }
 
+/// Move to page: an editable page with symbols among its selection; with none, it says to select them (a move takes
+/// the selected symbols only).
+pub(super) fn symbols_selected(m: &ShellModel) -> Result<(), Text> {
+    editable_page(m)?;
+    let symbols = m
+        .canvas()
+        .is_some_and(|c| !crate::tools::transform::selected_reps(m.selection(), c.page()).is_empty());
+    if symbols {
+        Ok(())
+    } else {
+        Err(key!("reason-move-select-symbols").into())
+    }
+}
+
 /// An editable page whose selection is shown and holds no tube: a cable's cores are wires (Cable…).
 pub(super) fn cable_wires(m: &ShellModel) -> Result<(), Text> {
     editable_page(m)?;

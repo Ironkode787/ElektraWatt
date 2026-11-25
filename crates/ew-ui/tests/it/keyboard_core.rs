@@ -221,7 +221,7 @@ fn the_five_core_tasks_with_key_events_only() {
         "Ctrl+Enter submitted the form"
     );
     let card = h.state().shell().properties().card().expect("the renumber card");
-    assert!(matches!(card.origin, CardOrigin::Bulk));
+    assert!(matches!(card.origin, CardOrigin::Bulk { .. }));
     assert_eq!(card.preview.name, "numbering.renumber");
     assert!(card.changes > 0, "the card renumbers devices");
     // F6 to Properties, whose Ctrl+Enter applies the card: one renumber.
