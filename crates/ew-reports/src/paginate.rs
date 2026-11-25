@@ -10,12 +10,10 @@
 //!     NewPage break:  close the page if it has rows; the next page uses the next form of the chain
 //!     NewFolio break: close the page; the next folio (previous + 1) restarts the form chain
 //!     for row in group:
-//!       h = height(row.kind) × lines(row)          # lines = 1 unless the kind's template wraps
+//!       h = height(row.kind)                       # one list-area row; a group row of a profile table none
 //!       keep-with-next: a group header or heading needs room for itself and up to the next data row
 //!       if used + need > capacity and the page has rows:
 //!         close the page; open the next (continuation form)
-//!         if the form has a group-header template and the group began with an emitted header row:
-//!           reserve the "(cont.)" header and mark the page `continued_group`
 //!       place(row)
 //!   a run's last page under LAST_PAGE_ROWS data rows: the page before ends as many rows earlier, where it keeps as many
 //!   no data rows: OmitPages → no pages, OnePage(text) → one page with that note
@@ -30,9 +28,8 @@
 //! # Table of contents
 //!
 //! A TOC block is not sliced by rows: [`toc_slices`] gives it the page count the `page_order` fixpoint
-//! settled on, with `r` rows per page, where `r` is the TOC page capacity: the TOC form's data
-//! area (its capacity over its data-row height) when the form has a valid one, else the profile's
-//! `toc.rows_per_page` (`crate::queries::toc_rows_per_page`, which `ReportEngine` also reports to
+//! settled on, with `r` rows per page, where `r` is the TOC page capacity: the rows the TOC form's list area holds,
+//! else the profile's `toc.rows_per_page` (`crate::queries::toc_rows_per_page`, which `ReportEngine` also reports to
 //! `page_order`).
 
 use std::ops::Range;
@@ -45,8 +42,8 @@ use ew_schema::{
 };
 use ew_units::Nm;
 
-use crate::layout::{Layouts, PageLayout};
-use crate::rowset::{Row, RowKind, RowSet, RowSetStatus};
+use crate::layout::Layouts;
+use crate::rowset::{RowKind, RowSet, RowSetStatus};
 
 /// Continuation numbering (FR-PAG-030).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -144,24 +141,6 @@ pub fn is_toc(block: &ReportBlock) -> bool {
     matches!(block.source, ReportSource::Kind(ReportKind::Toc))
 }
 
-/// How many lines a row takes when its kind's template wraps (FR-REP-049): text measurement through
-/// `ew-text`, which makes pagination depend on the display language. Rows of kinds that do not wrap take
-/// one line and are never measured.
-pub trait RowLines {
-    /// The lines of `row` on a page of `layout` (at least 1 is used).
-    fn lines(&self, row: &Row, layout: &PageLayout) -> u32;
-}
-
-/// Fixed-height rows: every row takes one line (the default; doc 09 §3.2).
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FixedLines;
-
-impl RowLines for FixedLines {
-    fn lines(&self, _row: &Row, _layout: &PageLayout) -> u32 {
-        1
-    }
-}
-
 /// One page before numbering.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Slice {
@@ -169,8 +148,6 @@ pub struct Slice {
     pub rows: Range<u32>,
     /// The index (in [`RowSet::groups`]) of the page's first group.
     pub group: Option<usize>,
-    /// Whether the page continues a group begun earlier (the form repeats its header, "(cont.)").
-    pub continued_group: bool,
     /// The folio run (0 = the first folio; a `NewFolio` break starts the next).
     pub folio: u32,
     /// The page within its folio run (0 = the folio's first page); also its position in the form chain.
@@ -180,30 +157,22 @@ pub struct Slice {
 }
 
 /// Paginates an arranged row set: [`slice()`], then [`number()`].
-pub fn paginate(
-    set: &RowSet,
-    spec: &BlockSpec,
-    layouts: &Layouts,
-    lines: &dyn RowLines,
-) -> Vec<GeneratedPage> {
-    let slices = slice(set, spec, layouts, lines);
+pub fn paginate(set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<GeneratedPage> {
+    let slices = slice(set, spec, layouts);
     number(&slices, set, spec, layouts)
 }
 
 /// The fewest data rows the last page of a run of pages holds where the page before it can give them (doc 09 §3.2).
 pub const LAST_PAGE_ROWS: usize = 3;
 
-/// The pages of a row set, before numbering (see the module documentation).
-///
-/// An invalid layout of the chain ([`PageLayout::is_valid`]) is replaced by the house geometry
-/// ([`Layouts::validated`]), so the page count is bounded by the row count at any geometry.
+/// The pages of a row set, before numbering (see the module documentation). Every layout of the chain holds at least
+/// one row ([`Layouts::of_form`]), so the page count is bounded by the row count.
 ///
 /// **The last page of a run** (the list's last page, or the last before a group that starts a page or a folio of its
 /// own) holds at least [`LAST_PAGE_ROWS`] data rows where the page before it in the run can give them and keep as many:
 /// that page then ends that many data rows earlier, so a list never ends on a page of one or two rows. The page count
 /// stays the same.
-pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowLines) -> Vec<Slice> {
-    let layouts = &layouts.validated();
+pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<Slice> {
     if let RowSetStatus::NotDerived(reason) = &set.status {
         return vec![note_slice(reason.words())];
     }
@@ -222,7 +191,7 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
     // The pages whose room is lowered, by page index, and by how much.
     let mut short: Vec<(usize, Nm)> = Vec::new();
     loop {
-        let (slices, ends) = fill(set, spec, layouts, lines, &short);
+        let (slices, ends) = fill(set, spec, layouts, &short);
         // The first short last page of a run whose page before, in the same run, can give it rows and keep as many.
         let found = (1..slices.len()).find_map(|k| {
             let (last, before) = (data(&slices[k]), data(&slices[k - 1]));
@@ -246,13 +215,7 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
 
 /// The pages of a row set filled in order, each page's room lowered by `short` (by page index), and for each page
 /// whether it ends a run (the last page, or the last before a group break).
-fn fill(
-    set: &RowSet,
-    spec: &BlockSpec,
-    layouts: &Layouts,
-    lines: &dyn RowLines,
-    short: &[(usize, Nm)],
-) -> (Vec<Slice>, Vec<bool>) {
+fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, Nm)]) -> (Vec<Slice>, Vec<bool>) {
     let n = len_u32(set.rows.len());
     let groups: Vec<(Option<usize>, Range<u32>)> = if set.groups.is_empty() {
         vec![(None, 0..n)]
@@ -286,7 +249,7 @@ fn fill(
         for i in range.clone() {
             let row = &set.rows[idx(i)];
             let layout = layouts.page(idx(page.sub));
-            let h = row_height(row, layout, lines);
+            let h = layout.height(row.kind);
             let mut need = h;
             if matches!(row.kind, RowKind::GroupHeader | RowKind::Heading) {
                 // Keep-with-next (doc 09 §3.2): the header or heading stays with at least one data row.
@@ -294,11 +257,11 @@ fn fill(
                     let next = &set.rows[idx(j)];
                     match next.kind {
                         RowKind::Data => {
-                            need = Nm(need.0.saturating_add(row_height(next, layout, lines).0));
+                            need = Nm(need.0.saturating_add(layout.height(next.kind).0));
                             break;
                         }
                         RowKind::GroupHeader | RowKind::Heading => {
-                            need = Nm(need.0.saturating_add(row_height(next, layout, lines).0));
+                            need = Nm(need.0.saturating_add(layout.height(next.kind).0));
                         }
                         RowKind::GroupFooter => break,
                     }
@@ -311,19 +274,8 @@ fn fill(
             if page.used.0.saturating_add(need.0) > room && page.has_rows() {
                 page = page.close_into(&mut out, Next::Page, i);
                 ends.resize(out.len(), false);
-                let next_layout = layouts.page(idx(page.sub));
-                if group.is_some()
-                    && next_layout.repeats_group_header()
-                    && set.rows[idx(range.start)].kind == RowKind::GroupHeader
-                    && i > range.start
-                    && row.kind != RowKind::GroupHeader
-                {
-                    page.used = next_layout.height(RowKind::GroupHeader);
-                    page.continued = true;
-                    page.group = *group;
-                }
                 // Re-measure on the new page's form.
-                page.place(i, row_height(row, next_layout, lines), *group);
+                page.place(i, layouts.page(idx(page.sub)).height(row.kind), *group);
             } else {
                 page.place(i, h, *group);
             }
@@ -343,7 +295,6 @@ pub fn toc_slices(toc_pages: u32, rows_per_page: u32) -> Vec<Slice> {
         .map(|k| Slice {
             rows: k.saturating_mul(rows_per_page)..(k + 1).saturating_mul(rows_per_page),
             group: None,
-            continued_group: false,
             folio: 0,
             sub: k,
             note: None,
@@ -353,7 +304,6 @@ pub fn toc_slices(toc_pages: u32, rows_per_page: u32) -> Vec<Slice> {
 
 /// Numbers the slices into generated pages: folio numbers and labels, titles, forms, IDs, page count.
 pub fn number(slices: &[Slice], set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<GeneratedPage> {
-    let layouts = &layouts.validated();
     let count = len_u32(slices.len());
     slices
         .iter()
@@ -390,7 +340,6 @@ pub fn number(slices: &[Slice], set: &RowSet, spec: &BlockSpec, layouts: &Layout
                 title,
                 rows: s.rows.clone(),
                 group,
-                continued_group: s.continued_group,
                 form: layouts.page(idx(s.sub)).form,
                 page_count: count,
                 note: s.note.clone(),
@@ -404,7 +353,6 @@ struct Open {
     rows: Range<u32>,
     used: Nm,
     group: Option<usize>,
-    continued: bool,
     folio: u32,
     sub: u32,
 }
@@ -415,7 +363,6 @@ impl Open {
             rows: start..start,
             used: Nm::ZERO,
             group: None,
-            continued: false,
             folio,
             sub,
         }
@@ -437,7 +384,6 @@ impl Open {
         Slice {
             rows: self.rows,
             group: self.group,
-            continued_group: self.continued,
             folio: self.folio,
             sub: self.sub,
             note: None,
@@ -470,20 +416,10 @@ fn note_slice(note: MlText) -> Slice {
     Slice {
         rows: 0..0,
         group: None,
-        continued_group: false,
         folio: 0,
         sub: 0,
         note: Some(note),
     }
-}
-
-fn row_height(row: &Row, layout: &PageLayout, lines: &dyn RowLines) -> Nm {
-    let n = if layout.wraps(row.kind) {
-        i64::from(lines.lines(row, layout).max(1))
-    } else {
-        1
-    };
-    Nm(layout.height(row.kind).0.saturating_mul(n))
 }
 
 /// Fills a page-title format in one pass (doc 09 §2.6): `{{` is a literal `{`, `}}` a literal `}`, `{n}`,

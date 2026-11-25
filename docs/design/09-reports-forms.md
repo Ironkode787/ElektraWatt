@@ -169,8 +169,9 @@ and the row is where Follow reference from the device lands.
   that carries them keeps them in `extra`. Typed filters (`Eq`, `Ne`, `Within`, `Present`, `Absent`) exist but none is
   persisted, and `parts_summary` reads `extra.params.mode`.
 - **Block titles are templates**. `title` may name `{n}`, `{count}` and `{group}` (§4.1) and `{strip}` and `{device}`, which `ew-reports` resolves at derivation, before pagination: `{device}` is the short tag of the first device of the block's manual selection, `{strip}` that of the first selected device that has a strip aspect, so renumbering a strip renames its folios and its TOC rows. A placeholder with no such device stays as written, and no title is exempt by its text prefix. `{n}` is the 1-based page number within the block, `{count}` the block's page count; for example "Terminal Diagram {strip}" and "PLC Overview {device} {n}".
-- **Group header and footer rows** are not a `GroupSpec` member. A block emits them when its form's data area has a
-  `group_header` or `group_footer` template (§2.5), so `GroupSpec` is `{key, break}`.
+- **Group header and footer rows** are not a `GroupSpec` member: only a kind that makes them has them (the titles and
+  captions of the profile tables), and a form's data area (§2.5), which a form of an earlier build may hold, is
+  ignored, so `GroupSpec` is `{key, break}`.
 - **`first_folio`** is required for a page-oriented block (a structural invariant) and ignored when `embedded` is
   set: an embedded block has no folio.
 - **`EmbedSpec`** is `{page, rect}`. It has no overflow member: an embedded block overflows by its cells' `Overflow`
@@ -521,7 +522,7 @@ page_order(q):
   dividers = sections where divider → folio = range.start   # 100, 200, 900
   gen      = for each page block b except TOC blocks: report_pages(b)
   D        = len(drawn ∪ dividers ∪ gen)                 # does not depend on the TOC page count
-  per      = TOC capacity: the TOC form's data area, else the profile's toc.rows_per_page (≥ 2)
+  per      = TOC capacity: the rows of the TOC form's list area, else the profile's toc.rows_per_page (≥ 2)
   n_toc    = max(1, ceil(D / (per − 1)))                 # closed form: the TOC lists its own pages too
   merge(n) = sort(drawn ∪ dividers ∪ gen ∪ n TOC pages) by (section order, folio number, sub-page index,
                                                             origin: drawn < divider < generated, page id)
@@ -563,10 +564,9 @@ report_pages(block):
     if group.break == NewFolio and out ∪ page non-empty: close folio; next folio = previous + 1
     place(group.header)                       # keep-with-next: header plus ≥ 1 data row on the same page
     for row in group.rows:
-      h = template(row.kind).height × lines(row)   # lines = 1 unless the template wraps
-      if page.used + h > form.data.height:
+      h = one list-area row (6.52 mm)         # a profile table's group row none
+      if page.used + h > form.list_area.rows:
         out.push(page); page = new(form.continuation)
-        if form repeats group headers: place(group.header + " (cont.)")
       place(row)
     place(group.footer)                       # subtotals, e.g. Σ current per potential
   out.push(page)
@@ -593,8 +593,6 @@ report_pages(block):
   902.2 and 902.3 where a drawn page is 902.1. A drawn page made later at one of its folios is not refused; the legend
   moves on to the next free run. Another block's pages at the same folios collide as any two blocks' do (EW-CORE-022).
   A legend whose layout page is gone has no pages (the link cascades, so only a file edited by hand holds one).
-- **Wrapping is opt-in per row template.** It makes pagination depend on text measurement (`shaped_text` in
-  `ew-text`) and therefore on the display language (§4.7, FR-REP-049).
 - **Page counts.** `{block.page_count}` is filled after the block is paginated, since row heights do not depend on
   it. Only the TOC's row count depends on its own page count; that fixpoint is settled inside `page_order` (§3.1).
 - Generated pages are `GeneratedPage { id: v5(block, index), block, folio, title, rows: Range, group, form }`. They
@@ -603,12 +601,10 @@ report_pages(block):
   report kind that is not derivable yet (its row query or its record shape does not exist, or the schema names a
   kind that no engine registers yet) paginates to one placeholder page whose note gives the reason, whatever its
   `empty` policy, so its folios and TOC entries stay in place; this generalises
-  [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) amendment 1. A form without a data area paginates with
-  the house layout of 23 rows × 6.52 mm, which moves from `ew-reports` into the derivation profile. An
-  invalid layout (a row height ≤ 0, or a capacity below one data row) falls back to the house layout with a form
-  finding (FR-REP-039; not built yet). A
-  `NewFolio` group break restarts the form chain at the block's form; `NewPage` continues
-  it. Wrapping rows wait for a wrap policy in the schema and measure with `shaped_text` when they come.
+  [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) amendment 1. A form paginates by the rows of its list
+  area (§3.8); a data area that a form of an earlier build holds is ignored, and a form copy that is missing or a
+  list area of no row paginates with the house layout of 23 rows × 6.52 mm, which moves from `ew-reports` into the
+  derivation profile. A `NewFolio` group break restarts the form chain at the block's form; `NewPage` continues it.
 - **Group texts**. `{group}` and the group header texts print a device in its displayed tag
   form in the structure context of the generated page, falling back to the short tag; groups follow the sort
   direction of the group column, and a heading row bounds a group.
@@ -806,8 +802,8 @@ nanometre (x 16.31 to 277.27 mm, 23 rows) and every A4 list prints as it did. Ro
 row, the header, the data rows, an optional legend row and one row kept free under them (where the window marks a list
 that runs on); a page holds as many data rows as fit, at least one (36 on the starter A3 frame). One exact rule
 (`FormDef::list_area` in `ew-schema`) gives the pagination its rows and the drawing its places, so a page never holds
-a row it cannot draw; a TOC counts its pages with it too (the profile's 23 rows only when its form is missing). A form
-with a data area keeps that area's capacity for the pagination (§3.2).
+a row it cannot draw; a TOC counts its pages with it too (the profile's 23 rows only when its form is missing). A data
+area that a form of an earlier build holds is ignored (§3.2).
 
 **The columns.** `ReportBlock.columns` (so far an embedded block's printed columns) is a list of `{key, weight,
 heading?}`; on a page block too it gives the printed columns in its order, `weight` the column's share of the

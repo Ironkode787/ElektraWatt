@@ -445,7 +445,7 @@ pub fn lower_table(
         &style,
         sheet,
     );
-    // The table never runs below the form's data area: rows beyond the page's capacity are not drawn and
+    // The table never runs below the form's list area: rows beyond the page's capacity are not drawn and
     // reported, instead of relying on the pagination's row count (FR-REP-039).
     let given = if view.note.is_some() { 1 } else { view.rows.len() };
     let row_count = given.min(usize::try_from(area.rows).unwrap_or(usize::MAX));

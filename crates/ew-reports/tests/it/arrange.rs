@@ -11,13 +11,12 @@ use ew_reports::{
     Arrangement, Cell, CellType, ColumnDef, MissingReason, NotDerived, QtyUnit, Row, RowId, RowKey, RowKind,
     RowSet, RowSetStatus, arrange,
 };
-use ew_schema::{AnyId, Date, GroupSpec, OrderUnit, Project, Set, SortKey, Unit};
+use ew_schema::{AnyId, Date, GroupSpec, OrderUnit, Project, Set, SortKey};
 use ew_units::Dec3;
 use proptest::prelude::*;
 
 const NAME: usize = 0;
 const LOC: usize = 1;
-const QTY: usize = 2;
 
 fn model() -> ew_model::Model {
     let project: Project = serde_json::from_str(
@@ -92,8 +91,6 @@ struct Args {
     group: Option<GroupSpec>,
     include: Set<AnyId>,
     exclude: Set<AnyId>,
-    header: bool,
-    footer: bool,
 }
 
 impl Args {
@@ -103,8 +100,6 @@ impl Args {
             group: None,
             include: Set::new(),
             exclude: Set::new(),
-            header: false,
-            footer: false,
         }
     }
 
@@ -116,8 +111,6 @@ impl Args {
             group: self.group.as_ref(),
             include: &self.include,
             exclude: &self.exclude,
-            group_header: self.header,
-            group_footer: self.footer,
             group_context: None,
         };
         arrange(&q, set, &how)
@@ -145,7 +138,6 @@ fn not_derived_passes_through_unchanged() {
     let mut a = Args::new();
     a.sort = sort(&[("name", false)]);
     a.group = Some(group("loc"));
-    a.header = true;
     let out = a.run(s.clone());
     assert_eq!(out, s);
     assert!(matches!(out.status, RowSetStatus::NotDerived(_)));
@@ -430,169 +422,11 @@ fn group_rows_keep_the_sort_order() {
     assert_eq!(names(&a.run(set(rows))), ["c", "d", "a", "b"]);
 }
 
-/// One grouping case with group headers and/or footers.
-struct GroupRowsCase {
-    name: &'static str,
-    rows: Vec<Row>,
-    header: bool,
-    footer: bool,
-    kinds: Vec<RowKind>,
-    /// The checked groups: (row range, text); `None` leaves the groups unchecked.
-    groups: Option<Vec<(std::ops::Range<u32>, &'static str)>>,
-    /// Further checks of the arranged rows.
-    extra: fn(&str, &RowSet),
-}
-
-#[test]
-fn group_headers_and_footers() {
-    use RowKind::{Data, GroupFooter, GroupHeader};
-    let cases = [
-        GroupRowsCase {
-            name: "headers and footers with ranges",
-            rows: vec![
-                row(0, "a", "L2", 1500),
-                row(1, "b", "L1", 2000),
-                row(2, "c", "L2", 250),
-            ],
-            header: true,
-            footer: true,
-            kinds: vec![
-                GroupHeader,
-                Data,
-                GroupFooter,
-                GroupHeader,
-                Data,
-                Data,
-                GroupFooter,
-            ],
-            groups: Some(vec![(0..3, "L1"), (3..7, "L2")]),
-            extra: |c, out| {
-                let header = &out.rows[0];
-                assert_eq!(
-                    header.id,
-                    RowId(vec![
-                        RowKey::Name("group-header".into()),
-                        RowKey::Name("L1".into())
-                    ]),
-                    "case {c}"
-                );
-                assert_eq!(
-                    header.cells,
-                    vec![Cell::Empty, Cell::Ident("L1".into()), Cell::Empty],
-                    "case {c}: only the key column is filled"
-                );
-                assert!(header.links.is_empty() && header.sources.is_empty(), "case {c}");
-
-                let footer = &out.rows[2];
-                assert_eq!(
-                    footer.id,
-                    RowId(vec![
-                        RowKey::Name("group-footer".into()),
-                        RowKey::Name("L1".into())
-                    ]),
-                    "case {c}"
-                );
-                assert_eq!(footer.cells[LOC], Cell::Ident("L1".into()), "case {c}");
-                assert_eq!(footer.cells[NAME], Cell::Empty, "case {c}");
-                assert_eq!(footer.cells[QTY], qty(2000), "case {c}");
-
-                let footer2 = &out.rows[6];
-                assert_eq!(footer2.cells[QTY], qty(1750), "case {c}: 1.5 + 0.25");
-            },
-        },
-        GroupRowsCase {
-            name: "only headers",
-            rows: vec![row(0, "a", "L", 1000), row(1, "b", "L", 1000)],
-            header: true,
-            footer: false,
-            kinds: vec![GroupHeader, Data, Data],
-            groups: Some(vec![(0..3, "L")]),
-            extra: |_, _| {},
-        },
-        GroupRowsCase {
-            name: "only footers",
-            rows: vec![row(0, "a", "L", 1000), row(1, "b", "L", 1000)],
-            header: false,
-            footer: true,
-            kinds: vec![Data, Data, GroupFooter],
-            groups: None,
-            extra: |c, out| assert_eq!(out.rows[2].cells[QTY], qty(2000), "case {c}"),
-        },
-    ];
-    for c in cases {
-        let mut a = Args::new();
-        a.group = Some(group("loc"));
-        a.header = c.header;
-        a.footer = c.footer;
-        let out = a.run(set(c.rows));
-        let kinds: Vec<RowKind> = out.rows.iter().map(|r| r.kind).collect();
-        assert_eq!(kinds, c.kinds, "case {}", c.name);
-        if let Some(groups) = c.groups {
-            let got: Vec<(std::ops::Range<u32>, &str)> = out
-                .groups
-                .iter()
-                .map(|g| (g.rows.clone(), g.text.as_str()))
-                .collect();
-            assert_eq!(got, groups, "case {}", c.name);
-        }
-        (c.extra)(c.name, &out);
-    }
-}
-
-/// The quantity sum of a group footer: (name, rows, the footers as (row index, quantity cell)).
-#[test]
-fn footer_sum_cases() {
-    let stale = {
-        let mut r1 = row(0, "a", "L", 1000);
-        r1.cells[QTY] = Cell::Stale(Box::new(qty(1000)), Rev(2));
-        let mut r2 = row(1, "b", "L", 1000);
-        r2.cells[QTY] = Cell::Empty;
-        vec![r1, r2, row(2, "c", "L", 3000)]
-    };
-    let mixed = {
-        let mut r1 = row(0, "a", "L", 1000);
-        r1.cells[QTY] = Cell::Qty(Dec3(1000), QtyUnit::Unit(Unit::Mm2));
-        let mut r3 = row(2, "c", "M", 1000);
-        r3.cells[QTY] = Cell::Tbd;
-        vec![r1, row(1, "b", "L", 1000), r3]
-    };
-    let cases = [
-        (
-            "the sum counts stale cells and skips non-quantity cells",
-            stale,
-            vec![(3, qty(4000))],
-        ),
-        // L mixes units, M has no quantity: both footers are empty.
-        (
-            "mixed units or no quantities give an empty footer",
-            mixed,
-            vec![(2, Cell::Empty), (4, Cell::Empty)],
-        ),
-        (
-            "the sum saturates",
-            vec![row(0, "a", "L", i64::MAX), row(1, "b", "L", 5)],
-            vec![(2, qty(i64::MAX))],
-        ),
-    ];
-    for (name, rows, footers) in cases {
-        let mut a = Args::new();
-        a.group = Some(group("loc"));
-        a.footer = true;
-        let out = a.run(set(rows));
-        for (i, want) in footers {
-            assert_eq!(out.rows[i].kind, RowKind::GroupFooter, "case {name}: row {i}");
-            assert_eq!(out.rows[i].cells[QTY], want, "case {name}: row {i}");
-        }
-    }
-}
-
 #[test]
 fn an_unknown_group_column_means_no_grouping() {
     let rows = vec![row(1, "b", "L", 1), row(0, "a", "K", 1)];
     let mut a = Args::new();
     a.group = Some(group("nope"));
-    a.header = true;
-    a.footer = true;
     let out = a.run(set(rows.clone()));
     assert_eq!(out.rows, rows);
     assert!(out.groups.is_empty());
@@ -641,7 +475,7 @@ fn grouping_sorts_inside_segments_first() {
 }
 
 #[test]
-fn group_text_and_header_ids_of_other_key_types() {
+fn group_text_of_other_key_types() {
     let cols = vec![
         ColumnDef::new("n", CellType::Number, ew_reports::text!("column-count")),
         ColumnDef::new("d", CellType::Date, ew_reports::text!("column-date")),
@@ -663,17 +497,9 @@ fn group_text_and_header_ids_of_other_key_types() {
     };
     let mut a = Args::new();
     a.group = Some(group("n"));
-    a.header = true;
     let out = a.run(s.clone());
     assert_eq!(out.groups[0].text, "9");
     assert_eq!(out.groups[1].text, "10");
-    assert_eq!(
-        out.rows[0].id,
-        RowId(vec![
-            RowKey::Name("group-header".into()),
-            RowKey::Name("9".into())
-        ])
-    );
 
     a.group = Some(group("d"));
     let out = a.run(s);
@@ -859,10 +685,8 @@ proptest! {
         };
         prop_assert_eq!(a.run(set(rows.clone())), a.run(set(shuffled.clone())));
 
-        // Grouped and with header and footer rows as well.
+        // Grouped as well.
         a.group = Some(group("loc"));
-        a.header = true;
-        a.footer = true;
         prop_assert_eq!(a.run(set(rows)), a.run(set(shuffled)));
     }
 }
@@ -904,16 +728,13 @@ fn two_heading_segments_with_one_key_give_two_groups_in_segment_order() {
     ];
     let mut a = Args::new();
     a.group = Some(group("loc"));
-    a.header = true;
     let out = a.run(set(rows));
     assert_eq!(out.groups.len(), 2);
     assert_eq!(out.groups[0].text, "L");
     assert_eq!(out.groups[1].text, "L");
-    // Header, H1, a, b | header, H2, c.
-    assert_eq!(out.groups[0].rows, 0..4);
-    assert_eq!(out.groups[1].rows, 4..7);
-    assert_eq!(out.rows[0].kind, RowKind::GroupHeader);
-    assert_eq!(out.rows[4].kind, RowKind::GroupHeader);
+    // H1, a, b | H2, c.
+    assert_eq!(out.groups[0].rows, 0..3);
+    assert_eq!(out.groups[1].rows, 3..5);
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -243,7 +243,6 @@ impl ReportPagesProvider for Scripted {
                 title: MlText::neutral(&format!("page {k}")),
                 rows: if toc { k * per..(k + 1) * per } else { 0..0 },
                 group: None,
-                continued_group: false,
                 form: b.form,
                 page_count: count,
                 note: None,

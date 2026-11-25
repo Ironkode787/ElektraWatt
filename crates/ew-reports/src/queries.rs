@@ -13,10 +13,8 @@ use ew_schema::{Device, ManualSelection, ReportBlock, ReportKind, ReportSource};
 
 use crate::arrange::{Arrangement, arrange};
 use crate::kind::Registry;
-use crate::layout::{Layouts, PageLayout};
-use crate::paginate::{
-    BlockSpec, Continuation, FixedLines, is_toc, legend_first_sub, number, slice, toc_slices,
-};
+use crate::layout::Layouts;
+use crate::paginate::{BlockSpec, Continuation, is_toc, legend_first_sub, number, slice, toc_slices};
 use crate::rowset::{Cell, CellType, NotDerived, Row, RowId, RowKey, RowSet};
 
 /// `report_rows(block)`: the rows of a report block in final order, after the kind's row query, manual
@@ -107,8 +105,7 @@ fn with_added_rows(mut rows: RowSet, block: &ReportBlock) -> RowSet {
 /// `rows` after the block's manual selection, filter, sort and grouping: the tail of [`BlockRows`], shared
 /// with the exports that bring their own rows (`ew export bom --mode`).
 pub fn arranged(q: &Q, block: &ReportBlock, rows: RowSet) -> RowSet {
-    let layouts = Layouts::of_block(q, block);
-    let how = Arrangement::of_block(block, layouts.first()).with_group_context(q, block);
+    let how = Arrangement::of_block(block).with_group_context(q, block);
     arrange(q, rows, &how)
 }
 
@@ -173,7 +170,7 @@ fn paginate_block(
     rows: &RowSet,
     layouts: &Layouts,
 ) -> Vec<GeneratedPage> {
-    let slices = slice(rows, &spec, layouts, &FixedLines);
+    let slices = slice(rows, &spec, layouts);
     if let Some(layout) = ew_derive::layout::legend_layout_page(q, block).and_then(|p| q.pages().get(p)) {
         let held: Vec<String> = q
             .pages()
@@ -226,23 +223,15 @@ fn resolve_title(q: &Q, block: &ReportBlock, title: &ew_mltext::MlText) -> ew_ml
 }
 
 /// The rows one page of a TOC block holds (doc 09 §3.1), on the frame its pages print on
-/// ([`crate::layout::list_frame`]): the form's data area when it has a valid one (its capacity over its data-row
-/// height), else the rows its list area holds with the block's caption and legend (doc 09 §3.8), else (a form the
-/// project does not hold) the profile's `toc.rows_per_page`. At least 1. `page_order` uses the same value for the TOC
+/// ([`crate::layout::list_frame`]): the rows its list area holds with the block's caption and legend (doc 09 §3.8),
+/// else (a form the project does not hold) the profile's `toc.rows_per_page`. At least 1. `page_order` uses the same value for the TOC
 /// page-count fixpoint.
 pub fn toc_rows_per_page(q: &Q, block: &ReportBlock) -> u32 {
     let form = crate::layout::list_frame(q, block.form);
-    let from_form = q.forms().get(form).and_then(|c| match c.item.data.as_ref() {
-        Some(area) => Some(PageLayout::of_area(form, area))
-            .filter(|l| l.data.0 > 0 && l.capacity.0 >= l.data.0)
-            .map(|l| l.capacity.0 / l.data.0),
-        None => Some(crate::layout::list_rows(
-            q,
-            &c.item,
-            !block.caption.is_empty(),
-            !block.legend.is_empty(),
-        )),
-    });
+    let from_form = q
+        .forms()
+        .get(form)
+        .map(|c| crate::layout::list_rows(q, &c.item, !block.caption.is_empty(), !block.legend.is_empty()));
     from_form
         .map(|n| u32::try_from(n).unwrap_or(u32::MAX))
         .unwrap_or(q.profile().toc.rows_per_page)

@@ -9,14 +9,11 @@ use ew_ids::{Id, Uuid, v5};
 use ew_mltext::MlText;
 use ew_reports::paginate::Slice;
 use ew_reports::{
-    BlockSpec, Break, Cell, CellType, ColumnDef, Continuation, FixedLines, GroupRange, Layouts, NotDerived,
-    PageLayout, Row, RowId, RowKey, RowKind, RowLines, RowSet, paginate,
+    BlockSpec, Break, Cell, CellType, ColumnDef, Continuation, GroupRange, Layouts, NotDerived, PageLayout,
+    Row, RowId, RowKey, RowKind, RowSet, paginate,
 };
 use ew_schema::{FormDef, ReportBlock, Section};
 use ew_units::Nm;
-
-/// The height of one row of the hand-built layouts (the house height).
-const H: i64 = 6_520_000;
 
 fn form(n: u128) -> Id<FormDef> {
     Id::from_uuid(Uuid::from_u128(n))
@@ -82,17 +79,9 @@ fn title(p: &GeneratedPage) -> &str {
     p.title.as_neutral().expect("a neutral title")
 }
 
-/// A layout of `rows` rows of height `H` with group-header rows of the same height.
-fn small(form_id: Id<FormDef>, rows: i64, with_group_header: bool) -> PageLayout {
-    PageLayout {
-        form: form_id,
-        capacity: Nm(H * rows),
-        data: Nm(H),
-        group_header: with_group_header.then_some(Nm(H)),
-        group_footer: None,
-        heading: Nm(H),
-        wraps: [false; 4],
-    }
+/// A layout of `rows` list-area rows.
+fn small(form_id: Id<FormDef>, rows: i64) -> PageLayout {
+    PageLayout::listed(form_id, rows)
 }
 
 fn group(text: &str, rows: std::ops::Range<u32>) -> GroupRange {
@@ -161,7 +150,7 @@ fn house_layout_page_counts() {
             ranges: &[(0, 23), (23, 46), (46, 69), (69, 72)], titles: None, numbers: None },
     ];
     for c in cases {
-        let pages = paginate(&data_set(c.rows), &spec(c.first), &house(), &FixedLines);
+        let pages = paginate(&data_set(c.rows), &spec(c.first), &house());
         assert_eq!(labels(&pages), c.labels, "case {}", c.name);
         assert_eq!(ranges(&pages), c.ranges, "case {}", c.name);
         let count = u32::try_from(c.labels.len()).unwrap();
@@ -187,7 +176,7 @@ fn house_layout_page_counts() {
 
 #[test]
 fn every_page_carries_its_identity() {
-    let pages = paginate(&data_set(60), &spec(901), &house(), &FixedLines);
+    let pages = paginate(&data_set(60), &spec(901), &house());
     assert_eq!(pages.len(), 3);
     for (k, p) in pages.iter().enumerate() {
         let k = u32::try_from(k).unwrap();
@@ -200,7 +189,6 @@ fn every_page_carries_its_identity() {
         assert_eq!(p.form, form(1));
         assert_eq!(p.note, None);
         assert_eq!(p.group, None);
-        assert!(!p.continued_group);
     }
 }
 
@@ -208,7 +196,7 @@ fn every_page_carries_its_identity() {
 fn title_placeholders_fill_n_count_and_group() {
     let mut s = spec(901);
     s.title = MlText::neutral("{group}: page {n} of {count}");
-    let pages = paginate(&data_set(30), &s, &house(), &FixedLines);
+    let pages = paginate(&data_set(30), &s, &house());
     // No grouping: `{group}` is empty.
     assert_eq!(title(&pages[0]), ": page 1 of 2");
     assert_eq!(title(&pages[1]), ": page 2 of 2");
@@ -219,7 +207,7 @@ fn title_placeholders_fill_n_count_and_group() {
     let mut s = spec(901);
     s.title = MlText::neutral("List {group} {n}/{count}");
     s.group_break = Break::NewPage;
-    let pages = paginate(&set, &s, &house(), &FixedLines);
+    let pages = paginate(&set, &s, &house());
     let t: Vec<&str> = pages.iter().map(title).collect();
     assert_eq!(t, ["List Alpha 1/2", "List Beta 2/2"]);
 }
@@ -230,7 +218,7 @@ fn a_multi_language_title_fills_each_language() {
     let nl = "nl-NL".parse().unwrap();
     let mut s = spec(901);
     s.title = MlText::from_langs([(en, "Parts {n}/{count}"), (nl, "Onderdelen {n}/{count}")]);
-    let pages = paginate(&data_set(30), &s, &house(), &FixedLines);
+    let pages = paginate(&data_set(30), &s, &house());
     assert_eq!(pages.len(), 2);
     let en: ew_mltext::LangTag = "en-GB".parse().unwrap();
     let nl: ew_mltext::LangTag = "nl-NL".parse().unwrap();
@@ -244,7 +232,7 @@ fn a_multi_language_title_fills_each_language() {
 fn next_folio_continuation_numbers_whole_folios() {
     let mut s = spec(907);
     s.continuation = Continuation::NextFolio;
-    let pages = paginate(&data_set(50), &s, &house(), &FixedLines);
+    let pages = paginate(&data_set(50), &s, &house());
     assert_eq!(labels(&pages), ["907", "908", "909"]);
     assert_eq!(
         pages.iter().map(|p| p.number).collect::<Vec<_>>(),
@@ -256,7 +244,7 @@ fn next_folio_continuation_numbers_whole_folios() {
 fn an_absent_section_stays_absent() {
     let mut s = spec(901);
     s.section = None;
-    let pages = paginate(&data_set(1), &s, &house(), &FixedLines);
+    let pages = paginate(&data_set(1), &s, &house());
     assert_eq!(pages[0].section, None);
 }
 
@@ -279,7 +267,7 @@ fn empty_set_cases() {
     for (name, set, empty) in cases {
         let mut s = spec(901);
         s.empty = empty.map(MlText::neutral);
-        let pages = paginate(&set, &s, &house(), &FixedLines);
+        let pages = paginate(&set, &s, &house());
         let Some(text) = empty else {
             assert!(pages.is_empty(), "case {name}: {pages:?}");
             continue;
@@ -298,7 +286,7 @@ fn empty_set_cases() {
 fn a_not_derived_set_is_one_placeholder_page_with_the_reason() {
     let set = RowSet::not_derived(columns(), NotDerived::Unsupported("wire_rows".into()));
     // Even a block that omits empty pages prints the placeholder.
-    let pages = paginate(&set, &spec(910), &house(), &FixedLines);
+    let pages = paginate(&set, &spec(910), &house());
     assert_eq!(pages.len(), 1);
     assert_eq!(pages[0].label, "910");
     assert_eq!(pages[0].rows, 0..0);
@@ -321,7 +309,7 @@ fn new_page_break_puts_each_group_on_a_new_page() {
     let set = grouped_set(&[3, 30, 2], false);
     let mut s = spec(903);
     s.group_break = Break::NewPage;
-    let pages = paginate(&set, &s, &house(), &FixedLines);
+    let pages = paginate(&set, &s, &house());
     assert_eq!(labels(&pages), ["903", "903.1", "903.2", "903.3"]);
     assert_eq!(ranges(&pages), [(0, 3), (3, 26), (26, 33), (33, 35)]);
     let groups: Vec<Option<&str>> = pages.iter().map(|p| p.group.as_deref()).collect();
@@ -333,7 +321,7 @@ fn new_folio_break_starts_the_next_folio() {
     let set = grouped_set(&[3, 20, 5], false);
     let mut s = spec(903);
     s.group_break = Break::NewFolio;
-    let pages = paginate(&set, &s, &house(), &FixedLines);
+    let pages = paginate(&set, &s, &house());
     assert_eq!(labels(&pages), ["903", "904", "905"]);
     assert_eq!(
         pages.iter().map(|p| p.number).collect::<Vec<_>>(),
@@ -347,7 +335,7 @@ fn a_long_group_after_a_folio_break_continues_as_sub_pages() {
     let set = grouped_set(&[3, 20, 30], false);
     let mut s = spec(903);
     s.group_break = Break::NewFolio;
-    let pages = paginate(&set, &s, &house(), &FixedLines);
+    let pages = paginate(&set, &s, &house());
     assert_eq!(labels(&pages), ["903", "904", "905", "905.1"]);
     assert_eq!(ranges(&pages), [(0, 3), (3, 23), (23, 46), (46, 53)]);
     assert_eq!(pages[3].group.as_deref(), Some("G2"));
@@ -356,7 +344,7 @@ fn a_long_group_after_a_folio_break_continues_as_sub_pages() {
 #[test]
 fn no_break_packs_groups_continuously() {
     let set = grouped_set(&[10, 10, 10], false);
-    let pages = paginate(&set, &spec(903), &house(), &FixedLines);
+    let pages = paginate(&set, &spec(903), &house());
     assert_eq!(labels(&pages), ["903", "903.1"]);
     assert_eq!(ranges(&pages), [(0, 23), (23, 30)]);
     // The page's group is the first group on it.
@@ -370,7 +358,7 @@ fn an_empty_group_range_is_skipped() {
     set.groups.insert(1, group("Empty", 3..3));
     let mut s = spec(901);
     s.group_break = Break::NewPage;
-    let pages = paginate(&set, &s, &house(), &FixedLines);
+    let pages = paginate(&set, &s, &house());
     assert_eq!(ranges(&pages), [(0, 3), (3, 6)]);
 }
 
@@ -378,139 +366,11 @@ fn an_empty_group_range_is_skipped() {
 // Group headers
 
 #[test]
-fn a_group_header_is_kept_with_its_first_row() {
-    // Five rows per page: group A is header + 3 rows, so group B's header would be the last row of the
-    // page; it moves to the next page with its first data row.
-    let set = grouped_set(&[3, 2], true);
-    let layouts = Layouts::single(small(form(1), 5, true));
-    let pages = paginate(&set, &spec(901), &layouts, &FixedLines);
-    assert_eq!(ranges(&pages), [(0, 4), (4, 7)]);
-    assert_eq!(pages[0].group.as_deref(), Some("G0"));
-    assert_eq!(pages[1].group.as_deref(), Some("G1"));
-    assert!(!pages[1].continued_group, "the group begins on this page");
-    assert_eq!(
-        set.rows[usize::try_from(pages[1].rows.start).unwrap()].kind,
-        RowKind::GroupHeader
-    );
-
-    // A header that fits with its first row stays.
-    let set = grouped_set(&[2, 2], true);
-    let layouts = Layouts::single(small(form(1), 6, true));
-    let pages = paginate(&set, &spec(901), &layouts, &FixedLines);
-    // 3 + 3 rows fill exactly one page.
-    assert_eq!(ranges(&pages), [(0, 6)]);
-}
-
-/// One case of the "(cont.)" header reservation: a single group of `size` rows, with or without a header row.
-struct ContinuationCase {
-    name: &'static str,
-    size: u32,
-    header_row: bool,
-    layout: PageLayout,
-    /// The page ranges, when the case checks them.
-    ranges: Option<&'static [(u32, u32)]>,
-    min_pages: usize,
-    /// Every page after the first is a continued group page (else no page is).
-    continued_after_first: bool,
-    /// Every page names the group G0.
-    names_the_group: bool,
-}
-
-#[test]
-fn a_continued_group_repeats_its_header_and_reserves_its_height() {
-    let cases = [
-        // First page: header + 4 rows; continuation pages: the repeated header + 4 rows.
-        ContinuationCase {
-            name: "a header row and nine rows on a five-row page",
-            size: 9,
-            header_row: true,
-            layout: small(form(1), 5, true),
-            ranges: Some(&[(0, 5), (5, 9), (9, 10)]),
-            min_pages: 3,
-            continued_after_first: true,
-            names_the_group: true,
-        },
-        ContinuationCase {
-            name: "without a header template continuation pages are full",
-            size: 9,
-            header_row: false,
-            layout: small(form(1), 5, false),
-            ranges: Some(&[(0, 5), (5, 9)]),
-            min_pages: 2,
-            continued_after_first: false,
-            names_the_group: false,
-        },
-        // The form has a group-header template, but the rows carry no header row: nothing is reserved.
-        ContinuationCase {
-            name: "a group without header rows reserves nothing on the house form",
-            size: 23,
-            header_row: false,
-            layout: PageLayout {
-                group_header: Some(Nm(H)),
-                ..PageLayout::house(form(1))
-            },
-            ranges: Some(&[(0, 23)]),
-            min_pages: 1,
-            continued_after_first: false,
-            names_the_group: false,
-        },
-        ContinuationCase {
-            name: "a group without header rows reserves nothing on a ten-row page",
-            size: 25,
-            header_row: false,
-            layout: small(form(1), 10, true),
-            ranges: Some(&[(0, 10), (10, 20), (20, 25)]),
-            min_pages: 3,
-            continued_after_first: false,
-            names_the_group: false,
-        },
-        ContinuationCase {
-            name: "a group with a header row continues with a reserved header",
-            size: 25,
-            header_row: true,
-            layout: small(form(1), 10, true),
-            ranges: None,
-            min_pages: 3,
-            continued_after_first: true,
-            names_the_group: false,
-        },
-    ];
-    for c in cases {
-        let set = grouped_set(&[c.size], c.header_row);
-        let pages = paginate(&set, &spec(901), &Layouts::single(c.layout), &FixedLines);
-        if let Some(want) = c.ranges {
-            assert_eq!(ranges(&pages), want, "case {}", c.name);
-        }
-        assert!(
-            pages.len() >= c.min_pages,
-            "case {}: {} pages",
-            c.name,
-            pages.len()
-        );
-        let continued: Vec<bool> = pages.iter().map(|p| p.continued_group).collect();
-        let want: Vec<bool> = (0..pages.len())
-            .map(|k| c.continued_after_first && k > 0)
-            .collect();
-        assert_eq!(continued, want, "case {}", c.name);
-        if c.names_the_group {
-            assert!(
-                pages.iter().all(|p| p.group.as_deref() == Some("G0")),
-                "case {}",
-                c.name
-            );
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Continuation chain
-
-#[test]
 fn the_form_chain_gives_each_page_of_a_run_its_form() {
     let layouts = Layouts {
-        chain: vec![small(form(11), 10, false), small(form(12), 20, false)],
+        chain: vec![small(form(11), 10), small(form(12), 20)],
     };
-    let pages = paginate(&data_set(45), &spec(901), &layouts, &FixedLines);
+    let pages = paginate(&data_set(45), &spec(901), &layouts);
     assert_eq!(ranges(&pages), [(0, 10), (10, 30), (30, 45)]);
     assert_eq!(
         pages.iter().map(|p| p.form).collect::<Vec<_>>(),
@@ -521,12 +381,12 @@ fn the_form_chain_gives_each_page_of_a_run_its_form() {
 #[test]
 fn a_new_folio_restarts_the_form_chain() {
     let layouts = Layouts {
-        chain: vec![small(form(11), 10, false), small(form(12), 20, false)],
+        chain: vec![small(form(11), 10), small(form(12), 20)],
     };
     let set = grouped_set(&[25, 5], false);
     let mut s = spec(901);
     s.group_break = Break::NewFolio;
-    let pages = paginate(&set, &s, &layouts, &FixedLines);
+    let pages = paginate(&set, &s, &layouts);
     assert_eq!(labels(&pages), ["901", "901.1", "902"]);
     assert_eq!(ranges(&pages), [(0, 10), (10, 25), (25, 30)]);
     assert_eq!(
@@ -537,85 +397,6 @@ fn a_new_folio_restarts_the_form_chain() {
 
 // ---------------------------------------------------------------------------------------------------------
 // Wrapping
-
-/// Every row takes two lines.
-struct TwoLines;
-
-impl RowLines for TwoLines {
-    fn lines(&self, _row: &Row, _layout: &PageLayout) -> u32 {
-        2
-    }
-}
-
-/// Must never be asked.
-struct Never;
-
-impl RowLines for Never {
-    fn lines(&self, _row: &Row, _layout: &PageLayout) -> u32 {
-        panic!("a row of a kind that does not wrap was measured");
-    }
-}
-
-#[test]
-fn wrapping_rows_take_their_measured_lines() {
-    let mut layout = PageLayout::house(form(1));
-    layout.wraps[0] = true;
-    let pages = paginate(&data_set(25), &spec(901), &Layouts::single(layout), &TwoLines);
-    // 23 lines per page: eleven two-line rows.
-    assert_eq!(ranges(&pages), [(0, 11), (11, 22), (22, 25)]);
-}
-
-#[test]
-fn rows_that_do_not_wrap_are_never_measured() {
-    let pages = paginate(&data_set(30), &spec(901), &house(), &Never);
-    assert_eq!(ranges(&pages), [(0, 23), (23, 30)]);
-
-    // Only the kinds whose template wraps are measured: here none of the data rows.
-    let mut layout = PageLayout::house(form(1));
-    layout.wraps[3] = true;
-    let mut set = data_set(2);
-    set.rows.insert(0, row(RowKind::Heading, 9));
-    let result = std::panic::catch_unwind(|| paginate(&set, &spec(901), &Layouts::single(layout), &Never));
-    assert!(result.is_err(), "the wrapping heading is measured");
-}
-
-/// The row with number 1 takes 30 lines; the others one.
-struct TallSecond;
-
-impl RowLines for TallSecond {
-    fn lines(&self, row: &Row, _layout: &PageLayout) -> u32 {
-        match row.cells[0] {
-            Cell::Number(1) => 30,
-            _ => 1,
-        }
-    }
-}
-
-#[test]
-fn a_row_taller_than_the_page_is_placed_alone() {
-    let mut layout = PageLayout::house(form(1));
-    layout.wraps[0] = true;
-    let layouts = Layouts::single(layout);
-    // The tall row is the second of four.
-    let pages = paginate(&data_set(4), &spec(901), &layouts, &TallSecond);
-    assert_eq!(ranges(&pages), [(0, 1), (1, 2), (2, 4)]);
-
-    // The tall row is the first row: it is placed on an empty page, then the next row starts a new one.
-    struct TallFirst;
-    impl RowLines for TallFirst {
-        fn lines(&self, row: &Row, _layout: &PageLayout) -> u32 {
-            match row.cells[0] {
-                Cell::Number(0) => 40,
-                _ => 1,
-            }
-        }
-    }
-    let pages = paginate(&data_set(3), &spec(901), &layouts, &TallFirst);
-    assert_eq!(ranges(&pages), [(0, 1), (1, 3)]);
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Table of contents
 
 #[test]
 fn toc_slices_number_like_other_blocks() {
@@ -639,39 +420,6 @@ fn a_toc_has_at_least_one_page() {
 // Keep-with-next and the "(cont.)" reservation (doc 09 §3.2)
 
 #[test]
-fn a_header_and_a_heading_move_together_to_the_page_of_their_first_data_row() {
-    // Capacity 4 rows: the data rows, a group header and a heading fit (2 + 2) but the first data row after
-    // them does not, so header and heading move with it.
-    let kinds = [
-        RowKind::Data,
-        RowKind::Data,
-        RowKind::GroupHeader,
-        RowKind::Heading,
-        RowKind::Data,
-        RowKind::Data,
-    ];
-    let set = RowSet {
-        rows: kinds.iter().zip(0..).map(|(k, i)| row(*k, i)).collect(),
-        ..RowSet::new(columns())
-    };
-    let layouts = Layouts::single(small(form(1), 4, true));
-    let pages = paginate(&set, &spec(901), &layouts, &FixedLines);
-    assert_eq!(ranges(&pages), [(0, 2), (2, 6)]);
-    for p in &pages {
-        let last = &set.rows[usize::try_from(p.rows.end).unwrap() - 1];
-        assert_eq!(
-            last.kind,
-            RowKind::Data,
-            "page {} ends with a header or heading",
-            p.label
-        );
-    }
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Title placeholders (doc 09 §2.6)
-
-#[test]
 fn title_braces_are_literal_when_doubled() {
     use ew_reports::paginate::fill_title;
     assert_eq!(fill_title("{x {{n}} }", "1", "2", "g"), "{x {n} }");
@@ -687,7 +435,7 @@ fn a_group_text_with_a_placeholder_is_printed_literally_in_the_title() {
     set.groups[0].text = "{n}".into();
     let mut s = spec(901);
     s.title = MlText::neutral("{group} {n}");
-    let pages = paginate(&set, &s, &house(), &FixedLines);
+    let pages = paginate(&set, &s, &house());
     assert_eq!(title(&pages[0]), "{n} 1");
 }
 
@@ -703,17 +451,11 @@ mod properties {
     const U: i64 = 1_000_000;
 
     fn arb_layout(form_id: Id<FormDef>) -> impl Strategy<Value = PageLayout> {
-        (1i64..10, 1i64..10, 1i64..10, 1i64..=30, any::<bool>()).prop_map(
-            move |(data, heading, header, rows, with_header)| PageLayout {
-                form: form_id,
-                capacity: Nm(data * U * rows),
-                data: Nm(data * U),
-                group_header: with_header.then_some(Nm(header * U)),
-                group_footer: None,
-                heading: Nm(heading * U),
-                wraps: [false; 4],
-            },
-        )
+        (1i64..10, 1i64..=30).prop_map(move |(data, rows)| PageLayout {
+            form: form_id,
+            capacity: Nm(data * U * rows),
+            data: Nm(data * U),
+        })
     }
 
     /// Groups of items; an item is `true` for a heading row, `false` for a data row.
@@ -763,7 +505,7 @@ mod properties {
             if next_folio {
                 s.continuation = Continuation::NextFolio;
             }
-            let pages = paginate(&set, &s, &layouts, &FixedLines);
+            let pages = paginate(&set, &s, &layouts);
             let len = u32::try_from(set.rows.len()).unwrap();
 
             if set.data_rows() == 0 {
@@ -782,13 +524,10 @@ mod properties {
             // (b) the used height is within the capacity unless the page holds a single row.
             for p in &pages {
                 let layout = layouts.chain.iter().find(|l| l.form == p.form).unwrap();
-                let mut used: i64 = set.rows[p.rows.start as usize..p.rows.end as usize]
+                let used: i64 = set.rows[p.rows.start as usize..p.rows.end as usize]
                     .iter()
                     .map(|r| layout.height(r.kind).0)
                     .sum();
-                if p.continued_group {
-                    used += layout.height(RowKind::GroupHeader).0;
-                }
                 prop_assert!(
                     used <= layout.capacity.0 || p.rows.len() == 1,
                     "page {} uses {used} of {}", p.label, layout.capacity.0

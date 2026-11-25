@@ -238,14 +238,14 @@ impl Row {
     }
 }
 
-/// The kind of a row (doc 09 §2.3); a form's data area has one template per kind.
+/// The kind of a row (doc 09 §2.3).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum RowKind {
     /// A data row.
     Data,
-    /// A group header (emitted only when the form has a `group_header` template).
+    /// A group header: the title of a profile table.
     GroupHeader,
-    /// A group footer with sums (emitted only when the form has a `group_footer` template).
+    /// A group footer: a caption or note under a profile table.
     GroupFooter,
     /// A heading inside the rows (the cable headings of folio 906).
     Heading,

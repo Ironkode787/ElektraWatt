@@ -11,7 +11,7 @@
 //! report kind (ReportKindDef::rows)  →  RowSet (typed cells, stable RowIds)       [kinds, rowset]
 //!   → manual selection, filter, sort, group                                       [arrange]
 //!   = report_rows(block)                                         (BlockRows, Memo)
-//!   → slice into pages by the form's data area, number the folios, fill titles   [layout, paginate]
+//!   → slice into pages by the form's list area, number the folios, fill titles   [layout, paginate]
 //!   = report_block_pages(block, toc_pages)                    (BlockPages, Memo)
 //!   → ReportEngine: the ReportPagesProvider that page_order calls                 [queries]
 //! ```
@@ -68,7 +68,7 @@ pub use kind::{
 };
 pub use kinds::{bridge_groups, cable_length_words};
 pub use layout::{Layouts, PageLayout};
-pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};
+pub use paginate::{BlockSpec, Break, Continuation, Slice, paginate};
 pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, project_rows, rows_of};
 pub use render::TagClassMembers;
 pub use rowset::{

@@ -251,9 +251,6 @@ pub struct GeneratedPage {
     pub rows: Range<u32>,
     /// The group key text of the page's first group, if the block groups (`{group}`, `{group.key}`).
     pub group: Option<String>,
-    /// Whether the page continues a group begun on an earlier page: the form repeats that group's header
-    /// marked "(cont.)" above the rows, and pagination has reserved its height.
-    pub continued_group: bool,
     /// The form of this page: the block's form for the first page, then its `continuation` chain.
     pub form: Id<FormDef>,
     /// The number of pages of the block (`{block.page_count}`), filled after pagination.
@@ -286,8 +283,8 @@ pub trait ReportPagesProvider: Send + Sync {
     /// The generated pages of `block` when the table of contents has `toc_pages` pages.
     fn pages(&self, q: &Q, block: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage>;
 
-    /// The rows one page of the TOC block `block` holds (doc 09 §3.1: the data area of the
-    /// TOC form when it has a valid one, else the profile's `toc.rows_per_page`). At least 1. The default
+    /// The rows one page of the TOC block `block` holds (doc 09 §3.1: the rows of the list area of
+    /// the TOC form when it has one, else the profile's `toc.rows_per_page`). At least 1. The default
     /// is the profile's value.
     fn toc_rows_per_page(&self, q: &Q, block: Id<ReportBlock>) -> u32 {
         let _ = block;

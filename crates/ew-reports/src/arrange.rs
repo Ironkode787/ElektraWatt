@@ -21,11 +21,8 @@ use ew_schema::{AnyId, ContinuationPolicy, Date, Device, GroupSpec, ReportBlock,
 use ew_units::Dec3;
 
 use crate::BlockPages;
-use crate::layout::PageLayout;
 use crate::paginate::is_toc;
-use crate::rowset::{
-    Cell, CellType, ColumnDef, GroupRange, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet,
-};
+use crate::rowset::{Cell, GroupRange, MissingReason, Row, RowKind, RowSet};
 
 /// How a block arranges its rows.
 #[derive(Clone, Debug)]
@@ -38,10 +35,6 @@ pub struct Arrangement<'a> {
     pub include: &'a Set<AnyId>,
     /// Entities whose rows are excluded.
     pub exclude: &'a Set<AnyId>,
-    /// Whether to emit group-header rows (the form has a `group_header` template).
-    pub group_header: bool,
-    /// Whether to emit group-footer rows (the form has a `group_footer` template).
-    pub group_footer: bool,
     /// The structure the generated pages print: the block's section structure, absent without a section or
     /// when it is empty. Group texts print a tag in its displayed form for this context (else its short
     /// form); the grouping order keeps using the full tag.
@@ -49,15 +42,13 @@ pub struct Arrangement<'a> {
 }
 
 impl<'a> Arrangement<'a> {
-    /// The arrangement of a block whose first page has `layout`.
-    pub fn of_block(block: &'a ReportBlock, layout: &PageLayout) -> Arrangement<'a> {
+    /// The arrangement of a block.
+    pub fn of_block(block: &'a ReportBlock) -> Arrangement<'a> {
         Arrangement {
             sort: &block.sort,
             group: block.group.as_ref(),
             include: &block.manual.include,
             exclude: &block.manual.exclude,
-            group_header: layout.group_header.is_some(),
-            group_footer: layout.group_footer.is_some(),
             group_context: None,
         }
     }
@@ -125,7 +116,7 @@ pub fn arrange(q: &Q, set: RowSet, how: &Arrangement<'_>) -> RowSet {
         .group
         .and_then(|g| columns.iter().position(|c| c.key == g.key.as_str()));
     let (rows, groups) = match group_col {
-        Some(col) => group_rows(q, &columns, segments, col, how),
+        Some(col) => group_rows(q, segments, col, how),
         None => (flatten(segments), Vec::new()),
     };
     RowSet {
@@ -225,7 +216,6 @@ struct Collected {
 
 fn group_rows(
     q: &Q,
-    columns: &[ColumnDef],
     segments: Vec<Segment>,
     col: usize,
     how: &Arrangement<'_>,
@@ -282,17 +272,7 @@ fn group_rows(
         for g in ordered {
             let start = len_u32(rows.len());
             let text = group_text(q, how, &g.key);
-            if how.group_header {
-                let header = group_row(columns.len(), col, RowKind::GroupHeader, &g.key, &text);
-                rows.push(header);
-            }
-            let footer = how.group_footer.then(|| {
-                let mut row = group_row(columns.len(), col, RowKind::GroupFooter, &g.key, &text);
-                row.cells = footer_cells(columns, col, &g);
-                row
-            });
             rows.extend(g.rows);
-            rows.extend(footer);
             groups.push(GroupRange {
                 text,
                 key: g.key,
@@ -320,68 +300,6 @@ fn group_text(q: &Q, how: &Arrangement<'_>, key: &Cell) -> String {
         Cell::Tag(id) => tag(*id),
         Cell::Range(ids) => ids.iter().map(|id| tag(*id)).collect::<Vec<_>>().join(", "),
         other => cell_text(q, other),
-    }
-}
-
-/// A group header or footer row: empty cells except the key column.
-fn group_row(width: usize, col: usize, kind: RowKind, key: &Cell, text: &str) -> Row {
-    let mut cells = vec![Cell::Empty; width];
-    cells[col] = key.clone();
-    let k = match peel(key) {
-        Cell::Tag(id) => RowKey::Entity(id.as_uuid()),
-        Cell::Folio(PageRef::Drawn(id)) => RowKey::Entity(id.as_uuid()),
-        _ => RowKey::Name(text.to_owned()),
-    };
-    let name = if kind == RowKind::GroupHeader {
-        "group-header"
-    } else {
-        "group-footer"
-    };
-    Row {
-        id: RowId(vec![RowKey::Name(name.to_owned()), k]),
-        kind,
-        cells,
-        links: Vec::new(),
-        sources: Vec::new(),
-    }
-}
-
-/// The cells of a group footer: the key, and the sum of every `Qty` column.
-fn footer_cells(columns: &[ColumnDef], col: usize, g: &Collected) -> Vec<Cell> {
-    columns
-        .iter()
-        .enumerate()
-        .map(|(i, c)| {
-            if i == col {
-                g.key.clone()
-            } else if c.ty == CellType::Qty {
-                sum_qty(
-                    g.rows
-                        .iter()
-                        .filter(|r| r.kind == RowKind::Data)
-                        .map(|r| r.cells.get(i)),
-                )
-            } else {
-                Cell::Empty
-            }
-        })
-        .collect()
-}
-
-/// The sum of the `Qty` cells when they share one unit, else `Empty`.
-fn sum_qty<'a>(cells: impl Iterator<Item = Option<&'a Cell>>) -> Cell {
-    let mut total: Option<(Dec3, &QtyUnit)> = None;
-    for cell in cells.flatten() {
-        let Cell::Qty(v, u) = peel(cell) else { continue };
-        match &mut total {
-            None => total = Some((*v, u)),
-            Some((sum, unit)) if *unit == u => *sum = Dec3(sum.0.saturating_add(v.0)),
-            Some(_) => return Cell::Empty,
-        }
-    }
-    match total {
-        Some((sum, unit)) => Cell::Qty(sum, unit.clone()),
-        None => Cell::Empty,
     }
 }
 

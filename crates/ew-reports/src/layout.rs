@@ -1,15 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5,
-//! §3.2), the set's own frame a new list starts on and the frame a list's pages print on (§3.8).
+//! The pagination geometry of report forms: the rows a form's list area holds (doc 09 §3.2, §3.8), the set's own
+//! frame a new list starts on and the frame a list's pages print on (§3.8).
 
 use ew_derive::{DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
 use ew_ids::Id;
-use ew_schema::{
-    DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock, RowTemplate,
-    WrapPolicy,
-};
+use ew_schema::{FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock};
 use ew_units::Nm;
 
 use crate::rowset::RowKind;
@@ -17,127 +14,40 @@ use crate::rowset::RowKind;
 /// The longest continuation chain followed; a longer or cyclic chain repeats its last form.
 const MAX_CHAIN: usize = 16;
 
-/// The pagination geometry of one form.
+/// The pagination geometry of one form: its list area's rows of 6.52 mm.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageLayout {
     /// The form.
     pub form: Id<FormDef>,
-    /// The height available to rows: the data area minus its header row.
+    /// The height available to rows: the list area's rows.
     pub capacity: Nm,
-    /// The height of a data row.
+    /// The height of a row.
     pub data: Nm,
-    /// The height of a group-header row; `None` when the form has no `group_header` template (the block
-    /// then emits no group headers).
-    pub group_header: Option<Nm>,
-    /// The height of a group-footer row; `None` without a `group_footer` template.
-    pub group_footer: Option<Nm>,
-    /// The height of a heading row (the data height without a `heading` template).
-    pub heading: Nm,
-    /// Which row kinds wrap (their template's `wrap` is not `None`), in the order data, group header,
-    /// group footer, heading.
-    pub wraps: [bool; 4],
 }
 
 impl PageLayout {
-    /// The house report form's geometry, for a form copy that is missing or whose data area is invalid: 23 rows
-    /// of 6.52 mm, no group templates, no wrapping. Until report layouts join the derivation profile (doc 09 §3.7),
-    /// this fallback lives here.
+    /// The house report form's geometry, for a form copy that is missing or whose list area holds no row: 23 rows of
+    /// 6.52 mm. Until report layouts join the derivation profile (doc 09 §3.7), this fallback lives here.
     pub fn house(form: Id<FormDef>) -> PageLayout {
         PageLayout::listed(form, HOUSE_ROWS_PER_PAGE)
     }
 
-    /// The geometry of a frame without a data area (the standard layout's blocks name the no-grid frame): `rows` rows
-    /// of 6.52 mm, as many as its list area holds ([`FormDef::list_area`], doc 09 §3.8), no group templates, no
-    /// wrapping.
+    /// The geometry of a frame's list area: `rows` rows of 6.52 mm (doc 09 §3.8).
     pub fn listed(form: Id<FormDef>, rows: i64) -> PageLayout {
         PageLayout {
             form,
             capacity: Nm(HOUSE_ROW_HEIGHT.0.saturating_mul(rows)),
             data: HOUSE_ROW_HEIGHT,
-            group_header: None,
-            group_footer: None,
-            heading: HOUSE_ROW_HEIGHT,
-            wraps: [false; 4],
         }
     }
 
-    /// The geometry of a form's data area.
-    pub fn of_area(form: Id<FormDef>, area: &DataArea) -> PageLayout {
-        let data = area.rows.data.as_ref().map_or(area.header.height, |t| t.height);
-        let wraps = |t: Option<&RowTemplate>| t.is_some_and(|t| t.wrap != WrapPolicy::None);
-        PageLayout {
-            form,
-            capacity: Nm((area.rect.0.height().0 - area.header.height.0).max(0)),
-            data,
-            group_header: area.rows.group_header.as_ref().map(|t| t.height),
-            group_footer: area.rows.group_footer.as_ref().map(|t| t.height),
-            heading: area.rows.heading.as_ref().map_or(data, |t| t.height),
-            wraps: [
-                wraps(area.rows.data.as_ref()),
-                wraps(area.rows.group_header.as_ref()),
-                wraps(area.rows.group_footer.as_ref()),
-                wraps(area.rows.heading.as_ref()),
-            ],
-        }
-    }
-
-    /// Whether the geometry can be paginated: every row height is positive and the capacity holds at
-    /// least one data row. An invalid layout would put unbounded rows on a page (a height of 0 or less) or
-    /// one page per row (a capacity below one row), so pagination replaces it with the house geometry
-    /// ([`Layouts::validated`], FR-REP-039).
-    pub fn is_valid(&self) -> bool {
-        self.problem().is_none()
-    }
-
-    /// What makes the layout invalid, in English; `None` when it is valid.
-    fn problem(&self) -> Option<String> {
-        let heights = [
-            ("data row height", Some(self.data)),
-            ("heading row height", Some(self.heading)),
-            ("group-header row height", self.group_header),
-            ("group-footer row height", self.group_footer),
-        ];
-        for (what, h) in heights {
-            if let Some(h) = h
-                && h.0 <= 0
-            {
-                return Some(format!("{what} {} nm is not positive", h.0));
-            }
-        }
-        if self.capacity.0 < self.data.0 {
-            return Some(format!(
-                "the data area ({} nm) is lower than one data row ({} nm)",
-                self.capacity.0, self.data.0
-            ));
-        }
-        None
-    }
-
-    /// The height of one line of a row of `kind` (a group row without a template has height 0; it is never
-    /// emitted).
+    /// The height of a row of `kind`: a data row and a heading take one row; a group row (the title or caption of a
+    /// profile table) takes none.
     pub fn height(&self, kind: RowKind) -> Nm {
         match kind {
-            RowKind::Data => self.data,
-            RowKind::GroupHeader => self.group_header.unwrap_or(Nm::ZERO),
-            RowKind::GroupFooter => self.group_footer.unwrap_or(Nm::ZERO),
-            RowKind::Heading => self.heading,
+            RowKind::Data | RowKind::Heading => self.data,
+            RowKind::GroupHeader | RowKind::GroupFooter => Nm::ZERO,
         }
-    }
-
-    /// Whether rows of `kind` wrap.
-    pub fn wraps(&self, kind: RowKind) -> bool {
-        self.wraps[match kind {
-            RowKind::Data => 0,
-            RowKind::GroupHeader => 1,
-            RowKind::GroupFooter => 2,
-            RowKind::Heading => 3,
-        }]
-    }
-
-    /// Whether continuation pages repeat the group header ("(cont.)"): when the form has a group-header
-    /// template.
-    pub fn repeats_group_header(&self) -> bool {
-        self.group_header.is_some()
     }
 }
 
@@ -164,28 +74,8 @@ impl Layouts {
         &self.chain[0]
     }
 
-    /// This chain with every invalid layout ([`PageLayout::is_valid`]) replaced by the house geometry of
-    /// its form. The pure pagination functions read the chain through this, so they terminate with a
-    /// bounded page count whatever geometry they are handed.
-    #[must_use]
-    pub fn validated(&self) -> Layouts {
-        Layouts {
-            chain: self
-                .chain
-                .iter()
-                .map(|l| {
-                    if l.is_valid() {
-                        l.clone()
-                    } else {
-                        PageLayout::house(l.form)
-                    }
-                })
-                .collect(),
-        }
-    }
-
     /// The chain of the pages of `block`: [`Layouts::of_form`] of the frame its pages print on ([`list_frame`]), the
-    /// rows of a frame without a data area less a row for the block's caption and one for its legend (doc 09 §3.8).
+    /// rows of its list area less a row for the block's caption and one for its legend (doc 09 §3.8).
     pub fn of_block(q: &Q, block: &ReportBlock) -> Layouts {
         Layouts::chain(
             q,
@@ -195,10 +85,10 @@ impl Layouts {
         )
     }
 
-    /// The chain of `form` in `q`'s snapshot, without a caption or a legend. A form whose data area gives an invalid
-    /// layout uses the house geometry ([`PageLayout::house`], FR-REP-039); one without a data area holds the rows of its list area ([`PageLayout::listed`]), a form copy that
-    /// is missing those of the house table ([`ListArea::house`]); the chain stops at a repeat (cycle-safe) or after
-    /// 16 forms.
+    /// The chain of `form` in `q`'s snapshot, without a caption or a legend. A form holds the rows of its list area
+    /// ([`PageLayout::listed`]), a form copy that is missing those of the house table ([`ListArea::house`]), and a list
+    /// area of no row the house geometry ([`PageLayout::house`]); a data area a form of an earlier build holds is
+    /// ignored. The chain stops at a repeat (cycle-safe) or after 16 forms.
     pub fn of_form(q: &Q, form: Id<FormDef>) -> Layouts {
         Layouts::chain(q, form, false, false)
     }
@@ -212,21 +102,14 @@ impl Layouts {
                 break;
             }
             let copy = q.forms().get(id);
-            let layout = match copy.and_then(|c| c.item.data.as_ref()) {
-                Some(area) => {
-                    let layout = PageLayout::of_area(id, area);
-                    match layout.problem() {
-                        None => layout,
-                        Some(_) => PageLayout::house(id),
-                    }
-                }
-                None => {
-                    let rows = match copy {
-                        Some(c) => list_rows(q, &c.item, caption, legend),
-                        None => ListArea::house(caption, legend).rows,
-                    };
-                    PageLayout::listed(id, rows)
-                }
+            let rows = match copy {
+                Some(c) => list_rows(q, &c.item, caption, legend),
+                None => ListArea::house(caption, legend).rows,
+            };
+            let layout = if rows < 1 {
+                PageLayout::house(id)
+            } else {
+                PageLayout::listed(id, rows)
             };
             chain.push(layout);
             next = copy.and_then(|c| c.item.continuation);
