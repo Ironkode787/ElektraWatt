@@ -269,10 +269,9 @@ that ships may not use the exception.
 
 ### 3.3 Legal and organisational gates
 
-*Owner ruling.* The project owner ruled in chat: "Regarding all the licensing, and legal items, this is no longer relevant." The gates of the plan no longer carry LG-1 to LG-6 as criteria, and
-the enrolments, counsel's opinions and ADR-0030 are no longer gate items; the CC-BY-SA-4.0 symbols in the GPL
-binary are accepted by the owner as a distribution fact, without a counsel brief. The text below is kept as the
-record of the design. The repository's licence rules are unchanged: REUSE headers, the licence map (§2.1), the
+*The owner's decision.* No gate of the plan carries LG-1 to LG-6 as criteria, and the enrolments, counsel's
+opinions and ADR-0030 are no gate items; the CC-BY-SA-4.0 symbols in the GPL binary are accepted by the owner as a
+distribution fact, without a counsel brief. The text below is the design. The repository's licence rules are unchanged: REUSE headers, the licence map (§2.1), the
 permissive/GPL boundary and the dependency checks stay in force. The signing identities that sign release binaries
 stay a release item. The `blocked:LG-2` merge block was removed.
 

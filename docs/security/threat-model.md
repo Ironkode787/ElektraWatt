@@ -132,7 +132,7 @@ in plain sight.
 | MCP | not shipped | TM-07 | — |
 | The external converter | 1.0 | TM-16 | — |
 
-### Symbol authoring and EPLAN inputs (0.2 feature branch)
+### Symbol authoring and EPLAN inputs
 
 The `ew.symbol/1` reader (`ew-api::symbols`) bounds bytes, JSON structure, geometry and item counts before
 preview/publication. GUI, CLI and scripts use the same validator. Publishing uses the existing library transaction;

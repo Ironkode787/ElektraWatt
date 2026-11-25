@@ -574,9 +574,8 @@ written at 0.1.0; panics on other threads and a log for `ew` are not built.
 
 ## 13. EU Cyber Resilience Act readiness
 
-The owner ruled on 2026-10-22 that the legal and licensing items are "no longer relevant" as gate items and on
-2026-11-02 that the steward's CRA processes leave G-M2; they, and the signing conditions, are placed at 1.0.
-The statements of when the regulation applies below stand as written. This document adds no legal reading of its own.
+The legal and licensing items, the steward's CRA processes and the signing conditions are no gate items before 1.0
+(the owner's decision); they are placed at 1.0. The statements of when the regulation applies below stand as written. This document adds no legal reading of its own.
 
 ### 13.1 Dates and roles
 

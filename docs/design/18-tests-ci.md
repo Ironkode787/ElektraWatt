@@ -290,9 +290,8 @@ the CI job of the 1.0 target.
 
 ### 3.10 The sample project and the acceptance criteria
 
-Until 0.3.5 an acceptance runner checked the criteria AC-nn and the defect rows D-nn on the reference project
-(Golden A; see the [glossary](glossary.md)): the `acceptance` test of `ew-api`, with SQL queries, expected CSVs and a
-committed report. The reference and its runner were retired at 0.3.5; the tag `v0.3.0` holds them. Now:
+No runner checks the criteria AC-nn and the defect rows D-nn as one report; the sample project and the tests of
+each behaviour hold them:
 
 - **The sample project** `fixtures/sample/sample.ew` is the tests', the guide's and the release's project. The UI
   script `fixtures/sample/sample.uiscript` makes it through the window's own actions (the new-project wizard with

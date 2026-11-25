@@ -320,7 +320,7 @@ Order of work: S-01 and S-02 (group A) first, because F-01 alone is 89 % of the 
 group B, which shares one drawing style, then C and D. The symbols of group B and C add up to 19 uses; they are cheap but
 move the migration little, which is the reason to keep them behind T-01.
 
-### 5.2 Importer mapping entries (lane A, project importer)
+### 5.2 Importer mapping entries (the project importer)
 
 | ID | Entry | Element types | Class | Note | Disposition |
 |---|---|---|---|---|---|
