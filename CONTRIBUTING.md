@@ -33,12 +33,13 @@ cargo xtask rules                               # the repository rules alone, in
   `-E '<expression>'`) and leaves the doctests out; format, lint and rules still run in full, and the summary says
   the tests were narrowed. The last check of a change runs without a filter.
 
-  What a change needs beyond its crates' tests follows from the paths it touches (those that differ from `main` and
-  those not committed): a change of the persona harness (`tools/blind/`), the content (`content/`) or `xtask` builds
-  `elektrawatt` and `ew`, writes the action list and replays every brief of `tools/blind/tasks/` (the step
-  `briefs`), and fails where something is missing. A check that passes writes down the tree it passed on, in the git
-  folder that every worktree shares; `check` on the same tree with a scope it covers says so and runs nothing, so a
-  gate does not run again what a lane ran.
+  What a change needs beyond its crates' tests follows from the paths it touches (those of the commits no remote
+  holds yet and those not committed): a change of the persona harness (`tools/blind/`), the content (`content/`) or
+  `xtask` builds `elektrawatt` and `ew`, writes the action list and replays every brief of `tools/blind/tasks/` (the
+  step `briefs`), and fails where something is missing; the whole workspace replays them whatever the change
+  touches. A check that passes writes down the tree it passed on, in the git folder that every worktree shares;
+  `check` on the same tree with a scope it covers says so and runs nothing, so a gate does not run again what a lane
+  ran. A deep run without the private corpus counts as a run without `--deep`.
 - **`gen`** rewrites every file that is generated from code or data. Run it after you change a command, a check
   rule, a text key, a keymap, an icon or a library symbol, and commit what it changed with your change.
   `cargo xtask gen-maps` alone, in seconds, after you add, move or delete an action, a handler's file, a text key, a

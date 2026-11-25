@@ -13,14 +13,15 @@
 //! **What the paths ask.** A change of the persona harness (`tools/blind/`), the content (`content/`) or `xtask` is
 //! checked on the product: the step `briefs` builds `elektrawatt` and `ew`, writes the action list of the reference
 //! (`target/reference/actions.txt`) and replays every brief of `tools/blind/tasks/` (`check-brief`), and fails where a
-//! program, the list or a hard item is missing. The paths a change touches are those that differ from `main` (since
-//! the branch left it) and those not yet committed. A change of a text file needs nothing more: the rule
-//! `translations` runs with the rules.
+//! program, the list or a hard item is missing. The paths a change touches are those of the commits no remote holds
+//! yet and those not yet committed; a check of the whole workspace replays the briefs whatever it touches. A change of
+//! a text file needs nothing more: the rule `translations` runs with the rules.
 //!
 //! **The tree it passed on.** A check that passes writes down the tree it passed on (its object ID, of the working tree
 //! with what is not committed) and its scope, in `ew-check-passed` of the repository's git folder, which every worktree
 //! shares. A check of a tree and a scope that passed already (the whole workspace covers a package, `--deep` covers
-//! one without) says so and runs nothing: a gate does not run again what a lane ran on the same tree.
+//! one without) says so and runs nothing: a gate does not run again what a lane ran on the same tree. A deep run
+//! without the private corpus is written down as a run without `--deep`.
 //!
 //! Clippy is its own pass, not the workspace wrapper of the test build: a build through `clippy-driver` is another
 //! artefact set, which no plain `cargo build` or `cargo nextest run` of the loop reuses, so the compile it saved in
@@ -140,8 +141,10 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
                 )?,
             ));
         }
-        let touched = touched_paths(root)?;
-        if let Some(path) = touched.iter().find(|p| asks_for_briefs(p)) {
+        if args.packages.is_empty() {
+            println!("==> briefs: the whole workspace replays every brief");
+            summary.push(("briefs", briefs(root)?));
+        } else if let Some(path) = touched_paths(root)?.iter().find(|p| asks_for_briefs(p)) {
             println!(
                 "==> briefs: `{path}` and the other paths of the change ask for the replay of every brief"
             );
@@ -177,18 +180,15 @@ fn asks_for_briefs(path: &str) -> bool {
         .any(|p| path.starts_with(p))
 }
 
-/// The paths a change touches: those that differ from where the branch left `main` (none on `main` itself, or without
-/// one), and those not yet committed.
+/// The paths a change touches: those of the commits no remote holds yet (every commit, in a clone without a remote),
+/// and those not yet committed. A branch that is pushed was checked before its push, so what it holds is no change.
 fn touched_paths(root: &Path) -> Result<Vec<String>> {
     let git = |args: &[&str]| crate::repo::git(root, args);
-    let mut out: Vec<String> = Vec::new();
-    if let Ok(base) = git(&["merge-base", "HEAD", "main"]) {
-        out.extend(
-            git(&["diff", "--name-only", base.trim(), "HEAD"])?
-                .lines()
-                .map(str::to_owned),
-        );
-    }
+    let mut out: Vec<String> = git(&["log", "--name-only", "--format=", "HEAD", "--not", "--remotes"])?
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(str::to_owned)
+        .collect();
     for line in git(&["status", "--porcelain", "--untracked-files=all"])?.lines() {
         // `XY path` or `XY old -> new`.
         if let Some(path) = line.get(3..) {
@@ -277,7 +277,9 @@ impl Passed {
                 .collect::<Vec<_>>()
                 .join(" ")
         };
-        if args.deep {
+        // A deep run without the private corpus skips the corpus's tests: it is written down as a run without
+        // `--deep`, so a gate that has the corpus runs.
+        if args.deep && std::env::var_os("EW_PRIVATE_CORPUS").is_some() {
             scope.push_str(" --deep");
         }
         Some(Passed {

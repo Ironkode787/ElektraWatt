@@ -337,7 +337,9 @@ full is [18](18-quality-security-release.md) §3.
 `cargo xtask check -p <crate>…` formats, lints, runs the tests of the named crates and then the repository rules.
 What a change needs beyond those tests is chosen by the paths it touches, not remembered: a change of the persona
 harness, the content or `xtask` builds the programs, writes the actions and replays every brief, and fails where
-something is missing; a change of a text file needs nothing more, as the translation status is a rule. `--deep` runs
+something is missing, as does every check of the whole workspace; the paths a change touches are those of the commits
+no remote holds yet and those not committed. A change of a text file needs nothing more, as the translation status
+is a rule. `--deep` runs
 the tests marked for the deep run. The check writes down the tree it passed on, and a gate runs it again only for a
 tree that differs.
 
