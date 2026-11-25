@@ -25,7 +25,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 - FT-2115 `ew-ui`: A persona run typed an interruption point's name, pressed Enter and then D, and D did nothing; the
   click then placed a source. Not reproduced: the Interruption button of the Draw tab, a typed name, Enter, D, with the
   pointer on the tool strip and on the sheet, turned the direction each time (the window tests of the name field hold
-  it too). A repeat needs the run's exact key and pointer order.
+  it too). A repeat needs the run's exact key and pointer order. Round 3 (2026-11-25) tried eight more orders without a repeat: the Interruption button with the focus first in the Pages navigator, in Properties or nowhere, the pointer left on the bar or moved to the sheet, and D sent as its key with its typed letter; D turned the direction each time.
 - FT-2006 `ew-ui`: Two faults a person met and the sample does not show at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ends the edit (Bus table, then Wire), and the Properties header is cut by its chips. Each needs its repro (which grid, which selection) before a fix.
 
 #### The page's drawing
