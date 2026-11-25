@@ -100,27 +100,27 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             return;
         }
         let width = ui.available_width();
-        // The widest action button, or the header's title.
+        // The widest action button, or the header's title in the header's font.
         let measure = |text: String, font: &theme::TypeToken| {
             ui.painter()
                 .layout_no_wrap(text, theme::font(font), t.text_primary.color32())
                 .size()
                 .x
         };
+        let strong = theme::TypeToken {
+            semibold: true,
+            ..t.type_small
+        };
         let widest = rows
             .iter()
             .flat_map(|r| &r.actions)
             .map(|a| components::action_button_width(ui, shell, a, None))
             .fold(
-                measure(strings::text(key!("glossary-actions")).to_owned(), &t.type_small),
+                measure(strings::text(key!("glossary-actions")).to_owned(), &strong),
                 f32::max,
             );
         let actions_w = (widest + 2.0 * t.space_4).ceil();
         // The longest word of each text column on show, in its font, with the cell padding.
-        let strong = theme::TypeToken {
-            semibold: true,
-            ..t.type_small
-        };
         let longest_word = |texts: &mut dyn Iterator<Item = &String>, font: &theme::TypeToken| {
             texts
                 .flat_map(|s| s.split_whitespace())
