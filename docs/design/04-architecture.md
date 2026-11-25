@@ -184,6 +184,12 @@ Three seams follow from the rules and are kept:
   permissive crate only with the consent of its copyright holders, named in the commit (ADR-0024). The project
   owner has given his, for his own code, once and for the moves to come (2026-11-23): a commit that moves such
   code says that it does so under that consent. Code that came from a third party under the GPL never moves.
+  Three such moves of the owner's own code carry no or other words in their commits, and fall under the same consent:
+  `43cf851cd` (the tests' bless switch and the comparison of an expected file, `ew_testdir::bless` and
+  `compare_or_bless`, from GPL test files into `ew-testdir`), `b34bec569` (the path of the test tables,
+  `ew_testdir::TABLES`, from `bin/ew`'s test support into `ew-testdir`) and `5b5489c5a` (the next versions of a
+  library item beside `semver_core` in `ew-schema`, from `ew-import-catalog`, the symbol editor and the macros). No
+  third-party code is among them.
   A thing is never kept twice with a test between the copies.
 - `xtask` is permissive and links no GPL crate: it reads the committed parameter schemas and the rule catalogue's
   snapshot as files.
