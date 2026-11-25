@@ -1246,8 +1246,8 @@ fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
             .reps
             .iter()
             .find_map(|r| r.ip.as_ref().filter(|i| i.name == "24V"))
+            .map(|i| ew_viewmodel::ew_api::output::ip_direction_word(&i.direction))
             .expect("the page arrow 24V")
-            .direction
             .clone()
     };
     assert_eq!(direction(&mut d, "101"), "source");

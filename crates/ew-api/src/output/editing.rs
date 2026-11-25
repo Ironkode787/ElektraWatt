@@ -31,7 +31,8 @@ pub(crate) use catalogue::catalogue_plc;
 pub(super) use catalogue::starter_fndef;
 pub use catalogue::{
     CatalogueInterface, CataloguePart, CataloguePlc, CatalogueSymbol, CatalogueTemplateFn, PlaceCatalogue,
-    PlacedBy, PlcGroup, address_copy, bus_port_symbol_key, page_type_takes, part_interfaces,
+    PlacedBy, PlcGroup, address_copy, bus_port_symbol_key, ip_direction_word, page_type_takes,
+    part_interfaces,
 };
 pub(crate) use shape::dir_of;
 pub use shape::{ShapeCp, SymbolShape, exchange_map};

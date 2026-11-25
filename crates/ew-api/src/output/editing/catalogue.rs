@@ -350,7 +350,7 @@ pub(super) fn line_kind_word(k: &LineKind) -> String {
 }
 
 /// The JSON spelling of an IP direction.
-pub(super) fn ip_direction_word(d: &IpDirection) -> String {
+pub fn ip_direction_word(d: &IpDirection) -> String {
     match d {
         IpDirection::Source => "source",
         IpDirection::Target => "target",

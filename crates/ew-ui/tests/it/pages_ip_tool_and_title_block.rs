@@ -101,7 +101,14 @@ fn points(d: &mut Driver) -> Vec<(String, String)> {
     tables
         .reps
         .iter()
-        .filter_map(|r| r.ip.as_ref().map(|ip| (ip.name.clone(), ip.direction.clone())))
+        .filter_map(|r| {
+            r.ip.as_ref().map(|ip| {
+                (
+                    ip.name.clone(),
+                    ew_viewmodel::ew_api::output::ip_direction_word(&ip.direction),
+                )
+            })
+        })
         .collect()
 }
 

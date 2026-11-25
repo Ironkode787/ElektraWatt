@@ -302,9 +302,97 @@ impl Builder<'_> {
             .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
             .collect();
         self.out.knockouts = crate::knockout::crossed(&lines, &self.out.knockouts);
-        self.out.draft = Some(Arc::new(g.page));
+        self.out.draft = Some(Arc::new(with_facts(view, g.page)));
     }
+}
 
+/// The page as the layout reads it whole, its texts settled: the page's kind, each wire's supply rank, each part's
+/// role ([`role`]) and the parts inside a structure box kept where they stand (docs/design/06a-drafting.md §2.2: in
+/// the first build its outline is a fence the placer does not cross, rounded outward as the bodies it holds are).
+fn with_facts(view: &PageView, mut page: DraftPage) -> DraftPage {
+    use ew_schema::PotentialType as P;
+    let facts = &view.draft;
+    page.kind = facts.kind;
+    // The wires that carry protective or functional earth (PEN, PE, FE).
+    let mut earth: std::collections::BTreeSet<WireId> = std::collections::BTreeSet::new();
+    for w in &mut page.wires {
+        let ptype = facts.supply.get(&w.id.0);
+        w.supply = ptype.and_then(supply_rank);
+        if matches!(ptype, Some(P::Pen | P::Pe | P::Fe)) {
+            earth.insert(w.id);
+        }
+    }
+    let ticks = Ticks::of(view.grid);
+    let fences: Vec<ew_drafting::Rect> = (view.structure_boxes.iter())
+        .filter_map(|b| {
+            let outline = b.sbox.outline.iter().map(|p| Rect::from_point(*p));
+            Some(ticks.outward(outline.reduce(Rect::union)?))
+        })
+        .collect();
+    let wires = page.wires.clone();
+    for part in &mut page.parts {
+        let none = crate::page::PartFacts::default();
+        let part_facts = facts.parts.get(&part.id.0).unwrap_or(&none);
+        let earthed = part.pins.iter().all(|p| {
+            let at: Vec<_> = (wires.iter())
+                .filter(|w| w.ends.contains(&End::Pin(p.id)))
+                .collect();
+            !at.is_empty() && at.iter().all(|w| earth.contains(&w.id))
+        });
+        part.role = role(part_facts, &part.pins, earthed);
+        if fences.iter().any(|f| f.holds(part.bounds())) {
+            part.locked = true;
+        }
+    }
+    page
+}
+
+/// A supply type as a wire's supply rank, in the order of the supply potentials (doc 06a §2.2): L1, L2, L3, L, N, PEN,
+/// PE, FE, L+, M, L−; `None` for a signal, undefined or unknown type.
+fn supply_rank(t: &ew_schema::PotentialType) -> Option<u8> {
+    use ew_schema::PotentialType as P;
+    Some(match t {
+        P::L1 => 0,
+        P::L2 => 1,
+        P::L3 => 2,
+        P::L => 3,
+        P::N => 4,
+        P::Pen => 5,
+        P::Pe => 6,
+        P::Fe => 7,
+        P::LPlus => 8,
+        P::M => 9,
+        P::LMinus => 10,
+        P::Signal | P::Undefined | P::Unknown(_) => return None,
+    })
+}
+
+/// What part a representation is for the rules of the placer (docs/design/06a-drafting.md §1.6, §2.2): an
+/// interruption point by its direction (a target comes in, a source goes out; an undirected one by the side its wire
+/// leaves on); else the role its records give ([`crate::page::PartFacts::role`]); a part with one pin whose wires all
+/// carry protective or functional earth an earth symbol (`earthed`); anything else [`Role::Other`].
+fn role(facts: &crate::page::PartFacts, pins: &[Pin], earthed: bool) -> Role {
+    use ew_schema::IpDirection;
+    if let Some(direction) = &facts.ip {
+        return match direction {
+            IpDirection::Target => Role::MarkIn,
+            IpDirection::Source => Role::MarkOut,
+            IpDirection::Undirected | IpDirection::Unknown(_) => match pins.first().and_then(|p| p.side) {
+                Some(Side::Left) => Role::MarkOut,
+                _ => Role::MarkIn,
+            },
+        };
+    }
+    if let Some(role) = facts.role {
+        return role;
+    }
+    if earthed && pins.len() == 1 {
+        return Role::Earth;
+    }
+    Role::Other
+}
+
+impl Builder<'_> {
     /// Prints one text of the layer, with its slot's records.
     fn print(&mut self, text: Text, slot: Option<Slot>) {
         if let Some(s) = &slot {

@@ -335,10 +335,14 @@ pub fn page_describe(page: &CanvasPage) -> String {
             (Some(ip), _) if !ip.continuation.is_empty() => format!(
                 "ip {} direction {} continues {}",
                 page_quoted(&ip.name),
-                ip.direction,
+                ew_api::output::ip_direction_word(&ip.direction),
                 page_quoted(&ip.continuation)
             ),
-            (Some(ip), _) => format!("ip {} direction {}", page_quoted(&ip.name), ip.direction),
+            (Some(ip), _) => format!(
+                "ip {} direction {}",
+                page_quoted(&ip.name),
+                ew_api::output::ip_direction_word(&ip.direction)
+            ),
             (None, Some(tag)) => page_quoted(tag),
             (None, None) => "none".to_owned(),
         };

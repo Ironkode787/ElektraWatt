@@ -305,6 +305,7 @@ fn hostile_view() -> PageView {
         strip_tags: Vec::new(),
         knockouts: Vec::new(),
         bridges: Vec::new(),
+        draft: Default::default(),
     }
 }
 

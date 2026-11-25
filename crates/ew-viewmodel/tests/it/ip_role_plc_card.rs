@@ -75,7 +75,13 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
         .iter()
         .find_map(|r| r.ip.clone())
         .expect("the placed point");
-    assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("0V", "target"));
+    assert_eq!(
+        (
+            ip.name.as_str(),
+            ew_api::output::ip_direction_word(&ip.direction).as_str()
+        ),
+        ("0V", "target")
+    );
 }
 
 /// After its source the typed name stays, and the tool floats its target, on

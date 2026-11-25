@@ -54,6 +54,7 @@ fn view(table: Option<TableView>) -> PageView {
         strip_tags: Vec::new(),
         knockouts: Vec::new(),
         bridges: Vec::new(),
+        draft: Default::default(),
     }
 }
 

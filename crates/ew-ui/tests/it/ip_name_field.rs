@@ -244,7 +244,12 @@ fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_th
         .iter()
         .filter_map(|r| r.ip.as_ref())
         .filter(|ip| ip.name == "FT1657")
-        .map(|ip| (ip.name.clone(), ip.direction.clone()))
+        .map(|ip| {
+            (
+                ip.name.clone(),
+                ew_viewmodel::ew_api::output::ip_direction_word(&ip.direction),
+            )
+        })
         .collect();
     pair.sort();
     assert_eq!(
@@ -657,7 +662,7 @@ fn a_direction_clicked_where_the_tool_proposed_it_holds() {
         .iter()
         .filter_map(|r| r.ip.as_ref())
         .filter(|ip| ip.name == "T5")
-        .map(|ip| ip.direction.clone())
+        .map(|ip| ew_viewmodel::ew_api::output::ip_direction_word(&ip.direction))
         .collect();
     assert_eq!(placed, ["target"]);
 }

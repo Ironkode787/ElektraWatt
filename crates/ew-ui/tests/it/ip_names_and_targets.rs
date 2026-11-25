@@ -21,8 +21,13 @@ fn ips(d: &mut Driver) -> Vec<(String, String, String)> {
         .reps
         .iter()
         .filter_map(|r| {
-            r.ip.as_ref()
-                .map(|ip| (ip.name.clone(), ip.direction.clone(), ip.continuation.clone()))
+            r.ip.as_ref().map(|ip| {
+                (
+                    ip.name.clone(),
+                    ew_viewmodel::ew_api::output::ip_direction_word(&ip.direction),
+                    ip.continuation.clone(),
+                )
+            })
         })
         .collect();
     out.sort();

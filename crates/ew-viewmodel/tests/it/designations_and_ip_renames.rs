@@ -127,7 +127,10 @@ fn an_interruption_point_is_renamed_and_redirected_from_the_grid() {
         .and_then(|r| r.ip.clone())
         .unwrap();
     assert_eq!(
-        (ip.name.as_str(), ip.direction.as_str()),
+        (
+            ip.name.as_str(),
+            ew_api::output::ip_direction_word(&ip.direction).as_str()
+        ),
         ("RENAMED-1", "undirected")
     );
     assert_ne!(name, "RENAMED-1");
@@ -142,7 +145,10 @@ fn ips(s: &ShellModel) -> Vec<(String, String)> {
     let mut v: Vec<_> = t
         .reps
         .iter()
-        .filter_map(|r| r.ip.as_ref().map(|i| (i.name.clone(), i.direction.clone())))
+        .filter_map(|r| {
+            r.ip.as_ref()
+                .map(|i| (i.name.clone(), ew_api::output::ip_direction_word(&i.direction)))
+        })
         .collect();
     v.sort();
     v

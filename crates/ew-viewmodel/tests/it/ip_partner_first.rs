@@ -61,7 +61,10 @@ fn the_tool_offers_the_partner_of_a_waiting_point() {
         .find_map(|r| r.ip.clone())
         .expect("the source on 102");
     assert_eq!(
-        (placed.name.as_str(), placed.direction.as_str()),
+        (
+            placed.name.as_str(),
+            ew_api::output::ip_direction_word(&placed.direction).as_str()
+        ),
         (name.as_str(), "source")
     );
     let said = toast(&s);

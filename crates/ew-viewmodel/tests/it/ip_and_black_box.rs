@@ -46,8 +46,9 @@ fn ip(t: &PageTables, name: &str, direction: &str) -> TableRep {
     t.reps
         .iter()
         .find(|r| {
-            r.ip.as_ref()
-                .is_some_and(|i| i.name == name && i.direction == direction)
+            r.ip.as_ref().is_some_and(|i| {
+                i.name == name && ew_api::output::ip_direction_word(&i.direction) == direction
+            })
         })
         .unwrap_or_else(|| panic!("no IP {name} {direction}"))
         .clone()
@@ -59,8 +60,13 @@ fn ips(t: &PageTables) -> Vec<(String, String, (i64, i64))> {
         .reps
         .iter()
         .filter_map(|r| {
-            r.ip.as_ref()
-                .map(|i| (i.name.clone(), i.direction.clone(), r.pos))
+            r.ip.as_ref().map(|i| {
+                (
+                    i.name.clone(),
+                    ew_api::output::ip_direction_word(&i.direction),
+                    r.pos,
+                )
+            })
         })
         .collect();
     v.sort();

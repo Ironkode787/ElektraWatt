@@ -678,7 +678,13 @@ fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
     done(&mut s, "tool.ip", json!({}));
     let (reps, _) = added(&before, &s);
     let ip = reps[0].ip.clone().expect("the end's interruption point");
-    assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("FT950", "source"));
+    assert_eq!(
+        (
+            ip.name.as_str(),
+            ew_api::output::ip_direction_word(&ip.direction).as_str()
+        ),
+        ("FT950", "source")
+    );
 }
 
 /// A pin on a junction wins: a free contact moved so that its pin lies on a junction of

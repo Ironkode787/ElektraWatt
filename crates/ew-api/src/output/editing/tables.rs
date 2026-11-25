@@ -21,7 +21,7 @@ use ew_schema::{
 };
 use ew_units::{Pt2, Rect};
 
-use super::catalogue::{connection_kind_word, drawn_page, ip_direction_word, line_kind_word, rep_type_word};
+use super::catalogue::{connection_kind_word, drawn_page, line_kind_word, rep_type_word};
 use super::shape::{SymbolShape, dir_of, pt, shape_of};
 use crate::Session;
 use crate::geometry::{Dir, orient_dir, orient_index};
@@ -278,8 +278,8 @@ pub struct TableRep {
 pub struct TableIp {
     /// The IP's name.
     pub name: String,
-    /// Its direction in its JSON spelling (`source`, `target`, `undirected`).
-    pub direction: String,
+    /// Its direction.
+    pub direction: ew_schema::IpDirection,
     /// Where it continues: its printed cross-reference to its partners, as the canvas prints it; empty for
     /// a point without a partner.
     pub continuation: String,
@@ -602,7 +602,7 @@ impl Session {
             let ip = first.as_ref().and_then(|f| match &f.kind {
                 FunctionKind::Ip(ip) => Some(TableIp {
                     name: ip.name.as_str().to_owned(),
-                    direction: ip_direction_word(&ip.direction),
+                    direction: ip.direction.clone(),
                     continuation: q.get::<ew_derive::XrefTextOf>(rid).text.clone(),
                     external: ip.external.is_some(),
                 }),

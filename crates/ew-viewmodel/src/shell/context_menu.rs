@@ -301,7 +301,10 @@ impl ShellModel {
                 i
             })),
         }
-        let direction = rep.ip.as_ref().map(|ip| ip.direction.as_str());
+        let direction = rep
+            .ip
+            .as_ref()
+            .map(|ip| ew_api::output::ip_direction_word(&ip.direction));
         for (word, choice) in [
             ("source", key!("choice-source")),
             ("target", key!("choice-target")),
@@ -309,7 +312,7 @@ impl ShellModel {
             let label = strings::format(key!("canvas-ip-direction"), &[strings::text(choice)]);
             let params = json!({"row": "function/kind.ip.direction", "value": word});
             out.extend(self.aimed("props.set", params, label).map(|mut i| {
-                i.checked = direction == Some(word);
+                i.checked = direction.as_deref() == Some(word);
                 i
             }));
         }

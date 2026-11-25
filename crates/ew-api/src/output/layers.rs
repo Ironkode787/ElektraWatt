@@ -96,6 +96,7 @@ fn base_view(page: PageRef) -> PageView {
         strip_tags: Vec::new(),
         knockouts: Vec::new(),
         bridges: Vec::new(),
+        draft: ew_scene::page::DraftFacts::default(),
     }
 }
 
@@ -161,6 +162,8 @@ struct ViewParts {
     /// The page items and the structure boxes.
     items: Form,
     strip_tags: bool,
+    /// What the layout reads of the page's records beside their geometry (`PageView::draft`).
+    draft: bool,
     /// The report table of a generated page, or the embedded blocks of a drawn one.
     tables: bool,
     panel: Parts,
@@ -186,6 +189,7 @@ impl ViewParts {
         bridges: false,
         items: Form::No,
         strip_tags: false,
+        draft: false,
         tables: false,
         panel: Parts::NONE,
         needs_panel: false,
@@ -237,6 +241,7 @@ impl ViewParts {
                 junctions: true,
                 items: Form::Full,
                 strip_tags: true,
+                draft: true,
                 valve_cells: true,
                 plug_notes: true,
                 bridges: true,
@@ -285,6 +290,7 @@ impl ViewParts {
             bridges: self.bridges || o.bridges,
             items: self.items.max(o.items),
             strip_tags: self.strip_tags || o.strip_tags,
+            draft: self.draft || o.draft,
             tables: self.tables || o.tables,
             panel: Parts {
                 surface: self.panel.surface || o.panel.surface,
@@ -369,6 +375,9 @@ fn view_of(q: &Q, page: PageRef, parts: ViewParts) -> Option<PageView> {
     }
     if parts.strip_tags {
         v.strip_tags = page_strip_tags(q, p);
+    }
+    if parts.draft {
+        v.draft = super::route_measures::draft_facts(q, page, p);
     }
     if parts.knockouts {
         v.knockouts = (*q.get::<PageKnockoutsOf>(page)).clone();

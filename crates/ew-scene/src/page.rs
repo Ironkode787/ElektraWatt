@@ -543,6 +543,31 @@ pub struct PageView {
     /// The bridges of the strips whose terminals the page draws, drawn into [`Layer::Wires`] after the junctions
     /// where their terminals stand in one row (module documentation, "Bridges").
     pub bridges: Vec<BridgeView>,
+    /// What the layout reads of the page's records beside their geometry, which the labels layer's page
+    /// ([`LayerList::draft`]) carries; the default is a page of none.
+    pub draft: DraftFacts,
+}
+
+/// What the layout reads of a page's records beside their geometry (docs/design/06a-drafting.md §1.6, §2.2), filled
+/// by the caller: the default reads an electrical page whose wires carry no supply and whose parts are of no role.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct DraftFacts {
+    /// Which rules of §1.6 the page is bound by.
+    pub kind: ew_drafting::PageKind,
+    /// The supply type of each wire's potential, by connection ID (a signal, undefined or unknown type left out).
+    pub supply: BTreeMap<Uuid, ew_schema::PotentialType>,
+    /// What its records say each representation is, by representation ID.
+    pub parts: BTreeMap<Uuid, PartFacts>,
+}
+
+/// What a representation's records say it is, for the placer's rules.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PartFacts {
+    /// The direction of the interruption point it draws.
+    pub ip: Option<ew_schema::IpDirection>,
+    /// Its role by its function definitions or its part on a fluid or a bus page (air preparation, valve,
+    /// actuator, controller, station), or as a PLC module's box with channels (a card); `None` for no such role.
+    pub role: Option<ew_drafting::Role>,
 }
 
 /// A strip's bridge (doc 08 §6.5): the clamp it joins on each of its terminals, by the function and CP index

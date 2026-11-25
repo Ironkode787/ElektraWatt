@@ -17,11 +17,11 @@ use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{DraftPage, Passed, Quality, TextRef};
 use ew_ids::{Id, Uuid};
 use ew_schema::PageType;
-use ew_units::{Grid, Nm, Pt2, Rect};
+use ew_units::{Grid, Nm, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::editing::{PageTables, TableConnection, TableCp, TableEnd};
+use super::editing::{PageTables, TableCp, TableEnd};
 use super::layers::page_layer;
 use crate::Session;
 
@@ -394,67 +394,92 @@ fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 
     out
 }
 
-/// The supply type of a connection's potential, by the potential of an end CP; `None` for a signal, undefined or
-/// unknown potential.
-fn supply_type(q: &Q, c: &TableConnection) -> Option<ew_schema::PotentialType> {
+/// What the layout reads of the records of page `page` beside their geometry (`ew_scene::page::DraftFacts`): the page's
+/// kind, the supply type of each wire's potential (by the potential of an end CP), and what its records say each
+/// representation is ([`part_facts`]). The labels layer reads it; the scene builds the layout's page whole from it.
+pub(crate) fn draft_facts(q: &Q, page: PageRef, drawn: Id<ew_schema::Page>) -> ew_scene::page::DraftFacts {
+    let kind = match q
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .find(|e| e.page == page)
+        .map(|e| &e.kind)
+    {
+        Some(PageType::Fluid) => ew_drafting::PageKind::Fluid,
+        Some(PageType::BusTopology) => ew_drafting::PageKind::Bus,
+        _ => ew_drafting::PageKind::Electrical,
+    };
     let partition = q.get::<PotentialPartition>(());
-    [c.a, c.b].into_iter().find_map(|e| {
-        let TableEnd::Cp { function, idx } = e else {
-            return None;
-        };
-        let p = partition.potential_at(CpRef::new(Id::from_uuid(function), idx).key())?;
-        let flow = q.get::<PotentialFlow>(p.id);
-        let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
-        supply_rank(&ptype).map(|_| ptype)
-    })
+    let supply = q
+        .idx()
+        .connections_by_page(drawn)
+        .filter_map(|c| {
+            let con = q.connections().get(c)?;
+            let ptype = [&con.a, &con.b].into_iter().find_map(|e| {
+                let ew_schema::Endpoint::Cp(function, idx) = e else {
+                    return None;
+                };
+                let p = partition.potential_at(CpRef::new(*function, *idx).key())?;
+                let flow = q.get::<PotentialFlow>(p.id);
+                let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
+                (!matches!(
+                    ptype,
+                    ew_schema::PotentialType::Signal
+                        | ew_schema::PotentialType::Undefined
+                        | ew_schema::PotentialType::Unknown(_)
+                ))
+                .then_some(ptype)
+            })?;
+            Some((c.as_uuid(), ptype))
+        })
+        .collect();
+    let parts = q
+        .idx()
+        .reps_by_page(drawn)
+        .filter_map(|r| Some((r.as_uuid(), part_facts(q, kind, q.reps().get(r)?))))
+        .collect();
+    ew_scene::page::DraftFacts { kind, supply, parts }
 }
 
-/// A supply type as a wire's supply rank, in the order of the supply potentials (doc 06a §2.2): L1, L2, L3, L, N, PEN,
-/// PE, FE, L+, M, L−; `None` for a signal, undefined or unknown type.
-fn supply_rank(t: &ew_schema::PotentialType) -> Option<u8> {
-    use ew_schema::PotentialType as P;
-    Some(match t {
-        P::L1 => 0,
-        P::L2 => 1,
-        P::L3 => 2,
-        P::L => 3,
-        P::N => 4,
-        P::Pen => 5,
-        P::Pe => 6,
-        P::Fe => 7,
-        P::LPlus => 8,
-        P::M => 9,
-        P::LMinus => 10,
-        P::Signal | P::Undefined | P::Unknown(_) => return None,
-    })
+/// What a representation's records say it is for the rules of the placer (docs/design/06a-drafting.md §1.6, §2.2), on
+/// a page of `kind`: the direction of the interruption point it draws; on a fluid page its role by its function
+/// definitions (air preparation the source, working ports a valve, consumer ports an actuator); on a bus page by its
+/// part's bus ports (one that leads a controller, else a station); a drawn box of a PLC module with channels a card.
+fn part_facts(
+    q: &Q,
+    kind: ew_drafting::PageKind,
+    rep: &ew_schema::Representation,
+) -> ew_scene::page::PartFacts {
+    let functions: Vec<Id<ew_schema::Function>> = rep.functions.clone();
+    let ip = (functions.first())
+        .and_then(|f| q.functions().get(*f))
+        .and_then(|f| match &f.kind {
+            ew_schema::FunctionKind::Ip(ip) => Some(ip.direction.clone()),
+            _ => None,
+        });
+    let device = functions
+        .first()
+        .and_then(|f| q.functions().get(*f))
+        .and_then(|f| f.device);
+    ew_scene::page::PartFacts {
+        role: ip
+            .is_none()
+            .then(|| role(q, kind, rep, &functions, device))
+            .flatten(),
+        ip,
+    }
 }
 
-/// What part `rep` is for the rules of the placer (docs/design/06a-drafting.md §1.6, §2.2), on a page of `kind`:
-/// an interruption point by its direction (a target comes in, a source goes out; an undirected one by the side its
-/// wire leaves on); on a fluid page by its function definitions (air preparation the source, working ports a valve,
-/// consumer ports an actuator); on a bus page by its part's bus ports (one that leads a controller, else a
-/// station); a drawn box of a PLC module with channels a card; a part with one pin whose wires all carry protective
-/// or functional earth an earth symbol (`earthed`); anything else [`ew_drafting::Role::Other`].
+/// The role of a representation of `functions` and `device` by its records (see [`part_facts`]); `None` for none.
 fn role(
     q: &Q,
     kind: ew_drafting::PageKind,
-    rep: &super::editing::TableRep,
-    pins: &[ew_drafting::Pin],
-    earthed: bool,
-) -> ew_drafting::Role {
-    use ew_drafting::{PageKind, Role, Side};
+    rep: &ew_schema::Representation,
+    functions: &[Id<ew_schema::Function>],
+    device: Option<Id<ew_schema::Device>>,
+) -> Option<ew_drafting::Role> {
+    use ew_drafting::{PageKind, Role};
     use ew_schema::{FluidPortRole, PortRole};
-    if let Some(ip) = &rep.ip {
-        return match ip.direction.as_str() {
-            "target" => Role::MarkIn,
-            "source" => Role::MarkOut,
-            _ => match pins.first().and_then(|p| p.side) {
-                Some(Side::Left) => Role::MarkOut,
-                _ => Role::MarkIn,
-            },
-        };
-    }
-    let functions: Vec<Id<ew_schema::Function>> = rep.functions.iter().map(|f| Id::from_uuid(*f)).collect();
     match kind {
         PageKind::Fluid => {
             let defs: Vec<_> = functions
@@ -466,7 +491,7 @@ fn role(
                 .iter()
                 .any(|d| d.item.category.0.as_str() == "AirPreparation")
             {
-                return Role::Source;
+                return Some(Role::Source);
             }
             let ports: Vec<FluidPortRole> = defs
                 .iter()
@@ -476,16 +501,15 @@ fn role(
                 .iter()
                 .any(|r| matches!(r, FluidPortRole::Working2 | FluidPortRole::Working4))
             {
-                return Role::Valve;
+                return Some(Role::Valve);
             }
             if ports.contains(&FluidPortRole::Consumer) {
-                return Role::Actuator;
+                return Some(Role::Actuator);
             }
         }
         PageKind::Bus => {
-            let roles: Vec<PortRole> = rep
-                .device
-                .and_then(|d| q.devices().get(Id::from_uuid(d)))
+            let roles: Vec<PortRole> = device
+                .and_then(|d| q.devices().get(d))
                 .map(|d| {
                     d.parts
                         .iter()
@@ -499,99 +523,30 @@ fn role(
                 .iter()
                 .any(|r| matches!(r, PortRole::Master | PortRole::Controller))
             {
-                return Role::Controller;
+                return Some(Role::Controller);
             }
             if !roles.is_empty() {
-                return Role::Station;
+                return Some(Role::Station);
             }
         }
         PageKind::Electrical => {}
     }
-    let card = rep.black_box.is_some()
-        && rep
-            .device
-            .and_then(|d| ew_derive::module_part(q, Id::from_uuid(d)))
+    let card = rep.box_.is_some()
+        && device
+            .and_then(|d| ew_derive::module_part(q, d))
             .is_some_and(|(_, plc)| plc.channel_count() > 0);
-    if card {
-        return Role::Card;
-    }
-    if earthed && pins.len() == 1 {
-        return Role::Earth;
-    }
-    Role::Other
+    card.then_some(Role::Card)
 }
 
-/// The page of `tables` as the layout sees it: the labels layer's page (texts at their sizes, the scene's one
-/// conversion into ticks), each wire's supply rank, the page's kind, each part's role, and the parts inside a
-/// structure box kept where they stand (docs/design/06a-drafting.md §2.2: in the first build its outline is a fence
-/// the placer does not cross).
-fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
-    let mut d = page_layer(q, page, Layer::Labels)
+/// The page as the layout sees it: the labels layer's page, which the scene builds whole (texts at their sizes, its
+/// one conversion into ticks, the page's kind, each wire's supply rank, each part's role, the parts a structure box
+/// fences).
+fn draft(q: &Q, page: PageRef) -> DraftPage {
+    page_layer(q, page, Layer::Labels)
         .draft
         .as_deref()
         .cloned()
-        .unwrap_or_default();
-    let kind = q
-        .get::<PageOrder>(())
-        .entries
-        .iter()
-        .find(|e| e.page == page)
-        .map(|e| e.kind.clone());
-    d.kind = match kind {
-        Some(PageType::Fluid) => ew_drafting::PageKind::Fluid,
-        Some(PageType::BusTopology) => ew_drafting::PageKind::Bus,
-        _ => ew_drafting::PageKind::Electrical,
-    };
-    // The wires that carry protective or functional earth (PEN, PE, FE).
-    let mut earth: BTreeSet<ew_drafting::WireId> = BTreeSet::new();
-    for w in &mut d.wires {
-        if let Some(c) = tables.connections.iter().find(|c| c.id == w.id.0) {
-            let ptype = supply_type(q, c);
-            w.supply = ptype.as_ref().and_then(supply_rank);
-            if matches!(
-                ptype,
-                Some(
-                    ew_schema::PotentialType::Pen
-                        | ew_schema::PotentialType::Pe
-                        | ew_schema::PotentialType::Fe
-                )
-            ) {
-                earth.insert(w.id);
-            }
-        }
-    }
-    // A fence is rounded outward, as the bodies it holds are.
-    let ticks = crate::routing::Ticks::new(tables.grid);
-    let fences: Vec<ew_drafting::Rect> = tables
-        .structure_boxes
-        .iter()
-        .filter_map(|b| {
-            let outline = b
-                .outline
-                .iter()
-                .map(|p| Rect::from_point(Pt2::new(Nm(p.0), Nm(p.1))));
-            Some(ticks.outward(outline.reduce(Rect::union)?))
-        })
-        .collect();
-    let kind = d.kind;
-    let wires = d.wires.clone();
-    for part in &mut d.parts {
-        let Some(rep) = tables.reps.iter().find(|r| r.id == part.id.0) else {
-            continue;
-        };
-        let earthed = part.pins.iter().all(|p| {
-            let at: Vec<_> = wires
-                .iter()
-                .filter(|w| w.ends.contains(&ew_drafting::End::Pin(p.id)))
-                .collect();
-            !at.is_empty() && at.iter().all(|w| earth.contains(&w.id))
-        });
-        part.role = role(q, kind, rep, &part.pins, earthed);
-        if fences.iter().any(|f| f.holds(part.bounds())) {
-            part.locked = true;
-        }
-    }
-    d
+        .unwrap_or_default()
 }
 
 /// What a page's findings are named by: the page's records, its grid and the labels layer's texts.
@@ -1043,7 +998,7 @@ fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Fin
 
 /// The measure of the page of `tables` and what names its findings.
 fn measured<'a>(q: &'a Q, page_ref: PageRef, tables: &'a PageTables) -> (Reader<'a>, Quality) {
-    let quality = ew_drafting::measure(&draft(q, page_ref, tables));
+    let quality = ew_drafting::measure(&draft(q, page_ref));
     let reader = Reader {
         q,
         page_ref,
@@ -1112,10 +1067,11 @@ impl Session {
     /// The page labelled `folio` as the layout sees it ([`DraftPage`], docs/design/06a-drafting.md §2.2); `None` for an
     /// unknown folio or a page that is not drawn.
     pub fn page_draft(&self, folio: &str) -> Option<DraftPage> {
-        let tables = self.page_tables(folio)?;
+        // A page that is not drawn has no tables.
+        self.page_tables(folio)?;
         let q = self.query();
         let page = entry_of(&q, folio).ok()?;
-        Some(draft(&q, page, &tables))
+        Some(draft(&q, page))
     }
 
     /// The drawing area of the page labelled `folio` as the router reads it ([`Session::page_draft`]), in page nm:
