@@ -60,7 +60,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_api::AnyCommand;
+use ew_api::{AnyCommand, next_in_series};
 use ew_api::checks::rules::pot::MARK_BESIDE_PIN_NM;
 use ew_api::geometry::{Dir, orient_point, orient_then};
 use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, TablePotential, Uuid};
@@ -166,19 +166,6 @@ pub struct IpMemory {
     /// after the pair place further targets of its source; an external point takes it. It outlives a switch of
     /// tools, so a name typed with the IP tool armed names the end of the next wire ended with P, which takes it.
     pub typed: Option<String>,
-}
-
-/// The next name of `name`'s numbered series: the decimal digits after the last `-` incremented, keeping their width
-/// (`24VDC-1` → `24VDC-2`, `X-09` → `X-10`), else `-1` appended (`L` → `L-1`).
-pub fn next_in_series(name: &str) -> String {
-    if let Some((head, tail)) = name.rsplit_once('-')
-        && !tail.is_empty()
-        && tail.bytes().all(|b| b.is_ascii_digit())
-        && let Some(n) = tail.parse::<u64>().ok().and_then(|n| n.checked_add(1))
-    {
-        return format!("{head}-{n:0width$}", width = tail.len());
-    }
-    format!("{name}-1")
 }
 
 /// A ghost's pin at the page point `p` of the page of `tables`, as the page will draw it: on the grid's own number
@@ -1298,15 +1285,6 @@ mod tests {
         assert!(!inside_polyline(&line, (40, 1)), "beside it");
         assert!(!inside_polyline(&line, (-10, 0)), "past its end");
         assert!(!inside_polyline(&[], (0, 0)));
-    }
-
-    #[test]
-    fn the_series_increments_the_trailing_number_or_starts_one() {
-        assert_eq!(next_in_series("24VDC-1"), "24VDC-2");
-        assert_eq!(next_in_series("X-09"), "X-10");
-        assert_eq!(next_in_series("L"), "L-1");
-        assert_eq!(next_in_series("PE-1.1"), "PE-1.1-1");
-        assert_eq!(next_in_series("A-"), "A--1");
     }
 
     #[test]

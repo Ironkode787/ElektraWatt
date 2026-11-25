@@ -146,7 +146,7 @@ use ew_schema::{LibDocument, Project, Record};
 use ew_store::{Changes, LockState, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
-pub use ew_commands::commands::{BULK_ABOVE, ChangeClass, FieldChange, classify_update};
+pub use ew_commands::commands::{BULK_ABOVE, ChangeClass, FieldChange, classify_update, next_in_series};
 /// The name of a list kind and the words it is searched for by, in a shipped language: the window offers the kinds
 /// by them.
 pub use ew_reports::words::{

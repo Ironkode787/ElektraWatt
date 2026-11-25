@@ -176,6 +176,20 @@ pub(crate) fn point_bevels(tx: &mut TxBuilder<'_>, junctions: &[Id<Junction>]) -
     Ok(())
 }
 
+/// The next name of an interruption point's numbered series (a new point's name never joins two others):
+/// the decimal digits after the last `-` incremented, keeping their width
+/// (`24VDC-1` → `24VDC-2`, `X-09` → `X-10`), else `-1` appended (`L` → `L-1`).
+pub fn next_in_series(name: &str) -> String {
+    if let Some((head, tail)) = name.rsplit_once('-')
+        && !tail.is_empty()
+        && tail.bytes().all(|b| b.is_ascii_digit())
+        && let Some(n) = tail.parse::<u64>().ok().and_then(|n| n.checked_add(1))
+    {
+        return format!("{head}-{n:0width$}", width = tail.len());
+    }
+    format!("{name}-1")
+}
+
 /// A new interruption point for [`new_ip`]: its function's FnDef and IP members, and its one representation's page,
 /// symbol, position, orientation and type.
 struct NewIp {
@@ -1556,4 +1570,18 @@ pub(crate) fn follow_moved_cps(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::next_in_series;
+
+    #[test]
+    fn the_series_increments_the_trailing_number_or_starts_one() {
+        assert_eq!(next_in_series("24VDC-1"), "24VDC-2");
+        assert_eq!(next_in_series("X-09"), "X-10");
+        assert_eq!(next_in_series("L"), "L-1");
+        assert_eq!(next_in_series("PE-1.1"), "PE-1.1-1");
+        assert_eq!(next_in_series("A-"), "A--1");
+    }
 }

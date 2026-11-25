@@ -70,7 +70,7 @@ pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
 pub use bus::{BusLineField, PlugParam};
 pub use common::{EndpointParam, KindName, TargetRef};
-pub use connection::{IpAtEnd, WiringChoice};
+pub use connection::{IpAtEnd, WiringChoice, next_in_series};
 pub use device::{ConnectHint, PlaceTarget, PortBox, PortsTarget, allowed_rep_types};
 pub use drafting::{JunctionPlace, MarkerPlace};
 pub use edit::BULK_ABOVE;
