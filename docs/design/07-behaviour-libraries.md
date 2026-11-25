@@ -133,9 +133,9 @@ preview shows:
    generated from the part's cable-core section (FR-CBL-004).
 6. **Several part uses per device** are allowed (a valve terminal and its bus node). Each use is matched separately.
    The first use that provides the main function is the device's main part.
-7. **Variant.** The variant travels in the part reference (`PartRef.variant`); a variant the part does not hold is
-   refused in words. `fields.set` of a part use's `part.variant` changes the variant alone, which is what Properties
-   ▸ Parts ▸ Variant and the strip editor's Variant cell send; the device keeps its functions and connections.
+7. **Variant.** `part.assign` takes `variant`, a key the part holds (another is refused in words), and writes it
+   into the part use's reference (`PartRef.variant`). Properties ▸ Parts ▸ Variant and the strip editor's Variant
+   cell change it alone, with `fields.set` of the device's `parts`; the device keeps its functions and connections.
 8. **Accessories.** Nothing is written on the device: its accessories are derived (§2.5). Replacing a part drops the
    device's accessory choices that the new part does not name, in the same step.
 
@@ -839,10 +839,10 @@ Seven further symbols join the starter set for the pilot corpus (§2.3).
   code in assembly mode and its components in component mode (FR-PRT-006, D-04, D-36).
 - **Accessories and variants.** The generic terminals `EW-GEN-TRM-1` and `EW-GEN-TRM-2` name the end plate
   `EW-GEN-EP-1` per strip and the end bracket `EW-GEN-EB-1` per rail group, `EW-GEN-TRM-3` the end plate
-  `EW-GEN-EP-2`; the duct `EW-GEN-DUCT-1` names its cover `EW-GEN-COV-40` per metre. `EW-GEN-TRM-1` is grey (`colour`
-  `GY`) and has the variant `BU`, blue, `EW-GEN-TRM-1-BU`. Plug-in bridges `EW-GEN-BRG-2`, `-3`, `-4` and `-10` serve
-  the generic terminals. The terminals and the circuit breakers carry clamp data (type and cross-section range), as
-  `test`.
+  `EW-GEN-EP-2`; the duct `EW-GEN-DUCT-1` names its cover `EW-GEN-COV-40` per metre. `EW-GEN-TRM-1` is grey
+  (`colour` `GY`) and has the variant `BU`, blue, `EW-GEN-TRM-1-BU`; `EW-GEN-TRM-2` is green-yellow (`GNYE`).
+  Plug-in bridges `EW-GEN-BRG-2`, `-3`, `-4` and `-10` serve the generic terminals. The terminals and the circuit
+  breakers carry clamp data (type and cross-section range), as `test`.
 - **The workshop stock.** Generic ferrules `EW-GEN-FER-0.5` … `-6` (insulated, single) and `EW-GEN-FER-2X0.5` …
   `-2X2.5` (twin), their colours those of DIN 46228-4 and flagged unverified; the markers `EW-GEN-MRK-1` (wire),
   `EW-GEN-MRK-2` (terminal, 5.2 mm) and `EW-GEN-MRK-3` (device). No wire part is shipped: a wire without one is

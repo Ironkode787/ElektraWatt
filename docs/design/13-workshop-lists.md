@@ -22,7 +22,7 @@ Check ▸ Check project (§6.3).
 consume, separate from the parts list, which counts devices and their accessories. It reads, of the wire design and
 nothing else:
 
-- each wire record of the project's cabinet wires (`wire_record_set`, §2.4): its `csa`, `colour`, `wire_part`,
+- each wire record of the project's cabinet wires (`wire_record_set`, §2.5): its `csa`, `colour`, `wire_part`,
   `length` (the value and whether there is one) and whether it is a field wire;
 - of each end the shop makes, its `treatment`: the ferrule's or lug's part, a twin ferrule's part once for its two
   wires, or none (bare, a connector, undetermined);
