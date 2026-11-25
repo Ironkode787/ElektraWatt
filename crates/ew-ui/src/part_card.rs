@@ -120,3 +120,26 @@ pub(crate) fn outline(ui: &mut Ui, t: &Tokens, width: i64, height: i64) {
     );
     response.tip(label);
 }
+
+/// A part's card as the hover card of `response` (a device's row, Part details): `card` gives a line of words over it
+/// and the card, made only while the pointer is on the response. None stands over a dialog's backdrop, as no tooltip
+/// of words does ([`components::under_backdrop`]).
+pub(crate) fn hover(
+    response: egui::Response,
+    card: impl FnOnce() -> (Option<String>, Option<PartCardView>),
+) -> egui::Response {
+    if components::under_backdrop(&response) {
+        return response;
+    }
+    response.on_hover_ui(|ui| {
+        let (lead, view) = card();
+        if let Some(words) = lead {
+            ui.strong(words);
+        }
+        if let Some(view) = view {
+            let t = theme::current(ui.ctx());
+            let mut ignored = Vec::new();
+            body(ui, &t, &view, true, &mut ignored);
+        }
+    })
+}

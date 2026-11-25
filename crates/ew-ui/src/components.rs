@@ -187,7 +187,7 @@ impl Tip for Response {
 
 /// Whether a dialog's backdrop covers the widget (a grid cell's tooltip stood above the backdrop of a dialog
 /// that opened while the pointer rested on the cell): its tooltip does not show then.
-fn under_backdrop(r: &Response) -> bool {
+pub(crate) fn under_backdrop(r: &Response) -> bool {
     !r.ctx.memory(|m| m.allows_interaction(r.layer_id))
 }
 

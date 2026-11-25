@@ -1271,15 +1271,11 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
             .and_then(|n| n.node_of(&row.key))
             .and_then(|(_, n)| n.records.first().copied());
         match device {
-            Some(device) => response.on_hover_ui(|ui| {
-                if let Some(words) = tree.shell.terminal_kind_words(device) {
-                    ui.strong(words);
-                }
-                if let Some(view) = tree.shell.device_part_card(device) {
-                    let t = crate::theme::current(ui.ctx());
-                    let mut ignored = Vec::new();
-                    crate::part_card::body(ui, &t, &view, true, &mut ignored);
-                }
+            Some(device) => crate::part_card::hover(response, || {
+                (
+                    tree.shell.terminal_kind_words(device),
+                    tree.shell.device_part_card(device),
+                )
             }),
             None => response,
         }

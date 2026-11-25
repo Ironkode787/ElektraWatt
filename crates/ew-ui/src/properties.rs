@@ -1922,10 +1922,7 @@ fn part_details(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, events: 
             if open {
                 crate::part_card::body(ui, &t, &view, true, events);
             } else {
-                response.on_hover_ui(|ui| {
-                    let mut ignored = Vec::new();
-                    crate::part_card::body(ui, &t, &view, true, &mut ignored);
-                });
+                crate::part_card::hover(response, || (None, Some(view.clone())));
             }
         });
 }
