@@ -48,7 +48,8 @@ rule catalogue snapshot `crates/ew-checks/catalogue/rules.json` and the notes of
 drafts `unreleased.md` and `m1-draft.md` are not shown), and
 regenerates the matching entries of `src/SUMMARY.md`. The pages are built, not committed: the root `.gitignore` names
 them, and the contract files they render stay committed. `SUMMARY.md` is committed; `cargo xtask docs-gen --check`
-fails when it differs from the sources, and it also runs in `cargo xtask check`.
+writes no page and fails when it differs from the sources, and `cargo xtask check` of the whole workspace runs it as a
+step.
 
 When a command or a rule changes, regenerate the sources first, then the pages:
 

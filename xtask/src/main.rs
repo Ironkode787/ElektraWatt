@@ -118,10 +118,15 @@ const COMMANDS: &[Command] = &[
     Command {
         name: "docs-gen",
         section: Section::Steps,
-        args: "",
+        args: "[--check]",
         does: "the reference (target/reference) and from it the generated reference pages of the user guide \
-               (docs/book/src/reference/) and the lists of its SUMMARY.md",
-        run: |_, root| generate::reference(root).and_then(|ok| Ok(ok && docs_gen::run(root, false)?)),
+               (docs/book/src/reference/) and the lists of its SUMMARY.md; --check writes no page and fails when \
+               SUMMARY.md or a rule's notes differ from the sources",
+        run: |args, root| {
+            with_check(args, "docs-gen", |check| {
+                generate::reference(root).and_then(|ok| Ok(ok && docs_gen::run(root, check)?))
+            })
+        },
     },
     Command {
         name: "gen-maps",

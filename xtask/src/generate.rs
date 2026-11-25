@@ -147,7 +147,8 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
 }
 
 /// The generators of xtask in check mode: `true` when every file they write is up to date. The book's contents are
-/// left out: comparing them needs the reference, and so a build.
+/// left out: comparing them needs the reference, and so a build; `check` of the whole workspace compares them
+/// (`docs-gen --check`).
 pub(crate) fn check_own(root: &Path) -> Result<bool> {
     let mut ok = true;
     for (name, step) in OWN {

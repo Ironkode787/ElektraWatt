@@ -37,7 +37,7 @@ cargo xtask rules                               # the repository rules alone, in
   holds yet and those not committed): a change of the persona harness (`tools/blind/`), the content (`content/`) or
   `xtask` builds `elektrawatt` and `ew`, writes the action list and replays every brief of `tools/blind/tasks/` (the
   step `briefs`), and fails where something is missing; the whole workspace replays them whatever the change
-  touches. A check that passes writes down the tree it passed on, in the git folder that every worktree shares;
+  touches, and compares the user guide's contents and rule notes with the reference (`docs-gen --check`). A check that passes writes down the tree it passed on, in the git folder that every worktree shares;
   `check` on the same tree with a scope it covers says so and runs nothing, so a gate does not run again what a lane
   ran. A deep run without the private corpus counts as a run without `--deep`.
 - **`gen`** rewrites every file that is generated from code or data. Run it after you change a command, a check

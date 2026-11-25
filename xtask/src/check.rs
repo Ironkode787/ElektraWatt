@@ -6,7 +6,8 @@
 //! In this order, each step printed with its result: rustfmt over every Rust file (it formats, it does not only
 //! compare), clippy with warnings as errors, the tests and the doctests, with `--deep` the tests marked for the deep
 //! run (`#[ignore]`d; the private corpus is read from `EW_PRIVATE_CORPUS` when it is set), the harness's briefs when
-//! the change touches them, and the repository rules. The scope of clippy and the tests is the packages named with
+//! the change touches them, for the whole workspace `docs-gen --check` (the book's contents and the rule notes against
+//! the reference, which needs a build), and the repository rules. The scope of clippy and the tests is the packages named with
 //! `-p`, or the whole workspace; all features are on, so the pixel snapshots of `ew-ui` run too. A failed step does
 //! not stop the later ones.
 //!
@@ -144,6 +145,11 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         if args.packages.is_empty() {
             println!("==> briefs: the whole workspace replays every brief");
             summary.push(("briefs", briefs(root)?));
+            println!("==> docs-gen --check: the book's contents and the rule notes against the reference");
+            summary.push((
+                "docs-gen",
+                crate::generate::reference(root)? && crate::docs_gen::run(root, true)?,
+            ));
         } else if let Some(path) = touched_paths(root)?.iter().find(|p| asks_for_briefs(p)) {
             println!(
                 "==> briefs: `{path}` and the other paths of the change ask for the replay of every brief"
