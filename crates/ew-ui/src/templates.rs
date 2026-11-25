@@ -36,25 +36,6 @@ fn small(ui: &mut Ui, t: &theme::Tokens, text: &str) {
     ui.add(egui::Label::new(crate::components::small_secondary(t, text)).wrap());
 }
 
-/// A label in the dialog's label column (`size.dialog.label`), then `space.3`, then `field` in the rest of the row.
-fn row(ui: &mut Ui, t: &theme::Tokens, label: &str, field: impl FnOnce(&mut Ui, egui::Id)) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        let label = ui
-            .allocate_ui_with_layout(
-                egui::vec2(t.size_dialog_label, t.size_control),
-                egui::Layout::left_to_right(egui::Align::Center),
-                |ui| {
-                    ui.set_min_size(egui::vec2(t.size_dialog_label, t.size_control));
-                    ui.label(label)
-                },
-            )
-            .inner;
-        ui.add_space(t.space_3);
-        field(ui, label.id);
-    });
-}
-
 /// A one-line text field that dispatches `new_project.set {<param>: text}` as it is typed; Enter in it presses
 /// Create (`submit`). `focus`: it takes the keyboard focus.
 fn text_field(
@@ -93,7 +74,7 @@ pub(crate) fn new_project(
 ) -> bool {
     let t = components::tokens(ui);
     let mut submit = false;
-    row(ui, &t, strings::text(key!("new-project-name")), |ui, label| {
+    components::form_row(ui, strings::text(key!("new-project-name")), |ui, label| {
         submit |= text_field(
             ui,
             &d.name,
@@ -104,7 +85,7 @@ pub(crate) fn new_project(
             events,
         );
     });
-    row(ui, &t, strings::text(key!("new-project-folder")), |ui, label| {
+    components::form_row(ui, strings::text(key!("new-project-folder")), |ui, label| {
         let browse = strings::text(key!("new-project-browse"));
         let button = ui.fonts_mut(|f| {
             f.layout_no_wrap(browse.to_owned(), theme::font(&t.type_body), theme::NONE)
