@@ -410,7 +410,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/toc.rs` |  | The table of contents: `toc_rows()` (FR-REP-003, REF-012, REF-104, doc 09 §3.1). |
 | `src/tracker.rs` |  | The dependency-recording hook of [`Q`](crate::Q) (ADR-0002 decisions 1, 2 and 4). |
 | `src/valve_cells.rs` |  | A valve terminal drawn as its valve positions (doc 11 §3.2): what each cell of a slotted box holds ([`terminal_cells`]), which device may take a cell ([`fits_terminal`]), and the geometry of the cells ([`SlotFrame`]). |
-| `src/wire_profile.rs` | large | The colour and size profile shims of the wire-property chain (doc 03 §5.1, doc 08 §4.2). |
+| `src/wire_profile.rs` |  | The colour and size profile shims of the wire-property chain (doc 03 §5.1, doc 08 §4.2). |
 | `src/wire_props.rs` |  | Effective wire properties with provenance: `wire_props_of(potential)`, `wire_props(conn)` (ARCH §6.4, doc 08 §4, D-08). |
 | `src/wires.rs` | large | Physical wires: `physical_wires_of(potential)` (ARCH §6.4, doc 08 §3.8, doc 03 §9.2). |
 | `src/xref.rs` |  | Cross-references: `xref_format()`, `xref_relation(rep)` and `xref_text(rep)` (doc 03 §10, doc 06 §2.6–§2.8, ARCH §6.4, FR-XRF-001 … FR-XRF-025). |
