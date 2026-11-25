@@ -35,7 +35,7 @@ fn renum_ranks_both_renumber_actions_first_and_a_subsequence_still_finds() {
     assert_eq!(ids(&entries)[..2], ["devices.renumber", "pages.renumber"]);
     assert_eq!(entries[0].label, "Renumber devices…");
     assert_eq!(entries[1].label, "Renumber pages…");
-    // The shortcut text each entry carries (empty for devices.renumber until part 2's D7).
+    // The shortcut text each entry carries (empty for devices.renumber until it has one).
     let shortcut = |id: &str| {
         ACTIONS
             .iter()
@@ -128,7 +128,7 @@ fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages
     shell.shutdown();
 }
 
-/// PL-3 (NFR-UX-03): each NFR-DOC-05 term finds its EW action through a glossary alias, one row per term. A term the
+/// Each NFR-DOC-05 term finds its EW action through a glossary alias, one row per term. A term the
 /// glossary maps to no listable action is listed here with `None` and fails nothing.
 #[test]
 fn each_glossary_term_finds_its_action() {
@@ -155,7 +155,7 @@ fn each_glossary_term_finds_its_action() {
     ];
     for (term, action) in rows {
         let entries = query(&mut shell, term);
-        // A term with no action fails nothing (PL-3); its query still runs.
+        // A term with no action fails nothing; its query still runs.
         if let Some(id) = action {
             assert!(
                 ids(&entries).iter().take(3).any(|e| e == id),
@@ -372,7 +372,7 @@ fn forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     shell.set_palette_field(0, "type");
     assert_eq!(shell.run_palette_selection(), Outcome::Done);
     assert!(shell.palette().is_none());
-    // Every action with a path or reference parameter that needs parameters is disabled with D5's reason; the others
+    // Every action with a path or reference parameter that needs parameters is disabled with the reason; the others
     // that need parameters have a form or the later-version reason.
     let all = query(&mut shell, "");
     for meta in ACTIONS

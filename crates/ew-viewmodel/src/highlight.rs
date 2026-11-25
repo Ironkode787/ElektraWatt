@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Potential and net highlighting (D14; FR-UI-018): view state of the window, never a model
+//! Potential and net highlighting (FR-UI-018): view state of the window, never a model
 //! edit, never an undo entry, never saved.
 //!
 //! A window holds up to [`MAX_HIGHLIGHTS`] highlights, each a potential or the net of a connection

@@ -1197,7 +1197,7 @@ impl ShellModel {
         self.chrome.rail_collapsed
     }
 
-    /// `rail.show {side, pane}` (D15; doc 16a §5.4): on the left rail, shows the entry's pane in the navigator group
+    /// `rail.show {side, pane}` (doc 16a §5.4): on the left rail, shows the entry's pane in the navigator group
     /// (opening its navigator beside the Pages pane first, as `navigator.show` does) and expands the column; on the entry
     /// already shown with the column expanded, collapses the column. `project` is the Pages pane, `devices` the Devices
     /// navigator. The right rail's palettes are not panes yet: refused with the reason.

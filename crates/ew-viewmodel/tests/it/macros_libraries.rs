@@ -86,7 +86,7 @@ fn reps_on_show(shell: &ShellModel) -> usize {
     shell.canvas().map_or(0, |c| c.page().tables.reps.len())
 }
 
-/// UI-1: the Macros navigator lists the saved PSU macro under "User" and its detail shows its name, version,
+/// The Macros navigator lists the saved PSU macro under "User" and its detail shows its name, version,
 /// library, its thumbnail drawn from the scene and the devices of the block.
 #[test]
 fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
@@ -147,7 +147,7 @@ fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     }
 }
 
-/// UI-2 (model half): Enter on the macro row arms the macro tool; its click on folio 106 opens the `macro` card
+/// Enter on the macro row arms the macro tool; its click on folio 106 opens the `macro` card
 /// with no conflicts; Apply is one undo step. The whole block with its interruption points lists the pairings of
 /// L-1 and N-1 and is refused by EW-CORE-052 (Apply fails with the rule's text and the card stays).
 #[test]
@@ -257,7 +257,7 @@ fn insert_the_psu_macro_on_folio_106_from_the_navigator() {
     assert_eq!(reps_on_show(&shell), before, "one undo step removes the macro");
 }
 
-/// UI-3: Save as macro… writes into a user library (the Macros navigator shows the macro at once); a system library
+/// Save as macro… writes into a user library (the Macros navigator shows the macro at once); a system library
 /// refuses; headless the action refuses (a library write is a front-end operation); without a name the window opens
 /// the dialog, whose OK is the confirmation.
 #[test]
@@ -421,7 +421,7 @@ fn make_variable_binds_a_property_row() {
     );
 }
 
-/// UI-4 (Update…): with the frames' and title block's copies without a source, Update… of every copy refuses (no
+/// With the frames' and title block's copies without a source, Update… of every copy refuses (no
 /// update); the libraries stand in words, the badge of a copy without a source is "Only in this project".
 #[test]
 fn update_refuses_without_an_update_and_badges_are_words() {

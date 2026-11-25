@@ -50,7 +50,7 @@ const SEQ_1_TO_8: [&str; 8] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
 /// SE7: the Terminal strips table sorts by `Order` by default (the strips in natural tag order, each
 /// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-X1021`, 8 rows) with the cursor
-/// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 8); the read-only reasons
+/// on its first row; accessory rows are placed and numbered by the strip editor (`after_seq` 0, two at 4, 8); the read-only reasons
 /// refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.
 #[test]
 fn order_sort_pos_cells_accessory_rows_and_reasons() {
@@ -178,7 +178,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
 /// SE8: the Group column and the Properties Group row. "Reserve" on -X1021:7 and :8 gives the two a group
 /// label of their own, the others' labels kept; one `fields.set` of `strip.groups` and one undo step;
 /// the Properties Group row of the two terminals does the same; the Bridge part fill over BR1 is one `fields.set` of
-/// the carrier's part (D6).
+/// the carrier's part.
 #[test]
 fn group_labels_through_the_table_and_the_properties_row() {
     let tmp = Tmp::new("se8");
@@ -266,7 +266,7 @@ fn group_labels_through_the_table_and_the_properties_row() {
     shell.shutdown();
 }
 
-/// SE9 (D12, D14, FR-TRM-015): Insert before -X1021:5 (one `terminal.insert`, the toast, the cursor on the new
+/// SE9 (FR-TRM-015): Insert before -X1021:5 (one `terminal.insert`, the toast, the cursor on the new
 /// row); Ctrl+Delete on two terminal rows opens the card with their bridges and wires and commits nothing; on an
 /// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :8 three times puts it at seq 5's place
 /// in three steps (inside bridge group BR2), undone by three undos; a move that takes :2 out of BR1 fails with

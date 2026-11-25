@@ -23,7 +23,7 @@ pub(super) type Cached = ((u64, u64, Uuid), Arc<WireColours>);
 /// The wire-colour view's switch and its fetched Connections table.
 #[derive(Default)]
 pub(super) struct WireColourState {
-    /// Whether the wire-colour view is on (View ▸ Wire colours, D18): view state of the session, off at start.
+    /// Whether the wire-colour view is on (View ▸ Wire colours): view state of the session, off at start.
     pub(super) on: bool,
     /// The wire-colour view's Connections table and the (session epoch, revision) it was fetched at.
     pub(super) cache: std::cell::RefCell<Option<Cached>>,

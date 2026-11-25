@@ -65,7 +65,7 @@ fn index_of(s: &ShellModel, pn: &str) -> usize {
         + 1
 }
 
-/// The `<library>/<item>` text of the offer with part number `pn` (D18's settings form).
+/// The `<library>/<item>` text of the offer with part number `pn` (the settings form).
 fn item_text(s: &ShellModel, pn: &str) -> String {
     let Some(Dialog::PartChoose(c)) = s.dialog() else {
         panic!("no part dialog")
@@ -250,7 +250,7 @@ fn favourites_and_recent_persist() {
     assert_eq!(steps(&s), n, "a favourite is no project step");
     assert!(result_of(&s, "EW-GEN-VLV-1").contains(" favourite"));
     done(&mut s, "part.search", json!({ "text": "" }));
-    // A held copy cannot be a favourite (D18: library items only).
+    // A held copy cannot be a favourite (library items only).
     assert_eq!(
         {
             let i = index_of(&s, "OWN-1");

@@ -30,7 +30,7 @@ fn chord(text: &str) -> Chord {
     Chord::parse(text).unwrap()
 }
 
-/// KM-1: a preset written as a keymap file parses back into the preset.
+/// A preset written as a keymap file parses back into the preset.
 #[test]
 fn a_preset_file_parses_back_into_its_preset() {
     for preset in Preset::ALL {
@@ -49,7 +49,7 @@ fn a_preset_file_parses_back_into_its_preset() {
     );
 }
 
-/// KM-1 (FR-UI-013): with the KiCad-like preset W starts a wire, E focuses Properties, A starts Place and G Move on
+/// With the KiCad-like preset W starts a wire, E focuses Properties, A starts Place and G Move on
 /// the canvas; M, R, W, E, X, Y, T and Home are equal in both presets.
 #[test]
 fn the_kicad_preset_binds_w_e_a_and_g_on_the_canvas() {
@@ -98,7 +98,7 @@ fn shell_in(dir: &Path) -> ShellModel {
     ShellModel::new(Mode::Gui, ShellConfig::in_dir(dir, "0.0.0-test"))
 }
 
-/// KM-2: the user's file replaces the preset's binding of `tool.wire`, keeps an unknown action as unused, and a file
+/// The user's file replaces the preset's binding of `tool.wire`, keeps an unknown action as unused, and a file
 /// with two equal chords in one context is refused with a banner that names them; the preset applies.
 #[test]
 fn the_user_keymap_replaces_keeps_unknown_actions_and_a_conflict_is_refused() {
@@ -163,7 +163,7 @@ fn the_user_keymap_replaces_keeps_unknown_actions_and_a_conflict_is_refused() {
     );
 }
 
-/// KM-3: the editor records a chord, shows a conflict as an error and a canvas-over-global binding as shadowing,
+/// The editor records a chord, shows a conflict as an error and a canvas-over-global binding as shadowing,
 /// resets one action, and exports a file that imports back equal.
 #[test]
 fn the_editor_records_refuses_shadows_resets_and_round_trips() {
@@ -296,7 +296,7 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
     assert_eq!(shell.shortcuts_of(open), ["Ctrl+Shift+O"]);
 }
 
-/// KM-4: neither preset has a conflict, a Ctrl+Alt chord or a reserved chord, and the Ctrl+Alt ban and the reserved
+/// Neither preset has a conflict, a Ctrl+Alt chord or a reserved chord, and the Ctrl+Alt ban and the reserved
 /// chords refuse a user keymap.
 #[test]
 fn no_preset_has_a_conflict_a_ctrl_alt_chord_or_a_reserved_chord() {
@@ -317,7 +317,7 @@ fn no_preset_has_a_conflict_a_ctrl_alt_chord_or_a_reserved_chord() {
     }
 }
 
-/// KM-5: Ctrl+Shift+N is Renumber devices… in the EW preset (FR-UI-012's "renum" shows it).
+/// Ctrl+Shift+N is Renumber devices… in the EW preset (FR-UI-012's "renum" shows it).
 #[test]
 fn ctrl_shift_n_is_renumber_devices() {
     let meta = actions::find("devices.renumber").unwrap();
@@ -334,7 +334,7 @@ fn ctrl_shift_n_is_renumber_devices() {
     assert_eq!(on, ["devices.renumber"]);
 }
 
-/// KM-6 (NFR-DOC-06): the keymap sheet holds each bound action once with its bindings per preset. It is written
+/// The keymap sheet holds each bound action once with its bindings per preset. It is written
 /// where `EW_REFERENCE_DIR` asks for the reference.
 // The variable only chooses whether the generated file is also written out.
 #[allow(clippy::disallowed_methods)]
@@ -358,7 +358,7 @@ fn the_keymap_sheet_holds_each_bound_action_once() {
     assert_eq!(place["label_key"], "action-tool-place");
 }
 
-/// Records Ctrl+Shift+W for `tool.wire` in the keymap editor (the edit has no D8 error).
+/// Records Ctrl+Shift+W for `tool.wire` in the keymap editor (the edit has no error).
 fn record_wire(shell: &mut ShellModel) {
     done(shell, "help.shortcuts", json!({}));
     done(

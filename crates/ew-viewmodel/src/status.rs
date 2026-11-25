@@ -321,7 +321,7 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
 }
 
 // Doc 16a §5.8
-/// What a field of the status bar shows (D12's fields, in their order).
+/// What a field of the status bar shows (the fields, in their order).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum StatusKind {
     /// The state at the left: `Ready`.
@@ -468,7 +468,7 @@ pub fn waiting_text(model: &ShellModel) -> Option<String> {
     })
 }
 
-/// The status bar of `model` (D12; doc 16a §5.8): the state at the left, then in this order the waiting card
+/// The status bar of `model` (doc 16a §5.8): the state at the left, then in this order the waiting card
 /// ([`waiting_text`]), the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the
 /// renderer and the notifications, each only when it applies. The tool's hint is the HUD's (part 2); the page and the language fields left the bar. `hide_job` leaves
 /// the job field out (a job younger than 200 ms).

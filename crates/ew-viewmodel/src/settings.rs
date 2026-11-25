@@ -309,7 +309,7 @@ impl Settings {
         })
     }
 
-    /// Adds or removes the favourite part `item` (`<library ID>/<item ID>`, D18); the list stays sorted. `true` when
+    /// Adds or removes the favourite part `item` (`<library ID>/<item ID>`); the list stays sorted. `true` when
     /// it is a favourite afterwards.
     pub fn toggle_favourite_part(&mut self, item: &str) -> bool {
         if let Some(i) = self.parts_favourites.iter().position(|f| f == item) {
@@ -329,7 +329,7 @@ impl Settings {
         self.symbols_recent.truncate(MAX_RECENT);
     }
 
-    /// Records the use of the part `item` (`<library ID>/<item ID>`, D18): first in the list, no duplicate, at most
+    /// Records the use of the part `item` (`<library ID>/<item ID>`): first in the list, no duplicate, at most
     /// [`MAX_RECENT_PARTS`].
     pub fn record_part_use(&mut self, item: &str) {
         self.parts_recent.retain(|p| p != item);
@@ -980,7 +980,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
 mod parts_tests {
     use super::*;
 
-    /// D18, PS3: favourites sorted, recent most recent first without duplicates and at most 20; unknown members of
+    /// PS3: favourites sorted, recent most recent first without duplicates and at most 20; unknown members of
     /// `[parts]` kept; an untouched file writes no `[parts]`.
     #[test]
     fn favourites_and_recent_parts_round_trip() {
@@ -1429,7 +1429,7 @@ mod tests {
         }
     }
 
-    /// AX-2: 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both; an unknown
+    /// 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both; an unknown
     /// scale falls back to one.
     #[test]
     fn the_scales_reach_300_percent_and_round_trip() {

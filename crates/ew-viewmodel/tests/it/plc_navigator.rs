@@ -75,7 +75,7 @@ fn module_id(s: &ShellModel) -> String {
         .to_owned()
 }
 
-/// PG2's state: the generic CPU, the digital output card and a starter coil attached to the card (PT-2).
+/// PG2's state: the generic CPU, the digital output card and a starter coil attached to the card.
 /// Returns the coil's representation.
 fn pg2_state(s: &mut ShellModel) -> Uuid {
     coil_state(s, true)

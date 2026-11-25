@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator framework (doc 16 §5; D5, D6, D7): the state of an open navigator over its
+//! The navigator framework (doc 16 §5): the state of an open navigator over its
 //! [`NavTable`], the visible rows (a depth-first walk over the expanded nodes, or the flat list), the filter over the
 //! precomputed tokens and facets, the sort, and the marked rows.
 //!

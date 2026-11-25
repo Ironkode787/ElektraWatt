@@ -517,7 +517,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
+    // View ▸ Theme and View ▸ Density (doc 16a §4.13). The theme words of the spec
     // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
     with_params(
         "value:text",

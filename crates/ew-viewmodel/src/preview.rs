@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab (D11; FR-UI-022): the one card of the window (every origin: the property
+//! The Preview tab (FR-UI-022): the one card of the window (every origin: the property
 //! grid's, the find pane's replace, the parts import's, the Pages navigator's reorder and the renumber dialogs' `bulk`)
 //! shown in a dockable tab of the bottom dock, with its Summary, Entities, Tags, Xrefs and Pages.
 //!

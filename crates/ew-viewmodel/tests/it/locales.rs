@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's texts through Fluent: LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4:
-//! NL-1 the arguments of every Dutch message, NL-2 the terminology table.
+//! The shell's texts through Fluent: the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4:
+//! the arguments of every Dutch message, the terminology table.
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::actions::{self, Menu, Submenu};
@@ -28,7 +28,7 @@ fn arguments_are_strings() {
     );
 }
 
-/// LO-3 and NL-1: the completeness gate lists every en-GB key a shipped locale (en-GB, nl-NL) lacks.
+/// The completeness gate lists every en-GB key a shipped locale (en-GB, nl-NL) lacks.
 #[test]
 fn every_shipped_locale_has_every_key() {
     let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("texts");
@@ -61,7 +61,7 @@ fn every_shipped_locale_has_every_key() {
     assert_eq!(missing, Vec::<String>::new());
 }
 
-/// D11: en-XA accents every letter, pads by 35 % of the length rounded up and brackets the text; the arguments stay
+/// en-XA accents every letter, pads by 35 % of the length rounded up and brackets the text; the arguments stay
 /// and are filled; en-GB is back after the switch.
 #[test]
 fn the_pseudo_locale_accents_pads_and_brackets() {
@@ -178,7 +178,7 @@ fn every_toast_ends_with_its_full_stop() {
     }
 }
 
-/// NL-1: every key of every shipped locale takes the arguments of its en-GB message, no more and
+/// Every key of every shipped locale takes the arguments of its en-GB message, no more and
 /// no fewer, and a locale has no key en-GB lacks.
 #[test]
 fn every_message_takes_the_arguments_of_en_gb() {
@@ -406,7 +406,7 @@ fn rule_messages_nl() -> String {
 }
 
 /// The messages whose en-GB text holds a table term in another sense than the table's, by (key, term, the
-/// sense): NL-2 does not ask the row's Dutch term there.
+/// sense): the terminology table does not ask the row's Dutch term there.
 const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("action-view-frame-stats", "frame", "a drawn frame of the window"),
     ("canvas-stats-frame", "frame", "a drawn frame of the window"),
@@ -544,7 +544,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("refusal-revision-git-tag", "tag", "a Git tag"),
 ];
 
-/// NL-2: the terminology table heads the nl-NL file with its rows; over the
+/// The terminology table heads the nl-NL file with its rows; over the
 /// messages, each Dutch term is used where its en-GB term is, and no rejected alternative is (one that is the Dutch
 /// term of another row, "kabel" for a cable, is that row's).
 #[test]
@@ -692,7 +692,7 @@ fn the_kind_and_field_headings_follow_the_table_each() {
         let nl = messages_with(&nl_file, prefix);
         for (key, en) in messages_with(&en_file, prefix) {
             let dutch = nl.get(&key).unwrap_or_else(|| panic!("{key} has no Dutch text"));
-            // A Git tag is Git's own word ("Git-tag"), not the drawing's device tag (NL-2's Git
+            // A Git tag is Git's own word ("Git-tag"), not the drawing's device tag (the Git
             // exemption).
             let mut english = en.replace("git tag", " ");
             for term in &table {
@@ -708,7 +708,7 @@ fn the_kind_and_field_headings_follow_the_table_each() {
     assert_eq!(wrong, Vec::<String>::new());
 }
 
-/// With NL-2 by whole words and Dutch compounds, the en-GB words stand as they were
+/// With the terminology table by whole words and Dutch compounds, the en-GB words stand as they were
 /// (English is never changed for a Dutch check) and the Dutch headings are compounds by the table.
 #[test]
 fn the_wordings_the_stem_match_forced_are_back() {
@@ -739,7 +739,7 @@ fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
         .collect()
 }
 
-/// LO-2's model half: View ▸ Language lists the languages under their own names with the current one checked, and
+/// The model half: View ▸ Language lists the languages under their own names with the current one checked, and
 /// `view.language` switches the menus at run time and back; an unknown value is refused in words.
 #[test]
 fn view_language_switches_the_menus_and_back() {
@@ -777,7 +777,7 @@ fn view_language_switches_the_menus_and_back() {
     shell.shutdown();
 }
 
-/// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of every rule that reports on the page
+/// With the UI in Dutch the Messages detail shows the nl-NL text of every rule that reports on the page
 /// (EW-CORE-033 word for word, for the supply cable -101W1 made to lack its length); in English it is the finding's
 /// own message.
 #[test]

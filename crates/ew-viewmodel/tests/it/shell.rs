@@ -423,7 +423,7 @@ fn palette_lists_disabled_entries_last_with_their_reason() {
     assert!(shell.palette().is_none());
 }
 
-/// A9: a script cannot run a command that the exposure class refuses, and a bad command changes nothing.
+/// A script cannot run a command that the exposure class refuses, and a bad command changes nothing.
 #[test]
 fn command_run_refuses_what_a_script_may_not_run() {
     let tmp = Tmp::new(STEM);

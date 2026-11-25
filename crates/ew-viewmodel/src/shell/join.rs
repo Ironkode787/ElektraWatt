@@ -3,7 +3,7 @@
 
 //! Joining an existing device from the window (FR-DEV-038, FR-DEV-005, FR-UI-017).
 //!
-//! **One command (D1).** A join is always `device.place`: with `existing_function` while the device has an unplaced
+//! **One command.** A join is always `device.place`: with `existing_function` while the device has an unplaced
 //! function of the symbol's FnDef (a part's template slot), else with `join_device {device, role: aux}`. The Place
 //! tool's [`PlaceTarget::Join`] carries the device and its unplaced slots; the host refreshes them after every commit,
 //! so the target stays sticky: the next placement fills the next slot, then makes new auxiliary functions.
@@ -551,7 +551,7 @@ impl ShellModel {
         out
     }
 
-    /// A join target after a commit (D1, sticky): its slots and tag as the project has them now. The slots it had
+    /// A join target after a commit (sticky): its slots and tag as the project has them now. The slots it had
     /// that are still unplaced keep their order (a chosen slot stays first until it is filled); new ones follow. A
     /// join a part's placement made goes back to placing a new device of the part once the part's slots are filled:
     /// the part has no more of that function.

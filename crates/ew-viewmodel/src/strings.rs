@@ -1074,7 +1074,7 @@ mod tests {
         assert_eq!(en_gb_errors(), Vec::<String>::new());
     }
 
-    /// D12: the nl-NL file parses, has a message for every key and a Dutch name.
+    /// The nl-NL file parses, has a message for every key and a Dutch name.
     #[test]
     fn the_dutch_file_parses_with_every_key() {
         let errors: Vec<String> = sources("nl-NL").flat_map(ew_l10n::render::parse_errors).collect();

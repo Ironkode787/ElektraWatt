@@ -383,7 +383,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
         (cx - sheet.0 / 2).abs() < sheet.0 / 10 && (cy - sheet.1 / 2).abs() < sheet.1 / 10,
         "centred: ({cx}, {cy}) on {sheet:?}"
     );
-    // The datum exactly, the one D12 computes for this frame and plate at the fitting scale.
+    // The datum exactly, the one the layout computes for this frame and plate at the fitting scale.
     assert_eq!(row_text(&s, "page/derived.datum"), PS1_DATUM);
     s.shutdown();
 }
@@ -511,10 +511,10 @@ fn an_empty_layout_page_names_its_first_step_and_plate_chooses_a_plate() {
 /// plus it (72 mm printed, 73.001391 mm on the page) in y.
 const NEW_PROJECT_DATUM: &str = "87.50594, 162.959724 mm";
 
-/// PS-1's fitting scale of the new plate on folio 950.
+/// The fitting scale of the new plate on folio 950.
 const PS1_SCALE: &str = "1:5";
 
-/// PS-1's centred datum of the new plate on folio 950 at [`PS1_SCALE`]: the frame's drawing-area centre on the page,
+/// The centred datum of the new plate on folio 950 at [`PS1_SCALE`]: the frame's drawing-area centre on the page,
 /// less the enclosure rectangle's centre in the plate's frame (x), plus it (y, the page's y grows downwards), both
 /// drawn at the scale. The sample's enclosure part is the starter's, so the datum is a new project's.
 const PS1_DATUM: &str = NEW_PROJECT_DATUM;
@@ -543,7 +543,7 @@ fn unplaced_key(s: &ShellModel, label: &str) -> String {
         .key
 }
 
-/// PS-6 (AS-3 through the window): rail 1 emptied, four of its devices marked in Unplaced devices, Auto-fill rail
+/// Rail 1 emptied, four of its devices marked in Unplaced devices, Auto-fill rail
 /// in DT order gives -101F1, -101G1, -102F1 and -103F1 on it from its start, and the toast counts them.
 #[test]
 fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
@@ -720,7 +720,7 @@ fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
     s.shutdown();
 }
 
-/// PS-5 through the grid: -102F1's Locked row, its Position row's refusals in words (a text that does not read, and one
+/// Through the grid: -102F1's Locked row, its Position row's refusals in words (a text that does not read, and one
 /// the command refuses, the old value kept), and R1's Length row.
 #[test]
 fn rows_commit_from_the_properties_grid() {

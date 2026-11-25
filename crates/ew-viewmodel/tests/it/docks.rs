@@ -76,7 +76,7 @@ fn the_groups_labels_and_advanced_rows() {
     assert!(!shell.properties_show_advanced(), "no `on` toggles");
 }
 
-/// DK4: the status bar's fields in D12's order with "Ready" at the left, no page or language field; the findings only
+/// DK4: the status bar's fields in the order with "Ready" at the left, no page or language field; the findings only
 /// while Messages is open and as one field; the renderer in the warning tone with its tooltip on the CPU.
 #[test]
 fn the_status_bar_fields() {
@@ -123,7 +123,7 @@ fn the_status_bar_fields() {
     assert!(line.starts_with("status bar: Ready | "), "{line}");
 }
 
-/// DK5: the default workspace is D10's (Pages over Properties at the left, 233 ‰; the page view 767 ‰), its file is
+/// DK5: the default workspace is the (Pages over Properties at the left, 233 ‰; the page view 767 ‰), its file is
 /// deterministic and reads back equal; a workspace file written before the package loads with its panes in place.
 #[test]
 fn the_default_workspace_and_an_older_file() {
@@ -351,7 +351,7 @@ fn messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
     assert!(shell.layout().panes().contains(&PaneKind::History));
     done(&mut shell, "messages.show", json!({}));
     assert!(!messages_shown(&shell), "in front, the command closes it");
-    // F8: the key of `messages.next` from the keymap, as the window dispatches it.
+    // The key of `messages.next` from the keymap, as the window dispatches it.
     done(&mut shell, "messages.show", json!({}));
     done(&mut shell, "history.show", json!({"on": true}));
     assert!(!in_front(&shell));

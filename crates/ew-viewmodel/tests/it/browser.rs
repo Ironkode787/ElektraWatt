@@ -9,7 +9,7 @@ use ew_viewmodel::shell::Mode;
 use ew_viewmodel::tools::{Node, PickerRow};
 use serde_json::json;
 
-/// F28: the tree is All, In this project, the trades, Other; a trade opens to its sub-groups, the categories. Each
+/// The tree is All, In this project, the trades, Other; a trade opens to its sub-groups, the categories. Each
 /// node lists as many rows as its count says: a trade the parts of its sub-groups, a category node only parts of that
 /// category, In this project only the project's own copies; every node has its words; `step` moves down the tree.
 #[test]
@@ -83,7 +83,7 @@ fn the_browsers_tree_lists_each_trade_and_category_with_its_count() {
     s.shutdown();
 }
 
-/// F28: every function category the browser names in words has its trade, but the three that are no trade's
+/// Every function category the browser names in words has its trade, but the three that are no trade's
 /// (assemblies and black boxes, interruption points, graphics), which stand under Other. A category added without a
 /// trade would stand under Other unseen.
 #[test]
@@ -98,7 +98,7 @@ fn every_named_category_has_its_trade() {
     }
 }
 
-/// F28: a filter searches the whole tree and opens every trade with hits, so the tree shows where they sit.
+/// A filter searches the whole tree and opens every trade with hits, so the tree shows where they sit.
 #[test]
 fn a_filter_shows_under_which_trade_and_group_the_hits_sit() {
     let tmp = Tmp::new("browser-filter");

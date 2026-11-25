@@ -92,7 +92,7 @@ fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
     shell.shutdown();
 }
 
-/// F2: `paste_page_kind`'s list must agree with `edit.paste`'s own page-kind check for every kind `page.new` offers
+/// `paste_page_kind`'s list must agree with `edit.paste`'s own page-kind check for every kind `page.new` offers
 /// (plus a generated report page). A multi-line fragment may be refused on a schematic page for its representation
 /// type, so the comparison is the page-level refusal (`/page`) itself, not any refusal.
 #[test]

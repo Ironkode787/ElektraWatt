@@ -2117,7 +2117,7 @@ impl ShellModel {
         self.id_source = make;
     }
 
-    /// The open project's current snapshot (feature `testkit` only): the AC-28 flow compares the model's
+    /// The open project's current snapshot (feature `testkit` only): the flow compares the model's
     /// records before an edit and after its undo.
     #[cfg(feature = "testkit")]
     pub fn world_for_tests(&self) -> Option<ew_api::World> {

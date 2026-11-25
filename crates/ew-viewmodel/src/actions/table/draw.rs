@@ -1508,7 +1508,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_potential_draw_row(p),
         ))),
     )),
-    // H9: the supply marks' Potential panel (it opens when marks are placed; Potential… on their right-click menu).
+    // The supply marks' Potential panel (it opens when marks are placed; Potential… on their right-click menu).
     keeps_banner(with_params(
         "row?:int, kind?:text, voltage?:text, apply?:bool",
         hidden(in_canvas(act(

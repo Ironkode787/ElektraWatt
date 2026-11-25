@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The keymaps in the shell (D6 to D8; the files and the rules in [`crate::keymap`]): the active
+//! The keymaps in the shell (the files and the rules in [`crate::keymap`]): the active
 //! preset (the `keymap` setting) with the user's `keymap.toml` over it, the effective bindings the window binds and the
 //! menus, the palette and the describe text show, and the keymap editor's actions (search, record, reset, import,
-//! export). Every edit is checked by D8's rules first; an edit with an error is refused and listed in the editor, so
+//! export). Every edit is checked by the rules first; an edit with an error is refused and listed in the editor, so
 //! the effective keymap never holds an error the user made.
 
 use std::path::Path;
@@ -23,7 +23,7 @@ pub(super) struct KeymapState {
     pub(super) user: Option<Keymap>,
     /// Bumped when the user's keymap changes: the window rebuilds its bindings.
     pub(super) version: u64,
-    /// The keymap editor's state (Help ▸ Keyboard shortcuts, D8).
+    /// The keymap editor's state (Help ▸ Keyboard shortcuts).
     pub(super) editor: keymap::EditorState,
     /// Whether `keymap.toml` is left as it is for this run: it could not be read, or a refused file could not be
     /// copied aside, at start-up (the editor's edits then apply without being written).
@@ -177,7 +177,7 @@ impl ShellModel {
     }
 
     /// `keymap.record {action, keys}`: `keys` becomes the action's one binding in the user's keymap, in the action's
-    /// context. Refused (and listed in the editor) when the result has an error of D8.
+    /// context. Refused (and listed in the editor) when the result has an error.
     pub(crate) fn act_keymap_record(&mut self, p: &Map<String, Value>) -> Outcome {
         let meta = or_return!(Self::keymap_action(p));
         let keys = match string_param(p, "keys") {
@@ -255,7 +255,7 @@ impl ShellModel {
     }
 
     /// `keymap.import {path?}`: the keymap file at `path` becomes the user's keymap, when it parses and has no error
-    /// of D8 over the active preset; without `path` the window asks for the file.
+    /// over the active preset; without `path` the window asks for the file.
     pub(crate) fn act_keymap_import(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,

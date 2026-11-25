@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The print pre-dialog of the shell. PW-2 (the set is built as a job: an edit made while it builds
-//! is applied at once, the set holds the revision it started from, a cancel leaves no file), the empty state, the
-//! Pages field's refusals, the disabled print buttons and the toasts of the window's print, every text whole. PW-1's
+//! The print pre-dialog of the shell. The set is built as a job: an edit made while it builds
+//! is applied at once, the set holds the revision it started from, a cancel leaves no file; the empty state, the
+//! Pages field's refusals, the disabled print buttons and the toasts of the window's print, every text whole. The print
 //! digest is `bin/elektrawatt`'s `tests/it/print.rs` and `ew-api`'s `export_job.rs`.
 
 use crate::common::{Tmp, done, failed, job_wakes, poll_until, refused};
@@ -35,7 +35,7 @@ fn toasts(s: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// PR-1's options: Range Sections 1, Paper A5, Scale to fit.
+/// The options: Range Sections 1, Paper A5, Scale to fit.
 fn section_1_on_a5(wait: bool) -> serde_json::Value {
     json!({"range": "sections", "sections": "1", "paper": "A5", "fit": true, "wait": wait})
 }

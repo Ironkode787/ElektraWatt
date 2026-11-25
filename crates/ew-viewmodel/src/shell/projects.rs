@@ -790,7 +790,7 @@ impl ShellModel {
             key!("error-import-write"),
             Some(pending.banner),
         );
-        // D8: the new project opens on its migration report in Messages.
+        // The new project opens on its migration report in Messages.
         if outcome == Outcome::Done {
             let mut on = Map::new();
             on.insert("on".into(), Value::from(true));
@@ -1424,7 +1424,7 @@ impl ShellModel {
         recovery: Recovery,
     ) -> Result<(Session, OpenReport), OpenError> {
         let mut store = self.store_options();
-        // D25: a half-synced cloud folder is read again before a missing file makes it read-only.
+        // A half-synced cloud folder is read again before a missing file makes it read-only.
         store.cloud_synced = self.cloud_of(dir).is_some();
         Session::open(dir, store, self.session_options(), recovery)
     }

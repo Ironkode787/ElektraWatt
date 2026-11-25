@@ -968,7 +968,7 @@ pub(super) mod tests {
         }
     }
 
-    /// D4: the grid never builds a command whose exposure is not `Edit`. A pending edit naming the `HumanOnly`
+    /// The grid never builds a command whose exposure is not `Edit`. A pending edit naming the `HumanOnly`
     /// `project.checks.set` (no row routes there, so only a forged edit can) is refused before any preview.
     #[test]
     fn a_human_only_command_is_refused_before_its_preview() {

@@ -18,7 +18,7 @@
 //! the preview shows the empty state. The build writes no file, so a cancel leaves none.
 //!
 //! **Printing.** The window hands the request to its platform, which prints on a worker thread and reports a
-//! [`PrintEnd`]; [`ShellModel::print_done`] shows its one toast (printed, D11's fallback notice, or the failure).
+//! [`PrintEnd`]; [`ShellModel::print_done`] shows its one toast (printed, the fallback notice, or the failure).
 
 use std::sync::Arc;
 
@@ -220,9 +220,9 @@ pub enum PrintEnd {
     Printed,
     /// Opened in the PDF viewer.
     Opened,
-    /// Sent to the default printer through `lp` after the system's print dialog failed (D11's notice).
+    /// Sent to the default printer through `lp` after the system's print dialog failed (the notice).
     FellBackToPrinter,
-    /// Opened in the PDF viewer after the ways to print before it failed (D11's notice).
+    /// Opened in the PDF viewer after the ways to print before it failed (the notice).
     FellBackToViewer,
     /// The person cancelled the system's print dialog: no toast.
     Cancelled,

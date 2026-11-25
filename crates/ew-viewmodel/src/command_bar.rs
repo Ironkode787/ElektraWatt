@@ -1333,7 +1333,7 @@ fn place_prompt(
             _ => text,
         })
     });
-    // M39: the symbol by its name in words (`Contact, normally open`); without a cached catalogue its key's last
+    // The symbol by its name in words (`Contact, normally open`); without a cached catalogue its key's last
     // segment in sentence case (`Contact no`), never the key.
     let mut what = target.clone().unwrap_or_else(|| {
         model

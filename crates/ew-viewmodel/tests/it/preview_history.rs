@@ -231,7 +231,7 @@ fn renumber_previews(mode: Mode) {
     done(&mut shell, "file.save", json!({}));
     let before_b2 = snapshot(&dir);
 
-    // B2: section 1 from 101.
+    // Section 1 from 101.
     let cursor = history_cursor(&mut shell);
     match mode {
         Mode::Headless => done(
@@ -546,7 +546,7 @@ fn edit_on(shell: &mut ShellModel, folio: &str, refs: Value, text: &str) -> Vec<
     sel
 }
 
-/// PV5 (FR-UI-023, D13): three edits on 101, 102 and 103, each with a selection; undo shows 103 with its selection,
+/// PV5 (FR-UI-023): three edits on 101, 102 and 103, each with a selection; undo shows 103 with its selection,
 /// a second 102 with its; redo returns to 102's step context; Undo to here walks back and restores the last step's
 /// context; the panel's rows and its row cursor.
 #[test]

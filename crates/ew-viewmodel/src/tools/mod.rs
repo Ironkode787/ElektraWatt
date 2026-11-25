@@ -175,7 +175,7 @@ pub enum CanvasEvent {
         /// The modifiers held.
         mods: Mods,
     },
-    /// The pointer or the grid cursor has rested for `ms` milliseconds (the action `canvas.dwell`, D11).
+    /// The pointer or the grid cursor has rested for `ms` milliseconds (the action `canvas.dwell`).
     Dwell {
         /// How long, in milliseconds.
         ms: u32,
@@ -374,7 +374,7 @@ pub enum Ghost {
         /// The asset's hash (`sha256:<64 hex>`); `None` before `image.pick`.
         asset: Option<String>,
     },
-    /// The layout place tool's or Select's dragged placement on a panel page (D4, doc 16a §7.3).
+    /// The layout place tool's or Select's dragged placement on a panel page (doc 16a §7.3).
     Layout {
         /// The device's tag (`F55`).
         device: String,
@@ -1065,7 +1065,7 @@ pub fn entity_kind(tables: &PageTables, e: EntityRef) -> Option<EntityKind> {
 }
 
 /// The kind of `e` on `page`: [`entity_kind`] over its page tables, else a placement or a carrier of its panel tables
-/// (a panel page, D9); `None` for an entity neither holds.
+/// (a panel page); `None` for an entity neither holds.
 pub fn page_entity_kind(page: &CanvasPage, e: EntityRef) -> Option<EntityKind> {
     entity_kind(&page.tables, e).or_else(|| {
         let panel = page.panel.as_ref()?;

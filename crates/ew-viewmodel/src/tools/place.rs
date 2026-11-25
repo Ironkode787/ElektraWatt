@@ -447,7 +447,7 @@ impl PlaceTool {
                 "function",
                 strings::text(key!("place-target-function")).to_owned(),
             ),
-            // D1: a slot is filled before a new auxiliary function is made.
+            // A slot is filled before a new auxiliary function is made.
             PlaceTarget::Join { device, tag, slots } => (
                 match slots.first() {
                     Some(function) => json!({"existing_function": {"function": function}}),

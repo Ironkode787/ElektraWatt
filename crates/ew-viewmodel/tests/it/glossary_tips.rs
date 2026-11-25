@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The glossary pane (GT-1, FR-UI-045), the one-time tips (GT-2, GT-3, FR-UI-048) and
-//! the wire-colour view (GT-4, FR-UI-047), on copies of the sample. Every text a person reads is asserted whole.
+//! The glossary pane (FR-UI-045), the one-time tips (FR-UI-048) and
+//! the wire-colour view (FR-UI-047), on copies of the sample. Every text a person reads is asserted whole.
 
 use crate::common;
 

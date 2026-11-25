@@ -84,7 +84,7 @@ fn overview_pages(s: &ShellModel) -> Vec<(String, Vec<String>)> {
         .collect()
 }
 
-/// Doc 11 §11, AC-32: Generate overview… on a valve terminal whose overview is drawn keeps every member where it
+/// Doc 11 §11: Generate overview… on a valve terminal whose overview is drawn keeps every member where it
 /// stands: the preview names the same members on the same pages, and changes no record.
 #[test]
 fn a_drawn_overview_is_refreshed_without_a_change() {

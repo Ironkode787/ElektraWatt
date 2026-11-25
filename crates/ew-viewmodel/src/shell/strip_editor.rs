@@ -48,7 +48,7 @@ impl Rows {
         }
     }
 
-    /// The children of strip node `s` in node order (its rows in mounting order, D2, D3).
+    /// The children of strip node `s` in node order (its rows in mounting order).
     fn children(&self, s: usize) -> Vec<usize> {
         (0..self.table.nodes.len())
             .filter(|i| self.table.nodes[*i].parent == u32::try_from(s).ok())
@@ -375,7 +375,7 @@ impl ShellModel {
         })
     }
 
-    /// `strip.delete_rows` (Ctrl+Delete, D12): terminal rows are one `edit.delete` of their devices, always the
+    /// `strip.delete_rows` (Ctrl+Delete): terminal rows are one `edit.delete` of their devices, always the
     /// card; accessory rows one `fields.set` per strip, committed with the toast; a mix is refused.
     pub(crate) fn act_strip_delete_rows(&mut self) -> Outcome {
         let rows = or_return!(self.strip_rows());
@@ -468,7 +468,7 @@ impl ShellModel {
         out
     }
 
-    /// `strip.move {step?, before?}` (Alt+Up, Alt+Down, D4): the marked terminal rows of one strip (else the
+    /// `strip.move {step?, before?}` (Alt+Up, Alt+Down): the marked terminal rows of one strip (else the
     /// cursor row) one terminal up (`step` −1) or down (+1), or before the terminal `before` (a printed designation of
     /// the same strip, or `end`); one `terminal.move` with the toast; the marks and the cursor follow the rows.
     pub(crate) fn act_strip_move(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -540,10 +540,10 @@ impl ShellModel {
         out
     }
 
-    /// `strip.add_accessory {kind?, part?, before?}` (Edit ▸ Add accessory, D5): an accessory of `kind` (default
+    /// `strip.add_accessory {kind?, part?, before?}` (Edit ▸ Add accessory): an accessory of `kind` (default
     /// `end_clamp`) after the cursor row (a terminal: its `seq`; an accessory: its `after_seq`; the strip row: 0), or
     /// with `before` directly before the cursor terminal row, its
-    /// part parsed by D7 or the one project copy of the kind's part kinds; several: the chooser list in the window, the
+    /// part parsed by the part-text form or the one project copy of the kind's part kinds; several: the chooser list in the window, the
     /// error listing them headless.
     pub(crate) fn act_strip_add_accessory(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Err(reason_key) = self.strip_editor_shown() {

@@ -6,7 +6,7 @@
 //! (`tool.finish`), or Enter on the last vertex, finishes with `layout.carrier.add`.
 //!
 //! **Snapping** is the rail tool's ([`super::rail_draw`]) with the usable edges also inset by half the duct's width
-//! (so a duct lies flush with the plate edge) and the outlines of the other ducts (T joints, D11).
+//! (so a duct lies flush with the plate edge) and the outlines of the other ducts (T joints).
 //!
 //! **Size.** The part's `mech` `W × H`, else the tool option's fields (40 × 60 mm by default, then the last used).
 //!
@@ -29,13 +29,13 @@ use super::{
 use crate::key;
 use crate::strings;
 
-/// The duct size the tool options start with: 40 × 60 mm (D11).
+/// The duct size the tool options start with: 40 × 60 mm.
 pub const DEFAULT_DUCT_SIZE: (i128, i128) = (40_000_000, 60_000_000);
 
 /// The most vertices a centreline takes (hostile input stays bounded).
 const MAX_VERTICES: usize = 256;
 
-/// The Draw duct tool (D11).
+/// The Draw duct tool.
 #[derive(Clone, Debug)]
 pub struct DuctDrawTool {
     part: Option<DrawPart>,

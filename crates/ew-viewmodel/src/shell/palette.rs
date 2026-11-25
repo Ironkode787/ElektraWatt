@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The command palette in the shell (FR-UI-012; the matching in [`crate::palette`]): the entries of
-//! a query by its prefix, ranked with the aliases of the glossary (D5 (b)) and the recents, and Enter: an
-//! action runs (or opens its parameter form, D5 (a)), a page is shown, a cell is gone to, an object is selected and a
+//! a query by its prefix, ranked with the aliases of the glossary and the recents, and Enter: an
+//! action runs (or opens its parameter form), a page is shown, a cell is gone to, an object is selected and a
 //! rule shows Messages filtered to it. The palette is transient widget state: nothing here is persisted.
 
 use ew_api::output::PageRow;
@@ -77,7 +77,7 @@ impl ShellModel {
         }
     }
 
-    /// Counts a shortcut invocation of `action` for the palette's recents (D3, PL-4); the window calls it when a
+    /// Counts a shortcut invocation of `action` for the palette's recents; the window calls it when a
     /// shortcut fires.
     pub fn note_shortcut_use(&mut self, action: &str) {
         if let Some(meta) = actions::find(action) {
@@ -92,7 +92,7 @@ impl ShellModel {
     /// then, without `>`, the objects whose tag holds the query; `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
     /// `:` the cell `Session::resolve_goto` finds; `?` the rules of the shipped catalogue, then the Help menu's
     /// actions. An action that needs parameters is listed: with a form when its signature allows one, disabled with
-    /// its reason otherwise (D5 (a)). Disabled entries follow the enabled ones; each carries its breadcrumb.
+    /// its reason otherwise. Disabled entries follow the enabled ones; each carries its breadcrumb.
     pub fn palette_entries(&self) -> Vec<PaletteEntry> {
         let query = self.palette.as_ref().map(|p| p.query.as_str()).unwrap_or("");
         let (prefix, rest) = split_prefix(query);
@@ -224,7 +224,7 @@ impl ShellModel {
         sort(&mut ranked);
         let mut entries: Vec<PaletteEntry> = ranked.into_iter().map(|r| r.entry).collect();
         if recents && query.is_empty() {
-            // D3: the eight most recent distinct actions first, most recent first; the rest keep their rank order.
+            // The eight most recent distinct actions first, most recent first; the rest keep their rank order.
             let mut front: Vec<PaletteEntry> = Vec::new();
             for id in self.recents.distinct() {
                 if front.len() == RECENT_SHOWN {
@@ -336,7 +336,7 @@ impl ShellModel {
         let Ok(target) = project.session.resolve_goto(query) else {
             return Vec::new();
         };
-        // M39: the page's title after the folio ("102" then "Control"), not the folio twice.
+        // The page's title after the folio ("102" then "Control"), not the folio twice.
         let title = PageRow::by_folio(self.page_rows(), &target.folio)
             .map(|r| r.title.clone())
             .unwrap_or_default();
@@ -410,7 +410,7 @@ impl ShellModel {
 
     /// Runs the selected palette entry (Enter), or the open parameter form.
     ///
-    /// An enabled action closes the palette and runs, counted as a use; one with a form opens the form (D5 (a));
+    /// An enabled action closes the palette and runs, counted as a use; one with a form opens the form;
     /// Enter in the form runs the action with its typed parameters and closes the palette, or keeps the form with the
     /// refusal or the error. A page is shown, a cell is gone to, an object is selected and its page shown, a rule
     /// shows Messages filtered to it. A disabled entry refuses with its reason.

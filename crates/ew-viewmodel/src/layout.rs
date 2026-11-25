@@ -72,7 +72,7 @@ pub enum PaneKind {
     Preview,
     /// The history panel (doc 16 §8.1): the undo steps and the marker lines, in the bottom dock.
     History,
-    /// The glossary pane (D16, FR-UI-045): the EW terms with their EPLAN and QET terms, in the bottom dock.
+    /// The glossary pane (FR-UI-045): the EW terms with their EPLAN and QET terms, in the bottom dock.
     Glossary,
 }
 
@@ -351,7 +351,7 @@ impl Layout {
         self.with_bottom(PaneKind::Find)
     }
 
-    /// The layout with `pane` in the bottom dock (D14; Find, Jobs): beside the bottom pane that is in the layout
+    /// The layout with `pane` in the bottom dock (Find, Jobs): beside the bottom pane that is in the layout
     /// already, as a new shown tab of its tab group (its place becomes tabs, or its tabs get one more); with none, the
     /// page view's place becomes a vertical split of the page view and `pane` (650 : 350; W31-1), which the first of them
     /// creates. Unchanged when `pane` is in it.
@@ -509,7 +509,7 @@ impl Layout {
         Layout { root }
     }
 
-    /// The layout with `pane` shown: the tab group that holds it shows it (D11: opening a card shows the Preview tab).
+    /// The layout with `pane` shown: the tab group that holds it shows it (opening a card shows the Preview tab).
     /// Unchanged when `pane` is not in it or is already shown.
     pub fn showing(&self, pane: PaneKind) -> Layout {
         fn show(n: &LayoutNode, pane: PaneKind) -> LayoutNode {

@@ -6,7 +6,7 @@
 //! **Parts** (`.edz`, `.7z`, `.zip`, `.xml`): the Data Portal terms notice first, once per session, for an EDZ (it is
 //! logged with the import, EW-IMP-201); then a dialog that says how many parts the file holds, how many of them the
 //! project has a copy of and how many of those copies would change. *Update* previews the update of those copies on
-//! the bulk card, which lists the changed fields and the devices (FR-PRT-014, AC-38); *Add to my parts library* writes
+//! the bulk card, which lists the changed fields and the devices (FR-PRT-014); *Add to my parts library* writes
 //! the parts into the user's own library (changed parts as their next patch version). An import never creates a part in
 //! the project.
 //!

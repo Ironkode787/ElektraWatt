@@ -65,7 +65,7 @@ struct Bridge {
 }
 
 impl Bridge {
-    /// The function of each end (D10: a bridge joins terminals).
+    /// The function of each end (a bridge joins terminals).
     fn ends(&self) -> (Option<&str>, Option<&str>) {
         (
             self.a.as_ref().map(|(f, _)| f.as_str()),
@@ -179,8 +179,8 @@ impl ShellModel {
         });
         let ends: Vec<CpKey> = terminals.iter().map(|t| (t.function.clone(), t.end)).collect();
 
-        // 4. A pair of terminals already joined by a bridge at the chain's level (any CP of one to any CP of the other,
-        // D10) is kept; when every pair is, the command is refused.
+        // 4. A pair of terminals already joined by a bridge at the chain's level (any CP of one to any CP of the other)
+        // is kept; when every pair is, the command is refused.
         let level = self.cp_level(&ends[0].0, ends[0].1);
         let at_level = |bridge: &Bridge| {
             bridge
@@ -208,7 +208,7 @@ impl ShellModel {
             .iter()
             .filter(|bridge| bridge.strip.as_deref() == Some(strip))
             .collect();
-        // D10: a bridge touches the chain when it ends on one of the chain's terminals (any CP of it) at its level.
+        // A bridge touches the chain when it ends on one of the chain's terminals (any CP of it) at its level.
         let functions: Vec<&str> = ends.iter().map(|(f, _)| f.as_str()).collect();
         let touches = |bridge: &Bridge| {
             let (a, b) = bridge.ends();
@@ -337,7 +337,7 @@ impl ShellModel {
             .unwrap_or(end)
     }
 
-    /// `strip.unbridge` (Remove bridge, D11): the bridge connections with both ends on the selected terminals, in one
+    /// `strip.unbridge` (Remove bridge): the bridge connections with both ends on the selected terminals, in one
     /// `edit.delete`; refused when none joins them (`reason-unbridge-none`) or when the deletion would leave a group in
     /// two pieces (`reason-unbridge-split`).
     pub(crate) fn unbridge_command(&self) -> Result<AnyCommand, Key<'static>> {
@@ -375,7 +375,7 @@ impl ShellModel {
         })
     }
 
-    /// `strip.unbridge` (the strip editor's row menu, D11): one `edit.delete`, the toast.
+    /// `strip.unbridge` (the strip editor's row menu): one `edit.delete`, the toast.
     pub(crate) fn act_strip_unbridge(&mut self) -> Outcome {
         match self.unbridge_command() {
             Ok(cmd) => {

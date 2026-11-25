@@ -777,7 +777,7 @@ mod tests {
         assert!(tutorials().any(|(name, _)| name == "symbol-editor"));
     }
 
-    /// F5: a how-to guide added to the guide reaches Help ▸ Guides under its own name in both languages.
+    /// A how-to guide added to the guide reaches Help ▸ Guides under its own name in both languages.
     #[test]
     fn every_guide_of_the_guide_has_a_label_in_both_languages() {
         let nl: String = strings::sources("nl-NL").collect();

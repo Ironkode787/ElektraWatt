@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! RU-3: the revision dialogs of Check ▸ Revision on copies of `fixtures/release-min` (one open
+//! The revision dialogs of Check ▸ Revision on copies of `fixtures/release-min` (one open
 //! revision V1.0 with its author; no finding but EW-REL-001 before the sign-off). The dialogs open, fill, validate and
 //! cancel in the headless shell through their own actions; a scripted confirm is refused with its whole text; a
 //! person at the window approves, releases and withdraws. The release's housekeeping warnings in Messages.
@@ -77,7 +77,7 @@ fn archive_of(dir: &Path) -> PathBuf {
         .join("V1.0.ewarchive")
 }
 
-/// RU-3, the first step (the dialogs open, fill, validate and cancel in the headless shell, through
+/// The first step (the dialogs open, fill, validate and cancel in the headless shell, through
 /// their own actions with parameters): Approve, Release and Set author open with the gate's result in words, take
 /// their fields from parameters, refuse a wrong typed label (whole text, kept in the dialog) and close with `cancel`.
 #[test]
@@ -158,7 +158,7 @@ fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     s.shutdown();
 }
 
-/// RU-3, the second step (the scripted confirm is refused, asserted on its whole text): every
+/// The second step (the scripted confirm is refused, asserted on its whole text): every
 /// confirm of a headless shell and of a window a script drives (the visual driver's `ShellModel::new_scripted`) is
 /// refused with the person text and changes nothing.
 #[test]
@@ -217,7 +217,7 @@ fn a_scripted_confirm_is_refused_with_the_whole_text() {
     }
 }
 
-/// RU-3, the completing half (an ew-viewmodel test proves the completing half (approve, release,
+/// The completing half (an ew-viewmodel test proves the completing half (approve, release,
 /// withdraw on `fixtures/release-min`) by confirming the dialog through the same window-input path a click
 /// takes): the window's shell (`ShellModel::new(Mode::Gui, …)`) dispatches each dialog's confirm button, as the window
 /// does on a click (with the date it reads).

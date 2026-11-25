@@ -5,7 +5,7 @@
 //! focused page, showing its style (`dot`, or `bevel` with its orientation), its wiring (`star` or `chain`, stored or
 //! the style's default), its sequence as rows named by each member's far endpoint (doc 06 §3.5) and below them the
 //! physical wires through it (`Session::junction_wires`). Every change commits `junction.edit` at once (one undo
-//! step each, D11): `junction.member` reorders (Alt+Up and Alt+Down on the focused row), `junction.style` sets the
+//! step each): `junction.member` reorders (Alt+Up and Alt+Down on the focused row), `junction.style` sets the
 //! style (R on a bevel cycles its orientation), `junction.wiring` the wiring. The popup reads itself again from the
 //! next page tables and closes with `ui.dismiss`.
 

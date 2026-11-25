@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! On copies of the sample: `navigator.export_table` writes the Terminal strips table on
-//! show byte for byte as `ew export table strips --strip -X1021` writes it (TW-1; the CLI's path, run here through the
+//! show byte for byte as `ew export table strips --strip -X1021` writes it (the CLI's path, run here through the
 //! same `ew-api` calls on a reader session of the saved project), `navigator.import_table` of a file with five changed
-//! labels opens the card with "5 changed" and Accept commits one undo step, Escape nothing (TW-1); a cell changed in
-//! the project and in the file is one conflict and Accept keeps the project's value (TW-2); the export is a
-//! job on the snapshot, and a cancel leaves no file (TW-3); the refusals in words.
+//! labels opens the card with "5 changed" and Accept commits one undo step, Escape nothing; a cell changed in
+//! the project and in the file is one conflict and Accept keeps the project's value; the export is a
+//! job on the snapshot, and a cancel leaves no file; the refusals in words.
 
 use std::path::Path;
 
@@ -180,7 +180,7 @@ fn steps(shell: &ShellModel) -> usize {
     shell.recorded_commands().len()
 }
 
-/// TW-1: the table on show filtered to -X1021 in node order is the CLI's `--strip -X1021` workbook byte for byte (the
+/// The table on show filtered to -X1021 in node order is the CLI's `--strip -X1021` workbook byte for byte (the
 /// filter shows no row of another strip, so no narrowing is needed); a file with five changed labels opens
 /// the card with "5 changed"; Escape commits nothing; Accept commits one `fields.set_many`, one undo step.
 #[test]
@@ -301,7 +301,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     shell.shutdown();
 }
 
-/// TW-2 restored: a label changed in the project since the export and in the file is "1 conflict",
+/// Restored: a label changed in the project since the export and in the file is "1 conflict",
 /// which keeps the project's value, so the file changes nothing and Apply is refused; with "Take the file's
 /// values" on, the bytes the card keeps are read again and Accept applies the file's value in one step.
 #[test]
@@ -356,7 +356,7 @@ fn a_conflict_keeps_the_projects_value_until_the_switch_takes_the_files() {
     shell.shutdown();
 }
 
-/// TW-3: an edit while the export job runs applies at once and the file holds the revision the job started from; a
+/// An edit while the export job runs applies at once and the file holds the revision the job started from; a
 /// cancel leaves no file and no sibling; a second export while one runs is refused.
 #[test]
 fn the_export_is_a_job_on_its_snapshot() {
@@ -631,7 +631,7 @@ fn files_of(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
     out
 }
 
-/// SE-9 at the call site: the window's table read panics inside its guard (the test fault
+/// At the call site: the window's table read panics inside its guard (the test fault
 /// `table-read`); `navigator.import_table` fails with S2 whole, opens no card, records no command and leaves the
 /// project's files as they were.
 #[test]

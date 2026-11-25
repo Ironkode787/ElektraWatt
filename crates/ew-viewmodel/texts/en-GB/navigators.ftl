@@ -321,7 +321,7 @@ badge-fits-function = Fits { $p0 }'s function
 badge-same-category = Same category
 
 # The Unplaced devices navigator, the layout place tool and Select on a panel page
-# (D4, D10; doc 16a §5.5 HUD, §6.17 empty states, §6.20 segmented control, §7.4 chips, §8 wording).
+# (doc 16a §5.5 HUD, §6.17 empty states, §6.20 segmented control, §7.4 chips, §8 wording).
 nav-title-unplaced = Unplaced devices
 empty-nav-unplaced = No panel layout yet
 empty-nav-unplaced-text = Devices are listed here once the location has an enclosure.

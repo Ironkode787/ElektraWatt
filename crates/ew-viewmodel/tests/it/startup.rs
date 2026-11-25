@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up offer (PV-6, PV-7): a crashed session's unsaved work and its crash log offered at
+//! The start-up offer: a crashed session's unsaved work and its crash log offered at
 //! the next start, its four answers, the refusal of a project that is gone, and the start-up pruning of crash logs.
 
 use std::path::{Path, PathBuf};
@@ -95,7 +95,7 @@ fn names(dir: &Path) -> Vec<String> {
     names
 }
 
-/// PV-6: the offer with a project and the crash line, `startup.recover 1` opens the project and the recovery dialog
+/// The offer with a project and the crash line, `startup.recover 1` opens the project and the recovery dialog
 /// follows; the offered log is never offered again.
 #[test]
 fn a_crash_with_unsaved_work_is_offered_and_recovered() {
@@ -145,7 +145,7 @@ fn a_crash_with_unsaved_work_is_offered_and_recovered() {
     shell.shutdown();
 }
 
-/// PV-6: Not now closes the offer; the next start shows the project row without a crash line.
+/// Not now closes the offer; the next start shows the project row without a crash line.
 #[test]
 fn not_now_keeps_the_journal_and_offers_the_log_once() {
     let tmp = Tmp::new("startup-dismiss");
@@ -178,7 +178,7 @@ fn not_now_keeps_the_journal_and_offers_the_log_once() {
     );
 }
 
-/// PV-6: a log alone (no project had unsaved changes) is S2 and S4; Delete log deletes it and closes the offer.
+/// A log alone (no project had unsaved changes) is S2 and S4; Delete log deletes it and closes the offer.
 #[test]
 fn a_log_alone_is_offered_and_deleted() {
     let tmp = Tmp::new("startup-log");
@@ -222,7 +222,7 @@ fn a_log_alone_is_offered_and_deleted() {
     );
 }
 
-/// PV-6 (S7): a project that is no longer there is refused in the offer, which stays.
+/// A project that is no longer there is refused in the offer, which stays.
 #[test]
 fn a_project_that_is_gone_is_refused_in_words() {
     let tmp = Tmp::new("startup-gone");
@@ -250,7 +250,7 @@ fn a_project_that_is_gone_is_refused_in_words() {
     );
 }
 
-/// PV-7: at start a crash log older than 30 days and the 21st log are deleted.
+/// At start a crash log older than 30 days and the 21st log are deleted.
 #[test]
 fn old_and_surplus_crash_logs_are_pruned_at_start() {
     let tmp = Tmp::new("startup-prune");

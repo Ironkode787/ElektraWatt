@@ -999,7 +999,7 @@ impl ShellModel {
         match action {
             "map_cp" => Self::symbol_map_cp(editor, p)?,
             "discipline" => Self::symbol_discipline(editor, p)?,
-            // The potential role of the function pin a connection point draws; `none` clears it (part 3's nit, D6).
+            // The potential role of the function pin a connection point draws; `none` clears it (part 3's nit).
             "role" => Self::symbol_role(editor, p)?,
             "path" => Self::symbol_add_path(editor, p)?,
             "candidate" => Self::symbol_candidate(editor, &mut self.symbol_editor_generation, p)?,

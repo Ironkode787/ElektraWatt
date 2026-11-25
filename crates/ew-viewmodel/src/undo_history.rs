@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel and context restore (doc 16 §8.1, D13; FR-UI-023): the undo steps of the open
+//! The history panel and context restore (doc 16 §8.1, FR-UI-023): the undo steps of the open
 //! project with their origins and pages, the shell's marker lines (saves, exports, recoveries) by revision, the row
 //! cursor, Show changes, and the editor context each commit was made in.
 //!

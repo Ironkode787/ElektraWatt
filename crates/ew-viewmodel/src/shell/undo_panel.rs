@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel's host duties and context restore (doc 16 §8.1, D13; FR-UI-023).
+//! The history panel's host duties and context restore (doc 16 §8.1, FR-UI-023).
 //!
 //! **The panel** fetches `Session::history_view` once per (project session, revision) while it is open
 //! ([`ShellModel::sync_history`], counted) and none while it is closed. `history.row` moves its row cursor over the

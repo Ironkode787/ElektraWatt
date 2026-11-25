@@ -3,10 +3,10 @@
 
 //! The part selection dialog and the part editor.
 //!
-//! **Choosing** (D16, D17, D19). `part.choose {target?, use?, add?}` opens [`Dialog::PartChoose`] for the property
+//! **Choosing**. `part.choose {target?, use?, add?}` opens [`Dialog::PartChoose`] for the property
 //! grid's devices (a part use `use` is replaced, `add` appends, a device without part uses appends), the strip editor's
 //! marked terminal rows (their Part cell: every part use replaced), a Bridge part cell or an accessory Part cell (the
-//! kind filter preset by D7's kinds). `part.search` changes the query and lists `Session::part_offers` again;
+//! kind filter preset by the kinds). `part.search` changes the query and lists `Session::part_offers` again;
 //! `part.pick` compiles the active row, a 1-based `index` or a part text into the one command of
 //! `Session::part_pick_command` and commits it with one undo step; a library part is then recorded among the recently
 //! used parts of the settings. `part.favourite` toggles a library part among the favourites.
@@ -274,7 +274,7 @@ fn parse_items(list: &[String]) -> Vec<(Uuid, Uuid)> {
         .collect()
 }
 
-/// A part text of D7's forms against an offer or a copy: `<part number> (<manufacturer>)`, with ` · <description>`,
+/// A part text of the forms against an offer or a copy: `<part number> (<manufacturer>)`, with ` · <description>`,
 /// or the bare part number.
 fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str) -> bool {
     let t = text.trim();
@@ -576,7 +576,7 @@ impl ShellModel {
             .ok_or(Outcome::refused(key!("reason-part-choose-none")))
     }
 
-    /// `part.pick {index?, part?}` (Enter): commits the choice (D16) and records a library part as recently used.
+    /// `part.pick {index?, part?}` (Enter): commits the choice and records a library part as recently used.
     pub(crate) fn act_part_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let offer = or_return!(self.part_offer_param(p));
         let Some(c) = self.part_chooser() else {

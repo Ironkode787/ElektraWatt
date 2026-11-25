@@ -16,7 +16,7 @@
 //! `A` for Place (replacing `I`) and `G` beside `M` for Move. The user's `keymap.toml` in the settings directory replaces the preset's bindings of the
 //! actions it names; a binding for an action this build does not know is kept and listed as unused.
 //!
-//! **Rules** (D8, doc 16 §15.5 over the contexts that exist, `global` the parent of the four others): equal chords in
+//! **Rules** (doc 16 §15.5 over the contexts that exist, `global` the parent of the four others): equal chords in
 //! one context are a conflict (an error); a child context's chord over a global one is shadowing (an info);
 //! Ctrl+Alt+any key and the reserved chords (Alt+F4, Alt+Tab, Win+anything) are errors. **Reachability:** for
 //! QWERTY-US, QWERTZ-DE and AZERTY-FR the characters on the base and Shift levels of each physical key; a binding is
@@ -492,7 +492,7 @@ impl Keymap {
         out
     }
 
-    /// The binds whose action this build does not know (D6: kept and listed as unused).
+    /// The binds whose action this build does not know (kept and listed as unused).
     pub fn unused(&self) -> Vec<&Bind> {
         self.binds
             .iter()
@@ -553,7 +553,7 @@ pub struct Bound {
 }
 
 /// The chords of `meta` under `preset` and the user's keymap `user`: the user's binds of the action when it names it
-/// (D6: they replace the preset's), else the preset's, each with its context.
+/// (they replace the preset's), else the preset's, each with its context.
 pub fn chords_of(preset: Preset, user: Option<&Keymap>, meta: &ActionMeta) -> Vec<(Chord, Context)> {
     if let Some(user) = user
         && user.binds.iter().any(|b| b.action == meta.id)
@@ -778,7 +778,7 @@ fn reserved(chord: &Chord) -> bool {
     chord.win || (chord.alt && !chord.ctrl && !chord.shift && matches!(key, "F4" | "Tab"))
 }
 
-/// The conflicts, the shadowing, the Ctrl+Alt ban and the reserved chords of `binds` (D8, doc 16 §15.5), in the
+/// The conflicts, the shadowing, the Ctrl+Alt ban and the reserved chords of `binds` (doc 16 §15.5), in the
 /// order of the binds.
 pub fn conflicts(binds: &[Bound]) -> Vec<Finding> {
     let mut out = Vec::new();
@@ -838,7 +838,7 @@ pub fn user_errors(preset: Preset, user: &Keymap) -> Vec<Finding> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The keymap sheet (KM-6)
+// The keymap sheet
 
 /// The keymap sheet `keymaps/sheet.json` (NFR-DOC-06): per action with a binding in a preset, its ID, label key,
 /// English label, context and the bindings per preset, in registry order. `docs-gen` writes the book's keymap page
@@ -900,7 +900,7 @@ pub struct Refusal {
     pub errors: Vec<String>,
 }
 
-/// The state of the keymap editor (Help ▸ Keyboard shortcuts, D8): transient, reset when the dialog opens.
+/// The state of the keymap editor (Help ▸ Keyboard shortcuts): transient, reset when the dialog opens.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct EditorState {
     /// The search text.

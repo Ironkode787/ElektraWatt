@@ -297,7 +297,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     shell.shutdown();
 }
 
-/// NV5 (FR-UI-007 as amended by D16): with folio 102 shown, marking -104A1 in Devices selects nothing on 102 but
+/// FR-UI-007: with folio 102 shown, marking -104A1 in Devices selects nothing on 102 but
 /// the device's record (the property grid shows -104A1) and shows the chips 104-B13, 105-C2 and 105-C4; Enter opens
 /// 104 with its representation selected (one back-history entry); a selection made elsewhere marks and reveals its
 /// row, the focus stays where it is, and no change is applied twice.
@@ -401,7 +401,7 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     shell.shutdown();
 }
 
-/// NV7 (FR-PAG-024's rest, D8): Shift+Down marks 103 and 106; `pages.reorder` of 106 before 103 opens the
+/// NV7 (FR-PAG-024's rest): Shift+Down marks 103 and 106; `pages.reorder` of 106 before 103 opens the
 /// card "106 → 103, 103 → 106" with its tag and cross-reference counts; Apply commits one `page.reorder`, one undo
 /// step; a generated page refuses; Alt+Up on 106 opens the same card.
 #[test]

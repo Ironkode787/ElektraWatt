@@ -47,7 +47,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
 
-    /// The panel tables of the focused canvas's page (a panel-layout page, D9); `None` on any other page.
+    /// The panel tables of the focused canvas's page (a panel-layout page); `None` on any other page.
     pub fn panel_tables(&self) -> Option<Arc<PanelTables>> {
         self.canvas()?.page().panel.clone()
     }
@@ -1070,7 +1070,7 @@ impl ShellModel {
         }
     }
 
-    /// The parts a draw tool of `kind` (`rail`, `duct`) offers (D11): the project's copies of the kind, then the
+    /// The parts a draw tool of `kind` (`rail`, `duct`) offers: the project's copies of the kind, then the
     /// installed libraries' parts, embedded through `copies` when drawn.
     ///
     /// The offers are kept for (session, revision, kind): arming the tool or changing its options computes
@@ -1148,7 +1148,7 @@ impl ShellModel {
         })
     }
 
-    /// `tool.rail_draw` (Draw ▸ Layout ▸ Rail, D11): arms Draw rail with the tool option's rail part.
+    /// `tool.rail_draw` (Draw ▸ Layout ▸ Rail): arms Draw rail with the tool option's rail part.
     pub(crate) fn act_tool_rail_draw(&mut self) -> Outcome {
         self.forget_draw_offers();
         let part = self.draw_part("rail");
@@ -1156,7 +1156,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `tool.duct_draw` (Draw ▸ Layout ▸ Duct, D11): arms Draw duct with the tool option's duct part and size.
+    /// `tool.duct_draw` (Draw ▸ Layout ▸ Duct): arms Draw duct with the tool option's duct part and size.
     pub(crate) fn act_tool_duct_draw(&mut self) -> Outcome {
         self.forget_draw_offers();
         let part = self.draw_part("duct");
@@ -1165,7 +1165,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `layout.draw_options {part?, width?, height?}` (the draw tools' options card, D11): the part by its number, a
+    /// `layout.draw_options {part?, width?, height?}` (the draw tools' options card): the part by its number, a
     /// duct's width and height in millimetres; the choice stays for the next drawing, and the running tool takes it.
     pub(crate) fn act_layout_draw_options(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(kind) = draw_kind(self.tools.tool.name()) else {
@@ -1212,7 +1212,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `layout.enclosure_new {location, part, new_location?}` (Project ▸ Enclosure…, D7, D10):
+    /// `layout.enclosure_new {location, part, new_location?}` (Project ▸ Enclosure…):
     /// `layout.enclosure.create_from_part` of the location (its code or ID) with the enclosure part (its number or ID:
     /// a project copy, or an installed library's part, embedded through `copies` with its plate part), the focused
     /// page's function as the enclosure device's. The location `new` (the form's first choice, "New location"), or
@@ -1769,7 +1769,7 @@ impl ShellModel {
         }
     }
 
-    /// `layout.auto_fill_rail {rail?, order, devices?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6):
+    /// `layout.auto_fill_rail {rail?, order, devices?}` (Draw ▸ Layout ▸ Auto-fill rail…):
     /// `layout.auto_fill` of the rail (its label or ID; by default the selected rail, else the page's first) in
     /// `order` (`schematic` or `dt`) with the devices chosen of those it offers ([`Self::fill_offer`]: the cabinet's
     /// unplaced devices, then those without a location). `devices` are device IDs or tags, or the rows of the

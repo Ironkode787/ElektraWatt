@@ -1201,7 +1201,7 @@ fn route_with_nothing_selected_takes_the_page() {
 fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
     let mut s = actual_size(&tmp, "101");
-    // W13: the wire from -101G1:PE up to a junction, routed by the sample's script.
+    // The wire from -101G1:PE up to a junction, routed by the sample's script.
     let e55 = cp(&s, "-101G1:PE");
     let at_e55 = |e: &TableEnd| matches!(e, TableEnd::Cp { function, idx } if *function == e55.function && *idx == e55.idx);
     let w13 = tables(&s)
@@ -1451,7 +1451,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
 fn the_junction_editor_lists_reorders_and_restyles() {
     let tmp = Tmp::new("junction");
     let mut s = actual_size(&tmp, "101");
-    // J1: the junction of the power supply's two + pins and the 24V source (the sample's script).
+    // The junction of the power supply's two + pins and the 24V source (the sample's script).
     let f55 = cp(&s, "-101G1:+#1");
     let j1 = tables(&s)
         .junctions

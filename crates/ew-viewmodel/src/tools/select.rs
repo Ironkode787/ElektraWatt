@@ -363,8 +363,8 @@ impl TextPress {
 }
 
 /// A press on a panel page: a click selects the placement or carrier (a label press selects its
-/// placement, W3-2); a drag of a placement moves it as the layout place tool places (D4); a drag of a carrier translates
-/// its path on the grid (part 4, D11: `layout.carrier.edit`; its placements go with it, their poses being along it).
+/// placement, W3-2); a drag of a placement moves it as the layout place tool places; a drag of a carrier translates
+/// its path on the grid (`layout.carrier.edit`; its placements go with it, their poses being along it).
 #[derive(Clone, PartialEq, Debug)]
 struct PanelPress {
     entity: EntityRef,
@@ -605,7 +605,7 @@ fn label_ghost(cx: &ToolCx<'_>, bx: Rect, from: (i64, i64), to: (i64, i64)) -> T
 }
 
 /// A carrier's displacement for a drag from `from` to `to` (sheet points): whole grid steps on each axis, free with
-/// Shift (D11, doc 12 §12.1).
+/// Shift (doc 12 §12.1).
 fn carrier_offset(
     cx: &ToolCx<'_>,
     panel: &ew_api::output::PanelTables,

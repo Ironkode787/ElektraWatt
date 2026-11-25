@@ -124,7 +124,7 @@ fn toasts(s: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// XW-1: an external change of a wire's colour on folio 106 shows the toast with its folio, Undo and Show changes;
+/// An external change of a wire's colour on folio 106 shows the toast with its folio, Undo and Show changes;
 /// Show changes opens the history at its step; Undo takes it back, and a save then writes the earlier page.
 #[test]
 fn the_external_change_toast_offers_undo_and_show_changes() {
@@ -267,7 +267,7 @@ fn a_deleted_record_shows_each_side_in_words() {
     ));
 }
 
-/// XW-3: a read-only window reloads on the holder's save and keeps its page and zoom.
+/// A read-only window reloads on the holder's save and keeps its page and zoom.
 #[test]
 fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
     let tmp = Tmp::new("xw3");
@@ -293,7 +293,7 @@ fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
     holder.close();
 }
 
-/// XW-4: a project under a test OneDrive variable shows the cloud banner; elsewhere none.
+/// A project under a test OneDrive variable shows the cloud banner; elsewhere none.
 #[test]
 fn a_cloud_synced_folder_shows_its_banner() {
     let tmp = Tmp::new("xw4");
@@ -360,8 +360,8 @@ static CHAIN: Migrations = Migrations {
     }],
 };
 
-/// XW-6: Export .ewz… writes the saved generation; Open with "Open read-only" opens it from memory; "Extract and open"
-/// refuses an existing folder; the upgrade dialog asks once (MG-3 through the window).
+/// Export .ewz… writes the saved generation; Open with "Open read-only" opens it from memory; "Extract and open"
+/// refuses an existing folder; the upgrade dialog asks once.
 #[test]
 fn export_and_open_ewz_and_the_upgrade_dialog() {
     let tmp = Tmp::new("xw6");
@@ -432,7 +432,7 @@ fn export_and_open_ewz_and_the_upgrade_dialog() {
     assert!(s.dialog().is_none(), "asked once");
 }
 
-/// RL-2: with a released list that lacks this build's format, every save that writes marks the
+/// With a released list that lacks this build's format, every save that writes marks the
 /// manifest `unstable` and shows S1 as its toast; with the format released, neither.
 #[test]
 fn a_save_in_an_unreleased_format_says_so_every_time() {
@@ -460,7 +460,7 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
     }
 }
 
-/// RL-2: with a released list that lacks this build's format, Save As, a new project and the
+/// With a released list that lacks this build's format, Save As, a new project and the
 /// wizard's basic project each write a manifest marked `unstable` and show S1 as their toast; with the format released,
 /// none does.
 #[test]
@@ -518,7 +518,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-/// XW-7: in a temporary repository without the configuration the status bar says "Merge driver not configured"; Set
+/// In a temporary repository without the configuration the status bar says "Merge driver not configured"; Set
 /// up merge driver asks, then configures it, and the badge goes.
 #[test]
 fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
@@ -526,7 +526,7 @@ fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
     let repo = tmp.0.join("repo");
     std::fs::create_dir_all(&repo).unwrap();
     if git_in(&repo, &["init", "--quiet"]).is_none() {
-        eprintln!("XW-7 skipped: no git executable on the path");
+        eprintln!("skipped: no git executable on the path");
         return;
     }
     // The window's own git reads the process's configuration.
@@ -536,7 +536,7 @@ fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
         shell_git.config_has(&repo, "merge.elektrawatt.driver", scope),
         Ok(false)
     ) {
-        eprintln!("XW-7 skipped: the user's git configuration names the driver already");
+        eprintln!("skipped: the user's git configuration names the driver already");
         return;
     }
     let dir = repo.join("sample.ew");

@@ -256,7 +256,7 @@ impl ShellModel {
         if !self.external_choice_waiting() {
             return Outcome::refused(key!("reason-no-external-change"));
         }
-        // D24: never over another dialog.
+        // Never over another dialog.
         if self.dialog.is_some() {
             return Outcome::refused(key!("reason-dialog-open"));
         }

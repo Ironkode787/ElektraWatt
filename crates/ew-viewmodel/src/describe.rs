@@ -349,7 +349,7 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
         }
-        // A marked row (D5: no Pages line changes while nothing is marked).
+        // A marked row (no Pages line changes while nothing is marked).
         if nav.is_marked(&row.key) {
             line.push_str(" selected");
         }

@@ -5,7 +5,7 @@
 # key of the en-GB file of the same name, with the same arguments; a message missing here falls back to en-GB. Product
 # and file names, rule IDs, command names, key caps, identifiers and units are not translated.
 #
-# The terminology table (D12; IEC 60050 and NEN-EN-IEC 81346 usage, the glossary `glossary/glossary.toml`). One row
+# The terminology table (IEC 60050 and NEN-EN-IEC 81346 usage, the glossary `glossary/glossary.toml`). One row
 # per term, `# term: <en-GB> = <nl-NL> (not: <rejected>, ...)`; a test reads it and checks the window's messages
 # in every file of this folder.
 # term: device = apparaat (not: toestel, component)

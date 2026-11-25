@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette's matching (FR-UI-012): the scorer and the ranking of D2 (doc 16 §15.1), the
-//! recents of D3, the prefixes of D4 and the parameter forms of D5 (a). [`crate::shell::ShellModel::palette_entries`]
+//! The command palette's matching (FR-UI-012): the scorer and the ranking (doc 16 §15.1), the
+//! recents, the prefixes and the parameter forms. [`crate::shell::ShellModel::palette_entries`]
 //! builds the entries with these pieces; this module holds no shell state.
 //!
 //! **Score** (`score`): the best subsequence alignment of the query in a text, by dynamic programming over at most 64
@@ -13,7 +13,7 @@
 //!
 //! **Rank** (`rank`): `max(score(label), 0.9·score(alias), 0.8·score(id)) + min(20, 5·uses in the last 50) + 10 when
 //! enabled`, kept in tenths so that it is an integer. **Order** (`order`): enabled entries first, then rank
-//! descending, then the lower-cased label by Unicode code point, then the ID (D2: no ICU collation, decision O1).
+//! descending, then the lower-cased label by Unicode code point, then the ID (no ICU collation, decision O1).
 
 use std::collections::VecDeque;
 
@@ -25,7 +25,7 @@ use crate::strings::{self, Key};
 pub const MAX_QUERY: usize = 64;
 /// How many invocations the recents keep.
 pub const RECENT_CAP: usize = 50;
-/// How many recent distinct actions an empty query lists first (D3, PL-4).
+/// How many recent distinct actions an empty query lists first.
 pub const RECENT_SHOWN: usize = 8;
 /// The most object hits an `@` query lists.
 pub const MAX_OBJECTS: usize = 50;
@@ -205,7 +205,7 @@ pub fn rank<'a>(
 }
 
 /// The palette's order for two ranked entries: enabled first, then rank descending, then the lower-cased label by
-/// code point, then the ID (D2, PL-2).
+/// code point, then the ID.
 pub fn order(a: (bool, i64, &str, &str), b: (bool, i64, &str, &str)) -> std::cmp::Ordering {
     b.0.cmp(&a.0)
         .then(b.1.cmp(&a.1))
@@ -274,7 +274,7 @@ pub fn split_prefix(query: &str) -> (Prefix, &str) {
     (prefix, q[1..].trim())
 }
 
-/// How the palette runs an action (D5 (a)).
+/// How the palette runs an action.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FormPlan {
     /// The action runs as it is (it needs no parameter, or asks for them itself).
@@ -299,7 +299,7 @@ fn file_or_selection(ty: &str) -> bool {
     matches!(inner, "path" | "ref")
 }
 
-/// The form plan of an action (D5 (a)): an action without `needs_parameters` runs directly; one whose parameters are
+/// The form plan of an action: an action without `needs_parameters` runs directly; one whose parameters are
 /// all of a form type gets a form; one with a `path` or reference parameter is disabled with "needs a file or a
 /// selection"; any other (a `json` or `mm` parameter) is disabled until its form exists.
 pub fn form_plan(meta: &ActionMeta) -> FormPlan {
@@ -359,7 +359,7 @@ impl PaletteField {
     }
 }
 
-/// An open parameter form of the palette (D5 (a)).
+/// An open parameter form of the palette.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PaletteForm {
     /// The action it runs.

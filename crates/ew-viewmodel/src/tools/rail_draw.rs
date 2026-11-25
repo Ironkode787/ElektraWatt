@@ -12,7 +12,7 @@
 //! suspends the lines (the grid stays).
 //!
 //! **The second point** is constrained to the dominant axis of the pointer's displacement from the first (a rail is
-//! axis-parallel, D5). The part is the tool option's rail part ([`DrawPart`]), its profile from its rail section; a
+//! axis-parallel). The part is the tool option's rail part ([`DrawPart`]), its profile from its rail section; a
 //! part without one is refused ("The rail part has no profile; choose a rail part with a rail section").
 //!
 //! **Ghost**: [`super::Ghost::Line`] from the first point to the pointer, drawn as a solid line in the
@@ -31,7 +31,7 @@ use super::{
 use crate::key;
 use crate::strings;
 
-/// What the tool options card shows while Draw rail or Draw duct runs (D11).
+/// What the tool options card shows while Draw rail or Draw duct runs.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DrawCard {
     /// `rail` or `duct`.
@@ -45,7 +45,7 @@ pub struct DrawCard {
 }
 
 /// The part a draw tool draws with (the tool option): a project copy, or a library's part with the `copies`
-/// that embed it (`layout.carrier.add`'s `copies`, D7).
+/// that embed it (`layout.carrier.add`'s `copies`).
 #[derive(Clone, PartialEq, Debug)]
 pub struct DrawPart {
     /// The part copy's ID.
@@ -137,7 +137,7 @@ pub(crate) fn dominant(from: (i128, i128), p: (i128, i128)) -> (i128, i128) {
     }
 }
 
-/// The snap reach in surface nm at the sheet point `at` (15 points at the zoom, D4).
+/// The snap reach in surface nm at the sheet point `at` (15 points at the zoom).
 pub(crate) fn reach_at(cx: &ToolCx<'_>, panel: &PanelTables, at: (i64, i64)) -> i128 {
     let r = cx.nm_of_points(crate::pointer::LAYOUT_SNAP_PT) * surface_per_sheet(cx, panel, at);
     if r.is_finite() {
@@ -186,7 +186,7 @@ pub(crate) fn midpoint(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
     (mid(a.0, b.0), mid(a.1, b.1))
 }
 
-/// The Draw rail tool (D11).
+/// The Draw rail tool.
 #[derive(Clone, Debug)]
 pub struct RailDrawTool {
     part: Option<DrawPart>,
@@ -386,7 +386,7 @@ mod tests {
 
     const MM: i128 = 1_000_000;
 
-    /// D11's snapping on one coordinate: a line in reach wins over a farther grid point, the grid over a line out of
+    /// The snapping on one coordinate: a line in reach wins over a farther grid point, the grid over a line out of
     /// reach, and at equal distance the line.
     #[test]
     fn a_line_in_reach_beats_the_grid_and_ties_go_to_the_line() {

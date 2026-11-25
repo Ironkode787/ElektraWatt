@@ -178,7 +178,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ExternalChange { rows } => {
             external_change_spec(rows.len(), &crate::shell::collision_count(rows))
         }
-        // D11: Upgrade and save (Enter) or Cancel.
+        // Upgrade and save (Enter) or Cancel.
         Dialog::ConfirmUpgrade { from } => upgrade_spec(from),
         // The import card (Create project, Cancel): what is made, the verdict, a note; its groups of findings are
         // listed by the dialog.
@@ -203,7 +203,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             rows,
             nothing,
         } => reimport_spec(file, summary, rows, *nothing),
-        // D24: Extract and open (Enter), Open read-only, Cancel.
+        // Extract and open (Enter), Open read-only, Cancel.
         Dialog::OpenEwz { path, name } => open_ewz_spec(path, name),
         Dialog::ImportDrawing {
             path,
@@ -214,7 +214,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             converter,
         } => import_drawing_spec(path, name, *kind, folio.as_deref(), *unitless, *converter),
         Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step, model.has_project()),
-        // D28: Set up (Enter) or Cancel.
+        // Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // Which station takes a module: the last one given a module first (Enter), the others, Cancel.
         Dialog::ChooseStation { card, tag, stations } => {

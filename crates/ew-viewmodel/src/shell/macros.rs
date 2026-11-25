@@ -16,7 +16,7 @@
 //!
 //! **Save as macro… and Make variable.** A library write is a front-end operation: no command, no
 //! command log, and headless (a script, `--record`, MCP) `macros.save` refuses (`reason-library-write-window`, as the
-//! purge refuses). In the window the dialog is the confirmation (D12: not undoable); a read-only library refuses before
+//! purge refuses). In the window the dialog is the confirmation (not undoable); a read-only library refuses before
 //! anything is written. `props.make_variable` remembers the focused property row as a variable of the next save.
 
 use std::collections::BTreeMap;
@@ -978,7 +978,7 @@ impl ShellModel {
     /// `pages` (folios), else the marked pages (else the Pages cursor's page). A window macro's insertion point is
     /// `x_mm`/`y_mm` (a sheet point of the page on show, snapped to its grid), else the selection's anchor. Without
     /// `name` or `confirm` the window opens the dialog (name, key, description, library, kind, insertion point), which
-    /// is the confirmation (the write is not undoable, D12); headless the action refuses (a library write is a
+    /// is the confirmation (the write is not undoable); headless the action refuses (a library write is a
     /// front-end operation).
     pub(crate) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {

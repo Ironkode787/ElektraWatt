@@ -245,9 +245,8 @@ const R1_PUSHED: [(&str, f64); 4] = [
 ];
 
 // ---------------------------------------------------------------------------------------------------------------
-// PW-1
 
-/// PW-1: the rows in `Unplaced` order with their badges and drag sources; placing -102F1 removes its
+/// The rows in `Unplaced` order with their badges and drag sources; placing -102F1 removes its
 /// row in the same revision; the panel tables are fetched once per revision and folio, never for a schematic page.
 #[test]
 fn the_unplaced_devices_navigator_lists_the_devices_taken_off() {
@@ -355,7 +354,7 @@ fn describe_names_the_surface_view() {
     shell.shutdown();
 }
 
-/// PW-1's empty states (doc 16a §6.17), whole: every device placed (the sample as it is) names the location; a
+/// The empty states (doc 16a §6.17), whole: every device placed (the sample as it is) names the location; a
 /// project without a layout space says so.
 #[test]
 fn the_empty_states_name_the_location_or_the_missing_layout() {
@@ -403,9 +402,8 @@ fn the_empty_states_name_the_location_or_the_missing_layout() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PW-2
 
-/// PW-2: -102F1 dragged from the navigator onto Rail 1 between -101F1 and -101G1 with Ctrl held: the ghost moves
+/// -102F1 dragged from the navigator onto Rail 1 between -101F1 and -101G1 with Ctrl held: the ghost moves
 /// -101G1, the predicted poses are the committed ones, and one undo restores both.
 #[test]
 fn a_device_pushed_onto_rail_1_by_a_drag() {
@@ -495,7 +493,7 @@ fn a_refused_drop_says_why_and_the_way() {
     shell.shutdown();
 }
 
-/// PW-2 from the keyboard: Enter on the -102F1 row floats it at the start of Rail 1, the arrows step it by snap step,
+/// From the keyboard: Enter on the -102F1 row floats it at the start of Rail 1, the arrows step it by snap step,
 /// Enter drops it; with Push as the sticky mode the poses are the drag's, in one undo step.
 #[test]
 fn a_device_pushed_onto_rail_1_from_the_keyboard() {
@@ -545,9 +543,8 @@ fn a_device_pushed_onto_rail_1_from_the_keyboard() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PW-3
 
-/// PW-3: -102F1 over a TS 32 rail shows the command's refusal in the chip and commits nothing; -102F1 away from every
+/// -102F1 over a TS 32 rail shows the command's refusal in the chip and commits nothing; -102F1 away from every
 /// rail gets the tool's text; a screw-mounted device lands on the plate at the snapped point.
 #[test]
 fn refused_drops_and_a_plate_placement() {
@@ -659,9 +656,8 @@ fn refused_drops_and_a_plate_placement() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PW-4
 
-/// PW-4: near -101G1's end the left edge snaps to it (within 15 px, nearer than the grid point); Shift suspends the
+/// Near -101G1's end the left edge snaps to it (within 15 px, nearer than the grid point); Shift suspends the
 /// snap (0.1 mm); the 1 mm option changes the grid step.
 #[test]
 fn target_snapping_shift_and_the_grid_option() {
@@ -710,9 +706,8 @@ fn shell_failed_text(param: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PW-5
 
-/// PW-5: -201K1-Q2 dropped at the free end of Rail 2 without a modifier defaults to push at its member-order slot,
+/// -201K1-Q2 dropped at the free end of Rail 2 without a modifier defaults to push at its member-order slot,
 /// back between -201K1-Q1 and -201K1-Q3 where the sample has it, in one undo step; the whole rail equals what
 /// `layout.place_assembly` gives on another copy.
 #[test]
@@ -754,9 +749,8 @@ fn an_assembly_member_defaults_to_push_at_its_slot() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PW-6
 
-/// PW-6: Tab and Shift+Tab cycle Rail 1's placements in carrier order with the live region's text; the HUD of a
+/// Tab and Shift+Tab cycle Rail 1's placements in carrier order with the live region's text; the HUD of a
 /// selected placement.
 #[test]
 fn tab_cycles_the_rail_with_the_live_region() {
@@ -796,7 +790,7 @@ fn tab_cycles_the_rail_with_the_live_region() {
     shell.shutdown();
 }
 
-/// PW-6: the arrows nudge (free stops with "Blocked by …", push pushes); R is refused on a rail in words, X flips;
+/// The arrows nudge (free stops with "Blocked by …", push pushes); R is refused on a rail in words, X flips;
 /// Lock and Unlock in the context menu; Delete removes the placement.
 #[test]
 fn nudge_turn_lock_and_delete_a_selected_placement() {

@@ -135,7 +135,7 @@ impl ShellModel {
         }
     }
 
-    /// The property grid's devices as `part.choose`'s target (D16).
+    /// The property grid's devices as `part.choose`'s target.
     pub(super) fn grid_part_target(&self, use_: Option<usize>, add: bool) -> Result<Option<Target>, Outcome> {
         let Some(sheet) = self.props.sheet() else {
             return Ok(None);

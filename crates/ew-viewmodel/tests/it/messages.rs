@@ -252,7 +252,7 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// MS2: pending (FR-UI-041, amended by D16)
+// MS2: pending (FR-UI-041)
 
 #[test]
 fn a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves() {

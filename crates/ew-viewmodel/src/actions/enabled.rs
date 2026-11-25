@@ -346,7 +346,7 @@ pub(super) fn can_go_forward(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// A panel-layout page of a project that can be changed is on show (D10's reason: "Open a panel layout page").
+/// A panel-layout page of a project that can be changed is on show (the reason: "Open a panel layout page").
 pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
@@ -356,7 +356,7 @@ pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// A panel-layout page with a surface view is on show in a project that can be changed (D10: Draw ▸ Layout is
+/// A panel-layout page with a surface view is on show in a project that can be changed (Draw ▸ Layout is
 /// disabled elsewhere with "Open a panel layout page; make one with New page…", and on a panel page that shows no
 /// enclosure yet with how to show one).
 pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {

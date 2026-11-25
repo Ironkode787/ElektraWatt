@@ -171,7 +171,7 @@ fn templates_are_a_list_the_person_manages() {
     assert!(shell.describe().contains("start 1 (chosen) \"Empty project\""));
     done(&mut shell, "ui.dismiss", json!({}));
 
-    // P4: Save as template… of a project set up the way he likes.
+    // Save as template… of a project set up the way he likes.
     new_project(&mut shell, &tmp.0, "cabinet", 1, false);
     done(&mut shell, "project.save_as_template", json!({}));
     assert!(matches!(shell.dialog(), Some(Dialog::Form(_))), "its form");
@@ -194,7 +194,7 @@ fn templates_are_a_list_the_person_manages() {
     );
     done(&mut shell, "file.close", json!({}));
 
-    // P6: editing a template, known as one.
+    // Editing a template, known as one.
     done(&mut shell, "templates.open", json!({}));
     done(&mut shell, "templates.edit", json!({"index": 2}));
     assert_eq!(shell.editing_template().as_deref(), Some("Cabinet standard"));
@@ -209,7 +209,7 @@ fn templates_are_a_list_the_person_manages() {
     );
     done(&mut shell, "file.close", json!({}));
 
-    // P5: removed from the list, the folder stays.
+    // Removed from the list, the folder stays.
     done(&mut shell, "templates.open", json!({}));
     done(&mut shell, "templates.remove", json!({"index": 1}));
     assert!(
@@ -226,7 +226,7 @@ fn templates_are_a_list_the_person_manages() {
     shell.shutdown();
 }
 
-/// G2: Check level… says what the level is for and what each one stops, and a person sets it in the window.
+/// Check level… says what the level is for and what each one stops, and a person sets it in the window.
 #[test]
 fn the_check_level_is_set_in_the_window_in_words() {
     let tmp = Tmp::new("templates-level");

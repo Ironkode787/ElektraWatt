@@ -4,7 +4,7 @@
 //! Every starter symbol reaches a usable device from the picker: in a new project each symbol of the
 //! starter set is placed by its path, with a generic starter part where the starter parts give one, and each
 //! auxiliary symbol joins a device by the join chooser. The table [`PATHS`] must name every starter symbol, so a
-//! symbol added later fails the test until it has a path. D3 (the device's "Add" menu) is not built; no path uses it.
+//! symbol added later fails the test until it has a path. The device's "Add" menu is not built; no path uses it.
 
 use crate::common;
 

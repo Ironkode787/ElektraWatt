@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Joining an existing device from the window (FR-DEV-038). One test per branch: a new
-//! auxiliary function by `place.pick device=<tag>` in one undo step (D1, D4); a slot filled before a new auxiliary
-//! function, the target sticky (D1); the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals;
-//! a lamp joining as a second symbol and a terminal refused (D2, D4); the Join chooser's rows, type-ahead, Escape
+//! auxiliary function by `place.pick device=<tag>` in one undo step; a slot filled before a new auxiliary
+//! function, the target sticky; the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals;
+//! a lamp joining as a second symbol and a terminal refused (D2); the Join chooser's rows, type-ahead, Escape
 //! and "New device" (D2). Every test works on a writable temporary copy of the sample, folio 101.
 
 use crate::common;
@@ -79,7 +79,7 @@ fn ghost(s: &ShellModel) -> Value {
     state(s)["canvas"]["ghost"].clone()
 }
 
-/// D1, D4: `place.pick device=<tag>` arms the join (`join -K1`); the placement is a new auxiliary function of the
+/// `place.pick device=<tag>` arms the join (`join -K1`); the placement is a new auxiliary function of the
 /// relay, and one undo step takes it back.
 #[test]
 fn a_device_tag_joins_the_relay_as_a_new_auxiliary_function_in_one_undo_step() {
@@ -115,7 +115,7 @@ fn a_device_tag_joins_the_relay_as_a_new_auxiliary_function_in_one_undo_step() {
     assert_eq!(rep_at(&s, (66, 30)).unwrap().device, coil.device);
 }
 
-/// D1: a device's unplaced function of the symbol's FnDef (a slot) is filled before a new auxiliary function is
+/// A device's unplaced function of the symbol's FnDef (a slot) is filled before a new auxiliary function is
 /// made; the join target is sticky, so the next placement makes a new one.
 #[test]
 fn a_slot_is_filled_before_a_new_auxiliary_function_and_the_target_stays_sticky() {
@@ -139,7 +139,7 @@ fn a_slot_is_filled_before_a_new_auxiliary_function_and_the_target_stays_sticky(
     assert_ne!(next.functions, first.functions, "a new auxiliary function");
 }
 
-/// D4: `function=<tag>` resolves the one unplaced function of the armed FnDef; `function=<tag>:<slot>` names it by
+/// `function=<tag>` resolves the one unplaced function of the armed FnDef; `function=<tag>:<slot>` names it by
 /// its CP designations; none, several, an unknown slot and an unknown tag are refused with the reason.
 #[test]
 fn function_tag_forms_resolve_slots_and_refuse_with_reasons() {

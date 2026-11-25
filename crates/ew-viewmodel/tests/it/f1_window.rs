@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 in every part of the window (DC-3) on a copy of the sample: a focused navigator, the strip editor, a
+//! F1 in every part of the window on a copy of the sample: a focused navigator, the strip editor, a
 //! navigator in table mode, the property grid, the find pane, the history, the command bar, an active tool and the
 //! dialogs open the section of their page of the window reference.
 
@@ -118,7 +118,7 @@ fn f1_and_the_guide_buttons_lead_to_the_guide_of_the_discipline() {
     shell.shutdown();
 }
 
-/// F5: Help ▸ Guides lists the how-to guides of the book under a line that says what a guide is, and Help ▸ Tutorials
+/// Help ▸ Guides lists the how-to guides of the book under a line that says what a guide is, and Help ▸ Tutorials
 /// says what a tutorial is the same way; a guide opens its page without a question.
 #[test]
 fn help_guides_lists_the_how_to_guides_and_opens_one() {
