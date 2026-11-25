@@ -56,7 +56,9 @@ use ::windows::Win32::UI::WindowsAndMessaging::{
 use ::windows::core::{BOOL, HRESULT, PCWSTR, w};
 use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, pixel_size, render_placed_band};
 
-use crate::{PdfPage, PrintAdapter, PrintCancel, PrintError, PrintJob, PrintOutcome};
+use ew_export::PdfPage;
+
+use crate::{PrintAdapter, PrintCancel, PrintError, PrintJob, PrintOutcome};
 
 /// The device rows of one band: about 10 MB of RGBA at 600 dpi on A3.
 const BAND_ROWS: u32 = 256;

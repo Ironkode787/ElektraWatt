@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use ew_api::library::LibraryTiers;
 use ew_api::{Session, SessionOptions};
-use ew_import_tables::ew_interop_api::ImportBatch;
+use ew_interop_api::ImportBatch;
 use ew_schema::{LibDocument, Record};
 
 /// The repository root.

@@ -80,9 +80,6 @@ pub use csv::TableLimits;
 /// equal to the rule.
 #[doc(hidden)]
 pub use emit::layout::path_problem as carrier_path_problem;
-/// The importer contract this crate implements, re-exported for hosts that reach the importer through
-/// `ew-api` only (`ImportInput`, `ImportContext`, `ImportBatch`, the report types).
-pub use ew_interop_api;
 pub use import::TablesImporter;
 pub use library::{BuiltinLibrary, LibraryError};
 pub use parts::{PARTS_FILE, PartsTables, SiblingTables, parse_parts_tables};

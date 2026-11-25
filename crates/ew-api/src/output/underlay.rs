@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 use ew_derive::{PageRef, Q};
 use ew_dl::{Brush, Color, DisplayList, Item, Path, Stroke};
 use ew_ids::Id;
-use ew_import_dxf::ew_interop_api::{ImportError, ImportInput, ImportReport, SourceInfo};
+use ew_interop_api::{ImportError, ImportInput, ImportReport, SourceInfo};
 use ew_schema::{Page, PageItemKind, Underlay, UnderlayFormat};
 use ew_units::{Nm, Pt2, Rect, arith};
 
@@ -116,7 +116,7 @@ fn drawing(assets: &ExportAssets, u: &Underlay) -> Option<Arc<ew_import_dxf::Con
             .clone()
             .map_or(ew_import_dxf::Space::Model, ew_import_dxf::Space::Layout);
         let unit = u.unit.as_deref().and_then(ew_import_dxf::Unit::parse);
-        let limits = ew_import_dxf::ew_interop_api::Limits::default();
+        let limits = ew_interop_api::Limits::default();
         let run = || ew_import_dxf::convert(&bytes, &limits, unit, &space, &Default::default(), &u.name);
         Some(
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
@@ -474,7 +474,7 @@ impl crate::Session {
             };
             keep_source(&sha, &format, &kept).map_err(DxfError::Cache)?;
         }
-        let mode = ew_import_dxf::ew_interop_api::ImportMode::Lenient;
+        let mode = ew_interop_api::ImportMode::Lenient;
         let command =
             crate::import::apply_command(&batch, None, mode, None, false).map_err(DxfError::Apply)?;
         let preview = self.import_preview(&command).map_err(DxfError::Apply)?;

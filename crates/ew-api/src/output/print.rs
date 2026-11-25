@@ -33,7 +33,7 @@ use ew_mltext::LangTag;
 use ew_text::TextStyle;
 use ew_units::{Nm, Pt2, arith};
 
-pub use ew_export::PagePlacement;
+pub use ew_render_cpu::PagePlacement;
 
 use super::{
     ExportAssets, ExportOptions, Halt, OutputError, PageFindingAt, PageSelection, PdfDate,

@@ -9,7 +9,7 @@
 //! section and on its grid (a project without pages: folio 1 on the QET 10 px grid, `page.create`'s default).
 
 use ew_ids::Id;
-use ew_import_dxf::ew_interop_api::{ImportContext, ImportInput, ImportMode};
+use ew_interop_api::{ImportContext, ImportInput, ImportMode};
 use ew_schema::{GraphicShape, ImportLineage, LineageAnchor, Page, PageItemKind, Record};
 use ew_units::{Grid, Nm, Pt2};
 

@@ -6,7 +6,7 @@
 
 #![allow(dead_code)]
 
-use ew_import_dxf::ew_interop_api::{ImportContext, ImportInput};
+use ew_interop_api::{ImportContext, ImportInput};
 
 /// A drawing as its group-code pairs.
 #[derive(Clone, Debug, Default)]
@@ -97,7 +97,7 @@ pub fn input(name: &str, bytes: Vec<u8>) -> ImportInput {
 
 /// A context for a project of nil ID.
 pub fn ctx() -> ImportContext {
-    ImportContext::new(ew_import_dxf::ew_interop_api::ew_ids::Id::from_uuid(
-        ew_import_dxf::ew_interop_api::ew_ids::Uuid::nil(),
+    ImportContext::new(ew_interop_api::ew_ids::Id::from_uuid(
+        ew_interop_api::ew_ids::Uuid::nil(),
     ))
 }

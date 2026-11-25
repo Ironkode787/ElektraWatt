@@ -5,7 +5,7 @@
 //! §4.9, §4.13): small hand-written projects with made-up content.
 
 use ew_import_qet::QetProjectImporter;
-use ew_import_qet::ew_interop_api::{ImportBatch, ImportInput};
+use ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_qet::project::new_project_context;
 use ew_schema::{
     ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Record, ReportBlock,

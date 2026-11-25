@@ -44,11 +44,9 @@ use ew_dl::{
     Brush, Cap, Destination, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, Item, ItemKind, Join,
     Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
-use ew_render_cpu::{FontResolver, decode_image, jpeg_is_cmyk, monochrome};
+use ew_render_cpu::{FontResolver, PagePlacement, decode_image, jpeg_is_cmyk, monochrome};
 use ew_units::{Nm, Pt2, Rect};
 
-/// A sheet placed on a paper: `ew-render-cpu`'s, which draws by the same rule.
-pub use ew_render_cpu::PagePlacement;
 use krilla::SerializeSettings;
 use krilla::annotation::{Annotation, LinkAnnotation, Target};
 use krilla::color::rgb;

@@ -6,8 +6,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_import_dxf::ew_interop_api::ew_schema::{GraphicShape, PageItemKind, Record};
-use ew_import_dxf::ew_interop_api::{ImportError, Limits};
+use ew_interop_api::ew_schema::{GraphicShape, PageItemKind, Record};
+use ew_interop_api::{ImportError, Limits};
 use ew_import_dxf::{DxfOptions, PageSpec, Space, Unit, convert, import_page, probe};
 use ew_units::{Grid, Nm, Pt2};
 
@@ -353,7 +353,7 @@ fn kinds(records: &[Record]) -> BTreeMap<&'static str, usize> {
     out
 }
 
-fn codes(batch: &ew_import_dxf::ew_interop_api::ImportBatch) -> BTreeSet<String> {
+fn codes(batch: &ew_interop_api::ImportBatch) -> BTreeSet<String> {
     batch.report.entries.iter().map(|e| e.code.to_string()).collect()
 }
 

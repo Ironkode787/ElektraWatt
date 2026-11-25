@@ -15,7 +15,7 @@ use std::fmt;
 
 use ew_derive::{Policy, Q, Query};
 use ew_dl::FontKey;
-use ew_export::ew_render_cpu::{FontBytes, FontResolver};
+use ew_render_cpu::{FontBytes, FontResolver};
 use ew_text::FontSet;
 
 /// What became of the project's typeface setting.

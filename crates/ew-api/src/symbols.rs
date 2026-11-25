@@ -1114,7 +1114,7 @@ pub fn import_qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Er
 }
 
 fn qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
-    use ew_import_qet::ew_interop_api::{Limits, LineageInfo};
+    use ew_interop_api::{Limits, LineageInfo};
     if bytes.len() as u64 > MAX_BYTES {
         return Err(Error::Refused(text!("symbol-input-limit")));
     }
@@ -1304,18 +1304,18 @@ pub fn import_dxf(
     key: &str,
     unit: Option<ew_import_dxf::Unit>,
 ) -> Result<Vec<SymbolDraft>, Error> {
-    use ew_import_dxf::ew_interop_api::Limits;
+    use ew_interop_api::Limits;
     use sha2::{Digest, Sha256};
     let limits = Limits::default();
     front_door(name, &[bytes.len() as u64], text!("dxf-input-limit"), || {
         let blocks =
             ew_import_dxf::symbols(bytes, &limits, unit, ew_units::Grid::MM4, name).map_err(|e| match e {
-                ew_import_dxf::ew_interop_api::ImportError::Unsupported { message }
+                ew_interop_api::ImportError::Unsupported { message }
                     if message == ew_import_dxf::NO_UNIT =>
                 {
                     Error::Refused(text!("dxf-no-unit"))
                 }
-                ew_import_dxf::ew_interop_api::ImportError::LimitExceeded { .. } => Error::Refused(text!("dxf-input-limit")),
+                ew_interop_api::ImportError::LimitExceeded { .. } => Error::Refused(text!("dxf-input-limit")),
                 _ => Error::Refused(text!("dxf-input-invalid")),
             })?;
         if blocks.is_empty() {

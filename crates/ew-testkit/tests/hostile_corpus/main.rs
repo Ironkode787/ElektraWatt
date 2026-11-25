@@ -500,7 +500,7 @@ fn svg_assets() {
 /// Raster assets: taken as an asset (`asset_ref_of`), then decoded as every renderer and writer decodes one.
 #[test]
 fn raster_assets() {
-    use ew_render_cpu::ew_dl::ImageFormat;
+    use ew_dl::ImageFormat;
     class(
         "raster",
         &[

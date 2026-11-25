@@ -61,7 +61,6 @@ pub mod words;
 pub mod xlsx;
 
 pub use arrange::{Arrangement, arrange};
-pub use ew_derive::bus_word;
 pub use kind::{
     EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_params,
 };

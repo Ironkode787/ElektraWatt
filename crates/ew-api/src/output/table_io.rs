@@ -28,7 +28,7 @@ use std::fmt;
 use ew_derive::DeviceTag;
 use ew_ids::Id;
 use ew_import_catalog::SourceFormat;
-use ew_import_catalog::ew_interop_api::ImportError;
+use ew_interop_api::ImportError;
 use ew_import_catalog::sheet::{csv_separator, read_rows, read_sheet, sheet_names};
 use ew_reports::csv::Preset;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};

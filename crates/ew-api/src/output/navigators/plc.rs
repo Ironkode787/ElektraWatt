@@ -512,7 +512,7 @@ fn bus_port_label(port: &ew_schema::BusPort) -> String {
         Some(l) => format!("{} {l}", port.interface),
         None => port.interface.to_string(),
     };
-    format!("{name} · {}", ew_reports::bus_word(&port.bus))
+    format!("{name} · {}", ew_derive::bus_word(&port.bus))
 }
 
 /// One bus-port row under `parent` (the station's in the PLC navigator, a net's in the bus navigator): the port's

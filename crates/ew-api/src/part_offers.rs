@@ -13,7 +13,7 @@ use std::collections::BTreeSet;
 use ew_commands::commands::{AssignModeParam, AssignPart, AssignPlaceholder};
 use ew_derive::Q;
 use ew_ids::{Id, Uuid, v5};
-use ew_import_catalog::ew_interop_api::pn_norm;
+use ew_interop_api::pn_norm;
 use ew_schema::{Device, FnDef, ItemStatus, LibDocument, LibRef, Part, PartKind};
 use ew_units::Dec3;
 

@@ -101,7 +101,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             interface.clone(),
             address,
             termination.to_owned(),
-            ew_reports::bus_word(&port.bus).to_owned(),
+            ew_derive::bus_word(&port.bus).to_owned(),
             port_role_word(&port.role).to_owned(),
             port.logical_net
                 .and_then(|n| lnets.get(n))

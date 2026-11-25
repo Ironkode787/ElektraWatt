@@ -16,7 +16,6 @@ mod image;
 mod read;
 mod write;
 
-pub use ew_interop_api::{ImportError, Limits};
 pub use image::{
     ChannelType, ExchangeImage, IecTags, IoType, XAddr, XChannel, XInterface, XItem, XNetwork, XNode, XPort,
     XProject, XStation, XTag,

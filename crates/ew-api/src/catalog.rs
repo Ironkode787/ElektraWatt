@@ -15,7 +15,7 @@
 
 use std::path::{Path, PathBuf};
 
-pub use ew_import_catalog::ew_interop_api::{
+pub use ew_interop_api::{
     ImportError, ImportInput, ImportReport, Limits, ReportEntry, Severity,
 };
 pub use ew_schema::{Date, DateFormat};

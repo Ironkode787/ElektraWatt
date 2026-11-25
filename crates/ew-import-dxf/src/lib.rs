@@ -44,7 +44,6 @@ mod text;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub use emit::{Converted, NO_UNIT, Probe, Space, Unit, convert, probe};
-pub use ew_interop_api;
 use ew_interop_api::ew_ids::{Id, v5};
 use ew_interop_api::ew_schema::{
     Folio, ImportLineage, LineageAnchor, LineageCopy, Page, PageItem, PageType, Record, Section, Sha256,

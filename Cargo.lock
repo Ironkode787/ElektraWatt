@@ -1311,6 +1311,7 @@ name = "ew-api"
 version = "0.3.5"
 dependencies = [
  "automod",
+ "ew-caex",
  "ew-checks",
  "ew-commands",
  "ew-derive",
@@ -1325,6 +1326,7 @@ dependencies = [
  "ew-import-eplan",
  "ew-import-qet",
  "ew-import-tables",
+ "ew-interop-api",
  "ew-jobs",
  "ew-l10n",
  "ew-library",
@@ -1395,6 +1397,7 @@ name = "ew-commands"
 version = "0.3.5"
 dependencies = [
  "automod",
+ "ew-caex",
  "ew-checks",
  "ew-commands",
  "ew-derive",
@@ -1932,10 +1935,12 @@ dependencies = [
  "ew-api",
  "ew-commands",
  "ew-derive",
+ "ew-dl",
  "ew-format",
  "ew-hack",
  "ew-ids",
  "ew-import-tables",
+ "ew-interop-api",
  "ew-mltext",
  "ew-model",
  "ew-rds",

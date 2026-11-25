@@ -47,7 +47,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 #[cfg(windows)]
 pub use crate::windows::{Windows, attach_parent_console, ctrl_c_cancels};
 use ew_dl::FontKey;
-pub use ew_export::PdfPage;
+use ew_export::PdfPage;
 use ew_render_cpu::FontBytes;
 pub use lp::Lp;
 #[cfg(target_os = "linux")]

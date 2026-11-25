@@ -16,9 +16,9 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_dl::{Brush, Color, Destination, DisplayList, FontKey, Item, Link, Path, Pen, Stroke};
-use ew_export::ew_render_cpu::FontBytes;
+use ew_render_cpu::{FontBytes, PagePlacement};
 use ew_export::{
-    Conformance, OutlineEntry, PagePlacement, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf,
+    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf,
     pdf_bytes,
 };
 use ew_text::{builtin, bundled};
@@ -447,8 +447,8 @@ fn red_blue_jpeg() -> Vec<u8> {
 
 /// A PNG of `w × h` pixels of one RGBA colour (synthetic).
 fn png_of(w: u32, h: u32, rgba: [u8; 4]) -> Vec<u8> {
-    ew_export::ew_render_cpu::encode_png(
-        &ew_export::ew_render_cpu::RgbaImage {
+    ew_render_cpu::encode_png(
+        &ew_render_cpu::RgbaImage {
             width: w,
             height: h,
             pixels: rgba.repeat((w * h) as usize),

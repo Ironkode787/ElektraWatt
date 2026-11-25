@@ -11,7 +11,7 @@ use crate::common;
 use ew_api::SessionOptions;
 use ew_api::import::{ImportMode, StarterLibrary, import_tables, session_from_batch};
 use ew_derive::FunctionCps;
-use ew_import_tables::ew_interop_api::ImportInput;
+use ew_interop_api::ImportInput;
 use ew_schema::{Endpoint, Record};
 
 /// Rows appended to the test tables: the positional contactor `-102K9` in a location of its own, and two wires on it.

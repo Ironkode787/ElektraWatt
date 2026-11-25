@@ -33,9 +33,6 @@ mod png_chunks;
 mod render;
 
 pub use crate::png::encode_png;
-/// The display lists this crate renders, so a crate that does not reach `ew-dl` itself can name their types
-/// (`ew-print`'s print jobs carry a font map by [`ew_dl::FontKey`]).
-pub use ew_dl;
 pub use fonts::{FontBytes, FontResolver};
 pub use image::{DecodedImage, MAX_IMAGE_PIXELS, decode_image, jpeg_is_cmyk};
 pub use mono::{monochrome, render_monochrome};

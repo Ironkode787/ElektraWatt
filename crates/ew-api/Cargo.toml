@@ -41,6 +41,13 @@ ew-derive = { path = "../ew-derive" }
 ew-reports = { path = "../ew-reports" }
 # The PLC exchange (doc 10 §4): the exchange image, the merge preview, the tag table's rows, the PLCopen writer.
 ew-plc = { path = "../ew-plc" }
+# The AutomationML/CAEX reader and writer of the PLC exchange.
+ew-caex = { path = "../ew-caex" }
+# The importer contract (`ImportInput`, `ImportReport`, the limits) that every importer implements and the front door
+# runs.
+ew-interop-api = { path = "../ew-interop-api" }
+# The renderer the raster outputs, the typeface probe and the migration's page images draw with.
+ew-render-cpu = { path = "../ew-render-cpu" }
 # The record types of `Session::from_records`.
 ew-schema = { path = "../ew-schema" }
 # The command log parser (`Session::run_script`, doc 17 §3.5).
@@ -86,8 +93,6 @@ ew-testids = { path = "../ew-testids" }
 # The tests read and count rows through the untracked readers (`tests/it/external.rs`, `persistence.rs`) and apply
 # raw ops to a snapshot (`memo_oracle.rs`).
 ew-model = { path = "../ew-model", features = ["raw-read"] }
-# tests/it/page_output.rs: page display lists, PNG and PDF of the sample's folios.
-ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
 png = "0.18.1"
 # tests/it/page_output.rs: inflates the PDF content streams to read the line widths.

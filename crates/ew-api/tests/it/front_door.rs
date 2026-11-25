@@ -9,7 +9,7 @@ use ew_api::import::{
     ContractBreach, ImportBatch, ImportError, ImportReport, Limits, Refusal, check_contract, front_door,
 };
 use ew_ids::Uuid;
-use ew_import_catalog::ew_interop_api::{ImportInput, SourceInfo};
+use ew_interop_api::{ImportInput, SourceInfo};
 use ew_import_catalog::{CatalogTarget, ColumnMap, parse_parts};
 use ew_schema::Record;
 
@@ -235,7 +235,7 @@ fn an_importer_that_panics_is_refused_with_t1() {
 /// Four hand-made batches, one per breach, each refused with T2's reason; their repaired form passes.
 #[test]
 fn the_contract_refuses_each_breach_with_its_reason() {
-    use ew_import_qet::ew_interop_api::LineageInfo;
+    use ew_interop_api::LineageInfo;
     let ns = Uuid::from_u128(0x5000);
     let lineage = LineageInfo {
         id: ew_ids::Id::from_uuid(Uuid::from_u128(0x15)),

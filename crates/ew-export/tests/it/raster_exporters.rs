@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use ew_dl::{Destination, DisplayList, FontKey, Item};
-use ew_export::ew_render_cpu::FontBytes;
+use ew_render_cpu::FontBytes;
 use ew_export::{PdfDate, PdfOptions, PdfPage};
 use ew_units::{Nm, Pt2, Rect};
 use sha2::{Digest, Sha256};
@@ -177,7 +177,7 @@ fn every_raster_file_decodes_as_ruled() {
     for (name, ruled) in CORPUS {
         let bytes = std::fs::read(dir.join(name)).unwrap();
         match (
-            ew_export::ew_render_cpu::decode_image(ruled.format, &bytes),
+            ew_render_cpu::decode_image(ruled.format, &bytes),
             ruled.size,
         ) {
             (Some(img), Some(size)) => {
@@ -197,7 +197,7 @@ fn every_raster_file_decodes_as_ruled() {
                 img.width, img.height
             )),
         }
-        let cmyk = ew_export::ew_render_cpu::jpeg_is_cmyk(&bytes);
+        let cmyk = ew_render_cpu::jpeg_is_cmyk(&bytes);
         if cmyk != ruled.cmyk {
             mismatches.push(format!("{name}: jpeg_is_cmyk is {cmyk}, ruled {}", ruled.cmyk));
         }

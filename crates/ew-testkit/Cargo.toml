@@ -55,3 +55,7 @@ ew-testdir = { path = "../ew-testdir" }
 # The hostile corpus test decodes a raster asset as the renderers do (dev-only edge,
 # `[allowed_dev_edges]`).
 ew-render-cpu = { path = "../ew-render-cpu" }
+# The hostile corpus test names the image formats of the display list.
+ew-dl = { path = "../ew-dl" }
+# The command fuzzer's import step runs the importer contract (dev-only edge, `[allowed_dev_edges]`).
+ew-interop-api = { path = "../ew-interop-api" }

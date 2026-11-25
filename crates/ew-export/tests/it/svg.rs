@@ -439,8 +439,8 @@ fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
 /// rule: a cut JPEG, a PNG header with nothing after it) are counted as skipped and not embedded.
 #[test]
 fn png_and_jpeg_images_are_embedded() {
-    let png = ew_export::ew_render_cpu::encode_png(
-        &ew_export::ew_render_cpu::RgbaImage {
+    let png = ew_render_cpu::encode_png(
+        &ew_render_cpu::RgbaImage {
             width: 2,
             height: 1,
             pixels: vec![255, 0, 0, 255, 0, 0, 255, 255],

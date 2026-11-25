@@ -3,7 +3,8 @@
 
 //! Hostile and broken AML files are refused in words and never panic (doc 14 §11, NFR-SEC-02, NFR-REL-12).
 
-use ew_caex::{ApcVersion, ImportError, Limits, read_aml, write_aml};
+use ew_caex::{ApcVersion, read_aml, write_aml};
+use ew_interop_api::{ImportError, Limits};
 
 use crate::{options, sample};
 

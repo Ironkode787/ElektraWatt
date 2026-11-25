@@ -26,7 +26,6 @@ mod merge;
 pub mod plcopen;
 pub mod tia;
 
-pub use ew_caex;
 pub use fields::{
     FIELD_KEYS, FieldClass, FieldName, Object, Snapshot, class, drift, field_name, object_key, objects, ours,
     snapshot,

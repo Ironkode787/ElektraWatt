@@ -18,7 +18,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_dl::{DisplayList, ItemKind};
-use ew_export::ew_render_cpu::RgbaImage;
+use ew_render_cpu::RgbaImage;
 use ew_scene::pdf_text::{Piece, Segmenter, TextRun, pdf_page_labels, pdf_page_text};
 use ew_scene::underlay::{MAX_RASTER_SIDE, PdfError, pdf_pixmap};
 use ew_units::Pt2;

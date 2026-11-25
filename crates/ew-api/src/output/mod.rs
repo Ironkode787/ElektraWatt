@@ -40,7 +40,7 @@
 //! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 //!
-//! **The print set** ([`mod@print`]): the same pages placed on a paper ([`ew_export::PagePlacement`]),
+//! **The print set** ([`mod@print`]): the same pages placed on a paper ([`ew_render_cpu::PagePlacement`]),
 //! stamped when scaled, and written by the same writer; [`PageSelection::Sections`] selects pages by section for both.
 
 // The DXF set's attributes and block names (doc 09 §4.9).
@@ -102,7 +102,7 @@ use std::sync::{Arc, OnceLock};
 
 use ew_derive::{PageEntry, PageOrder, PageOrderV, PageTitle, Q, TableView};
 use ew_dl::{DisplayList, FontKey};
-use ew_export::ew_render_cpu::FontBytes;
+use ew_render_cpu::FontBytes;
 use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, par_map};
 use ew_scene::page::PageFinding;
 use ew_schema::Section;
@@ -730,7 +730,7 @@ pub fn font_bytes() -> &'static BTreeMap<FontKey, FontBytes> {
 /// The SVG options of an export with the font set `fonts` (the project's, [`fonts`]): its faces by family, weight and
 /// style, each with its font file ([`DrawingFonts`]) so that every page embeds the subsets of the faces it draws.
 pub fn svg_options(fonts: &ew_text::FontSet, monochrome: bool) -> SvgOptions {
-    use ew_export::ew_render_cpu::FontResolver as _;
+    use ew_render_cpu::FontResolver as _;
     SvgOptions {
         monochrome,
         faces: fonts
@@ -758,7 +758,7 @@ pub fn svg_options(fonts: &ew_text::FontSet, monochrome: bool) -> SvgOptions {
 /// font file (the typeface's own name; a bundled face's `<Family>-<Regular|Bold>.ttf`), its cap height, and its bytes
 /// for the texts' width factors (§4.9).
 fn dxf_faces(q: &Q) -> BTreeMap<FontKey, ew_export::DxfFace> {
-    use ew_export::ew_render_cpu::FontResolver as _;
+    use ew_render_cpu::FontResolver as _;
     let project = q.get::<ProjectFontsQ>(());
     let typeface = match &project.state {
         TypefaceState::Loaded { name, .. } => Some(name.as_str()),
@@ -1069,7 +1069,7 @@ pub(crate) fn export_pages_hooked(
 
 /// Adds an [`ImageProblem::Undecodable`](ew_scene::images::ImageProblem::Undecodable) issue for every PNG or JPEG item
 /// of `items` (groups included, in list order) whose bytes are held but do not decode with the renderers' decoder
-/// ([`ew_export::ew_render_cpu::decode_image`]), and withdraws that item's bytes, so that no writer embeds them (the
+/// ([`ew_render_cpu::decode_image`]), and withdraws that item's bytes, so that no writer embeds them (the
 /// SVG writer would otherwise copy them unchanged) and none decodes them again; `decodes` caches the verdict per asset
 /// hash, once per export.
 fn undecodable_rasters(
@@ -1084,7 +1084,7 @@ fn undecodable_rasters(
                 if !img.image.bytes.is_empty() && img.image.format != ew_dl::ImageFormat::Svg =>
             {
                 let ok = *decodes.entry(img.image.sha256).or_insert_with(|| {
-                    ew_export::ew_render_cpu::decode_image(img.image.format, &img.image.bytes).is_some()
+                    ew_render_cpu::decode_image(img.image.format, &img.image.bytes).is_some()
                 });
                 if !ok {
                     issues.push(ew_scene::images::ImageIssue {

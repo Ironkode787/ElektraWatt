@@ -88,7 +88,7 @@ pub fn read_collection(dir: &Path) -> Result<Collection, CatalogError> {
         }
     }
     found.sort();
-    let max = ew_import_qet::ew_interop_api::Limits::element_definition().max_input_bytes;
+    let max = ew_interop_api::Limits::element_definition().max_input_bytes;
     too_deep.sort();
     let (mut total, mut elements, mut skipped) = (0u64, Vec::new(), too_deep);
     for (path, file) in found {
@@ -133,16 +133,16 @@ pub struct Converted {
 pub fn convert(library: Uuid, collection: &Collection) -> Converted {
     let namespace = v5::lineage_namespace("qet", &LineageAnchor::Fixed(&library.hyphenated().to_string()))
         .unwrap_or_else(|_| unreachable!("\"qet\" is a valid importer name"));
-    let lineage = ew_import_qet::ew_interop_api::LineageInfo {
+    let lineage = ew_interop_api::LineageInfo {
         id: v5::imported_id::<ImportLineage>(namespace, "qet:collection"),
         namespace,
     };
     let project: Id<Project> = Id::from_uuid(library);
-    let limits = ew_import_qet::ew_interop_api::Limits::element_definition();
+    let limits = ew_interop_api::Limits::element_definition();
     let mut report = ImportReport::new(
         "qet",
         ew_import_qet::IMPORTER_VERSION,
-        ew_import_catalog::ew_interop_api::SourceInfo {
+        ew_interop_api::SourceInfo {
             name: "QElectroTech element collection".to_owned(),
             format: "qet-elements".to_owned(),
             ..Default::default()

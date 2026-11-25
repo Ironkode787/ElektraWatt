@@ -918,9 +918,9 @@ impl Session {
 ///
 /// # Errors
 ///
-/// The reader's [`ImportError`](ew_import_catalog::ew_interop_api::ImportError) for bytes that are not a workbook or
+/// The reader's [`ImportError`](ew_interop_api::ImportError) for bytes that are not a workbook or
 /// beyond its limits.
-pub fn workbook_dump(bytes: &[u8]) -> Result<String, ew_import_catalog::ew_interop_api::ImportError> {
+pub fn workbook_dump(bytes: &[u8]) -> Result<String, ew_interop_api::ImportError> {
     use ew_import_catalog::sheet::{read_rows, read_sheet, sheet_names};
     let limits = ew_import_catalog::table_limits();
     let escape = |t: &str| {

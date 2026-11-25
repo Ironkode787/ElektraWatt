@@ -3,7 +3,8 @@
 
 //! What is written is read back, and a CAEX 3.0 file as PLC software writes it is read.
 
-use ew_caex::{ApcVersion, IoType, Limits, read_aml, write_aml};
+use ew_caex::{ApcVersion, IoType, read_aml, write_aml};
+use ew_interop_api::Limits;
 
 use crate::{options, sample};
 

@@ -5,7 +5,7 @@
 //! item problems become findings, nothing panics). No wall-clock bounds (CLAUDE.md "Testing policy").
 
 use ew_import_qet::QetProjectImporter;
-use ew_import_qet::ew_interop_api::{
+use ew_interop_api::{
     Code, ImportBatch, ImportContext, ImportError, ImportInput, Limits, ReportEntry,
 };
 use ew_import_qet::project::new_project_context;
@@ -226,7 +226,7 @@ fn an_xinclude_is_reported_and_never_followed() {
         batch
             .records
             .iter()
-            .any(|r| matches!(r, ew_import_qet::ew_interop_api::ew_schema::Record::Page(_)))
+            .any(|r| matches!(r, ew_interop_api::ew_schema::Record::Page(_)))
     );
 }
 

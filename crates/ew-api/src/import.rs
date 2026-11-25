@@ -13,12 +13,12 @@
 use std::path::Path;
 
 use ew_import_qet::QetProjectImporter;
-use ew_import_qet::ew_interop_api::ImportInput;
+use ew_interop_api::ImportInput;
 use ew_schema::{LibDocument, Record};
 
 use crate::{Session, SessionOptions};
 
-pub use ew_import_qet::ew_interop_api::{
+pub use ew_interop_api::{
     Code, ImportBatch, ImportError, ImportReport, ReportEntry, Severity, SourceLocation,
 };
 pub use ew_import_qet::migration;
@@ -26,7 +26,7 @@ pub use ew_import_qet::migration;
 // -------------------------------------------------------------------------------------------------------------------
 // The front door
 
-pub use ew_import_qet::ew_interop_api::{Limits, LineageInfo};
+pub use ew_interop_api::{Limits, LineageInfo};
 
 /// Why a batch breaks the importer contract (T2's reasons).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -793,7 +793,7 @@ fn qet_batch(
     name: &str,
     bytes: Vec<u8>,
     library: &StarterLibrary,
-    ctx: &mut ew_import_qet::ew_interop_api::ImportContext,
+    ctx: &mut ew_interop_api::ImportContext,
 ) -> Result<ImportBatch, Refusal> {
     let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
         message: e.to_string(),
@@ -1400,7 +1400,7 @@ pub fn read_parts_tables(path: &Path, session: &Session) -> Result<PartsImport, 
 pub use ew_import_qet::MAP_FILE;
 pub use ew_import_tables::LibraryError;
 pub use ew_import_tables::csv::CsvError;
-pub use ew_import_tables::ew_interop_api::ImportMode;
+pub use ew_interop_api::ImportMode;
 
 /// Why `ew import csv` imports nothing.
 #[derive(Debug)]
@@ -1486,7 +1486,7 @@ pub fn read_tables(dir: &Path) -> Result<Vec<ImportInput>, TablesError> {
         if !is_file || !name.ends_with(".csv") {
             continue;
         }
-        let max_files = ew_import_tables::ew_interop_api::Limits::bootstrap_tables().max_input_files as usize;
+        let max_files = ew_interop_api::Limits::bootstrap_tables().max_input_files as usize;
         if files.len() == max_files {
             return Err(TablesError::TooManyFiles { limit: max_files });
         }

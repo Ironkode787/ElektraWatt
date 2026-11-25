@@ -33,8 +33,6 @@ mod parts;
 mod table;
 mod xlsx;
 
-/// The importer contract this crate implements, re-exported for the hosts (`ImportInput`, `ImportReport`, ...).
-pub use ew_interop_api;
 pub use map::{ColumnMap, MapError, Member, check_source_key};
 pub use parts::{
     CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, Placer, RowCounts, RowOutcome,

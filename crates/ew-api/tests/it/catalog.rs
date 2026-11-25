@@ -17,7 +17,7 @@ use ew_api::library::lock::LOCK;
 use ew_api::library::{LibraryError, LibraryTiers, Registry};
 use ew_api::{Session, SessionOptions};
 use ew_ids::Uuid;
-use ew_import_catalog::ew_interop_api::Limits;
+use ew_interop_api::Limits;
 use ew_schema::{Date, LibDocument, LibRef};
 use ew_store::lock::Identity;
 use serde_json::json;
@@ -476,7 +476,7 @@ fn the_mapping_steps_accessors() {
     assert_eq!(names[..2], ["manufacturer", "part_number"]);
     assert!(catalog::Member::FIXED.iter().filter(|m| m.required()).count() == 2);
     let input =
-        ew_import_catalog::ew_interop_api::ImportInput::new("l.csv", LIST.as_bytes().to_vec()).unwrap();
+        ew_interop_api::ImportInput::new("l.csv", LIST.as_bytes().to_vec()).unwrap();
     let cols = catalog::table_columns(&input, None, &catalog::table_limits()).unwrap();
     assert!(
         !cols.is_empty() && cols.iter().all(|c| !c.header.is_empty()),

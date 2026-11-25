@@ -7,7 +7,7 @@
 //! a variable of the person's own, stay text. A small hand-written project with made-up content.
 
 use ew_import_qet::QetProjectImporter;
-use ew_import_qet::ew_interop_api::{ImportBatch, ImportInput};
+use ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_qet::project::new_project_context;
 use ew_schema::{LibDocument, Page, PartyRole, Record, Slot, StructureNode};
 

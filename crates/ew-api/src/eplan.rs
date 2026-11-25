@@ -16,7 +16,7 @@ use std::path::Path;
 
 use ew_format::library_copy_hash;
 use ew_ids::{Id, Uuid};
-use ew_import_catalog::ew_interop_api::pn_norm;
+use ew_interop_api::pn_norm;
 use ew_import_eplan::{IMPORTER_ID, IMPORTER_VERSION};
 use ew_schema::{
     FreeProp, LibCopy, LibDocument, LibRef, Manufacturer, MechData, Part, PartKind, Sha256, starter,
@@ -165,7 +165,7 @@ pub fn parts_import(
     let mut report = ImportReport::new(
         IMPORTER_ID,
         IMPORTER_VERSION,
-        ew_import_catalog::ew_interop_api::SourceInfo {
+        ew_interop_api::SourceInfo {
             name: input.name().to_owned(),
             sha256: input.sha256(),
             size: input.bytes().len() as u64,
