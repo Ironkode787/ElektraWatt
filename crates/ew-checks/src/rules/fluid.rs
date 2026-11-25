@@ -21,23 +21,15 @@ use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
-use crate::rules::{Named, and_listed, listed};
+use crate::rules::{Named, and_listed, device_tag, listed};
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
 
-/// A device as the messages print it: its displayed tag without structure (`-201U3-Q1`), else `device`.
-fn tag(q: &Q, d: Id<Device>) -> Named {
-    q.get::<DeviceTag>(d)
-        .as_ref()
-        .as_ref()
-        .map_or_else(|| text!("word-device").into(), |t| t.short().into())
-}
-
 /// A channel as the messages print it: "channel 1 of -201U3", in the reader's language.
 fn channel_text(q: &Q, c: &Channel) -> ew_l10n::Text {
     // The module as the subject prints it: the channel's words keep "device" for a module without a tag.
-    ew_derive::text::channel_of_module(c.number.to_string(), tag(q, c.module).english())
+    ew_derive::text::channel_of_module(c.number.to_string(), device_tag(q, c.module).english())
 }
 
 /// The contact kind of a function's FnDef.
@@ -119,7 +111,7 @@ impl Rule for WorkingPortOpen {
                 command: "check.fix_all".to_owned(),
                 params: serde_json::json!({ "fixes": plugs }),
             };
-            let valve = tag(q, d);
+            let valve = device_tag(q, d);
             let finding = match open.as_slice() {
                 [] => continue,
                 [port] => Finding::new(
@@ -204,7 +196,7 @@ impl Rule for CoilBindings {
         }
         let bound = q.get::<ChannelsByCp>(());
         let channels = q.table::<Channel>();
-        let valve = tag(q, d);
+        let valve = device_tag(q, d);
         let mut out = Vec::new();
         let mut served: BTreeSet<String> = BTreeSet::new();
         for (designation, f, idx) in &coils {
@@ -310,7 +302,7 @@ impl Rule for SparePositions {
             return Vec::new();
         };
         let slots = q.get::<ValveSlots>(m);
-        let module = tag(q, m);
+        let module = device_tag(q, m);
         let mut out = Vec::new();
         for (i, slot) in slots.slots.iter().enumerate() {
             let p = (i + 1).to_string();
@@ -332,7 +324,7 @@ impl Rule for SparePositions {
                 .arg("form", form)
                 .arg("module", module.clone())
                 .arg("position", p)
-                .arg("device", tag(q, device)),
+                .arg("device", device_tag(q, device)),
             );
         }
         out
@@ -377,7 +369,7 @@ impl Rule for DrivesMismatch {
         if target == reached {
             return Vec::new();
         }
-        let (valve, target, reached) = (tag(q, d), tag(q, target), tag(q, reached));
+        let (valve, target, reached) = (device_tag(q, d), device_tag(q, target), device_tag(q, reached));
         vec![
             Finding::new(
                 &DRIVES_MISMATCH,
@@ -437,7 +429,7 @@ fn holder(slot: &ValveSlot) -> Option<Id<Device>> {
 
 /// "<parent>: position <p> holds both <a> and <b>", target `b`.
 fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &str) -> Finding {
-    let (parent_t, a_t, b_t) = (tag(q, parent), tag(q, a), tag(q, b));
+    let (parent_t, a_t, b_t) = (device_tag(q, parent), device_tag(q, a), device_tag(q, b));
     Finding::new(
         &OCCUPANCY,
         [Target::new(Kind::Device, b)],
@@ -454,7 +446,7 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
 /// "<module>: position <p> is outside its <n> valve positions", target the child; `tail` is the refusal's
 /// proposal (`; free positions: 1, 3` or `; every position is taken`), empty in a report.
 fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (&str, String)) -> Finding {
-    let module_t = tag(q, module);
+    let module_t = device_tag(q, module);
     let (form, free) = tail;
     Finding::new(
         &OCCUPANCY,
@@ -500,7 +492,7 @@ impl Rule for Occupancy {
         for (p, child) in &slots.outside {
             out.push(outside(q, d, slots.count, *p, *child, ("outside", String::new())));
         }
-        let module = tag(q, d);
+        let module = device_tag(q, d);
         for (i, slot) in slots.slots.iter().enumerate() {
             if *slot != ValveSlot::Empty {
                 continue;

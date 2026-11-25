@@ -591,11 +591,11 @@ mod tests {
         );
         assert_eq!(
             format_field_value(&FieldType::Csa, &serde_json::json!({"awg": -1})),
-            "AWG 2/0"
+            "AWG2/0"
         );
         assert_eq!(
             format_field_value(&FieldType::Csa, &serde_json::json!({"awg": 18})),
-            "AWG 18"
+            "AWG18"
         );
         assert_eq!(
             format_field_value(&FieldType::Csa, &serde_json::json!("0.75")),

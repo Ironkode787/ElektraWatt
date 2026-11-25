@@ -37,6 +37,7 @@ medium-exhaust = afvoer
 ## A PLC channel, as the fluid findings name it
 
 channel-of-module = kanaal { $p0 } van { $p1 }
+channel-no-address = geen adres
 
 ## The category of an open item, as the list of open items prints it
 

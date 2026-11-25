@@ -54,11 +54,6 @@ pub(crate) fn channel_name(q: &Q, module: Id<Device>, channel: Id<Channel>, numb
     format!("{}:{designation}", full_tag(q, module, "module"))
 }
 
-/// A derived address as printed: the profile's text, `TBD`, or `no address`.
-fn address_text(a: &ChannelAddr) -> String {
-    ew_derive::channel_address(a).unwrap_or("no address").to_owned()
-}
-
 /// The configuration project of a module, through its station.
 pub(crate) fn module_cfg(q: &Q, module: Id<Device>) -> Option<Id<PlcConfigProject>> {
     let station = station_of(q, module)?;
@@ -773,11 +768,8 @@ impl Rule for DiffersFromMap {
         let by_number: BTreeMap<u16, Id<Channel>> =
             q.get::<ModuleChannelIds>(module).iter().copied().collect();
         let channels = q.table::<Channel>();
-        let address_of = |id: Id<Channel>| -> String {
-            addresses
-                .iter()
-                .find(|e| e.channel == id)
-                .map_or_else(|| "no address".to_owned(), |e| address_text(&e.address))
+        let address_of = |id: Id<Channel>| {
+            ew_derive::channel_address_words(addresses.iter().find(|e| e.channel == id).map(|e| &e.address))
         };
         let mut out = Vec::new();
         let slots = q.get::<SolenoidPositions>(module);
@@ -796,11 +788,12 @@ impl Rule for DiffersFromMap {
                         continue;
                     };
                     let channel = channel_name(q, c.module, at, c.number);
-                    let address = q
-                        .get::<ChannelAddresses>(c.module)
-                        .iter()
-                        .find(|e| e.channel == at)
-                        .map_or_else(|| "no address".to_owned(), |e| address_text(&e.address));
+                    let address = ew_derive::channel_address_words(
+                        q.get::<ChannelAddresses>(c.module)
+                            .iter()
+                            .find(|e| e.channel == at)
+                            .map(|e| &e.address),
+                    );
                     let valve = s.valve.map_or_else(
                         || text!("word-the-valve").into(),
                         |v| full_tag(q, v, text!("word-valve")),
@@ -809,7 +802,8 @@ impl Rule for DiffersFromMap {
                         Some(id) => channel_name(q, module, id, expected),
                         None => format!("{}:{expected}", full_tag(q, module, "module")),
                     };
-                    let expected_address = expected_id.map_or_else(|| "no address".to_owned(), address_of);
+                    let expected_address =
+                        expected_id.map_or_else(|| ew_derive::channel_address_words(None), address_of);
                     let mut f = Finding::new(
                         &DIFFERS_FROM_MAP,
                         [

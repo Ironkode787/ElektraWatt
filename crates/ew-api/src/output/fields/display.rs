@@ -73,25 +73,13 @@ pub(crate) fn compact_json(value: &Value) -> String {
     }
 }
 
-/// A cross-section as text: `0.75 mm²`, `AWG 18`, `AWG 2/0`, `250 kcmil`.
+/// A cross-section as the lists print it (`ew_derive::csa_with_unit`: `0.75 mm²`, `AWG18`, `AWG2/0`, `250 kcmil`); a
+/// value of a newer format as compact JSON.
 fn csa_text(value: &Value) -> String {
-    match value {
-        Value::String(s) => format!("{s} mm²"),
-        Value::Object(m) if m.len() == 1 => {
-            if let Some(n) = m.get("awg").and_then(Value::as_i64) {
-                if n <= 0 {
-                    format!("AWG {}/0", 1 - n)
-                } else {
-                    format!("AWG {n}")
-                }
-            } else if let Some(d) = m.get("kcmil").and_then(Value::as_str) {
-                format!("{d} kcmil")
-            } else {
-                compact_json(value)
-            }
-        }
-        other => compact_json(other),
-    }
+    serde_json::from_value::<ew_schema::Csa>(value.clone())
+        .ok()
+        .and_then(|c| ew_derive::csa_with_unit(&c))
+        .unwrap_or_else(|| compact_json(value))
 }
 
 /// The typographic symbol of a persisted unit spelling; a spelling of a newer format as it is.

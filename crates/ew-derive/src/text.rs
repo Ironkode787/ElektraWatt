@@ -18,13 +18,24 @@ use ew_units::{Dec3, Nm};
 use crate::bus::net_address_text;
 use crate::plc::{ChannelAddr, Slot};
 
-/// The printed text of a cross-section (`2.5`, `AWG18`, `AWG2/0`, `250 kcmil`); `None` for a value of a newer format.
+/// The printed text of a cross-section on a wire marker (`2.5`, `AWG18`, `AWG2/0`, `250 kcmil`); `None` for a value of a
+/// newer format.
 pub fn csa_text(c: &Csa) -> Option<String> {
     match c {
         Csa::Mm2(d) => Some(d.to_string()),
         Csa::Awg(n) => Some(format!("AWG{}", awg_gauge(*n))),
         Csa::Kcmil(d) => Some(format!("{d} kcmil")),
         Csa::Unknown(_) => None,
+    }
+}
+
+/// A cross-section with its unit as the lists print it (`2.5 mm²`, `AWG18`, `AWG2/0`, `250 kcmil`): Properties' and the
+/// checks' messages' form, where [`csa_text`] is a wire marker's, without the unit of square millimetres; `None` for a
+/// value of a newer format.
+pub fn csa_with_unit(c: &Csa) -> Option<String> {
+    match c {
+        Csa::Mm2(_) => csa_text(c).map(|t| format!("{t} mm²")),
+        other => csa_text(other),
     }
 }
 
@@ -85,12 +96,22 @@ pub fn slot_short(s: Slot) -> Option<String> {
 }
 
 /// A channel's derived address as printed: the profile's drawing form (`Q0.1`) or `TBD`; `None` for a channel without
-/// one (excluded or not derivable), which each reader words its own way.
+/// one (excluded or not derivable), which a list and a grid leave empty and a sentence words as
+/// [`channel_address_words`] does.
 pub fn channel_address(a: &ChannelAddr) -> Option<&str> {
     match a {
         ChannelAddr::At { text, .. } => Some(text),
         ChannelAddr::Tbd => Some("TBD"),
         ChannelAddr::Excluded | ChannelAddr::Unresolved => None,
+    }
+}
+
+/// A channel's derived address in a sentence, in the reader's language: its printed form ([`channel_address`]), else
+/// "no address" (a channel without an entry, excluded or not derivable).
+pub fn channel_address_words(a: Option<&ChannelAddr>) -> TextArg {
+    match a.and_then(channel_address) {
+        Some(printed) => printed.into(),
+        None => text!("channel-no-address").into(),
     }
 }
 

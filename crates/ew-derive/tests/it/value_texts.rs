@@ -35,3 +35,28 @@ fn a_newer_potential_type_prints_other() {
     assert_eq!(ew_derive::potential_type_text(&PotentialType::Undefined), "undefined");
     assert_eq!(ew_derive::potential_type_text(&PotentialType::LPlus), "L+");
 }
+
+/// A cross-section with its unit is the lists' form, where Properties and the checks' messages print one.
+#[test]
+fn a_cross_section_with_its_unit_is_the_lists_form() {
+    let dec = |s: &str| -> Csa { serde_json::from_value(serde_json::json!(s)).expect("a cross-section") };
+    assert_eq!(ew_derive::csa_with_unit(&dec("2.5")).as_deref(), Some("2.5 mm²"));
+    assert_eq!(ew_derive::csa_with_unit(&Csa::Awg(-1)).as_deref(), Some("AWG2/0"));
+    assert_eq!(ew_derive::csa_text(&dec("2.5")).as_deref(), Some("2.5"), "a wire marker's form");
+}
+
+/// A channel without a derived address is "no address" in a sentence, in the reader's language.
+#[test]
+fn a_channel_without_an_address_is_worded_in_the_readers_language() {
+    let ew_l10n::TextArg::Text(words) = ew_derive::channel_address_words(None) else {
+        panic!("words");
+    };
+    let ml = ew_derive::text::in_languages(&words);
+    let tag = |t: &str| t.parse::<ew_mltext::LangTag>().expect("a tag");
+    assert_eq!(ml.get(&tag("en-GB")), Some("no address"));
+    assert_eq!(ml.get(&tag("nl-NL")), Some("geen adres"));
+    assert_eq!(
+        ew_derive::channel_address_words(Some(&ew_derive::ChannelAddr::Tbd)).to_string(),
+        "TBD"
+    );
+}

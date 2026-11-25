@@ -145,7 +145,7 @@ fn core032_reports_cores_that_differ_from_the_cable_part() {
         [
             (
                 "-W1/1".to_owned(),
-                "core -W1/1 differs from the core 1 of the cable part CAB-3G1.5: colour BN ≠ BK, cross-section 2.5 ≠ 1.5"
+                "core -W1/1 differs from the core 1 of the cable part CAB-3G1.5: colour BN ≠ BK, cross-section 2.5 mm² ≠ 1.5 mm²"
                     .to_owned()
             ),
             (

@@ -178,7 +178,8 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
         .map_err(|_| invalid(text!("refusal-input-decimal", t)))
 }
 
-/// A cross-section: `0.75`, `0.75 mm²`, `AWG 18`, `18 AWG`, `AWG 2/0`, `250 kcmil`.
+/// A cross-section as Properties shows it, or with a space before the gauge: `0.75`, `0.75 mm²`, `AWG18`, `AWG 18`,
+/// `18 AWG`, `AWG2/0`, `250 kcmil`.
 fn parse_csa(text: &str) -> Result<Value, InputError> {
     let t = text.trim();
     let awg = |n: &str| -> Result<Value, InputError> {

@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
     CpRef, DeviceTag, EndKind, EndpointKey, IpInfoOf, Member, PhysicalWire, PhysicalWiresOf,
-    PotentialPartition, Q, SettingsMember, WireNumbers, company_codes, csa_text,
+    PotentialPartition, Q, SettingsMember, WireNumbers, company_codes, csa_with_unit,
 };
 use ew_ids::Id;
 use ew_mltext::natural_cmp;
@@ -243,7 +243,7 @@ fn core_differences(c: &Conductor, def: &CableCore) -> Vec<(&'static str, TextAr
     if let Some(csa) = &c.csa
         && def.csa.as_ref() != Some(csa)
     {
-        let text = |x: &ew_schema::Csa| csa_text(x).unwrap_or_else(|| "?".to_owned());
+        let text = |x: &ew_schema::Csa| csa_with_unit(x).unwrap_or_else(|| "?".to_owned());
         let part = def.csa.as_ref().map_or_else(none, |p| text(p).into());
         add(["csa", "sep_csa", "csa_core", "csa_part"], text(csa), part);
     }

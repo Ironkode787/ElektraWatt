@@ -24,18 +24,8 @@ use ew_units::Dec3;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
-use crate::rules::{Named, and_listed};
+use crate::rules::{Named, and_listed, device_tag};
 use ew_l10n::TextArg;
-
-/// A device's displayed tag (`-201U3-Q1`), else `device`.
-fn tag(q: &Q, d: Id<Device>) -> Named {
-    let t = ew_derive::short_tag(q, d);
-    if t.is_empty() {
-        text!("word-device").into()
-    } else {
-        t.into()
-    }
-}
 
 /// A tube as the messages name it: its line tag, else its two ends ("tee" at a junction), as the subject prints it and
 /// in the reader's language.
@@ -425,7 +415,7 @@ impl Rule for ExhaustOpen {
             texts.sort_by_key(|s| natural_key(s));
             let finding = match galleries.get(&net) {
                 Some((vt, g)) => {
-                    let (vt_text, g) = (tag(q, *vt), gallery_number(g));
+                    let (vt_text, g) = (device_tag(q, *vt), gallery_number(g));
                     Finding::new(
                         &EXHAUST_OPEN,
                         targets,
@@ -611,7 +601,7 @@ impl Rule for CoilVoltage {
             return Vec::new();
         }
         wrong.sort_by_key(|s| natural_key(s));
-        let valve = tag(q, d);
+        let valve = device_tag(q, d);
         let takes = volts(voltage, env.as_ref());
         vec![
             Finding::new(
@@ -686,7 +676,7 @@ impl Rule for NoSupply {
                 if supplied(q, net, *first, &inside) {
                     continue;
                 }
-                let vt = tag(q, d);
+                let vt = device_tag(q, d);
                 out.push(
                     Finding::new(
                         &NO_SUPPLY,
@@ -718,7 +708,7 @@ impl Rule for NoSupply {
                 if supplied(q, net, at, &inside) {
                     continue;
                 }
-                let valve = tag(q, d);
+                let valve = device_tag(q, d);
                 out.push(
                     Finding::new(
                         &NO_SUPPLY,

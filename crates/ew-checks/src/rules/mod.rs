@@ -120,6 +120,17 @@ impl From<&Named> for TextArg {
     }
 }
 
+/// A device as the fluid messages print it: its displayed tag without structure (`-201U3-Q1`), else the word `device`
+/// (a device without a tag, or whose tag prints empty).
+pub(crate) fn device_tag(q: &ew_derive::Q, d: ew_ids::Id<ew_schema::Device>) -> Named {
+    let t = ew_derive::short_tag(q, d);
+    if t.is_empty() {
+        text!("word-device").into()
+    } else {
+        t.into()
+    }
+}
+
 /// Items joined by commas ("A, B, C"), each in the reader's language.
 pub(crate) fn listed(items: impl IntoIterator<Item = impl Into<TextArg>>) -> TextArg {
     List::new(

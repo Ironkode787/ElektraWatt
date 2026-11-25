@@ -19,7 +19,7 @@ use ew_derive::{
     DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
     NoteFact, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId,
     PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential,
-    colour_text, cp_label, cp_point, cp_text, csa_short_of, csa_text, device_location, potential_id_at,
+    colour_text, cp_label, cp_point, cp_text, csa_short_of, csa_with_unit, device_location, potential_id_at,
     potential_part, ranked_defs, wire_props_below_overrides, wire_rating,
 };
 use ew_ids::Id;
@@ -2395,8 +2395,7 @@ impl Rule for RedundantOverride {
             {
                 // A cross-section in mm² says its unit (`1.5 mm²`); AWG and kcmil print theirs.
                 let v = match o.csa.as_ref() {
-                    Some(c @ Csa::Mm2(_)) => csa_text(c).map(|t| format!("{t} mm²")),
-                    c => c.and_then(csa_text),
+                    c => c.and_then(csa_with_unit),
                 }
                 .unwrap_or_default();
                 redundant.push(("csa", s.csa, v));
@@ -2758,7 +2757,7 @@ impl Rule for CsaBelowProtection {
                 _ => false,
             };
             let at = w.override_sources.csa.unwrap_or(w.id);
-            let mm2 = |c: &Csa| csa_text(c).map(|t| format!("{t} mm²")).unwrap_or_default();
+            let mm2 = |c: &Csa| csa_with_unit(c).unwrap_or_default();
             let size_text = mm2(&Csa::Mm2(size));
             let needed_text = mm2(&needed);
             let tag = q

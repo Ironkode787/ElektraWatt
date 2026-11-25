@@ -38,6 +38,7 @@ medium-exhaust = exhaust
 ## A PLC channel, as the fluid findings name it
 
 channel-of-module = channel { $p0 } of { $p1 }
+channel-no-address = no address
 
 ## The category of an open item, as the list of open items prints it
 
