@@ -376,13 +376,8 @@ impl EditorView {
                         String::new(),
                         None,
                     );
-                    egui::Popup::menu(&menu).show(|ui| {
-                        for word in more {
-                            if self.tool_button(ui, shell, editor, word, CommandSize::Small, events) {
-                                ui.close();
-                            }
-                        }
-                    });
+                    let items = tool_items(shell, editor, &more);
+                    egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
                 });
                 stacked(ui, |ui| {
                     self.tool_button(ui, shell, editor, "text", CommandSize::Small, events);
@@ -406,13 +401,8 @@ impl EditorView {
                         String::new(),
                         None,
                     );
-                    egui::Popup::menu(&menu).show(|ui| {
-                        for word in more {
-                            if self.tool_button(ui, shell, editor, word, CommandSize::Small, events) {
-                                ui.close();
-                            }
-                        }
-                    });
+                    let items = tool_items(shell, editor, &more);
+                    egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
                 });
                 divider(ui);
                 grid_controls(ui, editor, events);
@@ -480,32 +470,45 @@ impl EditorView {
                             String::new(),
                             None,
                         );
+                        // The way from a symbol to a device: a part whose main function the saved symbol draws;
+                        // the draft exported; Discard draft, the explicit way to drop the draft (Close editor keeps
+                        // it), which asks first.
+                        let make_part = refusal("part.new");
+                        let symbol = editor.published().unwrap_or_default();
+                        let items = [
+                            (
+                                "part.new",
+                                json!({ "symbol": symbol }),
+                                key!("symbol-make-part"),
+                                make_part,
+                            ),
+                            ("symbol.export", json!({}), key!("symbol-export"), None),
+                            (
+                                "symbol.close",
+                                json!({"discard": true}),
+                                key!("symbol-discard-draft"),
+                                None,
+                            ),
+                        ]
+                        .map(|(id, params, words, reason)| {
+                            ew_viewmodel::actions::ActionItem {
+                                id,
+                                params,
+                                label: label(words).to_owned(),
+                                shortcut: String::new(),
+                                enabled: reason.is_none(),
+                                reason,
+                                checked: false,
+                                topic: None,
+                            }
+                        });
                         egui::Popup::menu(&menu).show(|ui| {
-                            // The way from a symbol to a device: a part whose main function the saved
-                            // symbol draws.
-                            let make_part = refusal("part.new");
-                            let mut button = ui
-                                .add_enabled(
-                                    make_part.is_none(),
-                                    egui::Button::new(label(key!("symbol-make-part"))),
-                                )
-                                .tip(label(key!("symbol-make-part-how")));
-                            if let Some(why) = &make_part {
-                                button = button.disabled_tip(why);
-                            }
-                            if button.clicked() {
-                                let symbol = editor.published().unwrap_or_default();
-                                action(events, "part.new", json!({ "symbol": symbol }));
-                                ui.close();
-                            }
-                            if ui.button(label(key!("symbol-export"))).clicked() {
-                                action(events, "symbol.export", json!({}));
-                                ui.close();
-                            }
-                            // Discard draft is the explicit way to drop the draft; Close editor keeps it.
-                            if ui.button(label(key!("symbol-discard-draft"))).clicked() {
-                                ask(events, "symbol.close", json!({"discard": true}));
-                                ui.close();
+                            let from = events.len();
+                            crate::menu::items(ui, &items, events);
+                            for e in &mut events[from..] {
+                                if let Event::Action("symbol.close", params) = e {
+                                    *e = Event::SymbolAsk("symbol.close", params.take());
+                                }
                             }
                         });
                     });
@@ -1031,22 +1034,25 @@ impl EditorView {
                 if editor.selection.len() > 1 {
                     let line_up =
                         components::button(ui, Kind::Secondary, label(key!("symbol-line-up")), None, 0.0);
-                    egui::Popup::menu(&line_up).show(|ui| {
-                        for (to, words) in [
-                            ("left", key!("symbol-line-up-left")),
-                            ("centre", key!("symbol-line-up-centre")),
-                            ("right", key!("symbol-line-up-right")),
-                            ("top", key!("symbol-line-up-top")),
-                            ("middle", key!("symbol-line-up-middle")),
-                            ("bottom", key!("symbol-line-up-bottom")),
-                        ] {
-                            let words = label(words);
-                            if ui.button(words).clicked() {
-                                action(events, "symbol.align", json!({ "to": to }));
-                                ui.close();
-                            }
-                        }
+                    let items = [
+                        ("left", key!("symbol-line-up-left")),
+                        ("centre", key!("symbol-line-up-centre")),
+                        ("right", key!("symbol-line-up-right")),
+                        ("top", key!("symbol-line-up-top")),
+                        ("middle", key!("symbol-line-up-middle")),
+                        ("bottom", key!("symbol-line-up-bottom")),
+                    ]
+                    .map(|(to, words)| ew_viewmodel::actions::ActionItem {
+                        id: "symbol.align",
+                        params: json!({ "to": to }),
+                        label: label(words).to_owned(),
+                        shortcut: String::new(),
+                        enabled: true,
+                        reason: None,
+                        checked: false,
+                        topic: None,
                     });
+                    egui::Popup::menu(&line_up).show(|ui| crate::menu::items(ui, &items, events));
                 }
                 if panels::button(ui, key!("symbol-duplicate")) {
                     action(events, "symbol.duplicate", json!({}));
@@ -1493,6 +1499,34 @@ fn grid_controls(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     {
         action(events, "symbol.grid", json!({ "snap": on }));
     }
+}
+
+/// The tools `words` as the rows of a button's menu ([`crate::menu::items`]): each with its caption and the key of the
+/// keymap that chooses it, the one in use checked; a row chooses its tool (`symbol.tool`).
+fn tool_items(
+    shell: &ShellModel,
+    editor: &SymbolEditor,
+    words: &[&str],
+) -> Vec<ew_viewmodel::actions::ActionItem> {
+    words
+        .iter()
+        .filter_map(|word| TOOLS.iter().find(|(w, ..)| w == word))
+        .map(|(word, caption, _, _)| ew_viewmodel::actions::ActionItem {
+            id: "symbol.tool",
+            params: json!({ "tool": word }),
+            label: label(*caption).to_owned(),
+            shortcut: TOOL_KEYS
+                .iter()
+                .find(|(tool, _)| tool == word)
+                .and_then(|(_, action)| ew_viewmodel::actions::find(action))
+                .map(|m| shell.shortcut_text(m))
+                .unwrap_or_default(),
+            enabled: true,
+            reason: None,
+            checked: editor.tool == *word,
+            topic: None,
+        })
+        .collect()
 }
 
 #[cfg(test)]

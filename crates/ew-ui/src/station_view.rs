@@ -734,7 +734,7 @@ fn interact(
         let (topic, words) = ew_viewmodel::help::station_card_help(shell, tab);
         (topic.to_owned(), words.to_owned())
     });
-    response.context_menu(|ui| menu(ui, shell, events));
+    crate::menu::row_context_menu(response, |ui| menu(ui, shell, events));
     // A module is dragged by its card or its row; a station not made yet orders its modules with Move left and right.
     if let (Some(device), StationCursor::Slot { .. }) = (p.device, p.cursor)
         && response.drag_started()
@@ -786,13 +786,14 @@ fn interact(
 }
 
 /// The menu of the module under the cursor (a right click): the view's commands on it, Replace and Draw on a page
-/// with their choices, drawn as every menu of the window is (its labels in one column, a submenu beside its entry).
+/// with their choices, drawn as every right-click menu of the window is ([`crate::menu::entries_fitted`]: as wide as
+/// its widest entry, a greyed one's reason on a line under it, a submenu beside its entry).
 fn menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let entries: Vec<MenuEntry> = ew_viewmodel::actions::station_tools(shell)
         .into_iter()
         .map(|(_, entry)| entry)
         .collect();
-    crate::menu::entries(ui, &entries, true, events);
+    crate::menu::entries_fitted(ui, &entries, events);
 }
 
 /// The view's own bar above its rack: the commands on the module under the cursor (Replace, Remove, Draw on page, Go
@@ -1242,24 +1243,33 @@ fn page_menu(
     pick: impl Fn(&str) -> Event,
     events: &mut Vec<Event>,
 ) {
+    // The pages, then New page…, as the rows of a menu.
+    let item = |label: String, folio: &str| {
+        let Event::Action(id, params) = pick(folio) else {
+            return None;
+        };
+        Some(ew_viewmodel::actions::ActionItem {
+            id,
+            params,
+            label,
+            shortcut: String::new(),
+            enabled: true,
+            reason: None,
+            checked: false,
+            topic: None,
+        })
+    };
+    let items: Vec<ew_viewmodel::actions::ActionItem> = pages
+        .iter()
+        .filter_map(|(folio, title)| {
+            let label = strings::format(key!("rack-page-choice"), &[folio, title]);
+            item(label.trim().to_owned(), folio)
+        })
+        .chain(item(strings::text(key!("rack-draw-new-page")).to_owned(), "new"))
+        .collect();
     egui::Popup::menu(button)
         .style(crate::menu::menu_style(t))
-        .show(|ui| {
-            for (folio, title) in pages {
-                let label = strings::format(key!("rack-page-choice"), &[folio, title]);
-                if ui.button(label.trim()).clicked() {
-                    events.push(pick(folio));
-                    ui.close();
-                }
-            }
-            if !pages.is_empty() {
-                ui.separator();
-            }
-            if ui.button(strings::text(key!("rack-draw-new-page"))).clicked() {
-                events.push(pick("new"));
-                ui.close();
-            }
-        });
+        .show(|ui| crate::menu::items(ui, &items, events));
 }
 
 /// The channels of the module under the cursor: address, symbol name and what is wired to it, which is a link to its

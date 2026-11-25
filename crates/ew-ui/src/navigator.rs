@@ -814,11 +814,8 @@ fn addresses_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let button = egui::Button::new((label, chevron))
         .frame(false)
         .min_size(egui::vec2(0.0, t.size_control_inline));
-    let _ = egui::containers::menu::MenuButton::from_button(button).ui(ui, |ui| {
-        for item in &items {
-            crate::menu::row_item(ui, item, events);
-        }
-    });
+    let _ = egui::containers::menu::MenuButton::from_button(button)
+        .ui(ui, |ui| crate::menu::items(ui, &items, events));
 }
 
 /// Opens a row: `pages.open` for a page row of the Pages navigator as built (`pages`), `navigator.open` otherwise.

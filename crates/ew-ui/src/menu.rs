@@ -78,33 +78,100 @@ pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) 
 }
 
 /// The entries of a right-click menu or a button's menu: as wide as the widest ([`fit_width`]), each greyed one with
-/// its reason on a line under it ([`row_item`]); every such menu of the window is drawn by this.
+/// its reason on a line under it ([`row_item`]); every such menu of the window is drawn by this, its submenus
+/// ([`entries_fitted`]) and its plain choices ([`choices`]) by the same rows.
 pub(crate) fn items(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
-    fit_width(ui, items);
+    fit_width(ui, items.iter().map(|i| (i.label.as_str(), i.shortcut.as_str())));
     for item in items {
         row_item(ui, item, events);
     }
 }
 
-/// Sets a right-click menu of `items` as wide as its widest entry: the icon column, the label, a gap and the
-/// shortcut, so that no label wraps and no entry or reason line stretches the menu.
-/// A greyed
-/// entry's reason wraps within that width.
-fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a ActionItem>) {
+/// The entries of a right-click menu or a button's menu that holds submenus (a station's card, a collapsed group of
+/// the command bar): as wide as its widest entry or submenu label; an item as in [`items`], a submenu's list drawn by
+/// [`items`] beside it.
+pub(crate) fn entries_fitted(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
+    fit_width(
+        ui,
+        list.iter().filter_map(|e| match e {
+            MenuEntry::Item(i) => Some((i.label.as_str(), i.shortcut.as_str())),
+            // A submenu's arrow takes the room of a key.
+            MenuEntry::Submenu { label, .. } | MenuEntry::Group { label, .. } => Some((label.as_str(), "›")),
+            MenuEntry::Separator => None,
+        }),
+    );
+    for entry in list {
+        match entry {
+            MenuEntry::Separator => {
+                ui.separator();
+            }
+            MenuEntry::Item(i) => row_item(ui, i, events),
+            MenuEntry::Submenu {
+                label, items: list, ..
+            } => {
+                crate::components::submenu(ui, (blank_column(ui), label.as_str()), |ui| {
+                    items(ui, list, events)
+                });
+            }
+            MenuEntry::Group {
+                label,
+                entries: inner,
+                ..
+            } => {
+                crate::components::submenu(ui, (blank_column(ui), label.as_str()), |ui| {
+                    entries_fitted(ui, inner, events)
+                });
+            }
+        }
+    }
+}
+
+/// A button's menu of plain choices that are no actions of the registry (the bottom dock's All tabs): the rows of
+/// [`items`], fitted, the one `checked` marked; the choice clicked, which closes the menu.
+pub(crate) fn choices(ui: &mut Ui, rows: &[(&str, bool)]) -> Option<usize> {
+    fit_width(ui, rows.iter().map(|(label, _)| (*label, "")));
+    let t = crate::theme::current(ui.ctx());
+    let mut chosen = None;
+    for (i, (label, checked)) in rows.iter().enumerate() {
+        let column = match checked {
+            true => crate::components::icon_atom(IconId::check, t.icon_sm, Some(t.accent), t.icon_stroke),
+            false => egui::Atom::paint(egui::Vec2::splat(t.icon_sm), |_, _| {}),
+        };
+        let response = ui.scope(|ui| {
+            ui.visuals_mut().selection.bg_fill = crate::theme::NONE;
+            ui.add(
+                Button::new((column, *label))
+                    .selected(*checked)
+                    .frame_when_inactive(false)
+                    .min_size(egui::vec2(0.0, t.size_row)),
+            )
+        });
+        if response.inner.clicked() {
+            chosen = Some(i);
+            ui.close();
+        }
+    }
+    chosen
+}
+
+/// Sets a right-click menu of entries `(label, shortcut)` as wide as its widest: the icon column, the label, a gap
+/// and the shortcut, so that no label wraps and no entry or reason line stretches the menu. A greyed entry's reason
+/// wraps within that width.
+fn fit_width<'a>(ui: &mut Ui, entries: impl IntoIterator<Item = (&'a str, &'a str)>) {
     let t = crate::theme::current(ui.ctx());
     let width = |text: egui::WidgetText, style: egui::TextStyle| {
         text.into_galley(ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, style)
             .size()
             .x
     };
-    let widest = items
+    let widest = entries
         .into_iter()
-        .map(|item| {
-            let label = width(item.label.as_str().into(), egui::TextStyle::Button);
-            let shortcut = if item.shortcut.is_empty() {
+        .map(|(label, shortcut)| {
+            let label = width(label.into(), egui::TextStyle::Button);
+            let shortcut = if shortcut.is_empty() {
                 0.0
             } else {
-                let keys = egui::RichText::new(ew_viewmodel::keymap::short_display(&item.shortcut))
+                let keys = egui::RichText::new(ew_viewmodel::keymap::short_display(shortcut))
                     .font(crate::theme::font(&t.type_small));
                 t.space_6 + width(keys.into(), egui::TextStyle::Button)
             };

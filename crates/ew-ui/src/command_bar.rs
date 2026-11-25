@@ -16,7 +16,7 @@
 //! the group, every button named by its bar label and carrying its shortcut.
 
 use egui::{Align2, Id, Popup, Rect, Response, Sense, Ui, UiBuilder, Vec2, pos2, vec2};
-use ew_viewmodel::actions::ActionItem;
+use ew_viewmodel::actions::{ActionItem, MenuEntry};
 use ew_viewmodel::command_bar::{
     ButtonKind, CommandBarModel, CommandButton, CommandSize, GroupModel, Tab, shown_command_bar,
 };
@@ -529,15 +529,20 @@ fn items_menu(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
     crate::menu::items(ui, items, events);
 }
 
-/// The menu of the buttons of `g` (a collapsed group): plain commands as items, menu buttons as submenus.
+/// The menu of the buttons of `g` (a collapsed group): plain commands as items, menu buttons as submenus, fitted
+/// ([`crate::menu::entries_fitted`]).
 fn group_menu(ui: &mut Ui, g: &GroupModel, events: &mut Vec<Event>) {
+    let mut entries = Vec::new();
     for b in &g.buttons {
         match &b.kind {
-            ButtonKind::Menu(items) => {
-                crate::components::submenu(ui, b.label.as_str(), |ui| items_menu(ui, items, events));
-            }
+            // A menu button's list, a submenu beside its entry.
+            ButtonKind::Menu(items) => entries.push(MenuEntry::Group {
+                group: g.group,
+                label: b.label.clone(),
+                entries: items.iter().cloned().map(MenuEntry::Item).collect(),
+            }),
             ButtonKind::Plain | ButtonKind::Split(_) => {
-                let item = ActionItem {
+                entries.push(MenuEntry::Item(ActionItem {
                     id: b.id,
                     label: b.name().to_owned(),
                     shortcut: b.shortcut.clone(),
@@ -546,16 +551,19 @@ fn group_menu(ui: &mut Ui, g: &GroupModel, events: &mut Vec<Event>) {
                     checked: b.checked,
                     topic: b.topic,
                     params: Value::Null,
-                };
-                crate::menu::row_item(ui, &item, events);
+                }));
                 if let ButtonKind::Split(variants) = &b.kind {
-                    for v in variants.iter().filter(|v| v.id != b.id) {
-                        crate::menu::row_item(ui, v, events);
-                    }
+                    entries.extend(
+                        variants
+                            .iter()
+                            .filter(|v| v.id != b.id)
+                            .map(|v| MenuEntry::Item(v.clone())),
+                    );
                 }
             }
         }
     }
+    crate::menu::entries_fitted(ui, &entries, events);
 }
 
 /// A menu button named `label` with the icon `icon` at `rect` (a collapsed group, More).

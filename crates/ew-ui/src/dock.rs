@@ -1132,12 +1132,12 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         egui::Popup::menu(&response)
             .style(crate::menu::menu_style(&self.tokens))
             .show(|ui| {
-                for (child, pane) in &panes {
-                    let title = strings::text(pane.title_key());
-                    if ui.selectable_label(tabs.is_active(*child), title).clicked() {
-                        self.chosen = Some((tile_id, *child));
-                        ui.close();
-                    }
+                let rows: Vec<(&str, bool)> = panes
+                    .iter()
+                    .map(|(child, pane)| (strings::text(pane.title_key()), tabs.is_active(*child)))
+                    .collect();
+                if let Some(i) = crate::menu::choices(ui, &rows) {
+                    self.chosen = Some((tile_id, panes[i].0));
                 }
             });
     }
