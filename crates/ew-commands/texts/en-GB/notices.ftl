@@ -76,7 +76,6 @@ notice-plc-no-output-range = module { $p0 } has no output range in its part: the
 notice-plc-channel-removed = channel { $p0 } of module { $p1 } is removed: beyond its part's { $p2 } channels; it was { $p3 }, { $p4 }
 notice-plc-no-symbol = no symbol
 notice-plc-symbol = symbol { $p0 }
-notice-plc-no-address = no address
 notice-plc-readdress = channel { $p0 } of { $p1 }: { $p2 } → { $p3 }
 notice-plc-frozen-one = 1 channel address of configuration project { $p0 } frozen as a manual address
 notice-plc-frozen-many = { $p0 } channel addresses of configuration project { $p1 } frozen as manual addresses

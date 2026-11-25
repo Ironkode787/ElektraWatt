@@ -252,7 +252,8 @@ fn new_level(
 }
 
 /// The pin maps of the source's representations with every pin of function `from` drawn onto its CP of `to` (by
-/// `onto`), and the source CPs they draw.
+/// `onto`), and the source CPs they draw. A pin its map does not name draws what `Representation::fn_cp_of` says (the
+/// first function's CP), as every reader of the pin map takes it; a pin that names no function is left out.
 #[allow(clippy::type_complexity)]
 fn drawn_pins(
     tx: &TxBuilder<'_>,
@@ -268,14 +269,19 @@ fn drawn_pins(
         let symbol = tx.require::<LibCopy<SymbolDef>>(record.symbol)?;
         let mut entries: Vec<PinMapEntry> = Vec::new();
         for cp in &symbol.item.cps {
-            let mut entry = match record.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
+            let mut entry = match record.pin_map.get(&cp.idx) {
                 Some(p) => p.clone(),
-                None => PinMapEntry {
-                    symbol_cp: cp.idx,
-                    function: from,
-                    idx: cp.fn_cp,
-                    extra: Default::default(),
-                },
+                None => {
+                    let Some((function, idx)) = record.fn_cp_of(cp) else {
+                        continue;
+                    };
+                    PinMapEntry {
+                        symbol_cp: cp.idx,
+                        function,
+                        idx,
+                        extra: Default::default(),
+                    }
+                }
             };
             if entry.function == from {
                 needed.insert(entry.idx);

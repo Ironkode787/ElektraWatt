@@ -632,12 +632,10 @@ fn neighbourhood(q: &ew_derive::Q, modules: &[Id<Device>]) -> Vec<Id<Device>> {
     out
 }
 
-/// A derived address as a notice prints it: the profile's text, `TBD`, or `no address` in the reader's language.
+/// A derived address as a notice prints it: the profile's text, `TBD`, or `no address` in the reader's language
+/// (`ew_derive::channel_address_words`, the one form).
 fn address_words(a: &ew_derive::ChannelAddr) -> TextArg {
-    match ew_derive::channel_address(a) {
-        Some(printed) => printed.into(),
-        None => text!("notice-plc-no-address").into(),
-    }
+    ew_derive::channel_address_words(Some(a))
 }
 
 /// The printed address of every channel of `modules` in `q`, by channel, with its module and number.

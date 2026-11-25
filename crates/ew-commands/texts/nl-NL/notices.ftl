@@ -76,7 +76,6 @@ notice-plc-no-output-range = module { $p0 } heeft geen uitgangsbereik in zijn ar
 notice-plc-channel-removed = kanaal { $p0 } van module { $p1 } wordt verwijderd: het ligt voorbij de { $p2 } kanalen van zijn artikel; het was { $p3 }, { $p4 }
 notice-plc-no-symbol = geen symbool
 notice-plc-symbol = symbool { $p0 }
-notice-plc-no-address = geen adres
 notice-plc-readdress = kanaal { $p0 } van { $p1 }: { $p2 } → { $p3 }
 notice-plc-frozen-one = 1 kanaaladres van configuratieproject { $p0 } is vastgezet als handmatig adres
 notice-plc-frozen-many = { $p0 } kanaaladressen van configuratieproject { $p1 } zijn vastgezet als handmatige adressen
