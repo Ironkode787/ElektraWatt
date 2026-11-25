@@ -788,7 +788,13 @@ fn a_refused_channel_text_keeps_its_field_and_the_lists_in_place() {
     let id = station_of(&h);
     let card = format!("Slot 1, {}", modules(&h, id)[0].tag);
     click(&mut h, &card);
-    let channels = h.state().shell().station_shown().expect("the view").channels.clone();
+    let channels = h
+        .state()
+        .shell()
+        .station_shown()
+        .expect("the view")
+        .channels
+        .clone();
     let wired = channels
         .iter()
         .find(|c| c.device.is_some())
@@ -816,8 +822,16 @@ fn a_refused_channel_text_keeps_its_field_and_the_lists_in_place() {
         .filter_map(|n| n.accesskit_node().label())
         .filter(|l| l.starts_with("Function text of") || l.starts_with("Symbol name of"))
         .collect();
-    assert_eq!(fields, [field.clone()], "one field, on the cell refused");
-    assert_eq!(h.get_by_label(&last).rect(), below, "the lists stay where they stood");
+    assert_eq!(
+        fields,
+        std::slice::from_ref(&field),
+        "one field, on the cell refused"
+    );
+    assert_eq!(
+        h.get_by_label(&last).rect(),
+        below,
+        "the lists stay where they stood"
+    );
     h.get_by_label(&field).focus();
     h.key_press(egui::Key::Escape);
     settle(&mut h);
