@@ -100,7 +100,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<Text> {
         };
         let segment = |entry: &str| segment_text(entry).map(|t| say(&t));
         let (head, rest) = match (segment(&lead), follow.as_deref().and_then(segment)) {
-            (Some(a), Some(b)) => (say(&text!("kind-generic", a, b)), None),
+            (Some(a), Some(b)) => (say(&text!("kind-generic", a, b)).trim_end().to_owned(), None),
             (Some(a), None) if a.ends_with('-') => (lead.clone(), follow),
             (Some(a), None) => (a.trim_end().to_owned(), follow),
             (None, Some(b)) => (format!("{lead} {b}"), None),

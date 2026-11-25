@@ -1099,6 +1099,11 @@ mod tests {
         );
         assert_eq!(dutch("ew.fn.regulator-gauge", &[]), "Manometerdrukregelaar");
         assert_eq!(dutch("ew.fn.ip", &["1"]), "Onderbrekingspunt 1");
+        // One space between the words and the CP designations.
+        assert_eq!(
+            dutch("ew.fn.cylinder-double-acting-cushioned", &["A", "B"]),
+            "Gedempte dubbelwerkende A-B"
+        );
     }
 
     #[test]

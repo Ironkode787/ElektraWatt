@@ -533,7 +533,6 @@ kind-segment-busport = busport
 kind-segment-check = check
 kind-segment-coupling = coupling
 kind-segment-distributor = distributor
-kind-segment-doubleacting = doubleacting
 kind-segment-drain = drain
 kind-segment-ejector = ejector
 kind-segment-emergencystop = emergencystop

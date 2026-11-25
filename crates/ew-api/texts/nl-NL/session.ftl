@@ -522,7 +522,6 @@ kind-segment-busport = buspoort
 kind-segment-check = terugslagklep
 kind-segment-coupling = koppeling
 kind-segment-distributor = verdeler
-kind-segment-doubleacting = dubbelwerkende cilinder
 kind-segment-drain = condensaataftap
 kind-segment-ejector = ejector
 kind-segment-emergencystop = noodstop
