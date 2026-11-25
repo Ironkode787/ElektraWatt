@@ -350,6 +350,12 @@ macro_rules! texts {
             $crate::key_in(KEYS, key)
         }
 
+        /// This crate's catalogue: its text files ([`SOURCES`]) in every language, built once.
+        pub fn catalogue() -> &'static $crate::render::Catalogue {
+            static CATALOGUE: ::std::sync::OnceLock<$crate::render::Catalogue> = ::std::sync::OnceLock::new();
+            CATALOGUE.get_or_init(|| $crate::render::Catalogue::new(&[SOURCES], &[], false))
+        }
+
         /// The text of the key `$k`, a string literal of this crate's [`TEXTS`], with the arguments that follow it
         /// (each a `String`, a `&str` or a text): a key that the table lacks, or a wrong number of arguments, fails
         /// the build.

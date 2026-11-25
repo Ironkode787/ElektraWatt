@@ -7,9 +7,6 @@
 //! crate's text files (`texts/<language>/words.ftl`, architecture §18), which the checks, the lists and the session
 //! print; [`in_languages`] renders one in every language of the files as the multi-language text the lists print.
 
-use std::sync::OnceLock;
-
-use ew_l10n::render::{Language, OnError};
 use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
 use ew_schema::{
@@ -267,9 +264,6 @@ pub fn circuit_class(c: &ew_schema::CircuitClass) -> Text {
         C::Unknown(_) => text!("circuit-class-other"),
     }
 }
-
-/// The languages of this crate's text files.
-const LANGUAGES: &[&str] = &["en-GB", "nl-NL"];
 
 /// A port's role in words ("working").
 pub fn port_role(role: &FluidPortRole) -> Text {
@@ -719,20 +713,5 @@ pub fn open_item(category: OpenItem) -> Text {
 /// `text` in every language of this crate's text files, as the lists print a word of the program in the project's
 /// language.
 pub fn in_languages(text: &Text) -> MlText {
-    static BUNDLES: OnceLock<Vec<Language>> = OnceLock::new();
-    let bundles = BUNDLES.get_or_init(|| {
-        LANGUAGES
-            .iter()
-            .map(|tag| {
-                let sources = crate::SOURCES.iter().filter(|(l, _)| l == tag).map(|(_, s)| *s);
-                Language::new(tag, sources, &[], false)
-            })
-            .collect()
-    });
-    MlText::from_langs(LANGUAGES.iter().zip(bundles).map(|(tag, language)| {
-        let words = language
-            .text(text, OnError::Keep)
-            .unwrap_or_else(|| text.to_string());
-        (tag.parse().expect("a language tag"), words)
-    }))
+    crate::catalogue().in_languages_kept(text)
 }

@@ -16,6 +16,7 @@ use std::borrow::Cow;
 use fluent_bundle::concurrent::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 use fluent_syntax::ast::Entry;
+use ew_mltext::{LangTag, MlText};
 
 use crate::{Text, TextArg};
 
@@ -250,6 +251,95 @@ pub fn language_for<'a>(tag: Option<&ew_mltext::LangTag>, shipped: &[&'a str]) -
         })
         .copied()
         .unwrap_or(DEFAULT_LANGUAGE)
+}
+
+/// The languages of a crate's text files, each its sources as one bundle, built once: the one catalogue a crate
+/// renders its texts with (`texts!` gives each crate a `catalogue()` over its `SOURCES`). Its two forms of a text
+/// differ in what they do where a language cannot say it: [`Catalogue::text_or_english`] (a page, a list, a print)
+/// falls back to en-GB and then to the English of the key table, [`Catalogue::text_kept`] (the derivation's words)
+/// keeps what Fluent writes and falls back to the English.
+pub struct Catalogue {
+    languages: Vec<(&'static str, Language)>,
+}
+
+impl Catalogue {
+    /// The catalogue of `sources`, lists of `(language, source)` (a crate's `SOURCES`, another crate's after it whose
+    /// patterns it calls), its languages in the order they first appear; each language's patterns may call `functions`,
+    /// and Fluent's `NUMBER` too when `builtins`.
+    pub fn new(sources: &[&[(&'static str, &'static str)]], functions: &[Function], builtins: bool) -> Catalogue {
+        let mut tags: Vec<&'static str> = Vec::new();
+        for (tag, _) in sources.iter().flat_map(|s| s.iter()) {
+            if !tags.contains(tag) {
+                tags.push(tag);
+            }
+        }
+        let languages = tags
+            .into_iter()
+            .map(|tag| {
+                let of_tag = sources
+                    .iter()
+                    .flat_map(|s| s.iter())
+                    .filter(|(l, _)| *l == tag)
+                    .map(|(_, s)| *s);
+                (tag, Language::new(tag, of_tag, functions, builtins))
+            })
+            .collect();
+        Catalogue { languages }
+    }
+
+    /// Its languages' tags, in order.
+    pub fn tags(&self) -> Vec<&'static str> {
+        self.languages.iter().map(|(tag, _)| *tag).collect()
+    }
+
+    /// The language `tag` (in any case).
+    pub fn language(&self, tag: &str) -> Option<&Language> {
+        self.languages
+            .iter()
+            .find(|(l, _)| l.eq_ignore_ascii_case(tag))
+            .map(|(_, language)| language)
+    }
+
+    /// `t` in the language `tag`: its pattern there where it resolves, else en-GB's, else its English as the key
+    /// table holds it.
+    pub fn text_or_english(&self, t: &Text, tag: &str) -> String {
+        let lookup = |tag: &str| self.language(tag)?.text(t, OnError::Miss);
+        lookup(tag)
+            .or_else(|| lookup(DEFAULT_LANGUAGE))
+            .unwrap_or_else(|| t.to_string())
+    }
+
+    /// [`Catalogue::text_or_english`] in the language a page, a list or a print prints for `lang` ([`language_for`]
+    /// over its languages: the tag, else its primary language, else en-GB; en-GB without a language).
+    pub fn text_for(&self, t: &Text, lang: Option<&LangTag>) -> String {
+        self.text_or_english(t, language_for(lang, &self.tags()))
+    }
+
+    /// `t` in the language `tag`, a pattern that resolves with an error as Fluent writes it; else its English.
+    pub fn text_kept(&self, t: &Text, tag: &str) -> String {
+        self.language(tag)
+            .and_then(|language| language.text(t, OnError::Keep))
+            .unwrap_or_else(|| t.to_string())
+    }
+
+    /// `t` in every language of the catalogue, each by [`Catalogue::text_or_english`]: a word of the program as a row
+    /// set carries it.
+    pub fn in_languages(&self, t: &Text) -> MlText {
+        MlText::from_langs(
+            self.tags()
+                .into_iter()
+                .filter_map(|tag| Some((tag.parse().ok()?, self.text_or_english(t, tag)))),
+        )
+    }
+
+    /// `t` in every language of the catalogue, each by [`Catalogue::text_kept`].
+    pub fn in_languages_kept(&self, t: &Text) -> MlText {
+        MlText::from_langs(
+            self.tags()
+                .into_iter()
+                .filter_map(|tag| Some((tag.parse().ok()?, self.text_kept(t, tag)))),
+        )
+    }
 }
 
 /// The parse errors of the Fluent source `source` (empty when it parses): for the tests.

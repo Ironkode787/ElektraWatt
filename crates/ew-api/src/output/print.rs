@@ -24,7 +24,7 @@
 //! document, byte for byte; any other set adds ` print <paper> <fit>` to the export's document ID text.
 
 use std::fmt;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use ew_derive::Q;
 use ew_dl::{DisplayList, Item};
@@ -308,26 +308,7 @@ pub fn stamp_text(scale: (u64, u64), lang: Option<&LangTag>) -> String {
 /// `t` in the language a print prints for `lang` (the tag, else its primary language, else en-GB): its pattern there
 /// where it resolves, else en-GB's, else its English as the key table holds it.
 pub(crate) fn in_print_language(t: &crate::Text, lang: Option<&LangTag>) -> String {
-    use ew_l10n::render::{DEFAULT_LANGUAGE, Language, OnError, language_for};
-    static LANGUAGES: OnceLock<Vec<(&'static str, Language)>> = OnceLock::new();
-    let languages = LANGUAGES.get_or_init(|| {
-        let mut tags: Vec<&'static str> = crate::SOURCES.iter().map(|(tag, _)| *tag).collect();
-        tags.dedup();
-        tags.into_iter()
-            .map(|tag| {
-                let sources = crate::SOURCES.iter().filter(|(l, _)| *l == tag).map(|(_, s)| *s);
-                (tag, Language::new(tag, sources, &[], false))
-            })
-            .collect()
-    });
-    let lookup = |tag: &str| {
-        let (_, language) = languages.iter().find(|(l, _)| *l == tag)?;
-        language.text(t, OnError::Miss)
-    };
-    let tags: Vec<&str> = languages.iter().map(|(tag, _)| *tag).collect();
-    lookup(language_for(lang, &tags))
-        .or_else(|| lookup(DEFAULT_LANGUAGE))
-        .unwrap_or_else(|| t.to_string())
+    crate::catalogue().text_for(t, lang)
 }
 
 /// The stamp's cap height.

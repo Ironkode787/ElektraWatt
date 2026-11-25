@@ -53,22 +53,16 @@ fn message_of(rule: &str) -> Option<&'static str> {
 /// `NUMBER(…, type: "ordinal")` (a pin's position) and `DECIMAL`. A resource that does not parse is a defect of this
 /// crate, caught by the message tests; the entries that parse are still served.
 fn bundle(lang: &str) -> Option<&'static Language> {
-    static BUNDLES: OnceLock<Vec<Language>> = OnceLock::new();
-    let bundles = BUNDLES.get_or_init(|| {
-        LANGUAGES
-            .iter()
-            .map(|tag| {
-                let sources = crate::SOURCES
-                    .iter()
-                    .chain(ew_derive::SOURCES)
-                    .filter(|(l, _)| l == tag)
-                    .map(|(_, s)| *s);
-                Language::new(tag, sources, &[("DECIMAL", ew_l10n::render::decimal)], true)
-            })
-            .collect()
-    });
-    let i = LANGUAGES.iter().position(|l| l.eq_ignore_ascii_case(lang))?;
-    bundles.get(i)
+    static CATALOGUE: OnceLock<ew_l10n::render::Catalogue> = OnceLock::new();
+    CATALOGUE
+        .get_or_init(|| {
+            ew_l10n::render::Catalogue::new(
+                &[crate::SOURCES, ew_derive::SOURCES],
+                &[("DECIMAL", ew_l10n::render::decimal)],
+                true,
+            )
+        })
+        .language(lang)
 }
 
 /// The parse errors of the shipped resources, per language (empty when every resource parses): for the tests.
