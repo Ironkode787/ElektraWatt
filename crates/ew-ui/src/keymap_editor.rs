@@ -92,12 +92,18 @@ pub(crate) fn columns(room: f32, keys_need: f32, where_need: f32) -> (f32, f32, 
 fn where_text(row: &EditorRow) -> String {
     let mut place = strings::text(context_key(row.context)).to_owned();
     if row.custom {
-        place = format!("{place} · {}", strings::text(key!("keymap-custom")));
+        place = strings::format(
+            key!("keymap-where-note"),
+            &[&place, strings::text(key!("keymap-custom"))],
+        );
     }
     if row.notes.is_empty() {
         place
     } else {
-        format!("{place} · {}", strings::text(key!("keymap-shadows")))
+        strings::format(
+            key!("keymap-where-note"),
+            &[&place, strings::text(key!("keymap-shadows"))],
+        )
     }
 }
 
@@ -131,7 +137,10 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
         let what = if refusal.chord.is_empty() {
             label.to_owned()
         } else {
-            format!("{} ({label})", crate::keys::short_display(&refusal.chord))
+            strings::format(
+                key!("keymap-chord-action"),
+                &[&crate::keys::short_display(&refusal.chord), label],
+            )
         };
         components::live_line(ui, &strings::format(key!("keymap-refused"), &[&what]), true);
         for e in &refusal.errors {

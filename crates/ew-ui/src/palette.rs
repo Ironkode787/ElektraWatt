@@ -63,7 +63,9 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
     let width = ui.available_width();
     let (rect, response) = ui.allocate_exact_size(Vec2::new(width, t.size_palette_row), Sense::click());
     let name = match &entry.reason {
-        Some(reason) if !entry.enabled => format!("{}. {reason}", entry.label),
+        Some(reason) if !entry.enabled => {
+            strings::format(key!("palette-entry-refused"), &[&entry.label, reason])
+        }
         _ => entry.label.clone(),
     };
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, entry.enabled, &name));

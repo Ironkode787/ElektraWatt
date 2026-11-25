@@ -303,14 +303,22 @@ fn tooltip(b: &CommandButton) -> String {
     let tip = match (&b.reason, b.shortcut.is_empty()) {
         (Some(reason), _) if !b.enabled => {
             return match b.label.split_once('\n') {
-                Some((name, rest)) => format!("{name}: {reason}\n{rest}"),
-                None => format!("{}: {reason}", b.label),
+                Some((name, rest)) => {
+                    format!(
+                        "{}\n{rest}",
+                        strings::format(key!("name-refused"), &[name, reason])
+                    )
+                }
+                None => strings::format(key!("name-refused"), &[&b.label, reason]),
             };
         }
         (_, true) => b.label.clone(),
         (_, false) => {
             let (name, rest) = b.label.split_once('\n').unwrap_or((&b.label, ""));
-            let line = format!("{name} ({})", crate::keys::short_display(&b.shortcut));
+            let line = strings::format(
+                key!("name-with-key"),
+                &[name, &crate::keys::short_display(&b.shortcut)],
+            );
             if rest.is_empty() {
                 line
             } else {
@@ -434,7 +442,7 @@ fn command_button(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect) -> (Respon
     offer_help(&response, b);
     let chevron = split.then(|| {
         let r = Rect::from_min_max(pos2(main_rect.right(), rect.top()), rect.max);
-        let name = format!("{} {}", b.bar_label, strings::text(key!("commandbar-variants")));
+        let name = strings::format(key!("commandbar-variants-of"), &[&b.bar_label]);
         button_response(
             ui,
             id.with("variants"),
@@ -743,7 +751,7 @@ impl CommandBarHost {
                 sense: Sense::click(),
             },
         )
-        .tip(format!("{menu_name} (Alt)"));
+        .tip(strings::format(key!("name-with-key"), &[&menu_name, "Alt"]));
         // The pop-up's expanded state with it.
         let open = egui::Popup::is_id_open(ui.ctx(), app_menu_id());
         ui.ctx().accesskit_node_builder(response.id, |n| {

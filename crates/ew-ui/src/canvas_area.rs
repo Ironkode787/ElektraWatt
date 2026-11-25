@@ -359,9 +359,9 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         let tip = if key.is_empty() {
             b.label.clone()
         } else {
-            format!("{} ({key})", b.label)
+            strings::format(key!("name-with-key"), &[&b.label, &key])
         };
-        let why = refusal.map(|why| format!("{tip}: {}", strings::render(&why)));
+        let why = refusal.map(|why| strings::format(key!("name-refused"), &[&tip, &strings::render(&why)]));
         let response = crate::components::icon_toggle_tip(
             ui,
             crate::icons::IconId::arrow_left,

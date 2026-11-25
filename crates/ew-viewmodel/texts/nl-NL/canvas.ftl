@@ -408,6 +408,8 @@ paste-update = De kopie van het project bijwerken
 paste-conflict = { $p0 }: dit project { $p1 }, geplakt { $p2 }, { $p3 }
 macro-values = Waarden
 macro-value-label = { $p0 } ({ $p1 })
+# De regel van een variabele van een macro met zijn standaardwaarde.
+macro-variable-default = { $p0 } = { $p1 }
 var-type-text = tekst
 var-type-ident = identificatie
 var-type-number = getal

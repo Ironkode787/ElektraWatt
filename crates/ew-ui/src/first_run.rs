@@ -46,11 +46,13 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.allocate_ui_with_layout(column, egui::Layout::top_down(egui::Align::Min), |ui| {
             ui.set_width(width);
             ui.heading(strings::text(key!("firstrun-title")));
-            ui.label(format!(
-                "{} / {}: {}",
-                run.step.index() + 1,
-                FirstRunStep::ALL.len(),
-                strings::text(run.step.title_key())
+            ui.label(strings::format(
+                key!("firstrun-step"),
+                &[
+                    &(run.step.index() + 1).to_string(),
+                    &FirstRunStep::ALL.len().to_string(),
+                    strings::text(run.step.title_key()),
+                ],
             ));
             ui.add_space(t.space_4);
             match run.step {

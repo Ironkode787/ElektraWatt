@@ -104,6 +104,12 @@ find-updated-more = { $p0 ->
     }
 find-updated-same = Voorbeeld bijgewerkt: dezelfde resultaten
 find-not-replaced = niet vervangen: { $p0 }
+# Een resultaatregel: het onderwerp, het veld en de tekst; ervoor de pagina en de cel, erna de vervanging of waarom
+# niet vervangen.
+find-hit = { $p0 } · { $p1 } · { $p2 }
+find-hit-at = { $p0 } · { $p1 }
+find-hit-replaced = { $p0 } -> { $p1 }
+find-hit-not-replaced = { $p0 } ({ $p1 })
 find-card-line = { $p0 } resultaten op { $p1 } records · { $p2 } kenmerken, { $p3 } kruisverwijzingsteksten
 chip-authored = = ingevoerd
 chip-inherited = ^ overgenomen · { $p0 }

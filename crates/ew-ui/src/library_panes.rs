@@ -156,9 +156,12 @@ const THUMBNAIL_HEIGHT: f32 = 64.0;
 /// A variable's line of the detail: `<name> (<type in words>)` ("pt (process tag)"), with ` = <default>` when it has
 /// one.
 fn variable_line(v: &ew_viewmodel::ew_api::output::MacroVariable) -> String {
-    let line = format!("{} ({})", v.name, strings::var_type_word(&v.ty));
+    let line = strings::format(
+        key!("macro-value-label"),
+        &[&v.name, &strings::var_type_word(&v.ty)],
+    );
     match &v.default {
-        Some(d) => format!("{line} = {d}"),
+        Some(d) => strings::format(key!("macro-variable-default"), &[&line, d]),
         None => line,
     }
 }
@@ -352,7 +355,7 @@ fn macro_detail(
                     }
                     line(
                         ui,
-                        &format!("{title} ({})", items.len()),
+                        &strings::format(key!("name-with-count"), &[title, &items.len().to_string()]),
                         &t.type_small,
                         t.text_secondary,
                     );

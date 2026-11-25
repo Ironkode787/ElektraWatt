@@ -1190,10 +1190,13 @@ impl TableDelegate for Delegate<'_> {
         let mut name = if text.is_empty() {
             column.label.clone()
         } else {
-            format!("{} {text}", column.label)
+            strings::format(key!("table-cell-name"), &[&column.label, &text])
         };
         if manual {
-            name = format!("{name}, {}", strings::text(key!("nav-badge-manual")));
+            name = strings::format(
+                key!("table-cell-manual"),
+                &[&name, strings::text(key!("nav-badge-manual"))],
+            );
         }
         name.push_str(&strings::format(
             key!("table-cell-row"),

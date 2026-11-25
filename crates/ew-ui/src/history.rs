@@ -299,7 +299,10 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
         ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::click());
     let text = entry_text(e.row, e.origin);
     let name = if e.state == EntryState::Redo {
-        format!("{text}, {}", strings::text(key!("history-redo")))
+        strings::format(
+            key!("history-entry-redo"),
+            &[&text, strings::text(key!("history-redo"))],
+        )
     } else {
         text
     };
@@ -416,7 +419,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         .map(|e| {
             // In the UI language, as the Preview tab's line.
             let [change, kind, label, fields] = ew_viewmodel::preview::change_line(e);
-            format!("{change} {kind} {label}{fields}")
+            strings::format(key!("preview-change-line"), &[&change, &kind, &label, &fields])
         })
         .collect();
     // The popup is as wide as its longest line, from `size.dialog.small` up to a share of the window

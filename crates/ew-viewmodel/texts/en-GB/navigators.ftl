@@ -108,6 +108,12 @@ find-updated-more = { $p0 ->
     }
 find-updated-same = Preview updated: the same results
 find-not-replaced = not replaced: { $p0 }
+# A result line: its subject, its field and the string; before it the folio and cell, after it the replacement or why
+# it is not replaced.
+find-hit = { $p0 } · { $p1 } · { $p2 }
+find-hit-at = { $p0 } · { $p1 }
+find-hit-replaced = { $p0 } -> { $p1 }
+find-hit-not-replaced = { $p0 } ({ $p1 })
 find-card-line = { $p0 } results on { $p1 } records · { $p2 } tags, { $p3 } cross-reference texts
 chip-authored = = authored
 chip-inherited = ^ inherited · { $p0 }

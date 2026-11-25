@@ -199,3 +199,33 @@ bar-text-styles = Text styles
 
 # F1 opens the help for what is under the hand; the status bar says what it opens.
 status-help = F1: { $p0 }
+
+# A name with its shortcut, in a tooltip ("Back (Alt+Left)").
+name-with-key = { $p0 } ({ $p1 })
+# A control that cannot run, in its tooltip: its name, then why.
+name-refused = { $p0 }: { $p1 }
+# A name with how many it holds ("Tags (11)").
+name-with-count = { $p0 } ({ $p1 })
+# A disabled palette entry as a reader names it: its label, then why.
+palette-entry-refused = { $p0 }. { $p1 }
+# The accessible name of a command's chevron.
+commandbar-variants-of = { $p0 } Variants
+# The first-run step line: its number, how many there are, and its title.
+firstrun-step = { $p0 } / { $p1 }: { $p2 }
+# The accessible name of a navigator row's name field.
+navigator-rename-row = Rename { $p0 }
+# A job's heading: its kind and what it makes.
+job-name = { $p0 } { $p1 }
+# The keymap's "where" cell with what it notes ("Canvas · Changed").
+keymap-where-note = { $p0 } · { $p1 }
+# A refused key: the key, then the action it was for.
+keymap-chord-action = { $p0 } ({ $p1 })
+# The accessible name of an undone history entry.
+history-entry-redo = { $p0 }, { $p1 }
+# A changed record's line: its change word, its kind, its label and its changed fields in brackets.
+preview-change-line = { $p0 } { $p1 } { $p2 }{ $p3 }
+# A table cell's accessible name: its column and its text; with a manual address, that it is manual.
+table-cell-name = { $p0 } { $p1 }
+table-cell-manual = { $p0 }, { $p1 }
+# An inline card's strip: its title and its summary.
+card-strip = { $p0 } · { $p1 }

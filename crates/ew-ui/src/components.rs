@@ -1275,7 +1275,7 @@ pub(crate) fn inline_card(
     let status = card_status(shell);
     let strip_line = match &status {
         CardStatus::Failed(m) => strings::format(key!("card-strip-failed"), &[card.title, m]),
-        _ => format!("{} · {}", card.title, card.summary),
+        _ => strings::format(key!("card-strip"), &[card.title, card.summary]),
     };
     // While the Preview tab shows the card, the strip stands in for it.
     if card.strip && card_strip(ui, shell, &strip_line, events) {
@@ -1492,7 +1492,10 @@ pub(crate) fn section_header(
         ui.data_mut(|d| d.insert_temp(id, open));
     }
     // The accessible name carries the count the badge paints ("Tags (11)").
-    let name = count.map_or_else(|| title.to_owned(), |count| format!("{title} ({count})"));
+    let name = count.map_or_else(
+        || title.to_owned(),
+        |count| strings::format(key!("name-with-count"), &[title, &count.to_string()]),
+    );
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_expanded(open));
@@ -1588,7 +1591,7 @@ pub(crate) fn close_button(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Eve
     let tip = if key.is_empty() {
         name.to_owned()
     } else {
-        format!("{name} ({key})")
+        strings::format(key!("name-with-key"), &[name, &key])
     };
     if icon_toggle_tip(ui, IconId::x, name, &tip, None, None).clicked() {
         events.push(Event::Action("ui.dismiss", json!({})));

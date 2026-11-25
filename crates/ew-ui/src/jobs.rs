@@ -81,7 +81,7 @@ pub fn show(
 /// One entry: its heading line, then the progress and Cancel, or the result.
 fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events: &mut Vec<Event>) {
     let kind = strings::text(e.kind.label_key());
-    let name = format!("{kind} {}", e.name);
+    let name = strings::format(key!("job-name"), &[kind, &e.name]);
     ui.horizontal_wrapped(|ui| {
         ui.strong(&name);
         ui.label(strings::format(key!("job-as-of"), &[&e.rev.to_string()]));

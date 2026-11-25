@@ -178,3 +178,33 @@ bar-text-styles = Tekststijlen
 
 # F1 opent de uitleg bij wat onder de hand ligt; de statusbalk zegt wat het opent.
 status-help = F1: { $p0 }
+
+# Een naam met zijn sneltoets, in een tooltip ("Terug (Alt+Links)").
+name-with-key = { $p0 } ({ $p1 })
+# Een knop die niet kan, in zijn tooltip: zijn naam, dan waarom.
+name-refused = { $p0 }: { $p1 }
+# Een naam met hoeveel hij bevat ("Tags (11)").
+name-with-count = { $p0 } ({ $p1 })
+# Een uitgeschakelde regel van het palet zoals een voorlezer hem noemt: het label, dan waarom.
+palette-entry-refused = { $p0 }. { $p1 }
+# De toegankelijke naam van de punt naast een opdracht.
+commandbar-variants-of = Varianten van { $p0 }
+# De regel van een stap bij de eerste start: het nummer, hoeveel er zijn, en de titel.
+firstrun-step = { $p0 } / { $p1 }: { $p2 }
+# De toegankelijke naam van het naamveld van een rij in een navigator.
+navigator-rename-row = { $p0 } hernoemen
+# De kop van een taak: wat voor taak, en wat hij maakt.
+job-name = { $p0 } { $p1 }
+# De cel "waar" van de sneltoetsen met wat ze opmerkt ("Tekenblad · Gewijzigd").
+keymap-where-note = { $p0 } · { $p1 }
+# Een geweigerde toets: de toets, dan de actie waarvoor hij was.
+keymap-chord-action = { $p0 } ({ $p1 })
+# De toegankelijke naam van een ongedaan gemaakte stap in de geschiedenis.
+history-entry-redo = { $p0 }, { $p1 }
+# De regel van een gewijzigd record: het woord van de wijziging, de soort, het label en de gewijzigde velden tussen haakjes.
+preview-change-line = { $p0 } { $p1 } { $p2 }{ $p3 }
+# De toegankelijke naam van een tabelcel: de kolom en de tekst; bij een handmatig adres dat het handmatig is.
+table-cell-name = { $p0 } { $p1 }
+table-cell-manual = { $p0 }, { $p1 }
+# De strook van een kaart in de lijst: de titel en de samenvatting.
+card-strip = { $p0 } · { $p1 }

@@ -450,6 +450,8 @@ paste-update = Update the project's copy
 paste-conflict = { $p0 }: this project { $p1 }, pasted { $p2 }, { $p3 }
 macro-values = Values
 macro-value-label = { $p0 } ({ $p1 })
+# A macro variable's line with its default.
+macro-variable-default = { $p0 } = { $p1 }
 # A macro variable's type in words: the words the macro insert's refusals use for it.
 var-type-text = text
 var-type-ident = identifier

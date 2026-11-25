@@ -951,7 +951,7 @@ fn rename_ui(
         })
         .inner;
     // Named "Rename <row name>" (every focusable node has a name, ADR-0014 amendment 2).
-    let name = format!("{} {}", strings::text(key!("action-navigator-rename")), row.name);
+    let name = strings::format(key!("navigator-rename-row"), &[&row.name]);
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
     if !started {

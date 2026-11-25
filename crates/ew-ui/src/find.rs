@@ -43,22 +43,24 @@ pub struct FindPane {
 /// The text of a result line: folio and cell, subject, field, the string (with its matches marked as `[[…]]` when
 /// `marks`), the replacement or why it is not replaced.
 pub fn result_line(hit: &FindHit, marks: bool) -> String {
-    let mut line = String::new();
-    if let Some(cell) = hit.cell.as_deref().or(hit.folio.as_deref()) {
-        line.push_str(cell);
-        line.push_str(" · ");
-    }
     let text = if marks { marked(hit) } else { hit.before.clone() };
-    line.push_str(&format!("{} · {} · {text}", hit.subject, hit_label(hit)));
-    match (&hit.after, &hit.replaceable) {
-        (Some(after), _) => line.push_str(&format!(" -> {after}")),
-        (None, Err(why)) => line.push_str(&format!(
-            " ({})",
-            strings::format(key!("find-not-replaced"), &[why])
-        )),
-        (None, Ok(())) => {}
+    hit_line(hit, &text)
+}
+
+/// A result line around the string `text` ([`result_line`]).
+fn hit_line(hit: &FindHit, text: &str) -> String {
+    let mut line = strings::format(key!("find-hit"), &[&hit.subject, &hit_label(hit), text]);
+    if let Some(cell) = hit.cell.as_deref().or(hit.folio.as_deref()) {
+        line = strings::format(key!("find-hit-at"), &[cell, &line]);
     }
-    line
+    match (&hit.after, &hit.replaceable) {
+        (Some(after), _) => strings::format(key!("find-hit-replaced"), &[&line, after]),
+        (None, Err(why)) => strings::format(
+            key!("find-hit-not-replaced"),
+            &[&line, &strings::format(key!("find-not-replaced"), &[why])],
+        ),
+        (None, Ok(())) => line,
+    }
 }
 
 impl FindPane {
@@ -536,13 +538,10 @@ impl FindPane {
             ..TextFormat::simple(font, ui.visuals().strong_text_color())
         };
         let mut job = LayoutJob::default();
-        let mut head = String::new();
-        if let Some(cell) = hit.cell.as_deref().or(hit.folio.as_deref()) {
-            head.push_str(cell);
-            head.push_str(" · ");
-        }
-        head.push_str(&format!("{} · {} · ", hit.subject, hit_label(hit)));
-        job.append(&head, 0.0, plain.clone());
+        // The line around a mark where the string goes, which is painted with its matches between.
+        let line = hit_line(hit, "\u{1f}");
+        let (head, tail) = line.split_once('\u{1f}').unwrap_or((&line, ""));
+        job.append(head, 0.0, plain.clone());
         let mut at = 0;
         for (s, e) in &hit.ranges {
             if *s < at || *e > hit.before.len() {
@@ -553,15 +552,7 @@ impl FindPane {
             at = *e;
         }
         job.append(&hit.before[at..], 0.0, plain.clone());
-        match (&hit.after, &hit.replaceable) {
-            (Some(after), _) => job.append(&format!(" -> {after}"), 0.0, plain),
-            (None, Err(why)) => job.append(
-                &format!(" ({})", strings::format(key!("find-not-replaced"), &[why])),
-                0.0,
-                plain,
-            ),
-            (None, Ok(())) => {}
-        }
+        job.append(tail, 0.0, plain);
         job
     }
 }
