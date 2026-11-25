@@ -234,7 +234,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `cable.swap_cores` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_cable_swap_cores` `crates/ew-viewmodel/src/shell/row_ops.rs` | `action-cable-swap-cores` |
 | `navigator.delete` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_navigator_delete` `crates/ew-viewmodel/src/shell/row_ops.rs` | `action-navigator-delete` |
 | `devices.set_location` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_devices_set_location` `crates/ew-viewmodel/src/shell/row_ops.rs` | `action-devices-set-location` |
-| `navigator.rename` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_navigator_rename` `crates/ew-viewmodel/src/shell/row_ops.rs` | `action-navigator-rename` |
+| `navigator.rename` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_navigator_rename` `crates/ew-viewmodel/src/shell/row_ops.rs` | `action-navigator-rename`, `navigator-rename-row` |
 | `bond.draw` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_bond_draw` `crates/ew-viewmodel/src/shell/bond.rs` | `action-bond-draw` |
 | `potential.draw` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_potential_draw` `crates/ew-viewmodel/src/shell/bond.rs` | `action-potential-draw` |
 | `cable.new` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_cable_new` `crates/ew-viewmodel/src/shell/cables.rs` | `action-cable-new`, `cable-new-title`, `toast-cable-new`, `toast-cable-new-cores` |
@@ -340,7 +340,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `navigator.export_table` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_export_table` `crates/ew-viewmodel/src/shell/table_file.rs` | `action-navigator-export-table` |
 | `navigator.import_table` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_import_table` `crates/ew-viewmodel/src/shell/table_file.rs` | `action-navigator-import-table` |
 | `table.columns` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_table_columns` `crates/ew-viewmodel/src/shell/table.rs` | `action-table-columns`, `table-columns` |
-| `table.cell` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_table_cell` `crates/ew-viewmodel/src/shell/table.rs` | `action-table-cell`, `form-table-cell`, `table-cell`, `table-cell-read-only`, `table-cell-row` |
+| `table.cell` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_table_cell` `crates/ew-viewmodel/src/shell/table.rs` | `action-table-cell`, `form-table-cell`, `table-cell`, `table-cell-manual`, `table-cell-name`, `table-cell-read-only`, `table-cell-row` |
 | `table.edit` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_table_edit` `crates/ew-viewmodel/src/shell/table.rs` | `action-table-edit` |
 | `table.input` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_table_input` `crates/ew-viewmodel/src/shell/table.rs` | `action-table-input` |
 | `table.commit` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_table_commit` `crates/ew-viewmodel/src/shell/table.rs` | `action-table-commit`, `table-commit-all-hint` |

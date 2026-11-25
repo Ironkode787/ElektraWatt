@@ -25,7 +25,7 @@ A crate depends (normal and build dependencies) only on crates before it: in an 
 
 ## elektrawatt
 
-`bin/elektrawatt` · GPL-3.0-or-later · tier programs · depends on `ew-print`, `ew-ui`, `ew-viewmodel` · used by none · in tests by none
+`bin/elektrawatt` · GPL-3.0-or-later · tier programs · depends on `ew-print`, `ew-render2d`, `ew-ui`, `ew-viewmodel` · used by none · in tests by none
 
 The ElektraWatt desktop application: eframe shell, file dialogs, the headless mode, the crash log and exit codes. The window itself is `ew-ui`'s, what it shows and does `ew-viewmodel`'s.
 
@@ -836,7 +836,7 @@ CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing.
 
 ## ew-render2d
 
-`crates/ew-render2d` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-render-cpu`, `ew-units` · used by `ew-ui` · in tests by none
+`crates/ew-render2d` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-render-cpu`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by none
 
 The 2D canvas renderer: the CPU tile path and the wgpu path over one display list.
 
