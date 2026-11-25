@@ -129,7 +129,8 @@ pub fn to_markdown(report: &CheckReport, lang: &str) -> String {
 }
 
 /// The JSON result of `ew check` (`ew.check-result/1`, doc 17 §3.1). The type is the published schema
-/// (`bin/ew/schemas/ew.check-result-1.schema.json`), so the printed object and its schema cannot drift. Members print
+/// (`ew_api::cli_results` generates `ew.check-result-1.schema.json` from it for the user guide's reference), so the
+/// printed object and its schema cannot drift. Members print
 /// in byte-wise key order (`$schema` first); an optional member is absent, never `null`.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

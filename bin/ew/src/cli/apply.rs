@@ -330,9 +330,9 @@ impl Leaf for SchemaCli {
     const EXITS: &'static [Exit] = &[OK, exit(2, "usage, an unknown schema name")];
 }
 
-/// `ew schema <name>`: the parameter schema of a command (or an alias), byte for byte the file of
-/// `crates/ew-commands/schemas/`, or a result schema (`ew.<command>-result/<n>`), the file of `bin/ew/schemas/`. An
-/// unknown name exits 2 naming it.
+/// `ew schema <name>`: the parameter schema of a command (or an alias), as the command registry generates it, or a
+/// result schema (`ew.<command>-result/<n>`), as `ew_api::cli_results` generates it; the user guide's reference
+/// publishes the same files (`cargo xtask gen`). An unknown name exits 2 naming it.
 pub(super) fn run_schema(name: &str, io: &mut Io<'_>) -> i32 {
     let text = if name.starts_with("ew.") && name.contains("-result/") {
         results::schema_text(name)
