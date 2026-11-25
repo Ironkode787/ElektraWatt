@@ -284,11 +284,17 @@ fn a_context_menu_key_with_nothing_selected_opens_no_menu_later() {
     dispatch(&mut h, "ui.focus", json!({ "area": "canvas" }));
     settle(&mut h);
     settle(&mut h);
-    assert!(!egui::Popup::is_any_open(&h.ctx), "a later selection opens no menu");
+    assert!(
+        !egui::Popup::is_any_open(&h.ctx),
+        "a later selection opens no menu"
+    );
     h.key_press_modifiers(Modifiers::SHIFT, Key::F10);
     settle(&mut h);
     settle(&mut h);
-    assert!(egui::Popup::is_any_open(&h.ctx), "Shift+F10 with the symbol selected opens its menu");
+    assert!(
+        egui::Popup::is_any_open(&h.ctx),
+        "Shift+F10 with the symbol selected opens its menu"
+    );
 }
 
 /// A chord is pressed with its modifiers exactly: Shift+F10 with the Pages navigator's keys (the canvas's context menu

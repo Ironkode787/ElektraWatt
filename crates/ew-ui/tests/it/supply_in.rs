@@ -660,7 +660,10 @@ fn enter_typed_in_a_voltage_field_applies_the_panel() {
         .map(|r| r.id.to_string())
         .collect();
     let shell = d.shell_mut();
-    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("select.set", &json!({ "ids": ids })),
+        Outcome::Done
+    );
     assert_eq!(
         shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
         Outcome::Done
@@ -671,7 +674,10 @@ fn enter_typed_in_a_voltage_field_applies_the_panel() {
     assert!(d.shell_mut().supply_panel().is_some(), "the panel asks");
     let steps = d.shell_mut().recorded_commands().len();
     crate::wires_and_cables::fill(&mut d, "Voltage, L1", "230 V AC");
-    assert!(d.shell_mut().supply_panel().is_none(), "Enter in the field applies the panel");
+    assert!(
+        d.shell_mut().supply_panel().is_none(),
+        "Enter in the field applies the panel"
+    );
     assert!(
         d.shell_mut().recorded_commands()[steps..]
             .iter()

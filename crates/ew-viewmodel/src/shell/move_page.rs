@@ -22,7 +22,12 @@ impl ShellModel {
     /// forms of the page shown: when the move keeps a wire to what stays behind as a pair of interruption points, or
     /// leaves selected texts and boxes on the page (`stays`, the line that says so), the preview card that lists the
     /// pairs and that line (Apply moves); `None` otherwise, the caller then commits the move as it is, `keep` in it.
-    pub(super) fn move_card(&mut self, name: &str, params: &mut Value, stays: Option<String>) -> Option<Outcome> {
+    pub(super) fn move_card(
+        &mut self,
+        name: &str,
+        params: &mut Value,
+        stays: Option<String>,
+    ) -> Option<Outcome> {
         if let Ok((source, target, copies)) = self.ip_forms() {
             let target = target.as_ref().unwrap_or(&source);
             params["keep"] = json!({
@@ -76,9 +81,8 @@ impl ShellModel {
             .iter()
             .filter(|(_, k)| matches!(k, EntityKind::Item | EntityKind::StructureBox))
             .count();
-        let stays = (left > 0).then(|| {
-            strings::format_counted(crate::count_key!("preview-move-stays"), left, &[&page.folio])
-        });
+        let stays = (left > 0)
+            .then(|| strings::format_counted(crate::count_key!("preview-move-stays"), left, &[&page.folio]));
         let before: Vec<Uuid> = self.page_rows().iter().map(|r| r.id).collect();
         let (name, mut params) = if folio == "new" {
             let mut params = json!({ "reps": reps });

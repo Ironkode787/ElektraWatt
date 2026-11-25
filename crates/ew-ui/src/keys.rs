@@ -253,13 +253,31 @@ mod tests {
     fn a_chord_takes_its_own_modifiers_and_a_typed_shift_only() {
         let shift = Modifiers::SHIFT;
         assert!(chord_held(Modifiers::NONE, Modifiers::NONE, Key::F10));
-        assert!(!chord_held(shift, Modifiers::NONE, Key::F10), "Shift+F10 is not F10");
+        assert!(
+            !chord_held(shift, Modifiers::NONE, Key::F10),
+            "Shift+F10 is not F10"
+        );
         assert!(!chord_held(shift, Modifiers::NONE, Key::W), "Shift+W is not W");
-        assert!(!chord_held(Modifiers::ALT, Modifiers::NONE, Key::W), "Alt+W is not W");
-        assert!(!chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::F), "Ctrl+Shift+F is not Ctrl+F");
-        assert!(chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::Num1), "Ctrl+1 on AZERTY");
-        assert!(chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::Plus), "Ctrl++ on US");
-        assert!(!chord_held(Modifiers::NONE, shift, Key::Num1), "a Shift written is a Shift held");
+        assert!(
+            !chord_held(Modifiers::ALT, Modifiers::NONE, Key::W),
+            "Alt+W is not W"
+        );
+        assert!(
+            !chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::F),
+            "Ctrl+Shift+F is not Ctrl+F"
+        );
+        assert!(
+            chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::Num1),
+            "Ctrl+1 on AZERTY"
+        );
+        assert!(
+            chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::Plus),
+            "Ctrl++ on US"
+        );
+        assert!(
+            !chord_held(Modifiers::NONE, shift, Key::Num1),
+            "a Shift written is a Shift held"
+        );
     }
 
     #[test]

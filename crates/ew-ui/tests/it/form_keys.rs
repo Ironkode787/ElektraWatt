@@ -148,7 +148,11 @@ fn ctrl_enter_on_the_forms_first_frame_stays_with_the_form() {
     open_the_form_and_ctrl_enter_in_one_frame(&mut h, None);
     assert_eq!(form(&h), None, "Ctrl+Enter submitted the form");
     let card = h.state().shell().properties().card().expect("the renumber card");
-    assert!(matches!(card.origin, CardOrigin::Bulk { .. }), "{:?}", card.origin);
+    assert!(
+        matches!(card.origin, CardOrigin::Bulk { .. }),
+        "{:?}",
+        card.origin
+    );
     h.state_mut().shell_mut().shutdown();
 }
 

@@ -388,8 +388,7 @@ impl App {
     /// asked for: the app menu (not while a dialog or a file dialog is open) and the canvas's context menu.
     pub(super) fn window_actions(&mut self, ctx: &egui::Context) {
         let actions = std::mem::take(&mut self.window_actions);
-        self.canvas
-            .ask_context_menu(actions.contains(&"ui.context_menu"));
+        self.canvas.ask_context_menu(actions.contains(&"ui.context_menu"));
         if actions.contains(&"ui.app_menu") && self.shell.dialog().is_none() && self.pending_pick.is_none() {
             egui::Popup::open_id(ctx, crate::command_bar::app_menu_id());
         }

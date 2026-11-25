@@ -250,7 +250,9 @@ fn move_to_page_asks_for_the_symbols_to_move() {
     };
     done(&mut s, "select.set", json!({"ids": []}));
     assert_eq!(gate(&s), Some("reason-move-select-symbols"), "nothing selected");
-    let wire = s.canvas().expect("page 102").page().tables.connections[0].id.to_string();
+    let wire = s.canvas().expect("page 102").page().tables.connections[0]
+        .id
+        .to_string();
     done(&mut s, "select.set", json!({"ids": [wire]}));
     assert_eq!(gate(&s), Some("reason-move-select-symbols"), "a wire alone");
     assert_eq!(
@@ -277,7 +279,11 @@ fn a_text_selected_with_a_symbol_stays_and_the_preview_says_so() {
     let text_on_102 = |s: &mut ShellModel| {
         done(s, "page.goto", json!({"folio": "102"}));
         let tables = &s.canvas().expect("page 102").page().tables;
-        tables.items.iter().find(|i| i.text.as_deref() == Some("stays here")).map(|i| i.id)
+        tables
+            .items
+            .iter()
+            .find(|i| i.text.as_deref() == Some("stays here"))
+            .map(|i| i.id)
     };
     let text = text_on_102(&mut s).expect("the text").to_string();
     let reps: Vec<String> = s
@@ -313,7 +319,13 @@ fn a_text_selected_with_a_symbol_stays_and_the_preview_says_so() {
     assert_ne!(s.revision(), steps, "Apply moves");
     assert!(text_on_102(&mut s).is_some(), "the text stays");
     let on_102 = |s: &ShellModel| {
-        s.canvas().expect("page 102").page().tables.reps.iter().any(|r| r.id.to_string() == rep)
+        s.canvas()
+            .expect("page 102")
+            .page()
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.id.to_string() == rep)
     };
     assert!(!on_102(&s), "the symbol moved");
     done(&mut s, "edit.undo", json!({}));
