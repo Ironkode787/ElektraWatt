@@ -37,9 +37,14 @@ fn ew(args: &[&std::ffi::OsStr]) -> Output {
     Tmp::new("ew-cli-run").ew(args)
 }
 
+/// [`ew`] as a process ([`Tmp::ew_process`]): what the program itself prints and exits with.
+fn ew_process(args: &[&std::ffi::OsStr]) -> Output {
+    Tmp::new("ew-cli-run").ew_process(args)
+}
+
 #[test]
 fn version() {
-    let o = ew(&["--version".as_ref()]);
+    let o = ew_process(&["--version".as_ref()]);
     assert_eq!(o.status.code(), Some(0));
     assert_eq!(stdout(&o), format!("ew {}\n", env!("CARGO_PKG_VERSION")));
 }
@@ -377,7 +382,7 @@ fn missing_file_is_exit_2() {
         ),
     ];
     for (name, args) in cases {
-        let o = ew(&args);
+        let o = ew_process(&args);
         assert_eq!(o.status.code(), Some(2), "case {name}");
         assert!(stderr(&o).contains("error:"), "case {name}: {}", stderr(&o));
     }
@@ -385,10 +390,13 @@ fn missing_file_is_exit_2() {
 
 #[test]
 fn usage_errors_are_exit_2() {
-    assert_eq!(ew(&["import".as_ref(), "qet".as_ref()]).status.code(), Some(2));
-    assert_eq!(ew(&["bogus".as_ref()]).status.code(), Some(2));
-    assert_eq!(ew(&[]).status.code(), Some(2));
-    let o = ew(&[
+    assert_eq!(
+        ew_process(&["import".as_ref(), "qet".as_ref()]).status.code(),
+        Some(2)
+    );
+    assert_eq!(ew_process(&["bogus".as_ref()]).status.code(), Some(2));
+    assert_eq!(ew_process(&[]).status.code(), Some(2));
+    let o = ew_process(&[
         "check".as_ref(),
         SAMPLE.as_ref(),
         "--scheme".as_ref(),

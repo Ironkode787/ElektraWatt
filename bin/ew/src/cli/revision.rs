@@ -46,19 +46,10 @@ impl Leaf for WithdrawCli {
 /// `ew revision approve|release|withdraw`: the `HumanOnly` commands of the release workflow,
 /// each submitted from the confirmed origin only after the person types the revision label on a controlling terminal
 /// (doc 15 section 5.4, doc 17 section 2.3); without a terminal nothing is opened (exit 2).
-pub(super) fn run_revision(a: &RevisionArgs) -> i32 {
-    let terminal = is_terminal();
-    let mut input = std::io::stdin().lock();
-    let mut output = std::io::stdout().lock();
-    run_revision_with(
-        a,
-        terminal,
-        &mut input,
-        &mut output,
-        ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
-        today(),
-        &ew_api::git::GitExe::default(),
-    )
+pub(super) fn run_revision(a: &RevisionArgs, io: &mut Io<'_>) -> i32 {
+    let terminal = io.env.is_terminal();
+    let store = io.env.store(env!("CARGO_PKG_VERSION"));
+    run_revision_with(a, terminal, store, today(), &ew_api::git::GitExe::default(), io)
 }
 
 /// One finding as the report text prints it: `<severity> <rule> <code> <subject>: <message>`.
@@ -96,15 +87,15 @@ pub(super) fn typed_word(
 pub(super) fn run_revision_with(
     a: &RevisionArgs,
     terminal: bool,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
     store: ew_api::StoreOptions,
     today: ew_api::catalog::Date,
     git: &dyn ew_api::git::Git,
+    io: &mut Io<'_>,
 ) -> i32 {
     let subcommand = revision_subcommand(&a.action);
     if !terminal {
-        eprintln!(
+        errln!(
+            io,
             "{}",
             human_only(
                 &format!("`{subcommand}` is confirmed by typing the revision label"),
@@ -113,21 +104,19 @@ pub(super) fn run_revision_with(
         );
         return 2;
     }
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let origin = ew_api::Origin::Cli {
         subcommand: subcommand.to_owned(),
         confirmed: true,
     };
-    let (mut session, items) = match open_for_writing_items(&dir, origin, store) {
+    let (mut session, items) = match open_for_writing_items(&dir, origin, store, io) {
         Ok(s) => s,
         Err(code) => return code,
     };
     let code = match &a.action {
-        RevisionAction::Approve { role } => {
-            approve_revision(&mut session, &items, role, input, output, today)
-        }
+        RevisionAction::Approve { role } => approve_revision(&mut session, &items, role, today, io),
         RevisionAction::Release { label, archive_dir } => {
             let release = Release {
                 label,
@@ -135,16 +124,14 @@ pub(super) fn run_revision_with(
                 git,
                 today,
             };
-            release_revision(&mut session, &items, &release, input, output)
+            release_revision(&mut session, &items, &release, io)
         }
-        RevisionAction::Withdraw { label, reason } => {
-            withdraw_revision(&mut session, label, reason, input, output)
-        }
+        RevisionAction::Withdraw { label, reason } => withdraw_revision(&mut session, label, reason, io),
     };
     // The release's housekeeping: a run record that could not be removed, as the project opened or a run
     // was settled.
     for trouble in session.take_release_troubles() {
-        warning(trouble);
+        io.warning(trouble);
     }
     session.close();
     code
@@ -162,19 +149,15 @@ pub(crate) fn warn_unreleased(unstable: bool, errors: &mut dyn std::io::Write) {
 }
 
 /// Saves after a confirmed revision command: exit 0 with `done` printed, 2 when the save fails.
-pub(super) fn save_revision(
-    session: &mut ew_api::Session,
-    output: &mut dyn std::io::Write,
-    done: &str,
-) -> i32 {
+pub(super) fn save_revision(session: &mut ew_api::Session, done: &str, io: &mut Io<'_>) -> i32 {
     match session.save() {
         Ok(report) => {
-            warn_unreleased(report.unstable, &mut std::io::stderr());
-            let _ = writeln!(output, "{done}; saved (generation {})", report.generation);
+            warn_unreleased(report.unstable, &mut *io.err);
+            let _ = writeln!(io.out, "{done}; saved (generation {})", report.generation);
             0
         }
         Err(e) => {
-            error(save_failed(&e));
+            io.error(save_failed(&e));
             2
         }
     }
@@ -186,26 +169,25 @@ pub(super) fn approve_revision(
     session: &mut ew_api::Session,
     items: &[ew_api::checks::IntegrityItem],
     checker: &ew_api::PartyRole,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
     today: ew_api::catalog::Date,
+    io: &mut Io<'_>,
 ) -> i32 {
     let Some(label) = session.open_revision_label() else {
-        error("the project has no open revision; nothing was approved");
+        io.error("the project has no open revision; nothing was approved");
         return 1;
     };
     let gate = match session.release_gate(&label, items) {
         Ok(g) => g,
         Err(e) => {
-            error(format_args!("{e}; nothing was approved"));
+            io.error(format_args!("{e}; nothing was approved"));
             return 1;
         }
     };
     let blocked = gate.approval_blockers();
     if !blocked.is_empty() {
         let listing: String = blocked.iter().map(|f| finding_line(f)).collect();
-        let _ = output.write_all(listing.as_bytes());
-        error(format_args!(
+        let _ = io.out.write_all(listing.as_bytes());
+        io.error(format_args!(
             "the release gate has {} unwaived error(s) besides {}; nothing was approved",
             blocked.len(),
             ew_api::FOUR_EYES_RULE
@@ -240,8 +222,8 @@ pub(super) fn approve_revision(
     let prompt = format!(
         "{summary}Type the revision label `{label}` to approve it{acknowledge}, anything else to abort: "
     );
-    if !typed_word(input, output, &prompt, &label) {
-        error(NOT_CONFIRMED);
+    if !typed_word(&mut *io.input, &mut *io.out, &prompt, &label) {
+        io.error(NOT_CONFIRMED);
         return 1;
     }
     let approval = ew_api::Approval {
@@ -253,12 +235,12 @@ pub(super) fn approve_revision(
     if let Err(e) = session.approve(&approval, items) {
         if let ew_api::ApproveError::Blocked(list) = &e {
             let listing: String = list.iter().map(finding_line).collect();
-            let _ = output.write_all(listing.as_bytes());
+            let _ = io.out.write_all(listing.as_bytes());
         }
-        error(format_args!("{e}; nothing was approved"));
+        io.error(format_args!("{e}; nothing was approved"));
         return 1;
     }
-    save_revision(session, output, &format!("approved revision {label} as {role}"))
+    save_revision(session, &format!("approved revision {label} as {role}"), io)
 }
 
 /// What `ew revision release` was asked: the label, the archive root, the git port and the release date.
@@ -307,17 +289,16 @@ pub(super) fn release_revision(
     session: &mut ew_api::Session,
     items: &[ew_api::checks::IntegrityItem],
     release: &Release<'_>,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
+    io: &mut Io<'_>,
 ) -> i32 {
     let label = release.label;
     match session.incomplete_release(release.archive_dir) {
         Ok(Some(found)) if found.label == label => {
-            return settle_release(session, items, release, &found, input, output);
+            return settle_release(session, items, release, &found, io);
         }
         Ok(_) => {}
         Err(e) => {
-            error(format_args!("{e}; nothing was released"));
+            io.error(format_args!("{e}; nothing was released"));
             return release_exit(&e);
         }
     }
@@ -325,15 +306,15 @@ pub(super) fn release_revision(
         Ok(plan) => plan,
         Err(ew_api::ReleaseError::Blocked(blockers)) => {
             let listing: String = blockers.iter().map(finding_line).collect();
-            let _ = output.write_all(listing.as_bytes());
-            error(format_args!(
+            let _ = io.out.write_all(listing.as_bytes());
+            io.error(format_args!(
                 "release of {label} refused: the gate has {} blocker(s); nothing was released",
                 blockers.len()
             ));
             return 1;
         }
         Err(e) => {
-            error(format_args!("{e}; nothing was released"));
+            io.error(format_args!("{e}; nothing was released"));
             return release_exit(&e);
         }
     };
@@ -358,8 +339,8 @@ pub(super) fn release_revision(
         "{summary}A released revision is immutable. Type the revision label `{label}` to release it, anything else to \
          abort: "
     );
-    if !typed_word(input, output, &prompt, label) {
-        error(NOT_CONFIRMED);
+    if !typed_word(&mut *io.input, &mut *io.out, &prompt, label) {
+        io.error(NOT_CONFIRMED);
         return 1;
     }
     let ctx = ew_api::ReleaseContext {
@@ -368,24 +349,24 @@ pub(super) fn release_revision(
     };
     match session.release(&ctx, items, &release.options(true)) {
         Ok(done) => {
-            released_lines(output, &done);
+            released_lines(&done, io);
             0
         }
         Err(e) => {
             if let ew_api::ReleaseError::Blocked(list) = &e {
                 let listing: String = list.iter().map(finding_line).collect();
-                let _ = output.write_all(listing.as_bytes());
+                let _ = io.out.write_all(listing.as_bytes());
             }
-            error(&e);
+            io.error(&e);
             release_exit(&e)
         }
     }
 }
 
 /// What a completed release prints.
-pub(super) fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Released) {
+pub(super) fn released_lines(done: &ew_api::Released, io: &mut Io<'_>) {
     let _ = writeln!(
-        output,
+        io.out,
         "released revision {}: archive {} ({}); saved (generation {})",
         done.label,
         done.archive.display(),
@@ -394,19 +375,19 @@ pub(super) fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Rel
     );
     if let Some((_, tag)) = &done.git {
         let _ = writeln!(
-            output,
+            io.out,
             "tagged {tag}; generation {} is left for your next commit",
             done.stamped
         );
     }
     if done.save_incomplete {
         let _ = writeln!(
-            output,
+            io.out,
             "note: the save of generation {} completes when the project is next opened",
             done.stamped
         );
     }
-    warn_unreleased(done.unstable, &mut std::io::stderr());
+    warn_unreleased(done.unstable, &mut *io.err);
 }
 
 /// An archive of the open revision's label that a crashed release left (doc 05 section 14.1 "On failure"): the
@@ -419,19 +400,18 @@ pub(super) fn settle_release(
     items: &[ew_api::checks::IntegrityItem],
     release: &Release<'_>,
     found: &ew_api::IncompleteRelease,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
+    io: &mut Io<'_>,
 ) -> i32 {
     let label = &found.label;
     if let Some(why) = &found.foreign {
-        error(format_args!(
+        io.error(format_args!(
             "release of {label} refused: {why}; it is kept. Name another archive folder with --archive-dir \
              <dir>; nothing was changed"
         ));
         return 1;
     }
     if let (Some(refusal), Some(unproven)) = (&found.refusal, &found.unproven) {
-        error(format_args!(
+        io.error(format_args!(
             "release of {label} refused: {unproven}, and it cannot be completed ({refusal}); it is kept. Remove \
              the file by hand if you know it is a leftover, or name another archive folder with --archive-dir <dir>; \
              nothing was changed"
@@ -462,19 +442,20 @@ pub(super) fn settle_release(
     };
     let prompt = format!("{summary}Type {words}, anything else to abort: ");
     let mut answer = String::new();
-    let read = output
+    let read = io
+        .out
         .write_all(prompt.as_bytes())
-        .and_then(|()| output.flush())
+        .and_then(|()| io.out.flush())
         .is_ok()
-        && input.read_line(&mut answer).is_ok();
+        && io.input.read_line(&mut answer).is_ok();
     match (read, answer.trim(), &found.refusal) {
         (true, "complete", None) => match session.complete_release(items, &release.options(true)) {
             Ok(done) => {
-                released_lines(output, &done);
+                released_lines(&done, io);
                 0
             }
             Err(e) => {
-                error(&e);
+                io.error(&e);
                 release_exit(&e)
             }
         },
@@ -484,13 +465,13 @@ pub(super) fn settle_release(
                     .tag_removed
                     .map_or_else(String::new, |t| format!(" and the tag {t}"));
                 let _ = writeln!(
-                    output,
+                    io.out,
                     "discarded the incomplete release {label}: removed {}{tag}; the revision is still open",
                     done.archive.display()
                 );
                 if let Some(t) = done.tag_kept {
                     let _ = writeln!(
-                        output,
+                        io.out,
                         "note: the git tag {t} was not made by this folder's crashed release, so it was kept; a new \
                          release of {label} needs it gone"
                     );
@@ -498,12 +479,12 @@ pub(super) fn settle_release(
                 0
             }
             Err(e) => {
-                error(&e);
+                io.error(&e);
                 release_exit(&e)
             }
         },
         _ => {
-            error(NOT_CONFIRMED);
+            io.error(NOT_CONFIRMED);
             1
         }
     }
@@ -515,11 +496,10 @@ pub(super) fn withdraw_revision(
     session: &mut ew_api::Session,
     label: &str,
     reason: &str,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
+    io: &mut Io<'_>,
 ) -> i32 {
     let Some(id) = session.released_revision(label) else {
-        error(format_args!(
+        io.error(format_args!(
             "the project has no released revision {label}; nothing was withdrawn"
         ));
         return 1;
@@ -528,8 +508,8 @@ pub(super) fn withdraw_revision(
         "withdraw revision {label}: {reason}\nA withdrawal stays in the revision history. Type the revision label \
          `{label}` to withdraw it, anything else to abort: "
     );
-    if !typed_word(input, output, &prompt, label) {
-        error(NOT_CONFIRMED);
+    if !typed_word(&mut *io.input, &mut *io.out, &prompt, label) {
+        io.error(NOT_CONFIRMED);
         return 1;
     }
     let cmd = ew_api::AnyCommand {
@@ -537,10 +517,10 @@ pub(super) fn withdraw_revision(
         params: serde_json::json!({"revision": id.to_string(), "reason": reason}),
     };
     if let Err(e) = session.execute(&cmd) {
-        error(format_args!("{e}; nothing was withdrawn"));
+        io.error(format_args!("{e}; nothing was withdrawn"));
         return 1;
     }
-    save_revision(session, output, &format!("withdrew revision {label}"))
+    save_revision(session, &format!("withdrew revision {label}"), io)
 }
 
 #[cfg(test)]
@@ -770,12 +750,13 @@ mod tests {
             action,
             project: Some(dir.to_path_buf()),
         };
-        let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
-        let mut output = Vec::new();
         let mut store = store();
         store.state_dir = state.map(Path::to_path_buf);
-        let code = run_revision_with(&args, terminal, &mut input, &mut output, store, date(), &NoGit);
-        (code, String::from_utf8(output).unwrap())
+        let env = crate::cli::io::Env::new(dir.to_path_buf());
+        let (code, output, _) = crate::cli::io::captured(answer, &env, |io| {
+            run_revision_with(&args, terminal, store, date(), &NoGit, io)
+        });
+        (code, output)
     }
 
     fn approve(role: &str) -> RevisionAction {

@@ -15,10 +15,10 @@ pub(super) fn find_project(start: &Path) -> Option<PathBuf> {
 
 /// The explicit project directory, else the one found from the current directory, for every subcommand but the readers
 /// ([`reader_dir`]): an `.ewz` is refused with the text (it opens read-only).
-pub(super) fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
-    let dir = reader_dir(explicit)?;
+pub(super) fn project_dir(explicit: Option<&PathBuf>, io: &mut Io<'_>) -> Option<PathBuf> {
+    let dir = reader_dir(explicit, io)?;
     if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {
-        eprintln!("{}", ewz_refusal(&dir));
+        errln!(io, "{}", ewz_refusal(&dir));
         return None;
     }
     Some(dir)
@@ -32,13 +32,13 @@ pub(super) fn ewz_refusal(path: &Path) -> String {
 /// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
 /// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade
 /// --check`): an `.ewz` is taken as it is and opened read-only from memory by `Session::open_reader`.
-pub(super) fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
+pub(super) fn reader_dir(explicit: Option<&PathBuf>, io: &mut Io<'_>) -> Option<PathBuf> {
     match explicit {
         Some(d) => Some(d.clone()),
         None => {
-            let found = std::env::current_dir().ok().and_then(|cwd| find_project(&cwd));
+            let found = io.env.cwd().ok().and_then(|cwd| find_project(&cwd));
             if found.is_none() {
-                error("no project directory given and none found above the current directory");
+                io.error("no project directory given and none found above the current directory");
             }
             found
         }
@@ -51,9 +51,10 @@ pub(super) fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
 pub(super) fn open_reader(
     dir: &Path,
     subcommand: &str,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::Session, ew_api::OpenReport), ew_api::OpenError> {
     let opened = ew_api::Session::open_reader(dir, env!("CARGO_PKG_VERSION"), subcommand)?;
-    warn_unread(&opened.1, &mut std::io::stderr());
+    warn_unread(&opened.1, &mut *io.err);
     Ok(opened)
 }
 
@@ -66,25 +67,29 @@ pub(super) fn warn_unread(report: &ew_api::OpenReport, out: &mut dyn std::io::Wr
 }
 
 /// Opens the project read-only and builds its SQL projection (exit code 2 on failure).
-pub(super) fn open_projection(project: Option<&PathBuf>) -> Result<ew_api::sql::Projection, i32> {
-    open_projection_and_session(project).map(|(projection, _)| projection)
+pub(super) fn open_projection(
+    project: Option<&PathBuf>,
+    io: &mut Io<'_>,
+) -> Result<ew_api::sql::Projection, i32> {
+    open_projection_and_session(project, io).map(|(projection, _)| projection)
 }
 
 /// [`open_projection`] with the session it was built from (the metadata of `ew sql --format xlsx`).
 pub(super) fn open_projection_and_session(
     project: Option<&PathBuf>,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::sql::Projection, ew_api::Session), i32> {
-    let dir = reader_dir(project).ok_or(2)?;
-    let (session, opened) = match open_reader(&dir, "sql") {
+    let dir = reader_dir(project, io).ok_or(2)?;
+    let (session, opened) = match open_reader(&dir, "sql", io) {
         Ok(r) => r,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return Err(2);
         }
     };
     let report = session.check_opened(&ew_api::checks::PRE_DELIVERY, CheckMode::Release, &opened);
     let projection = session.sql_projection(Some(&report)).map_err(|e| {
-        error(e);
+        io.error(e);
         2
     })?;
     Ok((projection, session))
@@ -92,8 +97,12 @@ pub(super) fn open_projection_and_session(
 
 /// Opens the project in `dir` for writing with `origin`: refused (exit 2) when it opens read-only or a crashed
 /// session left unsaved changes in its journal, which a new save would hide (doc 05 section 8.3).
-pub(super) fn open_for_writing(dir: &Path, origin: ew_api::Origin) -> Result<ew_api::Session, i32> {
-    open_for_writing_with(dir, origin, ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")))
+pub(super) fn open_for_writing(
+    dir: &Path,
+    origin: ew_api::Origin,
+    io: &mut Io<'_>,
+) -> Result<ew_api::Session, i32> {
+    open_for_writing_with(dir, origin, io.env.store(env!("CARGO_PKG_VERSION")), io)
 }
 
 /// [`open_for_writing`] with the store options given.
@@ -101,8 +110,9 @@ pub(super) fn open_for_writing_with(
     dir: &Path,
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
+    io: &mut Io<'_>,
 ) -> Result<ew_api::Session, i32> {
-    open_for_writing_items(dir, origin, store).map(|(session, _)| session)
+    open_for_writing_items(dir, origin, store, io).map(|(session, _)| session)
 }
 
 /// [`open_for_writing_with`] that also returns the integrity findings of opening (EW-CORE-001 … 019), which the release
@@ -111,8 +121,9 @@ pub(super) fn open_for_writing_items(
     dir: &Path,
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::Session, Vec<ew_api::checks::IntegrityItem>), i32> {
-    open_for_writing_from(dir, origin, store, None)
+    open_for_writing_from(dir, origin, store, None, io)
 }
 
 /// [`open_for_writing_items`] with the session's library tiers: `ew apply`'s, so that a `plc.set_profile` of a
@@ -122,15 +133,16 @@ pub(super) fn open_for_writing_from(
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
     libraries: Option<ew_api::library::LibraryTiers>,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::Session, Vec<ew_api::checks::IntegrityItem>), i32> {
-    let (session, opened) = open_editing_from(dir, origin, store, ew_api::Recovery::Keep, libraries)?;
+    let (session, opened) = open_editing_from(dir, origin, store, ew_api::Recovery::Keep, libraries, io)?;
     if opened.recovery.is_some() {
-        eprintln!("{}", journal_refusal(dir));
+        errln!(io, "{}", journal_refusal(dir));
         session.close();
         return Err(2);
     }
     if let Some(from) = &opened.migrated_from {
-        error(older_format(dir, from));
+        io.error(older_format(dir, from));
         session.close();
         return Err(2);
     }
@@ -148,8 +160,9 @@ pub(super) fn open_editing(
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
     recovery: ew_api::Recovery,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
-    open_editing_from(dir, origin, store, recovery, None)
+    open_editing_from(dir, origin, store, recovery, None, io)
 }
 
 /// [`open_editing`] with the session's library tiers (`None`: the compiled-in libraries only).
@@ -159,18 +172,7 @@ pub(super) fn open_editing_from(
     store: ew_api::StoreOptions,
     recovery: ew_api::Recovery,
     libraries: Option<ew_api::library::LibraryTiers>,
-) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
-    open_editing_to(dir, origin, store, recovery, libraries, &mut std::io::stderr())
-}
-
-/// [`open_editing_from`] with its refusals written to `errors` (`ew recover`'s injected writer).
-pub(super) fn open_editing_to(
-    dir: &Path,
-    origin: ew_api::Origin,
-    store: ew_api::StoreOptions,
-    recovery: ew_api::Recovery,
-    libraries: Option<ew_api::library::LibraryTiers>,
-    errors: &mut dyn std::io::Write,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
     let repair = store.repair;
     let options = ew_api::SessionOptions {
@@ -181,14 +183,14 @@ pub(super) fn open_editing_to(
     let (mut session, opened) = match ew_api::Session::open(dir, store, options, recovery) {
         Ok(r) => r,
         Err(e) => {
-            let _ = writeln!(errors, "{}", error_line(format_args!("{}: {e}", dir.display())));
+            let _ = writeln!(io.err, "{}", error_line(format_args!("{}: {e}", dir.display())));
             return Err(2);
         }
     };
-    warn_unread(&opened, errors);
+    warn_unread(&opened, &mut *io.err);
     // A save with changes stamps the project's edited date: `SOURCE_DATE_EPOCH`'s, the CLI's one date (no wall-clock
     // fallback, so a run gives the same bytes on any day).
-    session.set_today(super::export::session_today());
+    session.set_today(super::export::session_today(io.env));
     match &opened.access {
         ew_api::Access::ReadOnly(ew_api::ReadOnlyReason::Integrity) if repair => {}
         ew_api::Access::ReadOnly(reason) => {
@@ -221,7 +223,7 @@ pub(super) fn open_editing_to(
                 )),
                 _ => read_only_refusal(dir, reason),
             };
-            let _ = writeln!(errors, "{refusal}");
+            let _ = writeln!(io.err, "{refusal}");
             session.close();
             return Err(2);
         }
@@ -229,7 +231,7 @@ pub(super) fn open_editing_to(
     }
     // An image kept but not drawn is named as the window's open banner names it.
     for notice in undrawn_notices(&session) {
-        let _ = writeln!(errors, "{}", notice_line(notice));
+        let _ = writeln!(io.err, "{}", notice_line(notice));
     }
     Ok((session, opened))
 }
@@ -296,14 +298,7 @@ pub(super) fn save_failed(e: &impl std::fmt::Debug) -> String {
     format!("the save failed: {e:?}")
 }
 
-/// Whether `ew` talks to a person: stdin and stdout are both a terminal. A human-only subcommand asks its typed word
-/// only then, and `git setup` its question.
-pub(super) fn is_terminal() -> bool {
-    use std::io::IsTerminal;
-    std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
-}
-
-/// The refusal of a human-only subcommand without a terminal ([`is_terminal`]): `why` says how it is confirmed,
+/// The refusal of a human-only subcommand without a terminal ([`Env::is_terminal`]): `why` says how it is confirmed,
 /// `nothing` what was not done (`changed`, `removed`).
 pub(super) fn human_only(why: &str, nothing: &str) -> String {
     error_line(format_args!(

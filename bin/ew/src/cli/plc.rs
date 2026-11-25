@@ -24,22 +24,22 @@ fn origin(subcommand: &str) -> ew_api::Origin {
 }
 
 /// Saves after an exchange command; `false`, with the error printed, when the save fails.
-fn save(session: &mut ew_api::Session) -> bool {
+fn save(session: &mut ew_api::Session, io: &mut Io<'_>) -> bool {
     match session.save() {
         Ok(r) => {
-            warn_unreleased(r.unstable, &mut std::io::stderr());
+            warn_unreleased(r.unstable, &mut *io.err);
             true
         }
         Err(e) => {
-            error(save_failed(&e));
+            io.error(save_failed(&e));
             false
         }
     }
 }
 
 /// The document date of an exchange: `SOURCE_DATE_EPOCH`, else the model's (`None`).
-fn document_date() -> Result<Option<ew_api::plc_exchange::Date>, String> {
-    Ok(source_date()?.and_then(|d| ew_api::plc_exchange::Date::new(d.year, d.month, d.day).ok()))
+fn document_date(env: &Env) -> Result<Option<ew_api::plc_exchange::Date>, String> {
+    Ok(source_date(env)?.and_then(|d| ew_api::plc_exchange::Date::new(d.year, d.month, d.day).ok()))
 }
 
 impl Leaf for PlcAmlCli {
@@ -69,22 +69,22 @@ impl Leaf for PlcopenCli {
 /// `ew export plc-aml | plc-xlsx | plcopen`: the configuration project as an exchange file in `--out`, written whole
 /// or not at all; an AML file or a tag table is recorded in the project as the base of the next import's merge
 /// (`plc.record_exchange`), which is saved.
-pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
+pub(super) fn run_plc_export(word: &str, a: &PlcExportCli, io: &mut Io<'_>) -> i32 {
     let (format, out) = match a.format_and_out(word) {
         Ok(line) => line,
-        Err(e) => return usage(&e),
+        Err(e) => return usage(&e, io),
     };
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
-    let date = match document_date() {
+    let date = match document_date(io.env) {
         Ok(d) => d,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
-    let mut session = match open_for_writing(&dir, origin("export plc")) {
+    let mut session = match open_for_writing(&dir, origin("export plc"), io) {
         Ok(s) => s,
         Err(code) => return code,
     };
@@ -98,32 +98,32 @@ pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
     let export = match session.plc_export(format, &options) {
         Ok(e) => e,
         Err(e) => {
-            eprintln!("{}", refusal(&e));
+            errln!(io, "{}", refusal(&e));
             session.close();
             return 2;
         }
     };
     if let Err(e) = write_atomically(out, &export.bytes) {
-        error(format_args!("{}: {e}", out.display()));
+        io.error(format_args!("{}: {e}", out.display()));
         session.close();
         return 2;
     }
     if let Some(record) = &export.record {
         if let Err(e) = session.execute(record) {
-            error(format_args!(
+            io.error(format_args!(
                 "the file is written, but the exchange is not recorded: {e}"
             ));
             session.close();
             return 2;
         }
-        if !save(&mut session) {
+        if !save(&mut session, io) {
             session.close();
             return 2;
         }
     }
     session.close();
     for w in &export.warnings {
-        warning(w);
+        io.warning(w);
     }
     let [stations, modules, channels, tags] = export.counts;
     let plural = |n: usize, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
@@ -138,7 +138,8 @@ pub(super) fn run_plc_export(word: &str, a: &PlcExportCli) -> i32 {
             plural(tags, "tag", "tags")
         )
     };
-    println!(
+    outln!(
+        io,
         "wrote {held}{}",
         if export.record.is_some() {
             "; the exchange is recorded in the project"
@@ -252,14 +253,14 @@ impl Leaf for ImportPlcXlsxCli {
 
 /// `ew import plc-aml | plc-xlsx <file>`: the preview of an exchange file against the configuration project, and
 /// with `--accept <choices.json>` its `plc.apply_exchange` committed and the project saved.
-pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let bytes = match read_bounded(&a.file, ew_api::plc_exchange::max_file_bytes()) {
         Ok(b) => b,
         Err(e) => {
-            error(format_args!("{}: {e}", a.file.display()));
+            io.error(format_args!("{}: {e}", a.file.display()));
             return 2;
         }
     };
@@ -271,7 +272,7 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
         {
             Ok(r) => Some(r),
             Err(e) => {
-                error(format_args!(
+                io.error(format_args!(
                     "{}: {e}; the choices are a JSON object from a change's key or a parked object's ID to \
                      `ours`, `theirs` or `create`",
                     path.display()
@@ -280,24 +281,24 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
             }
         },
     };
-    let date = match document_date() {
+    let date = match document_date(io.env) {
         Ok(d) => d,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     let apply = resolutions.is_some();
     let mut session = if apply {
-        match open_for_writing(&dir, origin("import plc")) {
+        match open_for_writing(&dir, origin("import plc"), io) {
             Ok(s) => s,
             Err(code) => return code,
         }
     } else {
-        match open_reader(&dir, "import plc") {
+        match open_reader(&dir, "import plc", io) {
             Ok((s, _)) => s,
             Err(e) => {
-                error(format_args!("{}: {e}", dir.display()));
+                io.error(format_args!("{}: {e}", dir.display()));
                 return 2;
             }
         }
@@ -313,7 +314,7 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
     let import = match session.plc_import(&bytes, &options) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("{}", refusal(&e));
+            errln!(io, "{}", refusal(&e));
             session.close();
             return 2;
         }
@@ -323,11 +324,11 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
             .preview(&import.apply)
             .and_then(|preview| session.commit(preview));
         if let Err(e) = committed {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
-        if !save(&mut session) {
+        if !save(&mut session, io) {
             session.close();
             return 2;
         }
@@ -336,9 +337,9 @@ pub(super) fn run_plc_import(schema: &str, a: &PlcImportCli) -> i32 {
     let refusal = (!apply).then(|| session.plc_import_refusal(&import)).flatten();
     session.close();
     if a.json {
-        print!("{}", results::to_text(&import.result(schema, apply)));
+        out!(io, "{}", results::to_text(&import.result(schema, apply)));
     } else {
-        print!("{}", import_text(&import, apply, refusal.as_ref()));
+        out!(io, "{}", import_text(&import, apply, refusal.as_ref()));
     }
     0
 }
@@ -349,18 +350,18 @@ impl Leaf for InstrumentListArgs {
 
 /// `ew import instrument-list <file>`: the rows of an instrument list against the configuration project, and with
 /// `--apply` its `plc.apply_instrument_list` committed and the project saved.
-pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+pub(super) fn run_instrument_list(a: &InstrumentListArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let bytes = match read_bounded(&a.file, ew_api::catalog::table_limits().max_input_bytes) {
         Ok(b) => b,
         Err(e) => {
-            error(format_args!("{}: {e}", a.file.display()));
+            io.error(format_args!("{}: {e}", a.file.display()));
             return 2;
         }
     };
-    let mut session = match open_for_writing(&dir, origin("import instrument-list")) {
+    let mut session = match open_for_writing(&dir, origin("import instrument-list"), io) {
         Ok(s) => s,
         Err(code) => return code,
     };
@@ -371,7 +372,7 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
     let preview = match preview {
         Ok(p) => p,
         Err(line) => {
-            eprintln!("{line}");
+            errln!(io, "{line}");
             session.close();
             return 2;
         }
@@ -379,20 +380,21 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
     let notices = preview.outcome().notices.clone();
     if a.apply {
         if let Err(e) = session.commit(preview) {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
-        if !save(&mut session) {
+        if !save(&mut session, io) {
             session.close();
             return 2;
         }
     }
     session.close();
     for n in &notices {
-        println!("{n}");
+        outln!(io, "{n}");
     }
-    println!(
+    outln!(
+        io,
         "{}",
         if a.apply {
             "applied and saved"
@@ -415,8 +417,8 @@ impl Leaf for PlcStatusArgs {
 
 /// `ew plc status [<file>]`: the last exchange of the configuration project, what changed in the project since
 /// (EW-PLC-016), and whether `<file>` is the file last exchanged. Exit 0 with the status, 2 on usage and open errors.
-pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+pub(super) fn run_plc_status(a: &PlcStatusArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = reader_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let file = match &a.file {
@@ -424,15 +426,15 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
         Some(path) => match read_bounded(path, ew_api::plc_exchange::max_file_bytes()) {
             Ok(b) => Some(b),
             Err(e) => {
-                error(format_args!("{}: {e}", path.display()));
+                io.error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
     };
-    let session = match open_reader(&dir, "plc status") {
+    let session = match open_reader(&dir, "plc status", io) {
         Ok((s, _)) => s,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -441,7 +443,7 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
     let status = match status {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("{}", refusal(&e));
+            errln!(io, "{}", refusal(&e));
             return 2;
         }
     };
@@ -467,12 +469,13 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
                 .collect(),
             same_file: status.same_file,
         };
-        print!("{}", results::to_text(&result));
+        out!(io, "{}", results::to_text(&result));
         return 0;
     }
     match &status.stamp {
-        None => println!("{}: not exchanged yet", status.config),
-        Some(s) => println!(
+        None => outln!(io, "{}: not exchanged yet", status.config),
+        Some(s) => outln!(
+            io,
             "{}: last exchange: {}{} {} of {}",
             status.config,
             match s.format {
@@ -491,21 +494,22 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
     }
     if status.stamp.is_some() {
         if status.drift.is_empty() {
-            println!("the project is as exchanged");
+            outln!(io, "the project is as exchanged");
         }
         for (object, name, fields) in &status.drift {
             let words = object_text(object);
             if fields.is_empty() {
-                println!("changed since: {words} {name} (added or gone)");
+                outln!(io, "changed since: {words} {name} (added or gone)");
             } else {
                 let fields: Vec<String> = fields.iter().map(|f| field_text(object, f).to_string()).collect();
-                println!("changed since: {words} {name}: {}", fields.join(", "));
+                outln!(io, "changed since: {words} {name}: {}", fields.join(", "));
             }
         }
     }
     match status.same_file {
-        Some(true) => println!("the file is the one last exchanged"),
-        Some(false) => println!(
+        Some(true) => outln!(io, "the file is the one last exchanged"),
+        Some(false) => outln!(
+            io,
             "the file is not the one last exchanged: `ew import plc-aml` (or `plc-xlsx`) previews what it changes"
         ),
         None => {}

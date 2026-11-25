@@ -22,27 +22,27 @@ impl Leaf for PrintCli {
 }
 
 /// `ew print`: the print set of the selection, written to `--out` or handed to the adapter.
-pub(super) fn run_print(a: &PrintCli) -> i32 {
+pub(super) fn run_print(a: &PrintCli, io: &mut Io<'_>) -> i32 {
     use ew_api::output::print::{Fit, PrintOptions};
     let (pages, via) = match a.selection().and_then(|pages| Ok((pages, a.adapter()?))) {
         Ok(line) => line,
-        Err(e) => return usage(&e),
+        Err(e) => return usage(&e, io),
     };
     let paper = a.paper.unwrap_or_default();
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref(), io) else {
         return 2;
     };
-    let date = match source_date() {
+    let date = match source_date(io.env) {
         Ok(d) => d,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
-    let (session, _) = match open_reader(&dir, "print") {
+    let (session, _) = match open_reader(&dir, "print", io) {
         Ok(r) => r,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -59,7 +59,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let set = match session.print_set(&options) {
         Ok(s) => s,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
@@ -67,7 +67,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let scale = (0..set.pages.len()).map(|i| set.percent(i)).min().unwrap_or(100);
     let notices: Vec<String> = set.notices.iter().map(ToString::to_string).collect();
     for n in &notices {
-        notice(n);
+        io.notice(n);
     }
     let result = |adapter: &str, out: Option<String>| results::PrintResult {
         schema: results::PrintResult::SCHEMA.to_owned(),
@@ -81,11 +81,12 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     };
     if let Some(out) = &a.out {
         if let Err(e) = write_atomically(out, &set.pdf) {
-            error(format_args!("{}: {e}", out.display()));
+            io.error(format_args!("{}: {e}", out.display()));
             return 2;
         }
         if a.json {
-            print!(
+            out!(
+                io,
                 "{}",
                 results::to_text(&result("file", Some(out.display().to_string())))
             );
@@ -118,7 +119,7 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
     let outcome = match adapter.print(&job) {
         Ok(o) => o,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
@@ -127,19 +128,21 @@ pub(super) fn run_print(a: &PrintCli) -> i32 {
         ew_print::PrintOutcome::Spooled { .. } => None,
     };
     if a.json {
-        print!("{}", results::to_text(&result(adapter.name(), file)));
+        out!(io, "{}", results::to_text(&result(adapter.name(), file)));
     } else {
         match &outcome {
             ew_print::PrintOutcome::Spooled { printer, message } => {
-                println!(
+                outln!(
+                    io,
                     "{}",
                     spooled_line(folios.len(), printer.as_deref(), adapter.name())
                 );
                 if !message.is_empty() {
-                    println!("{message}");
+                    outln!(io, "{message}");
                 }
             }
-            ew_print::PrintOutcome::Opened { file } => println!(
+            ew_print::PrintOutcome::Opened { file } => outln!(
+                io,
                 "{} pages opened in the PDF viewer from {}; print them from there",
                 folios.len(),
                 file.display()

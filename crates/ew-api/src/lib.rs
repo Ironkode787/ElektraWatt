@@ -257,7 +257,7 @@ pub use ew_sqlview as sql;
 pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
 pub use ew_store::{
     Access, Clock, OpenError, OpenMode, OpenReport, OsVfs, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason,
-    RecoverError, SaveError, SaveStep, StoreOptions, SystemClock, Vfs,
+    RecoverError, SaveError, SaveStep, StoreOptions, SystemClock, Vfs, state_dir_in,
 };
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport

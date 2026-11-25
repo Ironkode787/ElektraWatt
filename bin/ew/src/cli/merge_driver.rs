@@ -20,6 +20,7 @@ use ew_api::{
     newer_than_reader,
 };
 
+use super::io::{Io, errln};
 use super::tree::{Leaf, MergeDriverCli};
 use crate::catalogue::{Exit, exit};
 
@@ -53,11 +54,11 @@ type Merge<'m> = &'m dyn Fn(&str, MergeSide<'_>, MergeSide<'_>, MergeSide<'_>) -
 type Project<'p> = &'p dyn Fn(&str) -> (String, String);
 
 /// Runs `ew merge-driver` in the current directory, git's working tree.
-pub(super) fn run_merge_driver(a: &MergeDriverCli) -> i32 {
-    let worktree = match std::env::current_dir() {
+pub(super) fn run_merge_driver(a: &MergeDriverCli, io: &mut Io<'_>) -> i32 {
+    let worktree = match io.env.cwd() {
         Ok(dir) => dir,
         Err(e) => {
-            eprintln!("ew merge-driver: the current directory cannot be read: {e}");
+            errln!(io, "ew merge-driver: the current directory cannot be read: {e}");
             return INTERNAL;
         }
     };
@@ -67,14 +68,25 @@ pub(super) fn run_merge_driver(a: &MergeDriverCli) -> i32 {
         &|path| project_path(&worktree, path, &limits),
         &limits,
         &|path, base, ours, theirs| merge_file(path, base, ours, theirs, &limits, &MIGRATIONS),
+        io,
     )
 }
 
 /// The driver over `merge` under `limits`, `project` placing `%P` in its project. One panic guard covers everything
 /// from the reads to the write: a panic anywhere there exits 129 with `%A` as it was (ADR-0012 amendment 2).
-fn drive(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
-    catch_unwind(AssertUnwindSafe(|| merge_and_write(a, project, limits, merge))).unwrap_or_else(|_| {
-        eprintln!(
+fn drive(
+    a: &MergeDriverCli,
+    project: Project<'_>,
+    limits: &Limits,
+    merge: Merge<'_>,
+    io: &mut Io<'_>,
+) -> i32 {
+    catch_unwind(AssertUnwindSafe(|| {
+        merge_and_write(a, project, limits, merge, io)
+    }))
+    .unwrap_or_else(|_| {
+        errln!(
+            io,
             "ew merge-driver: the merge of {} failed inside ElektraWatt; it is left as it was",
             a.repo_path()
         );
@@ -83,7 +95,13 @@ fn drive(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, merge: Merge
 }
 
 /// [`drive`] without its guard.
-fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
+fn merge_and_write(
+    a: &MergeDriverCli,
+    project: Project<'_>,
+    limits: &Limits,
+    merge: Merge<'_>,
+    io: &mut Io<'_>,
+) -> i32 {
     let repo = a.repo_path();
     let read = |p: &Path| {
         super::read_bounded(p, limits.max_file_bytes)
@@ -92,7 +110,7 @@ fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, me
     let (base, ours, theirs) = match (read(&a.base), read(&a.ours), read(&a.theirs)) {
         (Ok(o), Ok(a), Ok(b)) => (o, a, b),
         (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
-            eprintln!("ew merge-driver: {e}; {} is left as it was", repo);
+            errln!(io, "ew merge-driver: {e}; {} is left as it was", repo);
             return INTERNAL;
         }
     };
@@ -103,7 +121,8 @@ fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, me
         .iter()
         .any(|b| b.len() as u64 > limits.max_file_bytes)
     {
-        eprintln!(
+        errln!(
+            io,
             "ew merge-driver: {} is larger than {} MiB on one side; it is left as ours, to merge by hand",
             repo,
             limits.max_file_bytes >> 20
@@ -122,7 +141,8 @@ fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, me
         vec![format.clone()]
     };
     if let Some(newer) = formats.iter().find(|f| newer_than_reader(f)) {
-        eprintln!(
+        errln!(
+            io,
             "merge-driver: {}: written by a newer ElektraWatt (format {newer}; this one reads {FORMAT}); left as \
              ours: merge it with that version",
             repo
@@ -132,7 +152,8 @@ fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, me
     // Theirs' manifest is not in the working tree while the drivers run, so a record file is
     // judged by its own lines: one whose `$v` is above this reader's leaves the file as ours.
     if holds_newer_records(&path, [&base, &ours, &theirs], limits) {
-        eprintln!(
+        errln!(
+            io,
             "merge-driver: {}: holds records this ElektraWatt cannot read (this one reads format {FORMAT}); left as \
              ours: merge it with a newer version",
             repo
@@ -149,7 +170,8 @@ fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, me
         MergeSide::current(&theirs),
     );
     if let Err(e) = super::write_atomically(&a.ours, &merged.bytes) {
-        eprintln!(
+        errln!(
+            io,
             "ew merge-driver: the merged {} cannot be written to {}: {e}; it is left as it was",
             repo,
             a.ours.display()
@@ -190,6 +212,15 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
+    use crate::cli::io::{Env, captured};
+
+    /// [`super::drive`] with its messages written to a buffer.
+    fn drive(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, merge: Merge<'_>) -> i32 {
+        captured("", &Env::new(PathBuf::new()), |io| {
+            super::drive(a, project, limits, merge, io)
+        })
+        .0
+    }
 
     /// A fresh directory with a project `p.ew` (its manifest of format `format`) and the three sides as git's
     /// temporary files.

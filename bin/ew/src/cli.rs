@@ -25,6 +25,7 @@ mod dxf;
 mod eplan;
 mod export;
 mod import;
+pub(crate) mod io;
 mod layout;
 mod library;
 mod merge_driver;
@@ -56,6 +57,8 @@ use sql::*;
 use tree::*;
 
 use crate::catalogue::{Exit, HUMAN_EXITS, OK, ROW_EXPORT_ERRORS, USAGE_ETC, exit};
+pub use io::{Env, Io};
+use io::{errln, out, outln};
 
 /// What `ew revision` does.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -403,111 +406,109 @@ pub fn entries() -> Vec<crate::catalogue::Entry> {
 
 /// Runs the subcommand of a parsed line and returns its exit code (0 success, 1 model check failed or `--strict`
 /// violated, 2 usage, I/O and import errors).
-pub fn run(cmd: Top) -> i32 {
+pub fn run(cmd: Top, io: &mut Io<'_>) -> i32 {
     match cmd {
-        Top::Symbol(a) => symbol::run(a),
+        Top::Symbol(a) => symbol::run(a, io),
         Top::Import(i) => match i {
-            Import::Qet(a) => run_import_qet(&a),
-            Import::Parts(a) => run_import_parts(&a),
-            Import::Csv(a) => run_import_csv(&a),
-            Import::Table(a) => run_import_table(&a),
-            Import::Dxf(a) => dxf::run_import_dxf(&a),
-            Import::Pdf(a) => dxf::run_import_pdf(&a),
-            Import::Dwg(a) => dxf::run_import_dwg(&a),
-            Import::PlcAml(a) => run_plc_import(results::ImportPlcResult::AML, &a.plc),
-            Import::PlcXlsx(a) => run_plc_import(results::ImportPlcResult::XLSX, &a.plc),
-            Import::InstrumentList(a) => run_instrument_list(&a),
-            Import::Edz(a) | Import::PartsXml(a) => eplan::run_import_eplan_parts(&a),
-            Import::EplanReport(a) => eplan::run_import_eplan_report(&a),
+            Import::Qet(a) => run_import_qet(&a, io),
+            Import::Parts(a) => run_import_parts(&a, io),
+            Import::Csv(a) => run_import_csv(&a, io),
+            Import::Table(a) => run_import_table(&a, io),
+            Import::Dxf(a) => dxf::run_import_dxf(&a, io),
+            Import::Pdf(a) => dxf::run_import_pdf(&a, io),
+            Import::Dwg(a) => dxf::run_import_dwg(&a, io),
+            Import::PlcAml(a) => run_plc_import(results::ImportPlcResult::AML, &a.plc, io),
+            Import::PlcXlsx(a) => run_plc_import(results::ImportPlcResult::XLSX, &a.plc, io),
+            Import::InstrumentList(a) => run_instrument_list(&a, io),
+            Import::Edz(a) | Import::PartsXml(a) => eplan::run_import_eplan_parts(&a, io),
+            Import::EplanReport(a) => eplan::run_import_eplan_report(&a, io),
         },
-        Top::Check(a) => run_check(&a),
+        Top::Check(a) => run_check(&a, io),
         Top::Sql(a) => match &a.sub {
-            Some(SqlSub::Dump(d)) => run_sql_dump(d),
+            Some(SqlSub::Dump(d)) => run_sql_dump(d, io),
             Some(SqlSub::Schema(_)) => {
-                print!("{}", ew_api::sql::schema::schema_text());
+                out!(io, "{}", ew_api::sql::schema::schema_text());
                 0
             }
-            None => run_sql(&a),
+            None => run_sql(&a, io),
         },
         Top::Export(e) => match e {
-            ExportCli::Cables(a) => run_rows(a.rows.export("cables", ExportKind::Cables)),
-            ExportCli::Bom(a) => run_rows(a.export()),
-            ExportCli::Wires(a) => run_rows(a.rows.export("wires", ExportKind::Wires)),
-            ExportCli::Terminals(a) => run_rows(a.export()),
-            ExportCli::Report(a) => run_rows(a.export()),
-            ExportCli::Table(a) => run_export_nav_table(&a),
-            ExportCli::Pdf(a) => run_pages(a.pages.export(PageFormat::Pdf)),
-            ExportCli::Svg(a) => run_pages(a.pages.export(PageFormat::Svg)),
-            ExportCli::Dxf(a) => run_pages(a.export()),
-            ExportCli::Ewz(a) => run_export_ewz(&a),
-            ExportCli::Png(a) => run_pages(a.export()),
-            ExportCli::PlcAml(a) => run_plc_export("plc-aml", &a.plc),
-            ExportCli::PlcXlsx(a) => run_plc_export("plc-xlsx", &a.plc),
-            ExportCli::Plcopen(a) => run_plc_export("plcopen", &a.plc),
+            ExportCli::Cables(a) => run_rows(a.rows.export("cables", ExportKind::Cables), io),
+            ExportCli::Bom(a) => run_rows(a.export(), io),
+            ExportCli::Wires(a) => run_rows(a.rows.export("wires", ExportKind::Wires), io),
+            ExportCli::Terminals(a) => run_rows(a.export(), io),
+            ExportCli::Report(a) => run_rows(a.export(), io),
+            ExportCli::Table(a) => run_export_nav_table(&a, io),
+            ExportCli::Pdf(a) => run_pages(a.pages.export(PageFormat::Pdf), io),
+            ExportCli::Svg(a) => run_pages(a.pages.export(PageFormat::Svg), io),
+            ExportCli::Dxf(a) => run_pages(a.export(), io),
+            ExportCli::Ewz(a) => run_export_ewz(&a, io),
+            ExportCli::Png(a) => run_pages(a.export(), io),
+            ExportCli::PlcAml(a) => run_plc_export("plc-aml", &a.plc, io),
+            ExportCli::PlcXlsx(a) => run_plc_export("plc-xlsx", &a.plc, io),
+            ExportCli::Plcopen(a) => run_plc_export("plcopen", &a.plc, io),
         },
-        Top::Plc(PlcCli::Status(a)) => run_plc_status(&a),
-        Top::Extract(a) => run_extract(&a),
-        Top::Print(a) => run_print(&a),
-        Top::Render(a) => run_render(&a),
-        Top::Apply(a) => run_apply(&a),
-        Top::Fmt(a) => project_files::run_fmt(&a),
-        Top::Recover(a) => project_files::run_recover(&a),
-        Top::Upgrade(a) => project_files::run_upgrade(&a),
-        Top::UpdateCopies(a) => run_update_copies(&a),
-        Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => run_checks_set(&a),
-        Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => run_assets_purge(&a),
-        Top::Revision(r) => run_revision(&match r {
-            RevisionCli::Approve(a) => a.revision(),
-            RevisionCli::Release(a) => a.revision(),
-            RevisionCli::Withdraw(a) => a.revision(),
-        }),
-        Top::VerifyDerived(a) => run_verify_derived(&a),
-        Top::VerifyMigration(a) => run_verify_migration(&a),
-        Top::Query(a) => query::run_query(&a),
-        Top::Queries(a) => query::run_queries(a.json),
-        Top::Layout(a) => layout::run_layout(&a),
-        Top::Route(a) => route::run_route(&a),
-        Top::Lib(a) => run_lib(&a),
-        Top::Commands(a) => run_commands(a.json),
-        Top::Schema(a) => run_schema(&a.name),
-        Top::Merge(MergeCli::Resolve(a)) => merge_resolve::run_merge_resolve(&a),
-        Top::MergeDriver(a) => merge_driver::run_merge_driver(&a),
-        Top::Diff(a) => diff::run_diff(&a),
-        Top::Git(GitCli::Setup(a)) => collab::run_git_setup(&a),
+        Top::Plc(PlcCli::Status(a)) => run_plc_status(&a, io),
+        Top::Extract(a) => run_extract(&a, io),
+        Top::Print(a) => run_print(&a, io),
+        Top::Render(a) => run_render(&a, io),
+        Top::Apply(a) => run_apply(&a, io),
+        Top::Fmt(a) => project_files::run_fmt(&a, io),
+        Top::Recover(a) => project_files::run_recover(&a, io),
+        Top::Upgrade(a) => project_files::run_upgrade(&a, io),
+        Top::UpdateCopies(a) => run_update_copies(&a, io),
+        Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => run_checks_set(&a, io),
+        Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => run_assets_purge(&a, io),
+        Top::Revision(r) => run_revision(
+            &match r {
+                RevisionCli::Approve(a) => a.revision(),
+                RevisionCli::Release(a) => a.revision(),
+                RevisionCli::Withdraw(a) => a.revision(),
+            },
+            io,
+        ),
+        Top::VerifyDerived(a) => run_verify_derived(&a, io),
+        Top::VerifyMigration(a) => run_verify_migration(&a, io),
+        Top::Query(a) => query::run_query(&a, io),
+        Top::Queries(a) => query::run_queries(a.json, io),
+        Top::Layout(a) => layout::run_layout(&a, io),
+        Top::Route(a) => route::run_route(&a, io),
+        Top::Lib(a) => run_lib(&a, io),
+        Top::Commands(a) => run_commands(a.json, io),
+        Top::Schema(a) => run_schema(&a.name, io),
+        Top::Merge(MergeCli::Resolve(a)) => merge_resolve::run_merge_resolve(&a, io),
+        Top::MergeDriver(a) => merge_driver::run_merge_driver(&a, io),
+        Top::Diff(a) => diff::run_diff(&a, io),
+        Top::Git(GitCli::Setup(a)) => collab::run_git_setup(&a, io),
     }
 }
 
 /// Runs a row export (`export cables|bom|wires|terminals|report`) of its checked line.
-fn run_rows(line: Result<ExportArgs, clap::Error>) -> i32 {
+fn run_rows(line: Result<ExportArgs, clap::Error>, io: &mut Io<'_>) -> i32 {
     match line {
-        Ok(a) => run_export(&a),
-        Err(e) => usage(&e),
+        Ok(a) => run_export(&a, io),
+        Err(e) => usage(&e, io),
     }
 }
 
 /// Runs a page export (`export pdf|svg|png|dxf`) of its checked line.
-fn run_pages(line: Result<ExportPagesArgs, clap::Error>) -> i32 {
+fn run_pages(line: Result<ExportPagesArgs, clap::Error>, io: &mut Io<'_>) -> i32 {
     match line {
-        Ok(a) => run_export_pages(&a),
-        Err(e) => usage(&e),
+        Ok(a) => run_export_pages(&a, io),
+        Err(e) => usage(&e, io),
     }
 }
 
 /// A debug build panics here when `EW_DEBUG_PANIC` names `site` (`sql`: `ew sql`'s statement; `sql-write`: the writing
 /// of its result; `table-read`: `ew import table`'s read), inside the panic guard it tests (the guard at its call site); a release build
 /// compiles none of it.
-// The program boundary of a debug build's test fault, read at the site it fails; a release build has no such read.
-#[allow(
-    clippy::disallowed_methods,
-    reason = "a debug build's test fault, read where it fails"
-)]
-fn debug_panic(site: &str) {
+fn debug_panic(site: &str, env: &Env) {
     #[cfg(debug_assertions)]
-    if std::env::var_os("EW_DEBUG_PANIC").is_some_and(|v| v == site) {
+    if env.var("EW_DEBUG_PANIC").is_some_and(|v| v == site) {
         panic!("forced panic (EW_DEBUG_PANIC={site})");
     }
     #[cfg(not(debug_assertions))]
-    let _ = site;
+    let _ = (site, env);
 }
 
 /// Reads at most `limit + 1` bytes of `path`, so a file over the reader's limit is refused by the reader's own text
@@ -549,21 +550,6 @@ fn warning_line(text: impl std::fmt::Display) -> String {
 /// `notice: ` and `text`.
 fn notice_line(text: impl std::fmt::Display) -> String {
     format!("notice: {text}")
-}
-
-/// Prints [`error_line`] on stderr.
-fn error(text: impl std::fmt::Display) {
-    eprintln!("{}", error_line(text));
-}
-
-/// Prints [`warning_line`] on stderr.
-fn warning(text: impl std::fmt::Display) {
-    eprintln!("{}", warning_line(text));
-}
-
-/// Prints [`notice_line`] on stderr.
-fn notice(text: impl std::fmt::Display) {
-    eprintln!("{}", notice_line(text));
 }
 
 /// `n` with the singular or plural noun: `1 file`, `2 files`.

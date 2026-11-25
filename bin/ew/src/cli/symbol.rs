@@ -6,7 +6,7 @@
 use ew_api::symbols::{self, SymbolDraft};
 use std::path::PathBuf;
 
-use super::error;
+use super::io::{Env, Io, outln};
 use super::tree::{Leaf, group};
 use crate::catalogue::{Exit, OK, USAGE_ETC, exit};
 
@@ -81,20 +81,24 @@ impl Leaf for PublishArgs {
     const EXITS: &'static [Exit] = &[OK, exit(1, "invalid draft"), USAGE_ETC];
 }
 
-pub(super) fn run(args: SymbolArgs) -> i32 {
-    match execute(args) {
+pub(super) fn run(args: SymbolArgs, io: &mut Io<'_>) -> i32 {
+    match execute(args, io.env) {
         Ok((value, code)) => {
-            println!("{}", serde_json::to_string_pretty(&value).expect("JSON value"));
+            outln!(
+                io,
+                "{}",
+                serde_json::to_string_pretty(&value).expect("JSON value")
+            );
             code
         }
         Err(e) => {
-            error(e);
+            io.error(e);
             2
         }
     }
 }
 
-fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::error::Error>> {
+fn execute(args: SymbolArgs, env: &Env) -> Result<(serde_json::Value, i32), Box<dyn std::error::Error>> {
     use serde_json::json;
     Ok(match args {
         SymbolArgs::Template(TemplateArgs { key, name }) => {
@@ -123,7 +127,8 @@ fn execute(args: SymbolArgs) -> Result<(serde_json::Value, i32), Box<dyn std::er
                     1,
                 ));
             }
-            let mut tiers = ew_api::library::LibraryTiers::for_user(vec![], vec![])
+            let mut tiers = env
+                .tiers(vec![], vec![])
                 .ok_or("No user library directory is configured")?;
             tiers.company.push(library.clone());
             let mut registry = ew_api::library::Registry::open(&tiers)?;

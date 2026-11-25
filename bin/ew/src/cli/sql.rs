@@ -30,26 +30,26 @@ impl Leaf for SqlSchemaCli {
 }
 
 /// `ew sql <select>`: the statement over the projection, its result as CSV, JSON or a workbook.
-pub(super) fn run_sql(a: &SqlCli) -> i32 {
+pub(super) fn run_sql(a: &SqlCli, io: &mut Io<'_>) -> i32 {
     let line = a.project_and_query().and_then(|(project, query)| {
         let format = a.result_format()?;
         Ok((project, query, format, a.csv_options(format)?))
     });
     let (project, query, format, csv) = match line {
         Ok(line) => line,
-        Err(e) => return usage(&e),
+        Err(e) => return usage(&e, io),
     };
     let sql = match &query {
         SqlSource::Text(t) => t.clone(),
         SqlSource::File(f) => match std::fs::read_to_string(f) {
             Ok(t) => t,
             Err(e) => {
-                error(format_args!("{}: {e}", f.display()));
+                io.error(format_args!("{}: {e}", f.display()));
                 return 2;
             }
         },
     };
-    let (projection, session) = match open_projection_and_session(project.as_ref()) {
+    let (projection, session) = match open_projection_and_session(project.as_ref(), io) {
         Ok(p) => p,
         Err(code) => return code,
     };
@@ -60,9 +60,9 @@ pub(super) fn run_sql(a: &SqlCli) -> i32 {
     // The result's writing, which a hostile SELECT drives as much as the statement, runs inside the guard
     // too (the workbook's in `write_sql_xlsx`).
     let (set, text) = match guarded_query(|| {
-        debug_panic("sql");
+        debug_panic("sql", io.env);
         let set = projection.reader(profile).and_then(|r| r.query(&sql))?;
-        debug_panic("sql-write");
+        debug_panic("sql-write", io.env);
         let text = match format {
             SqlFormat::Csv if csv.preset == Preset::Ew => Some(ew_api::output::restyle(
                 &set.to_csv(),
@@ -77,24 +77,24 @@ pub(super) fn run_sql(a: &SqlCli) -> i32 {
     }) {
         Ok(s) => s,
         Err(line) => {
-            eprintln!("{line}");
+            errln!(io, "{line}");
             return 2;
         }
     };
     let Some(text) = text else {
-        return write_sql_xlsx(a.out.as_ref(), &session, &set);
+        return write_sql_xlsx(a.out.as_ref(), &session, &set, io);
     };
     match &a.out {
         Some(path) => match write_report(path, &text) {
-            Ok(()) => println!("result written to {}", path.display()),
+            Ok(()) => outln!(io, "result written to {}", path.display()),
             Err(e) => {
-                error(format_args!("{}: {e}", path.display()));
+                io.error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
         None => {
-            print!("{text}");
-            eprintln!("{} rows", set.rows.len());
+            out!(io, "{text}");
+            errln!(io, "{} rows", set.rows.len());
         }
     }
     0
@@ -119,39 +119,40 @@ pub(super) fn write_sql_xlsx(
     out: Option<&PathBuf>,
     session: &ew_api::Session,
     set: &ew_api::sql::ResultSet,
+    io: &mut Io<'_>,
 ) -> i32 {
     let Some(path) = out else {
-        error(XLSX_NEEDS_OUT);
+        io.error(XLSX_NEEDS_OUT);
         return 2;
     };
-    let date = match source_date() {
+    let date = match source_date(io.env) {
         Ok(d) => d,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     let meta = session.workbook_meta(date);
     // The workbook is written from the result inside the statement's guard.
     let bytes = match guarded_query(|| {
-        debug_panic("sql-write");
+        debug_panic("sql-write", io.env);
         Ok(ew_api::output::xlsx(&[ew_api::output::sql_table(set)], &meta))
     }) {
         Ok(Ok(b)) => b,
         Ok(Err(e)) => {
-            error(e);
+            io.error(e);
             return 2;
         }
         Err(line) => {
-            eprintln!("{line}");
+            errln!(io, "{line}");
             return 2;
         }
     };
     if let Err(e) = write_atomically(path, &bytes) {
-        error(format_args!("{}: {e}", path.display()));
+        io.error(format_args!("{}: {e}", path.display()));
         return 2;
     }
-    println!("result written to {}", path.display());
+    outln!(io, "result written to {}", path.display());
     0
 }
 
@@ -167,18 +168,19 @@ impl Leaf for SqlDumpCli {
     }
 }
 
-pub(super) fn run_sql_dump(a: &SqlDumpCli) -> i32 {
+pub(super) fn run_sql_dump(a: &SqlDumpCli, io: &mut Io<'_>) -> i32 {
     let (project, out) = match a.project_and_out() {
         Ok(line) => line,
-        Err(e) => return usage(&e),
+        Err(e) => return usage(&e, io),
     };
-    let projection = match open_projection(project.as_ref()) {
+    let projection = match open_projection(project.as_ref(), io) {
         Ok(p) => p,
         Err(code) => return code,
     };
     match std::fs::write(&out, projection.image()) {
         Ok(()) if a.json => {
-            print!(
+            out!(
+                io,
                 "{}",
                 results::to_text(&results::SqlDumpResult {
                     schema: results::SqlDumpResult::SCHEMA.to_owned(),
@@ -188,11 +190,11 @@ pub(super) fn run_sql_dump(a: &SqlDumpCli) -> i32 {
             0
         }
         Ok(()) => {
-            println!("projection written to {}", out.display());
+            outln!(io, "projection written to {}", out.display());
             0
         }
         Err(e) => {
-            error(format_args!("{}: {e}", out.display()));
+            io.error(format_args!("{}: {e}", out.display()));
             2
         }
     }
@@ -244,7 +246,11 @@ mod tests {
             out
         };
         let before = files(&dir);
-        let (projection, session) = open_projection_and_session(Some(&dir)).unwrap();
+        let env = crate::cli::io::Env::new(dir.clone());
+        let (projection, session) =
+            crate::cli::io::captured("", &env, |io| open_projection_and_session(Some(&dir), io))
+                .0
+                .unwrap();
         let model = session.world().model.clone();
         let r: Result<(), String> = guarded_query(|| {
             let set = projection

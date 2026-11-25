@@ -3,6 +3,7 @@
 
 //! The four library tiers and where they live (doc 07 §2.1; doc 05 §1, §13.1).
 
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 /// A library tier (doc 07 §2.1), in search order.
@@ -89,21 +90,25 @@ impl LibraryTiers {
     }
 }
 
-/// An environment variable as a path, `None` when unset or empty.
+/// A variable of the process's environment.
 #[allow(
     clippy::disallowed_methods,
     reason = "program boundary: the data and cache directories are read once when a front end builds its tiers"
 )]
-fn env_path(name: &str) -> Option<PathBuf> {
+fn process_var(name: &str) -> Option<OsString> {
     std::env::var_os(name)
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
 }
 
 /// The OS data directory of doc 05 §1 (user libraries and community packs): `EW_DATA_DIR` when set, else
 /// `%LOCALAPPDATA%\ElektraWatt\data` on Windows and `$XDG_DATA_HOME/elektrawatt` (else `~/.local/share/elektrawatt`)
 /// elsewhere; `None` when the environment names none.
 pub fn default_data_dir() -> Option<PathBuf> {
+    data_dir_in(&process_var)
+}
+
+/// [`default_data_dir`] of the environment whose variables `var` gives (`ew`'s run on a given environment).
+pub fn data_dir_in(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
+    let env_path = |n: &str| var(n).filter(|v| !v.is_empty()).map(PathBuf::from);
     if let Some(dir) = env_path("EW_DATA_DIR") {
         return Some(dir);
     }
@@ -120,6 +125,12 @@ pub fn default_data_dir() -> Option<PathBuf> {
 /// `%LOCALAPPDATA%\ElektraWatt\cache` on Windows and `$XDG_CACHE_HOME/elektrawatt` (else `~/.cache/elektrawatt`)
 /// elsewhere; `None` when the environment names none.
 pub fn default_cache_dir() -> Option<PathBuf> {
+    cache_dir_in(&process_var)
+}
+
+/// [`default_cache_dir`] of the environment whose variables `var` gives (`ew`'s run on a given environment).
+pub fn cache_dir_in(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
+    let env_path = |n: &str| var(n).filter(|v| !v.is_empty()).map(PathBuf::from);
     if let Some(dir) = env_path("EW_CACHE_DIR") {
         return Some(dir);
     }

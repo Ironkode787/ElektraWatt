@@ -70,6 +70,6 @@ pub use store::{
     Access, BASE_MEMBER, BrokenLine, Changes, Generation, GenerationError, Incoming, LockState, OpenError,
     OpenMode, OpenReport, Opened, PurgeError, PurgeFile, PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT,
     RENAME_BACKOFF, ReadOnlyReason, RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store,
-    StoreOptions, default_state_dir,
+    StoreOptions, default_state_dir, state_dir_in,
 };
 pub use vfs::{OsVfs, Stat, Vfs, is_transient, join};

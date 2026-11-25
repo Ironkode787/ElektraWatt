@@ -119,7 +119,7 @@ fn the_headless_tutorials_commands_print_what_its_page_shows() {
         let words = words(command);
         match words[0].as_str() {
             "ew" => {
-                let out = tmp.ew(&words[1..]);
+                let out = tmp.ew_process(&words[1..]);
                 let mut actual = lines(&out.stdout);
                 actual.extend(lines(&out.stderr));
                 assert!(

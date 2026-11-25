@@ -8,7 +8,7 @@
 use ew_api::cli_results as results;
 use ew_api::output::PageLayout;
 
-use super::error;
+use super::io::{Io, out};
 use super::tree::Leaf;
 use super::{LayoutArgs, open_reader, reader_dir};
 use crate::catalogue::{Exit, exit};
@@ -23,26 +23,27 @@ impl Leaf for LayoutArgs {
 
 /// `ew layout`: opens the project as a reader (no lock) and prints the layout measures. Exit 0 when measured, 2 on
 /// usage, open errors and a folio that names no drawn page.
-pub(super) fn run_layout(a: &LayoutArgs) -> i32 {
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+pub(super) fn run_layout(a: &LayoutArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = reader_dir(a.project.as_ref(), io) else {
         return 2;
     };
-    let session = match open_reader(&dir, "layout") {
+    let session = match open_reader(&dir, "layout", io) {
         Ok((session, _)) => session,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let pages = match session.layout_report(a.page.as_deref()) {
         Ok(pages) => pages,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::LayoutResult {
                 schema: results::LayoutResult::SCHEMA.to_owned(),
@@ -50,7 +51,7 @@ pub(super) fn run_layout(a: &LayoutArgs) -> i32 {
             })
         );
     } else {
-        print!("{}", text(&pages));
+        out!(io, "{}", text(&pages));
     }
     0
 }

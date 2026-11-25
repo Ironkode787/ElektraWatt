@@ -12,12 +12,12 @@ impl Leaf for ChecksSetArgs {
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
 /// exposure class `HumanOnly` accepts (ADR-0008 amendment 3), after the confirmation typed on a controlling
 /// terminal (doc 17 section 2.3, FR-EXT-030); without a terminal nothing is opened.
-pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
+pub(super) fn run_checks_set(a: &ChecksSetArgs, io: &mut Io<'_>) -> i32 {
     // 1. The read-only part: every named scheme ships (doc 15 section 4.9); else exit 1 without asking.
     for name in [&a.active, &a.release].into_iter().flatten() {
         if scheme(name).is_none() {
             let names: Vec<&str> = ew_api::checks::SCHEMES.iter().map(|s| s.name).collect();
-            error(format_args!(
+            io.error(format_args!(
                 "`{name}` is not a shipped check scheme; the schemes are: {}; nothing was changed",
                 names.join(", ")
             ));
@@ -26,8 +26,9 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     }
     // 2. Without a controlling terminal (CI, a pipe, a script) a HumanOnly command is never submitted (doc 17
     //    section 2.3, FR-EXT-030); the project is not opened, so nothing is locked or journalled.
-    if !is_terminal() {
-        eprintln!(
+    if !io.env.is_terminal() {
+        errln!(
+            io,
             "{}",
             human_only(
                 "`project checks set` is confirmed by typing the scheme name",
@@ -37,36 +38,34 @@ pub(super) fn run_checks_set(a: &ChecksSetArgs) -> i32 {
         return 2;
     }
     // 3. The change summary, then the typed confirmation: the scheme's name, exactly. There is no `--yes` flag.
-    let mut input = std::io::stdin().lock();
-    let mut output = std::io::stdout().lock();
-    if !confirm_typed(a, &mut input, &mut output) {
-        error(NOT_CONFIRMED);
+    if !confirm_typed(a, &mut *io.input, &mut *io.out) {
+        io.error(NOT_CONFIRMED);
         return 1;
     }
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let origin = ew_api::Origin::Cli {
         subcommand: "project checks set".to_owned(),
         confirmed: true,
     };
-    let mut session = match open_for_writing(&dir, origin) {
+    let mut session = match open_for_writing(&dir, origin, io) {
         Ok(s) => s,
         Err(code) => return code,
     };
     if let Err(e) = session.execute(&checks_set_command(a)) {
-        error(e);
+        io.error(e);
         session.close();
         return 1;
     }
     let code = match session.save() {
         Ok(saved) => {
-            warn_unreleased(saved.unstable, &mut std::io::stderr());
-            println!("check schemes set; saved");
+            warn_unreleased(saved.unstable, &mut *io.err);
+            outln!(io, "check schemes set; saved");
             0
         }
         Err(e) => {
-            error(save_failed(&e));
+            io.error(save_failed(&e));
             2
         }
     };
@@ -124,8 +123,8 @@ impl Leaf for VerifyArgs {
     const RESULT: Option<&'static str> = Some(results::VerifyDerivedResult::SCHEMA);
 }
 
-pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+pub(super) fn run_verify_derived(a: &VerifyArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = reader_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let (session, _) = match ew_api::Session::open_reader_with(
@@ -136,19 +135,20 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
     ) {
         Ok(r) => r,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let report = match ew_api::verify::verify_derived(&session) {
         Ok(r) => r,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::VerifyDerivedResult {
                 schema: results::VerifyDerivedResult::SCHEMA.to_owned(),
@@ -169,7 +169,8 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
         );
         return i32::from(!report.is_clean());
     }
-    println!(
+    outln!(
+        io,
         "verify-derived: {} families, {} keys, {} differences, {} oracle mismatches",
         report.keys.len(),
         report.total_keys(),
@@ -177,10 +178,10 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
         report.oracle.len()
     );
     for d in &report.differences {
-        println!("differs: {d}");
+        outln!(io, "differs: {d}");
     }
     for m in &report.oracle {
-        println!("oracle: {m:?}");
+        outln!(io, "oracle: {m:?}");
     }
     i32::from(!report.is_clean())
 }
@@ -197,55 +198,56 @@ impl Leaf for VerifyMigrationArgs {
 /// The most bytes of a reference PDF or of an expected-deltas file `ew verify-migration` reads.
 const VERIFY_MIGRATION_READ_LIMIT: u64 = 1 << 30;
 
-pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+pub(super) fn run_verify_migration(a: &VerifyMigrationArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = reader_dir(a.project.as_ref(), io) else {
         return 2;
     };
-    let read = |path: &Path| match read_bounded(path, VERIFY_MIGRATION_READ_LIMIT) {
+    let read = |path: &Path, io: &mut Io<'_>| match read_bounded(path, VERIFY_MIGRATION_READ_LIMIT) {
         Ok(b) if b.len() as u64 > VERIFY_MIGRATION_READ_LIMIT => {
-            error(format_args!("{}: the file is larger than 1 GiB", path.display()));
+            io.error(format_args!("{}: the file is larger than 1 GiB", path.display()));
             None
         }
         Ok(b) => Some(b),
         Err(e) => {
-            error(format_args!("{}: {e}", path.display()));
+            io.error(format_args!("{}: {e}", path.display()));
             None
         }
     };
-    let Some(reference) = read(&a.reference) else {
+    let Some(reference) = read(&a.reference, io) else {
         return 2;
     };
     let expected = match &a.expected {
         None => Vec::new(),
         Some(path) => {
-            let Some(bytes) = read(path) else {
+            let Some(bytes) = read(path, io) else {
                 return 2;
             };
             match ew_api::migration::parse_expected(&String::from_utf8_lossy(&bytes)) {
                 Ok(e) => e,
                 Err(e) => {
-                    error(format_args!("{}: {e}", path.display()));
+                    io.error(format_args!("{}: {e}", path.display()));
                     return 2;
                 }
             }
         }
     };
-    let (session, _) = match open_reader(&dir, "verify-migration") {
+    let (session, _) = match open_reader(&dir, "verify-migration", io) {
         Ok(r) => r,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     let report = match ew_api::migration::verify_migration(&session, reference.into(), &expected) {
         Ok(r) => r,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::VerifyMigrationResult {
                 schema: results::VerifyMigrationResult::SCHEMA.to_owned(),
@@ -259,7 +261,8 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
         );
         return i32::from(!report.is_clean());
     }
-    println!(
+    outln!(
+        io,
         "verify-migration: {} pages, {} texts matched, {} cells compared, {} deviations, {} expected deltas found, {} \
          expected deltas not found",
         report.pages,
@@ -270,13 +273,20 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
         report.unmet.len()
     );
     for d in &report.deviations {
-        println!("page {}: {}: {}", d.page, d.kind, deviation_line(d));
+        outln!(io, "page {}: {}: {}", d.page, d.kind, deviation_line(d));
     }
     for d in &report.expected {
-        println!("page {}: {} (expected): {}", d.page, d.kind, deviation_line(d));
+        outln!(
+            io,
+            "page {}: {} (expected): {}",
+            d.page,
+            d.kind,
+            deviation_line(d)
+        );
     }
     for e in &report.unmet {
-        println!(
+        outln!(
+            io,
             "expected but not found: {}{}{}{}",
             e.kind,
             e.page
@@ -315,18 +325,18 @@ impl Leaf for CheckCli {
     }
 }
 
-pub(super) fn run_check(a: &CheckCli) -> i32 {
+pub(super) fn run_check(a: &CheckCli, io: &mut Io<'_>) -> i32 {
     let format = match a.output_format() {
         Ok(f) => f,
-        Err(e) => return usage(&e),
+        Err(e) => return usage(&e, io),
     };
-    let Some(dir) = reader_dir(a.project.as_ref()) else {
+    let Some(dir) = reader_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let (mut session, opened) = match ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
         Ok(r) => r,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -340,6 +350,7 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
             &a.lang,
             &session.check_integrity(&opened),
             &undrawn_notices(&session),
+            io,
         );
     }
     // `--scheme`, else the scheme the project names for the mode, else the shipped default. A project naming a
@@ -355,7 +366,7 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
                     if let Some(name) = &named {
                         // The name comes from the project file: escaped so control characters cannot reach the
                         // terminal.
-                        notice(format_args!(
+                        io.notice(format_args!(
                             "project scheme '{}' is not shipped by this build; using pre-delivery",
                             name.escape_debug()
                         ));
@@ -366,7 +377,7 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
         }
     };
     let Some(sch) = sch else {
-        error(format_args!(
+        io.error(format_args!(
             "unknown scheme `{}`",
             a.scheme.as_deref().unwrap_or("pre-delivery")
         ));
@@ -381,6 +392,7 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
         &a.lang,
         &result,
         &undrawn_notices(&session),
+        io,
     )
 }
 
@@ -402,6 +414,7 @@ pub(super) fn print_check(
     lang: &str,
     result: &ew_api::checks::CheckReport,
     notices: &[String],
+    io: &mut Io<'_>,
 ) -> i32 {
     let result = result.clone();
     let text = match format {
@@ -418,23 +431,28 @@ pub(super) fn print_check(
     };
     if !matches!(format, CheckFormat::Json) {
         for text in notices {
-            notice(text);
+            io.notice(text);
         }
     }
     match out {
         Some(path) => match write_report(path, &text) {
-            Ok(()) => println!("report written to {}", path.display()),
+            Ok(()) => outln!(io, "report written to {}", path.display()),
             Err(e) => {
-                error(format_args!("{}: {e}", path.display()));
+                io.error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
         None => {
-            print!("{text}");
+            out!(io, "{text}");
             let c = result.counts;
-            eprintln!(
+            errln!(
+                io,
                 "{}: {} errors, {} warnings, {} infos, {} waived",
-                result.scheme, c.errors, c.warnings, c.infos, c.waived
+                result.scheme,
+                c.errors,
+                c.warnings,
+                c.infos,
+                c.waived
             );
         }
     }

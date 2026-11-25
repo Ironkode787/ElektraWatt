@@ -4,7 +4,8 @@
 //! What the modules of the `ew` integration tests share: the path of the binary under test, the isolation of a run,
 //! the paths of the sample and the test tables, what a test finds in a project by content (a page by its folio, a
 //! device file, the generation; the sample's IDs are made by its script), a renumbering log, the small readers of an
-//! output, and [`Tmp`], the runs of `ew` inside an [`ew_testdir::Tmp`].
+//! output, and [`Tmp`], the runs of `ew` inside an [`ew_testdir::Tmp`]: in this process through the library
+//! ([`ew::run`], [`Tmp::ew`]), or as a process ([`Tmp::ew_command`]) for what only a process shows.
 
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
@@ -28,16 +29,14 @@ pub fn bin_exe() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
 
-/// Isolates `cmd` under `root` (the environment of G-M1-01 as far as a test can set it): no display, no starter
-/// content and no `SOURCE_DATE_EPOCH`; the user directories, the data directory and the cache directory inside
-/// `root`, so no user library and no user state is read and a writer's journal goes there.
-pub fn isolate(cmd: &mut Command, root: &Path) {
-    cmd.env_remove("DISPLAY")
-        .env_remove("WAYLAND_DISPLAY")
-        .env_remove("SOURCE_DATE_EPOCH")
-        .env_remove("EW_CONTENT_DIR")
-        .env("EW_DATA_DIR", root.join("data"))
-        .env("EW_CACHE_DIR", root.join("cache"));
+/// The variables of a run isolated under `root` (the environment of G-M1-01 as far as a test can set it): the user
+/// directories, the data directory and the cache directory inside `root`, so no user library and no user state is
+/// read and a writer's journal goes there.
+fn isolated_vars(root: &Path) -> Vec<(&'static str, PathBuf)> {
+    let mut vars = vec![
+        ("EW_DATA_DIR", root.join("data")),
+        ("EW_CACHE_DIR", root.join("cache")),
+    ];
     for d in [
         "HOME",
         "USERPROFILE",
@@ -49,7 +48,34 @@ pub fn isolate(cmd: &mut Command, root: &Path) {
     ] {
         let dir = root.join("home").join(d.to_ascii_lowercase());
         std::fs::create_dir_all(&dir).unwrap();
-        cmd.env(d, &dir);
+        vars.push((d, dir));
+    }
+    vars
+}
+
+/// Isolates `cmd` under `root` ([`isolated_vars`]): besides, no display, no starter content and no
+/// `SOURCE_DATE_EPOCH`.
+pub fn isolate(cmd: &mut Command, root: &Path) {
+    cmd.env_remove("DISPLAY")
+        .env_remove("WAYLAND_DISPLAY")
+        .env_remove("SOURCE_DATE_EPOCH")
+        .env_remove("EW_CONTENT_DIR");
+    for (name, value) in isolated_vars(root) {
+        cmd.env(name, value);
+    }
+}
+
+/// The exit status of the exit code `code`, as a process that exits with it has.
+fn exit_status(code: i32) -> std::process::ExitStatus {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt as _;
+        std::process::ExitStatus::from_raw((code & 0xff) << 8)
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::ExitStatusExt as _;
+        std::process::ExitStatus::from_raw(code as u32)
     }
 }
 
@@ -159,8 +185,9 @@ impl Tmp {
         Tmp(ew_testdir::Tmp::new(stem))
     }
 
-    /// `ew` in this directory with its user directories inside it, no starter content, no display and no
-    /// `SOURCE_DATE_EPOCH`; not yet run.
+    /// The program `ew` as a process in this directory with its user directories inside it, no starter content, no
+    /// display and no `SOURCE_DATE_EPOCH`; not yet run. For what only a process shows: its exit, a piped standard
+    /// input, a variable of its own, the merge driver and the hooks git runs.
     pub fn ew_command<S: AsRef<OsStr>>(&self, args: &[S]) -> Command {
         let mut cmd = Command::new(bin_exe());
         cmd.args(args).current_dir(self.dir());
@@ -168,27 +195,68 @@ impl Tmp {
         cmd
     }
 
-    /// Runs [`Tmp::ew_command`].
-    pub fn ew<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
+    /// Runs [`Tmp::ew_command`]: the program's exit itself; a run with this folder as its working directory (a
+    /// relative path, a default output file), since a run in this process resolves a relative path against the
+    /// test's own directory; a run whose subcommand reads the user's directories below the command line (an underlay
+    /// kept outside the project, a part's outline), which only a process isolates.
+    pub fn ew_process<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
         self.ew_command(args).output().unwrap()
+    }
+
+    /// The environment of a run in this directory, as [`Tmp::ew_command`] isolates the process.
+    fn env(&self) -> ew::Env {
+        isolated_vars(self.dir())
+            .into_iter()
+            .fold(ew::Env::new(self.dir().to_path_buf()), |env, (name, value)| {
+                env.with(name, value)
+            })
+    }
+
+    /// Runs `ew <args>` in this process on the environment `env`, no standard input; its exit code, standard
+    /// output and standard error as a process's.
+    fn run<S: AsRef<OsStr>>(&self, args: &[S], env: &ew::Env) -> Output {
+        let args: Vec<OsString> = args.iter().map(|a| a.as_ref().to_owned()).collect();
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        let code = ew::run(
+            &args,
+            &mut ew::Io {
+                input: &mut std::io::empty(),
+                out: &mut stdout,
+                err: &mut stderr,
+                env,
+            },
+        );
+        Output {
+            status: exit_status(code),
+            stdout,
+            stderr,
+        }
+    }
+
+    /// Runs `ew` in this directory as [`Tmp::ew_command`] would, in this process.
+    pub fn ew<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
+        self.run(args, &self.env())
     }
 
     /// Runs `ew` with the starter content of the source tree when `content`.
     pub fn ew_with<S: AsRef<OsStr>>(&self, args: &[S], content: bool) -> Output {
-        let mut cmd = self.ew_command(args);
-        if content {
-            cmd.env("EW_CONTENT_DIR", CONTENT);
-        }
-        cmd.output().unwrap()
+        let env = self.env();
+        let env = if content {
+            env.with("EW_CONTENT_DIR", CONTENT)
+        } else {
+            env
+        };
+        self.run(args, &env)
     }
 
     /// Runs `ew` with `SOURCE_DATE_EPOCH` as given (unset by default).
     pub fn ew_at<S: AsRef<OsStr>>(&self, args: &[S], epoch: Option<&str>) -> Output {
-        let mut cmd = self.ew_command(args);
-        if let Some(e) = epoch {
-            cmd.env("SOURCE_DATE_EPOCH", e);
-        }
-        cmd.output().unwrap()
+        let env = self.env();
+        let env = match epoch {
+            Some(e) => env.with("SOURCE_DATE_EPOCH", e),
+            None => env,
+        };
+        self.run(args, &env)
     }
 
     /// The OS state directory of the user directories of [`Tmp::ew_command`], where a writer keeps its journal.

@@ -27,6 +27,7 @@ use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
+use super::io::Io;
 use super::{
     CheckFormat, ExportArgs, ExportKind, ExportPagesArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs,
     PageFormat, PrintVia, RecoverAction, RevisionAction, RevisionArgs, RowFormat, SqlFormat, SqlSource,
@@ -116,11 +117,17 @@ macro_rules! group {
 }
 pub(super) use group;
 
-/// Prints the usage error `e` as clap renders it, on stderr, and returns its exit code: a [`Leaf::check`] found when
-/// the line was parsed, which a run function meets again only when it is called on an unchecked line.
-pub(super) fn usage(e: &clap::Error) -> i32 {
+/// Prints the usage error `e` as clap renders it, on the standard error (the help and the version on the standard
+/// output), and returns its exit code: a [`Leaf::check`] found when the line was parsed, which a run function meets
+/// again only when it is called on an unchecked line.
+pub(crate) fn usage(e: &clap::Error, io: &mut Io<'_>) -> i32 {
+    let to = if e.use_stderr() {
+        &mut *io.err
+    } else {
+        &mut *io.out
+    };
     // Printing fails only when the stream is gone; the exit code still says what happened.
-    let _ = e.print();
+    let _ = write!(to, "{}", e.render());
     e.exit_code()
 }
 

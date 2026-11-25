@@ -7,8 +7,9 @@
 use ew_api::{Conflict, ConflictBody};
 
 use super::MergeResolveArgs;
+use super::io::{Io, out, outln};
+use super::save_failed;
 use super::tree::{Leaf, TakeArg};
-use super::{error, save_failed};
 use crate::catalogue::{Exit, exit};
 
 impl Leaf for MergeResolveArgs {
@@ -59,15 +60,15 @@ fn selection(a: &MergeResolveArgs) -> String {
 
 /// `ew merge resolve`: exit 0 resolved and saved, 1 when `merge.resolve` refuses, 2 on usage (no conflict selected),
 /// open, lock and save errors.
-pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
-    let Some(dir) = super::project_dir(a.project.as_ref()) else {
+pub(super) fn run_merge_resolve(a: &MergeResolveArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = super::project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let origin = ew_api::Origin::Cli {
         subcommand: "merge resolve".to_owned(),
         confirmed: false,
     };
-    let mut session = match super::open_for_writing(&dir, origin) {
+    let mut session = match super::open_for_writing(&dir, origin, io) {
         Ok(s) => s,
         Err(code) => return code,
     };
@@ -83,7 +84,7 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         .map(|(id, _)| serde_json::json!({"conflict": id.to_string(), "take": take}))
         .collect();
     if choices.is_empty() {
-        error(format_args!("{}; nothing was changed", selection(a)));
+        io.error(format_args!("{}; nothing was changed", selection(a)));
         session.close();
         return 2;
     }
@@ -93,13 +94,13 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         params: serde_json::json!({ "choices": choices }),
     };
     if let Err(e) = session.execute(&command) {
-        error(e);
+        io.error(e);
         session.close();
         return 1;
     }
     let code = match session
         .save()
-        .inspect(|saved| super::warn_unreleased(saved.unstable, &mut std::io::stderr()))
+        .inspect(|saved| super::warn_unreleased(saved.unstable, &mut *io.err))
     {
         Ok(_) if a.json => {
             let result = ew_api::cli_results::MergeResolveResult {
@@ -107,16 +108,16 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
                 resolved: count,
                 take: take.to_owned(),
             };
-            print!("{}", ew_api::cli_results::to_text(&result));
+            out!(io, "{}", ew_api::cli_results::to_text(&result));
             0
         }
         Ok(_) => {
             let noun = if count == 1 { "conflict" } else { "conflicts" };
-            println!("{count} {noun} resolved, {take} taken; saved");
+            outln!(io, "{count} {noun} resolved, {take} taken; saved");
             0
         }
         Err(e) => {
-            error(save_failed(&e));
+            io.error(save_failed(&e));
             2
         }
     };

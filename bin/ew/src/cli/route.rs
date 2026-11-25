@@ -11,7 +11,7 @@ use ew_api::cli_results as results;
 use ew_api::drafting::{InTheWay, Reason, Side};
 use ew_api::routing::{RoutePlan, RouteScope};
 
-use super::error;
+use super::io::{Io, out};
 use super::tree::Leaf;
 use super::{RouteArgs, open_for_writing, open_reader, project_dir, reader_dir};
 use crate::catalogue::{Exit, exit};
@@ -47,34 +47,34 @@ fn reason(why: Reason, wire: &str) -> (&'static str, String) {
 /// `ew route`: routes each page and saves (a reader with `--dry-run`). Exit 0 when no wire it routes is left without
 /// a way, 1 when one is, 2 on usage (a `--selection` item that is no record ID), open, an unknown folio, a refused
 /// command and save errors. A selection ID that names nothing on a page routes nothing there.
-pub(super) fn run_route(a: &RouteArgs) -> i32 {
+pub(super) fn run_route(a: &RouteArgs, io: &mut Io<'_>) -> i32 {
     let mut selection = Vec::with_capacity(a.selection.len());
     for s in &a.selection {
         match ew_api::output::Uuid::parse_str(s.trim()) {
             Ok(id) => selection.push(id),
             Err(_) => {
-                error(format_args!("`{s}` in --selection is not a record ID"));
+                io.error(format_args!("`{s}` in --selection is not a record ID"));
                 return 2;
             }
         }
     }
     let opened = if a.dry_run {
-        let Some(dir) = reader_dir(a.project.as_ref()) else {
+        let Some(dir) = reader_dir(a.project.as_ref(), io) else {
             return 2;
         };
-        open_reader(&dir, "route").map(|(s, _)| s).map_err(|e| {
-            error(format_args!("{}: {e}", dir.display()));
+        open_reader(&dir, "route", io).map(|(s, _)| s).map_err(|e| {
+            io.error(format_args!("{}: {e}", dir.display()));
             2
         })
     } else {
-        let Some(dir) = project_dir(a.project.as_ref()) else {
+        let Some(dir) = project_dir(a.project.as_ref(), io) else {
             return 2;
         };
         let origin = ew_api::Origin::Cli {
             subcommand: "route".to_owned(),
             confirmed: false,
         };
-        open_for_writing(&dir, origin)
+        open_for_writing(&dir, origin, io)
     };
     let mut session = match opened {
         Ok(session) => session,
@@ -83,7 +83,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     let folios = match &a.page {
         Some(f) => {
             if session.page_draft(f).is_none() {
-                error(format_args!(
+                io.error(format_args!(
                     "the page order has no drawn page with the folio `{f}`"
                 ));
                 return 2;
@@ -133,7 +133,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
                 params,
             };
             if let Err(e) = session.execute(&cmd) {
-                error(format_args!("folio {folio}: {e}; nothing was saved"));
+                io.error(format_args!("folio {folio}: {e}; nothing was saved"));
                 return 2;
             }
             changed = true;
@@ -142,13 +142,14 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     }
     let saved = changed && !a.dry_run;
     if saved && let Err(e) = session.save() {
-        error(format_args!("{e}; nothing was saved"));
+        io.error(format_args!("{e}; nothing was saved"));
         return 2;
     }
     session.close();
     let unrouted = pages.iter().any(|p| !p.unrouted.is_empty());
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::RouteResult {
                 schema: results::RouteResult::SCHEMA.to_owned(),
@@ -157,7 +158,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
             })
         );
     } else {
-        print!("{text}");
+        out!(io, "{text}");
     }
     i32::from(unrouted)
 }

@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use ew_api::Session;
 
 use super::DiffArgs;
-use super::error;
+use super::io::{Env, Io, out, outln};
 use super::tree::Leaf;
 use crate::catalogue::{Exit, exit};
 
@@ -35,26 +35,26 @@ impl Leaf for DiffArgs {
 const MANIFEST: &str = "manifest.json";
 
 /// `ew diff`: exit 0 when equal (or different without `--exit-code`), 1 when different with `--exit-code`, 2 on errors.
-pub(super) fn run_diff(a: &DiffArgs) -> i32 {
+pub(super) fn run_diff(a: &DiffArgs, io: &mut Io<'_>) -> i32 {
     if let Some(file) = &a.textconv {
-        return run_textconv(file);
+        return run_textconv(file, io);
     }
     let (Some(from), Some(to)) = (&a.from, &a.to) else {
-        error("`ew diff` compares two sides: ew diff <from> <to>");
+        io.error("`ew diff` compares two sides: ew diff <from> <to>");
         return 2;
     };
-    let opened = open_side(from, Some(to)).and_then(|f| Ok((f, open_side(to, Some(from))?)));
+    let opened = open_side(from, Some(to), io.env).and_then(|f| Ok((f, open_side(to, Some(from), io.env)?)));
     let (left, right) = match opened {
         Ok(sides) => sides,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     let entries = match left.diff_to(&right) {
         Ok(e) => e,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
@@ -81,23 +81,23 @@ pub(super) fn run_diff(a: &DiffArgs) -> i32 {
                 })
                 .collect(),
         };
-        print!("{}", ew_api::cli_results::to_text(&result));
+        out!(io, "{}", ew_api::cli_results::to_text(&result));
     } else {
         for e in &entries {
-            println!("{}", e.line());
+            outln!(io, "{}", e.line());
         }
     }
     i32::from(a.exit_code && !entries.is_empty())
 }
 
 /// Opens one side read-only; `other` is the other side, whose directory names the project of a git side.
-fn open_side(spec: &str, other: Option<&str>) -> Result<Session, String> {
+fn open_side(spec: &str, other: Option<&str>, env: &Env) -> Result<Session, String> {
     if let Some(rev) = spec.strip_prefix("git:") {
-        return git_side(rev, spec, other);
+        return git_side(rev, spec, other, env);
     }
     if let Some(label) = spec.strip_prefix("rev:") {
         let tag = ew_api::git::tag_name(label).map_err(|e| e.to_string())?;
-        return git_side(&format!("refs/tags/{tag}"), spec, other);
+        return git_side(&format!("refs/tags/{tag}"), spec, other, env);
     }
     let path = Path::new(spec);
     if path
@@ -115,22 +115,19 @@ fn open_side(spec: &str, other: Option<&str>) -> Result<Session, String> {
 
 /// The project directory a git side reads: the other side when it is a directory, else the one found from the current
 /// directory.
-fn git_project(other: Option<&str>) -> Option<PathBuf> {
+fn git_project(other: Option<&str>, env: &Env) -> Option<PathBuf> {
     let dir = other
         .filter(|o| !o.starts_with("git:") && !o.starts_with("rev:"))
         .map(PathBuf::from)
         .filter(|p| p.is_dir());
-    dir.or_else(|| {
-        std::env::current_dir()
-            .ok()
-            .and_then(|cwd| super::find_project(&cwd))
-    })
+    dir.or_else(|| env.cwd().ok().and_then(|cwd| super::find_project(&cwd)))
 }
 
 /// The project's files at the revision `rev`: `manifest.json`, the files it lists and the two git files, read
 /// through one `git cat-file --batch` process under the reader's limits, opened from memory.
-fn git_side(rev: &str, spec: &str, other: Option<&str>) -> Result<Session, String> {
-    let dir = git_project(other).ok_or_else(|| format!("{spec}: no project directory to read from git"))?;
+fn git_side(rev: &str, spec: &str, other: Option<&str>, env: &Env) -> Result<Session, String> {
+    let dir =
+        git_project(other, env).ok_or_else(|| format!("{spec}: no project directory to read from git"))?;
     let dir = std::fs::canonicalize(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let root = ew_api::git::worktree_root(&ew_api::OsVfs, &dir)
         .map_err(|e| e.to_string())?
@@ -176,7 +173,7 @@ fn git_side(rev: &str, spec: &str, other: Option<&str>) -> Result<Session, Strin
     drop(cat);
     Session::open_in_memory(
         &files,
-        ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+        env.store(env!("CARGO_PKG_VERSION")),
         "diff",
         ew_api::MemoMode::default(),
     )
@@ -190,15 +187,15 @@ const TEXTCONV_DEPTH: usize = 3;
 /// `ew diff --textconv <file>`: the file as text lines, labelled from the project found in the current directory
 /// (the nearest ancestor holding a manifest, else the first `*.ew` folder at most three levels below that names the
 /// file's records). Exit 0, 2 when the file cannot be read.
-fn run_textconv(file: &Path) -> i32 {
+fn run_textconv(file: &Path, io: &mut Io<'_>) -> i32 {
     let bytes = match std::fs::read(file) {
         Ok(b) => b,
         Err(e) => {
-            error(format_args!("{}: {e}", file.display()));
+            io.error(format_args!("{}: {e}", file.display()));
             return 2;
         }
     };
-    let cwd = std::env::current_dir().ok();
+    let cwd = io.env.cwd().ok();
     let mut candidates: Vec<PathBuf> = cwd.as_deref().and_then(super::find_project).into_iter().collect();
     if candidates.is_empty()
         && let Some(cwd) = &cwd
@@ -216,7 +213,7 @@ fn run_textconv(file: &Path) -> i32 {
             break;
         }
     }
-    print!("{best}");
+    out!(io, "{best}");
     0
 }
 

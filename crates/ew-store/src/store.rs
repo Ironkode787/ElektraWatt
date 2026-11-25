@@ -164,7 +164,12 @@ impl StoreOptions {
 /// the environment names none.
 pub fn default_state_dir() -> Option<PathBuf> {
     // The per-user state directory (lock, journal) is outside the project; no project byte depends on it.
-    let var = |n: &str| std::env::var_os(n).filter(|v| !v.is_empty()).map(PathBuf::from);
+    state_dir_in(&|n| std::env::var_os(n))
+}
+
+/// [`default_state_dir`] of the environment whose variables `var` gives (`ew`'s run on a given environment).
+pub fn state_dir_in(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> Option<PathBuf> {
+    let var = |n: &str| var(n).filter(|v| !v.is_empty()).map(PathBuf::from);
     if cfg!(windows) {
         var("LOCALAPPDATA").map(|p| p.join("ElektraWatt").join("state"))
     } else {

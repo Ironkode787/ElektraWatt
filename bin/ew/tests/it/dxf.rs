@@ -127,14 +127,15 @@ fn a_drawing_becomes_a_graphic_page_twice_and_a_missing_unit_is_refused_in_words
 
 /// `ew import pdf` keeps the PDF in the user's underlay cache, not in the project; `ew import dxf --as underlay
 /// --embed` puts the drawing into the project; `ew export dxf` writes the underlay's layer only with `--underlays`.
+/// As a process: the underlay cache is read and written below the command line ([`Tmp::ew_process`]).
 #[test]
 fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
     let t = Tmp::new("ew-dxf-underlay");
     let project = t.tiny("p.ew");
     let pdf_file = t.path("plan.pdf");
-    let out = t.ew(&args([&"export", &"pdf", &project, &"--out", &pdf_file]));
+    let out = t.ew_process(&args([&"export", &"pdf", &project, &"--out", &pdf_file]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"import",
         &"pdf",
         &pdf_file,
@@ -155,7 +156,7 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
     assert!(
         !project.join("assets").exists() || std::fs::read_dir(project.join("assets")).unwrap().count() == 0
     );
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"import",
         &"pdf",
         &pdf_file,
@@ -169,7 +170,7 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
 
     let dxf = t.path("plant.dxf");
     std::fs::write(&dxf, drawing(Some(4))).unwrap();
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"import",
         &"dxf",
         &dxf,
@@ -190,12 +191,12 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
     assert_eq!(std::fs::read_dir(project.join("assets")).unwrap().count(), 1);
 
     let plain = t.path("plain");
-    let out = t.ew(&args([&"export", &"dxf", &project, &"--out", &plain]));
+    let out = t.ew_process(&args([&"export", &"dxf", &project, &"--out", &plain]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let text = std::fs::read_to_string(plain.join("1.dxf")).unwrap();
     assert!(!text.contains("  8\nEW-UNDERLAY\n"), "no underlay unless printed");
     let printed = t.path("printed");
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"export",
         &"dxf",
         &project,
@@ -212,11 +213,12 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
 }
 
 /// `ew import dxf --as outline` writes the drawing's lines as a library part's front outline, its next patch version.
+/// As a process: the user library tier is read below the command line ([`Tmp::ew_process`]).
 #[test]
 fn a_drawing_becomes_a_parts_front_outline() {
     let t = Tmp::new("ew-dxf-outline");
     let lib = t.path("data").join("libraries").join("std.ewlib");
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"lib",
         &"create",
         &lib,
@@ -236,7 +238,7 @@ fn a_drawing_becomes_a_parts_front_outline() {
     )
     .unwrap();
     std::fs::write(&map, "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\ndescription = \"Text\"\nkind = \"Category\"\n").unwrap();
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"lib",
         &"import",
         &"parts",
@@ -250,7 +252,7 @@ fn a_drawing_becomes_a_parts_front_outline() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let dxf = t.path("front.dxf");
     std::fs::write(&dxf, drawing(Some(4))).unwrap();
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"import",
         &"dxf",
         &dxf,
@@ -263,7 +265,7 @@ fn a_drawing_becomes_a_parts_front_outline() {
     ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     assert!(stdout(&out).contains("version 1.0.1"), "{}", stdout(&out));
-    let out = t.ew(&args([
+    let out = t.ew_process(&args([
         &"import",
         &"dxf",
         &dxf,

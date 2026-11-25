@@ -16,29 +16,22 @@ impl Leaf for AssetsPurgeArgs {
 /// command: the preview's list, then, after the word typed on a controlling terminal, the
 /// purge of exactly the listed files. `--preview` needs no terminal; without one the purge itself exits 2 before the
 /// project is opened.
-pub(super) fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
-    let terminal = is_terminal();
-    let mut input = std::io::stdin().lock();
-    let mut output = std::io::stdout().lock();
-    run_assets_purge_with(
-        a,
-        terminal,
-        &mut input,
-        &mut output,
-        ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
-    )
+pub(super) fn run_assets_purge(a: &AssetsPurgeArgs, io: &mut Io<'_>) -> i32 {
+    let terminal = io.env.is_terminal();
+    let store = io.env.store(env!("CARGO_PKG_VERSION"));
+    run_assets_purge_with(a, terminal, store, io)
 }
 
-/// [`run_assets_purge`] with the terminal test, the reader, the writer and the store options injected (unit tests).
+/// [`run_assets_purge`] with the terminal test and the store options injected (unit tests).
 pub(super) fn run_assets_purge_with(
     a: &AssetsPurgeArgs,
     terminal: bool,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
     store: ew_api::StoreOptions,
+    io: &mut Io<'_>,
 ) -> i32 {
     if !a.preview && !terminal {
-        eprintln!(
+        errln!(
+            io,
             "{}",
             human_only(
                 &format!(
@@ -50,16 +43,16 @@ pub(super) fn run_assets_purge_with(
         );
         return 2;
     }
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     // The preview is a reader: no lock, no roll-forward, no journal, nothing written, so it runs beside an open
     // editor. The purge opens for writing with the confirmed origin, used only after the word is typed.
     let opened = if a.preview {
-        open_reader(&dir, "project assets purge")
+        open_reader(&dir, "project assets purge", io)
             .map(|(s, _)| s)
             .map_err(|e| {
-                error(format_args!("{}: {e}", dir.display()));
+                io.error(format_args!("{}: {e}", dir.display()));
                 2
             })
     } else {
@@ -67,7 +60,7 @@ pub(super) fn run_assets_purge_with(
             subcommand: "project assets purge".to_owned(),
             confirmed: true,
         };
-        open_for_writing_with(&dir, origin, store)
+        open_for_writing_with(&dir, origin, store, io)
     };
     let mut session = match opened {
         Ok(s) => s,
@@ -80,7 +73,7 @@ pub(super) fn run_assets_purge_with(
     let plan = match session.purge_preview() {
         Ok(plan) => plan,
         Err(e) => {
-            error(format_args!("{e}; nothing was removed"));
+            io.error(format_args!("{e}; nothing was removed"));
             session.close();
             return refused(&e);
         }
@@ -91,9 +84,10 @@ pub(super) fn run_assets_purge_with(
         .map(|f| format!("remove {} ({} bytes)\n", f.path.as_str(), f.len))
         .collect();
     let verb = if a.preview { "would remove" } else { "removes" };
-    let _ = output.write_all(listing.as_bytes());
-    let _ = output.flush();
-    eprintln!(
+    let _ = io.out.write_all(listing.as_bytes());
+    let _ = io.out.flush();
+    errln!(
+        io,
         "purge: {verb} {} asset file(s), {} bytes; {} kept (named)",
         plan.remove.len(),
         plan.bytes(),
@@ -108,16 +102,16 @@ pub(super) fn run_assets_purge_with(
          else to abort: ",
         plan.remove.len()
     );
-    if !typed_word(input, output, &prompt, PURGE_WORD) {
-        error("not confirmed; nothing was removed");
+    if !typed_word(&mut *io.input, &mut *io.out, &prompt, PURGE_WORD) {
+        io.error("not confirmed; nothing was removed");
         session.close();
         return 1;
     }
     let code = match session.purge_assets(Some(&plan.hashes())) {
         Ok((done, report)) => {
-            warn_unreleased(report.unstable, &mut std::io::stderr());
+            warn_unreleased(report.unstable, &mut *io.err);
             let _ = writeln!(
-                output,
+                io.out,
                 "removed {} asset file(s); generation {}",
                 done.remove.len(),
                 report.generation
@@ -125,7 +119,7 @@ pub(super) fn run_assets_purge_with(
             0
         }
         Err(e) => {
-            error(&e);
+            io.error(&e);
             refused(&e)
         }
     };
@@ -208,7 +202,14 @@ mod tests {
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
         let mut output = Vec::new();
-        let code = run_assets_purge_with(&args, terminal, &mut input, &mut output, store());
+        let env = Env::new(dir.to_path_buf());
+        let mut io = Io {
+            input: &mut input,
+            out: &mut output,
+            err: &mut Vec::new(),
+            env: &env,
+        };
+        let code = run_assets_purge_with(&args, terminal, store(), &mut io);
         (code, String::from_utf8(output).unwrap())
     }
 

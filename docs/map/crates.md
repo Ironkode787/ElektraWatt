@@ -38,7 +38,7 @@ The ElektraWatt desktop application: eframe shell, file dialogs, the headless mo
 
 `bin/ew` · GPL-3.0-or-later · tier programs · depends on `ew-api`, `ew-print` · used by none · in tests by none
 
-The `ew` command-line program: its entry point, which parses the arguments, runs the subcommand and exits with its code. Every subcommand (import, check, export, print, query, revision, the git merge driver and textconv, the migration verifier and the rest) works on a project through `ew-api`'s `Session`.
+The `ew` command line as a library: [`run`] parses the arguments, runs the subcommand on the streams and the environment it is given ([`Io`], [`Env`]) and returns its exit code. The program (`main.rs`) runs it on the process's own; the tests of `bin/ew` run it on buffers and a test folder's environment, and start the program as a process only for what a process is: its exit, the merge driver git runs, a piped standard input.
 
 | File | Size | What it holds |
 |---|---|---|
@@ -53,6 +53,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/eplan.rs` |  | `ew import edz` and `ew import parts-xml` (doc 14 §5.2, §5.3, §13): the parts of an EDZ or an EPLAN parts XML into a writable library, or the previewed update of a project's part copies from them. |
 | `src/cli/export.rs` | large | `ew export` in its kinds, `ew export-ewz`, `ew extract`, `ew export pages` and `ew render`. |
 | `src/cli/import.rs` | large | The imports: a table of rows, a parts catalogue, a QElectroTech project, a CSV. |
+| `src/cli/io.rs` |  | What a run reads and writes besides its arguments and the files it names: the three streams and the environment ([`Io`]), and the lines a run prints on them ([`outln!`], [`errln!`], [`Io::error`] and its kin). |
 | `src/cli/layout.rs` |  | `ew layout [<project-dir>] [--page <folio>] [--json]`: the layout measure (docs/design/06a-drafting.md §1.2) of one page or of every schematic page, in text or as `ew.layout-result/1`: its faults, unrouted wires and cost, the figures a reader compares, and each item behind them. |
 | `src/cli/library.rs` |  | `ew lib`: the libraries and their index. |
 | `src/cli/merge_driver.rs` |  | `ew merge-driver %O %A %B %L %P` and `%O %A %B %P`: git's merge driver for project files (doc 05 §11.2; ADR-0012 amendment 2). |
@@ -68,7 +69,8 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/symbol.rs` |  | Project-independent symbol authoring: bounded input, structured validation, ordinary library publication. |
 | `src/cli/tests.rs` | large | Tests of the command line as a whole: parsing, the refusals, the commands that share helpers. |
 | `src/cli/tree.rs` | large | The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in its doc comment. |
-| `src/main.rs` |  | The `ew` command-line program: its entry point, which parses the arguments, runs the subcommand and exits with its code. |
+| `src/lib.rs` |  | The `ew` command line as a library: [`run`] parses the arguments, runs the subcommand on the streams and the environment it is given ([`Io`], [`Env`]) and returns its exit code. |
+| `src/main.rs` |  | The `ew` command-line program: its entry point, which runs the command line ([`ew::run`]) on the process's arguments, streams and environment and exits with its code. |
 
 ## ew-api
 

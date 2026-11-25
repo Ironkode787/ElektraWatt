@@ -30,14 +30,14 @@ impl Leaf for ImportTableArgs {
 
 /// `ew import table`: the preview of a round-trip file against the project, and with `--apply` its one
 /// `fields.set_many` committed and the project saved.
-pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+pub(super) fn run_import_table(a: &ImportTableArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     let bytes = match read_bounded(&a.file, ew_api::catalog::table_limits().max_input_bytes) {
         Ok(b) => b,
         Err(e) => {
-            error(format_args!("{}: {e}", a.file.display()));
+            io.error(format_args!("{}: {e}", a.file.display()));
             return 2;
         }
     };
@@ -51,15 +51,15 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
         confirmed: false,
     };
     let mut session = if a.apply {
-        match open_for_writing(&dir, origin.clone()) {
+        match open_for_writing(&dir, origin.clone(), io) {
             Ok(s) => s,
             Err(code) => return code,
         }
     } else {
-        match open_reader(&dir, "import table") {
+        match open_reader(&dir, "import table", io) {
             Ok((s, _)) => s,
             Err(e) => {
-                error(format_args!("{}: {e}", dir.display()));
+                io.error(format_args!("{}: {e}", dir.display()));
                 return 2;
             }
         }
@@ -69,12 +69,12 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
         |n| n.to_string_lossy().into_owned(),
     );
     let import = match ew_api::output::guard_table_read(&file, || {
-        debug_panic("table-read");
+        debug_panic("table-read", io.env);
         session.table_import(&bytes, &options)
     }) {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("{}", import_table_error_line(&e));
+            errln!(io, "{}", import_table_error_line(&e));
             session.close();
             return 2;
         }
@@ -82,15 +82,12 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
     let mut applied = false;
     if a.apply && import.command.is_some() {
         if let Err(e) = session.apply_table_import(&import, ew_api::Submit::from(origin)) {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
-        if let Err(e) = session
-            .save()
-            .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
-        {
-            error(save_failed(&e));
+        if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut *io.err)) {
+            io.error(save_failed(&e));
             session.close();
             return 2;
         }
@@ -98,9 +95,9 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
     }
     session.close();
     if a.json {
-        print!("{}", import_table_json(&import, applied));
+        out!(io, "{}", import_table_json(&import, applied));
     } else {
-        print!("{}", import_table_text(&import, a.apply, applied));
+        out!(io, "{}", import_table_text(&import, a.apply, applied));
     }
     0
 }
@@ -207,13 +204,14 @@ pub(super) fn import_table_json(import: &ew_api::output::TableImport, applied: b
 pub(super) fn read_map_and_table(
     map: &Path,
     file: &Path,
+    io: &mut Io<'_>,
 ) -> Result<(ew_api::catalog::ColumnMap, ew_api::catalog::ImportInput), i32> {
     let map = ew_api::catalog::read_column_map(map).map_err(|e| {
-        error(format_args!("the column map: {e}"));
+        io.error(format_args!("the column map: {e}"));
         2
     })?;
     let input = ew_api::catalog::read_input(file, &ew_api::catalog::Limits::default()).map_err(|e| {
-        error(e);
+        io.error(e);
         2
     })?;
     Ok((map, input))
@@ -248,7 +246,7 @@ pub(super) fn report_rows(report: &ew_api::catalog::ImportReport) -> Vec<results
 /// Prints the report of a catalogue import, one line per finding (unmapped columns, rejected rows, split part
 /// numbers, aliases, new manufacturers, symbols not converted): `<code> <severity>: <where>: <message>`, where is
 /// the table line when the finding has one, else its file.
-pub(super) fn print_catalog_rows(report: &ew_api::catalog::ImportReport) {
+pub(super) fn print_catalog_rows(report: &ew_api::catalog::ImportReport, io: &mut Io<'_>) {
     for e in &report.entries {
         let severity = results::ReportSeverity::from(e.severity).word();
         let at = match &e.location {
@@ -256,17 +254,17 @@ pub(super) fn print_catalog_rows(report: &ew_api::catalog::ImportReport) {
             Some(l) if !l.file.is_empty() => format!("{}: ", l.file),
             _ => String::new(),
         };
-        println!("{} {severity}: {at}{}", e.code, e.message);
+        outln!(io, "{} {severity}: {at}{}", e.code, e.message);
     }
 }
 
 /// `ew import parts --map`: a supplier's table through a column map into the project.
-pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Path) -> i32 {
-    let (map, input) = match read_map_and_table(map, &a.file) {
+pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Path, io: &mut Io<'_>) -> i32 {
+    let (map, input) = match read_map_and_table(map, &a.file, io) {
         Ok(r) => r,
         Err(code) => return code,
     };
-    let master = match open_libraries(&a.company) {
+    let master = match open_libraries(&a.company, io) {
         Ok(reg) => ew_api::catalog::manufacturer_master(&reg),
         Err(code) => return code,
     };
@@ -274,19 +272,19 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
         subcommand: "import parts".into(),
         confirmed: false,
     };
-    let Ok(mut session) = open_for_writing(dir, origin.clone()) else {
+    let Ok(mut session) = open_for_writing(dir, origin.clone(), io) else {
         return 2;
     };
     let (import, cmd) = match session.catalog_parts(&input, &map, &master, a.as_of) {
         Ok(r) => r,
         Err(e) => {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
     };
     if !a.json {
-        print_catalog_rows(&import.report);
+        print_catalog_rows(&import.report, io);
     }
     let (mut created, mut skipped) = (0, 0);
     if let Some(cmd) = cmd {
@@ -296,23 +294,21 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
         {
             Ok(r) => r,
             Err(e) => {
-                error(e);
+                io.error(e);
                 session.close();
                 return 2;
             }
         };
         (created, skipped) = receipt.outcome.counts.map_or((0, 0), |c| (c.created, c.skipped));
-        if let Err(e) = session
-            .save()
-            .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
-        {
-            error(save_failed(&e));
+        if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut *io.err)) {
+            io.error(save_failed(&e));
             session.close();
             return 2;
         }
     }
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::ImportPartsResult {
                 schema: results::ImportPartsResult::SCHEMA.to_owned(),
@@ -324,7 +320,8 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
             })
         );
     } else {
-        println!(
+        outln!(
+            io,
             "imported {}: {}; {created} created, {skipped} skipped; saved",
             input.name(),
             counts_text(&import)
@@ -339,24 +336,24 @@ impl Leaf for ImportPartsArgs {
     const RESULT: Option<&'static str> = Some(results::ImportPartsResult::SCHEMA);
 }
 
-pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+pub(super) fn run_import_parts(a: &ImportPartsArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
     if let Some(map) = &a.map {
-        return run_import_parts_mapped(a, map, &dir);
+        return run_import_parts_mapped(a, map, &dir, io);
     }
     let origin = ew_api::Origin::Cli {
         subcommand: "import parts".into(),
         confirmed: false,
     };
-    let Ok(mut session) = open_for_writing(&dir, origin.clone()) else {
+    let Ok(mut session) = open_for_writing(&dir, origin.clone(), io) else {
         return 2;
     };
     let parts = match ew_api::import::read_parts_tables(&a.file, &session) {
         Ok(p) => p,
         Err(e) => {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
@@ -371,22 +368,20 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     {
         Ok(r) => r,
         Err(e) => {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
     };
     let (created, skipped) = receipt.outcome.counts.map_or((0, 0), |c| (c.created, c.skipped));
-    if let Err(e) = session
-        .save()
-        .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
-    {
-        error(save_failed(&e));
+    if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut *io.err)) {
+        io.error(save_failed(&e));
         session.close();
         return 2;
     }
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::ImportPartsResult {
                 schema: results::ImportPartsResult::SCHEMA.to_owned(),
@@ -398,7 +393,8 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
             })
         );
     } else {
-        println!(
+        outln!(
+            io,
             "imported {}: {created} created, {skipped} skipped, 0 errors; saved",
             parts.source
         );
@@ -430,9 +426,9 @@ pub(super) fn unique_stem(used: &mut std::collections::BTreeSet<String>, stem: &
 /// printed). A file that cannot be imported, or whose report cannot be written, is a row of the summary, never the end
 /// of the batch (a write error makes the exit code 2 at its end); `--strict` exits 1 when a project lost a
 /// connection, has an error finding or was refused.
-fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary) -> i32 {
+fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary, io: &mut Io<'_>) -> i32 {
     let Some(out) = &a.out else {
-        error("`--batch` needs `--out <dir>` for the projects and reports");
+        io.error("`--batch` needs `--out <dir>` for the projects and reports");
         return 2;
     };
     // The symbol map of the folder binds every file of it (doc 14 §4.17).
@@ -442,7 +438,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
     {
         Ok(l) => l,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
@@ -454,17 +450,17 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
             .filter(|p| p.is_file() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("qet")))
             .collect(),
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
     files.sort();
     if files.is_empty() {
-        error(format_args!("{}: no .qet files", dir.display()));
+        io.error(format_args!("{}: no .qet files", dir.display()));
         return 2;
     }
     if let Err(e) = std::fs::create_dir_all(out) {
-        error(format_args!("{}: {e}", out.display()));
+        io.error(format_args!("{}: {e}", out.display()));
         return 2;
     }
     let mut summary = String::from(
@@ -495,7 +491,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         let imported = match imported {
             Ok(i) => i,
             Err(why) => {
-                eprintln!("{name}: refused: {why}");
+                errln!(io, "{name}: refused: {why}");
                 summary.push_str(&row(&format!("refused: {why}"), None));
                 refused += 1;
                 continue;
@@ -519,7 +515,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         ));
         let report_file = out.join(format!("{stem}.report.md"));
         if let Err(e) = write_report(&report_file, &report.render(ReportFormat::Markdown)) {
-            error(format_args!("{}: {e}", report_file.display()));
+            io.error(format_args!("{}: {e}", report_file.display()));
             write_failed = true;
             refused += 1;
             summary.push_str(&row("the report was not written", counts));
@@ -531,21 +527,21 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
                 match ew_api::import::create_project_from(
                     session,
                     &target,
-                    ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+                    io.env.store(env!("CARGO_PKG_VERSION")),
                 ) {
                     Ok(unstable) => {
-                        warn_unreleased(unstable, &mut std::io::stderr());
+                        warn_unreleased(unstable, &mut *io.err);
                         "imported".to_owned()
                     }
                     Err(e) => {
-                        eprintln!("{name}: not written: {e}");
+                        errln!(io, "{name}: not written: {e}");
                         refused += 1;
                         format!("not written: {e}")
                     }
                 }
             }
             Err(why) => {
-                eprintln!("{name}: the records do not make a project: {why}");
+                errln!(io, "{name}: the records do not make a project: {why}");
                 refused += 1;
                 "the records do not make a project".to_owned()
             }
@@ -553,9 +549,11 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         if report.lost_connections > 0 || errors > 0 {
             violated += 1;
         }
-        println!(
+        outln!(
+            io,
             "{name}: {result}, {} findings, {} lost connections",
-            report.total, report.lost_connections
+            report.total,
+            report.lost_connections
         );
         summary.push_str(&row(&result, counts));
     }
@@ -565,10 +563,10 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         total.saturating_sub(refused)
     ));
     if let Err(e) = write_report(&out.join("summary.md"), &summary) {
-        error(format_args!("{}: {e}", out.join("summary.md").display()));
+        io.error(format_args!("{}: {e}", out.join("summary.md").display()));
         return 2;
     }
-    println!("summary written to {}", out.join("summary.md").display());
+    outln!(io, "summary written to {}", out.join("summary.md").display());
     if write_failed {
         return 2;
     }
@@ -597,13 +595,13 @@ impl Leaf for ImportQetArgs {
     }
 }
 
-pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
-    let content = a.content.clone().or_else(content_dir);
+pub(super) fn run_import_qet(a: &ImportQetArgs, io: &mut Io<'_>) -> i32 {
+    let content = a.content.clone().or_else(|| content_dir(io.env));
     let library = match &content {
         Some(dir) => match StarterLibrary::from_dir(dir) {
             Ok(l) => l,
             Err(e) => {
-                error(format_args!("starter content: {e}"));
+                io.error(format_args!("starter content: {e}"));
                 return 2;
             }
         },
@@ -611,16 +609,16 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         None => StarterLibrary::compiled(),
     };
     if let Some(dir) = &a.batch {
-        return run_import_qet_batch(a, dir, &library);
+        return run_import_qet_batch(a, dir, &library, io);
     }
     let Some(file) = &a.file else {
-        error("give the QElectroTech project file, or `--batch <dir>`");
+        io.error("give the QElectroTech project file, or `--batch <dir>`");
         return 2;
     };
     let bytes = match std::fs::read(file) {
         Ok(b) => b,
         Err(e) => {
-            error(format_args!("{}: {e}", file.display()));
+            io.error(format_args!("{}: {e}", file.display()));
             return 2;
         }
     };
@@ -632,17 +630,17 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let library = match library.with_symbol_map_beside(file) {
         Ok(l) => l,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     if let Some(project) = &a.into {
-        return run_reimport_qet(a, project, &name, bytes, &library);
+        return run_reimport_qet(a, project, &name, bytes, &library, io);
     }
     let imported = match import_qet(&name, bytes, &library) {
         Ok(i) => i,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
@@ -650,41 +648,60 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let report = imported.migration_report();
     // With the report on stdout, stdout is exactly the report: the summary goes to stderr.
     let to_stderr = a.json || (a.report.is_some() && a.report_out.is_none());
-    let say = |line: String| {
+    let say = |io: &mut Io<'_>, line: String| {
         if to_stderr {
-            eprintln!("{line}");
+            errln!(io, "{line}");
         } else {
-            println!("{line}");
+            outln!(io, "{line}");
         }
     };
-    say(format!(
-        "imported {name}: {} pages, {} devices ({} strips, {} terminals), {} functions, {} representations, {} connections, {} junctions",
-        c.pages, c.devices, c.strips, c.terminals, c.functions, c.representations, c.connections, c.junctions
-    ));
-    say(format!(
-        "report: {} findings, {} lost connections",
-        report.total, report.lost_connections
-    ));
+    say(
+        io,
+        format!(
+            "imported {name}: {} pages, {} devices ({} strips, {} terminals), {} functions, {} representations, {} connections, {} junctions",
+            c.pages,
+            c.devices,
+            c.strips,
+            c.terminals,
+            c.functions,
+            c.representations,
+            c.connections,
+            c.junctions
+        ),
+    );
+    say(
+        io,
+        format!(
+            "report: {} findings, {} lost connections",
+            report.total, report.lost_connections
+        ),
+    );
     if library.symbol_map_rows() > 0 {
-        say(format!(
-            "map: {} beside the file, {} rows; the report says what each row bound",
-            ew_api::import::MAP_FILE,
-            library.symbol_map_rows()
-        ));
+        say(
+            io,
+            format!(
+                "map: {} beside the file, {} rows; the report says what each row bound",
+                ew_api::import::MAP_FILE,
+                library.symbol_map_rows()
+            ),
+        );
     }
     if !report.live.is_empty() {
         let n: u32 = report.live.iter().map(|g| g.count).sum();
-        say(format!("checks: {n} lenient findings"));
+        say(io, format!("checks: {n} lenient findings"));
     }
     let mut code = 0;
     let lenient: u32 = report.live.iter().map(|g| g.count).sum();
     let (derived_pages, model_check_error) = match &imported.session {
         Ok(s) => {
-            say(format!("derived: {} pages in page order", s.page_labels().len()));
+            say(
+                io,
+                format!("derived: {} pages in page order", s.page_labels().len()),
+            );
             (Some(s.page_labels().len()), None)
         }
         Err(msg) => {
-            say(format!("model check failed: {msg}"));
+            say(io, format!("model check failed: {msg}"));
             code = 1;
             (None, Some(msg.to_string()))
         }
@@ -700,11 +717,11 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
             .filter(|e| e.severity == Severity::Error)
             .count();
         if report.lost_connections > 0 {
-            eprintln!("strict: {} lost connections", report.lost_connections);
+            errln!(io, "strict: {} lost connections", report.lost_connections);
             strict_failed = true;
         }
         if errors > 0 {
-            eprintln!("strict: {errors} error findings");
+            errln!(io, "strict: {errors} error findings");
             strict_failed = true;
         }
         if strict_failed {
@@ -715,43 +732,44 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         let text = report.render(fmt);
         match &a.report_out {
             Some(path) => match write_report(path, &text) {
-                Ok(()) => say(format!("report written to {}", path.display())),
+                Ok(()) => say(io, format!("report written to {}", path.display())),
                 Err(e) => {
-                    error(format_args!("{}: {e}", path.display()));
+                    io.error(format_args!("{}: {e}", path.display()));
                     return 2;
                 }
             },
-            None => print!("{text}"),
+            None => out!(io, "{text}"),
         }
     }
     if a.out.is_some() && strict_failed {
-        eprintln!("strict: nothing was written");
+        errln!(io, "strict: nothing was written");
     } else if let Some(out) = &a.out {
         match imported.session {
             Ok(session) => {
                 match ew_api::import::create_project_from(
                     session,
                     out,
-                    ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+                    io.env.store(env!("CARGO_PKG_VERSION")),
                 ) {
                     Ok(unstable) => {
-                        say(format!("project written to {}", out.display()));
-                        warn_unreleased(unstable, &mut std::io::stderr());
+                        say(io, format!("project written to {}", out.display()));
+                        warn_unreleased(unstable, &mut *io.err);
                     }
                     Err(e) => {
-                        error(e);
+                        io.error(e);
                         return 2;
                     }
                 }
             }
             Err(_) => {
-                error("the imported records do not make a project; nothing was written");
+                io.error("the imported records do not make a project; nothing was written");
                 return 2;
             }
         }
     }
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::ImportQetResult {
                 schema: results::ImportQetResult::SCHEMA.to_owned(),
@@ -792,6 +810,7 @@ pub(super) fn run_reimport_qet(
     name: &str,
     bytes: Vec<u8>,
     library: &StarterLibrary,
+    io: &mut Io<'_>,
 ) -> i32 {
     use ew_api::import::{ReimportClass as C, member_text};
     let opened = if a.apply {
@@ -799,12 +818,12 @@ pub(super) fn run_reimport_qet(
             subcommand: "import qet".into(),
             confirmed: false,
         };
-        open_for_writing(project, origin)
+        open_for_writing(project, origin, io)
     } else {
         ew_api::Session::open_read_only(project, env!("CARGO_PKG_VERSION"))
             .map(|(s, _)| s)
             .map_err(|e| {
-                error(format_args!("{}: {e}", project.display()));
+                io.error(format_args!("{}: {e}", project.display()));
                 2
             })
     };
@@ -814,23 +833,23 @@ pub(super) fn run_reimport_qet(
     let detected = match session.detect_qet_lineage(name, bytes.clone(), library) {
         Ok(d) => d,
         Err(e) => {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
     };
     if let Some(question) = detected.question(name) {
-        println!("{question}");
+        outln!(io, "{question}");
     }
     let reimport = match session.reimport_qet(name, bytes, library, detected.lineage()) {
         Ok(r) => r,
         Err(e) => {
-            error(e);
+            io.error(e);
             session.close();
             return 2;
         }
     };
-    println!("{}", reimport.summary());
+    outln!(io, "{}", reimport.summary());
     for row in &reimport.plan.rows {
         let class = match row.class {
             C::Added => "added",
@@ -839,9 +858,10 @@ pub(super) fn run_reimport_qet(
             C::Removed => "removed in the source",
             C::EwChanged | C::Unchanged => continue,
         };
-        println!("{class}: {}", row.record);
+        outln!(io, "{class}: {}", row.record);
         for m in &row.members {
-            println!(
+            outln!(
+                io,
                 "  {}: here {}, in {name} {}",
                 m.path,
                 member_text(m.ours.as_ref()),
@@ -852,28 +872,25 @@ pub(super) fn run_reimport_qet(
     let writes = reimport.plan.writes();
     if !a.apply {
         if writes {
-            println!("nothing was written: add --apply to commit the re-import");
+            outln!(io, "nothing was written: add --apply to commit the re-import");
         }
         session.close();
         return 0;
     }
     if let Err(e) = session.apply_reimport(reimport) {
-        error(e);
+        io.error(e);
         session.close();
         return 2;
     }
     if writes {
-        if let Err(e) = session
-            .save()
-            .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
-        {
-            error(save_failed(&e));
+        if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut *io.err)) {
+            io.error(save_failed(&e));
             session.close();
             return 2;
         }
-        println!("re-import applied; saved");
+        outln!(io, "re-import applied; saved");
     } else {
-        println!("nothing to apply");
+        outln!(io, "nothing to apply");
     }
     session.close();
     0
@@ -897,10 +914,10 @@ impl Leaf for ImportCsvArgs {
 /// `ew import csv`: the tables of the `ew` dialect in a directory with the starter content as a new
 /// project in `--out`. Every finding is printed; `--strict` (the default) writes nothing when the import made error
 /// findings (exit 1), `--lenient` writes the project with them.
-pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
+pub(super) fn run_import_csv(a: &ImportCsvArgs, io: &mut Io<'_>) -> i32 {
     use ew_api::import::{CreateError, ImportMode, create_project, import_tables, read_tables};
-    let Some(content) = a.content.clone().or_else(content_dir) else {
-        error(format_args!(
+    let Some(content) = a.content.clone().or_else(|| content_dir(io.env)) else {
+        io.error(format_args!(
             "`import csv` needs the starter content (`--content <dir>` or EW_CONTENT_DIR): the tables name its \
              symbols, function definitions and forms; nothing was written"
         ));
@@ -909,14 +926,14 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
     let library = match StarterLibrary::from_dir(&content) {
         Ok(l) => l,
         Err(e) => {
-            error(format_args!("starter content: {}: {e}", content.display()));
+            io.error(format_args!("starter content: {}: {e}", content.display()));
             return 2;
         }
     };
     let inputs = match read_tables(&a.tables) {
         Ok(i) => i,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
@@ -928,17 +945,17 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
     let batch = match import_tables(&inputs, &library, mode) {
         Ok(b) => b,
         Err(e) => {
-            error(e);
+            io.error(e);
             return 2;
         }
     };
     let rows = table_report_rows(&batch.report.entries);
     // With `--json` stdout is the result: the human lines go to stderr.
-    let say = |line: String| {
+    let say = |io: &mut Io<'_>, line: String| {
         if a.json {
-            eprintln!("{line}");
+            errln!(io, "{line}");
         } else {
-            println!("{line}");
+            outln!(io, "{line}");
         }
     };
     for r in &rows {
@@ -948,7 +965,10 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
             (Some(f), None) => format!("{}: ", printable(f)),
             _ => String::new(),
         };
-        say(format!("{} {severity}: {at}{}", r.code, printable(&r.message)));
+        say(
+            io,
+            format!("{} {severity}: {at}{}", r.code, printable(&r.message)),
+        );
     }
     let errors = rows
         .iter()
@@ -957,40 +977,40 @@ pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {
     let tables = inputs.len();
     let (records, documents) = (batch.records.len(), batch.lib.len());
     let (code, written) = if !a.lenient && errors > 0 {
-        error(format_args!(
+        io.error(format_args!(
             "the import made {} under `--strict` (the default); nothing was written",
             plural(errors, "error finding", "error findings")
         ));
         (1, false)
     } else {
-        match create_project(
-            &batch,
-            &a.out,
-            ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
-        ) {
+        match create_project(&batch, &a.out, io.env.store(env!("CARGO_PKG_VERSION"))) {
             Ok(unstable) => {
-                say(format!(
-                    "imported {} into {}: {}, {}",
-                    plural(tables, "table", "tables"),
-                    a.out.display(),
-                    plural(records, "record", "records"),
-                    plural(documents, "library document", "library documents")
-                ));
-                warn_unreleased(unstable, &mut std::io::stderr());
+                say(
+                    io,
+                    format!(
+                        "imported {} into {}: {}, {}",
+                        plural(tables, "table", "tables"),
+                        a.out.display(),
+                        plural(records, "record", "records"),
+                        plural(documents, "library document", "library documents")
+                    ),
+                );
+                warn_unreleased(unstable, &mut *io.err);
                 (0, true)
             }
             Err(e @ CreateError::Model(_)) => {
-                error(format_args!("{e}; nothing was written"));
+                io.error(format_args!("{e}; nothing was written"));
                 (1, false)
             }
             Err(e) => {
-                error(e);
+                io.error(e);
                 return 2;
             }
         }
     };
     if a.json {
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::ImportCsvResult {
                 schema: results::ImportCsvResult::SCHEMA.to_owned(),

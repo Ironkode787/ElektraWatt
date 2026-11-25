@@ -21,22 +21,22 @@ impl Leaf for ApplyCli {
     }
 }
 
-pub(super) fn run_apply(a: &ApplyCli) -> i32 {
+pub(super) fn run_apply(a: &ApplyCli, io: &mut Io<'_>) -> i32 {
     let (project, log_file) = match a.project_and_log() {
         Ok(line) => line,
-        Err(e) => return usage(&e),
+        Err(e) => return usage(&e, io),
     };
     let text = match std::fs::read_to_string(log_file) {
         Ok(t) => t,
         Err(e) => {
-            error(format_args!("{}: {e}", log_file.display()));
+            io.error(format_args!("{}: {e}", log_file.display()));
             return 2;
         }
     };
     let log = match CmdLog::parse(&text) {
         Ok(l) => l,
         Err(e) => {
-            error(&e);
+            io.error(&e);
             return i32::from(e.exit_code());
         }
     };
@@ -45,15 +45,16 @@ pub(super) fn run_apply(a: &ApplyCli) -> i32 {
         || log_file.to_string_lossy().into_owned(),
         |n| n.to_string_lossy().into_owned(),
     );
-    let Some(dir) = project_dir(project.as_ref()) else {
+    let Some(dir) = project_dir(project.as_ref(), io) else {
         return 2;
     };
     if a.preview {
-        return run_apply_preview(&dir, &log, &file, a.json);
+        return run_apply_preview(&dir, &log, &file, a.json, io);
     }
-    let print_result = |committed: usize, saved: bool| {
+    let print_result = |committed: usize, saved: bool, io: &mut Io<'_>| {
         if a.json {
-            print!(
+            out!(
+                io,
                 "{}",
                 results::to_text(&results::ApplyResult {
                     schema: results::ApplyResult::SCHEMA.to_owned(),
@@ -75,12 +76,15 @@ pub(super) fn run_apply(a: &ApplyCli) -> i32 {
         .commands()
         .any(|c| c.name == "plc.set_profile")
         .then(|| {
-            let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
-            ew_api::library::LibraryTiers::for_user(system, Vec::new())
+            let system: Vec<PathBuf> = content_dir(io.env)
+                .map(|d| d.join("libraries"))
+                .into_iter()
+                .collect();
+            io.env.tiers(system, Vec::new())
         })
         .flatten();
-    let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
-    let mut session = match open_for_writing_from(&dir, origin, store, tiers) {
+    let store = io.env.store(env!("CARGO_PKG_VERSION"));
+    let mut session = match open_for_writing_from(&dir, origin, store, tiers, io) {
         Ok((s, _)) => s,
         Err(code) => return code,
     };
@@ -88,31 +92,34 @@ pub(super) fn run_apply(a: &ApplyCli) -> i32 {
     let (code, committed) = match &result {
         Ok(receipts) => (0, receipts.len()),
         Err(e) => {
-            error(e);
+            io.error(e);
             (i32::from(e.exit_code()), e.committed())
         }
     };
     if code != 0 && (a.one_step || committed == 0) {
         if a.one_step && committed > 0 {
-            eprintln!("--one-step: nothing saved ({committed} lines were replayed and discarded)");
+            errln!(
+                io,
+                "--one-step: nothing saved ({committed} lines were replayed and discarded)"
+            );
         }
         session.close();
-        print_result(committed, false);
+        print_result(committed, false, io);
         return code;
     }
     match session.save() {
         Ok(saved) => {
-            warn_unreleased(saved.unstable, &mut std::io::stderr());
+            warn_unreleased(saved.unstable, &mut *io.err);
             if a.json {
-                print_result(committed, true);
+                print_result(committed, true, io);
             } else {
-                println!("applied {committed} of {} lines; saved", log.len());
+                outln!(io, "applied {committed} of {} lines; saved", log.len());
             }
             session.close();
             code
         }
         Err(e) => {
-            error(save_failed(&e));
+            io.error(save_failed(&e));
             session.close();
             2
         }
@@ -133,16 +140,19 @@ impl Leaf for UpdateCopiesArgs {
 /// `ew update-copies`: every damaged library copy that a library of `ew lib` holds is
 /// written from it, as the window's Update from library writes it, and the project opens again; a copy no library
 /// holds is named. A refusal is printed in its words, nothing written.
-pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
-    let Some(dir) = project_dir(a.project.as_ref()) else {
+pub(super) fn run_update_copies(a: &UpdateCopiesArgs, io: &mut Io<'_>) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
         return 2;
     };
-    let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
-    let Some(tiers) = ew_api::library::LibraryTiers::for_user(system, a.company.clone()) else {
-        error(NO_USER_DIRECTORIES);
+    let system: Vec<PathBuf> = content_dir(io.env)
+        .map(|d| d.join("libraries"))
+        .into_iter()
+        .collect();
+    let Some(tiers) = io.env.tiers(system, a.company.clone()) else {
+        io.error(NO_USER_DIRECTORIES);
         return 2;
     };
-    let open = || {
+    let open = |io: &mut Io<'_>| {
         let options = ew_api::SessionOptions {
             origin: ew_api::Origin::Cli {
                 subcommand: "update-copies".to_owned(),
@@ -151,13 +161,13 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
             libraries: Some(tiers.clone()),
             ..ew_api::SessionOptions::default()
         };
-        let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
+        let store = io.env.store(env!("CARGO_PKG_VERSION"));
         ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep).map_err(|e| {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             2
         })
     };
-    let (mut session, _) = match open() {
+    let (mut session, _) = match open(io) {
         Ok(opened) => opened,
         Err(code) => return code,
     };
@@ -166,7 +176,7 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
     let done = match done {
         Ok(done) => done,
         Err(refusal) => {
-            error(format_args!("{}: {refusal}", dir.display()));
+            io.error(format_args!("{}: {refusal}", dir.display()));
             return if refusal.key() == "refusal-update-copies-save" {
                 2
             } else {
@@ -175,35 +185,38 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
         }
     };
     for copy in &done.updated {
-        println!("updated {copy} from its library");
+        outln!(io, "updated {copy} from its library");
     }
     for copy in &done.not_updated {
-        eprintln!("not updated, as no library on this computer holds a readable version: {copy}");
+        errln!(
+            io,
+            "not updated, as no library on this computer holds a readable version: {copy}"
+        );
     }
     // The project again: writable when the integrity check passes.
-    let (session, report) = match open() {
+    let (session, report) = match open(io) {
         Ok(opened) => opened,
         Err(code) => return code,
     };
     session.close();
     if report.access != ew_api::Access::Edit {
-        eprintln!("the project still opens read-only");
+        errln!(io, "the project still opens read-only");
         return 1;
     }
     if done.updated.is_empty() {
-        println!("the project has no damaged library copy");
+        outln!(io, "the project has no damaged library copy");
     } else {
-        println!("the project opens for editing");
+        outln!(io, "the project opens for editing");
     }
     i32::from(!done.not_updated.is_empty())
 }
 
 /// `ew apply --preview`: the replay on a read-only session (no lock, no journal, never saved), then the changes.
-pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool) -> i32 {
-    let (mut session, _) = match open_reader(dir, "apply") {
+pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool, io: &mut Io<'_>) -> i32 {
+    let (mut session, _) = match open_reader(dir, "apply", io) {
         Ok(r) => r,
         Err(e) => {
-            error(format_args!("{}: {e}", dir.display()));
+            io.error(format_args!("{}: {e}", dir.display()));
             return 2;
         }
     };
@@ -212,14 +225,14 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
     let (code, committed) = match &result {
         Ok(receipts) => (0, receipts.len()),
         Err(e) => {
-            error(e);
+            io.error(e);
             (i32::from(e.exit_code()), e.committed())
         }
     };
     let diff = match session.diff_from(&before) {
         Ok(d) => d,
         Err(e) => {
-            error(format_args!("{e:?}"));
+            io.error(format_args!("{e:?}"));
             return 2;
         }
     };
@@ -242,7 +255,8 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
                 fields: c.fields.iter().map(ToString::to_string).collect(),
             })
             .collect();
-        print!(
+        out!(
+            io,
             "{}",
             results::to_text(&results::ApplyResult {
                 schema: results::ApplyResult::SCHEMA.to_owned(),
@@ -258,7 +272,8 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
         );
         return code;
     }
-    println!(
+    outln!(
+        io,
         "preview: {committed} of {} lines commit; {} records, {} tags and {} cross-references change; nothing is saved",
         log.len(),
         diff.model.changes.len(),
@@ -272,13 +287,13 @@ pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool
         } else {
             format!(": {}", c.fields.join(", "))
         };
-        println!("{:?} {kind} {id}{fields}", c.change);
+        outln!(io, "{:?} {kind} {id}{fields}", c.change);
     }
     for t in &diff.derived.tags {
-        println!("tag {}: {} -> {}", t.key, t.before, t.after);
+        outln!(io, "tag {}: {} -> {}", t.key, t.before, t.after);
     }
     for x in &diff.derived.xrefs {
-        println!("xref {}: {} -> {}", x.key, x.before, x.after);
+        outln!(io, "xref {}: {} -> {}", x.key, x.before, x.after);
     }
     code
 }
@@ -290,14 +305,15 @@ impl Leaf for CommandsCli {
 
 /// `ew commands [--json]`: the command registry, one line per command (name, exposure, cost, confirmation, undoable,
 /// aliases), or its JSON result.
-pub(super) fn run_commands(json: bool) -> i32 {
+pub(super) fn run_commands(json: bool, io: &mut Io<'_>) -> i32 {
     let list = results::commands();
     if json {
-        print!("{}", results::to_text(&list));
+        out!(io, "{}", results::to_text(&list));
         return 0;
     }
     for c in &list.commands {
-        println!(
+        outln!(
+            io,
             "{}\t{}\t{}\t{}\t{}\t{}",
             c.name,
             c.exposure,
@@ -317,7 +333,7 @@ impl Leaf for SchemaCli {
 /// `ew schema <name>`: the parameter schema of a command (or an alias), byte for byte the file of
 /// `crates/ew-commands/schemas/`, or a result schema (`ew.<command>-result/<n>`), the file of `bin/ew/schemas/`. An
 /// unknown name exits 2 naming it.
-pub(super) fn run_schema(name: &str) -> i32 {
+pub(super) fn run_schema(name: &str, io: &mut Io<'_>) -> i32 {
     let text = if name.starts_with("ew.") && name.contains("-result/") {
         results::schema_text(name)
     } else {
@@ -325,11 +341,11 @@ pub(super) fn run_schema(name: &str) -> i32 {
     };
     match text {
         Some(t) => {
-            print!("{t}");
+            out!(io, "{t}");
             0
         }
         None => {
-            error(format_args!(
+            io.error(format_args!(
                 "unknown schema `{}` (a command name of `ew commands`, or a result schema `ew.<command>-result/<n>`)",
                 name.escape_debug()
             ));

@@ -76,7 +76,7 @@ fn render_writes_the_png_of_folio_103_that_export_png_writes() {
         std::fs::read(&out).unwrap() == want,
         "103.png differs from the exported PNG"
     );
-    let o = t.ew(&args([&"render", &"--project", &p, &"--page", &"103", &"--png"]));
+    let o = t.ew_process(&args([&"render", &"--project", &p, &"--page", &"103", &"--png"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert!(
         std::fs::read(t.0.join("103.png")).unwrap() == want,

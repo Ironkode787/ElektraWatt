@@ -21,15 +21,9 @@ pub(super) fn written_line(write: Option<&ew_api::library::WriteReport>) -> Stri
     )
 }
 
-// The program boundary: `EW_CONTENT_DIR` only names the directory of the starter content, as `--content` does.
-#[allow(
-    clippy::disallowed_methods,
-    reason = "the environment is read at the program boundary"
-)]
-pub(super) fn content_dir() -> Option<PathBuf> {
-    std::env::var_os("EW_CONTENT_DIR")
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
+// `EW_CONTENT_DIR` only names the directory of the starter content, as `--content` does.
+pub(super) fn content_dir(env: &Env) -> Option<PathBuf> {
+    env.var("EW_CONTENT_DIR").map(PathBuf::from)
 }
 
 /// The refusal when the OS gives no user data and cache directories for the library tiers.
@@ -45,14 +39,17 @@ pub(super) fn no_library(library: &str) -> String {
 }
 
 /// Opens the tiers of `ew lib` (exit code 2 on failure).
-pub(super) fn open_libraries(company: &[PathBuf]) -> Result<ew_api::library::Registry, i32> {
-    let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
-    let Some(tiers) = ew_api::library::LibraryTiers::for_user(system, company.to_vec()) else {
-        error(NO_USER_DIRECTORIES);
+pub(super) fn open_libraries(company: &[PathBuf], io: &mut Io<'_>) -> Result<ew_api::library::Registry, i32> {
+    let system: Vec<PathBuf> = content_dir(io.env)
+        .map(|d| d.join("libraries"))
+        .into_iter()
+        .collect();
+    let Some(tiers) = io.env.tiers(system, company.to_vec()) else {
+        io.error(NO_USER_DIRECTORIES);
         return Err(2);
     };
     ew_api::library::Registry::open(&tiers).map_err(|e| {
-        error(format_args!("the libraries cannot be opened: {e}"));
+        io.error(format_args!("the libraries cannot be opened: {e}"));
         2
     })
 }
@@ -98,9 +95,9 @@ impl Leaf for LibImportQetCli {
     const RESULT: Option<&'static str> = Some(results::LibImportQetElementsResult::SCHEMA);
 }
 
-pub(super) fn run_lib(a: &LibCli) -> i32 {
+pub(super) fn run_lib(a: &LibCli, io: &mut Io<'_>) -> i32 {
     use ew_api::library::{ItemQuery, PartQuery};
-    let mut reg = match open_libraries(&a.company) {
+    let mut reg = match open_libraries(&a.company, io) {
         Ok(r) => r,
         Err(code) => return code,
     };
@@ -136,7 +133,8 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                             .collect(),
                     })
                     .collect();
-                print!(
+                out!(
+                    io,
                     "{}",
                     results::to_text(&results::LibListResult {
                         schema: results::LibListResult::SCHEMA.to_owned(),
@@ -149,7 +147,8 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         .path
                         .as_ref()
                         .map_or_else(|| "(compiled in)".to_owned(), |p| p.display().to_string());
-                    println!(
+                    outln!(
+                        io,
                         "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{path}",
                         l.tier.name(),
                         l.key,
@@ -165,12 +164,12 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         .cloned()
                         .chain(ew_api::unreadable_profiles(&reg, l.id))
                     {
-                        println!("  {f}");
+                        outln!(io, "  {f}");
                     }
                 }
             }
             for f in reg.findings() {
-                warning(f);
+                io.warning(f);
             }
             0
         }
@@ -197,7 +196,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 let hits = match reg.try_search(&q) {
                     Ok(h) => h,
                     Err(e) => {
-                        error(e);
+                        io.error(e);
                         return 2;
                     }
                 };
@@ -278,7 +277,8 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 }
             }
             if a.json {
-                print!(
+                out!(
+                    io,
                     "{}",
                     results::to_text(&results::LibSearchResult {
                         schema: results::LibSearchResult::SCHEMA.to_owned(),
@@ -287,10 +287,10 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 );
             } else {
                 if rows.is_empty() {
-                    eprintln!("nothing found");
+                    errln!(io, "nothing found");
                 }
                 for (_, line) in rows {
-                    println!("{line}");
+                    outln!(io, "{line}");
                 }
             }
             0
@@ -298,13 +298,14 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
         // `--rebuild` is required, so it is always set: the old parser refused `lib index` without it.
         LibSub::Index(IndexCli { rebuild: _required }) => {
             if let Err(e) = reg.rebuild_index() {
-                error(format_args!("the index cannot be rebuilt: {e}"));
+                io.error(format_args!("the index cannot be rebuilt: {e}"));
                 return 2;
             }
             match reg.index_counts() {
                 Ok((parts, items)) => {
                     if a.json {
-                        print!(
+                        out!(
+                            io,
                             "{}",
                             results::to_text(&results::LibIndexResult {
                                 schema: results::LibIndexResult::SCHEMA.to_owned(),
@@ -313,12 +314,12 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                             })
                         );
                     } else {
-                        println!("index rebuilt: {parts} parts, {items} other items");
+                        outln!(io, "index rebuilt: {parts} parts, {items} other items");
                     }
                     0
                 }
                 Err(e) => {
-                    error(e);
+                    io.error(e);
                     2
                 }
             }
@@ -332,7 +333,8 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
             Ok(id) => {
                 let listed = reg.libraries().iter().any(|l| l.id == id);
                 if a.json {
-                    print!(
+                    out!(
+                        io,
                         "{}",
                         results::to_text(&results::LibCreateResult {
                             schema: results::LibCreateResult::SCHEMA.to_owned(),
@@ -343,10 +345,11 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         })
                     );
                 } else {
-                    println!("created {key} ({id}) in {}", dir.display());
+                    outln!(io, "created {key} ({id}) in {}", dir.display());
                 }
                 if !listed {
-                    eprintln!(
+                    errln!(
+                        io,
                         "note: {} lies in no library tier; pass it as `--company` to use it",
                         dir.display()
                     );
@@ -354,7 +357,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 0
             }
             Err(e) => {
-                error(e);
+                io.error(e);
                 2
             }
         },
@@ -368,20 +371,21 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 .find(|l| l.key == *library || l.id.to_string() == *library)
                 .map(|l| (l.id, l.key.clone()))
             else {
-                error(no_library(library));
+                io.error(no_library(library));
                 return 2;
             };
             let collection = match ew_api::qet_collection::read_collection(dir) {
                 Ok(c) => c,
                 Err(e) => {
-                    error(e);
+                    io.error(e);
                     return 2;
                 }
             };
             match ew_api::qet_collection::import_into_library(&mut reg, id, &collection, *take_over) {
                 Ok((done, write)) => {
                     if a.json {
-                        print!(
+                        out!(
+                            io,
                             "{}",
                             results::to_text(&results::LibImportQetElementsResult {
                                 schema: results::LibImportQetElementsResult::SCHEMA.to_owned(),
@@ -399,20 +403,21 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         );
                         return 0;
                     }
-                    print_catalog_rows(&done.report);
+                    print_catalog_rows(&done.report, io);
                     let written = written_line(write.as_ref());
-                    println!(
+                    outln!(
+                        io,
                         "converted {} elements into {key}, {} files not converted; {written}",
                         done.symbols,
                         done.refused.len()
                     );
                     if let Some(w) = write.as_ref().and_then(index_warning) {
-                        eprintln!("{w}");
+                        errln!(io, "{w}");
                     }
                     0
                 }
                 Err(e) => {
-                    error(e);
+                    io.error(e);
                     2
                 }
             }
@@ -430,10 +435,10 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                 .find(|l| l.key == *library || l.id.to_string() == *library)
                 .map(|l| (l.id, l.key.clone()))
             else {
-                error(no_library(library));
+                io.error(no_library(library));
                 return 2;
             };
-            let (map, input) = match read_map_and_table(map, file) {
+            let (map, input) = match read_map_and_table(map, file, io) {
                 Ok(r) => r,
                 Err(code) => return code,
             };
@@ -448,7 +453,8 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
             ) {
                 Ok(done) => {
                     if a.json {
-                        print!(
+                        out!(
+                            io,
                             "{}",
                             results::to_text(&results::LibImportPartsResult {
                                 schema: results::LibImportPartsResult::SCHEMA.to_owned(),
@@ -465,30 +471,31 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                             })
                         );
                         if let Some(w) = done.write.as_ref().and_then(index_warning) {
-                            eprintln!("{w}");
+                            errln!(io, "{w}");
                         }
                         return 0;
                     }
-                    print_catalog_rows(&done.import.report);
+                    print_catalog_rows(&done.import.report, io);
                     let written = written_line(done.write.as_ref());
-                    println!(
+                    outln!(
+                        io,
                         "imported {} into {}: {}; {written}",
                         input.name(),
                         target.1,
                         counts_text(&done.import)
                     );
                     if let Some(w) = done.write.as_ref().and_then(index_warning) {
-                        eprintln!("{w}");
+                        errln!(io, "{w}");
                     }
                     0
                 }
                 Err(e) => {
-                    error(&e);
+                    io.error(&e);
                     if matches!(
                         e,
                         ew_api::catalog::CatalogError::Library(ew_api::library::LibraryError::Stale { .. })
                     ) {
-                        eprintln!("{TAKE_OVER_NOTE}");
+                        errln!(io, "{TAKE_OVER_NOTE}");
                     }
                     2
                 }

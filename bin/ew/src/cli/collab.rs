@@ -10,9 +10,10 @@ use std::path::{Path, PathBuf};
 
 use ew_api::git::{self, ConfigScope, GitExe};
 
+use super::GitSetupArgs;
+use super::NOT_CONFIRMED;
+use super::io::Io;
 use super::tree::Leaf;
-use super::{GitSetupArgs, is_terminal};
-use super::{NOT_CONFIRMED, error};
 use crate::catalogue::{Exit, exit};
 
 impl Leaf for GitSetupArgs {
@@ -32,45 +33,36 @@ const PROJECT_DEPTH: usize = 4;
 /// `ew git setup`: exit 0 when configured, 2 on everything else (no consent, a declined question, not in a git
 /// worktree, git missing or refusing, a foreign `post-merge` hook, write errors). Nothing is written before the consent,
 /// and a foreign hook refuses before anything is written.
-pub(super) fn run_git_setup(a: &GitSetupArgs) -> i32 {
-    let terminal = is_terminal();
-    let mut input = std::io::stdin().lock();
-    let mut output = std::io::stdout().lock();
-    let Ok(cwd) = std::env::current_dir() else {
-        error("the current directory cannot be read");
+pub(super) fn run_git_setup(a: &GitSetupArgs, io: &mut Io<'_>) -> i32 {
+    let terminal = io.env.is_terminal();
+    let Ok(cwd) = io.env.cwd() else {
+        io.error("the current directory cannot be read");
         return 2;
     };
     let Ok(exe) = std::env::current_exe() else {
-        error("the path of `ew` cannot be read");
+        io.error("the path of `ew` cannot be read");
         return 2;
     };
-    let [image, mount] = super::appimage();
+    let [image, mount] = super::appimage(io.env);
     let ew = git::ew_command(&exe, image.as_deref(), mount.as_deref());
-    run_git_setup_with(a, &cwd, &ew, terminal, &mut input, &mut output)
+    run_git_setup_with(a, &cwd, &ew, terminal, io)
 }
 
 /// [`run_git_setup`] with the current directory, the command that runs `ew` ([`git::ew_command`]), the terminal test,
 /// the reader and the writer injected (unit tests).
-fn run_git_setup_with(
-    a: &GitSetupArgs,
-    cwd: &Path,
-    ew: &str,
-    terminal: bool,
-    input: &mut dyn std::io::BufRead,
-    output: &mut dyn std::io::Write,
-) -> i32 {
+fn run_git_setup_with(a: &GitSetupArgs, cwd: &Path, ew: &str, terminal: bool, io: &mut Io<'_>) -> i32 {
     let vfs = ew_api::OsVfs;
     let root = match git::worktree_root(&vfs, cwd) {
         Ok(Some(root)) => root,
         Ok(None) => {
-            error(format_args!(
+            io.error(format_args!(
                 "{} is not in a git worktree; nothing was changed",
                 cwd.display()
             ));
             return 2;
         }
         Err(e) => {
-            error(format_args!("{}: {e}", cwd.display()));
+            io.error(format_args!("{}: {e}", cwd.display()));
             return 2;
         }
     };
@@ -93,7 +85,7 @@ fn run_git_setup_with(
         .collect();
     if !a.yes {
         if !terminal {
-            error(format_args!(
+            io.error(format_args!(
                 "`ew git setup` writes git's configuration only with your consent: run it on a terminal to be \
                  asked, or pass --yes; nothing was changed"
             ));
@@ -103,30 +95,30 @@ fn run_git_setup_with(
             ConfigScope::Global => "your global git configuration",
             ConfigScope::Repository => "this repository's git configuration",
         };
-        let _ = writeln!(output, "`ew git setup` writes these keys into {place}:");
+        let _ = writeln!(io.out, "`ew git setup` writes these keys into {place}:");
         for (key, value) in &config {
-            let _ = writeln!(output, "  {key} = {value}");
+            let _ = writeln!(io.out, "  {key} = {value}");
         }
         if relative.is_empty() {
             let _ = writeln!(
-                output,
+                io.out,
                 "No ElektraWatt project folder was found for the managed blocks."
             );
         } else {
             let _ = writeln!(
-                output,
+                io.out,
                 "and the managed .gitattributes and .gitignore blocks into these project folders:"
             );
             for rel in &relative {
-                let _ = writeln!(output, "  {rel}");
+                let _ = writeln!(io.out, "  {rel}");
             }
         }
-        let _ = write!(output, "Write them? [y/N] ");
-        let _ = output.flush();
+        let _ = write!(io.out, "Write them? [y/N] ");
+        let _ = io.out.flush();
         let mut answer = String::new();
-        let _ = input.read_line(&mut answer);
+        let _ = io.input.read_line(&mut answer);
         if !matches!(answer.trim(), "y" | "Y" | "yes" | "Yes") {
-            error(NOT_CONFIRMED);
+            io.error(NOT_CONFIRMED);
             return 2;
         }
     }
@@ -142,7 +134,7 @@ fn run_git_setup_with(
                 match git::own_hooks(&vfs, &root, &hooks) {
                     Ok(true) => {}
                     Ok(false) => {
-                        error(format_args!(
+                        io.error(format_args!(
                             "git runs the hooks of this repository from {}, outside it (core.hooksPath), so \
                              other repositories run them too; run `ew git setup` without --hooks, and add `ew check \
                              --integrity --after-merge` to that post-merge hook by hand; nothing was changed",
@@ -152,18 +144,18 @@ fn run_git_setup_with(
                     }
                     // The error names the path that failed.
                     Err(e) => {
-                        error(format_args!("{e}; nothing was changed"));
+                        io.error(format_args!("{e}; nothing was changed"));
                         return 2;
                     }
                 }
                 if let Err(e) = probe_hook(&hooks, &hook) {
-                    error(format_args!("{e}; nothing was changed"));
+                    io.error(format_args!("{e}; nothing was changed"));
                     return 2;
                 }
                 Some(hooks)
             }
             Err(e) => {
-                error(format_args!("the hooks directory: {e}; nothing was changed"));
+                io.error(format_args!("the hooks directory: {e}; nothing was changed"));
                 return 2;
             }
         }
@@ -172,25 +164,25 @@ fn run_git_setup_with(
     };
     for (key, value) in &config {
         if let Err(e) = exe_git.config_set(&root, key, value, scope) {
-            error(format_args!("{key}: {e}"));
+            io.error(format_args!("{key}: {e}"));
             return 2;
         }
     }
     let _ = writeln!(
-        output,
+        io.out,
         "the merge driver and the textconv are configured ({} keys)",
         config.len()
     );
     for (dir, rel) in projects.iter().zip(&relative) {
         match git::write_blocks(&vfs, dir) {
             Ok(written) if written.is_empty() => {
-                let _ = writeln!(output, "{rel}: the managed blocks are up to date");
+                let _ = writeln!(io.out, "{rel}: the managed blocks are up to date");
             }
             Ok(written) => {
-                let _ = writeln!(output, "{rel}: {} written", written.join(" and "));
+                let _ = writeln!(io.out, "{rel}: {} written", written.join(" and "));
             }
             Err(e) => {
-                error(format_args!("{rel}: {e}"));
+                io.error(format_args!("{rel}: {e}"));
                 return 2;
             }
         }
@@ -198,13 +190,13 @@ fn run_git_setup_with(
     if let Some(hooks) = hooks {
         match git::install_hook(&vfs, &hooks, &hook) {
             Ok(git::Hook::Installed(p)) => {
-                let _ = writeln!(output, "the post-merge hook is installed: {}", p.display());
+                let _ = writeln!(io.out, "the post-merge hook is installed: {}", p.display());
             }
             Ok(git::Hook::Unchanged(p)) => {
-                let _ = writeln!(output, "the post-merge hook is up to date: {}", p.display());
+                let _ = writeln!(io.out, "the post-merge hook is up to date: {}", p.display());
             }
             Err(e) => {
-                error(e);
+                io.error(e);
                 return 2;
             }
         }
@@ -266,6 +258,7 @@ fn project_folders(root: &Path) -> Vec<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::io::{Env, captured};
 
     /// Without a terminal and without `--yes`, `ew git setup` exits 2 and writes nothing, in a folder that is no
     /// worktree too.
@@ -278,18 +271,12 @@ mod tests {
             hooks: true,
             yes: false,
         };
-        let mut input = std::io::Cursor::new(b"y\n".to_vec());
-        let mut output = Vec::new();
-        assert_eq!(
-            run_git_setup_with(&a, &dir, "'/ew'", false, &mut input, &mut output),
-            2
-        );
+        let env = Env::new(dir.to_path_buf());
+        let (code, output, _) = captured("y\n", &env, |io| run_git_setup_with(&a, &dir, "'/ew'", false, io));
+        assert_eq!(code, 2);
         assert!(output.is_empty());
-        let mut declined = std::io::Cursor::new(b"n\n".to_vec());
-        assert_eq!(
-            run_git_setup_with(&a, &dir, "'/ew'", true, &mut declined, &mut output),
-            2
-        );
+        let (code, _, _) = captured("n\n", &env, |io| run_git_setup_with(&a, &dir, "'/ew'", true, io));
+        assert_eq!(code, 2);
         let listed: Vec<_> = std::fs::read_dir(&dir)
             .unwrap()
             .filter_map(Result::ok)
@@ -315,14 +302,11 @@ mod tests {
             hooks: false,
             yes: false,
         };
-        let mut declined = std::io::Cursor::new(b"n\n".to_vec());
-        let mut output = Vec::new();
+        let env = Env::new(dir.to_path_buf());
+        let (code, output, _) = captured("n\n", &env, |io| run_git_setup_with(&a, &dir, "'/ew'", true, io));
+        assert_eq!(code, 2);
         assert_eq!(
-            run_git_setup_with(&a, &dir, "'/ew'", true, &mut declined, &mut output),
-            2
-        );
-        assert_eq!(
-            String::from_utf8(output).unwrap(),
+            output,
             "`ew git setup` writes these keys into this repository's git configuration:\n  merge.elektrawatt.name = \
              ElektraWatt record merge\n  merge.elektrawatt.driver = '/ew' merge-driver %O %A %B %L %P\n  \
              diff.elektrawatt.textconv = '/ew' diff --textconv\n  diff.elektrawatt.cachetextconv = true\nand the \
