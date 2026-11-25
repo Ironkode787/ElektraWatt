@@ -463,7 +463,7 @@ fn colour_of(q: &Q, c: Id<Connection>) -> Option<String> {
     q.get::<ConnWireProps>(c)
         .first()
         .and_then(|(_, e)| e.colour.as_ref())
-        .and_then(|p| ew_derive::colour_text(&p.value))
+        .map(|p| ew_derive::colour_text(&p.value))
 }
 
 /// A wire's Wire marker tick always prints a marker (the check box must have a

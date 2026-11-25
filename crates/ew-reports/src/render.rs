@@ -83,7 +83,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
                 s => format!("{n} {s}"),
             }
         }
-        Cell::Colour(c) => ew_derive::colour_raw(c),
+        Cell::Colour(c) => ew_derive::colour_text(c),
         Cell::Date(d) => format!("{:02}-{:02}-{:04}", d.day(), d.month(), d.year()),
         Cell::Range(ds) => compress_range(q, ds),
         Cell::Tbd => match &opts.tbd {

@@ -389,7 +389,7 @@ pub fn explicit_marker_text(c: &Connection) -> String {
     if let Some(t) = c.overrides.csa.as_ref().and_then(csa_text) {
         parts.push(t);
     }
-    if let Some(t) = c.overrides.colour.as_ref().and_then(colour_text) {
+    if let Some(t) = c.overrides.colour.as_ref().map(colour_text) {
         parts.push(t);
     }
     parts.join(" ")
@@ -410,7 +410,7 @@ pub fn effective_marker_text(q: &Q, c: Id<Connection>) -> String {
     if let Some(t) = e.csa.as_ref().and_then(|p| csa_text(&p.value)) {
         parts.push(t);
     }
-    if let Some(t) = e.colour.as_ref().and_then(|p| colour_text(&p.value)) {
+    if let Some(t) = e.colour.as_ref().map(|p| colour_text(&p.value)) {
         parts.push(t);
     }
     parts.join(" ")
@@ -543,7 +543,7 @@ pub fn group_marker(q: &Q, item: &PageItem) -> Option<GroupMarker> {
         if let Some(t) = e
             .as_ref()
             .and_then(|e| e.colour.as_ref())
-            .and_then(|p| colour_text(&p.value))
+            .map(|p| colour_text(&p.value))
         {
             colours.push(t);
         }
@@ -588,7 +588,7 @@ pub fn cable_size_text(q: &Q, cable: Id<Device>) -> String {
     }
     let pe = cores
         .iter()
-        .any(|c| c.colour.as_ref().and_then(colour_text).as_deref() == Some("GNYE"));
+        .any(|c| c.colour.as_ref().map(colour_text).as_deref() == Some("GNYE"));
     let csas: BTreeSet<Option<String>> = cores
         .iter()
         .map(|c| match &c.csa {

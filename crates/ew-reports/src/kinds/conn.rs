@@ -333,8 +333,7 @@ pub(super) fn colour_cell(c: Option<&ColourSpec>) -> Cell {
 pub(super) fn csa_cell(c: Option<&Csa>) -> Cell {
     match c {
         Some(Csa::Mm2(d)) => Cell::Qty(*d, QtyUnit::Unit(Unit::Mm2)),
-        Some(Csa::Awg(n)) => Cell::Ident(format!("AWG{n}")),
-        Some(Csa::Kcmil(d)) => Cell::Ident(format!("{d} kcmil")),
+        Some(c @ (Csa::Awg(_) | Csa::Kcmil(_))) => ew_derive::csa_text(c).map_or(Cell::Empty, Cell::Ident),
         Some(Csa::Unknown(_)) | None => Cell::Empty,
     }
 }

@@ -219,7 +219,7 @@ impl ReportKindDef for TubeCutList {
                 r.props
                     .colour
                     .as_ref()
-                    .and_then(|c| colour_text(&c.value))
+                    .map(|c| colour_text(&c.value))
                     .unwrap_or_default(),
                 copy_number(q, r.props.part.as_ref().map(|p| p.value)),
             );

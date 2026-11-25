@@ -218,9 +218,9 @@ pub use tag::{
 };
 // How a value of the domain is printed.
 pub use text::{
-    bus_address, channel_address, colour_code_marked, colour_marked, colour_raw, colour_text, csa_text,
-    mm_exact, mm_hundredth, mm_micro, mm_padded, mm_tenth, mm_tenth_float, mm_tenth_short, mm_truncated,
-    potential_type_code, potential_type_sql, potential_type_text, slot_short, slot_text,
+    awg_gauge, bus_address, channel_address, colour_code_text, colour_text, csa_text, mm_exact, mm_hundredth,
+    mm_micro, mm_padded, mm_tenth, mm_tenth_float, mm_tenth_short, mm_truncated, potential_type_code,
+    potential_type_sql, potential_type_text, slot_short, slot_text,
 };
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{

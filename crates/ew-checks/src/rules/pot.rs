@@ -2403,11 +2403,11 @@ impl Rule for RedundantOverride {
             }
             if o.colour.is_some()
                 && same(
-                    props.colour.as_ref().and_then(|x| colour_text(&x.value)),
-                    below.colour.as_ref().and_then(|x| colour_text(&x.value)),
+                    props.colour.as_ref().map(|x| colour_text(&x.value)),
+                    below.colour.as_ref().map(|x| colour_text(&x.value)),
                 )
             {
-                let v = o.colour.as_ref().and_then(colour_text).unwrap_or_default();
+                let v = o.colour.as_ref().map(colour_text).unwrap_or_default();
                 redundant.push(("colour", s.colour, v));
             }
             if o.wire_part.is_some()

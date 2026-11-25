@@ -1342,7 +1342,7 @@ fn tube_props(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
             props
                 .colour
                 .as_ref()
-                .and_then(|v| ew_derive::colour_text(&v.value).map(|t| (t, &v.source))),
+                .map(|v| (ew_derive::colour_text(&v.value), &v.source)),
         ),
         part: prop(props.part.as_ref().map(|v| {
             (

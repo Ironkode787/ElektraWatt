@@ -141,11 +141,11 @@ pub(crate) fn ml_json(ml: &MlText) -> String {
     serde_json::to_string(ml).unwrap_or_default()
 }
 
-/// A cross-section as (value, unit): `("0.75", "mm²")`, `("14", "AWG")`, `("250", "kcmil")`.
+/// A cross-section as (value, unit): `("0.75", "mm²")`, `("14", "AWG")`, `("2/0", "AWG")`, `("250", "kcmil")`.
 pub(crate) fn csa_parts(c: &Csa) -> Option<(String, &'static str)> {
     match c {
         Csa::Mm2(d) => Some((d.to_string(), "mm\u{00B2}")),
-        Csa::Awg(n) => Some((n.to_string(), "AWG")),
+        Csa::Awg(n) => Some((ew_derive::awg_gauge(*n), "AWG")),
         Csa::Kcmil(d) => Some((d.to_string(), "kcmil")),
         Csa::Unknown(_) => None,
     }
@@ -154,7 +154,7 @@ pub(crate) fn csa_parts(c: &Csa) -> Option<(String, &'static str)> {
 /// The colour when every code is an IEC 60757 code.
 pub(crate) fn colour_iec(c: &ColourSpec) -> Option<String> {
     if c.codes().iter().all(|c| matches!(c, ColourCode::Iec(_))) {
-        Some(ew_derive::colour_raw(c))
+        Some(ew_derive::colour_text(c))
     } else {
         None
     }

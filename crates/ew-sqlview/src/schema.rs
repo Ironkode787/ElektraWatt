@@ -349,7 +349,10 @@ pub const WIRE: View = View {
             "potential_name",
             "the potential's name; \"A ⇄ B\" for a bond wire",
         ),
-        t("csa", "the effective cross-section, exact decimal text"),
+        t(
+            "csa",
+            "the effective cross-section, exact decimal text; an AWG gauge as printed (18, 2/0)",
+        ),
         t("csa_unit", "mm², AWG or kcmil"),
         t("colour", "the effective colour as printed (\"DBU\", \"GNYE\")"),
         t(
@@ -553,7 +556,7 @@ pub const CONDUCTOR: View = View {
         ),
         t(
             "csa",
-            "the conductor's cross-section, exact decimal text; NULL without one",
+            "the conductor's cross-section, exact decimal text; an AWG gauge as printed (18, 2/0); NULL without one",
         ),
         t("csa_unit", "mm², AWG or kcmil; NULL without a cross-section"),
         i("shield", "1 for a shield conductor"),
@@ -611,7 +614,7 @@ pub const POTENTIAL: View = View {
         ),
         t(
             "default_csa",
-            "the profile's default cross-section, exact decimal text",
+            "the profile's default cross-section, exact decimal text; an AWG gauge as printed (18, 2/0)",
         ),
         t("default_csa_unit", "mm², AWG or kcmil"),
         i("switched", "1 when functionally switched (doc 08 §3.6)"),

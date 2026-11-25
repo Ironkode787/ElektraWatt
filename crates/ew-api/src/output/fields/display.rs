@@ -139,20 +139,8 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
             Some(Ok(d)) => cx.date_format().format(d),
             _ => value.as_str().map_or_else(|| compact_json(value), str::to_owned),
         },
-        FieldType::Colour => match value {
-            Value::Array(codes) => codes
-                .iter()
-                .map(|c| match c {
-                    Value::String(s) => s.clone(),
-                    Value::Object(m) => m
-                        .get("foreign")
-                        .and_then(Value::as_str)
-                        .map_or_else(|| compact_json(c), str::to_owned),
-                    other => compact_json(other),
-                })
-                .collect::<String>(),
-            other => compact_json(other),
-        },
+        FieldType::Colour => serde_json::from_value::<ew_schema::ColourSpec>(value.clone())
+            .map_or_else(|_| compact_json(value), |c| ew_derive::colour_text(&c)),
         FieldType::Enum { .. } => match value {
             Value::String(s) => s.clone(),
             other => compact_json(other),

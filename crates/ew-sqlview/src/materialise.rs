@@ -530,7 +530,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
         r.set("csa", value).set("csa_unit", unit);
     }
     if let Some(c) = &p.colour {
-        r.set("colour", ew_derive::colour_raw(&c.value))
+        r.set("colour", ew_derive::colour_text(&c.value))
             .set("colour_iec", colour_iec(&c.value));
     }
     r.set(
@@ -886,7 +886,7 @@ pub(crate) fn conductors(s: &Source<'_>) -> Vec<Row> {
                 .set("cable_tag", cable_tag.clone())
                 .set("core", c.core.as_str())
                 .set("pair", c.pair)
-                .set("colour", c.colour.as_ref().map(ew_derive::colour_raw))
+                .set("colour", c.colour.as_ref().map(ew_derive::colour_text))
                 .set("colour_iec", c.colour.as_ref().and_then(colour_iec))
                 .set("shield", c.shield)
                 .set("wire_id", by_core.get(&id).map(|w| uuid(w.wire.id)));
@@ -1017,7 +1017,7 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
                     "circuit_class",
                     attrs.circuit_class.as_ref().map(|c| class_name(&c.value)),
                 )
-                .set("colour", colour.map(|c| ew_derive::colour_raw(&c.value)))
+                .set("colour", colour.map(|c| ew_derive::colour_text(&c.value)))
                 .set("colour_iec", colour.and_then(|c| colour_iec(&c.value)))
                 .set("switched", flow.as_ref().as_ref().is_some_and(|f| f.switched))
                 .set("protected_by_device_id", protected_device.map(uuid))
@@ -1240,7 +1240,7 @@ pub(crate) fn fluid_lines(s: &Source<'_>) -> Vec<Row> {
                 .set("material", p.material.as_ref().map(|v| v.value.code().to_owned()))
                 .set(
                     "colour",
-                    p.colour.as_ref().map(|v| ew_derive::colour_raw(&v.value)),
+                    p.colour.as_ref().map(|v| ew_derive::colour_text(&v.value)),
                 )
                 .set("tube_part", number(p.part.as_ref().map(|v| v.value)))
                 .set("p_rating", p.p_rating.as_ref().map(|v| v.value.to_string()))

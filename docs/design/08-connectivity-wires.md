@@ -787,8 +787,10 @@ wire marker item draws no marker of its own. The per-page mode of FR-CON-024 is 
 
 ### 4.6 Units
 
-`Csa = Mm2(Dec3) | Awg(i8) | Kcmil(Dec3)` keeps the unit as entered; `Awg` encodes 1/0 as 0, 2/0 as −1 and so on.
-It is shown with its metric equivalent, for example "14 AWG (2.08 mm²)" (FR-CON-032, 1.0). Comparisons between
-units use the active standard's own table and never a float round trip. Mixing units within one potential is
-reported as a warning at 1.0 (EW-POT-019, §8.1).
+`Csa = Mm2(Dec3) | Awg(i8) | Kcmil(Dec3)` keeps the unit as entered; `Awg` encodes 1/0 as 0, 2/0 as −1 and so on,
+and prints with its zeros wherever it prints (`AWG2/0`, `ew_derive::csa_text`). At 1.0 it is shown with its metric
+equivalent, for example "14 AWG (2.08 mm²)" (FR-CON-032). Comparisons between units use the active standard's own
+table and never a float round trip. Mixing units within one potential is reported as a warning at 1.0 (EW-POT-019,
+§8.1). A colour prints its codes as written, a code of a newer format as `?`, in every place
+(`ew_derive::colour_text`).
 

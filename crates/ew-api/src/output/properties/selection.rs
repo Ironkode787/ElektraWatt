@@ -272,8 +272,10 @@ impl Session {
             let Some(spec) = props.colour.as_ref().map(|c| &c.value) else {
                 continue;
             };
-            let codes: Option<Vec<String>> = spec.codes().iter().map(colour_code_text).collect();
-            if let Some(codes) = codes.filter(|c| !c.is_empty()) {
+            // A code of a newer format is `?`, which resolves to no colour, so the connection is drawn as the
+            // unresolved pattern rather than left out.
+            let codes: Vec<String> = spec.codes().iter().map(ew_derive::colour_code_text).collect();
+            if !codes.is_empty() {
                 out.connections.insert(*id, codes);
             }
         }
@@ -293,18 +295,6 @@ impl Session {
             }
         }
         out
-    }
-}
-
-/// A colour code as the wire-colour view lists it: an IEC or company code and a foreign code by their spelling; a
-/// form of a newer format as `?`, which resolves to no colour, so the connection is drawn as the unresolved pattern
-/// rather than left out.
-pub(super) fn colour_code_text(code: &ew_schema::ColourCode) -> Option<String> {
-    use ew_schema::ColourCode;
-    match code {
-        ColourCode::Foreign(f) => Some(f.as_str().to_owned()),
-        ColourCode::Unknown(_) => Some("?".to_owned()),
-        other => serde_json::to_value(other).ok()?.as_str().map(str::to_owned),
     }
 }
 

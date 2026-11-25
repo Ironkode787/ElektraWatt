@@ -18,48 +18,33 @@ use ew_units::{Dec3, Nm};
 use crate::bus::net_address_text;
 use crate::plc::{ChannelAddr, Slot};
 
-/// The printed text of a cross-section (`2.5`, `AWG18`, `250 kcmil`); `None` for a value of a newer format.
+/// The printed text of a cross-section (`2.5`, `AWG18`, `AWG2/0`, `250 kcmil`); `None` for a value of a newer format.
 pub fn csa_text(c: &Csa) -> Option<String> {
     match c {
         Csa::Mm2(d) => Some(d.to_string()),
-        Csa::Awg(n) => Some(format!("AWG{n}")),
+        Csa::Awg(n) => Some(format!("AWG{}", awg_gauge(*n))),
         Csa::Kcmil(d) => Some(format!("{d} kcmil")),
         Csa::Unknown(_) => None,
     }
 }
 
-/// The printed colour code of a colour specification: its codes in their file spelling, concatenated (`BU`,
-/// `GNYE`, `DBU`); `None` when a code has no text form (a value of a newer format).
-pub fn colour_text(c: &ColourSpec) -> Option<String> {
-    let mut out = String::new();
-    for code in c.codes() {
-        let v = serde_json::to_value(code).ok()?;
-        out.push_str(v.as_str()?);
+/// An AWG gauge as the wire trade writes it: `18`, and from 1/0 up the zeros (`1/0` for 0, `2/0` for −1).
+pub fn awg_gauge(n: i8) -> String {
+    if n <= 0 {
+        format!("{}/0", 1 - i16::from(n))
+    } else {
+        n.to_string()
     }
-    Some(out)
 }
 
-/// The codes of a colour joined without a separator (`GNYE`); a code of a newer format prints its raw JSON value. The
-/// lists' and the SQL view's form ([`colour_text`] has none for such a code, [`colour_marked`] prints `?`).
-pub fn colour_raw(c: &ColourSpec) -> String {
-    c.codes()
-        .iter()
-        .map(|c| match c {
-            ColourCode::Iec(i) => i.as_str().to_owned(),
-            ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
-            ColourCode::Unknown(v) => v.to_string(),
-        })
-        .collect()
-}
-
-/// The codes of a colour joined without a separator (`GNYE`, `BR`), each as [`colour_code_marked`]. The checks'
-/// messages' form.
-pub fn colour_marked(c: &ColourSpec) -> String {
-    c.codes().iter().map(colour_code_marked).collect()
+/// The printed colour of a colour specification: its codes as written, concatenated (`BU`, `GNYE`, `DBU`), each as
+/// [`colour_code_text`].
+pub fn colour_text(c: &ColourSpec) -> String {
+    c.codes().iter().map(colour_code_text).collect()
 }
 
 /// One colour code as written: the IEC or company code, a foreign code as stored, `?` for a code of a newer format.
-pub fn colour_code_marked(c: &ColourCode) -> String {
+pub fn colour_code_text(c: &ColourCode) -> String {
     match c {
         ColourCode::Iec(c) => c.as_str().to_owned(),
         ColourCode::Company(c) | ColourCode::Foreign(c) => c.as_str().to_owned(),

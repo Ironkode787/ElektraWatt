@@ -1007,25 +1007,8 @@ mod tests {
     use ew_derive::WireNumbers;
 
     use super::order::function_label;
-    use super::selection::{colour_code_text, number_order, wire_number_text, wires_of};
+    use super::selection::{number_order, wire_number_text, wires_of};
     use super::*;
-
-    /// A colour code of a newer format is listed as `?` (drawn as the unresolved pattern), not dropped.
-    #[test]
-    fn a_colour_code_of_a_newer_format_is_listed_as_unresolved() {
-        let code = |v: Value| -> ew_schema::ColourCode { serde_json::from_value(v).expect("a colour code") };
-        let texts: Vec<Option<String>> = [
-            serde_json::json!("BU"),
-            serde_json::json!("DBU"),
-            serde_json::json!({"foreign": "BR"}),
-            serde_json::json!({"pantone": "300C"}),
-        ]
-        .into_iter()
-        .map(|v| colour_code_text(&code(v)))
-        .collect();
-        let want = ["BU", "DBU", "BR", "?"].map(|s| Some(s.to_owned()));
-        assert_eq!(texts, want);
-    }
 
     #[test]
     fn row_paths_split_into_members_and_indices() {

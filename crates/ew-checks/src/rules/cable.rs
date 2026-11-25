@@ -94,7 +94,7 @@ fn invalid_codes(c: &Conductor, declared: &BTreeSet<String>) -> Vec<String> {
             ColourCode::Company(x) => !declared.contains(x.as_str()),
             ColourCode::Foreign(_) => true,
         })
-        .map(ew_derive::colour_code_marked)
+        .map(ew_derive::colour_code_text)
         .collect()
 }
 
@@ -114,11 +114,7 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
         return None;
     }
     let core = core_text(q, c);
-    let shown = c
-        .colour
-        .as_ref()
-        .map(ew_derive::colour_marked)
-        .unwrap_or_default();
+    let shown = c.colour.as_ref().map(ew_derive::colour_text).unwrap_or_default();
     let codes = bad
         .iter()
         .map(|b| format!("\"{b}\""))
@@ -237,10 +233,10 @@ fn core_differences(c: &Conductor, def: &CableCore) -> Vec<(&'static str, TextAr
         let part = def
             .colour
             .as_ref()
-            .map_or_else(none, |p| ew_derive::colour_marked(p).into());
+            .map_or_else(none, |p| ew_derive::colour_text(p).into());
         add(
             ["colour", "sep_colour", "colour_core", "colour_part"],
-            ew_derive::colour_marked(colour),
+            ew_derive::colour_text(colour),
             part,
         );
     }
