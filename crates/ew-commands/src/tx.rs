@@ -173,33 +173,6 @@ pub struct ReadSet {
     tables: BTreeSet<Kind>,
 }
 
-/// The kinds a read set does not stamp (item O1 of the rework's list, to be mended in a stage of its own): a
-/// read row of these kinds counts as never present and a scanned table of them as unchanged, whatever happened
-/// to them.
-const UNSTAMPED: [Kind; 5] = [
-    Kind::Medium,
-    Kind::MediumDef,
-    Kind::ExchangeRecord,
-    Kind::ForeignId,
-    Kind::ImportRun,
-];
-
-/// `changed_at` of a row, kind-erased; `None` when the row does not exist or its kind is [`UNSTAMPED`].
-fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
-    if UNSTAMPED.contains(&key.0) {
-        return None;
-    }
-    model.row_changed_at(key)
-}
-
-/// `changed_at` of a whole table; kinds without a table and the [`UNSTAMPED`] kinds never change.
-fn table_changed_at(model: &Model, kind: Kind) -> Rev {
-    if UNSTAMPED.contains(&kind) {
-        return Rev::ZERO;
-    }
-    model.table_changed_at(kind)
-}
-
 impl ReadSet {
     /// Whether nothing was read.
     pub fn is_empty(&self) -> bool {
@@ -222,7 +195,7 @@ impl ReadSet {
     pub fn unchanged_since(&self, model: &Model, since: Rev) -> bool {
         self.rows
             .iter()
-            .all(|(key, present)| match row_changed_at(model, key) {
+            .all(|(key, present)| match model.row_changed_at(key) {
                 Some(rev) => *present && rev <= since,
                 None => !*present,
             })
@@ -233,7 +206,7 @@ impl ReadSet {
             && self
                 .tables
                 .iter()
-                .all(|kind| table_changed_at(model, *kind) <= since)
+                .all(|kind| model.table_changed_at(*kind) <= since)
     }
 }
 
@@ -1033,10 +1006,10 @@ mod tests {
         }
     }
 
-    /// Item O1: a read set notices a change of every table kind's rows and tables but five, which it counts as
-    /// unchanged (tables) or never present (rows) whatever happened to them.
+    /// A read set notices a change of every table kind's rows and tables, the media and the exchange records
+    /// as well as the rest.
     #[test]
-    fn a_read_set_stamps_every_table_kind_but_the_five_of_item_o1() {
+    fn a_read_set_stamps_every_table_kind() {
         let project = serde_json::from_str(
             r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
         )
@@ -1054,7 +1027,7 @@ mod tests {
         let changed = model
             .apply_history(&touch_every_table, Rev(1))
             .expect("touch every table");
-        let unstamped: Vec<Kind> = ew_model::TABLE_KINDS
+        let unnoticed: Vec<Kind> = ew_model::TABLE_KINDS
             .iter()
             .copied()
             .filter(|kind| {
@@ -1065,40 +1038,23 @@ mod tests {
                 reads.unchanged_since(&changed, Rev::ZERO)
             })
             .collect();
-        let o1 = [
-            Kind::Medium,
-            Kind::MediumDef,
-            Kind::ExchangeRecord,
-            Kind::ForeignId,
-            Kind::ImportRun,
-        ];
-        assert_eq!(unstamped, o1);
+        assert_eq!(unnoticed, Vec::<Kind>::new());
 
-        // Rows: an unchanged structure node reads as unchanged; an unchanged medium reads as gone.
-        let node: ew_schema::Record = serde_json::from_str(
-            r#"{"$k":"structure_node","id":"019a4f00-0000-7000-8000-000000000001","aspect":"function","code":"P01"}"#,
-        )
-        .expect("structure node");
+        // Rows: an unchanged medium reads as unchanged, a changed one as changed.
         let medium: ew_schema::Record = serde_json::from_str(
             r#"{"$k":"medium","id":"019a4f00-0000-7000-8000-000000000002","name":{"en-GB":"air"},"p_nom":"6"}"#,
         )
         .expect("medium");
-        let rows: Vec<AnyRow> = [node, medium]
-            .into_iter()
-            .map(|r| AnyRow::from_record(r).expect("a record with a table"))
-            .collect();
-        let with_rows = changed
-            .apply_history(&rows.iter().cloned().map(Op::insert).collect::<Vec<_>>(), Rev(2))
-            .expect("insert the rows");
-        let unchanged_row = |row: &AnyRow| {
-            ReadSet {
-                rows: BTreeMap::from([(row.key(), true)]),
-                ..ReadSet::default()
-            }
-            .unchanged_since(&with_rows, Rev(2))
+        let row = AnyRow::from_record(medium).expect("a record with a table");
+        let with_row = changed
+            .apply_history(&[Op::insert(row.clone())], Rev(2))
+            .expect("insert the medium");
+        let read = ReadSet {
+            rows: BTreeMap::from([(row.key(), true)]),
+            ..ReadSet::default()
         };
-        assert!(unchanged_row(&rows[0]));
-        assert!(!unchanged_row(&rows[1]));
+        assert!(read.unchanged_since(&with_row, Rev(2)));
+        assert!(!read.unchanged_since(&with_row, Rev(1)));
     }
 
     #[cfg(debug_assertions)]
