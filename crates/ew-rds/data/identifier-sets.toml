@@ -270,7 +270,7 @@ description = "Controls another valve with a small fluid signal: pilot valves"
 "IEC81346-2:2019" = { letter = "KH", verified = false }
 "IEC60750-legacy" = { letter = "Y", verified = false }
 
-# The other fluid components of the pneumatic library (FT persona round: the air supply could not be placed for want
+# The other fluid components of the pneumatic library (the air supply could not be placed for want
 # of a letter code). The legacy set has no fluid letters of its own: a valve-like component takes its valves' Y, any
 # other the 2009 letter.
 

@@ -131,7 +131,7 @@ fn a_bridge_across_a_row_of_terminals_is_a_line_with_a_dot_on_each() {
         ..blank_page(PAGE)
     };
     let (lines, dots) = drawn_with_hops(&v);
-    // The third terminal's lead, crossed without a dot, is hopped over (a persona read the line as joining it).
+    // The third terminal's lead, crossed without a dot, is hopped over.
     assert_eq!(lines, [(mid(10, 20), mid(28, 20), vec![Nm(g(22))])]);
     assert_eq!(dots, [mid(10, 20), mid(16, 20), mid(28, 20)]);
 }

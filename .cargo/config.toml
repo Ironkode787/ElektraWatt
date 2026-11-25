@@ -7,7 +7,7 @@ xtask = "run --quiet --package xtask --"
 
 # Local Windows builds link with rust-lld, the LLVM linker that ships in the rustup toolchain's own `rustc`
 # component (rustlib/x86_64-pc-windows-msvc/bin/rust-lld.exe, no extra download); rustc finds it in its sysroot.
-# It links the test binaries in about half the time of link.exe (cycle 32: a rebuild of ew-api's test binaries
+# It links the test binaries in about half the time of link.exe (a rebuild of ew-api's test binaries
 # after a change to the crate, 58 s with link.exe, 33 s with rust-lld). The MSVC libraries are still found
 # through the Visual Studio installation, as for link.exe.
 #

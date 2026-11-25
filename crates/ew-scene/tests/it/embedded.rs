@@ -409,7 +409,7 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason_without_a_header() {
     assert_eq!(fills, 1, "the shadow only: no header row without columns");
 }
 
-/// A legend a person added (a lookup table) with the starter's texts, as the persona's cabinet listed them: one flow
+/// A legend a person added (a lookup table) with the starter's texts, as a cabinet lists them: one flow
 /// column whose box ends under its last row, far above the bottom of its rectangle. 100 mm wide printed, every text is
 /// whole; 60 mm wide, every position, tag, quantity and part number stays whole, and only the description gives way.
 #[test]
