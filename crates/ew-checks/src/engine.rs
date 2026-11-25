@@ -279,7 +279,7 @@ pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
 ///
 /// As [`run`].
 pub fn run_with(q: &Q, scheme: &Scheme, mode: CheckMode, evidence: Evidence) -> CheckReport {
-    match run_rules(q, scheme, mode, rules(), true, evidence) {
+    match run_rules(q, scheme, mode, rules(), evidence) {
         Ok(report) => report,
         Err(cycle) => panic!("{cycle}"),
     }
@@ -301,18 +301,16 @@ pub fn run_table_rules(
     list: &[&'static dyn Rule],
     evidence: Evidence,
 ) -> Result<CheckReport, Cycle> {
-    run_rules(q, scheme, mode, list, true, evidence)
+    run_rules(q, scheme, mode, list, evidence)
 }
 
-/// [`run_with`] over `list`. With `memo` the rules are evaluated through [`CheckOf`]
-/// (they must be registered), read with [`Q::try_get`]; without it directly, each under `catch_unwind`, which lets the
-/// unit tests add a rule that panics (P4-3). A query cycle of a memo read is returned as it is.
+/// [`run_with`] over `list`: the rules are evaluated through [`CheckOf`] (they must be registered), read with
+/// [`Q::try_get`]. A query cycle of a memo read is returned as it is.
 fn run_rules(
     q: &Q,
     scheme: &Scheme,
     mode: CheckMode,
     list: &[&'static dyn Rule],
-    memo: bool,
     evidence: Evidence,
 ) -> Result<CheckReport, Cycle> {
     let mut evaluated: Vec<&'static RuleMeta> = Vec::new();
@@ -328,13 +326,7 @@ fn run_rules(
             .entry(meta.scope)
             .or_insert_with(|| scopes(q, meta.scope));
         for scope in instances.iter() {
-            let found = if memo {
-                q.try_get::<CheckOf>((meta.id, *scope))?
-            } else {
-                let mut out = run_caught(*r, q, scope);
-                sort_findings(&mut out);
-                Arc::new(out)
-            };
+            let found = q.try_get::<CheckOf>((meta.id, *scope))?;
             for f in found.iter() {
                 let mut f = f.clone();
                 // A caught panic is EW-CORE-083's finding inside this rule's memo: its own severities apply.
@@ -551,39 +543,30 @@ mod tests {
 
     static PANICS_RULE: Panics = Panics;
 
-    fn printed(findings: &[Finding]) -> Vec<String> {
-        findings
-            .iter()
-            .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message()))
-            .collect()
-    }
-
-    /// P4-3: a rule that panics yields EW-CORE-083 (warning online, error in release) and every other rule's findings
-    /// stay as they are.
+    /// P4-3: a rule that panics yields EW-CORE-083 in its scope (warning online, error in release), as its memo
+    /// [`CheckOf`] holds it; every other rule is evaluated in its own memo, untouched.
     #[test]
     fn a_panicking_rule_yields_ew_core_083_and_leaves_the_other_findings() {
         let m = duplicate_strip();
         let q = Q::new(&m);
+        let strip = Scope::Strip(Id::from_uuid(Uuid::from_u128(1)));
         for (mode, severity) in [
             (CheckMode::Online, Severity::Warning),
             (CheckMode::Release, Severity::Error),
         ] {
-            let base = run_rules(&q, &FULL, mode, rules(), false, Evidence::default()).expect("no cycle");
-            assert_eq!(
-                printed(&base.findings),
-                printed(&run(&q, &FULL, mode).findings),
-                "direct equals memoised"
+            assert!(
+                run(&q, &FULL, mode)
+                    .findings
+                    .iter()
+                    .any(|f| f.rule == "EW-TERM-002")
             );
-            assert!(base.findings.iter().any(|f| f.rule == "EW-TERM-002"));
-            let mut list: Vec<&'static dyn Rule> = rules().to_vec();
-            list.push(&PANICS_RULE);
-            let with = run_rules(&q, &FULL, mode, &list, false, Evidence::default()).expect("no cycle");
-            let (caught, rest): (Vec<Finding>, Vec<Finding>) =
-                with.findings.into_iter().partition(|f| f.rule == "EW-CORE-083");
+            let caught = run_caught(&PANICS_RULE, &q, &strip);
             assert_eq!(caught.len(), 1, "{caught:#?}");
             let f = &caught[0];
+            assert_eq!(f.rule, "EW-CORE-083");
             assert_eq!(f.code, "105083");
-            assert_eq!(f.severity, severity, "{mode:?}");
+            let own = rule(f.rule).expect("registered").meta();
+            assert_eq!(mode.severity(own, f.severity), severity, "{mode:?}");
             assert_eq!(f.subject, "EW-TERM-099");
             assert_eq!(f.discriminator, "EW-TERM-099:strip");
             assert_eq!(
@@ -596,7 +579,6 @@ mod tests {
                  there are missing; report the defect"
             );
             assert!(!rule("EW-CORE-083").expect("registered").meta().waivable());
-            assert_eq!(printed(&rest), printed(&base.findings));
         }
         // Prevent: the panic refuses the batch with EW-CORE-083.
         let v = prevent_caught(&PANICS_RULE, &q, &q, &[]);

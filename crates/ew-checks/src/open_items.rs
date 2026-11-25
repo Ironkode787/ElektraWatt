@@ -20,14 +20,14 @@ use crate::finding::{Finding, FindingState};
 use ew_derive::text::OpenItem;
 
 use crate::registry::rules;
-use crate::rule::Rule;
+use crate::rule::{Rule, RuleMeta};
 use crate::scheme::{CheckMode, release_scheme_of};
 
 /// One row of the open-item table: a rule whose open findings are open items, of one category.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct OpenItemRule {
-    /// The rule ID (`EW-CORE-041`).
-    pub rule: &'static str,
+    /// The rule (EW-CORE-041's `DEVICE_WITHOUT_PART`).
+    pub rule: &'static RuleMeta,
     /// Only the rule's findings with this discriminator are open items (EW-BUS-001's `address`: a missing station
     /// address is an open item, a duplicate one is not); `None`: every finding of the rule.
     pub discriminator: Option<&'static str>,
@@ -38,42 +38,42 @@ pub struct OpenItemRule {
 /// The open-item rules, by category in the list's order, then by rule ID.
 pub const OPEN_ITEM_RULES: &[OpenItemRule] = &[
     OpenItemRule {
-        rule: "EW-CORE-043",
+        rule: &crate::rules::device::PLACEHOLDER_PART,
         discriminator: None,
         category: OpenItem::TbdValue,
     },
     OpenItemRule {
-        rule: "EW-CORE-044",
+        rule: &crate::rules::device::OPEN_TBD_VALUE,
         discriminator: None,
         category: OpenItem::TbdValue,
     },
     OpenItemRule {
-        rule: "EW-PLC-015",
+        rule: &crate::rules::plc::TBD_ADDRESS,
         discriminator: None,
         category: OpenItem::TbdValue,
     },
     OpenItemRule {
-        rule: "EW-BUS-001",
+        rule: &crate::rules::bus::BUS_ADDRESS,
         discriminator: Some("address"),
         category: OpenItem::TbdValue,
     },
     OpenItemRule {
-        rule: "EW-CORE-041",
+        rule: &crate::rules::device::DEVICE_WITHOUT_PART,
         discriminator: None,
         category: OpenItem::DeviceWithoutPart,
     },
     OpenItemRule {
-        rule: "EW-LAY-001",
+        rule: &crate::rules::layout::UNPLACED_DEVICE,
         discriminator: None,
         category: OpenItem::UnplacedDevice,
     },
     OpenItemRule {
-        rule: "EW-POT-009",
+        rule: &crate::rules::pot::UNCONNECTED_CP,
         discriminator: None,
         category: OpenItem::UnconnectedCp,
     },
     OpenItemRule {
-        rule: "EW-CORE-033",
+        rule: &crate::rules::core::CABLE_WITHOUT_LENGTH,
         discriminator: None,
         category: OpenItem::MissingLength,
     },
@@ -84,7 +84,7 @@ pub const OPEN_ITEM_RULES: &[OpenItemRule] = &[
 pub fn open_item_of(f: &Finding) -> Option<&'static OpenItemRule> {
     OPEN_ITEM_RULES
         .iter()
-        .find(|r| r.rule == f.rule && r.discriminator.is_none_or(|d| d == f.discriminator))
+        .find(|r| r.rule.id == f.rule && r.discriminator.is_none_or(|d| d == f.discriminator))
 }
 
 /// The registered rules of [`OPEN_ITEM_RULES`], each once, in registry (rule-ID) order.
@@ -92,7 +92,7 @@ fn table_rules() -> Vec<&'static dyn Rule> {
     rules()
         .iter()
         .copied()
-        .filter(|r| OPEN_ITEM_RULES.iter().any(|o| o.rule == r.meta().id))
+        .filter(|r| OPEN_ITEM_RULES.iter().any(|o| o.rule.id == r.meta().id))
         .collect()
 }
 
@@ -131,11 +131,11 @@ mod tests {
     #[test]
     fn every_open_item_rule_is_registered() {
         for o in OPEN_ITEM_RULES {
-            let r = rule(o.rule).unwrap_or_else(|| panic!("{} is not registered", o.rule));
+            let r = rule(o.rule.id).unwrap_or_else(|| panic!("{} is not registered", o.rule.id));
             assert!(
                 PRE_DELIVERY.enabled(r.meta(), CheckMode::Release),
                 "{} does not run in release mode of pre-delivery",
-                o.rule
+                o.rule.id
             );
         }
         assert_eq!(table_rules().len(), OPEN_ITEM_RULES.len(), "each rule once");
@@ -148,9 +148,9 @@ mod tests {
         for r in rules() {
             let m = r.meta();
             for s in m.supersedes {
-                if OPEN_ITEM_RULES.iter().any(|o| o.rule == *s) {
+                if OPEN_ITEM_RULES.iter().any(|o| o.rule.id == *s) {
                     assert!(
-                        OPEN_ITEM_RULES.iter().any(|o| o.rule == m.id),
+                        OPEN_ITEM_RULES.iter().any(|o| o.rule.id == m.id),
                         "{} supersedes the open-item rule {s} but is not in OPEN_ITEM_RULES: add {} to the table \
                          or change the table, or the open-items list differs from `ew check`",
                         m.id,

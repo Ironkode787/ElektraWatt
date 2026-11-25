@@ -65,7 +65,7 @@ fn generated() -> String {
                 "schemes": schemes,
                 // `\"open_item\": null` or
                 // `{\"category\": \"<words>\", \"discriminator\": \"<d>\" | null}` from `OPEN_ITEM_RULES`.
-                "open_item": OPEN_ITEM_RULES.iter().find(|o| o.rule == m.id).map(|o| json!({
+                "open_item": OPEN_ITEM_RULES.iter().find(|o| o.rule.id == m.id).map(|o| json!({
                     "category": ew_derive::text::open_item(o.category).to_string(),
                     "discriminator": o.discriminator,
                 })),
@@ -112,7 +112,7 @@ fn the_catalogue_marks_exactly_the_open_item_rules() {
         .iter()
         .map(|o| {
             (
-                o.rule.to_owned(),
+                o.rule.id.to_owned(),
                 json!({"category": ew_derive::text::open_item(o.category).to_string(), "discriminator": o.discriminator}),
             )
         })

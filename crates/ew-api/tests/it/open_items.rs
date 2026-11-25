@@ -338,7 +338,7 @@ fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
         .iter()
-        .filter(|f| f.rule == "EW-CORE-083" && checks::OPEN_ITEM_RULES.iter().any(|o| f.subject == o.rule))
+        .filter(|f| f.rule == "EW-CORE-083" && checks::OPEN_ITEM_RULES.iter().any(|o| f.subject == o.rule.id))
         .map(|f| f.message().clone())
         .collect();
     assert_eq!(caught, Vec::<String>::new());
