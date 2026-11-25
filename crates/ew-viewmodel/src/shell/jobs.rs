@@ -140,35 +140,52 @@ impl ShellModel {
     /// Whether `n`'s action is valid now: Undo while the step it reports is the next undo step of the same
     /// project session; Open while the file it names was written in this session. `false` without an action.
     pub fn notification_valid(&self, n: &Notification) -> bool {
-        n.action().is_some_and(|a| self.note_action_valid(n, a))
+        n.action().is_some_and(|a| self.note_action_reason(n, a).is_ok())
     }
 
-    /// Whether the action `action` of `n` is valid: Undo while its step is the next undo step, Open always, Show changes
-    /// while its history entry is still there.
-    pub fn note_action_valid(&self, n: &Notification, action: NoteAction) -> bool {
+    /// Whether the action `action` of `n` can run, else why not: Undo while its step is the next undo step, Open
+    /// always, Show changes while its history entry is still there, a tip's action while its project session is
+    /// open, Back to the editor while the draft is kept.
+    ///
+    /// # Errors
+    ///
+    /// The reason key: the project closed since, a later change, the history entry gone, the draft discarded.
+    pub fn note_action_reason(&self, n: &Notification, action: NoteAction) -> Result<(), Key<'static>> {
+        let session = |epoch: u64| {
+            self.project
+                .as_ref()
+                .filter(|p| p.epoch == epoch)
+                .map(|p| &p.session)
+                .ok_or(key!("reason-action-project-closed"))
+        };
+        let ok = |valid: bool, why: Key<'static>| if valid { Ok(()) } else { Err(why) };
         match n.validity(action) {
-            None => false,
-            Some(Validity::Open { .. }) => true,
-            Some(Validity::History { epoch, entry, rev }) => self.project.as_ref().is_some_and(|p| {
-                p.epoch == *epoch
-                    && p.session
-                        .history()
-                        .entries()
-                        .get(*entry)
-                        .is_some_and(|e| e.rev().0 == *rev)
-            }),
-            Some(Validity::Undo { epoch, cursor, rev }) => self.project.as_ref().is_some_and(|p| {
-                let h = p.session.history();
-                p.epoch == *epoch
-                    && h.cursor() == *cursor
-                    && cursor
-                        .checked_sub(1)
-                        .and_then(|i| h.entries().get(i))
-                        .is_some_and(|e| e.rev().0 == *rev)
-            }),
-            // A tip's action without a step, while its project session is open.
-            Some(Validity::Session { epoch, .. }) => self.project.as_ref().is_some_and(|p| p.epoch == *epoch),
-            Some(Validity::SymbolDraft) => self.kept_symbol_editor().is_some(),
+            None => Err(key!("reason-action-expired")),
+            Some(Validity::Open { .. }) => Ok(()),
+            Some(Validity::History { epoch, entry, rev }) => ok(
+                session(*epoch)?
+                    .history()
+                    .entries()
+                    .get(*entry)
+                    .is_some_and(|e| e.rev().0 == *rev),
+                key!("reason-action-history-gone"),
+            ),
+            Some(Validity::Undo { epoch, cursor, rev }) => {
+                let h = session(*epoch)?.history();
+                ok(
+                    h.cursor() == *cursor
+                        && cursor
+                            .checked_sub(1)
+                            .and_then(|i| h.entries().get(i))
+                            .is_some_and(|e| e.rev().0 == *rev),
+                    key!("reason-action-undo-later"),
+                )
+            }
+            Some(Validity::Session { epoch, .. }) => session(*epoch).map(|_| ()),
+            Some(Validity::SymbolDraft) => ok(
+                self.kept_symbol_editor().is_some(),
+                key!("reason-action-draft-gone"),
+            ),
         }
     }
 
@@ -362,10 +379,10 @@ impl ShellModel {
         }
     }
 
-    /// Runs `entry`'s action `action`: refused `reason-action-expired` when it is no longer valid.
+    /// Runs `entry`'s action `action`: refused with its reason when it can no longer run.
     fn run_action_of(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
-        if !self.note_action_valid(entry, action) {
-            return Outcome::refused(key!("reason-action-expired"));
+        if let Err(reason_key) = self.note_action_reason(entry, action) {
+            return Outcome::Refused { reason_key };
         }
         match Some(action) {
             Some(NoteAction::Undo) => {

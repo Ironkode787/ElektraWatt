@@ -433,6 +433,7 @@ impl EditorView {
                                     egui::Button::new(label(key!("symbol-make-part"))),
                                 )
                                 .on_hover_text(label(key!("symbol-make-part-how")))
+                                .disabled_tip(label(key!("reason-no-project")))
                                 .clicked()
                             {
                                 let symbol = editor.published().unwrap_or_default();

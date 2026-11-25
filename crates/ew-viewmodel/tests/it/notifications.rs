@@ -76,9 +76,13 @@ fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     );
     assert_eq!(
         refused(&mut s, "notifications.run", json!({"entry": 2, "action": "undo"})),
-        "reason-action-expired"
+        "reason-action-undo-later"
     );
-    assert_eq!(qty(&s), "4", "an expired Undo changes nothing");
+    assert_eq!(
+        qty(&s),
+        "4",
+        "an expired Undo changes nothing, and says the later change is why"
+    );
     // The newest one is valid, through the toast too.
     done(&mut s, "toast.undo", json!({}));
     assert_eq!(qty(&s), "3");
@@ -110,7 +114,7 @@ fn the_toasts_of_a_closed_project_leave_the_screen_and_their_undo_expires() {
     assert!(!s.notification_valid(&entry));
     assert_eq!(
         refused(&mut s, "notifications.run", json!({"entry": 1, "action": "undo"})),
-        "reason-action-expired"
+        "reason-action-project-closed"
     );
     s.shutdown();
 }

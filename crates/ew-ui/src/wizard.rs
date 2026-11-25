@@ -213,6 +213,7 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
                 enabled,
                 egui::Checkbox::new(&mut on, strings::text(key!("wizard-use-for-new"))),
             )
+            .disabled_tip(strings::text(key!("reason-wizard-use-for-new")))
             .changed()
         {
             set(events, USE_FOR_NEW_FIELD, if on { "true" } else { "false" });

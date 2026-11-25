@@ -477,7 +477,12 @@ fn a_widget_double_clicks_by_the_canvas_interval_and_distance() {
         ew_ui::app::setup(&ctx);
         let at = Pos2::new(50.0, 50.0);
         let mut seen = false;
-        for (t, x, pressed) in [(0.0, 0.0, true), (0.01, 0.0, false), (gap, dx, true), (gap + 0.01, dx, false)] {
+        for (t, x, pressed) in [
+            (0.0, 0.0, true),
+            (0.01, 0.0, false),
+            (gap, dx, true),
+            (gap + 0.01, dx, false),
+        ] {
             let pos = at + Vec2::new(x, 0.0);
             let input = egui::RawInput {
                 time: Some(t),

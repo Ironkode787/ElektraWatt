@@ -26,7 +26,7 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
-use crate::components::{self, Kind};
+use crate::components::{self, Kind, Tip as _};
 use crate::icons::IconId;
 use crate::theme;
 
@@ -243,7 +243,9 @@ fn sections(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
     let mut list = |ui: &mut Ui| {
         for s in &d.sections {
             let mut ticked = s.ticked;
-            let check = ui.add_enabled(enabled, egui::Checkbox::new(&mut ticked, s.label()));
+            let check = ui
+                .add_enabled(enabled, egui::Checkbox::new(&mut ticked, s.label()))
+                .disabled_tip(strings::text(key!("reason-print-sections")));
             if check.changed() {
                 let numbers: Vec<String> = d
                     .sections
@@ -280,6 +282,7 @@ fn pages_field(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
                 .desired_width(ui.available_width())
                 .min_size(Vec2::new(0.0, t.size_control)),
         );
+        let edit = edit.disabled_tip(strings::text(key!("reason-print-pages")));
         let name = strings::text(key!("print-range-pages")).to_owned();
         edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, &name));
         if text != d.pages {

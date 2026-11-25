@@ -6,7 +6,7 @@
 //! at build. What the window greys on its own is checked here: every `add_enabled(` and `add_enabled_ui(` in
 //! `crates/ew-ui/src` is followed, before the function it stands in ends and within [`REACH`] lines, by the reason of
 //! its greyed state (`disabled_tip`, `disabled_tip_beside` or `on_disabled_hover_text`). The components whose caller
-//! gives the reason, and the controls greyed without a reason in words, are named in [`WITHOUT`] with why.
+//! gives the reason are named in [`WITHOUT`] with why.
 
 use std::path::Path;
 
@@ -24,7 +24,7 @@ const REASONS: &[&str] = &["disabled_tip", "on_disabled_hover_text"];
 /// How many lines after the greying call its reason may stand.
 const REACH: usize = 16;
 
-/// The functions (file, function) that grey a control without a reason of their own, each with why.
+/// The functions (file, function) that grey a control without a reason of their own, each with why: components only.
 const WITHOUT: &[(&str, &str, &str)] = &[
     (
         "components.rs",
@@ -35,38 +35,6 @@ const WITHOUT: &[(&str, &str, &str)] = &[
         "components.rs",
         "icon_toggle_tip",
         "a component: its caller gives the reason",
-    ),
-    // Greyed without a reason in words today; a reason is a new text of the window, an item of the owner's list.
-    (
-        "nav_table.rs",
-        "chooser",
-        "the key column's check box, which cannot be unticked",
-    ),
-    (
-        "notifications.rs",
-        "one_link",
-        "a toast's action that no longer applies",
-    ),
-    (
-        "print_dialog.rs",
-        "sections",
-        "the section boxes while the range is not Sections",
-    ),
-    (
-        "print_dialog.rs",
-        "pages_field",
-        "the Pages field while the range is not Pages",
-    ),
-    (
-        "symbol_editor/panels.rs",
-        "sheet_row",
-        "a locked row of the symbol's sheet",
-    ),
-    ("symbol_editor.rs", "toolbar", "Make a part without a project"),
-    (
-        "wizard.rs",
-        "step_form",
-        "the wizard's choice after its project's folder exists",
     ),
 ];
 

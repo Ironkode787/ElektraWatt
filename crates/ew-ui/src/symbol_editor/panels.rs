@@ -209,7 +209,7 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
     let t = theme::current(ui.ctx());
     let name = strings::format(key!("symbol-owned"), &[&r.label, owner]);
     let mut out = None;
-    let row = ui.horizontal(|ui| {
+    ui.horizontal(|ui| {
         ui.set_min_height(t.size_row);
         let (label_rect, label_response) =
             ui.allocate_exact_size(Vec2::new(label_w, t.size_row), Sense::hover());
@@ -234,7 +234,7 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
             (None, false) => {}
         }
         let width = ui.available_width() - t.space_3;
-        ui.add_enabled_ui(r.locked.is_none(), |ui| match &r.value {
+        let editor = |ui: &mut Ui| match &r.value {
             RowValue::Text(v) => {
                 let mut text = v.clone().unwrap_or_default();
                 let before = text.clone();
@@ -327,11 +327,13 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
                     out = Some(json!(on));
                 }
             }
-        });
+        };
+        let edited = ui.add_enabled_ui(r.locked.is_none(), editor);
+        // A locked row says why where the pointer reads its value.
+        if let Some(why) = &r.locked {
+            drop(edited.response.disabled_tip(why.clone()));
+        }
     });
-    if let Some(why) = &r.locked {
-        row.response.on_hover_text(why);
-    }
     out
 }
 

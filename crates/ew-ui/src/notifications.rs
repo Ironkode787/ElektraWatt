@@ -65,7 +65,8 @@ fn one_link(
     action: ew_viewmodel::notifications::NoteAction,
     events: &mut Vec<Event>,
 ) {
-    let valid = shell.note_action_valid(n, action);
+    let why = shell.note_action_reason(n, action).err();
+    let valid = why.is_none();
     let colour = if valid { t.accent } else { t.text_disabled };
     let font = theme::font(&theme::TypeToken {
         semibold: true,
@@ -74,7 +75,12 @@ fn one_link(
     let link = egui::Button::new(RichText::new(n.label(action)).font(font).color(colour.color32()))
         .frame(false)
         .min_size(Vec2::ZERO);
-    if ui.add_enabled(valid, link).clicked() {
+    let response = ui.add_enabled(valid, link);
+    let response = match why {
+        Some(why) => response.disabled_tip(strings::text(why)),
+        None => response,
+    };
+    if response.clicked() {
         events.push(Event::Action(
             "notifications.run",
             json!({ "entry": n.serial, "action": action.word() }),

@@ -571,7 +571,10 @@ pub(crate) fn chooser(
         for (i, c) in table.columns.iter().enumerate() {
             ui.horizontal(|ui| {
                 let mut on = shown.contains(&i);
-                let check = ui.add_enabled(!c.key_column, egui::Checkbox::new(&mut on, c.label.as_str()));
+                let mut check = ui.add_enabled(!c.key_column, egui::Checkbox::new(&mut on, c.label.as_str()));
+                if c.key_column {
+                    check = check.disabled_tip(strings::format(key!("error-table-key-column"), &[&c.label]));
+                }
                 if check.changed() {
                     let member = if on { "show" } else { "hide" };
                     events.push(Event::Action(
