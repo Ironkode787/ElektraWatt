@@ -23,34 +23,54 @@ pub(crate) const REFERENCE_DIR: &str = "target/reference";
 
 /// The test that writes `actions.txt`, the persona harness's action list; `check` of the whole workspace runs it
 /// alone before the tests.
-const ACTIONS_TEST: (&str, &[&str]) = (
+const ACTIONS_TEST: Reference = (
     "ew-viewmodel",
     &["--test", "it", "blind_reference::the_action_list"],
+    "actions.txt",
 );
 
-/// The tests that write the reference: the package, then the arguments that choose the test target and the test.
-const REFERENCE: &[(&str, &[&str])] = &[
-    // commands/: one parameter schema per command and index.json
-    ("ew-commands", &["--test", "it", "schemas::"]),
-    // rules.json
-    ("ew-checks", &["--test", "it", "catalogue::"]),
-    // keymap-sheet.json
-    ("ew-viewmodel", &["--test", "it", "keymaps::the_keymap_sheet"]),
-    // properties.json
+/// A test that writes part of the reference: its package, the arguments that choose its test target and the test,
+/// and what it writes under [`REFERENCE_DIR`] (a file, or a folder `<name>/` it writes files into).
+type Reference = (&'static str, &'static [&'static str], &'static str);
+
+/// The tests that write the reference.
+const REFERENCE: &[Reference] = &[
+    // One parameter schema per command and index.json.
+    ("ew-commands", &["--test", "it", "schemas::"], "commands/"),
+    ("ew-checks", &["--test", "it", "catalogue::"], "rules.json"),
+    (
+        "ew-viewmodel",
+        &["--test", "it", "keymaps::the_keymap_sheet"],
+        "keymap-sheet.json",
+    ),
     (
         "ew-viewmodel",
         &["--test", "it", "help_reference::the_properties_reference"],
+        "properties.json",
     ),
-    // actions.txt: the persona harness's action list
     ACTIONS_TEST,
-    // cli.json and results/index.json (each result with its subcommand)
-    ("ew", &["--lib", "catalogue::tests::the_cli_reference"]),
-    // results/: one schema per `--json` result
-    ("ew", &["--test", "it", "conventions::the_result_schemas"]),
-    // api_v1.json
-    ("ew-sqlview", &["--test", "it", "api_v1::the_api_v1_reference"]),
-    // queries.json
-    ("ew-api", &["--test", "it", "queries::the_query_list"]),
+    // cli.json and results/index.json (each result with its subcommand).
+    (
+        "ew",
+        &["--lib", "catalogue::tests::the_cli_reference"],
+        "cli.json",
+    ),
+    // One schema per `--json` result, beside the index.
+    (
+        "ew",
+        &["--test", "it", "conventions::the_result_schemas"],
+        "results/",
+    ),
+    (
+        "ew-sqlview",
+        &["--test", "it", "api_v1::the_api_v1_reference"],
+        "api_v1.json",
+    ),
+    (
+        "ew-api",
+        &["--test", "it", "queries::the_query_list"],
+        "queries.json",
+    ),
 ];
 
 /// A generator of xtask: `(root, check) -> up to date or written`.
@@ -197,8 +217,8 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
     }
     std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
     build_reference_tests(root)?;
-    for (package, args) in REFERENCE {
-        if !reference_test(root, &dir, package, args)? {
+    for test in REFERENCE {
+        if !reference_test(root, &dir, test)? {
             return Ok(false);
         }
     }
@@ -209,16 +229,50 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
 pub(crate) fn write_actions(root: &Path) -> Result<bool> {
     let dir: PathBuf = root.join(REFERENCE_DIR);
     std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
-    reference_test(root, &dir, ACTIONS_TEST.0, ACTIONS_TEST.1)
+    reference_test(root, &dir, &ACTIONS_TEST)
 }
 
-/// Runs one test of [`REFERENCE`] with `EW_REFERENCE_DIR` set to `dir`.
-fn reference_test(root: &Path, dir: &Path, package: &str, args: &[&str]) -> Result<bool> {
-    test_with(root, ("EW_REFERENCE_DIR", dir.as_os_str()), package, args)
+/// Runs one test of [`REFERENCE`] with `EW_REFERENCE_DIR` set to `dir`; `false` when it fails or when it wrote
+/// nothing where it writes: a renamed or moved test that its filter no longer chooses passes `cargo test`, and the
+/// filter may still match its module's other tests. A file it writes is removed first; a folder must gain a file.
+fn reference_test(root: &Path, dir: &Path, (package, args, writes): &Reference) -> Result<bool> {
+    let target = dir.join(writes);
+    let before = if writes.ends_with('/') {
+        files_in(&target)
+    } else {
+        let _ = std::fs::remove_file(&target);
+        0
+    };
+    if !test_with(root, ("EW_REFERENCE_DIR", dir.as_os_str()), package, args)? {
+        return Ok(false);
+    }
+    let written = if writes.ends_with('/') {
+        files_in(&target) > before
+    } else {
+        target.is_file()
+    };
+    if !written {
+        eprintln!(
+            "gen: the test of {package} ({}) wrote no {writes}; was the test renamed or moved?",
+            args.join(" ")
+        );
+    }
+    Ok(written)
+}
+
+/// The number of files in the folder `dir`, 0 when there is none.
+fn files_in(dir: &Path) -> usize {
+    std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().is_file())
+        .count()
 }
 
 /// Runs the test that `args` choose in `package` (plain `cargo test`) with the environment variable `env` set; `false`
-/// when it fails or when its filter matches no test (which `cargo test` passes, and which would write no file).
+/// when it fails or when its filter matches no test (which `cargo test` passes). A test of the reference is also held
+/// to what it writes ([`reference_test`]): its filter may match its module's other tests.
 fn test_with(root: &Path, env: (&str, &std::ffi::OsStr), package: &str, args: &[&str]) -> Result<bool> {
     let (target, test) = args.split_at(2);
     let out = Command::new(crate::cargo())
@@ -266,7 +320,7 @@ fn tests_run(stdout: &str) -> usize {
 /// own crate's compile and link in turn, which was most of the time `gen` took. A failure here is left to the
 /// runs, which report it against their package.
 fn build_reference_tests(root: &Path) -> Result<()> {
-    let mut packages: Vec<&str> = REFERENCE.iter().map(|(p, _)| *p).collect();
+    let mut packages: Vec<&str> = REFERENCE.iter().map(|(p, _, _)| *p).collect();
     packages.sort_unstable();
     packages.dedup();
     let mut command = Command::new(crate::cargo());
