@@ -180,17 +180,58 @@ pub fn plan_routes(tables: &PageTables, plan: &Plan, moves: &[(PartId, Pt)]) -> 
         .iter()
         .map(|(j, p)| (j.0, (ticks.nm(p.x), ticks.nm(p.y))))
         .collect();
+    routes_nm(tables, plan, |e| end_point(tables, e, &moved, &shifted))
+}
+
+/// The routes of `plan` in page nm, by connection, each between the points `ends` gives its ends.
+fn routes_nm(
+    tables: &PageTables,
+    plan: &Plan,
+    ends: impl Fn(&TableEnd) -> Option<(i64, i64)>,
+) -> Vec<(Uuid, Vec<(i64, i64)>)> {
+    let ticks = Ticks::new(tables.grid);
     plan.routes
         .iter()
         .filter_map(|(w, route)| {
             let c = tables.connections.iter().find(|c| c.id == w.0)?;
-            let (a, b) = (
-                end_point(tables, &c.a, &moved, &shifted)?,
-                end_point(tables, &c.b, &moved, &shifted)?,
-            );
-            Some((w.0, route_nm(ticks, route, a, b)))
+            Some((w.0, route_nm(ticks, route, ends(&c.a)?, ends(&c.b)?)))
         })
         .collect()
+}
+
+/// A move's re-solve (doc 06a §7.4) on the page of `tables`, `before` the page as the layout sees it: the symbols of
+/// `moves` displaced by their move in page nm, each connection of `followed` along the route it follows the move by
+/// (page nm; unrouted where it has no stored route), then [`ew_drafting::resolve_move`]. The connections it lays
+/// again, with their routes in page nm between the points `ends` gives their ends after the move.
+pub fn move_routes(
+    tables: &PageTables,
+    before: &DraftPage,
+    moves: &[(Uuid, (i64, i64))],
+    followed: &[(Uuid, Vec<(i64, i64)>)],
+    ends: impl Fn(&TableEnd) -> Option<(i64, i64)>,
+) -> Vec<(Uuid, Vec<(i64, i64)>)> {
+    let ticks = Ticks::new(tables.grid);
+    let mut after = before.clone();
+    // The preview moves a part's place, its pins with it; its fixed texts stay where they stood (the placer's
+    // `moved` moves them too): the form the move's re-solve has always judged its jobs on.
+    for p in &mut after.parts {
+        if let Some((_, d)) = moves.iter().find(|(rep, _)| *rep == p.id.0) {
+            p.at = p.at.plus(ticks.pt(*d));
+        }
+    }
+    for (id, route) in followed {
+        let stored = tables.connections.iter().any(|c| c.id == *id && c.stored_route);
+        if let Some(w) = after.wires.iter_mut().find(|w| w.id.0 == *id) {
+            w.route = if stored {
+                route.iter().map(|p| ticks.pt(*p)).collect()
+            } else {
+                Vec::new()
+            };
+        }
+    }
+    let affected: Vec<WireId> = followed.iter().map(|(id, _)| WireId(*id)).collect();
+    let plan = ew_drafting::resolve_move(before, &after, &affected);
+    routes_nm(tables, &plan, ends)
 }
 
 /// The `layout.apply` that stores `plan` with the symbol moves `moves` on the page of `tables`; `None` for a plan that

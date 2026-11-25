@@ -495,6 +495,44 @@ pub(crate) fn worse(
     (wires, texts)
 }
 
+/// A move's re-solve (§7.4): on `after`, the page with the move applied, each wire of `affected` that is unrouted, or
+/// routed with a finding of F2 to F6 or C4 or with more bends than on `before`, is a job of [`route`], the other wires
+/// fixed and every junction where it stands; the others keep the route they follow the move by, and so does a job the
+/// router finds no way for.
+pub fn resolve_move(before: &DraftPage, after: &DraftPage, affected: &[WireId]) -> Plan {
+    let (was, now) = (measure(before), measure(after));
+    let bends = |q: &Quality, w: WireId| {
+        q.findings
+            .bends
+            .iter()
+            .find(|(x, _)| *x == w)
+            .map_or(0, |(_, n)| *n)
+    };
+    let broken = wires_with_findings(&now);
+    let wires: Vec<WireId> = affected
+        .iter()
+        .copied()
+        .filter(|w| {
+            let Some(wire) = after.wires.iter().find(|x| x.id == *w) else {
+                return false;
+            };
+            now.findings.unrouted.contains(w)
+                || (!wire.route.is_empty() && (broken.contains(w) || bends(&now, *w) > bends(&was, *w)))
+        })
+        .collect();
+    if wires.is_empty() {
+        return Plan::default();
+    }
+    route(
+        after,
+        &Jobs {
+            wires,
+            keep_junctions: true,
+            ..Jobs::default()
+        },
+    )
+}
+
 /// The plan of a run over `page` for `jobs`: a junction whose every wire is a job may move; the phases in order, then
 /// never worse (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed before
 /// that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire that had

@@ -303,10 +303,7 @@ pub fn release_command(
 /// fixed and every junction where it stands; the others keep the followed route, and so does one the router finds no
 /// way for.
 pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> Vec<serde_json::Value> {
-    use ew_api::routing::{Jobs, Ticks, WireId, measure, route_nm};
     let tables = &cx.page.tables;
-    let ticks = Ticks::new(tables.grid);
-    let before = &*cx.page.draft;
     let delta_of = |rep: ew_api::output::Uuid| -> Option<(i64, i64)> {
         if !moved.iter().any(|e| e.0 == rep) {
             return None;
@@ -317,12 +314,11 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
             .find(|r| r.id == rep)
             .map(|r| rep_delta(cx, r.pos, steps))
     };
-    let mut after = before.clone();
-    for p in &mut after.parts {
-        if let Some(d) = delta_of(p.id.0) {
-            p.at = p.at.plus(ticks.pt(d));
-        }
-    }
+    let moves: Vec<(ew_api::output::Uuid, (i64, i64))> = tables
+        .reps
+        .iter()
+        .filter_map(|r| Some((r.id, delta_of(r.id)?)))
+        .collect();
     // The moved CPs' new points, by (function, index).
     let moved_cp = |function: ew_api::output::Uuid, idx: u16| -> Option<(i64, i64)> {
         let cp = tables
@@ -357,74 +353,27 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
         ew_api::output::TableEnd::Junction { .. } => None,
     };
     let snap = |v: i64| grid_point_of(cx.snapper.grid(), v);
-    let mut affected = Vec::new();
-    for c in &tables.connections {
-        let (da, db) = (end_delta(&c.a), end_delta(&c.b));
-        let followed = match (da, db) {
-            (None, None) => continue,
-            (Some(d), Some(_)) => c.polyline.iter().map(|p| (p.0 + d.0, p.1 + d.1)).collect(),
-            _ => follow_polyline(&c.polyline, &snap, da, db),
-        };
-        if let Some(w) = after.wires.iter_mut().find(|w| w.id.0 == c.id) {
-            w.route = if c.stored_route {
-                followed.iter().map(|p| ticks.pt(*p)).collect()
-            } else {
-                Vec::new()
-            };
-        }
-        affected.push(c.id);
-    }
-    if affected.is_empty() {
-        return Vec::new();
-    }
-    let (was, now) = (measure(before), measure(&after));
-    let bends = |q: &ew_api::routing::Quality, id: ew_api::output::Uuid| {
-        q.findings
-            .bends
-            .iter()
-            .find(|(w, _)| w.0 == id)
-            .map_or(0, |(_, n)| *n)
-    };
-    let f = &now.findings;
-    let breaks = |id: ew_api::output::Uuid| {
-        f.through_points.iter().any(|x| x.0.0 == id)
-            || f.on_wires.iter().any(|x| x.0.iter().any(|w| w.0 == id))
-            || f.through_parts.iter().any(|x| x.0.0 == id)
-            || f.false_joints.iter().any(|x| x.0.iter().any(|w| w.0 == id))
-            || f.across_texts.iter().any(|x| x.0.0 == id)
-    };
-    let jobs: Vec<WireId> = affected
-        .into_iter()
-        .filter(|id| {
-            let Some(w) = after.wires.iter().find(|w| w.id.0 == *id) else {
-                return false;
-            };
-            let unrouted = f.unrouted.contains(&w.id);
-            unrouted || (!w.route.is_empty() && (breaks(*id) || bends(&now, *id) > bends(&was, *id)))
-        })
-        .map(WireId)
-        .collect();
-    if jobs.is_empty() {
-        return Vec::new();
-    }
-    let plan = ew_api::routing::route_on(
-        &after,
-        &Jobs {
-            wires: jobs,
-            keep_junctions: true,
-            ..Jobs::default()
-        },
-    );
-    plan.routes
+    let followed: Vec<(ew_api::output::Uuid, Vec<(i64, i64)>)> = tables
+        .connections
         .iter()
-        .filter_map(|(w, route)| {
-            let c = tables.connections.iter().find(|c| c.id == w.0)?;
-            let (a, b) = (end_point(&c.a)?, end_point(&c.b)?);
-            let points: Vec<serde_json::Value> = route_nm(ticks, route, a, b)
-                .iter()
-                .map(|p| json!([p.0, p.1]))
-                .collect();
-            Some(json!({"connection": w.0.to_string(), "route": points}))
+        .filter_map(|c| {
+            let (da, db) = (end_delta(&c.a), end_delta(&c.b));
+            let route = match (da, db) {
+                (None, None) => return None,
+                (Some(d), Some(_)) => c.polyline.iter().map(|p| (p.0 + d.0, p.1 + d.1)).collect(),
+                _ => follow_polyline(&c.polyline, &snap, da, db),
+            };
+            Some((c.id, route))
+        })
+        .collect();
+    if followed.is_empty() {
+        return Vec::new();
+    }
+    ew_api::routing::move_routes(tables, &cx.page.draft, &moves, &followed, end_point)
+        .into_iter()
+        .map(|(id, route)| {
+            let points: Vec<serde_json::Value> = route.iter().map(|p| json!([p.0, p.1])).collect();
+            json!({"connection": id.to_string(), "route": points})
         })
         .collect()
 }
