@@ -3,8 +3,8 @@
 
 //! Where the outcome of an act of the window is said (architecture §9.1): the one function that runs a step and
 //! places its failure or refusal, in the banner, the open dialog, a toast and the status line, or nowhere when the
-//! screen shows it already (one fact in one place, doc 16a P3). The window calls it for every act it dispatches; the
-//! headless path does not.
+//! screen shows it already (one fact in one place, doc 16a P3). The window calls it for every act it dispatches, and
+//! the headless script runner for every step, so a script sees what a person sees.
 
 use super::{Outcome, ShellModel};
 use crate::{key, strings};
@@ -20,16 +20,16 @@ pub(super) struct Reported {
 }
 
 impl ShellModel {
-    /// Runs `step` on the shell and says its outcome where the person looks. A banner that changed across the step was
-    /// the shell's own (raised, replaced or cleared for its own reason): the banner this raised before is then
-    /// forgotten. `drew_row` answers whether the Properties pane drew the row of a key in its last frame (a refusal it
-    /// shows under that row is not said again).
+    /// Runs `step` on the shell, says its outcome where the person looks and returns it. A banner that changed across
+    /// the step was the shell's own (raised, replaced or cleared for its own reason): the banner this raised before is
+    /// then forgotten. `drew_row` answers whether the Properties pane drew the row of a key in its last frame (a
+    /// refusal it shows under that row is not said again; headless no row is drawn).
     pub fn run_said(
         &mut self,
         action: Option<&str>,
         step: impl FnOnce(&mut ShellModel) -> Outcome,
         drew_row: impl Fn(&str) -> bool,
-    ) {
+    ) -> Outcome {
         let before = self.banner().map(str::to_owned);
         // The palette form's run is reported as its action, and the palette's run of
         // its selected action without a form as that action.
@@ -46,6 +46,7 @@ impl ShellModel {
         let dialog = self.dialog().cloned();
         let generation = self.dialog_generation();
         let outcome = step(self);
+        let said_outcome = outcome.clone();
         let banner_changed = self.banner() != before.as_deref();
         if banner_changed {
             self.reported.message = None;
@@ -57,6 +58,7 @@ impl ShellModel {
                 && self.dialog().is_some()
                 && (self.dialog_generation() != generation || self.dialog() != dialog.as_ref()));
         self.report(outcome, action.or(form), said, drew_row);
+        said_outcome
     }
 
     /// A failure or incomplete Cut refusal becomes a banner when the shell shows none of its own; a banner this raised

@@ -1031,13 +1031,19 @@ fn step_outcome(
 ) -> Outcome {
     let empty = Map::new();
     let map = params.as_object().unwrap_or(&empty);
-    match actions::find(action).map(|m| actions::enabled_with(m, shell, map)) {
-        Some(Err(reason_key)) => Outcome::Refused { reason_key },
-        _ => match ext.handle(shell, action, params) {
-            Some(outcome) => outcome,
-            None => shell.dispatch(action, params),
+    // Said where a person would read it, as the window says it ([`ShellModel::run_said`]): the step's state shows the
+    // toast, the status line or the banner of a refusal or a failure.
+    shell.run_said(
+        Some(action),
+        |shell| match actions::find(action).map(|m| actions::enabled_with(m, shell, map)) {
+            Some(Err(reason_key)) => Outcome::Refused { reason_key },
+            _ => match ext.handle(shell, action, params) {
+                Some(outcome) => outcome,
+                None => shell.dispatch(action, params),
+            },
         },
-    }
+        |_| false,
+    )
 }
 
 /// Runs the inner step of `script.expect_refused`: the refusal's key when it is refused, else the step's failure

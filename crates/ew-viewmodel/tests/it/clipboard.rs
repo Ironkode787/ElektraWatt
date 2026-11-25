@@ -1200,3 +1200,30 @@ fn complete_page_item_cut_still_undoes_and_redoes_once() {
     assert_eq!(s.clipboard().text(), Some(clipped.as_str()));
     s.shutdown();
 }
+
+/// A script sees where a refusal is said, as the person does: the refused Paste's step names its reason in the toast
+/// of its state.
+#[test]
+fn a_scripts_refused_step_is_said_in_its_state() {
+    let tmp = Tmp::new("clip-page-kind-said");
+    let mut shell = writable(&tmp, "1");
+    let text = "{\"$schema\":\"ew.uiscript/1\",\"label\":\"said\"}\n{\"action\":\"edit.paste_clip\",\"params\":{}}\n";
+    let parsed = ew_viewmodel::script::parse(text).unwrap();
+    let mut lines = Vec::new();
+    ew_viewmodel::script::run(
+        &mut shell,
+        &mut ew_viewmodel::script::NoExtension,
+        &parsed,
+        false,
+        &mut |l| {
+            lines.push(l.to_owned());
+            Ok(())
+        },
+    )
+    .unwrap();
+    let step: Value = serde_json::from_str(lines.last().unwrap()).unwrap();
+    assert_eq!(step["outcome"], "refused");
+    let said = "Nothing can be pasted on a title page";
+    assert_eq!(step["state"]["toast"]["text"], said, "{step}");
+    shell.shutdown();
+}

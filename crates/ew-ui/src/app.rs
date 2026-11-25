@@ -594,6 +594,6 @@ impl App {
         // The window reads the date before an action; the shell never does (the PLC export's form starts with it).
         self.shell.set_today(self.clock.today());
         let properties = &self.properties;
-        self.shell.run_said(action, step, |row| properties.drew_row(row));
+        let _ = self.shell.run_said(action, step, |row| properties.drew_row(row));
     }
 }
