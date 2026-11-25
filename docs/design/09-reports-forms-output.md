@@ -17,7 +17,9 @@ the accepted [architecture](04-architecture.md) (§8, §10.2, §11; ADR-0015, AD
 |---|---|
 | [§1. Scope and context](09-reports-forms.md#1-scope-and-context) | [report blocks, rows, forms and pagination](09-reports-forms.md) |
 | [§2. Concepts and data](09-reports-forms.md#2-concepts-and-data) | [report blocks, rows, forms and pagination](09-reports-forms.md) |
+| [§2.10 Fields of the project's own](09-frames.md#210-fields-of-the-projects-own) | [the frame and its title block, changed by a person](09-frames.md) |
 | [§3. Behaviour and rules](09-reports-forms.md#3-behaviour-and-rules) | [report blocks, rows, forms and pagination](09-reports-forms.md) |
+| [§3.9 Changing a frame and its title block](09-frames.md#39-changing-a-frame-and-its-title-block) | [the frame and its title block, changed by a person](09-frames.md) |
 | [§4. Page output pipeline](09-output.md#4-page-output-pipeline) | [the page output pipeline and exports](09-output.md) |
 | [§5. UI and UX touchpoints](09-output.md#5-ui-and-ux-touchpoints) | [the page output pipeline and exports](09-output.md) |
 | [§6. Outputs](09-output.md#6-outputs) | [the page output pipeline and exports](09-output.md) |
