@@ -367,7 +367,7 @@ fn a_failed_save_of_a_replay_keeps_the_replayed_transactions_in_a_journal() {
     vfs.reset_calls();
     vfs.set_fault(Fault::Error {
         at: 1,
-        kind: std::io::ErrorKind::PermissionDenied,
+        kind: std::io::ErrorKind::StorageFull,
     });
     match s.save_and_close() {
         Err(SaveError::Incomplete { .. }) | Ok(_) => panic!("the save fails before its commit point"),
