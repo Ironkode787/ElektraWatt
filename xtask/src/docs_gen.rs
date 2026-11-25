@@ -475,7 +475,7 @@ fn command_page_path(name: &str) -> String {
 }
 
 /// The page of a rule, relative to [`BOOK_SRC`]: `reference/rules/<id in lower case>.md`
-/// (`reference/rules/ew-core-033.md`); the rule's `docs` reference is this path without `.md` (D6).
+/// (`reference/rules/ew-core-033.md`); the rule's `docs` reference is this path without `.md`.
 fn rule_page_path(id: &str) -> String {
     format!("{RULES_DIR}/{}.md", id.to_lowercase())
 }

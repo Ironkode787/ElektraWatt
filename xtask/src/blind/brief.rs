@@ -73,10 +73,10 @@ pub struct TaskToml {
     /// The task's ID in its plan (`T1`, `A7`).
     #[serde(default)]
     pub task_id: Option<String>,
-    /// The usability rounds that run the task (`R0`, `R1`, `R2`): a round task's prompt adds `ROUND.md` (D11).
+    /// The usability rounds that run the task (`R0`, `R1`, `R2`): a round task's prompt adds `ROUND.md`.
     #[serde(default)]
     pub rounds: Vec<String>,
-    /// The start project: `sample` (D5); absent, the prelude makes the project.
+    /// The start project: `sample`; absent, the prelude makes the project.
     #[serde(default)]
     pub start: Option<String>,
 }
@@ -84,7 +84,7 @@ pub struct TaskToml {
 /// K9: a `task.toml` with another start.
 pub const START_VALUES: &str = "task.toml: `start` is `sample`";
 
-/// The start projects a brief may name (D5).
+/// The start projects a brief may name.
 pub const STARTS: [&str; 1] = ["sample"];
 
 /// The brief's `task.toml`, or `None` for a task without one (every task that is not a brief).
@@ -121,7 +121,7 @@ pub struct Item {
     /// A soft item the current build cannot meet: the reason and the package that brings it.
     #[serde(default)]
     pub infeasible: Option<String>,
-    /// Action IDs that must be done in this order (alternatives joined by ` or `), decided from the outcomes (D7).
+    /// Action IDs that must be done in this order (alternatives joined by ` or `), decided from the outcomes.
     #[serde(default)]
     pub actions: Option<Vec<String>>,
 }
@@ -566,7 +566,7 @@ fn prove(
     for sub in ["work", "config", "empty-sample", "book", "out"] {
         std::fs::create_dir_all(scratch.join(sub))?;
     }
-    // The start project (D5): a copy of the sample in `work/project`, which the prelude opens.
+    // The start project: a copy of the sample in `work/project`, which the prelude opens.
     if let Some(start) = start
         && let Err(e) = super::start::make_start_project(root, start, &scratch.join("work/project"))
     {
@@ -722,7 +722,7 @@ pub fn done_actions(outcomes: &[(String, String)]) -> Vec<String> {
 }
 
 /// Whether the actions `wanted` (each an action ID, or alternatives joined by ` or `) were done in this order in
-/// `done`, other actions between them allowed (D7).
+/// `done`, other actions between them allowed.
 ///
 /// # Errors
 ///
@@ -764,7 +764,7 @@ fn holds_pdf(dir: &Path) -> bool {
 pub type EwFn<'a> = dyn FnMut(&[&str]) -> Result<(Option<i32>, String)> + 'a;
 
 /// Decides every item of `acceptance` on the saved project `<work>/project`, in order: `check-brief` on the reference
-/// solution and `stop` on a brief run (D7) decide with this one code. `done` are the actions done, in order (an
+/// solution and `stop` on a brief run decide with this one code. `done` are the actions done, in order (an
 /// `actions` item reads them); `ew` runs the product's `ew` in `work`. A query decides an item by its row count, else
 /// its outputs do: `pdf` a PDF in `work`, `check` a check report without an error, `bom` a parts list with a row. An
 /// `actions` item must also have its actions done in order.

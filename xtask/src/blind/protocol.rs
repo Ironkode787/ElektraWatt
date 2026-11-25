@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the
+//! The protocol: a turn is one `do` call followed by exactly one note; the harness forwards the
 //! steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails
 //! twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time.
 //!

@@ -604,7 +604,7 @@ mod tests {
         (f, root)
     }
 
-    /// UR-3 (D7 to D9): a brief run's score decides each item with `check-brief`'s code on the same project, so the two
+    /// UR-3: a brief run's score decides each item with `check-brief`'s code on the same project, so the two
     /// decisions are equal; it gives the attempt and D9's counts.
     #[test]
     fn a_brief_runs_score_decides_its_items_as_check_brief_does() {

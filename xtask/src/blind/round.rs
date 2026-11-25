@@ -11,7 +11,7 @@
 //! **The questionnaire.** `questionnaire <run> -` takes the ten answers `Q<n> <1-5>` of part A and the four lines
 //! `B<n> <choice> <one sentence>` of part B on standard input and writes `questionnaire.json` with the PQ figure: SUS's
 //! arithmetic on part A (an odd item scores its answer minus 1, an even item 5 minus its answer, the sum times 2.5, so
-//! 0 to 100). The figure is reported without a threshold and is never a SUS score (D2). In a round task (`rounds` in
+//! 0 to 100). The figure is reported without a threshold and is never a SUS score. In a round task (`rounds` in
 //! `task.toml`) the hand-back waits for it.
 
 use std::collections::BTreeMap;

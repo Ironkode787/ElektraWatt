@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Recording, bless and replay (D14, D15).
+//! Recording, bless and replay.
 //!
 //! The UI script is the replay artefact: a run's `steps.uiscript` (prelude, the agent's steps, the epilogue) replayed
 //! through the built binary reproduces the run's outcomes and its `page.describe` epilogue. **R1** every step's action,

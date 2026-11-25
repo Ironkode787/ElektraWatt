@@ -4,7 +4,7 @@
 //! The first part of `check-brief <task>`: checks a task folder without a product. The sheet `task.md` exists and holds no address or
 //! path, the prelude's steps parse, and the sheet of a brief that starts on the sample ([`SAMPLE_SCRIPT`]) holds no
 //! identifier-shaped token and no proper name that the sample's script does not hold: the script is the sheet's only
-//! source (D4).
+//! source.
 //!
 //! A brief's replay and acceptance list are checked after it ([`super::brief`]).
 

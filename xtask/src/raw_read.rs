@@ -117,22 +117,19 @@ pub const DISALLOWED_TYPES: [&str; 4] = [
 ];
 
 /// The reason clippy prints with a use of one of [`DISALLOWED_TYPES`].
-pub const DISALLOWED_TYPES_REASON: &str = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification";
-
-/// Where the list of types is reasoned (the generated file's header cites it).
-const TYPES_REFERENCE: &str = "FT-271, WP-S6.02";
+pub const DISALLOWED_TYPES_REASON: &str = "iteration order must not reach persisted, exported or printed sequences (NFR); use BTreeMap/BTreeSet/IndexMap, or allow with a justification";
 
 /// Where the list of wall-clock, environment and randomness functions is reasoned.
-const METHODS_REFERENCE: &str = "FT-317, WP-S6.02, doc 18 §3.5";
+const METHODS_REFERENCE: &str = "doc 18 §3.5";
 
 /// The reason clippy prints with a call of a wall-clock function of [`DISALLOWED_METHODS`].
-const CLOCK_REASON: &str = "no wall clock in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): inject a clock, or allow with a one-line justification that reviewed the site";
+const CLOCK_REASON: &str = "no wall clock in model, derive, format or export paths (doc 18 §3.5, determinism): inject a clock, or allow with a one-line justification that reviewed the site";
 
 /// The reason clippy prints with a read of the process environment.
-const ENV_REASON: &str = "no environment access in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): read it at the program boundary and pass the value in, or allow with a one-line justification that reviewed the site";
+const ENV_REASON: &str = "no environment access in model, derive, format or export paths (doc 18 §3.5, determinism): read it at the program boundary and pass the value in, or allow with a one-line justification that reviewed the site";
 
 /// The reason clippy prints with a source of randomness.
-const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
+const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
 
 /// The reason clippy prints with a call of krilla's GIF or WebP image constructors: the audits
 /// of gif 0.14.2, image-webp 0.2.4 and imagesize 0.14.0 rest on these paths never being reached.
@@ -143,7 +140,7 @@ const KRILLA_DECODER_REASON: &str = "krilla's GIF and WebP decoders were audited
 pub const RANDOM_STATE: &str = "std::hash::RandomState";
 
 /// The reason clippy prints with a use of [`RANDOM_STATE`].
-const RANDOM_STATE_REASON: &str = "a randomly keyed hasher is a source of randomness and of hash iteration order (doc 18 §3.5, determinism; FT-317): use a seeded hasher or a BTree container, or allow with a justification";
+const RANDOM_STATE_REASON: &str = "a randomly keyed hasher is a source of randomness and of hash iteration order (doc 18 §3.5, determinism): use a seeded hasher or a BTree container, or allow with a justification";
 
 /// The generators that the workspace's feature sets do not compile today: entries with `allow-invalid = true`, so
 /// that clippy accepts the path while it does not resolve and bans it once a crate enables the generator (the
@@ -1153,7 +1150,7 @@ pub fn asset_presence_violations(path: &str, text: &str, rule: &AssetPresencePol
             &asset_item(function),
             format!(
                 "reads asset presence (`{name}`) in {}: whether the model holds an asset changes without a \
-                 revision, so no memoised query may read it (FT-382, decision log ID-575, ARCH §3 rule 1); read the \
+                 revision, so no memoised query may read it (ARCH §3 rule 1); read the \
                  bytes outside the queries, or make asset presence a tracked input of the memo engine (ADR-0002) \
                  instead of a second exception",
                 function.map_or_else(|| "top-level code".to_owned(), |f| format!("`{f}`"))
@@ -1354,7 +1351,7 @@ pub fn clippy_config(
          # of the list ({METHODS_REFERENCE}); a justified use site is allowed with\n\
          # `#[allow(clippy::disallowed_methods)]` and a one-line justification.\n\
          #\n\
-         # The hash containers are listed under `disallowed-types` ({TYPES_REFERENCE}); a use site whose iteration\n\
+         # The hash containers are listed under `disallowed-types`; a use site whose iteration\n\
          # order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification.\n\
          #\n\
          # The whole file is generated: any other clippy setting would need a change of the generator\n\
@@ -1832,10 +1829,10 @@ mod tests {
 # The reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`) opt out with
 # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may opt out of the raw
 # readers. The same lint also carries the wall-clock, environment and randomness functions at the end
-# of the list (FT-317, WP-S6.02, doc 18 §3.5); a justified use site is allowed with
+# of the list (doc 18 §3.5); a justified use site is allowed with
 # `#[allow(clippy::disallowed_methods)]` and a one-line justification.
 #
-# The hash containers are listed under `disallowed-types` (FT-271, WP-S6.02); a use site whose iteration
+# The hash containers are listed under `disallowed-types`; a use site whose iteration
 # order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification.
 #
 # The whole file is generated: any other clippy setting would need a change of the generator
@@ -1851,10 +1848,10 @@ disallowed-methods = [
 ]
 
 disallowed-types = [
-    { path = "imbl::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
-    { path = "imbl::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
-    { path = "std::collections::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
-    { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "imbl::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "imbl::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::collections::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
 @@RANDOM_STATE@@
 ]
 "##;
@@ -2484,7 +2481,10 @@ disallowed-types = [
             "{out:#?}"
         );
         assert!(out[1].contains("(`has_asset`) in `title_block`"), "{out:#?}");
-        assert!(out.iter().all(|v| v.contains("FT-382")), "{out:#?}");
+        assert!(
+            out.iter().all(|v| v.contains("no memoised query may read it")),
+            "{out:#?}"
+        );
     }
 
     #[test]

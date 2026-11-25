@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Scoring (D12): what `stop` writes into a run's `score.json`, and the task files the harness reads.
+//! Scoring: what `stop` writes into a run's `score.json`, and the task files the harness reads.
 //!
 //! `score.json` (`ew.blindscore/1`) holds the protocol's counts and observations of every run but a check run. A
 //! brief run's score adds `brief` ([`BriefScore`]): each acceptance item decided on the saved project with
@@ -144,7 +144,7 @@ pub struct AttemptCounts {
     pub friction: BTreeMap<String, u32>,
 }
 
-/// A brief run's score (D7 to D9).
+/// A brief run's score.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct BriefScore {
     /// The task's ID in its plan (`T1`), when `task.toml` names one.
@@ -160,7 +160,7 @@ pub struct BriefScore {
 }
 
 /// The attempt of a brief run: `not completed` when it ended early or a hard item is unmet, else `with help` after a
-/// hint and `unassisted` without one (D8).
+/// hint and `unassisted` without one.
 pub fn attempt_of(end: Option<&str>, items: &[ItemDecision], hints: u32) -> &'static str {
     let early = matches!(end, Some("cap" | "quit" | "orchestrator" | "lost" | "diverged"));
     if early || items.iter().any(|i| i.kind == "hard" && !i.met) {
@@ -172,7 +172,7 @@ pub fn attempt_of(end: Option<&str>, items: &[ItemDecision], hints: u32) -> &'st
     }
 }
 
-/// The brief part of a stopped brief run's score: its acceptance list decided on `work/project` with `ew` (D7), the
+/// The brief part of a stopped brief run's score: its acceptance list decided on `work/project` with `ew`, the
 /// attempt (D8) and the counts (D9). `ew` runs the product's `ew` in `work`.
 ///
 /// # Errors
@@ -375,7 +375,7 @@ pub fn evidence_of(run: &Run, facts: ExportFacts) -> Result<Evidence> {
 pub fn score_run(root: &Path, run: &Run, facts: ExportFacts) -> Result<Score> {
     let ev = evidence_of(run, facts)?;
     let mut score = score(&ev);
-    // A brief run's acceptance list, decided with `check-brief`'s code on the saved project (D7). An `ew` that does
+    // A brief run's acceptance list, decided with `check-brief`'s code on the saved project. An `ew` that does
     // not start decides nothing: its queries fail.
     if ev.rj.kind == "brief" {
         let ew = run.product_exe("ew");

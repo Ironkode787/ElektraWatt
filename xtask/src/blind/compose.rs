@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `compose` (D10): the prompt of a run as the concatenation of its versioned files, deterministically.
+//! `compose`: the prompt of a run as the concatenation of its versioned files, deterministically.
 //!
 //! In this order: the drafter's prompt `tools/blind/BLIND_DRAFTER.md` (the checker's `CHECKER.md` for a check run), the
 //! persona, the task sheet and `tools/blind/HELP.md`, each preceded by a line `<!-- file: <path> sha256 <hex> -->`, with
@@ -361,7 +361,7 @@ mod tests {
         assert!(keys.windows(2).all(|w| w[0] < w[1]));
     }
 
-    /// UR-5 (D11): a brief whose `task.toml` names rounds gets `ROUND.md` after its task sheet, with its digest and its
+    /// UR-5: a brief whose `task.toml` names rounds gets `ROUND.md` after its task sheet, with its digest and its
     /// placeholders; a brief without rounds and a check run of a round task do not; the prompt is byte-deterministic.
     #[test]
     fn a_round_task_adds_the_round_prompt_after_the_sheet() {

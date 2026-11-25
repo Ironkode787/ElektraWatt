@@ -9,7 +9,7 @@
 //! ([`filter`]), the protocol ([`protocol`]), the loopback keeper and the stateless replay ([`keeper`], [`stateless`]),
 //! the composed prompt ([`compose`]), the stop with its epilogue ([`stop`]), the recording, bless and replay
 //! ([`replay`]) and the usability rounds' hints and questionnaire ([`round`]). The harness drives the built `elektrawatt` and `ew` binaries as processes: it has no edge to any product
-//! crate and calls no model (D2, D13).
+//! crate and calls no model.
 //!
 //! The agent runs only the run's copy of this program (`<run>/bin/xtask blind …`); the orchestrator runs the same code
 //! from the repository.

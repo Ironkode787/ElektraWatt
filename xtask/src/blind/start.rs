@@ -337,7 +337,7 @@ fn populate(
         make_start_project(root, start, &run.path(".harness/start-project"))?;
         copy_dir(&run.path(".harness/start-project"), &run.path("work/project"))?;
     }
-    // The task's hints (D8), which `hint` gives one at a time; a check run has none.
+    // The task's hints, which `hint` gives one at a time; a check run has none.
     let hints = root.join(format!("tools/blind/tasks/{}/hints.toml", a.task));
     if a.kind != Kind::Check && hints.is_file() {
         copy_file(&hints, &run.path(".harness/hints.toml"))?;
@@ -965,7 +965,7 @@ mod tests {
         );
     }
 
-    /// UR-1 (D5): a brief with `start = "sample"` starts on a copy of the sample project in `work/project`, kept in
+    /// UR-1: a brief with `start = "sample"` starts on a copy of the sample project in `work/project`, kept in
     /// `.harness/start-project`; `resume` and a stateless call put it back after `work/` was deleted; the round and the hints reach the run.
     #[test]
     fn a_brief_starts_on_a_copy_of_the_sample_project() {

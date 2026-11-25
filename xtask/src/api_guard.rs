@@ -682,7 +682,7 @@ fn format_walk(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode
                 .or_default()
                 .values
                 .extend(branches.iter().map(branch_word));
-            // The members of an object branch are the node's own; its constraints are its own item (D29).
+            // The members of an object branch are the node's own; its constraints are its own item.
             for b in branches.iter().filter(|b| b.get("const").is_none()) {
                 let branch = nodes.entry(format!("{path}|{}", branch_word(b))).or_default();
                 branch.branch = true;
@@ -991,7 +991,7 @@ mod tests {
     /// RL-6: against the release tag `v0.1.0` each breaking change of D9's list fails with S5, a new value
     /// without its `- format-variant:` line with S6 (with it, it passes), a changed fixture with S7; a new optional
     /// property, a reserved kind's new schema and a changed expected folder pass. The base is the oldest final tag, the
-    /// line check's the newest (D22).
+    /// line check's the newest.
     #[test]
     fn a_released_format_changes_only_additively() {
         let s = Scratch::new("format-released");

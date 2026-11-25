@@ -19,7 +19,7 @@ anyhow.workspace = true
 cargo_metadata.workspace = true
 # The item and copy IDs of the generated starter symbols (`ew_ids::v5`).
 ew-ids = { path = "../crates/ew-ids" }
-# `gen-icons` (WP-S2.17 part 6, D9): SVG path parsing for the icon table; already in the graph through ew-dl and
+# `gen-icons`: SVG path parsing for the icon table; already in the graph through ew-dl and
 # ew-render2d with the same features, no new package.
 kurbo = { version = "0.13.1", default-features = false, features = ["std"] }
 serde.workspace = true
