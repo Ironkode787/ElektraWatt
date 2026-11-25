@@ -85,7 +85,7 @@ where the documents leave the data open:
 
 | Shim | Reads | Replaced by |
 |---|---|---|
-| Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) and are noted | the typed `ProjectSettings` members (doc 03 §5.1, decision log ID-17) |
+| Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) and are noted | the typed `ProjectSettings` members (doc 03 §5.1) |
 
 ## Cross-references
 
@@ -123,7 +123,7 @@ where the documents leave the data open:
 
 | Shim | Reads | Replaced by |
 |---|---|---|
-| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored, `key` defaults to `"custom"`, `structure` to `when_different`, `same_page` to `full`); absent: the pinned profile's `[xref]`; malformed: noted, the profile's | the typed `ProjectSettings.xref_format` (decision log ID-17) |
+| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored, `key` defaults to `"custom"`, `structure` to `when_different`, `same_page` to `full`); absent: the pinned profile's `[xref]`; malformed: noted, the profile's | the typed `ProjectSettings.xref_format` |
 
 ## Agreement with the command layer
 

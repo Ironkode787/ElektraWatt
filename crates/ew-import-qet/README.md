@@ -86,9 +86,3 @@ parts from element information; text-to-data recognisers (EW-IMP-107/108);
 QET 0.200 `<cables>`; conductor properties → potential definitions and overrides; external connection points; QET 0.100
 `terminal_strips` data; empty terminal designations (MF-08 needs an empty designation, which `Ident` cannot
 hold); the starter-symbol exchange.
-
-### Follow-up tasks
-
-- FT: read QET 0.100+ `<terminal_strips>` (`terminal_strip_data`, `physical_terminal`, `real_terminal`,
-  `terminal_strip_bridge`, doc 14 §4.11) into strips, terminal levels and bridge connections; today the
-  member is reported as not imported and its bridges are dropped.

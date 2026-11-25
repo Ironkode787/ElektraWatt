@@ -59,6 +59,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 
 ## Importers
 
+- FT-2199 `ew-import-qet`: QET 0.100+ `<terminal_strips>` (`terminal_strip_data`, `physical_terminal`, `real_terminal`, `terminal_strip_bridge`, doc 14 §4.11) is reported as not imported and its bridges are dropped; read it into strips, terminal levels and bridge connections.
 - FT-1906 `ew-import-*, ew-library`: GSD and GSDML files read into a PLC or bus part of the person's own (its interfaces, modules and channels). 1.x in the plan; until then such a part is made in the part editor.
 - FT-684 `ew-import-tables`: **Medium.** The tables importer's `template` column cannot pick a later entry of the same FnDef (it takes the first entry naming the FnDef; writing `template_entry` from the column would lift it once the builder …
 - FT-1419 `ew-import-tables`: The `route` column of `connections.csv` accepts only connection-point ends a symbol draws, no junction, black-box or strip-segment end (FT51e).
