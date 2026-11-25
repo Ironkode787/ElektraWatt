@@ -77,10 +77,19 @@ pub const MAX_SVG_NUMBER: f64 = 1.0e9;
 /// the parser stops expanding references at a million nodes, and what a style sheet, markers, a reference made in a
 /// style sheet or long path data cost is not bounded beyond the caps (doc 18 §11 TM-18).
 ///
-/// Linear in the length of the file.
+/// Linear in the length of the file, but for finding an id in a sorted map: the references are a graph of one node
+/// per element with an id, one per id and one for the document, each edge made once and followed once.
 pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
+    counted(bytes).0
+}
+
+/// [`svg_hazard`]'s answer and the steps its reference check took: an edge made or followed, a node walked.
+fn counted(bytes: &[u8]) -> (Option<SvgHazard>, usize) {
     let mut scan = Plain::default();
-    read_markup(bytes, &mut scan).or_else(|| scan.finish())
+    match read_markup(bytes, &mut scan) {
+        Some(hazard) => (Some(hazard), scan.steps),
+        None => scan.finish(),
+    }
 }
 
 /// The plain rejecter's markup reader: the first refusal while reading, with the document's references left in
@@ -257,13 +266,59 @@ fn read_markup(bytes: &[u8], scan: &mut Plain) -> Option<SvgHazard> {
 /// element and the references between the elements with an id.
 #[derive(Default)]
 struct Plain {
-    /// The open elements, innermost last: the local name and the node of an element with an id.
-    open: Vec<(String, Option<usize>)>,
+    /// The open elements, innermost last: the local name and the reference node ([`Refs`]) of the element with an
+    /// id that is the element or its nearest ancestor with one, else the document's.
+    open: Vec<(String, usize)>,
     /// The text of the open `style` element (roxmltree merges its chunks into one text node).
     style: String,
-    /// The elements with an id or a reference, in document order: each with its id and the ids it references, itself
-    /// or (for an element with an id) a descendant.
-    nodes: Vec<(Option<String>, Vec<String>)>,
+    /// The references of the document.
+    refs: Refs,
+    /// The steps taken on the references: an edge made or followed, a node walked.
+    steps: usize,
+}
+
+/// The references of a document as a graph of three kinds of node: the document's ([`DOCUMENT`]), one per element
+/// with an id and one per id. The document's node and an element's make the references made inside them outside
+/// any nested element with an id, an edge to the id's node each, and an edge to each element with an id directly
+/// inside them, whose references they make too (the parser converts the referenced content as part of each). An id's
+/// node has an edge to every element with that id: the parser resolves a reference to an element with the id, and
+/// with several, any may be the one. Following an edge from an id to an element is one link of a chain; the other
+/// edges are no link.
+struct Refs {
+    /// Each node's edges: the node an edge leads to and whether it is a link.
+    edges: Vec<Vec<(usize, bool)>>,
+    /// The node of each id.
+    ids: std::collections::BTreeMap<String, usize>,
+}
+
+/// The node of the document in [`Refs::edges`], from which every element is reached.
+const DOCUMENT: usize = 0;
+
+impl Default for Refs {
+    fn default() -> Refs {
+        Refs {
+            edges: vec![Vec::new()],
+            ids: std::collections::BTreeMap::new(),
+        }
+    }
+}
+
+impl Refs {
+    /// A new node without edges.
+    fn node(&mut self) -> usize {
+        self.edges.push(Vec::new());
+        self.edges.len() - 1
+    }
+
+    /// The node of the id `id`, made on its first mention.
+    fn id(&mut self, id: String) -> usize {
+        if let Some(&node) = self.ids.get(&id) {
+            return node;
+        }
+        let node = self.node();
+        self.ids.insert(id, node);
+        node
+    }
 }
 
 impl Plain {
@@ -294,18 +349,27 @@ impl Plain {
             }
             targets.extend(url_targets(value));
         }
-        // A reference made inside an element is made by every ancestor with an id too: the parser converts the
-        // referenced content as part of each of them.
-        for k in self.open.iter().filter_map(|(_, n)| *n) {
-            self.nodes[k].1.extend(targets.iter().cloned());
+        // A reference made inside an element is made by every ancestor with an id too: the element's node is
+        // reached from its nearest ancestor with an id, which is reached from its own, up to the document.
+        let parent = self.open.last().map_or(DOCUMENT, |(_, node)| *node);
+        let node = match id {
+            Some(id) => {
+                let node = self.refs.node();
+                let of_id = self.refs.id(id);
+                self.refs.edges[parent].push((node, false));
+                self.refs.edges[of_id].push((node, true));
+                self.steps += 2;
+                node
+            }
+            None => parent,
+        };
+        for target in targets {
+            let of_id = self.refs.id(target);
+            self.refs.edges[node].push((of_id, false));
+            self.steps += 1;
         }
-        let has_id = id.is_some();
-        let node = (has_id || !targets.is_empty()).then(|| {
-            self.nodes.push((id, targets));
-            self.nodes.len() - 1
-        });
         if !self_closing {
-            self.open.push((name.to_owned(), node.filter(|_| has_id)));
+            self.open.push((name.to_owned(), node));
         }
         None
     }
@@ -336,50 +400,48 @@ impl Plain {
     }
 
     /// The checks that need the whole document: no chain of references longer than [`MAX_SVG_REF_DEPTH`] links and no
-    /// cycle of them, from any element. Depth-first with the longest chain from each node kept, so linear
-    /// in the references; it never descends deeper than the bound.
-    fn finish(self) -> Option<SvgHazard> {
-        // The parser resolves a reference to an element with the id; with several, any may be the one.
-        let mut by_id: std::collections::BTreeMap<&str, Vec<usize>> = std::collections::BTreeMap::new();
-        for (k, (id, _)) in self.nodes.iter().enumerate() {
-            if let Some(id) = id {
-                by_id.entry(id.as_str()).or_default().push(k);
-            }
+    /// cycle of them, from any element. One depth-first walk from the document's node, which reaches every element,
+    /// with the longest chain from each node kept and each node's edges deduplicated: every node is walked once and
+    /// every edge followed once, so linear in the references. The walk keeps its path in a list of its own, never on
+    /// the stack. With the steps taken.
+    fn finish(self) -> (Option<SvgHazard>, usize) {
+        let Plain { refs, mut steps, .. } = self;
+        let mut edges = refs.edges;
+        for out in &mut edges {
+            out.sort_unstable();
+            out.dedup();
         }
-        // The longest chain from each node; `None` while the node is on the walk's path.
-        let mut longest: Vec<Option<Option<usize>>> = vec![None; self.nodes.len()];
-        fn walk(
-            k: usize,
-            depth: usize,
-            nodes: &[(Option<String>, Vec<String>)],
-            by_id: &std::collections::BTreeMap<&str, Vec<usize>>,
-            longest: &mut [Option<Option<usize>>],
-        ) -> Option<usize> {
-            match longest[k] {
-                Some(Some(n)) => return Some(n),
-                Some(None) => return None,
-                None => {}
-            }
-            if depth > MAX_SVG_REF_DEPTH {
-                return None;
-            }
-            longest[k] = Some(None);
-            let mut best = 0;
-            for target in &nodes[k].1 {
-                for &next in by_id.get(target.as_str()).into_iter().flatten() {
-                    best = best.max(walk(next, depth + 1, nodes, by_id, longest)? + 1);
+        // The longest chain from each node; `Some(None)` while the node is on the walk's path.
+        let mut longest: Vec<Option<Option<usize>>> = vec![None; edges.len()];
+        longest[DOCUMENT] = Some(None);
+        // The walk's path: each node with whether the edge to it is a link, its next edge and its longest chain yet.
+        let mut path: Vec<(usize, bool, usize, usize)> = vec![(DOCUMENT, false, 0, 0)];
+        while let Some(last) = path.last_mut() {
+            steps += 1;
+            let (node, _, next, best) = last;
+            if let Some(&(to, link)) = edges[*node].get(*next) {
+                *next += 1;
+                match longest[to] {
+                    Some(Some(n)) => *best = (*best).max(n + usize::from(link)),
+                    Some(None) => return (Some(SvgHazard::TooComplex), steps),
+                    None => {
+                        longest[to] = Some(None);
+                        path.push((to, link, 0, 0));
+                    }
                 }
+                continue;
             }
-            longest[k] = Some(Some(best));
-            Some(best)
-        }
-        for k in 0..self.nodes.len() {
-            match walk(k, 0, &self.nodes, &by_id, &mut longest) {
-                Some(n) if n <= MAX_SVG_REF_DEPTH => {}
-                _ => return Some(SvgHazard::TooComplex),
+            let (node, link, _, best) = *last;
+            if best > MAX_SVG_REF_DEPTH {
+                return (Some(SvgHazard::TooComplex), steps);
+            }
+            longest[node] = Some(Some(best));
+            path.pop();
+            if let Some((_, _, _, up)) = path.last_mut() {
+                *up = (*up).max(best + usize::from(link));
             }
         }
-        None
+        (None, steps)
     }
 }
 
@@ -1039,5 +1101,35 @@ mod tests {
         );
         assert_eq!(svg_hazard(chain(31).as_bytes()), None, "31 gradients");
         assert_eq!(svg_hazard(chain(32).as_bytes()), None, "32 gradients, the bound");
+    }
+
+    /// The reference check's work grows with the file, not with its square: thousands of elements sharing one id
+    /// referenced thousands of times, and references made deep inside nested elements with ids, each ask at most one
+    /// step (an edge made or followed, a node walked) per byte of the file, and pass.
+    #[test]
+    fn the_reference_check_is_linear_in_the_file() {
+        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+        let duplicates = |n: usize| r#"<path id="d" d="M0 0 H1"/>"#.repeat(n);
+        let uses = |n: usize| r##"<use href="#d"/>"##.repeat(n);
+        let wide = format!(
+            r#"<svg {NS} viewBox="0 0 4 4"><defs>{}</defs>{}</svg>"#,
+            duplicates(4000),
+            uses(4000)
+        );
+        let mut deep = format!(r#"<svg {NS} viewBox="0 0 4 4"><defs>{}</defs>"#, duplicates(1000));
+        for k in 0..60 {
+            deep.push_str(&format!(r#"<g id="n{k}">{}"#, uses(200)));
+        }
+        deep.push_str(&"</g>".repeat(60));
+        deep.push_str("</svg>");
+        for (what, text) in [("duplicate ids", wide), ("deep nesting", deep)] {
+            let (hazard, steps) = counted(text.as_bytes());
+            assert_eq!(hazard, None, "{what}");
+            assert!(
+                steps <= text.len(),
+                "{what}: {steps} steps for {} bytes",
+                text.len()
+            );
+        }
     }
 }
