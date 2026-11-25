@@ -152,7 +152,7 @@ impl Model {
         Model::from_records_missing(project, records, lib, &BTreeSet::new())
     }
 
-    /// [`Model::from_records`] for a project whose library copies `missing` could not be read (FT-1383): a
+    /// [`Model::from_records`] for a project whose library copies `missing` could not be read: a
     /// record that names one of them is no EW-INV-001 here, so the project opens (read-only, the loader's finding
     /// naming the copy); an edit that touches such a record is still refused by EW-INV-001. Nor is a violation of
     /// another rule whose records include such a referrer ([`unexplained_by_dropped_copies`]): any other
@@ -380,7 +380,7 @@ impl Model {
                 named.insert(t.asset, *asset.reference());
             }
             for (_, item) in self.page_items.iter() {
-                // An image's asset, and the embedded source of an underlay (WP-S3.19).
+                // An image's asset, and the embedded source of an underlay.
                 let sha = match &item.kind {
                     ew_schema::PageItemKind::Image(image) => image.asset,
                     ew_schema::PageItemKind::Underlay(u) => u.asset,

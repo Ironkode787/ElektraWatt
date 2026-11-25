@@ -1321,7 +1321,7 @@ fn fluid(id: u128, a: ew_schema::Endpoint, b: ew_schema::Endpoint) -> Connection
     c
 }
 
-/// FT-1569: a project loaded with the FnDef copy of a valve dropped as damaged, a fluid line at that valve's port: an
+/// A project loaded with the FnDef copy of a valve dropped as damaged, a fluid line at that valve's port: an
 /// edit that embeds another copy (the update of a second damaged copy from its library) touches a copy, so EW-INV-024
 /// judges every line; the port whose definition is gone is not judged, so the edit is no misfit. Before the fix the
 /// port was "no fluid port" and every such update was refused.

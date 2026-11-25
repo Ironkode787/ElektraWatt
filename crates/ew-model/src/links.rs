@@ -33,7 +33,7 @@
 //! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!
 //! The fluid 1.0 links (the tube, fitting and tee parts, a medium's and the project's tube parts, a medium definition's
-//! point and medium; WP-S1.25) are load-tolerant as well, for the same reason: an older 0.1 build kept them unenforced,
+//! point and medium) are load-tolerant as well, for the same reason: an older 0.1 build kept them unenforced,
 //! and every reader takes a missing target as absent.
 //!
 //! One link is **load-tolerant** ([`LinkDecl::load_tolerant`]): `page_item.kind.wire_marker.connections[]`, the
@@ -444,7 +444,7 @@ use IndexName as I;
 pub static LINKS: &[LinkDecl] = &[
     // project
     lineage_link!(Project),
-    // The project's default tube part (WP-S1.25): load-tolerant, as the fluid line's parts.
+    // The project's default tube part: load-tolerant, as the fluid line's parts.
     LinkDecl {
         load_tolerant: true,
         ..link!(Project."settings.fluid.default_tube.part.copy" -> Part, Forbid, None,
@@ -643,7 +643,7 @@ pub static LINKS: &[LinkDecl] = &[
     })),
     link!(Connection."overrides.wire_part.copy" -> Part, Forbid, None,
         |v, out| opt(v.overrides.wire_part.as_ref().map(|p| p.copy), out)),
-    // A fluid line's tube and fitting parts (WP-S1.25), kept alive like part uses; load-tolerant, because an older 0.1
+    // A fluid line's tube and fitting parts, kept alive like part uses; load-tolerant, because an older 0.1
     // build kept the members in `extra` and did not enforce them (ADR-0011 amendment 6).
     LinkDecl {
         load_tolerant: true,
@@ -701,7 +701,7 @@ pub static LINKS: &[LinkDecl] = &[
         j.sequence.retain(|c| !gone(del, Kind::Connection, *c));
         Some(AnyRow::Junction(Arc::new(j)))
     })),
-    // A fluid tee's part (WP-S1.25): load-tolerant, as the fluid line's parts.
+    // A fluid tee's part: load-tolerant, as the fluid line's parts.
     LinkDecl {
         load_tolerant: true,
         ..link!(Junction."fitting.copy" -> Part, Forbid, None, |v, out| opt(v.fitting.as_ref().map(|p| p.copy), out))
@@ -739,7 +739,7 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Channel(Arc::new(c)))
     })),
-    // A safety channel's 1oo2 partner and its test-pulse pin (WP-S1.24): cleared when their target goes; load-tolerant,
+    // A safety channel's 1oo2 partner and its test-pulse pin: cleared when their target goes; load-tolerant,
     // because an older 0.1 build kept `safety` in `extra` and did not maintain them (ADR-0011 amendment 6).
     LinkDecl {
         load_tolerant: true,
@@ -846,7 +846,7 @@ pub static LINKS: &[LinkDecl] = &[
         Some(AnyRow::PhysicalNet(Arc::new(n)))
     })),
     lineage_link!(PhysicalNet),
-    // medium and medium_def (WP-S1.25): every link load-tolerant, because an older 0.1 build kept both kinds verbatim and
+    // medium and medium_def: every link load-tolerant, because an older 0.1 build kept both kinds verbatim and
     // did not apply them (ADR-0011 amendment 6); a definition whose CP or medium is gone seeds nothing (doc 11 §5.3).
     LinkDecl {
         load_tolerant: true,
@@ -961,7 +961,7 @@ pub static LINKS: &[LinkDecl] = &[
     }),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
-    // The exchange snapshot of a configuration project goes with it (WP-S3.16); load-tolerant, because an older
+    // The exchange snapshot of a configuration project goes with it; load-tolerant, because an older
     // 0.1 build kept the kinds verbatim and could delete the configuration project (ADR-0011 amendment 6).
     LinkDecl {
         load_tolerant: true,
@@ -1091,12 +1091,12 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "part",
         "manufacturer.library",
-        "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is WP-S1.19 part 3's (D10)",
+        "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is the library embedding's",
     ),
     (
         "part",
         "manufacturer.item",
-        "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is WP-S1.19 part 3's (D10)",
+        "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is the library embedding's",
     ),
     (
         "part",
@@ -1161,12 +1161,12 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "macro_instance",
         "members[][0]",
-        "the fragment-local ID of a member in the macro's fragment; the created record is `members[][1]` (WP-S1.19 D13)",
+        "the fragment-local ID of a member in the macro's fragment; the created record is `members[][1]`",
     ),
     (
         "placement",
         "part.copy",
-        "the part use a placement realises (WP-S4.01 D4: no delete policy): a placement whose part use left its          device keeps naming the copy, which EW-LAY-003 reports and `part.assign` replace follows (D7); the copy          itself is kept alive by the device's part uses, never by the placement",
+        "the part use a placement realises (no delete policy): a placement whose part use left its          device keeps naming the copy, which EW-LAY-003 reports and `part.assign` replace follows (D7); the copy          itself is kept alive by the device's part uses, never by the placement",
     ),
     (
         "project",

@@ -1319,7 +1319,7 @@ pub enum FluidPortClass {
 /// `ew_schema::TemplateFn::function_cps`), except for a black box drawn from its device's part pattern (`parts`, the
 /// copies of its device's part uses in order), whose CPs are electrical. A missing FnDef copy is
 /// [`FluidPortClass::Exempt`]: the port cannot be judged without it (EW-INV-001 judges the reference; a copy dropped
-/// as damaged at an open must not make every other copy's update a misfit, FT-1569). One rule for EW-INV-024 and the
+/// as damaged at an open must not make every other copy's update a misfit). One rule for EW-INV-024 and the
 /// commands' refusals.
 pub fn fluid_port_class(
     function: &Function,
