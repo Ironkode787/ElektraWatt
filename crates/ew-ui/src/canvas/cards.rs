@@ -29,10 +29,9 @@ impl CanvasHost {
         let id = response.id.with("context-menu");
         let mut open = None;
         let select = shell.tool().name() == "select";
-        let keys = select
-            && shell.focus() == Some(Focus::Canvas(group))
-            && !shell.selection().items.is_empty()
-            && std::mem::take(&mut self.menu_asked);
+        // The focused canvas takes the request whatever it then does with it.
+        let asked = shell.focus() == Some(Focus::Canvas(group)) && std::mem::take(&mut self.menu_asked);
+        let keys = asked && select && !shell.selection().items.is_empty();
         if response.secondary_clicked() && select {
             // Picked at the pointer now, not from the hover a click before cleared: of the entities a press there can
             // pick a selected one first, so a right click on what a click selected keeps it, else the hover's pick.

@@ -263,3 +263,30 @@ fn the_app_menu_and_the_context_menu_keys_are_bindings_a_person_can_change() {
     settle(&mut h);
     assert!(menus(&h) > closed, "Ctrl+F9 opens the canvas's context menu");
 }
+
+/// Shift+F10 with nothing selected opens no menu, and the request goes with its frame: a later selection on the
+/// canvas does not open the context menu (it did, from a request left standing).
+#[test]
+fn a_context_menu_key_with_nothing_selected_opens_no_menu_later() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(&tmp, FIRST_RUN_DONE, None);
+    dispatch(&mut h, "select.set", json!({ "ids": [] }));
+    dispatch(&mut h, "ui.focus", json!({ "area": "canvas" }));
+    settle(&mut h);
+    h.key_press_modifiers(Modifiers::SHIFT, Key::F10);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(!egui::Popup::is_any_open(&h.ctx), "nothing selected: no menu");
+    let rep = h.state().shell().canvas().unwrap().page().tables.reps[0]
+        .id
+        .to_string();
+    dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
+    dispatch(&mut h, "ui.focus", json!({ "area": "canvas" }));
+    settle(&mut h);
+    settle(&mut h);
+    assert!(!egui::Popup::is_any_open(&h.ctx), "a later selection opens no menu");
+    h.key_press_modifiers(Modifiers::SHIFT, Key::F10);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(egui::Popup::is_any_open(&h.ctx), "Shift+F10 with the symbol selected opens its menu");
+}

@@ -387,14 +387,11 @@ impl App {
     /// Runs the actions only the window runs ([`ew_viewmodel::actions::ActionMeta::window_only`]) that this frame
     /// asked for: the app menu (not while a dialog or a file dialog is open) and the canvas's context menu.
     pub(super) fn window_actions(&mut self, ctx: &egui::Context) {
-        for action in std::mem::take(&mut self.window_actions) {
-            match action {
-                "ui.app_menu" if self.shell.dialog().is_none() && self.pending_pick.is_none() => {
-                    egui::Popup::open_id(ctx, crate::command_bar::app_menu_id());
-                }
-                "ui.context_menu" => self.canvas.ask_context_menu(),
-                _ => {}
-            }
+        let actions = std::mem::take(&mut self.window_actions);
+        self.canvas
+            .ask_context_menu(actions.contains(&"ui.context_menu"));
+        if actions.contains(&"ui.app_menu") && self.shell.dialog().is_none() && self.pending_pick.is_none() {
+            egui::Popup::open_id(ctx, crate::command_bar::app_menu_id());
         }
     }
 }

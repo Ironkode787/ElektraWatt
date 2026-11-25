@@ -237,8 +237,8 @@ const POPUP_GROUP: usize = 2;
 
 /// The canvases' state between frames.
 pub struct CanvasHost {
-    /// `ui.context_menu` (Shift+F10 or the menu key) ran: the focused canvas opens its context menu at the
-    /// selection in its next frame.
+    /// `ui.context_menu` (Shift+F10 or the menu key) ran in this frame: the focused canvas opens its context menu at
+    /// the selection now, or not at all.
     menu_asked: bool,
     pool: Option<TilePool>,
     cache: TileCache<TextureHandle>,
@@ -310,9 +310,11 @@ fn key_of(page: &CanvasPage) -> SceneKey {
 }
 
 impl CanvasHost {
-    /// Asks the focused canvas for its context menu at the selection (`ui.context_menu`).
-    pub(crate) fn ask_context_menu(&mut self) {
-        self.menu_asked = true;
+    /// Whether this frame asks the focused canvas for its context menu at the selection (`ui.context_menu`): asked
+    /// every frame, so a request no canvas could take (nothing selected, another tool, no canvas with the keys) goes
+    /// with its frame and never opens the menu at a later selection.
+    pub(crate) fn ask_context_menu(&mut self, asked: bool) {
+        self.menu_asked = asked;
     }
 
     /// A canvas host with nothing on it.
