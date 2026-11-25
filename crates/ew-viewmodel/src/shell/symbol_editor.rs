@@ -4,7 +4,7 @@
 //! The symbol editor's independent draft, history and GUI/headless actions.
 
 use super::{Mode, Outcome, Prompt, ShellModel, failed};
-use crate::notifications::{Note, NoteAction, NoteTone, Offer, Validity};
+use crate::notifications::{Note, NoteTone, back_to_editor};
 use crate::{key, strings};
 use ew_api::symbols::{self, SymbolDraft};
 use serde_json::{Map, Value, json};
@@ -879,7 +879,7 @@ impl ShellModel {
         } else {
             strings::text(key!("symbol-placed")).to_owned()
         };
-        let back = Offer::new(NoteAction::BackToEditor, Validity::SymbolDraft);
+        let back = back_to_editor();
         self.notes.push(Note::new("symbol", text).offering([Some(back)]));
     }
 

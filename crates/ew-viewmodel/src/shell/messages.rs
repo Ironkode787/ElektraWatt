@@ -491,12 +491,11 @@ impl ShellModel {
                 .then(|| self.project.as_ref().map(|p| p.epoch))
                 .flatten()
                 .map(|epoch| {
-                    crate::notifications::Offer::new(
-                        crate::notifications::NoteAction::ShowMessages,
-                        crate::notifications::Validity::Session {
-                            epoch,
-                            select: Vec::new(),
-                        },
+                    crate::notifications::Offer::steps(
+                        "show_messages",
+                        key!("note-action-show-messages"),
+                        crate::notifications::Validity::Session { epoch },
+                        vec![("messages.show", serde_json::json!({ "on": true }))],
                     )
                 });
             self.notes.push(

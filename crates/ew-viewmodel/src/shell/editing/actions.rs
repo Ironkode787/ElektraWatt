@@ -5,7 +5,7 @@
 
 use super::Pick;
 use crate::key;
-use crate::notifications::{Note, NoteAction};
+use crate::notifications::Note;
 use crate::shell::terminals::TERMINAL_DESIGNATION;
 use crate::shell::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
@@ -766,7 +766,14 @@ impl ShellModel {
         // A bus line drawn without a cable says so, with Choose cable… opening its Cable form (no cable was asked
         // for, and the person looked for it in Properties). A toast, not a form, so drawing several lines goes on.
         if let Some(line) = drawn {
-            let choose = self.session_offer(NoteAction::ChooseCable, vec![line]);
+            let choose = self.session_offer(
+                "choose_cable",
+                key!("note-action-choose-cable"),
+                vec![
+                    crate::notifications::select_step(&[line]),
+                    ("bus.cable", json!({})),
+                ],
+            );
             let text = strings::text(key!("toast-bus-line-no-cable")).to_owned();
             self.notes.push(Note::new("bus_line", text).offering([choose]));
         }

@@ -7,7 +7,7 @@
 use crate::common;
 
 use common::{Tmp, click_at, done, tables};
-use ew_viewmodel::notifications::{NoteAction, NoteTone};
+use ew_viewmodel::notifications::NoteTone;
 use ew_viewmodel::shell::Mode;
 use serde_json::json;
 
@@ -34,5 +34,5 @@ fn a_wire_that_makes_an_error_says_so() {
         toast.text
     );
     assert_eq!(toast.tone(), NoteTone::Error);
-    assert_eq!(toast.action(), Some(NoteAction::Undo));
+    assert_eq!(toast.action(), Some("undo"));
 }

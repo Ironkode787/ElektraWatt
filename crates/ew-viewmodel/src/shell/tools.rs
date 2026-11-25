@@ -30,7 +30,7 @@ use super::navigation::bump;
 use super::{Focus, Mode, Outcome, RecordedCommand, ShellModel, failed, flag};
 use crate::canvas::{CanvasModel, CanvasPage, PageId, reading_key};
 use crate::key;
-use crate::notifications::{Note, NoteAction, NoteTone};
+use crate::notifications::{Note, NoteTone};
 use crate::properties::SheetSection;
 use crate::strings;
 use crate::strings::Key;
@@ -850,7 +850,7 @@ impl ShellModel {
             .collect();
         if !new.is_empty() {
             let text = strings::format(key!("toast-wire-error"), &[&new.join("; ")]);
-            let undo = self.undo_offer(NoteAction::Undo);
+            let undo = self.undo_offer();
             self.notes
                 .push(Note::new("edit", text).offering([undo]).toned(NoteTone::Error));
         }

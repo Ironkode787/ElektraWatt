@@ -12,7 +12,6 @@ use std::collections::BTreeSet;
 
 use common::{Tmp, done};
 use ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_viewmodel::notifications::NoteAction;
 use serde_json::json;
 
 #[test]
@@ -42,10 +41,7 @@ fn the_parts_list_says_which_devices_it_leaves_out() {
 
     done(&mut s, "lists.parts", json!({}));
     let toast = s.toast().cloned().expect("a toast");
-    assert_eq!(
-        toast.actions(),
-        [NoteAction::SelectUnlisted, NoteAction::ListUnlisted]
-    );
+    assert_eq!(toast.actions(), ["select_unlisted", "list_unlisted"]);
     assert_eq!(
         toast.text,
         format!(

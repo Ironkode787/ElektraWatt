@@ -24,7 +24,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed};
 use crate::key;
-use crate::notifications::{Note, NoteAction, NoteTone, Offer};
+use crate::notifications::{Note, NoteTone, Offer};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{BlackBoxTool, BoxTarget, Ghost, Picker, PickerRow, PlaceTool, ResultNote, Tool, ToolCx};
@@ -250,7 +250,8 @@ impl ShellModel {
                 .unwrap_or_default();
             let text = strings::format(key!("toast-card-joined"), &[&tag, &at, &slot]);
             self.last_station = Some(station);
-            self.notify_offer(text, crate::notifications::NoteAction::Rack, vec![station]);
+            let rack = self.rack_offer(station);
+            self.notify_offer(text, rack);
             return;
         }
         let Some((card, tag)) = waits.into_iter().next() else {
@@ -259,7 +260,12 @@ impl ShellModel {
         match stations.len() {
             0 => {
                 let text = strings::format(key!("toast-card-waits-cpu"), &[&tag]);
-                self.notify_offer(text, crate::notifications::NoteAction::NewStation, Vec::new());
+                let new = self.session_offer(
+                    "new_station",
+                    key!("action-plc-new-station"),
+                    vec![("plc.new_station", json!({}))],
+                );
+                self.notify_offer(text, new);
             }
             1 => {
                 let text = strings::format(key!("toast-card-waits"), &[&tag]);
@@ -470,17 +476,22 @@ impl ShellModel {
             (Some((question, wire)), without) => {
                 sentences.extend(without);
                 sentences.push(question);
-                let connect = self.undo_offer(NoteAction::Connect).map(|o| Offer {
-                    params: Some(wire),
-                    ..o
+                let connect = self.undo_validity().map(|v| {
+                    Offer::steps(
+                        "connect",
+                        key!("note-action-connect"),
+                        v,
+                        vec![crate::notifications::command_step("connection.draw", wire)],
+                    )
+                    .once()
                 });
-                let undo = self.undo_offer(NoteAction::Undo);
+                let undo = self.undo_offer();
                 self.notes
                     .push(Note::of("edit", sentences).offering([undo, connect]));
             }
             (None, Some(without)) => self.notify_wired(sentences, without),
             (None, None) => {
-                let undo = self.undo_offer(NoteAction::Undo);
+                let undo = self.undo_offer();
                 self.notes.push(Note::of("edit", sentences).offering([undo]));
             }
         }
@@ -515,7 +526,7 @@ impl ShellModel {
         };
         // A renamed point says why first; where its partner is, last.
         let sentences = taken.into_iter().chain([text]).chain(placed).collect();
-        let undo = self.undo_offer(NoteAction::Undo);
+        let undo = self.undo_offer();
         self.notes.push(Note::of("edit", sentences).offering([undo]));
     }
 
@@ -571,17 +582,23 @@ impl ShellModel {
         // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
         // nothing); terminals that stay in the project are a consequence the person may not want: a warning, which
         // stays.
-        let undo = self.undo_offer(NoteAction::Undo);
+        let undo = self.undo_offer();
         if undrawn.is_empty() {
             self.notes.push(Note::of("edit", sentences).offering([undo]));
         } else {
-            let terminals: Vec<String> = undrawn.iter().map(|e| e.0.to_string()).collect();
+            let terminals: Vec<ew_api::output::Uuid> = undrawn.iter().map(|e| e.0).collect();
             let label =
                 strings::format_count(crate::count_key!("note-action-remove-undrawn"), terminals.len());
-            let remove = self.undo_offer(NoteAction::RemoveUndrawn).map(|o| Offer {
-                params: Some(json!(terminals)),
-                label: Some(label),
-                ..o
+            let removal = self.removal_command(&terminals);
+            let remove = self.undo_validity().zip(removal).map(|(v, params)| {
+                Offer::steps(
+                    "remove_undrawn",
+                    key!("note-action-remove-undrawn"),
+                    v,
+                    vec![crate::notifications::command_step("edit.delete", params)],
+                )
+                .once()
+                .labelled(label)
             });
             self.notes.push(
                 Note::of("edit", sentences)
@@ -606,7 +623,7 @@ impl ShellModel {
             .chain((gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)))
             .collect();
         // Wires a cut removed are a consequence the person may not want: a warning, which stays.
-        let undo = self.undo_offer(NoteAction::Undo);
+        let undo = self.undo_offer();
         let note = Note::of("edit", sentences).offering([undo]);
         self.notes.push(if gone > 0 {
             note.toned(NoteTone::Warning)

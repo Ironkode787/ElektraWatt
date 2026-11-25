@@ -514,10 +514,7 @@ fn toast_json(shell: &ShellModel) -> String {
         None => "null".to_owned(),
         Some(t) => object(vec![
             member("text", &Value::from(t.text.as_str())),
-            member(
-                "undo",
-                &Value::from(t.action() == Some(crate::notifications::NoteAction::Undo)),
-            ),
+            member("undo", &Value::from(t.action() == Some("undo"))),
         ]),
     }
 }

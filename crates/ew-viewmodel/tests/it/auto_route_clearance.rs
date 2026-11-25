@@ -392,10 +392,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
         toast.text,
         "One wire found no way and is drawn as a thin dashed line: move the items apart and choose Route."
     );
-    assert_eq!(
-        toast.action(),
-        Some(ew_viewmodel::notifications::NoteAction::Undo)
-    );
+    assert_eq!(toast.action(), Some("undo"));
     // The hint stays with the drawn wire until the next one starts.
     assert_eq!(
         (p.s.tool().state(), p.s.tool_hint().as_str()),

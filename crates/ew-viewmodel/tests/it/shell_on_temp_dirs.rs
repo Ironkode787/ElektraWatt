@@ -2858,10 +2858,7 @@ fn a_tutorial_keeps_the_open_project_and_asks_no_folder() {
         .newest_visible()
         .cloned()
         .expect("the toast");
-    assert_eq!(
-        toast.actions(),
-        [ew_viewmodel::notifications::NoteAction::ShowFolder]
-    );
+    assert_eq!(toast.actions(), ["show_folder"]);
     // A second start makes a new folder beside the first.
     done(&mut shell, "help.tutorials", json!({ "tutorial": "first-page" }));
     let second = shell.take_window_request().expect("a second window again");

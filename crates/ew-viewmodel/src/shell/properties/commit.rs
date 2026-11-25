@@ -190,7 +190,15 @@ impl ShellModel {
                 key!("toast-layout-overruns"),
                 &[&now.to_string(), &fit.to_string()],
             );
-            self.notify_offer(said, crate::notifications::NoteAction::FitSheet, vec![*page]);
+            let fit = self.page_validity(*page, true).map(|v| {
+                crate::notifications::Offer::steps(
+                    "fit_sheet",
+                    key!("action-layout-fit-sheet"),
+                    v,
+                    vec![("layout.fit_sheet", Value::Null)],
+                )
+            });
+            self.notify_offer(said, fit);
         }
         out
     }
@@ -392,7 +400,18 @@ impl ShellModel {
             );
             self.props.edit = None;
             self.props.error = None;
-            self.notify_offer(text, crate::notifications::NoteAction::Swap, vec![target, holder]);
+            let swap = self.session_validity().map(|v| {
+                crate::notifications::Offer::new(
+                    "swap",
+                    strings::text(key!("action-fluid-swap")).to_owned(),
+                    v,
+                    crate::notifications::Run::Swap {
+                        device: target,
+                        holder,
+                    },
+                )
+            });
+            self.notify_offer(text, swap);
             return Outcome::Done;
         }
         // A new layout view gets its legend page (doc 12 §5.4).

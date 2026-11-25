@@ -27,7 +27,7 @@ use serde_json::{Map, Value, json};
 use super::jobs::bool_param;
 use super::{Dialog, Outcome, Prompt, RecordedCommand, ShellModel, failed, string_param};
 use crate::key;
-use crate::notifications::{Note, NoteAction, Offer, Validity};
+use crate::notifications::{Note, Offer, Validity};
 use crate::strings;
 
 /// One colliding field in the collision dialog.
@@ -328,22 +328,27 @@ impl ShellModel {
         }
         let (undo, show) = match entry {
             Some((index, rev)) => (
-                Some(Offer::new(
-                    NoteAction::Undo,
-                    Validity::Undo {
-                        epoch,
-                        cursor: index + 1,
-                        rev,
-                    },
-                )),
-                Some(Offer::new(
-                    NoteAction::ShowChanges,
-                    Validity::History {
-                        epoch,
-                        entry: index,
-                        rev,
-                    },
-                )),
+                Some(Offer::undo(Validity::Undo {
+                    epoch,
+                    cursor: index + 1,
+                    rev,
+                })),
+                Some(
+                    Offer::steps(
+                        "show_changes",
+                        key!("toast-show-changes"),
+                        Validity::History {
+                            epoch,
+                            entry: index,
+                            rev,
+                        },
+                        vec![
+                            ("history.show", serde_json::json!({ "on": true })),
+                            ("history.changes", serde_json::json!({ "entry": index + 1 })),
+                        ],
+                    )
+                    .keeping(),
+                ),
             ),
             None => (None, None),
         };

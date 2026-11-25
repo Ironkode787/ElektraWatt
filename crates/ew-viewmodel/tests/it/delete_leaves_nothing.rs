@@ -11,7 +11,7 @@ use crate::common;
 use common::{Tmp, done, tables};
 use ew_api::output::{NavRole, TableCp, TableRep};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::notifications::{NoteAction, NoteTone};
+use ew_viewmodel::notifications::NoteTone;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
@@ -91,12 +91,9 @@ fn a_deleted_terminal_takes_its_wire_and_the_toast_offers_to_remove_it() {
         "1 wire that ended at the deleted symbols was deleted with them. \
          1 terminal is no longer drawn; it stays in the project and its lists."
     );
-    assert_eq!(toast.actions(), [NoteAction::Undo, NoteAction::RemoveUndrawn]);
+    assert_eq!(toast.actions(), ["undo", "remove_undrawn"]);
     // One terminal is "it" (the label said "them" for one).
-    assert_eq!(
-        toast.label(NoteAction::RemoveUndrawn),
-        "Remove it from the project"
-    );
+    assert_eq!(toast.label("remove_undrawn"), "Remove it from the project");
     assert!(
         toast.stays(),
         "a consequence the person may not want stays on screen"
@@ -180,7 +177,7 @@ fn a_cut_says_what_it_took_and_its_paste_keeps_the_wires_between_the_cut_termina
     );
     assert_eq!(
         toast.actions(),
-        [NoteAction::Undo],
+        ["undo"],
         "nothing to remove: the paste brings them back"
     );
     assert_eq!(rows(&mut s, NavKind::Connections, NavRole::Connection), 0);

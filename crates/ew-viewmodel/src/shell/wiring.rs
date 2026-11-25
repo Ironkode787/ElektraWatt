@@ -838,7 +838,17 @@ impl ShellModel {
                 .join(" ");
             let page = PageRow::by_folio(self.page_rows(), &folio).map(|r| r.id);
             match page.filter(|_| gain) {
-                Some(page) => self.notify_offer(text, crate::notifications::NoteAction::RouteHis, vec![page]),
+                Some(page) => {
+                    let his = self.page_validity(page, true).map(|v| {
+                        crate::notifications::Offer::new(
+                            "route_his",
+                            strings::text(key!("note-action-route-his")).to_owned(),
+                            v,
+                            crate::notifications::Run::RouteHis,
+                        )
+                    });
+                    self.notify_offer(text, his);
+                }
                 None => self.notify(text, false),
             }
             return Outcome::Done;

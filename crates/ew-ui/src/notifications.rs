@@ -62,7 +62,7 @@ fn one_link(
     t: &Tokens,
     shell: &ShellModel,
     n: &Notification,
-    action: ew_viewmodel::notifications::NoteAction,
+    action: &str,
     events: &mut Vec<Event>,
 ) {
     let why = shell.note_action_reason(n, action).err();
@@ -83,7 +83,7 @@ fn one_link(
     if response.clicked() {
         events.push(Event::Action(
             "notifications.run",
-            json!({ "entry": n.serial, "action": action.word() }),
+            json!({ "entry": n.serial, "action": action }),
         ));
     }
 }

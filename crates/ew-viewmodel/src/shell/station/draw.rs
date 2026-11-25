@@ -577,7 +577,8 @@ impl ShellModel {
             Outcome::Done => {
                 self.drawn_toasts(station, &retag);
                 if !left.is_empty() {
-                    self.notify_offer(no_room, crate::notifications::NoteAction::Rack, vec![station]);
+                    let rack = self.rack_offer(station);
+                    self.notify_offer(no_room, rack);
                 }
                 Outcome::Done
             }
@@ -590,7 +591,8 @@ impl ShellModel {
     /// area, whose first box is drawn, with where the rest is drawn.
     fn drawn_toasts(&mut self, station: Uuid, retag: &[(Uuid, String)]) {
         if let Some(text) = self.retagged_words("plc.draw_station", retag) {
-            self.notify_offer(text, crate::notifications::NoteAction::Rack, vec![station]);
+            let rack = self.rack_offer(station);
+            self.notify_offer(text, rack);
         }
         let rest: Vec<String> = self.project_session().map_or_else(Vec::new, |s| {
             s.cards_drawn_in_part(station)
@@ -599,11 +601,8 @@ impl ShellModel {
                 .collect()
         });
         if !rest.is_empty() {
-            self.notify_offer(
-                strings::format(key!("rack-card-rest"), &[&rest.join(", ")]),
-                crate::notifications::NoteAction::Rack,
-                vec![station],
-            );
+            let rack = self.rack_offer(station);
+            self.notify_offer(strings::format(key!("rack-card-rest"), &[&rest.join(", ")]), rack);
         }
     }
 

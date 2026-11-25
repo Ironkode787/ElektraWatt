@@ -977,7 +977,7 @@ fn route_names_the_wires_it_left_as_the_person_s_and_offers_to_route_them_too() 
         toast.text
     );
     assert_eq!(
-        ew_viewmodel::strings::text(ew_viewmodel::notifications::NoteAction::RouteHis.label_key()),
+        ew_viewmodel::strings::text(ew_viewmodel::key!("note-action-route-his")),
         "Route these too…"
     );
     done(

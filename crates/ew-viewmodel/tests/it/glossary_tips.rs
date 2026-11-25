@@ -12,7 +12,7 @@ use common::{Tmp, at, done, tables};
 use ew_api::Session;
 use ew_api::output::NavKind;
 use ew_viewmodel::layout::PaneKind;
-use ew_viewmodel::notifications::{NoteAction, NoteTone};
+use ew_viewmodel::notifications::NoteTone;
 use ew_viewmodel::settings::Settings;
 use ew_viewmodel::shell::{Focus, GlossaryRow, Mode, Outcome, ShellModel};
 use ew_viewmodel::wire_colours::{DASH_NM, iec_rgb};
@@ -71,7 +71,7 @@ fn lines(s: &ShellModel, prefix: &str) -> Vec<String> {
 }
 
 /// The tip toasts in the log, oldest first, as (text, action).
-fn tips(s: &ShellModel) -> Vec<(String, Option<NoteAction>)> {
+fn tips(s: &ShellModel) -> Vec<(String, Option<&'static str>)> {
     let mut v: Vec<_> = s
         .notifications()
         .entries()
@@ -157,14 +157,14 @@ fn with_origin_qet_a_line_onto_a_connection_point_shows_tip_1_once_and_convert_u
         tips(&s),
         [(
             "Lines do not connect. Draw a wire instead.".to_owned(),
-            Some(NoteAction::Convert)
+            Some("convert")
         )]
     );
     let toast = s.toast().cloned().expect("the tip's toast");
     assert!(s.notification_valid(&toast));
     assert_eq!(toast.tone(), NoteTone::Info, "a tip informs");
     assert_eq!(
-        ew_viewmodel::strings::text(NoteAction::Convert.label_key()),
+        ew_viewmodel::strings::text(ew_viewmodel::key!("toast-convert")),
         "Convert to connection"
     );
     assert_eq!(
@@ -350,11 +350,11 @@ fn tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_or_an
         tips(&s),
         [(
             "Tags are derived from the structure and the counter.".to_owned(),
-            Some(NoteAction::Renumber)
+            Some("renumber")
         )]
     );
     assert_eq!(
-        ew_viewmodel::strings::text(NoteAction::Renumber.label_key()),
+        ew_viewmodel::strings::text(ew_viewmodel::key!("action-devices-renumber")),
         "Renumber devices…"
     );
     assert_eq!(
@@ -378,11 +378,11 @@ fn tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_or_an
         tips(&s)[1..],
         [(
             "This page is generated from a report block.".to_owned(),
-            Some(NoteAction::ShowBlock)
+            Some("show_block")
         )]
     );
     assert_eq!(
-        ew_viewmodel::strings::text(NoteAction::ShowBlock.label_key()),
+        ew_viewmodel::strings::text(ew_viewmodel::key!("toast-show-block")),
         "Show report block"
     );
     assert_eq!(
@@ -473,7 +473,7 @@ fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
             )
         }
     );
-    assert_eq!(tips(&s), [(generated.clone(), Some(NoteAction::ShowBlock))]);
+    assert_eq!(tips(&s), [(generated.clone(), Some("show_block"))]);
     let serial = s.toast().unwrap().serial;
     done(
         &mut s,
@@ -499,14 +499,14 @@ fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
         s.dispatch("pages.reorder", &json!({"pages": [folio], "end": true})),
         failed
     );
-    assert_eq!(tips(&s), [(generated.clone(), Some(NoteAction::ShowBlock))]);
+    assert_eq!(tips(&s), [(generated.clone(), Some("show_block"))]);
     s.shutdown();
     // A move of the cursor row, the generated page on show.
     let tmp = Tmp::new("gt3-move");
     let mut s = shell_with(&tmp, FROM_QET, "102");
     done(&mut s, "page.goto", json!({ "folio": folio }));
     assert_eq!(s.dispatch("pages.move_up", &json!({})), failed);
-    assert_eq!(tips(&s), [(generated, Some(NoteAction::ShowBlock))]);
+    assert_eq!(tips(&s), [(generated, Some("show_block"))]);
     s.shutdown();
 }
 
@@ -555,7 +555,7 @@ fn table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
         tips(&s),
         [(
             "Tags are derived from the structure and the counter.".to_owned(),
-            Some(NoteAction::Renumber)
+            Some("renumber")
         )]
     );
     done(&mut s, "navigator.table", json!({"kind": "pages", "on": true}));
@@ -581,7 +581,7 @@ fn table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
         tips(&s)[1..],
         [(
             "This page is generated from a report block.".to_owned(),
-            Some(NoteAction::ShowBlock)
+            Some("show_block")
         )]
     );
     s.shutdown();

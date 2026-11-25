@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 #[cfg(debug_assertions)]
 use ew_api::ew_jobs::Gate;
 use ew_api::ew_jobs::{JobEnd, Waker};
-use ew_api::output::{ExportOptions, PageRow};
+use ew_api::output::ExportOptions;
 use ew_api::{Recovery, Session};
 use serde_json::{Map, Value};
 
@@ -24,7 +24,7 @@ use super::{
 };
 use crate::jobs::{ExportDone, JobKind, JobStatus, JobsState};
 use crate::layout::PaneKind;
-use crate::notifications::{Note, NoteAction, NoteTone, Notification, NotificationLog, Offer, Validity};
+use crate::notifications::{Note, NoteTone, Notification, NotificationLog, Offer, Run, Validity};
 use crate::strings;
 use crate::strings::Key;
 use crate::{count_key, key};
@@ -143,14 +143,15 @@ impl ShellModel {
         n.action().is_some_and(|a| self.note_action_reason(n, a).is_ok())
     }
 
-    /// Whether the action `action` of `n` can run, else why not: Undo while its step is the next undo step, Open
+    /// Whether the offer `word` of `n` can run, else why not: Undo while its step is the next undo step, Open
     /// always, Show changes while its history entry is still there, a tip's action while its project session is
-    /// open, Back to the editor while the draft is kept.
+    /// open, an offer on a page while the page is there (on show, where it acts on the page on show), Back to the
+    /// editor while the draft is kept.
     ///
     /// # Errors
     ///
     /// The reason key: the project closed since, a later change, the history entry gone, the draft discarded.
-    pub fn note_action_reason(&self, n: &Notification, action: NoteAction) -> Result<(), Key<'static>> {
+    pub fn note_action_reason(&self, n: &Notification, word: &str) -> Result<(), Key<'static>> {
         let session = |epoch: u64| {
             self.project
                 .as_ref()
@@ -159,10 +160,21 @@ impl ShellModel {
                 .ok_or(key!("reason-action-project-closed"))
         };
         let ok = |valid: bool, why: Key<'static>| if valid { Ok(()) } else { Err(why) };
-        match n.validity(action) {
-            None => Err(key!("reason-action-expired")),
-            Some(Validity::Open { .. }) => Ok(()),
-            Some(Validity::History { epoch, entry, rev }) => ok(
+        let Some(offer) = n.offer(word) else {
+            return Err(key!("reason-action-expired"));
+        };
+        match &offer.validity {
+            Validity::Always => Ok(()),
+            Validity::Page { epoch, page, shown } => {
+                session(*epoch)?;
+                let there = if *shown {
+                    self.focused_page_id() == Some(*page)
+                } else {
+                    self.page_rows().iter().any(|r| r.id == *page)
+                };
+                ok(there, key!("reason-action-expired"))
+            }
+            Validity::History { epoch, entry, rev } => ok(
                 session(*epoch)?
                     .history()
                     .entries()
@@ -170,7 +182,7 @@ impl ShellModel {
                     .is_some_and(|e| e.rev().0 == *rev),
                 key!("reason-action-history-gone"),
             ),
-            Some(Validity::Undo { epoch, cursor, rev }) => {
+            Validity::Undo { epoch, cursor, rev } => {
                 let h = session(*epoch)?.history();
                 ok(
                     h.cursor() == *cursor
@@ -181,8 +193,8 @@ impl ShellModel {
                     key!("reason-action-undo-later"),
                 )
             }
-            Some(Validity::Session { epoch, .. }) => session(*epoch).map(|_| ()),
-            Some(Validity::SymbolDraft) => ok(
+            Validity::Session { epoch } => session(*epoch).map(|_| ()),
+            Validity::SymbolDraft => ok(
                 self.kept_symbol_editor().is_some(),
                 key!("reason-action-draft-gone"),
             ),
@@ -230,11 +242,7 @@ impl ShellModel {
     /// Shows `text` as a toast of `key` and logs it (the toasts of edits map to key `edit`); `undo` offers Undo of the step
     /// just committed, valid while it is the next undo step.
     pub(super) fn notify_with(&mut self, text: String, key: &'static str, undo: bool) {
-        let undo = if undo {
-            self.undo_offer(NoteAction::Undo)
-        } else {
-            None
-        };
+        let undo = if undo { self.undo_offer() } else { None };
         self.notes.push(Note::new(key, text).offering([undo]));
     }
 
@@ -262,12 +270,12 @@ impl ShellModel {
         };
         sentences.extend(made);
         sentences.push(without);
-        let undo = self.undo_offer(NoteAction::Undo);
+        let undo = self.undo_offer();
         self.notes.push(Note::of(WIRED, sentences).offering([undo]));
     }
 
     /// What keeps an action offered on the step just committed valid: while that step is the next undo step.
-    fn undo_validity(&self) -> Option<Validity> {
+    pub(super) fn undo_validity(&self) -> Option<Validity> {
         self.project.as_ref().and_then(|p| {
             let h = p.session.history();
             let cursor = h.cursor();
@@ -280,39 +288,73 @@ impl ShellModel {
         })
     }
 
-    /// `action` offered on the step just committed (Undo of it, an action beside its Undo), valid while that step is
-    /// the next undo step.
-    pub(super) fn undo_offer(&self, action: NoteAction) -> Option<Offer> {
-        self.undo_validity().map(|v| Offer::new(action, v))
+    /// Undo of the step just committed, valid while that step is the next undo step.
+    pub(super) fn undo_offer(&self) -> Option<Offer> {
+        self.undo_validity().map(Offer::undo)
     }
 
-    /// `action` offered while the open project session lasts; `select` the records it acts on.
+    /// What keeps an offer valid while the open project session lasts.
+    pub(super) fn session_validity(&self) -> Option<Validity> {
+        self.project
+            .as_ref()
+            .map(|p| Validity::Session { epoch: p.epoch })
+    }
+
+    /// What keeps an offer on page `page` valid: while the project session lasts and the page is in it; with `shown`,
+    /// while it is the page on show.
+    pub(super) fn page_validity(&self, page: ew_api::output::Uuid, shown: bool) -> Option<Validity> {
+        self.project.as_ref().map(|p| Validity::Page {
+            epoch: p.epoch,
+            page,
+            shown,
+        })
+    }
+
+    /// The offer `word` with the label of `label`, the actions `steps` with their parameters, valid while the
+    /// project session lasts.
     pub(super) fn session_offer(
         &self,
-        action: NoteAction,
-        select: Vec<ew_api::output::Uuid>,
+        word: &'static str,
+        label: Key<'static>,
+        steps: Vec<(&'static str, Value)>,
     ) -> Option<Offer> {
-        self.project.as_ref().map(|p| {
-            Offer::new(
-                action,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select,
-                },
+        self.session_validity()
+            .map(|v| Offer::steps(word, label, v, steps))
+    }
+
+    /// Rack…: the view of station `station`, offered while the project session lasts.
+    pub(super) fn rack_offer(&self, station: ew_api::output::Uuid) -> Option<Offer> {
+        self.session_offer(
+            "rack",
+            key!("action-plc-rack-editor"),
+            vec![(
+                "plc.rack_editor",
+                serde_json::json!({ "station": station.to_string() }),
+            )],
+        )
+    }
+
+    /// Go to page: page `page` (an Undo or a Redo changed it, and it is not the page on show), offered while it is in
+    /// the project.
+    pub(super) fn go_to_offer(&self, page: ew_api::output::Uuid) -> Option<Offer> {
+        let folio = self
+            .page_rows()
+            .iter()
+            .find(|r| r.id == page)
+            .map(|r| r.folio.clone());
+        folio.zip(self.page_validity(page, false)).map(|(folio, v)| {
+            Offer::steps(
+                "go_to",
+                key!("note-action-go-to-page"),
+                v,
+                vec![("page.goto", serde_json::json!({ "folio": folio }))],
             )
         })
     }
 
-    /// Shows `text` as a toast of key `edit` whose action `action` acts on `select` while the project session is open:
-    /// the rack of a station, Route these too… on a page, Go to page, Swap two valves, Show item numbers, Fit the
-    /// layout to the sheet, New station….
-    pub(super) fn notify_offer(
-        &mut self,
-        text: String,
-        action: NoteAction,
-        select: Vec<ew_api::output::Uuid>,
-    ) {
-        let offer = self.session_offer(action, select);
+    /// Shows `text` as a toast of key `edit` that offers `offer` (the rack of a station, Route these too… on a page,
+    /// Swap two valves, Show item numbers, Fit the layout to the sheet, New station…).
+    pub(super) fn notify_offer(&mut self, text: String, offer: Option<Offer>) {
         self.notes.push(Note::new("edit", text).offering([offer]));
     }
 
@@ -321,14 +363,19 @@ impl ShellModel {
         if self.project.is_none() {
             return;
         }
-        let undo = self.undo_offer(NoteAction::Undo);
-        let go_to = self.session_offer(NoteAction::GoTo, vec![page]);
+        let undo = self.undo_offer();
+        let go_to = self.go_to_offer(page);
         self.notes.push(Note::new("edit", text).offering([undo, go_to]));
     }
 
     /// Shows `text` as a toast of key `key` with Show in folder, which opens `folder` in the system's file manager.
     pub(super) fn notify_folder(&mut self, text: String, key: &'static str, folder: PathBuf) {
-        let offer = Offer::new(NoteAction::ShowFolder, Validity::Open { path: folder });
+        let offer = Offer::new(
+            "show_folder",
+            strings::text(key!("toast-show-folder")).to_owned(),
+            Validity::Always,
+            Run::Open(folder),
+        );
         self.notes.push(Note::new(key, text).offering([Some(offer)]));
     }
 
@@ -351,12 +398,9 @@ impl ShellModel {
             Ok(Some(n)) => n,
             Ok(None) => return failed(key!("error-missing-param"), &["entry"]),
         };
-        let action = match string_param(p, "action") {
+        let word = match string_param(p, "action") {
             Err(e) => return e,
-            Ok(Some(word)) => match NoteAction::from_word(word) {
-                Some(a) => a,
-                None => return failed(key!("error-bad-param"), &["action"]),
-            },
+            Ok(Some(word)) => word.to_owned(),
             Ok(None) => return failed(key!("error-missing-param"), &["action"]),
         };
         let Some(entry) = self.notes.get(serial).cloned() else {
@@ -365,10 +409,10 @@ impl ShellModel {
                 &[&serial.to_string(), &number_list(&self.notes.serials())],
             );
         };
-        if !entry.actions().contains(&action) {
-            return failed(key!("error-no-such-action"), &[action.word()]);
+        if entry.offer(&word).is_none() {
+            return failed(key!("error-no-such-action"), &[&word]);
         }
-        self.run_action_of(&entry, action)
+        self.run_action_of(&entry, &word)
     }
 
     /// Runs `entry`'s first action: refused `reason-action-expired` when it is no longer valid.
@@ -379,15 +423,26 @@ impl ShellModel {
         }
     }
 
-    /// Runs `entry`'s action `action`: refused with its reason when it can no longer run.
-    fn run_action_of(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
-        if let Err(reason_key) = self.note_action_reason(entry, action) {
+    /// Runs `entry`'s offer `word`: refused with its reason when it can no longer run. Undo undoes the step (the toast
+    /// goes); Open hands the file to the system's opener; the generic offer's actions run in their order (the toast
+    /// goes; a `once` offer is spent).
+    fn run_action_of(&mut self, entry: &Notification, word: &str) -> Outcome {
+        if let Err(reason_key) = self.note_action_reason(entry, word) {
             return Outcome::Refused {
                 reason: reason_key.into(),
             };
         }
-        match Some(action) {
-            Some(NoteAction::Undo) => {
+        // An offer that its first run spent is gone (`entry` is the log's copy; the log knows it is spent).
+        let spent = self
+            .notes
+            .get(entry.serial)
+            .and_then(|n| n.offer(word))
+            .is_some_and(|o| o.spent);
+        let Some(offer) = entry.offer(word).cloned().filter(|_| !spent) else {
+            return Outcome::refused(key!("reason-action-expired"));
+        };
+        match offer.run {
+            Run::Undo => {
                 // The toast's Undo is spent: it goes from the screen.
                 self.notes.dismiss(entry.serial);
                 self.history.unsaid = true;
@@ -395,116 +450,20 @@ impl ShellModel {
                 self.history.unsaid = false;
                 out
             }
-            Some(NoteAction::Open | NoteAction::ShowFolder) => match (self.mode, entry.open_path(action)) {
-                (Mode::Headless, _) => Outcome::refused(key!("reason-no-opener")),
-                (Mode::Gui, Some(path)) => {
-                    self.jobs.open_request = Some(path.clone());
+            Run::Open(path) => match self.mode {
+                Mode::Headless => Outcome::refused(key!("reason-no-opener")),
+                Mode::Gui => {
+                    self.jobs.open_request = Some(path);
                     Outcome::Done
                 }
-                (Mode::Gui, None) => Outcome::refused(key!("reason-action-expired")),
             },
-            // The tips' actions.
-            Some(NoteAction::Convert | NoteAction::Renumber | NoteAction::ShowBlock) => {
-                self.run_tip_action(entry, action)
-            }
-            // The history opens with the step's changes.
-            Some(NoteAction::ShowChanges) => {
-                let Some(Validity::History { entry: index, .. }) =
-                    entry.validity(NoteAction::ShowChanges).cloned()
-                else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                let shown = self.dispatch("history.show", &serde_json::json!({ "on": true }));
-                if shown != Outcome::Done {
-                    return shown;
-                }
-                self.dispatch("history.changes", &serde_json::json!({ "entry": index + 1 }))
-            }
-            // The boxes of the part redrawn as its device box says; the toast is spent.
-            Some(NoteAction::RedrawBoxes) => {
-                let Some(part) = entry.selects(action).first().copied() else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                self.notes.dismiss(entry.serial);
-                self.dispatch(
-                    "part.redraw_boxes",
-                    &serde_json::json!({ "part": format!("id:{part}") }),
-                )
-            }
-            // The editor's view again, on the kept draft; the toast is spent.
-            Some(NoteAction::BackToEditor) => {
-                self.notes.dismiss(entry.serial);
-                self.dispatch("symbol.new", &serde_json::json!({}))
-            }
-            // The rack of the station a placed module joined; New station… for one placed without a station.
-            Some(NoteAction::Rack) => {
-                let Some(station) = entry.selects(action).first().copied() else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                self.notes.dismiss(entry.serial);
-                self.dispatch(
-                    "plc.rack_editor",
-                    &serde_json::json!({ "station": station.to_string() }),
-                )
-            }
-            // The page an Undo or a Redo changed; the toast is spent.
-            Some(NoteAction::GoTo) => {
-                let page = entry.selects(action).first().copied();
-                let folio = page.and_then(|id| {
-                    self.page_rows()
-                        .iter()
-                        .find(|r| r.id == id)
-                        .map(|r| r.folio.clone())
-                });
-                let Some(folio) = folio else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                self.notes.dismiss(entry.serial);
-                self.dispatch("page.goto", &serde_json::json!({ "folio": folio }))
-            }
-            // Route these too…: on the page it names, while that page is on show; the toast is spent.
-            Some(NoteAction::RouteHis) => {
-                let page = entry.selects(action).first().copied();
-                let shown = self
-                    .current_folio()
-                    .and_then(|f| PageRow::by_folio(self.page_rows(), f).map(|r| r.id));
-                if page.is_none() || page != shown {
-                    return Outcome::refused(key!("reason-action-expired"));
-                }
+            // Route these too…: on the page it names, while that page is on show (its validity).
+            Run::RouteHis => {
                 self.notes.dismiss(entry.serial);
                 self.route_his_card()
             }
-            // The wheel tip's Wheel scrolls the page: the setting on; the toast is spent.
-            Some(NoteAction::WheelScrolls) => {
-                self.notes.dismiss(entry.serial);
-                self.dispatch("view.wheel_scrolls", &serde_json::json!({ "on": true }))
-            }
-            // The check's Show messages: the Messages list in the bottom dock; the toast is spent.
-            Some(NoteAction::ShowMessages) => {
-                self.notes.dismiss(entry.serial);
-                self.dispatch("messages.show", &serde_json::json!({ "on": true }))
-            }
-            Some(NoteAction::NewStation) => {
-                self.notes.dismiss(entry.serial);
-                self.dispatch("plc.new_station", &serde_json::json!({}))
-            }
-            Some(NoteAction::ItemNumbers) => {
-                self.notes.dismiss(entry.serial);
-                self.dispatch("layout.labels", &serde_json::json!({ "show": "item_numbers" }))
-            }
-            // Fit the layout to the sheet, on the page whose scale ran over, while that page is on show.
-            Some(NoteAction::FitSheet) => {
-                if entry.selects(action).first().copied() != self.focused_page_id() {
-                    return Outcome::refused(key!("reason-action-expired"));
-                }
-                self.notes.dismiss(entry.serial);
-                self.dispatch("layout.fit_sheet", &Value::Null)
-            }
             // Two valves swap their positions: the first takes the second's, the second the first's.
-            Some(NoteAction::Swap) => {
-                let [device, holder] = entry.selects(action)[..] else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
+            Run::Swap { device, holder } => {
                 self.notes.dismiss(entry.serial);
                 let seat = self.project_session().and_then(|s| {
                     let h = s.query().devices().get(holder.to_string().parse().ok()?)?.clone();
@@ -519,63 +478,22 @@ impl ShellModel {
                         "children": [{ "device": device.to_string(), "position": position }] }),
                 )
             }
-            // The devices without a part selected, in Properties, so Choose part… gives them one.
-            Some(NoteAction::SelectUnlisted) => {
-                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
-                self.notes.dismiss(entry.serial);
-                match self.dispatch("select.set", &serde_json::json!({ "ids": ids })) {
-                    Outcome::Done => self.dispatch("props.focus", &Value::Null),
-                    other => other,
+            Run::Steps { steps, once, keeps } => {
+                if !keeps {
+                    self.notes.dismiss(entry.serial);
                 }
-            }
-            // The same devices selected, and Type not known yet…'s field of their part dialog open, to be described.
-            Some(NoteAction::ListUnlisted) => {
-                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
-                self.notes.dismiss(entry.serial);
-                match self.dispatch("select.set", &serde_json::json!({ "ids": ids })) {
-                    Outcome::Done => self.dispatch("part.placeholder", &serde_json::json!({})),
-                    other => other,
+                if once {
+                    self.notes.spend(entry.serial, word);
                 }
-            }
-            // The Cable form of the bus line just drawn, the line selected.
-            Some(NoteAction::ChooseCable) => {
-                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
-                self.notes.dismiss(entry.serial);
-                match self.dispatch("select.set", &serde_json::json!({ "ids": ids })) {
-                    Outcome::Done => self.dispatch("bus.cable", &serde_json::json!({})),
-                    other => other,
+                let mut out = Outcome::Done;
+                for (action, params) in &steps {
+                    out = self.dispatch(action, params);
+                    if out != Outcome::Done {
+                        break;
+                    }
                 }
+                out
             }
-            // The terminals a delete left drawn nowhere, removed from the project too.
-            Some(NoteAction::RemoveUndrawn) => {
-                let terminals: Vec<ew_api::output::Uuid> = self
-                    .notes
-                    .take_params(entry.serial, action)
-                    .and_then(|v| serde_json::from_value(v).ok())
-                    .unwrap_or_default();
-                let Some(params) = self.removal_command(&terminals) else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                self.notes.dismiss(entry.serial);
-                self.run_logged("edit.delete".to_owned(), params)
-            }
-            // The tags a paste changed, each frozen as it read before.
-            Some(NoteAction::KeepTag) => {
-                let Some(params) = self.notes.take_params(entry.serial, action) else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                self.notes.dismiss(entry.serial);
-                self.run_logged("fields.set_many".to_owned(), params)
-            }
-            // The wire a placement offered instead of drawing it.
-            Some(NoteAction::Connect) => {
-                let Some(params) = self.notes.take_params(entry.serial, action) else {
-                    return Outcome::refused(key!("reason-action-expired"));
-                };
-                self.notes.dismiss(entry.serial);
-                self.run_logged("connection.draw".to_owned(), params)
-            }
-            None => Outcome::refused(key!("reason-no-toast")),
         }
     }
 
@@ -598,22 +516,25 @@ impl ShellModel {
             self.notify(text, true);
             return;
         }
-        let keep = self.undo_offer(NoteAction::KeepTag).map(|o| Offer {
-            params: Some(serde_json::json!({ "edits": edits })),
-            ..o
+        // Its label names the one tag it keeps ("Keep -X1021").
+        let label = match kept {
+            [(_, tag)] => strings::format(key!("note-action-keep-tag"), &[tag]),
+            _ => strings::text(key!("note-action-keep-tags")).to_owned(),
+        };
+        let step =
+            crate::notifications::command_step("fields.set_many", serde_json::json!({ "edits": edits }));
+        let keep = self.undo_validity().map(|v| {
+            Offer::steps("keep_tag", key!("note-action-keep-tags"), v, vec![step])
+                .once()
+                .labelled(label)
         });
-        self.notes.push(Note {
-            keep: match kept {
-                [(_, tag)] => Some(tag.clone()),
-                _ => None,
-            },
-            ..Note::new("edit", text).offering([self.undo_offer(NoteAction::Undo), keep])
-        });
+        self.notes
+            .push(Note::new("edit", text).offering([self.undo_offer(), keep]));
     }
 
     /// The `edit.delete` of the terminals `terminals` and of each strip that would keep none of its terminals and draws
     /// nothing itself (a strip's segment), in one step.
-    fn removal_command(&self, terminals: &[ew_api::output::Uuid]) -> Option<Value> {
+    pub(super) fn removal_command(&self, terminals: &[ew_api::output::Uuid]) -> Option<Value> {
         let session = self.project_session()?;
         let q = session.query();
         let idx = q.idx();
@@ -664,8 +585,22 @@ impl ShellModel {
         // Its own key, so it stands beside the toast of the step that added the list (with its Undo). Beside Select
         // them, Type not known yet… lists them by a description.
         let offers = [
-            self.session_offer(NoteAction::SelectUnlisted, select.clone()),
-            self.session_offer(NoteAction::ListUnlisted, select),
+            self.session_offer(
+                "select_unlisted",
+                key!("note-action-select-unlisted"),
+                vec![
+                    crate::notifications::select_step(&select),
+                    ("props.focus", Value::Null),
+                ],
+            ),
+            self.session_offer(
+                "list_unlisted",
+                key!("action-part-placeholder"),
+                vec![
+                    crate::notifications::select_step(&select),
+                    ("part.placeholder", serde_json::json!({})),
+                ],
+            ),
         ];
         self.notes.push(Note::new("unlisted", text).offering(offers));
     }
@@ -675,7 +610,7 @@ impl ShellModel {
         let Some(toast) = self.notes.newest_visible().cloned() else {
             return Outcome::refused(key!("reason-no-toast"));
         };
-        if toast.action() != Some(NoteAction::Undo) {
+        if toast.action() != Some("undo") {
             return Outcome::refused(key!("reason-no-toast-undo"));
         }
         self.run_note_action(&toast)
@@ -928,10 +863,9 @@ impl ShellModel {
                 // already names as exported says "again", so a second export visibly changes the toast it replaces.
                 let again = self.notes.entries().any(|n| {
                     n.key == "export"
-                        && n.offers.first().is_some_and(|o| {
-                            o.action == NoteAction::Open
-                                && matches!(&o.validity, Validity::Open { path } if *path == entry.path)
-                        })
+                        && n.offers
+                            .first()
+                            .is_some_and(|o| matches!(&o.run, Run::Open(path) if *path == entry.path))
                 });
                 // A table has no pages; its end says the size only.
                 let table = entry.kind == JobKind::Table;
@@ -969,14 +903,20 @@ impl ShellModel {
                     ),
                 };
                 let open = Offer::new(
-                    NoteAction::Open,
-                    Validity::Open {
-                        path: entry.path.clone(),
-                    },
+                    "open",
+                    strings::text(key!("toast-open")).to_owned(),
+                    Validity::Always,
+                    Run::Open(entry.path.clone()),
                 );
                 // A file's toast shows its folder too; a DXF set's Open opens its folder already.
-                let show_folder =
-                    (!dxf).then(|| Offer::new(NoteAction::ShowFolder, Validity::Open { path: folder }));
+                let show_folder = (!dxf).then(|| {
+                    Offer::new(
+                        "show_folder",
+                        strings::text(key!("toast-show-folder")).to_owned(),
+                        Validity::Always,
+                        Run::Open(folder),
+                    )
+                });
                 (
                     JobStatus::Done {
                         pages: (!table).then_some(done.pages),

@@ -8,7 +8,7 @@
 //! part as the project's own copy), and offers to redraw the boxes of it that are drawn already.
 
 use super::{Outline, OutlineGroup, RowValue, Sheet, SheetRow, SymbolEditor, Todo, role_words, words};
-use crate::notifications::{Note, NoteAction, NoteTone, Offer, Validity};
+use crate::notifications::{Note, NoteTone, Offer, Validity, back_to_editor};
 use crate::shell::{Dialog, Outcome, ShellModel};
 use crate::{key, strings};
 use ew_api::output::Uuid;
@@ -1141,12 +1141,14 @@ impl ShellModel {
             editor.box_sources = parts;
         }
         if drawn > 0 {
-            let redraw = Offer::new(
-                NoteAction::RedrawBoxes,
-                Validity::Session {
-                    epoch,
-                    select: vec![copy],
-                },
+            let redraw = Offer::steps(
+                "redraw_boxes",
+                key!("box-redraw"),
+                Validity::Session { epoch },
+                vec![(
+                    "part.redraw_boxes",
+                    serde_json::json!({ "part": format!("id:{copy}") }),
+                )],
             );
             self.notes.push(
                 Note::new(
@@ -1239,7 +1241,7 @@ impl ShellModel {
             editor.shown = true;
         }
         placed?;
-        let back = Offer::new(NoteAction::BackToEditor, Validity::SymbolDraft);
+        let back = back_to_editor();
         self.notes.push(
             Note::new("symbol", strings::format(key!("box-test-armed"), &[&number])).offering([Some(back)]),
         );

@@ -7,10 +7,14 @@
 //! Every toast enters the log (`NotificationLog::push`): at most [`MAX_VISIBLE`] toasts are visible (a toast of a
 //! key that is visible replaces that one; a fourth pushes out the oldest), and the log keeps the last [`MAX_LOG`]
 //! (the oldest dropped). A toast's timeout (8 s) is the window's clock, never the model's: headless, a toast stays
-//! until it is dismissed, replaced or pushed out. An entry's action is valid while what it acts on still holds: Undo
+//! until it is dismissed, replaced or pushed out. An entry's offer is valid while what it acts on still holds: Undo
 //! while the step it undoes is the next undo step of the same project session, Open while the file the job wrote in
-//! this session is known. The shell judges the validity ([`crate::shell::ShellModel::notification_valid`]); this
-//! module keeps the entries. Nothing here reads a clock, a path or a `Session`.
+//! this session is known. The shell judges the validity ([`crate::shell::ShellModel::notification_valid`]) and runs an
+//! offer; this module keeps the entries. Nothing here reads a clock, a path or a `Session`.
+//!
+//! **An offer** is Undo, Open, Swap, Route these too…, or the one generic offer: actions of the table with their
+//! parameters, run in their order (the records it selects are its `select.set`). Each has its word (in the describe
+//! text and in `notifications.run`'s `action`) and its short label.
 
 use crate::key;
 use crate::strings::{self, Key};
@@ -23,97 +27,6 @@ pub const MAX_VISIBLE: usize = 3;
 
 /// The most entries the log keeps.
 pub const MAX_LOG: usize = 100;
-
-/// Declares [`NoteAction`] from one line per action: its variant, its word (in the describe text and in
-/// `notifications.run`'s `action`) and the key of its button's label.
-macro_rules! note_actions {
-    ($($(#[$doc:meta])* $name:ident = $word:literal, $label:literal;)*) => {
-        /// The action a notification offers.
-        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-        pub enum NoteAction {
-            $($(#[$doc])* $name,)*
-        }
-
-        impl NoteAction {
-            /// Every action, in the order of their declaration.
-            pub const ALL: &[NoteAction] = &[$(NoteAction::$name),*];
-
-            /// The word in the describe text and in `notifications.run`'s `action`.
-            pub fn word(self) -> &'static str {
-                match self {
-                    $(NoteAction::$name => $word,)*
-                }
-            }
-
-            /// The key of the button's label in [`crate::strings`].
-            pub fn label_key(self) -> Key<'static> {
-                match self {
-                    $(NoteAction::$name => key!($label),)*
-                }
-            }
-        }
-    };
-}
-
-note_actions! {
-    /// Undo the step the notification reports.
-    Undo = "undo", "toast-undo";
-    /// Open the file the job wrote (Open PDF).
-    Open = "open", "toast-open";
-    // The actions of the one-time tips.
-    /// Tip 1's Convert to connection: undo the line the tip reports and arm the Wire tool.
-    Convert = "convert", "toast-convert";
-    /// Tip 2's Renumber devices….
-    Renumber = "renumber", "action-devices-renumber";
-    /// Tip 3's Show report block: the block selected, in Properties.
-    ShowBlock = "show_block", "toast-show-block";
-    /// Open the history at the step the notification reports, with its changes (an external change's Show changes).
-    ShowChanges = "show_changes", "toast-show-changes";
-    /// Back to the symbol editor and its kept draft, after a test placement.
-    BackToEditor = "edit", "toast-back-to-editor";
-    /// The rack dialog of the station a placed module joined.
-    Rack = "rack", "action-plc-rack-editor";
-    /// New station…, for a module placed while the project has no station.
-    NewStation = "new_station", "action-plc-new-station";
-    /// Show the folder a practice project was made in, in the system's file manager.
-    ShowFolder = "show_folder", "toast-show-folder";
-    /// Swap two valves' positions on their valve terminal, after a typed position another valve holds.
-    Swap = "swap", "action-fluid-swap";
-    /// The layout page's devices labelled with item numbers, after a legend was added beside their tags.
-    ItemNumbers = "item_numbers", "layout-show-item-numbers";
-    /// Select the devices the parts list leaves out because they have no part, for Choose part….
-    SelectUnlisted = "select_unlisted", "note-action-select-unlisted";
-    /// Type not known yet… for the devices the parts list leaves out, so they are listed by a description.
-    ListUnlisted = "list_unlisted", "action-part-placeholder";
-    /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it.
-    Connect = "connect", "note-action-connect";
-    /// Redraw the boxes of a part whose device box was changed: each as the part lays it out now.
-    RedrawBoxes = "redraw_boxes", "box-redraw";
-    /// The Cable form of a bus line just drawn (no cable was asked for).
-    ChooseCable = "choose_cable", "note-action-choose-cable";
-    /// Go to the page an Undo or a Redo changed, when it is not the page on show.
-    GoTo = "go_to", "note-action-go-to-page";
-    /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's.
-    RouteHis = "route_his", "note-action-route-his";
-    /// The Messages list, after a check that found something (the check's toast had no way to it).
-    ShowMessages = "show_messages", "note-action-show-messages";
-    /// The mouse wheel scrolls the page (View ▸ Mouse wheel scrolls on), after its first zoom.
-    WheelScrolls = "wheel_scrolls", "note-action-wheel-scrolls";
-    /// Fit the layout to the sheet, after a scale at which the layout runs over the frame's drawing area.
-    FitSheet = "fit_sheet", "action-layout-fit-sheet";
-    /// Remove from the project the terminals a delete left drawn nowhere (beside the delete's Undo).
-    RemoveUndrawn = "remove_undrawn", "note-action-remove-undrawn";
-    /// Keep the tags a paste changed (a moved strip's tag follows the page): each frozen as it read before (beside the
-    /// paste's Undo).
-    KeepTag = "keep_tag", "note-action-keep-tags";
-}
-
-impl NoteAction {
-    /// The action of a word.
-    pub fn from_word(word: &str) -> Option<NoteAction> {
-        NoteAction::ALL.iter().copied().find(|a| a.word() == word)
-    }
-}
 
 /// What a toast's icon says (doc 16a §6.10 with the severity icons of §6.24): a finished outcome (a check in
 /// `color.success`), plain information, or the worst severity a result reports.
@@ -129,7 +42,7 @@ pub enum NoteTone {
     Error,
 }
 
-/// What keeps an action valid (the shell's facts at the time of the notification; never printed).
+/// What keeps an offer valid (the shell's facts at the time of the notification; never printed).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) enum Validity {
     /// Undo: while project session `epoch` is open, its history cursor is `cursor` and the entry below it has `rev`.
@@ -141,18 +54,21 @@ pub(crate) enum Validity {
         /// The revision of the entry at `cursor − 1`.
         rev: u64,
     },
-    /// Open: the file the job wrote in this session (Show in folder: the folder).
-    Open {
-        /// The written file or folder (never printed).
-        path: PathBuf,
-    },
-    /// A tip's action that needs no step: while project session `epoch` is open; `select` the records it selects
-    /// (Show report block's block; never printed).
+    /// Always (Open: the file the job wrote in this session; Show in folder: the folder).
+    Always,
+    /// While project session `epoch` is open.
     Session {
         /// The project session.
         epoch: u64,
-        /// The records the action selects.
-        select: Vec<ew_api::output::Uuid>,
+    },
+    /// While project session `epoch` is open and page `page` is in it; with `shown`, while it is the page on show.
+    Page {
+        /// The project session.
+        epoch: u64,
+        /// The page.
+        page: ew_api::output::Uuid,
+        /// Whether the page must be on show.
+        shown: bool,
     },
     /// Show changes: while project session `epoch` is open and its history entry `entry` has `rev`.
     History {
@@ -167,31 +83,137 @@ pub(crate) enum Validity {
     SymbolDraft,
 }
 
-/// An action a notification offers: the action, what keeps it valid, and the parameters of the command it runs where
-/// the offer fixed them (Connect's wire, Keep's edits, Remove's terminals), spent by its first run.
+/// What an offer runs.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) enum Run {
+    /// Undo of the step the notification reports (the toast goes, and the Undo says nothing of its own).
+    Undo,
+    /// The written file or folder handed to the system's opener (never printed).
+    Open(PathBuf),
+    /// Two valves change their positions on their valve terminal: `device` takes `holder`'s.
+    Swap {
+        /// The valve that moves.
+        device: ew_api::output::Uuid,
+        /// The valve that holds the position it takes.
+        holder: ew_api::output::Uuid,
+    },
+    /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's, on the page on
+    /// show (a card of its own, which no action of the table opens).
+    RouteHis,
+    /// Actions of the table, each with its parameters, run in their order until one is not done; the toast goes,
+    /// unless it `keeps` (Show changes leaves the external change's toast up).
+    Steps {
+        /// The actions and their parameters.
+        steps: Vec<(&'static str, serde_json::Value)>,
+        /// Whether its first run spends it (it fixed what it commits: Connect's wire, Keep's edits, Remove's
+        /// terminals).
+        once: bool,
+        /// Whether the toast stays when it runs.
+        keeps: bool,
+    },
+}
+
+/// An action a notification offers: its word, its short label, what keeps it valid and what it runs.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) struct Offer {
-    /// The action.
-    pub(crate) action: NoteAction,
+    /// Its word, in the describe text and in `notifications.run`'s `action`.
+    pub(crate) word: &'static str,
+    /// Its short label.
+    pub(crate) label: String,
     /// What keeps it valid.
     pub(crate) validity: Validity,
-    /// The parameters it runs with; `None` for an action that reads what it acts on when it runs.
-    pub(crate) params: Option<serde_json::Value>,
-    /// Its label where it counts what it acts on ("Remove it from the project" for one terminal); `None`: the
-    /// action's fixed words.
-    pub(crate) label: Option<String>,
+    /// What it runs.
+    pub(crate) run: Run,
+    /// Whether a run spent it (a `once` offer).
+    pub(crate) spent: bool,
 }
 
 impl Offer {
-    /// The action `action`, valid while `validity` holds, with no parameters of its own.
-    pub(crate) fn new(action: NoteAction, validity: Validity) -> Offer {
+    /// The offer `word`, labelled `label`, valid while `validity` holds, running `run`.
+    pub(crate) fn new(word: &'static str, label: String, validity: Validity, run: Run) -> Offer {
         Offer {
-            action,
+            word,
+            label,
             validity,
-            params: None,
-            label: None,
+            run,
+            spent: false,
         }
     }
+
+    /// Undo of the step the notification reports, valid while `validity` holds.
+    pub(crate) fn undo(validity: Validity) -> Offer {
+        Offer::new(
+            "undo",
+            strings::text(key!("toast-undo")).to_owned(),
+            validity,
+            Run::Undo,
+        )
+    }
+
+    /// The offer `word` labelled with the text of `label`: the actions `steps` with their parameters, in their order.
+    pub(crate) fn steps(
+        word: &'static str,
+        label: Key<'static>,
+        validity: Validity,
+        steps: Vec<(&'static str, serde_json::Value)>,
+    ) -> Offer {
+        Offer::new(
+            word,
+            strings::text(label).to_owned(),
+            validity,
+            Run::Steps {
+                steps,
+                once: false,
+                keeps: false,
+            },
+        )
+    }
+
+    /// The same offer, spent by its first run.
+    #[must_use]
+    pub(crate) fn once(mut self) -> Offer {
+        if let Run::Steps { once, .. } = &mut self.run {
+            *once = true;
+        }
+        self
+    }
+
+    /// The same offer, leaving its toast up when it runs.
+    #[must_use]
+    pub(crate) fn keeping(mut self) -> Offer {
+        if let Run::Steps { keeps, .. } = &mut self.run {
+            *keeps = true;
+        }
+        self
+    }
+
+    /// The same offer labelled `label` (a label that counts or names what it acts on).
+    #[must_use]
+    pub(crate) fn labelled(mut self, label: String) -> Offer {
+        self.label = label;
+        self
+    }
+}
+
+/// Back to the symbol editor and its kept draft, after a test placement (`symbol.new`), while the draft is kept.
+pub(crate) fn back_to_editor() -> Offer {
+    Offer::steps(
+        "edit",
+        key!("toast-back-to-editor"),
+        Validity::SymbolDraft,
+        vec![("symbol.new", serde_json::json!({}))],
+    )
+}
+
+/// The step of a generic offer that selects `records`, the records it acts on, as a person's selection is set.
+pub(crate) fn select_step(records: &[ew_api::output::Uuid]) -> (&'static str, serde_json::Value) {
+    let ids: Vec<String> = records.iter().map(ToString::to_string).collect();
+    ("select.set", serde_json::json!({ "ids": ids }))
+}
+
+/// The step of a generic offer that commits the command `cmd` with `params` (`command.run`).
+pub(crate) fn command_step(cmd: &str, params: serde_json::Value) -> (&'static str, serde_json::Value) {
+    ("command.run", serde_json::json!({ "cmd": cmd, "params": params }))
 }
 
 /// A notification before it is shown: its sentences, which the log joins with a space in their order, its key, the
@@ -206,8 +228,6 @@ pub(crate) struct Note {
     pub(crate) offers: Vec<Offer>,
     /// The tone a result set (the check's worst severity); `None` for every other notification.
     pub(crate) tone: Option<NoteTone>,
-    /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
-    pub(crate) keep: Option<String>,
     /// What its toast shows where that is shorter than its text ([`Notification::shown`]); the log may add the times
     /// in a row ([`NotificationLog::push`]).
     pub(crate) brief: Option<String>,
@@ -226,7 +246,6 @@ impl Note {
             key,
             offers: Vec::new(),
             tone: None,
-            keep: None,
             brief: None,
         }
     }
@@ -261,8 +280,6 @@ pub struct Notification {
     pub(crate) offers: Vec<Offer>,
     /// The tone a result set (the check's worst severity); `None` for every other notification.
     pub(crate) tone: Option<NoteTone>,
-    /// The one tag a Keep keeps, which its label names ("Keep -X1021"); `None`: several, or no Keep.
-    pub(crate) keep: Option<String>,
     /// What its toast shows where that differs from its text: the first of several reasons and how many more, and the
     /// times in a row its key's toast said it ([`NotificationLog::push`]). The toast's tooltip and the log show the
     /// whole text.
@@ -279,39 +296,24 @@ impl Notification {
         self.tone == Some(NoteTone::Warning)
     }
 
-    /// The label of its action `action`: the offer's own where it counts what it acts on, Keep names the one tag it
-    /// keeps, any other its fixed words.
-    pub fn label(&self, action: NoteAction) -> String {
-        if let Some(label) = self
-            .offers
-            .iter()
-            .find(|o| o.action == action)
-            .and_then(|o| o.label.clone())
-        {
-            return label;
-        }
-        match (action, &self.keep) {
-            (NoteAction::KeepTag, Some(tag)) => strings::format(key!("note-action-keep-tag"), &[tag]),
-            _ => strings::text(action.label_key()).to_owned(),
-        }
+    /// The short label of its offer `word` (empty for a word it does not offer).
+    pub fn label(&self, word: &str) -> &str {
+        self.offer(word).map_or("", |o| o.label.as_str())
     }
 
-    /// The action it offers, valid or not.
-    pub fn action(&self) -> Option<NoteAction> {
-        self.offers.first().map(|o| o.action)
+    /// The word of the offer it offers first, valid or not.
+    pub fn action(&self) -> Option<&'static str> {
+        self.offers.first().map(|o| o.word)
     }
 
-    /// Every action it offers, in their order (the first is [`Notification::action`]).
-    pub fn actions(&self) -> Vec<NoteAction> {
-        self.offers.iter().map(|o| o.action).collect()
+    /// The words of every offer, in their order (the first is [`Notification::action`]).
+    pub fn actions(&self) -> Vec<&'static str> {
+        self.offers.iter().map(|o| o.word).collect()
     }
 
-    /// The validity of its action `action`.
-    pub(crate) fn validity(&self, action: NoteAction) -> Option<&Validity> {
-        self.offers
-            .iter()
-            .find(|o| o.action == action)
-            .map(|o| &o.validity)
+    /// Its offer `word`.
+    pub(crate) fn offer(&self, word: &str) -> Option<&Offer> {
+        self.offers.iter().find(|o| o.word == word)
     }
 
     /// The tone of its icon: the tone the result set, else success for a toast with an action, else info.
@@ -339,22 +341,6 @@ impl Notification {
             return (title, Some(strings::sentence_start(line)));
         }
         (shown, None)
-    }
-
-    /// The file an Open action opens.
-    pub(crate) fn open_path(&self, action: NoteAction) -> Option<&PathBuf> {
-        match self.validity(action) {
-            Some(Validity::Open { path }) => Some(path),
-            _ => None,
-        }
-    }
-
-    /// The records its action `action` selects (Show report block's block); empty for the others.
-    pub(crate) fn selects(&self, action: NoteAction) -> &[ew_api::output::Uuid] {
-        match self.validity(action) {
-            Some(Validity::Session { select, .. }) => select,
-            _ => &[],
-        }
     }
 }
 
@@ -409,7 +395,6 @@ impl NotificationLog {
             sentences: note.sentences,
             offers: note.offers,
             tone: note.tone,
-            keep: note.keep,
             brief: note.brief,
         });
         while self.entries.len() > MAX_LOG {
@@ -420,18 +405,17 @@ impl NotificationLog {
         serial
     }
 
-    /// Takes the parameters of the offer of `action` that notification `serial` holds: an offer's parameters are
-    /// spent by its first run.
-    pub(crate) fn take_params(&mut self, serial: u64, action: NoteAction) -> Option<serde_json::Value> {
-        self.entries
+    /// Marks the offer `word` of notification `serial` spent: a `once` offer runs once.
+    pub(crate) fn spend(&mut self, serial: u64, word: &str) {
+        if let Some(o) = self
+            .entries
             .iter_mut()
             .rev()
-            .find(|n| n.serial == serial)?
-            .offers
-            .iter_mut()
-            .find(|o| o.action == action)?
-            .params
-            .take()
+            .find(|n| n.serial == serial)
+            .and_then(|n| n.offers.iter_mut().find(|o| o.word == word))
+        {
+            o.spent = true;
+        }
     }
 
     /// The log, newest first.
@@ -544,8 +528,10 @@ mod tests {
         let plain = log.push(Note::new("edit", "Placed -K1".into()));
         let open = log.push(
             Note::new("export", "Exported PDF".into()).offering([Some(Offer::new(
-                NoteAction::Open,
-                Validity::Open { path: PathBuf::new() },
+                "open",
+                "Open".into(),
+                Validity::Always,
+                Run::Open(PathBuf::new()),
             ))]),
         );
         let checked = log.push(Note::new("edit", "Check: 1 error, 0 warnings".into()).toned(NoteTone::Error));
@@ -652,39 +638,43 @@ mod tests {
         );
     }
 
-    /// Each offer carries its own parameters: of two toasts that offer Connect, running the earlier one takes the
-    /// earlier wire, which is spent, and the later toast keeps its own.
+    /// Each offer runs its own steps: of two toasts that offer Connect, the earlier one spent is spent alone, and the
+    /// later toast keeps its own; an offer is found by its word, with its label.
     #[test]
-    fn an_offer_runs_its_own_parameters_once() {
+    fn an_offer_is_its_word_its_label_and_its_own_steps() {
         let mut log = NotificationLog::default();
         let connect = |wire: &str| {
-            Some(Offer {
-                params: Some(serde_json::json!({ "wire": wire })),
-                ..Offer::new(NoteAction::Connect, Validity::SymbolDraft)
-            })
+            Some(
+                Offer::steps(
+                    "connect",
+                    key!("note-action-connect"),
+                    Validity::SymbolDraft,
+                    vec![command_step(
+                        "connection.draw",
+                        serde_json::json!({ "wire": wire }),
+                    )],
+                )
+                .once(),
+            )
         };
         let first = log.push(Note::new("edit", "Placed -K1.".into()).offering([connect("a")]));
         let second = log.push(Note::new("edit", "Placed -K2.".into()).offering([connect("b")]));
-        assert_eq!(
-            log.take_params(first, NoteAction::Connect),
-            Some(serde_json::json!({ "wire": "a" }))
-        );
-        assert_eq!(
-            log.take_params(first, NoteAction::Connect),
-            None,
-            "spent by its first run"
-        );
-        assert_eq!(
-            log.take_params(second, NoteAction::Connect),
-            Some(serde_json::json!({ "wire": "b" }))
-        );
-    }
-
-    #[test]
-    fn action_words_round_trip() {
-        for a in [NoteAction::Undo, NoteAction::Open] {
-            assert_eq!(NoteAction::from_word(a.word()), Some(a));
-        }
-        assert_eq!(NoteAction::from_word("redo"), None);
+        let steps = |log: &NotificationLog, s: u64| match log.get(s).and_then(|n| n.offer("connect")) {
+            Some(Offer {
+                run: Run::Steps {
+                    steps, once: true, ..
+                },
+                spent,
+                ..
+            }) => Some((steps[0].1["params"]["wire"].clone(), *spent)),
+            _ => None,
+        };
+        log.spend(first, "connect");
+        assert_eq!(steps(&log, first), Some((serde_json::json!("a"), true)));
+        assert_eq!(steps(&log, second), Some((serde_json::json!("b"), false)));
+        let n = log.get(second).expect("the toast");
+        assert_eq!((n.action(), n.actions()), (Some("connect"), vec!["connect"]));
+        assert_eq!(n.label("connect"), strings::text(key!("note-action-connect")));
+        assert_eq!(n.label("undo"), "");
     }
 }

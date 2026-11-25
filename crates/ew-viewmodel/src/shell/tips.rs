@@ -23,7 +23,7 @@ use serde_json::{Value, json};
 
 use super::{Outcome, ShellModel};
 use crate::key;
-use crate::notifications::{Note, NoteAction, NoteTone, Notification, Offer, Validity};
+use crate::notifications::{Note, NoteTone, Offer, Validity};
 use crate::properties::{PropRow, Provenance, SheetSection};
 use crate::strings::{self, Key};
 
@@ -113,45 +113,46 @@ impl ShellModel {
                 else {
                     return;
                 };
-                (
-                    NoteAction::Convert,
+                Offer::steps(
+                    "convert",
+                    key!("toast-convert"),
                     Validity::Undo {
                         epoch: project.epoch,
                         cursor,
                         rev,
                     },
+                    vec![("edit.undo", Value::Null), ("tool.wire", Value::Null)],
                 )
             }
-            Tip::DerivedTag => (
-                NoteAction::Renumber,
-                Validity::Session {
-                    epoch: project.epoch,
-                    select: Vec::new(),
-                },
+            Tip::DerivedTag => Offer::steps(
+                "renumber",
+                key!("action-devices-renumber"),
+                Validity::Session { epoch: project.epoch },
+                vec![("devices.renumber", Value::Null)],
             ),
-            Tip::WheelZooms => (
-                NoteAction::WheelScrolls,
-                Validity::Session {
-                    epoch: project.epoch,
-                    select: Vec::new(),
-                },
+            Tip::WheelZooms => Offer::steps(
+                "wheel_scrolls",
+                key!("note-action-wheel-scrolls"),
+                Validity::Session { epoch: project.epoch },
+                vec![("view.wheel_scrolls", json!({ "on": true }))],
             ),
             Tip::GeneratedPage if select.is_empty() => return,
-            Tip::GeneratedPage => (
-                NoteAction::ShowBlock,
-                Validity::Session {
-                    epoch: project.epoch,
-                    select,
-                },
+            Tip::GeneratedPage => Offer::steps(
+                "show_block",
+                key!("toast-show-block"),
+                Validity::Session { epoch: project.epoch },
+                vec![
+                    crate::notifications::select_step(&select),
+                    ("props.focus", Value::Null),
+                ],
             ),
         };
         self.settings.tips_seen.push(tip.word().to_owned());
         self.save_settings();
         // A tip informs: the info icon, not the check of a finished outcome.
-        let (action, validity) = action;
         self.notes.push(
             Note::new("tip", strings::text(tip.text_key()).to_owned())
-                .offering([Some(Offer::new(action, validity))])
+                .offering([Some(action)])
                 .toned(NoteTone::Info),
         );
     }
@@ -251,26 +252,6 @@ impl ShellModel {
         if let Some(page) = page {
             let block = self.block_of(page);
             self.offer_tip(Tip::GeneratedPage, block);
-        }
-    }
-
-    /// Runs a tip's action (`run_note_action` has judged it valid): the toast goes, then the action's steps.
-    pub(super) fn run_tip_action(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
-        self.notes.dismiss(entry.serial);
-        match Some(action) {
-            Some(NoteAction::Convert) => match self.dispatch("edit.undo", &Value::Null) {
-                Outcome::Done => self.dispatch("tool.wire", &Value::Null),
-                other => other,
-            },
-            Some(NoteAction::Renumber) => self.dispatch("devices.renumber", &Value::Null),
-            Some(NoteAction::ShowBlock) => {
-                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
-                match self.dispatch("select.set", &json!({ "ids": ids })) {
-                    Outcome::Done => self.dispatch("props.focus", &Value::Null),
-                    other => other,
-                }
-            }
-            _ => Outcome::refused(key!("reason-no-toast")),
         }
     }
 

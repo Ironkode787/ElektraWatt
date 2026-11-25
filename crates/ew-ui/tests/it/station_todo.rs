@@ -247,10 +247,7 @@ fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
         "{}",
         toast.text
     );
-    assert_eq!(
-        toast.action(),
-        Some(ew_viewmodel::notifications::NoteAction::GoTo)
-    );
+    assert_eq!(toast.action(), Some("go_to"));
     click_at(&mut d, (800, 400));
     assert!(d.shell_mut().banner().is_none(), "{:?}", d.shell_mut().banner());
     // To do reads the project as the Undo left it: the electrical side is to draw again.

@@ -8,7 +8,6 @@
 use crate::common;
 
 use common::{Tmp, done, toast};
-use ew_viewmodel::notifications::NoteAction;
 use ew_viewmodel::shell::{Dialog, Mode};
 use serde_json::json;
 
@@ -41,11 +40,7 @@ fn a_list_the_set_has_is_named_with_its_page() {
         toast(&s)
     );
     let entry = s.notifications().entries().next().expect("the toast").clone();
-    assert!(
-        entry.actions().contains(&NoteAction::Undo),
-        "{:?}",
-        entry.actions()
-    );
+    assert!(entry.actions().contains(&"undo"), "{:?}", entry.actions());
     done(
         &mut s,
         "notifications.run",

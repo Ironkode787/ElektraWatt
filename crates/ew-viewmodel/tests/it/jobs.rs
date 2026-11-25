@@ -151,13 +151,7 @@ fn a_second_export_of_the_same_file_says_again() {
     assert_eq!(s.toast().unwrap().text, first);
     // Open opens the file, Show in folder its folder.
     let actions = s.notifications().entries().next().expect("the toast").actions();
-    assert_eq!(
-        actions,
-        [
-            ew_viewmodel::notifications::NoteAction::Open,
-            ew_viewmodel::notifications::NoteAction::ShowFolder
-        ]
-    );
+    assert_eq!(actions, ["open", "show_folder"]);
     done(
         &mut s,
         "file.export_pdf",

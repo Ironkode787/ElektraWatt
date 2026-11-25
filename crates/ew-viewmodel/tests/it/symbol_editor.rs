@@ -1014,10 +1014,7 @@ fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
     let toast = shell.notifications().newest_visible().unwrap().clone();
     let page = shell.page_labels()[shell.page_index()].clone();
     assert_eq!(toast.text, format!("Test copy placed on page {page}."));
-    assert_eq!(
-        toast.action(),
-        Some(ew_viewmodel::notifications::NoteAction::BackToEditor)
-    );
+    assert_eq!(toast.action(), Some("edit"));
     done(
         &mut shell,
         "notifications.run",

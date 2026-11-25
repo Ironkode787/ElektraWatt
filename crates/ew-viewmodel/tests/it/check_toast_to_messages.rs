@@ -8,7 +8,6 @@ use crate::common;
 
 use common::{Tmp, done};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::notifications::NoteAction;
 use ew_viewmodel::shell::Mode;
 use serde_json::json;
 
@@ -19,9 +18,9 @@ fn the_checks_toast_opens_the_messages_list() {
     let mut s = tmp.sample_in(Mode::Headless, false, "101");
     done(&mut s, "messages.check", json!({}));
     let toast = s.toast().cloned().expect("the check's toast");
-    assert_eq!(toast.actions(), [NoteAction::ShowMessages]);
+    assert_eq!(toast.actions(), ["show_messages"]);
     assert_eq!(
-        ew_viewmodel::strings::text(NoteAction::ShowMessages.label_key()),
+        ew_viewmodel::strings::text(ew_viewmodel::key!("note-action-show-messages")),
         "Show messages"
     );
     assert!(!s.navigator_open(NavKind::Messages));

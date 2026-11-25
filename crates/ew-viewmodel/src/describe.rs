@@ -1100,9 +1100,9 @@ fn action_words(model: &ShellModel, n: &crate::notifications::Notification) -> S
         .into_iter()
         .map(|a| {
             if model.note_action_reason(n, a).is_ok() {
-                format!(" {}", a.word())
+                format!(" {a}")
             } else {
-                format!(" {} expired", a.word())
+                format!(" {a} expired")
             }
         })
         .collect()

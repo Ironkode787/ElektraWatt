@@ -8,7 +8,6 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::notifications::NoteAction;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
@@ -67,8 +66,8 @@ fn a_moved_strip_says_its_tag_follows_the_page_and_keep_freezes_the_old_one() {
     );
     common::click(&mut s, p, json!({}));
     let toast = s.toast().cloned().expect("the paste's toast");
-    assert_eq!(toast.actions(), [NoteAction::Undo, NoteAction::KeepTag]);
-    let keep = toast.label(NoteAction::KeepTag);
+    assert_eq!(toast.actions(), ["undo", "keep_tag"]);
+    let keep = toast.label("keep_tag");
     let old = keep
         .strip_prefix("Keep ")
         .expect("Keep names the old tag")
