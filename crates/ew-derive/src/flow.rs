@@ -8,8 +8,8 @@
 //! the own attributes of the potentials (`potential_attrs`), and it is a **producer of parts**
 //! ([`PartKey::Flow`]): `potential_flow(p)` (Cold) reads the entry of `p` only, so a re-run of the BFS reaches
 //! the readers of the entries that changed. It keeps its value when neither the partition nor an attribute it
-//! read changed; otherwise the BFS runs whole (the flow stays global). The pass-through conflicts are values,
-//! reported with the potentials' names by `flow_notes()`.
+//! read changed; otherwise the BFS runs whole (the flow stays global). The pass-through conflicts are part of the
+//! value ([`Flow::conflicts`]).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -22,8 +22,7 @@ use ew_units::Dec3;
 use crate::Q;
 use crate::links::DeclaredLink;
 use crate::memo_keys::PartKey;
-use crate::names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf};
-use crate::note::{DeriveNote, NoteFact};
+use crate::names::{PotentialAttrsOf, PotentialAttrsV};
 use crate::potentials::{Attr, AttrSource, Partition, PotentialId, PotentialPartition};
 use crate::query::{Changes, Policy, Query};
 
@@ -414,46 +413,9 @@ fn run_flow(q: &Q) -> Flow {
     }
 }
 
-/// `flow_notes()`: the EW-POT-001 notes of the pass-through conflicts of the flow, naming the two potentials
-/// (doc 08 §3.6). Policy Memo; `potential_flow` reads it as a cut-off point, so its notes reach the flow's
-/// readers.
-#[derive(Debug)]
-pub struct FlowNotes;
-
-impl Query for FlowNotes {
-    type Key = ();
-    type Value = Vec<DeriveNote>;
-    const FAMILY: &'static str = "flow_notes";
-    const POLICY: Policy = Policy::Memo;
-
-    fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
-        let flow = q.get::<FlowBfs>(());
-        let mut notes: Vec<DeriveNote> = flow
-            .conflicts
-            .iter()
-            .map(|c| {
-                let a = q.get::<PotentialNameOf>(c.a);
-                let b = q.get::<PotentialNameOf>(c.b);
-                DeriveNote::Connectivity {
-                    code: "EW-POT-001",
-                    fact: NoteFact::Other,
-                    subject: format!("potential {} / {}", a.name.text, b.name.text),
-                    detail: format!(
-                        "pass-through of function {} joins type {} and type {} without a converting function",
-                        c.function, c.a_type, c.b_type
-                    ),
-                }
-            })
-            .collect();
-        notes.sort();
-        notes.dedup();
-        Arc::new(notes)
-    }
-}
-
 /// `potential_flow(potential)`: the potential's entry of [`FlowBfs`]; `None` for an unknown ID. Policy Cold:
 /// a lookup into the memoised `potential_flow_bfs` (ADR-0002 amendment 4, ARCH §6.4),
-/// depending on the potential's entry only; it surfaces the flow's notes (`flow_notes`).
+/// depending on the potential's entry only.
 #[derive(Debug)]
 pub struct PotentialFlow;
 
@@ -465,7 +427,6 @@ impl Query for PotentialFlow {
 
     fn run(q: &Q, key: &PotentialId) -> Arc<Option<FlowEntry>> {
         let flow = q.get_part::<FlowBfs>((), PartKey::Flow(*key));
-        let _ = q.get_value_part::<FlowNotes>(());
         Arc::new(flow.entries.get(key).cloned())
     }
 }

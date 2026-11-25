@@ -30,7 +30,7 @@
 //! - **Captions**: a structure box prints its caption and, with `external`, ` (<external>)` as the external
 //!   cross-reference texts print it: `External Connection (+J-E-206 / JE-N1000-03)` ([`box_caption`]).
 //! - **Stale entries**: a wire marker that lists a deleted connection or one of another page (a file of a build before
-//!   part 4a) is a load finding ([`stale_marker_notes`]); every function here ignores the entry.
+//!   part 4a): every function here ignores the entry.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -44,7 +44,6 @@ use ew_schema::{
 };
 use ew_units::Pt2;
 
-use crate::note::DeriveNote;
 use crate::pages::{PageOrder, PageRef, PageRefStructure};
 use crate::query::{Policy, Query};
 use crate::settings::DrawingSettingsQ;
@@ -640,32 +639,6 @@ pub fn cable_mark(q: &Q, item: &PageItem) -> Option<CableMark> {
         kind,
         cores,
     })
-}
-
-/// The load findings of the wire markers (ADR-0009 amendment 8): one note per listed connection
-/// that does not exist or is not drawn on the marker's page, in item then list order. The derivation and the
-/// drawing ignore these entries; the next edit of the marker may write a clean list.
-pub fn stale_marker_notes(q: &Q) -> Vec<DeriveNote> {
-    let mut out = Vec::new();
-    let conns = q.connections();
-    for (id, item) in q.page_items().iter() {
-        let PageItemKind::WireMarker(m) = &item.kind else {
-            continue;
-        };
-        for c in &m.connections {
-            let detail = match conns.get(*c) {
-                None => "does not exist",
-                Some(conn) if conn.page != Some(item.page) => "is not drawn on the marker's page",
-                Some(_) => continue,
-            };
-            out.push(DeriveNote::StaleMarkerEntry {
-                marker: id.to_string(),
-                connection: c.to_string(),
-                detail,
-            });
-        }
-    }
-    out
 }
 
 #[cfg(test)]

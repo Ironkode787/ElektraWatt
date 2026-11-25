@@ -298,9 +298,10 @@ fn unpaired_ip_is_noted_not_panicking() {
     let m = fx.build();
     let q = Q::new(&m);
     let _ = q.get::<PotentialPartition>(());
-    // The interruption-point notes are pushed by the stitch graph.
+    // The pairing holds the point unpaired, which EW-CORE-051 reports.
     let _ = q.get::<StitchGraphQ>(());
-    assert!(has_note(&q, "EW-CORE-051"));
+    let pairing = q.get::<ew_derive::IpPairingQ>(());
+    assert_eq!(pairing.groups.iter().map(|g| g.unpaired.len()).sum::<usize>(), 1);
 }
 
 /// `m` with connection `n`'s end `b` replaced, invariants skipped (CI-01, EW-INV-001).
@@ -860,10 +861,9 @@ fn only_potential(q: &Q) -> PotentialId {
     part.potentials().next().unwrap().id
 }
 
-/// The connectivity notes of the values that hold them: the interruption points' pairing and the physical wires
-/// of every potential.
+/// The connectivity notes of the physical wires of every potential.
 fn value_notes(q: &Q) -> Vec<DeriveNote> {
-    let mut notes: Vec<DeriveNote> = q.get::<ew_derive::IpPairingQ>(()).notes.clone();
+    let mut notes: Vec<DeriveNote> = Vec::new();
     for p in q.get::<PotentialPartition>(()).potentials() {
         notes.extend(q.get::<PhysicalWiresOf>(p.id).notes.iter().cloned());
     }
@@ -1272,29 +1272,15 @@ fn project_default_is_level_1() {
     assert_eq!(csa.level(), 0);
 }
 
+/// A malformed colour profile is treated as absent: the built-in colours apply.
 #[test]
-fn malformed_colour_profile_is_noted() {
+fn malformed_colour_profile_is_treated_as_absent() {
     let mut fx = pair_fixture();
     fx.project_set("settings", json!({"colour_profile": 42}));
     let m = fx.build();
     let q = Q::new(&m);
     let pid = only_potential(&q);
     let props = q.get::<WirePropsOf>(pid);
-    let notes = (*q.get::<ew_derive::WireProfileNotes>(())).clone();
-    assert!(
-        notes.iter().any(|n| matches!(
-            n,
-            DeriveNote::MalformedShim { member, .. } if member == "settings.colour_profile"
-        )),
-        "{notes:?}"
-    );
-    // A malformed member is treated as absent, but it is present: no default-profile note for it.
-    assert!(!notes.iter().any(|n| matches!(
-        n,
-        DeriveNote::DefaultWireProfile {
-            member: "colour_profile"
-        }
-    )));
     let e = props.wires.values().next().expect("one wire");
     let colour = e.colour.as_ref().expect("a colour");
     assert!(matches!(colour.source, PropSource::BuiltIn { .. }), "{colour:?}");

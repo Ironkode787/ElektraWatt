@@ -19,11 +19,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
     BomMode, BomRows, BondIndex, BondPathsQ, BondVias, DefPoints, DevicePartLines, DeviceTag,
-    DevicesByStructure, DrawnPageOrder, EndClass, EndScope, FlowBfs, FlowNotes, FunctionLinksOf, Member,
-    PageIds, PageLocalNets, PageOrder, PageRef, PagelessLinks, PhysicalWiresOf, PotentialAttrsOf,
-    PotentialId, PotentialNameOf, PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, RailBondsQ,
-    RailTerminalOf, RailTerminals, SettingsMember, StitchGraphQ, TitleBlockValues, TocRows, WireDefaultProps,
-    WireNumbers, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
+    DevicesByStructure, DrawnPageOrder, EndClass, EndScope, FlowBfs, FunctionLinksOf, Member, PageIds,
+    PageLocalNets, PageOrder, PageRef, PagelessLinks, PhysicalWiresOf, PotentialAttrsOf, PotentialId,
+    PotentialNameOf, PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, RailBondsQ, RailTerminalOf,
+    RailTerminals, SettingsMember, StitchGraphQ, TitleBlockValues, TocRows, WireDefaultProps, WireNumbers,
+    WireProfilesQ, WirePropsOf, XrefTextOf,
 };
 use ew_derive::{IpFunctions, IpInfoOf, IpPairingQ};
 use ew_ids::Id;
@@ -179,7 +179,6 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<RailBondsQ>(memo, cold, [()], o);
     check::<RailTerminalOf>(memo, cold, keys.devices.iter().copied(), o);
     check::<RailTerminals>(memo, cold, [()], o);
-    check::<FlowNotes>(memo, cold, [()], o);
     check::<ew_derive::FluidNets>(memo, cold, [()], o);
     check::<ew_derive::ValveSlots>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::Galleries>(memo, cold, keys.devices.iter().copied(), o);
@@ -254,7 +253,6 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<TocRows>(memo, cold, [()], o);
     check::<WireDefaultProps>(memo, cold, [()], o);
     check::<WireNumbers>(memo, cold, [()], o);
-    check::<WireProfileNotes>(memo, cold, [()], o);
     check::<WireProfilesQ>(memo, cold, [()], o);
     check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<XrefTextOf>(memo, cold, keys.reps.iter().copied(), o);

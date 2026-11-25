@@ -66,8 +66,7 @@ pub struct NodePath {
 ///
 /// The path is the parent's path plus the node, so a chain of `n` nodes costs `n` evaluations whichever
 /// node is asked first. A parent cycle cannot exist (EW-INV-008); on a corrupt snapshot with one, the node
-/// whose parent is still being evaluated is taken as a root, the cycle is recorded as a
-/// [`DeriveNote::QueryCycle`](crate::DeriveNote::QueryCycle) and the paths stay finite.
+/// whose parent is still being evaluated is taken as a root and the paths stay finite.
 #[derive(Debug)]
 pub struct StructurePath;
 
@@ -310,8 +309,7 @@ pub(crate) fn structure_parent(dev: &Device) -> Option<Id<Device>> {
 ///
 /// **Cycles.** Steps 2 and 4 follow the device inheritance graph (terminal → strip, device → parent),
 /// which EW-INV-015 keeps acyclic. On a snapshot that breaks it, the edge that closes the cycle reads
-/// through [`Q::try_get`], inherits nothing and notes a [`DeriveNote::QueryCycle`](crate::DeriveNote):
-/// no model content makes this query panic.
+/// through [`Q::try_get`] and inherits nothing: no model content makes this query panic.
 #[derive(Debug)]
 pub struct StructureOf;
 

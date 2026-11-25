@@ -33,14 +33,13 @@ use ew_schema::{
     PotentialType, WireProps,
 };
 
-use crate::note::DeriveNote;
 use crate::potentials::{PotentialId, potential_id_at, potential_part};
 use crate::profile;
 use crate::query::{Policy, Query};
 use crate::settings;
 use crate::wire_profile::{
-    Attrs, ProfileKey, ProfileRow, ProfileRowFor, WireDefaultProps, WireProfileNotes, attrs_of,
-    builtin_colour_for, builtin_csa, csa_raised, own_class,
+    Attrs, ProfileKey, ProfileRow, ProfileRowFor, WireDefaultProps, attrs_of, builtin_colour_for,
+    builtin_csa, csa_raised, own_class,
 };
 use crate::wires::{EndKind, OverrideSources, PhysicalWire, PhysicalWiresOf, WireEnd};
 use crate::{FunctionCps, Q};
@@ -176,8 +175,6 @@ pub struct WirePropsMap {
     pub wires: BTreeMap<Id<Connection>, EffectiveProps>,
     /// For each constituent connection, the wires it belongs to (two for a shared star feed arm).
     pub by_connection: BTreeMap<Id<Connection>, Vec<Id<Connection>>>,
-    /// The notes of this derivation (also pushed to the `Q`).
-    pub notes: Vec<DeriveNote>,
 }
 
 /// `wire_props_of(potential)` (doc 08 §4). Initial policy Memo (ARCH §6.4).
@@ -201,8 +198,8 @@ pub struct WirePropsMap {
 ///   a device or a strip is the memo [`EndClass`], so a strip is read once whatever the number of wires
 ///   that end on it.
 /// - **Profiles.** The profile is read only through queries: [`ProfileRowFor`] (class, colour row and size
-///   row of an attribute set), [`WireDefaultProps`] (level 1), [`WireProfileNotes`] and, for the level-0
-///   version string, the pinned-profile settings member. A colour-profile edit re-executes the potentials
+///   row of an attribute set), [`WireDefaultProps`] (level 1) and, for the level-0 version string, the
+///   pinned-profile settings member. A colour-profile edit re-executes the potentials
 ///   whose row changed and no others; the project row itself is read by no wire-property query.
 /// - **Class.** [`EffectiveProps::class`] is the class the size rule resolved for the wire, set whenever
 ///   the wire has a potential, whichever level then supplied the cross-section.
@@ -238,7 +235,6 @@ impl Query for WirePropsOf {
             wires.sort();
             wires.dedup();
         }
-        map.notes = q.get_value_part::<WireProfileNotes>(()).as_ref().clone();
         Arc::new(map)
     }
 }

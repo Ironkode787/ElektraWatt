@@ -13,8 +13,6 @@
 //!   value; otherwise it pairs again. It is a **producer of parts** ([`PartKey::Ip`]): a reader that needs the
 //!   pairing of a few points (the physical wires of a potential, a cross-reference text) depends on those
 //!   points only, and a re-pairing declares the points whose pairing changed.
-//!
-//! The EW-CORE-051 notes are part of the pairing's value (`IpPairing::notes`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -27,7 +25,6 @@ use ew_schema::{Representation, StructureNode};
 use crate::index::{Index, IpFunctions};
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, ip_cp};
-use crate::note::{DeriveNote, NoteFact};
 use crate::query::{Changes, Policy, Query};
 use crate::stitch::{IpGroup, IpInfo, PairMode};
 use crate::{DrawnPageOrder, PageRef, Q, RepAnchorCell};
@@ -51,8 +48,6 @@ pub struct IpFnInfo {
     /// The page-order position of its page, and the row and column of its representation's anchor cell
     /// (`usize::MAX` / `u32::MAX` when unknown): the page order of points (doc 08 §3.5).
     pub order: (usize, u32, u32),
-    /// Its EW-CORE-051 notes (no CP; no scope node on its page).
-    pub notes: Vec<DeriveNote>,
 }
 
 impl IpFnInfo {
@@ -70,7 +65,6 @@ impl IpFnInfo {
             && self.page == other.page
             && self.pairs == other.pairs
             && self.scope == other.scope
-            && self.notes == other.notes
             && (!chain || self.order == other.order)
     }
 
@@ -125,33 +119,12 @@ impl Query for IpInfoOf {
             let rep = spec.as_ref().and_then(|_| q.idx().reps_of_function(fid).next());
             let page = rep.and_then(|r| q.reps().get(r)).map(|r| r.page);
             let external = spec.as_ref().is_some_and(|s| s.external.is_some());
-            let name = spec.as_ref().map_or("", |s| s.name.as_str());
-            let mut notes = Vec::new();
-            if spec.is_some() && !external && cp.is_none() {
-                notes.push(DeriveNote::Connectivity {
-                    code: "EW-CORE-051",
-                    fact: NoteFact::Other,
-                    subject: format!("interruption point {name} ({fid})"),
-                    detail: "the interruption point has no connection point; it pairs with nothing".into(),
-                });
-            }
             let pairs = spec.is_some() && !external && cp.is_some();
             let mut scope = None;
             if pairs {
                 let (_, scope_aspect) = pairing_setting(q);
                 // The point's structure: its structure box over its page (`ip_structure`).
                 scope = scope_aspect.and_then(|a| q.get::<crate::items::IpStructure>(fid).node(a));
-                if let (Some(aspect), None) = (scope_aspect, scope) {
-                    notes.push(DeriveNote::Connectivity {
-                        code: "EW-CORE-051",
-                        fact: NoteFact::Other,
-                        subject: format!("interruption point {name} ({fid})"),
-                        detail: format!(
-                            "ip_pairing scope is {aspect:?} but the page has no such structure node; \
-                             paired in the project-wide group"
-                        ),
-                    });
-                }
             }
             let order = if spec.is_some() {
                 let pos = page
@@ -171,7 +144,6 @@ impl Query for IpInfoOf {
                 pairs,
                 scope,
                 order,
-                notes,
             }
         })
     }
@@ -185,8 +157,6 @@ pub struct IpPairing {
     pub ips: BTreeMap<Id<Function>, IpInfo>,
     /// The pairing groups, in (name, scope) order.
     pub groups: Vec<IpGroup>,
-    /// The EW-CORE-051 notes, in the stitch graph's order: per point in ID order, then per group.
-    pub notes: Vec<DeriveNote>,
     /// Every point's pair partners, sorted and deduplicated.
     partners: BTreeMap<Id<Function>, Vec<Id<Function>>>,
     /// The point of each interruption-point CP.
@@ -201,7 +171,6 @@ impl PartialEq for IpPairing {
     fn eq(&self, other: &IpPairing) -> bool {
         self.ips == other.ips
             && self.groups == other.groups
-            && self.notes == other.notes
             && self.partners == other.partners
             && self.at == other.at
     }
@@ -257,7 +226,6 @@ fn pair(q: &Q) -> IpPairing {
     let mut ips: BTreeMap<Id<Function>, IpInfo> = BTreeMap::new();
     let mut infos: BTreeMap<Id<Function>, Arc<IpFnInfo>> = BTreeMap::new();
     let mut at: BTreeMap<CpRef, Id<Function>> = BTreeMap::new();
-    let mut notes: Vec<DeriveNote> = Vec::new();
     let mut groups: BTreeMap<GroupKey, Vec<Id<Function>>> = BTreeMap::new();
     let mut chain_keys: BTreeMap<Id<Function>, ChainKey> = BTreeMap::new();
     for fid in fns.keys().copied() {
@@ -267,7 +235,6 @@ fn pair(q: &Q) -> IpPairing {
             infos.insert(fid, info);
             continue;
         };
-        notes.extend(info.notes.iter().cloned());
         if let Some(cp) = info.cp {
             at.insert(cp, fid);
         }
@@ -318,25 +285,6 @@ fn pair(q: &Q) -> IpPairing {
                     .copied()
                     .filter(|f| ips[f].direction == IpDirection::Source)
                     .collect();
-                if flagged.len() > 1 {
-                    notes.push(DeriveNote::Connectivity {
-                        code: "EW-CORE-051",
-                        fact: NoteFact::Other,
-                        subject: format!("interruption point {name}"),
-                        detail: format!("{} star sources; the smallest ID is the source", flagged.len()),
-                    });
-                }
-                if flagged.is_empty() && sources.len() >= 2 {
-                    notes.push(DeriveNote::Connectivity {
-                        code: "EW-CORE-051",
-                        fact: NoteFact::Other,
-                        subject: format!("interruption point {name}"),
-                        detail: format!(
-                            "{} source points and no star_source; the lowest ID source is the star source",
-                            sources.len()
-                        ),
-                    });
-                }
                 // The source: the star, else the first source point, else the first undirected point. Two points
                 // of one direction are never tied to each other (a second target of a name without a source
                 // tied itself to the first target); a group of targets alone waits for its source.
@@ -384,14 +332,6 @@ fn pair(q: &Q) -> IpPairing {
                 g.members = members;
             }
         }
-        for &u in &g.unpaired {
-            notes.push(DeriveNote::Connectivity {
-                code: "EW-CORE-051",
-                fact: NoteFact::Other,
-                subject: format!("interruption point {name} ({u})"),
-                detail: "no partner; its wire stays open-ended".into(),
-            });
-        }
         for &m in &g.members {
             if let Some(info) = ips.get_mut(&m) {
                 info.group = Some(gi);
@@ -413,7 +353,6 @@ fn pair(q: &Q) -> IpPairing {
     IpPairing {
         ips,
         groups: out_groups,
-        notes,
         partners,
         at,
         infos,

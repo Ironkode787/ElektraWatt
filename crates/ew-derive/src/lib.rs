@@ -134,8 +134,7 @@ pub use ip::{IpInfoOf, IpPairing, IpPairingQ};
 pub use items::{
     BINDABLE, CableMark, IpStructure, RepStructureBox, SYMBOL_BINDABLE, bound_text, box_caption, cable_mark,
     cable_size_text, connection_marker, connection_number, effective_marker_text, free_text, group_marker,
-    grouped_connections, live_connections, marker_mode, outline_contains, shows_marker, stale_marker_notes,
-    strips_named_on,
+    grouped_connections, live_connections, marker_mode, outline_contains, shows_marker, strips_named_on,
 };
 pub use joins::{JoinWiring, cp_label, wire_join};
 pub use links::{
@@ -151,7 +150,7 @@ pub use bus::{
     bus_core_ends, bus_core_pins, bus_end_label, bus_termination_text, bus_word, cable_bus_line,
     external_partner_text, net_address_text, potential_member_count, station_bus_address,
 };
-pub use flow::{Flow, FlowBfs, FlowNotes, Load, PotentialFlow, Upstream};
+pub use flow::{Flow, FlowBfs, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
     FluidNets, FluidTube, FluidTubes, Galleries, ValvePort, ValveSlot, ValveSlots, is_fitting, is_fluid,
@@ -169,7 +168,7 @@ pub use names::{
     potential_named, ranked_defs,
 };
 pub use nets::{CpRef, NetId, PageIpNets, PageLocalNets, ZeroVoltIps};
-pub use note::{DeriveNote, NoteFact, NoteSeverity, SchemeIssue};
+pub use note::{DeriveNote, NoteFact, SchemeIssue};
 pub use numbering::{WireNumber, WireNumbers, orient_wire};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageKey, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
@@ -231,8 +230,8 @@ pub use valve_cells::{
     terminal_cells, terminal_supply, wired_solenoid_channel,
 };
 pub use wire_profile::{
-    Attrs, ColourProfile, ProfileKey, ProfileRowFor, SizeProfile, WireDefaultProps, WireProfileNotes,
-    WireProfilesQ, csa_short_of, current_table_basis,
+    Attrs, ColourProfile, ProfileKey, ProfileRowFor, SizeProfile, WireDefaultProps, WireProfilesQ,
+    csa_short_of, current_table_basis,
 };
 pub use wire_props::{
     ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, WirePropsMap,

@@ -361,7 +361,6 @@ fn wire_props_reads_no_project_row() {
         "wire_profiles",
         "profile_row_for",
         "wire_default_props",
-        "wire_profile_notes",
         "end_class",
     ] {
         assert!(
@@ -374,7 +373,7 @@ fn wire_props_reads_no_project_row() {
 }
 
 #[test]
-fn a_profile_default_and_notes_are_read_as_parts() {
+fn a_profile_default_and_rows_are_read_as_parts() {
     let model = fixture().build();
     let store = MemoStore::new(&model);
     let ps = potentials(&store.query());
@@ -399,8 +398,8 @@ fn a_profile_default_and_notes_are_read_as_parts() {
         stats.family("profile_row_for").cut_offs
     );
 
-    // An overlap note appears with a second colour row of the same selector and another colour: the notes
-    // value changed, so every potential re-executes to push them.
+    // A second colour row of the same selector and another colour changes no row of any potential (the first of two
+    // equal rows wins): the profile rows cut off and no potential re-executes.
     let (after2, keys2) = edited(&after, |p| {
         let rows = p
             .settings
@@ -415,12 +414,7 @@ fn a_profile_default_and_notes_are_read_as_parts() {
     let memo = store.query();
     let cold = Q::new(&after2);
     assert_eq!(read_all(&memo, &ps), read_all(&cold, &ps));
-    assert_eq!(
-        store.commit_stats().family("wire_props_of").re_executions,
-        ps.len() as u64
-    );
-    // The overlapping row changes no row of any potential (the first of two equal rows wins): the profile rows
-    // cut off, only the notes moved.
+    assert_eq!(store.commit_stats().family("wire_props_of").re_executions, 0);
     let rows = store.commit_stats().family("profile_row_for");
     assert_eq!(rows.re_executions, rows.cut_offs, "{rows:?}");
 }

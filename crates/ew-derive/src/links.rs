@@ -251,12 +251,10 @@ pub struct RailTerminal {
     /// main location when the project has none; `None` (EW-POT-008) when it has none and the project has two or
     /// more own locations.
     pub rail: Option<RailLocation>,
-    /// Its location could not be resolved (a structure cycle, noted as `cycle`): it joins nothing, unnoted.
+    /// Its location could not be resolved (a structure cycle): it joins nothing, unnoted.
     pub skipped: bool,
     /// Its EW-TERM-005 and EW-POT-008 notes, in the stitch graph's order.
     pub notes: Vec<DeriveNote>,
-    /// The cycle note, pushed by the stitch graph outside its notes (as the stitch graph always did).
-    pub cycle: Option<DeriveNote>,
 }
 
 /// `rail_terminal(d)`: see [`RailTerminal`]. Policy Memo.
@@ -286,12 +284,8 @@ impl Query for RailTerminalOf {
             }
             let location = match q.try_get::<StructureOf>(dev) {
                 Ok(s) => s.node(Aspect::Location),
-                Err(cycle) => {
+                Err(_) => {
                     out.skipped = true;
-                    out.cycle = Some(DeriveNote::QueryCycle {
-                        family: cycle.family,
-                        key: cycle.key,
-                    });
                     return Arc::new(out);
                 }
             };
@@ -300,8 +294,6 @@ impl Query for RailTerminalOf {
                     code: "EW-TERM-005",
                     fact: NoteFact::RailWithoutPe,
                     subject: dev.to_string(),
-                    detail: "rail_bonded is set but the terminal has no PE CP; it joins no location PE node"
-                        .into(),
                 });
             }
             out.rail = match location {
@@ -318,11 +310,6 @@ impl Query for RailTerminalOf {
                                 locations: many.len(),
                             },
                             subject: dev.to_string(),
-                            detail: format!(
-                                "the rail-bonded terminal has no location and the project has {} own locations; \
-                                 it joins no location PE node",
-                                many.len()
-                            ),
                         });
                         None
                     }
@@ -344,8 +331,6 @@ pub struct RailBonds {
     pub location_of: BTreeMap<CpRef, RailLocation>,
     /// The terminals' notes, in device order.
     pub notes: Vec<DeriveNote>,
-    /// The terminals' cycle notes, in device order.
-    pub cycles: Vec<DeriveNote>,
     /// The terminal values read, for the incremental check.
     terminals: BTreeMap<Id<Device>, Arc<RailTerminal>>,
     /// The terminal index read.
@@ -357,7 +342,6 @@ impl PartialEq for RailBonds {
         self.by_location == other.by_location
             && self.location_of == other.location_of
             && self.notes == other.notes
-            && self.cycles == other.cycles
     }
 }
 
@@ -366,7 +350,6 @@ fn rail_bonds(q: &Q) -> RailBonds {
     let mut out = RailBonds::default();
     for dev in devices.keys().copied() {
         let t = q.get::<RailTerminalOf>(dev);
-        out.cycles.extend(t.cycle.iter().cloned());
         out.notes.extend(t.notes.iter().cloned());
         if let Some(location) = t.rail {
             out.by_location

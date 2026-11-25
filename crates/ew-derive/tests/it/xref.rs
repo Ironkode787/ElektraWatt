@@ -41,7 +41,7 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{DeriveNote, PairMode, Q, XrefKind, XrefRelationOf, XrefSettingsOf, XrefText, XrefTextOf};
+use ew_derive::{PairMode, Q, XrefKind, XrefRelationOf, XrefSettingsOf, XrefText, XrefTextOf};
 use ew_ids::Id;
 use ew_model::{AnyRow, Entity, Model, ModelError, Op, Rev};
 use ew_schema::{Device, ExternalRef, FnRole, Function, LibDocument, Project, Record, Representation};
@@ -191,20 +191,13 @@ fn shown(t: &XrefText) -> Vec<(String, Id<Representation>)> {
         .collect()
 }
 
+/// The unpaired interruption points of the pairing, which EW-CORE-051 reports.
 fn core_051(q: &Q) -> usize {
     q.get::<ew_derive::IpPairingQ>(())
-        .notes
+        .groups
         .iter()
-        .filter(|n| {
-            matches!(
-                n,
-                DeriveNote::Connectivity {
-                    code: "EW-CORE-051",
-                    ..
-                }
-            )
-        })
-        .count()
+        .map(|g| g.unpaired.len())
+        .sum()
 }
 
 /// The model of `fx`, or the error that refuses the records (`Fx::build` without the panic).

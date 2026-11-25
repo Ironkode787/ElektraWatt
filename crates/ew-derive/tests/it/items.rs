@@ -11,10 +11,7 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{
-    DeriveNote, IpStructure, Q, RepStructureBox, SlotSource, StructureOf, bound_text, box_caption,
-    stale_marker_notes,
-};
+use ew_derive::{IpStructure, Q, RepStructureBox, SlotSource, StructureOf, bound_text, box_caption};
 use ew_rds::Aspect;
 use ew_schema::{Device, Function, Page, Representation, StructureBox, StructureNode};
 use serde_json::{Value, json};
@@ -276,15 +273,3 @@ fn a_caption_prints_its_external_reference() {
     );
 }
 
-/// A wire marker of an older file that lists a deleted connection is a load note, not a refusal.
-#[test]
-fn a_stale_marker_entry_is_a_load_note() {
-    let mut fx = fixture();
-    fx.push(json!({"$k": "page_item", "id": uid(0x600), "page": uid(PAGE),
-        "kind": {"wire_marker": {"connections": [uid(0x9999)], "at": [0, 0], "fields": ["csa", "colour"]}}}));
-    let m = fx.build();
-    let notes = stale_marker_notes(&Q::new(&m));
-    assert_eq!(notes.len(), 1);
-    assert!(matches!(&notes[0], DeriveNote::StaleMarkerEntry { detail, .. } if *detail == "does not exist"));
-    assert!(notes[0].to_string().contains("is ignored"), "{}", notes[0]);
-}

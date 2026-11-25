@@ -66,7 +66,6 @@ use crate::index::{BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, P
 use crate::ip::{IpPairing, IpPairingQ};
 use crate::links::{DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ, RailLocation};
 use crate::nets::{CpRef, LocalNets, NetId, PageLocalNets};
-use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
 
 /// The level of a stitch edge (doc 08 §3.3), in the order the partition applies them.
@@ -246,8 +245,6 @@ pub struct StitchGraph {
     pub ip_groups: Vec<IpGroup>,
     /// The connections cut as a bond's `via` (doc 08 §3.7).
     pub cut: BTreeSet<Id<Connection>>,
-    /// The notes of this derivation (also pushed to the `Q`).
-    pub notes: Vec<DeriveNote>,
     node_of: BTreeMap<EndpointKey, usize>,
     /// Every interruption point's pair partners, sorted and deduplicated, built once from `ip_groups`.
     partners: BTreeMap<Id<Function>, Vec<Id<Function>>>,
@@ -388,7 +385,6 @@ pub(crate) fn build(q: &Q, inputs: &StitchInputs) -> StitchBuild {
             b.node(cp.key());
         }
     }
-    b.notes.extend(ip.notes.iter().cloned());
     for g in &ip.groups {
         for &(x, y) in &g.pairs {
             let (Some(cx), Some(cy)) = (ip.ips[&x].cp, ip.ips[&y].cp) else {
@@ -411,7 +407,6 @@ pub(crate) fn build(q: &Q, inputs: &StitchInputs) -> StitchBuild {
         links.insert(f, l);
     }
     // 6. Rail bonds.
-    b.notes.extend(inputs.rail.notes.iter().cloned());
     for (location, cps) in &inputs.rail.by_location {
         let present: Vec<CpRef> = cps
             .iter()
@@ -438,7 +433,6 @@ pub(crate) fn build(q: &Q, inputs: &StitchInputs) -> StitchBuild {
         ips: ip.ips.clone(),
         ip_groups: ip.groups.clone(),
         cut: b.cut,
-        notes: b.notes,
         node_of: b.node_of,
         partners,
     };
@@ -495,7 +489,6 @@ struct Builder {
     edges: Vec<StitchEdge>,
     node_of: BTreeMap<EndpointKey, usize>,
     cut: BTreeSet<Id<Connection>>,
-    notes: Vec<DeriveNote>,
 }
 
 impl Builder {

@@ -235,10 +235,6 @@ impl Query for PhysicalWiresOf {
                 code: "EW-POT-012",
                 fact: NoteFact::Ring,
                 subject: id.to_string(),
-                detail:
-                    "the connection closes a ring in the drawing graph; it is the highest ID of the ring \
-                         and forms no physical wire"
-                        .to_owned(),
             });
         }
 
@@ -611,12 +607,6 @@ impl Drawing<'_> {
                     code: "EW-POT-011",
                     fact: NoteFact::Other,
                     subject: source.to_string(),
-                    detail: format!(
-                        "it is unclear which wire feeds interruption point group {}: its source has {} wires where \
-                         one is expected, so the group's wires end open",
-                        group.name,
-                        self.drawn_at(scp.key()).len()
-                    ),
                 });
                 continue;
             };
@@ -767,10 +757,6 @@ impl Drawing<'_> {
                     code: "EW-POT-011",
                     fact: NoteFact::Other,
                     subject,
-                    detail: "it is unclear which wire feeds these junctions: a wire between two of them feeds \
-                             both or neither, or no wire reaches them from a device; the wires are numbered from \
-                             the first junction"
-                        .to_owned(),
                 });
             }
             // The unique root of a consistent tree, else the lowest hubs that have an arm ending at a CP.
@@ -960,12 +946,11 @@ impl FinishCtx<'_> {
             .collect();
         let carrier_row = rows.iter().find(|(id, _)| *id == w.carrier).map(|(_, c)| *c)?;
         let carrier = w.carrier;
-        let note14 = |notes: &mut BTreeSet<DeriveNote>, fact: NoteFact, detail: String| {
+        let note14 = |notes: &mut BTreeSet<DeriveNote>, fact: NoteFact| {
             notes.insert(DeriveNote::Connectivity {
                 code: "EW-POT-014",
                 fact,
                 subject: carrier.to_string(),
-                detail,
             });
         };
 
@@ -982,14 +967,8 @@ impl FinishCtx<'_> {
             _ => cores.first().map(|(_, k)| *k),
         };
         if let Some(core) = core {
-            for (id, k) in &cores {
-                if *k != core {
-                    note14(
-                        notes,
-                        NoteFact::Conductor,
-                        format!("constituent {id} names conductor {k}; conductor {core} applies"),
-                    );
-                }
+            if cores.iter().any(|(_, k)| *k != core) {
+                note14(notes, NoteFact::Conductor);
             }
         }
 
@@ -1031,14 +1010,8 @@ impl FinishCtx<'_> {
                 sources.twisted = Some(*id);
             }
         }
-        if let Some(id) = conflict {
-            note14(
-                notes,
-                NoteFact::Override,
-                format!(
-                    "constituent {id} overrides a value that the wire already has; the first value applies"
-                ),
-            );
+        if conflict.is_some() {
+            note14(notes, NoteFact::Override);
         }
         let marker = rows.iter().any(|(_, c)| c.overrides.show_marker);
 

@@ -6,8 +6,8 @@
 //! Until `ew-schema` types `ProjectSettings.colour_profile`, `.size_profile` and `.wire_default`,
 //! they are read from `ProjectSettings.extra` with the JSON shapes of doc 03 §5.1 (record spellings:
 //! `l_plus`, `dc`; `Dec3` and `Csa` as strings; `ColourSpec` as an array). A member that is present but does
-//! not parse is noted ([`DeriveNote::MalformedShim`]) and treated as absent; an absent colour or size profile
-//! is noted ([`DeriveNote::DefaultWireProfile`]) and the built-in defaults of the derivation profile apply.
+//! not parse is treated as absent (`project.settings.set` refuses one); without a colour or size profile the
+//! built-in defaults of the derivation profile apply.
 //!
 //! # Matching (`Select`, doc 08 §4.2)
 //!
@@ -18,14 +18,8 @@
 //!   without a known voltage its circuit class is mains (`attrs_of`, `own_class`).
 //! - `discipline` and `analogue` match only when the potential has that attribute. No potential has either in
 //!   this phase, so a selector that constrains one never matches.
-//! - Colour rows: the row with the most constrained fields wins, ties go to the first row. Class rules: the
-//!   first match wins.
-//! - Two colour rows of equal specificity whose selectors can match a common potential (`overlaps`: the
-//!   `ptype` lists intersect or either is empty, `ac_dc` equal or either absent, the voltage intervals
-//!   intersect, `discipline` and `analogue` equal or either absent) and that give different colours are
-//!   ambiguous: `load_members` notes a [`DeriveNote::ProfileOverlap`] for `settings.colour_profile` naming the two
-//!   row indexes. The profile stays loaded and `select` keeps the first-row tie rule, so the output is
-//!   deterministic but no longer silent.
+//! - Colour rows: the row with the most constrained fields wins, ties go to the first row, so two rows of equal
+//!   specificity that match one potential give the first row's colour. Class rules: the first match wins.
 //! - The built-in colour depends on the circuit class: an L-family potential of an AC control circuit is RD
 //!   (doc 08 §4.3, EN 60204-1 column), see `builtin_colour_for`.
 
@@ -39,7 +33,6 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::names::PotentialAttrsOf;
-use crate::note::DeriveNote;
 use crate::potentials::PotentialId;
 use crate::query::{Policy, Query};
 use crate::settings::{self, Member};
@@ -124,31 +117,6 @@ impl Select {
             + usize::from(self.u_max.is_some())
             + usize::from(self.discipline.is_some())
             + usize::from(self.analogue.is_some())
-    }
-
-    /// Whether some potential can match both selectors (conservative: true when unsure).
-    fn overlaps(&self, other: &Select) -> bool {
-        let ptype = self.ptype.is_empty()
-            || other.ptype.is_empty()
-            || self.ptype.iter().any(|t| other.ptype.contains(t));
-        let ac_dc = self.ac_dc.is_none() || other.ac_dc.is_none() || self.ac_dc == other.ac_dc;
-        // Inclusive intervals, `None` unbounded: they intersect when max(lo) <= min(hi).
-        let lo = match (self.u_min, other.u_min) {
-            (Some(a), Some(b)) => Some(a.max(b)),
-            (a, b) => a.or(b),
-        };
-        let hi = match (self.u_max, other.u_max) {
-            (Some(a), Some(b)) => Some(a.min(b)),
-            (a, b) => a.or(b),
-        };
-        let voltage = match (lo, hi) {
-            (Some(lo), Some(hi)) => lo <= hi,
-            _ => true,
-        };
-        let discipline =
-            self.discipline.is_none() || other.discipline.is_none() || self.discipline == other.discipline;
-        let analogue = self.analogue.is_none() || other.analogue.is_none() || self.analogue == other.analogue;
-        ptype && ac_dc && voltage && discipline && analogue
     }
 
     fn matches(&self, a: &Attrs) -> bool {
@@ -276,23 +244,12 @@ pub struct WireProfiles {
     pub(crate) size: Option<SizeProfile>,
     /// The project default (level 1); empty when absent or malformed.
     pub(crate) default: WireProps,
-    /// `MalformedShim` and `DefaultWireProfile` notes.
-    pub(crate) notes: Vec<DeriveNote>,
 }
 
-/// Reads one member: `None` when absent or malformed (the latter noted).
-fn read<T: DeserializeOwned>(value: Option<&Value>, name: &str, notes: &mut Vec<DeriveNote>) -> Option<T> {
-    let value = value?;
-    match serde_json::from_value::<T>(value.clone()) {
-        Ok(v) => Some(v),
-        Err(e) => {
-            notes.push(DeriveNote::MalformedShim {
-                member: format!("settings.{name}"),
-                detail: e.to_string(),
-            });
-            None
-        }
-    }
+/// Reads one member: `None` when absent or malformed (`project.settings.set` refuses a malformed one, through
+/// [`check_member`]).
+fn read<T: DeserializeOwned>(value: Option<&Value>) -> Option<T> {
+    serde_json::from_value::<T>(value?.clone()).ok()
 }
 
 /// Checks one provisional member (`colour_profile`, `size_profile`, else `wire_default`) with the parser
@@ -390,63 +347,27 @@ fn check_colour_codes(value: &Value) -> Result<(), crate::SettingsIssue> {
 }
 
 /// Parses `colour_profile`, `size_profile` and `wire_default` (the members of `ProjectSettings.extra`; `None`
-/// when absent).
-///
-/// An absent member gives `DefaultWireProfile` (colour and size only); a malformed one gives
-/// `MalformedShim` and is then treated as absent, without the `DefaultWireProfile` note.
+/// when absent or malformed, and the built-in defaults of the derivation profile apply).
 pub(crate) fn load_members(
     colour: Option<&Value>,
     size: Option<&Value>,
     default: Option<&Value>,
 ) -> WireProfiles {
-    let mut notes = Vec::new();
-    let parsed_colour = read::<ColourProfileRaw>(colour, "colour_profile", &mut notes).map(ColourProfile);
-    if let Some(profile) = &parsed_colour {
-        let rows = &profile.0.rows;
-        for (i, ri) in rows.iter().enumerate() {
-            for (j, rj) in rows.iter().enumerate().skip(i + 1) {
-                if ri.select.specificity() == rj.select.specificity()
-                    && ri.colour != rj.colour
-                    && ri.select.overlaps(&rj.select)
-                {
-                    notes.push(DeriveNote::ProfileOverlap {
-                        shim: "settings.colour_profile".into(),
-                        rows: (i, j),
-                        detail: "have the same specificity, overlap and give different colours".into(),
-                    });
-                }
-            }
-        }
-    }
-    let parsed_size = read::<SizeProfileRaw>(size, "size_profile", &mut notes).map(SizeProfile);
-    let default = read::<WireProps>(default, "wire_default", &mut notes).unwrap_or_default();
-    if parsed_colour.is_none() && colour.is_none() {
-        notes.push(DeriveNote::DefaultWireProfile {
-            member: "colour_profile",
-        });
-    }
-    if parsed_size.is_none() && size.is_none() {
-        notes.push(DeriveNote::DefaultWireProfile {
-            member: "size_profile",
-        });
-    }
     WireProfiles {
-        colour: parsed_colour,
-        size: parsed_size,
-        default,
-        notes,
+        colour: read::<ColourProfileRaw>(colour).map(ColourProfile),
+        size: read::<SizeProfileRaw>(size).map(SizeProfile),
+        default: read::<WireProps>(default).unwrap_or_default(),
     }
 }
 
 // -------------------------------------------------------------------------------------------------------------
 // The queries over the profiles (ARCH §6.4, ADR-0002 amendment 4 "Query shapes")
 
-/// `wire_profiles()`: the three provisional settings members, parsed, with their notes. Reads the members
-/// through `settings::member` only (never the project row). Policy Memo.
+/// `wire_profiles()`: the three provisional settings members, parsed. Reads the members through
+/// `settings::member` only (never the project row). Policy Memo.
 ///
-/// Readers that need one potential's rows read [`ProfileRowFor`], the project default [`WireDefaultProps`]
-/// and the notes [`WireProfileNotes`], so that an edit of one colour row reaches the potentials that select
-/// it and no others.
+/// Readers that need one potential's rows read [`ProfileRowFor`] and the project default [`WireDefaultProps`],
+/// so that an edit of one colour row reaches the potentials that select it and no others.
 #[derive(Debug)]
 pub struct WireProfilesQ;
 
@@ -465,24 +386,6 @@ impl Query for WireProfilesQ {
             (*size).as_ref(),
             (*default).as_ref(),
         ))
-    }
-}
-
-/// `wire_profile_notes()`: the notes of [`WireProfilesQ`], sorted and deduplicated. Policy Memo.
-#[derive(Debug)]
-pub struct WireProfileNotes;
-
-impl Query for WireProfileNotes {
-    type Key = ();
-    type Value = Vec<DeriveNote>;
-    const FAMILY: &'static str = "wire_profile_notes";
-    const POLICY: Policy = Policy::Memo;
-
-    fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
-        let mut notes = q.get::<WireProfilesQ>(()).notes.clone();
-        notes.sort();
-        notes.dedup();
-        Arc::new(notes)
     }
 }
 
@@ -1064,19 +967,6 @@ mod tests {
         load_members(Some(&json!({"key": "p", "rows": rows})), None, None)
     }
 
-    fn load_notes(rows: Value) -> Vec<DeriveNote> {
-        load_colour(rows)
-            .notes
-            .into_iter()
-            .filter(|n| {
-                matches!(
-                    n,
-                    DeriveNote::MalformedShim { .. } | DeriveNote::ProfileOverlap { .. }
-                )
-            })
-            .collect()
-    }
-
     fn winning_row(rows: Value, ptype: PotentialType) -> Option<usize> {
         let profiles = load_colour(rows);
         let attrs = Attrs {
@@ -1087,62 +977,11 @@ mod tests {
     }
 
     #[test]
-    fn overlap_gives_one_note_and_the_first_row_wins() {
+    fn of_two_rows_of_equal_specificity_the_first_wins() {
         let attrs_rows = json!([
             {"select": {"ptype": ["l"]}, "colour": ["RD"]},
             {"select": {"ptype": ["l", "n"]}, "colour": ["BK"]},
         ]);
-        let notes = load_notes(attrs_rows.clone());
-        assert_eq!(notes.len(), 1);
-        assert!(matches!(
-            &notes[0],
-            DeriveNote::ProfileOverlap { rows: (0, 1), .. }
-        ));
         assert_eq!(winning_row(attrs_rows, PotentialType::L), Some(0));
-    }
-
-    #[test]
-    fn overlapping_equal_specificity_rows_with_different_colours_are_noted() {
-        let notes = load_notes(json!([
-            {"select": {"ptype": ["l"], "u_min": "50"}, "colour": ["RD"]},
-            {"select": {"ptype": ["l"], "u_max": "250"}, "colour": ["BK"]},
-        ]));
-        assert_eq!(
-            notes,
-            vec![DeriveNote::ProfileOverlap {
-                shim: "settings.colour_profile".into(),
-                rows: (0, 1),
-                detail: "have the same specificity, overlap and give different colours".into(),
-            }]
-        );
-        assert_eq!(
-            notes[0].to_string(),
-            "settings.colour_profile: rows 0 and 1 have the same specificity, overlap and give different \
-             colours; the first row wins"
-        );
-        // Same colours: no note.
-        assert!(
-            load_notes(json!([
-                {"select": {"ptype": ["l"], "u_min": "50"}, "colour": ["RD"]},
-                {"select": {"ptype": ["l"], "u_max": "250"}, "colour": ["RD"]},
-            ]))
-            .is_empty()
-        );
-        // Disjoint voltage ranges: no note.
-        assert!(
-            load_notes(json!([
-                {"select": {"u_max": "49"}, "colour": ["RD"]},
-                {"select": {"u_min": "50"}, "colour": ["BK"]},
-            ]))
-            .is_empty()
-        );
-        // Different specificity: no note.
-        assert!(
-            load_notes(json!([
-                {"select": {"ptype": ["l"]}, "colour": ["RD"]},
-                {"select": {"ptype": ["l"], "ac_dc": "ac"}, "colour": ["BK"]},
-            ]))
-            .is_empty()
-        );
     }
 }
