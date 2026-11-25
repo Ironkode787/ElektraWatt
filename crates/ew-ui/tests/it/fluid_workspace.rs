@@ -427,7 +427,7 @@ fn overview_pages(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> Vec<(String
         .preview_pane()
         .notices()
         .iter()
-        .filter_map(|n| n.strip_prefix("page "))
+        .filter_map(|n| n.words.strip_prefix("page "))
         .filter_map(|n| n.split_once(": "))
         .map(|(folio, members)| {
             (

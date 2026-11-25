@@ -73,7 +73,7 @@ fn overview_pages(s: &ShellModel) -> Vec<(String, Vec<String>)> {
     s.preview_pane()
         .notices()
         .iter()
-        .filter_map(|n| n.strip_prefix("page "))
+        .filter_map(|n| n.words.strip_prefix("page "))
         .filter_map(|n| n.split_once(": "))
         .map(|(folio, members)| {
             (

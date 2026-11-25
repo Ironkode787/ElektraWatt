@@ -314,7 +314,7 @@ fn a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     d.settle();
     d.input(&click(starting_with(&d, "Generate overview…")));
     d.settle();
-    let notices = d.shell_mut().preview_pane().notices().to_vec();
+    let notices = d.shell_mut().preview_pane().notice_words();
     let page = notices
         .iter()
         .find(|n| n.contains("(new page)") && n.contains(&terminal))
@@ -1541,7 +1541,7 @@ fn round3_the_generated_overview_stands_in_the_frame_readable_and_titled() {
     d.settle();
     d.input(&click(starting_with(&d, "Generate overview…")));
     d.settle();
-    let notices = d.shell_mut().preview_pane().notices().to_vec();
+    let notices = d.shell_mut().preview_pane().notice_words();
     let page = notices
         .iter()
         .find(|n| n.contains("(new page)"))

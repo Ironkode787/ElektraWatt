@@ -346,7 +346,7 @@ pub fn show(
             }
             Dialog::Form(form) => {
                 // A revision dialog's list (the gate's findings, the release's steps) under its body.
-                if form.action.starts_with("revision.") {
+                if form.revision() {
                     let t = crate::theme::current(ui.ctx());
                     for line in shell.revision_list() {
                         ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
@@ -380,7 +380,7 @@ pub fn show(
     // an action of its own (Create enclosure's "Create and draw on a new panel layout page").
     if submit
         && let Dialog::Form(form) = d
-        && (form.action.starts_with("revision.") || matches!(spec.primary.answer, DialogAnswer::Action(..)))
+        && (form.revision() || matches!(spec.primary.answer, DialogAnswer::Action(..)))
     {
         submit = false;
         clicked = clicked.or_else(|| Some(spec.primary.answer.clone()));
@@ -390,7 +390,7 @@ pub fn show(
     }
     // The window reads the date; the shell never does (a revision's approval and release are dated).
     if let Some(DialogAnswer::Action(action, Value::Object(params))) = &mut clicked
-        && action.starts_with("revision.")
+        && ew_viewmodel::actions::dated(action)
         && !params.contains_key("date")
     {
         params.insert(

@@ -21,7 +21,7 @@ fn a_copied_bus_device_is_said_to_need_its_bus_line_and_address() {
         "pages.copy",
         json!({"pages": ["201"], "offset": 10, "rename": {"-201": "-211"}}),
     );
-    let notices = s.preview_pane().notices().join("\n");
+    let notices = s.preview_pane().notice_words().join("\n");
     assert!(
         notices.contains("Bus devices whose copies need a bus line and an address of their own: -201K1"),
         "{notices}"

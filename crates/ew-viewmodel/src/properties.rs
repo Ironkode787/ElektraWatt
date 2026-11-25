@@ -610,6 +610,11 @@ impl Card {
         }
     }
 
+    /// Whether the card leads with its Tags list: a renumber's, whose change is the tags.
+    pub fn tags_first(&self) -> bool {
+        self.preview.name.ends_with("renumber")
+    }
+
     /// The lead line of a failed card (doc 16a P3, words not IDs) and the rule code that may follow it
     /// in secondary text; `None` while the preview stands. A macro card leads with a sentence that says what blocks
     /// the apply and how many conflicts its list shows (the list is the detail, so the lead never repeats a row); the

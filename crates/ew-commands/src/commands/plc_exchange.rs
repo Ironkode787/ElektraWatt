@@ -549,8 +549,7 @@ impl Command for ApplyExchange {
                 "notice-plc-exchange-change",
                 c.subject.clone(),
                 field_text(&c.object, &c.field),
-                side(&c.ours),
-                side(&c.theirs),
+                text!("notice-change", side(&c.ours), side(&c.theirs)),
                 plc_words(c.state.key()),
                 if choice == Choice::Theirs {
                     text!("notice-plc-exchange-taken")

@@ -523,6 +523,7 @@ impl ShellModel {
                 },
                 identifier: false,
                 source: None,
+                named_reference: false,
                 ..model
             });
         }

@@ -157,7 +157,7 @@ pub use ew_scene::page::SlotTextBox;
 pub use ew_scene::panel::LabelShow;
 pub use natures::Natures;
 pub use navigators::{
-    Drawable, EARTH_CONNECTION, FIX_ALL, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail,
+    Drawable, EARTH_CONNECTION, FIX_ALL, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, MacroVariable,
     NOT_DRAWN, NaturalKey, NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject,
     nav_natural_key, tokens as nav_tokens, v5,
 };

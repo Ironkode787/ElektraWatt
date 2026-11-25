@@ -94,6 +94,12 @@ pub struct FormDialog {
 }
 
 impl FormDialog {
+    /// Whether it is a revision's dialog (approve, release, withdraw): the release gate's list stands under its body,
+    /// Enter presses its primary button, and the answer is dated (the window reads the date, the shell never does).
+    pub fn revision(&self) -> bool {
+        crate::actions::dated(self.action)
+    }
+
     /// The line under field `field`, if it has one (Renumber pages' Start says that the section dividers
     /// keep their numbers).
     pub fn note(&self, field: &str) -> Option<&'static str> {

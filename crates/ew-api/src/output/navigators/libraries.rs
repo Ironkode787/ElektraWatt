@@ -360,16 +360,26 @@ fn macro_devices(m: &MacroDef) -> Vec<String> {
         .collect()
 }
 
-/// A macro's variables as the detail lists them: `<name> (<type>)`, with ` = <default>` when it has one.
-fn macro_variables(m: &MacroDef) -> Vec<String> {
+/// A macro's variable as the detail lists it: its name, its type as the format writes it (`tag_counter`) and its
+/// default as it prints, which the window lines up as `<name> (<type in words>)`, with ` = <default>`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct MacroVariable {
+    /// The variable's name.
+    pub name: String,
+    /// Its type as the format writes it; empty for a type this version does not know.
+    pub ty: String,
+    /// Its default as it prints, `None` without one.
+    pub default: Option<String>,
+}
+
+/// A macro's variables as the detail lists them, in its order.
+fn macro_variables(m: &MacroDef) -> Vec<MacroVariable> {
     m.variables
         .iter()
-        .map(|v| {
-            let ty = var_type_word(&v.ty);
-            match &v.default {
-                Some(d) => format!("{} ({ty}) = {d}", v.name),
-                None => format!("{} ({ty})", v.name),
-            }
+        .map(|v| MacroVariable {
+            name: v.name.to_string(),
+            ty: var_type_word(&v.ty),
+            default: v.default.as_ref().map(ToString::to_string),
         })
         .collect()
 }
@@ -444,8 +454,8 @@ pub struct MacroDetail {
     pub thumbnail: Option<Sha256>,
     /// The devices: `-<letter><counter>` and the function text.
     pub devices: Vec<String>,
-    /// The variables: `<name> (<type>)`, with ` = <default>`.
-    pub variables: Vec<String>,
+    /// The variables.
+    pub variables: Vec<MacroVariable>,
     /// The value sets' names.
     pub value_sets: Vec<String>,
     /// The variables as the insert card's fields take them: the name, the type's word (`text`, `number`,

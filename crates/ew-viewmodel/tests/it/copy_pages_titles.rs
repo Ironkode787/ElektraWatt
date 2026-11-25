@@ -55,7 +55,7 @@ fn the_rename_reaches_the_titles_and_the_card_lists_them() {
     s.set_form_table_cell(0, Some(0), "Inst 2");
     s.set_form_field("offset", "10");
     assert_eq!(s.submit_form(), Outcome::Done);
-    let notices = s.preview_pane().notices().join("\n");
+    let notices = s.preview_pane().notice_words().join("\n");
     assert!(
         notices.contains("Page titles that change: Inst 1 - Control → Inst 2 - Control"),
         "{notices}"

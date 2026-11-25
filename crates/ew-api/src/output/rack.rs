@@ -28,9 +28,13 @@ pub struct RackRow {
     pub module: Option<Uuid>,
     /// The module's short tag; empty for a free slot.
     pub tag: String,
+    /// Whether its tag has question marks for what it cannot derive yet (`-?A?`: a module drawn nowhere).
+    pub unnumbered: bool,
     /// Its part's number and description (`EW-GEN-DO-1 · PLC digital output card, 8 channels`): the part that
     /// describes it for the PLC, else its first part; empty for a free slot and for a module without a part.
     pub part: String,
+    /// That part's number alone (`EW-GEN-DO-1`); empty where [`RackRow::part`] is.
+    pub part_number: String,
     /// What its part is to a PLC, as the catalogue groups it; `None` for a free slot and for a module whose part
     /// says nothing of a PLC.
     pub group: Option<super::PlcGroup>,
@@ -57,11 +61,15 @@ pub struct RackPosition {
     pub holder: Option<Uuid>,
     /// The valve's short tag; `None` for a blanking plate or an empty position.
     pub valve: Option<String>,
+    /// Whether the valve's tag has question marks for what it cannot derive yet (a valve drawn nowhere).
+    pub unnumbered: bool,
     /// Whether a blanking plate holds it.
     pub blank: bool,
     /// The valve's part, number and description; empty for a blanking plate, an empty position and a valve without a
     /// part.
     pub part: String,
+    /// That part's number alone; empty where [`RackPosition::part`] is.
+    pub part_number: String,
     /// The folio of the page the valve is drawn on; `None` when it is drawn nowhere.
     pub page: Option<String>,
 }
@@ -107,6 +115,10 @@ pub struct RackView {
     pub tag: String,
     /// The station's part (number and description); empty without one.
     pub part: String,
+    /// That part's number alone; empty where [`RackView::part`] is.
+    pub part_number: String,
+    /// That part's description alone; empty without a part or a description.
+    pub part_description: String,
     /// The station itself as the rack's first card (slot 0): its tag, its part, what it is, where it is drawn.
     pub head: RackRow,
     /// The name of the PLC the station belongs to; empty for a station not made yet.
@@ -181,12 +193,27 @@ fn address_range(q: &Q, module: Id<Device>) -> String {
 
 /// A part's number and description as one text.
 fn part_text(part: &Part) -> String {
-    let description = part.description.neutral_or_first().unwrap_or_default().to_owned();
+    let description = description(part);
     if description.is_empty() {
         part.part_number.to_string()
     } else {
         format!("{} · {description}", part.part_number)
     }
+}
+
+/// Whether a tag has question marks for what it cannot derive yet ([`ew_derive::short_tag`]'s mark).
+fn unnumbered(tag: &str) -> bool {
+    tag.contains('?')
+}
+
+/// A part's description alone; empty without one.
+fn description(part: &Part) -> String {
+    part.description.neutral_or_first().unwrap_or_default().to_owned()
+}
+
+/// A part's number alone.
+fn part_number(part: &Part) -> String {
+    part.part_number.to_string()
 }
 
 /// A device's short tag, as the navigators print it.
@@ -386,19 +413,17 @@ fn device_row(q: &Q, device: Id<Device>) -> RackRow {
     let described = ew_derive::module_part(q, device);
     let first = || {
         let d = q.devices().get(device)?;
-        q.parts()
-            .get(d.parts.first()?.part.copy)
-            .map(|c| part_text(&c.item))
+        q.parts().get(d.parts.first()?.part.copy).map(|c| c.item.clone())
     };
+    let part = described.as_ref().map(|(copy, _)| copy.item.clone()).or_else(first);
     let page = drawn_folio(q, device);
+    let tag = tag(q, device);
     RackRow {
         module: Some(device.as_uuid()),
-        tag: tag(q, device),
-        part: described
-            .as_ref()
-            .map(|(copy, _)| part_text(&copy.item))
-            .or_else(first)
-            .unwrap_or_default(),
+        unnumbered: unnumbered(&tag),
+        tag,
+        part: part.as_ref().map(part_text).unwrap_or_default(),
+        part_number: part.as_ref().map(part_number).unwrap_or_default(),
         group: described
             .as_ref()
             .and_then(|(copy, _)| super::editing::catalogue_plc(&copy.item))
@@ -432,7 +457,9 @@ fn free_row(slot: u32, positional: bool) -> RackRow {
         slot,
         module: None,
         tag: String::new(),
+        unnumbered: false,
         part: String::new(),
+        part_number: String::new(),
         group: None,
         page: None,
         gives: String::new(),
@@ -449,26 +476,28 @@ fn position_of(q: &Q, slot: &ValveSlot) -> RackPosition {
     let empty = RackPosition {
         holder: None,
         valve: None,
+        unnumbered: false,
         blank: false,
         part: String::new(),
+        part_number: String::new(),
         page: None,
     };
     match slot {
-        ValveSlot::Valve { device, .. } => RackPosition {
-            holder: Some(device.as_uuid()),
-            valve: Some(tag(q, *device)),
-            part: q
+        ValveSlot::Valve { device, .. } => {
+            let part = q
                 .devices()
                 .get(*device)
-                .and_then(|d| {
-                    q.parts()
-                        .get(d.parts.first()?.part.copy)
-                        .map(|c| part_text(&c.item))
-                })
-                .unwrap_or_default(),
-            page: drawn_folio(q, *device),
-            ..empty
-        },
+                .and_then(|d| q.parts().get(d.parts.first()?.part.copy));
+            RackPosition {
+                holder: Some(device.as_uuid()),
+                valve: Some(tag(q, *device)),
+                unnumbered: unnumbered(&tag(q, *device)),
+                part: part.map(|c| part_text(&c.item)).unwrap_or_default(),
+                part_number: part.map(|c| part_number(&c.item)).unwrap_or_default(),
+                page: drawn_folio(q, *device),
+                ..empty
+            }
+        }
         ValveSlot::Blank { device } => RackPosition {
             holder: Some(device.as_uuid()),
             blank: true,
@@ -561,7 +590,9 @@ impl Session {
             .unwrap_or_default();
         Some(RackView {
             tag: tag(&q, id),
-            part: section.map(|(copy, _)| part_text(&copy.item)).unwrap_or_default(),
+            part: section.as_ref().map(|(copy, _)| part_text(&copy.item)).unwrap_or_default(),
+            part_number: section.as_ref().map(|(copy, _)| part_number(&copy.item)).unwrap_or_default(),
+            part_description: section.as_ref().map(|(copy, _)| description(&copy.item)).unwrap_or_default(),
             head: device_row(&q, id),
             plc,
             plc_project: Some(cfg.as_uuid()),
@@ -599,6 +630,7 @@ impl Session {
             RackRow {
                 module: Some(id),
                 part: part.as_ref().map(part_text).unwrap_or_default(),
+                part_number: part.as_ref().map(part_number).unwrap_or_default(),
                 group: part
                     .as_ref()
                     .and_then(super::editing::catalogue_plc)
@@ -629,6 +661,8 @@ impl Session {
         RackView {
             tag: String::new(),
             part: head_part.as_ref().map(part_text).unwrap_or_default(),
+            part_number: head_part.as_ref().map(part_number).unwrap_or_default(),
+            part_description: head_part.as_ref().map(description).unwrap_or_default(),
             head: match head {
                 Some(h) => row_of(0, h),
                 None => free_row(0, true),

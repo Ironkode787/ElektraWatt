@@ -763,8 +763,11 @@ impl Command for ReorderPages {
             let was = old[&order[k]];
             let text = text!(
                 "notice-page-moved",
-                printed_folio(was.number, was.label.as_ref()),
-                printed_folio(number, label.as_ref())
+                text!(
+                    "notice-change",
+                    printed_folio(was.number, was.label.as_ref()),
+                    printed_folio(number, label.as_ref())
+                )
             );
             tx.update::<Page>(order[k], |p| {
                 p.folio.number = number;

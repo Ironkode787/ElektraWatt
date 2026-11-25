@@ -82,7 +82,11 @@ struct Place {
     /// The card's strong line: what it gives (`8 DI`), else what it is (`CPU`, `Valve`).
     word: String,
     tag: String,
+    /// Whether the tag has question marks for what it cannot derive yet.
+    unnumbered: bool,
     part: String,
+    /// The part number alone (the text before the description).
+    part_number: String,
     gives: String,
     addresses: String,
     page: Option<String>,
@@ -90,15 +94,10 @@ struct Place {
 }
 
 impl Place {
-    /// The part number alone (the text before the description).
-    fn part_number(&self) -> &str {
-        self.part.split(" · ").next().unwrap_or_default()
-    }
-
     /// The accessible name of the place: `Slot 2, -1A3`, `Free slot 4`, `Head, -1A1`, `Position 1, -Q1`.
     fn name(&self) -> String {
         let what = if self.tag.is_empty() {
-            self.part_number()
+            &self.part_number
         } else {
             &self.tag
         };
@@ -153,7 +152,9 @@ fn places(view: &RackView, draft: bool) -> Vec<Place> {
             r.gives.clone()
         },
         tag: r.tag.clone(),
+        unnumbered: r.unnumbered,
         part: r.part.clone(),
+        part_number: r.part_number.clone(),
         gives: r.gives.clone(),
         addresses: r.addresses.clone(),
         page: r.page.clone(),
@@ -190,10 +191,16 @@ fn places(view: &RackView, draft: bool) -> Vec<Place> {
                 (None, false) => String::new(),
             },
             tag: c.at.valve.clone().unwrap_or_default(),
+            unnumbered: c.at.unnumbered,
             part: if c.at.blank {
                 rack_position_text(&c.at)
             } else {
                 c.at.part.clone()
+            },
+            part_number: if c.at.blank {
+                rack_position_text(&c.at)
+            } else {
+                c.at.part_number.clone()
             },
             gives: String::new(),
             addresses: String::new(),
@@ -358,8 +365,8 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
         ui.horizontal(|ui| {
             // A station drawn nowhere has a tag with question marks: its part number names it until it has one, and
             // the part's description follows.
-            let (number, description) = view.part.split_once(" · ").unwrap_or((&view.part, ""));
-            let undrawn = (view.tag.contains('?') || view.tag.is_empty()) && !number.is_empty();
+            let number = view.part_number.as_str();
+            let undrawn = (view.head.unnumbered || view.tag.is_empty()) && !number.is_empty();
             // A station drawn nowhere is named by its part number; its tag of question marks stands beside it.
             if undrawn {
                 ui.add(egui::Label::new(crate::components::title(t, number)).selectable(false));
@@ -394,7 +401,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             let part = if view.part.is_empty() {
                 strings::text(key!("rack-no-part")).to_owned()
             } else if undrawn {
-                description.to_owned()
+                view.part_description.clone()
             } else {
                 view.part.clone()
             };
@@ -717,7 +724,7 @@ fn interact(
         events.push(Event::Action("plc.rack_select", p.select()));
     }
     // A tag of question marks (a module drawn on no page) says where its number comes from.
-    if p.device.is_some() && !p.drawn && p.tag.contains('?') {
+    if p.device.is_some() && !p.drawn && p.unnumbered {
         let _ = response
             .clone()
             .tip(strings::format(key!("rack-tag-unnumbered"), &[&p.tag]));
@@ -982,7 +989,7 @@ fn card(
     } else {
         put(1.0, &p.word, &t.type_body_strong, t.text_primary);
         put(2.0, &p.tag, &t.type_small, t.text_primary);
-        put(3.0, p.part_number(), &t.type_caption, t.text_secondary);
+        put(3.0, &p.part_number, &t.type_caption, t.text_secondary);
         // Where it is drawn; a module drawn nowhere says so (a station not made yet has no pages to name).
         let page = match &p.page {
             Some(folio) => strings::format(key!("rack-page"), &[folio]),

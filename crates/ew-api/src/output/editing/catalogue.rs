@@ -93,6 +93,14 @@ pub struct CatalogueSymbol {
     pub discipline: Option<ew_schema::Discipline>,
 }
 
+impl CatalogueSymbol {
+    /// Whether it is an installed library's symbol not embedded yet: its key is its library address
+    /// (`library:<library>:<item>`).
+    pub fn from_library(&self) -> bool {
+        self.copy.is_none() && self.key.starts_with("library:")
+    }
+}
+
 /// How a symbol gets onto a page: what choosing it in the Insert symbol list does.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PlacedBy {

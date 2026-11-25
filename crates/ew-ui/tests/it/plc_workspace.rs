@@ -777,7 +777,7 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     settle(&mut h);
     support::menu_node(&h, "Re-address…").click();
     settle(&mut h);
-    let notices = h.state().shell().preview_pane().notices().to_vec();
+    let notices = h.state().shell().preview_pane().notice_words();
     assert!(
         notices
             .iter()
@@ -1506,7 +1506,7 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     for _ in 0..4 {
         settle(&mut h);
     }
-    let notices = h.state().shell().preview_pane().notices().to_vec();
+    let notices = h.state().shell().preview_pane().notice_words();
     assert!(notices.iter().any(|n| n.contains("reserved")), "{notices:?}");
     support::off_chrome(&h, "Apply")
         .expect("the card's Apply")

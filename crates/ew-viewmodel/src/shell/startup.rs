@@ -114,6 +114,7 @@ impl StartupOffer {
             label: strings::text(key).to_owned(),
             answer: DialogAnswer::Action(action, params),
             disabled: None,
+            tip: None,
         };
         let not_now = button(key!("startup-not-now"), "startup.dismiss", Value::Null);
         let (title, primary, mut secondary) = if self.projects.is_empty() {

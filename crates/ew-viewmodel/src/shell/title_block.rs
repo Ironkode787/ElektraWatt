@@ -201,6 +201,7 @@ impl ShellModel {
                         actions: vec![RowAction::Edit],
                         identifier: false,
                         source: None,
+                        named_reference: false,
                         ..list.clone()
                     }
                 })

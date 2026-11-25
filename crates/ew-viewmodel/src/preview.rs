@@ -108,6 +108,16 @@ pub struct XrefChange {
     pub after: String,
 }
 
+/// A notice of the Preview pane: its words, and for one that says a change from one value to another (a channel's
+/// new address, a page's new folio), its words before the change's arrow and after it, which the pane draws apart.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PreviewNotice {
+    /// The words.
+    pub words: String,
+    /// The words before the arrow and after it.
+    pub change: Option<(String, String)>,
+}
+
 /// The Preview tab's state: the lists of the card it was made for.
 #[derive(Default, Debug)]
 pub struct PreviewPane {
@@ -118,7 +128,7 @@ pub struct PreviewPane {
     pub(crate) pages: Vec<(String, Option<String>)>,
     /// What the command says it changes beyond its records (`Outcome::notices`): the re-address preview's old to new
     /// address per channel (`channel 3 of -201U5: Q10.3 → Q2.3`), a freeze's count.
-    pub(crate) notices: Vec<String>,
+    pub(crate) notices: Vec<PreviewNotice>,
     /// Whether the card chain opened the tab (it was not in the layout when the first card came): the tab then closes
     /// when the last card is applied or cancelled; a tab the user opened by hand stays.
     pub(crate) opened_by_card: bool,
@@ -147,8 +157,13 @@ impl PreviewPane {
     }
 
     /// The command's notices, in its order.
-    pub fn notices(&self) -> &[String] {
+    pub fn notices(&self) -> &[PreviewNotice] {
         &self.notices
+    }
+
+    /// The words of the command's notices, in its order.
+    pub fn notice_words(&self) -> Vec<String> {
+        self.notices.iter().map(|n| n.words.clone()).collect()
     }
 
     /// Forgets the card's lists.

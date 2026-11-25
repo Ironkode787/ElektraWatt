@@ -728,6 +728,12 @@ pub struct PaletteEntry {
     pub enabled: bool,
     /// The reason text of a disabled entry.
     pub reason: Option<String>,
+/// Whether the action `id` takes the day's date, which the window gives (the shell never reads the clock): a
+/// revision's approval, release and withdrawal.
+pub fn dated(id: &str) -> bool {
+    id.starts_with("revision.")
+}
+
     /// Where the action lives in the command bar or the app menu ("Draw · Place", "File"; doc 16a §9.3).
     pub breadcrumb: String,
 }

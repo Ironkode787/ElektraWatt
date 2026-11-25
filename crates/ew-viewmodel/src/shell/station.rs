@@ -556,9 +556,8 @@ impl ShellModel {
         }
         // A device drawn nowhere has a tag of question marks: its part number names it until it is drawn.
         let name = |r: &ew_api::output::RackRow| {
-            let number = r.part.split(" · ").next().unwrap_or_default();
-            if (r.tag.contains('?') || r.tag.is_empty()) && !number.is_empty() {
-                number.to_owned()
+            if (r.unnumbered || r.tag.is_empty()) && !r.part_number.is_empty() {
+                r.part_number.clone()
             } else {
                 r.tag.clone()
             }

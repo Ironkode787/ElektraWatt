@@ -596,6 +596,21 @@ pub fn var_type_word(ty: &str) -> String {
     text(key).to_owned()
 }
 
+/// What a symbol is for, in words ("Pneumatic"), as the place picker's ratings column says it; empty for a discipline
+/// of a newer format.
+pub fn discipline_words(d: &ew_api::symbols::schema::Discipline) -> String {
+    use ew_api::symbols::schema::Discipline;
+    let key = match d {
+        Discipline::Electrical => key!("choice-electrical"),
+        Discipline::Pneumatic => key!("choice-pneumatic"),
+        Discipline::Vacuum => key!("choice-vacuum"),
+        Discipline::Hydraulic => key!("choice-hydraulic"),
+        Discipline::Bus => key!("choice-bus"),
+        Discipline::Unknown(_) => return String::new(),
+    };
+    text(key).to_owned()
+}
+
 /// A choice value of a form dialog in words (doc 16a §8): the text of `choice-<value>`
 /// (`_` as `-`) in the UI language, else [`choice_words`]. The parameter keeps the raw word; only the window shows
 /// this.

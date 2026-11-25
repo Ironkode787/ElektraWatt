@@ -1880,6 +1880,34 @@ fn own_words(t: &ew_api::Text) -> Option<String> {
     }
 }
 
+/// A command's notices in the window's language as the Preview pane shows them: each with the words before and after
+/// the arrow of its change (`notice-change`, marked while it renders), where it says one.
+pub(crate) fn preview_notices(notices: &[ew_api::Text]) -> Vec<crate::preview::PreviewNotice> {
+    const MARK: char = '\u{1f}';
+    let marked = |t: &ew_api::Text| -> Option<String> {
+        if t.key() != "notice-change" {
+            return own_words(t);
+        }
+        let side = |a: &ew_api::TextArg| match a {
+            ew_api::TextArg::Text(x) => rejected_words("", Some(x)),
+            other => other.to_string(),
+        };
+        match t.args() {
+            [before, after] => Some(format!("{}{MARK}{}", side(before), side(after))),
+            _ => None,
+        }
+    };
+    notices
+        .iter()
+        .map(|t| crate::preview::PreviewNotice {
+            words: rejected_words(&t.to_string(), Some(t)),
+            change: strings::render_with(t, &marked)
+                .split_once(MARK)
+                .map(|(a, b)| (a.to_owned(), b.to_owned())),
+        })
+        .collect()
+}
+
 /// A command's notices (`Outcome::notices`, what it dropped or adjusted instead of refusing) in the window's
 /// language, in their order.
 pub(crate) fn notices_words(notices: &[ew_api::Text]) -> Vec<String> {

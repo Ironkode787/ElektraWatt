@@ -250,10 +250,9 @@ impl ShellModel {
     pub fn tab_title(&self, tab: &Tab) -> String {
         if let Some(s) = &tab.station {
             return match s.station.and_then(|id| self.rack_view(id)) {
-                Some(v) if v.tag.contains('?') && !v.part.is_empty() => strings::format(
-                    key!("station-tab-title"),
-                    &[v.part.split(" · ").next().unwrap_or_default()],
-                ),
+                Some(v) if v.head.unnumbered && !v.part.is_empty() => {
+                    strings::format(key!("station-tab-title"), &[&v.part_number])
+                }
                 Some(v) => strings::format(key!("station-tab-title"), &[&v.tag]),
                 None => strings::text(key!("rack-new-title")).to_owned(),
             };

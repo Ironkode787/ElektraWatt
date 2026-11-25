@@ -415,7 +415,7 @@ fn make_variable_binds_a_property_row() {
     done(&mut shell, "navigator.row", json!({"kind": "macros", "key": key}));
     let d = shell.macro_detail().unwrap();
     assert!(
-        d.variables.iter().any(|v| v.starts_with("pt")),
+        d.variables.iter().any(|v| v.name == "pt"),
         "{:?}",
         d.variables
     );

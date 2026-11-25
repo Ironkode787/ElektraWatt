@@ -679,8 +679,7 @@ fn readdress_notices(
                 "notice-plc-readdress",
                 number.to_string(),
                 crate::words::device(tx, *module),
-                old.clone(),
-                new.clone()
+                text!("notice-change", old.clone(), new.clone())
             ));
         }
     }

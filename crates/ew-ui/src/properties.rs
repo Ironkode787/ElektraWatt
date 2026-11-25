@@ -26,7 +26,7 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
-    ChoiceKind, EditRoute, FieldType, LabelPath as _, Popup, PropRow, PropertySheet, Provenance, RowAction,
+    ChoiceKind, FieldType, LabelPath as _, Popup, PropRow, PropertySheet, Provenance, RowAction,
     RowValue, SheetSection, ValueChooser, advanced_count, chip_text, chip_word, filtered, group_key, groups,
     is_header, read_only_reason, row_label, value_text,
 };
@@ -2024,13 +2024,10 @@ fn value_need(
     )
 }
 
-/// The reference of the address profile an Address profile row names: its stored value, which the row
-/// shows by the profile's name; `None` for every other row.
+/// The reference a row shows by its name (an address profile's): its stored value; `None` for every other row.
 fn profile_reference(row: &PropRow) -> Option<String> {
-    match (&row.route, &row.value) {
-        (EditRoute::Command { command }, RowValue::One { json, .. }) if command == "plc.set_profile" => {
-            json.as_str().map(str::to_owned)
-        }
+    match &row.value {
+        RowValue::One { json, .. } if row.named_reference => json.as_str().map(str::to_owned),
         _ => None,
     }
 }

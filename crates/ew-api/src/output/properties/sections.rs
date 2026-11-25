@@ -155,6 +155,7 @@ impl SectionCx<'_, '_> {
                 route,
                 identifier: spec.identifier,
                 source: None,
+                named_reference: false,
             },
             derived: false,
         });

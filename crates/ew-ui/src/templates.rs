@@ -179,11 +179,9 @@ fn buttons(ui: &mut Ui, t: &theme::Tokens, list: &[DialogButton], events: &mut V
         ui.spacing_mut().item_spacing.x = t.space_3;
         for b in list {
             let r = components::button(ui, Kind::Secondary, &b.label, b.disabled.as_deref(), 0.0);
-            let r = match b.answer {
-                DialogAnswer::Action("templates.remove", _) => {
-                    r.tip(strings::text(key!("templates-remove-tip")))
-                }
-                _ => r,
+            let r = match &b.tip {
+                Some(tip) => r.tip(tip),
+                None => r,
             };
             if r.clicked()
                 && let DialogAnswer::Action(action, params) = &b.answer

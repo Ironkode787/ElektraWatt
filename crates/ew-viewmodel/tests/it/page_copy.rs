@@ -266,7 +266,7 @@ fn the_form_takes_the_rule_and_the_card_names_what_stays_on_other_pages() {
     s.set_form_field("offset", "20");
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none(), "the form closes on its card");
-    let notices = s.preview_pane().notices().join("\n");
+    let notices = s.preview_pane().notice_words().join("\n");
     assert!(
         notices.contains("-11K1") && notices.contains(&x),
         "the card names the relay and the strip: {notices}"
@@ -459,7 +459,7 @@ fn free_texts_that_name_a_copied_strip_or_cable_take_the_copys_names() {
     }
     let before = texts(&mut s, "12");
     done(&mut s, "pages.copy", json!({"pages": ["11", "12"], "offset": 10}));
-    let notices = s.preview_pane().notices().join("\n");
+    let notices = s.preview_pane().notice_words().join("\n");
     assert!(
         notices.contains("2 texts that name a copied device or interruption point"),
         "{notices}"

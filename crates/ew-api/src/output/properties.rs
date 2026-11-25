@@ -177,6 +177,9 @@ pub struct PropRow {
     /// Where a person goes to see or change the source of a derived or inherited value, when it has one (doc 16
     /// §6.2, "go to source").
     pub source: Option<SourceLink>,
+    /// Whether its text names its stored value, a reference a window says on hover (an address profile by its
+    /// name).
+    pub named_reference: bool,
 }
 
 /// A derived row (`<kind>/derived.<name>`) as a property sheet builds it: what it shows, and the authored row a write
@@ -229,6 +232,7 @@ impl DerivedRow<'_> {
             route,
             identifier,
             source: None,
+            named_reference: false,
         }
     }
 }
@@ -760,6 +764,7 @@ fn profile_chooser(q: &Q, built: &mut [Built]) {
             options: options.clone(),
         };
         b.row.actions = vec![RowAction::Edit];
+        b.row.named_reference = true;
     }
 }
 

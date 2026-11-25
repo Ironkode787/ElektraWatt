@@ -71,7 +71,7 @@ pub(crate) use function_kind::{
 };
 pub use highlight::HighlightTarget;
 use ips::ips_table;
-pub use libraries::{LibraryCopyDetail, MacroDetail, MacroThumbnail};
+pub use libraries::{LibraryCopyDetail, MacroDetail, MacroThumbnail, MacroVariable};
 pub(crate) use messages::finding_page;
 pub use messages::names_subject;
 use parts::parts_table;

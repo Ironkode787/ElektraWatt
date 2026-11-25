@@ -385,7 +385,7 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
             // A symbol of an installed or user library is never called "starter".
             let library = if s.copy.is_some() {
                 strings::text(key!("picker-badge-embedded"))
-            } else if s.key.starts_with("library:") {
+            } else if s.from_library() {
                 strings::text(key!("picker-badge-library"))
             } else {
                 strings::text(key!("picker-badge-starter"))
@@ -398,12 +398,7 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
                 s.name.clone()
             };
             // What the symbol is for, in the ratings column: "Pneumatic", "Electrical".
-            let rating = s
-                .discipline
-                .as_ref()
-                .and_then(|d| serde_json::to_value(d).ok())
-                .and_then(|v| v.as_str().map(strings::choice_text))
-                .unwrap_or_default();
+            let rating = s.discipline.as_ref().map(strings::discipline_words).unwrap_or_default();
             RowTexts {
                 name,
                 number: String::new(),

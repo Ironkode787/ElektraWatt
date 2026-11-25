@@ -200,12 +200,18 @@ impl ShellModel {
         self.preview.entities = project.session.preview_entities(preview);
         // A copy of pages says first what it leaves out and what continues outside it.
         self.preview.notices = match &card.origin {
-            CardOrigin::PageCopy { rows, .. } => rows.clone(),
+            CardOrigin::PageCopy { rows, .. } => rows
+                .iter()
+                .map(|words| crate::preview::PreviewNotice {
+                    words: words.clone(),
+                    change: None,
+                })
+                .collect(),
             _ => Vec::new(),
         };
         self.preview
             .notices
-            .extend(super::tools::notices_words(&preview.outcome().notices));
+            .extend(super::tools::preview_notices(&preview.outcome().notices));
         let position = |page: Uuid| rows.iter().position(|r| r.id == page);
         let mut pages: Vec<usize> = preview
             .affected_pages()

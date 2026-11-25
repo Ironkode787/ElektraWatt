@@ -754,13 +754,13 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             .preview_pane()
             .notices()
             .iter()
-            .map(|n| match n.split_once(" → ") {
+            .map(|n| match &n.change {
                 Some((a, b)) => vec![
-                    (a.to_owned(), t.text_secondary),
+                    (a.clone(), t.text_secondary),
                     (" → ".to_owned(), t.text_tertiary),
-                    (b.to_owned(), t.text_primary),
+                    (b.clone(), t.text_primary),
                 ],
-                None => vec![(n.clone(), t.text_primary)],
+                None => vec![(n.words.clone(), t.text_primary)],
             })
             .collect();
         let shown = egui::ScrollArea::vertical()
@@ -784,7 +784,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
                 // The list that carries the change comes first and open (Tags for a renumber, the changed
                 // entities otherwise); the others follow, closed.
-                let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
+                let renumber = card.tags_first() && !tags.is_empty();
                 let mut closed = 0.0;
                 if !notices.is_empty() {
                     closed += list(ui, strings::text(key!("preview-notices")), &notices, true);

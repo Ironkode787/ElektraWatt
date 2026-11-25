@@ -153,15 +153,14 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
 /// The thumbnail box's height in points; its width is the detail block's.
 const THUMBNAIL_HEIGHT: f32 = 64.0;
 
-/// A variable line of the detail (`<name> (<type>)`, maybe with ` = <default>`) with its type in words
-/// ("pt (process tag)"); a line of another shape as it is.
-fn variable_line(item: &str) -> String {
-    if let Some((name, rest)) = item.split_once(" (")
-        && let Some((ty, tail)) = rest.split_once(')')
-    {
-        return format!("{name} ({}){tail}", strings::var_type_word(ty));
+/// A variable's line of the detail: `<name> (<type in words>)` ("pt (process tag)"), with ` = <default>` when it has
+/// one.
+fn variable_line(v: &ew_viewmodel::ew_api::output::MacroVariable) -> String {
+    let line = format!("{} ({})", v.name, strings::var_type_word(&v.ty));
+    match &v.default {
+        Some(d) => format!("{line} = {d}"),
+        None => line,
     }
-    item.to_owned()
 }
 
 /// The thumbnail's height in a detail region `cap` high whose lists take `lists`: [`THUMBNAIL_HEIGHT`]
@@ -323,7 +322,8 @@ fn macro_detail(
         // a list longer than the region scrolls with its bar on show.
         let cap = (room / 2.0).max(4.0 * t.size_control);
         let line_h = ui.fonts_mut(|f| f.row_height(&theme::font(&t.type_small))) + t.space_1;
-        let lines: usize = [&d.devices, &d.variables]
+        let variables: Vec<String> = d.variables.iter().map(variable_line).collect();
+        let lines: usize = [&d.devices, &variables]
             .iter()
             .filter(|items| !items.is_empty())
             .map(|items| items.len() + 1)
@@ -343,9 +343,9 @@ fn macro_detail(
                         t.text_tertiary,
                     );
                 }
-                for (title, items, typed) in [
-                    (strings::text(key!("macro-devices")), &d.devices, false),
-                    (strings::text(key!("macro-variables")), &d.variables, true),
+                for (title, items) in [
+                    (strings::text(key!("macro-devices")), &d.devices),
+                    (strings::text(key!("macro-variables")), &variables),
                 ] {
                     if items.is_empty() {
                         continue;
@@ -357,8 +357,7 @@ fn macro_detail(
                         t.text_secondary,
                     );
                     for item in items {
-                        let text = if typed { variable_line(item) } else { item.clone() };
-                        line(ui, &text, &t.type_small, t.text_primary);
+                        line(ui, item, &t.type_small, t.text_primary);
                     }
                 }
             });
@@ -393,8 +392,12 @@ mod thumbnail_tests {
     /// A variable's type in words on the detail card.
     #[test]
     fn a_variable_line_names_its_type_in_words() {
-        assert_eq!(super::variable_line("pt (process_tag)"), "pt (process tag)");
-        assert_eq!(super::variable_line("n (tag_counter) = 3"), "n (tag counter) = 3");
-        assert_eq!(super::variable_line("plain"), "plain");
+        let v = |name: &str, ty: &str, default: Option<&str>| ew_viewmodel::ew_api::output::MacroVariable {
+            name: name.to_owned(),
+            ty: ty.to_owned(),
+            default: default.map(str::to_owned),
+        };
+        assert_eq!(super::variable_line(&v("pt", "process_tag", None)), "pt (process tag)");
+        assert_eq!(super::variable_line(&v("n", "tag_counter", Some("3"))), "n (tag counter) = 3");
     }
 }

@@ -43,6 +43,8 @@ pub struct DialogButton {
     pub answer: DialogAnswer,
     /// Why it is disabled (the window draws it disabled with this text on hover); `None` while it can be pressed.
     pub disabled: Option<String>,
+    /// What it does, said on hover where its verb does not say it all; `None` without one.
+    pub tip: Option<String>,
 }
 
 impl DialogButton {
@@ -51,6 +53,7 @@ impl DialogButton {
             label: strings::text(key).to_owned(),
             answer,
             disabled: None,
+            tip: None,
         }
     }
 
@@ -506,11 +509,14 @@ pub fn templates_actions(d: &crate::shell::TemplatesDialog) -> (Vec<DialogButton
                 "templates.rename",
                 json!({ "index": index }),
             ),
-            act(
-                key!("templates-remove"),
-                "templates.remove",
-                json!({ "index": index }),
-            ),
+            DialogButton {
+                tip: Some(strings::text(key!("templates-remove-tip")).to_owned()),
+                ..act(
+                    key!("templates-remove"),
+                    "templates.remove",
+                    json!({ "index": index }),
+                )
+            },
         ]
     });
     let list = vec![

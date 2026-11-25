@@ -478,7 +478,7 @@ fn an_exchange_notice_names_its_field_and_state_by_their_keys() {
         other => panic!("words written as they are: {other}"),
     };
     assert_eq!(key(&notice.args()[1]), "plc-field-tag-name");
-    assert_eq!(key(&notice.args()[4]), "plc-import-state-apply");
+    assert_eq!(key(&notice.args()[3]), "plc-import-state-apply");
     assert!(notice.to_string().contains(": symbol "), "{notice}");
 }
 
