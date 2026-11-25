@@ -72,15 +72,7 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
 
 /// The window on a writable copy of the sample at folio 101 (an open of the committed project would be read-only).
 fn on_sample(tmp: &Tmp, name: &str) -> Harness<'static, App> {
-    let dir = tmp.sample(name);
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1920.0, 1080.0));
-    h.run_ok();
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", json!({ "folio": "101" }));
-    wait_for_page(&mut h);
-    h.run_ok();
-    h
+    support::on_sample_sized(tmp, name, Some("101"), support::MAIN)
 }
 
 /// Each action of `built` (the source's form actions) that `opened` (the census's) lacks.

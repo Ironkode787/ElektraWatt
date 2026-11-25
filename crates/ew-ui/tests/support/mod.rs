@@ -100,12 +100,15 @@ pub fn harness<'a>(tmp: &Tmp, platform: Scripted, initial: Option<PathBuf>) -> H
 /// asked for, and no test of the window reads the wall clock.
 pub const CLOCK: Clock = Clock::Frame;
 
+/// The main resolution, in points (doc 16a §2): the size of every harness's window.
+pub const MAIN: Vec2 = Vec2::new(1920.0, 1080.0);
+
 /// A harness around the frame of a shell the test made itself (resources, a first-run flow already started), in a
 /// window of 1920 × 1080 points, the main resolution (doc 16a §2), on [`CLOCK`].
 pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
     let app = App::new(shell, Box::new(platform), initial, CLOCK);
     Harness::builder()
-        .with_size(Vec2::new(1920.0, 1080.0))
+        .with_size(MAIN)
         .with_context_setup(setup)
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app)
 }
@@ -344,9 +347,21 @@ pub fn edit_toast(harness: &mut Harness<'_, App>) {
 
 /// The window on a writable copy of the sample project on the page it opens on, settled, its image arrived, settled.
 pub fn on_sample_first_page(tmp: &Tmp) -> Harness<'static, App> {
-    let mut h = harness(tmp, Scripted::default(), Some(tmp.sample("s.ew")));
+    on_sample_sized(tmp, "s.ew", None, MAIN)
+}
+
+/// The window of `size` points on a writable copy `name` of the sample project, settled with its image arrived; with
+/// `folio`, that page is on show and its image arrived too.
+pub fn on_sample_sized(tmp: &Tmp, name: &str, folio: Option<&str>, size: Vec2) -> Harness<'static, App> {
+    let mut h = harness(tmp, Scripted::default(), Some(tmp.sample(name)));
+    h.set_size(size);
     settle(&mut h);
     wait_for_page(&mut h);
+    if let Some(folio) = folio {
+        dispatch(&mut h, "page.goto", serde_json::json!({ "folio": folio }));
+        settle(&mut h);
+        wait_for_page(&mut h);
+    }
     settle(&mut h);
     h
 }
@@ -385,15 +400,7 @@ pub fn driver_on_sample(tmp: &Tmp, folio: &str) -> Driver {
 
 /// The window on a writable copy of the sample project with folio `folio` on show and its image arrived.
 pub fn on_sample(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", serde_json::json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    on_sample_sized(tmp, "s.ew", Some(folio), MAIN)
 }
 
 /// Runs frames until the image of the wizard's preview has arrived: on [`CLOCK`] it is rendered in the frame that

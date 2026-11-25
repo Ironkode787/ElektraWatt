@@ -73,9 +73,7 @@ fn step(h: &mut Harness<'_, App>) {
 
 /// The sample open in the window (folio 101), at `size`.
 fn on_sample(tmp: &Tmp, size: Size) -> Harness<'static, App> {
-    let mut h = harness(tmp, Scripted::default(), Some(tmp.sample("s.ew")));
-    settle(&mut h);
-    wait_for_page(&mut h);
+    let mut h = support::on_sample_first_page(tmp);
     apply(&mut h, size);
     h
 }

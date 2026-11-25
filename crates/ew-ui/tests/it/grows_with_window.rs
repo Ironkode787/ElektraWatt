@@ -12,16 +12,10 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use serde_json::json;
-use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
+use support::{Tmp, dispatch, settle};
 
 fn on_sample(tmp: &Tmp, size: egui::Vec2) -> Harness<'static, App> {
-    let dir = tmp.sample("s.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    h.set_size(size);
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
+    support::on_sample_sized(tmp, "s.ew", None, size)
 }
 
 /// Device from part on folio 101.
