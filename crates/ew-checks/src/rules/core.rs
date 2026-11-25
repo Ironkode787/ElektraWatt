@@ -410,7 +410,7 @@ pub const TITLE_BLOCK_OVERRIDE: RuleMeta = RuleMeta {
 /// EW-CORE-023: a title-block value overridden on one page (FR-REP-036, D-06). The page's
 /// `description_override` replaces the bound project description in its title block; the only per-page
 /// title-block override of schema v0. One finding per page, target the page, discriminator
-/// `description_override`, with the quick fix "drop override" (`fields.set` of the member to null).
+/// `description_override`, with the quick fix "Drop override" (`fields.set` of the member to null).
 #[derive(Clone, Copy, Debug)]
 pub struct TitleBlockOverride;
 

@@ -540,14 +540,14 @@ fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-023", "102");
     assert!(row.badges.contains(&"fix".to_owned()));
-    assert_eq!(row.cells[5], "drop override");
+    assert_eq!(row.cells[5], "Drop override");
     // The detail of the cursor's finding names the fix.
     done(
         &mut shell,
         "navigator.row",
         json!({"kind": "messages", "key": row.key}),
     );
-    assert_eq!(line(&shell, "  detail fix "), "  detail fix \"drop override\"");
+    assert_eq!(line(&shell, "  detail fix "), "  detail fix \"Drop override\"");
     // A finding without a fix refuses.
     let ef08 = finding(&shell, "EW-CORE-033", "-101W1");
     assert_eq!(

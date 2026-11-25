@@ -1,7 +1,7 @@
 ## What it checks
 
 A page whose title block overrides a bound project value; at present the one such override is the page's own
-description. One finding per page, with the quick fix "drop override", which removes it.
+description. One finding per page, with the quick fix "Drop override", which removes it.
 
 ## Why
 
@@ -18,7 +18,7 @@ In a new project, give one page its own description in the page's properties.
 
 ## How to fix
 
-The quick fix "drop override" removes the page's own description in one step.
+The quick fix "Drop override" removes the page's own description in one step.
 
 ## Waiving
 

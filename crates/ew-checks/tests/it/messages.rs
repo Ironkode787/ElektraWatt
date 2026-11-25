@@ -379,7 +379,7 @@ fn nl_nl_words_ew_term_002_s_untagged_strip() {
     for (form, en, nl) in [
         (
             "used",
-            "designation 4 is used by 2 terminals of strip",
+            "designation 4 is used by 2 terminals of the strip",
             "aanduiding 4 wordt gebruikt door 2 klemmen van de klemmenstrook",
         ),
         (

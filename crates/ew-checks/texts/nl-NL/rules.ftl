@@ -672,12 +672,12 @@ rule-ew-plc-013 = { $form ->
         } is de FE-pen van een PLC-kaart en wordt gevoed uit de PE-potentiaal { $potential }; sluit hem aan op functionele aarde, of declareer een FE–PE-verbinding
         [unconnected] { $cp }, de { $role }-pen van de { $group ->
             [electronics] elektronica-
-            [load] belasting-
+            [load] belasting
            *[other] {""}
         }voedingsgroep, is niet aangesloten; sluit de voeding van de kaart aan
        *[wrong] { $cp }, de { $role }-pen van de { $group ->
             [electronics] elektronica-
-            [load] belasting-
+            [load] belasting
            *[other] {""}
         }voedingsgroep, wordt gevoed uit een potentiaal van type { $type ->
             [signal] signaal
@@ -1111,8 +1111,8 @@ rule-ew-term-005 = { $terminal } is met de rail verbonden maar heeft geen PE-aan
     .hint = Wis de railverbinding, of maak de klem een PE-klem.
 
 rule-ew-term-006 = { $terminal } ligt op draad { $wire } zonder die te verbinden; sluit de klem op de draad aan of verplaats haar
-    .title = Klem op een draad die hij niet verbindt
-    .hint = Neem de klem op in de draad, of haal hem van de draad af.
+    .title = Klem op een draad die zij niet verbindt
+    .hint = Neem de klem op in de draad, of haal haar van de draad af.
 
 ## botsingen na samenvoegen
 
@@ -1189,20 +1189,20 @@ rule-ew-imp-109 =
     .hint = Niets te doen, of splits de klemmenstrook als de delen aparte klemmenstroken zijn.
 
 rule-ew-imp-115 =
-    .title = Namen van een bladverwijzingspaar verschillen
+    .title = Namen van een folioverwijzingspaar verschillen
     .hint = Hernoem een kant van het paar, of zet de koppeling op ketenmodus.
 
 rule-ew-imp-116 =
-    .title = Slaaf zonder meester, of meester boven zijn slaven
-    .hint = Koppel de slaaf aan zijn meester, of verminder de koppelingen van de meester.
+    .title = Slave zonder master, of master boven zijn slaves
+    .hint = Koppel de slave aan zijn master, of verminder de koppelingen van de master.
 
 rule-ew-imp-117 =
-    .title = Standaardformule voor de bladindex
-    .hint = Laat de bladverwijzingen het bladlabel gebruiken.
+    .title = Standaardformule voor de folio-index
+    .hint = Laat de folioverwijzingen het foliolabel gebruiken.
 
 rule-ew-imp-118 =
-    .title = Bedrading van een knooppunt aangenomen
-    .hint = Zet de bedrading van het knooppunt op Keten waar de bron het zo bedraadde.
+    .title = Bedrading van een aftakking aangenomen
+    .hint = Zet de bedrading van de aftakking op Keten waar de bron het zo bedraadde.
 
 rule-ew-imp-119 =
     .title = Element zonder functiebetekenis
@@ -1218,11 +1218,11 @@ rule-ew-imp-122 =
 
 rule-ew-imp-102 =
     .title = Spellingsvarianten van een structuurcode
-    .hint = Voeg de varianten samen tot een structuurcode en behoud de andere als aliassen.
+    .hint = Voeg de varianten samen tot één structuurcode en behoud de andere als aliassen.
 
 rule-ew-imp-105 =
-    .title = Beschrijving per blad als overschrijving behouden
-    .hint = Laat de overschrijving vallen om de projectbeschrijving weer af te drukken, of behoud hem.
+    .title = Omschrijving per folio als overschrijving behouden
+    .hint = Laat de overschrijving vallen om de projectomschrijving weer af te drukken, of behoud haar.
 
 rule-ew-imp-114 =
     .title = Geïmporteerde tekststijlen niet aan slotsoorten gebonden

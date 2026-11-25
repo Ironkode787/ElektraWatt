@@ -874,7 +874,7 @@ fn the_quick_fix_label_follows_the_ui_language() {
     let fixed = table(&shell)
         .nodes
         .iter()
-        .find(|n| n.role == NavRole::Finding && n.cells[5] == "drop override")
+        .find(|n| n.role == NavRole::Finding && n.cells[5] == "Drop override")
         .expect("a finding with the drop-override fix")
         .clone();
     let fix = |shell: &mut ShellModel| {
@@ -885,7 +885,7 @@ fn the_quick_fix_label_follows_the_ui_language() {
         );
         shell.messages_detail().unwrap().fix
     };
-    assert_eq!(fix(&mut shell).as_deref(), Some("drop override"));
+    assert_eq!(fix(&mut shell).as_deref(), Some("Drop override"));
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(fix(&mut shell).as_deref(), Some("overschrijving verwijderen"));
     let row = table(&shell)
@@ -896,7 +896,7 @@ fn the_quick_fix_label_follows_the_ui_language() {
         .unwrap();
     assert_eq!(row.cells[5], "overschrijving verwijderen");
     done(&mut shell, "view.language", json!({"value": "en"}));
-    assert_eq!(fix(&mut shell).as_deref(), Some("drop override"));
+    assert_eq!(fix(&mut shell).as_deref(), Some("Drop override"));
     shell.shutdown();
 }
 

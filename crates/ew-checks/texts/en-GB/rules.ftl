@@ -1094,7 +1094,7 @@ rule-ew-term-002 = { $form ->
            *[none] {""}
         }
        *[used] designation { $designation } is used by { $count } terminals of { $end ->
-            [untagged] strip
+            [untagged] the strip
            *[named] { $strip }
         }
     }
@@ -1246,8 +1246,8 @@ rule-ew-imp-114 =
 # The quick fixes' labels: the window's text of a fix by its key (`QuickFix::key`); the en-GB
 # text is the fix's English label, which the CLI and the JSON print.
 fix-take-proposed-size = Take the proposed size
-fix-drop-override = drop override
-fix-anchor-graphics-centre = anchor at the graphics centre
+fix-drop-override = Drop override
+fix-anchor-graphics-centre = Anchor at the graphics centre
 fix-renumber-newer = Renumber the newer
 fix-unfreeze-tag = Unfreeze the tag
 fix-realise-primary-part = Realise the primary part

@@ -21,7 +21,7 @@ Import a QElectroTech project whose folios have their own titles.
 
 ## How to fix
 
-EW-CORE-023's quick fix "drop override" removes the override.
+EW-CORE-023's quick fix "Drop override" removes the override.
 
 ## Waiving
 
