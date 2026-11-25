@@ -1,6 +1,6 @@
 # ADR-0035: One home for each thing, an order of crates, one path for a text, and a shell that decides what is said
 
-**Status:** Accepted (the release manager, 2026-11-23, on the conditions in [the plan](../plan/m3.5-architecture.md) section 4; amended 2026-11-24, amendment 1) · **Date:** 2026-11-23 ·
+**Status:** Accepted (the release manager, 2026-11-23, on the conditions in [the plan](https://github.com/Ironkode787/ElektraWatt/blob/cf5d3e1fb778c424c56f8a6827e6058dce11cdb6/docs/plan/m3.5-architecture.md) section 4; amended 2026-11-24 and 2026-11-25, amendments 1 to 3) · **Date:** 2026-11-23 ·
 **Deciders:** the release manager (the redesign); the project owner (the items of the owner's list in
 [the plan](https://github.com/Ironkode787/ElektraWatt/blob/cf5d3e1fb778c424c56f8a6827e6058dce11cdb6/docs/plan/m3.5-architecture.md))
 **Amends:** [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md) amendment 5 (the source of the edges),
@@ -103,6 +103,37 @@ arguments, and the Dutch entries were printed by no program and read by no check
 with one language. Its own sentences stay English in the code, one printer spells the prefix of an error, a
 warning and a notice, and what comes from the layers below is a `Text` rendered in English. A text folder for
 the command line is added on the day it is given a language.
+
+### Amendment 2 (release manager, 2026-11-25): the gaps, recorded here
+
+The architecture's §20 named the seven gaps of the context with their cost; a design document states what is, so
+the record of what they cost moved here and §20 keeps the gaps by name with the section that closes each.
+
+| # | The gap | What it cost | Closed by |
+|---|---|---|---|
+| 1 | **Domain knowledge had no home.** The crates were ordered by mechanism (record, model, derivation, command, scene, list, session, shell, window); nothing said where a value's printed form, a rule that a command and a drawing both need, plain arithmetic or a deciding number lives. The right crate often held it as a private helper | A wire's end decided in four places; a size, a slot and a length printed differently by the window and the lists; twelve rounding helpers with at least three tie rules | §3.4 |
+| 2 | **Nobody could read off whether an edge is allowed.** The document's graph was the source, the rule file said the manifests were, and types travelled through re-exports; a missing edge was taken as forbidden, the thing restated and the copy pinned by a test | Five restated items and four pin tests in the commands; two lock implementations whose stale rules differ; the session computing again where things are on a page (connection points, text slots, the size of pin texts) beside the scene that drew them | §3.1, §3.2 rules 6 and 7 |
+| 3 | **A declaration did not hand out what its users need.** `entities!`, the rule registry, `ReportKind`, the action table, the clap tree and the settings were each one declaration, yet every user matched over the members again | A new record kind touched over 30 files; one copy lacked five kinds, so a preview could count a changed table as unchanged; a new command with its action touched 18 files | §3.5 |
+| 4 | **A text had no carrier below the session.** The keyed text lived in `ew-commands` and its words in the window's file, so a crate below or beside them could only return English, a pair of English and Dutch in code, or keep a second catalogue; facts travelled inside sentences and were parsed back | Every finding's English written twice (about 180 blocks) and held equal by tests; English in a Dutch window from five crates; the window's text file, changed in 117 commits since 0.3.0, rebuilt the commands, the session and the shell each time | §18 |
+| 5 | **What a person is told was decided where no test sees it, and what follows a commit was found by the command's name.** The window compared the shell's state before and after an act to place a refusal; the tool host read a command's name and its JSON back to learn its duty | The largest theme of the persona rounds, "it did not say why"; the files changed most since 0.3.0 were the shell's (`properties.rs` 18 commits, `jobs.rs` 15, `shell.rs` 13); a 370-line commit arm | §9 |
+| 6 | **The check of a change was narrower than the check of a release, and each test built what it shares.** | A replay that reported success while it checked nothing; two tests that failed only under load; about 1,000 lines of repeated test set-up | §13 |
+| 7 | **Documents and comments recorded how a thing came beside what it is, and restated what a generator produces.** | 698 notes headed "As built"; eight documents near 200 KiB of which a builder needed a twentieth; contradictions that gave a cold builder a wrong rule | §19 |
+
+The findings that built a concept ahead of its use and the special cases of the placer were not gaps of
+structure: principle 14 covers the first, and the placing rules are the pilot's and the owner's.
+
+### Amendment 3 (release manager, 2026-11-25): where an outcome is placed, and an offer's label
+
+Decision 11 said that `ShellModel::dispatch` ends with the outcome placed. Built, `dispatch` runs an action and
+returns its outcome, and `ShellModel::run_said` runs an act and places that outcome: the window runs every act it
+dispatches through it, and the headless runner every step of a script, so a script still sees what a person sees.
+
+Decision 13's offered action keeps a word of its own as its button's label, not the action's menu text: a toast's
+button is short and names the act of the toast's sentence ("Undo", "Connect", "Keep the old tags"), where a menu
+text names the act among the others of its menu. A toned toast's title is the part of its first text before the first `": "`.
+
+Why an entry is greyed stays a text with arguments (decision 11): a reason that names what is missing (a page kind,
+a selection) carries it as an argument, as every other text does.
 
 ## Alternatives considered
 

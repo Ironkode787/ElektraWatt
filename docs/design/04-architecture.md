@@ -261,9 +261,10 @@ size, the time of a frame); anything a script must be able to do is an action.
   a text with arguments (§18); every greyed entry, on every surface, shows that reason. A handler reads the
   selection through the same typed readers as its enable check, so the two cannot disagree.
 - **What a key does:** every key is a binding of the keymap with a context.
-- **What is said, and where.** `dispatch` ends in the shell with the outcome placed: under the row or the field
-  that caused it, in the open dialog, in the HUD of the tool, in a toast, or in the banner. The rule that picks
-  the place (one fact in one place, [16a](16a-design-language.md)) is one function of the shell. A script's
+- **What is said, and where.** `ShellModel::run_said` runs an act and places its outcome: under the row or the
+  field that caused it, in the open dialog, in the HUD of the tool, in a toast, or in the banner. The rule that
+  picks the place (one fact in one place, [16a](16a-design-language.md)) is that one function of the shell; the
+  window runs every act it dispatches through it, and the headless runner every step of a script. A script's
   transcript and a view-model test therefore show what a person sees.
 - **The selection, the active tool and its host, the clipboard's content, the jobs.**
 
@@ -286,8 +287,8 @@ one feature is never a member of the host.
 
 A notification is a record: a tone, a title, its sentences as texts (§18) and the actions it offers. A sentence
 is never glued to another in code or cut back out of one; the window lays the parts out. An offered action is an
-action of the table with its parameters and the records to select, labelled by the action's own text, with the
-`Validity` that says how long it can be taken. Whether a toast stays follows from its tone.
+action of the table with its parameters and the records to select, labelled by its own short word (not by the
+action's menu text), with the `Validity` that says how long it can be taken. Whether a toast stays follows from its tone.
 
 ### 9.4 What the window decides
 
@@ -342,12 +343,11 @@ is a rule. `--deep` runs
 the tests marked for the deep run. The check writes down the tree it passed on, and a gate runs it again only for a
 tree that differs.
 
-The rules of `cargo xtask rules`, each with what it catches: the order of the crates and the licence boundary;
-test-only features and crates in a shipped program; raw reads of the model; the licence of every path;
-confidential tokens; a literal text with a letter in the window; a generated file that is stale; **a source file over
-the size ceiling** of 3,000 lines (a file a generator writes is not bound), with no list of exceptions; **a control the window greys without a reason in words** (an action
-of the registry cannot be greyed without one: its check returns its reason's key); history in a design document
-(§19); the Dutch guide's tutorials untranslated.
+`cargo xtask help` lists the rules of `cargo xtask rules`, each with what it catches. Two of them hold the
+structure of this document: **a source file over the size ceiling** (`xtask/src/ceiling.rs`; a file a generator
+writes is not bound), with no list of exceptions; and **a control the window greys without a reason in words** (an
+action of the registry cannot be greyed without one: its check returns its reason as a text). History in a design
+document is §19's rule.
 
 No test asserts a time. There is no continuous integration until 1.0: `check` is the check.
 
@@ -432,24 +432,13 @@ comment in the code gives its reason in words and may cite a section; it names n
 
 ## 20. The gaps this structure closes
 
-Seven readers scanned the repository region by region at the second candidate of 0.3.5 and listed about 230
-findings. Nearly all are one of seven gaps. Each is a reason a second copy gets written; the copies themselves are
-symptoms. Findings are cited by region (A format, model and commands; B derivation and checks; C drafting; D
-scene, lists and outputs; E view-model; F window; G command line, tools and tests; Docs) and number.
-
-| # | The gap | Symptoms | What it cost | Closed by |
-|---|---|---|---|---|
-| 1 | **Domain knowledge has no home.** The crates are ordered by mechanism (record, model, derivation, command, scene, list, session, shell, window); nothing says where a value's printed form, a rule that a command and a drawing both need, plain arithmetic or a deciding number lives. The right crate often held it as a private helper | A5, A16 to A20, A33, A34; B9 to B15; C7 to C10, C12, C14; D1, D4 to D7, D13 to D17, D24; E27; F25, F26, F30 | A wire's end decided in four places; a size, a slot and a length printed differently by the window and the lists; twelve rounding helpers with at least three tie rules | §3.4 |
-| 2 | **Nobody could read off whether an edge is allowed.** The document's graph was the source, the rule file said the manifests were, and types travelled through re-exports; a missing edge was taken as forbidden, the thing restated and the copy pinned by a test | A2, A6, A22, A23, A32, A38; D11, D12, D15, D18, D25 | Five restated items and four pin tests in the commands; two lock implementations whose stale rules differ; the session computing again where things are on a page (connection points, text slots, the size of pin texts) beside the scene that drew them | §3.1, §3.2 rules 6 and 7 |
-| 3 | **A declaration does not hand out what its users need.** `entities!`, the rule registry, `ReportKind`, the action table, the clap tree and the settings are each one declaration, yet every user matches over the members again | A1, A4, A9, A28, A29; B4, B5, B19, B23; D9, D16, D19; E1, E5, E21, E23, E26; G1, G9, G14; Docs 12 | A new record kind touched over 30 files; one copy lacks five kinds, so a preview can count a changed table as unchanged; a new command with its action touches 18 files | §3.5 |
-| 4 | **A text has no carrier below the session.** The keyed text lives in `ew-commands` and its words in the window's file, so a crate below or beside them can only return English, a pair of English and Dutch in code, or keep a second catalogue; facts travel inside sentences and are parsed back | A12 to A15; B1 to B3, B7, B17, B18; D3, D20 to D22; E3, E6, E7, E19, E20, E28; F16 to F18, F27, F28; G4, G20; C34 | Every finding's English written twice (about 180 blocks) and held equal by tests; English in a Dutch window from five crates; the window's text file, changed in 117 commits since 0.3.0, rebuilds the commands, the session and the shell each time | §18 |
-| 5 | **What a person is told is decided where no test sees it, and what follows a commit is found by the command's name.** The window compares the shell's state before and after an act to place a refusal; the tool host reads a command's name and its JSON back to learn its duty | E1 to E4, E9 to E11, E14 to E18, E22, E24; F1, F3 to F5, F7 to F9, F11, F20, F21, F29, F32, F34 | The largest theme of the persona rounds, "it did not say why"; the files changed most since 0.3.0 are the shell's (`properties.rs` 18 commits, `jobs.rs` 15, `shell.rs` 13); a 370-line commit arm | §9 |
-| 6 | **The check of a change is narrower than the check of a release, and each test builds what it shares.** | G2, G3, G5 to G7, G10, G11, G13; F35 | A replay that reports success while it checks nothing; two tests that fail only under load; about 1,000 lines of repeated test set-up | §13 |
-| 7 | **Documents and comments record how a thing came beside what it is, and restate what a generator produces.** | Docs 1 to 30; A35, A36; B28; C29, C30, C32; D25, D26; E29, E30; F36; G15, G26 | 698 notes headed "As built"; eight documents near 200 KiB of which a builder needs a twentieth; contradictions that give a cold builder a wrong rule (Docs 7 to 13) | §19 |
-
-The findings that built a concept ahead of its use (A3, A7, A8, A24, A30; B6, B20 to B22; D8, D29; G12, G22) and
-the special cases of the placer (C1 to C4, C6, C15 to C18) are not gaps of structure: principle 14 covers the first,
-and the placing rules are the pilot's and the owner's ([06a](06a-drafting.md)).
+Seven gaps of structure are the reasons a second copy gets written: domain knowledge without a home (§3.4), an edge
+nobody can read off (§3.1, §3.2 rules 6 and 7), a declaration that does not hand out what its users need (§3.5), a
+text without a carrier below the session (§18), what a person is told decided where no test sees it and what
+follows a commit found by the command's name (§9), a check of a change narrower than a release's (§13), and
+documents that record how a thing came beside what it is (§19). What each gap cost is in
+[ADR-0035](../adr/0035-homes-order-texts-shell.md), amendment 2. A concept built ahead of its use is not a gap of
+structure but principle 14's, and the placing rules are the pilot's and the owner's ([06a](06a-drafting.md)).
 
 **What is sound and stays.** The model as records in persistent maps and `entities!` as its table list; the link
 table with its field-mask test; the strict reader, the canonical line order and the three-way merge of the format;
