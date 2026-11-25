@@ -817,15 +817,25 @@ impl ShellModel {
     }
 }
 
-/// The text of `key` naming the key chord `chord`: `key` formatted with it, or `<key>-unbound` (the sentence
-/// without the parenthesis) when the action has no key.
-fn text_with_key(key: Key<'_>, chord: &str) -> String {
+/// The text of `key` naming the key chord `chord`: `key` formatted with it, or `unbound` (the sentence without the
+/// parenthesis) when the action has no key.
+fn text_with_key((key, unbound): (Key<'_>, Key<'_>), chord: &str) -> String {
     if chord.is_empty() {
-        strings::text(Key::run_time(&format!("{}-unbound", key.as_str()))).to_owned()
+        strings::text(unbound).to_owned()
     } else {
         strings::format(key, &[chord])
     }
 }
+
+/// A part placed as a black box: use its tool, with the tool's key and without one.
+const BLACK_BOX_TOOL: (Key<'static>, Key<'static>) = (
+    key!("reason-black-box-tool"),
+    key!("reason-black-box-tool-unbound"),
+);
+
+/// A symbol that is no black box: place it with Draw ▸ Symbol…, with its key and without one.
+const NOT_BLACK_BOX: (Key<'static>, Key<'static>) =
+    (key!("reason-not-black-box"), key!("reason-not-black-box-unbound"));
 
 /// The library documents of a `{"copies": [...]}` parameter object.
 /// The library documents a placement of symbol `key` carries (the embedding travels in the placement itself,
@@ -859,7 +869,7 @@ fn copies_of(params: Value) -> Vec<Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::text_with_key;
+    use super::{BLACK_BOX_TOOL, NOT_BLACK_BOX, text_with_key};
     use crate::key;
 
     /// The two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
@@ -867,19 +877,19 @@ mod tests {
     #[test]
     fn the_black_box_refusals_name_the_key_or_none() {
         assert_eq!(
-            text_with_key(key!("reason-black-box-tool"), "B"),
+            text_with_key(BLACK_BOX_TOOL, "B"),
             "This part is placed as a black box: use the Black box tool (B)"
         );
         assert_eq!(
-            text_with_key(key!("reason-black-box-tool"), ""),
+            text_with_key(BLACK_BOX_TOOL, ""),
             "This part is placed as a black box: use the Black box tool"
         );
         assert_eq!(
-            text_with_key(key!("reason-not-black-box"), "I"),
+            text_with_key(NOT_BLACK_BOX, "I"),
             "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026} (I)"
         );
         assert_eq!(
-            text_with_key(key!("reason-not-black-box"), ""),
+            text_with_key(NOT_BLACK_BOX, ""),
             "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026}"
         );
     }

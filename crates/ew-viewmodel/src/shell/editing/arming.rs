@@ -84,11 +84,11 @@ impl ShellModel {
             .find(|t| !taken.contains(t))
     }
 
-    /// A refusal whose text names action `action`'s first key: `<key>` formatted with it, or `<key>-unbound` when the
-    /// action has no key.
-    pub(super) fn refused_with_key(&self, key: Key<'_>, action: &str) -> Outcome {
+    /// A refusal whose text names action `action`'s first key: the first of `keys` formatted with it, or the second
+    /// when the action has no key.
+    pub(super) fn refused_with_key(&self, keys: (Key<'_>, Key<'_>), action: &str) -> Outcome {
         Outcome::Failed {
-            message: text_with_key(key, &crate::command_bar::key_of(self, action)),
+            message: text_with_key(keys, &crate::command_bar::key_of(self, action)),
         }
     }
 
@@ -264,7 +264,7 @@ impl ShellModel {
         let is_box = row.black_box || box_cps.is_some();
         // The refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
         if self.tools.black_box_pick && !is_box {
-            return self.refused_with_key(key!("reason-not-black-box"), "tool.place");
+            return self.refused_with_key(super::NOT_BLACK_BOX, "tool.place");
         }
         // An unplaced black-box function (a station placed first on a bus-topology page keeps its supply pins for a
         // schematic page) is drawn by the black box tool as another representation of it.
@@ -275,7 +275,7 @@ impl ShellModel {
             return self.arm_unplaced_box(&row, function, id);
         }
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
-            return self.refused_with_key(key!("reason-black-box-tool"), "tool.black_box");
+            return self.refused_with_key(super::BLACK_BOX_TOOL, "tool.black_box");
         }
         // What the project lacks travels in the placement itself, so that placing from the picker is one undo
         // step and the recorded command replays without a library: a starter symbol with its FnDef and, for a part's
