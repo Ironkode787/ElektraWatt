@@ -4,7 +4,7 @@
 //! Per-project text styles (ADR-0032, FR-SYM-013): the member `ProjectSettings.text_styles`, the built-in
 //! table it overrides and the effective table every renderer and EW-CORE-061 read.
 //!
-//! A project stores its text styles as **overrides** of the built-in table of doc 20 §17.5
+//! A project stores its text styles as **overrides** of the built-in table
 //! ([`BUILTIN_TEXT_STYLES`]): a JSON object keyed by style key, each value `{"size": <em height in nm>,
 //! "weight": "regular" | "bold", "face": "standard" | "narrow" | "mono" | "technical_drawing"}` (weight and face optional; the
 //! face since 0.3.0, ADR-0028 amendments 2 and 3) plus unknown members kept verbatim. An absent or empty
@@ -162,7 +162,7 @@ pub enum TextStyleGroup {
     Cover,
 }
 
-/// The built-in text-style table of doc 20 §17.5 as `(key, size in QET px, weight, group)`, in table order: the base
+/// The built-in text-style table as `(key, size in QET px, weight, group)`, in table order: the base
 /// every project's overrides apply to (ADR-0032 decision 4: part of the derivation profile; a change of a row is a
 /// derivation-profile change). `ew_text::builtin()` is built from these rows for callers without a project.
 /// `terminal`, the terminal's number, came out of `tag.main` and keeps its size, so a
@@ -185,7 +185,7 @@ pub const BUILTIN_TEXT_STYLES: &[(&str, u16, TextWeight, TextStyleGroup)] = &[
     ("terminal", 13, TextWeight::Regular, TextStyleGroup::Terminals),
 ];
 
-/// The text style a slot of `def` that names none prints with (doc 20 §17.5), one place for the page scene and
+/// The text style a slot of `def` that names none prints with, one place for the page scene and
 /// EW-CORE-061: the terminal's number (`terminal`) for the tag of a terminal symbol (its function `ew.fn.terminal…`),
 /// `tag.main` for any other tag, `cp.small` for a CP designation, `text.normal` for a kind of a newer format and
 /// `data.small` for every other kind.
@@ -214,13 +214,13 @@ pub fn text_style_group(key: &str) -> TextStyleGroup {
         .map_or(TextStyleGroup::Page, |(.., g)| *g)
 }
 
-/// The cap ratio of every bundled face, in thousandths: a capital letter is 0.714 of the em height (doc 20 §18.1; the
+/// The cap ratio of every bundled face, in thousandths: a capital letter is 0.714 of the em height (the
 /// `OS/2` cap height of Noto Sans, Noto Sans Condensed and Noto Sans Mono, 714 of 1000 units, which a test in `ew-text`
 /// keeps). Routed Gothic's is 736 of 1024 units (0.719): its capitals print at most 1 % higher, never lower, so a style
 /// that reads as readable here is.
 pub const CAP_RATIO_MILLI: i64 = 714;
 
-/// The smallest printed cap height that is readable on paper: 1.2 mm (doc 20 §18.1, U-31; EW-CORE-061 reports a style
+/// The smallest printed cap height that is readable on paper: 1.2 mm (EW-CORE-061 reports a style
 /// below it, and the Text styles page notes it at the row).
 pub const MIN_CAP_HEIGHT: Nm = Nm(1_200_000);
 
@@ -260,7 +260,7 @@ pub fn new_project_text_styles() -> BTreeMap<Ident, TextStyleSpec> {
         .collect()
 }
 
-/// The em height of `px` QET pixels: `round(px × 793 750 / 3)` nm (doc 20 §17.5).
+/// The em height of `px` QET pixels: `round(px × 793 750 / 3)` nm.
 pub fn qet_px_em(px: u16) -> Nm {
     Grid::QET_1PX.at(i64::from(px)).unwrap_or(Nm::ZERO)
 }

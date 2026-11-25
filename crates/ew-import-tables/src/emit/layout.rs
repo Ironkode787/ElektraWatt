@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The panel layout records (doc 20 §13's test geometry): `layout_spaces.csv`, `enclosures.csv`
+//! The panel layout records: `layout_spaces.csv`, `enclosures.csv`
 //! (an enclosure and its plate surface), `carriers.csv` and `placements.csv`. Lengths are millimetres in the plate's
 //! frame (`u` right, `v` up); the records hold nanometres.
 //!

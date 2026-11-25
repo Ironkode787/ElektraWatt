@@ -31,7 +31,7 @@
 //! | | `hor`, `ver`, `bdiag`, `fdiag` (hatch patterns) | unsupported; no fill |
 //! | `antialias` | any | ignored silently: rendering quality is the renderer's choice, nothing is lost |
 //!
-//! The pen widths follow the house widths of doc 20 §17.4, whose "native px" column gives 0.5, 1.0, 2.0
+//! The pen widths follow the house widths, whose native px are 0.5, 1.0, 2.0
 //! and 5.0 px for the 0.13, 0.26, 0.52 and 1.30 mm pens.
 //!
 //! **Colour table** (Qt's named colours for the Qt names, SVG colours for the others):

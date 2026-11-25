@@ -5,7 +5,7 @@
 //! aspects `plc_station` and `plc_module`, the part's `plc` section, and the functional `device_link` (42;
 //! doc 03 §7, doc 11 §3.1).
 //!
-//! Implemented members are those of the MVP (doc 20 §11.2, §11.3, §6.2) and of the 1.0 layer of WP-S1.24: the
+//! Implemented members are those of the MVP  and of the 1.0 layer of WP-S1.24: the
 //! symbol policy, the safety data of doc 10 §2.9, a channel's data type, signal range and port mode, and the
 //! part's allowed slots, station limits, IO-Link port window and output ratings; and of the exchange of WP-S3.16: a
 //! configuration project's ownership and exchange stamp, a station's firmware and a module's type identification.

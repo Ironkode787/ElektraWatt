@@ -19,7 +19,7 @@ const PNG: &str =
 
 const FONT9: &str = "Sans Serif,9,-1,5,50,0,0,0,0,0";
 
-/// The em height of a 9 pt QET font (the `text.normal` of doc 20 §17.5), nm.
+/// The em height of a 9 pt QET font (the `text.normal` style), nm.
 const EM9: i64 = 3_175_000;
 
 /// The drop from a text box's top-left corner to its first line's baseline, after the 4 px margin: Qt's ascent of

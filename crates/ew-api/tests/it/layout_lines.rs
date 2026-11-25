@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Over the sample (doc 20 §13, §14.1):
+//! Over the sample:
 //!
 //! - `rails_and_ducts_come_from_the_carriers_and_print_902`: -UC1 carries no rail or duct part use; its carrier lines
 //!   give the rail at 0.94 m (two rails of 470 mm) and the duct at 0.47 m; the enclosure, plate, rail and duct rows

@@ -31,7 +31,7 @@ pub const SETTABLE_SUPPLY: &[&str] = &[
 
 /// `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply (doc 06 §3.1, ADR-0008
 /// amendment 6): its phases, neutral, protective earth, earthing system, nominal voltage, frequency, upstream rating,
-/// short-circuit current, or the external reference it comes from ("J-E-206-L", doc 20 §4.2).
+/// short-circuit current, or the external reference it comes from ("J-E-206-L").
 ///
 /// `path` is one of [`SETTABLE_SUPPLY`] (else invalid at `/path`); `value` is the member's JSON form, read
 /// back into the supply type (a value it does not accept is invalid at `/value`); `null` removes an

@@ -31,8 +31,8 @@ pub struct SettableSetting {
 /// | Member | Controls | Derived values that follow |
 /// |---|---|---|
 /// | `numbering` | the device-numbering schemes: the default key, per-scheme formats and per-class rules (the strip rule `{select: {aspect: "strip"}, format: "{letter}{page}{counter}"}` of the wizard's default), the child separator (doc 03 §5.1, §8.2) | device tags, and every text that prints one |
-/// | `colour_profile` | the pinned colour profile (doc 08 §4, doc 20 §7.1) | wire colours, reports 906 … 909 |
-/// | `size_profile` | the pinned size profile and its class rules (doc 08 §4.2, doc 20 §7.2) | wire cross-sections, reports |
+/// | `colour_profile` | the pinned colour profile (doc 08 §4) | wire colours, reports 906 … 909 |
+/// | `size_profile` | the pinned size profile and its class rules (doc 08 §4.2) | wire cross-sections, reports |
 /// | `xref_format` | the cross-reference format (doc 03 §5.1 `XrefFormat`, FR-XRF-003) | cross-reference texts |
 /// | `text_styles` | the text styles as overrides of the built-in table, by style key (ADR-0032, FR-SYM-013) | the size and weight of every text printed in an overridden or added style, EW-CORE-061 |
 /// | `process_tag_scheme` | the regular expression with named groups a process tag matches (FR-PLC-049, doc 10 §3.4) | EW-PRC-001 |

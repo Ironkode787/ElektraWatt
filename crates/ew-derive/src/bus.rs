@@ -271,7 +271,7 @@ impl Query for BusSegments {
 pub enum NetMaster {
     /// A bus port of this project.
     Port(Id<Function>),
-    /// An external interruption point: the partner is outside the project, named by the IP's `ExternalRef` (doc 20
+    /// An external interruption point: the partner is outside the project, named by the IP's `ExternalRef` (
     /// §11.1: JE-N1000-03 in +J-E-206). It is no device here, so it is in no BOM.
     External {
         /// The interruption point.
@@ -487,7 +487,7 @@ fn port_pin(q: &Q, function: Id<Function>, signal: &str) -> Option<CpRef> {
     })
 }
 
-/// The station address as a drawing prints it (doc 20 §11.1, FR-BUS-006): "Node TBD" for the open item, "Node " and
+/// The station address as a drawing prints it (FR-BUS-006): "Node TBD" for the open item, "Node " and
 /// the address of [`net_address_text`] otherwise ("Node 3", "Node cpx-1 192.168.0.10"); `None` for a port without
 /// an address and for an address form of a newer format.
 pub fn bus_address_text(port: &BusPort) -> Option<String> {
@@ -547,7 +547,7 @@ pub fn bus_termination_text(port: &BusPort) -> Option<String> {
     }
 }
 
-/// The members of a potential as folio 909 counts them (doc 20 §7.3): the connection points of devices, a terminal as
+/// The members of a potential as folio 909 counts them: the connection points of devices, a terminal as
 /// one member whatever its clamps and sides, and the external interruption points; the interruption points between
 /// pages are not members. A potential that a bus segment carries counts the segment's members instead of their
 /// CPs (D11: the DP potential reads segments): every function and cable of each segment one of whose functions has

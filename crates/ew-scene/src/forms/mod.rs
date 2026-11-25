@@ -15,7 +15,7 @@
 //!    separator line along the drawing area's bottom edge; unless `ew.frame.show_grid` is `false`, the
 //!    header bands (the lines `y = band` and `x = band` across the frame, the column ticks in the top band
 //!    and the row ticks in the left band) and the labels, centred in the header cells in style
-//!    `text.normal` (doc 20 §17.1: top and left only). All lines are solid black strokes of
+//!    `text.normal` (top and left only). All lines are solid black strokes of
 //!    `ew.frame.line_width` ([`DEFAULT_FRAME_LINE`] without it), each segment drawn once.
 //! 2. The form's `graphics`, through the symbol primitive lowering ([`crate::symbol::lower_primitive`]);
 //!    `text` primitives are shaped at their anchor with their alignment and angle.

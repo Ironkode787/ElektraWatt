@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Wire numbers (doc 08 §5.2, doc 20 §8.1, FR-NUM-019, FR-NUM-028) on synthetic models: devices with
+//! Wire numbers (doc 08 §5.2, FR-NUM-019, FR-NUM-028) on synthetic models: devices with
 //! one CP each, drawn at chosen cells of the QET frame, wired by single connections.
 //!
 //! - `column_comes_before_row`: the From end's cell is compared by column, then row.
@@ -131,7 +131,7 @@ fn edit_lib(fx: &mut Fx, n: u128, f: impl FnOnce(&mut Value)) {
 }
 
 /// The point of the QET 10 px grid at the lower-left corner of the frame cell `(column, row)`: the frame
-/// grid starts two steps in, a cell is 6 steps wide and 8 steps high (doc 20 §17.1).
+/// grid starts two steps in, a cell is 6 steps wide and 8 steps high.
 fn at(column: i64, row: i64) -> Pt2 {
     let g = Grid::QET_10PX;
     Pt2::new(

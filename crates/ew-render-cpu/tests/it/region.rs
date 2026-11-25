@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `render_region` and `ItemBounds` (acceptance check A3): the full rectangle is `render` byte for
-//! byte, stitched regions match the full raster within the doc 20 tolerance, the surround is outside the sheet, and
+//! byte, stitched regions match the full raster within the tolerance, the surround is outside the sheet, and
 //! culling never changes a pixel.
 
 use crate::common;

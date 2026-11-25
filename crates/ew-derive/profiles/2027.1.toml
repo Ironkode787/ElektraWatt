@@ -103,7 +103,7 @@ paths = [
   "party.engineer.address.country",
 ]
 
-# The table of contents (doc 09 §3.1, doc 20 §16): data rows per TOC page, which drives the page-count
+# The table of contents (doc 09 §3.1): data rows per TOC page, which drives the page-count
 # fixpoint of `page_order`.
 [toc]
 rows_per_page = 23

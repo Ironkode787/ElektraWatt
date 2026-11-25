@@ -521,7 +521,7 @@ impl Rule for TextBelowMinimum {
     }
 }
 
-/// The default text style of a text without one, and the style an unknown key prints with (doc 20 §17.5; the scene's
+/// The default text style of a text without one, and the style an unknown key prints with (the scene's
 /// `ew_text::DEFAULT_STYLE_KEY`).
 const DEFAULT_TEXT_STYLE: &str = "text.normal";
 
@@ -535,7 +535,7 @@ fn printed_style<'a>(table: &[EffectiveStyle], key: Option<&'a str>) -> &'a str 
 }
 
 /// The style a symbol's text slot prints with: its own `style` when that is a style of `table`, else the style bound
-/// to its kind (doc 20 §17.5; `ew_schema::slot_default_style`, the scene's binding too).
+/// to its kind (`ew_schema::slot_default_style`, the scene's binding too).
 fn slot_style<'a>(table: &[EffectiveStyle], def: &SymbolDef, slot: &'a TextSlot) -> &'a str {
     match slot.style.as_ref().map(|s| s.as_str()) {
         Some(k) if is_style(table, k) => k,

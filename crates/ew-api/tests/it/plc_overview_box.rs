@@ -24,7 +24,7 @@ use ew_reports::BlockRows;
 use ew_scene::forms::SheetMap;
 use ew_schema::{AnyId, Bounds, Record, ReportBlock, ReportKind, ReportSource};
 
-/// The frame form's page-to-sheet map (doc 20 §17.1).
+/// The frame form's page-to-sheet map.
 const SHEET: SheetMap = SheetMap {
     scale_ppb: 986_282_578,
     offset: Pt2 {

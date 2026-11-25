@@ -139,7 +139,7 @@ fn folio(q: &Q, p: PageRef) -> String {
     }
 }
 
-/// The Folios column of the BOM (doc 20 §14.1): runs of at least three pages that are consecutive in the
+/// The Folios column of the BOM: runs of at least three pages that are consecutive in the
 /// page order print "first–last" with an en dash and no spaces, shorter runs as a ", " list.
 ///
 /// The doc's rows: "-201U1, -202U1" on "201, 202" (two pages: a list) and "-201U3-Q1 … -202U2-Q4" on

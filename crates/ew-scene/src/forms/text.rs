@@ -13,7 +13,7 @@ use ew_units::{Angle2, Nm, Pt2, Rect};
 use super::sheet::{PPB_ONE, SheetMap};
 
 /// The horizontal inset of cell text from the cell's left and right edges, and the vertical inset of top-
-/// and bottom-aligned text: 2 QET px (0.529 mm). Doc 20 gives no inset; this is the lead's choice.
+/// and bottom-aligned text: 2 QET px (0.529 mm). No drawing of the house gives an inset; this one is chosen.
 /// `round(2 × 793 750 / 3)` nm (= `Grid::QET_1PX.at(2)`).
 pub const CELL_PADDING: Nm = Nm(529_167);
 

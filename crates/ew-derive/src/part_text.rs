@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The part texts of a device's symbol slots: manufacturer, part number, type designation and technical data
-//! (FR-SYM-011, FR-DEV-009, FR-DEV-016, doc 07 §9.1 step 4, doc 20 §3.4 row 8, D-18, D-33, D-35), and the
+//! (FR-SYM-011, FR-DEV-009, FR-DEV-016, doc 07 §9.1 step 4, D-18, D-33, D-35), and the
 //! confidence of a part's data sections (FR-PRT-031).
 //!
 //! These are plain functions of the tracked reads of a [`Q`], not memoised queries: a caller that already

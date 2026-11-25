@@ -670,7 +670,7 @@ pub fn slot_style_key<'a>(
     }
 }
 
-/// The default text-style key bound to a slot kind of `def` (doc 20 §17.5; `ew_schema::slot_default_style`):
+/// The default text-style key bound to a slot kind of `def` (`ew_schema::slot_default_style`):
 /// `terminal` for a terminal symbol's tag, `tag.main` for other tags, `cp.small` for CP designations, `data.small`
 /// for every other known kind, `text.normal` for unknown kinds.
 pub fn default_style_key(def: &SymbolDef, kind: &SlotKind) -> &'static str {

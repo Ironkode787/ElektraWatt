@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its
+//! The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022): its
 //! tables read into format-level records.
 //!
 //! [`TablesImporter`] reads tables of the `ew` dialect (their schemas: `src/schema.rs`)

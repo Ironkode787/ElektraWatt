@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Project-local part copies (doc 20 §6.1, §10, §14.1): `parts.csv` with its CP patterns, function templates
+//! Project-local part copies: `parts.csv` with its CP patterns, function templates
 //! and cable cores. `library_id` is the project ID (doc 05 §13.2), `item_id = v5(ns, "parts|{key}")`.
 
 use std::collections::BTreeMap;
@@ -506,7 +506,7 @@ pub(crate) fn emit(
         );
         cx.local_lib.push(LibDocument::Part(copy));
     }
-    // The manufacturer master copies the parts name, project-local like them (doc 20 ▲U-45:
+    // The manufacturer master copies the parts name, project-local like them (
     // `item_id = v5(ns, "manufacturers|<name>")`), keyed and named by the name the table gives, in name order.
     for (name, (ident, source)) in manufacturers {
         let item = Manufacturer {

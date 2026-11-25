@@ -107,7 +107,7 @@ pub enum DeriveNote {
         issue: SchemeIssue,
     },
     /// No frame is configured for a page: the built-in default geometry of the QET-compatible A4 frame
-    /// (doc 03 §5.1, doc 20 §17.1) gives its cells (one note however many pages used it).
+    /// (doc 03 §5.1) gives its cells (one note however many pages used it).
     DefaultFrame,
     /// A provisional settings member (`ProjectSettings.extra[...]`, `Project.extra[...]`) is malformed;
     /// the default applies.

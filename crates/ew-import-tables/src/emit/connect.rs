@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Connections, junctions, conductors, potential definitions and bonds (doc 20 §7, §8, §10; doc 03 §9.2).
+//! Connections, junctions, conductors, potential definitions and bonds (doc 03 §9.2).
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -291,7 +291,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
     }
 }
 
-/// The `route` cell of a `connections.csv` row (doc 20 ▲U-51): the corners between the two ends,
+/// The `route` cell of a `connections.csv` row: the corners between the two ends,
 /// `;`-separated, each `<cell>` or `<cell> <dx> <dy>` (an offset in QET px from the cell centre, as `dx` and `dy` of
 /// `junctions.csv`).
 fn route_cells(r: &mut Rd<'_>) -> Vec<((i64, i64), i64, i64)> {

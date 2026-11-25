@@ -17,7 +17,7 @@
 //!   [`ShapedRun`](ew_dl::ShapedRun) in integer nm, its lines and the characters without a glyph
 //!   ([`Shaped::missing`], FR-OUT-027) and which face drew which glyphs ([`Shaped::faces`]). Lines break only when a maximum width is given (one paragraph,
 //!   parley's greedy breaking); `\n` always breaks.
-//! - [`TextStyleTable`]: a style table, the built-in one of doc 20 §17.5 ([`builtin()`]) or a project's effective
+//! - [`TextStyleTable`]: a style table, the built-in one ([`builtin()`]) or a project's effective
 //!   table built by its caller ([`TextStyleTable::from_rows`], ADR-0032).
 //!
 //! There is **no cache** here: the memoised `shaped_text` query of ADR-0015 is built on `ew-memo`

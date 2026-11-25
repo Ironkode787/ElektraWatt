@@ -26,9 +26,9 @@ use crate::rowset::{RowSet, RowSetStatus};
 /// What an export writes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Export {
-    /// The cable list: the rows of the cable overview (doc 20 §10).
+    /// The cable list: the rows of the cable overview.
     Cables,
-    /// The bill of materials in a mode: `Component` is the parts list (doc 20 §14.1), `Assembly` the
+    /// The bill of materials in a mode: `Component` is the parts list, `Assembly` the
     /// assembly list (§14.2).
     Bom(BomMode),
 }

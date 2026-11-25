@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Wire numbers: `wire_numbers()` (doc 08 §5.2, doc 20 §8.1, FR-NUM-019, FR-NUM-028).
+//! Wire numbers: `wire_numbers()` (doc 08 §5.2, FR-NUM-019, FR-NUM-028).
 //!
 //! # Rule
 //!
@@ -25,7 +25,7 @@
 //! drawn point on the page of the constituent connection that ends there ([`cp_cell`]); an end that no
 //! representation draws on that page has no cell and sorts after every cell. Where the two cells cannot
 //! separate two wires the steps 4 and 5 decide; [`WireNumber::tie`] still groups the wires of the same cells,
-//! so that a table can print "101.2–.3 (tie)" as doc 20 §8.2 does.
+//! so that a table can print "101.2–.3 (tie)".
 //!
 //! The query orders **every** physical wire (cores included, so that the wire list can use the order for its
 //! rows); only the numbered ones carry a [`WireNumber`]. A wire none of whose constituents is drawn on a page
@@ -79,7 +79,7 @@ pub struct WireNumber {
     /// code for it.
     pub rule: Option<String>,
     /// The counters (first, last) of the group of wires whose From and To cells are the same, when the group
-    /// has more than one wire: the labels, the route or the wire ID decided among them (doc 20 §8.1 "tie").
+    /// has more than one wire: the labels, the route or the wire ID decided among them.
     pub tie: Option<(u32, u32)>,
 }
 

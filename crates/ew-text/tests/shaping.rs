@@ -250,7 +250,7 @@ fn metrics_of_the_default_face() {
     let f = bundled().face_for(&style("text.normal"));
     assert_eq!(f.family_name, "Noto Sans");
     assert_eq!(f.metrics.units_per_em, 1000);
-    // Doc 20 §18.1 assumes a cap ratio of 0.714.
+    // The readable cap height assumes a cap ratio of 0.714.
     assert_eq!(f.metrics.cap_height, 714);
     let m = bundled().vertical_metrics(&style("text.normal"));
     assert_eq!(m.cap_height, Nm(2_266_950));

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The record emitters and their shared context: the key maps of every emitted row, the CP lists of every
-//! function and the endpoint notation of doc 20 §1.2 (README "CP and endpoint notation").
+//! function and the endpoint notation (README "CP and endpoint notation").
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -283,7 +283,7 @@ impl<'l> Cx<'l> {
     // -----------------------------------------------------------------------------------------------------
     // Endpoints
 
-    /// The endpoint named by `text` in the notation of doc 20 §1.2.
+    /// The endpoint named by `text` in the endpoint notation of the README.
     pub(crate) fn endpoint(&self, text: &str) -> Result<Endpoint, String> {
         if let Some(j) = text.strip_prefix('@') {
             return self
@@ -390,7 +390,7 @@ impl<'l> Cx<'l> {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Positions on the QET-compatible A4 frame (doc 20 §17.1)
+// Positions on the QET-compatible A4 frame
 
 /// Header band, column width and row height of the frame, in QET px.
 const HEADER_PX: i64 = 20;

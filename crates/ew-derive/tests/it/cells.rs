@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Frame cells (doc 06 §5.1, doc 20 §6.1 and §15, FR-PAG-020): `cell_of` reads a coordinate within the
+//! Frame cells (doc 06 §5.1, FR-PAG-020): `cell_of` reads a coordinate within the
 //! 1 nm rounding window of a grid position as that exact grid position and any other coordinate as
 //! stored, on exact rationals; `rep_anchor_cell` reads the symbol's anchor policy.
 
@@ -752,7 +752,7 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Anchor cells (doc 20 §6.1 "Main rep." and §15)
+// Anchor cells ("Main rep.")
 
 /// What a symbol's anchor policy and geometry are, in nm and symbol coordinates.
 #[derive(Clone, Debug)]
@@ -822,7 +822,7 @@ fn rect(x0: i64, y0: i64, x1: i64, y1: i64) -> Value {
 
 #[test]
 fn doc20_anchor_cells() {
-    // (device of doc 20, symbol, orientation, rep position as QET grid index, expected cell).
+    // (device, symbol, orientation, rep position as QET grid index, expected cell).
     // Cell (column c, row r) of the QET frame spans k_x in 2+6c ..= 7+6c and k_y in 2+8r ..= 9+8r
     // (centre 5+6c, 6+8r); 1 grid step is 2.6458 mm.
     let named = |x: i64, y: i64| Sym::with(json!({"named": [x, y]}));

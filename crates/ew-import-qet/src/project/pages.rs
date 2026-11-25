@@ -38,7 +38,7 @@ use super::items::ItemsOut;
 use super::model::{Border, QetDiagram, QetProject};
 use super::{frames, tables};
 
-/// The derivation profile of imported projects (the shipped profile, doc 20 §4.4).
+/// The derivation profile of imported projects (the shipped profile).
 pub const DERIVATION_PROFILE: &str = "2027.1";
 
 /// One mapped diagram.

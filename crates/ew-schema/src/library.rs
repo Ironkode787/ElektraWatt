@@ -815,9 +815,9 @@ pub enum SlotKind {
     UserProp(#[schemars(with = "IdentS")] Ident),
     /// Contact image.
     ContactImage,
-    /// The order code of the device's first assembly config (doc 10 §6 folio 3, doc 20 §11.1, D-36).
+    /// The order code of the device's first assembly config (doc 10 §6 folio 3, D-36).
     OrderCode,
-    /// The station address of the drawn function's bus port, "Node TBD" or "Node 3" (doc 20 §11.1, FR-BUS-006;
+    /// The station address of the drawn function's bus port, "Node TBD" or "Node 3" (FR-BUS-006;
     /// WP-S1.21 D11); empty for a port without an address.
     BusAddress,
     /// The termination of the drawn function's bus port, `Switch to "ON"` (FR-BUS-004; WP-S1.21 D11); empty for a
@@ -2303,11 +2303,11 @@ pub struct ShrinkSpec {
     pub extra: Extra,
 }
 
-/// The row height of the house report form (doc 09 §2.5, doc 20 §16): 6.52 mm. The pagination of `ew-reports` and
+/// The row height of the house report form (doc 09 §2.5): 6.52 mm. The pagination of `ew-reports` and
 /// the table that `ew-scene` draws both read it.
 pub const HOUSE_ROW_HEIGHT: Nm = Nm(6_520_000);
 
-/// The data rows per page of the house report form (doc 20 §16).
+/// The data rows per page of the house report form.
 pub const HOUSE_ROWS_PER_PAGE: i64 = 23;
 
 /// The data area of a report form.

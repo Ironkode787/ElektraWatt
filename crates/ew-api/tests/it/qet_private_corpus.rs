@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Smoke run of the QET project importer over a private corpus (Golden C spike, doc 20 §2.3): every `.qet`
+//! Smoke run of the QET project importer over a private corpus: every `.qet`
 //! of the directory named by `EW_PRIVATE_CORPUS` is imported in lenient mode, opened as a session, derived
 //! (page order, device tags, potential partition) and exported to PDF. The test prints counts only, never a
 //! name or a text of the corpus, and asserts that nothing panics, no connection is lost, a second import gives the

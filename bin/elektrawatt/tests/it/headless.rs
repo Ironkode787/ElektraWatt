@@ -228,7 +228,7 @@ fn the_smoke_script_runs_on_the_sample() {
         "an absolute path in the transcript"
     );
 
-    // The 150 dpi snapshot of folio 103 matches `ew render`'s PNG of the copy within the doc 20 tolerance.
+    // The 150 dpi snapshot of folio 103 matches `ew render`'s PNG of the copy within the tolerance.
     let committed = support::exported::png(&tmp.sample("render/sample.ew"), "103");
     let produced = std::fs::read(&png_path).unwrap();
     let (w0, h0, a) = decode_rgba(&committed);

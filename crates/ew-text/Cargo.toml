@@ -20,7 +20,7 @@ bundled-fonts = []
 
 [dependencies]
 ew-dl = { path = "../ew-dl" }
-# The built-in text-style table is the schema's (doc 20 §17.5, ADR-0032 decision 5).
+# The built-in text-style table is the schema's (ADR-0032 decision 5).
 ew-schema = { path = "../ew-schema" }
 ew-units = { path = "../ew-units" }
 parley = { version = "0.12.0", default-features = false, features = ["std"] }

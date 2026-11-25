@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The end brackets in the outputs (doc 12 §3, doc 20 §14.1), on the sample with the set-up of
+//! The end brackets in the outputs (doc 12 §3), on the sample with the set-up of
 //! `common::strips_on_a_test_rail`: the test tables' TBD end bracket on each of the three strips, and the strips moved
 //! in one run onto a third rail, -X1011 at 30 mm, -X1021 at 66 mm and -X1031 at 117.6 mm, brackets [20, 30] and
 //! [56, 66] of -X1011, [107.6, 117.6] of -X1021 and [143.6, 153.6] of -X1031 (the sample's strips declare no end

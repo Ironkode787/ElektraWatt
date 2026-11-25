@@ -15,9 +15,9 @@
 //!
 //! | `table` | Rows |
 //! |---|---|
-//! | `colours` | the title "CABLE COLOUR DEFINITIONS", one data row per profile row (voltage class, function, potential type, colour name, colour code), then the profile's standards text as a caption (doc 20 U-35; the basis text stays metadata) |
+//! | `colours` | the title "CABLE COLOUR DEFINITIONS", one data row per profile row (voltage class, function, potential type, colour name, colour code), then the profile's standards text as a caption (the basis text stays metadata) |
 //! | `control`, `mains` | the title, then one data row per colour code that has the class's standard size, in the order of the size profile: colour name, colour code, size |
-//! | `note` | the note "If size or sign is not indicated in diagram, standard size or sign is to be used." (doc 08 §4.2, doc 20 §7.2) |
+//! | `note` | the note "If size or sign is not indicated in diagram, standard size or sign is to be used." (doc 08 §4.2) |
 //!
 //! A project without a colour or size profile has no rows of that part (the built-in defaults of the
 //! derivation profile have no cover table), and no note. The note is derived text of the wire-marker mode

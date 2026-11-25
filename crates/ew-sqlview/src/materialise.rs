@@ -869,7 +869,7 @@ fn device_set(q: &Q, devices: Vec<Id<Device>>, point: Option<String>) -> String 
     json_array(&out)
 }
 
-/// The order of the conductor rows: cable tag, then the core-list order of doc 20 §10 (shield last, pair,
+/// The order of the conductor rows: cable tag, then the core-list order (shield last, pair,
 /// natural core name).
 type CoreKey = (NaturalKey, bool, Option<u8>, NaturalKey);
 
@@ -929,7 +929,7 @@ fn class_name(c: &CircuitClass) -> String {
     .to_owned()
 }
 
-/// The members of a potential as folio 909 counts them (doc 20 §7.3; a potential a bus segment carries counts the
+/// The members of a potential as folio 909 counts them (a potential a bus segment carries counts the
 /// segment's members): [`ew_derive::potential_member_count`], one reader for the report and the view.
 fn member_count(q: &Q, p: &Potential) -> usize {
     ew_derive::potential_member_count(q, p)

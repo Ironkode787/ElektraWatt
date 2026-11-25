@@ -8,8 +8,8 @@
 //! symbol's function-definition reference. The **QET edition** is a generated copy of every native symbol
 //! on the QET 10 px grid: all lengths are scaled by `7_937_500 / 12_000_000` (the 4 mm grid step becomes
 //! the QET step `7_937_500 / 3` nm) and the key gets the suffix `@qet10`. House pens are expressed in QET px
-//! ([`qet_pen`]: 0.26 mm becomes 1.0 px = `264_583` nm, 0.13 mm 0.5 px, 0.52 mm 2.0 px …, doc 20 §17.4), so
-//! that after the QET frame's page-to-sheet map they print at the widths of doc 20 §17.4 (0.261, 0.130,
+//! ([`qet_pen`]: 0.26 mm becomes 1.0 px = `264_583` nm, 0.13 mm 0.5 px, 0.52 mm 2.0 px …), so
+//! that after the QET frame's page-to-sheet map they print at the house widths (0.261, 0.130,
 //! 0.522 mm) like the frame and the wires of a QET-grid page.
 //!
 //! xtask must not depend on any workspace crate, so the documents are handled as JSON text with an
@@ -337,7 +337,7 @@ fn member(obj: &mut V, name: &str, f: fn(&mut V) -> Result<()>) -> Result<()> {
     }
 }
 
-/// The house pens in QET px tenths (doc 20 §17.4: native px of each printed width).
+/// The house pens in QET px tenths (the native px of each printed width).
 const QET_PENS: [(&str, i64); 6] = [
     ("p013", 5),
     ("p018", 7),

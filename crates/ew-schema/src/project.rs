@@ -128,7 +128,7 @@ pub struct MasterData {
     /// Edited date: day precision, merged by maximum, feeds the "Saved" cell (FR-PRJ-029).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edited: Option<Date>,
-    /// The cover subtitle ("Electrical Definition", doc 20 §4.1), distinct from `long_description`
+    /// The cover subtitle ("Electrical Definition"), distinct from `long_description`
     /// (doc 03 §5). Appended, since 0.1.
     #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]
@@ -297,7 +297,7 @@ pub struct ProjectSettings {
     /// `v_major_minor` ([`ProjectSettings::revision_label_format`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revision_label: Option<LabelFormat>,
-    /// The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the
+    /// The text styles as overrides of the built-in table, by style key (ADR-0032): a key of the
     /// table takes the entry's size and weight, any other key adds a style. Absent is the built-in table.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(with = "BTreeMap<String, TextStyleSpec>")]

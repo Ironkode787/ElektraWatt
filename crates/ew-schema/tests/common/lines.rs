@@ -18,58 +18,58 @@ pub const DOC05_LINES: &[&str] = &[
 /// The doc 05 §3.5 part copy, compacted; IDs and hash abbreviated in the document are tokens here.
 pub const DOC05_PART: &str = r#"{"$k":"part","id":"@PART_PSU","library_id":"@LIB","item_id":"@ITEM_PSU","version":"1.2.0","sha256":"@HASH","meta":{"licence":"CC0-1.0","sources":["golden tables"]},"manufacturer":{"library":"@LIB","item":"@ITEM_MFR","version_req":"^1"},"part_number":"2904602","description":{"en-GB":"Power supply 1 AC / 24 V DC, 20 A"},"cp_pattern":[{"idx":0,"designation":"L"},{"idx":1,"designation":"N"},{"idx":2,"designation":"PE","potential_role":"pe"},{"idx":3,"designation":"+","potential_role":"l_plus"},{"idx":4,"designation":"+","potential_role":"l_plus"},{"idx":5,"designation":"-","potential_role":"m"},{"idx":6,"designation":"-","potential_role":"m"}]}"#;
 
-/// Golden lines, one or more per implemented record kind (doc 20 values).
+/// Golden lines, one or more per implemented record kind.
 pub const GOLDEN: &[&str] = &[
-    // project (doc 20 §4.1, §4.2): only the golden party placeholders.
+    // project: only the golden party placeholders.
     r#"{"$k":"project","id":"@PRJ","master":{"description":{"en-GB":"Expansion Control Cabinets"},"project_ref":"<project ref>","drawing_id":"<drawing id>","object_id":"J-E-2416","manufacturing_year":2025,"created":"2025-03-03","edited":"2025-04-14"},"parties":[{"role":"customer","name":"<customer>"},{"role":"end_user","name":"<end user>"},{"role":"engineer","name":"<engineer>","personal_data":true}],"supply":{"phases":1,"neutral":true,"pe":true,"earthing":"tn_s","u_nom":"230","frequency":"50"},"control_voltage":{"value":"24","unit":"V"},"rated_consumption":{"value":"6","unit":"A"},"settings":{"identifier_set":"EN81346-2:2009","ip_pairing":{"mode":"star","scope":"project"},"formatting":{"date":"dd_mm_yyyy","decimal_separator":"point"}},"languages":{"source":"en-GB"},"derivation_profile":"2027.1"}"#,
-    // structure (doc 20 §4.3)
+    // structure
     r#"{"$k":"structure_node","id":"@LOC_JE2416","aspect":"location","code":"J-E-2416","aliases":["JE2416"],"description":{"en-GB":"This cabinet"},"order":1}"#,
     r#"{"$k":"structure_node","id":"@FN_P01","aspect":"function","code":"P01"}"#,
     r#"{"$k":"section","id":"@SEC1","number":1,"folio_range":[100,199],"title":{"en-GB":"Wiring Definition"},"divider":true}"#,
     r#"{"$k":"external_ref","id":"@EXT_L","location":"@LOC_JE206","device":"JE-N1000-03","connection":"L"}"#,
-    // pages (doc 20 §5)
+    // pages
     r#"{"$k":"page","id":"@P1","folio":{"number":1},"kind":"title_page","structure":{"function":"@FN_P01","location":"@LOC_JE2416"},"form":"@FORM_COVER","title":{"en-GB":"Title Page"},"grid":{"num":7937500,"den":3}}"#,
     r#"{"$k":"page","id":"@P902","folio":{"section":"@SEC9","number":902},"kind":"panel_layout","structure":{"function":"@FN_P01","location":"@LOC_JE2416"},"title":{"en-GB":"Cabinet Layout"},"scale":{"one_to":10},"grid":{"num":7937500,"den":3}}"#,
     r#"{"$k":"page","id":"@P103","folio":{"section":"@SEC1","number":103,"label":"103a"},"kind":"multi_line","structure":{"document_kind":"none"},"title":{"en-GB":"Power Supply 3 - Control Current Distribution"},"description_override":{"en-GB":"Control Cabinet Expansion"},"grid":{"num":7937500,"den":3}}"#,
-    // devices (doc 20 §6, §9, §10)
+    // devices
     r#"{"$k":"device","id":"@DEV_S51","tag":{"letter":"S","counter":1,"frozen":{"text":"S51","sign":"hidden"}},"parts":[{"part":{"copy":"@PART_533356"},"qty":"1"}],"tech_data":[{"key":"curve","value":"C"},{"key":"i_rated","value":{"value":"40","unit":"A"}}]}"#,
     r#"{"$k":"device","id":"@DEV_X1031","tag":{"letter":"X","counter":1},"function_text":{"en-GB":"24 V / 0 V distribution"},"strip":{"label_mode":"function_text","groups":[{"from_seq":1,"to_seq":4,"label":{"en-GB":"Pneumatics"}},{"from_seq":5,"to_seq":10,"label":{"en-GB":"Spare"}}]}}"#,
     r#"{"$k":"device","id":"@DEV_X1032_1","tag":{"letter":"X"},"kind":"terminal","parts":[{"part":{"copy":"@PART_TWINPE"},"qty":"1"}],"function_text":"PE","state":"spare","terminal":{"strip":"@DEV_X1031","seq":5,"designation":"5","levels":[{"level":1}],"rail_bonded":true}}"#,
     r#"{"$k":"device","id":"@DEV_W106_1","tag":{"letter":"W","counter":1},"parts":[{"part":{"copy":"@PART_NEBU"},"qty":"1"}],"cable":{"length":"from_part","core_id_mode":"colour"}}"#,
     r#"{"$k":"device","id":"@DEV_W3_1","tag":{"letter":"W","counter":1},"cable":{}}"#,
     r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"G","counter":1},"cable":{"length":{"manual":2000000000},"pre_assembled":true}}"#,
-    // the assembly aspect (doc 20 §14.2, D-41)
+    // the assembly aspect (D-41)
     r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"parts":[{"part":{"copy":"@PART_NEBU"},"qty":"1"}],"assembly":{"configs":[{"label":{"en-GB":"Order Code 1"},"order_code":"51E-F13GCQP-D+H2GG","part":{"copy":"@PART_NEBU"},"covers":["@DEV_G1"]},{"label":{"en-GB":"Order Code 2"},"order_code":"32P-VGL-R","covers":["@DEV_S51","@DEV_X1031"]}],"bom_basis":"components"},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"}}"#,
-    // PLC aspects (doc 20 §11.2)
+    // PLC aspects
     r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"}}"#,
     r#"{"$k":"device","id":"@DEV_S51","tag":{"letter":"U","counter":3},"parent":"@DEV_G1","position":2,"plc_module":{}}"#,
     r#"{"$k":"device","id":"@DEV_S51","tag":{"letter":"U","counter":3},"plc_module":{"slot":{"rack":{"rack":0,"slot":3,"subslot":1}},"start":{"input":"tbd","output":{"manual":{"area":"q","byte":10}}},"part_use":1,"integrated":true}}"#,
-    // functions (doc 20 §6, §8)
+    // functions
     r#"{"$k":"function","id":"@FN_IP24","def":"@FNDEF_IP","kind":{"ip":{"name":"24VDC-1","direction":"source","star_source":true}}}"#,
     r#"{"$k":"function","id":"@FN_F2_102","device":"@DEV_G1","def":"@FNDEF_MCB","role":"aux","cp_overrides":[{"idx":0,"designation":"1","alias":"L1"},{"idx":3,"unused":true}]}"#,
     r#"{"$k":"function","id":"@FN_X1031","device":"@DEV_X1031","def":"@FNDEF_IP","kind":{"ip":{"name":"J-E-206-L","direction":"target","external":"@EXT_L"}}}"#,
     // representations
     r#"{"$k":"representation","id":"@REP_X1031A","functions":["@FN_X1031"],"page":"@P103","symbol":"@SYM_MCB","variant":1,"pos":[23812500,23812500],"orient":"r90","rep_type":"strip_segment","pin_map":[{"symbol_cp":0,"function":"@FN_X1031","idx":1}],"text_slots":[{"slot":0,"pos":[0,-2645833],"visible":true}],"arrangement":"full"}"#,
     r#"{"$k":"representation","id":"@REP_F1","functions":["@FN_G1"],"page":"@P102","symbol":"@SYM_MCB","pos":[95250000,63500000],"box":{"outline":[[0,0],[47625000,0],[47625000,31750000],[0,31750000]],"cps":[{"idx":0,"pos":[0,7937500],"dir":"left","name":"L1"}]}}"#,
-    // connections (doc 20 §8)
+    // connections
     r#"{"$k":"connection","id":"@CON_W20","a":{"cp":["@FN_G1",3]},"b":{"cp":["@FN_F1",0]},"page":"@P102","route":[[95250000,39687500],[111125000,39687500]],"overrides":{"csa":"1.5","show_marker":true},"number":{"assigned":{"counter":1}}}"#,
     r#"{"$k":"connection","id":"@CON_W29","a":{"cp":["@FN_F2_102",8]},"b":{"cp":["@FN_IP24",0]},"page":"@P102","route":[[150812500,95250000],[150812500,166687500]],"number":{"frozen":"102.5"}}"#,
     r#"{"$k":"connection","id":"@CON_BR1","a":{"cp":["@FN_X1031_1",3]},"b":{"cp":["@FN_X1031_2",3]},"kind":{"bridge":{"kind":"plug_in","group":1,"shaft":1}}}"#,
     r#"{"$k":"connection","id":"@CON_W39","a":{"cp":["@FN_X1031_1",2]},"b":{"junction":"@JN_J5"},"page":"@P103","kind":{"core":"@COND_BN"}}"#,
     r#"{"$k":"connection","id":"@CON_DP","a":{"cp":["@FN_S51",0]},"b":{"cp":["@FN_F1",1]},"page":"@P1","kind":{"bus":{"cable":"@DEV_W3_1"}}}"#,
     r#"{"$k":"connection","id":"@CON_W27","a":{"cp":["@FN_G1",5]},"b":{"cp":["@FN_X1032_2",0]},"page":"@P102","kind":"overview","overrides":{"colour":["GN","YE"],"wire_part":{"copy":"@PART_TWIN","variant":"GNYE"},"flags":{"shielded":true},"length":350000000}}"#,
-    // junctions (doc 20 §8.3)
+    // junctions
     r#"{"$k":"junction","id":"@JN_J5","page":"@P102","at":[103187500,111125000],"style":{"bevel":{"orient":"r90"}},"wiring":"star","sequence":["@CON_W20","@CON_W22","@CON_W27B"]}"#,
     r#"{"$k":"junction","id":"@JN_J1","page":"@P101","at":[103187500,55562500],"style":"dot","sequence":["@CON_W7","@CON_W20","@CON_W29"]}"#,
-    // conductors (doc 20 §10)
+    // conductors
     r#"{"$k":"conductor","id":"@COND_BN","cable":"@DEV_W106_1","core":"BN","colour":["BN"],"csa":"0.75"}"#,
     r#"{"$k":"conductor","id":"@COND_SH","cable":"@DEV_W3_1","core":"SH","shield":true}"#,
-    // PLC records (doc 20 §11.2, §11.3, §6.2)
+    // PLC records
     r#"{"$k":"plc_config_project","id":"@PLC1","name":"PLC1","profile":"siemens-tia-intl@2027.1"}"#,
     r#"{"$k":"channel","id":"@CH_U3_1","module":"@DEV_S51","number":1,"kind":"do","binding":{"cp":["@FN_S51",5]}}"#,
     r#"{"$k":"channel","id":"@CH_U3_1","module":"@DEV_S51","number":0,"designation":"DO 0","kind":"di","address":{"manual":{"area":"i","size":"word","byte":64}},"state":"deactivated","symbol":"TA05_V_15","comment":{"en-GB":"Valve"},"target":"@FN_S51"}"#,
     r#"{"$k":"device_link","id":"@DL_Q1","from":"@DEV_S51","to":"@DEV_G1","kind":"drives"}"#,
-    // the bus model (doc 20 §11.1, doc 10 §2.7): the DP nets, the slave port of -201U1 (address `tbd`),
+    // the bus model (doc 10 §2.7): the DP nets, the slave port of -201U1 (address `tbd`),
     // the passive connector port of -3X1 (termination on), a set PROFIBUS address
     r#"{"$k":"logical_net","id":"@LNET_DP","bus":"profibus_dp","name":"PROFIBUS DP","master":{"cp":["@FN_X1031",0]}}"#,
     r#"{"$k":"logical_net","id":"@LNET_DP","bus":"profibus_dp","name":"DP2","rate":1500000}"#,
@@ -77,21 +77,21 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"function","id":"@FN_F1","device":"@DEV_G1","def":"@FNDEF_MCB","role":"aux","bus_port":{"interface":"DP","bus":"profibus_dp","role":"slave","address":"tbd","logical_net":"@LNET_DP","physical_net":"@PNET_DP"}}"#,
     r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","bus_port":{"interface":"DP","bus":"profibus_dp","role":"passive","address":"not_applicable","termination":"on","physical_net":"@PNET_DP"}}"#,
     r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","bus_port":{"interface":"DP","port_label":"P1","bus":"profibus_dp","role":"master","address":{"value":{"profibus":2}},"termination":"off"}}"#,
-    // potentials and the bond (doc 20 §7.3, §7.4)
+    // potentials and the bond
     r#"{"$k":"potential_def","id":"@POT_LS","at":{"cp":["@FN_S51",0]},"name":"L-S"}"#,
     r#"{"$k":"potential_def","id":"@POT_24","at":{"cp":["@FN_F2_102",8]},"name":"24VDC-1","ptype":"l_plus","voltage":"24","env":{"ac_dc":"dc","earthing":"pelv"},"circuit_class":"control","props":{"csa":"0.75","colour":["DBU"]}}"#,
-    // media (doc 20 §2.4, Golden A-R's fluid overlay, ▲U-25)
+    // media (the fluid overlay)
     r#"{"$k":"medium","id":"@MED_AIR","name":{"en-GB":"compressed air 6 bar"},"p_nom":"6","quality":"1-4-1","colour":["BU"],"default_tube":{"od":6000000,"id":4000000,"material":"pu","colour":["BU"]},"line_kind_tubes":[{"line_kind":"pilot","tube":{"od":4000000,"id":2700000}}]}"#,
     r#"{"$k":"medium_def","id":"@MDEF_AIR","at":{"cp":["@FN_S51",0]},"medium":"@MED_AIR"}"#,
     r#"{"$k":"bond","id":"@BOND_B1","a":{"cp":["@FN_G1",5]},"b":{"cp":["@FN_X1032_2",0]},"kind":"pelv_0v_pe","via":"@CON_W27"}"#,
-    // report blocks (doc 20 §16, doc 09 §2.2)
+    // report blocks (doc 09 §2.2)
     r#"{"$k":"report_block","id":"@RB_TOC","source":{"kind":"toc"},"form":"@FORM_TOC","first_folio":2,"title":{"en-GB":"Table of Contents {n}"}}"#,
     r#"{"$k":"report_block","id":"@RB_903","source":{"kind":"terminal_diagram"},"manual":{"exclude":["@DEV_X1032_1"]},"sort":[{"key":"seq"},{"key":"level","descending":true}],"group":{"key":"strip","break":"new_page"},"form":"@FORM_TOC","section":"@SEC9","first_folio":903,"continuation":"next_folio","title":{"en-GB":"Terminal Diagram {group}"},"empty":{"one_page":{"en-GB":"No entries"}}}"#,
     r#"{"$k":"report_block","id":"@RB_PD201","source":{"kind":"part_data"},"form":"@FORM_TOC","first_folio":201,"embedded":{"page":"@P201","rect":[[10000000,180000000],[120000000,270000000]]}}"#,
-    // revisions (doc 20 §4.1 U-04, doc 03 §18): a historic released one without archive, an open one
+    // revisions (doc 03 §18): a historic released one without archive, an open one
     r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","date":"2025-03-03","description":"Initial issue","state":"released","source_ref":{"lineage":"@LIN","key":"revisions|V1.0"}}"#,
     r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","date":"2025-04-14","author":"engineer","description":{"en-GB":"Changes on 101 and 106"},"state":"open","page_notes":[{"page":"@P1"},{"page":"@P103","description":{"en-GB":"Supply moved"}}]}"#,
-    // waivers (doc 15 §2.5, doc 20 §18.1 EF-19): W-1 on -XPE, with a member of a newer build kept in `extra`
+    // waivers (doc 15 §2.5): W-1 on -XPE, with a member of a newer build kept in `extra`
     r#"{"$k":"waiver","id":"@WAIVER_W1","rule":"EW-CORE-041","target":{"finding":"9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"},"reason":{"en-GB":"PE stud is part of NSYPMM107"},"author":"engineer","date":"2025-04-14","expires":"never"}"#,
     // conflict records (doc 05 §11.2): W29's colour changed on both sides without a base, a
     // device deleted on one side and changed on the other, and the lines of a side a merge could not read

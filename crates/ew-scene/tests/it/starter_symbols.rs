@@ -273,7 +273,7 @@ fn require_sealed() -> bool {
 // Geometry helpers
 
 /// The QET 10 px edition value of a native nm value: `round(n × 7 937 500 / 12 000 000)`, ties toward zero.
-/// The pen of the qet10 edition for a native house pen: the house pen in QET px (doc 20 §17.4; 1 px =
+/// The pen of the qet10 edition for a native house pen: the house pen in QET px (1 px =
 /// 7 937 500 / 30 nm, rounded): p013 0.5 px, p018 0.7, p026 1.0, p042 1.6, p052 2.0, p130 5.0.
 fn qet_pen(p: &Pen) -> Option<Pen> {
     let w = match p {
@@ -954,7 +954,7 @@ fn text_slots_and_arrangements() {
                 ));
             }
         }
-        // Doc 06 §2.8 and doc 20 §17.5 bind `xref.device` to the cross-reference texts of devices (the aux text
+        // Doc 06 §2.8 binds `xref.device` to the cross-reference texts of devices (the aux text
         // "(…)" under the tag, the main list after it). The interruption-point symbols print their partner text
         // in `data.small`, the default style of the slot kind, and name no style.
         let base = d.key.strip_suffix("@qet10").unwrap_or(&d.key);
@@ -1064,7 +1064,7 @@ fn geometry_rules() {
             }
             if let Some(s) = stroke_of(prim) {
                 let houses = [Pen::P013, Pen::P018, Pen::P026, Pen::P042, Pen::P052, Pen::P130];
-                // The qet10 edition expresses the house pens in QET px (doc 20 §17.4).
+                // The qet10 edition expresses the house pens in QET px.
                 let house = match ed {
                     Edition::Native => houses.contains(&s.pen),
                     Edition::Qet10 => houses.iter().any(|h| qet_pen(h).as_ref() == Some(&s.pen)),

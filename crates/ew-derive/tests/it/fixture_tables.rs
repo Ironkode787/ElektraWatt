@@ -6,24 +6,24 @@
 //!
 //! Covered so far:
 //!
-//! - **Device tags** (doc 20 §2.1 rule 1, §6.1, §6.2, §9; FR-NUM-001, FR-NUM-002, FR-DEV-021): full and
+//! - **Device tags** (FR-NUM-001, FR-NUM-002, FR-DEV-021): full and
 //!   displayed tags of the frozen tags S51, F55, T55, E55, S56, E56 and 1X1 with its terminals, of the
 //!   page-based tags of folios 3, 101, 102 and 201, of the strips -X1031 and -X1032 (strip rule) with their
 //!   terminals, of the valves -201U3-Q1 and -201U4-Q4 (child rule) and of the field devices of +FIELD:
 //!   `tags_match_the_specification`.
-//! - **Page order** (doc 20 §4.3 sections, §5 pages; FR-PAG-005, FR-PAG-009, FR-PAG-013): folio labels with
+//! - **Page order** (FR-PAG-005, FR-PAG-009, FR-PAG-013): folio labels with
 //!   the generated dividers, Prev and Next, the TOC fixpoint: `page_order_matches_the_specification`.
-//! - **Table of contents** (doc 20 §5; doc 09 §3.1; FR-REP-003): one row per page with title, function
+//! - **Table of contents** (doc 09 §3.1; FR-REP-003): one row per page with title, function
 //!   and location, and the generated divider descriptions: `toc_rows_match_the_specification`.
 //! - **Determinism** (NFR-REL-07): the same project built in another record and library order gives equal
 //!   page order, TOC and tags: `derived_values_do_not_depend_on_record_order`.
 //!
-//! - **Anchor cells** (doc 20 §6.1 "Main rep."; FR-PAG-020, FR-SYM-010, D-14): the frame cell of the main
+//! - **Anchor cells** ("Main rep."; FR-PAG-020, FR-SYM-010, D-14): the frame cell of the main
 //!   representation of 26 devices on folios 3, 101, 102, 103, 106, 201 and 202, with origin and named
 //!   anchor policies, on the QET 10 px grid: `anchor_cells_match_the_main_rep_cells`.
-//! - **Title blocks** (doc 20 §4.1, §4.2, §5, §17.2; doc 09 §2.6, §2.7): the full value sets of folio 101,
+//! - **Title blocks** (doc 09 §2.6, §2.7): the full value sets of folio 101,
 //!   folio 201 and the divider of section 1: `title_block_value_sets_match_the_specification`.
-//! - **BOM** (doc 20 §14.1 and §14.2; FR-REP-004 to FR-REP-006): the 21 component rows of the fixture with
+//! - **BOM** (FR-REP-004 to FR-REP-006): the 21 component rows of the fixture with
 //!   position, quantity, unit, part number, description, devices and folios, and assembly mode with two
 //!   configured products on -201U1: `bom_component_rows_match_the_specification`,
 //!   `bom_assembly_rows_replace_the_covered_rows`.
@@ -208,7 +208,7 @@ fn toc_rows_match_the_specification() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Anchor cells (doc 20 §6.1 "Main rep.")
+// Anchor cells ("Main rep.")
 
 /// (device, page of its main representation, expected anchor cell as printed: row letter, column).
 fn anchor_table() -> Vec<(u128, u128, &'static str)> {
@@ -260,7 +260,7 @@ fn anchor_cells_match_the_main_rep_cells() {
         );
         assert_eq!(q.reps().get(rep).expect("representation").page, id(page));
     }
-    // The cells of the printed doc 20 form: row letter, then column, as cross-references print them.
+    // The cells of the printed form: row letter, then column, as cross-references print them.
     let cell = q.get::<RepAnchorCell>(id(rep_of(DEV_S51)));
     let cell = (*cell).as_ref().expect("cell");
     assert_eq!((cell.column, cell.row), (2, 1));
@@ -291,7 +291,7 @@ fn representations_sit_on_the_qet_grid_and_some_anchors_are_named() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Title blocks (doc 20 §4.1, §4.2, §5, §17.2)
+// Title blocks
 
 fn text(s: &str) -> TbValue {
     TbValue::Text(s.to_owned())
@@ -372,7 +372,7 @@ fn title_block_value_sets_match_the_specification() {
     ]);
     let tb = block(PageRef::Drawn(id(PAGE_101)));
     assert_eq!(tb.values, expected(want));
-    // The checker is unset (doc 20 U-03): the path is absent, not empty.
+    // The checker is unset: the path is absent, not empty.
     assert_eq!(tb.get("revision.current.checker.name"), None);
 
     // Folio 201: 9th of 16, Prev is the divider 200.
@@ -419,7 +419,7 @@ fn title_block_value_sets_match_the_specification() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// BOM (doc 20 §14.1, §14.2)
+// BOM
 
 /// One expected row: position, quantity (whole pieces or metres), unit, part number, description, devices
 /// in tag order, folios.
@@ -433,7 +433,7 @@ type BomExpect = (
     Vec<u32>,
 );
 
-/// Doc 20 §14.1 rows 1 to 21 as the fixture covers them. Rows 13, 14, 19 and 21 count the fixture's
+/// The parts list's rows 1 to 21 as the fixture covers them. Rows 13, 14, 19 and 21 count the fixture's
 /// terminals, sub-bases and valves (5 of 20, 3 of 5, 6 of 7, 8 of 28); row 2 is a test input of 10 m.
 fn component_table() -> Vec<BomExpect> {
     let pc = OrderUnit::Piece;
@@ -705,7 +705,7 @@ fn bom_assembly_rows_replace_the_covered_rows() {
         assert_eq!(r.devices, [id(dev_201u(1))]);
         assert_eq!(r.pages, [PageRef::Drawn(id(PAGE_201))]);
     }
-    // Doc 20 §14.2: the CPX order code is A1 and the MPA order code is A2. Both rows sit at the head's cell,
+    // The CPX order code is A1 and the MPA order code is A2. Both rows sit at the head's cell,
     // so the config order (CPX before MPA) decides, not the part numbers (32P-... sorts first).
     let codes: Vec<&str> = configured.iter().map(|r| r.part_number.as_str()).collect();
     assert_eq!(codes, [CODE_CPX, CODE_MPA]);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The embedded blocks of a drawn page (FR-REP-028; doc 20 §17.3): the cover tables and the boxed tables of every
+//! The embedded blocks of a drawn page (FR-REP-028): the cover tables and the boxed tables of every
 //! other kind, drawn into the `tables` layer inside the block's rectangle, with a grid and the
 //! texts in reading order.
 
@@ -200,7 +200,7 @@ fn a_text_that_does_not_fit_its_cell_shrinks_and_is_reported_not_clipped() {
 // ---------------------------------------------------------------------------------------------------------------
 // The boxed table of every other kind
 
-/// The frame form's page-to-sheet map (doc 20 §17.1).
+/// The frame form's page-to-sheet map.
 const SHEET: SheetMap = SheetMap {
     scale_ppb: 986_282_578,
     offset: Pt2 {

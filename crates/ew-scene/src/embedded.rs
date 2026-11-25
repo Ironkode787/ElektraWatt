@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size
-//! tables (doc 20 §17.3) and, for every other kind, a boxed report table (PART DATA, the layout
+//! tables and, for every other kind, a boxed report table (PART DATA, the layout
 //! legend).
 //!
 //! The caller fills an [`EmbeddedView`] with the **printed** texts of the block; [`lower_embedded`] is a pure function
@@ -13,7 +13,7 @@
 //! House values in **printed** millimetres (like the generated pages' table, `crate::table`; the block's rectangle is
 //! mapped to the sheet with the frame form's map and every item back to the page with its inverse):
 //!
-//! - a drop shadow of [`SHADOW`] (2.61 mm, doc 20 §17.3's PART DATA box) to the right and below, filled black and
+//! - a drop shadow of [`SHADOW`] (2.61 mm, as the reference's PART DATA box) to the right and below, filled black and
 //!   painted first; then the rectangle as a box at [`GRID_WIDTH`] (0.418 mm, the house width of the cover's boxes);
 //! - with a title, a title band of 1.5 rows of [`ROW_HEIGHT`] (9.78 mm) in style [`BOX_TITLE_STYLE`] (15.5 pt);
 //! - the width split in [`EmbeddedTable::flow_columns`] flow columns with a [`GUTTER`] of 4 mm between them, the last
@@ -35,7 +35,7 @@
 //!
 //! The block's
 //! rectangle (`ReportBlock.embedded.rect`, page coordinates) is divided in rows of `u = height / 24`; the
-//! proportions are those of the reference cover (printed 128.52 to 274.66 mm by 47.63 to 172.89 mm, doc 20
+//! proportions are those of the reference cover (printed 128.52 to 274.66 mm by 47.63 to 172.89 mm
 //! §17.3):
 //!
 //! | Region | x (of 560) | y |
@@ -48,7 +48,7 @@
 //!
 //! A title is drawn in style `cover.table` (11.84 pt printed), every other text in `text.normal`, left aligned
 //! and centred on the row's midline, inset by [`CELL_PADDING`](crate::forms::CELL_PADDING). The grid (the outline and the row and column
-//! separators of the header and data rows, each line once) is [`GRID_WIDTH`] wide (0.418 mm printed, doc 20
+//! separators of the header and data rows, each line once) is [`GRID_WIDTH`] wide (0.418 mm printed
 //! §17.4: "cover boxes and tables"); titles and captions have no grid. A text that does not fit its cell
 //! shrinks to the printed cap height [`MIN_CAP_HEIGHT`](crate::table::MIN_CAP_HEIGHT) and is then reported, never clipped (FR-REP-039).
 //! Only the rows given are drawn, so the table ends below its last row.
@@ -69,10 +69,10 @@ pub const GRID_WIDTH: Nm = Nm(418_000);
 /// The style of a table title.
 pub const TITLE_STYLE: &str = "cover.table";
 
-/// The style of a boxed table's title (doc 20 §17.3: the PART DATA title, 15.53 pt printed).
+/// The style of a boxed table's title (the PART DATA title, 15.53 pt printed).
 pub const BOX_TITLE_STYLE: &str = "box.title";
 
-/// The drop shadow of a boxed table, printed (doc 20 §17.3: "shadow 2.61").
+/// The drop shadow of a boxed table, printed ("shadow 2.61").
 pub const SHADOW: Nm = Nm(2_610_000);
 
 /// The header fill of a lookup table (the legend a person adds): a light grey, so the header reads as the table's head

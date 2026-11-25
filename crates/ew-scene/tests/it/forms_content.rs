@@ -353,7 +353,7 @@ fn cell_boundaries_are_exactly_the_lines_and_the_outline() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The cover frame (doc 20 §17.3, D-30)
+// The cover frame (D-30)
 
 const FRAME_COVER: &str = include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-cover.json");
 const FRAME_COVER_KEY: &str = "ew.frame.qet-a4-landscape-cover";
@@ -387,7 +387,7 @@ fn pen(width_mm: f64) -> Value {
     json!({"pen": {"width": page_len(mm(width_mm))}})
 }
 
-/// The geometry of doc 20 §17.3 in printed millimetres: the rules, the project data box and its separators.
+/// The cover's geometry in printed millimetres: the rules, the project data box and its separators.
 const RULE_X: (f64, f64) = (11.09, 279.88);
 const BOX: (f64, f64, f64, f64) = (13.70, 47.63, 118.09, 175.50);
 const SEPARATORS: [f64; 3] = [84.16, 120.70, 154.62];
@@ -592,7 +592,7 @@ fn the_cover_cells_are_inside_the_sheet_and_do_not_overlap() {
     }
 }
 
-/// Printed coordinates map back to doc 20 §17.3 through the sheet transform (the rules, the box, the
+/// Printed coordinates map back to the cover's geometry through the sheet transform (the rules, the box, the
 /// separators).
 #[test]
 fn the_cover_rules_and_box_land_on_the_printed_figures() {

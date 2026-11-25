@@ -754,7 +754,7 @@ pub fn bus_line_pages(q: &Q, partition: &Partition, potential: PotentialId) -> B
 }
 
 /// The cables of the `Bus` connections of a potential (`BusLine.cable`, drawn or page-less; FR-CBL-008): a
-/// bus line takes its colour and cross-section from its cable, not from the profile (doc 20 §7.3 "(cable)").
+/// bus line takes its colour and cross-section from its cable, not from the profile.
 pub fn bus_line_cables(
     q: &Q,
     partition: &Partition,

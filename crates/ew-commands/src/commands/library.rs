@@ -19,7 +19,7 @@ use crate::tx::TxBuilder;
 
 /// `library.embed` (`EmbedLibraryCopies`): embeds library items into the project, each as a copy that
 /// carries its lineage `{library_id, item_id, version, sha256}` (doc 05 §13.2), such as the frame form
-/// without grid that generated section dividers and report pages need (doc 20 §20.2 step 4).
+/// without grid that generated section dividers and report pages need.
 ///
 /// `copies` holds library documents in the `lib/` JSON form (doc 05 §3.4: `$k`, `id`, the copy metadata,
 /// then the item's members) of the kinds `part`, `symbol`, `fndef`, `form`, `macro` and `manufacturer`; every copy

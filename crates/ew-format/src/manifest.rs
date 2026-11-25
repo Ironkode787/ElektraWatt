@@ -66,7 +66,7 @@ pub struct Manifest {
     /// The lowest format a reader needs: the format the writer writes (ADR-0011 amendment 9).
     pub min_reader: String,
     /// The program and version that wrote this generation (`"ElektraWatt 0.0.0"`). The fixture comparison
-    /// of doc 20 §3.2 ignores it (doc 05 §17.1).
+    /// ignores it (doc 05 §17.1).
     pub generator: String,
     /// The project row's ID.
     pub project: AnyId,

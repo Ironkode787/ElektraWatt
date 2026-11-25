@@ -209,7 +209,7 @@ pub fn overview_start_page(q: &Q, head: Id<Device>) -> Option<Id<Page>> {
     fluid.or_else(|| reps.get((*q.get::<MainRep>(head))?).map(|r| r.page))
 }
 
-/// The order-code text of a device (the `order_code` symbol slot, doc 20 §11.1, D-36): the order code of
+/// The order-code text of a device (the `order_code` symbol slot, D-36): the order code of
 /// its assembly aspect's first config; empty for a device without one.
 pub fn order_code_text(q: &Q, device: Id<Device>) -> String {
     q.devices()

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Devices, terminals, functions and representations (doc 20 §6, §9, §15; doc 07 §9.1).
+//! Devices, terminals, functions and representations (doc 07 §9.1).
 
 use std::collections::{BTreeMap, BTreeSet};
 

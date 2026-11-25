@@ -52,26 +52,26 @@ fn the_sheets_words_must_be_the_sources() {
     // Fine: identifiers in doc, names in doc, sentence starts, placeholders, comments, table first cells.
     let ok = "# Job sheet\n\nDraw S51 at 101-B2 with Festo parts. Zoltan starts a sentence? No: this is fine.\n\
               Run `{run}` has {turns} turns. <!-- Mallory is a comment -->\n| Tag | Part |\n|---|---|\n| S51 | Eaton |\n";
-    assert_eq!(sheet_problems(ok, doc, "doc 20"), Vec::<String>::new());
-    // An identifier that doc 20 lacks, in the three shapes: letter and digit, sign-prefixed, capitals; and a 3-digit folio.
+    assert_eq!(sheet_problems(ok, doc, "the source"), Vec::<String>::new());
+    // An identifier that the source lacks, in the three shapes: letter and digit, sign-prefixed, capitals; and a 3-digit folio.
     for (text, want) in [
-        ("Place S52.", "`S52` is not in doc 20"),
-        ("Place -X1.", "`-X1` is not in doc 20"),
-        ("Colour GNYE here.", "`GNYE` is not in doc 20"),
-        ("Folio 999 here.", "`999` is not in doc 20"),
+        ("Place S52.", "`S52` is not in the source"),
+        ("Place -X1.", "`-X1` is not in the source"),
+        ("Colour GNYE here.", "`GNYE` is not in the source"),
+        ("Folio 999 here.", "`999` is not in the source"),
         (
             "Ask Zoltan today.",
-            "`Zoltan` is a name that doc 20 does not hold",
+            "`Zoltan` is a name that the source does not hold",
         ),
         ("Mail me@example.org.", "(an address or a path)"),
         ("See C:\\x.", "(an address or a path)"),
     ] {
-        let p = sheet_problems(text, doc, "doc 20");
+        let p = sheet_problems(text, doc, "the source");
         assert!(p.iter().any(|m| m.contains(want)), "{text}: {p:?}");
     }
     // Small numbers, units and lower-case words are not identifiers.
     assert_eq!(
-        sheet_problems("Use 2.5 mm and 17 wires, then 0 to 16.", doc, "doc 20"),
+        sheet_problems("Use 2.5 mm and 17 wires, then 0 to 16.", doc, "the source"),
         Vec::<String>::new()
     );
     assert!(

@@ -30,7 +30,7 @@ const EXCLUDED: &[(&str, &str)] = &[
     ),
     (
         "the location nodes",
-        "the project's own cabinets and process field (doc 20 §4.3); the wizard's location field is empty by default",
+        "the project's own cabinets and process field; the wizard's location field is empty by default",
     ),
     (
         "the title-block cell mapping",

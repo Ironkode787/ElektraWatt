@@ -24,7 +24,7 @@ use serde_json::{Value, json};
 
 use crate::common::{Fx, LIBRARY, sha, uid};
 
-// --- Structure nodes (doc 20 §4.3) ---
+// --- Structure nodes ---
 
 /// `=P01`, the function aspect of every page and device.
 pub const P01: u128 = 0x10;
@@ -35,7 +35,7 @@ pub const JE206: u128 = 0x12;
 /// `+FIELD`, the process field.
 pub const FIELD: u128 = 0x13;
 
-// --- Sections (doc 20 §4.3) ---
+// --- Sections ---
 
 /// Section 1 "Wiring Definition" (100 to 199).
 pub const SEC_1: u128 = 0x20;
@@ -44,7 +44,7 @@ pub const SEC_2: u128 = 0x21;
 /// Section 9 "Nomenclature" (900 to 999).
 pub const SEC_9: u128 = 0x22;
 
-// --- Pages (doc 20 §5): the page record of folio `n` has the ID `0x3000 + n` ---
+// --- Pages: the page record of folio `n` has the ID `0x3000 + n` ---
 
 /// The ID of the drawn page with folio `folio`.
 pub const fn page(folio: u32) -> u128 {
@@ -97,7 +97,7 @@ pub const PAGES: &[(u32, Option<u128>, &str, &str)] = &[
 /// The frame form copy of the QET grid frame (`content/forms/ew.frame.qet-a4-landscape-grid.json`).
 pub const FRAME_COPY: &str = "c80af135-34f8-574c-8f52-756bd24c7bd0";
 
-// --- Revisions and company data (doc 20 §4.1, §17.2) ---
+// --- Revisions and company data ---
 
 /// Revision V1.0 (2025-03-03, released).
 pub const REV_1: u128 = 0x7101;
@@ -183,7 +183,7 @@ const CLASSES: &[(Class, [&str; 3])] = &[
     (CLASS_TERMINAL, ["Connection", "Terminal", "Single"]),
 ];
 
-// --- Parts (doc 20 §14.1): library copies with synthetic manufacturers ---
+// --- Parts: library copies with synthetic manufacturers ---
 
 /// Manufacturer library items (synthetic): the part's `manufacturer` reference names `0x9000 + n`.
 pub const MFR_FESTO: u128 = 0x9001;
@@ -247,15 +247,15 @@ pub const PART_CONF_CPX: u128 = 0xA15;
 /// Configured product: MPA valve terminal (order code 2).
 pub const PART_CONF_MPA: u128 = 0xA16;
 
-/// The order code of the configured CPX terminal (doc 20 §14.2).
+/// The order code of the configured CPX terminal.
 pub const CODE_CPX: &str = "51E-F13GCQP-D+H2GG";
-/// The order code of the configured MPA valve terminal (doc 20 §14.2).
+/// The order code of the configured MPA valve terminal.
 pub const CODE_MPA: &str = "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS";
 
 /// A part of the fixture: (copy ID, manufacturer, part number, kind, unit, description).
 type PartDef = (u128, u128, &'static str, &'static str, &'static str, &'static str);
 
-/// The parts, with the descriptions of doc 20 §14.
+/// The parts, with their descriptions.
 pub const PARTS: &[PartDef] = &[
     (
         PART_532216,
@@ -795,7 +795,7 @@ pub fn fixture() -> Fx {
     uses(&mut fx, DEV_106W2, &[(PART_NEBU, "1")]);
 
     // Folio 201 (devices 19 to 27): -201U1 heads the assembly, the others are its children. The cells are
-    // those of doc 20 §6.1: -201U1 E1, -201U2 E2, -201U3 ... -201U8 E4, E6 ... E14, -201U9 E15.
+    // these: -201U1 E1, -201U2 E2, -201U3 ... -201U8 E4, E6 ... E14, -201U9 E15.
     let cols_201 = [1, 2, 4, 6, 8, 10, 12, 14, 15];
     for k in 1..=9u128 {
         place(
@@ -842,7 +842,7 @@ pub fn fixture() -> Fx {
         }
     }
 
-    // The assembly aspect of -201U1 (doc 20 §14.2): order code 1 covers the head's own parts, order code 2 the
+    // The assembly aspect of -201U1: order code 1 covers the head's own parts, order code 2 the
     // children and the valves.
     let sorted = |ids: Vec<u128>| {
         let mut v: Vec<String> = ids.into_iter().map(uid).collect();

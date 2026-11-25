@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `tables` layer of a generated report page (doc 20 §16): the house table drawn from a
+//! The `tables` layer of a generated report page: the house table drawn from a
 //! [`TableView`], its findings and its place on the sheet.
 
 use std::sync::Arc;
@@ -150,7 +150,7 @@ fn the_table_prints_at_the_house_position_on_the_sheet() {
             _ => None,
         })
         .expect("the outline");
-    // Doc 20 §16: x 16.31 to 277.27 mm, from y 15.01 mm, a header and two rows of 6.52 mm; the frame's
+    // The house table: x 16.31 to 277.27 mm, from y 15.01 mm, a header and two rows of 6.52 mm; the frame's
     // page-to-sheet map is inverted, so the printed figures hold to a nanometre or two of rounding.
     let printed = scene.map.apply_rect(outline);
     let close = |a: Nm, nm: i64| (a.0 - nm).abs() <= 3;

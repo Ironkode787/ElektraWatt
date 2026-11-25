@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A project's PDF (doc 20 §3.3 "PDF structure"): the page list and options of a project through the
+//! A project's PDF: the page list and options of a project through the
 //! shipped export job (`ew_api::output`) and the text of its structure. Shared by `tests/it/page_output.rs` and
 //! `tests/it/pdf_output.rs`.
 

@@ -27,7 +27,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey
 /// itself (`-101A1:DP`): the line uses every core of its cable; a core of no wire and no line prints nothing.
 /// The length is the manual length in metres, `from part` for a length taken from the part
 /// (the part carries no value yet), and "length missing" for a cable without one (EW-CORE-033). Cores come
-/// in natural order of their names, the shield last: the pin order of doc 20 §10 is not modelled. A core's
+/// in natural order of their names, the shield last: a pin order is not modelled. A core's
 /// colour and cross-section are the wire's effective values, else the conductor's.
 #[derive(Clone, Copy, Debug)]
 pub struct CableOverview;

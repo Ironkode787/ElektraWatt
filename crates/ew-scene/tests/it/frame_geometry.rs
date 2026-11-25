@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden frame's geometry against doc 20 §17.1 and §17.2: native QET pixels, printed millimetres
+//! The golden frame's geometry against its drawing: native QET pixels, printed millimetres
 //! (FR-PAG-019, REF-096), the title-block cells, cell lookup (FR-PAG-020) and the exactness of the
 //! page-to-sheet transform (FR-PAG-029).
 

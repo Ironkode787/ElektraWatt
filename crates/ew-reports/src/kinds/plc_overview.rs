@@ -25,7 +25,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 /// project's profile; "TBD" for an open item, empty when excluded), channel number, designation, kind,
 /// symbol (manual only before the templates of 1.0), function text (the target's, else the tracked process
 /// tag), process tag, target, state, and the frame cell of the bound coil's representation; the cell links
-/// to the bound CP, the coil's position (doc 10 §5, doc 20 §11.3).
+/// to the bound CP, the coil's position (doc 10 §5).
 #[derive(Clone, Copy, Debug)]
 pub struct PlcOverview;
 

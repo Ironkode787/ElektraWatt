@@ -17,7 +17,7 @@ use crate::rowset::{ColumnDef, RowSet};
 
 /// One built-in report kind.
 ///
-/// `rows` returns the kind's rows in its **default order** (the order of its row query, doc 20 §14.1 for
+/// `rows` returns the kind's rows in its **default order** (the order of its row query, for
 /// the BOM), data and heading rows only; the block's filter, manual selection, sort keys and grouping are
 /// applied afterwards by [`crate::arrange()`]. A kind reads the block for its own parameters (the strip of a
 /// terminal diagram is the block's `manual.include`, the embedded page of a PART DATA box).

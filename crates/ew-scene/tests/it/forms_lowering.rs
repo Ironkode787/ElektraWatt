@@ -348,7 +348,7 @@ fn deterministic_and_sheet_mapped() {
     let map = SheetMap::of(&grid_frame());
     let sheet = map.apply_display_list(&a.display_list, None);
     let b = sheet.bounds().unwrap();
-    // Printed frame 9.79–281.18 × 9.79–199.76 mm (doc 20 §17.1), within 10 µm.
+    // Printed frame 9.79–281.18 × 9.79–199.76 mm, within 10 µm.
     let near = |got: Nm, mm_hundredths: i64| (got.0 - mm_hundredths * 10_000).abs() <= 10_000;
     assert!(near(b.min().x, 979) && near(b.min().y, 979), "{b:?}");
     assert!(near(b.max().x, 28_118) && near(b.max().y, 19_976), "{b:?}");

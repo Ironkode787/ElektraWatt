@@ -449,7 +449,7 @@ fn a_slot_style_replaces_the_style_of_the_slot_kind() {
     let mut v = view();
     // Without the member the tag slot prints in `tag.main`.
     assert_eq!(run_size(&v, "-X1"), style_size("tag.main"));
-    // `xref.device` is 7 QET px = 5.25 pt native; the QET sheet map prints it at 5.18 pt (doc 20 §17.5).
+    // `xref.device` is 7 QET px = 5.25 pt native; the QET sheet map prints it at 5.18 pt.
     let mut def = (**v.reps[1].symbol.as_ref().unwrap()).clone();
     def.text_slots[0].style = Some(Ident::from_input("xref.device").unwrap());
     v.reps[1].symbol = Some(Arc::new(def));
@@ -730,7 +730,7 @@ fn the_sheet_list_maps_the_page_and_inlines_instances() {
         })
     }
     assert!(no_instances(&sheet.items));
-    // The frame's outer rectangle prints at 9.79 mm from the sheet's corner (doc 20 §17.1).
+    // The frame's outer rectangle prints at 9.79 mm from the sheet's corner.
     let geom = FrameGeometry::of(&frame, Some(&form(TITLE_BLOCK))).unwrap();
     assert_eq!(
         scene.map.apply(geom.outer.min()),

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Project, parties, structure, external references, sections, pages and report blocks (doc 20 §4, §5, §16).
+//! Project, parties, structure, external references, sections, pages and report blocks.
 
 use std::collections::BTreeMap;
 
@@ -564,7 +564,7 @@ fn check_format(col: &str, format: &str) -> Result<(), String> {
 }
 
 /// The `numbering_*` columns → `ProjectSettings.extra["numbering"]` in the doc 03 §5.1 shape (`{default,
-/// schemes: [DeviceNumberingScheme]}`, doc 20 §4.4): one scheme `numbering_scheme` (default `page-based`) with
+/// schemes: [DeviceNumberingScheme]}`): one scheme `numbering_scheme` (default `page-based`) with
 /// format `numbering_format`, the strip rule `{select: {aspect: "strip"}, format: numbering_strip_format}` and
 /// `child_separator` when given. `None` when no numbering column is set (the profile's scheme applies).
 fn numbering(r: &mut Rd<'_>) -> Option<serde_json::Value> {

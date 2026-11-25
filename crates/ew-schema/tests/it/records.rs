@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Canonical-line round trips: the doc 05 §3.5 examples byte for byte, one golden line per implemented
-//! kind (doc 20 §4–§10 values), unknown members and variants, `$v`, and the rejection rules.
+//! kind, unknown members and variants, `$v`, and the rejection rules.
 
 use crate::common;
 
@@ -244,7 +244,7 @@ fn unknown_device_aspects_follow_the_known_ones() {
 
 #[test]
 fn the_assembly_aspect_is_typed() {
-    // Doc 03 §7, doc 20 §14.2: two order codes on -201U1, the second covering two children.
+    // Doc 03 §7: two order codes on -201U1, the second covering two children.
     let line = fill(
         r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"assembly":{"configs":[{"label":{"en-GB":"Order Code 1"},"order_code":"51E-F13GCQP-D+H2GG","part":{"copy":"@PART_NEBU"},"covers":["@DEV_G1"]},{"order_code":"32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS","covers":["@DEV_S51","@DEV_X1031"]}]}}"#,
     );

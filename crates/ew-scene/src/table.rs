@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `tables` layer of a generated report page: the house report table of doc 20 §16.
+//! The `tables` layer of a generated report page: the house report table.
 //!
 //! The caller (which holds the tracked read context) fills a [`TableView`] with the **printed** texts of
 //! one page's rows: the cell values are typed `Cell`s of `ew-reports` rendered late (doc 09 §3.6), so this
@@ -56,7 +56,7 @@ use ew_units::{Nm, Pt2, Rect};
 use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out, min_size};
 use crate::page::span_quads;
 
-/// The height of the header and of every row, printed (doc 20 §16).
+/// The height of the header and of every row, printed.
 pub const ROW_HEIGHT: Nm = ew_schema::HOUSE_ROW_HEIGHT;
 /// The grid line width, printed.
 pub const LINE_WIDTH: Nm = Nm(183_000);

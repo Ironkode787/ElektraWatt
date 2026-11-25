@@ -19,14 +19,14 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 ///
 /// One row per potential of the partition in natural order of its name, then one row per bond, numbered B1, B2 …:
 /// the declared bonds by ID, then the drawn ones (an earth wire) by their wire's ID. Member
-/// counts, not member lists, so that rows never wrap (doc 20 §16): `aliases` counts the interruption-point
+/// counts, not member lists, so that rows never wrap: `aliases` counts the interruption-point
 /// names on the potential besides its own name, `members` its device connection points (a terminal once,
 /// whatever its clamps and sides) and its external points. `colour` and
 /// `cross_section` are the profile's default for the potential: the effective values of its first wire (by
 /// wire ID) whose value comes from the profile or a potential definition (not from a wire override, a core
 /// or a bond rule); "(cable)" for a bus line without one, whose colour and size are its cable's (a `Bus`
-/// connection with `BusLine.cable`, doc 20 §7.3); empty otherwise. `pages` are the pages of its wires and of its drawn `Bus`
-/// connections (a bus line is not a physical wire: the PROFIBUS `DP` of doc 20 §7.3 is drawn on folio 3 as
+/// connection with `BusLine.cable`); empty otherwise. `pages` are the pages of its wires and of its drawn `Bus`
+/// connections (a bus line is not a physical wire: the sample's PROFIBUS `DP` is drawn on folio 3 as
 /// one single-line connection, FR-CBL-008), in page order.
 #[derive(Clone, Copy, Debug)]
 pub struct PotentialOverview;
@@ -119,7 +119,7 @@ fn potential_pages(q: &Q, wires: &Wires, p: &Potential, order: &ew_derive::PageO
     pages.into_iter().map(|(_, p)| PageRef::Drawn(p)).collect()
 }
 
-/// The members of a potential as folio 909 counts them (doc 20 §7.3; a potential a bus segment carries counts the
+/// The members of a potential as folio 909 counts them (a potential a bus segment carries counts the
 /// segment's members): [`ew_derive::potential_member_count`], one reader for the report and the view.
 fn member_count(q: &Q, p: &Potential) -> usize {
     ew_derive::potential_member_count(q, p)
@@ -147,7 +147,7 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         default(&|w| w.props.csa.as_ref().is_some_and(|c| profile(&c.source))).and_then(|e| e.csa.as_ref());
     let attrs = q.get::<ew_derive::PotentialAttrsOf>(p.id);
     let names = q.get::<ew_derive::PotentialNameOf>(p.id);
-    // A bus line without a profile value takes colour and size from its cable: "(cable)" (doc 20 §7.3).
+    // A bus line without a profile value takes colour and size from its cable: "(cable)".
     let from_cable = || {
         (!ew_derive::bus_line_cables(q, &wires.partition, p.id).is_empty())
             .then(|| words_cell(&text!("cell-from-cable")))

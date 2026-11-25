@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bill of materials (doc 20 §14.1, §14.2): part lines, aggregation, row order and assembly mode.
+//! The bill of materials: part lines, aggregation, row order and assembly mode.
 //!
 //! Devices are placed at one common point, so rows of one page are told apart by part number only (the
 //! anchor-cell tie-break is covered where cells exist).
@@ -310,7 +310,7 @@ fn component_rows_are_ordered_and_numbered() {
     assert_eq!(out[0].pages, [PageRef::Drawn(id(PAGE3))]);
     // Unplaced rows follow the placed ones by legend rank.
     assert!(out[7..11].iter().all(|r| r.pages.is_empty()));
-    // A layout-only accessory sorts with the legend rows although its strip is placed (doc 20 §14.1 rows
+    // A layout-only accessory sorts with the legend rows although its strip is placed (
     // 26, 27); it keeps the pages of its devices.
     assert_eq!(out[11].pages, [PageRef::Drawn(id(PAGE103))]);
 }
@@ -483,7 +483,7 @@ fn config(order_code: &str, part: Option<u128>, covers: &[u128]) -> Value {
 }
 
 /// Head -201U1 (195740 and 550208) with its assembly aspect: order code 1 (the CPX product) covers the head,
-/// order code 2 (the MPA product) covers the module -201U3 and its valve -201U3-Q1 (doc 20 §14.2). -202U1
+/// order code 2 (the MPA product) covers the module -201U3 and its valve -201U3-Q1. -202U1
 /// is a child that no order code names.
 fn assembly_with(configs: Value) -> Fx {
     let mut fx = base();

@@ -206,7 +206,7 @@ fn form_id(value: &Value) -> Option<Id<FormDef>> {
 }
 
 /// The built-in default frame grid: the QET-compatible A4 frame, 17 columns by 8 rows below a header band
-/// (doc 03 §5.1, doc 20 §17.1).
+/// (doc 03 §5.1).
 ///
 /// The constants mirror the `grid` member of `content/forms/ew.frame.qet-a4-landscape-grid.json`
 /// (`header_band` 15 875 000/3 nm, 17 columns of 15 875 000 nm, 8 rows of 63 500 000/3 nm) and the edges

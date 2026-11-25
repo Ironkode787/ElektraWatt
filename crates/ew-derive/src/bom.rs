@@ -444,11 +444,11 @@ pub struct BomRow {
     pub pages: Vec<PageRef>,
 }
 
-/// `bom_rows(mode)`: the bill of materials (doc 20 §14.1, §14.2).
+/// `bom_rows(mode)`: the bill of materials.
 ///
 /// 1. **Lines:** the `device_part_lines` of every device, in ID order.
 /// 2. **Mode filter.** Component mode drops configured lines (a part use of a part of kind `configured`).
-///    Assembly mode (doc 20 §14.2, D-36): every device with an `assembly` aspect whose `bom_basis` is
+///    Assembly mode (D-36): every device with an `assembly` aspect whose `bom_basis` is
 ///    `assembly` (the *head*) contributes one line of quantity 1 per config whose `part` copy exists
 ///    ([`LineSource::AssemblyConfig`], configured), and the devices that config `covers` lose all their
 ///    own lines (part uses and strip accessories). Covers are explicit, not transitive: a child the configs
@@ -475,10 +475,10 @@ pub struct BomRow {
 ///    (enclosure, mounting plate, rail, duct, other), part number and description. A row of a
 ///    layout-only accessory ([`PartKind::EndBracket`], [`PartKind::Accessory`]) is always in the second
 ///    group, whatever the placement of its devices: the accessories of a strip belong to the layout legend
-///    (doc 12 §5.4, doc 20 §14.1 rows 26 and 27), not to the schematic position of the strip. Its pages
+///    (doc 12 §5.4), not to the schematic position of the strip. Its pages
 ///    are those of step 3. The key breaks every remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
 ///    products of one head device tie on the cell, and the head's own order of its configured parts breaks
-///    that tie before the part number does (doc 20 §14.2: order code 1 is A1, order code 2 is A2): the head
+///    that tie before the part number does (order code 1 is A1, order code 2 is A2): the head
 ///    of a configured row is the device of the row whose main representation gives the row's least
 ///    placement (the smallest device ID if several tie), and the rank is the index of the config of the
 ///    head's `assembly` aspect (`DeviceAspects.assembly`, its `configs`, doc 03 §7) whose `part` names the part
@@ -676,7 +676,7 @@ struct Placement {
 /// strip's **first** segment: the least (page-order position, column, row) over the representations of the
 /// strip's main function, contact images excluded. Not the strip's `main_rep`, which is the smallest ID and
 /// for a strip drawn in several segments need not be the first one (-X1031 is drawn at 103 A3 and A10): the
-/// PT 2.5-TWIN rows sit on folio 103 with -X1031 before -X1032 (doc 20 §14.1, rows 13–14).
+/// PT 2.5-TWIN rows sit on folio 103 with -X1031 before -X1032.
 fn placement(q: &Q, order: &PageOrderV, device: Id<Device>) -> Option<Placement> {
     if let Some(rep) = *q.get::<MainRep>(device) {
         return rep_placement(q, order, rep);

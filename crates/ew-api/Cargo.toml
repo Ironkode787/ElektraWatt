@@ -85,7 +85,7 @@ ew-model = { path = "../ew-model", features = ["raw-read"] }
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
 png = "0.18.1"
-# tests/it/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
+# tests/it/page_output.rs: inflates the PDF content streams to read the line widths.
 flate2 = "1.1.10"
 insta = { version = "1.49.0", default-features = false }
 # tests/it/drawn_path_agreement.rs: the scene's path between any two ends is ew-derive's (decision log ID-1110).

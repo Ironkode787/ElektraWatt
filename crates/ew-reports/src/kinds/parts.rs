@@ -30,7 +30,7 @@ const MODE: &str = "mode";
 /// Component mode by default; assembly mode when the block's `params.mode` is `"assembly"` (read through
 /// [`kind_params`]: another value gives component mode and one note). Both modes
 /// print one "Part number" column (a configured product's order code prints there); assembly mode
-/// appends the "Covers" column (doc 20 §14.2): the devices whose part lines a configured product replaces,
+/// appends the "Covers" column: the devices whose part lines a configured product replaces,
 /// as a compressed tag list, empty on the component rows.
 #[derive(Clone, Copy, Debug)]
 pub struct PartsSummary;
@@ -263,7 +263,7 @@ pub(super) fn line_id(prefix: RowId, lines: &[PartLine], i: usize) -> RowId {
 /// The sort key of a parts-list row: natural key of the full tag, device, line index.
 type LineKey = (NaturalKey, Id<Device>, usize);
 
-/// A quantity as a number: the order unit is the value of the Unit column next to it (doc 20 §14.1 prints
+/// A quantity as a number: the order unit is the value of the Unit column next to it (the parts list prints
 /// "28" and "pc", not "28 pc" twice).
 pub(super) fn qty_cell(qty: Dec3) -> Cell {
     Cell::Qty(qty, QtyUnit::None)

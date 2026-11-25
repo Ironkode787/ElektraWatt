@@ -37,7 +37,7 @@
 //! # Labels (D10, FR-LAY-062)
 //!
 //! A label is printed in the text style [`LAYOUT_LABEL_STYLE`]
-//! (`xref.device`, 1.83 mm em printed, doc 20 §17.5), at its paper height at every scale: it is never scaled. Its ink
+//! (`xref.device`, 1.83 mm em printed), at its paper height at every scale: it is never scaled. Its ink
 //! box is the shaped text's advance along the text by the face's cap height across it, plus the descent only when the
 //! label has a descender glyph ([`has_descender`]), plus [`LABEL_PAD`] on every side (from `ew-text`'s
 //! existing advance and vertical metrics, no new API). The fit test against the footprint's paper
@@ -82,7 +82,7 @@ use ew_units::{Angle2, Nm, Pt2, Rect, arith};
 
 use crate::page::{Builder, PageView, TextSpec};
 
-/// The text style the label slot kind is bound to (doc 12 §5.2, doc 20 §17.5): `xref.device`.
+/// The text style the label slot kind is bound to (doc 12 §5.2): `xref.device`.
 pub const LAYOUT_LABEL_STYLE: &str = "xref.device";
 
 /// The margin of a label's ink box on every side in the fit test: 0.1 mm (D10).

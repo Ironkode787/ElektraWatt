@@ -391,9 +391,9 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/names.rs` |  | The names and own attributes of a potential, split out of the partition (ADR-0002 amendment 4: "a folio renumber or a move re-derives names and not the topology"; ARCH §6.4 `potential_names`). |
 | `src/nets.rs` |  | Page-local nets: `page_local_nets(page)` (ARCH §6.4, doc 08 §3.3). |
 | `src/note.rs` |  | Derivation notes: what a derivation could not do as the project asks and what it did instead (ADR-0003 "profiles are never silently replaced", doc 03 §5.1 defaults). |
-| `src/numbering.rs` |  | Wire numbers: `wire_numbers()` (doc 08 §5.2, doc 20 §8.1, FR-NUM-019, FR-NUM-028). |
+| `src/numbering.rs` |  | Wire numbers: `wire_numbers()` (doc 08 §5.2, FR-NUM-019, FR-NUM-028). |
 | `src/pages.rs` |  | Page order with sections, dividers and generated pages (doc 09 §3.1, FR-PAG-005, FR-PAG-006, FR-PAG-008, FR-PAG-009, FR-PAG-012, FR-PAG-013, ARCH §6.4 `page_order()`). |
-| `src/part_text.rs` |  | The part texts of a device's symbol slots: manufacturer, part number, type designation and technical data (FR-SYM-011, FR-DEV-009, FR-DEV-016, doc 07 §9.1 step 4, doc 20 §3.4 row 8, D-18, D-33, D-35), and the confidence of a part's data sections (FR-PRT-031). |
+| `src/part_text.rs` |  | The part texts of a device's symbol slots: manufacturer, part number, type designation and technical data (FR-SYM-011, FR-DEV-009, FR-DEV-016, doc 07 §9.1 step 4, D-18, D-33, D-35), and the confidence of a part's data sections (FR-PRT-031). |
 | `src/pattern.rs` |  | The designation pattern language of doc 10 §2.4 and §2.6: one expander for the automatic channel designation of a part (`ChannelSpec.designation`, read by `channel_texts`) and the pin designation of its channel → pin map (`PlcSection.pin_of`, read by [`channel_pin`](crate::channel_pin), so by normaliser N3). |
 | `src/plc.rs` | large | The PLC queries of doc 10 §2.10 and §3.1–§3.4: module order and starts per configuration project, then addresses, states, targets and texts per module, and the PLC rows of a station. |
 | `src/potentials.rs` |  | The potential partition: `potential_partition()` (ARCH §6.1, §6.4; doc 08 §3.3–§3.4; ADR-0002 amendments 4 and 5). |
@@ -607,24 +607,24 @@ QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 
 `crates/ew-import-tables` · GPL-3.0-or-later · tier importers · depends on `ew-ids`, `ew-interop-api`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `ew-testkit`
 
-The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its tables read into format-level records.
+The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022): its tables read into format-level records.
 
 | File | Size | What it holds |
 |---|---|---|
 | `src/csv.rs` |  | Strict, bounded CSV reader and writer for the `ew` CSV dialect. |
-| `src/emit/assembly.rs` |  | The assembly table (doc 20 §14.2, doc 03 §7; D-36, D-41): `assembly_configs.csv` → the `assembly` aspect of the device named by `assembly`, one `AssemblyConfig` per row, in `n` order. |
+| `src/emit/assembly.rs` |  | The assembly table (doc 03 §7; D-36, D-41): `assembly_configs.csv` → the `assembly` aspect of the device named by `assembly`, one `AssemblyConfig` per row, in `n` order. |
 | `src/emit/bus.rs` |  | The bus tables (doc 10 §2.7): `logical_nets.csv` → `logical_net`, `physical_nets.csv` → `physical_net`, and `bus_ports.csv` → the `bus_port` aspect of the function its key names. |
-| `src/emit/connect.rs` |  | Connections, junctions, conductors, potential definitions and bonds (doc 20 §7, §8, §10; doc 03 §9.2). |
-| `src/emit/devices.rs` | large | Devices, terminals, functions and representations (doc 20 §6, §9, §15; doc 07 §9.1). |
-| `src/emit/layout.rs` |  | The panel layout records (doc 20 §13's test geometry): `layout_spaces.csv`, `enclosures.csv` (an enclosure and its plate surface), `carriers.csv` and `placements.csv`. |
-| `src/emit/mod.rs` |  | The record emitters and their shared context: the key maps of every emitted row, the CP lists of every function and the endpoint notation of doc 20 §1.2 (README "CP and endpoint notation"). |
-| `src/emit/parts.rs` |  | Project-local part copies (doc 20 §6.1, §10, §14.1): `parts.csv` with its CP patterns, function templates and cable cores. |
-| `src/emit/plc.rs` |  | The PLC tables (doc 20 §6.2, §11.2, §11.3; doc 10 §2.2–§2.6): configuration projects, the PLC section of a part, channels and device links. |
-| `src/emit/profiles.rs` |  | The colour and size profiles of the project settings (doc 03 §5.1, doc 08 §4.2, doc 20 §7.1, §7.2): `profiles.csv`, `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]` and `["size_profile"]`, in the JSON shapes the wire-property chain of `ew-derive` reads. |
-| `src/emit/project.rs` |  | Project, parties, structure, external references, sections, pages and report blocks (doc 20 §4, §5, §16). |
+| `src/emit/connect.rs` |  | Connections, junctions, conductors, potential definitions and bonds (doc 03 §9.2). |
+| `src/emit/devices.rs` | large | Devices, terminals, functions and representations (doc 07 §9.1). |
+| `src/emit/layout.rs` |  | The panel layout records: `layout_spaces.csv`, `enclosures.csv` (an enclosure and its plate surface), `carriers.csv` and `placements.csv`. |
+| `src/emit/mod.rs` |  | The record emitters and their shared context: the key maps of every emitted row, the CP lists of every function and the endpoint notation (README "CP and endpoint notation"). |
+| `src/emit/parts.rs` |  | Project-local part copies: `parts.csv` with its CP patterns, function templates and cable cores. |
+| `src/emit/plc.rs` |  | The PLC tables (doc 10 §2.2–§2.6): configuration projects, the PLC section of a part, channels and device links. |
+| `src/emit/profiles.rs` |  | The colour and size profiles of the project settings (doc 03 §5.1, doc 08 §4.2): `profiles.csv`, `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]` and `["size_profile"]`, in the JSON shapes the wire-property chain of `ew-derive` reads. |
+| `src/emit/project.rs` |  | Project, parties, structure, external references, sections, pages and report blocks. |
 | `src/ids.rs` |  | The identity rule of the CSV bootstrap (doc 14 §2.3, ADR-0004 amendment 4). |
 | `src/import.rs` |  | The import driver: inputs → tables → emitters → sorted batch. |
-| `src/lib.rs` |  | The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its tables read into format-level records. |
+| `src/lib.rs` |  | The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022): its tables read into format-level records. |
 | `src/library.rs` |  | The built-in library the tables reference by key (doc 05 §13.2, doc 07 §9.1): starter symbols, FnDefs and forms as embedded copies. |
 | `src/parts.rs` |  | Parts tables into an existing project (the `ew`-dialect slice of the parts import): the `parts.csv` a person chose and, when they lie in the same folder, its sibling tables `part_cps.csv`, `part_templates.csv`, `cable_cores.csv` and `part_plc.csv`, read into project-local part copies exactly as the bootstrap mints them (`emit/parts.rs`): `library_id` = the project ID, `item_id = v5(ns, "parts\|{key}")` in the golden lineage's namespace, so the same key gives the same copy on every import (a re-import is idempotent). |
 | `src/schema.rs` |  | The table schemas of the `ew` dialect: file stem, required and optional columns. |
@@ -908,7 +908,7 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 | File | Size | What it holds |
 |---|---|---|
 | `src/draft.rs` | large | The labels layer of a schematic page: the page as the layout sees it ([`ew_drafting::DraftPage`], built here once from the view, docs/design/06a-drafting.md §2.1 and §2.2) and its texts drawn where [`ew_drafting::settle_labels`] sets them (doc 06a §5). |
-| `src/embedded.rs` | large | Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size tables (doc 20 §17.3) and, for every other kind, a boxed report table (PART DATA, the layout legend). |
+| `src/embedded.rs` | large | Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size tables and, for every other kind, a boxed report table (PART DATA, the layout legend). |
 | `src/forms/bindings.rs` |  | Placeholders and their bindings (doc 09 §2.6): `{scope.path \| filter …}` templates filled from a [`PageBindings`]. |
 | `src/forms/geometry.rs` |  | Frame geometry from a [`FrameGrid`]: the outer rectangle, the drawing area, the column and row edges, the labels and the title-block origin, all in page coordinates (nm, y down). |
 | `src/forms/mod.rs` |  | Frames, title blocks and their cells: a [`FormDef`] to the `frame` layer of doc 09 §4.1. |
@@ -929,7 +929,7 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 | `src/pdf_text.rs` |  | The text of a PDF page as the migration verifier reads it (doc 14 §4.15, FR-IMP-021): every run of glyphs a page draws, with its string, the anchor of its first glyph and its box, in millimetres from the top left of the page; and the page labels of the file. |
 | `src/route.rs` |  | The polyline a connection is drawn along on its page. |
 | `src/symbol.rs` |  | Symbol geometry lowering: [`SymbolDef`] to an `ew-dl` display list per orientation variant (doc 07 §2.3, §3.2, §4.1; doc 06 §2.5; ADR-0015 decision 2). |
-| `src/table.rs` |  | The `tables` layer of a generated report page: the house report table of doc 20 §16. |
+| `src/table.rs` |  | The `tables` layer of a generated report page: the house report table. |
 | `src/ticks.rs` |  | The conversion of one page between nanometres and the layout's ticks (1/16 of the page's grid step, `ew_drafting::consts::TICKS_PER_STEP`), with its rounding rules named: a point ([`Ticks::point`], `Grid::tick_of`), a box rounded outward ([`Ticks::outward`], `Grid::tick_span`) and an area rounded inward ([`Ticks::inward`]); back to nm by `Grid::nm_of_tick`. |
 | `src/underlay.rs` |  | Underlays drawn (doc 14 §5.5, FR-IMP-030): a PDF page rasterised with hayro into a PNG stretched over the underlay's rectangle, and a DXF drawing as the page items the DXF importer makes of it, both at the underlay's opacity, in grey. |
 
@@ -1063,7 +1063,7 @@ Fonts and shaping: one text stack for screen, pagination and paper (ADR-0015 dec
 | `src/fonts.rs` |  | The font set: the bundled font files and a project's typeface (doc 09 §4.8), each identified by its SHA-256 ([`FontKey`]). |
 | `src/lib.rs` |  | Fonts and shaping: one text stack for screen, pagination and paper (ADR-0015 decision 4, ARCH §8.3). |
 | `src/shape.rs` |  | Shaping: a string and a [`TextStyle`] to a [`ShapedRun`] in integer nanometres. |
-| `src/style.rs` |  | The built-in text-style table of doc 20 §17.5: style key → QET px → native pt → em height in nm. |
+| `src/style.rs` |  | The built-in text-style table: style key → QET px → native pt → em height in nm. |
 
 ## ew-ui
 

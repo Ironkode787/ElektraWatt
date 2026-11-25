@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The assembly table (doc 20 §14.2, doc 03 §7; D-36, D-41): `assembly_configs.csv` → the `assembly` aspect of
+//! The assembly table (doc 03 §7; D-36, D-41): `assembly_configs.csv` → the `assembly` aspect of
 //! the device named by `assembly`, one `AssemblyConfig` per row, in `n` order.
 
 use std::collections::{BTreeMap, BTreeSet};

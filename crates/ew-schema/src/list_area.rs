@@ -12,7 +12,7 @@
 //!
 //! **The table** keeps the house table's distances to the drawing area of the starter A4 frame: its left edge
 //! `INSET_LEFT` in, its right edge `INSET_RIGHT` in, its top `INSET_TOP` down. On that frame it is the house table
-//! of doc 20 §16 to the nanometre: x 16.31 to 277.27 mm, its top at 15.01 mm, 23 rows.
+//! of the house table to the nanometre: x 16.31 to 277.27 mm, its top at 15.01 mm, 23 rows.
 //!
 //! **The rows** are [`HOUSE_ROW_HEIGHT`] high, printed: an optional caption row, the header row, the data rows, an
 //! optional legend row and one row kept free (where the window marks a list that runs on). A page holds as many data
@@ -155,7 +155,7 @@ mod tests {
         }
     }
 
-    /// On the starter A4 frame the table is the house table of doc 20 §16: x 16.31 to 277.27 mm, its top at
+    /// On the starter A4 frame the table is the house table: x 16.31 to 277.27 mm, its top at
     /// 15.01 mm, 23 rows; a caption and a legend each take one of them.
     #[test]
     fn the_starter_a4_frame_holds_the_house_table() {

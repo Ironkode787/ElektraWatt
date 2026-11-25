@@ -414,7 +414,7 @@ fn find(hay: &[u8], needle: &[u8]) -> Option<usize> {
     hay.windows(needle.len()).position(|w| w == needle)
 }
 
-/// doc 20 §17.4: on folio 101 (a QET-grid page) the frame, the symbols and the wires print in one width
+/// On folio 101 (a QET-grid page) the frame, the symbols and the wires print in one width
 /// class, 0.261 mm = 0.74 pt, and thin symbol lines at 0.130 mm = 0.37 pt: the `@qet10` edition's pens
 /// and the wire pen are QET px, mapped by the frame's sheet map like the frame lines.
 #[test]
@@ -434,7 +434,7 @@ fn the_pdf_of_folio_101_has_one_width_class_for_frame_symbols_and_wires() {
     assert_eq!(classes, want, "line widths in pt: {widths:?}");
 }
 
-/// Prev/Next of every title block follow `page_order` with the generated report pages (doc 20 §5,
+/// Prev/Next of every title block follow `page_order` with the generated report pages (
 /// FR-PAG-013), and every page has its own PDF destination (generated pages use their v5 IDs).
 #[test]
 fn prev_and_next_follow_the_page_order_with_the_report_pages() {

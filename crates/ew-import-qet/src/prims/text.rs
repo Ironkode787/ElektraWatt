@@ -271,7 +271,7 @@ pub fn substitution(family: &str) -> Option<String> {
 
 /// The em height of a QET font of `point_size` points as QET prints it: Qt lays QET's texts out at its 96 dpi
 /// with a whole number of pixels per em, [`qt_pixels`], and a px is `793_750 / 3` nm (9 pt → 12 px → 3,175,000 nm,
-/// the `text.normal` of doc 20 §17.5; 7 pt → 9 px, not 9⅓; doc 14 §4.10). `None` out of range or below zero.
+/// the `text.normal` style; 7 pt → 9 px, not 9⅓; doc 14 §4.10). `None` out of range or below zero.
 pub fn em_of(point_size: Decimal) -> Option<Nm> {
     Grid::QET_1PX.at(qt_pixels(point_size)?)
 }

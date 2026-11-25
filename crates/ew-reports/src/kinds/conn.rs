@@ -339,7 +339,7 @@ pub(super) fn csa_cell(c: Option<&Csa>) -> Cell {
     }
 }
 
-/// Where a wire's effective cross-section and colour come from, in the words of doc 20 §8.1: `cdp` (an
+/// Where a wire's effective cross-section and colour come from: `cdp` (an
 /// override on the wire), `core` (the cable's conductor), `rule` (a row of the colour or size profile),
 /// `bond` (the bond rule), `potential` (a potential definition), `project` and `built-in` for the project
 /// default and the built-in defaults. The two values are joined, size first, when they differ

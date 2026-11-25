@@ -3,7 +3,7 @@
 
 //! Shared test data: fixed IDs for the golden records and a template filler.
 //!
-//! The IDs are arbitrary fixed UUIDv5-shaped values (golden IDs are UUIDv5 values, doc 20 §3.2); the ones
+//! The IDs are arbitrary fixed UUIDv5-shaped values; the ones
 //! of the doc 05 §3.5 examples are reused where a record appears there.
 
 #![allow(dead_code)]

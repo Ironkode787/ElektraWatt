@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC tables (doc 20 §6.2, §11.2, §11.3; doc 10 §2.2–§2.6): configuration projects, the PLC section of
+//! The PLC tables (doc 10 §2.2–§2.6): configuration projects, the PLC section of
 //! a part, channels and device links. The station and module aspects are read with the devices
 //! (`devices.rs`); the bus connections with the connections (`connect.rs`).
 

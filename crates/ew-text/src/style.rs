@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The built-in text-style table of doc 20 §17.5: style key → QET px → native pt → em height in nm.
+//! The built-in text-style table: style key → QET px → native pt → em height in nm.
 //!
 //! Native pt = QET px × 0.75. The em height in nm is `round(px × 793 750 / 3)`, because 1 px = 25.4/96 mm = 0.75 pt.
 //! The printed pt of the doc (× 0.986282578) is a consequence of the frame's page-to-sheet transform, not a second
@@ -19,7 +19,7 @@ use ew_units::{Grid, Nm};
 
 use crate::{Family, TextStyle, Weight};
 
-/// The style key used when a key is unknown or absent (`text.normal`, doc 20 §17.5).
+/// The style key used when a key is unknown or absent (`text.normal`).
 pub const DEFAULT_STYLE_KEY: &str = "text.normal";
 
 /// The style a text prints in when its table holds neither its key nor [`DEFAULT_STYLE_KEY`]: regular, 3.175 mm (the
@@ -91,7 +91,7 @@ pub struct TextStyleTable {
     rows: Vec<StyleRow>,
 }
 
-/// The rows of `ew_schema::BUILTIN_TEXT_STYLES` (doc 20 §17.5), in its order.
+/// The rows of `ew_schema::BUILTIN_TEXT_STYLES`, in its order.
 static ROWS: LazyLock<Vec<StyleDef>> = LazyLock::new(|| {
     BUILTIN_TEXT_STYLES
         .iter()
@@ -111,7 +111,7 @@ static BUILTIN: LazyLock<TextStyleTable> = LazyLock::new(|| {
     TextStyleTable::from_rows(ROWS.iter().map(|r| (r.key, r.em(), r.weight, Family::Default)))
 });
 
-/// The rows of the built-in table in QET pixels, in table order (doc 20 §17.5): `ew_schema::BUILTIN_TEXT_STYLES`.
+/// The rows of the built-in table in QET pixels, in table order: `ew_schema::BUILTIN_TEXT_STYLES`.
 pub fn builtin_rows() -> &'static [StyleDef] {
     &ROWS
 }
@@ -205,7 +205,7 @@ mod tests {
         "marker",
         "terminal",
     ];
-    // The last row, `terminal`, is not of doc 20 §17.5: it came out of `tag.main` and keeps its size.
+    // The last row, `terminal`, keeps the size of `tag.main`, the style it came from.
     const NATIVE_MILLI_PT: [u32; 15] = [
         36000, 27750, 21750, 20250, 15750, 12000, 9750, 9000, 8250, 6750, 6000, 5250, 3750, 3750, 9750,
     ];
@@ -230,10 +230,10 @@ mod tests {
         (scaled + unit / 2).div_euclid(unit) * step
     }
 
-    /// The rows, their keys and order, and every row against doc 20 §17.5, one row per case: only `section.id` is bold; the native size in milli-pt,
-    /// the em, the printed size (rounded to 0.01 pt) and the printed em are those of the doc. Doc 20 gives the
+    /// The rows, their keys and order, and every row against its values, one row per case: only `section.id` is bold; the native size in milli-pt,
+    /// the em, the printed size (rounded to 0.01 pt) and the printed em are those of the table. The table gives the
     /// printed em rounded to 0.01 mm, so the exact printed em (em × 0.986282578, truncated
-    /// to nm) must lie within half a step, 0.005 mm, of the doc value.
+    /// to nm) must lie within half a step, 0.005 mm, of the table's value.
     #[test]
     fn rows_keys_and_order() {
         let rows = builtin_rows();

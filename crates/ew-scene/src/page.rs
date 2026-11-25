@@ -59,7 +59,7 @@
 //!   the page. A connection whose end cannot be resolved on this page is reported and not drawn.
 //! - **Strokes.** Wires are solid black in [`wire_stroke`] of the page's grid: on the QET 10 px grid the 1.0
 //!   QET px pen [`QET_PEN_1PX`] (printed 0.261 mm through the QET frame's sheet map, like the frame and the
-//!   `@qet10` symbols), else the 0.26 mm house pen (doc 20 §17.4).
+//!   `@qet10` symbols), else the 0.26 mm house pen.
 //! - **Break marks** (doc 11 §5.5 step 5, FR-DEV-023, D-41). A [`BreakMarkView`] closes an assembly
 //!   overview segment at one side of a representation's symbol bounds `b` (in its orientation): at
 //!   `x = pos.x + b.max.x + BREAK_GAP` for the right side, `pos.x + b.min.x − BREAK_GAP` for the left, a vertical
@@ -188,11 +188,11 @@ pub const JUNCTION_DOT_RADIUS: Nm = Nm(330_729);
 
 /// The 1.0 QET px pen (`7_937_500 / 30` nm, rounded): wires on QET-grid pages and the `@qet10` edition's
 /// replacement of the 0.26 mm house pen, so that after the QET frame's sheet map it prints at 0.261 mm
-/// (doc 20 §17.4).
+///
 pub const QET_PEN_1PX: Nm = Nm(264_583);
 
 /// The wire pen of a page with connection grid `grid`: [`QET_PEN_1PX`] on the QET 10 px grid, else the
-/// 0.26 mm house pen (doc 20 §17.4; `@qet10` symbols carry the same QET-px pens).
+/// 0.26 mm house pen (`@qet10` symbols carry the same QET-px pens).
 pub fn wire_stroke(grid: Grid) -> Stroke {
     if grid == Grid::QET_10PX {
         Stroke::solid(QET_PEN_1PX)
@@ -204,7 +204,7 @@ pub fn wire_stroke(grid: Grid) -> Stroke {
 /// The sheet used when a page has no frame form: A4 landscape (297 mm × 210 mm).
 pub const DEFAULT_SHEET: (Nm, Nm) = (Nm(297_000_000), Nm(210_000_000));
 
-/// The text style of wire-marker texts (doc 20 §17.5).
+/// The text style of wire-marker texts.
 pub const MARKER_STYLE: &str = "marker";
 
 /// The text style of a cable mark's tag: the device tag's.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The colour and size profiles of the project settings (doc 03 §5.1, doc 08 §4.2, doc 20 §7.1, §7.2):
+//! The colour and size profiles of the project settings (doc 03 §5.1, doc 08 §4.2):
 //! `profiles.csv`, `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]` and
 //! `["size_profile"]`, in the JSON shapes the wire-property chain of `ew-derive` reads. Everything comes from
 //! the tables; the importer holds no profile data of its own.
@@ -10,7 +10,7 @@
 //!
 //! One row per profile, told apart by `profile` (`colour` or `size`): `key` (the profile id), `name`, and for
 //! the colour profile `basis` (an identifier such as `company_convention`), `basis_note` (the basis text),
-//! `standards` (the standards text the cover prints, doc 20 U-35), `dbu_code` (`<code>:<base>:<shade>`, the
+//! `standards` (the standards text the cover prints), `dbu_code` (`<code>:<base>:<shade>`, the
 //! company code the profile declares) and `verified`; for the size profile `pe_class`, `class_rules` and
 //! `bond_rule` (the last two as JSON text).
 //!
