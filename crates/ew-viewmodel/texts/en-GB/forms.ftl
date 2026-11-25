@@ -166,7 +166,6 @@ form-report-kind = Report
 form-first-folio = First folio
 form-report-had = This set already has { $p0 } on page { $p1 }. Create adds another; Cancel and Go to page { $p1 } opens it.
 form-page-type-note = Lists (parts, wires, terminals, cables, PLC cards, tubes) are made with Report on the Output tab.
-form-page-new-after = Stands after { $p0 }
 form-page-new-between = Stands after { $p0 }, before { $p1 }
 form-page-new-last = Stands after { $p0 }, the last page of its section
 form-page-place = Place

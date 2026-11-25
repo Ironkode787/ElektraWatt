@@ -65,7 +65,6 @@ bond-kind-shield = Shield bond
 number-decimal-point = .
 count-wire = { $p0 } wire
 count-wires = { $p0 } wires
-count-tube = { $p0 } tube
 count-tubes = { $p0 } tubes
 count-box-pin = { $p0 } connection point
 count-box-pins = { $p0 } connection points

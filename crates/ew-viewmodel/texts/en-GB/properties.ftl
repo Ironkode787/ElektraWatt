@@ -57,7 +57,6 @@ props-yes = yes
 props-no = no
 props-fluid-line = Tube ({ $p0 })
 props-wire-unnumbered = Wire without a number
-props-row-name = { $p0 }: { $p1 }
 props-neutral = Neutral
 props-tag-proposal = { $p0 }. Use { $p1 } to accept it.
 props-tag-proposal-script = { $p0 }. Use { $p1 } to accept it: props.accept_tag_proposal takes it.

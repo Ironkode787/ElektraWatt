@@ -65,7 +65,6 @@ bond-kind-shield = Afschermingsverbinding
 number-decimal-point = ,
 count-wire = { $p0 } draad
 count-wires = { $p0 } draden
-count-tube = { $p0 } slang
 count-tubes = { $p0 } slangen
 count-box-pin = { $p0 } aansluitpunt
 count-box-pins = { $p0 } aansluitpunten

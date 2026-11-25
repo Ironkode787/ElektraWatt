@@ -7,7 +7,6 @@
 # F22: a part's data at a glance.
 card-type = Type
 card-order-number = Order number
-card-technical = Technical data
 card-size = Size
 card-gives = Gives
 card-from = From
@@ -52,7 +51,6 @@ accessory-other = Accessory
 card-line = { $p0 } { $p1 } · { $p2 }
 card-apply = Apply
 card-cancel = Cancel
-card-stale = stale
 card-failed = failed: { $p0 }
 
 # cards, badges, empty states and outcome badges (doc 16a §6.16, §6.17, §6.23).
@@ -62,7 +60,6 @@ card-title-reorder = Reorder pages
 card-title-fix = Quick fix { $p0 }
 card-title-find = Replace
 card-title-properties = Preview of { $p0 }
-card-title-pattern = Pattern fill
 parts-card-title = Import parts
 parts-card-line = { $p0 }: { $p1 } created, { $p2 } skipped, { $p3 } errors
 parts-map-title = Map columns
@@ -111,7 +108,6 @@ part-choose-view-recent = Recent
 part-choose-inactive = Show deprecated and withdrawn
 part-choose-empty = No part matches “{ $p0 }”
 part-choose-nothing = No part to choose; change the search.
-part-choose-more = Search all parts…
 part-edit-fork-note = Saving creates a project copy of this part; the library is not changed
 
 # The part card in the Preview tab: the field diff, the devices and the parts list rows.
@@ -142,9 +138,6 @@ part-field-functions = Functions
 part-field-cps = Connection points
 part-field-source = Source
 part-choose-search = Search parts
-part-choose-kind = Kind
-part-choose-category = Category
-part-choose-all = All
 part-choose-list = Parts
 part-choose-favourite = Favourite
 part-choose-detail = { $p0 } · version { $p1 } · { $p2 }

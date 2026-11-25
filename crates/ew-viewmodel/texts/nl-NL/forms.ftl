@@ -162,7 +162,6 @@ form-report-kind = Rapport
 form-first-folio = Eerste folio
 form-report-had = Deze set heeft al { $p0 } op pagina { $p1 }. Maken voegt er nog een toe; Annuleren en Naar pagina { $p1 } opent het.
 form-page-type-note = Lijsten (artikelen, draden, klemmen, kabels, PLC-kaarten, slangen) maakt u met Rapport op het tabblad Uitvoer.
-form-page-new-after = Komt na { $p0 }
 form-page-new-between = Komt na { $p0 }, vóór { $p1 }
 form-page-new-last = Komt na { $p0 }, als laatste pagina van de sectie
 form-page-place = Plaats

@@ -57,7 +57,6 @@ props-yes = ja
 props-no = nee
 props-fluid-line = Slang ({ $p0 })
 props-wire-unnumbered = Draad zonder nummer
-props-row-name = { $p0 }: { $p1 }
 props-neutral = Neutraal
 props-tag-proposal = { $p0 }. Gebruik { $p1 } om het te aanvaarden.
 props-tag-proposal-script = { $p0 }. Gebruik { $p1 } om het te aanvaarden: props.accept_tag_proposal neemt het over.

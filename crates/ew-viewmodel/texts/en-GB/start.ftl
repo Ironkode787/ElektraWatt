@@ -80,7 +80,6 @@ firstrun-start-none = Start with the start page
 firstrun-skip = Skip
 firstrun-next = Next
 firstrun-back = Back
-firstrun-finish = Finish
 
 # Part 2: the company-standard wizard.
 wizard-title = Template for your company's drawings

@@ -76,7 +76,6 @@ firstrun-start-none = Beginnen met de startpagina
 firstrun-skip = Overslaan
 firstrun-next = Volgende
 firstrun-back = Terug
-firstrun-finish = Voltooien
 wizard-title = Sjabloon voor de tekeningen van uw bedrijf
 wizard-step-company = Bedrijf
 wizard-step-frame = Kader en titelblok
