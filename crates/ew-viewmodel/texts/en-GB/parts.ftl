@@ -151,6 +151,7 @@ part-form-message = { $p0 }: { $p1 }
 part-placeholder-description = What it is
 part-placeholder-note = The parts list names it TBD with these words; choose the real part for one of its devices later and every device that has it takes that part.
 part-placeholder-use = Use as placeholder
+part-placeholder-empty = Type what the part is first
 part-new-note = Type what the data sheet says. Save adds the part to this project and, when ticked, to your parts library, so that your next project has it too.
 part-section-bus = Bus interfaces
 part-section-bus-hint = One row per interface of the data sheet. Controller or master leads the bus (a CPU); device or slave is a node with an address (a head station, a drive, a managed switch); passive has no address and passes the net through (a bus plug, an unmanaged switch). Ports: the number of sockets of one interface, such as 2 or 8; the interface keeps one address for all of them.

@@ -201,7 +201,6 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
 /// 1.0.0, patch"), one wrapped `type.small` label each, then its two choices as Secondary buttons, Use the project's
 /// copy first (`paste.resolve`); a disabled choice keeps its place and says why in its tooltip and under the buttons.
 fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &mut Vec<Event>) {
-    use components::Tip;
     let t = components::tokens(ui);
     for row in &c.conflicts {
         let text = ew_viewmodel::properties::PasteChoice::conflict_text(row);
@@ -224,11 +223,7 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
             } else {
                 components::Kind::Secondary
             };
-            let response = components::button(ui, kind, strings::text(key), reason.is_none(), 0.0);
-            let response = match reason {
-                Some(r) => response.disabled_tip(strings::text(r)),
-                None => response,
-            };
+            let response = components::button(ui, kind, strings::text(key), reason.map(strings::text), 0.0);
             if response.clicked() {
                 events.push(Event::Action(
                     "paste.resolve",
@@ -686,7 +681,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                         ui,
                         components::Kind::Secondary,
                         strings::text(key!("card-cancel")),
-                        true,
+                        None,
                         0.0,
                     );
                     if cancel.clicked() {

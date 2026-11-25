@@ -263,7 +263,7 @@ pub(crate) fn chooser(
             ui,
             crate::components::Kind::Secondary,
             strings::text(key!("action-part-new")),
-            true,
+            None,
             0.0,
         )
         .clicked()
@@ -277,7 +277,7 @@ pub(crate) fn chooser(
                 ui,
                 crate::components::Kind::Secondary,
                 strings::text(key!("action-part-placeholder")),
-                true,
+                None,
                 0.0,
             )
             .clicked();
@@ -335,7 +335,9 @@ fn placeholder(ui: &mut Ui, text: &mut String, opened: bool, enter: bool, events
         ui,
         crate::components::Kind::Secondary,
         strings::text(key!("part-placeholder-use")),
-        !words.is_empty(),
+        words
+            .is_empty()
+            .then(|| strings::text(key!("part-placeholder-empty"))),
         0.0,
     )
     .clicked();
@@ -720,7 +722,7 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
             ui,
             crate::components::Kind::Secondary,
             strings::text(key!("part-pins-and-box")),
-            true,
+            None,
             0.0,
         )
         .tip(strings::text(key!("part-pins-and-box-how")))
@@ -801,7 +803,7 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
             ui,
             crate::components::Kind::Secondary,
             strings::text(key!("part-pin-add")),
-            true,
+            None,
             0.0,
         )
         .clicked()
@@ -1366,7 +1368,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
             ui,
             crate::components::Kind::Secondary,
             strings::text(key!("part-bus-add")),
-            true,
+            None,
             0.0,
         )
         .clicked()

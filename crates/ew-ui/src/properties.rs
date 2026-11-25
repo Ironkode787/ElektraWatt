@@ -1420,7 +1420,7 @@ impl PropertiesPane {
                         ui,
                         crate::components::Kind::Secondary,
                         &prop.button_text(),
-                        true,
+                        None,
                         0.0,
                     )
                     .clicked(),
@@ -1436,7 +1436,7 @@ impl PropertiesPane {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4 + t.icon_sm);
                 let words = strings::format(key!("props-change-at-cable"), &[&tag]);
-                if crate::components::button(ui, crate::components::Kind::Secondary, &words, true, 0.0)
+                if crate::components::button(ui, crate::components::Kind::Secondary, &words, None, 0.0)
                     .clicked()
                 {
                     events.push(Event::Action("props.follow", json!({ "row": row.key })));
@@ -1447,7 +1447,7 @@ impl PropertiesPane {
         if let Some(offer) = shell.row_offer(&row.key) {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4 + t.icon_sm);
-                if crate::components::button(ui, crate::components::Kind::Secondary, &offer.label, true, 0.0)
+                if crate::components::button(ui, crate::components::Kind::Secondary, &offer.label, None, 0.0)
                     .clicked()
                 {
                     for (action, params) in offer.steps {

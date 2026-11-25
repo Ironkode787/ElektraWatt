@@ -244,6 +244,8 @@ table-name = { $p0 } table
 table-columns = Columns
 table-move-left-name = Move { $p0 } left
 table-move-right-name = Move { $p0 } right
+table-column-first = The column stands first already
+table-column-last = The column stands last already
 table-sort-by = Sort by { $p0 }
 
 # Doc 16a §6.21: the tooltip of a derived column's header icon.

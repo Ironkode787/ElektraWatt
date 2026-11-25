@@ -114,7 +114,7 @@ pub(crate) fn new_project(
         let width = (ui.available_width() - button - t.space_3).max(0.0);
         submit |= text_field(ui, &d.folder, "folder", width, label, false, events);
         ui.add_space(t.space_3);
-        if components::button(ui, Kind::Secondary, browse, true, 0.0).clicked() {
+        if components::button(ui, Kind::Secondary, browse, None, 0.0).clicked() {
             events.push(Event::Action("new_project.browse", Value::Null));
         }
     });
@@ -156,7 +156,7 @@ pub(crate) fn new_project(
                             ui,
                             Kind::Subtle,
                             strings::text(key!("new-project-other-change")),
-                            true,
+                            None,
                             0.0,
                         )
                         .clicked()
@@ -197,7 +197,7 @@ fn buttons(ui: &mut Ui, t: &theme::Tokens, list: &[DialogButton], events: &mut V
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         for b in list {
-            let r = components::button(ui, Kind::Secondary, &b.label, b.disabled.is_none(), 0.0);
+            let r = components::button(ui, Kind::Secondary, &b.label, b.disabled.as_deref(), 0.0);
             let r = match b.answer {
                 DialogAnswer::Action("templates.remove", _) => {
                     r.tip(strings::text(key!("templates-remove-tip")))
@@ -308,7 +308,7 @@ fn rename_field(ui: &mut Ui, t: &theme::Tokens, i: usize, name: &str, events: &m
         ui,
         Kind::Primary,
         strings::text(key!("templates-rename-ok")),
-        true,
+        None,
         0.0,
     )
     .clicked();

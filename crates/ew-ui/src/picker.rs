@@ -220,7 +220,7 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
             ui,
             Kind::Secondary,
             strings::text(key!("action-part-new")),
-            true,
+            None,
             0.0,
         )
         .clicked()
@@ -747,20 +747,16 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
         ui,
         Kind::Primary,
         place,
-        reason.is_none(),
+        reason.as_deref(),
         t.size_button_min_width,
     );
-    let button = match &reason {
-        Some(r) => button.disabled_tip(r.as_str()),
-        None => button,
-    };
     if button.clicked() {
         events.push(Event::Action("picker.choose", json!({})));
     }
     // The second choice: a new page with the symbol's own grid.
     if grid_note.is_some() {
         let new_page = strings::text(key!("action-picker-new-page"));
-        if components::button(ui, Kind::Secondary, new_page, true, 0.0).clicked() {
+        if components::button(ui, Kind::Secondary, new_page, None, 0.0).clicked() {
             events.push(Event::Action("picker.new_page", json!({})));
         }
     }
@@ -846,7 +842,7 @@ fn edit_buttons(
             ui,
             Kind::Secondary,
             strings::text(key!("part-pins-and-box")),
-            true,
+            None,
             0.0,
         )
         .clicked()
@@ -862,13 +858,9 @@ fn edit_buttons(
             ui,
             Kind::Secondary,
             strings::text(key!("action-symbol-edit")),
-            refusal.is_none(),
+            refusal.as_deref(),
             0.0,
         );
-        let edit = match &refusal {
-            Some(why) => edit.disabled_tip(why.as_str()),
-            None => edit,
-        };
         if edit.clicked() {
             events.push(Event::SymbolAsk("symbol.edit", json!({})));
         }
@@ -876,7 +868,7 @@ fn edit_buttons(
             ui,
             Kind::Secondary,
             strings::text(key!("action-symbol-copy-edit")),
-            true,
+            None,
             0.0,
         )
         .clicked()

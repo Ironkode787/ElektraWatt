@@ -5,8 +5,8 @@
 //! the registry cannot be greyed without a reason: its `enabled` check returns the key of its reason, which is checked
 //! at build. What the window greys on its own is checked here: every `add_enabled(` and `add_enabled_ui(` in
 //! `crates/ew-ui/src` is followed, before the function it stands in ends and within [`REACH`] lines, by the reason of
-//! its greyed state (`disabled_tip`, `disabled_tip_beside` or `on_disabled_hover_text`). The components whose caller
-//! gives the reason are named in [`WITHOUT`] with why.
+//! its greyed state (`disabled_tip`, `disabled_tip_beside` or `on_disabled_hover_text`). The window's components take
+//! the reason instead of a bool and give it themselves, so their callers cannot grey a control without one.
 
 use std::path::Path;
 
@@ -23,20 +23,6 @@ const REASONS: &[&str] = &["disabled_tip", "on_disabled_hover_text"];
 
 /// How many lines after the greying call its reason may stand.
 const REACH: usize = 16;
-
-/// The functions (file, function) that grey a control without a reason of their own, each with why: components only.
-const WITHOUT: &[(&str, &str, &str)] = &[
-    (
-        "components.rs",
-        "button_with_icon",
-        "a component: its caller gives the reason",
-    ),
-    (
-        "components.rs",
-        "icon_toggle_tip",
-        "a component: its caller gives the reason",
-    ),
-];
 
 /// The violations: each greying call without a reason, by file, line and function.
 pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
@@ -68,9 +54,6 @@ fn findings(rel: &str, src: &str) -> Vec<String> {
             continue;
         }
         let function = lines[..=i].iter().rev().find_map(|l| fn_name(l)).unwrap_or("");
-        if WITHOUT.iter().any(|(f, n, _)| *f == rel && *n == function) {
-            continue;
-        }
         let reach = lines[i..end.min(i + REACH)]
             .iter()
             .take_while(|l| !l.starts_with('}'));
@@ -79,7 +62,7 @@ fn findings(rel: &str, src: &str) -> Vec<String> {
         }
         out.push(format!(
             "crates/ew-ui/src/{rel}:{}: `{function}` greys a control without saying why: give it its reason \
-             (`disabled_tip`), or name the function in xtask/src/greyed.rs with why it has none",
+             (`disabled_tip`)",
             i + 1
         ));
     }
@@ -120,19 +103,23 @@ fn rust_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) -> Result<()> {
 mod tests {
     use super::findings;
 
-    /// A greying call with its reason passes, one without is named by its line and function, and a comment is no
-    /// call.
+    /// A greying call with its reason passes, one without is named by its line and function, a component that greys
+    /// by a bool its caller gives is named as well (no component is exempt), and a comment is no call.
     #[test]
     fn a_greyed_control_without_its_reason_is_named() {
         let src = "fn shown(ui: &mut Ui) {\n    let b = ui.add_enabled(on, Button::new(text));\n    \
                    b.disabled_tip(reason);\n}\n\nfn silent(ui: &mut Ui) {\n    // ui.add_enabled(on, x)\n    \
-                   ui.add_enabled(on, Button::new(text));\n}\n";
+                   ui.add_enabled(on, Button::new(text));\n}\n\npub(crate) fn button(ui: &mut Ui, enabled: bool) \
+                   -> Response {\n    ui.add_enabled(enabled, Button::new(text))\n}\n";
+        let named = |line: usize, function: &str| {
+            format!(
+                "crates/ew-ui/src/components.rs:{line}: `{function}` greys a control without saying why: give it its \
+                 reason (`disabled_tip`)"
+            )
+        };
         assert_eq!(
-            findings("panel.rs", src),
-            [
-                "crates/ew-ui/src/panel.rs:8: `silent` greys a control without saying why: give it its reason \
-              (`disabled_tip`), or name the function in xtask/src/greyed.rs with why it has none"
-            ]
+            findings("components.rs", src),
+            [named(8, "silent"), named(12, "button")]
         );
     }
 }

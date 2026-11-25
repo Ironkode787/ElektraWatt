@@ -459,17 +459,14 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
         );
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // Create is the view's one filled button; without a head it says what it waits for.
-            let reason = draft.create_reason();
             let create = components::button(
                 ui,
                 Kind::Primary,
                 strings::text(key!("rack-create")),
-                reason.is_none(),
+                draft.create_reason().map(strings::text),
                 0.0,
             );
-            if let Some(why) = reason {
-                create.disabled_tip(strings::text(why));
-            } else if create.clicked() {
+            if create.clicked() {
                 events.push(Event::Action("plc.rack_create", json!({})));
             }
         });
@@ -536,7 +533,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
         ui.horizontal_wrapped(|ui| {
             for (device, tag) in &shown.candidates {
                 let label = strings::format(key!("rack-use-device"), &[tag]);
-                if components::button(ui, Kind::Secondary, &label, true, 0.0).clicked() {
+                if components::button(ui, Kind::Secondary, &label, None, 0.0).clicked() {
                     let mut params = json!({ "device": device.to_string() });
                     if let Some(c) = draft.config {
                         params["config"] = json!(c.to_string());
@@ -800,16 +797,13 @@ fn tools(ui: &mut Ui, t: &Tokens, shell: &ShellModel, events: &mut Vec<Event>) {
         for (short, entry) in ew_viewmodel::actions::station_tools(shell) {
             match entry {
                 MenuEntry::Item(item) => {
-                    let button = components::button(ui, Kind::Subtle, &short, item.enabled, 0.0);
+                    let refusal = (!item.enabled).then(|| item.reason.as_deref().unwrap_or_default());
+                    let button = components::button(ui, Kind::Subtle, &short, refusal, 0.0);
                     if let Some(topic) = item.topic {
                         crate::help::offer_for(&button, || (topic.to_owned(), short.clone()));
                     }
-                    match &item.reason {
-                        Some(why) if !item.enabled => {
-                            button.disabled_tip(why.clone());
-                        }
-                        _ if button.clicked() => events.push(Event::Action(item.id, item.params.clone())),
-                        _ => {}
+                    if button.clicked() {
+                        events.push(Event::Action(item.id, item.params.clone()));
                     }
                 }
                 MenuEntry::Submenu { items, .. } => {
@@ -818,11 +812,9 @@ fn tools(ui: &mut Ui, t: &Tokens, shell: &ShellModel, events: &mut Vec<Event>) {
                         Some(first) if items.iter().all(|i| !i.enabled) => first.reason.clone(),
                         _ => None,
                     };
-                    let button = components::button(ui, Kind::Subtle, &short, reason.is_none(), 0.0);
+                    let button = components::button(ui, Kind::Subtle, &short, reason.as_deref(), 0.0);
                     match reason {
-                        Some(why) => {
-                            button.disabled_tip(why);
-                        }
+                        Some(_) => {}
                         None => {
                             egui::Popup::menu(&button)
                                 .style(crate::menu::menu_style(t))
@@ -1483,13 +1475,13 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: &StationShown, event
                     action,
                     params,
                 }) => {
-                    if components::button(ui, Kind::Secondary, label, true, 0.0).clicked() {
+                    if components::button(ui, Kind::Secondary, label, None, 0.0).clicked() {
                         events.push(Event::Action(action, params.clone()));
                     }
                 }
                 Some(TodoFix::ChoosePart { rack, slot }) => {
                     let label = strings::text(key!("rack-choose-part"));
-                    let button = components::button(ui, Kind::Secondary, label, true, 0.0);
+                    let button = components::button(ui, Kind::Secondary, label, None, 0.0);
                     if button.clicked() {
                         events.push(Event::Action(
                             "plc.rack_select",
@@ -1508,7 +1500,7 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: &StationShown, event
                     folio,
                     pages,
                 }) => {
-                    let button = components::button(ui, Kind::Secondary, label, true, 0.0);
+                    let button = components::button(ui, Kind::Secondary, label, None, 0.0);
                     let next =
                         |folio: &str| Event::Action("plc.rack_next", json!({ "step": step, "folio": folio }));
                     match folio {
@@ -1614,7 +1606,7 @@ fn catalogue(ui: &mut Ui, t: &Tokens, shown: &StationShown, tab: &StationTab, ev
             ui,
             Kind::Secondary,
             strings::text(key!("rack-new-part")),
-            true,
+            None,
             0.0,
         )
         .clicked()
@@ -1627,7 +1619,7 @@ fn catalogue(ui: &mut Ui, t: &Tokens, shown: &StationShown, tab: &StationTab, ev
                 ui,
                 Kind::Secondary,
                 strings::text(key!("rack-put-blank")),
-                true,
+                None,
                 0.0,
             )
             .clicked()

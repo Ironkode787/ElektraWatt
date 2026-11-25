@@ -588,7 +588,8 @@ pub(crate) fn chooser(
                     let mut order = movable.clone();
                     // Doc 16a §6.21: two 24-px icon buttons, `arrow-left` and `arrow-right`.
                     let name = strings::format(key!("table-move-left-name"), &[&c.label]);
-                    let left = crate::components::icon_toggle(ui, IconId::arrow_left, &name, at > 0, None);
+                    let first = (at == 0).then(|| strings::text(key!("table-column-first")));
+                    let left = crate::components::icon_toggle(ui, IconId::arrow_left, &name, first, None);
                     if left.clicked() {
                         order.swap(at, at - 1);
                         events.push(Event::Action(
@@ -596,7 +597,7 @@ pub(crate) fn chooser(
                             json!({"kind": word, "order": order}),
                         ));
                     }
-                    let last = at + 1 < movable.len();
+                    let last = (at + 1 == movable.len()).then(|| strings::text(key!("table-column-last")));
                     let name = strings::format(key!("table-move-right-name"), &[&c.label]);
                     let right = crate::components::icon_toggle(ui, IconId::arrow_right, &name, last, None);
                     if right.clicked() {

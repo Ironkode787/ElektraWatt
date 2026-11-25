@@ -445,5 +445,5 @@ pub(super) fn body(ui: &mut Ui, salt: &str, add: impl FnOnce(&mut Ui)) {
 
 /// A secondary button of the house.
 pub(super) fn button(ui: &mut Ui, key: strings::Key<'_>) -> bool {
-    components::button(ui, Kind::Secondary, label(key), true, 0.0).clicked()
+    components::button(ui, Kind::Secondary, label(key), None, 0.0).clicked()
 }

@@ -658,6 +658,7 @@ keymap-preset-custom = Voorinstelling: { $p0 }, met uw wijzigingen
 keymap-custom-name = { $p0 } (gewijzigd)
 keymap-record = Opnemen
 keymap-reset = Herstellen
+keymap-reset-default = De actie heeft haar standaardtoetsen; neem een toets op om ze te wijzigen
 keymap-recording = Druk op een sneltoets…
 keymap-custom = Gewijzigd
 keymap-shadows = Overschaduwt

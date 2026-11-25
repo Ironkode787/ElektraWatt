@@ -107,7 +107,7 @@ impl EditorView {
                 action(events, "part.pin", json!({ "add": true }));
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if components::button(ui, Kind::Primary, label(key!("box-close")), true, 0.0).clicked() {
+                if components::button(ui, Kind::Primary, label(key!("box-close")), None, 0.0).clicked() {
                     ask(events, "symbol.close", json!({}));
                 }
                 ui.add_space(t.space_2);
@@ -166,7 +166,8 @@ impl EditorView {
         let t = theme::current(ui.ctx());
         let outline = b.outline();
         let table = b.pin_table();
-        let editable = b.pins_from().is_none();
+        // Where the pins come from when they are not added here: Add pin is greyed with it.
+        let from = b.pins_from();
         // A card's or a bus device's pins take another place on the box.
         let placed = b.places_pins();
         panels::panel_header(ui, label(key!("box-outline")));
@@ -240,9 +241,14 @@ impl EditorView {
                 ui.add_space(t.space_2);
                 ui.horizontal(|ui| {
                     ui.add_space(t.size_tree_indent);
-                    if components::button(ui, Kind::Secondary, label(key!("box-add-pin")), editable, 0.0)
-                        .clicked()
-                        && editable
+                    if components::button(
+                        ui,
+                        Kind::Secondary,
+                        label(key!("box-add-pin")),
+                        from.as_deref(),
+                        0.0,
+                    )
+                    .clicked()
                     {
                         action(events, "part.pin", json!({ "add": true }));
                     }

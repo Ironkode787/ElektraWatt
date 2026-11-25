@@ -311,7 +311,7 @@ impl NavigatorPane {
                             ui,
                             crate::icons::IconId::table,
                             strings::text(key!("table-toggle")),
-                            true,
+                            None,
                             Some(in_table),
                         );
                         if toggle.clicked() {
@@ -1032,7 +1032,7 @@ fn rename_error_ui(
         ui.horizontal(|ui| {
             ui.add_space(indent + t.icon_sm);
             let kind = crate::components::Kind::Secondary;
-            if crate::components::button(ui, kind, &p.button_text(), true, 0.0).clicked() {
+            if crate::components::button(ui, kind, &p.button_text(), None, 0.0).clicked() {
                 events.push(Event::Action("props.accept_tag_proposal", json!({})));
             }
         });
@@ -1511,7 +1511,7 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                 ));
                 if let ew_viewmodel::navigators::table::CellValue::Ambiguous(readings) = &c.value {
                     for (k, (text, _)) in readings.iter().enumerate() {
-                        if button(ui, Kind::Secondary, text, true, 0.0).clicked() {
+                        if button(ui, Kind::Secondary, text, None, 0.0).clicked() {
                             events.push(Event::Action(
                                 "table.resolve",
                                 json!({"cell": i + 1, "choice": k + 1}),
@@ -1524,7 +1524,7 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                     ui,
                     Kind::Secondary,
                     strings::text(key!("card-table-drop")),
-                    true,
+                    None,
                     0.0,
                 )
                 .clicked()
@@ -1563,7 +1563,7 @@ pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
         }
         if let Some(device) = shell.chip_put_here() {
             let put = strings::text(key!("chip-put-here"));
-            if crate::components::button(ui, crate::components::Kind::Secondary, put, true, 0.0).clicked() {
+            if crate::components::button(ui, crate::components::Kind::Secondary, put, None, 0.0).clicked() {
                 events.push(Event::Action(
                     "bus.put_station",
                     json!({ "station": device.to_string() }),

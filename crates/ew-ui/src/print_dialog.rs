@@ -453,7 +453,8 @@ fn navigation(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, pages: usize, ev
         });
         let buttons = 2.0 * t.size_button_min_width.max(0.0) + caption_width + 2.0 * t.space_3;
         ui.add_space(((ui.available_width() - buttons) / 2.0).max(0.0));
-        if components::button(ui, Kind::Secondary, previous, d.page > 0, t.size_button_min_width).clicked() {
+        let first = (d.page == 0).then(|| strings::text(key!("print-first-page")));
+        if components::button(ui, Kind::Secondary, previous, first, t.size_button_min_width).clicked() {
             events.push(Event::Action("print.page", json!({ "to": "previous" })));
         }
         ui.label(crate::components::body_secondary(&t, &caption));
@@ -461,7 +462,7 @@ fn navigation(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, pages: usize, ev
             ui,
             Kind::Secondary,
             next,
-            d.page + 1 < pages,
+            (d.page + 1 >= pages).then(|| strings::text(key!("print-last-page"))),
             t.size_button_min_width,
         )
         .clicked()

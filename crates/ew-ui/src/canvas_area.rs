@@ -31,7 +31,6 @@ use serde_json::json;
 
 use crate::app::Event;
 use crate::canvas::CanvasHost;
-use crate::components::Tip;
 
 /// A pane of the tree: a tab by its ID.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -362,18 +361,15 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         } else {
             format!("{} ({key})", b.label)
         };
+        let why = refusal.map(|why| format!("{tip}: {}", strings::render(&why)));
         let response = crate::components::icon_toggle_tip(
             ui,
             crate::icons::IconId::arrow_left,
             &b.label,
             &tip,
-            enabled,
+            why.as_deref(),
             None,
         );
-        let response = match &refusal {
-            None => response,
-            Some(why) => response.disabled_tip(format!("{tip}: {}", strings::render(why))),
-        };
         if enabled && response.clicked() {
             self.events
                 .push(Event::Action("tab.activate", json!({"group": g, "index": i})));

@@ -152,7 +152,7 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
                     ui,
                     Kind::Secondary,
                     strings::text(key!("wizard-choose-folder")),
-                    true,
+                    None,
                     0.0,
                 )
                 .clicked()
@@ -292,7 +292,7 @@ fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
                     (Kind::Secondary, key!("wizard-closing-stay"), "stay"),
                     (Kind::Danger, key!("wizard-closing-discard"), "discard"),
                 ] {
-                    if components::button(ui, kind, strings::text(label), true, 0.0).clicked() {
+                    if components::button(ui, kind, strings::text(label), None, 0.0).clicked() {
                         events.push(Event::Action("wizard.cancel", json!({ "answer": answer })));
                     }
                 }
@@ -304,13 +304,13 @@ fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
     ui.allocate_ui_with_layout(size, Layout::left_to_right(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         if wizard.finished_dir().is_none() {
-            if components::button(ui, Kind::Subtle, strings::text(key!("wizard-cancel")), true, 0.0)
+            if components::button(ui, Kind::Subtle, strings::text(key!("wizard-cancel")), None, 0.0)
                 .tip(strings::text(key!("wizard-cancel-tip")))
                 .clicked()
             {
                 push("wizard.cancel");
             }
-            if components::button(ui, Kind::Subtle, strings::text(key!("wizard-reset")), true, 0.0)
+            if components::button(ui, Kind::Subtle, strings::text(key!("wizard-reset")), None, 0.0)
                 .tip(strings::text(key!("wizard-reset-tip")))
                 .clicked()
             {
@@ -320,7 +320,7 @@ fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
         // Right to left: the rightmost button first.
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             if wizard.finished_dir().is_some() {
-                if components::button(ui, Kind::Primary, strings::text(key!("wizard-close")), true, 0.0)
+                if components::button(ui, Kind::Primary, strings::text(key!("wizard-close")), None, 0.0)
                     .clicked()
                 {
                     push("wizard.cancel");
@@ -332,11 +332,11 @@ fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
             } else {
                 (key!("wizard-next"), "wizard.next")
             };
-            if components::button(ui, Kind::Primary, strings::text(label), true, 0.0).clicked() {
+            if components::button(ui, Kind::Primary, strings::text(label), None, 0.0).clicked() {
                 push(action);
             }
             if wizard.step() != Step::Company
-                && components::button(ui, Kind::Secondary, strings::text(key!("wizard-back")), true, 0.0)
+                && components::button(ui, Kind::Secondary, strings::text(key!("wizard-back")), None, 0.0)
                     .clicked()
             {
                 push("wizard.back");

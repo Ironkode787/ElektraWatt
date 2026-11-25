@@ -298,9 +298,16 @@ pub(crate) fn focus_ring(ui: &Ui, response: &Response, radius: f32) {
 }
 
 /// A button of `kind` labelled `label`, `size.control` high, `radius.md`; `min_width` is 72 px in dialogs (0
-/// elsewhere). Disabled buttons keep their place.
-pub(crate) fn button(ui: &mut Ui, kind: Kind, label: &str, enabled: bool, min_width: f32) -> Response {
-    button_with_icon(ui, kind, None, label, enabled, min_width)
+/// elsewhere). A button with a `refusal` is greyed with it as its tooltip (doc 16a §6.1), so none is greyed without
+/// saying why; disabled buttons keep their place.
+pub(crate) fn button(
+    ui: &mut Ui,
+    kind: Kind,
+    label: &str,
+    refusal: Option<&str>,
+    min_width: f32,
+) -> Response {
+    button_with_icon(ui, kind, None, label, refusal, min_width)
 }
 
 /// [`button`] with an `icon.sm` icon at the left, `space.icon` before the label.
@@ -309,9 +316,10 @@ pub(crate) fn button_with_icon(
     kind: Kind,
     icon: Option<IconId>,
     label: &str,
-    enabled: bool,
+    refusal: Option<&str>,
     min_width: f32,
 ) -> Response {
+    let enabled = refusal.is_none();
     let t = tokens(ui);
     let (fill, text, border, font) = button_look(&t, kind, enabled);
     let label = RichText::new(label).font(theme::font(font)).color(text.color32());
@@ -335,7 +343,10 @@ pub(crate) fn button_with_icon(
     ui.visuals_mut().disabled_alpha = alpha;
     // The state overlay (doc 16a §6.1): an explicit fill hides egui's own hover fill.
     crate::command_bar::state_overlay(ui, &t, &response, enabled, t.radius_md);
-    response
+    match refusal {
+        Some(why) => response.disabled_tip(why),
+        None => response,
+    }
 }
 
 /// The shared filter field (doc 16a §6.5) of the navigators and Properties: a one-line field filling the width, a
@@ -398,14 +409,20 @@ pub(crate) fn filter_field(ui: &mut Ui, text: &mut String, hint: &str) -> Respon
 /// A 24-px Subtle icon button with `icon.sm` in `color.text.secondary` (doc 16a §6.3), named `name`, with `name` as
 /// its tooltip.
 pub(crate) fn icon_button(ui: &mut Ui, id: IconId, name: &str) -> Response {
-    icon_toggle(ui, id, name, true, None)
+    icon_toggle(ui, id, name, None, None)
 }
 
-/// [`icon_button`] that may be disabled (`color.text.disabled`, no hover) and may be a toggle: `Some(on)` draws the
-/// Selected state while on (`color.accent.subtle` fill, the icon in `color.accent`; doc 16a §6.1) and gives the node
-/// its selected state, as the navigators' Table toggle (doc 16a §6.21).
-pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on: Option<bool>) -> Response {
-    icon_toggle_tip(ui, id, name, name, enabled, on)
+/// [`icon_button`] that may be greyed with its `refusal` as the tooltip (`color.text.disabled`, no hover) and may be
+/// a toggle: `Some(on)` draws the Selected state while on (`color.accent.subtle` fill, the icon in `color.accent`; doc
+/// 16a §6.1) and gives the node its selected state, as the navigators' Table toggle (doc 16a §6.21).
+pub(crate) fn icon_toggle(
+    ui: &mut Ui,
+    id: IconId,
+    name: &str,
+    refusal: Option<&str>,
+    on: Option<bool>,
+) -> Response {
+    icon_toggle_tip(ui, id, name, name, refusal, on)
 }
 
 /// An action's icon button ([`icon_toggle`] with `icon` and `label`): enabled by the action's check, greyed with its
@@ -417,12 +434,11 @@ pub(crate) fn action_button(
     (icon, label): (IconId, &str),
     events: &mut Vec<Event>,
 ) {
-    let state = ew_viewmodel::actions::find(action).map(|a| a.enabled_now(shell));
-    let button = icon_toggle(ui, icon, label, matches!(state, Some(Ok(()))), None);
-    let button = match state {
-        Some(Err(reason)) => button.disabled_tip(&strings::render(&reason)),
-        _ => button,
+    let refusal = match ew_viewmodel::actions::find(action).map(|a| a.enabled_now(shell)) {
+        Some(Err(reason)) => Some(strings::render(&reason)),
+        _ => None,
     };
+    let button = icon_toggle(ui, icon, label, refusal.as_deref(), None);
     if button.clicked() {
         events.push(Event::Action(action, Value::Null));
     }
@@ -434,15 +450,20 @@ pub(crate) fn icon_toggle_tip(
     id: IconId,
     name: &str,
     tip: &str,
-    enabled: bool,
+    refusal: Option<&str>,
     on: Option<bool>,
 ) -> Response {
+    let enabled = refusal.is_none();
     let t = tokens(ui);
     let size = Vec2::splat(t.size_control_inline);
-    // A disabled button is allocated in a disabled scope, so its caller's `on_disabled_hover_text` shows the reason.
+    // A disabled button is allocated in a disabled scope, so its reason shows as the tooltip of a greyed widget.
     let (rect, response) = ui
         .add_enabled_ui(enabled, |ui| ui.allocate_exact_size(size, Sense::click()))
         .inner;
+    let response = match refusal {
+        Some(why) => response.disabled_tip(why),
+        None => response,
+    };
     let n = name.to_owned();
     response.widget_info(|| match on {
         Some(on) => egui::WidgetInfo::selected(egui::Role::Button, enabled, on, &n),
@@ -849,7 +870,7 @@ pub(crate) fn empty_state(
             ui.add(egui::Label::new(crate::components::body_secondary(&t, sentence)).wrap());
             if let Some(label) = action {
                 ui.add_space(t.space_3);
-                clicked = Some(button(ui, Kind::Primary, label, true, 0.0));
+                clicked = Some(button(ui, Kind::Primary, label, None, 0.0));
             }
         });
     });
@@ -943,7 +964,7 @@ pub(crate) fn band_row(
     icons::paint(ui.painter(), icon, r, icon_colour.color32(), t.icon_stroke);
     ui.label(words);
     for (kind, label, event) in buttons {
-        if button(ui, kind, label, true, 0.0).clicked() {
+        if button(ui, kind, label, None, 0.0).clicked() {
             events.push(event);
         }
     }
@@ -1085,21 +1106,11 @@ pub(crate) fn apply_cancel_blocked(
         let order = crate::dialog::footer_order(crate::dialog::Platform::host(), 1);
         for slot in order.into_iter().rev() {
             if slot == crate::dialog::Slot::Primary {
-                let r = button(
-                    ui,
-                    Kind::Primary,
-                    strings::text(key!("card-apply")),
-                    blocked.is_none(),
-                    0.0,
-                );
-                let r = match blocked {
-                    Some(reason) => r.disabled_tip(reason),
-                    None => r,
-                };
+                let r = button(ui, Kind::Primary, strings::text(key!("card-apply")), blocked, 0.0);
                 if r.clicked() {
                     events.push(Event::Action(apply.0, apply.1.clone()));
                 }
-            } else if button(ui, Kind::Secondary, strings::text(key!("card-cancel")), true, 0.0).clicked() {
+            } else if button(ui, Kind::Secondary, strings::text(key!("card-cancel")), None, 0.0).clicked() {
                 events.push(Event::Action(cancel.0, cancel.1.clone()));
             }
         }
@@ -1446,7 +1457,7 @@ pub(crate) fn close_button(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Eve
     } else {
         format!("{name} ({key})")
     };
-    if icon_toggle_tip(ui, IconId::x, name, &tip, true, None).clicked() {
+    if icon_toggle_tip(ui, IconId::x, name, &tip, None, None).clicked() {
         events.push(Event::Action("ui.dismiss", json!({})));
     }
 }

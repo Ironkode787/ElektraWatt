@@ -454,7 +454,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
                     ui,
                     Kind::Secondary,
                     strings::text(key!("toast-close")),
-                    true,
+                    None,
                     t.size_button_min_width,
                 );
                 if close.clicked() {

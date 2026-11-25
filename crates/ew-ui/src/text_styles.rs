@@ -136,11 +136,12 @@ fn typeface_line(
             strings::text(key!("text-styles-typeface-title")),
         ));
         ui.label(RichText::new(&line.words).color(t.text_primary.color32()));
+        let read_only = (!writable).then(|| strings::text(key!("reason-read-only")));
         let choose = components::button(
             ui,
             Kind::Secondary,
             strings::text(key!("text-styles-typeface-choose")),
-            writable,
+            read_only,
             0.0,
         );
         if choose.clicked() {
@@ -150,7 +151,7 @@ fn typeface_line(
             ui,
             Kind::Subtle,
             strings::text(key!("text-styles-typeface-clear")),
-            writable && line.own,
+            read_only.or_else(|| (!line.own).then(|| strings::text(key!("text-styles-typeface-standard")))),
             0.0,
         );
         if clear.clicked() {
@@ -189,31 +190,17 @@ fn style_row(
                 }
             },
         );
-        ui.add_enabled_ui(writable, |ui| {
+        // A read-only project greys the row's controls and says why.
+        let controls = ui.add_enabled_ui(writable, |ui| {
             face_combo(ui, t, row, events);
             height_field(ui, t, row, events);
-            // A face without a bold cut: the toggle is off and says why.
-            let bold_reason = row.bold_reason();
-            let has_bold = bold_reason.is_none();
-            let mut bold = ui
-                .add_enabled(
-                    has_bold,
-                    egui::Button::selectable(
-                        row.bold,
-                        RichText::new(strings::text(key!("text-styles-bold-letter"))).strong(),
-                    ),
-                )
-                .tip(strings::text(key!("text-styles-bold")));
-            if let Some(why) = bold_reason {
-                bold = bold.disabled_tip(strings::text(why));
-            }
-            if bold.clicked() {
-                events.push(Event::Action(
-                    "text_styles.set",
-                    json!({ "style": row.key, "bold": !row.bold }),
-                ));
-            }
+            bold_toggle(ui, row, events);
         });
+        if !writable {
+            controls
+                .response
+                .disabled_tip(strings::text(key!("reason-read-only")));
+        }
         // The sample in proportion to its size on paper, capped for the largest styles.
         let em_mm = row.em.0 as f32 / 1_000_000.0;
         let size = (em_mm * PX_PER_MM).clamp(4.0, MAX_SAMPLE);
@@ -245,7 +232,9 @@ fn style_row(
             ui,
             Kind::Subtle,
             strings::text(key!("text-styles-reset")),
-            writable && row.changed,
+            (!writable)
+                .then(|| strings::text(key!("reason-read-only")))
+                .or_else(|| (!row.changed).then(|| strings::text(key!("text-styles-reset-new")))),
             0.0,
         )
         .tip(strings::text(key!("text-styles-reset-tip")));
@@ -256,6 +245,29 @@ fn style_row(
 }
 
 /// The typeface list of a row.
+/// A row's Bold toggle: a face without a bold cut greys it and says why.
+fn bold_toggle(ui: &mut Ui, row: &TextStyleRow, events: &mut Vec<Event>) {
+    let bold_reason = row.bold_reason();
+    let mut bold = ui
+        .add_enabled(
+            bold_reason.is_none(),
+            egui::Button::selectable(
+                row.bold,
+                RichText::new(strings::text(key!("text-styles-bold-letter"))).strong(),
+            ),
+        )
+        .tip(strings::text(key!("text-styles-bold")));
+    if let Some(why) = bold_reason {
+        bold = bold.disabled_tip(strings::text(why));
+    }
+    if bold.clicked() {
+        events.push(Event::Action(
+            "text_styles.set",
+            json!({ "style": row.key, "bold": !row.bold }),
+        ));
+    }
+}
+
 fn face_combo(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, events: &mut Vec<Event>) {
     let list = faces();
     let shown = list

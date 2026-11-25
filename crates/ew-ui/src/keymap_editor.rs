@@ -245,7 +245,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                             ui,
                             Kind::Subtle,
                             strings::text(key!("keymap-record")),
-                            true,
+                            None,
                             BUTTON_WIDTH,
                         )
                         .clicked()
@@ -259,7 +259,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                             ui,
                             Kind::Subtle,
                             strings::text(key!("keymap-reset")),
-                            row.custom,
+                            (!row.custom).then(|| strings::text(key!("keymap-reset-default"))),
                             BUTTON_WIDTH,
                         )
                         .clicked()

@@ -385,7 +385,7 @@ impl EditorView {
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 // Close editor is the way back to the project: the editor's one primary button, in the corner the eye
                 // goes to for it. It keeps the draft and its history.
-                if components::button(ui, Kind::Primary, label(key!("symbol-close")), true, 0.0).clicked() {
+                if components::button(ui, Kind::Primary, label(key!("symbol-close")), None, 0.0).clicked() {
                     action(events, "symbol.close", json!({}));
                 }
                 if editor.start {
@@ -610,12 +610,16 @@ impl EditorView {
                             } else {
                                 (key!("symbol-scratch"), "symbol.scratch")
                             };
+                            // Greyed where the shell refuses the offer, with its reason.
+                            let refusal = ew_viewmodel::actions::find(offer)
+                                .and_then(|m| m.enabled_now(shell).err())
+                                .map(|r| strings::render(&r));
                             if editor.offer_new_page
                                 && components::button(
                                     ui,
                                     Kind::Secondary,
                                     label(text),
-                                    shell.has_project(),
+                                    refusal.as_deref(),
                                     0.0,
                                 )
                                 .clicked()
@@ -992,7 +996,7 @@ impl EditorView {
             ui.horizontal_wrapped(|ui| {
                 if editor.selection.len() > 1 {
                     let line_up =
-                        components::button(ui, Kind::Secondary, label(key!("symbol-line-up")), true, 0.0);
+                        components::button(ui, Kind::Secondary, label(key!("symbol-line-up")), None, 0.0);
                     egui::Popup::menu(&line_up).show(|ui| {
                         for to in ["left", "centre", "right", "top", "middle", "bottom"] {
                             let words = label(strings::Key::run_time(&format!("symbol-line-up-{to}")));

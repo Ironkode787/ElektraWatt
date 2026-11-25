@@ -493,7 +493,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
         .and_then(|k| shell.finding_offer(&k))
         .filter(|_| !d.waived)
-        && components::button(ui, Kind::Secondary, &offer.label, offer.enabled, 0.0).clicked()
+        && components::button(ui, Kind::Secondary, &offer.label, offer.reason.as_deref(), 0.0).clicked()
     {
         events.push(Event::Action(offer.id, offer.params.clone()));
     }
@@ -509,13 +509,9 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 ui,
                 Kind::Secondary,
                 strings::text(key!("messages-fix-button")),
-                reason.is_none(),
+                reason.as_deref(),
                 0.0,
             );
-            let button = match reason {
-                Some(r) => button.disabled_tip(r),
-                None => button,
-            };
             if button.clicked() {
                 events.push(Event::Action("messages.fix", Value::Null));
             }
@@ -529,7 +525,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     "messages.fix_all",
                     serde_json::Map::from_iter([("key".to_owned(), Value::from(group.as_str()))]),
                 );
-                if components::button(ui, Kind::Secondary, &label, reason.is_none(), 0.0).clicked() {
+                if components::button(ui, Kind::Secondary, &label, reason.as_deref(), 0.0).clicked() {
                     events.push(Event::Action(
                         "messages.fix_all",
                         serde_json::json!({ "key": group }),

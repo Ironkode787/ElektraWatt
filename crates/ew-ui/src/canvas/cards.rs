@@ -157,11 +157,11 @@ impl CanvasHost {
                     ui.horizontal(|ui| {
                         use crate::components::{Kind, button};
                         let accept = strings::text(key!("potential-offer-accept"));
-                        if button(ui, Kind::Primary, accept, true, 0.0).clicked() {
+                        if button(ui, Kind::Primary, accept, None, 0.0).clicked() {
                             events.push(Event::Action("potential.offer", json!({"accept": true})));
                         }
                         let decline = strings::text(key!("potential-offer-decline"));
-                        if button(ui, Kind::Secondary, decline, true, 0.0).clicked() {
+                        if button(ui, Kind::Secondary, decline, None, 0.0).clicked() {
                             events.push(Event::Action("potential.offer", json!({"accept": false})));
                         }
                     });
@@ -358,7 +358,7 @@ impl CanvasHost {
                     ui.add_space(t.space_2);
                     ui.horizontal(|ui| {
                         use crate::components::{Kind, button};
-                        if button(ui, Kind::Primary, strings::text(key!("dialog-apply")), true, 0.0).clicked()
+                        if button(ui, Kind::Primary, strings::text(key!("dialog-apply")), None, 0.0).clicked()
                         {
                             events.push(Event::Action("ip.supply_potential", json!({"apply": true})));
                         }
@@ -366,7 +366,7 @@ impl CanvasHost {
                             ui,
                             Kind::Secondary,
                             strings::text(key!("supply-potential-skip")),
-                            true,
+                            None,
                             0.0,
                         )
                         .clicked()

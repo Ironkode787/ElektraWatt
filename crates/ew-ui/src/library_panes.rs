@@ -85,9 +85,9 @@ fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     };
     ui.horizontal(|ui| {
         ui.add_space(t.space_4);
-        let button = components::button(ui, Kind::Secondary, &label, reason.is_none(), 0.0);
+        let button = components::button(ui, Kind::Secondary, &label, reason.as_deref(), 0.0);
         let button = match &reason {
-            Some(r) => button.disabled_tip(r),
+            Some(_) => button,
             None => button.tip(strings::text(key!("libraries-update-tip"))),
         };
         if button.clicked() {
@@ -368,7 +368,7 @@ fn macro_detail(
                 ui,
                 Kind::Primary,
                 strings::text(key!("action-macros-insert")),
-                true,
+                None,
                 0.0,
             )
             .clicked()

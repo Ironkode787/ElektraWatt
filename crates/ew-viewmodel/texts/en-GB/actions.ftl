@@ -675,6 +675,7 @@ keymap-preset-custom = Preset: { $p0 }, with your changes
 keymap-custom-name = { $p0 } (changed)
 keymap-record = Record
 keymap-reset = Reset
+keymap-reset-default = The action has its default keys; record a key to change them
 keymap-recording = Press a shortcut…
 keymap-custom = Changed
 keymap-shadows = Shadows

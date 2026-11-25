@@ -276,7 +276,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
         components::Kind::Subtle,
         Some(IconId::plus),
         strings::text(table.add_key),
-        true,
+        None,
         0.0,
     )
     .clicked()

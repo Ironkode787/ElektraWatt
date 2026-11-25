@@ -609,7 +609,7 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                             ui,
                             components::Kind::Subtle,
                             strings::text(key!("dialog-close")),
-                            true,
+                            None,
                             0.0,
                         )
                         .clicked()

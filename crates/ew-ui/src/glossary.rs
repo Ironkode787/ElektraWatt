@@ -322,13 +322,10 @@ fn action_button(ui: &mut Ui, shell: &ShellModel, id: &str, events: &mut Vec<Eve
     let (Some(meta), Some((text, name))) = (actions::find(id), action_words(id)) else {
         return;
     };
-    let state = meta.enabled_now(shell);
-    let b = components::button(ui, Kind::Subtle, &text, state.is_ok(), 0.0);
-    b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, state.is_ok(), &name));
-    let b = match state {
-        Ok(()) => b.tip(name),
-        Err(reason) => b.disabled_tip_beside(&strings::render(&reason)),
-    };
+    let refusal = meta.enabled_now(shell).err().map(|r| strings::render(&r));
+    let b = components::button(ui, Kind::Subtle, &text, refusal.as_deref(), 0.0);
+    b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, refusal.is_none(), &name));
+    let b = if refusal.is_none() { b.tip(name) } else { b };
     if b.clicked() {
         events.push(Event::Action(meta.id, Value::Null));
     }

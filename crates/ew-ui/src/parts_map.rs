@@ -23,7 +23,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
-use crate::components::{Kind, Tip, button};
+use crate::components::{Kind, button};
 
 /// Paints the mapping card when the step is open.
 pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
@@ -301,18 +301,14 @@ fn buttons(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
         let order = crate::dialog::footer_order(crate::dialog::Platform::host(), 1);
         for slot in order.into_iter().rev() {
             if slot == crate::dialog::Slot::Primary {
-                let enabled = map.can_import();
+                let refusal = (!map.can_import()).then(|| map.error_text().unwrap_or_default());
                 let r = button(
                     ui,
                     Kind::Primary,
                     strings::text(key!("parts-map-import")),
-                    enabled,
+                    refusal.as_deref(),
                     0.0,
                 );
-                let r = match (map.error_text(), enabled) {
-                    (Some(reason), false) => r.disabled_tip(&reason),
-                    _ => r,
-                };
                 if r.clicked() {
                     events.push(Event::Action("parts.map_import", json!({})));
                 }
@@ -320,7 +316,7 @@ fn buttons(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 ui,
                 Kind::Secondary,
                 strings::text(key!("parts-map-cancel")),
-                true,
+                None,
                 0.0,
             )
             .clicked()
