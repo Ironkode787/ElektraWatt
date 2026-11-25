@@ -148,8 +148,7 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
                 )
                 .arg("form", "order")
                 .arg("revision", open.label.to_string())
-                .arg("later", r.label.to_string())
-                .arg("id", r.id.to_string()),
+                .arg("later", r.label.to_string()),
             );
         }
     }

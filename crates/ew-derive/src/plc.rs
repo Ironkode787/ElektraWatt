@@ -1968,19 +1968,10 @@ pub fn process_tag_parts(scheme: &regex::Regex, tag: &str) -> Option<Vec<(String
     )
 }
 
-/// A channel kind as the PLC lists, the navigator and the checks print it (`DO`, `AI`, `multi-function`).
-pub fn channel_kind_word(k: &ChannelKind) -> &'static str {
-    match k {
-        ChannelKind::Di => "DI",
-        ChannelKind::Do => "DO",
-        ChannelKind::Ai => "AI",
-        ChannelKind::Ao => "AO",
-        ChannelKind::Counter => "counter",
-        ChannelKind::IoLinkPort => "IO-Link",
-        ChannelKind::PowerSupply => "supply",
-        ChannelKind::MultiFunction => "multi-function",
-        ChannelKind::Unknown(_) => "other",
-    }
+/// A channel kind in English as the PLC lists and the navigator print it (`DO`, `AI`, `multi-function`): the English
+/// of [`crate::text::channel_kind`].
+pub fn channel_kind_word(k: &ChannelKind) -> String {
+    crate::text::channel_kind(k).to_string()
 }
 
 /// The device a device drives (`DeviceLink{Drives}` from it; the smallest link ID when there are several).

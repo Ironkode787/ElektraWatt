@@ -1055,7 +1055,15 @@ rule-ew-rds-010 = the structure codes { $codes } differ only in separators or ca
 rule-ew-rel-001 = revision { $revision }: { $form ->
         [author] author not set; set it with Check ▸ Revision ▸ Set revision author…
         [checker] checker not set; the checker approves the revision
-        [four-eyes] the checker is the author ({ $role }); four eyes need another party
+        [four-eyes] the checker is the author ({ $role ->
+            [customer] customer
+            [end_user] end user
+            [panel_builder] panel builder
+            [author] author
+            [checker] checker
+            [engineer] engineer
+           *[other] { $role }
+        }); four eyes need another party
         [sign-off] sign-off missing; the checker approves the saved revision
        *[stale] the sign-off does not match the saved content (edited after approval); approve it again
     }
@@ -1064,7 +1072,7 @@ rule-ew-rel-001 = revision { $revision }: { $form ->
 
 rule-ew-rel-004 = revision { $revision }: { $form ->
         [format] the label is not in the project's revision label format { $pattern }
-       *[order] the open revision's label does not follow { $later } of revision { $id }; revision labels increase, the open revision last
+       *[order] the open revision's label does not follow { $later }; revision labels increase, the open revision last
     }
     .title = Revision label order
     .hint = Give the revision a label in the project's label format that follows every earlier label.
@@ -1264,6 +1272,14 @@ word-a-location = a location
 word-a-device-without-designation = a device without designation
 word-a-missing-part = a missing part
 word-an-unknown-profile = an unknown profile
+word-a-connector = a connector
+# A scope of EW-CORE-083 by its name.
+word-scope-folio = folio { $p0 }
+word-scope-potential = potential { $p0 }
+word-scope-configuration-project = configuration project { $p0 }
+word-scope-logical-net = logical net { $p0 }
+word-scope-physical-net = physical net { $p0 }
+word-scope-of-kind = a { $p0 } scope
 # A load a contact leaves connected (EW-POT-013), and a character that looks like a Latin one (EW-RDS-009).
 word-stranded-load = load { $p0 } stays connected to { $p1 }
 word-lookalike = { $p0 } (looks like { $p1 })

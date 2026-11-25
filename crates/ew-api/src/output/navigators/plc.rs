@@ -92,7 +92,7 @@ pub(super) const PLC_COLUMNS: [(&str, &str); 18] = [
 ];
 
 /// The word of a channel kind as the PLC overview prints it.
-fn channel_kind_word(k: &ew_schema::ChannelKind) -> &'static str {
+fn channel_kind_word(k: &ew_schema::ChannelKind) -> String {
     ew_derive::channel_kind_word(k)
 }
 

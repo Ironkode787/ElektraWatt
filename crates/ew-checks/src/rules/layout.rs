@@ -85,14 +85,14 @@ fn carrier_word(kind: &CarrierKind) -> &'static str {
     }
 }
 
-/// A rail profile as printed (`TS 35×7.5`).
-fn profile_text(kind: &MountKind) -> String {
+/// A rail profile as printed (`TS 35×7.5`), a profile of a newer format in the reader's words.
+fn profile_text(kind: &MountKind) -> ew_l10n::TextArg {
     match Profile::of(kind) {
-        Some(Profile::Ts35x7_5) => "TS 35×7.5".to_owned(),
-        Some(Profile::Ts35x15) => "TS 35×15".to_owned(),
-        Some(Profile::Ts32) => "TS 32".to_owned(),
-        Some(Profile::Ts15) => "TS 15".to_owned(),
-        None => "an unknown profile".to_owned(),
+        Some(Profile::Ts35x7_5) => "TS 35×7.5".into(),
+        Some(Profile::Ts35x15) => "TS 35×15".into(),
+        Some(Profile::Ts32) => "TS 32".into(),
+        Some(Profile::Ts15) => "TS 15".into(),
+        None => text!("word-an-unknown-profile").into(),
     }
 }
 

@@ -223,12 +223,11 @@ fn label_order_cases() {
                     .to_owned()
             ),
             (
+                // The later revision by its label, never by its ID.
                 "order".to_owned(),
-                format!(
-                    "revision V2.0: the open revision's label does not follow V3.0 of revision {}; revision labels \
-                     increase, the open revision last",
-                    us(1)
-                )
+                "revision V2.0: the open revision's label does not follow V3.0; revision labels increase, the open \
+                 revision last"
+                    .to_owned()
             ),
         ]
     );

@@ -70,23 +70,27 @@ fn scope_text(q: &Q, scope: &Scope) -> Named {
         Scope::Project => text!("word-the-project").into(),
         Scope::Page(p) => q.pages().get(p).map_or_else(
             || text!("word-a-page").into(),
-            |page| format!("folio {}", folio_label(page)).into(),
+            |page| text!("word-scope-folio", folio_label(page)).into(),
         ),
         Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => full_tag(q, d, text!("word-a-device")),
-        Scope::Potential(p) => format!("potential {}", q.get::<PotentialNameOf>(p).name.text).into(),
+        Scope::Potential(p) => text!(
+            "word-scope-potential",
+            q.get::<PotentialNameOf>(p).name.text.to_string()
+        )
+        .into(),
         Scope::Module(d) => full_tag(q, d, text!("word-a-module")),
         Scope::Station(d) => full_tag(q, d, text!("word-a-station")),
         Scope::Cfg(c) => q.table::<ew_schema::PlcConfigProject>().get(c).map_or_else(
             || text!("word-a-configuration-project").into(),
-            |c| format!("configuration project {}", c.name).into(),
+            |c| text!("word-scope-configuration-project", c.name.to_string()).into(),
         ),
         Scope::Lnet(n) => q.table::<ew_schema::LogicalNet>().get(n).map_or_else(
             || text!("word-a-logical-bus-net").into(),
-            |n| format!("logical net {}", n.name).into(),
+            |n| text!("word-scope-logical-net", n.name.to_string()).into(),
         ),
         Scope::Pnet(n) => q.table::<ew_schema::PhysicalNet>().get(n).map_or_else(
             || text!("word-a-physical-bus-net").into(),
-            |n| format!("physical net {}", n.name).into(),
+            |n| text!("word-scope-physical-net", n.name.to_string()).into(),
         ),
     }
 }
@@ -109,7 +113,7 @@ fn scope_target(scope: &Scope) -> Option<Target> {
 /// a query that panics on the same data does not take the report down with it.
 fn not_evaluated(q: &Q, rule: &'static RuleMeta, scope: &Scope) -> Finding {
     let text = catch_unwind(AssertUnwindSafe(|| scope_text(q, scope)))
-        .unwrap_or_else(|_| format!("a {} scope", scope.kind().name()).into());
+        .unwrap_or_else(|_| text!("word-scope-of-kind", scope.kind().name()).into());
     Finding::new(
         &RULE_NOT_EVALUATED,
         scope_target(scope),

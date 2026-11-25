@@ -39,6 +39,15 @@ medium-exhaust = exhaust
 ## A PLC channel, as the fluid findings name it
 
 channel-of-module = channel { $p0 } of { $p1 }
+channel-kind-di = DI
+channel-kind-do = DO
+channel-kind-ai = AI
+channel-kind-ao = AO
+channel-kind-counter = counter
+channel-kind-io-link = IO-Link
+channel-kind-supply = supply
+channel-kind-multi-function = multi-function
+channel-kind-other = other
 channel-no-address = no address
 
 ## The category of an open item, as the list of open items prints it

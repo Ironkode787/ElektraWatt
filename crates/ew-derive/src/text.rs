@@ -305,6 +305,22 @@ pub fn medium_exhaust() -> Text {
     text!("medium-exhaust")
 }
 
+/// A channel kind in words (`DO`, `AI`, `counter`, `multi-function`): a signal code is the same in every language.
+pub fn channel_kind(k: &ew_schema::ChannelKind) -> Text {
+    use ew_schema::ChannelKind as K;
+    match k {
+        K::Di => text!("channel-kind-di"),
+        K::Do => text!("channel-kind-do"),
+        K::Ai => text!("channel-kind-ai"),
+        K::Ao => text!("channel-kind-ao"),
+        K::Counter => text!("channel-kind-counter"),
+        K::IoLinkPort => text!("channel-kind-io-link"),
+        K::PowerSupply => text!("channel-kind-supply"),
+        K::MultiFunction => text!("channel-kind-multi-function"),
+        K::Unknown(_) => text!("channel-kind-other"),
+    }
+}
+
 /// A PLC channel by its number and its module's tag ("channel 1 of -201U3").
 pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>) -> Text {
     let (number, module): (TextArg, TextArg) = (number.into(), module.into());

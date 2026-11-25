@@ -37,6 +37,15 @@ medium-exhaust = afvoer
 
 ## A PLC channel, as the fluid findings name it
 
+channel-kind-di = DI
+channel-kind-do = DO
+channel-kind-ai = AI
+channel-kind-ao = AO
+channel-kind-counter = teller
+channel-kind-io-link = IO-Link
+channel-kind-supply = voeding
+channel-kind-multi-function = multifunctie
+channel-kind-other = overig
 channel-of-module = kanaal { $p0 } van { $p1 }
 channel-no-address = geen adres
 

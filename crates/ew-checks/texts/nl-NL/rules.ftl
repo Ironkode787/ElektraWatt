@@ -1256,6 +1256,14 @@ word-a-location = een locatie
 word-a-device-without-designation = een apparaat zonder aanduiding
 word-a-missing-part = een ontbrekend artikel
 word-an-unknown-profile = een onbekend profiel
+word-a-connector = een connector
+# A scope of EW-CORE-083 by its name.
+word-scope-folio = folio { $p0 }
+word-scope-potential = potentiaal { $p0 }
+word-scope-configuration-project = configuratieproject { $p0 }
+word-scope-logical-net = logisch net { $p0 }
+word-scope-physical-net = fysiek net { $p0 }
+word-scope-of-kind = een bereik van soort { $p0 }
 # A load a contact leaves connected (EW-POT-013), and a character that looks like a Latin one (EW-RDS-009).
 word-stranded-load = { $p0 } → { $p1 }
 word-lookalike = { $p0 } → { $p1 }

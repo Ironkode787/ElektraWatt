@@ -157,7 +157,7 @@ pub(super) fn kind_text(k: &ChannelKind) -> Cell {
         ChannelKind::MultiFunction => text!("cell-channel-multi-function"),
         ChannelKind::Unknown(_) => text!("cell-other"),
         ChannelKind::Di | ChannelKind::Do | ChannelKind::Ai | ChannelKind::Ao | ChannelKind::IoLinkPort => {
-            return Cell::Text(MlText::neutral(ew_derive::channel_kind_word(k)));
+            return Cell::Text(MlText::neutral(&ew_derive::channel_kind_word(k)));
         }
     })
 }
