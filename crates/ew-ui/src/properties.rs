@@ -103,7 +103,7 @@ struct RowParts<'a> {
     t: &'a crate::theme::Tokens,
     row: &'a PropRow,
     label: &'a str,
-    /// What the row is and does (the label's tooltip, FT-1648).
+    /// What the row is and does (the label's tooltip).
     help: Option<&'static str>,
     /// The row has an actions menu (its "…" button).
     menu: bool,
@@ -303,7 +303,7 @@ impl PropertiesPane {
                     // Part details scrolls with the rows: a card open under the header left them no room.
                     part_details(ui, shell, sheet, events);
                     // Rows of `size.row`, as the trees beside them have: no gap between rows (the grid stood at
-                    // 32 points a row where the navigators stand at 28, FT-1656).
+                    // 32 points a row where the navigators stand at 28).
                     ui.spacing_mut().item_spacing.y = 0.0;
                     for section in &sheet.sections {
                         if sheet.sections.len() > 1 {
@@ -657,7 +657,7 @@ impl PropertiesPane {
         if let Some(l) = &sheet.header.location {
             ui.label(small(l));
         }
-        // One page's sheet links its title block's fields (FT-1686), where a person looks for them.
+        // One page's sheet links its title block's fields, where a person looks for them.
         if sheet.read_only.is_none() && sheet.header.kinds.as_slice() == [("page".to_owned(), 1)] {
             let link = egui::Link::new(crate::components::styled(
                 strings::text(key!("action-page-title-block")),
@@ -668,7 +668,7 @@ impl PropertiesPane {
                 events.push(Event::Action("page.title_block", json!({})));
             }
         }
-        // An interruption point's sheet links Supply comes in here…, or Remove the supply mark (FT-1699); a text's
+        // An interruption point's sheet links Supply comes in here…, or Remove the supply mark; a text's
         // and a device's sheet name their text style and open Text styles at it.
         for item in links
             .into_iter()
@@ -745,7 +745,7 @@ impl PropertiesPane {
             chip_text(&row.provenance)
         };
         // D11: the chip stands only by a value that is not authored; where every row shares it, the header says it
-        // once (FT-1761).
+        // once.
         let show_chip = !header
             && !matches!(row.provenance, Provenance::Authored)
             && ew_viewmodel::properties::shared_provenance(sheet).is_none();
@@ -1033,7 +1033,7 @@ impl PropertiesPane {
             galley,
             t.text_secondary.color32(),
         );
-        // The tooltip explains the row (FT-1648), after the whole label when the label is cut; an explanation ends with
+        // The tooltip explains the row, after the whole label when the label is cut; an explanation ends with
         // how to open the row's place in the guide.
         let more = strings::text(key!("tooltip-learn-more"));
         let tip = match (elided, p.help) {
@@ -1144,7 +1144,7 @@ impl PropertiesPane {
         let cable = !header
             && !editable
             && (shell.cable_row(&row.key).is_some() || shell.row_offer(&row.key).is_some());
-        // The Potential row of a potential no definition names: a click opens Define potential… (FT-1779).
+        // The Potential row of a potential no definition names: a click opens Define potential….
         let defines = !header
             && !editable
             && shell
@@ -2317,7 +2317,7 @@ fn is_line_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &Prop
 /// A severity's glyph chip: the severity's subtle fill, its icon, and the count in `type.caption` when more
 /// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
 /// The actions of a click on a Properties finding chip: Messages opens, filtered to the record
-/// ([`ew_viewmodel::properties::findings_filter`]), at its first row, so the most severe findings are in view (FT-1659: the list kept its
+/// ([`ew_viewmodel::properties::findings_filter`]), at its first row, so the most severe findings are in view (the list kept its
 /// cursor on an info below them, and the error the chip counted stood above the pane's top).
 fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event; 3] {
     [

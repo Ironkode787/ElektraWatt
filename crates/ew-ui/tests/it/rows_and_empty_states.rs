@@ -111,7 +111,7 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
         h.set_size(egui::Vec2::new(width, 1080.0));
         settle(&mut h);
         settle(&mut h);
-        // The page's chip: the pending findings of what the page draws (FT-1587), as many as the status bar counts.
+        // The page's chip: the pending findings of what the page draws, as many as the status bar counts.
         let pending = |l: &str| {
             l.split_once(" Pending: EW-")
                 .is_some_and(|(n, _)| n.parse::<usize>().is_ok())

@@ -7,7 +7,7 @@
 use super::*;
 
 impl CanvasHost {
-    /// The canvas context menu (FT-1693): a right-click with the Select tool opens, at the pointer, what fits the
+    /// The canvas context menu: a right-click with the Select tool opens, at the pointer, what fits the
     /// thing under it ([`ew_viewmodel::command_bar::canvas_menu`]): over an object, selected first when it is not, its
     /// own entries and then the general ones; over the title block its fields; over an empty spot Paste, the page's
     /// properties and New page (the selection cleared, so Properties shows the page). Shift+F10 or the menu key opens
@@ -96,7 +96,7 @@ impl CanvasHost {
             None => popup,
         };
         popup.show(|ui| {
-            // Over a connection point, Mark not used or Mark used first (FT-1649).
+            // Over a connection point, Mark not used or Mark used first.
             let items: Vec<_> = cp
                 .into_iter()
                 .chain(canvas_menu(shell, spot, self.views[group].menu_point))
@@ -108,7 +108,7 @@ impl CanvasHost {
         });
     }
 
-    /// The card of a potential reasoned for the selected wire (FT-1700, `ShellModel::potential_offer`): beside the
+    /// The card of a potential reasoned for the selected wire (`ShellModel::potential_offer`): beside the
     /// wire, its name and why, Accept (`potential.offer {accept: true}`) and Decline. Hidden while a menu is open, and
     /// on any canvas but the focused one.
     pub(super) fn potential_offer(
@@ -301,8 +301,7 @@ impl CanvasHost {
                                     .iter()
                                     .find(|(w, _)| *w == row.kind)
                                     .map_or(row.kind.as_str(), |(_, text)| text.as_str());
-                                // Each field named by its column and its row for a screen reader ("Conductor, 24V",
-                                // FT-1910).
+                                // Each field named by its column and its row for a screen reader ("Conductor, 24V").
                                 let name = |k| {
                                     strings::format(key!("form-table-cell"), &[strings::text(k), &row.name])
                                 };

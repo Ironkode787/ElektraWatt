@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: at 2560 × 1440 the Bus, Devices and Medium tables kept their columns at their start width and left the
+//! At 2560 × 1440 the Bus, Devices and Medium tables kept their columns at their start width and left the
 //! rest of their panel empty. A table without a filling column shares the room its columns leave among them, so its
 //! columns reach the grid's right edge (doc 16a §6.21).
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Remove from my parts library… asks first (FT-1766, doc 16a §6.12): undo does not bring a part back into My parts,
+//! Remove from my parts library… asks first (doc 16a §6.12): undo does not bring a part back into My parts,
 //! so the part editor's button opens a confirmation whose Primary is Cancel; Cancel returns to the part editor and
 //! leaves the part in My parts, Remove takes it out. The window's own path: clicks on a new project at 1920 × 1080.
 

@@ -20,7 +20,7 @@
 //!    and the pointer's rest become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
 //!    `canvas.press`, `canvas.release`, `canvas.dwell`, `view.canvas_resize`, `nav.back`, `ui.focus`), dispatched by
 //!    the frame after painting like every other input, so a script and the window take the same path; the rest is
-//!    measured on egui's frame time and sent after 80 ms and after 300 ms (D11), never kept in the model;
+//!    measured on egui's frame time and sent after 80 ms and after 300 ms, never kept in the model;
 //! 2. **scene**: the page content of the group's canvas becomes a tile scene once per (session, revision, folio);
 //!    the previous scene's tiles stay visible for the same folio until the new ones arrive;
 //! 3. **render**: on the GPU, one render submitted when the view or the scene changed; on the CPU, the planner's
@@ -34,7 +34,7 @@
 //!
 //! **Design language** (doc 16a §7): the marks take the canvas tokens of the theme egui shows
 //! ([`canvas_theme`]) and the scale rule of `ew-render2d`'s overlay; the hover outline is drawn around the first
-//! entity of the pick stack under the pointer (FT-500, doc 16a §6.25), never on a selected one; a connection point
+//! entity of the pick stack under the pointer (doc 16a §6.25), never on a selected one; a connection point
 //! under the pointer shows a tooltip in the inverse style (doc 16a §6.18, §7.2); the statistics panel is a diagnostic
 //! chip at the canvas's top right (doc 16a §7.7). Chrome drawn over the canvas (the tool HUD, the zoom control) reports its
 //! frames with [`CanvasHost::set_chrome_obstacles`], and the chips keep off them.
@@ -156,7 +156,7 @@ struct GroupView {
     /// (measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
     /// decided without a sleep).
     last_press: Option<(f64, Pos2)>,
-    /// Where the open context menu was opened: over an object, the frame or an empty spot (FT-1693).
+    /// Where the open context menu was opened: over an object, the frame or an empty spot.
     menu_spot: ew_viewmodel::command_bar::MenuSpot,
     /// Where the open context menu stands when Shift+F10 or the menu key opened it (the selection's middle); `None`
     /// when a right-click opened it at the pointer.
@@ -217,7 +217,7 @@ struct PopupView {
 /// pointer is not a rest and starts the dwell again).
 type RestKey = (Option<(i64, i64)>, Option<(i64, i64)>, Viewport);
 
-/// The pointer's or the cursor's rest on the focused canvas (D11): since when, and which dwells were sent.
+/// The pointer's or the cursor's rest on the focused canvas: since when, and which dwells were sent.
 struct Rest {
     group: usize,
     key: RestKey,
@@ -675,7 +675,7 @@ impl CanvasHost {
         if shell.area().map(|a| a.focused) == Some(group) {
             paint_cp_mark(ui, rect, ppp, &transform, canvas, shell);
         }
-        // The page's scroll bars, over the page on either backend (FT-1830).
+        // The page's scroll bars, over the page on either backend.
         Self::scroll_bars(ui, rect, canvas, group, events);
         let stats = shell
             .frame_stats_shown()

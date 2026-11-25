@@ -182,7 +182,7 @@ fn entry<'h>(h: &'h Harness<'_, App>, at: Pos2, label: &'h str) -> egui_kittest:
 }
 
 /// Types the part number into the open part dialog's search and chooses the first offer by Down and Enter (no row is
-/// chosen for the person, FT-1845).
+/// chosen for the person).
 fn choose_part(h: &mut Harness<'static, App>, number: &str) {
     assert!(
         matches!(h.state().shell().dialog(), Some(Dialog::PartChoose(_))),

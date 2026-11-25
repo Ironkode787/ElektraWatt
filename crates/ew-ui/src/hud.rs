@@ -7,8 +7,8 @@
 //! the prompt (the selection and its keys, the pick stack under the pointer, or the tool's target and keys) with the
 //! ways on it names as buttons at the pill's end (a layout page's Unplaced devices). It
 //! never takes the keyboard focus and it stays where it is, so its buttons can be reached (moving away from the
-//! pointer put them out of reach, FT-1639). It floats over the canvas: its own rounded shape with a shadow and
-//! nothing behind it, the drawing visible to its edge (the strip of its own that FT-1656 gave it, so that it
+//! pointer put them out of reach). It floats over the canvas: its own rounded shape with a shadow and
+//! nothing behind it, the drawing visible to its edge (the strip of its own it has, so that it
 //! did not cover the title block, cut the drawing off instead; the page pans under it). Its buttons show the
 //! hover and the press in a light overlay on the dark surface, and a quick tool that is the active tool shows it is
 //! on.

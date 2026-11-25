@@ -221,7 +221,7 @@ fn a_press_and_its_release_in_one_frame_still_click() {
     let tmp = Tmp::new();
     let mut h = support::on_sample(&tmp, "103");
     // An entity whose centre is no link and picks it, with no wire within reach (the Select tool takes a wire's line
-    // drawn through a symbol's middle first, FT-500, and the tap's point is rounded to the screen).
+    // drawn through a symbol's middle first, and the tap's point is rounded to the screen).
     let (entity, p) = {
         let c = h.state().shell().canvas().unwrap();
         let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
@@ -930,7 +930,7 @@ fn assert_chips_apart(
     chips
 }
 
-/// FT-1637: "while a device is being placed its texts jitter around it as it
+/// "while a device is being placed its texts jitter around it as it
 /// moves, and the ghost reads Preview of Place device". The Place ghost of a terminal on the sample shows one chip,
 /// its own label, and no preview chip; the label keeps its place while the pointer moves about the ghost's point
 /// without moving the ghost, and keeps the same place beside the ghost when the ghost moves a grid step; with the

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The dialog contents of the automation workspaces (WP-S2.13), drawn inside the one dialog frame
+//! The dialog contents of the automation workspaces, drawn inside the one dialog frame
 //! ([`crate::dialog`]) from the shell's views. A station's rack is no dialog: it is a view in a canvas tab
 //! ([`crate::station_view`]).
 
@@ -90,7 +90,7 @@ pub(crate) fn plc_import(
                         ui.label(small(why.clone(), t.error));
                     }
                     if card.tab == ImportTab::Conflicts {
-                        // The side Apply takes: the one chosen, else the merge's default (FT-1756: the file's value
+                        // The side Apply takes: the one chosen, else the merge's default (the file's value
                         // only where it can be taken, else the reason why not).
                         let chosen = card.choices.get(&c.id).map_or(c.default, String::as_str);
                         ui.horizontal_wrapped(|ui| {

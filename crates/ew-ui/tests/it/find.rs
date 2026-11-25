@@ -92,7 +92,7 @@ fn find_and_replace_from_the_keyboard() {
         options
             .iter()
             .all(|o| o.contains("Spare -> Reserve") && !o.contains("[[")),
-        "the names are plain text (FT-433): {options:?}"
+        "the names are plain text: {options:?}"
     );
     // Down moves the cursor (no call).
     h.key_press(Key::ArrowDown);

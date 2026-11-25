@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1693 and FT-1707: the canvas's right-click menu is the quick way to what fits the thing under the pointer, each
+//! The canvas's right-click menu is the quick way to what fits the thing under the pointer, each
 //! test by the pointer on a copy of the sample: a terminal adds a terminal and opens its strip's editor; a wire offers
 //! its route, marker, potential, cable and wire numbers, two wires a cable; a coil its free contacts and a contact its
 //! coil; an interruption point its partner; the title block its fields; Shift+F10 opens the menu at the selection.
@@ -127,7 +127,7 @@ fn listed(h: &Harness<'_, App>, at: Pos2, labels: &[&str]) -> Vec<f32> {
     labels.iter().map(|l| entry(h, at, l).rect().top()).collect()
 }
 
-/// FT-1707: a right click on a terminal offers Add terminal and Edit strip above Cut; Edit strip opens the Terminal
+/// A right click on a terminal offers Add terminal and Edit strip above Cut; Edit strip opens the Terminal
 /// strips navigator on its strip, and Add terminal floats the strip's next terminal at the pointer.
 #[test]
 fn a_terminals_menu_adds_a_terminal_and_edits_its_strip() {
@@ -174,7 +174,7 @@ fn a_terminals_menu_is_as_wide_as_its_widest_entry() {
     assert!(rows[0].width() < 360.0, "no wider than its entries: {rows:?}");
 }
 
-/// FT-1693: a right click on a wire offers Route, Wire marker, Define potential…, Cable… and Print wire numbers
+/// A right click on a wire offers Route, Wire marker, Define potential…, Cable… and Print wire numbers
 /// (which prints them); two wires selected offer Make cable from the selection…, which opens the cable's form.
 #[test]
 fn a_wires_menu_and_two_wires_make_a_cable() {
@@ -262,7 +262,7 @@ fn body_pixel(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), rep: &T
     page_pixel(d, pixel, ((x0 + x1) / 2, (y0 + y1) / 2))
 }
 
-/// FT-1693: on a new project with a relay placed from the device browser, a right click on its coil offers its free
+/// On a new project with a relay placed from the device browser, a right click on its coil offers its free
 /// contacts by name; Add contact floats the contact, a click places it; a right click on the contact goes to the coil.
 #[test]
 fn a_coils_menu_adds_a_contact_and_a_contacts_menu_goes_to_the_coil() {
@@ -359,7 +359,7 @@ fn a_right_click_after_a_click_gives_the_items_menu() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1693: an interruption point's menu goes to its partner and offers its direction and Continue on page….
+/// An interruption point's menu goes to its partner and offers its direction and Continue on page….
 #[test]
 fn an_interruption_points_menu_goes_to_its_partner() {
     let tmp = Tmp::new();
@@ -380,7 +380,7 @@ fn an_interruption_points_menu_goes_to_its_partner() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1693: a right click on the title block offers Title block fields… first, which opens its form, then what an
+/// A right click on the title block offers Title block fields… first, which opens its form, then what an
 /// empty spot offers (Paste, Page properties, New page…); Shift+F10 opens the menu of the selection at it.
 #[test]
 fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
@@ -449,7 +449,7 @@ fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1707: a right click on a strip's row in the Terminal strips navigator offers Add terminal and Edit strip, as the
+/// A right click on a strip's row in the Terminal strips navigator offers Add terminal and Edit strip, as the
 /// strip's terminals do on the page; Edit strip opens the strip editor on it.
 #[test]
 fn a_strip_rows_menu_edits_the_strip() {
@@ -490,7 +490,7 @@ fn item_at(h: &Harness<'_, App>, name: &str) -> Pos2 {
         + egui::vec2(12.0, 0.0)
 }
 
-/// FT-1693: a right click on a device's row in the Devices navigator selects it and offers what its symbol offers on
+/// A right click on a device's row in the Devices navigator selects it and offers what its symbol offers on
 /// the page (Choose part…, Edit symbol, Copy and edit, from the same function), Go to its first placement and
 /// Properties of selection; Choose part… opens the part dialog for it and Go to shows its first placement.
 #[test]
@@ -559,7 +559,7 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1693: a right click on a cable's row in the Cables navigator offers Cable… and Go to its first wire; Cable…
+/// A right click on a cable's row in the Cables navigator offers Cable… and Go to its first wire; Cable…
 /// shows that wire's page with the cable's wires selected and opens the cable's form.
 #[test]
 fn a_cable_rows_menu_opens_the_cable_form() {
@@ -604,7 +604,7 @@ fn a_cable_rows_menu_opens_the_cable_form() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1693: a right click on a page's row in the Pages tree opens the page and offers what the Page tab offers for it;
+/// A right click on a page's row in the Pages tree opens the page and offers what the Page tab offers for it;
 /// Title block fields… opens that page's form.
 #[test]
 fn a_page_rows_menu_edits_the_pages_title_block() {
@@ -636,7 +636,7 @@ fn a_page_rows_menu_edits_the_pages_title_block() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1693: on a new project with a relay placed, its row in the Devices navigator offers its free contacts by name,
+/// On a new project with a relay placed, its row in the Devices navigator offers its free contacts by name,
 /// which float the contact; Join device… is offered on a contact that another relay can take, never on a coil that no
 /// other device can take; a symbol's menu offers Rotate.
 #[test]

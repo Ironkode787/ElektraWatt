@@ -188,7 +188,7 @@ pub fn show(
     // The form's first row takes the focus once, when the form opens.
     let form_opened =
         crate::components::opened(ctx, Id::unique("command-palette-form"), form.map(|f| f.action));
-    // FT-1635: a click beside it closes it, as Escape does.
+    // A click beside it closes it, as Escape does.
     crate::components::overlay_backdrop(ctx, Id::unique("command-palette"), false, events);
     let area = egui::Area::new(Id::unique("command-palette")).order(egui::Order::Foreground);
     let area = match anchor {
@@ -220,7 +220,7 @@ pub fn show(
                     t.icon_stroke,
                 );
                 let mut query = state.query.clone();
-                // The close button at the row's right end (FT-1635).
+                // The close button at the row's right end.
                 let field_w = ui.available_width() - t.size_control_inline - ui.spacing().item_spacing.x;
                 let edit = ui.add(
                     TextEdit::singleline(&mut query)

@@ -12,7 +12,7 @@
 //! than the dialog scrolls sideways. Each edit is a view event; the shell keeps the table (no preview, no command).
 //!
 //! **Accessibility.** A row is named by the table's own row word, its `form-table-row-<name>` text ("value set 2",
-//! Copy pages…'s "text to change 2", FT-1965), as its add button is: a cell field "`<column>`, `<row>`", the first
+//! Copy pages…'s "text to change 2"), as its add button is: a cell field "`<column>`, `<row>`", the first
 //! column's "`<first column>`, `<row>`", the remove button "Remove `<row>`".
 //!
 //! **Given rows** ([`FormTable::fixed`], the Cable form's wires): the first column is text, not a field, as wide as

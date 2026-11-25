@@ -129,7 +129,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     Ok((image, dpi))
 }
 
-/// Composites the wire-colour view into a snapshot (D18) by the window's widths: per stroke its casing (the stroke's
+/// Composites the wire-colour view into a snapshot by the window's widths: per stroke its casing (the stroke's
 /// half width plus `CASING_PX`) in the casing colour, then its pieces in their colours, each pixel whose centre lies
 /// within the half width of a piece. The codes are chips, which a snapshot leaves out.
 fn composite_wire_colours(
@@ -380,7 +380,7 @@ pub(super) fn paint_locks(
     out
 }
 
-/// FT-1704: the connection point whose row has the Properties cursor, ringed on the focused page: a `focus_width`
+/// The connection point whose row has the Properties cursor, ringed on the focused page: a `focus_width`
 /// ring of `canvas.selection` around the point, fixed on screen whatever the zoom, as the canvas marks a selection.
 pub(super) fn paint_cp_mark(
     ui: &egui::Ui,
@@ -576,7 +576,7 @@ pub(super) fn paint_wire_colours(
     strokes
 }
 
-/// Paints the wire-colour view's codes of `strokes` (D18): each code as a canvas chip (`canvas.chip` at 94 % with
+/// Paints the wire-colour view's codes of `strokes`: each code as a canvas chip (`canvas.chip` at 94 % with
 /// `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over every stroke, placed by doc 16a §7.4's
 /// rule from the middle of its stroke in its lane, clear of the codes placed before it, of the chrome
 /// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts
@@ -647,7 +647,7 @@ pub(super) fn paint_wire_codes(
     (placed, texts)
 }
 
-/// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
+/// The wire-colour view's strokes over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
 /// `CASING_PX` physical pixel wider on each side for a cased one, then its stroke (`STROKE_PT` points) in its colour or
 /// its two colours' alternating 2-mm dashes; a laned stroke is drawn on its path moved into its lanes with
 /// its corners joined (`WireStroke::in_lanes`).

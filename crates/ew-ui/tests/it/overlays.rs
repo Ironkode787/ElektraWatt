@@ -363,7 +363,7 @@ fn the_overlay_snapshots_of_folio_101() {
     shell.shutdown();
 }
 
-/// FT-500, doc 16a §6.25: on folio 101, at a point of a wire's route where the pick stack holds more than
+/// doc 16a §6.25: on folio 101, at a point of a wire's route where the pick stack holds more than
 /// one entity, the hover is the stack's first entity (the wire, drawn as its band); a click selects it, a
 /// repeated click the next one, drawn in `canvas.selection`.
 #[test]

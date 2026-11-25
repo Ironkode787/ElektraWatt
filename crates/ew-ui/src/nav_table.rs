@@ -75,7 +75,7 @@ pub(crate) struct TableUi {
     /// The grid's width last frame (a resize re-fills the capped columns).
     pane_width: Option<f32>,
     /// The key of the column the rows were sorted by last frame: a new sort column re-sizes it and the old one, so that
-    /// a header keeps its whole word beside its sort icon (FT-776).
+    /// a header keeps its whole word beside its sort icon.
     sorted_by: Option<String>,
     /// How the cursor's column is aligned again in the next frame, when the scroll that brought it into
     /// view left it cut by the frozen key column (or, while it fits, by the grid's right edge).
@@ -193,7 +193,7 @@ impl TableUi {
         // A resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
         // new room, and a column's range scales with the grid: `size.table_column.max` or the grid's width.
         let resized = self.pane_width.is_some_and(|w| (w - area.width()).abs() > 0.5);
-        // A table without a filling column shares the room its columns leave among them (FT-1761), so a resize
+        // A table without a filling column shares the room its columns leave among them, so a resize
         // sizes every column again.
         let shares = !shown.iter().any(|c| capped(kind, &table.columns[*c].key));
         self.pane_width = Some(area.width());
@@ -982,7 +982,7 @@ impl Delegate<'_> {
         Some(fill_cap(&self.tokens, self.area.width(), others))
     }
 
-    /// Each column's part of the room the columns leave in the grid (FT-1761: at 2560 × 1440 the Bus, Devices and
+    /// Each column's part of the room the columns leave in the grid (at 2560 × 1440 the Bus, Devices and
     /// Medium tables kept their columns at their start width and left the panel's right half empty): the grid's width
     /// less the columns' fitted widths ([`Self::others_width`]) and a scroll bar's room, shared evenly; none for a
     /// table with a filling or capped column (it takes that room itself) or one whose columns do not fit.

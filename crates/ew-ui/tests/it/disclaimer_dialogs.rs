@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The engineering-verification disclaimer (NFR-COMP-04) is one line of the About dialog and nowhere else in the
-//! window (the owner, 2026-11-12, FT-1711): the Approve and the Release dialog end with their buttons, in English and
+//! window (the owner, 2026-11-12): the Approve and the Release dialog end with their buttons, in English and
 //! in Dutch.
 
 use crate::support;

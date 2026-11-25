@@ -340,7 +340,7 @@ fn every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [point] }));
     checked.insert(check_form(&mut h, "ip.supply_in", json!({})));
-    // The PLC navigator rows' settings forms (FT-1752), each for its row's record.
+    // The PLC navigator rows' settings forms, each for its row's record.
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let record = |h: &Harness<'_, App>, role: NavRole| {

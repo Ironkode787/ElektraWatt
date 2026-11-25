@@ -1106,7 +1106,7 @@ fn the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     lettered_k(&mut h, "-102Q1");
     settle(&mut h);
-    // The page's chip counts the warnings of what it draws, as Messages filtered to the page lists them (FT-1587).
+    // The page's chip counts the warnings of what it draws, as Messages filtered to the page lists them.
     let (chip, words) = h
         .get_all_by_role(egui::Role::Button)
         .find_map(|n| {
@@ -1320,7 +1320,7 @@ fn an_identifier_stays_whole_beside_its_chip_in_a_narrow_column() {
         .get_all_by_role(egui::Role::Button)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Kenmerkletter"))
         .expect("the label Kenmerkletter");
-    // The whole label first, then the row's explanation (FT-1648).
+    // The whole label first, then the row's explanation.
     assert_eq!(
         cut.accesskit_node()
             .description()

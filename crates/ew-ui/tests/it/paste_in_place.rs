@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Edit ▸ Paste in place in the window (FT-1862): like Edit ▸ Paste it asks the platform for the system clipboard, and
+//! Edit ▸ Paste in place in the window: like Edit ▸ Paste it asks the platform for the system clipboard, and
 //! the platform's answer puts the block down where it was copied, in one commit.
 
 use crate::support;

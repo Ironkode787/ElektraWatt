@@ -304,8 +304,8 @@ fn tokens() -> ew_ui::theme::Tokens {
     ew_ui::theme::tokens(ew_ui::theme::Theme::Light, ew_ui::theme::Density::Comfortable)
 }
 
-/// FT-798: the command search grows with the window from `size.search.width`, staying at the tab row's right
-/// end; at 2560 it is wider than at 1920, never capped beside the tab row's empty middle (FT-1730).
+/// The command search grows with the window from `size.search.width`, staying at the tab row's right
+/// end; at 2560 it is wider than at 1920, never capped beside the tab row's empty middle.
 #[test]
 fn the_command_search_grows_with_the_window() {
     let t = tokens();
@@ -413,7 +413,7 @@ fn the_show_changes_popup_grows_with_the_window() {
     );
 }
 
-/// FT-798: at 1920 × 1080 no row of the sample's Pages tree on show is cut (each button is as wide as its whole
+/// At 1920 × 1080 no row of the sample's Pages tree on show is cut (each button is as wide as its whole
 /// title), and the left column is wider than `size.panel.left`.
 #[test]
 fn no_pages_row_is_cut_at_1920() {

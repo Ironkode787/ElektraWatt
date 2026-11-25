@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1810, through the window: the symbol editor's start card keeps its ways in where they stand when a draft is in
+//! through the window: the symbol editor's start card keeps its ways in where they stand when a draft is in
 //! hand (Carry on with… came on top and moved every entry down).
 
 use crate::support;

@@ -483,7 +483,7 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
     d.settle();
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
-    // One logical net, and its physical net with it (FT-1922).
+    // One logical net, and its physical net with it.
     let nets = |section: &str| -> Vec<&str> {
         rows.iter()
             .filter(|r| r.role == NavRole::Net.word() && r.key.starts_with(section))

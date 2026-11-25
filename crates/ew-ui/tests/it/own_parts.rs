@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The person's own parts, made in the window from nothing (FT-1766, FT-1767): New part… in the device browser opens
+//! The person's own parts, made in the window from nothing: New part… in the device browser opens
 //! the part editor on a new part, whose bus interfaces are a form; Save puts the part into the project and into My
 //! parts. The window's own path: clicks and keys on a new project at 1920 × 1080. Not here: a module part nothing
 //! draws, greyed in the next project's station catalogue (`ew-viewmodel`'s `own_parts.rs`).
@@ -249,7 +249,7 @@ pub(crate) fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// FT-1767, a star on a new project: the CPU with PROFINET, the starter's unmanaged five-port switch and two generic
+/// A star on a new project: the CPU with PROFINET, the starter's unmanaged five-port switch and two generic
 /// PROFINET devices, each placed from the device browser on a bus-topology page. The switch and the devices stand as
 /// boxes with every socket (P1 … P5, P1 and P2), the CPU as its interfaces DP and X1. Bus lines from the CPU's X1 to
 /// the switch and from the switch to each device make one PROFINET net of the CPU and both devices, which the switch
@@ -287,7 +287,7 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
     d.settle();
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
-    // One logical net, and its physical net with it (FT-1922).
+    // One logical net, and its physical net with it.
     let nets = |section: &str| -> Vec<&str> {
         rows.iter()
             .filter(|r| r.role == NavRole::Net.word() && r.key.starts_with(section))
@@ -345,7 +345,7 @@ pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, 
     assert!(d.shell_mut().dialog().is_none(), "{number} is saved");
 }
 
-/// FT-1767 from nothing: a managed switch such as a SCALANCE (eight sockets, one PROFINET name for the whole switch)
+/// From nothing: a managed switch such as a SCALANCE (eight sockets, one PROFINET name for the whole switch)
 /// and a drive with two sockets, each typed in the part editor, placed as boxes with their sockets beside the CPU,
 /// and joined CPU → switch → drive. The switch is a node of the one net (its row has an address, it passes nothing
 /// without being in the net), the drive is listed with the others, and with the three names given no EW-BUS rule
@@ -387,7 +387,7 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
     d.settle();
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
-    // One logical net, and its physical net with it (FT-1922).
+    // One logical net, and its physical net with it.
     for section in ["nets:logical/", "nets:physical/"] {
         let nets = rows
             .iter()

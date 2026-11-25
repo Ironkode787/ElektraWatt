@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool HUD and the page's horizontal scroll bar (FT-2096, doc 16a §5.5): on a page zoomed in so the bar shows,
+//! The tool HUD and the page's horizontal scroll bar (doc 16a §5.5): on a page zoomed in so the bar shows,
 //! the HUD stands above it, so the bar's thumb can be seen and dragged along its whole track.
 
 use crate::support;

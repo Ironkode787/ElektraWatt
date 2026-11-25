@@ -7,7 +7,7 @@
 //! **Choose a part.** The search field (first focus), a filter row (Only parts that fit, the four views as a segmented
 //! control, Show deprecated and withdrawn), the result list and the active row's detail line. Typing edits the search
 //! (`part.search`), Up and Down move the active row, Enter chooses it (`part.pick` with its 1-based `index`), Escape
-//! cancels. No row is active until the person chooses one (a click, or Down from the field, FT-1845). Rows: the favourite star (a button named "Favourite", `part.favourite`), the part number in
+//! cancels. No row is active until the person chooses one (a click, or Down from the field). Rows: the favourite star (a button named "Favourite", `part.favourite`), the part number in
 //! `type.body.strong`, the manufacturer, the elided description, the source badge and the fit badge. AccessKit: the
 //! list is a `ListBox` named "Parts" whose rows are `ListBoxOption`s with position and set size.
 //!
@@ -15,7 +15,7 @@
 //! field's message under it in `color.error`; the technical values as `key` fields; the functions, the connection
 //! points and the source read-only. Every change is `part.field`; Enter saves (`part.save`).
 //!
-//! **New part** (`part.new`, FT-1766) adds the bus interfaces: one row per interface (Interface, Port label, Bus, Role,
+//! **New part** (`part.new`) adds the bus interfaces: one row per interface (Interface, Port label, Bus, Role,
 //! Ports, Termination switch, and a remove button), its messages under the row, Add interface (`part.bus_row`), a hint
 //! that says what the roles and the port count mean, and Also add to my parts library. A held part shows its
 //! interfaces read-only.
@@ -44,7 +44,7 @@ fn set_active(ctx: &egui::Context, i: Option<usize>) {
     ctx.data_mut(|d| d.insert_temp(active_id(), i));
 }
 
-/// The part selection dialog's body (D19).
+/// The part selection dialog's body.
 pub(crate) fn chooser(
     ui: &mut Ui,
     shell: &ShellModel,
@@ -243,7 +243,7 @@ pub(crate) fn chooser(
         ui.add_space(t.space_2);
         ui.label(crate::components::small_secondary(&t, detail));
     }
-    // FT-1766: a part the lists do not have is made here, and the dialog comes back on it. FT-1878: for devices, a part
+    // A part the lists do not have is made here, and the dialog comes back on it. for devices, a part
     // whose type is not known yet is named in a few words and given as a placeholder; while its field is open, Enter
     // gives it rather than choosing the active row.
     ui.add_space(t.space_2);
@@ -605,7 +605,7 @@ fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Even
     });
 }
 
-/// The part editor's body (D20, D21).
+/// The part editor's body.
 pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let d = &e.draft;
@@ -876,7 +876,7 @@ fn note(ui: &mut Ui, text: &str) {
     });
 }
 
-/// The PLC section of a new part (FT-1766): its role; for a station or a module the channels (kind, count, data
+/// The PLC section of a new part: its role; for a station or a module the channels (kind, count, data
 /// type, name), the pin pattern with its hint and a preview of the first and last channel's pins, the I/O it occupies,
 /// the supply pins, the allowed slots and a station's most modules; the fields' messages in the lines kept for them.
 /// `true` when Enter was pressed in a field.
@@ -924,7 +924,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         return false;
     }
     // While the section is shown nothing in it changes height because of what is typed into one of its fields
-    // (FT-2130, a persona run typed at fields that had moved): the hints and messages that come and go while it is
+    // (a persona run typed at fields that had moved): the hints and messages that come and go while it is
     // typed stand in lines kept from the start, each one line high, a longer text cut with the whole of it on hover.
     // Under Channels its own and its kind's messages, else the bits the channels occupy; after the pin pattern's hint
     // the messages of data type, name and pattern, else the preview of the pins; under Supply M pin the supply's
@@ -1003,7 +1003,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     };
     save |= field(ui, "count", events);
     steady(ui, &["count", "kind"], &bits(0));
-    // A card with inputs and outputs: its second kind of channels, the other way (FT-1766); its count and line come
+    // A card with inputs and outputs: its second kind of channels, the other way; its count and line come
     // with the kind chosen.
     labelled_combo(
         ui,
@@ -1038,7 +1038,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             },
         );
     steady(ui, &["data_type", "designation", "pin_of"], &pins);
-    // The supply pins are lists (FT-2132), said under L+.
+    // The supply pins are lists, said under L+.
     save |= field(ui, "l_plus", events);
     note(ui, strings::text(key!("part-plc-supply-hint")));
     save |= field(ui, "m", events);
@@ -1286,7 +1286,7 @@ fn bus_choice(member: &str, value: &str) -> String {
     strings::field_choice_text("function", &format!("bus_port.{member}"), value)
 }
 
-/// The bus interfaces of a draft (FT-1766): a grid row per interface, editable on a new part, with each row's
+/// The bus interfaces of a draft: a grid row per interface, editable on a new part, with each row's
 /// messages under it; Add interface; the hint on roles and ports. `just_opened`: the form opens with these rows.
 fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bool, events: &mut Vec<Event>) {
     use ew_viewmodel::ew_api::{BUS_MEMBERS, bus_words, role_words};

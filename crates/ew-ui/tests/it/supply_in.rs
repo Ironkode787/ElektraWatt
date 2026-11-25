@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1699: the supply that enters a drawing set by interruption points (L1, N from another drawing) is marked on the
+//! The supply that enters a drawing set by interruption points (L1, N from another drawing) is marked on the
 //! points themselves, by the pointer on a new project: two source points, L1 and N, each with a wire to a relay's coil,
 //! as the owner drew them. Check project reports each point as unpaired; Supply comes in here… on both points (their
 //! right-click menu, its form's proposals, Apply) makes them external points of one reference, and the findings are
@@ -264,7 +264,7 @@ fn supply_points_that_stand_together_print_their_place_once() {
     d.settle();
     let texts = crate::own_parts::page_texts(&mut d);
     assert!(texts.iter().any(|t| t.starts_with("+MCC1")), "{texts:?}");
-    // A place emptied is not known (FT-1876): the point prints the device there alone.
+    // A place emptied is not known: the point prints the device there alone.
     assert_eq!(
         d.shell_mut()
             .dispatch("props.set", &json!({"row": row, "value": " "})),

@@ -210,7 +210,7 @@ fn empty_states_and_the_jobs_outcome_badge() {
     );
     support::wait_jobs_and_settle(&mut h);
     assert!(!group_named(&h, "No jobs yet"));
-    assert!(h.query_by_label("Done").is_some(), "FT-510: the outcome badge");
+    assert!(h.query_by_label("Done").is_some(), "the outcome badge");
     dispatch(&mut h, "preview.show", json!({}));
     settle(&mut h);
     assert!(

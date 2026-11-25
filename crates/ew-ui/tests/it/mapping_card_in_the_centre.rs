@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: the parts import's Map columns card stood at the top of the window, under the command bar, where it read
+//! The parts import's Map columns card stood at the top of the window, under the command bar, where it read
 //! as a strip left behind. It stands in the window's centre, where a dialog stands, at 1920 × 1080 and 2560 × 1440.
 
 use crate::support;

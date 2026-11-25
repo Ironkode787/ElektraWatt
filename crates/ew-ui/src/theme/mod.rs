@@ -4,7 +4,7 @@
 //! The design language's one token source (doc 16a §4): [`tokens`] gives every alias and
 //! component token of a [`Theme`] and a [`Density`], [`apply`] maps them onto egui's `Style` (doc 16a §4.14), and
 //! [`current`] gives widget code the tokens of the theme egui shows now. Widget code takes every colour, size and
-//! radius from here; a source guard test fails on literals elsewhere in `ew-ui` (D4).
+//! radius from here; a source guard test fails on literals elsewhere in `ew-ui`.
 //!
 //! **Themes.** Light, Dark, High contrast dark and High contrast light; the setting `system` (the default, D5) installs
 //! Light and Dark as egui's light and dark styles and lets egui follow the operating system.

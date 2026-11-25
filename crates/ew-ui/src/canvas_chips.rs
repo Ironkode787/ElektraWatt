@@ -4,7 +4,7 @@
 //! The chips of a canvas (doc 16a §7.3 to §7.5): the tool overlay's labels (the Place ghost's one
 //! label with the tag it will get; the measurement readout), the highlights' name chips and the kept
 //! preview's semantic ghost (its header with the command and status, one chip per changed tag or cross-reference
-//! text), each placed by `ew-viewmodel`'s one rule, [`place_chip`] (D13), in that order, so that a later chip
+//! text), each placed by `ew-viewmodel`'s one rule, [`place_chip`], in that order, so that a later chip
 //! keeps off the earlier ones.
 //!
 //! **Obstacles**: the outside of the canvas, the frame-statistics panel, the chrome the caller reports
@@ -12,7 +12,7 @@
 //! [`crate::canvas::CanvasHost::set_chrome_obstacles`]), the
 //! pointer's 16-point box, and every chip placed before. **Targets**: a label stands by its point, and the label
 //! of a floating shape (the Place ghost) by the shape's outline together with the pointer's reach around its
-//! point, so it stands still beside the shape while the pointer moves it ([`floating_target`], FT-1637); a
+//! point, so it stands still beside the shape while the pointer moves it ([`floating_target`]); a
 //! highlight's name chip by the first vertex of its first drawn wire; a tag change by the printed tag text of
 //! the device's first representation on the page (`TableRep::tag_at`), else the top-left corner of its body (the
 //! change of a device the page does not draw yet has no chip: the floating shape's label names its tag); a
@@ -380,7 +380,7 @@ fn preview(
         )
     };
     // The Place tool's floating shape names the tag of its new device in its own label, so a device the page does
-    // not draw yet gets no chip, and a preview that changes nothing else no header (FT-1637: three chips around
+    // not draw yet gets no chip, and a preview that changes nothing else no header (three chips around
     // one ghost, each keeping off the others and the pointer, jumped about as it moved).
     let floating = matches!(
         shell.tool_ghost(),

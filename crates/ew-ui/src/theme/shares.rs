@@ -20,7 +20,7 @@ pub(crate) const PREVIEW_SHARE: f32 = 0.65;
 /// grows with the space it has).
 pub(crate) const TOAST_SHARE: f32 = 0.22;
 
-// The share of the tab row the command search takes once that is wider than `size.search.width` (FT-798).
+// The share of the tab row the command search takes once that is wider than `size.search.width`.
 pub(crate) const SEARCH_SHARE: f32 = 0.2;
 
 /// The share of the window the command palette and the place picker take once that is wider than `size.palette`

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: a row's right-click menu opened at the pointer and covered the row it acts on. It opens under the row,
+//! A row's right-click menu opened at the pointer and covered the row it acts on. It opens under the row,
 //! where the pointer was along it.
 
 use crate::support;

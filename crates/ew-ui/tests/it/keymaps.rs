@@ -74,7 +74,7 @@ fn the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
     );
 }
 
-/// KM-1: in the EW preset A is not bound and I starts Place. KM-5 (D7): Ctrl+Shift+N runs Renumber devices….
+/// KM-1: in the EW preset A is not bound and I starts Place. KM-5: Ctrl+Shift+N runs Renumber devices….
 #[test]
 fn the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
     let tmp = Tmp::new();

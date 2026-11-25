@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File ▸ Import… of a drawing in the window (WP-S3.19, doc 14 §13): the picker's answer, a DXF, opens the dialog that
+//! File ▸ Import… of a drawing in the window (doc 14 §13): the picker's answer, a DXF, opens the dialog that
 //! says what the file is and that its unit is assumed; Add as page makes a new graphic page and shows it; a second
 //! import, Place under page, puts the drawing under the shown page as an underlay; each outcome is a toast; the
 //! accessible-name walker after the dialog. Not here: the import's job, its Cancel and the new page's folio

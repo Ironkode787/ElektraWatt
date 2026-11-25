@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The symbol editor and the browsers (FT-1690, FT-1691, FT-1694 to FT-1697,
-//! FT-1702 to FT-1704), each on the window's own path: the pointer and the keys of the visual driver.
+//! The symbol editor and the browsers each on the window's own path: the pointer and the keys of the visual driver.
 
 use crate::support;
 
@@ -71,7 +70,7 @@ fn editor(tmp: &Tmp) -> Driver {
     d
 }
 
-/// FT-1703: every tool of the editor's bar says in its tooltip, under its name and key, what it does and how.
+/// Every tool of the editor's bar says in its tooltip, under its name and key, what it does and how.
 #[test]
 fn the_symbol_editor_s_tools_say_what_they_do_and_how() {
     let tmp = Tmp::new();
@@ -90,7 +89,7 @@ fn the_symbol_editor_s_tools_say_what_they_do_and_how() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1690: the drawing grid chosen in the editor's header is the step a drag snaps to; Snap to grid off takes the
+/// The drawing grid chosen in the editor's header is the step a drag snaps to; Snap to grid off takes the
 /// pointer as it is; a connection point keeps to the connection grid whatever is chosen; the choice outlives the draft.
 #[test]
 fn the_symbol_editor_snaps_to_the_drawing_grid_chosen_and_pins_to_the_connection_grid() {
@@ -162,7 +161,7 @@ fn the_symbol_editor_snaps_to_the_drawing_grid_chosen_and_pins_to_the_connection
     d.shell_mut().shutdown();
 }
 
-/// FT-1691: a symbol drawn in the editor takes the category chosen there, in the browser's words, and the symbol
+/// A symbol drawn in the editor takes the category chosen there, in the browser's words, and the symbol
 /// browser lists it under that category once saved.
 #[test]
 fn a_drawn_symbol_is_listed_under_the_category_chosen_in_the_editor() {
@@ -234,7 +233,7 @@ fn a_drawn_symbol_is_listed_under_the_category_chosen_in_the_editor() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1696: the symbol browser lists symbols alone (no part, no terminal) and says so in its head; the device browser
+/// The symbol browser lists symbols alone (no part, no terminal) and says so in its head; the device browser
 /// lists the parts and says what a device is; the right rail names them as the browsers' titles do.
 #[test]
 fn the_symbol_and_the_device_browser_say_what_they_list_and_share_no_row() {
@@ -276,7 +275,7 @@ fn the_symbol_and_the_device_browser_say_what_they_list_and_share_no_row() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1694: a starter symbol offers Copy and edit alone and says why; the copy opens in the editor and saves to the
+/// A starter symbol offers Copy and edit alone and says why; the copy opens in the editor and saves to the
 /// user's library; that copy then offers Edit symbol, which opens it under its own key, saving to its library.
 #[test]
 fn the_browser_edits_a_library_symbol_and_copies_a_read_only_one() {
@@ -344,7 +343,7 @@ fn the_browser_edits_a_library_symbol_and_copies_a_read_only_one() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1695: Terminal… asks for the strip (a new one here), the kind, how many and from which number; Place floats
+/// Terminal… asks for the strip (a new one here), the kind, how many and from which number; Place floats
 /// the first terminal and one click lays the row.
 #[test]
 fn terminal_asks_its_strip_kind_and_count_and_one_click_lays_the_row() {
@@ -421,7 +420,7 @@ fn place_power_supply(d: &mut Driver) {
     d.settle();
 }
 
-/// FT-1702: the power supply's box has its inputs (L, N, PE) on top and its outputs (+, +, −, −) at the bottom.
+/// The power supply's box has its inputs (L, N, PE) on top and its outputs (+, +, −, −) at the bottom.
 #[test]
 fn the_power_supply_s_outputs_stand_together_at_the_bottom_of_its_box() {
     let tmp = Tmp::new();
@@ -448,7 +447,7 @@ fn the_power_supply_s_outputs_stand_together_at_the_bottom_of_its_box() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1704: a connection point's row chosen in a device's Properties is marked on the drawing: the canvas has its
+/// A connection point's row chosen in a device's Properties is marked on the drawing: the canvas has its
 /// point to ring, the point of that row's connection point.
 #[test]
 fn a_connection_point_chosen_in_properties_is_marked_on_the_drawing() {
@@ -497,7 +496,7 @@ fn a_connection_point_chosen_in_properties_is_marked_on_the_drawing() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1697: the relay coil the symbol browser shows is a box wider than high across its vertical leads, as IEC 60617
+/// The relay coil the symbol browser shows is a box wider than high across its vertical leads, as IEC 60617
 /// draws a coil, no longer a resistor's upright box.
 #[test]
 fn the_relay_coil_is_drawn_wider_than_high() {

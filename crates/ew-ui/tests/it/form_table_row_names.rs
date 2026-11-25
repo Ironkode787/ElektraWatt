@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A form table that adds rows names them by its own row word for a screen reader (FT-1965): Copy pages…'s rename
+//! A form table that adds rows names them by its own row word for a screen reader: Copy pages…'s rename
 //! table, a row added, names its cells and its remove button "text to change 1", never "value set 1".
 
 use crate::support::{Tmp, dispatch, on_sample, settle};

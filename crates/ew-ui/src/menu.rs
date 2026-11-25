@@ -48,7 +48,7 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
     item_in(ui, item, true, events);
 }
 
-/// A row's right-click menu (FT-1761: egui opens one at the pointer, so it covered the row it acts on): under the
+/// A row's right-click menu (egui opens one at the pointer, so it covered the row it acts on): under the
 /// row, at the pointer's place along it when the menu opened, or over the row where there is no room under it. It
 /// opens and closes as egui's context menu does.
 pub(crate) fn row_context_menu(response: &egui::Response, add: impl FnOnce(&mut Ui)) {
@@ -64,7 +64,7 @@ pub(crate) fn row_context_menu(response: &egui::Response, add: impl FnOnce(&mut 
 }
 
 /// [`item`] in a right-click menu or a button's menu (a row's, the canvas's, a command bar button's, a panel's More;
-/// FT-1761: outside the navigators' row menus a greyed entry said why only on hover): a greyed entry shows its reason
+/// outside the navigators' row menus a greyed entry said why only on hover): a greyed entry shows its reason
 /// on a line under it, not only on hover (a panel's Place here must not say why only to a pointer that rested on it).
 /// The app menu keeps its reasons in the tooltips, a tree of greyed commands with a line each would bury it.
 pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {

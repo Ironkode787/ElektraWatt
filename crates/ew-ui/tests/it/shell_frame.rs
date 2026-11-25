@@ -277,7 +277,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     h.get_by_role_and_label(egui::Role::TextInput, "Device numbering format")
         .type_text("{page}-{letter}{counter}");
     h.run_ok();
-    // The Result follows the text being typed, before Enter commits it (FT-1631).
+    // The Result follows the text being typed, before Enter commits it.
     assert!(
         h.query_by_label_contains("The third contactor on page 102 is named -102-K3.")
             .is_some()

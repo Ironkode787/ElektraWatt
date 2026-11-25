@@ -50,7 +50,7 @@ fn panel_shown(d: &mut Driver, word: &str) -> bool {
         .any(|b| b.word == word && b.active)
 }
 
-/// FT-927: the command search found nothing for "PLC" (the panel was behind its icon and View ▸ Navigators). It lists
+/// The command search found nothing for "PLC" (the panel was behind its icon and View ▸ Navigators). It lists
 /// the panel by its name; Enter shows it, and a second time leaves it shown.
 #[test]
 fn the_command_search_finds_the_plc_panel_by_its_name() {
@@ -80,7 +80,7 @@ fn place_box(d: &mut Driver, number: &str, from: (i64, i64), to: (i64, i64)) {
     d.settle();
 }
 
-/// FT-926: a PLC card drawn before a CPU left the PLC panel reading "No PLC cards yet". It says that the card waits
+/// A PLC card drawn before a CPU left the PLC panel reading "No PLC cards yet". It says that the card waits
 /// for a CPU and how to place one; once a CPU is placed the card is listed under it.
 #[test]
 fn a_plc_card_without_a_cpu_says_in_the_plc_panel_that_it_waits_for_one() {
@@ -106,7 +106,7 @@ fn a_plc_card_without_a_cpu_says_in_the_plc_panel_that_it_waits_for_one() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1585: a device selected by its tag in the command search was counted in the status bar and drawn without an
+/// A device selected by its tag in the command search was counted in the status bar and drawn without an
 /// outline. Its representations on the page are outlined.
 #[test]
 fn a_device_selected_by_its_tag_is_outlined_on_the_page() {
@@ -122,7 +122,7 @@ fn a_device_selected_by_its_tag_is_outlined_on_the_page() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1586: Ctrl+A on the page selected nothing. It selects every object the page draws.
+/// Ctrl+A on the page selected nothing. It selects every object the page draws.
 #[test]
 fn ctrl_a_on_the_page_selects_everything_it_draws() {
     let tmp = Tmp::new();
@@ -158,7 +158,7 @@ fn count_before(d: &Driver, word: &str) -> Option<usize> {
     })
 }
 
-/// FT-1587: a page's Properties badge read fewer Pending findings than the status bar counted on the page: a finding
+/// A page's Properties badge read fewer Pending findings than the status bar counted on the page: a finding
 /// of a device on the page (a part missing) has no page of its own. Both count it.
 #[test]
 fn a_pages_pending_badge_counts_what_the_status_bar_counts() {
@@ -193,7 +193,7 @@ fn has_uuid(text: &str) -> bool {
         .any(|w| w.len() == 36 && w.matches('-').count() == 4)
 }
 
-/// FT-430: Properties printed a representation's symbol and its function's definition as the copies' UUIDs. A click
+/// Properties printed a representation's symbol and its function's definition as the copies' UUIDs. A click
 /// on a symbol shows both in words.
 #[test]
 fn a_symbols_properties_name_its_symbol_and_definition_in_words() {

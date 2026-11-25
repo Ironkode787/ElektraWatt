@@ -154,7 +154,7 @@ impl EditorView {
         let outline = b.outline();
         let table = b.pin_table();
         let editable = b.pins_from().is_none();
-        // A card's or a bus device's pins take another place on the box (FT-1788).
+        // A card's or a bus device's pins take another place on the box.
         let placed = b.places_pins();
         panels::panel_header(ui, label(key!("box-outline")));
         panels::body(ui, "box-outline", |ui| {
@@ -317,7 +317,7 @@ impl EditorView {
 
         let steps = b.steps();
         let table = b.pin_table();
-        // A card's or a bus device's pins are dragged as any box's (FT-1788).
+        // A card's or a bus device's pins are dragged as any box's.
         let editable = b.places_pins();
         // The box with a step of room for its pins' wires and two for the eye, as large as the drawing allows.
         let (w, h) = (steps.w as f32 * STEP_MM, steps.h as f32 * STEP_MM);

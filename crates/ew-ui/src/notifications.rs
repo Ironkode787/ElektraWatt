@@ -424,7 +424,7 @@ impl ToastHost {
         if let Some(banner) = place.banner {
             anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
         }
-        // In the symbol editor, the toasts stand on its canvas, under the header row with Close editor (FT-1714).
+        // In the symbol editor, the toasts stand on its canvas, under the header row with Close editor.
         if let Some(corner) = place.corner {
             anchor.y = anchor.y.max(corner.y + tokens.space_4);
             anchor.x = anchor.x.min(corner.x - tokens.space_4);
@@ -551,7 +551,7 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
     }
     let t = theme::current(ctx);
     let id = egui::Id::unique("notifications-log");
-    // FT-1635: a click beside it closes it, as Escape and Close do.
+    // A click beside it closes it, as Escape and Close do.
     components::overlay_backdrop(ctx, id, false, events);
     egui::Area::new(id)
         .anchor(Align2::RIGHT_BOTTOM, [-t.space_4, -(t.size_status + t.space_2)])

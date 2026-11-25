@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Potential panel of a supply mark names its fields for a screen reader (FT-1910): on the sample's page 102, an
+//! The Potential panel of a supply mark names its fields for a screen reader: on the sample's page 102, an
 //! incoming mark selected and its panel open, each row's Conductor list and Voltage field read "<column>, <mark>".
 
 use crate::support::{Tmp, dispatch, on_sample, settle};

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The window's own path (clicks and keys): the device browser opens by its
-//! button, a category of its tree lists that category alone, a double click on a part places it (FT-1636); the browser
-//! and every other floating overlay close by their close button and by a click beside them (FT-1635).
+//! button, a category of its tree lists that category alone, a double click on a part places it; the browser
+//! and every other floating overlay close by their close button and by a click beside them.
 
 use crate::relays_paste_and_ip_wires::typed;
 use crate::support::Tmp;

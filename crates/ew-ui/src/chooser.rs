@@ -118,7 +118,7 @@ pub(crate) fn show(
         .filter(|p| bound.contains(*p))
         .map_or(bound.center(), |p| p + vec2(16.0, 16.0));
     let list_id = Id::unique("join-chooser");
-    // FT-1635: a click beside it closes it, as Escape does.
+    // A click beside it closes it, as Escape does.
     crate::components::overlay_backdrop(ctx, list_id, false, events);
     let question = ch.question.clone();
     egui::Area::new(list_id.with("area"))

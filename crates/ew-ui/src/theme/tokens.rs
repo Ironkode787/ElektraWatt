@@ -338,7 +338,7 @@ pub struct Tokens {
     pub size_command_small: f32,
     pub size_quick_access_width: f32,
     pub size_quick_access_height: f32,
-    /// The command search's least width; it grows with the window, a share of the tab row (FT-798).
+    /// The command search's least width; it grows with the window, a share of the tab row.
     pub size_search_width: f32,
     pub size_search_height: f32,
     pub size_panel_header: f32,
@@ -349,7 +349,7 @@ pub struct Tokens {
     pub size_status_field: f32,
     /// The left column's least width while it keeps its default share (480 at 1920, `dock::left_default_width`).
     pub size_panel_left: f32,
-    /// FT-798, FT-1730: the widest the left column grows to with the window while it keeps its default share (at
+    /// The widest the left column grows to with the window while it keeps its default share (at
     /// 2560).
     pub size_panel_left_max: f32,
     pub size_dock_bottom: f32,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Wires (FT-1684, FT-1685, FT-1688, FT-1692), by the window's own
+//! Wires, by the window's own
 //! path: clicks, drags and keys.
 
 use crate::support::Tmp;
@@ -238,7 +238,7 @@ fn drag_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i6
     to
 }
 
-/// FT-1684: two wires, the Marker tool dragged across both, cross-section 1.5 and colour BK typed in its fields,
+/// Two wires, the Marker tool dragged across both, cross-section 1.5 and colour BK typed in its fields,
 /// the pointer back on the page, Enter: a marker stands over both wires and says 1.5 and BK for each. (Enter placed
 /// nothing after a drag, and one colour for two wires was refused.) A colour the project does not know is refused
 /// in words that name the codes it knows, and the lower-case code is taken.
@@ -348,7 +348,7 @@ fn type_in(d: &mut Driver, label: &str, text: &str) {
     d.settle();
 }
 
-/// FT-1684 again: the Marker's cross-section and colours typed and left by a
+/// Again: the Marker's cross-section and colours typed and left by a
 /// click on the other field, then the line dragged, then Enter: the marker printed the wires' own 0.75, not the 1.5
 /// typed (a field was taken on Enter only). Every order a person takes keeps the fields: fields then line; line then
 /// fields and a click on the sheet; Tab between the fields; line then fields and Enter in the last one. Each time
@@ -431,7 +431,7 @@ pub(crate) fn on_wire(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64),
     page_pixel(d, pixel, ((3 * p.0 + q.0) / 4, (3 * p.1 + q.1) / 4))
 }
 
-/// FT-1688: a wire whose potential is given the type L1, and nothing else, takes a phase's colour and cross-section
+/// A wire whose potential is given the type L1, and nothing else, takes a phase's colour and cross-section
 /// (1.5 mm², the mains class), not the control circuit's 0.75 mm²: its marker says so.
 #[test]
 fn a_wire_of_an_l1_potential_takes_the_phases_cross_section() {
@@ -486,7 +486,7 @@ fn core_cell(d: &mut Driver, i: usize) -> String {
     }
 }
 
-/// FT-1685: two wires selected, Cable on the Draw tab, the type typed as a person writes it (3G1.5), the second
+/// Two wires selected, Cable on the Draw tab, the type typed as a person writes it (3G1.5), the second
 /// wire's core changed in the form, Apply: one cable with the type's three cores, the two wires its cores as the form
 /// said, in one undo step, and the cable's mark over the wires at once: its tag, its type and each core's name.
 /// Cable on a selection that holds a cable's wire opens the same form on that cable.
@@ -759,7 +759,7 @@ pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
     out
 }
 
-/// FT-1692: Print wire numbers (Draw ▸ Connect ▸ Print wire numbers), run from the command search, prints the number of each
+/// Print wire numbers (Draw ▸ Connect ▸ Print wire numbers), run from the command search, prints the number of each
 /// of the page's two wires on the page of a new project (`1.1`, `1.2`: the page's folio and the counter); ticked off,
 /// the numbers are gone.
 #[test]

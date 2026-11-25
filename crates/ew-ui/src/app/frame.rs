@@ -50,7 +50,7 @@ impl App {
                 Event::Action("external.review", Value::Null),
             ));
         }
-        // FT-1499: the damaged-copy banner's one Primary updates the copies from their
+        // The damaged-copy banner's one Primary updates the copies from their
         // libraries; a banner of a copy no library holds offers nothing.
         if self.shell.damaged_update_offered() {
             buttons.push((
@@ -134,7 +134,7 @@ impl App {
             self.applied_scale = Some(scale);
         }
         // The theme and the density as tokens (doc 16a §4.14), applied when either setting changes;
-        // `system` lets egui follow the operating system between Light and Dark (D5).
+        // `system` lets egui follow the operating system between Light and Dark.
         // The minimum text size and reduced motion with them.
         let appearance = (
             self.shell.settings().theme.clone(),
@@ -498,7 +498,7 @@ impl App {
                             // (a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
                             // the HUD, the zoom control and the tool options stay away from it (below).
                             let full = ui.max_rect();
-                            // The HUD stands above the page's horizontal scroll bar while one shows (FT-2096).
+                            // The HUD stands above the page's horizontal scroll bar while one shows.
                             let bar = (0..crate::canvas::GROUPS)
                                 .filter_map(|g| shell.canvas_of(g))
                                 .any(|c| crate::canvas::shows_scroll_bar(c, false));

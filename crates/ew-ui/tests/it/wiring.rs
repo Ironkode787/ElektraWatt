@@ -234,7 +234,7 @@ fn a_page_change_ends_the_wire_tool_and_select_takes_over() {
     assert_eq!(h.state().shell().tool().name(), "select");
     assert!(
         support::hud_value(&h).starts_with("Select \u{b7} "),
-        "the HUD shows Select (WP-S2.17 part 2)"
+        "the HUD shows Select"
     );
     assert_eq!(
         h.state().shell().selection().items.len(),
@@ -252,7 +252,7 @@ fn a_horizontal_drag_moves_a_representation_along_x_only() {
     let mut h = on_sample(&tmp, "102");
     assert!(
         !support::hud_value(&h).is_empty(),
-        "the HUD at rest (WP-S2.17 part 2: it replaced the tool strip)"
+        "the HUD at rest (it replaced the tool strip)"
     );
     let rep = h
         .state()

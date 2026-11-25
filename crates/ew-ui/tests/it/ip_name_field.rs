@@ -177,7 +177,7 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     assert_eq!(name_field_text(&h).as_deref(), Some("0V"));
 }
 
-/// FT-1657: "after one placement the tool renames itself L1-1", and D typed into the
+/// "after one placement the tool renames itself L1-1", and D typed into the
 /// name. A name typed once names a pair: the first point is the source, and the tool then floats the same name as
 /// a target, which the second click places. With the name typed and the pointer moved back to the sheet, D turns
 /// the direction and is not typed into the name.
@@ -260,7 +260,7 @@ fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_th
     assert_eq!(ghost_name(&h), "FT1657");
 }
 
-/// FT-1646: "while an interruption point is placed and its name is typed, the
+/// "while an interruption point is placed and its name is typed, the
 /// small name window turns grey as if disabled". The tool's ghost follows the pointer, and the card fades while
 /// the ghost is under it; with the pointer on the name field, and while the name is typed, the card is whole.
 #[test]
@@ -561,7 +561,7 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     assert_eq!(with_value.width(), name.width());
     assert!(
         with_value.width() <= empty.width(),
-        "the column {} is wider than the run-on label {} (FT-1413: the column may take its labels' width)",
+        "the column {} is wider than the run-on label {} (the column may take its labels' width)",
         with_value.width(),
         empty.width()
     );

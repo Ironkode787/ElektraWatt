@@ -5,7 +5,7 @@
 //! feature of this build), and the bundled Noto Sans of `ew-text` becomes the proportional and monospace family.
 //! The face bytes come from `ew_api::output::font_bytes()`, the same set the PDF export embeds, so the screen and
 //! the paper use one font file (NFR-REL-11: no system fonts). Noto Sans SemiBold is the family
-//! `semibold` for the chrome's emphasis (D8); it is not an export face.
+//! `semibold` for the chrome's emphasis; it is not an export face.
 
 use std::sync::Arc;
 
@@ -27,7 +27,7 @@ pub const SEMIBOLD: &str = "NotoSans-SemiBold";
 pub const SEMIBOLD_FAMILY: &str = "semibold";
 
 /// The bundled Noto Sans SemiBold (`assets/fonts/NotoSans-SemiBold.ttf`, OFL-1.1; provenance in `NOTICE`). It is the
-/// UI's own face, not one of the export's: the drawings keep Regular and Bold (D8).
+/// UI's own face, not one of the export's: the drawings keep Regular and Bold.
 const NOTO_SANS_SEMIBOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-SemiBold.ttf");
 
 /// What a bundled face is, read from its own tables.

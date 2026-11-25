@@ -153,7 +153,7 @@ fn place_ip(h: &mut Harness<'_, App>, name: &str) {
     settle(h);
 }
 
-/// MS5 (FR-UI-025, FR-UI-041; §7.3): the pane from the View menu, its named rows, its header and no disclaimer (FT-1711), the keyboard
+/// MS5 (FR-UI-025, FR-UI-041; §7.3): the pane from the View menu, its named rows, its header and no disclaimer, the keyboard
 /// walk, the detail block with the Rule page link, and a pending row.
 #[test]
 fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
@@ -310,7 +310,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1705: Waive… in the detail block opens the prompt, and Enter with its Reason and Author left empty waives the
+/// Waive… in the detail block opens the prompt, and Enter with its Reason and Author left empty waives the
 /// finding: the window asks for neither (the owner wanted no ten-character minimum and both optional).
 #[test]
 fn waive_from_the_detail_takes_an_empty_reason_and_author() {
@@ -788,7 +788,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-POT-011")
             .expect("an EW-POT-011 finding on the joined junctions");
         // The potential once, first, so the row shows the message alone (it leads with its subject); then which
-        // junction, where, and its wires (FT-933).
+        // junction, where, and its wires.
         let message = row.label.clone();
         assert!(
             message.starts_with("0V: it is unclear which wire feeds the junction at ")
@@ -835,7 +835,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             );
         }
         // The list row keeps one line, whole at 1920 and at 2560: the message that names the junction, its place
-        // and its wires (FT-933).
+        // and its wires.
         let cut = painted
             .iter()
             .filter(|(t, r, _)| t == &row.label && r.bottom() <= list.bottom() + 0.5)
@@ -847,7 +847,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
 }
 
 /// The quick-fix card's strip in the Messages pane counts its records, tags and cross-reference
-/// texts in words, in en-GB and in nl-NL (it read "1, 0, 0"), a count of none left out (FT-1761).
+/// texts in words, in en-GB and in nl-NL (it read "1, 0, 0"), a count of none left out.
 #[test]
 fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
     use ew_viewmodel::{key, strings};

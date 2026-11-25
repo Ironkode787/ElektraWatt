@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device and symbol browser (FT-1636): one overlay for Insert symbol, Insert device, Change symbol, Insert black
+//! The device and symbol browser: one overlay for Insert symbol, Insert device, Change symbol, Insert black
 //! box and the strip chooser, over a backdrop, the window less `space.6` on each side and most of its height.
-//! Under its title (with the close button at the right, FT-1635) the filter field; then three columns: the tree of
+//! Under its title (with the close button at the right) the filter field; then three columns: the tree of
 //! categories with their counts ([`Picker::nodes`]), the dense table of rows (a part is one row with its name, part
 //! number, ratings and library, which opens to its functions), and what the current row places: its picture (the
 //! symbol's outline and connection points on the white sheet), name, part number, ratings, connection points, the
@@ -203,7 +203,7 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
     };
     components::overlay_title(ui, title, shell, events);
     // The symbol choice of a part without a symbol says why it asks, under its title; the symbol and the device
-    // browser each say in one line what they list and where the other thing is (FT-1696).
+    // browser each say in one line what they list and where the other thing is.
     let note = match picker.mode {
         _ if picker.part.is_some() => Some(key!("picker-part-symbol-note")),
         PickerMode::Place => Some(key!("picker-head-symbol")),
@@ -213,7 +213,7 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
     if let Some(note) = note {
         ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(note))).wrap());
     }
-    // FT-1766: the device browser lists parts; one the person's hardware needs is made from here.
+    // The device browser lists parts; one the person's hardware needs is made from here.
     if picker.mode == PickerMode::Parts && picker.part.is_none() {
         ui.add_space(t.space_2);
         if components::button(
@@ -817,7 +817,7 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     edit_buttons(ui, t, shell, picker, row, events);
 }
 
-/// FT-1694: Edit symbol and Copy and edit under the detail of a row that places a symbol (not in the strip chooser
+/// Edit symbol and Copy and edit under the detail of a row that places a symbol (not in the strip chooser
 /// or a part's symbol choice). Edit symbol is greyed with the reason where the symbol's library is read-only or the
 /// project alone holds it; either asks first when the symbol editor's kept draft has unsaved changes.
 fn edit_buttons(
@@ -991,7 +991,7 @@ pub(crate) fn picture(
 /// `strings::choice_words`).
 fn function_words(kind_text: &str, fndef_key: &str) -> String {
     if kind_text != fndef_key {
-        // The kind in the window's language (FT-1554).
+        // The kind in the window's language.
         return strings::kind_words(kind_text).unwrap_or_else(|| kind_text.to_owned());
     }
     // The last fallback: the key's last segment through the shell's choice words.

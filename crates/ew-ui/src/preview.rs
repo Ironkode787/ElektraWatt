@@ -494,7 +494,7 @@ fn value_columns(t: &Tokens, widest: f32, window: f32, available: f32) -> (f32, 
     (label, (body - label - t.space_3).max(0.0))
 }
 
-/// The table import card in the Preview tab (D14): the inline card titled "Import `<file>`" with
+/// The table import card in the Preview tab: the inline card titled "Import `<file>`" with
 /// the counts as its summary ("5 changed, 0 kept, 1 conflict: the project's value is kept, …"), then the file's cells
 /// ("-X1031:1 · Function text · "Valve" → "Valve 1" · applied") and the table's rows the file lacks, each a list of
 /// its own; Apply commits the import's one command, Cancel drops it.

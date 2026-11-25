@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Properties explains itself (FT-1648 to FT-1651), through the window: a
+//! Properties explains itself, through the window: a
 //! category folded by a click on its header and by Enter on it; a row's explanation in the tooltip of its label; a
 //! connection point marked not used from its row and from the page's right-click menu; a wire's potential, its
 //! voltage set from the wire, and the source of a derived colour.
@@ -33,7 +33,7 @@ fn symbol_on_101(h: &Harness<'_, App>, symbol: &str) -> String {
         .to_string()
 }
 
-/// FT-1650: a selected symbol shows its device's, its function's and its representation's sections. A click on the
+/// A selected symbol shows its device's, its function's and its representation's sections. A click on the
 /// representation's Placement header folds that category (its rows go, its chevron turns), a second click unfolds it,
 /// and Enter on the focused header folds it again; the fold is kept when the selection changes and comes back.
 #[test]
@@ -92,7 +92,7 @@ fn a_click_on_a_category_header_folds_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1648: the pointer resting on a row's label shows what the row is in its tooltip: the Tag row of -101F1 says how
+/// The pointer resting on a row's label shows what the row is in its tooltip: the Tag row of -101F1 says how
 /// the tag is made.
 #[test]
 fn a_rows_tooltip_explains_it() {
@@ -124,7 +124,7 @@ fn a_rows_tooltip_explains_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1649 from Properties: a right-click on -101F1's first connection point row offers Mark not used; its click marks
+/// From Properties: a right-click on -101F1's first connection point row offers Mark not used; its click marks
 /// the point not used in one undo step, and the row says so; the menu then offers Mark used.
 #[test]
 fn a_connection_point_is_marked_not_used_from_its_row() {
@@ -161,7 +161,7 @@ fn a_connection_point_is_marked_not_used_from_its_row() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1649 on the page: a right-click on the unconnected connection point X1 of a second lamp -102E2, placed right of
+/// On the page: a right-click on the unconnected connection point X1 of a second lamp -102E2, placed right of
 /// the drawing without joining anything (the sample wires every pin it draws), offers to mark that point not used;
 /// its click marks it, and its unconnected-point finding drops to an info.
 #[test]
@@ -243,7 +243,7 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1651: the sheet of the wire 101.1 (from the incoming terminal -X1011:L1 to the main switch, on L1) shows its
+/// The sheet of the wire 101.1 (from the incoming terminal -X1011:L1 to the main switch, on L1) shows its
 /// potential's definition, with its type and voltage; the voltage is typed from the
 /// wire's sheet and set in one undo step. Its colour's chip names the colour profile, and Go to source shows the
 /// project's colour profile row.
@@ -324,7 +324,7 @@ fn a_wire_shows_and_sets_its_potential_and_the_source_of_its_colour() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1651, the owner's case: an interruption point whose potential no definition names shows its Potential row, and
+/// The owner's case: an interruption point whose potential no definition names shows its Potential row, and
 /// that row's menu offers Define potential…, which opens its form at the point; the potential defined there shows its
 /// voltage under the point's sheet.
 #[test]

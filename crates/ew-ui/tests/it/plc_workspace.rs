@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC workspace in the window (WP-S2.13, doc 16 §2.6, doc 10 §6), at 1920 × 1080: View ▸ Workspaces ▸ PLC shows
+//! The PLC workspace in the window (doc 16 §2.6, doc 10 §6), at 1920 × 1080: View ▸ Workspaces ▸ PLC shows
 //! the PLC navigator in the left column and the PLC grid in the bottom dock; the grid's filter takes the bus facet and
-//! the safety flag (FT-738); a sorted Address header keeps its whole word (FT-776); a project with two CPUs lists a
-//! new card under "Modules without a station", and a CPU row's menu attaches it (FT-1672). Not here: the channel's
+//! the safety flag; a sorted Address header keeps its whole word; a project with two CPUs lists a
+//! new card under "Modules without a station", and a CPU row's menu attaches it. Not here: the channel's
 //! address printed at a terminal of its path (`ew-viewmodel`'s `plc_new_project.rs`).
 
 use crate::support;
@@ -74,7 +74,7 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     // The sample's channels: the CPU's input and output cards and the valve terminal's outputs.
     let channels = ew_testdir::sample_facts().channels;
     assert_eq!(grid_rows(&h), channels);
-    // FT-776: the Address header grows by its sort icon when sorted, so its word is not cut.
+    // The Address header grows by its sort icon when sorted, so its word is not cut.
     let width = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, label: &str| {
         h.get_by_label_contains(label).rect().width()
     };
@@ -82,7 +82,7 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     h.get_by_label("Sort by Address").click();
     settle(&mut h);
     assert!(width(&h, "Sort by Address, sorted") > before);
-    // FT-738: the grid's filter takes the net of the station's bus port and the safety flag.
+    // The grid's filter takes the net of the station's bus port and the safety flag.
     grid_filter(&mut h, "bus:profibus-dp");
     assert_eq!(
         grid_rows(&h),
@@ -258,7 +258,7 @@ fn a_waiting_cards_row_takes_a_click_beside_its_name_and_attaches_to_a_station()
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1672: in a new project with two CPUs a new card joins neither; the PLC navigator lists it under "Cards without a
+/// In a new project with two CPUs a new card joins neither; the PLC navigator lists it under "Cards without a
 /// CPU", and Attach cards without a station on the first CPU's row makes it that CPU's module, one undo step.
 #[test]
 fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
@@ -311,7 +311,7 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1726: Output ▸ Reports ▸ Report block… offers the report kinds read from the kinds themselves, the PLC and bus
+/// Output ▸ Reports ▸ Report block… offers the report kinds read from the kinds themselves, the PLC and bus
 /// lists and the fluid lists among them, never an embedded kind; a Bus overview chosen from the list adds its block.
 #[test]
 fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
@@ -569,7 +569,7 @@ fn a_long_station_stays_usable_and_a_taken_slot_is_refused() {
         view.rows.iter().filter(|r| r.module.is_some()).count()
     };
     assert_eq!(modules(&h), 22);
-    // FT-1763: the tab's title and the view read one rack view per revision, not one each a frame.
+    // The tab's title and the view read one rack view per revision, not one each a frame.
     let made = h.state().shell().session_calls().rack_view;
     h.run_steps(3);
     assert_eq!(
@@ -809,7 +809,7 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
 /// The PLC exchange from the PLC menu (doc 10 §4, §6): Export… asks the format in its form and the file, writes
 /// the sample's configuration as AML and says what it holds (the CPU with its two cards of eight channels and the valve
 /// terminal with its eight outputs); Import… of that file previews it by tab, with nothing in conflict or parked, and
-/// Apply records the import (the merge's cases are WP-S3.16's tests).
+/// Apply records the import (the merge's cases are the exchange tests').
 #[test]
 fn the_plc_exchange_exports_and_previews_an_import() {
     use ew_ui::app::Pick;
@@ -987,7 +987,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1756, doc 10 §4.5: a conflict shows the side Apply takes without a choice, and offers the file's value only where
+/// doc 10 §4.5: a conflict shows the side Apply takes without a choice, and offers the file's value only where
 /// it can be taken. The file gives a channel's plain comment a comment in a language, which never replaces it: the
 /// conflict's row has "Keep the project's" chosen and, in place of "Take the file's", the reason; Apply keeps it.
 #[test]
@@ -1312,7 +1312,7 @@ fn type_into(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, label: &str, te
     settle(h);
 }
 
-/// FT-1752: the project's PLC and fluid settings from the PLC and Fluid menus. Process-tag scheme… and Fluid settings… are
+/// The project's PLC and fluid settings from the PLC and Fluid menus. Process-tag scheme… and Fluid settings… are
 /// forms that start with the project's values and set them in one step each; Channel addresses at terminals is a switch.
 #[test]
 fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
@@ -1369,7 +1369,7 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1752: what the PLC navigator's rows reach. A configuration project's row shows its symbol policy in
+/// What the PLC navigator's rows reach. A configuration project's row shows its symbol policy in
 /// Properties, a module's its safety data and a channel's its mode and safety data (each a `fields.set` row); after an
 /// applied PLC import the configuration project's row unlocks a protected group (`plc.unlock`) and imports an
 /// instrument list, previewed.
@@ -1515,7 +1515,7 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1752 (R2, change it): in the station's view a module dragged by its card onto a free slot moves there
+/// In the station's view a module dragged by its card onto a free slot moves there
 /// (`fields.set plc_module.slot`), and its addresses follow; one Undo puts it back. Dragged onto another module's
 /// card the two change places.
 #[test]

@@ -92,7 +92,7 @@ pub fn shortcut_of(chord: &Chord) -> Option<(KeyboardShortcut, bool)> {
     if chord.alt {
         modifiers |= Modifiers::ALT;
     }
-    // The Windows key is reserved (D8): egui does not report it as a modifier, so such a chord never binds.
+    // The Windows key is reserved: egui does not report it as a modifier, so such a chord never binds.
     if chord.win {
         return None;
     }
@@ -134,7 +134,7 @@ pub fn bindings(bound: &[Bound]) -> Vec<Binding> {
 }
 
 /// The binding text of a key press for the keymap editor's recording: `None` for a modifier alone or a key the
-/// keymap cannot name. A punctuation key records its physical key (D6), every other key its logical name.
+/// keymap cannot name. A punctuation key records its physical key, every other key its logical name.
 pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Option<String> {
     let name = match punctuation_code(physical.unwrap_or(key)).or_else(|| punctuation_code(key)) {
         Some(code) => format!("phys:{code}"),
@@ -210,7 +210,7 @@ mod tests {
         assert_eq!(s.logical_key, Key::Z);
         assert!(s.modifiers.shift && s.modifiers.command);
         assert!(parse_shortcut("Ctrl+NoSuchKey").is_none());
-        // `]` and `phys:BracketRight` are one physical binding (D6).
+        // `]` and `phys:BracketRight` are one physical binding.
         let bracket = Chord::parse("]").unwrap();
         assert_eq!(
             shortcut_of(&bracket).map(|(s, p)| (s.logical_key, p)),

@@ -178,7 +178,7 @@ impl EditorView {
         };
 
         // The drawing grid's dots at its chosen step, and the connection grid's, which connection points keep to,
-        // larger; each only while its dots stand apart (FT-1690).
+        // larger; each only while its dots stand apart.
         let cp_step = draft.symbol.grid.at(1).map_or(4.0, |n| n.0 as f32 / 1e6);
         let grids = [editor.snap.then(|| Self::snap_mm(editor) as f32), Some(cp_step)];
         for (k, step) in grids.into_iter().enumerate() {

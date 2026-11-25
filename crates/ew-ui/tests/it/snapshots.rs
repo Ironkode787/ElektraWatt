@@ -486,7 +486,7 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
             )
         })
         .map_or(list.top(), |r| r.top());
-    // The pane ends at the status bar (it has no footer since FT-1711).
+    // The pane ends at the status bar (it has no footer).
     let bottom = crate::messages::status_top(h) - 8.0;
     egui::Rect::from_min_max(
         egui::pos2(list.left(), top - 4.0),

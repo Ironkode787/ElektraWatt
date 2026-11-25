@@ -130,7 +130,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     if search.changed() {
         events.push(Event::Action("keymap.search", json!({ "text": text })));
     }
-    // A refused edit: what was tried and each error (D8).
+    // A refused edit: what was tried and each error.
     if let Some(refusal) = &state.refusal {
         let label = ew_viewmodel::actions::find(refusal.action).map_or(refusal.action, |m| {
             strings::text(strings::Key::run_time(&m.label_key()))
@@ -281,7 +281,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     for note in rows.iter().filter(|r| r.custom).flat_map(|r| &r.notes) {
         ui.label(crate::components::styled(note, &t.type_small, t.info));
     }
-    // The user keymap's bindings for actions this build does not know (D6).
+    // The user keymap's bindings for actions this build does not know.
     if let Some(user) = shell.user_keymap() {
         for b in user.unused() {
             let keys: Vec<String> = b.chords().map(ew_viewmodel::keymap::Chord::display).collect();

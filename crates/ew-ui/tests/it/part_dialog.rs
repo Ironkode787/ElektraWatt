@@ -47,7 +47,7 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     assert_eq!(first.data().size_of_set(), Some(rows.len()));
     assert!(
         first.is_selected() != Some(true),
-        "no row is chosen for the person (FT-1845)"
+        "no row is chosen for the person"
     );
     assert!(
         first

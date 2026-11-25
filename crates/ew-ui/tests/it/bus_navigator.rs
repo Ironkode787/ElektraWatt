@@ -3,9 +3,9 @@
 
 //! The bus navigator in the window (FR-UI-006, doc 10 §6), at 1920 × 1080: on the sample the rail's Bus shows the
 //! logical net with its master port and the physical net's derived segment with its ends, the terminated ports
-//! and the cable; its table edits a port's address as typed (FT-856), which Properties shows in words; a new
-//! project's CPU row offers Place port DP, which places the port joined to the CPU (FT-831); the Wire tool draws on a
-//! bus-topology page (FT-434).
+//! and the cable; its table edits a port's address as typed, which Properties shows in words; a new
+//! project's CPU row offers Place port DP, which places the port joined to the CPU; the Wire tool draws on a
+//! bus-topology page.
 
 use crate::support;
 
@@ -108,7 +108,7 @@ fn the_bus_navigator_lists_nets_ports_and_segments_and_edits_an_address() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-831: a new project's generic CPU has a DP port in its part that no symbol carries; its row offers Place port DP,
+/// A new project's generic CPU has a DP port in its part that no symbol carries; its row offers Place port DP,
 /// which arms the Place tool joined to the CPU; a click places the port, typed from the part, and the bus navigator
 /// lists it.
 #[test]
@@ -165,7 +165,7 @@ fn a_cpus_row_places_its_dp_port() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-434: on a bus-topology page the Wire tool arms, with the bus kind.
+/// On a bus-topology page the Wire tool arms, with the bus kind.
 #[test]
 fn the_wire_tool_draws_bus_lines_on_a_bus_topology_page() {
     let tmp = Tmp::new();

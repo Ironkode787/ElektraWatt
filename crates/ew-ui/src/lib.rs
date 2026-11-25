@@ -15,7 +15,7 @@
 #![forbid(unsafe_code)]
 
 mod about;
-// The dialog contents of the automation workspaces (WP-S2.13).
+// The dialog contents of the automation workspaces.
 mod automation;
 // The recovery dialog's test clock (the module is private).
 #[doc(hidden)]

@@ -70,7 +70,7 @@ pub(crate) fn show_sized(
     let width = match width {
         Some(w) => w,
         None if spec.form => form_width(&t, ctx.content_rect().width()),
-        // A small dialog is as wide as its buttons need (FT-1736: four buttons ran out past its left edge, so the
+        // A small dialog is as wide as its buttons need (four buttons ran out past its left edge, so the
         // title stood indented past them), never under `size.dialog.small` nor wider than the window.
         None => (footer_width(ctx, &t, spec) + 2.0 * t.space_5)
             .max(t.size_dialog_small)

@@ -169,7 +169,7 @@ fn the_devices_pane_and_the_chip_line() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// NV7 in the window (D8): dragging 104 onto 103 in the Pages navigator opens the reorder card with "104 →
+/// NV7 in the window: dragging 104 onto 103 in the Pages navigator opens the reorder card with "104 →
 /// 103, 103 → 104"; Apply commits one `page.reorder`; one undo restores the folios.
 #[test]
 fn dragging_104_before_103_opens_the_card_and_apply_commits() {
@@ -351,7 +351,7 @@ fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// In the window (FT-490): F2 on a Potentials row opens the inline editor on its name with the focus;
+/// In the window: F2 on a Potentials row opens the inline editor on its name with the focus;
 /// typing (appended at the end) and Enter rename the definition; Delete on a row opens the delete card.
 #[test]
 fn f2_renames_a_potential_and_delete_opens_the_card() {
@@ -429,7 +429,7 @@ fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     assert_eq!(built_after, built, "scrolling builds no rows");
     assert!(painted_after <= in_view + 2);
     assert_eq!(h.state().shell().session_calls().navigator_table, calls + 1);
-    // The Pages navigator's rows stay as built (D5): the rows of section 1 are items of its tree.
+    // The Pages navigator's rows stay as built: the rows of section 1 are items of its tree.
     let shell = h.state().shell();
     assert!(
         shell

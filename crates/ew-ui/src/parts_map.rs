@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog
-//! stands (FT-1761: at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open,
+//! stands (at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open,
 //! before the import card (doc 16a §6.9, `elevation.1`).
 //!
 //! **Layout.** "Map columns" in `type.title`, one line naming the file, the Source field (the key the map is saved

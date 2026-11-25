@@ -185,7 +185,7 @@ impl Tip for Response {
     }
 }
 
-/// Whether a dialog's backdrop covers the widget (FT-1761: a grid cell's tooltip stood above the backdrop of a dialog
+/// Whether a dialog's backdrop covers the widget (a grid cell's tooltip stood above the backdrop of a dialog
 /// that opened while the pointer rested on the cell): its tooltip does not show then.
 fn under_backdrop(r: &Response) -> bool {
     !r.ctx.memory(|m| m.allows_interaction(r.layer_id))
@@ -1394,9 +1394,9 @@ pub(crate) fn section_header(
     open
 }
 
-/// The way out of a floating overlay (FT-1635), one behaviour for every overlay of the window: a backdrop over the
+/// The way out of a floating overlay, one behaviour for every overlay of the window: a backdrop over the
 /// whole window under it catches a click beside the overlay, which is `ui.dismiss` as Escape is (but only closes a
-/// list open in the overlay, FT-1693), so the click reaches nothing under it. `dim` paints it in `color.backdrop` (the
+/// list open in the overlay), so the click reaches nothing under it. `dim` paints it in `color.backdrop` (the
 /// browser), else it is clear. Called in each frame the overlay is drawn; the overlay itself stands in
 /// [`egui::Order::Foreground`], above the backdrop.
 pub(crate) fn overlay_backdrop(ctx: &egui::Context, id: egui::Id, dim: bool, events: &mut Vec<Event>) {
@@ -1434,7 +1434,7 @@ pub(crate) fn overlay_title(ui: &mut Ui, title: &str, shell: &ShellModel, events
     });
 }
 
-/// The close button of a floating overlay (FT-1635): the 24-px X icon button named "Close", its tooltip with the key
+/// The close button of a floating overlay: the 24-px X icon button named "Close", its tooltip with the key
 /// of `ui.dismiss` ("Close (Esc)"); a click is `ui.dismiss`.
 pub(crate) fn close_button(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let name = strings::text(key!("dialog-close"));

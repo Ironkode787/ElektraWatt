@@ -80,8 +80,8 @@ const DRAG_STEPS: u32 = 8;
 pub const ZOOM_MAX: (u32, u32) = (768, 497);
 
 /// The window size and scale of a visual run: the window in points and the pixels per point in hundredths (an `Eq`
-/// form: 120 is 1.2). [`Geometry::DEFAULT`] is 1920 × 1080 points at 1, a frame of 1920 × 1108 pixels (until
-/// FT-1730 it was 1280 × 800 points at 1.2, which a run now asks for with `--window 1280x800 --ppp 1.2`).
+/// form: 120 is 1.2). [`Geometry::DEFAULT`] is 1920 × 1080 points at 1, a frame of 1920 × 1108 pixels (a window of
+/// 1280 × 800 points at 1.2 is asked for with `--window 1280x800 --ppp 1.2`).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Geometry {
     /// The window's width in points.

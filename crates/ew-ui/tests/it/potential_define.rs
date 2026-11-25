@@ -285,7 +285,7 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1698: Define potential…'s Type is a list, not a typed text: a click opens it with the words Properties shows
+/// Define potential…'s Type is a list, not a typed text: a click opens it with the words Properties shows
 /// for a definition's Type, a click on "L+" chooses it, and Enter defines the potential with the type `l_plus`.
 #[test]
 fn define_potentials_type_is_chosen_from_a_list() {
@@ -331,7 +331,7 @@ fn define_potentials_type_is_chosen_from_a_list() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1693: a click beside Define potential…'s open Type list closes the list only: the form stays with the name
+/// A click beside Define potential…'s open Type list closes the list only: the form stays with the name
 /// typed (it closed the whole form, and the name was lost).
 #[test]
 fn a_click_beside_an_open_list_closes_the_list_not_the_form() {

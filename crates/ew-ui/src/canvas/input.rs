@@ -172,7 +172,7 @@ impl CanvasHost {
         });
         // The pointer follows movement, and a view change on the same page replays it from the pointer's screen
         // position (zoom, pan, fit, Home). A page load or change does not: its pointer starts unknown, so no dashed
-        // hover outline is chosen from a position the page never saw (round 3, item 5; round 5, R2).
+        // hover outline is chosen from a position the page never saw.
         let page = (canvas.page().session, canvas.page().folio.clone());
         let view = canvas.viewport();
         let same_page = self.views[group].page.as_ref() == Some(&page);
@@ -298,7 +298,7 @@ impl CanvasHost {
         let zoom_to = |zoom: f64, wheel: bool| {
             let (x, y) = mm(anchor);
             let mut p = json!({"percent": zoom * 100.0, "x_mm": x, "y_mm": y, "group": group});
-            // A step of the plain wheel says so: the first one offers the wheel's other use (FT-1830).
+            // A step of the plain wheel says so: the first one offers the wheel's other use.
             if wheel {
                 p["wheel"] = json!(true);
             }
@@ -414,7 +414,7 @@ impl CanvasHost {
         }
     }
 
-    /// The page's scroll bars (FT-1830, doc 16a §5.5): along the canvas's right and bottom edges, each thumb the part
+    /// The page's scroll bars (doc 16a §5.5): along the canvas's right and bottom edges, each thumb the part
     /// of the page (and the room beyond it the view shows) that is in view, shown only while part of the page is out
     /// of view; dragging a thumb pans the view as far (`view.pan`).
     pub(super) fn scroll_bars(
@@ -503,7 +503,7 @@ impl CanvasHost {
         }
     }
 
-    /// The pointer's or the grid cursor's rest on the focused canvas (D11): `canvas.dwell` once after 80 ms and once
+    /// The pointer's or the grid cursor's rest on the focused canvas: `canvas.dwell` once after 80 ms and once
     /// after 300 ms without a move, measured on egui's frame time (the wall clock in the window, the driver's
     /// frames in a test or a visual run); nothing timed reaches the model.
     pub(super) fn dwell(&mut self, ui: &Ui, canvas: &CanvasModel, group: usize, events: &mut Vec<Event>) {
@@ -545,7 +545,7 @@ impl CanvasHost {
 }
 
 /// Whether the page's vertical (else horizontal) scroll bar shows: part of the page is out of view that way
-/// (FT-1830, doc 16a §5.5).
+/// (doc 16a §5.5).
 pub(crate) fn shows_scroll_bar(canvas: &CanvasModel, vertical: bool) -> bool {
     let [x0, y0, x1, y1] = canvas.view_nm();
     let (w, h) = canvas.sheet();

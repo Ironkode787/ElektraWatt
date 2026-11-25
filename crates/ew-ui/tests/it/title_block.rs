@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1686: the title block's fields of an imported QElectroTech project, edited in the window. The guide's sample
+//! The title block's fields of an imported QElectroTech project, edited in the window. The guide's sample
 //! `lamp-circuit.qet` is imported through File ▸ Import…; Properties of its page links Title block fields…, whose
 //! form lists the fields the page's title block prints from the project's data; typed values are written in one
 //! step and the page prints them at once.
@@ -145,7 +145,7 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     shell.shutdown();
 }
 
-/// FT-1718: the title block's Author and Checked come from the current revision. On a copy of the sample, whose
+/// The title block's Author and Checked come from the current revision. On a copy of the sample, whose
 /// current revision names no checker, the form offers Author, which names the author's party, and says
 /// where Checked comes from (the approval), offering no field for it.
 #[test]
@@ -182,7 +182,7 @@ fn the_title_block_form_names_the_revision_s_author_and_where_checked_comes_from
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1716: in an imported project, Page ▸ New page… with the type Panel layout gives a page with the frame and the
+/// In an imported project, Page ▸ New page… with the type Panel layout gives a page with the frame and the
 /// title block of the page it was made from, as a new folio of QElectroTech takes the project's template.
 #[test]
 fn a_new_panel_page_of_an_imported_project_has_its_frame() {

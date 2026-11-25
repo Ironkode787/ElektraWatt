@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File ▸ Import… of EPLAN data in the window (WP-S3.18, doc 14 §5, §13), at 1920 × 1080: an EDZ shows the Data Portal
+//! File ▸ Import… of EPLAN data in the window (doc 14 §5, §13), at 1920 × 1080: an EDZ shows the Data Portal
 //! terms notice once per session, then what it means for the project; Update previews the changed fields of the
 //! project's part copy on the card (AC-38); Add to my parts library writes the user's library; a report spreadsheet
 //! offers the mappings that fit its headers and makes a new project. Not here: that the terms notice cannot be skipped
@@ -123,7 +123,7 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
 }
 
 /// A report whose headers fit a shipped mapping offers it; Import as terminal diagram makes a new project without
-/// pages, and the window's tool strip does not show Select enabled there (FT-1743).
+/// pages, and the window's tool strip does not show Select enabled there.
 #[test]
 fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_judges_clean() {
     let tmp = Tmp::new();
@@ -167,7 +167,7 @@ fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_jud
     );
 }
 
-/// One File ▸ Import… takes every file and goes on by what the file is (FT-1741): a drawing to its dialog, an EDZ to
+/// One File ▸ Import… takes every file and goes on by what the file is: a drawing to its dialog, an EDZ to
 /// the terms, a parts XML to its parts, a parts table of the `ew` dialect to the column mapping, a report to its
 /// mappings; the menus hold no separate entry for any of them.
 #[test]
@@ -242,7 +242,7 @@ fn one_import_goes_on_by_what_the_file_is() {
     }
 }
 
-/// FT-1742: a report that fits no mapping is mapped column by column; Import saves the mapping and makes the project;
+/// A report that fits no mapping is mapped column by column; Import saves the mapping and makes the project;
 /// the next file of the report scheme finds the saved mapping and offers it first.
 #[test]
 fn the_column_mapper_maps_a_report_and_saves_the_mapping_for_the_next_file() {

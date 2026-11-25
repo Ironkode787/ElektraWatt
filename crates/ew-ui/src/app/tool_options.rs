@@ -73,7 +73,7 @@ impl App {
             _ => (None, None, None),
         };
         // See below. The card stays whole while it is being used: the pointer on its controls, or a field of it
-        // typed into (FT-1646: the ghost follows the pointer, so going to the name field to type put the ghost
+        // typed into (the ghost follows the pointer, so going to the name field to type put the ghost
         // under the card and the card at 40 %, which read as a disabled field).
         let in_use = ctx.text_edit_focused()
             || self
@@ -86,7 +86,7 @@ impl App {
                 .zip(self.ghost_screen_point())
                 .is_some_and(|(rect, ghost)| rect.contains(ghost));
         // Right under the tab bar, one row high: a fitted page's margin and its frame's band of column numbers hold
-        // it, so it covers none of the drawing (FT-929, FT-981: with its title and `space.4` padding it lay over
+        // it, so it covers none of the drawing (with its title and `space.4` padding it lay over
         // the sheet's top left, where terminals are clicked).
         let at = egui::pos2(
             pane.left() + t.space_4,
@@ -186,7 +186,7 @@ impl App {
         // The controls stand over the frame, which was shown after them.
         ctx.move_to_top(band.response.layer_id);
         // The keys go back to the tool when the pointer goes back to the sheet: with a name typed and the pointer
-        // moved to where the point goes, D turns the direction and is not typed into the name (FT-1657).
+        // moved to where the point goes, D turns the direction and is not typed into the name.
         let to_sheet = ctx.input(|i| {
             i.pointer.delta() != egui::Vec2::ZERO
                 && i.pointer

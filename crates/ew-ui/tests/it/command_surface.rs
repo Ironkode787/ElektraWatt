@@ -562,7 +562,7 @@ fn view_show_switches_show_only_their_check() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1639: "the bar on the page shows buttons beside the active tool that
+/// "the bar on the page shows buttons beside the active tool that
 /// cannot be reached, since the bar moves away as the pointer comes near". The HUD stays where it is while the
 /// pointer comes to it, and a click on its Wire button arms the Wire tool.
 #[test]
@@ -632,7 +632,7 @@ fn show_tab(h: &mut Harness<'_, App>, tab: Tab) {
     assert_eq!(h.state().shell().command_tab(), tab);
 }
 
-/// FT-1730 (doc 16a §5.3, law 3): at 1920 × 1080 no group folds, in English, in Dutch and in the pseudo-locale: every
+/// At 1920 × 1080 no group folds, in English, in Dutch and in the pseudo-locale: every
 /// command of every tab stands in the bar as a button of its own, and no More button shows.
 #[test]
 fn nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale() {
@@ -660,7 +660,7 @@ fn nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale() {
     assert!(folded.is_empty(), "folded at 1920: {folded:#?}");
 }
 
-/// FT-1730 (doc 16a §2, §5.10): a window smaller than the main resolution stays usable, which is all 1280 × 800 asks
+/// A window smaller than the main resolution stays usable, which is all 1280 × 800 asks
 /// (the sizes the design is judged at are 1920 × 1080 and 2560 × 1440). At 1280 × 800 nothing panics, every command of
 /// every tab is reached, in the bar or as an entry of the open menu of its folded group (in the More menu when the
 /// group went there) that lies whole inside the window, and the page view keeps at least half the window's width and

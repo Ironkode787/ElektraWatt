@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The New part form stands still under the pointer (FT-2130): the pins' preview and the bits the channels occupy have
+//! The New part form stands still under the pointer: the pins' preview and the bits the channels occupy have
 //! their room before the channels are typed, and a station's form opened after a form whose bus row was taken away
 //! starts at its top with its first field focused, not scrolled down to its own bus row. A person clicked where a
 //! field had been and typed into another.

@@ -44,7 +44,7 @@ fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwe
     let ghost = h.state().shell().tool_ghost().expect("a ghost");
     assert!(format!("{ghost:?}").contains("terminal"), "{ghost:?}");
     // The window's dwell timer previews the command after 80 ms of rest; the ghost then shows the predicted tag.
-    // The rest is the action `canvas.dwell` (D11): dispatched as the window's dwell timer dispatches it, so the test
+    // The rest is the action `canvas.dwell`: dispatched as the window's dwell timer dispatches it, so the test
     // reads no clock and sleeps nowhere.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
@@ -65,7 +65,7 @@ fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwe
     );
     assert!(
         support::hud_value(&h).contains("-X1031:30"),
-        "the HUD names the target (WP-S2.17 part 2)"
+        "the HUD names the target"
     );
     settle(&mut h);
     // Enter commits; the tool stays armed with the next designation; Ctrl+Z takes the terminal back.

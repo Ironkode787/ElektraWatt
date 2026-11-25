@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1658 to FT-1660, by the window's own path: clicks, drags and keys.
+//! By the window's own path: clicks, drags and keys.
 
 use crate::support::Tmp;
 

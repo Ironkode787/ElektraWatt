@@ -26,7 +26,7 @@ fn with_a_duct_without_a_size(tmp: &Tmp) -> Harness<'static, App> {
 }
 
 /// At 1440 × 900, where the Draw row shows the Layout group whole (in a smaller window the group folds
-/// into its menu since Cable joined Connect (FT-1685).
+/// into its menu since Cable joined Connect.
 #[test]
 fn the_duct_button_arms_draw_duct_with_its_options_card() {
     let tmp = Tmp::new();
@@ -99,7 +99,7 @@ fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
     assert_eq!(fields[1].1, "60");
 }
 
-/// FT-1687: a panel layout page from nothing, through the window. On a new project's schematic page the Draw tab's
+/// A panel layout page from nothing, through the window. On a new project's schematic page the Draw tab's
 /// Rail says how to make a panel page; New page… with the type Panel layout makes one, where Rail says how to show an
 /// enclosure; Project ▸ Enclosure…'s Create then shows the new enclosure's plate on the page and Rail is enabled.
 #[test]
@@ -107,7 +107,7 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
     let tmp = Tmp::new();
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
     let mut h = support::harness_with(shell, support::Scripted::default(), None);
-    // At 1440 points, where the Draw row shows the Layout group whole (in a smaller window it folds, FT-1685).
+    // At 1440 points, where the Draw row shows the Layout group whole (in a smaller window it folds).
     h.set_size(egui::Vec2::new(1440.0, 900.0));
     settle(&mut h);
     dispatch(
@@ -169,7 +169,7 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
         h.state().shell().panel_tables().is_some(),
         "the page shows the enclosure's plate"
     );
-    // FT-1719: one toast, the enclosure's; the location node's toast before it is gone from the screen.
+    // One toast, the enclosure's; the location node's toast before it is gone from the screen.
     assert!(
         h.query_all_by_label_contains("Created the enclosure")
             .next()
@@ -196,7 +196,7 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
     );
 }
 
-/// FT-1719: Enclosure… on a schematic page toasts the new enclosure with its Undo, which takes the enclosure back: a
+/// Enclosure… on a schematic page toasts the new enclosure with its Undo, which takes the enclosure back: a
 /// second Create at the same location is not refused ("already has enclosure"). Off a panel layout page the dialog's
 /// Create only makes the enclosure without drawing it.
 #[test]

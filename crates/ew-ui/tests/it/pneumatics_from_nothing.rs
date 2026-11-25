@@ -960,7 +960,7 @@ fn a_medium_set_on_two_tubes_at_once_holds_on_both() {
         .find(|n| n.label == "Compressed air")
         .and_then(|n| n.badges.first().cloned())
         .expect("the medium's row");
-    // The Media row counts the medium's consumers, as the medium table does (FT-1761); it counted its tubes.
+    // The Media row counts the medium's consumers, as the medium table does; it counted its tubes.
     assert!(badge.ends_with(" consumers"), "{badge}");
     d.shell_mut().shutdown();
 }
@@ -1516,7 +1516,7 @@ pub(crate) fn glyph_boxes(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Ve
     }
 }
 
-/// Item 1 of round 3 (frame t0083): Generate overview… on the prelude's project drew the starter terminal's module strip
+/// Generate overview… on the prelude's project drew the starter terminal's module strip
 /// left of the frame (the drawing area, in page coordinates, was mapped back as if it were on the sheet), too small for
 /// its part numbers, which ran into each other, and without a title. The overview of the terminal with two valves and a
 /// plate stands inside the drawing area, no two of its texts overlap, and the page is titled by the terminal.
@@ -1615,7 +1615,7 @@ fn browser_parts(d: &mut Driver) -> (Vec<(String, String)>, Vec<String>) {
     (rows, p.nodes.iter().map(|(n, _)| n.words()).collect())
 }
 
-/// Item 3 of round 3 (friction 5 and 6): Output ▸ Report ▸ Valve-terminal configuration on a project without a valve
+/// Output ▸ Report ▸ Valve-terminal configuration on a project without a valve
 /// terminal said "Added the report block … from folio 913", and no page 913 came. The toast says that the block has
 /// nothing to list yet and what gives it rows; a block that lists something says as before that it was added.
 #[test]
@@ -1647,7 +1647,7 @@ fn round3_a_report_block_with_nothing_to_list_says_so() {
     d.shell_mut().shutdown();
 }
 
-/// Item 4 of round 3 (friction 2): a valve placed below the loose supply plate had its working port 4 joined to the
+/// A valve placed below the loose supply plate had its working port 4 joined to the
 /// plate's exhaust tap 5 by a tube: the plate's ports carry the roles of the galleries they tap, but autoconnect read a
 /// side of EW-FL-012 on valves only. The valve is placed without a tube, and a fluid autoconnect that does join says
 /// so in tubes: a cylinder dropped with its port A over a valve's port 2.
@@ -1708,7 +1708,7 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     d.shell_mut().shutdown();
 }
 
-/// Item 6 of round 3 (friction 4): the field said "Tube length" with no unit and refused "2 m" with an error that named
+/// The field said "Tube length" with no unit and refused "2 m" with an error that named
 /// millimetres. The row's name says mm, and a length typed with its unit is taken: 2 m, 35 cm, 350 mm.
 #[test]
 fn round3_a_tube_length_names_its_unit_and_takes_one_typed() {
@@ -1744,7 +1744,7 @@ pub(crate) fn menu_at(d: &mut Driver, at: (i64, i64)) -> Vec<String> {
     labels
 }
 
-/// Item 5 of round 3 (friction 9): the terminal's menu offered Add valve at position n only; Blank position stood on a
+/// The terminal's menu offered Add valve at position n only; Blank position stood on a
 /// valve's own menu, so the person added a valve to blank a position. Each empty cell of the terminal's box offers its
 /// Blanking plate and its row Blank position n at each empty position; chosen, the position is blank and the entry gives
 /// way to Add valve.
@@ -1783,7 +1783,7 @@ fn round3_the_terminal_blanks_an_empty_position() {
     d.shell_mut().shutdown();
 }
 
-/// Item 2 of round 3 (friction 7 and 8): the starter terminal stood under "Assemblies and black boxes", so the person
+/// The starter terminal stood under "Assemblies and black boxes", so the person
 /// found only the supply plate, under "Valve terminal plates", and placed loose valves; a search for "valve terminal"
 /// listed the valve for a valve terminal first. The terminal stands under "Valve terminals", beside its plate's group,
 /// the search lists it first, and the other fluid starter parts stand under their own fluid groups.

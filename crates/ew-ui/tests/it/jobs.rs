@@ -83,7 +83,7 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
         h.query_by_label(&format!("{} pages, {kib} KiB", rows.len()))
             .is_some()
     );
-    // Open PDF (FT-1689): the toast's and the pane's buttons each hand the written file, by its path, to the system's
+    // Open PDF: the toast's and the pane's buttons each hand the written file, by its path, to the system's
     // file opener; no URL goes to the browser.
     let opens = h.get_all_by_label("Open").count();
     assert_eq!(opens, 2, "the toast's and the pane's");

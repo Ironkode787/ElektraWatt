@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1700: a wire whose potential can be reasoned is offered it on a card at the wire, with Accept and Decline, by the
+//! A wire whose potential can be reasoned is offered it on a card at the wire, with Accept and Decline, by the
 //! pointer on a new project: relay -1K1's coil fed from L1 (a potential of type L1) and relay -1K2's from N (type N),
 //! and a wire drawn between their A2 pins. Selected, that wire offers N ("-1K1:A2 returns a coil fed from L1"); Accept
 //! defines it in one step, Decline keeps it from coming back for that wire.
@@ -139,7 +139,7 @@ fn a_declined_offer_does_not_come_back_for_that_wire() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1700, widened: with no potential of type N in the project (the N feed defined as NX, no type), the A2 wire is
+/// widened: with no potential of type N in the project (the N feed defined as NX, no type), the A2 wire is
 /// still offered N, as a new potential of that type; Accept defines it with the type.
 #[test]
 fn without_a_named_potential_of_the_type_a_new_one_is_offered() {

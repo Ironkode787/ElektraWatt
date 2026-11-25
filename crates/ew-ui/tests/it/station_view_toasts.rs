@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1824: in a station's view, at 1920 × 1080, the toasts never cover a To do button: the To do stands under the
+//! In a station's view, at 1920 × 1080, the toasts never cover a To do button: the To do stands under the
 //! rack, clear of the toasts at the bottom right of the lists (doc 16a §6.10, doc 10 §6).
 
 use crate::support::{Tmp, dispatch, on_sample, settle};

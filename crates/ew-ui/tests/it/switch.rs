@@ -194,7 +194,7 @@ fn a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share() {
     // What the test controls: the tiles drawn before are kept, within the hidden share. (Not a comparison with the
     // count before: a tile still in flight may arrive and be kept after it was taken.)
     let hidden = h.state().canvas_cached_tiles();
-    assert!(hidden > 0, "the hidden pane keeps tiles (FT-356)");
+    assert!(hidden > 0, "the hidden pane keeps tiles");
     assert!(h.state().canvas_hidden_bytes() <= ew_ui::canvas::HIDDEN_CACHE_BYTES);
     // Closing the project still lets go of every tile.
     assert_eq!(
@@ -241,7 +241,7 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
 }
 
 /// `view.cpu_canvas` saves `canvas_backend = "cpu"` at once: the next start draws on the CPU with that setting, though
-/// it finds WARP (which a test of `b5_an_injected_device_loss…` killed between its two toggles left behind, FT-524).
+/// it finds WARP (which a test of `b5_an_injected_device_loss…` killed between its two toggles left behind).
 /// That a test directory is never such a leftover: `ew-testdir`'s `a_leftover_directory_of_the_same_pid_is_not_adopted`.
 #[test]
 fn a_saved_cpu_canvas_draws_on_the_cpu_although_warp_is_found() {

@@ -985,7 +985,7 @@ fn a_drag_on_a_selected_wire_edits_its_route_with_the_mouse() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1629 to FT-1633: the company-standard wizard gone through by clicks and keys, its steps numbered 1 to 10. Every
+/// The company-standard wizard gone through by clicks and keys, its steps numbered 1 to 10. Every
 /// step shows its Result, a colour profile changes its rows and turns the example to the cover page, the steps passed
 /// are done, and Create writes the basic project.
 #[test]
@@ -1081,7 +1081,7 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
     d.shell_mut().shutdown();
 }
 
-/// FT-1634: "a project has a button to add a page but no way to add a
+/// "a project has a button to add a page but no way to add a
 /// section". The Pages panel's New section button opens the form with a number and a hundred of folios proposed;
 /// Create makes the section, which the tree then lists; a right click on a row of the tree offers New page… and
 /// New section…, and the entry opens the form again with the next proposal.
@@ -1193,9 +1193,9 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     d.shell_mut().shutdown();
 }
 
-/// FT-1652, FT-1640: "important parts such as the terminal strip have no
+/// "important parts such as the terminal strip have no
 /// button of their own", the Wire marker was in the menu only, and the symbol editor hid behind a small button
-/// named "Symbols". On the Draw tab, at 1920 × 1080: Terminal opens its own form (FT-1695: strip, kind, how many, from
+/// named "Symbols". On the Draw tab, at 1920 × 1080: Terminal opens its own form (strip, kind, how many, from
 /// which number), Marker arms the Wire marker, and Symbol editor opens the editor.
 #[test]
 fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {

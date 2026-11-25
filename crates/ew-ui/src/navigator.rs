@@ -249,7 +249,7 @@ impl NavigatorPane {
                             ),
                             events,
                         );
-                        // New section beside it (FT-1634): the same action as Page, New section.
+                        // New section beside it: the same action as Page, New section.
                         crate::components::action_button(
                             ui,
                             shell,
@@ -578,7 +578,7 @@ impl NavigatorPane {
             area = area.animated(false);
         }
         let kind = self.kind;
-        // FT-490: the row whose label F2 is renaming.
+        // The row whose label F2 is renaming.
         let renaming = shell.nav_rename().filter(|r| r.kind == kind).cloned();
         let mut painted = 0;
         let mut view = 0..0;
@@ -943,7 +943,7 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
     (icon, strings::text(line), strings::text(key!("empty-nav-text")))
 }
 
-/// The inline editor of a row whose label is being renamed (FT-490): a one-line text field at the
+/// The inline editor of a row whose label is being renamed: a one-line text field at the
 /// row's indent, opened on the current label with the focus; Enter commits (`navigator.rename {text}`), Escape or a
 /// click elsewhere cancels (`navigator.rename {cancel}`). While a refusal shows under the field (`refused`), a
 /// click elsewhere (the proposal's button) leaves the field open; Escape still cancels.
@@ -1047,8 +1047,8 @@ struct Tree<'a> {
     shell: &'a ShellModel,
 }
 
-/// The right-click menu of `row` of navigator `kind` (empty: none): the Pages tree's (`pages_tree_menu`, FT-1634 and
-/// FT-1693), else the row's own (`navigator_row_menu`).
+/// The right-click menu of `row` of navigator `kind` (empty: none): the Pages tree's (`pages_tree_menu`),
+/// else the row's own (`navigator_row_menu`).
 fn row_menu(
     shell: &ShellModel,
     kind: NavKind,
@@ -1066,7 +1066,7 @@ fn row_menu(
         .unwrap_or_default()
 }
 
-/// What a plain click on row `key` of navigator `kind` selects, which a right-click does first too (FT-1693): the focus
+/// What a plain click on row `key` of navigator `kind` selects, which a right-click does first too: the focus
 /// to the navigator and the row selected; a page row (`page`) its page opened, with nothing selected on it.
 pub(crate) fn select_row(kind: NavKind, key: &str, page: bool, events: &mut Vec<Event>) {
     let word = kind.word();
@@ -1233,7 +1233,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                         }
                     } else if let Some(status) = crate::messages::finding_badge(code) {
                         let badge = crate::components::status_badge(ui, status);
-                        // The Fix badge opens the finding's quick fix, as the detail's Fix… does (FT-1658: a click
+                        // The Fix badge opens the finding's quick fix, as the detail's Fix… does (a click
                         // on it did nothing, and the error stayed).
                         if status == crate::components::Badge::Fix {
                             let button = ui.interact(badge.rect, badge.id.with("fix"), Sense::click());

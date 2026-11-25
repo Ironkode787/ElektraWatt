@@ -86,7 +86,7 @@ pub(crate) fn bar_height(t: &Tokens, collapsed: bool) -> f32 {
 }
 
 /// The command search's width in a tab row `row` wide: [`SEARCH_SHARE`] of the row, never under `size.search.width`
-/// (FT-798, FT-1730; doc 16a §2: no cap beside the tab row's empty middle at 2560): 384 at 1920, 512 at 2560.
+/// (doc 16a §2: no cap beside the tab row's empty middle at 2560): 384 at 1920, 512 at 2560.
 pub(crate) fn search_width(t: &Tokens, row: f32) -> f32 {
     crate::dialog::grown(t.size_search_width, SEARCH_SHARE, row)
 }
@@ -202,7 +202,7 @@ fn next_size(ui: &Ui, t: &Tokens, b: &CommandButton, labelled: bool) -> Vec2 {
 
 /// Lays out the command row of `model` in `row` (doc 16a §5.2): `space.3` gutters, the groups left to right with a
 /// 1-px divider between them, the next step at the right end; where the groups do not fit beside the next step's
-/// label, it shows its icon alone first (FT-1730: so that no group folds at 1920 in a language of long words), and
+/// label, it shows its icon alone first (so that no group folds at 1920 in a language of long words), and
 /// groups that still do not fit collapse from the right, a group that collapses last after the others.
 fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLayout {
     let cy = row.center().y;
@@ -932,7 +932,7 @@ impl CommandBarHost {
                 }
             },
         );
-        // The command search at the right end: a field that opens the palette anchored under it. FT-798: it grows
+        // The command search at the right end: a field that opens the palette anchored under it. it grows
         // with the window, a share of the tab row, never under `size.search.width`.
         let search_width = search_width(t, row.width());
         let search = Rect::from_min_size(
@@ -1253,7 +1253,7 @@ mod tests {
         assert_eq!(bar_height(&c, true), 33.0);
     }
 
-    /// FT-798, FT-1730: the search keeps `size.search.width` in a small window and grows with the row, at 2560 too.
+    /// The search keeps `size.search.width` in a small window and grows with the row, at 2560 too.
     #[test]
     fn the_search_grows_with_the_row_from_its_token() {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);

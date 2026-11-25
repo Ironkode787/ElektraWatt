@@ -211,7 +211,7 @@ fn open_asks_the_file_dialog_and_opens_the_answer() {
     assert_eq!(platform.asked.borrow().len(), 2);
 }
 
-/// FT-1708: File ▸ Import…, beside Open, takes a QElectroTech project, whose import starts (the new project's folder
+/// File ▸ Import…, beside Open, takes a QElectroTech project, whose import starts (the new project's folder
 /// is asked next and the import card shows), and a project archive, whose Open .ewz dialog it opens; the File menu has
 /// no Open .ewz… entry of its own.
 #[test]
@@ -268,7 +268,7 @@ fn file_import_beside_open_takes_a_qet_or_an_ewz() {
     );
 }
 
-/// FT-1709: Help ▸ Tutorials lists the window's tutorials; the command line's walk-through is a how-to, not among them.
+/// Help ▸ Tutorials lists the window's tutorials; the command line's walk-through is a how-to, not among them.
 #[test]
 fn help_tutorials_holds_no_command_line_run() {
     let tmp = Tmp::new();
@@ -276,7 +276,7 @@ fn help_tutorials_holds_no_command_line_run() {
     settle(&mut h);
     support::open_menu(&mut h, &["Help", "Tutorials"]);
     support::menu_node(&h, "Importing a QElectroTech project");
-    // FT-1715: every tutorial of the guide, the symbol editor's too.
+    // Every tutorial of the guide, the symbol editor's too.
     support::menu_node(&h, "Draw a six-pin power block");
     assert!(
         h.query_all_by_label_contains("headless").next().is_none()
@@ -508,7 +508,7 @@ fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {
     );
 }
 
-/// FT-1736: File ▸ Import… on a drawing opens a small dialog with four buttons; the dialog is as wide as they need, so
+/// File ▸ Import… on a drawing opens a small dialog with four buttons; the dialog is as wide as they need, so
 /// no button runs out past the left edge its title stands at.
 #[test]
 fn a_small_dialog_is_as_wide_as_its_buttons() {
@@ -524,7 +524,7 @@ fn a_small_dialog_is_as_wide_as_its_buttons() {
     settle(&mut h);
     wait_for_page(&mut h);
     support::dispatch(&mut h, "file.import", json!({"file": dxf.to_string_lossy()}));
-    // The drawing is read as a job (FT-1753): its end opens the dialog in a later frame.
+    // The drawing is read as a job: its end opens the dialog in a later frame.
     support::finish_jobs(&mut h);
     settle(&mut h);
     let title = h.get_by_label("Import plan.dxf").rect().left();

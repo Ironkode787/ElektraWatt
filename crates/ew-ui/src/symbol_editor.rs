@@ -89,7 +89,7 @@ pub(crate) struct EditorView {
     start_page: StartPage,
     source_filter: String,
     /// The drawing's top right corner in the last frame: the toasts stand under it, on the drawing, never over
-    /// Properties (FT-1714).
+    /// Properties.
     pub(crate) toast_corner: Option<Pos2>,
     /// The outline as made for the draft's generation and revision, the language and the discipline: a frame or a
     /// pointer move draws it, a change of the draft makes it again.
@@ -100,7 +100,7 @@ pub(crate) struct EditorView {
     /// The start card's list on show under its filter ([`start_rows`]).
     start_rows: Option<(StartKey, std::rc::Rc<StartRows>)>,
     /// The symbol the Copy page's preview shows (the row the pointer is on, else the first) and its shape, read once
-    /// per symbol (FT-1810).
+    /// per symbol.
     copy_preview: Option<(
         String,
         Option<std::rc::Rc<ew_viewmodel::ew_api::output::SymbolShape>>,
@@ -272,7 +272,7 @@ impl EditorView {
             .and_then(|(_, action)| ew_viewmodel::actions::find(action))
             .map(|m| shell.shortcut_text(m))
             .unwrap_or_default();
-        // FT-1703: what the tool does and how, under its name.
+        // What the tool does and how, under its name.
         let how = label(strings::Key::run_time(&format!("symbol-tip-{word}")));
         let clicked = bar_command(
             ui,
@@ -425,7 +425,7 @@ impl EditorView {
                             None,
                         );
                         egui::Popup::menu(&menu).show(|ui| {
-                            // FT-1766: the way from a symbol to a device: a part whose main function the saved
+                            // The way from a symbol to a device: a part whose main function the saved
                             // symbol draws.
                             if ui
                                 .add_enabled(
@@ -1130,7 +1130,7 @@ impl EditorView {
         {
             ask(events, "symbol.open", json!({}));
         }
-        // The draft in hand after the ways in, which keep their places (FT-1810: on top it moved every entry down
+        // The draft in hand after the ways in, which keep their places (on top it moved every entry down
         // after a save); the editor keeps it until it is saved or discarded.
         if editor.in_hand() {
             let name = strings::format(
@@ -1380,7 +1380,7 @@ fn way(ui: &mut Ui, icon: IconId, title: &str, sentence: &str) -> egui::Response
     response
 }
 
-/// The drawing grid's step and Snap to grid (FT-1690); the tooltip names the connection grid that connection points
+/// The drawing grid's step and Snap to grid; the tooltip names the connection grid that connection points
 /// keep to.
 fn grid_controls(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     use ew_viewmodel::shell::symbol_editor::GRID_STEPS;

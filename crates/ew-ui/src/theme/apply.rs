@@ -11,7 +11,7 @@ use egui::{FontFamily, FontId, Margin, Style, TextStyle, Vec2, Visuals};
 use super::{Density, Tokens, TypeToken, install, radius, shadow, stroke, themes_of_setting, tokens};
 use crate::fonts::SEMIBOLD_FAMILY;
 
-/// The font of a type token: Noto Sans Regular, or the SemiBold family (D8).
+/// The font of a type token: Noto Sans Regular, or the SemiBold family.
 pub fn font(t: &TypeToken) -> FontId {
     if t.semibold {
         FontId::new(t.size, FontFamily::Name(SEMIBOLD_FAMILY.into()))
@@ -168,7 +168,7 @@ pub fn apply(tokens: &Tokens, ctx: &egui::Context) {
 }
 
 /// Installs the `theme` and `density` settings (`settings.toml`): both egui slots, then the preference, so that
-/// `system` follows the operating system (D5). The settings `min_font_pt` and
+/// `system` follows the operating system. The settings `min_font_pt` and
 /// `reduce_motion` (as `ShellModel::reduce_motion` resolves it) come as two more arguments; `min_font_pt` raises every
 /// text token below it to it, and reduced motion sets the motion tokens, egui's animation time with them,
 /// to zero and scrolls to a target without animation.

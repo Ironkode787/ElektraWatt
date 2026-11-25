@@ -252,7 +252,7 @@ impl Dock {
             .collect();
         let (mut clamps, guessed) =
             self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor, &reports);
-        // FT-798: the left column grows with the window while it has its default share; display only, like the
+        // The left column grows with the window while it has its default share; display only, like the
         // bottom clamp.
         let window = ui.ctx().content_rect().width();
         let lack = ui.ctx().data_mut(|d| {
@@ -369,7 +369,7 @@ impl Dock {
         chrome
     }
 
-    /// Keeps the bottom dock (D14) at least `min` points tall on show: in the vertical split that holds the page
+    /// Keeps the bottom dock at least `min` points tall on show: in the vertical split that holds the page
     /// view, the child that holds a bottom pane is shown with at least `min` of the split's height (the split's last
     /// shown height, `fallback` before the first frame), and never more than two thirds of it nor so much that the page
     /// view's child falls under `floor` (half the window), so the page view keeps its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
@@ -486,7 +486,6 @@ impl Dock {
         (clamps, guessed)
     }
 
-    // FT-798
     /// Shows the left column (the child of a horizontal root split that holds the navigator group but not the page
     /// view) at least `want` points of the root's width (its last shown width, `fallback` before the first frame)
     /// while its share is the Schematic workspace's default ([`default_left_share`]): the default grows with the
@@ -590,8 +589,8 @@ const LEFT_AT_MAIN: f32 = 480.0;
 /// gives up while it has its default share: `size.panel.left_max` (640) from about 2380.
 const LEFT_GROW: f32 = 0.35;
 
-/// The left column's least width on show in a window `window` wide while it has its default share (FT-798, FT-1730;
-/// doc 16a §2: at 2560 a list in it has room, never a capped width beside the page): [`LEFT_AT_MAIN`] at 1920, plus or
+/// The left column's least width on show in a window `window` wide while it has its default share
+/// (doc 16a §2: at 2560 a list in it has room, never a capped width beside the page): [`LEFT_AT_MAIN`] at 1920, plus or
 /// minus [`LEFT_GROW`] of every point the window is wider or narrower, up to `size.panel.left_max`; in a window of
 /// 1280 or less it is under the layout's default share (280 of the 1200 points between the rails), which then
 /// stands.
@@ -1493,7 +1492,7 @@ mod tests {
         dock.tree.tiles.rect(id).unwrap().width()
     }
 
-    /// FT-798: the Schematic workspace's left column is shown wider than its share at 1920 and wider still at 2560,
+    /// The Schematic workspace's left column is shown wider than its share at 1920 and wider still at 2560,
     /// display only (the layout stays the user's); a share the user dragged is shown as it is, at 1920 too.
     #[test]
     fn the_default_left_column_grows_with_the_window_and_a_dragged_one_keeps_its_share() {
@@ -1537,7 +1536,7 @@ mod tests {
         assert!((shown - 0.2 * 1920.0).abs() < 8.0, "the dragged share: {shown}");
     }
 
-    /// FT-1730: the left column's least width is 480 at 1920, grows with the window to `size.panel.left_max` at
+    /// The left column's least width is 480 at 1920, grows with the window to `size.panel.left_max` at
     /// 2560 and falls under `size.panel.left` at 1280, where the layout's share stands.
     #[test]
     fn the_left_default_width_runs_up_to_its_token() {

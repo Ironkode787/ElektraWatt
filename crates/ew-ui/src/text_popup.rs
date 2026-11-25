@@ -31,7 +31,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
         return;
     };
     let id = Id::unique("text-popup");
-    // FT-1635: a click beside it or its close button closes it, as Escape does.
+    // A click beside it or its close button closes it, as Escape does.
     crate::components::overlay_backdrop(ctx, id, false, events);
     let title = strings::text(popup.title_key);
     let mut next = false;

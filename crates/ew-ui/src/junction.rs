@@ -55,7 +55,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         ));
     }
     let id = Id::unique("junction-editor");
-    // FT-1635: a click beside it or its close button closes it, as Escape does.
+    // A click beside it or its close button closes it, as Escape does.
     crate::components::overlay_backdrop(ctx, id, false, events);
     let title = strings::format(key!("junction-title"), &[&editor.cell]);
     Window::new(&title)
