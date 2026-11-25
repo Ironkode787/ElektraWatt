@@ -491,7 +491,8 @@ fn svg_assets() {
         ],
         |_, bytes| match ew_api::asset_ref_of(bytes) {
             Ok(r) => format!("accepted as {:?}", r.format),
-            Err(e) => e.to_string(),
+            // The refusal as a person reads it (the commands' keys), in English.
+            Err(e) => ew_api::asset_error_text(&e).to_string(),
         },
     );
 }
