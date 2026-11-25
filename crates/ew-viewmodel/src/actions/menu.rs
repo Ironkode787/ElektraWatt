@@ -623,11 +623,21 @@ fn module_part_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
 /// The pages a `page` parameter of `meta` offers (a form's choices): each its folio, or `new`, and its words ("To page
 /// 102 Control 24 V DC", "To a new page"), as [`module_page_items`] lists them.
 pub(crate) fn page_choices(meta: &ActionMeta, model: &ShellModel) -> Vec<(String, String)> {
+    let name = page_param(meta);
     module_page_items(meta, model)
         .into_iter()
         .filter(|i| i.enabled)
-        .filter_map(|i| Some((i.params.get("folio")?.as_str()?.to_owned(), i.label)))
+        .filter_map(|i| Some((i.params.get(&name)?.as_str()?.to_owned(), i.label)))
         .collect()
+}
+
+/// The name of the `page` parameter of `meta`'s signature (Move to page…'s `page`, a card's `folio`).
+fn page_param(meta: &ActionMeta) -> String {
+    super::parse_signature(meta.params)
+        .unwrap_or_default()
+        .into_iter()
+        .find(|p| p.ty == "page")
+        .map_or_else(|| "folio".to_owned(), |p| p.name)
 }
 
 /// The pages a module is drawn on or can be moved to (Draw on a page…, Move to page…): the schematic pages by folio
@@ -639,6 +649,7 @@ fn module_page_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
     } else {
         (key!("rack-next-draw-on"), key!("rack-draw-on-new-page"))
     };
+    let name = page_param(meta);
     let on: Vec<String> = match (meta.id, model.station_device(), model.project_session()) {
         // The selection's own page.
         ("edit.move_to_page", ..) => model
@@ -670,9 +681,9 @@ fn module_page_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
             .filter(|(folio, _)| !on.contains(folio))
             .map(|(folio, title)| {
                 let label = strings::format(to, &[&folio, &title]);
-                (label.trim().to_owned(), json!({ "folio": folio }))
+                (label.trim().to_owned(), json!({ name.as_str(): folio }))
             })
-            .chain([(strings::text(to_new).to_owned(), json!({ "folio": "new" }))])
+            .chain([(strings::text(to_new).to_owned(), json!({ name.as_str(): "new" }))])
             .collect(),
         key!("reason-rack-draw-page"),
     )

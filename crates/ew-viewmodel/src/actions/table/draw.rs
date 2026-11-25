@@ -409,7 +409,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // interruption points (doc 06 §3.4). On the Page tab beside Copy pages… (the Draw tab has no room at 1920), and in
     // the right-click menu of selected symbols; started without its page it asks for it.
     with_params(
-        "folio:page",
+        "page:page",
         in_canvas(placed(
             place(Group::Order, 5, CommandSize::Small, None),
             "file-arrow-right",

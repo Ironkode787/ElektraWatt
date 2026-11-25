@@ -132,7 +132,7 @@ form-auto-fill-tick = On the rail
 # Cycle 49, the Dutch UI's fix round. Ruling 1: the labels of the palette's parameter forms, `param-<name>`
 # (`_` as `-`), the label derived from the name before.
 param-by = By
-param-folio = Folio
+param-page = Page
 param-discard = Discard
 param-index = Index
 param-kind = Kind

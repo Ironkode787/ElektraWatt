@@ -188,7 +188,7 @@ fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() 
     assert_eq!(form.action, "edit.move_to_page");
     let page = &form.fields[0];
     let words: Vec<String> = page.choices().iter().map(|c| page.choice_words(c)).collect();
-    assert_eq!(page.label(), "Folio");
+    assert_eq!(page.label(), "Page");
     assert!(words.iter().any(|e| e.starts_with("To page 103")), "{words:?}");
     assert!(!words.iter().any(|e| e.starts_with("To page 102")), "{words:?}");
     assert_eq!(words.last().map(String::as_str), Some("To a new page"));
@@ -297,7 +297,7 @@ fn move_to_page_asks_for_the_symbols_to_move() {
     done(&mut s, "select.set", json!({"ids": [wire]}));
     assert_eq!(gate(&s), Some("reason-move-select-symbols"), "a wire alone");
     assert_eq!(
-        refused(&mut s, "edit.move_to_page", json!({"folio": "103"})),
+        refused(&mut s, "edit.move_to_page", json!({"page": "103"})),
         "reason-move-select-symbols"
     );
     s.shutdown();
@@ -341,7 +341,7 @@ fn a_text_selected_with_a_symbol_stays_and_the_preview_says_so() {
     let mut moved = None;
     for rep in reps {
         done(&mut s, "select.set", json!({"ids": [rep, text]}));
-        let out = s.dispatch("edit.move_to_page", &json!({"folio": "103"}));
+        let out = s.dispatch("edit.move_to_page", &json!({"page": "103"}));
         if out == Outcome::Done && s.properties().card().is_some() {
             moved = Some(rep);
             break;
