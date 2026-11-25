@@ -24,7 +24,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed};
 use crate::key;
-use crate::notifications::{Note, NoteAction, Offer};
+use crate::notifications::{Note, NoteAction, NoteTone, Offer};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{BlackBoxTool, BoxTarget, Ghost, Picker, PickerRow, PlaceTool, ResultNote, Tool, ToolCx};
@@ -571,8 +571,8 @@ impl ShellModel {
         }
         // Each sentence ends with its own full stop. Remove them from the project, beside the delete's Undo,
         // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
-        // nothing); terminals that stay in the project are a consequence the person may not want, so the
-        // toast stays.
+        // nothing); terminals that stay in the project are a consequence the person may not want: a warning, which
+        // stays.
         let undo = self.undo_offer(NoteAction::Undo);
         if undrawn.is_empty() {
             self.notes.push(Note::of("edit", sentences).offering([undo]));
@@ -582,10 +582,11 @@ impl ShellModel {
                 params: Some(json!(terminals)),
                 ..o
             });
-            self.notes.push(Note {
-                stays: true,
-                ..Note::of("edit", sentences).offering([undo, remove])
-            });
+            self.notes.push(
+                Note::of("edit", sentences)
+                    .offering([undo, remove])
+                    .toned(NoteTone::Warning),
+            );
         }
     }
 
@@ -603,11 +604,13 @@ impl ShellModel {
         let sentences = std::iter::once(strings::format_count(what, symbols))
             .chain((gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)))
             .collect();
-        // Wires a cut removed are a consequence the person may not want: the toast stays.
+        // Wires a cut removed are a consequence the person may not want: a warning, which stays.
         let undo = self.undo_offer(NoteAction::Undo);
-        self.notes.push(Note {
-            stays: gone > 0,
-            ..Note::of("edit", sentences).offering([undo])
+        let note = Note::of("edit", sentences).offering([undo]);
+        self.notes.push(if gone > 0 {
+            note.toned(NoteTone::Warning)
+        } else {
+            note
         });
     }
 

@@ -11,7 +11,7 @@ use crate::common;
 use common::{Tmp, done, tables};
 use ew_api::output::{NavRole, TableCp, TableRep};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::notifications::NoteAction;
+use ew_viewmodel::notifications::{NoteAction, NoteTone};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
@@ -96,6 +96,11 @@ fn a_deleted_terminal_takes_its_wire_and_the_toast_offers_to_remove_it() {
         toast.stays(),
         "a consequence the person may not want stays on screen"
     );
+    assert_eq!(
+        toast.tone(),
+        NoteTone::Warning,
+        "it stays as a warning, by its icon too"
+    );
     assert_eq!(rows(&mut s, NavKind::Strips, NavRole::Terminal), 2);
     done(
         &mut s,
@@ -176,6 +181,7 @@ fn a_cut_says_what_it_took_and_its_paste_keeps_the_wires_between_the_cut_termina
     assert_eq!(rows(&mut s, NavKind::Connections, NavRole::Connection), 0);
     // The wires it removed are a consequence the person may not want: the toast stays until the next commit.
     assert!(toast.stays());
+    assert_eq!(toast.tone(), NoteTone::Warning, "a warning, which stays");
     done(&mut s, "select.set", json!({ "ids": [reps[2].id.to_string()] }));
     done(&mut s, "tool.rotate_cw", json!({}));
     assert!(

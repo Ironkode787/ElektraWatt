@@ -206,8 +206,6 @@ pub(crate) struct Note {
     pub(crate) keep: Option<String>,
     /// What its toast shows where that is shorter than its text ([`Notification::shown`]).
     pub(crate) brief: Option<String>,
-    /// Whether it stays on screen until it is dismissed, replaced or the next command commits ([`Notification::stays`]).
-    pub(crate) stays: bool,
 }
 
 impl Note {
@@ -225,7 +223,6 @@ impl Note {
             tone: None,
             keep: None,
             brief: None,
-            stays: false,
         }
     }
 
@@ -264,15 +261,14 @@ pub struct Notification {
     /// What its toast shows where that is shorter than its text: the first of several reasons and how many more. The
     /// toast's tooltip and the log show the whole text.
     pub(crate) brief: Option<String>,
-    /// Whether it reports a consequence the person may not want (terminals that stay in the project, wires a cut
-    /// removed): it stays on screen until it is dismissed, replaced or the next command commits, no timeout.
-    pub(crate) stays: bool,
 }
 
 impl Notification {
-    /// Whether it stays on screen without a timeout, until dismissed, replaced or the next commit.
+    /// Whether it stays on screen without a timeout, until dismissed, replaced or the next commit: a toast in the
+    /// warning tone, which reports what the person may not want (terminals that stay in the project, wires a cut
+    /// removed, a check's warnings).
     pub fn stays(&self) -> bool {
-        self.stays
+        self.tone == Some(NoteTone::Warning)
     }
 
     /// The label of its action `action`: Keep names the one tag it keeps, any other its fixed words.
@@ -382,7 +378,6 @@ impl NotificationLog {
             tone: note.tone,
             keep: note.keep,
             brief: note.brief,
-            stays: note.stays,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {

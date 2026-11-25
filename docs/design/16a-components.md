@@ -228,9 +228,9 @@ its 8 s, all on the window's frame clock; then it leaves. Hovering a toast pause
 while the pointer is on it, once the pointer has moved onto it: a toast that appears under a pointer at rest
 fades on time, and a toast already paused stays paused while the pointer is still.
 
-**A toast that reports a consequence the person may not want stays:** Delete's toast of terminals
+**A toast that reports a consequence the person may not want is a warning, and a warning stays:** Delete's toast of terminals
 that stay in the project and its lists (with Remove them from the project) and the Cut's toast of the wires it removed
-fade in and have no timeout; they stay until they are closed, replaced by a toast of their key or the next command
+carry the warning icon, as a check's toast with warnings does; each fades in and has no timeout; they stay until they are closed, replaced by a toast of their key or the next command
 commits.
 
 **Tips** are toasts with the info icon, whatever
