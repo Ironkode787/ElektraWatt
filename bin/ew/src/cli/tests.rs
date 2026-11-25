@@ -109,6 +109,17 @@ fn usage_error(message: &str, usage: &str) -> Result<Top, String> {
     )))
 }
 
+/// clap's whole rendering of a value that is none of the flag's `possible` values, with clap's tip of a `similar` one.
+fn not_one_of(value: &str, flag: &str, possible: &str, similar: Option<&str>) -> Result<Top, String> {
+    let tip = similar.map_or_else(String::new, |s| {
+        format!("\n  tip: a similar value exists: '{s}'\n")
+    });
+    Err(error_line(format_args!(
+        "invalid value '{value}' for '{flag}'\n  [possible values: {possible}]\n{tip}\nFor more information, try \
+         '--help'.\n"
+    )))
+}
+
 /// clap's whole rendering of a value that the flag's value parser refuses with `message`.
 fn invalid(value: &str, flag: &str, message: &str) -> Result<Top, String> {
     Err(error_line(format_args!(
@@ -677,15 +688,16 @@ fn lib_commands() {
             ),
             (
                 &["lib", "search", "a", "--kind", "device"],
-                invalid(
+                not_one_of(
                     "device",
                     "--kind <kind>",
-                    "unknown kind `device` (part, symbol, fndef, form, macro, manufacturer)",
+                    "part, symbol, fndef, form, macro, manufacturer, plc_profile",
+                    None,
                 ),
             ),
             (
                 &["lib", "search", "a", "--limit", "x"],
-                invalid("x", "--limit <n>", "`--limit` needs a number, not `x`"),
+                invalid("x", "--limit <n>", "invalid digit found in string"),
             ),
             (
                 &["lib", "index"],
@@ -917,7 +929,7 @@ fn sql_errors() {
     );
     assert_eq!(
         p(&["sql", "SELECT 1", "--format", "x"]),
-        invalid("x", "--format <format>", "unknown format `x` (csv, json, xlsx)")
+        not_one_of("x", "--format <format>", "csv, json, xlsx", Some("xlsx"))
     );
     assert!(p(&["sql", "SELECT 1", "--timeout", "0"]).is_err());
     assert!(p(&["sql", "SELECT 1", "--timeout", "abc"]).is_err());
@@ -1215,27 +1227,24 @@ fn export_errors() {
         );
         assert_eq!(
             p(&["export", what, "--preset", "excel"]),
-            invalid(
+            not_one_of(
                 "excel",
                 "--preset <preset>",
-                "unknown preset `excel` (ew, excel-nl, excel-en, rfc4180)"
+                "ew, excel-nl, excel-en, rfc4180",
+                Some("excel-en")
             )
         );
         assert_eq!(
             p(&["export", what, "--bom", "yes"]),
-            invalid(
-                "yes",
-                "--bom <on|off>",
-                "unknown byte-order mark setting `yes` (on, off)"
-            )
+            not_one_of("yes", "--bom <on|off>", "on, off", None)
         );
         assert_eq!(
             p(&["export", what, "--line-end", "cr"]),
-            invalid("cr", "--line-end <crlf|lf>", "unknown line end `cr` (crlf, lf)")
+            not_one_of("cr", "--line-end <crlf|lf>", "crlf, lf", Some("crlf"))
         );
         assert_eq!(
             p(&["export", what, "--format", "tsv"]),
-            invalid("tsv", "--format <format>", "unknown format `tsv` (csv, xlsx)")
+            not_one_of("tsv", "--format <format>", "csv, xlsx", Some("csv"))
         );
     }
     let report = "ew export report [OPTIONS] <--block <block>|--kind <kind>> [project-dir]";
@@ -1254,11 +1263,7 @@ fn export_errors() {
     );
     assert_eq!(
         p(&["export", "report", "--block", "908", "--format", "svg"]),
-        invalid(
-            "svg",
-            "--format <format>",
-            "unknown format `svg` (csv, xlsx, pdf)"
-        )
+        not_one_of("svg", "--format <format>", "csv, xlsx, pdf", None)
     );
     // The row exports write rows, and the refusal points to the report PDF.
     for what in ["bom", "cables", "wires", "terminals"] {

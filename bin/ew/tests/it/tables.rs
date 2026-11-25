@@ -364,8 +364,8 @@ fn the_bom_presets_are_the_committed_files() {
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
-        "error: invalid value 'excel' for '--preset <preset>': unknown preset `excel` (ew, excel-nl, excel-en, \
-         rfc4180)\n\nFor more information, try '--help'.\n"
+        "error: invalid value 'excel' for '--preset <preset>'\n  [possible values: ew, excel-nl, excel-en, rfc4180]\n\n  \
+         tip: a similar value exists: 'excel-en'\n\nFor more information, try '--help'.\n"
     );
 }
 

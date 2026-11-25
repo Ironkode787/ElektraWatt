@@ -630,7 +630,7 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     let bad = check(Some("xx-YY"));
     assert_eq!(bad.status.code(), Some(2));
     assert!(
-        stderr(&bad).contains("unknown message language"),
+        stderr(&bad).contains("[possible values: en-GB, nl-NL]"),
         "{}",
         stderr(&bad)
     );

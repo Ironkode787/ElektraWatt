@@ -48,7 +48,7 @@ pub struct ImportDxfArgs {
     )]
     pub project: Option<PathBuf>,
     /// The drawing's unit when its header names none: mm, cm, m, in, ft, um, dm or yd.
-    #[arg(long, value_name = "unit", value_parser = unit, overrides_with = "units")]
+    #[arg(long, value_name = "unit", value_parser = unit(), overrides_with = "units")]
     pub units: Option<Unit>,
     /// The paper-space layout to read (default: the model space).
     #[arg(
@@ -129,11 +129,14 @@ pub struct ImportPdfArgs {
     pub project: Option<PathBuf>,
 }
 
-fn unit(s: &str) -> Result<Unit, String> {
-    Unit::parse(s).ok_or_else(|| {
-        let names: Vec<&str> = Unit::ALL.iter().map(|u| u.name()).collect();
-        format!("`{s}` is no unit; give one of {}", names.join(", "))
-    })
+/// A `--units` name, in clap's words for another value.
+fn unit() -> impl clap::builder::TypedValueParser<Value = Unit> {
+    super::tree::one_of(
+        Unit::ALL
+            .iter()
+            .map(|u| (clap::builder::PossibleValue::new(u.name()), *u))
+            .collect(),
+    )
 }
 
 impl ImportDxfArgs {

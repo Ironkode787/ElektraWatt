@@ -18,6 +18,7 @@
 
 use std::path::PathBuf;
 
+use clap::builder::{PossibleValue, PossibleValuesParser, TypedValueParser};
 use clap::error::ErrorKind;
 use clap::{ArgGroup, Args, CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use ew_api::BomMode;
@@ -633,7 +634,7 @@ pub struct ImportTableArgs {
     )]
     pub table: Option<String>,
     /// The CSV's preset: excel-nl, excel-en or rfc4180 (default: from its separator).
-    #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = import_preset)]
+    #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = import_preset())]
     pub preset: Option<Preset>,
     /// Take the file's value of a cell changed in both.
     #[arg(long, overrides_with = "take_file")]
@@ -653,7 +654,7 @@ pub(crate) struct CheckCli {
     #[command(flatten)]
     pub project: ProjectArg,
     /// The check scheme (default: the project's scheme for the mode, else `pre-delivery`).
-    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "scheme", value_parser = scheme_name)]
+    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "scheme", value_parser = scheme_name())]
     pub(super) scheme: Option<String>,
     /// The check mode.
     #[arg(
@@ -676,7 +677,7 @@ pub(crate) struct CheckCli {
     #[arg(long, overrides_with = "json")]
     pub(super) json: bool,
     /// The language of the messages (a shipped language).
-    #[arg(long, value_name = "tag", allow_hyphen_values = true, overrides_with = "lang", value_parser = language, default_value = ew_api::checks::messages::DEFAULT_LANGUAGE)]
+    #[arg(long, value_name = "tag", allow_hyphen_values = true, overrides_with = "lang", value_parser = language(), ignore_case = true, default_value = ew_api::checks::messages::DEFAULT_LANGUAGE)]
     pub(super) lang: String,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
@@ -754,7 +755,7 @@ pub(crate) struct SqlCli {
     )]
     pub(super) file: Option<PathBuf>,
     /// The result format: csv (default), json, or xlsx (with `--out`).
-    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = sql_format)]
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = sql_format())]
     pub(super) format: Option<SqlFormat>,
     /// The CSV options.
     #[command(flatten)]
@@ -763,7 +764,7 @@ pub(crate) struct SqlCli {
     #[arg(long, overrides_with = "json")]
     pub(super) json: bool,
     /// The deadline in seconds.
-    #[arg(long, value_name = "seconds", allow_hyphen_values = true, overrides_with = "timeout", value_parser = timeout)]
+    #[arg(long, value_name = "seconds", allow_hyphen_values = true, overrides_with = "timeout", value_parser = timeout())]
     pub(super) timeout: Option<u64>,
     /// The output file (default: stdout).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
@@ -999,7 +1000,7 @@ pub(crate) struct PlcExportCli {
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
     pub(super) config: Option<String>,
     /// The AR APC version of `plc-aml`: 1.4.0 (default) or 1.2.0.
-    #[arg(long, value_name = "version", overrides_with = "apc", value_parser = apc_version)]
+    #[arg(long, value_name = "version", overrides_with = "apc", value_parser = apc_version())]
     pub(super) apc: Option<ew_api::plc_exchange::ApcVersion>,
     /// A station to export, by its tag (repeatable; default: every station of the configuration project).
     #[arg(long, value_name = "tag", allow_hyphen_values = true, value_parser = word)]
@@ -1098,9 +1099,13 @@ pub struct PlcStatusArgs {
 }
 
 /// An `export plc-aml --apc`.
-fn apc_version(v: &str) -> Result<ew_api::plc_exchange::ApcVersion, String> {
-    ew_api::plc_exchange::ApcVersion::parse(v)
-        .ok_or_else(|| format!("unknown AR APC version `{v}` (1.4.0, 1.2.0)"))
+fn apc_version() -> impl TypedValueParser<Value = ew_api::plc_exchange::ApcVersion> {
+    one_of(
+        ew_api::plc_exchange::ApcVersion::all()
+            .iter()
+            .map(|(v, text)| (PossibleValue::new(*text), *v))
+            .collect(),
+    )
 }
 
 /// The refusal of a PLC export without `--out`.
@@ -1261,7 +1266,7 @@ pub(crate) struct RowsCli {
     )]
     pub(super) block: Option<String>,
     /// The format: csv (default) or xlsx (with `--out`).
-    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format())]
     pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
@@ -1298,7 +1303,7 @@ pub(crate) struct BomCli {
     )]
     pub(super) mode: BomArg,
     /// The format: csv (default) or xlsx (with `--out`).
-    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format())]
     pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
@@ -1364,7 +1369,7 @@ pub(crate) struct TerminalsCli {
     )]
     pub(super) strip: Option<String>,
     /// The format: csv (default) or xlsx (with `--out`).
-    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format())]
     pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
@@ -1423,7 +1428,7 @@ pub(crate) struct ReportCli {
     )]
     pub(super) kind: Option<String>,
     /// The format: csv (default), xlsx (with `--out`) or pdf (a block's pages, with `--out`).
-    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = report_format)]
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = report_format())]
     pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
@@ -1495,7 +1500,7 @@ pub(crate) struct TableCli {
     )]
     pub(super) strip: Option<String>,
     /// The format: csv (default) or xlsx (with `--out`).
-    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format)]
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
     pub(super) format: Option<ReportPages>,
     /// The CSV options.
     #[command(flatten)]
@@ -1542,13 +1547,13 @@ pub(crate) enum ReportPages {
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 pub(crate) struct CsvCli {
     /// The CSV preset: ew (the default), excel-nl, excel-en or rfc4180.
-    #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = preset)]
+    #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = preset())]
     pub(super) preset: Option<Preset>,
     /// A UTF-8 byte-order mark: on or off (default: the preset's).
-    #[arg(long, value_name = "on|off", allow_hyphen_values = true, overrides_with = "bom", value_parser = bom)]
+    #[arg(long, value_name = "on|off", allow_hyphen_values = true, overrides_with = "bom", value_parser = bom())]
     pub(super) bom: Option<bool>,
     /// The line end: crlf or lf (default: the preset's).
-    #[arg(long, value_name = "crlf|lf", allow_hyphen_values = true, overrides_with = "line_end", value_parser = line_end)]
+    #[arg(long, value_name = "crlf|lf", allow_hyphen_values = true, overrides_with = "line_end", value_parser = line_end())]
     pub(super) line_end: Option<LineEnd>,
 }
 
@@ -1687,7 +1692,7 @@ pub(crate) struct PagesCli {
     #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
     pub(super) sections: Option<PageSelection>,
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
-    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads())]
     pub(super) threads: Option<usize>,
     /// Print the pages' underlays under them (a PDF page or a DXF drawing placed for redrawing; not printed by
     /// default).
@@ -1809,10 +1814,10 @@ pub(crate) struct PngCli {
     #[arg(long, value_name = "numbers", allow_hyphen_values = true, overrides_with = "sections", value_parser = sections)]
     pub(super) sections: Option<PageSelection>,
     /// The resolution (72 to 600).
-    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi(), default_value_t = ew_api::output::DEFAULT_DPI)]
     pub(super) dpi: u32,
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
-    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads())]
     pub(super) threads: Option<usize>,
     /// Print the pages' underlays under them (a PDF page or a DXF drawing placed for redrawing; not printed by
     /// default).
@@ -1866,7 +1871,7 @@ pub struct RenderArgs {
     #[arg(long, overrides_with = "png", required = true)]
     pub png: bool,
     /// The resolution (72 to 600).
-    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi(), default_value_t = ew_api::output::DEFAULT_DPI)]
     pub dpi: u32,
     /// The PNG file (default: `<folio>.png` in the current directory).
     #[arg(
@@ -2503,13 +2508,13 @@ pub(crate) struct SearchCli {
     #[arg(value_name = "text", allow_hyphen_values = true, value_parser = word)]
     pub(super) text: String,
     /// The kind of item (repeatable; default: part).
-    #[arg(long, value_name = "kind", allow_hyphen_values = true, value_parser = item_kind)]
+    #[arg(long, value_name = "kind", allow_hyphen_values = true, value_parser = item_kind())]
     pub(super) kind: Vec<String>,
     /// Include deprecated and withdrawn items.
     #[arg(long, overrides_with = "all")]
     pub(super) all: bool,
     /// The most hits (0: all).
-    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "limit", value_parser = limit, default_value_t = 50)]
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "limit", value_parser = limit(), default_value_t = 50)]
     pub(super) limit: u32,
 }
 
@@ -2671,24 +2676,33 @@ impl Args for ProjectArg {
 // ---------------------------------------------------------------------------------------------------------------
 // The value parsers: each keeps the refusal's words.
 
+/// One of `values` by its name: a value of another name is refused in clap's own words, with the names it takes
+/// (`invalid value 'x' for '--format <format>'` and `[possible values: csv, xlsx]`).
+pub(super) fn one_of<T: Clone + Send + Sync + 'static>(
+    values: Vec<(PossibleValue, T)>,
+) -> impl TypedValueParser<Value = T> {
+    let names: Vec<PossibleValue> = values.iter().map(|(name, _)| name.clone()).collect();
+    PossibleValuesParser::new(names).map(move |typed: String| {
+        values
+            .iter()
+            .find(|(name, _)| name.matches(&typed, true))
+            .map_or_else(|| values[0].1.clone(), |(_, v)| v.clone())
+    })
+}
+
 /// A `--scheme` that ships.
-fn scheme_name(v: &str) -> Result<String, String> {
-    match ew_api::checks::scheme(v) {
-        Some(_) => Ok(v.to_owned()),
-        None => Err(format!("unknown scheme `{v}`")),
-    }
+fn scheme_name() -> PossibleValuesParser {
+    PossibleValuesParser::new(ew_api::checks::SCHEMES.iter().map(|s| s.name))
 }
 
 /// A `--lang` tag of a shipped language, any case, stored canonical.
-fn language(v: &str) -> Result<String, String> {
-    let languages = ew_api::checks::messages::LANGUAGES;
-    match languages.iter().find(|l| l.eq_ignore_ascii_case(v)) {
-        Some(l) => Ok((*l).to_owned()),
-        None => Err(format!(
-            "unknown message language `{v}` ({})",
-            languages.join(", ")
-        )),
-    }
+fn language() -> impl TypedValueParser<Value = String> {
+    one_of(
+        ew_api::checks::messages::LANGUAGES
+            .iter()
+            .map(|l| (PossibleValue::new(*l), (*l).to_owned()))
+            .collect(),
+    )
 }
 
 /// An `--as-of` date `YYYY-MM-DD`.
@@ -2703,23 +2717,17 @@ pub(super) fn report(v: &str) -> Result<ReportFormat, String> {
 }
 
 /// A `--dpi` value: 72 to 600.
-fn dpi(v: &str) -> Result<u32, String> {
-    match v.parse::<u32>() {
-        Ok(n) if ew_api::output::DPI_RANGE.contains(&n) => Ok(n),
-        _ => Err(format!(
-            "`--dpi` needs a number from {} to {}, got `{v}`",
-            ew_api::output::DPI_RANGE.start(),
-            ew_api::output::DPI_RANGE.end()
-        )),
-    }
+fn dpi() -> impl TypedValueParser<Value = u32> {
+    let (lo, hi) = (
+        *ew_api::output::DPI_RANGE.start(),
+        *ew_api::output::DPI_RANGE.end(),
+    );
+    clap::value_parser!(u32).range(i64::from(lo)..=i64::from(hi))
 }
 
 /// A `--threads` value: 1 to 256.
-fn threads(v: &str) -> Result<usize, String> {
-    match v.parse::<usize>() {
-        Ok(n) if (1..=256).contains(&n) => Ok(n),
-        _ => Err(format!("`--threads` needs a number from 1 to 256, got `{v}`")),
-    }
+fn threads() -> impl TypedValueParser<Value = usize> {
+    clap::builder::RangedU64ValueParser::<usize>::new().range(1..=256)
 }
 
 /// A `--pages` selection.
@@ -2751,14 +2759,8 @@ fn selection(
 }
 
 /// A `--timeout` in seconds: 1 to the sandbox's longest deadline (one day).
-fn timeout(v: &str) -> Result<u64, String> {
-    let max = ew_api::sql::Profile::MAX_DEADLINE.as_secs();
-    match v.parse::<u64>() {
-        Ok(n) if (1..=max).contains(&n) => Ok(n),
-        _ => Err(format!(
-            "`--timeout` needs a number of seconds from 1 to {max}, got `{v}`"
-        )),
-    }
+fn timeout() -> impl TypedValueParser<Value = u64> {
+    clap::value_parser!(u64).range(1..=ew_api::sql::Profile::MAX_DEADLINE.as_secs())
 }
 
 /// A positional of `sql`: an inline query may start with an SQL comment (`-- …`), but a single word starting with
@@ -2788,67 +2790,60 @@ fn path_word(v: &str) -> Result<PathBuf, String> {
 }
 
 /// An `sql --format`.
-fn sql_format(v: &str) -> Result<SqlFormat, String> {
-    match v {
-        "csv" => Ok(SqlFormat::Csv),
-        "json" => Ok(SqlFormat::Json),
-        "xlsx" => Ok(SqlFormat::Xlsx),
-        other => Err(format!("unknown format `{other}` (csv, json, xlsx)")),
-    }
+fn sql_format() -> impl TypedValueParser<Value = SqlFormat> {
+    one_of(vec![
+        ("csv".into(), SqlFormat::Csv),
+        ("json".into(), SqlFormat::Json),
+        ("xlsx".into(), SqlFormat::Xlsx),
+    ])
 }
 
-/// The `--format` of a row export (`export cables|bom|wires|terminals`): CSV or XLSX; `pdf` is refused by the
-/// row export with the subject's words ([`csv_only`]).
-fn row_format(v: &str) -> Result<ReportPages, String> {
-    match v {
-        "csv" => Ok(ReportPages::Csv),
-        "xlsx" => Ok(ReportPages::Xlsx),
-        "pdf" => Ok(ReportPages::Pdf),
-        other => Err(format!("unknown format `{other}` (csv, xlsx)")),
-    }
+/// The `--format` of a row export (`export cables|bom|wires|terminals`): CSV or XLSX; `pdf`, which the list of names
+/// leaves out, is refused by the row export with the subject's words ([`csv_only`]).
+fn row_format() -> impl TypedValueParser<Value = ReportPages> {
+    one_of(vec![
+        ("csv".into(), ReportPages::Csv),
+        ("xlsx".into(), ReportPages::Xlsx),
+        (PossibleValue::new("pdf").hide(true), ReportPages::Pdf),
+    ])
 }
 
 /// The `--format` of `export table`: CSV or XLSX.
-fn table_format(v: &str) -> Result<ReportPages, String> {
-    match v {
-        "csv" => Ok(ReportPages::Csv),
-        "xlsx" => Ok(ReportPages::Xlsx),
-        other => Err(format!("unknown format `{other}` (csv, xlsx)")),
-    }
+fn table_format() -> impl TypedValueParser<Value = ReportPages> {
+    one_of(vec![
+        ("csv".into(), ReportPages::Csv),
+        ("xlsx".into(), ReportPages::Xlsx),
+    ])
 }
 
 /// The `--preset` of `import table`: a preset of the round trip, not the `ew` dialect.
-fn import_preset(v: &str) -> Result<Preset, String> {
-    Preset::parse(v).filter(|p| *p != Preset::Ew).ok_or_else(|| {
-        let names: Vec<&str> = Preset::ALL
+fn import_preset() -> impl TypedValueParser<Value = Preset> {
+    one_of(
+        Preset::ALL
             .iter()
             .filter(|p| **p != Preset::Ew)
-            .map(|p| p.name())
-            .collect();
-        format!("unknown preset `{v}` ({})", names.join(", "))
-    })
+            .map(|p| (p.name().into(), *p))
+            .collect(),
+    )
 }
 
 /// A `--preset`.
-fn preset(v: &str) -> Result<Preset, String> {
-    Preset::parse(v).ok_or_else(|| {
-        let names: Vec<&str> = Preset::ALL.iter().map(|p| p.name()).collect();
-        format!("unknown preset `{v}` ({})", names.join(", "))
-    })
+fn preset() -> impl TypedValueParser<Value = Preset> {
+    one_of(Preset::ALL.iter().map(|p| (p.name().into(), *p)).collect())
 }
 
 /// A `--bom`.
-fn bom(v: &str) -> Result<bool, String> {
-    match v {
-        "on" => Ok(true),
-        "off" => Ok(false),
-        other => Err(format!("unknown byte-order mark setting `{other}` (on, off)")),
-    }
+fn bom() -> impl TypedValueParser<Value = bool> {
+    one_of(vec![("on".into(), true), ("off".into(), false)])
 }
 
 /// A `--line-end`.
-fn line_end(v: &str) -> Result<LineEnd, String> {
-    LineEnd::parse(v).ok_or_else(|| format!("unknown line end `{v}` (crlf, lf)"))
+fn line_end() -> impl TypedValueParser<Value = LineEnd> {
+    one_of(
+        [LineEnd::Crlf, LineEnd::Lf]
+            .map(|l| (l.name().into(), l))
+            .to_vec(),
+    )
 }
 
 /// A row export's `--format pdf`: the row exports write rows, and the refusal points to the report PDF.
@@ -2865,29 +2860,22 @@ fn csv_only(what: &str, format: Option<ReportPages>) -> Result<(), clap::Error> 
 }
 
 /// The `--format` of `export report`.
-fn report_format(v: &str) -> Result<ReportPages, String> {
-    match v {
-        "csv" => Ok(ReportPages::Csv),
-        "xlsx" => Ok(ReportPages::Xlsx),
-        "pdf" => Ok(ReportPages::Pdf),
-        other => Err(format!("unknown format `{other}` (csv, xlsx, pdf)")),
-    }
+fn report_format() -> impl TypedValueParser<Value = ReportPages> {
+    one_of(vec![
+        ("csv".into(), ReportPages::Csv),
+        ("xlsx".into(), ReportPages::Xlsx),
+        ("pdf".into(), ReportPages::Pdf),
+    ])
 }
 
-/// A `lib search --kind`.
-fn item_kind(v: &str) -> Result<String, String> {
-    match ew_api::library::item_kind(v) {
-        Some(_) => Ok(v.to_owned()),
-        None => Err(format!(
-            "unknown kind `{v}` (part, symbol, fndef, form, macro, manufacturer)"
-        )),
-    }
+/// A `lib search --kind`: the name of a library item kind.
+fn item_kind() -> PossibleValuesParser {
+    PossibleValuesParser::new(ew_api::library::item_kind_names())
 }
 
 /// A `lib search --limit`.
-fn limit(v: &str) -> Result<u32, String> {
-    v.parse::<u32>()
-        .map_err(|_| format!("`--limit` needs a number, not `{v}`"))
+fn limit() -> impl TypedValueParser<Value = u32> {
+    clap::value_parser!(u32)
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -112,8 +112,7 @@ fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
     // A usage error: clap's rendering of the value parser's refusal.
     assert_eq!(
         stderr(&o),
-        "error: invalid value '601' for '--dpi <n>': `--dpi` needs a number from 72 to 600, got `601`\n\nFor more \
-         information, try '--help'.\n"
+        "error: invalid value '601' for '--dpi <n>': 601 is not in 72..=600\n\nFor more information, try '--help'.\n"
     );
 }
 

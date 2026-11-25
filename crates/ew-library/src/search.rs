@@ -140,6 +140,14 @@ pub fn item_kind(name: &str) -> Option<Kind> {
     Kind::from_name(name).filter(|k| k.is_library())
 }
 
+/// The names of the library item kinds a search takes, in the kinds' order: the library kinds this build implements.
+pub fn item_kind_names() -> impl Iterator<Item = &'static str> {
+    Kind::ALL
+        .into_iter()
+        .filter(|k| k.is_library() && k.status() == ew_schema::KindStatus::Implemented)
+        .map(Kind::name)
+}
+
 /// Whether a status is shown by default (deprecated and withdrawn are hidden, FR-PRT-034).
 pub(crate) fn active(status: &ItemStatus) -> bool {
     !matches!(status, ItemStatus::Deprecated(_) | ItemStatus::Withdrawn)

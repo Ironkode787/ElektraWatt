@@ -39,92 +39,207 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 
-const USAGE: &str = "\
-usage: cargo xtask <command>
+/// A section of the help text.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Section {
+    Loop,
+    Reading,
+    Steps,
+}
 
-the loop:
-  check [-p <package>]... [--no-test] [-- <test filter>...]
-                       checks a change: formats every Rust file, then clippy and the tests of the named packages
-                       (the whole workspace without -p) with all features, then the repository rules. --no-test
-                       leaves the tests out; a filter after -- (nextest's: name substrings or -E <expression>)
-                       narrows them and leaves the doctests out
-  gen [--check]        regenerates every generated file: the reference of the commands, rules,
-                       keymaps, CLI, queries and views (target/reference, not committed), the book's contents and
-                       reference pages, the maps of the actions and the crates (docs/map/), the icon table, the
-                       lint list and the QET symbol edition; --check writes
-                       nothing and fails when a committed file that needs no build to compare is stale
-  rules                the repository rules alone, in seconds: the order of the crates and the licence boundary
-                       (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model,
-                       confidential tokens (ci/denylist.sha256), UI texts outside the text keys, and `gen --check`
+impl Section {
+    /// The section's heading.
+    fn heading(self) -> &'static str {
+        match self {
+            Section::Loop => "the loop:",
+            Section::Reading => "reading the code:",
+            Section::Steps => "single steps:",
+        }
+    }
+}
 
-reading the code:
-  outline [--tests] <path>...
-                       every item of a Rust file (or of each under a directory) with its line span, signature and
-                       first doc sentence; a tests module as one line unless --tests
-  where [--in <crate>] <name>...
-                       a name's definitions with their spans, its row of the action map, then every use as line
-                       numbers grouped by file
+/// One command of `cargo xtask`: its name, its arguments as the help prints them, what it does, and how it runs. The
+/// help text and the dispatch both read [`COMMANDS`], so a command is in the help as soon as it runs.
+struct Command {
+    name: &'static str,
+    section: Section,
+    args: &'static str,
+    does: &'static str,
+    run: fn(&[String], &Path) -> Result<bool>,
+}
 
-single steps:
-  docs-gen             the reference (target/reference) and from it the generated reference pages of the user
-                       guide (docs/book/src/reference/) and the lists of its SUMMARY.md
-  gen-maps [--check]   the action map and the crate map (docs/map/), read from the source in seconds
-  gen-icons [--check]  the icon table of ew-ui from assets/icons/
-  symbols-qet10 [--check]
-                       seals the library documents and generates the QET edition (content/symbols/qet10)
-  api-guard
-                       compares the published file format (schemas/, fixtures/format/) with its release and
-                       names each breaking change
-  denylist-hash <phrase>
-                       prints the digests of a confidential phrase for ci/denylist.sha256
-  blind <subcommand>   the persona harness (`cargo xtask blind help`)
-  help                 this text
-";
-
-fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let command = args.first().map(String::as_str).unwrap_or("help");
-    let root = workspace_root();
-    let result = match command {
-        "check" => check::run(&args[1..], &root),
-        "gen" => match flag(&args[1..], "--check") {
-            Some(check) => generate::run(&root, check),
-            None => usage("gen takes only --check"),
-        },
-        "rules" => rules(&root),
-        "outline" => code_map::outline(&args[1..], &root),
-        "where" => code_map::find(&args[1..], &root),
-        "docs-gen" => generate::reference(&root).and_then(|ok| Ok(ok && docs_gen::run(&root, false)?)),
-        "gen-maps" => match flag(&args[1..], "--check") {
-            Some(check) => generate::maps(&root, check),
-            None => usage("gen-maps takes only --check"),
-        },
-        "gen-icons" => match flag(&args[1..], "--check") {
-            Some(check) => icons::run(&root, check),
-            None => usage("gen-icons takes only --check"),
-        },
-        "book-po" => match flag(&args[1..], "--check") {
-            Some(check) => book_po::run(&root, check),
-            None => usage("book-po takes only --check"),
-        },
-        "symbols-qet10" => match flag(&args[1..], "--check") {
-            Some(check) => symbols::run(&root, check),
-            None => usage("symbols-qet10 takes only --check"),
-        },
-        "api-guard" => api_guard::run(&args[1..], &root),
-        "denylist-hash" => match args.get(1) {
-            Some(phrase) => {
+/// Every command, in the order of the help text.
+const COMMANDS: &[Command] = &[
+    Command {
+        name: "check",
+        section: Section::Loop,
+        args: "[-p <package>]... [--no-test] [-- <test filter>...]",
+        does: "checks a change: formats every Rust file, then clippy and the tests of the named packages (the whole \
+               workspace without -p) with all features, then the repository rules. --no-test leaves the tests out; \
+               a filter after -- (nextest's: name substrings or -E <expression>) narrows them and leaves the doctests \
+               out",
+        run: check::run,
+    },
+    Command {
+        name: "gen",
+        section: Section::Loop,
+        args: "[--check]",
+        does: "regenerates every generated file: the reference of the commands, rules, keymaps, CLI, queries and views \
+               (target/reference, not committed), the book's contents and reference pages, the maps of the actions \
+               and the crates (docs/map/), the icon table, the lint list and the QET symbol edition; --check writes \
+               nothing and fails when a committed file that needs no build to compare is stale",
+        run: |args, root| with_check(args, "gen", |check| generate::run(root, check)),
+    },
+    Command {
+        name: "rules",
+        section: Section::Loop,
+        args: "",
+        does: "the repository rules alone, in seconds: the order of the crates and the licence boundary \
+               (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model, confidential \
+               tokens (ci/denylist.sha256), UI texts outside the text keys, and `gen --check`",
+        run: |_, root| rules(root),
+    },
+    Command {
+        name: "outline",
+        section: Section::Reading,
+        args: "[--tests] <path>...",
+        does: "every item of a Rust file (or of each under a directory) with its line span, signature and first doc \
+               sentence; a tests module as one line unless --tests",
+        run: code_map::outline,
+    },
+    Command {
+        name: "where",
+        section: Section::Reading,
+        args: "[--in <crate>] <name>...",
+        does: "a name's definitions with their spans, its row of the action map, then every use as line numbers \
+               grouped by file",
+        run: code_map::find,
+    },
+    Command {
+        name: "docs-gen",
+        section: Section::Steps,
+        args: "",
+        does: "the reference (target/reference) and from it the generated reference pages of the user guide \
+               (docs/book/src/reference/) and the lists of its SUMMARY.md",
+        run: |_, root| generate::reference(root).and_then(|ok| Ok(ok && docs_gen::run(root, false)?)),
+    },
+    Command {
+        name: "gen-maps",
+        section: Section::Steps,
+        args: "[--check]",
+        does: "the action map and the crate map (docs/map/), read from the source in seconds",
+        run: |args, root| with_check(args, "gen-maps", |check| generate::maps(root, check)),
+    },
+    Command {
+        name: "gen-icons",
+        section: Section::Steps,
+        args: "[--check]",
+        does: "the icon table of ew-ui from assets/icons/",
+        run: |args, root| with_check(args, "gen-icons", |check| icons::run(root, check)),
+    },
+    Command {
+        name: "book-po",
+        section: Section::Steps,
+        args: "[--check]",
+        does: "the user guide's translation catalogue (docs/book/po/: the template, and each language merged with it) \
+               from its pages; --check writes nothing and says whether it is stale",
+        run: |args, root| with_check(args, "book-po", |check| book_po::run(root, check)),
+    },
+    Command {
+        name: "symbols-qet10",
+        section: Section::Steps,
+        args: "[--check]",
+        does: "seals the library documents and generates the QET edition (content/symbols/qet10)",
+        run: |args, root| with_check(args, "symbols-qet10", |check| symbols::run(root, check)),
+    },
+    Command {
+        name: "api-guard",
+        section: Section::Steps,
+        args: "",
+        does: "compares the published file format (schemas/, fixtures/format/) with its release and names each \
+               breaking change",
+        run: api_guard::run,
+    },
+    Command {
+        name: "denylist-hash",
+        section: Section::Steps,
+        args: "<phrase>",
+        does: "prints the digests of a confidential phrase for ci/denylist.sha256",
+        run: |args, _| match args {
+            [phrase] => {
                 denylist_hash(phrase);
                 Ok(true)
             }
-            None => usage("denylist-hash needs the phrase as one argument"),
+            _ => usage("denylist-hash needs the phrase as one argument"),
         },
-        "blind" => blind::run(&args[1..], &root),
-        "help" | "-h" | "--help" => {
-            print!("{USAGE}");
+    },
+    Command {
+        name: "blind",
+        section: Section::Steps,
+        args: "<subcommand>",
+        does: "the persona harness (`cargo xtask blind help`)",
+        run: blind::run,
+    },
+    Command {
+        name: "help",
+        section: Section::Steps,
+        args: "",
+        does: "this text",
+        run: |_, _| {
+            print!("{}", help());
             Ok(true)
+        },
+    },
+];
+
+/// The help text, from [`COMMANDS`]: each command with its arguments, then what it does, wrapped to 120 columns.
+fn help() -> String {
+    const INDENT: usize = 23;
+    const WIDTH: usize = 120;
+    let mut out = String::from("usage: cargo xtask <command>\n");
+    for section in [Section::Loop, Section::Reading, Section::Steps] {
+        out.push_str(&format!("\n{}\n", section.heading()));
+        for c in COMMANDS.iter().filter(|c| c.section == section) {
+            let head = if c.args.is_empty() {
+                format!("  {}", c.name)
+            } else {
+                format!("  {} {}", c.name, c.args)
+            };
+            let mut line = if head.len() + 1 < INDENT {
+                format!("{head:<INDENT$}")
+            } else {
+                out.push_str(&head);
+                out.push('\n');
+                " ".repeat(INDENT)
+            };
+            for word in c.does.split_whitespace() {
+                if line.len() > INDENT && line.len() + 1 + word.len() > WIDTH {
+                    out.push_str(line.trim_end());
+                    out.push('\n');
+                    line = " ".repeat(INDENT);
+                }
+                if line.len() > INDENT {
+                    line.push(' ');
+                }
+                line.push_str(word);
+            }
+            out.push_str(&line);
+            out.push('\n');
         }
-        other => usage(&format!("unknown command `{other}`")),
+    }
+    out
+}
+
+fn main() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let name = match args.first().map(String::as_str).unwrap_or("help") {
+        "-h" | "--help" => "help",
+        other => other,
+    };
+    let root = workspace_root();
+    let result = match COMMANDS.iter().find(|c| c.name == name) {
+        Some(c) => (c.run)(args.get(1..).unwrap_or_default(), &root),
+        None => usage(&format!("unknown command `{name}`")),
     };
     match result {
         Ok(true) => ExitCode::SUCCESS,
@@ -133,6 +248,15 @@ fn main() -> ExitCode {
             eprintln!("error: {err:#}");
             ExitCode::FAILURE
         }
+    }
+}
+
+/// A command whose one optional argument is `--check`: `run` with whether it was given; any other argument is a usage
+/// error.
+fn with_check(args: &[String], name: &str, run: impl FnOnce(bool) -> Result<bool>) -> Result<bool> {
+    match flag(args, "--check") {
+        Some(check) => run(check),
+        None => usage(&format!("{name} takes only --check")),
     }
 }
 
@@ -146,7 +270,7 @@ fn flag(args: &[String], name: &str) -> Option<bool> {
 }
 
 fn usage(problem: &str) -> Result<bool> {
-    eprint!("{problem}\n\n{USAGE}");
+    eprint!("{problem}\n\n{}", help());
     Ok(false)
 }
 
@@ -379,5 +503,21 @@ fn denylist_hash(phrase: &str) {
     for (n, first, hex) in anonymise::phrase_digests(phrase) {
         println!("# {n}-gram starting at word {first}");
         println!("{hex}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The help is made from the commands that run: `book-po`, which the hand-kept text left out, is in it, and each
+    /// command's line starts with its name.
+    #[test]
+    fn the_help_names_every_command_that_runs() {
+        let text = help();
+        assert!(text.contains("\n  book-po [--check]"), "{text}");
+        for c in COMMANDS {
+            assert!(text.contains(&format!("\n  {}", c.name)), "{}", c.name);
+        }
     }
 }
