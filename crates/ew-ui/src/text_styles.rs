@@ -72,7 +72,7 @@ pub(crate) fn text_styles(
         .and_then(|l| l.face)
         .and_then(|face| crate::fonts::typeface_family(ui.ctx(), face));
     // The table takes the room the window has: at 2560 × 1440 it shows more rows, not a strip beside empty space.
-    let room = ui.ctx().content_rect().height() * 0.62;
+    let room = ui.ctx().content_rect().height() * crate::theme::shares::TEXT_STYLES_HEIGHT_SHARE;
     egui::ScrollArea::vertical()
         .max_height(room)
         .min_scrolled_height(room)
@@ -174,7 +174,8 @@ fn style_row(
     (writable, typeface): (bool, Option<&egui::FontFamily>),
     events: &mut Vec<Event>,
 ) {
-    let name_width = (ui.available_width() * 0.34).max(t.size_dialog_label);
+    let name_width =
+        (ui.available_width() * crate::theme::shares::TEXT_STYLE_NAME_SHARE).max(t.size_dialog_label);
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         ui.allocate_ui_with_layout(

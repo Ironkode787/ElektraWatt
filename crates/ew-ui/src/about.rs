@@ -611,7 +611,7 @@ fn field_line(ui: &mut Ui, t: &crate::theme::Tokens, label_width: f32, line: Str
 /// layout among the last: a shorter list would hide the rest below its fold),
 /// up to three quarters of the window; the list opens on whichever side of its field has the room.
 fn list_height(ui: &Ui) -> f32 {
-    ui.ctx().content_rect().height() * 0.75
+    ui.ctx().content_rect().height() * crate::theme::shares::FORM_LIST_HEIGHT_SHARE
 }
 
 /// A form list's rows are menu rows (doc 16a §4.9: `size.row`, no gap), so New page's thirteen types stand under their

@@ -24,19 +24,16 @@ use crate::components::{self, Kind, Tip as _};
 use crate::icons::IconId;
 use crate::theme::{self, Tokens};
 
-/// The share of the table's width each text column takes at least (EW term, EPLAN, QET; the definition takes the rest
-/// after the actions, whose column is as wide as its widest button, so a button never wraps).
-pub const TEXT_SHARE: f32 = 0.15;
-
-/// The share a text column takes at most when its longest word needs more than [`TEXT_SHARE`].
-pub const TEXT_SHARE_MAX: f32 = 0.25;
-
 /// The widths of the columns of a table `width` wide (EW term, EPLAN, QET, Definition, Actions): each text column
-/// [`TEXT_SHARE`] of the width, or the width its longest word needs (`longest`, with the cell padding) up to
-/// [`TEXT_SHARE_MAX`], so a term wraps between words, never inside one, where the pane allows it (doc 16a §6.7); the
+/// [`crate::theme::shares::TEXT_SHARE`] of the width, or the width its longest word needs (`longest`, with the cell padding) up to
+/// [`crate::theme::shares::TEXT_SHARE_MAX`], so a term wraps between words, never inside one, where the pane allows it (doc 16a §6.7); the
 /// actions `actions`; the definition the rest.
 pub fn column_widths(width: f32, longest: [f32; 3], actions: f32) -> [f32; 5] {
-    let text = longest.map(|w| w.max(width * TEXT_SHARE).min(width * TEXT_SHARE_MAX).ceil());
+    let text = longest.map(|w| {
+        w.max(width * crate::theme::shares::TEXT_SHARE)
+            .min(width * crate::theme::shares::TEXT_SHARE_MAX)
+            .ceil()
+    });
     let definition = (width - text.iter().sum::<f32>() - actions).max(0.0);
     [text[0], text[1], text[2], definition, actions]
 }

@@ -65,7 +65,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let t = crate::theme::current(ui.ctx());
     egui::ScrollArea::vertical().show(ui, |ui| {
         ui.vertical_centered(|ui| {
-            ui.add_space((ui.available_height() * 0.08).min(60.0));
+            ui.add_space((ui.available_height() * crate::theme::shares::START_TOP_SHARE).min(60.0));
             ui.heading(strings::text(key!("start-title")));
             ui.add_space(t.space_5);
             if ui.button(strings::text(key!("start-new"))).clicked() {

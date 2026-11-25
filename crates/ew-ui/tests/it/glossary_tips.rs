@@ -230,7 +230,7 @@ fn the_dutch_term_keeps_its_longest_word_whole() {
         .size()
         .x;
     let needed = word + 2.0 * t.space_4;
-    let width = needed / (ew_ui::glossary::TEXT_SHARE + 0.05);
+    let width = needed / (ew_ui::theme::shares::TEXT_SHARE + 0.05);
     let widths = ew_ui::glossary::column_widths(width, [needed, 0.0, 0.0], 100.0);
     assert!(widths[0] >= needed, "{widths:?} for {needed}");
     assert!(widths[3] > 0.0, "the definition keeps its column");

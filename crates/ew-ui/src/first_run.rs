@@ -41,7 +41,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let t = crate::theme::current(ui.ctx());
     let width = t.size_text_measure.min(ui.available_width());
     ui.vertical_centered(|ui| {
-        ui.add_space(ui.available_height() * 0.1);
+        ui.add_space(ui.available_height() * crate::theme::shares::FIRST_RUN_TOP_SHARE);
         let column = egui::vec2(width, ui.available_height());
         ui.allocate_ui_with_layout(column, egui::Layout::top_down(egui::Align::Min), |ui| {
             ui.set_width(width);

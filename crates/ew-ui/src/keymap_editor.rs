@@ -24,12 +24,6 @@ use crate::components::{self, Kind};
 use crate::theme;
 use crate::theme::shares::KEYMAP_LIST_SHARE;
 
-/// The most a row's keys column takes of the columns' room (it fits its widest chips below that).
-const KEYS_SHARE: f32 = 0.25;
-
-/// The most a row's "where" column takes of the columns' room (it fits its widest text below that).
-const WHERE_SHARE: f32 = 0.35;
-
 /// The width of a row's Record and Reset buttons (a dialog button's minimum, doc 16a §6.2).
 const BUTTON_WIDTH: f32 = 72.0;
 
@@ -86,11 +80,11 @@ pub(crate) fn visible_rows(window_height: f32, row_height: f32, rows: usize) -> 
 }
 
 /// The widths of the action, keys and "where" columns in `room` points: the keys and "where" columns fit their widest
-/// content (`keys_need`, `where_need`) up to [`KEYS_SHARE`] and [`WHERE_SHARE`] of the room, and the action column
+/// content (`keys_need`, `where_need`) up to [`crate::theme::shares::KEYS_SHARE`] and [`crate::theme::shares::WHERE_SHARE`] of the room, and the action column
 /// takes the rest (the action column takes the free width).
 pub(crate) fn columns(room: f32, keys_need: f32, where_need: f32) -> (f32, f32, f32) {
-    let keys = keys_need.min(room * KEYS_SHARE);
-    let place = where_need.min(room * WHERE_SHARE);
+    let keys = keys_need.min(room * crate::theme::shares::KEYS_SHARE);
+    let place = where_need.min(room * crate::theme::shares::WHERE_SHARE);
     ((room - keys - place).max(0.0), keys, place)
 }
 

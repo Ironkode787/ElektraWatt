@@ -44,7 +44,7 @@ pub fn body(ui: &mut Ui, t: &Tokens, view: &PartCardView, title: bool, events: &
         line(ui, &words.description, &t.type_small, t.text_secondary);
     }
     // The rows: the label in a column of 45 % of the card, the value beside it.
-    let label_w = ui.available_width() * 0.45;
+    let label_w = ui.available_width() * crate::theme::shares::PART_CARD_LABEL_SHARE;
     for (label, value) in &words.rows {
         ui.horizontal_top(|ui| {
             ui.allocate_ui(Vec2::new(label_w, 0.0), |ui| {

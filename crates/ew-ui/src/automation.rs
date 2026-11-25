@@ -57,7 +57,7 @@ pub(crate) fn plc_import(
         }
     });
     ScrollArea::vertical()
-        .max_height(ui.ctx().content_rect().height() * 0.45)
+        .max_height(ui.ctx().content_rect().height() * crate::theme::shares::LIST_HEIGHT_SHARE)
         .auto_shrink([false, true])
         .show(ui, |ui| match card.tab {
             tab if card.count(tab) == 0 => {

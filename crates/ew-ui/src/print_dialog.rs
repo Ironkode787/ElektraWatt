@@ -30,10 +30,6 @@ use crate::components::{self, Kind, Tip as _};
 use crate::icons::IconId;
 use crate::theme;
 
-/// The share of the dialog's body the options column takes; the preview takes the rest.
-const OPTIONS_SHARE: f32 = 0.36;
-/// The preview's height at most, as a share of the window's height.
-const PREVIEW_HEIGHT_SHARE: f32 = 0.56;
 /// The preview's resolution bounds and step (dpi).
 const DPI_MIN: u32 = 24;
 const DPI_MAX: u32 = 200;
@@ -121,7 +117,7 @@ fn fit_dpi(paper_w_nm: f32, px: f32) -> u32 {
 pub(crate) fn body(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let body = ui.available_width();
-    let options_width = (body * OPTIONS_SHARE).floor();
+    let options_width = (body * crate::theme::shares::OPTIONS_SHARE).floor();
     let preview_width = body - options_width - t.space_5;
     ui.horizontal_top(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_5;
@@ -323,7 +319,7 @@ fn pages_field(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
 fn preview(ui: &mut Ui, shell: &ShellModel, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let width = ui.available_width();
-    let max_height = (ui.ctx().content_rect().height() * PREVIEW_HEIGHT_SHARE).floor();
+    let max_height = (ui.ctx().content_rect().height() * crate::theme::shares::PREVIEW_HEIGHT_SHARE).floor();
     // The box keeps the size of the page it shows (A4 landscape before anything is built), so the dialog does not
     // jump between states.
     let (paper_w, paper_h) = shell
@@ -423,7 +419,7 @@ fn progress(ui: &mut Ui, shell: &ShellModel) {
     }
     components::live_line(ui, &text, false);
     if p.total > 0 {
-        let width = (ui.available_width() * 0.6).floor();
+        let width = (ui.available_width() * crate::theme::shares::PRINT_PROGRESS_SHARE).floor();
         let (line, _) = ui.allocate_exact_size(Vec2::new(width, 2.0), Sense::hover());
         ui.painter()
             .rect_filled(line, egui::CornerRadius::ZERO, t.border_default.color32());

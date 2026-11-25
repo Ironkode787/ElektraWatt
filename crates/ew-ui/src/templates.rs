@@ -133,7 +133,7 @@ pub(crate) fn new_project(
     ));
     // Every start on show with what it brings; a long list scrolls inside the dialog.
     egui::ScrollArea::vertical()
-        .max_height(ui.ctx().content_rect().height() * 0.45)
+        .max_height(ui.ctx().content_rect().height() * crate::theme::shares::LIST_HEIGHT_SHARE)
         .auto_shrink([false, true])
         .show(ui, |ui| {
             for (i, line) in d.starts.iter().enumerate() {
@@ -222,7 +222,7 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
         small(ui, &t, strings::text(key!("templates-none")));
     }
     egui::ScrollArea::vertical()
-        .max_height(ui.ctx().content_rect().height() * 0.45)
+        .max_height(ui.ctx().content_rect().height() * crate::theme::shares::LIST_HEIGHT_SHARE)
         .auto_shrink([false, true])
         .show(ui, |ui| {
             for (i, row) in d.rows.iter().enumerate() {

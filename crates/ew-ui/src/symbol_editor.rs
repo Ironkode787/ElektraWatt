@@ -504,8 +504,10 @@ impl EditorView {
         }
         let styles = shell.symbol_text_styles();
         // The side panels keep their width; the drawing takes the room (doc 16a §2).
-        let left_w = (t.size_panel_left + 2.0 * t.space_4).min(full.width() * 0.3);
-        let right_w = (t.size_panel_left + t.size_property_label).min(full.width() * 0.3);
+        let left_w = (t.size_panel_left + 2.0 * t.space_4)
+            .min(full.width() * crate::theme::shares::SYMBOL_PANEL_SHARE);
+        let right_w = (t.size_panel_left + t.size_property_label)
+            .min(full.width() * crate::theme::shares::SYMBOL_PANEL_SHARE);
         let left = Rect::from_min_max(full.min, Pos2::new(full.left() + left_w, full.bottom()));
         let right = Rect::from_min_max(Pos2::new(full.right() - right_w, full.top()), full.max);
         let centre = Rect::from_min_max(
@@ -1319,7 +1321,8 @@ impl EditorView {
         ui.spacing_mut().scroll.floating = false;
         // The list at the left, the symbol the pointer is on at the right, as the symbol browser shows it.
         let mut hovered: Option<usize> = None;
-        let preview_w = (ui.available_width() * 0.4).max(t.size_dialog_form / 3.0);
+        let preview_w =
+            (ui.available_width() * crate::theme::shares::SYMBOL_PREVIEW_SHARE).max(t.size_dialog_form / 3.0);
         ui.horizontal_top(|ui| {
             let list_w = ui.available_width() - preview_w - t.space_3;
             ui.allocate_ui(Vec2::new(list_w, ui.available_height()), |ui| {

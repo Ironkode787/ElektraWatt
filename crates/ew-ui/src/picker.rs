@@ -85,11 +85,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     // The tree and the detail take a share of the width within the left panel's bounds; the
                     // table takes the rest.
                     let tree_w = if has_tree {
-                        (rest.x * 0.16).clamp(t.size_panel_left * 0.7, t.size_panel_left)
+                        (rest.x * crate::theme::shares::PICKER_TREE_SHARE)
+                            .clamp(t.size_panel_left * 0.7, t.size_panel_left)
                     } else {
                         0.0
                     };
-                    let detail_w = (rest.x * 0.2).clamp(t.size_panel_left * 0.8, t.size_panel_left_max);
+                    let detail_w = (rest.x * crate::theme::shares::PICKER_DETAIL_SHARE)
+                        .clamp(t.size_panel_left * 0.8, t.size_panel_left_max);
                     let table_w = rest.x - tree_w - detail_w - 2.0 * t.space_4;
                     if has_tree {
                         column(ui, Vec2::new(tree_w, rest.y), |ui| {

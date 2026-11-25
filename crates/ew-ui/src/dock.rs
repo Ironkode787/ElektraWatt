@@ -382,7 +382,7 @@ impl Dock {
     /// child is shown no higher than from its top to the content's end: a short History is a short dock.
     ///
     /// While the split keeps the bottom dock's default share ([`default_bottom_share`]; a share the
-    /// user dragged stands), a shown pane whose content needs more is shown up to [`BOTTOM_GROW`] of the window's
+    /// user dragged stands), a shown pane whose content needs more is shown up to [`crate::theme::shares::BOTTOM_GROW`] of the window's
     /// height (twice `floor`), past the page view's half: in a 1280 × 800 window Messages shows five findings.
     fn keep_bottom_min(
         &mut self,
@@ -460,7 +460,7 @@ impl Dock {
             }
             let grow = match needed {
                 Some(n) if (own / total - default_bottom_share()).abs() <= 5e-4 => {
-                    (n.min(BOTTOM_GROW * 2.0 * floor) / usable).min(2.0 / 3.0)
+                    (n.min(crate::theme::shares::BOTTOM_GROW * 2.0 * floor) / usable).min(2.0 / 3.0)
                 }
                 _ => 0.0,
             };
@@ -582,20 +582,15 @@ impl Dock {
     }
 }
 
-/// The left column's width at the main resolution (doc 16a §2: 1920 × 1080 at 100 %) while it has its default share.
-const LEFT_AT_MAIN: f32 = 480.0;
-
-/// The share of every point a window is wider or narrower than the main resolution that the left column gains or
-/// gives up while it has its default share: `size.panel.left_max` (640) from about 2380.
-const LEFT_GROW: f32 = 0.35;
-
 /// The left column's least width on show in a window `window` wide while it has its default share
-/// (doc 16a §2: at 2560 a list in it has room, never a capped width beside the page): [`LEFT_AT_MAIN`] at 1920, plus or
-/// minus [`LEFT_GROW`] of every point the window is wider or narrower, up to `size.panel.left_max`; in a window of
+/// (doc 16a §2: at 2560 a list in it has room, never a capped width beside the page): [`crate::theme::shares::LEFT_AT_MAIN`] at 1920, plus or
+/// minus [`crate::theme::shares::LEFT_GROW`] of every point the window is wider or narrower, up to `size.panel.left_max`; in a window of
 /// 1280 or less it is under the layout's default share (280 of the 1200 points between the rails), which then
 /// stands.
 pub(crate) fn left_default_width(t: &crate::theme::Tokens, window: f32) -> f32 {
-    (LEFT_AT_MAIN + LEFT_GROW * (window - crate::dialog::MAIN_WIDTH)).min(t.size_panel_left_max)
+    (crate::theme::shares::LEFT_AT_MAIN
+        + crate::theme::shares::LEFT_GROW * (window - crate::dialog::MAIN_WIDTH))
+        .min(t.size_panel_left_max)
 }
 
 /// The left column's share of the root split in the Schematic workspace ([`Layout::schematic`]).
@@ -610,10 +605,6 @@ fn default_left_share() -> f32 {
         _ => 0.0,
     }
 }
-
-/// The most of the window's height the bottom dock grows to for its content while it keeps its
-/// default share.
-const BOTTOM_GROW: f32 = 0.4;
 
 /// The bottom dock's share of its split as [`Layout::with_bottom`] makes it (350 of 1000): a share the user has not
 /// dragged.
@@ -1542,9 +1533,12 @@ mod tests {
     fn the_left_default_width_runs_up_to_its_token() {
         let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
         assert!(left_default_width(&t, 1280.0) <= t.size_panel_left);
-        assert_eq!(left_default_width(&t, 1920.0), LEFT_AT_MAIN);
+        assert_eq!(left_default_width(&t, 1920.0), crate::theme::shares::LEFT_AT_MAIN);
         let mid = left_default_width(&t, 2240.0);
-        assert!(mid > LEFT_AT_MAIN && mid < t.size_panel_left_max, "{mid}");
+        assert!(
+            mid > crate::theme::shares::LEFT_AT_MAIN && mid < t.size_panel_left_max,
+            "{mid}"
+        );
         assert_eq!(left_default_width(&t, 2560.0), t.size_panel_left_max);
         assert_eq!(left_default_width(&t, 3840.0), t.size_panel_left_max);
     }
