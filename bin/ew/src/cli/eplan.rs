@@ -251,18 +251,7 @@ fn into_library(
     match eplan::import_into_library(&mut reg, id, input, fndefs, (a.as_of, a.bump, a.take_over), edz) {
         Ok(done) => {
             super::print_catalog_rows(&done.import.report);
-            let written = done.write.as_ref().map_or_else(
-                || "nothing to write".to_owned(),
-                |w| {
-                    format!(
-                        "written: {} added, {} updated, {} unchanged (generation {})",
-                        w.added.len(),
-                        w.updated.len(),
-                        w.unchanged.len(),
-                        w.generation
-                    )
-                },
-            );
+            let written = super::written_line(done.write.as_ref());
             println!(
                 "imported {} into {key}: {}; {written}",
                 input.name(),

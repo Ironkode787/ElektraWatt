@@ -5,6 +5,22 @@
 
 use super::*;
 
+/// The end of a library import's summary line: what the write did, or that there was nothing to write.
+pub(super) fn written_line(write: Option<&ew_api::library::WriteReport>) -> String {
+    write.map_or_else(
+        || "nothing to write".to_owned(),
+        |w| {
+            format!(
+                "written: {} added, {} updated, {} unchanged (generation {})",
+                w.added.len(),
+                w.updated.len(),
+                w.unchanged.len(),
+                w.generation
+            )
+        },
+    )
+}
+
 // The program boundary: `EW_CONTENT_DIR` only names the directory of the starter content, as `--content` does.
 #[allow(
     clippy::disallowed_methods,
@@ -384,18 +400,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         return 0;
                     }
                     print_catalog_rows(&done.report);
-                    let written = write.as_ref().map_or_else(
-                        || "nothing to write".to_owned(),
-                        |w| {
-                            format!(
-                                "written: {} added, {} updated, {} unchanged (generation {})",
-                                w.added.len(),
-                                w.updated.len(),
-                                w.unchanged.len(),
-                                w.generation
-                            )
-                        },
-                    );
+                    let written = written_line(write.as_ref());
                     println!(
                         "converted {} elements into {key}, {} files not converted; {written}",
                         done.symbols,
@@ -465,18 +470,7 @@ pub(super) fn run_lib(a: &LibCli) -> i32 {
                         return 0;
                     }
                     print_catalog_rows(&done.import.report);
-                    let written = done.write.as_ref().map_or_else(
-                        || "nothing to write".to_owned(),
-                        |w| {
-                            format!(
-                                "written: {} added, {} updated, {} unchanged (generation {})",
-                                w.added.len(),
-                                w.updated.len(),
-                                w.unchanged.len(),
-                                w.generation
-                            )
-                        },
-                    );
+                    let written = written_line(done.write.as_ref());
                     println!(
                         "imported {} into {}: {}; {written}",
                         input.name(),
