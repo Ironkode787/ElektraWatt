@@ -658,26 +658,8 @@ static JOINED: [ActionMeta; COUNT] = {
 /// declared once, as an entry of a section under `actions/table/`, naming its handler.
 pub static ACTIONS: &[ActionMeta] = &JOINED;
 
-/// One parameter of an action's signature.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ParamSpec {
-    /// The parameter's name, `[a-z][a-z0-9_]*`.
-    pub name: String,
-    /// Whether the parameter may be left out (`?`).
-    pub optional: bool,
-    /// The type, as the signature spells it (`mm`, `enum(a|b)`, `list(text)`, ...), a named set by its words.
-    pub ty: String,
-}
-
-/// The scalar types of the signature grammar; `enum(…)` and `list(…)` are the two constructors. A `page` is a
-/// schematic page something is put on, by its folio, or `new` for a new one; a form offers the pages.
-pub const PARAM_TYPES: [&str; 9] = ["mm", "int", "uint", "bool", "text", "page", "path", "json", "ref"];
-
-fn is_word(w: &str) -> bool {
-    let mut chars = w.chars();
-    chars.next().is_some_and(|c| c.is_ascii_lowercase())
-        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
-}
+/// One parameter of an action's signature (the grammar is `ew-signature`'s, which the persona harness reads too).
+pub use ew_signature::ParamSpec;
 
 /// The words of the closed set a signature names as `enum(@<name>)`: a set of [`crate::shell::choices`] by its name,
 /// the command bar's tabs (`TABS`) or the navigators (`NAVIGATORS`), in their order; `None` for another name.
@@ -689,68 +671,15 @@ fn named_set(name: &str) -> Option<Vec<&'static str>> {
     }
 }
 
-/// `ty` with a named set `enum(@<name>)` spelt out as its words (`enum(a|b)`), in a list too; `None` for a type
-/// outside the grammar.
-fn resolved_type(ty: &str) -> Option<String> {
-    if PARAM_TYPES.contains(&ty) {
-        return Some(ty.to_owned());
-    }
-    if let Some(inner) = ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
-        if let Some(name) = inner.strip_prefix('@') {
-            return named_set(name).map(|words| format!("enum({})", words.join("|")));
-        }
-        return (!inner.is_empty() && inner.split('|').all(is_word)).then(|| ty.to_owned());
-    }
-    if let Some(inner) = ty.strip_prefix("list(").and_then(|t| t.strip_suffix(')')) {
-        return resolved_type(inner).map(|t| format!("list({t})"));
-    }
-    None
-}
-
-/// Parses a parameter signature by this grammar:
-///
-/// ```text
-/// signature := "" | param (", " param)*
-/// param     := name ["?"] ":" type
-/// type      := "mm" | "int" | "uint" | "bool" | "text" | "page" | "path" | "json" | "ref"
-///            | "enum(" word ("|" word)* ")" | "enum(@" set ")" | "list(" type ")"
-/// ```
-///
-/// A named set (`enum(@PAGE_TYPES)`) is spelt out as its words in the parsed type ([`named_set`]).
+/// Parses an action's parameter signature by the grammar of [`ew_signature`], a named set (`enum(@PAGE_TYPES)`)
+/// spelt out as its words ([`named_set`]).
 ///
 /// # Errors
 ///
 /// A message naming what is wrong: an empty parameter, a name that is not `[a-z][a-z0-9_]*`, a repeated name or a
 /// type outside the grammar.
 pub fn parse_signature(sig: &str) -> Result<Vec<ParamSpec>, String> {
-    if sig.is_empty() {
-        return Ok(Vec::new());
-    }
-    let mut out: Vec<ParamSpec> = Vec::new();
-    for part in sig.split(", ") {
-        let Some((name, ty)) = part.split_once(':') else {
-            return Err(format!("`{part}` has no `:type`"));
-        };
-        let (name, optional) = match name.strip_suffix('?') {
-            Some(n) => (n, true),
-            None => (name, false),
-        };
-        if !is_word(name) {
-            return Err(format!("`{name}` is not a parameter name"));
-        }
-        let Some(ty) = resolved_type(ty) else {
-            return Err(format!("`{ty}` is not a type of the grammar"));
-        };
-        if out.iter().any(|p| p.name == name) {
-            return Err(format!("`{name}` is repeated"));
-        }
-        out.push(ParamSpec {
-            name: name.to_owned(),
-            optional,
-            ty,
-        });
-    }
-    Ok(out)
+    ew_signature::parse(sig, named_set)
 }
 
 /// Whether the action `id` takes the day's date, which the window gives (the shell never reads the clock): a
@@ -1041,15 +970,6 @@ mod tests {
                 assert_eq!(again.join(", "), a.params, "{}", a.id);
             }
         }
-        assert!(parse_signature("a:nope").is_err());
-        assert!(parse_signature("A:int").is_err());
-        assert!(
-            parse_signature("a:int,b:int").is_err(),
-            "the separator is a comma and a space"
-        );
-        assert!(parse_signature("a:int, a:uint").is_err());
-        assert!(parse_signature("a:enum()").is_err());
-        assert!(parse_signature("a:list(enum(x|y))").is_ok());
     }
 
     #[test]

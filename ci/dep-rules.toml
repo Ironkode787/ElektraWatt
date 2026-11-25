@@ -42,8 +42,8 @@ name = "build"        # the workspace-hack crate: no code
 crates = ["ew-hack"]
 
 [[tier]]
-name = "values"       # a length, an identifier, a text, a designation, an address, a text by key, a display list
-crates = ["ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-plcaddr", "ew-memo", "ew-zip", "ew-jobs", "ew-l10n", "ew-dl"]
+name = "values"       # a length, an identifier, a text, a designation, an address, a text by key, a display list, a signature
+crates = ["ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-plcaddr", "ew-memo", "ew-zip", "ew-jobs", "ew-l10n", "ew-dl", "ew-signature"]
 
 [[tier]]
 name = "records"      # what is stored, how it is written, what an import hands over
@@ -97,7 +97,7 @@ crates = ["xtask"]
 # and the view model only through `ew-api`; beside that each names the foundation crates it uses by their own name
 # (ARCH §3 rule 6). A crate without an entry here may depend on any crate before it in the order.
 [allowed_edges]
-"ew-viewmodel" = ["ew-api", "ew-dl", "ew-units", "ew-l10n", "ew-hack"]
+"ew-viewmodel" = ["ew-api", "ew-dl", "ew-units", "ew-l10n", "ew-signature", "ew-hack"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-dl", "ew-units", "ew-l10n", "ew-hack"]
 # The layout reads no project record, so it builds and tests alone (docs/design/06a-drafting.md §2.7).
 "ew-drafting" = ["ew-units", "ew-ids", "ew-hack"]

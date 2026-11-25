@@ -1877,6 +1877,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ew-signature"
+version = "0.3.5"
+
+[[package]]
 name = "ew-sqlview"
 version = "0.3.5"
 dependencies = [
@@ -2010,6 +2014,7 @@ dependencies = [
  "ew-dl",
  "ew-hack",
  "ew-l10n",
+ "ew-signature",
  "ew-testdir",
  "ew-testkit",
  "ew-units",

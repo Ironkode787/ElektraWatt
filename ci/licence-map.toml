@@ -101,6 +101,11 @@ allowed = ["MIT OR Apache-2.0"]
 crate = true
 
 [[path]]
+glob = "crates/ew-signature/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
 glob = "crates/ew-plcaddr/**"
 allowed = ["MIT OR Apache-2.0"]
 crate = true

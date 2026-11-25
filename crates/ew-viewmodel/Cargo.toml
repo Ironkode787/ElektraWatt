@@ -20,6 +20,8 @@ ew-api = { path = "../ew-api" }
 # rule 6).
 ew-dl = { path = "../ew-dl" }
 ew-units = { path = "../ew-units" }
+# The actions' parameter signature grammar, which the persona harness reads the action list with too.
+ew-signature = { path = "../ew-signature" }
 # UI-script lines, command parameters and the transcript (ew.uiscript/1, ew.uitranscript/1).
 serde_json = "1.0.154"
 # settings.toml; a `toml::Table` keeps unknown keys, sorted. Serde reads and writes the settings' members.

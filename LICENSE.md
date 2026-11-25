@@ -18,7 +18,7 @@ header differ, CI fails; the file header is what applies to that file.
 | L1 | Application and GPL-layer crates, the binaries | `crates/ew-{model,rhai,derive,commands,checks,sqlview,library,store,text,reports,scene,render2d,render-cpu,export,print,plc,panel,render3d,mfg,import-eplan,import-dxf,import-catalog,import-tables,script,plugin-host,jobs,api,viewmodel,ui,testkit}/`, `bin/`, `tools/blind/reference/` (generated from the application's strings), `docs/map/` (generated from the crates' source) | `GPL-3.0-or-later` (with the plugin exception once adopted, see below) |
 | L2 | QElectroTech importer, files written by ElektraWatt | `crates/ew-import-qet/` | `GPL-3.0-or-later`, with no exception |
 | L3 | QElectroTech importer, ported QElectroTech code (none yet) | `crates/ew-import-qet/src/qet_port/` | `GPL-2.0-or-later`, with the original notices kept |
-| L4 | The permissive format, parser and SDK crates | `crates/ew-{units,ids,mltext,rds,schema,format,interop-api,dl,step-proto,memo,plcaddr,caex,devdesc,ewpp}/` | `MIT OR Apache-2.0` |
+| L4 | The permissive format, parser and SDK crates | `crates/ew-{units,ids,mltext,rds,schema,format,interop-api,dl,step-proto,memo,plcaddr,caex,devdesc,ewpp,signature}/` | `MIT OR Apache-2.0` |
 | L5 | JSON Schemas (from their first release) | `schemas/` | `MIT OR Apache-2.0` |
 | L6 | Built-in rule packs, report packs and machine profiles: their data files (from their first release) | `packs/` | `MIT OR Apache-2.0` |
 | L7 | Symbols, function definitions, frames, forms, templates, macros (from their first release) | `content/`; the symbol and macro repositories | `CC-BY-SA-4.0` with a design exception (see below) |
