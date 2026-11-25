@@ -152,6 +152,10 @@ ordered by `Device.position` (manifold order). The valve terminal -201U1 uses `P
 is slot 7. -201U2, -201U9, -202U1 and -202U3 carry no `PlcModule` and do not count. The slot therefore never depends
 on a tag or on the page a child is drawn on (D-41).
 
+A slot prints in two forms. The lists and the SQL views print `<rack>.<slot>` (`0.3`, `ew_derive::slot_text`); the
+PLC grid prints a slot of rack 0 as the slot alone (`3`, `ew_derive::slot_short`), and its typed Slot cell reads that
+back as rack 0, because the grid shows the rack in its own column beside it. Both forms name the same slot.
+
 **A module's I/O widths come from part data** (§2.6). A module may have an input and an output range at once, so
 `start` holds one `AddrSpec` per direction. AR APC carries the same list of `{StartAddress, Length, IoType}`.
 
