@@ -285,9 +285,9 @@ pub enum FormPlan {
     Disabled(Key<'static>),
 }
 
-/// Whether a signature type is one an inline form edits: `bool`, `uint`, `int`, `text` or an enumeration.
+/// Whether a signature type is one an inline form edits: `bool`, `uint`, `int`, `text`, a `page` or an enumeration.
 fn form_type(ty: &str) -> bool {
-    matches!(ty, "bool" | "uint" | "int" | "text") || ty.starts_with("enum(")
+    matches!(ty, "bool" | "uint" | "int" | "text" | "page") || ty.starts_with("enum(")
 }
 
 /// Whether a signature type needs a file or a selection: `path`, `ref`, or a list of either.
@@ -299,11 +299,14 @@ fn file_or_selection(ty: &str) -> bool {
     matches!(inner, "path" | "ref")
 }
 
-/// The form plan of an action: an action without `needs_parameters` runs directly; one whose parameters are
-/// all of a form type gets a form; one with a `path` or reference parameter is disabled with "needs a file or a
-/// selection"; any other (a `json` or `mm` parameter) is disabled until its form exists.
+/// The form plan of an action a person starts (listed in the palette): one that runs without a parameter
+/// ([`ActionMeta::needs_parameters`]) runs directly; one whose parameters are all of a form type gets a form; one with
+/// a `path` or reference parameter is disabled with "needs a file or a selection"; any other (a `json` or `mm`
+/// parameter) is disabled until its form exists. The window asks by this plan for a parameter a start left out
+/// (`ShellModel::dispatch`). A screen's own control and a headless action run directly: the window or the script
+/// gives them what they take.
 pub fn form_plan(meta: &ActionMeta) -> FormPlan {
-    if !meta.needs_parameters {
+    if meta.hidden || meta.headless_only || !meta.needs_parameters() {
         return FormPlan::Direct;
     }
     let Ok(specs) = parse_signature(meta.params) else {
@@ -323,25 +326,43 @@ pub fn form_plan(meta: &ActionMeta) -> FormPlan {
 pub struct PaletteField {
     /// The parameter's name.
     pub name: String,
-    /// Its signature type (`bool`, `uint`, `int`, `text`, `enum(a|b)`).
+    /// Its signature type (`bool`, `uint`, `int`, `text`, `page`, `enum(a|b)`).
     pub ty: String,
     /// Whether it may be left empty (then it is not sent).
     pub optional: bool,
     /// The value as text.
     pub value: String,
+    /// The pages a `page` row offers, each its folio (or `new`) and its words, as the shell lists them for the action;
+    /// empty for a row of another type.
+    pub pages: Vec<(String, String)>,
 }
 
 impl PaletteField {
-    /// The choices of an enumeration or a `bool`; empty for a typed-in value.
+    /// The choices of an enumeration, a `bool` or a `page`; empty for a typed-in value.
     pub fn choices(&self) -> Vec<&str> {
         if self.ty == "bool" {
             return vec!["false", "true"];
+        }
+        if self.ty == "page" {
+            return self.pages.iter().map(|(folio, _)| folio.as_str()).collect();
         }
         self.ty
             .strip_prefix("enum(")
             .and_then(|t| t.strip_suffix(')'))
             .map(|t| t.split('|').collect())
             .unwrap_or_default()
+    }
+
+    /// The words of the choice `choice` in the UI language: a page's ("To page 102 Control 24 V DC"), None for an
+    /// empty one (an optional list's "not set"), else the choice's text.
+    pub fn choice_words(&self, choice: &str) -> String {
+        if let Some((_, words)) = self.pages.iter().find(|(folio, _)| folio == choice) {
+            return words.clone();
+        }
+        match choice {
+            "" => strings::text(key!("choice-none")).to_owned(),
+            c => strings::choice_text(c),
+        }
     }
 
     /// The row's label: the text of `param-<name>` (`_` as `-`) in the UI language, else the name
@@ -371,16 +392,19 @@ pub struct PaletteForm {
 }
 
 impl PaletteForm {
-    /// The form of `action` pre-filled from the defaults: an enumeration on its first choice, a `bool` false, a
-    /// required number 0, everything else empty.
-    pub fn new(action: &'static str, specs: &[ParamSpec]) -> PaletteForm {
+    /// The form of `action` pre-filled from the defaults: an enumeration on its first choice, a `page` row offering
+    /// `pages` on the first of them, a `bool` false, a required number 0, everything else empty.
+    pub fn new(action: &'static str, specs: &[ParamSpec], pages: &[(String, String)]) -> PaletteForm {
         let fields = specs
             .iter()
             .map(|p| {
+                let page = p.ty == "page";
                 let value = if p.ty == "bool" {
                     "false".to_owned()
                 } else if let Some(t) = p.ty.strip_prefix("enum(") {
                     t.split(['|', ')']).next().unwrap_or("").to_owned()
+                } else if page {
+                    pages.first().map(|(folio, _)| folio.clone()).unwrap_or_default()
                 } else if matches!(p.ty.as_str(), "uint" | "int") && !p.optional {
                     "0".to_owned()
                 } else {
@@ -391,6 +415,7 @@ impl PaletteForm {
                     ty: p.ty.clone(),
                     optional: p.optional,
                     value,
+                    pages: if page { pages.to_vec() } else { Vec::new() },
                 }
             })
             .collect();
@@ -430,7 +455,7 @@ impl PaletteForm {
                     .parse::<i64>()
                     .map(serde_json::Value::from)
                     .map_err(|_| f.name.clone())?,
-                _ if f.ty.starts_with("enum(") => {
+                _ if f.ty.starts_with("enum(") || f.ty == "page" => {
                     if !f.choices().contains(&text) {
                         return Err(f.name.clone());
                     }
@@ -626,34 +651,36 @@ mod tests {
         assert_eq!(split_prefix(""), (Prefix::Actions, ""));
     }
 
-    fn meta_with(params: &'static str, needs: bool) -> ActionMeta {
+    fn meta_with(params: &'static str) -> ActionMeta {
         let mut m = *crate::actions::find("help.about").unwrap();
         m.params = params;
-        m.needs_parameters = needs;
         m
     }
 
     #[test]
     fn form_plans_follow_the_signature() {
-        assert_eq!(form_plan(&meta_with("dir?:path", false)), FormPlan::Direct);
+        assert_eq!(form_plan(&meta_with("dir?:path")), FormPlan::Direct);
+        // Only a required parameter asks: an action whose parameters are all optional runs as it is.
+        assert_eq!(form_plan(&meta_with("n?:uint, t?:text")), FormPlan::Direct);
+        assert!(matches!(form_plan(&meta_with("folio:page")), FormPlan::Form(_)));
         assert!(matches!(
-            form_plan(&meta_with("by:enum(folio|type), n?:uint, b?:bool, t:text, i:int", true)),
+            form_plan(&meta_with("by:enum(folio|type), n?:uint, b?:bool, t:text, i:int")),
             FormPlan::Form(p) if p.len() == 5
         ));
         assert_eq!(
-            form_plan(&meta_with("file:path", true)),
+            form_plan(&meta_with("file:path")),
             FormPlan::Disabled(key!("reason-palette-needs-file"))
         );
         assert_eq!(
-            form_plan(&meta_with("ids:list(ref)", true)),
+            form_plan(&meta_with("ids:list(ref)")),
             FormPlan::Disabled(key!("reason-palette-needs-file"))
         );
         assert_eq!(
-            form_plan(&meta_with("scale:json", true)),
+            form_plan(&meta_with("scale:json")),
             FormPlan::Disabled(key!("reason-parameters-later"))
         );
         assert_eq!(
-            form_plan(&meta_with("x:mm", true)),
+            form_plan(&meta_with("x:mm")),
             FormPlan::Disabled(key!("reason-parameters-later"))
         );
     }
@@ -662,7 +689,7 @@ mod tests {
     fn a_form_is_prefilled_and_types_its_parameters() {
         let specs =
             parse_signature("by:enum(folio|type), index:uint, keep?:bool, name?:text, step?:int").unwrap();
-        let mut form = PaletteForm::new("x.y", &specs);
+        let mut form = PaletteForm::new("x.y", &specs, &[]);
         let values: Vec<&str> = form.fields.iter().map(|f| f.value.as_str()).collect();
         assert_eq!(values, ["folio", "0", "false", "", ""]);
         assert_eq!(form.fields[2].label(), "Keep");
@@ -678,5 +705,22 @@ mod tests {
         form.fields[0].value = "type".into();
         form.fields[4].value = "-3".into();
         assert_eq!(form.params().unwrap()["step"], serde_json::json!(-3));
+    }
+
+    /// A `page` row offers the pages it is given, by their words, on the first of them, and takes only one of them.
+    #[test]
+    fn a_page_row_offers_its_pages_by_their_words() {
+        let specs = parse_signature("folio:page").unwrap();
+        let pages = [
+            ("103".to_owned(), "To page 103 Motor".to_owned()),
+            ("new".to_owned(), "To a new page".to_owned()),
+        ];
+        let mut form = PaletteForm::new("x.y", &specs, &pages);
+        let row = &form.fields[0];
+        assert_eq!((row.value.as_str(), row.choices()), ("103", vec!["103", "new"]));
+        assert_eq!(row.choice_words("new"), "To a new page");
+        assert_eq!(form.params().unwrap()["folio"], serde_json::json!("103"));
+        form.fields[0].value = "999".into();
+        assert_eq!(form.params(), Err("folio".to_owned()));
     }
 }

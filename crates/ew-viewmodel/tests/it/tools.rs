@@ -813,6 +813,7 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
         "Mirror left to right".to_owned(),
         "Mirror top to bottom".to_owned(),
         "Renumber devices…".to_owned(),
+        "Move to page…".to_owned(),
         "Keep in place".to_owned(),
         "Function text over its path".to_owned(),
         "Cut".to_owned(),

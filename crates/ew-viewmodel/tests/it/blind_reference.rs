@@ -55,7 +55,7 @@ fn actions_text() -> String {
         for (on, word) in [
             (a.headless_only, "headless"),
             (a.hidden, "hidden"),
-            (a.needs_parameters, "needs-parameters"),
+            (a.needs_parameters(), "needs-parameters"),
         ] {
             if on {
                 out.push(' ');

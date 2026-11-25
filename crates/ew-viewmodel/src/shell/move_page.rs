@@ -54,9 +54,9 @@ impl ShellModel {
         Some(self.preview_host_card_as(name, params.clone(), reason, CardOrigin::Bulk { rows }))
     }
 
-    /// `edit.move_to_page {folio}` (Edit ▸ Move to page): the selected symbols of the page shown onto the schematic
-    /// page `folio` where they stand (`new`: a new page after this one in its section, its folio as New page proposes
-    /// it), one undo step. A wire to what stays behind is kept as a pair of interruption points, which a preview card
+    /// `edit.move_to_page {folio}` (Page ▸ Move to page…, which asks for the page when it is left out): the selected
+    /// symbols of the page shown onto the schematic page `folio` where they stand (`new`: a new page after this one in
+    /// its section, its folio as New page proposes it), one undo step. A wire to what stays behind is kept as a pair of interruption points, which a preview card
     /// lists first ([`ShellModel::move_card`]), as it says the selected texts and boxes that stay on the page; a move
     /// without either is made at once and its page shown.
     pub(crate) fn act_move_to_page(&mut self, p: &Map<String, Value>) -> Outcome {

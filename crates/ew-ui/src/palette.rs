@@ -276,7 +276,7 @@ pub fn show(
 }
 
 /// The rows of an open parameter form: the action's label, then per parameter its label and a
-/// field (a check box for a `bool`, a list for an enumeration, a text field otherwise), then the last error. Enter
+/// field (a check box for a `bool`, a list for an enumeration or a page, a text field otherwise), then the last error. Enter
 /// runs the form (the palette's Enter); Escape returns to the list (`ui.dismiss`).
 fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, events: &mut Vec<Event>) {
     let title = ew_viewmodel::actions::find(form.action).map_or(form.action, |m| m.label());
@@ -326,11 +326,9 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
                 }
                 r
             } else {
-                // An empty choice (an optional list's "not set", Define potential…'s Type) reads None.
-                let words = |c: &str| match c {
-                    "" => strings::text(key!("choice-none")).to_owned(),
-                    c => strings::choice_text(c),
-                };
+                // A page by its folio and title; an empty choice (an optional list's "not set", Define potential…'s
+                // Type) reads None.
+                let words = |c: &str| f.choice_words(c);
                 let combo = crate::components::choice(
                     ui,
                     egui::ComboBox::from_id_salt(("palette-form-choice", i))

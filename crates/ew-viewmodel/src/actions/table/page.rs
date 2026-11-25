@@ -12,7 +12,7 @@ use super::super::*;
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Page, New page.
     with_params(
-        "folio:text, type?:enum(@PAGE_TYPES), title?:text, section?:text, place?:enum(after|end), grid?:enum(@PAGE_GRIDS), at?:text",
+        "folio?:text, type?:enum(@PAGE_TYPES), title?:text, section?:text, place?:enum(after|end), grid?:enum(@PAGE_GRIDS), at?:text",
         placed(
             place(Group::Pages, 1, CommandSize::Large, None),
             "file-plus",
@@ -110,7 +110,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Page, New section…
     with_params(
-        "title?:text, first:uint, last:uint, number?:uint",
+        "title?:text, first?:uint, last?:uint, number?:uint",
         placed(
             place(Group::Pages, 4, CommandSize::Small, None),
             "folder-plus",

@@ -424,7 +424,15 @@ fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
     dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
     dispatch(&mut h, "ui.focus", json!({"area": "canvas", "group": 0}));
     settle(&mut h);
-    assert!(h.query_by_label_contains("Properties of selection").is_none());
+    // The menu's entry, not the status bar's F1 line that names it when the pointer stands over it.
+    let entry = |h: &Harness<'_, App>| {
+        h.get_all_by_role(egui::Role::Button).any(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.contains("Properties of selection"))
+        })
+    };
+    assert!(!entry(&h));
     // Shift held through the frame, as a real keyboard holds it.
     h.event(egui::Event::ModifiersChanged(Modifiers::SHIFT));
     h.run_ok();
@@ -441,10 +449,7 @@ fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
     h.event(egui::Event::ModifiersChanged(Modifiers::NONE));
     h.run_ok();
     settle(&mut h);
-    assert!(
-        h.query_by_label_contains("Properties of selection").is_some(),
-        "the menu at the selection"
-    );
+    assert!(entry(&h), "the menu at the selection");
     h.state_mut().shell_mut().shutdown();
 }
 

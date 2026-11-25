@@ -128,6 +128,7 @@ form-auto-fill-order = Volgorde
 form-auto-fill-devices = Te plaatsen apparaten
 form-auto-fill-tick = Op de rail
 param-by = Op
+param-folio = Folio
 param-discard = Verwerpen
 param-index = Nummer
 param-kind = Soort

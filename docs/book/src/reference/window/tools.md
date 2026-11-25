@@ -15,8 +15,9 @@ always stands on the grid, and nothing moves it after you set it down. Hold `Alt
 moves it without connecting it.
 
 The page's menu is the quick way to what fits the thing under the pointer: its first entries are that thing's, then
-come the general ones (Rotate, Mirror and Renumber devices… on a symbol; Cut, Copy, Paste, Delete, Properties of
-selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the selection.
+come the general ones (Rotate, Mirror, Renumber devices… and Move to page… on a symbol; Cut, Copy, Paste, Delete,
+Properties of selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the
+selection.
 
 - On a wire: Route, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….

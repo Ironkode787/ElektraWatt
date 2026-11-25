@@ -357,7 +357,7 @@ fn the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
     // the hidden and headless-only ones stay out.
     let needs: Vec<&str> = ACTIONS
         .iter()
-        .filter(|m| m.needs_parameters && !m.headless_only && !m.hidden)
+        .filter(|m| m.needs_parameters() && !m.headless_only && !m.hidden)
         .map(|m| m.id)
         .collect();
     assert!(needs.iter().all(|id| entries.iter().any(|e| e.id == *id)));

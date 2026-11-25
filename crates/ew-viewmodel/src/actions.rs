@@ -36,7 +36,7 @@ pub(crate) use enabled::{editable_page, page_type_reason};
 pub use menu::{
     ActionItem, MenuEntry, MenuModel, group_metas, menu_model, shortcut_text, station_tools, workspace_label,
 };
-pub(crate) use menu::{heading, item_of, submenu_entries, switch_on};
+pub(crate) use menu::{heading, item_of, page_choices, submenu_entries, switch_on};
 
 /// An action ID, such as `file.open` (the `&ActionId` of `dispatch` is a `&str`).
 pub type ActionId = str;
@@ -165,8 +165,6 @@ pub enum Submenu {
     ModuleParts,
     /// A station's view, Draw on a page: one item per schematic page, then a new page.
     ModulePages,
-    /// Edit, Move to page: one item per other schematic page, then a new page.
-    MovePages,
     /// PLC, Addresses: the addressing commands of each configuration project
     /// ([`ShellModel::plc_addressing_items`]).
     PlcAddressing,
@@ -229,7 +227,6 @@ impl Submenu {
             Submenu::AttachCards => key!("action-plc-attach-cards"),
             Submenu::ModuleParts => key!("action-plc-module-replace"),
             Submenu::ModulePages => key!("action-plc-module-draw"),
-            Submenu::MovePages => key!("action-edit-move-to-page"),
             Submenu::PlcAddressing => key!("submenu-plc-addressing"),
             Submenu::SymbolPolicy => key!("action-plc-symbol-policy"),
             Submenu::InstrumentList => key!("action-plc-instrument-list"),
@@ -316,8 +313,6 @@ pub struct ActionMeta {
     pub menu: Option<MenuSlot>,
     /// The action exists only in the headless mode (no menu entry, not in the palette).
     pub headless_only: bool,
-    /// The palette cannot supply this action's parameters, so its entry is disabled there.
-    pub needs_parameters: bool,
     /// The action is part of a screen's own controls (the wizard, the first-run flow, a setting): no menu entry, no
     /// palette entry, no line in the shortcut list; the window and the headless mode dispatch it.
     pub hidden: bool,
@@ -386,6 +381,13 @@ impl ActionMeta {
                     .join(", ")
             },
         )
+    }
+
+    /// Whether the action cannot run without a parameter: its signature has one that is not optional. Started without
+    /// it in the window, it asks for it ([`crate::palette::form_plan`]); an action that asks for a parameter itself (a
+    /// dialog) has it optional.
+    pub fn needs_parameters(&self) -> bool {
+        parse_signature(self.params).is_ok_and(|specs| specs.iter().any(|p| !p.optional))
     }
 
     /// The parameters that take a UUID or a reference, each with its form: every `ref` of the signature whole, then
@@ -506,7 +508,6 @@ const fn act(
         in_symbol_editor: false,
         menu,
         headless_only: false,
-        needs_parameters: false,
         hidden: false,
         context: Context::Global,
         params: "",
@@ -550,11 +551,6 @@ const fn enabled_when_named(
 /// Marks a command that goes while the symbol editor shows ([`ActionMeta::in_symbol_editor`]).
 const fn in_symbol_editor(mut a: ActionMeta) -> ActionMeta {
     a.in_symbol_editor = true;
-    a
-}
-
-const fn needs_parameters(mut a: ActionMeta) -> ActionMeta {
-    a.needs_parameters = true;
     a
 }
 
@@ -673,8 +669,9 @@ pub struct ParamSpec {
     pub ty: String,
 }
 
-/// The scalar types of the signature grammar; `enum(…)` and `list(…)` are the two constructors.
-pub const PARAM_TYPES: [&str; 8] = ["mm", "int", "uint", "bool", "text", "path", "json", "ref"];
+/// The scalar types of the signature grammar; `enum(…)` and `list(…)` are the two constructors. A `page` is a
+/// schematic page something is put on, by its folio, or `new` for a new one; a form offers the pages.
+pub const PARAM_TYPES: [&str; 9] = ["mm", "int", "uint", "bool", "text", "page", "path", "json", "ref"];
 
 fn is_word(w: &str) -> bool {
     let mut chars = w.chars();
@@ -715,7 +712,7 @@ fn resolved_type(ty: &str) -> Option<String> {
 /// ```text
 /// signature := "" | param (", " param)*
 /// param     := name ["?"] ":" type
-/// type      := "mm" | "int" | "uint" | "bool" | "text" | "path" | "json" | "ref"
+/// type      := "mm" | "int" | "uint" | "bool" | "text" | "page" | "path" | "json" | "ref"
 ///            | "enum(" word ("|" word)* ")" | "enum(@" set ")" | "list(" type ")"
 /// ```
 ///

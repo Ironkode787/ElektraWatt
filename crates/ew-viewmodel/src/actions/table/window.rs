@@ -148,7 +148,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Help ▸ Guides: a how-to guide's page (F5).
     keeps_banner(with_params(
         "guide:text",
-        needs_parameters(act(
+        act(
             "help.guide",
             View,
             Menu::Help,
@@ -156,7 +156,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             always,
             sub(Menu::Help, Submenu::Guides, false),
             |s, p| s.act_help_guide(p),
-        )),
+        ),
     )),
     with_params(
         "step?:enum(language|origin|privacy|appearance|start)",

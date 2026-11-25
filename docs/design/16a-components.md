@@ -352,7 +352,7 @@ After an object's own entries come the general ones, where they can apply:
 
 | Selection | General entries |
 |---|---|
-| Holds a symbol (a device's, a terminal, an interruption point) | the command row's Arrange group (Rotate, Mirror, Renumber devices…), Keep in place (checked while every selected symbol is kept, doc 06a §2.4), then Cut, Copy, Paste, Delete, Properties of selection |
+| Holds a symbol (a device's, a terminal, an interruption point) | the command row's Arrange group (Rotate, Mirror, Renumber devices…), Move to page…, Keep in place (checked while every selected symbol is kept, doc 06a §2.4), then Cut, Copy, Paste, Delete, Properties of selection |
 | Wires, a junction, a text or a frame without a symbol | Cut, Copy, Paste, Delete, Properties of selection (nothing turns or mirrors) |
 
 A navigator's row offers what the same thing offers on the page, from the one function that decides a thing's

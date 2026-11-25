@@ -377,7 +377,7 @@ fn forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     let all = query(&mut shell, "");
     for meta in ACTIONS
         .iter()
-        .filter(|m| m.needs_parameters && !m.hidden && !m.headless_only)
+        .filter(|m| m.needs_parameters() && !m.hidden && !m.headless_only)
     {
         let entry = all
             .iter()
@@ -472,4 +472,35 @@ fn reimport_is_the_one_button_of_the_import_group() {
         ["file.reimport_qet"],
         "no button per source: File ▸ Import… takes every file"
     );
+}
+
+/// No action a person can start from the command search answers "Missing parameter": each action listed there with
+/// parameters, started bare on the sample with page 103's whole drawing selected, runs, asks for what it needs in its
+/// form or refuses in words (Move to page answered "Missing parameter `folio`." and asked for nothing). Each on a fresh
+/// copy, so that one action's dialog or close leaves the next its own start.
+#[test]
+fn no_action_started_bare_from_the_command_search_answers_missing_parameter() {
+    let probe = strings::format(key!("error-missing-param"), &["\u{1}"]);
+    let missing = probe.split('\u{1}').next().unwrap_or_default().to_owned();
+    let mut answered = Vec::new();
+    for meta in ACTIONS
+        .iter()
+        .filter(|m| !m.hidden && !m.headless_only && !m.params.is_empty())
+    {
+        let tmp = Tmp::new(&format!("pal-bare-{}", meta.id));
+        let mut shell = tmp.sample_in(Mode::Gui, true, "103");
+        done(&mut shell, "edit.select_all", json!({}));
+        let entries = query(&mut shell, meta.id);
+        let Some(at) = entries.iter().position(|e| e.id == meta.id) else {
+            continue;
+        };
+        shell.select_palette_entry(at);
+        if let Outcome::Failed { message } = shell.run_palette_selection()
+            && message.starts_with(&missing)
+        {
+            answered.push(format!("{}: {message}", meta.id));
+        }
+        shell.shutdown();
+    }
+    assert_eq!(answered, Vec::<String>::new());
 }

@@ -18,7 +18,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         }),
     ),
     with_params(
-        "device:text, port:text",
+        "device:ref, port:text",
         placed(
             place(Group::Bus, 2, CommandSize::Small, None),
             "plug",

@@ -1821,6 +1821,10 @@ impl ShellModel {
         if let Err(reason_key) = actions::enabled_with(meta, self, p) {
             return Outcome::Refused { reason: reason_key };
         }
+        // A parameter a start in the window left out is asked for, never answered with "Missing parameter".
+        if let Some(out) = self.ask_for_parameters(meta, p) {
+            return out;
+        }
         // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it.
         let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), &meta.alias_forms(), p) {
             Ok(r) => r,

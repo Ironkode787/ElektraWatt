@@ -100,7 +100,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // The structure node and the external reference, one previewed command each.
     with_params(
-        "kind:enum(@STRUCTURE_KINDS), designation:text, parent?:text",
+        "kind?:enum(@STRUCTURE_KINDS), designation?:text, parent?:text",
         placed(
             place(Group::Project, 2, CommandSize::Small, Some(key!("bar-structure"))),
             "sitemap",
@@ -119,7 +119,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "location:text, device:text, connection?:text, project?:text",
+        "location?:text, device?:text, connection?:text, project?:text",
         with_aliases(
             &[("location", ParamForm::Whole)],
             act(
@@ -405,18 +405,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_paste_in_place(p),
         )),
     )),
-    // Move to page: the selected symbols onto another schematic page, a wire to what stays behind kept as a pair of
-    // interruption points (doc 06 §3.4).
+    // Move to page…: the selected symbols onto another schematic page, a wire to what stays behind kept as a pair of
+    // interruption points (doc 06 §3.4). On the Page tab beside Copy pages… (the Draw tab has no room at 1920), and in
+    // the right-click menu of selected symbols; started without its page it asks for it.
     with_params(
-        "folio:text",
-        in_canvas(act(
-            "edit.move_to_page",
-            Command,
-            Menu::Edit,
-            &[],
-            symbols_selected,
-            sub(Menu::Edit, Submenu::MovePages, false),
-            |s, p| s.act_move_to_page(p),
+        "folio:page",
+        in_canvas(placed(
+            place(Group::Order, 5, CommandSize::Small, None),
+            "file-arrow-right",
+            act(
+                "edit.move_to_page",
+                Command,
+                Menu::Edit,
+                &[],
+                symbols_selected,
+                None,
+                |s, p| s.act_move_to_page(p),
+            ),
         )),
     ),
     in_canvas(act(
@@ -1442,7 +1447,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Draw ▸ Connect ▸ New cable… (`cable.create` from a cable part, with its cores) and Connect
     // cores… (the selected wires become the cable's cores, by order), each through its form.
     with_params(
-        "part:text",
+        "part?:text",
         act(
             "cable.new",
             Command,
@@ -1454,7 +1459,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "cable:text",
+        "cable?:text",
         in_canvas(act(
             "cable.connect_cores",
             Command,

@@ -11,7 +11,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 147;
+pub const COUNT: usize = 148;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -83,6 +83,7 @@ pub enum IconId {
     ew_terminal_strip,
     eye,
     file,
+    file_arrow_right,
     file_import,
     file_plus,
     file_settings,
@@ -235,6 +236,7 @@ impl IconId {
         IconId::ew_terminal_strip,
         IconId::eye,
         IconId::file,
+        IconId::file_arrow_right,
         IconId::file_import,
         IconId::file_plus,
         IconId::file_settings,
@@ -387,6 +389,7 @@ pub const KEYS: [&str; COUNT] = [
     "ew-terminal-strip",
     "eye",
     "file",
+    "file-arrow-right",
     "file-import",
     "file-plus",
     "file-settings",
@@ -1532,6 +1535,27 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(19.0, 8.0),
         L(19.0, 19.0),
         C(19.0, 20.105, 18.105, 21.0, 17.0, 21.0),
+    ],
+    // file-arrow-right
+    &[
+        M(14.0, 3.0),
+        L(14.0, 7.0),
+        C(14.0, 7.552, 14.448, 8.0, 15.0, 8.0),
+        L(19.0, 8.0),
+        M(17.0, 21.0),
+        L(7.0, 21.0),
+        C(5.895, 21.0, 5.0, 20.105, 5.0, 19.0),
+        L(5.0, 5.0),
+        C(5.0, 3.895, 5.895, 3.0, 7.0, 3.0),
+        L(14.0, 3.0),
+        L(19.0, 8.0),
+        L(19.0, 19.0),
+        C(19.0, 20.105, 18.105, 21.0, 17.0, 21.0),
+        M(9.0, 15.0),
+        L(15.0, 15.0),
+        M(12.5, 17.5),
+        L(15.0, 15.0),
+        L(12.5, 12.5),
     ],
     // file-import
     &[

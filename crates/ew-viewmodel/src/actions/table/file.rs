@@ -85,7 +85,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "index:uint, discard?:bool",
-        needs_parameters(act(
+        act(
             "file.open_recent",
             Command,
             Menu::File,
@@ -93,7 +93,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             has_recent,
             sub(Menu::File, Submenu::OpenRecent, false),
             |s, p| s.act_open_recent(p),
-        )),
+        ),
     ),
     with_params(
         "discard?:bool",

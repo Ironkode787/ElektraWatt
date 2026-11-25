@@ -4,7 +4,7 @@
 //! A drawn card is put on another page from its station's view (Move to page, `plc.module_move`): its box
 //! moves, and the card stays the same module in its slot with its channels and their symbol names; a wire to what
 //! stays behind is kept as a pair of interruption points, which a preview lists before anything moves (doc 10 §6,
-//! doc 06 §3.4), and the selected symbols of a page move the same way (Edit ▸ Move to page).
+//! doc 06 §3.4), and the selected symbols of a page move the same way (Page ▸ Move to page…).
 
 use crate::common::{Tmp, done, new_project, refused};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -163,29 +163,14 @@ fn a_card_whose_wire_runs_through_two_junctions_is_refused_in_words_and_stays() 
     s.shutdown();
 }
 
-/// Edit ▸ Move to page lists the other schematic pages, not the page shown, and moves the selected symbols: the first
-/// symbol of the sample's page 102 with a wire to what stays behind shows the preview of its pairs first, nothing
-/// moved; Apply moves it and makes the pairs, one point of each on each page; one Undo takes them back.
+/// Move to page… started without its page (its button, the right-click menu, the command search) asks for it: the
+/// palette's form offers the other schematic pages, not the page shown, and a new page. It moves the selected symbols:
+/// the first symbol of the sample's page 102 with a wire to what stays behind shows the preview of its pairs first,
+/// nothing moved; Apply moves it and makes the pairs, one point of each on each page; one Undo takes them back.
 #[test]
 fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() {
     let tmp = Tmp::new("selection-move-page");
-    let mut s = tmp.sample_in(Mode::Headless, true, "102");
-    let entries: Vec<String> = ew_viewmodel::actions::menu_model(&s)
-        .iter()
-        .flat_map(|m| &m.entries)
-        .find_map(|e| e.submenu(ew_viewmodel::actions::Submenu::MovePages))
-        .expect("Edit ▸ Move to page")
-        .iter()
-        .map(|i| i.label.clone())
-        .collect();
-    assert!(
-        entries.iter().any(|e| e.starts_with("To page 103")),
-        "{entries:?}"
-    );
-    assert!(
-        !entries.iter().any(|e| e.starts_with("To page 102")),
-        "{entries:?}"
-    );
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
     let (on_102, on_103) = (points_on(&mut s, "102"), points_on(&mut s, "103"));
     done(&mut s, "page.goto", json!({"folio": "102"}));
     let devices: Vec<_> = s
@@ -197,10 +182,27 @@ fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() 
         .iter()
         .filter_map(|r| r.device)
         .collect();
+    done(&mut s, "nav.show", json!({"record": devices[0].to_string()}));
+    done(&mut s, "edit.move_to_page", json!({}));
+    let form = s.palette().and_then(|p| p.form.clone()).expect("the question");
+    assert_eq!(form.action, "edit.move_to_page");
+    let page = &form.fields[0];
+    let words: Vec<String> = page.choices().iter().map(|c| page.choice_words(c)).collect();
+    assert_eq!(page.label(), "Folio");
+    assert!(words.iter().any(|e| e.starts_with("To page 103")), "{words:?}");
+    assert!(!words.iter().any(|e| e.starts_with("To page 102")), "{words:?}");
+    assert_eq!(words.last().map(String::as_str), Some("To a new page"));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert!(s.palette().is_none());
     let mut listed = 0;
     for d in devices {
         done(&mut s, "nav.show", json!({"record": d.to_string()}));
-        done(&mut s, "edit.move_to_page", json!({"folio": "103"}));
+        // The question answered: page 103, then Enter.
+        done(&mut s, "edit.move_to_page", json!({}));
+        s.set_palette_field(0, "103");
+        assert_eq!(s.run_palette_selection(), Outcome::Done);
+        assert!(s.palette().is_none(), "the question closes");
         listed = pairs(&s).len();
         if listed > 0 {
             break;
@@ -235,7 +237,46 @@ fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() 
     s.shutdown();
 }
 
-/// Edit ▸ Move to page is greyed until symbols are selected: with nothing selected and with only a wire selected, it
+/// Move to page… is where a person looks for it: on the Page tab beside Copy pages…, and in the right-click menu of
+/// selected symbols (a persona run found it only in the command search).
+#[test]
+fn move_to_page_is_on_the_page_tab_and_in_the_right_click_menu_of_symbols() {
+    use ew_viewmodel::command_bar::{Group, MenuSpot, Tab, canvas_menu, command_bar_of};
+    let tmp = Tmp::new("move-page-entry");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    let rep = s
+        .canvas()
+        .expect("page 102")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.device.is_some())
+        .expect("a symbol")
+        .id;
+    done(&mut s, "select.set", json!({"ids": [rep.to_string()]}));
+    let menu = canvas_menu(&s, MenuSpot::Object, None);
+    let entry = menu
+        .iter()
+        .find(|i| i.id == "edit.move_to_page")
+        .expect("in the right-click menu");
+    assert_eq!((entry.label.as_str(), entry.enabled), ("Move to page…", true));
+    let order = command_bar_of(&s, Tab::Page)
+        .groups
+        .into_iter()
+        .find(|g| g.group == Group::Order)
+        .expect("the Order group");
+    assert!(
+        order
+            .buttons
+            .iter()
+            .any(|b| b.id == "edit.move_to_page" && b.enabled),
+        "on the Page tab"
+    );
+    s.shutdown();
+}
+
+/// Move to page… is greyed until symbols are selected: with nothing selected and with only a wire selected, it
 /// says to select the symbols to move, in the menu and on a call (it said "Nothing is selected" with a wire selected).
 #[test]
 fn move_to_page_asks_for_the_symbols_to_move() {

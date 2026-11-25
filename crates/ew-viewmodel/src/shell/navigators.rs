@@ -956,9 +956,11 @@ impl ShellModel {
                 let words: Vec<&str> = NavKind::ALL.iter().map(|k| k.word()).collect();
                 failed(key!("error-nav-kind"), &[w, &words.join(", ")])
             }),
+            // Without a kind the navigator with the focus is meant; started from the window with none (the bar's
+            // Highlight, a table's key from the command search), refused in words.
             None => self
                 .focused_navigator()
-                .ok_or_else(|| failed(key!("error-missing-param"), &["kind"])),
+                .ok_or_else(|| Outcome::refused(key!("reason-no-navigator"))),
         }
     }
 

@@ -93,6 +93,7 @@ fn every_palette_form_parameter_has_a_label_in_both_locales() {
                     ty: p.ty,
                     optional: p.optional,
                     value: String::new(),
+                    pages: Vec::new(),
                 });
             }
         }

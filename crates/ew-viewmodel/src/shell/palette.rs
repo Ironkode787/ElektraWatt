@@ -8,10 +8,10 @@
 
 use ew_api::output::PageRow;
 use ew_api::window::{FindField, FindQuery};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use super::{Outcome, PaletteState, ShellModel};
-use crate::actions::{self, ACTIONS, ActionMeta, Menu, PaletteEntry, PaletteRun};
+use crate::actions::{self, ACTIONS, ActionMeta, Menu, PaletteEntry, PaletteRun, ParamSpec};
 use crate::glossary;
 use crate::key;
 use crate::palette::{
@@ -446,9 +446,12 @@ impl ShellModel {
         }
         match entry.run.clone() {
             PaletteRun::Action(id) => {
-                if let Some(FormPlan::Form(specs)) = actions::find(id).map(form_plan) {
+                if let Some(meta) = actions::find(id)
+                    && let FormPlan::Form(specs) = form_plan(meta)
+                {
+                    let form = self.palette_form(meta, &specs);
                     if let Some(p) = &mut self.palette {
-                        p.form = Some(PaletteForm::new(id, &specs));
+                        p.form = Some(form);
                     }
                     return Outcome::Done;
                 }
@@ -498,6 +501,47 @@ impl ShellModel {
                 }
                 self.dispatch("rail.show", &json!({ "pane": word }))
             }
+        }
+    }
+
+    /// The parameter form of `meta` with the rows `specs`: its `page` rows offer the pages the action takes
+    /// ([`actions::page_choices`]).
+    fn palette_form(&self, meta: &'static ActionMeta, specs: &[ParamSpec]) -> PaletteForm {
+        let pages = if specs.iter().any(|p| p.ty == "page") {
+            actions::page_choices(meta, self)
+        } else {
+            Vec::new()
+        };
+        PaletteForm::new(meta.id, specs, &pages)
+    }
+
+    /// An action started bare in the window (its button, a right-click entry, the command search: no parameter sent)
+    /// that cannot run without a parameter asks for it in the window's one way of asking, the palette's form (doc 16
+    /// §4.3), opened with the action's name in the search field (Escape goes back to the list, which shows it), or is
+    /// refused in words where no form can ask (a file, a selection: "use its menu"). `None` for a call that sends
+    /// parameters (a dialog's, the window's own controls': the action reads what it is given) and outside the window: a
+    /// script is answered by the action.
+    pub(super) fn ask_for_parameters(
+        &mut self,
+        meta: &'static ActionMeta,
+        p: &Map<String, Value>,
+    ) -> Option<Outcome> {
+        if self.mode != super::Mode::Gui || !p.is_empty() {
+            return None;
+        }
+        match form_plan(meta) {
+            FormPlan::Form(specs) => {
+                let form = self.palette_form(meta, &specs);
+                self.dialog = None;
+                self.palette = Some(PaletteState {
+                    query: meta.label().to_owned(),
+                    selected: 0,
+                    form: Some(form),
+                });
+                Some(Outcome::Done)
+            }
+            FormPlan::Disabled(reason) => Some(Outcome::refused(reason)),
+            FormPlan::Direct => None,
         }
     }
 

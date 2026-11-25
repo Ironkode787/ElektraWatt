@@ -137,7 +137,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     keeps_banner(with_params(
         "mode:enum(flat|section|structure)",
-        needs_parameters(act(
+        act(
             "pages.mode",
             View,
             Menu::View,
@@ -145,12 +145,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             has_pages,
             grp_sub(Group::Panels, Submenu::PageNavigator),
             |s, p| s.act_pages_mode(p),
-        )),
+        ),
     )),
     keeps_banner(with_params(
         "by:enum(folio|type)",
         // The palette row's icon (doc 16a §6.14).
-        needs_parameters(with_icon(
+        with_icon(
             "arrows-sort",
             act(
                 "pages.sort",
@@ -161,7 +161,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 grp_sub(Group::Panels, Submenu::PageNavigator),
                 |s, p| s.act_pages_sort(p),
             ),
-        )),
+        ),
     )),
     keeps_banner(placed(
         place(Group::Show, 1, CommandSize::Small, None),
@@ -274,7 +274,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // every list page is made, and on the Page tab beside New page,
     // since a report block is put on a page (the owner looked for it there).
     with_params(
-        "kind:text, folio:text, title?:text",
+        "kind?:text, folio?:text, title?:text",
         placed_also(
             place(Group::Pages, 5, CommandSize::Large, Some(key!("bar-report"))),
             placed(
@@ -464,7 +464,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "scale:json",
-        needs_parameters(placed(
+        placed(
             place(Group::Appearance, 3, CommandSize::Small, None),
             "text-size",
             act(
@@ -476,13 +476,13 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::UiScale, false),
                 |s, p| s.act_ui_scale(p),
             ),
-        )),
+        ),
     ),
     // View ▸ Minimum text size (`pt` 0 is off, else 8 to 16) and View ▸ Reduce motion,
     // the settings `min_font_pt` and `reduce_motion`.
     with_params(
         "pt:uint",
-        needs_parameters(act(
+        act(
             "view.min_font",
             View,
             Menu::View,
@@ -490,7 +490,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             always,
             sub(Menu::View, Submenu::MinFont, true),
             |s, p| s.act_min_font(p),
-        )),
+        ),
     ),
     with_params(
         "on?:bool",
@@ -539,7 +539,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
     with_params(
         "value:text",
-        needs_parameters(placed(
+        placed(
             place(Group::Appearance, 1, CommandSize::Small, None),
             "sun-moon",
             act(
@@ -551,11 +551,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::Theme, false),
                 |s, p| s.act_view_setting("theme", p),
             ),
-        )),
+        ),
     ),
     with_params(
         "value:enum(comfortable|compact)",
-        needs_parameters(placed(
+        placed(
             place(Group::Appearance, 2, CommandSize::Small, None),
             "baseline-density-medium",
             act(
@@ -567,14 +567,14 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::Density, false),
                 |s, p| s.act_view_setting("density", p),
             ),
-        )),
+        ),
     ),
     // View ▸ Language switches the UI language at run time; `value` is a
     // value of the `language` setting.
     with_params(
         "value:text",
         // The palette row's icon (doc 16a §6.14).
-        needs_parameters(with_icon(
+        with_icon(
             "language",
             act(
                 "view.language",
@@ -585,12 +585,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::Language, true),
                 |s, p| s.act_view_setting("language", p),
             ),
-        )),
+        ),
     ),
     // The command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
     keeps_banner(with_params(
         "tab:enum(@TABS)",
-        needs_parameters(enabled_when_named(
+        enabled_when_named(
             &["tab"],
             tab_named,
             act(
@@ -602,7 +602,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 grp_sub(Group::Layout, Submenu::CommandTab),
                 |s, p| s.act_command_tab(p),
             ),
-        )),
+        ),
     )),
     keeps_banner(with_params(
         "collapsed?:bool",
@@ -618,7 +618,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     with_params(
         "name:text",
-        needs_parameters(placed(
+        placed(
             place(Group::Layout, 2, CommandSize::Small, Some(key!("bar-workspaces"))),
             "layout-board",
             act(
@@ -630,10 +630,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::Workspace, false),
                 |s, p| s.act_workspace_load(p),
             ),
-        )),
+        ),
     ),
     with_params(
-        "name:text",
+        "name?:text",
         act(
             "view.workspace_save",
             View,

@@ -64,6 +64,12 @@ of its own, and texts to change in frozen tags and in the names of interruption 
 the new pages. The preview says what the copy leaves on pages that are not copied; Apply makes the copy in one undo
 step.
 
+### Move to page…
+
+Moves the selected symbols to another schematic page, or to a new page after this one. It asks for the page; a wire
+to a symbol that stays behind becomes a pair of interruption points, which a preview lists before anything moves.
+The right-click menu of selected symbols has it too. See [Interruption points](things.md#interruption-points).
+
 ### Add legend
 
 On a panel layout page, puts the legend beside the layout: each item number of the page with its tag, quantity, part

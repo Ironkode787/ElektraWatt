@@ -12,12 +12,12 @@ use super::super::*;
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "cmd:text, params?:json",
-        needs_parameters(with_aliases(
+        with_aliases(
             &[("params", ParamForm::CommandRefs)],
             act("command.run", Command, Menu::View, &[], writable, None, |s, p| {
                 s.act_command_run(p)
             }),
-        )),
+        ),
     ),
     keeps_link_preview(keeps_banner(with_params(
         "path:path, dpi?:uint",
@@ -376,7 +376,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // The navigator framework (doc 16 §5).
     keeps_banner(with_params(
         "kind:enum(@NAVIGATORS), on?:bool",
-        needs_parameters(placed(
+        placed(
             place(Group::Panels, 1, CommandSize::Small, Some(key!("bar-navigators"))),
             "layout-sidebar",
             act(
@@ -388,7 +388,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 sub(Menu::View, Submenu::Navigators, false),
                 |s, p| s.act_navigator_show(p),
             ),
-        )),
+        ),
     )),
     keeps_banner(with_params(
         "kind:text, view:text",

@@ -357,7 +357,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         Submenu::ModuleParts => module_part_items(meta, model),
         // The schematic pages by folio and title, then a new page; Move to page's read as moves ("To page 101 …") and
         // leave out the page the module is drawn on.
-        Submenu::ModulePages | Submenu::MovePages => module_page_items(meta, model),
+        Submenu::ModulePages => module_page_items(meta, model),
         Submenu::PlcAddressing => {
             let items = model.plc_addressing_items();
             if items.is_empty() {
@@ -620,7 +620,18 @@ fn module_part_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
     items
 }
 
-/// The pages a module is drawn on or can be moved to (Draw on a page…, Move to page…).
+/// The pages a `page` parameter of `meta` offers (a form's choices): each its folio, or `new`, and its words ("To page
+/// 102 Control 24 V DC", "To a new page"), as [`module_page_items`] lists them.
+pub(crate) fn page_choices(meta: &ActionMeta, model: &ShellModel) -> Vec<(String, String)> {
+    module_page_items(meta, model)
+        .into_iter()
+        .filter(|i| i.enabled)
+        .filter_map(|i| Some((i.params.get("folio")?.as_str()?.to_owned(), i.label)))
+        .collect()
+}
+
+/// The pages a module is drawn on or can be moved to (Draw on a page…, Move to page…): the schematic pages by folio
+/// and title, then a new page; a move leaves out the page it moves from.
 fn module_page_items(meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
     let moving = matches!(meta.id, "plc.module_move" | "edit.move_to_page");
     let (to, to_new) = if moving {
