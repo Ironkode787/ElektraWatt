@@ -57,7 +57,7 @@ pub enum DeriveNote {
         code: &'static str,
         /// What was found, as the facts a rule reads.
         fact: NoteFact,
-        /// The subject: the record IDs or names concerned.
-        subject: String,
+        /// The record the note is about: a connection, a junction, a function or a device.
+        subject: ew_ids::Id<()>,
     },
 }

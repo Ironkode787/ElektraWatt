@@ -123,7 +123,7 @@ fn notes_with(q: &Q, code: &str) -> Vec<String> {
     notes
         .into_iter()
         .filter_map(|n| match n {
-            DeriveNote::Connectivity { code: c, subject, .. } if c == code => Some(subject),
+            DeriveNote::Connectivity { code: c, subject, .. } if c == code => Some(subject.to_string()),
             _ => None,
         })
         .collect()

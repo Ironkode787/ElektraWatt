@@ -234,7 +234,7 @@ impl Query for PhysicalWiresOf {
             notes.insert(DeriveNote::Connectivity {
                 code: "EW-POT-012",
                 fact: NoteFact::Ring,
-                subject: id.to_string(),
+                subject: id.cast(),
             });
         }
 
@@ -606,7 +606,7 @@ impl Drawing<'_> {
                 notes.insert(DeriveNote::Connectivity {
                     code: "EW-POT-011",
                     fact: NoteFact::Other,
-                    subject: source.to_string(),
+                    subject: source.cast(),
                 });
                 continue;
             };
@@ -749,10 +749,11 @@ impl Drawing<'_> {
                 })
             });
             let consistent = !bad && roots.len() == 1;
-            if !consistent {
-                let subject = comp
-                    .first()
-                    .map_or_else(String::new, |&h| self.hubs[h].key.to_string());
+            if !consistent && let Some(&h) = comp.first() {
+                let subject = match self.hubs[h].key {
+                    HubKey::Junction(j) => j.cast(),
+                    HubKey::Ip(f) => f.cast(),
+                };
                 notes.insert(DeriveNote::Connectivity {
                     code: "EW-POT-011",
                     fact: NoteFact::Other,
@@ -950,7 +951,7 @@ impl FinishCtx<'_> {
             notes.insert(DeriveNote::Connectivity {
                 code: "EW-POT-014",
                 fact,
-                subject: carrier.to_string(),
+                subject: carrier.cast(),
             });
         };
 

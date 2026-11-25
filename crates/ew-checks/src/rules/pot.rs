@@ -245,14 +245,14 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
         .filter_map(|note| match note {
             DeriveNote::Connectivity {
                 code, fact, subject, ..
-            } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
+            } if *code == meta.id && note_owner(q, p, &wires.wires, *subject) == Some(p) => {
                 // EW-POT-011's message in plain words, from its Fluent pattern: which junction or group of
                 // interruption points, where, and the wires that meet there. The message leads with the potential,
                 // so the Messages row, which shows a subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
-                    let args = feed_place(q, &wires.wires, subject);
+                    let args = feed_place(q, &wires.wires, *subject);
                     let mut f = pt
-                        .finding(meta, &[], subject.clone(), name.clone())
+                        .finding(meta, &[], subject.to_string(), name.clone())
                         .arg("potential", name.clone());
                     for (k, v) in args {
                         f = f.arg(k, v);
@@ -262,16 +262,20 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 // The other notes in each language's pattern, from the note's fact: the wire or connection the note is
                 // about, and its form.
                 let (form, about) = if meta.id == RING_IN_DRAWING_GRAPH.id {
-                    ("ring", connection_text(q, subject))
+                    ("ring", connection_text(q, subject.cast()))
                 } else {
                     match fact {
-                        NoteFact::Conductor => ("conductor", carrier_wire_text(q, &wires.wires, subject)),
-                        NoteFact::Override => ("override", carrier_wire_text(q, &wires.wires, subject)),
+                        NoteFact::Conductor => {
+                            ("conductor", carrier_wire_text(q, &wires.wires, subject.cast()))
+                        }
+                        NoteFact::Override => {
+                            ("override", carrier_wire_text(q, &wires.wires, subject.cast()))
+                        }
                         _ => ("other", Named::from(String::new())),
                     }
                 };
                 let f = pt
-                    .finding(meta, &[], subject.clone(), name.clone())
+                    .finding(meta, &[], subject.to_string(), name.clone())
                     .arg("form", form)
                     .arg("wire", about);
                 Some(f)
@@ -283,11 +287,8 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
 
 /// A connection by its ends as messages print a wire without a number (`-X1:1–-K1:A1`), a junction end as
 /// `junction`; empty for a subject that names no connection.
-fn connection_text(q: &Q, subject: &str) -> Named {
-    let Ok(uuid) = subject.parse::<ew_ids::Uuid>() else {
-        return String::new().into();
-    };
-    let Some(c) = q.connections().get(Id::<Connection>::from_uuid(uuid)) else {
+fn connection_text(q: &Q, subject: Id<Connection>) -> Named {
+    let Some(c) = q.connections().get(subject) else {
         return String::new().into();
     };
     let end = |e: &ew_schema::Endpoint| match EndpointKey::of(e) {
@@ -298,23 +299,23 @@ fn connection_text(q: &Q, subject: &str) -> Named {
 }
 
 /// The wire whose carrier connection `subject` names, as [`wire_text`] prints it, else the connection by its ends.
-fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: &str) -> Named {
+fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: Id<Connection>) -> Named {
     wires
         .iter()
-        .find(|w| w.constituents.iter().any(|c| c.to_string() == subject))
+        .find(|w| w.constituents.contains(&subject))
         .map_or_else(|| connection_text(q, subject), |w| wire_text(q, w).into())
 }
 
 /// EW-POT-011's place as the arguments of the rule's pattern: the selector `place` (`junction`, `ip`, `other`), `cell`
 /// (empty without a frame grid), `page`, `group` (the interruption points' name) and `wires` (the wires that meet
 /// there, in natural order).
-fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str, TextArg)> {
-    let uuid = subject.parse::<ew_ids::Uuid>().ok();
+fn feed_place(q: &Q, wires: &[PhysicalWire], subject: Id<()>) -> Vec<(&'static str, TextArg)> {
+    let uuid = Some(subject.as_uuid());
     let wire_of = |c: Id<Connection>| {
         wires
             .iter()
             .find(|w| w.constituents.contains(&c))
-            .map_or_else(|| connection_text(q, &c.to_string()), |w| wire_text(q, w).into())
+            .map_or_else(|| connection_text(q, c), |w| wire_text(q, w).into())
     };
     let wires_listed = |conns: Vec<Id<Connection>>| {
         let mut out: Vec<Named> = conns.into_iter().map(wire_of).collect();
@@ -363,16 +364,15 @@ fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str
 /// The potential that reports a wire note about `subject`: of the potentials the subject lies in (a wire's
 /// or a connection's ends, a function's CPs, a junction), the one that prints first; `p` itself when the subject is
 /// none of these.
-fn note_owner(q: &Q, p: PotentialId, wires: &[PhysicalWire], subject: &str) -> Option<PotentialId> {
+fn note_owner(q: &Q, p: PotentialId, wires: &[PhysicalWire], subject: Id<()>) -> Option<PotentialId> {
     let mut pots: BTreeSet<PotentialId> = BTreeSet::new();
     for w in wires {
-        if w.id.to_string() == subject || w.constituents.iter().any(|c| c.to_string() == subject) {
+        if w.id.cast() == subject || w.constituents.iter().any(|c| c.cast() == subject) {
             pots.extend(w.potentials.iter().copied());
         }
     }
-    if pots.is_empty()
-        && let Ok(uuid) = subject.parse::<ew_ids::Uuid>()
-    {
+    if pots.is_empty() {
+        let uuid = subject.as_uuid();
         let partition = q.get::<PotentialPartition>(());
         let at = |e: EndpointKey| partition.potential_at(e).map(|x| x.id);
         let conn: Id<Connection> = Id::from_uuid(uuid);

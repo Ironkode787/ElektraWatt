@@ -873,7 +873,7 @@ fn value_notes(q: &Q) -> Vec<DeriveNote> {
 /// Whether a note `code` about `subject` is present.
 fn has_note_on(q: &Q, code: &str, subject: &str) -> bool {
     value_notes(q).iter().any(
-        |n| matches!(n, DeriveNote::Connectivity { code: c, subject: s, .. } if *c == code && s == subject),
+        |n| matches!(n, DeriveNote::Connectivity { code: c, subject: s, .. } if *c == code && s.to_string() == subject),
     )
 }
 

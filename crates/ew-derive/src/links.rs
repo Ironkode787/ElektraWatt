@@ -293,7 +293,7 @@ impl Query for RailTerminalOf {
                 out.notes.push(DeriveNote::Connectivity {
                     code: "EW-TERM-005",
                     fact: NoteFact::RailWithoutPe,
-                    subject: dev.to_string(),
+                    subject: dev.cast(),
                 });
             }
             out.rail = match location {
@@ -309,7 +309,7 @@ impl Query for RailTerminalOf {
                             fact: NoteFact::RailWithoutLocation {
                                 locations: many.len(),
                             },
-                            subject: dev.to_string(),
+                            subject: dev.cast(),
                         });
                         None
                     }
