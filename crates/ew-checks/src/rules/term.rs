@@ -298,11 +298,7 @@ impl Rule for DuplicateDesignation {
                 }
                 reported.insert((term.strip, key.clone()));
                 let strip_tag = full_tag(after, term.strip, text!("word-the-strip"));
-                let mut remedy = Vec::new();
                 let free = next_free_number(groups.values().map(|(d, _)| d.as_str()));
-                if let Some(free) = &free {
-                    remedy.push(format!("use {free}"));
-                }
                 // A swap is proposed for the terminal's own designation, not a level's.
                 let mut swap = None;
                 if n == 0
@@ -311,18 +307,7 @@ impl Rule for DuplicateDesignation {
                     && !groups.contains_key(old_key)
                     && let Some(old_text) = was.as_ref().map(|t| t.designation.as_str().to_owned())
                 {
-                    remedy.push(format!(
-                        "swap {old_text} \u{2194} {designation} in one transaction (terminal.designate)"
-                    ));
                     swap = Some(old_text);
-                }
-                let mut message = format!(
-                    "designation {designation} is taken on {strip_tag} ({} terminals)",
-                    members.len()
-                );
-                if !remedy.is_empty() {
-                    message.push_str("; ");
-                    message.push_str(&remedy.join(" or "));
                 }
                 // The arguments of the rule's pattern, so that each language words the prevent finding too.
                 let remedy = match (&free, &swap) {

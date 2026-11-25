@@ -748,7 +748,6 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
             .ok()
             .and_then(|v| v.as_str().map(str::to_owned))
             .unwrap_or_default();
-        let mut missing: Vec<String> = Vec::new();
         let entry = settings
             .per_page_type
             .iter()
@@ -757,10 +756,7 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
         let mut type_copy = String::new();
         match entry {
             Some(f) if held(f) => continue,
-            Some(f) => {
-                type_copy = f.to_string();
-                missing.push(format!("the frame for page type {type_name} names form copy {f}"));
-            }
+            Some(f) => type_copy = f.to_string(),
             None => {}
         }
         let mut default_copy = String::new();
@@ -768,7 +764,6 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
             && !held(f)
         {
             default_copy = f.to_string();
-            missing.push(format!("the default frame names form copy {f}"));
         }
         let names = match (type_copy.is_empty(), default_copy.is_empty()) {
             (true, true) => continue,

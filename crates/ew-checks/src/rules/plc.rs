@@ -283,11 +283,6 @@ impl Rule for AddressOverlap {
                 .collect();
             let shown = shown.join(", ");
             let more = members.len().saturating_sub(SHOWN_OVERLAP_CHANNELS);
-            let mut message = format!("addresses overlap in configuration project {name}: {shown}");
-            if more > 0 {
-                message.push_str(&format!("; and {more} more channels"));
-            }
-            message.push_str("; change addresses until none overlap");
             out.push(
                 Finding::new(
                     &ADDRESS_OVERLAP,
