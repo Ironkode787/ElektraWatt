@@ -921,7 +921,7 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 | `src/page.rs` |  | Page display lists per layer (doc 09 §4.1, ARCH §6.4 `page_display_list(page, layer, lang)`, ADR-0015 decision 1 and amendment 2). |
 | `src/page/cps.rs` |  | Where the page draws its connection points (see the module documentation of `page`): the drawn CPs, the tag's anchor, a connection's polyline between its drawn ends. |
 | `src/page/draw.rs` |  | The frame, tables and symbols layers of a page (see the module documentation of `page`): the frame form, the report tables and embedded blocks, the symbol instances with their static texts, the valve cells and the plug notes. |
-| `src/page/pins.rs` |  | The pin texts of a black box and the notes beside a plug's pins (see the module documentation of `page`, "Pin texts"): where each stands, its style, and the built-in measures the session sizes a box by. |
+| `src/page/pins.rs` |  | The pin texts of a black box and the notes beside a plug's pins (see the module documentation of `page`, "Pin texts"): where each stands, its style, and the measures the session sizes a box by. |
 | `src/page/text.rs` |  | The texts of a page's layers (see the module documentation of `page`): a text shaped and placed, its box, its lines and the links over the items it lists, and the styles it resolves. |
 | `src/page/wires.rs` |  | The wires layer of a page (see the module documentation of `page`): the connections, the junctions, the bridges and the level ties, and the lines a wire marker crosses. |
 | `src/panel.rs` | large | Panel-layout pages (doc 12 §5.1 to §5.3): the surface view of a `panel_layout` page drawn into the panel layers of [`ew_dl::Layer::PANEL`]. |
