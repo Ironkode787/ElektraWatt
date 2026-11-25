@@ -395,12 +395,12 @@ pub struct NavNode<W = String> {
     pub cells: Vec<W>,
     /// Whether the node is a row of the table.
     pub table_row: bool,
-    /// The filter tokens: the rendered label's and cells', and those the session adds (a structure node's aliases),
-    /// sorted and deduplicated ([`tokens`]).
+    /// The filter tokens: the label's and the cells' in English, and those the session adds (a structure node's
+    /// aliases), sorted and deduplicated ([`tokens`]).
     pub tokens: Vec<String>,
     /// The facets `(name, value)`; a flag has the value `""`.
     pub facets: Vec<(String, String)>,
-    /// The natural keys of the rendered words: the label's, then one per cell. Before rendering, the label's key alone
+    /// The natural keys of the English words: the label's, then one per cell. Before rendering, the label's key alone
     /// where the session ranks the node in its own order.
     pub natural: Vec<NaturalKey>,
 }
@@ -423,7 +423,7 @@ pub struct NavTable<W = String> {
 
 impl NavTable<crate::Text> {
     /// The table in words: every heading, label and cell by `words` (the window's in its language, the command
-    /// line's in English), with each node's filter tokens and natural keys of those words.
+    /// line's in English), with each node's filter tokens and natural keys of its English words.
     pub fn render(self, words: impl Fn(&crate::Text) -> String) -> NavTable {
         let columns = (self.columns.into_iter())
             .map(|c| NavColumn {
@@ -437,17 +437,21 @@ impl NavTable<crate::Text> {
             .collect();
         let nodes = (self.nodes.into_iter())
             .map(|n| {
-                let label = words(&n.label);
-                let cells: Vec<String> = n.cells.iter().map(&words).collect();
+                // The filter tokens and the sort keys of the English words: one order and one filter in every
+                // language.
+                let english = n.label.to_string();
+                let english_cells: Vec<String> = n.cells.iter().map(ToString::to_string).collect();
                 let mut tokens = n.tokens;
-                tokens.extend(node_tokens(&label, &cells));
+                tokens.extend(node_tokens(&english, &english_cells));
                 tokens.sort();
                 tokens.dedup();
                 let mut natural = n.natural;
                 if natural.is_empty() {
-                    natural.push(natural_key(&label));
+                    natural.push(natural_key(&english));
                 }
-                natural.extend(cells.iter().map(|c| natural_key(c)));
+                natural.extend(english_cells.iter().map(|c| natural_key(c)));
+                let label = words(&n.label);
+                let cells: Vec<String> = n.cells.iter().map(&words).collect();
                 NavNode {
                     key: n.key,
                     parent: n.parent,
@@ -650,8 +654,8 @@ impl Session {
         let q = self.query();
         match kind {
             NavKind::Pages => self.pages_table(&mut b),
-            NavKind::Devices => devices_table(&q, &mut b, lang),
-            NavKind::Connections => connections_table(&q, &mut b, lang),
+            NavKind::Devices => devices_table(&q, &mut b),
+            NavKind::Connections => connections_table(&q, &mut b),
             NavKind::Strips => strips_table(&q, &mut b),
             NavKind::Cables => cables_table(&q, &mut b),
             NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
@@ -889,6 +893,32 @@ fn row_segment(id: &ew_reports::RowId) -> String {
     id.to_string().replace('/', ",")
 }
 
+/// The cells of row `i` of `set` as the list prints them without a language, except the columns `words`, whose cells
+/// are the program's words (a device's kind, a terminal's state): those read in every language of the list texts.
+fn report_cells(q: &Q, set: &ew_reports::RowSet, i: usize, words: &[&str]) -> Vec<crate::Text> {
+    let worded: Vec<usize> = words.iter().filter_map(|k| set.column(k)).collect();
+    let neutral = ew_reports::csv::row_texts(q, set, i);
+    (neutral.into_iter().enumerate())
+        .map(|(c, text)| match set.rows[i].cells.get(c) {
+            Some(cell) if worded.contains(&c) => cell_words(q, cell),
+            _ => plain(text),
+        })
+        .collect()
+}
+
+/// A list's cell in every language of the list texts, as a list printed in each prints it.
+fn cell_words(q: &Q, cell: &ew_reports::Cell) -> crate::Text {
+    let in_each = (ew_reports::catalogue().tags().into_iter()).filter_map(|tag| {
+        let lang: ew_mltext::LangTag = tag.parse().ok()?;
+        let opts = ew_reports::render::RenderOptions {
+            lang: Some(lang.clone()),
+            ..Default::default()
+        };
+        Some((lang, ew_reports::render::render(q, cell, &opts)))
+    });
+    crate::Text::bare(crate::TextArg::Ml(ew_mltext::MlText::from_langs(in_each)))
+}
+
 /// The cell text of `key` in a row's texts.
 fn cell_of<'a>(set: &ew_reports::RowSet, texts: &'a [String], key: &str) -> &'a str {
     set.column(key)
@@ -988,7 +1018,8 @@ mod tests {
     }
 
     /// kinds outside the contacts and coils read in plain words through the display mapping; the contacts and
-    /// coils keep the generic rule.
+    /// coils keep the generic rule. In Dutch the generic rule reads each category segment by its words, the CP
+    /// designations after them kept.
     #[test]
     fn function_kinds_read_in_plain_words() {
         let def = |key: &str| {
@@ -1018,6 +1049,26 @@ mod tests {
             "Changeover contact 11-12-14",
             "sentence case"
         );
+        let dutch = |key: &str, cps: &[&str]| crate::catalogue().text_or_english(&text(key, cps), "nl-NL");
+        assert_eq!(
+            dutch("ew.fn.contact-co", &["11", "12", "14"]),
+            "Wisselcontact 11-12-14"
+        );
+        assert_eq!(dutch("ew.fn.contact-no", &["13", "14"]), "NO-contact 13-14");
+        assert_eq!(dutch("ew.fn.coil", &["A1", "A2"]), "Spoel A1-A2");
+        assert_eq!(dutch("ew.fn.silencer", &[]), "Geluiddemper");
+        assert_eq!(dutch("ew.fn.valve-5-2-sol-spring", &["14"]), "5/2-ventiel 14");
+        assert_eq!(
+            dutch("ew.fn.mcb-2p", &["1", "2", "3", "4"]),
+            "2P-installatieautomaat 1-2-3-4"
+        );
+        assert_eq!(dutch("ew.fn.ip-fluid", &[]), "Pneumatisch onderbrekingspunt");
+        assert_eq!(
+            dutch("ew.fn.cylinder-single-acting", &[]),
+            "Enkelwerkende cilinder"
+        );
+        assert_eq!(dutch("ew.fn.regulator-gauge", &[]), "Manometerdrukregelaar");
+        assert_eq!(dutch("ew.fn.ip", &["1"]), "Onderbrekingspunt 1");
     }
 
     #[test]

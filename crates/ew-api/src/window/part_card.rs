@@ -139,7 +139,7 @@ impl Session {
             let kind = if fluid && !description.is_empty() {
                 Some(description)
             } else {
-                def.and_then(|d| crate::output::navigators::kind_text(&d, &[]))
+                def.and_then(|d| crate::output::navigators::kind_text(&d, &[]).map(|t| t.to_string()))
             };
             let Some(kind) = kind else {
                 continue;

@@ -282,8 +282,9 @@ pub struct CatalogueTemplateFn {
     pub fndef_key: String,
     /// The entry's function in words, as the Properties grid names a placed one: the FnDef's last
     /// category entry, the one before it lower-cased and the entry's CP designations (`NO contact 13-14`); the FnDef
-    /// key when its category has fewer than two entries or the FnDef is missing.
-    pub kind_text: String,
+    /// key when its category has fewer than two entries or the FnDef is missing; in every language of the session's
+    /// texts.
+    pub kind_text: crate::Text,
     /// Whether the entry is the part's main function.
     pub main: bool,
     /// The key of the first allowed symbol row that draws the entry's FnDef; `None` when no row does.
@@ -682,7 +683,7 @@ fn catalogue_part(
                     }
                     crate::output::navigators::kind_text(&d.item, &designations)
                 })
-                .unwrap_or_else(|| fndef_key.clone());
+                .unwrap_or_else(|| crate::Text::bare(crate::TextArg::Plain(fndef_key.clone())));
             CatalogueTemplateFn {
                 index: u16::try_from(i).unwrap_or(u16::MAX),
                 fndef_key,

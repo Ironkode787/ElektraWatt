@@ -487,22 +487,23 @@ impl ShellModel {
         if sheet.sections.iter().any(|s| s.kind == "project") {
             self.lists_frame_in_row(&mut sheet, &form_choices(&p.session));
         }
-        // The Part function row's kind in the window's language, as the navigators word it.
-        for row in sheet
-            .sections
-            .iter_mut()
-            .flat_map(|s| &mut s.rows)
-            .filter(|r| r.path == "template_entry")
-        {
+        // The Part function row's kind in the window's language: each target's words, by the English its text prints.
+        for section in &mut sheet.sections {
+            let kinds: Vec<(String, String)> = (section.targets.iter())
+                .filter_map(|id| p.session.part_function_words(*id))
+                .map(|t| (t.to_string(), strings::render(&t)))
+                .collect();
             let words = |t: &mut String| {
-                if let Some(w) = strings::kind_words(t) {
-                    *t = w;
+                if let Some((_, w)) = kinds.iter().find(|(english, _)| english == t) {
+                    *t = w.clone();
                 }
             };
-            match &mut row.value {
-                RowValue::One { text, .. } => words(text),
-                RowValue::Varies { texts, .. } => texts.iter_mut().for_each(words),
-                RowValue::Absent => {}
+            for row in section.rows.iter_mut().filter(|r| r.path == "template_entry") {
+                match &mut row.value {
+                    RowValue::One { text, .. } => words(text),
+                    RowValue::Varies { texts, .. } => texts.iter_mut().for_each(&words),
+                    RowValue::Absent => {}
+                }
             }
         }
         crate::properties::cps_in_words(&mut sheet);

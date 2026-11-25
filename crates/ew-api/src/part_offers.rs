@@ -647,6 +647,7 @@ impl Session {
                             cps = own.into_iter().map(|(_, d)| d).collect();
                         }
                         crate::output::navigators::kind_text(&def, &cps)
+                            .map(|t| t.to_string())
                             .or_else(|| def.meta.key.map(|k| k.as_str().to_owned()))
                     })
                     .collect()

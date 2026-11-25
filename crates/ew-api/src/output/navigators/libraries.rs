@@ -256,6 +256,18 @@ pub(crate) fn frame_forms(q: &Q) -> Vec<(Uuid, crate::Text)> {
         .collect()
 }
 
+/// A function definition's kind in words with its own CP designations, in idx order (`NO contact 13-14`).
+fn fndef_kind(def: &ew_schema::FnDef) -> Option<crate::Text> {
+    let mut cps: Vec<(u16, String)> = def
+        .cps
+        .iter()
+        .map(|p| (p.idx, p.designation.to_string()))
+        .collect();
+    cps.sort_unstable();
+    let cps: Vec<String> = cps.into_iter().map(|(_, d)| d).collect();
+    kind_text(def, &cps)
+}
+
 /// The name a held copy is listed by (words, never an ID): a part's number, a symbol's or manufacturer's
 /// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], a PLC
 /// profile's label else its `id@version`, else its key.
@@ -284,16 +296,9 @@ pub(crate) fn copy_name(q: &Q, kind: Kind, copy: Uuid) -> Option<String> {
             }
         }),
         Kind::Fndef => q.fndefs().get(Id::from_uuid(copy)).and_then(|c| {
-            let mut cps: Vec<(u16, String)> = c
-                .item
-                .cps
-                .iter()
-                .map(|p| (p.idx, p.designation.to_string()))
-                .collect();
-            cps.sort_unstable();
-            let cps: Vec<String> = cps.into_iter().map(|(_, d)| d).collect();
             let (a, b, d) = &c.item.category;
-            kind_text(&c.item, &cps)
+            fndef_kind(&c.item)
+                .map(|t| t.to_string())
                 .or_else(|| key(c, |i| &i.meta))
                 .or_else(|| Some(format!("{a}.{b}.{d}")))
         }),
@@ -847,7 +852,15 @@ impl Session {
         for s in status {
             let (code, text) = copy_state(&s.state);
             let words = text.to_string();
-            let label = copy_label(q, s.kind, s.copy);
+            // A function definition by its kind in words, any other copy by its name.
+            let label = (s.kind == Kind::Fndef)
+                .then(|| {
+                    q.fndefs()
+                        .get(Id::from_uuid(s.copy))
+                        .and_then(|c| fndef_kind(&c.item))
+                })
+                .flatten()
+                .unwrap_or_else(|| plain(copy_label(q, s.kind, s.copy)));
             let mut tags: Vec<String> = s.devices.iter().map(|d| short_tag(q, *d)).collect();
             tags.retain(|t| !t.is_empty());
             let used_by = if tags.len() > USED_BY_SHOWN {
@@ -861,13 +874,13 @@ impl Session {
             };
             let cells = vec![
                 label.clone(),
-                kind_cell(s.kind),
-                String::new(),
-                s.version.clone(),
-                String::new(),
-                String::new(),
-                words,
-                used_by,
+                plain(kind_cell(s.kind)),
+                plain(""),
+                plain(s.version.clone()),
+                plain(""),
+                plain(""),
+                plain(words),
+                plain(used_by),
             ];
             let mut facets = vec![
                 ("kind".to_owned(), NavRole::LibCopy.word().to_owned()),
@@ -886,11 +899,11 @@ impl Session {
                 Some(gnode),
                 NavRole::LibCopy,
                 &format!("copy:{}", s.copy),
-                plain(label),
+                label,
                 badges,
                 records,
                 Vec::new(),
-                Some(plains(cells)),
+                Some(cells),
                 facets,
             );
         }

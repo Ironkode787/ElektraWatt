@@ -131,13 +131,13 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         for (i, f) in p.functions.iter().enumerate() {
             assert_eq!(usize::from(f.index), i);
             // The picker's words for the entry, never its FnDef key where the FnDef has a category.
-            assert!(!f.kind_text.is_empty());
+            assert!(!f.kind_text.to_string().is_empty());
             if f.fndef_key == "ew.fn.contact-no" {
-                assert!(f.kind_text.starts_with("NO contact "), "{}", f.kind_text);
+                assert!(f.kind_text.to_string().starts_with("NO contact "), "{}", f.kind_text);
             }
             // A change-over contact is spelled out, never "CO".
             if f.fndef_key == "ew.fn.contact-co" {
-                assert!(f.kind_text.starts_with("Changeover contact "), "{}", f.kind_text);
+                assert!(f.kind_text.to_string().starts_with("Changeover contact "), "{}", f.kind_text);
             }
             if let Some(key) = &f.symbol {
                 let r = row(key);
@@ -174,7 +174,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     assert!(
         rly.functions
             .iter()
-            .any(|f| f.kind_text.starts_with("Changeover contact ")),
+            .any(|f| f.kind_text.to_string().starts_with("Changeover contact ")),
         "{:?}",
         rly.functions.iter().map(|f| &f.kind_text).collect::<Vec<_>>()
     );

@@ -95,21 +95,21 @@ fn page_id(s: &Session, folio: &str) -> Uuid {
 /// The potentials the script names (`potential.draw`): every other potential is derived from its connection points.
 const NAMED: [&str; 7] = ["L1", "L2", "L3", "N", "PE", "24V", "0V"];
 
-/// The navigators' own group words read in the table's language: the connections' Bridges heading and a devices
-/// group without a function aspect, "(none)"; without a language they stay English, as their CSV prints them.
+/// The navigators' own group words read in the reader's language: the connections' Bridges heading and a devices
+/// group without a function aspect, "(none)"; the table in English prints them in English, as their CSV does.
 #[test]
-fn the_navigators_group_words_read_in_the_tables_language() {
+fn the_navigators_group_words_read_in_the_readers_language() {
     let s = common::sample();
-    let label = |kind: NavKind, key: &str, lang: Option<&str>| {
-        s.navigator_texts_in(kind, lang)
-            .render(ToString::to_string)
+    let label = |kind: NavKind, key: &str, lang: &str| {
+        s.navigator_texts(kind)
+            .render(|t| ew_api::catalogue().text_or_english(t, lang))
             .nodes
             .iter()
             .find(|n| n.key.ends_with(key))
             .map(|n| n.label.clone())
             .unwrap_or_else(|| panic!("a node {key}"))
     };
-    let both = |kind: NavKind, key: &str| [label(kind, key, None), label(kind, key, Some("nl-NL"))];
+    let both = |kind: NavKind, key: &str| [label(kind, key, "en-GB"), label(kind, key, "nl-NL")];
     assert_eq!(
         both(NavKind::Connections, "section:Bridges"),
         ["Bridges", "Bruggen"]

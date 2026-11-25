@@ -907,7 +907,7 @@ impl ShellModel {
     ) -> Option<String> {
         let j = self.project.as_ref()?.session.joined_text(rep)?;
         // The function's kind in the window's language.
-        let kind = strings::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
+        let kind = strings::render(&j.kind);
         let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
         Some(if notices.is_empty() {
             text

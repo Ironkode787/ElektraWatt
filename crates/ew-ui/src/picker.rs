@@ -982,10 +982,10 @@ pub(crate) fn picture(
 /// A template function in words: its kind text, or, where that is only the FnDef key (a FnDef whose category
 /// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`, through
 /// `strings::choice_words`).
-fn function_words(kind_text: &str, fndef_key: &str) -> String {
-    if kind_text != fndef_key {
+fn function_words(kind_text: &ew_viewmodel::ew_api::Text, fndef_key: &str) -> String {
+    if *kind_text != *fndef_key {
         // The kind in the window's language.
-        return strings::kind_words(kind_text).unwrap_or_else(|| kind_text.to_owned());
+        return strings::render(kind_text);
     }
     // The last fallback: the key's last segment through the shell's choice words.
     strings::choice_words(&ew_viewmodel::tools::symbol_name(fndef_key).replace('-', "_"))
@@ -996,16 +996,18 @@ mod tests {
     /// A function whose kind text is its FnDef key reads as words, never as the key; a real kind text stays.
     #[test]
     fn function_keys_read_as_words() {
+        use ew_viewmodel::ew_api::{Text, TextArg};
+        let plain = |s: &str| Text::bare(TextArg::Plain(s.to_owned()));
         assert_eq!(
-            super::function_words("ew.fn.blackbox", "ew.fn.blackbox"),
+            super::function_words(&plain("ew.fn.blackbox"), "ew.fn.blackbox"),
             "Blackbox"
         );
         assert_eq!(
-            super::function_words("ew.fn.dp-connector", "ew.fn.dp-connector"),
+            super::function_words(&plain("ew.fn.dp-connector"), "ew.fn.dp-connector"),
             "Dp connector"
         );
         assert_eq!(
-            super::function_words("NO contact 13-14", "ew.fn.contact-no"),
+            super::function_words(&plain("NO contact 13-14"), "ew.fn.contact-no"),
             "NO contact 13-14"
         );
     }

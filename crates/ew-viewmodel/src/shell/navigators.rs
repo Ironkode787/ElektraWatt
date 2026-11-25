@@ -2039,9 +2039,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     // interruption point's direction by their `choice-*` words.
     let closed: Vec<(usize, &str)> = (table.columns.iter().enumerate())
         .filter_map(|(i, c)| match (nav, c.key.as_str()) {
-            ("devices" | "structure", "kind") | ("strips" | "plc", "state") | ("ips", "direction") => {
-                Some((i, "choice"))
-            }
+            ("structure", "kind") | ("strips" | "plc", "state") | ("ips", "direction") => Some((i, "choice")),
             _ => None,
         })
         .collect();
@@ -2095,19 +2093,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 node.label = words;
             }
         }
-        // A function's kind, and a function definition's in the Libraries tree, in `KIND_WORDS`'
-        // words.
-        let fndef = kind
-            .and_then(|i| node.cells.get(i))
-            .is_some_and(|c| c == "Function definition");
-        if (node.role == NavRole::Function || (node.role == NavRole::LibCopy && fndef))
-            && let Some(words) = strings::kind_words(&node.label)
-        {
-            let english = std::mem::replace(&mut node.label, words.clone());
-            for cell in node.cells.iter_mut().filter(|c| **c == english) {
-                *cell = words.clone();
-            }
-        }
+
         // A library copy's kind column by its record kind's words: its last `kind` facet names it.
         if node.role == NavRole::LibCopy
             && let Some(record) = node

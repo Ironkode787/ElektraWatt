@@ -92,10 +92,9 @@ fn words_text(words: &SelectionWords) -> String {
             wires,
         } => {
             // The function's kind in the window's language.
-            let worded = kind.as_deref().and_then(strings::kind_words);
+            let worded = kind.as_ref().map(strings::render);
             let kind = worded
                 .as_deref()
-                .or(kind.as_deref())
                 .unwrap_or_else(|| strings::text(key!("announce-device-kind")));
             let head = match folio {
                 Some(folio) => strings::format(key!("announce-device"), &[tag, kind, folio]),
@@ -683,7 +682,7 @@ mod tests {
         let all = [
             SelectionWords::Device {
                 tag: "-K1".into(),
-                kind: Some("Coil A1-A2".into()),
+                kind: Some(ew_api::Text::bare(ew_api::TextArg::Plain("Coil A1-A2".into()))),
                 folio: Some("102".into()),
                 cps: 1,
                 wires: 1,
@@ -742,7 +741,7 @@ mod tests {
         assert_eq!(
             read(),
             [
-                "-K1, Spoel A1-A2, folio 102, 1 aansluitpunt, 1 draad",
+                "-K1, Coil A1-A2, folio 102, 1 aansluitpunt, 1 draad",
                 "-K2, Apparaat",
                 "Ongenummerde draad, een aansluitpunt naar een uiteinde van een nieuwere indeling",
                 "7, L1, -K1:A1 naar een aftakking",

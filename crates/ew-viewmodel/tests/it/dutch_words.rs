@@ -1376,32 +1376,4 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
     );
 }
 
-/// A function kind named by the generic rule (outside the table of `ew-api`'s `function_kind.rs`) reads in Dutch by its
-/// category segments' words, the CP designations after them kept, and in English as `ew-api` prints it.
-#[test]
-fn a_function_kind_of_the_generic_rule_reads_in_dutch() {
-    let kinds = [
-        "Standard silencer",
-        "SolenoidSpring valve52 14",
-        "2P mcb 1-2-3-4",
-        "Fluid ip",
-        "Cylinder singleacting",
-        "Gauge regulator",
-    ];
-    let words = || kinds.map(|k| strings::kind_words(k).unwrap_or_else(|| panic!("words for {k}")));
-    assert!(strings::set_locale("nl"));
-    let nl = words();
-    assert!(strings::set_locale("en"));
-    assert_eq!(words(), kinds.map(str::to_owned), "English as ew-api prints it");
-    assert_eq!(
-        nl,
-        [
-            "Geluiddemper",
-            "Spoel/veer-5/2-ventiel 14",
-            "2P-installatieautomaat 1-2-3-4",
-            "Pneumatisch onderbrekingspunt",
-            "Enkelwerkende cilinder",
-            "Manometerdrukregelaar",
-        ]
-    );
-}
+

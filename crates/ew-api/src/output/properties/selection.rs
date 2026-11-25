@@ -29,7 +29,7 @@ pub enum SelectionWords {
         tag: String,
         /// The kind of its main function as the navigators print it (the FnDef's category); `None` without a
         /// main function or without a copy of its FnDef.
-        kind: Option<String>,
+        kind: Option<crate::Text>,
         /// The folio of its main representation; `None` while the device is not placed.
         folio: Option<String>,
         /// The connection points of its functions.
@@ -97,6 +97,15 @@ impl Session {
     /// point's representation or a structure box; `None` for any other record and for an unknown ID.
     pub fn selection_words(&self, id: Uuid) -> Option<SelectionWords> {
         selection_words(&self.query(), id)
+    }
+
+    /// The words of the Part function row of the function `id` (its template entry's kind, `NO contact 13-14`) in
+    /// every language of the session's texts, which the row's text prints in English; `None` where the grid shows no
+    /// Part function row for it.
+    pub fn part_function_words(&self, id: Uuid) -> Option<crate::Text> {
+        let q = self.query();
+        let f = q.functions().get(Id::from_uuid(id))?;
+        crate::output::navigators::part_function_text(&q, f)
     }
 }
 

@@ -704,7 +704,7 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
             functions
                 .get(Id::from_uuid(*id))
                 .and_then(|f| super::navigators::part_function_text(q, f))
-                .map(Value::String)
+                .map(|t| Value::String(t.to_string()))
         })
         .collect();
     if texts.iter().all(Option::is_none) {

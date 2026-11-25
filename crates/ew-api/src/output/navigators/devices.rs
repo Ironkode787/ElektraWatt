@@ -19,11 +19,12 @@ use super::{
     Builder, Drawable, EARTH_CONNECTION, Keyed, NOT_DRAWN, NavRole, Ranked, drawable, drawn_as_members,
     folios, sorted, state_word,
 };
-use super::{plain, plains};
+use super::{plain, report_cells};
+use crate::Text;
 
 /// One device of the Devices table: the device row with its cells (from the structure overview).
 struct DeviceRow {
-    cells: Vec<String>,
+    cells: Vec<Text>,
     part: String,
 }
 
@@ -40,7 +41,7 @@ fn row_label(q: &Q, d: Id<Device>) -> String {
 /// listed device in natural tag order; child devices under their parent (position, then natural tag); under each
 /// device its functions (main first, FnDef name, ID), under each function its representations. Terminals are not
 /// listed (they are the Terminal strips navigator's rows, as in the structure overview).
-pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
+pub(super) fn devices_table(q: &Q, b: &mut Builder) {
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::StructureOverview, None) else {
         return;
     };
@@ -52,8 +53,11 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         if !q.devices().contains(id) {
             continue;
         }
-        let cells = ew_reports::csv::row_texts(q, &set, i);
-        let part = part_col.and_then(|c| cells.get(c).cloned()).unwrap_or_default();
+        let cells = report_cells(q, &set, i, &["kind"]);
+        let part = part_col
+            .and_then(|c| cells.get(c))
+            .map(ToString::to_string)
+            .unwrap_or_default();
         rows.insert(id, DeviceRow { cells, part });
     }
     let folios = folios(q);
@@ -81,9 +85,13 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         k(&a.0.0).cmp(&k(&b.0.0)).then_with(|| k(&a.0.1).cmp(&k(&b.0.1)))
     });
     let mut fnodes: BTreeMap<String, u32> = BTreeMap::new();
-    let none = super::words_in(&text!("nav-none"), lang);
+    let none = text!("nav-none");
     for ((fun, loc), mut devices) in group_list {
-        let flabel = if fun.is_empty() { none.clone() } else { fun.clone() };
+        let flabel = if fun.is_empty() {
+            none.clone()
+        } else {
+            plain(fun.clone())
+        };
         let fseg = format!("function:{}", if fun.is_empty() { "-" } else { &fun });
         let fnode = match fnodes.get(&fseg) {
             Some(n) => *n,
@@ -92,7 +100,7 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                     None,
                     NavRole::Function,
                     &fseg,
-                    plain(flabel),
+                    flabel,
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -103,13 +111,17 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                 n
             }
         };
-        let llabel = if loc.is_empty() { none.clone() } else { loc.clone() };
+        let llabel = if loc.is_empty() {
+            none.clone()
+        } else {
+            plain(loc.clone())
+        };
         let lseg = format!("location:{}", if loc.is_empty() { "-" } else { &loc });
         let lnode = b.push(
             Some(fnode),
             NavRole::Location,
             &lseg,
-            plain(llabel),
+            llabel,
             Vec::new(),
             Vec::new(),
             Vec::new(),
@@ -206,7 +218,7 @@ fn device_node(
         badges,
         vec![d.as_uuid()],
         drawables,
-        Some(plains(row.cells.clone())),
+        Some(row.cells.clone()),
         facets,
     );
 
@@ -240,12 +252,12 @@ fn device_node(
         let label = q
             .functions()
             .get(*f)
-            .map_or_else(|| name.clone(), |x| function_kind_text(q, x));
+            .map_or_else(|| plain(name.clone()), |x| function_kind_text(q, x));
         let fnode = b.push(
             Some(node),
             NavRole::Function,
             &format!("function:{}", f.as_uuid()),
-            plain(label),
+            label,
             badges,
             vec![f.as_uuid()],
             ds.clone(),

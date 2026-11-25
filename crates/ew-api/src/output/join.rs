@@ -73,8 +73,8 @@ pub struct JoinProposal {
 pub struct JoinedText {
     /// The device's tag as a report prints it.
     pub tag: String,
-    /// The function's kind in words (`NO contact 13-14`).
-    pub kind: String,
+    /// The function's kind in words (`NO contact 13-14`), in every language of the session's texts.
+    pub kind: crate::Text,
     /// `<folio>-<cell>` of the representation, the folio alone without a cell.
     pub place: String,
 }
@@ -227,10 +227,10 @@ impl Session {
                 .filter_map(|g| {
                     q.functions()
                         .get(g)
-                        .map(|g| super::navigators::function_kind_text(&q, g))
+                        .map(|g| super::navigators::function_kind_text(&q, g).to_string())
                 })
                 .collect(),
-            this: super::navigators::function_kind_text(&q, function),
+            this: super::navigators::function_kind_text(&q, function).to_string(),
         })
     }
 
@@ -255,7 +255,7 @@ impl Session {
         let slot = self.unplaced_slots(target, fndef).into_iter().find_map(|(s, _)| {
             q.functions()
                 .get(Id::from_uuid(s))
-                .map(|s| super::navigators::function_kind_text(&q, s))
+                .map(|s| super::navigators::function_kind_text(&q, s).to_string())
         });
         // Typing a tag proposes a contact's join only: a symbol of another kind takes a device's tag in this row for
         // what it means there (a valve's solenoid, a taken tag refused), and joins by J or `rep.join_device`.

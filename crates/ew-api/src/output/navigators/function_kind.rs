@@ -2,13 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A function's FnDef name and its kind in words ("NO contact", "changeover"), which the navigators, the
-//! properties, the catalogue and the part card print.
+//! properties, the catalogue and the part card print: a [`Text`] in every language of the session's texts.
 //!
 //! Not here: the device rows that show them (`devices.rs`); a device's short tag (`navigators.rs`).
 
 use ew_derive::Q;
 use ew_ids::Id;
+use ew_mltext::MlText;
 use ew_schema::{FnDef, Function, TemplateFn, template_entry_of};
+
+use crate::{Text, TextArg};
 
 /// The name of a function's FnDef: its key, else the copy's UUID text.
 pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
@@ -26,7 +29,7 @@ fn fndef_key(q: &Q, f: &Function) -> Option<String> {
         })
 }
 
-/// The human text of a function's kind: the FnDef's last category entry, then the one before it
+/// The words of a function's kind: the FnDef's last category entry, then the one before it
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
 /// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
 /// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
@@ -34,32 +37,42 @@ fn fndef_key(q: &Q, f: &Function) -> Option<String> {
 /// a category of fewer
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
-pub(crate) fn function_kind_text(q: &Q, f: &Function) -> String {
-    function_kind_or_key(q, f).unwrap_or_else(|| fndef_name(q, f))
+pub(crate) fn function_kind_text(q: &Q, f: &Function) -> Text {
+    function_kind_or_key(q, f).unwrap_or_else(|| super::plain(fndef_name(q, f)))
 }
 
-/// [`function_kind_text`] without its last fallback, the copy's UUID text: the category's text, else the FnDef's key,
+/// [`function_kind_text`] without its last fallback, the copy's UUID text: the category's words, else the FnDef's key,
 /// else `None` (the live description's `<kind>`).
-pub(crate) fn function_kind_or_key(q: &Q, f: &Function) -> Option<String> {
+pub(crate) fn function_kind_or_key(q: &Q, f: &Function) -> Option<Text> {
     let fndefs = q.fndefs();
     let def = fndefs
         .get(f.def)
         .map(|c| &c.item)
         .or_else(|| crate::output::editing::starter_fndef(f.def).map(|c| &c.item));
     let Some(def) = def else {
-        return fndef_key(q, f);
+        return fndef_key(q, f).map(super::plain);
     };
     let cps = template_cp_designations(q, f, def).unwrap_or_else(|| {
         let mut d: Vec<(u16, &str)> = def.cps.iter().map(|c| (c.idx, c.designation.as_str())).collect();
         d.sort_unstable();
         d.into_iter().map(|(_, s)| s.to_owned()).collect()
     });
-    kind_text(def, &cps).or_else(|| fndef_key(q, f))
+    kind_text(def, &cps).or_else(|| fndef_key(q, f).map(super::plain))
 }
 
-/// The kind text of a FnDef with the given CP designations (see [`function_kind_text`]): `None` when its category has
-/// fewer than two non-empty entries. The place catalogue reads it for a template entry not yet placed.
-pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
+/// The kind words of a FnDef with the given CP designations (see [`function_kind_text`]) in every language of the
+/// session's texts: `None` when its category has fewer than two non-empty entries. The place catalogue reads it for a
+/// template entry not yet placed.
+///
+/// A kind of [`KIND_WORDS`] reads in its words. Else, by the generic rule, a last entry that only repeats the CP
+/// designations run together (a coil's `A1A2`) is dropped and the entry before it leads (`Coil A1-A2`, not `A1A2
+/// coil A1-A2`); any other last entry leads (spelt out by [`LAST_ENTRY_WORDS`]: `Changeover contact 11-12-14` beside
+/// `NO contact 13-14`) and the one before it follows, lower-cased. Each entry reads in its segment's words
+/// (`kind-segment-<entry>`), two of them joined by `kind-generic` (a Dutch segment carries its own joint:
+/// "NO-contact", "Wisselcontact"); an entry without words reads as written, and so does a leading entry whose words
+/// end in their joint where no second words follow ("3P manualswitch", not "3P- manualswitch"). The kind leads with
+/// a capital. The FnDef keeps its category.
+pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<Text> {
     let (a, b, c) = &def.category;
     let cat: Vec<&str> = [a, b, c]
         .iter()
@@ -69,50 +82,84 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
     let [.., before, last] = cat.as_slice() else {
         return None;
     };
-    // A kind outside the contacts and coils reads in plain words from the display mapping, the CP designations
-    // following as the rule below adds them where the mapping keeps them.
-    if let Some((words, with_cps)) = kind_words(before, last) {
-        let mut out = words.to_owned();
-        if with_cps && !cps.is_empty() {
-            out.push(' ');
-            out.push_str(&cps.join("-"));
+    let cps = cps.join("-");
+    let catalogue = crate::catalogue();
+    let words = |tag: &str| -> String {
+        let say = |t: &Text| catalogue.text_or_english(t, tag);
+        if let Some((key, with_cps)) = kind_words(before, last) {
+            return joined(&[&say(&key_text(key)), if with_cps { &cps } else { "" }]);
         }
-        return Some(out);
-    }
-    // A last entry that only repeats the CP designations run together (a coil's
-    // `A1A2`) is dropped, and the entry before it leads, capitalised: `Coil A1-A2`, not `A1A2 coil A1-A2`.
-    let joined: String = cps.concat();
-    let mut out = if !joined.is_empty() && last.eq_ignore_ascii_case(&joined) {
-        let mut chars = before.chars();
-        chars
-            .next()
-            .map(|c| c.to_uppercase().chain(chars).collect())
-            .unwrap_or_default()
-    } else {
-        // The change-over kind is spelled out, in sentence case (`Changeover contact 11-12-14` beside
-        // `NO contact 13-14`). The FnDef keeps its category.
-        let last = LAST_ENTRY_WORDS
-            .iter()
-            .find(|(entry, _)| last.eq_ignore_ascii_case(entry))
-            .map_or(*last, |(_, word)| crate::text_english(word).unwrap_or(word));
-        let mut chars = last.chars();
-        let last: String = chars
-            .next()
-            .map(|c| c.to_uppercase().chain(chars).collect())
-            .unwrap_or_default();
-        format!("{last} {}", before.to_lowercase())
+        let (lead, follow) = if !cps.is_empty() && last.eq_ignore_ascii_case(&cps.replace('-', "")) {
+            (capitalised(before), None)
+        } else {
+            let last = LAST_ENTRY_WORDS
+                .iter()
+                .find(|(entry, _)| last.eq_ignore_ascii_case(entry))
+                .map_or(*last, |(_, key)| crate::text_english(key).unwrap_or(key));
+            (capitalised(&last), Some(before.to_lowercase()))
+        };
+        let segment = |entry: &str| segment_text(entry).map(|t| say(&t));
+        let (head, rest) = match (segment(&lead), follow.as_deref().and_then(segment)) {
+            (Some(a), Some(b)) => (say(&text!("kind-generic", a, b)), None),
+            (Some(a), None) if a.ends_with('-') => (lead.clone(), follow),
+            (Some(a), None) => (a.trim_end().to_owned(), follow),
+            (None, Some(b)) => (format!("{lead} {b}"), None),
+            (None, None) => (lead.clone(), follow),
+        };
+        joined(&[&capitalised_head(&head), rest.as_deref().unwrap_or(""), &cps])
     };
-    if !cps.is_empty() {
-        out.push(' ');
-        out.push_str(&cps.join("-"));
+    Some(Text::bare(TextArg::Ml(MlText::from_langs(
+        (catalogue.tags().into_iter()).filter_map(|tag| Some((tag.parse().ok()?, words(tag)))),
+    ))))
+}
+
+/// The text of a key of the session's texts that the code names (`key!`).
+fn key_text(key: &'static str) -> Text {
+    Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
+}
+
+/// The words of a category entry as a segment of the generic rule (`kind-segment-<entry>`, lower-cased): the entry
+/// names the key; `None` for an entry without words.
+fn segment_text(entry: &str) -> Option<Text> {
+    let key = format!("kind-segment-{}", entry.to_lowercase());
+    let i = crate::TEXTS
+        .binary_search_by(|(k, _)| (*k).cmp(key.as_str()))
+        .ok()?;
+    let (key, english) = crate::TEXTS[i];
+    Some(Text::checked_by_macro(key, english, Vec::new()))
+}
+
+/// The parts that are not empty, joined by spaces.
+fn joined(parts: &[&str]) -> String {
+    let parts: Vec<&str> = parts.iter().copied().filter(|p| !p.is_empty()).collect();
+    parts.join(" ")
+}
+
+/// A word with its first letter upper-cased.
+fn capitalised(word: &str) -> String {
+    let mut chars = word.chars();
+    chars
+        .next()
+        .map(|c| c.to_uppercase().chain(chars).collect())
+        .unwrap_or_default()
+}
+
+/// A kind's leading words with a capital, unless their first word holds a digit ("3P-motor") or does not start with
+/// a lower-case letter ("NO-contact").
+fn capitalised_head(head: &str) -> String {
+    let first_word = head.split(char::is_whitespace).next().unwrap_or_default();
+    match head.chars().next() {
+        Some(first) if first.is_lowercase() && !first_word.chars().any(|c| c.is_ascii_digit()) => {
+            capitalised(head)
+        }
+        _ => head.to_owned(),
     }
-    Some(out)
 }
 
 /// The display words of FnDef categories by their last two entries, where the generic rule of [`kind_text`]
 /// reads poorly ("Generic decoration", "Point ip 1"): the entry before the last, the last entry, the words in sentence
 /// case as the key of the session's text, and whether the CP designations follow. Display text only: the FnDef keeps its
-/// category. The names print in English here; the window words them in its language by the same keys.
+/// category.
 const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
     ("Decoration", "Generic", key!("kind-words-decoration"), false),
     ("Overview", "Generic", key!("kind-words-overview"), false),
@@ -188,13 +235,13 @@ const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
 /// "changeover"); in the same localisation as [`KIND_WORDS`].
 const LAST_ENTRY_WORDS: &[(&str, &str)] = &[("CO", key!("kind-segment-changeover"))];
 
-/// The display words of a FnDef category by its last two entries ([`KIND_WORDS`]), with whether the CP designations
-/// follow; `None` for every other category, which keeps the generic rule.
+/// The key of the display words of a FnDef category by its last two entries ([`KIND_WORDS`]), with whether the CP
+/// designations follow; `None` for every other category, which keeps the generic rule.
 fn kind_words(before: &str, last: &str) -> Option<(&'static str, bool)> {
     KIND_WORDS
         .iter()
         .find(|(b, l, _, _)| *b == before && *l == last)
-        .map(|(_, _, words, with_cps)| (crate::text_english(words).unwrap_or(words), *with_cps))
+        .map(|(_, _, key, with_cps)| (*key, *with_cps))
 }
 
 /// A function's kind in the navigators' own words, without its CP designations ("Interruption point"): the
@@ -215,13 +262,13 @@ pub(crate) fn function_kind_words(q: &Q, f: &Function) -> Option<&'static str> {
     let [.., before, last] = cat.as_slice() else {
         return None;
     };
-    kind_words(before, last).map(|(words, _)| words)
+    kind_words(before, last).map(|(key, _)| crate::text_english(key).unwrap_or(key))
 }
 
 /// The Properties grid's "Part function" text of a function: [`function_kind_text`] when the function
 /// records `template_entry` and that entry resolves among its device's part uses (`ew_schema::template_entry_of`);
 /// `None` otherwise (the row is hidden).
-pub(crate) fn part_function_text(q: &Q, f: &Function) -> Option<String> {
+pub(crate) fn part_function_text(q: &Q, f: &Function) -> Option<Text> {
     f.template_entry?;
     template_entry_resolves(q, f).then(|| function_kind_text(q, f))
 }
