@@ -299,6 +299,9 @@ pub struct App {
     /// The band of the tool options card's controls in the last frame: the card does not fade while the pointer is
     /// on it.
     options_band: Option<egui::Rect>,
+    /// Whether a field of the tool options card held the keys at the end of the last frame: Escape is then the
+    /// field's, which leaves it without committing, and the tool stays.
+    options_typing: bool,
     /// Whether the window had the operating system's focus in the last frame.
     window_focused: Option<bool>,
     /// How many times the window regained the focus and asked for the frames that repaint it (tests).
@@ -385,6 +388,7 @@ impl App {
             hud_rect: None,
             options_rect: None,
             options_band: None,
+            options_typing: false,
             window_focused: None,
             focus_repaints: 0,
             new_project_checked: 0.0,

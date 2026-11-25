@@ -614,3 +614,26 @@ fn an_empty_pin_name_is_said_under_the_field() {
     settle(&mut h);
     assert_eq!(pin_names(&h, rep), ["PE"]);
 }
+
+/// The marker's cross-section field commits on Enter or on leaving, as every field of the tool options card does,
+/// and Escape leaves it unchanged.
+#[test]
+fn escape_leaves_the_marker_field_without_committing() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(&tmp, "101");
+    dispatch(&mut h, "tool.marker", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    let text = |h: &Harness<'_, App>| match h.state().shell().tool_ghost() {
+        Some(Ghost::Marker { text, .. }) => text,
+        other => panic!("not the Wire marker's ghost: {other:?}"),
+    };
+    type_field(&mut h, key!("action-marker-csa"), "4", false);
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(text(&h), None, "Escape does not commit");
+    assert_eq!(h.state().shell().tool().name(), "marker", "Escape is the field's");
+    type_field(&mut h, key!("action-marker-csa"), "4", true);
+    assert_eq!(text(&h).as_deref(), Some("4"), "Enter commits");
+}

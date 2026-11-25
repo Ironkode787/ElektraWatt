@@ -45,6 +45,7 @@ impl App {
         if !(ip || text || marker || structure_box || layout.is_some() || draw.is_some()) {
             self.options_rect = None;
             self.options_band = None;
+            self.options_typing = false;
             return None;
         }
         let t = crate::theme::current(ctx);
@@ -200,6 +201,11 @@ impl App {
             ctx.memory_mut(|m| m.surrender_focus(focused));
         }
         self.options_band = Some(egui::Rect::from_min_size(band_at, band_size));
+        self.options_typing = ctx.text_edit_focused()
+            && ctx
+                .memory(|m| m.focused())
+                .and_then(|f| ctx.read_response(f))
+                .is_some_and(|r| r.layer_id == band.response.layer_id);
         self.options_rect = Some(card.response.rect);
         Some((card.response.rect, faded))
     }

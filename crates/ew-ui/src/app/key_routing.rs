@@ -96,6 +96,11 @@ impl App {
         {
             return true;
         }
+        // So is Escape in a field of the tool options card: it leaves the field without committing (as egui drops the
+        // focus before the frame, by the field the last frame left typing), and the tool stays.
+        if self.options_typing && ctx.input(|i| i.key_pressed(Key::Escape)) {
+            return true;
+        }
         // While the symbol editor shows, Escape is its own (a gesture ends, then Select).
         if !palette_open
             && self.shell.has_project()

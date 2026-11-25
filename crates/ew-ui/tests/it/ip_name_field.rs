@@ -688,3 +688,22 @@ fn a_tool_chosen_while_a_navigator_has_the_focus_takes_the_keys() {
     settle(&mut h);
     assert_eq!(ips(&h), before, "one Ctrl+Z takes the point back");
 }
+
+/// The name field commits as every field of the tool options card does: not while it is typed, on Enter or on
+/// leaving, and Escape leaves it without the name.
+#[test]
+fn the_ip_name_commits_on_enter_and_escape_leaves_it_without_the_name() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(&tmp, "103");
+    press(&mut h, Key::P);
+    let proposed = ghost_name(&h);
+    type_in_name_field(&mut h, "X9");
+    assert_eq!(ghost_name(&h), proposed, "not while it is typed");
+    press(&mut h, Key::Escape);
+    assert_eq!(h.state().shell().tool().name(), "ip", "Escape is the field's");
+    assert_eq!(ghost_name(&h), proposed, "Escape does not commit");
+    assert_eq!(h.state().shell().ip_typed_name(), None);
+    type_in_name_field(&mut h, "X9");
+    press(&mut h, Key::Enter);
+    assert_eq!(ghost_name(&h), "X9", "Enter commits");
+}

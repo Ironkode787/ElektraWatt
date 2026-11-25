@@ -126,27 +126,23 @@ pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut 
 }
 
 /// The Wire marker tool's fields in the tool strip: the cross-section and the colours, each sent as `marker.fields`
-/// with its member (`""` clears it) when it loses the focus, by Enter, Tab, a click on another field or the pointer
-/// going back to the sheet, as Properties takes a typed value (an earlier version sent it on Enter only, so a value
-/// left by a click was lost and the marker printed the wire's own cross-section): what the fields show is what the
-/// marker prints.
+/// with its member (`""` clears it) when it is left changed, by Enter, Tab, a click on another field or the pointer
+/// going back to the sheet, as every field of the tool options card commits; Escape leaves it unchanged: what the
+/// fields show is what the marker prints.
 pub(crate) fn marker_fields(
     ui: &mut Ui,
     csa: &mut String,
     colours: &mut String,
     events: &mut Vec<crate::app::Event>,
 ) {
-    for (label_key, buffer, member) in [
+    for (label_key, value, member) in [
         (key!("action-marker-csa"), csa, "csa"),
         (key!("action-marker-colours"), colours, "colours"),
     ] {
-        ui.label(strings::text(label_key));
-        let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(120.0));
-        let label = strings::text(label_key).to_owned();
-        edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-        if edit.lost_focus() {
+        let label = strings::text(label_key);
+        if crate::components::committed_text(ui, ("marker", member), label, Some(label), value, 120.0, true) {
             let mut params = serde_json::Map::new();
-            params.insert(member.to_owned(), serde_json::json!(buffer.trim()));
+            params.insert(member.to_owned(), serde_json::json!(value.trim()));
             events.push(crate::app::Event::Action(
                 "marker.fields",
                 serde_json::Value::Object(params),
@@ -156,7 +152,7 @@ pub(crate) fn marker_fields(
 }
 
 /// The Structure box tool's fields in the tool strip: the style (`structure_box.fields` at once), the
-/// caption and location (each sends its member when it loses the focus, as the Wire marker's fields do; `""` clears
+/// caption and location (each sends its member when it is left changed, as the Wire marker's fields do; `""` clears
 /// it) and the external reference by printed text (a choice sends its ID, "none" clears it).
 pub(crate) fn structure_box_fields(
     ui: &mut Ui,
@@ -185,7 +181,7 @@ pub(crate) fn structure_box_fields(
             }
         },
     );
-    for (label_key, buffer, member, width) in [
+    for (label_key, value, member, width) in [
         (
             key!("action-structure-box-caption"),
             caption,
@@ -199,13 +195,18 @@ pub(crate) fn structure_box_fields(
             140.0_f32,
         ),
     ] {
-        ui.label(strings::text(label_key));
-        let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(width));
-        let label = strings::text(label_key).to_owned();
-        edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-        if edit.lost_focus() {
+        let label = strings::text(label_key);
+        if crate::components::committed_text(
+            ui,
+            ("structure-box", member),
+            label,
+            Some(label),
+            value,
+            width,
+            true,
+        ) {
             let mut params = serde_json::Map::new();
-            params.insert(member.to_owned(), serde_json::json!(buffer.trim()));
+            params.insert(member.to_owned(), serde_json::json!(value.trim()));
             events.push(crate::app::Event::Action(
                 "structure_box.fields",
                 serde_json::Value::Object(params),
@@ -260,8 +261,9 @@ pub(crate) fn ip_name_field_id() -> egui::Id {
     egui::Id::unique("ip-name-field")
 }
 
-/// The IP tool's fields in the tool strip: the name (every change sends `ip.name`) and the external
-/// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
+/// The IP tool's fields in the tool strip: the name (sent as `ip.name` when it is left changed, as every field of the
+/// tool options card commits; Escape leaves it without the name) and the external reference, offered by printed text
+/// (a choice sends `ip.external` with its ID, "none" with `null`).
 ///
 /// While it does not have the focus the field shows `typed`, the name typed that is still to be used
 /// ([`ShellModel::ip_typed_name`](ew_viewmodel::shell::ShellModel::ip_typed_name)), so it keeps the name after the
@@ -285,9 +287,6 @@ pub(crate) fn ip_fields(
     } = *shown;
     ui.label(strings::text(key!("action-ip-name")));
     let id = ip_name_field_id();
-    if !ui.memory(|m| m.has_focus(id)) {
-        typed.unwrap_or_default().clone_into(name);
-    }
     // `lock_focus(true)` keeps Tab from moving the focus to the next widget in the strip (a single-line field inserts no
     // tab): Tab, like Enter, ends the name and gives the keys back to the tool.
     let mut field = egui::TextEdit::singleline(name)
@@ -319,15 +318,22 @@ pub(crate) fn ip_fields(
     if edit.has_focus() && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Tab)) {
         edit.surrender_focus();
     }
-    // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
-    // by a click on the canvas, whose press the window dispatches before this card's events and before the field
-    // reports the lost focus. Erasing the field sends the empty text, which cancels the
-    // typed name. Out of the focus the field follows the tool's typed name.
-    if edit.changed() {
-        events.push(crate::app::Event::Action(
-            "ip.name",
-            serde_json::json!({ "text": name.trim() }),
-        ));
+    // The name reaches the tool when the field is left: by Enter, by Tab, or by the pointer going back to the sheet,
+    // which takes the focus from the field (the tool options card) before a click there places the point. Erasing the
+    // field sends the empty text, which cancels the typed name; Escape leaves the field without the name. Out of the
+    // focus the field follows the tool's typed name.
+    let typed = typed.unwrap_or_default();
+    if edit.lost_focus() {
+        if crate::components::cancelled(ui) {
+            typed.clone_into(name);
+        } else if name.trim() != typed {
+            events.push(crate::app::Event::Action(
+                "ip.name",
+                serde_json::json!({ "text": name.trim() }),
+            ));
+        }
+    } else if !edit.has_focus() {
+        typed.clone_into(name);
     }
     // Source | Target as two choices (D alone was learnt from a toast); D still toggles.
     if let Some(direction) = direction {
@@ -454,28 +460,22 @@ pub(crate) fn draw_fields(
         ("width", key!("draw-options-width"), width),
         ("height", key!("draw-options-height"), height),
     ] {
-        let label = ui.label(strings::text(label));
-        let id = egui::Id::unique(("draw-size", name));
-        let mut buffer = ui
-            .data_mut(|d| d.get_temp::<String>(id))
-            .unwrap_or_else(|| value.clone());
-        let response = ui
-            .add(
-                egui::TextEdit::singleline(&mut buffer)
-                    .desired_width(48.0)
-                    .id(id.with("edit")),
-            )
-            .labelled_by(label.id);
-        if response.lost_focus() && buffer.trim() != value.as_str() {
+        let label = strings::text(label);
+        let mut typed = value.clone();
+        if crate::components::committed_text(
+            ui,
+            ("draw-size", name),
+            label,
+            Some(label),
+            &mut typed,
+            48.0,
+            true,
+        ) && typed.trim() != value.as_str()
+        {
             events.push(crate::app::Event::Action(
                 "layout.draw_options",
-                serde_json::json!({ name: buffer.trim() }),
+                serde_json::json!({ name: typed.trim() }),
             ));
-        }
-        if response.has_focus() {
-            ui.data_mut(|d| d.insert_temp(id, buffer));
-        } else {
-            ui.data_mut(|d| d.remove::<String>(id));
         }
     }
 }
