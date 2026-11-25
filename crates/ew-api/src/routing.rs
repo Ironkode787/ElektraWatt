@@ -90,10 +90,10 @@ pub fn route_nm(ticks: Ticks, route: &[Pt], a: (i64, i64), b: (i64, i64)) -> Vec
     if n == 2 && a.0 != b.0 && a.1 != b.1 {
         // A straight route between two numbers of one grid line: a jog at the grid line nearest its middle.
         let mid = if vertical(route[0], route[1]) {
-            let y = ticks.nm(i32::try_from((i64::from(route[0].y) + i64::from(route[1].y)) / 2).unwrap_or(0));
+            let y = ticks.nm(ew_drafting::jog_line(route[0].y, route[1].y));
             vec![(a.0, y), (b.0, y)]
         } else {
-            let x = ticks.nm(i32::try_from((i64::from(route[0].x) + i64::from(route[1].x)) / 2).unwrap_or(0));
+            let x = ticks.nm(ew_drafting::jog_line(route[0].x, route[1].x));
             vec![(x, a.1), (x, b.1)]
         };
         pts.splice(1..1, mid);
@@ -420,4 +420,21 @@ pub fn unrouted_line(
     (b, b_dir): ((i64, i64), Option<Dir>),
 ) -> Vec<(i64, i64)> {
     ew_drafting::unrouted_line((a, a_dir.map(side)), (b, b_dir.map(side)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A straight route in ticks between two ends 1 nm apart across it (ends at 0 and 40 ticks) takes its jog at the
+    /// grid line nearest its middle, tick 16, as the search's `fit` does: on the half grid, so that F1 does not take
+    /// the stored route again.
+    #[test]
+    fn a_straight_route_between_ends_off_one_line_jogs_on_the_grid() {
+        let ticks = Ticks::of(Grid::MM4);
+        let route = [Pt::new(0, 0), Pt::new(0, 40)];
+        let (a, b) = ((0, 0), (1, ticks.nm(40)));
+        let y = ticks.nm(16);
+        assert_eq!(route_nm(ticks, &route, a, b), [a, (0, y), (1, y), b]);
+    }
 }

@@ -47,7 +47,7 @@ use crate::consts::{
     TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP, WINDOWS,
 };
 use crate::geom;
-use crate::model::{JunctionId, PinId, Pt, Rect, Side, Tick};
+use crate::model::{JunctionId, PinId, Pt, Rect, Side, Tick, jog_line};
 use crate::occupancy::{Holder, Move, Node, Occupancy, node_of};
 
 /// A heading, in the rank order of the tie rule: right < down < left < up.
@@ -841,16 +841,11 @@ pub fn fit(pts: Vec<Pt>) -> Vec<Pt> {
         && a.x != b.x
         && a.y != b.y
     {
-        let near = |v: i64| -> Tick {
-            let s = i64::from(TICKS_PER_STEP);
-            Tick::try_from((v + s / 2).div_euclid(s) * s).unwrap_or_default()
-        };
-        let mid = |p: Tick, q: Tick| near((i64::from(p) + i64::from(q)).div_euclid(2));
         pts = if (b.y - a.y).abs() >= (b.x - a.x).abs() {
-            let y = mid(a.y, b.y);
+            let y = jog_line(a.y, b.y);
             vec![a, Pt::new(a.x, y), Pt::new(b.x, y), b]
         } else {
-            let x = mid(a.x, b.x);
+            let x = jog_line(a.x, b.x);
             vec![a, Pt::new(x, a.y), Pt::new(x, b.y), b]
         };
     }

@@ -34,6 +34,15 @@ pub(crate) fn grid_away(v: Tick) -> Tick {
     }
 }
 
+/// The grid line nearest the middle of `p` and `q`, a half step rounding up: where a straight route between two ends
+/// that are not on one line takes its jog, so that it stays square and on the grid (the search's `fit` and the route
+/// in page nm alike).
+pub fn jog_line(p: Tick, q: Tick) -> Tick {
+    let s = i64::from(TICKS_PER_STEP);
+    let mid = (i64::from(p) + i64::from(q)).div_euclid(2);
+    Tick::try_from((mid + s / 2).div_euclid(s) * s).unwrap_or_default()
+}
+
 /// Groups by union: members `0..n`, each group named by its smallest member.
 pub(crate) struct Groups(Vec<usize>);
 
