@@ -268,7 +268,7 @@ fn resolve_file(
         if key == conflict || key.0 == Kind::Project || key.0.is_library() || keep.contains(&key) {
             continue;
         }
-        let Some(record) = tx.row(&key).map(|row| record_of(&row)).transpose()? else {
+        let Some(record) = tx.row(&key).and_then(|row| row.to_record()) else {
             continue;
         };
         if file_of(tx, &record).is_some_and(|file| file.as_str() == path) {
@@ -282,15 +282,6 @@ fn resolve_file(
     tx.delete_many(&gone)?;
     remove_conflict(tx, id);
     Ok(())
-}
-
-/// The record of a row of a JSON Lines kind.
-fn record_of(row: &AnyRow) -> Result<Record, CmdError> {
-    let mut value = row_json(row)?;
-    if let Value::Object(members) = &mut value {
-        members.insert("$k".to_owned(), Value::from(row.kind().name()));
-    }
-    Record::from_value(value).map_err(|e| CmdError::internal(format!("a record does not read back: {e}")))
 }
 
 /// The project-relative file a record of the transaction lives in: `ew_format::record_file` over the
@@ -333,7 +324,7 @@ impl Anchors for TxAnchors<'_, '_> {
     }
 
     fn target_file(&self, kind: Kind, id: AnyId) -> Option<FilePath> {
-        let target = record_of(&self.0.row(&(kind, id))?).ok()?;
+        let target = self.0.row(&(kind, id))?.to_record()?;
         record_file(&target, self).ok()
     }
 }
