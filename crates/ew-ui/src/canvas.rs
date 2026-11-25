@@ -152,7 +152,7 @@ struct GroupView {
     /// Whether the primary button went down on this canvas and has not come up yet (its release is the tool's).
     pressed: bool,
     /// The input time (egui's, seconds) and position of the last primary press: a second one within
-    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` for a tool that finishes on one
+    /// [`DOUBLE_CLICK_S`] and [`DOUBLE_CLICK_PT`] is a double click, `tool.finish` for a tool that finishes on one
     /// (measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
     /// decided without a sleep).
     last_press: Option<(f64, Pos2)>,

@@ -68,10 +68,9 @@ const STRIP_POINTS: u32 = 28;
 const MAX_FRAME_SIDE: (u32, u32) = (3840, 2400);
 /// One frame of the frame clock, in seconds.
 const FRAME_S: f64 = 1.0 / 60.0;
-/// The pause a double click waits after an earlier click, in seconds: egui's double-click interval (its default
-/// `max_double_click_delay`) and one frame, so that the double click is not counted as a triple click with the click
-/// before it.
-const CLICK_PAUSE_S: f64 = 0.3 + FRAME_S;
+/// The pause a double click waits after an earlier click, in seconds: the window's double-click interval and one
+/// frame, so that the double click is not counted as a triple click with the click before it.
+const CLICK_PAUSE_S: f64 = crate::canvas::DOUBLE_CLICK_S + FRAME_S;
 /// At most this many frames settle one input (2 s of frame time).
 const MAX_SETTLE_FRAMES: u32 = 120;
 /// The steps of a drag between its press and its release.

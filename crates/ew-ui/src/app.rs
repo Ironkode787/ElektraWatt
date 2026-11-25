@@ -319,13 +319,18 @@ pub struct App {
 /// How many dispatched actions [`App::dispatched`] keeps.
 const DISPATCH_LOG: usize = 256;
 
-/// Prepares an egui context for the shell: installs the bundled fonts and switches egui's own keyboard zoom off, so
-/// that Ctrl+Plus, Ctrl+Minus and Ctrl+0 reach the canvas and never the UI scale (which stays `view.ui_scale`).
+/// Prepares an egui context for the shell: installs the bundled fonts, switches egui's own keyboard zoom off, so
+/// that Ctrl+Plus, Ctrl+Minus and Ctrl+0 reach the canvas and never the UI scale (which stays `view.ui_scale`), and
+/// gives egui the canvas's double click ([`crate::canvas::DOUBLE_CLICK_S`], [`crate::canvas::DOUBLE_CLICK_PT`]).
 /// Call it before the first frame (eframe's creation closure, the test harness's context setup), so that the first
 /// frame is laid out with them.
 pub fn setup(ctx: &egui::Context) {
     crate::fonts::install(ctx);
-    ctx.options_mut(|o| o.zoom_with_keyboard = false);
+    ctx.options_mut(|o| {
+        o.zoom_with_keyboard = false;
+        o.input_options.max_double_click_delay = crate::canvas::DOUBLE_CLICK_S;
+        o.input_options.max_click_dist = crate::canvas::DOUBLE_CLICK_PT;
+    });
 }
 
 impl App {

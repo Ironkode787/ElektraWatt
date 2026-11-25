@@ -466,3 +466,41 @@ fn tile_parity_the_stitched_tiles_of_folio_103_match_the_whole_page_raster() {
         assert!(percent <= 0.5, "{percent:.4} % differ at {dpi} dpi");
     }
 }
+
+/// A double click is one rule in the whole window: a widget takes the canvas's interval and distance, so two clicks
+/// 0.4 s and 3 points apart are a double click on a row or a button as on the canvas, and 0.6 s or 5 points apart are
+/// two clicks.
+#[test]
+fn a_widget_double_clicks_by_the_canvas_interval_and_distance() {
+    let double = |gap: f64, dx: f32| {
+        let ctx = egui::Context::default();
+        ew_ui::app::setup(&ctx);
+        let at = Pos2::new(50.0, 50.0);
+        let mut seen = false;
+        for (t, x, pressed) in [(0.0, 0.0, true), (0.01, 0.0, false), (gap, dx, true), (gap + 0.01, dx, false)] {
+            let pos = at + Vec2::new(x, 0.0);
+            let input = egui::RawInput {
+                time: Some(t),
+                events: vec![
+                    Event::PointerMoved(pos),
+                    Event::PointerButton {
+                        pos,
+                        button: PointerButton::Primary,
+                        pressed,
+                        modifiers: Modifiers::NONE,
+                    },
+                ],
+                ..Default::default()
+            };
+            let mut out = ctx.run_ui(input, |ui| {
+                let area = egui::Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.0));
+                seen |= ui.allocate_rect(area, egui::Sense::click()).double_clicked();
+            });
+            out.textures_delta.clear();
+        }
+        seen
+    };
+    assert!(double(0.4, 3.0), "0.4 s and 3 points apart");
+    assert!(!double(0.6, 0.0), "0.6 s apart");
+    assert!(!double(0.4, 5.0), "5 points apart");
+}

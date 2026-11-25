@@ -248,9 +248,9 @@ impl CanvasHost {
                 // presses: two quick clicks of the Place tool place twice.
                 let now = ui.input(|i| i.time);
                 let double = finishes
-                    && self.views[group]
-                        .last_press
-                        .is_some_and(|(t, p)| now - t <= DOUBLE_CLICK_S && p.distance(pos) <= 4.0);
+                    && self.views[group].last_press.is_some_and(|(t, p)| {
+                        now - t <= DOUBLE_CLICK_S && p.distance(pos) <= DOUBLE_CLICK_PT
+                    });
                 if double {
                     events.push(Event::Action("tool.finish", json!({})));
                     self.views[group].last_press = None;
@@ -553,8 +553,13 @@ pub(crate) fn shows_scroll_bar(canvas: &CanvasModel, vertical: bool) -> bool {
     v0 > 0 || v1 < end
 }
 
-/// The double-click interval of the window in seconds: the common platform default.
+/// The double-click interval of the window in seconds: the common platform default. The canvas reads it, and
+/// [`crate::app::setup`] gives it to egui, so that a row, a button and the canvas double-click alike.
 pub const DOUBLE_CLICK_S: f64 = 0.5;
+
+/// How far apart in points the two presses of a double click may be, for the canvas and egui alike
+/// ([`DOUBLE_CLICK_S`]); egui also reads it as the distance a press may move and still be a click.
+pub const DOUBLE_CLICK_PT: f32 = 4.0;
 
 /// A sheet point in nm as millimetres.
 fn mm(p: (i64, i64)) -> (f64, f64) {
