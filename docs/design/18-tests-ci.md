@@ -775,5 +775,6 @@ hosted versions. **NFR-DOC-02** is met: `docs-gen` writes a reference page for e
 tutorial is a script run as a test with its page lint (`bin/elektrawatt/tests/it/tutorials.rs`), and the headless one's
 commands run on a copy of the sample (`bin/ew/tests/it/headless_tutorial.rs`). **NFR-I18N-07** is met for 0.1.0's part:
 `docs/book/po/nl.po` translates the introduction, the tutorials page and the tutorials, the rule `translations` of
-`cargo xtask rules` fails on an untranslated tutorial or introduction message, and Weblate comes at 1.0.
+`cargo xtask rules` fails on an untranslated tutorial or introduction message and on a key of a crate's English texts
+that a language folder of the crate lacks, and Weblate comes at 1.0.
 

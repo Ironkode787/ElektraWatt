@@ -1416,7 +1416,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/reexports.rs` |  | The re-export rule of `cargo xtask rules` (ADR-0035 decision 4, architecture §3 rule 7: a crate names what it uses): no `pub use` of another workspace crate, or of an item of one, outside the facades of [`FACADES`], so that every item has one path and a search on its crate finds its users. |
 | `src/repo.rs` |  | Helpers for the repository-wide checks: running git and listing the committed files. |
 | `src/symbols.rs` |  | `symbols-qet10`: seals the native starter library documents and generates the QET edition. |
-| `src/translations.rs` |  | The translation status as a rule of `cargo xtask rules` (NFR-I18N-07): the Dutch guide translates every message of the introduction and of the tutorials (the pages of `src/tutorials/`) that the template `messages.pot` holds, none of them empty or fuzzy. |
+| `src/translations.rs` |  | The translation status as a rule of `cargo xtask rules` (NFR-I18N-07), in two parts: |
 | `src/ui_strings.rs` |  | The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal with a letter reaches an egui text call in `crates/ew-ui/src`. |
 
 ## No head comment

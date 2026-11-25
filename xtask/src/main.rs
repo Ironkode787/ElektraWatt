@@ -414,8 +414,9 @@ const RULES: &[(&str, &str, Rule)] = &[
     ),
     (
         "translations",
-        "a message of the Dutch guide's introduction or tutorials untranslated",
-        |root, _| translations::check(root),
+        "a key of a crate's English texts without its entry in another language, or a message of the Dutch \
+         guide's introduction or tutorials untranslated",
+        |root, ws| translations::check(root, &ws.files),
     ),
     (
         "size-ceiling",

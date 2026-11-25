@@ -15,8 +15,11 @@
 //! checked on the product: the step `briefs` builds `elektrawatt` and `ew`, writes the action list of the reference
 //! (`target/reference/actions.txt`) and replays every brief of `tools/blind/tasks/` (`check-brief`), and fails where a
 //! program, the list or a hard item is missing. The paths a change touches are those of the commits no remote holds
-//! yet and those not yet committed; a check of the whole workspace replays the briefs whatever it touches. A change of
-//! a text file needs nothing more: the rule `translations` runs with the rules.
+//! yet and those not yet committed; a check of the whole workspace replays the briefs whatever it touches. A text file
+//! of a crate (`texts/<language>/*.ftl`) asks for no package beyond its own: the rule `translations`, which every
+//! check runs, names a key of the English texts that another language folder of the crate lacks. A guide page asks
+//! for `cargo xtask book-po` (its catalogue is made before a release), after which the same rule names an
+//! introduction's or a tutorial's message the Dutch guide leaves untranslated.
 //!
 //! **The tree it passed on.** A check that passes writes down the tree it passed on (its object ID, of the working tree
 //! with what is not committed) and its scope, in `ew-check-passed` of the repository's git folder, which every worktree
