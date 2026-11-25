@@ -32,9 +32,9 @@ pub fn builtin_pin_text_line() -> Option<i64> {
     Some(m.ascent.0.saturating_add(m.descent.0))
 }
 
-/// A placed pin text: its entity, text, point, angle and alignment, and for a text in a card's cell the width it keeps
-/// within.
-pub(crate) type PlacedPin = (EntityRef, String, Pt2, Angle2, Align, Option<Nm>);
+/// A placed pin text: its entity, its pin's connection-point index, text, point, angle and alignment, and for a text in
+/// a card's cell the width it keeps within.
+pub(crate) type PlacedPin = (EntityRef, u16, String, Pt2, Angle2, Align, Option<Nm>);
 
 /// The cells of the PLC cards drawn in one row (doc 10 §3.6, "A card drawn in cells"): a thin line between each two
 /// neighbouring channel pins, at the middle between them, across the box from edge to edge. The labels layer draws them
@@ -160,6 +160,7 @@ pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
                 let width = Nm(pitch.saturating_sub(2 * g.0));
                 out.push((
                     EntityRef(rep.id.as_uuid()),
+                    pin.idx,
                     text,
                     *at + offset,
                     Angle2::ZERO,
@@ -186,6 +187,7 @@ pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
             };
             out.push((
                 EntityRef(rep.id.as_uuid()),
+                pin.idx,
                 pin.text.clone(),
                 at + offset,
                 angle,

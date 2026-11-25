@@ -54,8 +54,8 @@ use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
 use crate::forms::FrameGeometry;
 use crate::page::{
     Builder, CABLE_KIND_STYLE, CABLE_TAG_STYLE, ItemLink, MARKER_STYLE, MarkerText, PageFinding, PageView,
-    SlotTextBox, TextSpec, bottom_align, cp_owners, drawing_area, layout_bounds, page_rect, pin_texts,
-    polyline_of, sorted_connections, sorted_reps, up_by, wire_stroke,
+    PrintedText, Printer, SlotTextBox, TextSpec, bottom_align, cp_owners, drawing_area, layout_bounds,
+    page_rect, pin_texts, polyline_of, sorted_connections, sorted_reps, up_by, wire_stroke,
 };
 use crate::symbol;
 use crate::ticks::Ticks;
@@ -79,6 +79,9 @@ pub(crate) struct Text {
     /// A wire marker's text or a cable mark's core name: it stands across its wires by the marker's rule, so no line is
     /// cut round it ([`crate::knockout`]).
     of_mark: bool,
+    /// What printed it where that is no slot of its representation (a drawn box's pin, a terminal's strip tag): the
+    /// slot's record says it for a slot text.
+    printer: Option<Printer>,
 }
 
 impl Text {
@@ -102,12 +105,21 @@ impl Text {
             first_line: false,
             size: None,
             of_mark: false,
+            printer: None,
         }
     }
 
     /// The text in its own size `size`, where it has one.
     pub(crate) fn sized(self, size: Option<Nm>) -> Text {
         Text { size, ..self }
+    }
+
+    /// The text as printed by `printer` of its representation.
+    fn printed_by(self, printer: Printer) -> Text {
+        Text {
+            printer: Some(printer),
+            ..self
+        }
     }
 
     /// The text as a mark's (a wire marker's text, a cable mark's core name).
@@ -375,6 +387,14 @@ impl Builder<'_> {
             }
             None => self.text_placed(&text.spec(), text.first_line),
         }
+        let printed = match &slot {
+            Some(s) => Some((s.rep, Printer::Slot(s.slot))),
+            None => text.printer.map(|by| (text.entity.0, by)),
+        };
+        if let Some((rep, by)) = printed {
+            let items = start..self.out.list.items.len();
+            self.out.printed.push(PrintedText { rep, by, items });
+        }
         // Its box as printed, which the wires are cut round where one runs through it ([`crate::knockout`]).
         if !text.of_mark
             && let Some(b) = layout_bounds(&self.out.list.items[start..])
@@ -516,8 +536,9 @@ impl Builder<'_> {
             ops: &mut ops,
         };
         self.slot_texts(view, &mut ctx);
-        for (entity, text, at, angle, align, width) in pin_texts(view) {
-            let t = Text::plain(&text, at, angle, align, crate::page::PIN_TEXT_STYLE, entity);
+        for (entity, idx, text, at, angle, align, width) in pin_texts(view) {
+            let t = Text::plain(&text, at, angle, align, crate::page::PIN_TEXT_STYLE, entity)
+                .printed_by(Printer::Pin(idx));
             let t = match width {
                 Some(width) => self.fit_cell(t, width),
                 None => t,
@@ -722,6 +743,7 @@ impl Builder<'_> {
                     first_line: xref && !moved,
                     size: None,
                     of_mark: false,
+                    printer: None,
                 };
                 let record = Slot {
                     rep: rep.id.as_uuid(),
@@ -816,7 +838,8 @@ impl Builder<'_> {
                 align,
                 style_key,
                 EntityRef(rep.id.as_uuid()),
-            );
+            )
+            .printed_by(Printer::StripTag);
             let origin = ctx.origins.get(&rep.id.as_uuid()).copied().unwrap_or_default();
             let owner = (
                 Owner::Part(PartId(rep.id.as_uuid())),

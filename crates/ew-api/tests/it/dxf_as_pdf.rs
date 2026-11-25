@@ -480,3 +480,72 @@ fn a_block_is_named_in_the_projects_language_else_in_english() {
     assert_eq!(names(Some("nl")), words("Symbool"));
     assert_eq!(names(None), words("Symbol"));
 }
+
+/// A text is named by what printed it, not by the slot box it lies in: a coil's first designation moved onto its held
+/// tag keeps the name `DESIGNATION_1`, and the tag stays `TAG`.
+#[test]
+fn a_moved_text_keeps_the_name_of_its_own_slot() {
+    let mut s = common::new_project(1877);
+    let page = common::first_page(&s);
+    let coil = place(
+        &mut s,
+        page,
+        "ew.iec.coil@qet10",
+        (30, 12),
+        json!({"new_device": {"letter": "K"}}),
+    );
+    let (device, rep) = (created(&coil, Kind::Device), created(&coil, Kind::Representation));
+    let (k, symbol) = (tag(&s, device), s.starter_symbol_copy("ew.iec.coil@qet10").expect("the coil"));
+    let slot_of = |kind: ew_schema::SlotKind| -> (u16, Pt2) {
+        let q = s.query();
+        let copy = q.symbols().get(Id::from_uuid(symbol)).expect("the coil's copy").clone();
+        let (i, slot) = copy
+            .item
+            .text_slots
+            .iter()
+            .enumerate()
+            .find(|(_, t)| t.kind == kind)
+            .expect("the slot");
+        (u16::try_from(i).expect("an index"), slot.pos)
+    };
+    let (tag_slot, tag_at) = slot_of(ew_schema::SlotKind::Tag);
+    let (pin_slot, _) = slot_of(ew_schema::SlotKind::CpDesignation(0));
+    // The tag held where its slot puts it, so the layout does not move it off the designation.
+    run(
+        &mut s,
+        "rep.text_set",
+        json!({"rep": rep.to_string(), "slot": tag_slot, "pos": [tag_at.x.0, tag_at.y.0]}),
+    );
+    // The designation's anchor where its box's middle is the tag box's (the coil stands upright: its text frame is the
+    // page's, shifted to its origin).
+    let boxes = s.page_slot_texts("1");
+    let printed = |slot: u16| {
+        boxes
+            .iter()
+            .find(|b| b.rep == rep && b.slot == slot)
+            .copied()
+            .expect("the slot's box")
+    };
+    let middle = |r: ew_units::Rect| Pt2::new(Nm((r.min().x.0 + r.max().x.0) / 2), Nm((r.min().y.0 + r.max().y.0) / 2));
+    let (to, pin) = (middle(printed(tag_slot).rect), printed(pin_slot));
+    let from = middle(pin.rect);
+    let moved = Pt2::new(
+        to.x - (from.x - pin.at.x) - pin.frame.origin.x,
+        to.y - (from.y - pin.at.y) - pin.frame.origin.y,
+    );
+    run(
+        &mut s,
+        "rep.text_set",
+        json!({"rep": rep.to_string(), "slot": pin_slot, "pos": [moved.x.0, moved.y.0]}),
+    );
+    let dxf = s
+        .export_dxf(&ExportOptions::default(), &DxfLayers::default(), false)
+        .expect("the DXF set");
+    let insert = inserts(&entities(&dxf.files[0].text))
+        .into_iter()
+        .find(|i| i.attributes.iter().any(|(_, v, _)| *v == k))
+        .expect("the coil's insert");
+    let names: BTreeSet<&str> = insert.attributes.iter().map(|(n, _, _)| n.as_str()).collect();
+    assert!(names.contains("TAG") && names.contains("DESIGNATION_1"), "{insert:?}");
+    assert!(!names.contains("TAG_2"), "{insert:?}");
+}

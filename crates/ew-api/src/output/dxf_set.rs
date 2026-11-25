@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Link};
 use ew_ids::Uuid;
-use ew_scene::page::{PageView, SlotTextBox};
+use ew_scene::page::{PageView, PrintedText, Printer};
 use ew_schema::SlotKind;
 use ew_units::{Pt2, Rect};
 
@@ -79,23 +79,15 @@ fn bounds(item: &Item) -> Option<Rect> {
     .bounds()
 }
 
-/// Whether `inner` lies within `outer`, a nanometre either way.
-fn inside(outer: Rect, inner: Rect) -> bool {
-    outer.min().x.0 - 1 <= inner.min().x.0
-        && outer.min().y.0 - 1 <= inner.min().y.0
-        && inner.max().x.0 <= outer.max().x.0 + 1
-        && inner.max().y.0 <= outer.max().y.0 + 1
-}
-
 /// The labels layer `labels` (page coordinates) without the texts that are its representations' attributes, and those
-/// texts by representation with their names, in print order (doc 09 §4.9): a line in the box of one of the
-/// representation's slot texts where they print (`slot_texts`) is that slot's; a line that is a black box's pin text is
-/// that connection point's designation; a line that is a terminal's strip tag is `STRIP`. A line without a link of its
-/// own takes the link of the one item link of its representation that lies over it (a line of a contact list); over a
-/// line of several items there is none.
+/// texts by representation with their names, in print order (doc 09 §4.9), each named by what printed it (`printed`,
+/// the scene's): a slot's text by its slot, a drawn box's pin text by its connection point's designation (in a card's
+/// cell only the line that is the designation; the channel's function text with it stays a plain text), a terminal's
+/// strip tag `STRIP`. A line without a link of its own takes the link of the one item link of its representation that
+/// lies over it (a line of a contact list); over a line of several items there is none.
 pub(super) fn split_attributes(
     view: &PageView,
-    slot_texts: &[SlotTextBox],
+    printed: &[PrintedText],
     labels: &DisplayList,
 ) -> (DisplayList, BTreeMap<EntityRef, Vec<(String, Item)>>) {
     let reps: BTreeMap<Uuid, _> = view.reps.iter().map(|r| (r.rep.id.as_uuid(), r)).collect();
@@ -116,35 +108,32 @@ pub(super) fn split_attributes(
             links.entry(e).or_default().push((centre, link));
         }
     }
+    // The printer of each item that prints a text of a representation.
+    let mut by: BTreeMap<usize, (Uuid, Printer)> = BTreeMap::new();
+    for t in printed {
+        for i in t.items.clone() {
+            by.insert(i, (t.rep, t.by));
+        }
+    }
     let mut kept = Vec::with_capacity(labels.items.len());
     let mut attributes: BTreeMap<EntityRef, Vec<(String, Item)>> = BTreeMap::new();
-    for item in &labels.items {
-        let name = item
-            .entity
+    for (i, item) in labels.items.iter().enumerate() {
+        let name = by
+            .get(&i)
             .filter(|_| ew_export::is_line(item))
-            .and_then(|e| Some((e, reps.get(&e.0)?, bounds(item)?)))
-            .and_then(|(e, rv, b)| {
-                let def = rv.symbol.as_ref()?;
-                let text = line_text(item);
-                let name = slot_texts
-                    .iter()
-                    .filter(|s| s.rep == e.0)
-                    .find(|s| inside(s.rect, b))
-                    .and_then(|s| def.text_slots.get(usize::from(s.slot)))
-                    .map(|slot| attribute_name(&slot.kind))
-                    .or_else(|| {
-                        rv.pins
-                            .iter()
-                            .find(|p| p.text == text)
-                            .map(|p| designation(p.idx))
-                    })
-                    .or_else(|| {
-                        view.strip_tags
-                            .iter()
-                            .any(|t| t.rep == rv.rep.id && t.text == text)
-                            .then(|| "STRIP".to_owned())
-                    })?;
-                Some((e, b, name))
+            .and_then(|&(rep, printer)| {
+                let rv = reps.get(&rep)?;
+                let name = match printer {
+                    Printer::Slot(n) => {
+                        attribute_name(&rv.symbol.as_ref()?.text_slots.get(usize::from(n))?.kind)
+                    }
+                    Printer::Pin(idx) => {
+                        let pin = rv.pins.iter().find(|p| p.idx == idx)?;
+                        (pin.text == line_text(item)).then(|| designation(idx))?
+                    }
+                    Printer::StripTag => "STRIP".to_owned(),
+                };
+                Some((EntityRef(rep), bounds(item)?, name))
             });
         match name {
             Some((e, b, name)) => {

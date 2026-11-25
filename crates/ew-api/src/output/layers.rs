@@ -62,6 +62,9 @@ pub struct PageLayer {
     pub panel_labels: BTreeMap<Uuid, ew_units::Rect>,
     /// The labels layer's slot texts where they print (`ew_scene::page::LayerList::slot_texts`).
     pub slot_texts: Vec<ew_scene::page::SlotTextBox>,
+    /// The labels layer's texts of representations by their items and what printed them
+    /// (`ew_scene::page::LayerList::printed`).
+    pub printed: Vec<ew_scene::page::PrintedText>,
     /// The labels layer's page as the layout sees it (`ew_scene::page::LayerList::draft`).
     pub draft: Option<Arc<ew_drafting::DraftPage>>,
     /// The labels layer's boxes of the texts a line of the page runs through (`ew_scene::page::LayerList::knockouts`).
@@ -432,6 +435,7 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         tags: l.tags,
         panel_labels: l.panel_labels,
         slot_texts: l.slot_texts,
+        printed: l.printed,
         draft: l.draft,
         knockouts: l.knockouts,
     })

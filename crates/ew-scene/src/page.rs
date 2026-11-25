@@ -638,12 +638,39 @@ pub struct LayerList {
     /// The labels layer's slot texts where they print, in print order: what a drag of a symbol's text grabs; a cable
     /// mark's tag is one too, of its wire marker (slot 0). Empty in the other layers.
     pub slot_texts: Vec<SlotTextBox>,
+    /// The labels layer's texts of representations, each by the items of `list` that print it and what printed it, in
+    /// print order. Empty in the other layers.
+    pub printed: Vec<PrintedText>,
     /// The labels layer's page as the layout sees it ([`crate::draft`]), whose labels it placed; `None` in the other
     /// layers and on a panel-layout page.
     pub draft: Option<Arc<ew_drafting::DraftPage>>,
     /// The labels layer's boxes of the texts a line of the page runs through, in print order: what the wires layer cuts
     /// its lines round ([`PageView::knockouts`], [`crate::knockout`]). Empty in the other layers.
     pub knockouts: Vec<Rect>,
+}
+
+/// What printed a text of a representation on the labels layer.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Printer {
+    /// The symbol's text slot of this index (a cable mark's tag: slot 0 of its wire marker).
+    Slot(u16),
+    /// A drawn box's pin, by its connection point's index: its designation, and in a card's cell the channel's
+    /// function text with it.
+    Pin(u16),
+    /// A terminal's strip tag.
+    StripTag,
+}
+
+/// One text of a representation on the labels layer: the items of the layer's list that print it (its lines and the
+/// invisible paths of its item links) and what printed it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PrintedText {
+    /// The representation (a cable mark's wire marker).
+    pub rep: Uuid,
+    /// What printed it.
+    pub by: Printer,
+    /// Its items in the layer's list.
+    pub items: std::ops::Range<usize>,
 }
 
 /// A representation's slot text where the labels layer prints it, or a cable mark's tag (`rep` the wire marker, `slot`

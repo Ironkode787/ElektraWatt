@@ -433,7 +433,9 @@ object works on Windows only and no converter keeps it), so:
   more than a micrometre keeps its own as `TEXT`s beside it.
 - *A device's texts are attributes of its insert*: every text the page prints for the representation (its slot texts,
   a black box's pin texts, a terminal's strip tag) is an `ATTRIB` of the insert, where and as large as the PDF has it,
-  on the texts layer. The block has an `ATTDEF` for each name its inserts on the page carry, where the first of them
+  on the texts layer. A text is named by what printed it, as the scene records it, wherever it stands: a text moved
+  onto another slot's keeps its own name. In a card's cell the line that is the pin's designation is its attribute;
+  the channel's function text beside it stays a `TEXT`. The block has an `ATTDEF` for each name its inserts on the page carry, where the first of them
   has it, so that a CAD program's attribute tools list them. *For the DWG:* blocks, attribute definitions and
   attributes are what a DWG holds itself, not a DXF-only form, so the DWG of a page has the page's structure.
 - *The names are an interface*, so they are few, stable and in words: one per kind of slot (doc 07 §2.3), the same in

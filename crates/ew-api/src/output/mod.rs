@@ -629,7 +629,7 @@ pub fn export_dxf_with(
                 let view = page_view(q, entry);
                 dxf_set::symbol_names(&view, language.as_ref(), &mut symbol_names);
                 let labels = page_layer(q, entry.page, ew_dl::Layer::Labels);
-                let (kept, attributes) = dxf_set::split_attributes(&view, &labels.slot_texts, &labels.list);
+                let (kept, attributes) = dxf_set::split_attributes(&view, &labels.printed, &labels.list);
                 (Some(kept), attributes)
             }
             _ => (None, BTreeMap::new()),
