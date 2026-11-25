@@ -156,7 +156,8 @@ of a shipped program.
    second time, and no test holds two copies equal.
 7. **A crate names what it uses.** A type or a function is named through the crate that defines it. Three facades
    re-export on purpose, because their users are confined to them: `ew-api` for the shell, `ew-viewmodel` for the
-   window and `ew-interop-api` for the importers. No other crate re-exports another workspace crate.
+   window and `ew-interop-api` for the importers. No other crate re-exports another workspace crate or an item of one;
+   the rule `re-exports` of `cargo xtask rules` holds it.
 
 Three seams follow from the rules and are kept:
 

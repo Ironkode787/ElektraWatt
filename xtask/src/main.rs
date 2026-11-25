@@ -29,6 +29,7 @@ mod greyed;
 mod icons;
 mod licence;
 mod raw_read;
+mod reexports;
 mod repo;
 mod symbols;
 mod translations;
@@ -418,6 +419,14 @@ const RULES: &[(&str, &str, Rule)] = &[
         "size-ceiling",
         "a source file over the size ceiling of 3,000 lines",
         |_, ws| Ok(ceiling::check(&ws.files)),
+    ),
+    (
+        "re-exports",
+        "a `pub use` of another workspace crate outside the three facades (ew-api, ew-viewmodel, ew-interop-api)",
+        |_, ws| {
+            let crates: Vec<String> = ws.metadata.workspace_packages().iter().map(|p| p.name.to_string()).collect();
+            Ok(reexports::check(&ws.files, &crates))
+        },
     ),
 ];
 
