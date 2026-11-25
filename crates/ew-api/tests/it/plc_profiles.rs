@@ -208,7 +208,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         .find(|n| n.role == NavRole::LibCopy && n.label == "Fixture absolute")
         .expect("the profile's copy row");
     let kind = t.columns.iter().position(|c| c.key == "kind").unwrap();
-    assert_eq!(copy.cells[kind], "a PLC profile");
+    assert_eq!(copy.cells[kind], "PLC profile");
     let texts = module_texts(&s);
     assert_eq!(&texts[..2], ["%Q0.0", "%Q0.1"]);
     s.save().unwrap();

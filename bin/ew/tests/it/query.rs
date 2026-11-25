@@ -145,12 +145,12 @@ fn failures_exit_2_with_their_message() {
         ),
         (
             args([&"query", &p, &"device_tag", &"folio:101"]),
-            "error: `folio:101` names a page 101 Supply 400 V AC; `device_tag` takes a device \
+            "error: `folio:101` names page 101 Supply 400 V AC; `device_tag` takes a device \
              (`tag:-101F1` or `id:<uuid>`)\n",
         ),
         (
             args([&"query", &p, &"channel_addresses", &"tag:-101F1"]),
-            "error: `tag:-101F1` names a device -101F1, which is not a PLC module; `channel_addresses` takes a PLC \
+            "error: `tag:-101F1` names device -101F1, which is not a PLC module; `channel_addresses` takes a PLC \
              module (`tag:-104A1-A2`)\n",
         ),
         (

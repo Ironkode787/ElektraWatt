@@ -752,8 +752,8 @@ fn rec(q: &Q, uuid: Uuid) -> Rec {
     Rec::Other(kind)
 }
 
-/// A record named by its kind in the derivation's words and its title (`a device -101F1`, `a page 101 Main supply`, `wire
-/// 102.1`, `function of -101F1`, `main representation of -101F1 on folio 101`).
+/// A record named by its kind's name in the derivation's words and its title (`device -101F1`, `page 101 Main supply`,
+/// `wire 102.1`, `function of -101F1`, `main representation of -101F1 on folio 101`).
 fn rec_words(q: &Q, uuid: Uuid, rec: Rec) -> String {
     let tag_of_function = |f: Id<Function>| {
         q.functions()
@@ -794,9 +794,9 @@ fn rec_words(q: &Q, uuid: Uuid, rec: Rec) -> String {
     };
     match (kind, Session::record_words(q, uuid)) {
         (Some(k), Some(t)) if !t.is_empty() && t != k.name() => {
-            format!("{} {t}", ew_derive::text::record(k))
+            format!("{} {t}", ew_derive::text::record_name(k))
         }
-        (Some(k), _) => ew_derive::text::record(k).to_string(),
+        (Some(k), _) => ew_derive::text::record_name(k).to_string(),
         (None, _) => "a record".to_owned(),
     }
 }
@@ -862,13 +862,13 @@ fn id_words(q: &Q, kind: Kind, id: AnyId) -> String {
         _ => None,
     };
     if let Some(w) = words {
-        return format!("{} {w}", ew_derive::text::record(kind));
+        return format!("{} {w}", ew_derive::text::record_name(kind));
     }
     match Session::record_words(q, uuid) {
         Some(t) if !t.is_empty() && t != kind.name() => {
-            format!("{} {t}", ew_derive::text::record(kind))
+            format!("{} {t}", ew_derive::text::record_name(kind))
         }
-        _ => format!("{} {}", ew_derive::text::record(kind), uuid.hyphenated()),
+        _ => format!("{} {}", ew_derive::text::record_name(kind), uuid.hyphenated()),
     }
 }
 
@@ -913,7 +913,7 @@ fn input_words(q: &Q, input: &MemoInput) -> String {
             }
             DepKey::Assets => "asset store".to_owned(),
             DepKey::Row((kind, id)) => id_words(q, *kind, *id),
-            DepKey::Table(kind) => format!("every record that is {}", ew_derive::text::record(*kind)),
+            DepKey::Table(kind) => format!("every {}", ew_derive::text::record_name(*kind)),
             DepKey::IndexKey(name, IxKey::Id(id)) => {
                 let target = match rec(q, id.as_uuid()) {
                     Rec::Other(None) => format!("record {}", id.as_uuid().hyphenated()),
@@ -932,10 +932,7 @@ fn input_words(q: &Q, input: &MemoInput) -> String {
             DepKey::Reserved => "revisions".to_owned(),
         },
         MemoInput::Page(page) => format!("rows drawn on {}", id_words(q, Kind::Page, page.cast())),
-        MemoInput::Shard(kind, n) => format!(
-            "shard {n} of every record that is {}",
-            ew_derive::text::record(*kind)
-        ),
+        MemoInput::Shard(kind, n) => format!("{} shard {n}", ew_derive::text::record_name(*kind)),
         MemoInput::IndexShard(name, n) => format!("index {} shard {n}", camel_words(&format!("{name:?}"))),
         MemoInput::Part(part) => format!("part {}", camel_words(&format!("{part:?}"))),
     }

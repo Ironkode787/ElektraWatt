@@ -120,7 +120,7 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
             );
         };
         line(ui, &d.name, &t.type_body_strong, t.text_primary);
-        let words = ew_viewmodel::shell::text_words(&d.kind);
+        let words = strings::sentence_start(&ew_viewmodel::shell::text_words(&d.kind)).into_owned();
         let kind = if d.key.is_empty() {
             words
         } else {

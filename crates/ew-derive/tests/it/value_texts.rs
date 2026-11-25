@@ -83,3 +83,33 @@ fn a_record_kind_is_worded_by_one_table() {
     assert_eq!(words(Kind::Comment), "an item");
     assert_eq!(words(Kind::NetDef), "an item");
 }
+
+/// A kind has two forms in the one table: with its article for a sentence, and its name, the bare noun, for a cell or
+/// a label, in both languages.
+#[test]
+fn a_record_kind_has_its_name_beside_its_article_form() {
+    use ew_schema::Kind;
+    let tag = |t: &str| t.parse::<ew_mltext::LangTag>().expect("a tag");
+    let both = |t: ew_l10n::Text| {
+        let ml = ew_derive::text::in_languages(&t);
+        (
+            ml.get(&tag("en-GB")).unwrap_or_default().to_owned(),
+            ml.get(&tag("nl-NL")).unwrap_or_default().to_owned(),
+        )
+    };
+    let name = |k: Kind| both(ew_derive::text::record_name(k));
+    assert_eq!(name(Kind::Part), ("part".into(), "artikel".into()));
+    assert_eq!(
+        name(Kind::PlcProfile),
+        ("PLC profile".into(), "PLC-profiel".into())
+    );
+    assert_eq!(
+        name(Kind::StructureNode),
+        ("structure node".into(), "structuurknooppunt".into())
+    );
+    assert_eq!(name(Kind::Comment), ("item".into(), "element".into()));
+    assert_eq!(
+        both(ew_derive::text::record(Kind::Part)),
+        ("a part".into(), "een artikel".into())
+    );
+}

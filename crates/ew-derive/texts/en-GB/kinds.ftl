@@ -1,50 +1,96 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# A record by its kind with its article ("a device"), where no record is at hand to name (architecture §18): the
-# commands' refusals print them through `ew_derive::text::record`.
+# A record by its kind, in two forms: with its article ("a device", `record-<kind>`) for a sentence, where no record
+# is at hand to name (architecture §18; the commands' refusals print them through `ew_derive::text::record`), and its
+# name, the bare noun ("device", `record-<kind>-name`, `ew_derive::text::record_name`) for a cell, a column, a heading
+# or a label, which give it the capital they need.
 
 record-project = a project
+record-project-name = project
 record-plc-config-project = a PLC configuration project
+record-plc-config-project-name = PLC configuration project
 record-logical-net = a logical net
+record-logical-net-name = logical net
 record-physical-net = a physical net
+record-physical-net-name = physical net
 record-medium = a medium
+record-medium-name = medium
 record-import-lineage = an import lineage
+record-import-lineage-name = import lineage
 record-structure-node = a structure node
+record-structure-node-name = structure node
 record-section = a section
+record-section-name = section
 record-external-ref = an external reference
+record-external-ref-name = external reference
 record-conductor = a conductor
+record-conductor-name = conductor
 record-channel = a channel
+record-channel-name = channel
 record-potential-def = a potential definition
+record-potential-def-name = potential definition
 record-medium-def = a medium definition
+record-medium-def-name = medium definition
 record-bond = a bond
+record-bond-name = bond
 record-device-link = a device link
+record-device-link-name = device link
 record-page-item = a page item
+record-page-item-name = page item
 record-structure-box = a structure box
+record-structure-box-name = structure box
 record-report-block = a report block
+record-report-block-name = report block
 record-macro-instance = a macro instance
+record-macro-instance-name = macro instance
 record-layout-space = a layout space
+record-layout-space-name = layout space
 record-enclosure = an enclosure
+record-enclosure-name = enclosure
 record-mounting-surface = a mounting surface
+record-mounting-surface-name = mounting surface
 record-carrier = a carrier
+record-carrier-name = carrier
 record-placement = a placement
+record-placement-name = placement
 record-revision = a revision
+record-revision-name = revision
 record-waiver = a waiver
+record-waiver-name = waiver
 record-exchange-record = an exchange record
+record-exchange-record-name = exchange record
 record-foreign-id = a foreign ID
+record-foreign-id-name = foreign ID
 record-import-run = an import run
+record-import-run-name = import run
 record-conflict = a conflict
+record-conflict-name = conflict
 record-part = a part
+record-part-name = part
 record-symbol = a symbol
+record-symbol-name = symbol
 record-fndef = a function definition
+record-fndef-name = function definition
 record-form = a form
+record-form-name = form
 record-macro = a macro
+record-macro-name = macro
 record-manufacturer = a manufacturer
+record-manufacturer-name = manufacturer
 record-plc-profile = a PLC profile
+record-plc-profile-name = PLC profile
 record-other = an item
+record-other-name = item
 record-device = a device
+record-device-name = device
 record-function = a function
+record-function-name = function
 record-page = a page
+record-page-name = page
 record-junction = a junction
+record-junction-name = junction
 record-representation = a symbol
+record-representation-name = symbol
 record-connection = a wire
+record-connection-name = wire

@@ -301,54 +301,88 @@ pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>)
 }
 
 /// A record by its kind with its article only (`a device`… `an enclosure`, a representation `a symbol`, a connection `a
-/// wire`), where no model is at hand: the one table of a record kind's words. A kind that no record can be yet (a
-/// reserved kind) and a kind of a newer format are `an item` ([`record_other`]).
+/// wire`), for a sentence, where no model is at hand: the one table of a record kind's words ([`record_words`]). A kind
+/// that no record can be yet (a reserved kind) and a kind of a newer format are `an item` ([`record_other`]).
 pub fn record(kind: Kind) -> Text {
+    let [with_article, _] = record_words(kind);
+    with_article
+}
+
+/// A record kind's name, the bare noun (`device`, `structure node`, a representation `symbol`): what a cell, a column,
+/// a heading or a label shows, with the capital it needs ([`record`]'s word without its article).
+pub fn record_name(kind: Kind) -> Text {
+    let [_, name] = record_words(kind);
+    name
+}
+
+/// The two forms of a record kind's words, with its article and its name: the one table ([`record`], [`record_name`]).
+fn record_words(kind: Kind) -> [Text; 2] {
     match kind {
-        Kind::Device => text!("record-device"),
-        Kind::Function => text!("record-function"),
-        Kind::Page => text!("record-page"),
-        Kind::Junction => text!("record-junction"),
-        Kind::Representation => text!("record-representation"),
-        Kind::Connection => text!("record-connection"),
-        Kind::Project => text!("record-project"),
-        Kind::PlcConfigProject => text!("record-plc-config-project"),
-        Kind::LogicalNet => text!("record-logical-net"),
-        Kind::PhysicalNet => text!("record-physical-net"),
-        Kind::Medium => text!("record-medium"),
-        Kind::ImportLineage => text!("record-import-lineage"),
-        Kind::StructureNode => text!("record-structure-node"),
-        Kind::Section => text!("record-section"),
-        Kind::ExternalRef => text!("record-external-ref"),
-        Kind::Conductor => text!("record-conductor"),
-        Kind::Channel => text!("record-channel"),
-        Kind::PotentialDef => text!("record-potential-def"),
-        Kind::MediumDef => text!("record-medium-def"),
-        Kind::Bond => text!("record-bond"),
-        Kind::DeviceLink => text!("record-device-link"),
-        Kind::PageItem => text!("record-page-item"),
-        Kind::StructureBox => text!("record-structure-box"),
-        Kind::ReportBlock => text!("record-report-block"),
-        Kind::MacroInstance => text!("record-macro-instance"),
-        Kind::LayoutSpace => text!("record-layout-space"),
-        Kind::Enclosure => text!("record-enclosure"),
-        Kind::MountingSurface => text!("record-mounting-surface"),
-        Kind::Carrier => text!("record-carrier"),
-        Kind::Placement => text!("record-placement"),
-        Kind::Revision => text!("record-revision"),
-        Kind::Waiver => text!("record-waiver"),
-        Kind::ExchangeRecord => text!("record-exchange-record"),
-        Kind::ForeignId => text!("record-foreign-id"),
-        Kind::ImportRun => text!("record-import-run"),
-        Kind::Conflict => text!("record-conflict"),
-        Kind::Part => text!("record-part"),
-        Kind::Symbol => text!("record-symbol"),
-        Kind::Fndef => text!("record-fndef"),
-        Kind::Form => text!("record-form"),
-        Kind::Macro => text!("record-macro"),
-        Kind::Manufacturer => text!("record-manufacturer"),
-        Kind::PlcProfile => text!("record-plc-profile"),
-        _ => text!("record-other"),
+        Kind::Device => [text!("record-device"), text!("record-device-name")],
+        Kind::Function => [text!("record-function"), text!("record-function-name")],
+        Kind::Page => [text!("record-page"), text!("record-page-name")],
+        Kind::Junction => [text!("record-junction"), text!("record-junction-name")],
+        Kind::Representation => [
+            text!("record-representation"),
+            text!("record-representation-name"),
+        ],
+        Kind::Connection => [text!("record-connection"), text!("record-connection-name")],
+        Kind::Project => [text!("record-project"), text!("record-project-name")],
+        Kind::PlcConfigProject => [
+            text!("record-plc-config-project"),
+            text!("record-plc-config-project-name"),
+        ],
+        Kind::LogicalNet => [text!("record-logical-net"), text!("record-logical-net-name")],
+        Kind::PhysicalNet => [text!("record-physical-net"), text!("record-physical-net-name")],
+        Kind::Medium => [text!("record-medium"), text!("record-medium-name")],
+        Kind::ImportLineage => [
+            text!("record-import-lineage"),
+            text!("record-import-lineage-name"),
+        ],
+        Kind::StructureNode => [
+            text!("record-structure-node"),
+            text!("record-structure-node-name"),
+        ],
+        Kind::Section => [text!("record-section"), text!("record-section-name")],
+        Kind::ExternalRef => [text!("record-external-ref"), text!("record-external-ref-name")],
+        Kind::Conductor => [text!("record-conductor"), text!("record-conductor-name")],
+        Kind::Channel => [text!("record-channel"), text!("record-channel-name")],
+        Kind::PotentialDef => [text!("record-potential-def"), text!("record-potential-def-name")],
+        Kind::MediumDef => [text!("record-medium-def"), text!("record-medium-def-name")],
+        Kind::Bond => [text!("record-bond"), text!("record-bond-name")],
+        Kind::DeviceLink => [text!("record-device-link"), text!("record-device-link-name")],
+        Kind::PageItem => [text!("record-page-item"), text!("record-page-item-name")],
+        Kind::StructureBox => [text!("record-structure-box"), text!("record-structure-box-name")],
+        Kind::ReportBlock => [text!("record-report-block"), text!("record-report-block-name")],
+        Kind::MacroInstance => [
+            text!("record-macro-instance"),
+            text!("record-macro-instance-name"),
+        ],
+        Kind::LayoutSpace => [text!("record-layout-space"), text!("record-layout-space-name")],
+        Kind::Enclosure => [text!("record-enclosure"), text!("record-enclosure-name")],
+        Kind::MountingSurface => [
+            text!("record-mounting-surface"),
+            text!("record-mounting-surface-name"),
+        ],
+        Kind::Carrier => [text!("record-carrier"), text!("record-carrier-name")],
+        Kind::Placement => [text!("record-placement"), text!("record-placement-name")],
+        Kind::Revision => [text!("record-revision"), text!("record-revision-name")],
+        Kind::Waiver => [text!("record-waiver"), text!("record-waiver-name")],
+        Kind::ExchangeRecord => [
+            text!("record-exchange-record"),
+            text!("record-exchange-record-name"),
+        ],
+        Kind::ForeignId => [text!("record-foreign-id"), text!("record-foreign-id-name")],
+        Kind::ImportRun => [text!("record-import-run"), text!("record-import-run-name")],
+        Kind::Conflict => [text!("record-conflict"), text!("record-conflict-name")],
+        Kind::Part => [text!("record-part"), text!("record-part-name")],
+        Kind::Symbol => [text!("record-symbol"), text!("record-symbol-name")],
+        Kind::Fndef => [text!("record-fndef"), text!("record-fndef-name")],
+        Kind::Form => [text!("record-form"), text!("record-form-name")],
+        Kind::Macro => [text!("record-macro"), text!("record-macro-name")],
+        Kind::Manufacturer => [text!("record-manufacturer"), text!("record-manufacturer-name")],
+        Kind::PlcProfile => [text!("record-plc-profile"), text!("record-plc-profile-name")],
+        _ => [text!("record-other"), text!("record-other-name")],
     }
 }
 
