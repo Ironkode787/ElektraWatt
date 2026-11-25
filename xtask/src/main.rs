@@ -364,7 +364,7 @@ const RULES: &[(&str, Rule)] = &[
     ("raw-read", raw_read::violations),
     ("licences", check_licence_map_at),
     ("anonymisation", |root, ws| {
-        check_anonymisation_at(root, false, &ws.files)
+        check_anonymisation_at(root, &ws.files)
     }),
     ("ui-strings", |root, _| ui_strings::check(root)),
     ("greyed", |root, _| greyed::check(root)),
@@ -474,23 +474,15 @@ fn check_licence_map_at(root: &Path, ws: &Workspace) -> Result<Violations> {
 }
 
 /// No word n-gram of the repository's `files` is on the confidential-token list (`ci/denylist.sha256`). Binary files
-/// (a NUL byte in the first 8 KiB) are skipped. An empty list prints a warning and passes, unless `require_entries` is
-/// set.
-pub(crate) fn check_anonymisation_at(
-    root: &Path,
-    require_entries: bool,
-    files: &[(String, Vec<u8>)],
-) -> Result<Violations> {
+/// (a NUL byte in the first 8 KiB) are skipped. A list without entries is a violation: the guard would match nothing.
+pub(crate) fn check_anonymisation_at(root: &Path, files: &[(String, Vec<u8>)]) -> Result<Violations> {
     let list = root.join("ci/denylist.sha256");
     let text = std::fs::read_to_string(&list).with_context(|| format!("reading {}", list.display()))?;
     let denylist = anonymise::parse_denylist(&text).with_context(|| format!("parsing {}", list.display()))?;
     if denylist.is_empty() {
-        if require_entries {
-            return Ok(vec![
-                "ci/denylist.sha256 has no entries; the guard is inactive".to_owned(),
-            ]);
-        }
-        eprintln!("{}", anonymise::EMPTY_WARNING);
+        return Ok(vec![
+            "ci/denylist.sha256 has no entries; the guard is inactive".to_owned(),
+        ]);
     }
     let texts: Vec<(String, String)> = files
         .iter()

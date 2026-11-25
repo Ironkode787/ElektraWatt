@@ -10,8 +10,7 @@
 //! confidential tokens never enter the repository; the messages name file and line, never the matched words,
 //! because CI logs are public.
 //!
-//! The list ships without entries until the maintainers add them; the check then prints [`EMPTY_WARNING`]
-//! and passes (an owner action must not block CI), and `--require-entries` turns the warning into a failure.
+//! A list without entries is a violation: the guard would match nothing.
 //! Files are decoded by [`decode`]: UTF-16 by its byte-order mark, everything else as lossy UTF-8, binary
 //! files (NUL byte in the first 8 KiB) skipped.
 
@@ -163,10 +162,6 @@ pub fn phrase_digests(phrase: &str) -> Vec<(usize, usize, String)> {
     out
 }
 
-/// The warning printed while `ci/denylist.sha256` has no entries: the guard cannot match anything then.
-pub const EMPTY_WARNING: &str = "anonymisation: WARNING: ci/denylist.sha256 has no entries; the guard is \
-inactive until the maintainers add hashes (owner action, NFR-PRIV-09)";
-
 /// Bytes at the start of a file that are searched for a NUL byte to recognise binary files.
 const BINARY_PROBE: usize = 8 * 1024;
 
@@ -317,18 +312,14 @@ mod tests {
     }
 
     #[test]
-    fn empty_denylist_fails_when_entries_are_required() {
+    fn an_empty_denylist_fails() {
         let dir = ew_testdir::Tmp::new("xtask-anon");
         std::fs::create_dir_all(dir.join("ci")).unwrap();
         std::fs::write(dir.join("ci/denylist.sha256"), "# no entries\n").unwrap();
-        // The strict path returns before the files are read, so it is given none.
-        let v = crate::check_anonymisation_at(&dir, true, &[]).unwrap();
+        // The rule returns before the files are read, so it is given none.
+        let v = crate::check_anonymisation_at(&dir, &[]).unwrap();
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("has no entries"), "{v:#?}");
-        assert!(
-            EMPTY_WARNING.starts_with("anonymisation: WARNING: ci/denylist.sha256 has no entries;"),
-            "{EMPTY_WARNING}"
-        );
     }
 
     #[test]
