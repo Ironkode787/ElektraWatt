@@ -220,6 +220,7 @@ choice-drain = Drain
 choice-flexible = Flexible
 # How a fluid port is closed.
 choice-plug = Plug
+choice-function-cp-overrides-item-closure-kind-plug = Blanking plug
 choice-silencer = Silencer
 choice-blanked = Blanked
 # The choice words of every closed set, and four more singular count texts.
@@ -847,7 +848,7 @@ field-word-scale = Scale
 field-word-scheme = Scheme
 field-word-scope = Scope
 field-word-section = Section
-field-word-seq = Sequence
+field-word-seq = Sequence number
 field-word-sequence = Sequence
 field-word-settings = Settings
 field-word-sha256 = SHA-256

@@ -1266,6 +1266,27 @@ mod tests {
         assert!(set_locale("en"));
     }
 
+    /// One English word, two things: a fluid port's closure `plug` is a blanking plug ("Blindstop"), a clamp type's
+    /// `plug` a plug-in clamp ("Stekker"); each by the path the field catalogue gives its field.
+    #[test]
+    fn a_closures_plug_and_a_clamps_plug_read_as_two_things() {
+        let fields = catalogue_fields();
+        let path = |kind: &str, end: &str| {
+            fields
+                .iter()
+                .find(|(k, p, _)| k == kind && p.ends_with(end))
+                .map(|(_, p, _)| p.clone())
+                .unwrap_or_else(|| panic!("a {kind} field ending in {end}"))
+        };
+        let closure = path("function", "closure.kind");
+        assert!(set_locale("nl"));
+        let nl = field_choice_text("function", &closure, "plug");
+        let clamp = choice_text("plug");
+        assert!(set_locale("en"));
+        assert_eq!(field_choice_text("function", &closure, "plug"), "Blanking plug");
+        assert_eq!((nl.as_str(), clamp.as_str()), ("Blindstop", "Stekker"));
+    }
+
     /// Every word of the format's enumerated fields has its `choice-<value>` in en-GB and nl-NL, so
     /// the Properties pane's choices and values read in the UI language.
     #[test]
