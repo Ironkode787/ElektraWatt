@@ -608,20 +608,21 @@ fn rds009_reports_a_confusable_character() {
     assert_eq!(f[0].severity, Severity::Error);
     assert_eq!(targets(&f[0]), [(Kind::Device, uid(0x101))]);
     assert!(findings_of(&designation_fx("K", None).build(), "EW-RDS-009").is_empty());
-    // Every Cyrillic and Greek letter drawn like a Latin one, and the full-width letters and digits, each named with
-    // its Latin look-alike.
-    let table = "АA ВB СC ЕE НH ІI ЈJ КK МM ОO РP ЅS ТT ХX УY аa сc еe іi јj оo рp ѕs хx уy \
-                 ΑA ΒB ΕE ΖZ ΗH ΙI ΚK ΜM ΝN ΟO ΡP ΤT ΥY ΧX οo ＡA ＺZ ａa ｚz ０0 ９9";
-    for pair in table.split_whitespace() {
-        let mut chars = pair.chars();
-        let (c, latin) = (chars.next().unwrap(), chars.next().unwrap());
-        let f = findings_of(&designation_fx(&c.to_string(), None).build(), "EW-RDS-009");
-        let want = format!("(looks like {latin})");
+    // By the Unicode skeleton: a Cyrillic letter, a Greek one, a full-width one and an en dash, each named with the
+    // text it looks like; a Cyrillic word that cannot pass for Latin text is no finding.
+    for (text, want) in [
+        ("\u{0420}", "U+0420 (looks like P)"),
+        ("K\u{039C}", "U+039C (looks like M)"),
+        ("\u{FF21}", "U+FF21 (looks like A)"),
+        ("K\u{2013}", "U+2013 (looks like -)"),
+    ] {
+        let f = findings_of(&designation_fx(text, None).build(), "EW-RDS-009");
         assert!(
-            f.len() == 1 && f[0].message().contains(&want),
-            "{c}: {want} in {f:#?}"
+            f.len() == 1 && f[0].message().contains(want),
+            "{text}: {want} in {f:#?}"
         );
     }
+    assert!(findings_of(&designation_fx("Пускатель", None).build(), "EW-RDS-009").is_empty());
 }
 
 /// EW-RDS-009 prevent: renaming a letter code to a look-alike is refused; touching a device whose look-alike the

@@ -529,78 +529,21 @@ pub const CONFUSABLE_CHARACTER: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// The Latin letter a non-Latin character is drawn like, for the confusable skeleton of EW-RDS-009: the Cyrillic and
-/// Greek capitals and small letters whose glyph is a Latin letter's in the bundled faces, and the full-width Latin
-/// letters and digits. A character outside the table has no Latin look-alike.
-fn latin_lookalike(c: char) -> Option<char> {
-    let fullwidth = |c: char, from: u32, base: u8| char::from_u32(u32::from(base) + (c as u32 - from));
-    Some(match c {
-        // Cyrillic capitals.
-        'А' => 'A',
-        'В' => 'B',
-        'С' => 'C',
-        'Е' => 'E',
-        'Н' => 'H',
-        'І' => 'I',
-        'Ј' => 'J',
-        'К' => 'K',
-        'М' => 'M',
-        'О' => 'O',
-        'Р' => 'P',
-        'Ѕ' => 'S',
-        'Т' => 'T',
-        'Х' => 'X',
-        'У' => 'Y',
-        // Cyrillic small letters.
-        'а' => 'a',
-        'с' => 'c',
-        'е' => 'e',
-        'і' => 'i',
-        'ј' => 'j',
-        'о' => 'o',
-        'р' => 'p',
-        'ѕ' => 's',
-        'х' => 'x',
-        'у' => 'y',
-        // Greek capitals.
-        'Α' => 'A',
-        'Β' => 'B',
-        'Ε' => 'E',
-        'Ζ' => 'Z',
-        'Η' => 'H',
-        'Ι' => 'I',
-        'Κ' => 'K',
-        'Μ' => 'M',
-        'Ν' => 'N',
-        'Ο' => 'O',
-        'Ρ' => 'P',
-        'Τ' => 'T',
-        'Υ' => 'Y',
-        'Χ' => 'X',
-        // Greek small omicron.
-        'ο' => 'o',
-        // Full-width Latin letters and digits.
-        'Ａ'..='Ｚ' => fullwidth(c, 0xFF21, b'A')?,
-        'ａ'..='ｚ' => fullwidth(c, 0xFF41, b'a')?,
-        '０'..='９' => fullwidth(c, 0xFF10, b'0')?,
-        _ => return None,
-    })
-}
-
-/// The confusable characters of `text`: `None` unless the text has a non-ASCII character and every one of them has a
-/// Latin look-alike (its skeleton is pure ASCII: a tag typed on a Cyrillic keyboard); then the look-alikes as
-/// `(U+XXXX, Y)`, in text order. A genuinely non-Latin identifier gives `None`.
-fn confusables(text: &str) -> Option<Vec<(String, char)>> {
-    let foreign: Vec<char> = text.chars().filter(|c| !c.is_ascii()).collect();
-    if foreign.is_empty() {
-        return None;
-    }
-    let mut out = Vec::new();
-    for c in foreign {
-        let latin = latin_lookalike(c)?;
-        out.push((format!("U+{:04X}", c as u32), latin));
-    }
-    Some(out)
+/// The confusable characters of `text` by Unicode Technical Standard #39 ([`ew_mltext::ident_findings`]): each
+/// non-ASCII character whose confusable skeleton is ASCII text other than itself, in an identifier that mixes scripts
+/// or whose whole skeleton is ASCII, as `(U+XXXX, the text it looks like)`, in text order; `None` when there is none.
+/// A genuinely non-Latin identifier gives `None`.
+fn confusables(text: &str) -> Option<Vec<(String, String)>> {
+    let out: Vec<(String, String)> = ew_mltext::ident_findings(text)
+        .into_iter()
+        .filter_map(|f| match f {
+            ew_mltext::IdentFinding::Confusable { ch, prototype, .. } => {
+                Some((format!("U+{:04X}", u32::from(ch)), prototype))
+            }
+            _ => None,
+        })
+        .collect();
+    (!out.is_empty()).then_some(out)
 }
 
 /// The identifiers of a device that EW-RDS-009 reads, as `(what, text)`: its letter code, its frozen tag and, for a
@@ -662,11 +605,11 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
     out
 }
 
-/// EW-RDS-009: a device identifier (the letter code, the frozen tag, a terminal's designation) that contains non-ASCII
-/// characters every one of which looks like a Latin letter or digit, such as a Cyrillic "А" in a tag: its confusable
-/// skeleton is pure ASCII, so it is unreachable by search and breaks cross-references (FR-I18N-011). A genuinely
-/// non-Latin identifier (one with a character that has no Latin look-alike) is no finding. One finding per identifier:
-/// target the device, discriminator the identifier's kind.
+/// EW-RDS-009: a device identifier (the letter code, the frozen tag, a terminal's designation) that contains a
+/// confusable character by the Unicode skeleton (UTS #39), such as a Cyrillic "А" in a tag or an en dash for a hyphen:
+/// it mixes scripts or its skeleton is pure ASCII, so it is unreachable by search and breaks cross-references
+/// (FR-I18N-011). A genuinely non-Latin identifier (a Cyrillic word that cannot pass for Latin text) is no finding. One
+/// finding per identifier: target the device, discriminator the identifier's kind.
 ///
 /// Prevent: a touched device whose identifier the batch created or changed and that is now confusable; a confusable
 /// identifier the base already held does not refuse an edit.
