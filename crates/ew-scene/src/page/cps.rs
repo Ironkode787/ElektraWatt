@@ -11,8 +11,8 @@ use super::*;
 pub(crate) type CpMap = BTreeMap<(Uuid, u16), (Pt2, Dir4)>;
 
 /// The point of every function CP the page draws, by `(function, CP index)`: the CP positions of the page scene
-/// without the directions. `ew-derive`'s `cp_point` restates these rules over `Q` (the wire numbers order
-/// wires by the cell of their ends), and a test holds the two equal on the sample's pages.
+/// without the directions. A symbol's CPs and a strip segment's terminals are placed by `ew-derive`'s rules
+/// (`rep_drawn_cps`, `strip_terminal_end`), which its `cp_point` reads over `Q` too.
 pub fn cp_points(view: &PageView) -> BTreeMap<(Uuid, u16), Pt2> {
     cp_map(view).into_iter().map(|(k, (pos, _))| (k, pos)).collect()
 }
@@ -69,24 +69,21 @@ pub fn drawn_cps(grid: Grid, reps: &[RepView]) -> BTreeMap<(Uuid, u16), (Pt2, Di
                 rep.id.as_uuid(),
             ));
         }
-        // A strip segment: one point per drawn terminal and side.
+        // A strip segment: one point per drawn terminal and side (`ew_derive::strip_terminal_end`).
         if !rv.terminals.is_empty() {
-            let seg_grid = def.grid;
-            let bottom = seg_grid.snap(symbol::lower(def, Orient2::R0).bounds.max().y);
             for (k, t) in rv.terminals.iter().enumerate() {
-                let Ok(step) = i64::try_from(k + 1) else { break };
-                let points = (
-                    ew_derive::segment_point(seg_grid, rep, step, 0),
-                    ew_derive::segment_point(seg_grid, rep, step, bottom),
-                );
-                let (Some(side1), Some(side2)) = points else { break };
-                for (idx, at, dir) in t
+                let end = |side: ew_schema::Side| ew_derive::strip_terminal_end(rep, def, k, &side);
+                let (Some(side1), Some(side2)) = (end(ew_schema::Side::Side1), end(ew_schema::Side::Side2)) else {
+                    break;
+                };
+                let dir = |d: Option<Dir4>| d.unwrap_or(Dir4::Unknown(serde_json::Value::Null));
+                for (idx, (at, d)) in t
                     .side1
                     .iter()
-                    .map(|&i| (i, side1, Dir4::Up))
-                    .chain(t.side2.iter().map(|&i| (i, side2, Dir4::Down)))
+                    .map(|&i| (i, side1.clone()))
+                    .chain(t.side2.iter().map(|&i| (i, side2.clone())))
                 {
-                    let dir = symbol::transform_dir(&dir, rep.orient);
+                    let dir = dir(d);
                     map.entry((t.function.as_uuid(), idx)).or_insert((
                         grid.settle_point(at),
                         dir,

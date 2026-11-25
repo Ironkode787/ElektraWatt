@@ -573,46 +573,42 @@ fn segment_terminals(q: &Q, rep: &Representation) -> Vec<SegmentTerminal> {
     else {
         return Vec::new();
     };
-    let order = q.get::<PageOrder>(());
-    // The strip's segments in (page-order position, y, x, ID) order.
-    let mut segments: Vec<(usize, i64, i64, Id<Representation>)> = q
+    // The strip's representations with their page's place, and its terminals: which of them this segment draws, in
+    // its order, is `ew_derive::strip_segment_of`'s.
+    let order = q.get::<ew_derive::DrawnPageOrder>(());
+    let reps: Vec<_> = q
         .idx()
         .functions_of_device(strip)
         .collect::<Vec<_>>()
         .into_iter()
         .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
         .filter_map(|r| q.reps().get(r).cloned())
-        .filter(|r| r.rep_type == RepType::StripSegment)
-        .map(|r| {
-            let at = order.position(PageRef::Drawn(r.page)).unwrap_or(usize::MAX);
-            (at, r.pos.y.0, r.pos.x.0, r.id)
-        })
         .collect();
-    segments.sort_unstable();
-    segments.dedup();
-    let Some(j) = segments.iter().position(|s| s.3 == rep.id) else {
-        return Vec::new();
+    let segments = || {
+        reps.iter()
+            .map(|r| (order.position(PageRef::Drawn(r.page)).unwrap_or(usize::MAX), &**r))
     };
-    // The strip's terminals in (seq, ID) order.
-    let mut terminals: Vec<(u32, Id<ew_schema::Device>)> = q
+    let terminals: Vec<(u32, Id<ew_schema::Device>)> = q
         .idx()
         .terminals_of_strip(strip)
-        .filter_map(|t| {
-            let seq = q.devices().get(t)?.aspects.terminal.as_ref()?.seq;
-            Some((seq, t))
-        })
+        .filter_map(|t| Some((q.devices().get(t)?.aspects.terminal.as_ref()?.seq, t)))
         .collect();
-    terminals.sort_unstable();
-    let (n, m) = (terminals.len(), segments.len());
-    terminals[j * n / m..(j + 1) * n / m]
+    let mut drawn: Vec<(usize, Id<ew_schema::Device>)> = terminals
         .iter()
         .filter_map(|&(_, t)| {
-            let fns: Vec<Id<Function>> = q.idx().functions_of_device(t).collect();
-            let main = fns
-                .iter()
-                .copied()
-                .find(|f| q.functions().get(*f).is_some_and(|f| f.role == FnRole::Main))
-                .or_else(|| fns.first().copied())?;
+            let (seg, k) = ew_derive::strip_segment_of(segments(), terminals.iter().copied(), t)?;
+            (seg.id == rep.id).then_some((k, t))
+        })
+        .collect();
+    drawn.sort_unstable();
+    drawn
+        .into_iter()
+        .filter_map(|(_, t)| {
+            let fns = q
+                .idx()
+                .functions_of_device(t)
+                .filter_map(|f| Some((f, q.functions().get(f)?.role.clone())));
+            let main = ew_derive::terminal_drawn_function(fns)?;
             let cps = q.get::<FunctionCps>(main);
             let side = |want: Side| {
                 cps.iter()

@@ -126,7 +126,7 @@ use ew_scene::page::{
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
-    Device, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page,
+    Device, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page,
     PageType, RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
     TagPrint,
 };

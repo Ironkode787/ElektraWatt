@@ -144,29 +144,6 @@ fn with_pages(f: impl FnOnce(&[ViewedPage])) {
     f(&page_views(&q));
 }
 
-/// `ew-derive`'s `cp_point` (the position of a function CP on a page, which the wire numbers read) and the page
-/// scene's CP positions are the same geometry written twice; they agree on every CP of every page of the sample, the
-/// black-box CPs included.
-#[test]
-fn cp_point_equals_the_cp_points_of_the_page_scene() {
-    let s = sample_session(None);
-    let q = s.query();
-    let mut checked = 0;
-    for g in page_views(&q) {
-        for ((function, idx), at) in ew_scene::page::cp_points(&g.view) {
-            let function = Id::from_uuid(function);
-            assert_eq!(
-                ew_derive::cp_point(&q, function, idx, g.view.page),
-                Some(at),
-                "CP {idx} of {function} on folio {}",
-                g.entry.folio
-            );
-            checked += 1;
-        }
-    }
-    assert!(checked > 0, "{checked} CPs compared");
-}
-
 fn folio<'a>(pages: &'a [ViewedPage], folio: &str) -> &'a ViewedPage {
     pages
         .iter()
