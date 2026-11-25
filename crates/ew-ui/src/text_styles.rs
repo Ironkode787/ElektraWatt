@@ -28,19 +28,22 @@ const PX_PER_MM: f32 = 2.0 * 96.0 / 25.4;
 /// The largest sample, in points: a cover title keeps the row readable.
 const MAX_SAMPLE: f32 = 44.0;
 
-/// A text a style prints, as its sample: what a person sees in that style on a drawing.
+/// A text a style prints, as its sample: what a person sees in that style on a drawing, the words in the window's
+/// language.
 fn sample(key: &str) -> &'static str {
     match key {
         "tag.main" => "-1Q1",
-        "data.small" => "Motor 1.5 kW",
+        "data.small" => strings::text(key!("text-styles-sample-data")),
         "cp.small" => "13 14 A1",
         "pin" => "1 2 3",
         "xref.device" => "102.3 ∞",
         "marker" => "101 102",
         "terminal" => "1 2 3",
-        "cover.title" | "cover.subtitle" | "section.subtitle" => "Control cabinet",
+        "cover.title" | "cover.subtitle" | "section.subtitle" => {
+            strings::text(key!("text-styles-sample-title"))
+        }
         "section.id" => "A1",
-        _ => "Text 123",
+        _ => strings::text(key!("text-styles-sample-text")),
     }
 }
 

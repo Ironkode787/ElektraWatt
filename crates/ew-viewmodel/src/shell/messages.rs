@@ -919,9 +919,9 @@ impl ShellModel {
         self.props.card = Some(Card {
             preview: PreviewState {
                 base_rev: rev,
+                result: result.map_err(|e| super::tools::command_error_message(&e, &params)),
                 command: params,
                 name,
-                result: result.map_err(|e| e.to_string()),
                 derived,
             },
             edit,

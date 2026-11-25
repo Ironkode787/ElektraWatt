@@ -696,7 +696,14 @@ impl ShellModel {
                 _ => super::tools::rejected_words(message, Some(&**text)),
             });
         }
-        let result = raw.map_err(|e| e.to_string());
+        // The refusal in the window's language; a prevent rule's code leads it, as the card's lead line reads it.
+        let result = raw.map_err(|e| {
+            let words = super::tools::command_error_message(&e, &cmd.params);
+            match &e {
+                ew_api::CmdError::Prevented { rule, .. } => format!("{rule}: {words}"),
+                _ => words,
+            }
+        });
         let derived = result
             .as_ref()
             .map(|p| project.session.derived_diff(p))

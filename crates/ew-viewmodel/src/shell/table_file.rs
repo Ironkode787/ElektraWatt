@@ -352,7 +352,8 @@ impl ShellModel {
                     Ok(p) => project.session.derived_diff(p),
                     Err(_) => Default::default(),
                 };
-                (cmd.params.clone(), result.map_err(|e| e.to_string()), derived)
+                let result = result.map_err(|e| super::tools::command_error_message(&e, &cmd.params));
+                (cmd.params.clone(), result, derived)
             }
             None => (
                 Value::Null,

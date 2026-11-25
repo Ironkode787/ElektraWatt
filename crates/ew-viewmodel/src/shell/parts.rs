@@ -701,7 +701,7 @@ impl ShellModel {
             .ok()
             .and_then(|p| parts_import_counts(p.outcome().note.as_deref()?))
             .unwrap_or((0, 0));
-        let result = result.map_err(|e| e.to_string());
+        let result = result.map_err(|e| super::tools::command_error_message(&e, &params));
         let edit = PendingEdit {
             kind: "part".to_owned(),
             label: source.clone(),

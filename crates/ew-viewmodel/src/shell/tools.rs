@@ -1324,7 +1324,7 @@ impl ShellModel {
                 .as_ref()
                 .map(|p| notices_words(&p.outcome().notices))
                 .unwrap_or_default(),
-            message: result.as_ref().err().map(ToString::to_string),
+            message: result.as_ref().err().map(|e| command_error_message(e, &json)),
         };
         // A paste that brings a cut device back to another page says before the click that its tag follows the page,
         // as its toast says after it.
@@ -1340,9 +1340,9 @@ impl ShellModel {
         }
         self.tools.preview = Some(PreviewState {
             base_rev: rev,
+            result: result.map_err(|e| command_error_message(&e, &json)),
             command: json,
             name: cmd.name().to_owned(),
-            result: result.map_err(|e| e.to_string()),
             derived,
         });
         if let Some(overlay) = self.tools.tool.on_preview(&info) {
@@ -1812,6 +1812,14 @@ pub(super) enum Kept<'a> {
 /// (the command error itself stays machine-readable for the CLI); any other error as it prints. Every shell path that
 /// shows a command error goes through it: the tool host, `command.run`, the creation dialogs, paste, undo and redo.
 pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
+    Outcome::Failed {
+        message: command_error_message(e, params),
+    }
+}
+
+/// A command error with `params` in the window's language: what [`command_failed`] says, and what a refused preview's
+/// card shows.
+pub(super) fn command_error_message(e: &CmdError, params: &Value) -> String {
     match e {
         // The reason in the window's language.
         CmdError::InvalidParams {
@@ -1819,7 +1827,7 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
             path,
             message,
             text,
-        } => failed(
+        } => strings::format(
             key!("error-command-field"),
             &[
                 strings::command_title(command),
@@ -1830,15 +1838,11 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
         // A refusal shows its reason, never the error's Display form ("<source>: <reason>"), and
         // in the window's language
         CmdError::Rejected { reason, text, .. } => {
-            failed(key!("error-command"), &[&rejected_words(reason, text.as_deref())])
+            strings::format(key!("error-command"), &[&rejected_words(reason, text.as_deref())])
         }
         // Every other reason through its own key in the window's language,
         // never the error's Display form (which names the exposure class and the origin, `cmdlog:script.uiscript`).
-        other => {
-            let (key, args) = command_error_text(other);
-            let args: Vec<&str> = args.iter().map(String::as_str).collect();
-            failed(key, &args)
-        }
+        other => command_error_words(other),
     }
 }
 
@@ -2308,5 +2312,17 @@ mod ft779 {
                     .to_owned()
             )
         );
+    }
+
+    /// A refused preview's card holds the refusal in the window's language, as a toast says it, never the error's
+    /// English Display form.
+    #[test]
+    fn a_refused_previews_card_reads_in_a_dutch_window() {
+        let e = CmdError::rejected("edit.paste", keyed("refusal-paste-generated-page", vec![]));
+        assert_eq!(e.to_string(), "edit.paste: a generated page takes no paste");
+        assert!(strings::set_locale("nl"));
+        let nl = command_error_message(&e, &Value::Null);
+        assert!(strings::set_locale("en"));
+        assert_eq!(nl, "op een gegenereerde pagina kan niets worden geplakt");
     }
 }
