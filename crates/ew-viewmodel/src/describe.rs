@@ -1370,7 +1370,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     tab_lines(model, lines);
     // A station's view on show, in place of its tab's page.
     lines.extend(model.station_lines());
-    match model.current_folio() {
+    // A station's view stands on the page it was opened from.
+    match model.current_folio().or(model.station_page_folio()) {
         Some(folio) => lines.push(format!("page view: {folio}")),
         None => lines.push(format!("page view: {}", strings::text(key!("page-no-pages")))),
     }

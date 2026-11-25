@@ -326,7 +326,7 @@ pub fn state_json(shell: &ShellModel) -> String {
         member("project", &opt(shell.project_name())),
         member("access", &access),
         member("dirty", &Value::from(shell.is_dirty())),
-        member("page", &opt(shell.current_folio())),
+        member("page", &opt(shell.current_folio().or(shell.station_page_folio()))),
         member("page_index", &page_index),
         member("page_count", &Value::from(shell.page_count())),
         member("can_undo", &Value::from(shell.can_undo())),

@@ -1428,9 +1428,27 @@ impl ShellModel {
         self.current_page().and_then(|p| self.row_index(p)).unwrap_or(0)
     }
 
-    /// The folio label of the current page.
+    /// The folio of the page in front; `None` off a page: a station's view in front (it shows no page), no project,
+    /// or the tab's page gone. It never stands for another page (it was the first page's off a page).
     pub fn current_folio(&self) -> Option<&str> {
-        self.page_labels().get(self.page_index()).map(String::as_str)
+        if self.station_tab().is_some() {
+            return None;
+        }
+        self.tab_folio()
+    }
+
+    /// The folio of the page a station's view in front stands on (the page it was opened from, whose catalogue it
+    /// offers and to which it goes back); `None` without a station's view in front.
+    pub fn station_page_folio(&self) -> Option<&str> {
+        self.station_tab()?;
+        self.tab_folio()
+    }
+
+    /// The folio of the page of the tab in front, a station's view's too; `None` where that page is not in the
+    /// project.
+    fn tab_folio(&self) -> Option<&str> {
+        let index = self.row_index(self.current_page()?)?;
+        self.page_labels().get(index).map(String::as_str)
     }
 
     /// The revision of the open project's model, which a rendered page image is tagged with.

@@ -27,7 +27,9 @@ impl ShellModel {
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
         };
-        let folio = self.current_folio().unwrap_or_default().to_owned();
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
         self.palette = None;
         self.tools.junction_editor = None;
         let slots = self.template_slots();
@@ -337,7 +339,9 @@ impl ShellModel {
                 Ok(id) => id,
                 Err(reason) => return failed(key!("error-join-device"), &[device, &reason]),
             };
-            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let Some(folio) = self.current_folio().map(str::to_owned) else {
+                return Outcome::refused(key!("reason-no-page"));
+            };
             let project = or_return!(crate::shell::gated(&self.project));
             let interfaces: Vec<ew_api::output::CatalogueInterface> = project
                 .session
@@ -712,7 +716,9 @@ impl ShellModel {
                 self.arm_exchange(cat, i)
             }
             Ok(None) => {
-                let folio = self.current_folio().unwrap_or_default().to_owned();
+                let Some(folio) = self.current_folio().map(str::to_owned) else {
+                    return Outcome::refused(key!("reason-no-page"));
+                };
                 self.tools.picker = Some(Picker::new(PickerMode::Exchange, &folio, cat));
                 Outcome::Done
             }

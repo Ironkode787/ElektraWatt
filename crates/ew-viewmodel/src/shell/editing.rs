@@ -662,7 +662,7 @@ impl ShellModel {
         // A station's view shows no page: its catalogue is that of the page it was opened from.
         let folio = match self.canvas() {
             Some(c) => c.page().folio.clone(),
-            None => self.station_tab().and(self.current_folio())?.to_owned(),
+            None => self.station_page_folio()?.to_owned(),
         };
         Some((self.project_epoch()?, self.revision()?, folio))
     }

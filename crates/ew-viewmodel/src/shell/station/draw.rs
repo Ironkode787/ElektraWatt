@@ -931,7 +931,7 @@ impl ShellModel {
             None => return Outcome::refused(key!("reason-place-drawn")),
         };
         if self.station_tab().is_some() {
-            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let folio = self.station_page_folio().unwrap_or_default().to_owned();
             let shown = self.dispatch("page.goto", &json!({ "folio": folio }));
             if shown != Outcome::Done {
                 return shown;

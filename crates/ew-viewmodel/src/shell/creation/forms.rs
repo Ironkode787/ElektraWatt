@@ -254,7 +254,9 @@ impl ShellModel {
     /// Arms the black box tool with every interface of `device` that the bus-topology page in front does not draw yet,
     /// a box each; a device without a bus interface, or with all of them drawn there, is refused in words.
     pub(in crate::shell) fn put_station_here(&mut self, device: ew_api::output::Uuid) -> Outcome {
-        let folio = self.current_folio().unwrap_or_default().to_owned();
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
         let Some((tag, bus, interfaces)) = self.project_session().map(|s| {
             (
                 s.device_tag(device).unwrap_or_default(),

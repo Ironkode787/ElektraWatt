@@ -125,14 +125,6 @@ impl ShellModel {
         session.block_look(self.selected_legend().filter(|_| legend)?, lang)
     }
 
-    /// The folio of the page on show.
-    fn folio_on_show(&self) -> String {
-        self.page_rows()
-            .get(self.page_index())
-            .map(|r| r.folio.clone())
-            .unwrap_or_default()
-    }
-
     /// `edits` in one `fields.set_many`, then `toast`; a failure stays in the form of `action`.
     fn commit_look(&mut self, action: &str, edits: Vec<Value>, toast: String) -> Outcome {
         if !edits.is_empty() {
@@ -231,7 +223,7 @@ impl ShellModel {
         } else {
             key!("toast-list-columns")
         };
-        let toast = strings::format(toast_key, &[&self.folio_on_show()]);
+        let toast = strings::format(toast_key, &[self.current_folio().unwrap_or_default()]);
         let Some(table) = p.get("columns").and_then(Value::as_array) else {
             return self.commit_look(COLUMNS, edits, toast);
         };
@@ -413,7 +405,7 @@ impl ShellModel {
         } else {
             vec![edit(&look.block.to_string(), "added_rows", value)]
         };
-        let folio = self.folio_on_show();
+        let folio = self.current_folio().unwrap_or_default().to_owned();
         let toast = match n {
             0 => strings::format(key!("toast-list-rows-none"), &[&folio]),
             _ => strings::format_counted(crate::count_key!("toast-list-rows"), n, &[&folio]),

@@ -209,8 +209,9 @@ impl ShellModel {
             .and_then(|p| p.pending.clone());
         if let Some(pending) = pending {
             self.sync_views();
-            if let Some(cat) = self.catalogue() {
-                let folio = self.current_folio().unwrap_or_default().to_owned();
+            if let Some(cat) = self.catalogue()
+                && let Some(folio) = self.current_folio().map(str::to_owned)
+            {
                 let mut picker = Picker::strips(&folio, Arc::clone(&cat), pending);
                 let new = self.tools.last_primary.clone();
                 if let Some(i) = picker.rows.iter().position(

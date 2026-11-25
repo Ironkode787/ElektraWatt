@@ -595,7 +595,9 @@ impl ShellModel {
         let strip = strip.as_deref();
         // Without a strip the picker asks for one: its strip chooser.
         let Some(strip) = strip else {
-            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let Some(folio) = self.current_folio().map(str::to_owned) else {
+                return Err(Outcome::refused(key!("reason-no-page")));
+            };
             let pending = PendingTerminal {
                 symbol: row.key.clone(),
                 params: p.clone(),
