@@ -201,6 +201,15 @@ pub fn wire_stroke(grid: Grid) -> Stroke {
     }
 }
 
+/// The sheet of a page whose frame form is `form`: its width and height and its page-to-sheet map; without a form
+/// the default sheet ([`DEFAULT_SHEET`]) and the identity.
+pub fn sheet_of(form: Option<&FormDef>) -> (Nm, Nm, SheetMap) {
+    match form {
+        Some(form) => (form.sheet.width, form.sheet.height, SheetMap::of(form)),
+        None => (DEFAULT_SHEET.0, DEFAULT_SHEET.1, SheetMap::IDENTITY),
+    }
+}
+
 /// The sheet used when a page has no frame form: A4 landscape (297 mm × 210 mm).
 pub const DEFAULT_SHEET: (Nm, Nm) = (Nm(297_000_000), Nm(210_000_000));
 
@@ -800,10 +809,7 @@ pub fn page_scene(view: &PageView, fonts: &FontSet, styles: &TextStyleTable) -> 
         findings.extend(l.findings);
         layers.push((layer, Arc::new(l.list)));
     }
-    let (sheet_width, sheet_height, map) = match &view.frame {
-        Some(f) => (f.form.sheet.width, f.form.sheet.height, SheetMap::of(&f.form)),
-        None => (DEFAULT_SHEET.0, DEFAULT_SHEET.1, SheetMap::IDENTITY),
-    };
+    let (sheet_width, sheet_height, map) = sheet_of(view.frame.as_ref().map(|f| &*f.form));
     PageScene {
         page: view.page,
         sheet_width,

@@ -31,9 +31,9 @@ use std::sync::Arc;
 use ew_derive::{DrawingSettingsQ, PageEntry, PageRef, Policy, Q, Query};
 use ew_dl::{DisplayList, Layer, SymbolGeomId};
 use ew_ids::{Id, Uuid};
-use ew_scene::forms::{PageBindings, SheetMap};
+use ew_scene::forms::PageBindings;
 use ew_scene::hops::Crossings;
-use ew_scene::page::{DEFAULT_SHEET, PageFinding, PageKind, PageScene, PageView, RepView, page_display_list};
+use ew_scene::page::{PageFinding, PageKind, PageScene, PageView, RepView, page_display_list};
 use ew_schema::PageType;
 use ew_units::Pt2;
 
@@ -579,10 +579,7 @@ pub fn page_scene(q: &Q, entry: &PageEntry) -> PageScene {
         layers.push((layer, Arc::clone(&l.list)));
     }
     let frame = q.get::<PageFrameOf>(page);
-    let (sheet_width, sheet_height, map) = match frame.as_ref() {
-        Some(f) => (f.form.sheet.width, f.form.sheet.height, SheetMap::of(&f.form)),
-        None => (DEFAULT_SHEET.0, DEFAULT_SHEET.1, SheetMap::IDENTITY),
-    };
+    let (sheet_width, sheet_height, map) = ew_scene::page::sheet_of(frame.as_ref().as_ref().map(|f| &*f.form));
     PageScene {
         page: Id::from_uuid(page_uuid(page)),
         sheet_width,

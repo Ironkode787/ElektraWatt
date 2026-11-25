@@ -73,9 +73,8 @@ pub struct Snapper {
     /// The grid pitch `num / den` nm on the page.
     num: i128,
     den: i128,
-    /// The page-to-sheet scale in parts per 10⁹ and the sheet point of the page origin.
-    scale: i128,
-    offset: (i128, i128),
+    /// The page-to-sheet map, which the snapper reads with halves away from zero.
+    map: ew_api::output::SheetMap,
     /// The page's connection points in reading order.
     cps: Vec<SnapCp>,
 }
@@ -90,20 +89,21 @@ impl Snapper {
     /// The snapper of a page with `grid` (a 1 mm grid at scale 1 without one) and its connection points in
     /// reading order.
     pub fn new(grid: Option<&PageGrid>, cps: &[PageCp]) -> Snapper {
-        let (num, den, scale, offset) = match grid {
+        let (num, den, map) = match grid {
             Some(g) if g.num_nm > 0 && g.den > 0 && g.sheet_scale_ppb > 0 => (
                 i128::from(g.num_nm),
                 i128::from(g.den),
-                i128::from(g.sheet_scale_ppb),
-                (i128::from(g.sheet_offset_nm.0), i128::from(g.sheet_offset_nm.1)),
+                ew_api::output::SheetMap {
+                    scale_ppb: g.sheet_scale_ppb,
+                    offset: ew_units::Pt2::new(ew_units::Nm(g.sheet_offset_nm.0), ew_units::Nm(g.sheet_offset_nm.1)),
+                },
             ),
-            _ => (1_000_000, 1, 1_000_000_000, (0, 0)),
+            _ => (1_000_000, 1, ew_api::output::SheetMap::IDENTITY),
         };
         Snapper {
             num,
             den,
-            scale,
-            offset,
+            map,
             cps: cps
                 .iter()
                 .map(|c| SnapCp {
@@ -121,15 +121,12 @@ impl Snapper {
     }
 
     fn off(&self, axis: usize) -> i128 {
-        if axis == 0 { self.offset.0 } else { self.offset.1 }
+        i128::from(if axis == 0 { self.map.offset.x.0 } else { self.map.offset.y.0 })
     }
 
     /// The page coordinate of the sheet coordinate `s` on `axis` (0 x, 1 y).
     pub fn to_page(&self, s: i64, axis: usize) -> i64 {
-        clamp64(div_round_ties_away(
-            (i128::from(s) - self.off(axis)) * 1_000_000_000,
-            self.scale,
-        ))
+        self.map.page_coordinate_ties_away(s, axis)
     }
 
     /// The grid index of the page coordinate `p`.
@@ -146,7 +143,10 @@ impl Snapper {
     pub fn sheet_of_index(&self, k: i64, axis: usize) -> i64 {
         clamp64(
             self.off(axis)
-                + div_round_ties_away(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000),
+                + div_round_ties_away(
+                    i128::from(k) * self.num * i128::from(self.map.scale_ppb),
+                    self.den * 1_000_000_000,
+                ),
         )
     }
 
@@ -207,7 +207,7 @@ impl Snapper {
 
     /// The sheet coordinate of the page coordinate `p` on `axis`: `offset + round(p × scale_ppb / 10⁹)`.
     pub fn to_sheet(&self, p: i64, axis: usize) -> i64 {
-        clamp64(self.off(axis) + div_round_ties_away(i128::from(p) * self.scale, 1_000_000_000))
+        self.map.sheet_coordinate_ties_away(p, axis)
     }
 
     /// The sheet point of the page point `p`.

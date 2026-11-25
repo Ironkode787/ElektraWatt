@@ -247,18 +247,7 @@ pub(crate) fn sheet_rect(q: &Q, page: Id<Page>) -> Rect {
 /// The sheet size of `page` and its page-to-sheet map.
 fn sheet_of(q: &Q, page: Id<Page>) -> (Nm, Nm, ew_scene::forms::SheetMap) {
     let frame = q.get::<PageFrameOf>(PageRef::Drawn(page));
-    match frame.as_ref() {
-        Some(f) => (
-            f.form.sheet.width,
-            f.form.sheet.height,
-            ew_scene::forms::SheetMap::of(&f.form),
-        ),
-        None => (
-            ew_scene::page::DEFAULT_SHEET.0,
-            ew_scene::page::DEFAULT_SHEET.1,
-            ew_scene::forms::SheetMap::IDENTITY,
-        ),
-    }
+    ew_scene::page::sheet_of(frame.as_ref().as_ref().map(|f| &*f.form))
 }
 
 /// What an underlay is made of.

@@ -153,6 +153,7 @@ pub use ew_import_catalog::sheet;
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
+pub use ew_scene::forms::SheetMap;
 pub use ew_scene::page::SlotTextBox;
 pub use ew_scene::panel::LabelShow;
 pub use natures::Natures;

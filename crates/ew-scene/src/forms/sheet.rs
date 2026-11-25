@@ -13,6 +13,16 @@ use ew_dl::{
 use ew_schema::FormDef;
 use ew_units::{Nm, Pt2, Rect, arith};
 
+/// The index of the grid point within 1 nm of the page coordinate `p` on a grid of `num / den` nm, halves away from
+/// zero (the window's snapper rounds a grid index so); `None` for no such point or a grid that is none.
+pub fn grid_index_near(p: i64, num: i128, den: i128) -> Option<i64> {
+    if num <= 0 || den <= 0 {
+        return None;
+    }
+    let k = arith::div_round_ties_away(i128::from(p) * den, num);
+    ((k * num - i128::from(p) * den).abs() <= den).then(|| i64::try_from(k).unwrap_or(if k < 0 { i64::MIN } else { i64::MAX }))
+}
+
 /// Parts per 10⁹ of scale 1.
 pub const PPB_ONE: u32 = 1_000_000_000;
 
@@ -96,6 +106,27 @@ impl SheetMap {
             self.unscale_len(p.x - self.offset.x),
             self.unscale_len(p.y - self.offset.y),
         )
+    }
+
+    /// The sheet coordinate on `axis` (0 x, 1 y) of the page coordinate `p`, `offset + round(p × scale_ppb / 10⁹)`
+    /// with halves away from zero: the window's snapper's form ([`apply`](SheetMap::apply) rounds them toward zero).
+    pub fn sheet_coordinate_ties_away(self, p: i64, axis: usize) -> i64 {
+        let off = if axis == 0 { self.offset.x.0 } else { self.offset.y.0 };
+        let q = i128::from(off)
+            + arith::div_round_ties_away(i128::from(p) * i128::from(self.scale_ppb), i128::from(PPB_ONE));
+        i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
+    }
+
+    /// The page coordinate on `axis` of the sheet coordinate `s`, `round((s − offset) × 10⁹ / scale_ppb)` with halves
+    /// away from zero: the snapper's inverse of [`sheet_coordinate_ties_away`](SheetMap::sheet_coordinate_ties_away).
+    /// A scale of 0 is treated as 1 ppb.
+    pub fn page_coordinate_ties_away(self, s: i64, axis: usize) -> i64 {
+        let off = if axis == 0 { self.offset.x.0 } else { self.offset.y.0 };
+        let q = arith::div_round_ties_away(
+            (i128::from(s) - i128::from(off)) * i128::from(PPB_ONE),
+            i128::from(self.scale_ppb.max(1)),
+        );
+        i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
     }
 
     /// A page point on the sheet.

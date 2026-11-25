@@ -33,7 +33,6 @@ use ew_dl::{Destination, DisplayList, Item, ItemKind, Link, Transform};
 use ew_ids::{Id, Uuid};
 use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{FrameGrid, Function, Page, PageType, RepType, Representation};
-use ew_units::arith::div_round_ties_away;
 use ew_units::{Grid, Nm, Pt2};
 
 use super::view::{PageFrameOf, PageGridOf, PageTableOf, neutral, page_uuid};
@@ -100,11 +99,6 @@ impl fmt::Display for CellLabel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.row, self.column)
     }
-}
-
-/// An `i128` as `i64`, saturating.
-fn sat(v: i128) -> i64 {
-    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
 }
 
 /// A page's frame cells for a viewer: opaque, made by [`Session::page_cells`]; evaluating it never
@@ -502,19 +496,9 @@ fn aspect(q: &Q, page: PageRef, aspect: Aspect) -> Option<String> {
 /// The page-to-sheet map of a page's frame form (the identity without one).
 fn sheet_map(q: &Q, page: PageRef) -> SheetMap {
     let form = q.get::<PageFrameOf>(page);
-    form.as_ref()
-        .as_ref()
-        .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form))
+    ew_scene::page::sheet_of(form.as_ref().as_ref().map(|f| &*f.form)).2
 }
 
-/// The index of the grid point within 1 nm of the page coordinate `p` on a grid of `num / den` nm, if any.
-fn grid_index(p: i64, num: i128, den: i128) -> Option<i64> {
-    if num <= 0 || den <= 0 {
-        return None;
-    }
-    let k = div_round_ties_away(i128::from(p) * den, num);
-    ((k * num - i128::from(p) * den).abs() <= den).then(|| sat(k))
-}
 
 /// The reading-order key of a CP: its cell's column and row index and its sheet `(y, x)`. `page_cps` breaks ties by
 /// the label (natural order, then bytes) and only then by the ID, so two coincident CPs keep their order in every
@@ -935,7 +919,8 @@ impl Session {
             };
             let on_sheet = map.apply(p);
             let at_nm = (on_sheet.x.0, on_sheet.y.0);
-            let grid_index = grid_index(p.x.0, num, den).zip(grid_index(p.y.0, num, den));
+            let near = |v: i64| ew_scene::forms::grid_index_near(v, num, den);
+            let grid_index = near(p.x.0).zip(near(p.y.0));
             let id: Id<()> = ew_ids::v5::cp_id(function, u32::from(idx));
             let (column, row) = cp_cell(&q, function, idx, page)
                 .map_or((u32::MAX, u32::MAX), |c| (c.column.saturating_sub(start), c.row));

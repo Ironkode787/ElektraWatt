@@ -51,9 +51,7 @@ fn fits_at(area: (i64, i64), usable: &[Pt2], n: u32) -> Option<bool> {
 /// its cells read (the built-in default grid, `ew_derive::frame_grid`), as the canvas does. `None` without a grid.
 pub(crate) fn drawing_area(q: &Q, page: Id<Page>) -> Option<(Rect, SheetMap)> {
     let frame = q.get::<PageFrameOf>(PageRef::Drawn(page)).as_ref().clone();
-    let map = frame
-        .as_ref()
-        .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
+    let map = ew_scene::page::sheet_of(frame.as_ref().map(|f| &*f.form)).2;
     let area = match frame
         .as_ref()
         .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()))
