@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Through the `ew` binary: `ew merge-driver` in a working tree that holds a copy of the sample, as git runs it. The
-//! exits 0 and 1, the four-argument form, an internal error's 129 with `%A` byte-identical; AC-41's driver half on
+//! exits 0 and 1, the four-argument form, an internal error's 129 with `%A` byte-identical; the driver half on
 //! the wire of page 103 given an override (the shield of -103W1, 2.5 mm²) and the manifest merge.
 
 use std::ffi::OsStr;
@@ -131,7 +131,7 @@ fn merged_sides() -> String {
     page_with(r#""overrides":{"csa":"4","colour":["BU"]}"#)
 }
 
-/// MD-5, MD-6: branch A adds the shield wire's `colour` BU, branch B sets `csa` "4": exit 0 and the merged page, in
+/// Branch A adds the shield wire's `colour` BU, branch B sets `csa` "4": exit 0 and the merged page, in
 /// both forms.
 #[test]
 fn a_wire_merges_cleanly_to_csa_4_and_colour_bu_and_exits_0() {
@@ -151,7 +151,7 @@ fn a_wire_merges_cleanly_to_csa_4_and_colour_bu_and_exits_0() {
     assert!(names.iter().all(|n| !n.contains(".tmp")), "{names:?}");
 }
 
-/// The conflict record on the shield wire's colour, ours BU and theirs WH, in D14's member order: the merge driver's
+/// The conflict record on the shield wire's colour, ours BU and theirs WH, in the member order: the merge driver's
 /// result of the conflict variant.
 pub(crate) fn colour_conflict() -> String {
     format!(
@@ -160,7 +160,7 @@ pub(crate) fn colour_conflict() -> String {
     )
 }
 
-/// MD-5, MD-6: the conflict variant (B also adds `colour` WH) writes one conflict record on `overrides.colour`, keeps
+/// The conflict variant (B also adds `colour` WH) writes one conflict record on `overrides.colour`, keeps
 /// BU in place and exits 1, in both forms.
 #[test]
 fn the_conflict_variant_writes_one_conflict_record_and_exits_1() {
@@ -176,7 +176,7 @@ fn the_conflict_variant_writes_one_conflict_record_and_exits_1() {
     }
 }
 
-/// MD-6: the manifest merge gives the larger generation plus one, `merged: true` and no `base`; the page both
+/// The manifest merge gives the larger generation plus one, `merged: true` and no `base`; the page both
 /// branches changed is pending, a file one branch changed keeps that branch's hash.
 #[test]
 fn the_manifest_merges_to_max_plus_one_merged_and_no_base() {

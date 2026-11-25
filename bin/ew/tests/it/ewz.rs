@@ -235,7 +235,7 @@ fn export_ewz_needs_out_and_is_deterministic() {
     assert_eq!(std::fs::read(&json).unwrap(), first);
 }
 
-/// EZ-3: `ew extract` writes into `<name>.ew` beside the archive or `--into`, byte-equal to the source; onto an
+/// `ew extract` writes into `<name>.ew` beside the archive or `--into`, byte-equal to the source; onto an
 /// existing directory it exits 2 and writes nothing.
 #[test]
 fn extract_into_a_new_folder_and_never_into_an_existing_one() {
@@ -304,7 +304,7 @@ fn extract_into_a_new_folder_and_never_into_an_existing_one() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
 }
 
-/// EZ-4 through the CLI: a damaged or hostile archive is refused unread by every reader and by `ew extract`, in words,
+/// Through the CLI: a damaged or hostile archive is refused unread by every reader and by `ew extract`, in words,
 /// and nothing is written.
 #[test]
 fn a_refused_archive_is_named_and_nothing_is_written() {

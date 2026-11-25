@@ -771,7 +771,7 @@ fn the_compatibility_filter_ranks_fitting_parts_first() {
         .iter()
         .map(|h| (h.part_number.as_str(), h.compatible))
         .collect();
-    // The two levels of D6: the 1P MCB fits a 1P+N function too (category's first two levels and contact kind).
+    // The two levels: the 1P MCB fits a 1P+N function too (category's first two levels and contact kind).
     assert_eq!(
         fits[..3],
         [

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fonts of the SVG pages (SV-1 in miniature): each page's `<style>` declares
+//! The fonts of the SVG pages: each page's `<style>` declares
 //! exactly the faces its `<text>` elements name, one subset per face per page, and every character of the page's
 //! texts maps through the embedded subset's `cmap` to the face's glyph with its outline (read back with
 //! `skrifa`); a face without usable bytes is named only and reported.
@@ -78,7 +78,7 @@ struct Declared {
     subset: Vec<u8>,
 }
 
-/// The `@font-face` rules of a page's `<style>`, each written whole in the form D3 gives.
+/// The `@font-face` rules of a page's `<style>`, each written whole in the form the design gives.
 fn declared(doc: &str) -> Vec<Declared> {
     let style = &doc[doc.find("<style>").unwrap() + 7..doc.find("</style>").unwrap()];
     assert!(style.ends_with("text{white-space:pre}"), "{style:.80}");
@@ -143,7 +143,7 @@ fn face_bytes(family: &str, weight: u16, italic: bool) -> &'static [u8] {
     bundled().face_data(f.key).unwrap()
 }
 
-/// SV-1 for one page: the declared faces are exactly the named ones, once each, and every character of every
+/// For one page: the declared faces are exactly the named ones, once each, and every character of every
 /// `<text>` maps through the declared subset to the face's glyph with the face's outline bytes (an outline that
 /// draws, unless the face's own glyph is empty, as a space's is).
 fn check_page(doc: &str) -> BTreeSet<(String, u16, bool)> {
@@ -183,7 +183,7 @@ fn check_page(doc: &str) -> BTreeSet<(String, u16, bool)> {
     named
 }
 
-/// SV-1 in miniature: a page with Regular, Bold and the symbol face declares those three; a page with Regular
+/// In miniature: a page with Regular, Bold and the symbol face declares those three; a page with Regular
 /// only declares one, whose subset lacks the other page's glyphs; a page without text declares none.
 #[test]
 fn each_page_embeds_exactly_the_faces_its_texts_name() {
@@ -232,7 +232,7 @@ fn each_page_embeds_exactly_the_faces_its_texts_name() {
     }
 }
 
-/// The face rule as D3 writes it, whole up to the data.
+/// The face rule as the design writes it, whole up to the data.
 #[test]
 fn the_font_face_rule_is_written_in_the_form_of_d3() {
     let out = svg(

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Incremental saves of the layout files equal full saves (NFR-REL-16; LM-1): the sample project gains two
+//! Incremental saves of the layout files equal full saves (NFR-REL-16): the sample project gains two
 //! layout spaces, then random sequences of the edits the eleven `layout.*` commands make (place, move, remove, lock,
 //! carrier add, edit and delete with either `then`, space and enclosure delete through the delete plan, a device
 //! delete that cascades its placements) and the moves of the follow relations of doc 05 §2.2 (a carrier to another
@@ -391,7 +391,7 @@ fn every_layout_edit_kind_applies_on_the_seeded_fixture() {
     }
 }
 
-/// LM-1: moving a carrier to a surface of another space re-keys its placements' file entries. The save is given
+/// Moving a carrier to a surface of another space re-keys its placements' file entries. The save is given
 /// only the carrier's key; the follow relation finds the placements, which leave the old space's file for the new
 /// one.
 #[test]

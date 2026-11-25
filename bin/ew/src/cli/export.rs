@@ -176,7 +176,7 @@ pub(super) fn restyle(csv: &str, options: &CsvOptions) -> String {
     ew_api::output::restyle(csv, options.writes_bom(), options.writes_line_end())
 }
 
-/// What the `--json` result of `export cables|bom|wires|terminals` says (TX-7).
+/// What the `--json` result of `export cables|bom|wires|terminals` says.
 pub(super) struct RowsSummary {
     rows: usize,
     strips: Vec<String>,

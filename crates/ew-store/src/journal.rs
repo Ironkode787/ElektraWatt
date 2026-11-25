@@ -893,7 +893,7 @@ fn open_path(bytes: &[u8]) -> Option<PathBuf> {
     open.get("path")?.as_str().map(PathBuf::from)
 }
 
-/// The leftover journals of every project under the state directory `state` (D11; doc 05 §8.1's
+/// The leftover journals of every project under the state directory `state` (doc 05 §8.1's
 /// start-up pruning): the segments of each `journal/<project>-<hash>/` directory, with the segments older than
 /// [`KEEP_LEFTOVERS`] deleted on the way and a directory left empty removed. A project is listed with its newest segment
 /// that holds unsaved transactions, newest last change first; whether its lock is live is the caller's.

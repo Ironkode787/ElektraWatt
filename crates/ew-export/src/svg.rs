@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The SVG writer: one SVG document per page from the same sheet display lists the PDF writer draws
-//! (doc 09 §4.4; FR-OUT-013, FR-OUT-019; AC-14).
+//! (doc 09 §4.4; FR-OUT-013, FR-OUT-019).
 //!
 //! # Object model
 //!

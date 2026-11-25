@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The layout kinds typed within format 0.1 (LM-1; ADR-0011 amendment 4): `layout_space`,
+//! The layout kinds typed within format 0.1 (ADR-0011 amendment 4): `layout_space`,
 //! `enclosure`, `mounting_surface`, `carrier` and `placement` round-trip byte for byte with every typed member, the
 //! members and variants of later packages survive a load and a save verbatim, a malformed known variant is kept by
 //! the loader (EW-CORE-017), and each record names the anchor its layout file is resolved from.
@@ -123,7 +123,7 @@ fn a_minimal_placement_is_the_line_of_doc_12() {
     canonical(r#"{"$k":"layout_space","id":"@SPACE_JE2416","location":"@LOC_JE2416"}"#);
 }
 
-/// LM-1: a surface kind, a carrier kind and parameters of a later package, a piggy-back `CarrierRef`, and newer
+/// A surface kind, a carrier kind and parameters of a later package, a piggy-back `CarrierRef`, and newer
 /// members at every depth survive a load and a save byte for byte.
 #[test]
 fn newer_layout_values_survive_a_load_and_a_save_verbatim() {

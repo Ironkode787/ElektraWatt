@@ -38,9 +38,9 @@ pub struct Hints {
     pub hint: Vec<Hint>,
 }
 
-/// K2: every hint was given.
+/// Every hint was given.
 pub const NO_MORE_HINTS: &str = "harness: no more hints for this task";
-/// K3: a task without hints, or a check run.
+/// A task without hints, or a check run.
 pub const NO_HINTS: &str = "harness: this task has no hints";
 /// K4.
 pub const FILED: &str = "questionnaire filed";
@@ -60,7 +60,7 @@ pub const CHOICES: [&[&str]; 4] = [
 /// The `$schema` of `questionnaire.json`.
 pub const QUESTIONNAIRE_SCHEMA: &str = "ew.blindquestionnaire/1";
 
-/// K7: a round task's hand-back before the questionnaire.
+/// A round task's hand-back before the questionnaire.
 pub fn handback_first(run: &Run, id: &str) -> String {
     format!(
         "harness: file the questionnaire before the hand-back ({} questionnaire {id} -)",
@@ -225,7 +225,7 @@ mod tests {
         std::fs::write(run.path(".harness/hints.toml"), body).unwrap();
     }
 
-    /// UR-4: `hint` prints the hints in order (K1), then K2; each hint given is a turn line; K3 without hints and in a
+    /// `hint` prints the hints in order (K1), then K2; each hint given is a turn line; K3 without hints and in a
     /// check run; a visual run is served like a text run.
     #[test]
     fn hints_come_in_order_and_are_recorded() {
@@ -273,7 +273,7 @@ mod tests {
         B1 ask I wanted to choose when it connects.\nB2 keep The proposals were right.\n\
         B3 partly The arrow showed the page but not the cell.\nB4 not-seen No three wires met.\n";
 
-    /// UR-5: the figure of known answers is the known figure: all 4 and 2 give 75, the best 100, the worst 0.
+    /// The figure of known answers is the known figure: all 4 and 2 give 75, the best 100, the worst 0.
     #[test]
     fn the_pq_figure_is_sus_arithmetic() {
         assert_eq!(pq_figure(&[4, 2, 4, 2, 4, 2, 4, 2, 4, 2]), 75.0);
@@ -295,7 +295,7 @@ mod tests {
         assert_eq!(b["B4"].choice, "not-seen");
     }
 
-    /// UR-5: the form is filed once (K4) into `questionnaire.json` with its figure; a form not filled is refused with
+    /// The form is filed once (K4) into `questionnaire.json` with its figure; a form not filled is refused with
     /// K5, a second filing with K6.
     #[test]
     fn the_questionnaire_is_filed_once_and_whole() {

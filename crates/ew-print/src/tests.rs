@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The adapters with a stand-in program (PR-4): this test binary itself, run with `--exact
+//! The adapters with a stand-in program: this test binary itself, run with `--exact
 //! tests::stand_in --nocapture --` before the adapter's arguments, records them in `<last argument>.args`.
 
 use std::collections::BTreeMap;
@@ -78,7 +78,7 @@ fn recorded(dir: &Dir) -> (String, Vec<String>) {
     (args[0].clone(), text.lines().map(str::to_owned).collect())
 }
 
-/// PR-4: `lp -d <printer> -t <title> <file>`, the file present while `lp` runs and gone afterwards; without a printer
+/// `lp -d <printer> -t <title> <file>`, the file present while `lp` runs and gone afterwards; without a printer
 /// `lp -t <title> <file>`.
 #[test]
 fn lp_is_run_with_the_printer_the_title_and_the_file_which_is_removed_afterwards() {
@@ -178,7 +178,7 @@ fn job_with(pdf: &[u8]) -> PrintJob {
     }
 }
 
-/// PR-4 and D9: the viewer writes each set to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and runs
+/// The viewer writes each set to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and runs
 /// the opener on it, the file left for the viewer; a second print goes to a second file and leaves the first as it
 /// was; a printer is refused before anything is written.
 #[test]
@@ -215,7 +215,7 @@ fn the_viewer_writes_each_set_to_a_fresh_file_and_opens_it() {
     assert_eq!(dir.names(), want, "both files stay for the viewer");
 }
 
-/// D9: a file already at the next name is left as it is and the set goes to the one after; when every
+/// A file already at the next name is left as it is and the set goes to the one after; when every
 /// attempt finds its name taken, the set is refused with the last name and the system's reason.
 #[test]
 fn the_viewer_never_writes_over_a_file_at_its_next_name() {
@@ -259,7 +259,7 @@ fn the_viewer_never_writes_over_a_file_at_its_next_name() {
     }
 }
 
-/// D9, Unix: a symbolic link at the viewer's next name is not followed (its target keeps its bytes, the
+/// Unix: a symbolic link at the viewer's next name is not followed (its target keeps its bytes, the
 /// link stays a link) and the set goes to the name after; the viewer's file and the shared fresh file `lp` prints
 /// are readable by their owner only (mode `0o600`).
 #[cfg(unix)]
@@ -384,8 +384,8 @@ fn spooled() -> PrintOutcome {
     }
 }
 
-/// PW-3: the portal adapter is called with the set; when it fails, `lp` prints it (the stand-in records its
-/// arguments) and the result carries D11's one notice, naming the failed portal and `lp`; the viewer is not run.
+/// The portal adapter is called with the set; when it fails, `lp` prints it (the stand-in records its
+/// arguments) and the result carries the one notice, naming the failed portal and `lp`; the viewer is not run.
 #[test]
 fn a_failing_portal_falls_back_to_lp_with_one_notice() {
     let dir = Dir::new();

@@ -16,7 +16,7 @@
 //!   over only after the user confirmed ([`Registry::take_over_stale`]).
 //! - **The index**: one SQLite file per user in the cache directory ([`INDEX_FILE`]), never on a share, never
 //!   authoritative, reindexed per library when its generation or a file hash changes.
-//! - **Search** ([`PartQuery`], [`ItemQuery`]): the rank tiers of doc 07 §4.3 and the tie-breaks of D6.
+//! - **Search** ([`PartQuery`], [`ItemQuery`]): the rank tiers of doc 07 §4.3 and the tie-breaks.
 //!
 //! The index is never read by a command or a derivation: a project's outputs depend on its
 //! embedded copies only (NFR-REL-11).

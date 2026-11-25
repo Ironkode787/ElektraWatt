@@ -14,7 +14,7 @@ pub(super) fn find_project(start: &Path) -> Option<PathBuf> {
 }
 
 /// The explicit project directory, else the one found from the current directory, for every subcommand but the readers
-/// ([`reader_dir`]): an `.ewz` is refused with D9's text (it opens read-only).
+/// ([`reader_dir`]): an `.ewz` is refused with the text (it opens read-only).
 pub(super) fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     let dir = reader_dir(explicit)?;
     if ew_api::ewz::is_ewz(&ew_api::OsVfs, &dir) {

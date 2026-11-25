@@ -1457,7 +1457,7 @@ mod tests {
 
     #[test]
     fn a_crlf_pair_across_a_chunk_boundary_is_one_line_end() {
-        // D5's chunked comparison equals `crlf_to_lf` of the whole file: a CR that ends a full chunk is held for the
+        // The chunked comparison equals `crlf_to_lf` of the whole file: a CR that ends a full chunk is held for the
         // next chunk's LF, and a CR that ends the file stays.
         let chunk = purge::SCAN_CHUNK;
         let mut straddling = vec![b'a'; chunk - 1];

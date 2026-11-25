@@ -75,10 +75,10 @@ pub struct RepInfo {
 pub struct JoinInfo {
     pub rep: Value,
     pub device: Value,
-    /// The devices that take its FnDef by D2's rule: `(device, removes a function)`. A slot of the FnDef removes the
+    /// The devices that take its FnDef by the rule: `(device, removes a function)`. A slot of the FnDef removes the
     /// old function.
     pub targets: Vec<(Value, bool)>,
-    /// The other devices (not the representation's own), which D2's rule refuses.
+    /// The other devices (not the representation's own), which the rule refuses.
     pub refused: Vec<Value>,
 }
 

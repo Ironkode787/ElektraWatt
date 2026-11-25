@@ -196,7 +196,7 @@ fn drop_shadow_of_a_square_box_is_the_l_shape() {
     assert_eq!(bx.stroke, Some(dl_stroke()));
 }
 
-/// M8: a line's stroke colour reaches the display list as the stroke's brush. The `Rgb` colour is what
+/// A line's stroke colour reaches the display list as the stroke's brush. The `Rgb` colour is what
 /// the QET importer makes of `style="color:blue"` (`ew-import-qet` test `line_color_blue_is_an_rgb_stroke`;
 /// the importer cannot be a dependency of `ew-scene`); `ByLayer` is the documented placeholder black.
 #[test]

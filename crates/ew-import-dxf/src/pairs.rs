@@ -99,7 +99,7 @@ fn kind(code: i32) -> Option<Kind> {
 /// How a binary file writes its group codes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Binary {
-    /// R12: one byte, 255 followed by a 16-bit code.
+    /// One byte, 255 followed by a 16-bit code.
     OneByte,
     /// R13 and later: two bytes.
     TwoBytes,

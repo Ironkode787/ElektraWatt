@@ -361,7 +361,7 @@ mod tests {
         assert!(keys.windows(2).all(|w| w[0] < w[1]));
     }
 
-    /// UR-5: a brief whose `task.toml` names rounds gets `ROUND.md` after its task sheet, with its digest and its
+    /// A brief whose `task.toml` names rounds gets `ROUND.md` after its task sheet, with its digest and its
     /// placeholders; a brief without rounds and a check run of a round task do not; the prompt is byte-deterministic.
     #[test]
     fn a_round_task_adds_the_round_prompt_after_the_sheet() {

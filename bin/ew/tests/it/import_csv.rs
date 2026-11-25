@@ -64,7 +64,7 @@ fn import_csv(t: &Tmp, tables: &std::path::Path, out: &std::path::Path, extra: &
     )
 }
 
-/// FM-6 through the binary: the test tables import to a new project that is in canonical form and opens at
+/// Through the binary: the test tables import to a new project that is in canonical form and opens at
 /// generation 1 (its model and check findings against the bootstrap are `crates/ew-api/tests/import_csv.rs`). Without
 /// the starter content, or
 /// into an `--out` that holds something, nothing is written (exit 2).
@@ -144,7 +144,7 @@ fn import_csv_writes_the_test_tables_as_a_new_project() {
     assert!(!other.exists());
 }
 
-/// FM-6: a row with a foreign colour code is reported as the library reports it, EW-IMP-002 under `--strict` (the
+/// A row with a foreign colour code is reported as the library reports it, EW-IMP-002 under `--strict` (the
 /// default: nothing is written, exit 1) and EW-IMP-008 under `--lenient` (written, exit 0); an unreadable
 /// table exits 2 with its line, and its column where the reader names one, before anything is written.
 #[test]

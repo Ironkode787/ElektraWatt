@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The parallel page phase of an export (doc 09 §4.2, §4.3 rule 3; FR-OUT-019, NFR-REL-07, AC-14).
+//! The parallel page phase of an export (doc 09 §4.2, §4.3 rule 3; FR-OUT-019, NFR-REL-07).
 //!
 //! An export builds its pages independently (display lists, SVG documents) and assembles them in page
 //! order. [`par_map`] runs that per-page phase on scoped threads of the standard library and collects every

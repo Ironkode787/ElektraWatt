@@ -11,10 +11,10 @@
   python3 -I packaging/stage.py pin <name> [--field version|url|sha256]   # a component of packaging/components.toml
   python3 -I packaging/stage.py snapshot              # the Ubuntu archive snapshot of the Linux container
   python3 -I packaging/stage.py debs [--arch amd64|arm64] <dir>   # the downloaded .deb files against components.toml
-  python3 -I packaging/stage.py appdir --tree <root> --out <AppDir>  # D10's AppDir around a staged Linux tree
+  python3 -I packaging/stage.py appdir --tree <root> --out <AppDir>  # the AppDir around a staged Linux tree
   python3 -I packaging/stage.py appimage --runtime <file> --image <squashfs> --out <dir>/ElektraWatt-<v>-x86_64.AppImage
   python3 -I packaging/stage.py listing <root>        # `<sha256>  <path>` of every file under <root>
-  python3 -I packaging/stage.py version [--sha <sha>] # the workspace version, or D8's <version>-dev.<short sha>
+  python3 -I packaging/stage.py version [--sha <sha>] # the workspace version, or the <version>-dev.<short sha>
   python3 -I packaging/stage.py --test                # the offline unit test, over a fixture repository
 
 `tree` assembles D3's installed tree, flat, every resource beside the executables:
@@ -91,7 +91,7 @@ COMPONENTS = os.path.join("packaging", "components.toml")
 FIELDS = ("version", "url", "sha256")
 # A snapshot of snapshot.ubuntu.com: a UTC timestamp to the second.
 SNAPSHOT = re.compile(r"[0-9]{8}T[0-9]{6}Z")
-# D10's AppDir: the files at its root (name, source in the repository, mode) and where the tree goes.
+# The AppDir: the files at its root (name, source in the repository, mode) and where the tree goes.
 APPDIR_FILES = (
     ("AppRun", os.path.join("packaging", "linux", "AppRun"), 0o755),
     ("elektrawatt.desktop", os.path.join("packaging", "linux", "elektrawatt.desktop"), 0o644),
@@ -416,7 +416,7 @@ def main(argv):
 
 
 class StageTest(unittest.TestCase):
-    """IN-1 over a fixture repository in a temporary directory."""
+    """Over a fixture repository in a temporary directory."""
 
     VERSION = "1.2.3-dev.abc1234"
     # The fixture's packages: what a downloaded file of each holds, and so its SHA-256.
@@ -450,7 +450,7 @@ class StageTest(unittest.TestCase):
             "LICENSES/Apache-2.0.txt": "text\n",
         }
         files.update({f"LICENSES/{licence}.txt": "text\n" for licence in LICENCES})
-        # D10: the repository's own AppRun and desktop file, and an icon.
+        # The repository's own AppRun and desktop file, and an icon.
         for name in ("AppRun", "elektrawatt.desktop"):
             with open(os.path.join(REPO, "packaging", "linux", name), encoding="utf-8") as f:
                 files[f"packaging/linux/{name}"] = f.read()
@@ -648,7 +648,7 @@ class StageTest(unittest.TestCase):
         for deb in table["apt"]["deb"] + table["apt"]["arm64"]:
             self.assertEqual(set(deb), {"name", "version", "sha256"}, deb.get("name"))
             self.assertTrue(hexdigest.fullmatch(deb["sha256"]), deb["name"])
-        # D16: the arm64 container fetches the build's packages of the amd64 one at the same versions, with the two
+        # The arm64 container fetches the build's packages of the amd64 one at the same versions, with the two
         # architecture-specific ones swapped (not squashfs-tools and liblzo2-2, which only the AppImage needs).
         amd64 = {(c["name"], c["version"]) for c in table["component"] if c["url"].endswith(".deb")}
         amd64 |= {(d["name"], d["version"]) for d in table["apt"]["deb"]}
@@ -660,7 +660,7 @@ class StageTest(unittest.TestCase):
         # The Windows job's setup-python is the version of components.toml, and so is its Python.
         with open(os.path.join(REPO, ".github", "workflows", "package.yml"), encoding="utf-8") as f:
             workflow = f.read()
-        # Every job that sets Python up (windows, and D16's windows-11-arm).
+        # Every job that sets Python up (windows, and the windows-11-arm).
         uses = re.findall(r"uses: actions/setup-python@[0-9a-f]{40} # v(\S+)", workflow)
         self.assertTrue(uses)
         self.assertEqual(set(uses), {pin(REPO, "setup-python")})
@@ -725,7 +725,7 @@ class StageTest(unittest.TestCase):
         self.assertEqual(sorted(removed), sorted(os.listdir(tree) + ["uninstall.exe"]))
 
     def test_the_setup_names_the_registry_under_hkcu_alone(self):
-        # IN-8's static half: every registry instruction of the setup names HKCU, and no instruction names HKLM or
+        # The static half: every registry instruction of the setup names HKCU, and no instruction names HKLM or
         # the shell context, which `SetShellVarContext all` would make HKLM.
         with open(os.path.join(REPO, "packaging", "windows", "elektrawatt.nsi"), encoding="utf-8") as f:
             lines = [line.strip() for line in f if not line.lstrip().startswith((";", "#"))]

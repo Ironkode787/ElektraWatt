@@ -223,7 +223,7 @@ fn data_row(cells: &[&str]) -> TableRow {
     }
 }
 
-/// D17's legend: 108.00–278.00 × 19.50–167.50 mm printed, title "LEGEND", two flow columns with headers.
+/// The legend: 108.00–278.00 × 19.50–167.50 mm printed, title "LEGEND", two flow columns with headers.
 fn legend(rows: usize) -> EmbeddedView {
     let columns = [("Pos", 10), ("DT", 22), ("Qty", 16), ("Part number", 35)]
         .map(|(h, w)| TableColumn {

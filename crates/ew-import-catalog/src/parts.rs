@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! [`parse_parts`]: a mapped parts table into part documents, the new manufacturers they name, and the row report
-//! (D11, FR-PRT-016).
+//! (FR-PRT-016).
 
 use std::collections::BTreeMap;
 
@@ -762,7 +762,7 @@ fn same_content(new: &Part, held: &Part) -> bool {
 }
 
 /// Reads a mapped parts table (CSV or XLSX, told apart by content) into part documents of `target.library`
-/// (D11, FR-PRT-016).
+/// (FR-PRT-016).
 ///
 /// Every part is `LibCopy<Part>` with the item ID [`part_item`]`(library, manufacturer key, pn_norm)`, the copy ID
 /// `v5(NS_LIBCOPY, library ‖ item)`, `meta.key = "<manufacturer key>.<pn_norm>"` in lower case, `meta.sources` the

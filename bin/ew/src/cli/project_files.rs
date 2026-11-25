@@ -46,7 +46,7 @@ impl Leaf for FmtArgs {
     const RESULT: Option<&'static str> = Some(results::FmtResult::SCHEMA);
 }
 
-/// `ew fmt [--check]` (D9, FR-EXT-008): the files that are not in canonical form, listed (`--check`, a reader: no
+/// `ew fmt [--check]` (FR-EXT-008): the files that are not in canonical form, listed (`--check`, a reader: no
 /// lock, nothing written) or rewritten through the save protocol after the content check (`ew_api::fmt`). The lines the
 /// open kept verbatim are listed on stderr in both modes.
 pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
@@ -1740,7 +1740,7 @@ mod tests {
         );
     }
 
-    /// MG-5: `--check` writes nothing and exits 1 on the test fixture and 0 on the sample (read only, no lock).
+    /// `--check` writes nothing and exits 1 on the test fixture and 0 on the sample (read only, no lock).
     #[test]
     fn upgrade_check_exits_1_on_an_older_project_and_0_on_the_sample() {
         let dir = setup_v0("upgrade-check");
@@ -1837,7 +1837,7 @@ mod tests {
         assert_eq!(upgrade_files(&dir), before, "nothing was written");
     }
 
-    /// MG-5: without a terminal or `--yes` it exits 2, and a word other than `upgrade` exits 1: nothing changed either
+    /// Without a terminal or `--yes` it exits 2, and a word other than `upgrade` exits 1: nothing changed either
     /// way; the typed word upgrades.
     #[test]
     fn upgrade_asks_on_a_terminal_and_refuses_without_one() {
@@ -1880,7 +1880,7 @@ mod tests {
         assert!(backup_of(&dir).is_file());
     }
 
-    /// MG-5: `--yes` writes the backup and saves; afterwards, and on a current project, there is nothing to upgrade.
+    /// `--yes` writes the backup and saves; afterwards, and on a current project, there is nothing to upgrade.
     #[test]
     fn upgrade_yes_backs_up_and_saves() {
         let dir = setup_v0("upgrade-yes");

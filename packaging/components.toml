@@ -305,7 +305,7 @@ name = "rpcsvc-proto"
 version = "1.4.2-0ubuntu6"
 sha256 = "447c6d8f7624a3d728a12232440d3f10e6e53bbf60cc202b7beb8a3bc9f7acc9"
 
-# D16: the arm64 build container (the arm64 image of LINUX_BUILD_IMAGE, `ubuntu-24.04-arm`) fetches gcc and libc6-dev
+# The arm64 build container (the arm64 image of LINUX_BUILD_IMAGE, `ubuntu-24.04-arm`) fetches gcc and libc6-dev
 # from the same snapshot at the same versions, with these packages: those of [[apt.deb]] for arm64, with
 # binutils-aarch64-linux-gnu and libhwasan0 in place of binutils-x86-64-linux-gnu and libquadmath0 (no squashfs-tools,
 # no liblzo2-2: no AppImage for arm64), each with the SHA-256 of the snapshot's arm64 index; stage.py debs --arch arm64

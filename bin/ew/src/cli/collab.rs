@@ -267,7 +267,7 @@ fn project_folders(root: &Path) -> Vec<PathBuf> {
 mod tests {
     use super::*;
 
-    /// DG-3: without a terminal and without `--yes`, `ew git setup` exits 2 and writes nothing, in a folder that is no
+    /// Without a terminal and without `--yes`, `ew git setup` exits 2 and writes nothing, in a folder that is no
     /// worktree too.
     #[test]
     fn no_consent_exits_2_and_writes_nothing() {

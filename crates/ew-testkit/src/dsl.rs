@@ -468,7 +468,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok((rep, Self::created::<Function>(&done, Kind::Function)))
     }
 
-    /// `device.place` with a `new_terminal` target (AC-28): one new terminal of the strip `strip`
+    /// `device.place` with a `new_terminal` target: one new terminal of the strip `strip`
     /// with the designation `designation` (the sequence number `seq`, or one more than the highest when absent),
     /// created as `terminal.add` creates it, with the symbol's function definition, and placed. Returns the
     /// representation and the terminal device.

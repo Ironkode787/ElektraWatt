@@ -4,7 +4,7 @@
 //! The visual run's side of the protocol (visual spec §3 and §4): `do` sends mouse and key inputs and
 //! answers with one frame, `look` paints the current frame again (or a zoom of it), and nothing textual reaches the
 //! agent. The inputs are checked here with the texts of the visual driver (`elektrawatt --headless --visual`), so that
-//! a line the driver would refuse never reaches it: the harness has no edge to the product crates (D2), so the checks
+//! a line the driver would refuse never reaches it: the harness has no edge to the product crates, so the checks
 //! are mirrored, and the product's own tests hold the same names.
 
 use std::fmt::Write as _;

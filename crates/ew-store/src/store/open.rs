@@ -35,7 +35,7 @@ impl Store {
                 return first;
             }
             let opened = first;
-            // D25: a sync client may still be writing the folder; the first open's lock goes with it.
+            // A sync client may still be writing the folder; the first open's lock goes with it.
             drop(opened);
             clock.sleep(crate::external::CLOUD_RECHECK);
         }

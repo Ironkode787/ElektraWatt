@@ -313,7 +313,7 @@ fn import(t: &Tmp, file: &Path, p: &Path, extra: &[&str]) -> String {
     stdout(&o)
 }
 
-/// RT-1: the strip's workbook writes -X1021's 8 terminal rows in the navigator's order with every column of the
+/// The strip's workbook writes -X1021's 8 terminal rows in the navigator's order with every column of the
 /// Terminal strips table; `_ew` names `nav:strips/<uuid>` and marks `terminal`, `label` and `state` editable and
 /// `group`, `bridge_part`, `potential` not; `_ew_base` holds the 8 IDs and the three editable columns with the
 /// SHA-256 of its rows.
@@ -373,7 +373,7 @@ fn the_strip_workbook_names_its_table_and_holds_its_base() {
     );
 }
 
-/// RT-2 (FR-EXP-004): five Function text cells changed in a workbook saved by Excel preview as five applied cells
+/// Five Function text cells changed in a workbook saved by Excel preview as five applied cells
 /// and change nothing; `--apply` changes exactly those five `function_text` fields and saves; `ew apply` of the
 /// preview's command, as a command log, makes the same change in another copy.
 #[test]
@@ -461,7 +461,7 @@ fn five_labels_saved_by_excel_apply_in_one_step() {
     assert_eq!(changes(&before, &records(&q)), changes(&before, &after));
 }
 
-/// RT-3: after the export, terminal 8 is deleted in the project and its row edited in the file (EW-IMP-303, naming
+/// After the export, terminal 8 is deleted in the project and its row edited in the file (EW-IMP-303, naming
 /// its ID); terminal 2's label changed in the project only is kept (EW-IMP-302); terminal 3's changed in both keeps
 /// the project's value (EW-IMP-304), and with `--take-file` takes the file's.
 #[test]
@@ -540,9 +540,9 @@ fn deleted_rows_and_project_changes_are_kept() {
     );
 }
 
-/// RT-4: a Potential cell edited is EW-IMP-301 "derived", a Group cell "edit in the window"; a Terminal "1.10" that
+/// A Potential cell edited is EW-IMP-301 "derived", a Group cell "edit in the window"; a Terminal "1.10" that
 /// Excel stored as the number 1.1 is EW-IMP-305 and imports "1.1"; an edited `_ew_base` falls back to two-way with one
-/// notice; a workbook of another project and a CSV without `--table` are refused in D11's words.
+/// notice; a workbook of another project and a CSV without `--table` are refused in words.
 #[test]
 fn read_only_cells_numbers_and_refusals() {
     let t = Tmp::new("ew-tables");
@@ -663,7 +663,7 @@ fn commented(csv: &str, comments: [&str; 3], keep_id: bool) -> String {
     out
 }
 
-/// RT-5 (FR-PLC-038): `ew export report --kind io_list --preset excel-nl` is the committed preset (a byte-order mark,
+/// `ew export report --kind io_list --preset excel-nl` is the committed preset (a byte-order mark,
 /// `;`, the `id` column, a row per channel the list holds); three Comment cells changed in Dutch and imported with `--table kind:io_list
 /// --apply` change exactly three `comment` fields; without the `id` column the rows match by station, slot and
 /// channel with the same result; the I/O list's workbook round-trips the same way.
@@ -783,8 +783,8 @@ fn the_io_list_round_trips_by_id_and_by_point() {
     assert_eq!(got, want, "the workbook");
 }
 
-/// D8 and RT-6: every table navigator exports (its `_ew` names `nav:<word>`), twice to the same bytes; another word,
-/// `--strip` on another navigator and an unknown strip are refused in D8's words.
+/// Every table navigator exports (its `_ew` names `nav:<word>`), twice to the same bytes; another word,
+/// `--strip` on another navigator and an unknown strip are refused in words.
 #[test]
 fn every_table_navigator_exports_and_the_others_are_refused() {
     let t = Tmp::new("ew-tables");

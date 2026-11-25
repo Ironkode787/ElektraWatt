@@ -37,7 +37,7 @@
 //! # Rules
 //!
 //! - **Order.** Representations, connections and junctions are sorted by ID, whatever order the caller
-//!   gives them in, so a record shuffle never changes a display list (AC-14).
+//!   gives them in, so a record shuffle never changes a display list.
 //! - **CP positions** follow the rule of where a function CP is drawn, whose home is `ew-derive` (`cp_point`,
 //!   ARCH §3.4); this module places them from the view by that rule (`ew_derive::rep_drawn_cps`,
 //!   `ew_derive::segment_point`) and hands them out ([`drawn_cps`]): symbol CP `c` of a representation sits at

@@ -201,7 +201,7 @@ fn a_label_on_a_text_is_counted_in_the_cost() {
     assert!(q.findings.texts_on_texts.iter().any(|(l, _)| *l == tag.id));
 }
 
-/// C8: a mark's wire that bends to the junction its trunk goes on from, the trunk along the mark's axis but
+/// A mark's wire that bends to the junction its trunk goes on from, the trunk along the mark's axis but
 /// off its line, costs [`MARK_JOG`] steps, more than the length and bends a trunk saves by leaving the line; the trunk
 /// on the mark's line costs nothing more, and a mark's wire that bends into a pin no other wire ends at is no jog.
 #[test]

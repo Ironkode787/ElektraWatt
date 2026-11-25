@@ -348,7 +348,7 @@ impl Index {
         .flatten()
     }
 
-    /// The part search of D6; `tier_of` gives each library's tier (`None`: not installed, skipped).
+    /// The part search; `tier_of` gives each library's tier (`None`: not installed, skipped).
     pub fn search_parts(
         &self,
         q: &PartQuery,

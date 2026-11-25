@@ -703,7 +703,7 @@ fn a_structure_node_that_is_its_own_parent_is_dropped() {
     assert_eq!(structure_nodes(&b), vec![node("+B")]);
 }
 
-/// F8: parent cycles are refused; a child of a cycle member is dropped with it.
+/// Parent cycles are refused; a child of a cycle member is dropped with it.
 #[test]
 fn a_structure_parent_cycle_is_dropped_with_its_children() {
     let csv = "key,aspect,code,parent\n\
@@ -715,7 +715,7 @@ fn a_structure_parent_cycle_is_dropped_with_its_children() {
     assert_eq!(structure_nodes(&b), vec![node("+D")]);
 }
 
-/// F8: the same for `devices.csv` parents (EW-INV-009).
+/// The same for `devices.csv` parents (EW-INV-009).
 #[test]
 fn a_device_parent_cycle_is_dropped_with_its_children() {
     let csv = "key,letter,counter,parent\n\

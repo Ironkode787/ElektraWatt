@@ -73,7 +73,7 @@ fn connection(n: u128, a: serde_json::Value, b: serde_json::Value) -> Arc<Connec
 }
 
 /// `connection` with the stored route `route` (page nm, both ends included): a wire without one is
-/// unrouted and drawn dashed (D3).
+/// unrouted and drawn dashed.
 fn routed(n: u128, a: serde_json::Value, b: serde_json::Value, route: &[(i64, i64)]) -> Arc<Connection> {
     let route: Vec<[i64; 2]> = route.iter().map(|&(x, y)| [x, y]).collect();
     Arc::new(

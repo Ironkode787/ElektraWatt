@@ -8,7 +8,7 @@
 //! a window of this process ([`Owner`]), and its Cancel is [`PrintError::Cancelled`]. With a printer
 //! named, its device context is opened with
 //! its default settings and no dialog (`CreateDCW`). Then `StartDocW`, and per page: its paper and orientation asked
-//! for by `ResetDCW` (D6's named sizes as `dmPaperSize` where Windows has one, else `dmPaperWidth` and
+//! for by `ResetDCW` (the named sizes as `dmPaperSize` where Windows has one, else `dmPaperWidth` and
 //! `dmPaperLength` in 0.1 mm; what the driver makes of the request is the driver's), `StartPage`, the bands rendered
 //! at the lower of the device's horizontal and vertical resolutions (the placement's offset is from the paper's corner,
 //! so the printable area's offset is subtracted) and each stretched by `StretchDIBits` to its device rectangle,
@@ -61,7 +61,7 @@ use crate::{PdfPage, PrintAdapter, PrintCancel, PrintError, PrintJob, PrintOutco
 /// The device rows of one band: about 10 MB of RGBA at 600 dpi on A3.
 const BAND_ROWS: u32 = 256;
 
-/// D6's named papers that Windows has a `DMPAPER_*` size for, by their short and long sides in nm, as
+/// The named papers that Windows has a `DMPAPER_*` size for, by their short and long sides in nm, as
 /// `ew_api::output::print::Paper` gives them; A1 and A0 have none and are asked for by their sides.
 const NAMED_PAPERS: [(i64, i64, u32); 7] = [
     (148_000_000, 210_000_000, DMPAPER_A5),
@@ -76,7 +76,7 @@ const NAMED_PAPERS: [(i64, i64, u32); 7] = [
 /// The Windows adapter: the print dialog, or the printer [`PrintJob::printer`] names, then the pages through GDI.
 #[derive(Clone, Debug, Default)]
 pub struct Windows {
-    /// The file the spooler writes the job to instead of the printer's port (DOCINFO's output); `None` but in WN-3's
+    /// The file the spooler writes the job to instead of the printer's port (DOCINFO's output); `None` but in the manual
     /// test.
     output: Option<PathBuf>,
 }
@@ -577,7 +577,7 @@ impl DevMode {
         self.0.as_ptr().cast()
     }
 
-    /// Asks for a paper of `width` × `height` nm: D6's named sizes as `dmPaperSize` where
+    /// Asks for a paper of `width` × `height` nm: the named sizes as `dmPaperSize` where
     /// Windows has one, else `dmPaperWidth` and `dmPaperLength` in 0.1 mm (the short and the long side); landscape
     /// when wider than high. The form name the dialog may have set is cleared, so a driver that ranks it first never
     /// prints on the dialog's form.

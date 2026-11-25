@@ -695,7 +695,7 @@ fn format_walk(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode
 }
 
 /// The `properties`, `items`, `prefixItems` (`a[0]`), a map's value schema (`additionalProperties` as a schema, `a{}`)
-/// and its key schema (`propertyNames`, `a{key}`, D29) of `node` at `path`.
+/// and its key schema (`propertyNames`, `a{key}`) of `node` at `path`.
 fn format_members(node: &Value, path: &str, nodes: &mut BTreeMap<String, FormatNode>, depth: usize) {
     if let Some(props) = node.get("properties").and_then(Value::as_object) {
         let required: BTreeSet<&str> = node
@@ -965,7 +965,7 @@ mod tests {
         guard(&s.dir).unwrap()
     }
 
-    /// RL-6: without a final release tag (a candidate's `-rc` tag is none) the format is not released:
+    /// Without a final release tag (a candidate's `-rc` tag is none) the format is not released:
     /// the guard says so and passes, whatever changed.
     #[test]
     fn a_format_without_a_release_tag_is_not_compared() {
@@ -988,7 +988,7 @@ mod tests {
         );
     }
 
-    /// RL-6: against the release tag `v0.1.0` each breaking change of D9's list fails with S5, a new value
+    /// Against the release tag `v0.1.0` each breaking change of the list fails with S5, a new value
     /// without its `- format-variant:` line with S6 (with it, it passes), a changed fixture with S7; a new optional
     /// property, a reserved kind's new schema and a changed expected folder pass. The base is the oldest final tag, the
     /// line check's the newest.
@@ -1089,7 +1089,7 @@ mod tests {
         );
     }
 
-    /// RL-6: a new value with its line, a new optional property and a changed expected folder pass.
+    /// A new value with its line, a new optional property and a changed expected folder pass.
     #[test]
     fn a_new_value_with_its_line_and_a_new_optional_property_pass() {
         let s = Scratch::new("format-additive");

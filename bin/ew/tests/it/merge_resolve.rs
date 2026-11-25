@@ -3,7 +3,7 @@
 
 //! Through the `ew` binary: a copy of the sample whose page 103 holds a conflict record on the shield wire's colour
 //! (the shield of -103W1), ours BU and theirs WH, set on the copy by the test (the sample's wires have no colour).
-//! `ew check --mode release` reports EW-CORE-011 once, an error that blocks the release gate; CR-3: `ew merge
+//! `ew check --mode release` reports EW-CORE-011 once, an error that blocks the release gate; `ew merge
 //! resolve` takes theirs or ours and saves the page canonically; in a session it is one undo step.
 
 use std::path::PathBuf;
@@ -18,7 +18,7 @@ fn colour(c: &str) -> String {
     format!(r#""overrides":{{"csa":"2.5","colour":["{c}"]}}"#)
 }
 
-/// A copy of the sample in a fresh folder whose page 103 is the merge driver's result of MD-6's conflict variant: the
+/// A copy of the sample in a fresh folder whose page 103 is the merge driver's result of the conflict variant: the
 /// shield wire with BU in place, and the conflict record. Removed on drop.
 struct Copy(Tmp);
 
@@ -56,7 +56,7 @@ fn result(o: &Output) -> (Option<i32>, String, String) {
     )
 }
 
-/// CR-1, CR-4: the project reports EW-CORE-011 once in release mode, an open error, which the release gate counts as
+/// The project reports EW-CORE-011 once in release mode, an open error, which the release gate counts as
 /// a blocker (doc 15 §4.8: every open error-severity finding of the gate's report).
 #[test]
 fn ew_check_release_reports_ew_core_011_once_as_an_open_error() {
@@ -85,7 +85,7 @@ fn ew_check_release_reports_ew_core_011_once_as_an_open_error() {
     assert_eq!(o.status.code(), Some(1));
 }
 
-/// CR-4: the release gate of the sample's open revision counts the EW-CORE-011 finding among its blockers.
+/// The release gate of the sample's open revision counts the EW-CORE-011 finding among its blockers.
 #[test]
 fn the_release_gate_is_blocked_by_ew_core_011() {
     let c = Copy::new();
@@ -103,7 +103,7 @@ fn the_release_gate_is_blocked_by_ew_core_011() {
     session.close();
 }
 
-/// CR-3: `ew merge resolve` takes theirs (WH, with `--kind` and `--field`, and with `--json`, which prints
+/// `ew merge resolve` takes theirs (WH, with `--kind` and `--field`, and with `--json`, which prints
 /// `ew.merge-resolve-result/1`) or ours (BU), removes the conflict and saves page 103 canonically: the sample's file
 /// with the shield wire's csa 2.5 and the colour taken.
 #[test]
@@ -179,7 +179,7 @@ fn merge_resolve_without_a_match_exits_2_with_the_reason() {
     assert_eq!(c.page(), before);
 }
 
-/// CR-3 in a session: `merge.resolve` is one undo step, the conflict and BU back after it.
+/// In a session: `merge.resolve` is one undo step, the conflict and BU back after it.
 #[test]
 fn merge_resolve_in_a_session_is_one_undo_step() {
     let c = Copy::new();

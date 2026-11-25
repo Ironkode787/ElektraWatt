@@ -154,7 +154,7 @@ pub struct PageNote {
 // Content (doc 15 §5.3, §5.4)
 
 /// The project files that are not content (doc 15 §5.4): the content digest leaves them out, so an
-/// edit of them neither opens the next revision (`revision.ensure_open`, D3) nor voids a sign-off. Revision records
+/// edit of them neither opens the next revision (`revision.ensure_open`) nor voids a sign-off. Revision records
 /// (their page notes included) and transmittals live in `revisions.jsonl`, comments in `comments.jsonl`; view state
 /// (`.ew/`) is never in the manifest.
 pub const NOT_CONTENT_FILES: [&str; 2] = ["revisions.jsonl", "comments.jsonl"];

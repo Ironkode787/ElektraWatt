@@ -1317,7 +1317,7 @@ fn row_export_formats() {
     assert_eq!(q.csv, CsvOptions::preset(Preset::Rfc4180));
 }
 
-/// D8: `wires`, `terminals [--strip]`, `report --block … --format csv|pdf` and `--block` on the row exports.
+/// `wires`, `terminals [--strip]`, `report --block … --format csv|pdf` and `--block` on the row exports.
 #[test]
 fn row_export_forms() {
     let a = rows(&["export", "wires", "proj", "--block", "907"]);
@@ -1427,7 +1427,7 @@ fn report_kind_forms_and_refusals() {
         );
 }
 
-/// D7: `render --page <folio> --png [--dpi] [--out]` and `export png --dpi`.
+/// `render --page <folio> --png [--dpi] [--out]` and `export png --dpi`.
 #[test]
 fn render_and_png_forms() {
     assert_eq!(

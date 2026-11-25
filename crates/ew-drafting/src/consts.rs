@@ -15,23 +15,23 @@ pub const TICKS_PER_STEP: Tick = 16;
 /// Half a grid step: the spacing of the router's nodes, the half grid (§2.1, §3.3).
 pub const HALF: Tick = TICKS_PER_STEP / 2;
 
-/// C1: a step of wire.
+/// A step of wire.
 pub const STEP: i64 = 1;
-/// C2: a bend.
+/// A bend.
 pub const BEND: i64 = 4;
-/// C3: a crossing of two wires.
+/// A crossing of two wires.
 pub const CROSSING: i64 = 6;
-/// C4: a wire across a text.
+/// A wire across a text.
 pub const TEXT_CROSSED: i64 = 12;
-/// C4: each step of a wire on a text.
+/// Each step of a wire on a text.
 pub const TEXT_STEP: i64 = 1;
-/// C5: a label on another text, on another part's body, or outside the drawing area.
+/// A label on another text, on another part's body, or outside the drawing area.
 pub const LABEL_CLASH: i64 = 24;
-/// C6: each place a label stands down its list.
+/// Each place a label stands down its list.
 pub const LABEL_RANK: i64 = 1;
-/// C7: each step on the half grid, more.
+/// Each step on the half grid, more.
 pub const HALF_STEP_EXTRA: i64 = 1;
-/// C8: a mark's wire that bends on its way to the trunk it taps, so the trunk runs off the mark's line.
+/// A mark's wire that bends on its way to the trunk it taps, so the trunk runs off the mark's line.
 pub const MARK_JOG: i64 = 32;
 
 /// The router's least distance of a wire from a body it does not end at.

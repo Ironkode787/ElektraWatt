@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The normalisation of product output (D14) and the guards that go with it.
+//! The normalisation of product output and the guards that go with it.
 //!
 //! This is the only rewriting of product output, applied alike to live runs, replays and committed recordings: the run
 //! folder's absolute path, in any spelling the operating system gives it, becomes `«run»`, and the transcript

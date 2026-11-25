@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Headless: `file.print` with Range Sections 1, Paper A5 and Scale to fit builds the print set
-//! of PR-1 (its PDF is `ew print --sections 1 --paper A5 --fit`'s), the preview's page 1 of 6 shows the stamp, and
-//! Escape (`ui.dismiss`) closes the dialog and prints nothing. The held-build flows (PW-2) are `ew-viewmodel`'s
+//! of the print set (its PDF is `ew print --sections 1 --paper A5 --fit`'s), the preview's page 1 of 6 shows the stamp, and
+//! Escape (`ui.dismiss`) closes the dialog and prints nothing. The held-build flows are `ew-viewmodel`'s
 //! `tests/it/print.rs`. The sample is only copied, never written.
 
 use std::path::Path;
@@ -34,7 +34,7 @@ fn the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
     let set = s.print_set().expect("the set is built").clone();
     assert!(
         set.pdf == crate::support::exported::section_1_on_a5(&dir),
-        "PR-1's print set is `ew print`'s"
+        "the print set is `ew print`'s"
     );
     // Section 1: its divider 100 and the folios 101 to 105.
     assert_eq!(s.print_page_text().as_deref(), Some("1 of 6"));

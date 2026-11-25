@@ -321,7 +321,7 @@ mod tests {
         assert_eq!(s.brush, Brush::Solid(Color::BLACK));
     }
 
-    /// M8: a stroke carries its colour; the constructors default to black and keep it through `dashed`.
+    /// A stroke carries its colour; the constructors default to black and keep it through `dashed`.
     #[test]
     fn stroke_brush() {
         let red = Brush::Solid(Color::from_rgb8(255, 0, 0));

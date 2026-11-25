@@ -13,10 +13,10 @@
 //!   (never a roll-forward, never a lock). A generation that a finding makes read-only, or whose model does not build,
 //!   is not applied: [`Unreadable`].
 //! - **The merge** ([`merge`]): per record, the baseline (the last loaded or saved model), ours (the session's model)
-//!   and theirs (the incoming model) through the one three-way core of `ew-format` ([`ew_format::merge_record`], D2).
+//!   and theirs (the incoming model) through the one three-way core of `ew-format` ([`ew_format::merge_record`]).
 //!   The colliding fields ([`Collision`]) are held for a choice of mine or theirs per field ([`ExternalMerge::rows`]).
 //! - **Adopting** ([`crate::Store::adopt_incoming`]): after the session committed the result, the incoming generation
-//!   becomes the store's baseline and the journal follows it (D23, [`crate::journal::Journal::rebase`]).
+//!   becomes the store's baseline and the journal follows it ([`crate::journal::Journal::rebase`]).
 
 use std::collections::BTreeSet;
 use std::time::Duration;
@@ -28,7 +28,7 @@ use serde_json::Value;
 
 use crate::rows::{all_keys, row_value, value_row};
 
-/// How often a session polls the manifest (doc 05 §9, D20; not measured, owner's rule).
+/// How often a session polls the manifest (doc 05 §9, not measured, owner's rule).
 pub const POLL_EVERY: Duration = Duration::from_secs(3);
 /// How long the manifest's bytes stay equal before a change is read.
 pub const QUIESCENCE: Duration = Duration::from_millis(750);

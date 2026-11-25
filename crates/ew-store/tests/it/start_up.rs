@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up scan across projects (PV-7): every project's leftover journal with unsaved work is
+//! The start-up scan across projects: every project's leftover journal with unsaved work is
 //! listed unless its lock is live, and a segment older than 30 days is deleted at start.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.

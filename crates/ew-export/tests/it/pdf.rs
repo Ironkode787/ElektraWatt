@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! PDF structure and determinism of the writer (doc 09 §4.2, §4.3; AC-13 and AC-14 in miniature).
+//! PDF structure and determinism of the writer (doc 09 §4.2, §4.3).
 //!
 //! No PDF parser is in the dependency graph, so the structure checks read the object dictionaries
 //! textually: krilla compresses content and font streams only, never dictionaries.

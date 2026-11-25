@@ -32,9 +32,9 @@
 //!   importer stamps no dates, since it never reads the wall clock.
 //! - [`ImportBatch`] carries library documents beside the records, and no `assets` or `provenance` vectors
 //!   yet: library items keep their provenance in `ItemMeta.sources` and `extra["source_ref"]`.
-//! - `Proposal` and `TableImage` are not built (FP-1, ADR-0021 amendment 1); [`ReportEntry`] has
+//! - `Proposal` and `TableImage` are not built (ADR-0021 amendment 1); [`ReportEntry`] has
 //!   `targets` ([`RecordKey`]) but no `proposal` or Fluent arguments, and its message is plain English
-//!   text (FP-6).
+//!   text.
 //!
 //! # Lenient-mode boundaries (doc 14 §3.3)
 //!

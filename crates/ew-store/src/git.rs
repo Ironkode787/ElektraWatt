@@ -782,7 +782,7 @@ pub fn with_block(text: &str, lines: &[&str]) -> String {
     }
 }
 
-/// Writes the managed blocks into `.gitattributes` and `.gitignore` of the project directory `dir` (doc 05 §11.1; D28),
+/// Writes the managed blocks into `.gitattributes` and `.gitignore` of the project directory `dir` (doc 05 §11.1),
 /// each through a temporary file renamed over it, lines outside the block kept; a file that already holds the block is
 /// not written. The files written, by name.
 ///
@@ -974,7 +974,7 @@ mod tests {
         assert_eq!(worktree_root(&vfs, Path::new("/s/p.ew")).unwrap(), None);
     }
 
-    /// D20: a git operation in progress is seen in the git directory, a `.git` file resolved to its `gitdir`.
+    /// A git operation in progress is seen in the git directory, a `.git` file resolved to its `gitdir`.
     #[test]
     fn a_git_operation_in_progress_is_seen_through_a_git_file_too() {
         let vfs = MemVfs::new(DirSync::Implicit);
@@ -1018,7 +1018,7 @@ mod tests {
         }
     }
 
-    /// D28: the managed block is added after the user's lines, replaced in place on a second run, and a run on text that
+    /// The managed block is added after the user's lines, replaced in place on a second run, and a run on text that
     /// holds it changes nothing.
     #[test]
     fn the_managed_block_keeps_the_lines_outside_it() {
@@ -1031,7 +1031,7 @@ mod tests {
         assert_eq!(with_block(&new, &["a", "b"]), new);
     }
 
-    /// D28: the blocks are written once into the two files, and the hook refuses a hook it did not write.
+    /// The blocks are written once into the two files, and the hook refuses a hook it did not write.
     #[test]
     fn blocks_and_the_hook_are_written_through_the_seam() {
         let vfs = MemVfs::new(DirSync::Implicit);

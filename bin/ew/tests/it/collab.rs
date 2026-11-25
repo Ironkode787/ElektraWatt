@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Through the `ew` binary: `ew diff`, its textconv in `git
-//! log -p`, `ew git setup`, `ew check --integrity` and AC-41 through the real git.
+//! log -p`, `ew git setup`, `ew check --integrity` through the real git.
 //!
 //! Git runs only in fresh temporary repositories: `-C <dir>`, every repository-selecting variable of
 //! `ew_api::git::ISOLATE` removed, the global configuration a file of the test's own folder and the system one off, a
@@ -166,7 +166,7 @@ fn change_101f1(dir: &Path) {
     edit(dir, &[set("device", &device, "parts", parts)]);
 }
 
-/// DG-1: `ew diff` between the sample and a copy with -101F1's part changed prints that line (exit 0, and 1 with
+/// `ew diff` between the sample and a copy with -101F1's part changed prints that line (exit 0, and 1 with
 /// `--exit-code`); the same between a directory and its `.ewz`, which are equal; and between `git:HEAD` and the working
 /// copy in a temporary repository; `--json` validates against its result schema.
 #[test]
@@ -263,7 +263,7 @@ const ATTRIBUTES: &str = "*.png binary\n# >>> ElektraWatt (managed) >>>\n*.jsonl
 diff=elektrawatt\nlib/**/*.json text eol=lf merge=elektrawatt diff=elektrawatt\nmanifest.json text eol=lf \
 merge=elektrawatt\nrules/** text eol=lf\nreports/*.sql text eol=lf\nassets/* binary\n# <<< ElektraWatt (managed) <<<\n";
 
-/// DG-3: without a terminal or `--yes`, `ew git setup` exits 2 and changes nothing; with `--yes` it writes the four
+/// Without a terminal or `--yes`, `ew git setup` exits 2 and changes nothing; with `--yes` it writes the four
 /// keys and the blocks, keeps a user's line outside the block, and is idempotent.
 #[test]
 fn git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
@@ -345,7 +345,7 @@ fn git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
     );
 }
 
-/// DG-4: `--hooks` installs the hook and refuses to replace a foreign one, writing nothing then.
+/// `--hooks` installs the hook and refuses to replace a foreign one, writing nothing then.
 #[test]
 fn the_hook_is_installed_and_a_foreign_one_is_kept() {
     let Some(r) = Repo::new("ew-dg4") else { return };
@@ -481,7 +481,7 @@ fn git_setup_from_an_appimage_names_the_appimage() {
     }
 }
 
-/// A copy of the sample whose page 103 holds MD-6's conflict record on the shield wire's colour, as part 5's CR-1
+/// A copy of the sample whose page 103 holds the conflict record on the shield wire's colour, as part 5's
 /// project.
 fn cr1_project(dir: &Path) {
     crate::support::copy_dir(Path::new(SAMPLE), dir);
@@ -489,7 +489,7 @@ fn cr1_project(dir: &Path) {
     std::fs::write(dir.join(page()), format!("{bu}{}\n", colour_conflict())).unwrap();
 }
 
-/// DG-6: `ew check --integrity` exits 1 on CR-1's project for its conflict record and 0 on the sample.
+/// `ew check --integrity` exits 1 on the project for its conflict record and 0 on the sample.
 #[test]
 fn the_integrity_check_fails_on_a_conflict_record_and_passes_the_sample() {
     let base = Tmp::new("ew-dg6");
@@ -523,11 +523,11 @@ fn shield_line(page: &str) -> Value {
     serde_json::from_str(page.lines().find(|l| l.contains(&id)).unwrap()).unwrap()
 }
 
-/// DG-2 and DG-7 (AC-41): on a fresh repository holding a copy of the sample, `ew git setup --yes`, then the two
-/// branches of D29: A sets -102Q1's function text and adds the shield wire's colour BU, B sets its cross-section 4.
+/// On a fresh repository holding a copy of the sample, `ew git setup --yes`, then the two
+/// branches: A sets -102Q1's function text and adds the shield wire's colour BU, B sets its cross-section 4.
 /// `git merge` exits 0 with csa 4 and BU, a merged manifest, and `ew check --integrity` exits 0; `git log -p` shows the textconv lines.
 /// The conflict variant (B also adds WH) leaves one conflict record, the project opens, and `ew merge resolve --take
-/// ours` makes it clean. Before setup, git's configuration has no driver (XW-7's status).
+/// ours` makes it clean. Before setup, git's configuration has no driver (the status).
 #[test]
 fn ac41_merges_through_git_with_the_driver() {
     let Some(r) = Repo::new("ew-dg7") else { return };
@@ -566,7 +566,7 @@ fn ac41_merges_through_git_with_the_driver() {
         ],
     );
 
-    // DG-2: the textconv lines of branch A's page change, labelled from the working copy.
+    // The textconv lines of branch A's page change, labelled from the working copy.
     let log = r.git(&["log", "-p", "-1", "a", "--", &format!("sample.ew/{}", page())]);
     let log = String::from_utf8_lossy(&log.stdout).into_owned();
     assert!(r.git(&["checkout", "--quiet", "a"]).status.success());
@@ -583,7 +583,7 @@ fn ac41_merges_through_git_with_the_driver() {
         "git log -p shows {line}:\n{log}"
     );
 
-    // DG-7: the clean merge.
+    // The clean merge.
     assert!(
         r.git(&["checkout", "--quiet", "-B", "merged", "a"])
             .status

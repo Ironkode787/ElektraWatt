@@ -31,7 +31,7 @@ fn result_schema(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
     compile(&format!("urn:ew:{file}"), serde_json::from_str(&text).unwrap())
 }
 
-/// CL-2 for `ew.query-result/1`: `$schema` first, valid against the committed schema, typed with
+/// For `ew.query-result/1`: `$schema` first, valid against the committed schema, typed with
 /// `deny_unknown_fields`, byte-equal after the round trip.
 fn assert_query_result(out: &str) -> results::QueryResult {
     assert!(
@@ -51,7 +51,7 @@ fn assert_query_result(out: &str) -> results::QueryResult {
     typed
 }
 
-/// QU-1: `ew query device_tag tag:-101F1` prints the full designation and the displayed tag; with `--json` the
+/// `ew query device_tag tag:-101F1` prints the full designation and the displayed tag; with `--json` the
 /// `ew.query-result/1` object, whose `output` holds both and whose `explain` is null without `--explain`.
 #[test]
 fn device_tag_prints_its_text_and_its_json_result() {
@@ -74,7 +74,7 @@ fn device_tag_prints_its_text_and_its_json_result() {
     assert_eq!(r.explain, None);
     assert!(stdout(&o).contains("\"explain\": null"), "{}", stdout(&o));
 
-    // QU-2's explanation in the result: the policy, the dependencies and the provenance (a fresh process: a miss).
+    // The explanation in the result: the policy, the dependencies and the provenance (a fresh process: a miss).
     let o = t.ew(&args([
         &"query",
         &p,
@@ -99,7 +99,7 @@ fn device_tag_prints_its_text_and_its_json_result() {
     );
 }
 
-/// QU-3 and QU-5 through the program: every entry of `ew queries --json` answers its example on the sample with exit
+/// Through the program: every entry of `ew queries --json` answers its example on the sample with exit
 /// 0, and the `output` of its `--json` result validates against the entry's own output schema. An example that names a
 /// record the sample no longer holds fails here.
 #[test]
@@ -127,7 +127,7 @@ fn every_example_validates_against_its_output_schema() {
 }
 
 /// The failure paths exit 2 with `error: ` and the message on stderr, nothing on stdout. An unknown query is refused
-/// before the project is opened; a key that names no record prints the replay's message (QU-3); a record of another
+/// before the project is opened; a key that names no record prints the replay's message; a record of another
 /// kind is named in words ("Every adapter checks the resolved record's kind").
 #[test]
 fn failures_exit_2_with_their_message() {
@@ -201,7 +201,7 @@ fn failures_exit_2_with_their_message() {
     }
 }
 
-/// QU-5: `ew queries --json` prints `crates/ew-api/api/queries.json` byte for byte; the text form is one line
+/// `ew queries --json` prints `crates/ew-api/api/queries.json` byte for byte; the text form is one line
 /// per entry, name, key and description separated by tabs.
 #[test]
 fn queries_prints_the_committed_registry() {
@@ -226,7 +226,7 @@ fn queries_prints_the_committed_registry() {
     assert!(stdout(&o).starts_with("bom_rows\t-\t"), "{}", stdout(&o));
 }
 
-/// QU-4: two runs print the same text, with and without `--explain`; a query opens the project as a reader and
+/// Two runs print the same text, with and without `--explain`; a query opens the project as a reader and
 /// writes nothing into it.
 #[test]
 fn two_runs_print_the_same_text_and_write_nothing() {
@@ -253,8 +253,8 @@ fn two_runs_print_the_same_text_and_write_nothing() {
     assert!(tree(&p) == before, "the project is unchanged");
 }
 
-/// CL-1 for `ew query`: the positional directory and `--project <dir>` print the same; both together exit 2 with
-/// D3's message.
+/// For `ew query`: the positional directory and `--project <dir>` print the same; both together exit 2 with
+/// The message.
 #[test]
 fn project_flag_equals_the_positional_directory() {
     let t = Tmp::new("ew-query");

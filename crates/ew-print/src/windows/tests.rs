@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Windows adapter without a dialog (WN-3's automated half): its words, its paper
+//! The Windows adapter without a dialog (the automated half): its words, its paper
 //! requests, the dialog's printer name, and four placed pages printed to "Microsoft Print to PDF".
 
 use std::collections::BTreeMap;
@@ -70,7 +70,7 @@ fn the_steps_read_as_words() {
 
 /// A printer that does not exist is refused in words with the system's reason, before anything is spooled. When the
 /// spooler cannot be reached (the PDF printer cannot be opened either), a skip line names the reason and the test
-/// passes, as WN-3's does.
+/// passes, as the does.
 #[test]
 fn a_printer_that_does_not_exist_is_refused_in_words() {
     if let Err(PrintError::Windows { what, reason }) = Dc::open(PDF_PRINTER) {
@@ -254,7 +254,7 @@ fn page_objects(pdf: &[u8]) -> usize {
         .sum()
 }
 
-/// WN-3's automated half: four placed pages printed through the adapter to "Microsoft Print to
+/// The automated half: four placed pages printed through the adapter to "Microsoft Print to
 /// PDF" with DOCINFO's output file set, so no dialog opens; the spooler writes a PDF of four pages once the job has
 /// run. When that printer's device context cannot be created, a skip line names the reason and the test passes.
 #[test]
@@ -289,7 +289,7 @@ fn four_placed_pages_print_to_microsoft_print_to_pdf() {
         "no PDF at {}",
         out.display()
     );
-    // What the driver made of the A5 landscape request, for the manual half of WN-3.
+    // What the driver made of the A5 landscape request, for the manual half.
     let boxes: Vec<String> = pdf
         .windows(9)
         .enumerate()
@@ -339,7 +339,7 @@ fn a_white_band_is_not_sent() {
 /// A print whose job's cancel signal is set (through a clone of the job, as the window's job Cancel
 /// and `ew print`'s Ctrl+C hold one) ends before its first band is sent, the document aborted, as
 /// [`PrintError::Cancelled`], and the spooler writes no file. The adapter is asked directly: the window's chain asks no
-/// way once the signal is set. Skipped, with its line, as WN-3 is when the PDF printer cannot be
+/// way once the signal is set. Skipped, with its line, as the manual half is when the PDF printer cannot be
 /// opened.
 #[test]
 fn a_cancelled_print_aborts_before_its_first_band() {
@@ -359,7 +359,7 @@ fn a_cancelled_print_aborts_before_its_first_band() {
 }
 
 /// A page of a print whose signal is set makes no request of the printer: settings that the printer refuses (no size)
-/// end it as [`PrintError::Cancelled`], not as the paper the printer did not take. Skipped as WN-3 is.
+/// end it as [`PrintError::Cancelled`], not as the paper the printer did not take. Skipped as the manual half is.
 #[test]
 fn a_cancelled_page_asks_the_printer_for_nothing() {
     let dir = Dir::new("cancel-page");

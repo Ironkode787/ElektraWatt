@@ -57,7 +57,7 @@ const CATALOGUE: &str = "target/reference/rules.json";
 const GLOSSARY: &str = "crates/ew-viewmodel/glossary/glossary.toml";
 /// The generated glossary page, relative to [`BOOK_SRC`].
 const GLOSSARY_PAGE: &str = "reference/glossary.md";
-/// The keymap sheet of `ew-viewmodel` (KM-6), written by that crate's `keymaps` test.
+/// The keymap sheet of `ew-viewmodel`, written by that crate's `keymaps` test.
 const KEYMAP_SHEET: &str = "target/reference/keymap-sheet.json";
 /// The generated keymap page, relative to [`BOOK_SRC`].
 const KEYMAPS_PAGE: &str = "reference/keymaps.md";
@@ -1049,7 +1049,7 @@ fn glossary_sections(root: &Path) -> Result<Vec<String>> {
     Ok(glossary_problems(&file, [&pages[0], &pages[1]]))
 }
 
-/// T7: an EPLAN or QElectroTech alias of the product glossary that no section of its page names, and a
+/// An EPLAN or QElectroTech alias of the product glossary that no section of its page names, and a
 /// section whose `**EW term:**` line links no term of the glossary. A section is a `## ` heading naming the other
 /// program's terms, joined by ", ".
 fn glossary_problems(file: &GlossaryFile, pages: [&str; 2]) -> Vec<String> {
@@ -1088,7 +1088,7 @@ fn glossary_problems(file: &GlossaryFile, pages: [&str; 2]) -> Vec<String> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The keymaps (KM-6)
+// The keymaps
 
 /// A binding as a code span (doubled backticks around a binding that holds one).
 fn key_span(key: &str) -> String {
@@ -2124,7 +2124,7 @@ fn notes_section(text: &str, heading: &str) -> Option<(usize, String)> {
 }
 
 /// The problems of the rule notes (T1 to T4): a shipped rule without notes, a heading missing, empty or out of
-/// order, a notes file for no shipped rule, and a line that quotes or cites a standard outside D7's form.
+/// order, a notes file for no shipped rule, and a line that quotes or cites a standard outside the form.
 fn notes_problems(rules: &[Rule], notes: &BTreeMap<String, String>) -> Vec<String> {
     let mut problems = Vec::new();
     let files: BTreeSet<String> = rules.iter().map(|r| rule_file(&r.id)).collect();
@@ -2167,7 +2167,7 @@ fn notes_problems(rules: &[Rule], notes: &BTreeMap<String, String>) -> Vec<Strin
     problems
 }
 
-/// Whether a line of **Standard** is a citation of D7's form, `<body> <number>[:<year>], <clause>` with an optional
+/// Whether a line of **Standard** is a citation of the form, `<body> <number>[:<year>], <clause>` with an optional
 /// note in brackets and an optional list marker, or [`NO_STANDARD`]: the body is upper-case words (`IEC`,
 /// `ISO/IEC`, `EN`), the number digits and hyphens, the year four digits, and the clause a clause number, or `Annex`,
 /// `Table` or `Figure` and its number, several joined by `and`; no quotation marks.
@@ -2460,7 +2460,7 @@ mod tests {
         );
     }
 
-    /// T1 to T4 (DC-1, DC-2) on fixture notes, each text whole.
+    /// T1 to T4 on fixture notes, each text whole.
     #[test]
     fn the_rule_notes_are_checked_for_presence_sections_and_citations() {
         let rules = [
@@ -2555,7 +2555,7 @@ mod tests {
         );
     }
 
-    /// T7 (DC-5): every EPLAN and QElectroTech alias has a section in its page, and every section names
+    /// Every EPLAN and QElectroTech alias has a section in its page, and every section names
     /// an EW term of the glossary; removing a section names its aliases.
     #[test]
     fn the_glossary_pages_have_a_section_for_every_alias() {
@@ -2650,7 +2650,7 @@ mod tests {
         )])
     }
 
-    /// D15: the CLI pages, whole: the index lists every path with its flags and result; a group page gives each
+    /// The CLI pages, whole: the index lists every path with its flags and result; a group page gives each
     /// path's synopsis, flags, exit codes and result fields.
     #[test]
     fn the_cli_pages_list_synopses_flags_exits_and_results() {
@@ -2715,7 +2715,7 @@ mod tests {
         ]})
     }
 
-    /// D15: the `api_v1` page, whole from its table on: one row per view, one section per view with its columns.
+    /// The `api_v1` page, whole from its table on: one row per view, one section per view with its columns.
     #[test]
     fn the_api_v1_page_lists_views_and_columns() {
         let page = api_v1_text(&api_v1_fixture("seq")).unwrap();
@@ -2737,7 +2737,7 @@ mod tests {
         assert!(page.contains("The contract's status is **preview**"), "{page}");
     }
 
-    /// D15: the query page, whole from its table on: one row and one section per query, with its output fields.
+    /// The query page, whole from its table on: one row and one section per query, with its output fields.
     #[test]
     fn the_query_page_lists_keys_examples_and_outputs() {
         let snapshot = json!({"$schema": "ew.queries-result/1", "queries": [
@@ -2762,7 +2762,7 @@ mod tests {
         );
     }
 
-    /// D15: a format page per kind with a schema; the index lists every kind, a reserved one without a page.
+    /// A format page per kind with a schema; the index lists every kind, a reserved one without a page.
     #[test]
     fn a_format_page_lists_the_kind_and_its_fields() {
         let entry = json!({"kind": "waiver", "file": "waivers.jsonl", "rank": 61, "schema": "waiver.schema.json",
@@ -2904,7 +2904,7 @@ mod tests {
         );
     }
 
-    /// D13, DC-10, T8: without a release the index says so; a release's notes give its page without their licence
+    /// Without a release the index says so; a release's notes give its page without their licence
     /// comment, their relative links rewritten to the repository's address, newest first by number; the drafts and a
     /// candidate's name give none.
     #[test]

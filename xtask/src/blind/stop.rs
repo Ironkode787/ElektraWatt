@@ -604,8 +604,8 @@ mod tests {
         (f, root)
     }
 
-    /// UR-3: a brief run's score decides each item with `check-brief`'s code on the same project, so the two
-    /// decisions are equal; it gives the attempt and D9's counts.
+    /// A brief run's score decides each item with `check-brief`'s code on the same project, so the two
+    /// decisions are equal; it gives the attempt and the counts.
     #[test]
     fn a_brief_runs_score_decides_its_items_as_check_brief_does() {
         let (f, root) = brief_fixture();
@@ -663,7 +663,7 @@ mod tests {
         assert_eq!(attempt_of(Some("handback"), &unmet, 0), "not completed");
     }
 
-    /// UR-3: `stop` of a brief run writes the decisions, the attempt and the counts into `out/score.json` and
+    /// `stop` of a brief run writes the decisions, the attempt and the counts into `out/score.json` and
     /// `out/report.md`; a run without its copied `ew` decides no query (each fails).
     #[test]
     fn stop_of_a_brief_run_writes_its_decisions() {

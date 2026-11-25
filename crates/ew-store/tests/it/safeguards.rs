@@ -83,7 +83,7 @@ fn hand_edited(bytes: &[u8]) -> Vec<u8> {
 
 #[test]
 fn a_save_refuses_to_replace_a_file_changed_outside_the_session() {
-    // SG-3: a hand edit of a page file that the next save replaces refuses the save with the file named, and writes
+    // A hand edit of a page file that the next save replaces refuses the save with the file named, and writes
     // nothing: every file, the manifest included, is byte-identical afterwards. Restored, the file saves.
     let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys, page) = renumber_first_page(&model);
@@ -117,7 +117,7 @@ fn a_save_refuses_to_replace_a_file_changed_outside_the_session() {
 
 #[test]
 fn a_crlf_only_change_does_not_refuse_the_save() {
-    // SG-3: a checkout with `core.autocrlf` turns LF into CRLF; the content is the same (doc 05 §6.2).
+    // A checkout with `core.autocrlf` turns LF into CRLF; the content is the same (doc 05 §6.2).
     let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys, page) = renumber_first_page(&model);
     let original = project_files(&vfs, &root)[page.as_str()].clone();
@@ -135,7 +135,7 @@ fn a_crlf_only_change_does_not_refuse_the_save() {
 
 #[test]
 fn a_save_refuses_to_remove_a_file_changed_outside_the_session_and_names_every_file() {
-    // SG-3 for the files a save removes: the edit batch removes a page's file and replaces others; two hand edits
+    // For the files a save removes: the edit batch removes a page's file and replaces others; two hand edits
     // refuse the save with both files, in path order.
     let (vfs, root) = mem_project(DirSync::Explicit);
     let (removed, replaced) = {
@@ -177,7 +177,7 @@ fn a_save_refuses_to_remove_a_file_changed_outside_the_session_and_names_every_f
 
 #[test]
 fn a_file_deleted_outside_the_session_is_written_again() {
-    // D5 compares the bytes a save would overwrite; a file that is gone holds none, so the save writes it.
+    // The pre-check compares the bytes a save would overwrite; a file that is gone holds none, so the save writes it.
     let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys, page) = renumber_first_page(&model);
     vfs.remove_file(&join(&root, page.as_str())).expect("removed");
@@ -233,7 +233,7 @@ const LOGO: &[u8] =
 
 #[test]
 fn a_save_refuses_to_replace_an_asset_file_changed_outside_the_session() {
-    // SG-3 for an asset: `assets/<sha256>.svg` is listed with bytes that are not the asset of its name (EW-CORE-015);
+    // For an asset: `assets/<sha256>.svg` is listed with bytes that are not the asset of its name (EW-CORE-015);
     // the model then holds the asset, so the save replaces the file. Changed outside the session first, the file
     // refuses the save; unchanged, it is moved aside and replaced as before.
     let (format, size) = sniff(LOGO).expect("an SVG");
@@ -313,7 +313,7 @@ fn conflicted_manifest(ours: u64, theirs: u64, theirs_file: (&FilePath, &[u8])) 
 
 #[test]
 fn a_save_after_a_conflicted_manifest_continues_from_the_greater_side() {
-    // SG-4: a manifest with conflict markers on its generation line (7 and 9) is followed by a save at
+    // A manifest with conflict markers on its generation line (7 and 9) is followed by a save at
     // generation 10, never 1; every file either side lists survives and is listed. Before, the generation restarted at
     // 0 + 1.
     let mut files = fixture();
@@ -480,7 +480,7 @@ fn retried_save(same: bool) -> (Unlisted, Result<ew_store::SaveReport, SaveError
 
 #[test]
 fn a_retried_move_aside_removes_a_stray_of_equal_bytes() {
-    // SG-5: the colleague's file comes back with the same bytes after the first move; the retry moves it to
+    // The colleague's file comes back with the same bytes after the first move; the retry moves it to
     // `.unlisted-2-1`, finds `.unlisted-2` equal and removes the new copy.
     let (s, saved) = retried_save(true);
     let saved = saved.expect("the retry saves");
@@ -505,7 +505,7 @@ fn a_retried_move_aside_removes_a_stray_of_equal_bytes() {
 
 #[test]
 fn a_retried_move_aside_keeps_a_stray_of_other_bytes() {
-    // SG-5: the file that comes back differs (the colleague saved again): both strays stay.
+    // The file that comes back differs (the colleague saved again): both strays stay.
     let (s, saved) = retried_save(false);
     let saved = saved.expect("the retry saves");
     let files = project_files(&s.vfs, &s.root);
@@ -525,7 +525,7 @@ fn a_retried_move_aside_keeps_a_stray_of_other_bytes() {
 
 #[test]
 fn a_duplicate_past_a_gap_is_found() {
-    // D7 compares with every older stray of the generation, past gaps: `.unlisted-2` and `-2-1` are taken by other
+    // The move-aside compares with every older stray of the generation, past gaps: `.unlisted-2` and `-2-1` are taken by other
     // bytes, `-2-2` is free, `-2-3` holds the colleague's bytes; the move takes `-2-2` and finds `-2-3` equal.
     let mut s = unlisted_shard();
     let names = [
@@ -553,7 +553,7 @@ fn a_duplicate_past_a_gap_is_found() {
 
 #[test]
 fn a_roll_forward_removes_a_duplicate_stray_too() {
-    // D7 lives in the move-aside that both the save and the roll-forward call: an interrupted save of generation 2
+    // The comparison lives in the move-aside that both the save and the roll-forward call: an interrupted save of generation 2
     // whose new shard is occupied by a colleague's file that an earlier attempt already moved to `.unlisted-2`.
     let files = fixture();
     let (template, free) = template_and_free_shard();

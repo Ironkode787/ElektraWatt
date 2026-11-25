@@ -443,9 +443,9 @@ pub(super) fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `rep.join_device`: a D3-eligible representation joins a device that takes its FnDef by D2's rule;
+/// `rep.join_device`: a D3-eligible representation joins a device that takes its FnDef by the rule;
 /// the steps the command refuses: a representation whose device has several functions, the representation's own
-/// device, a device D2's rule refuses, a representation that does not exist.
+/// device, a device the rule refuses, a representation that does not exist.
 pub(super) fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("rep.join_device", p);
     match rng.below(10) {

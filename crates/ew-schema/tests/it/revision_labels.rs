@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The revision label format (doc 15 §5.2, FR-REV-002; RL-2): the three forms' order and next label,
+//! The revision label format (doc 15 §5.2, FR-REV-002): the three forms' order and next label,
 //! and the `revision_label` project setting (absent means `v_major_minor`).
 
 use ew_schema::{LabelFormat, ProjectSettings};
@@ -12,7 +12,7 @@ fn next(format: &LabelFormat, label: &str) -> Option<String> {
     format.next(label).map(|l| l.as_str().to_owned())
 }
 
-/// RL-2: after V2.0 is V3.0, after 02 is 03, after H is J (I and O are skipped), with the carries of each form.
+/// After V2.0 is V3.0, after 02 is 03, after H is J (I and O are skipped), with the carries of each form.
 #[test]
 fn the_next_label_bumps_the_major_part() {
     let v = LabelFormat::VMajorMinor;

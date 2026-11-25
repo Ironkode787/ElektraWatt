@@ -26,7 +26,7 @@ impl Leaf for QueryCli {
     }
 }
 
-/// `ew query` (D11, D12, FR-EXT-005): opens the project as a reader (no lock) and prints the query's value, with
+/// `ew query` (FR-EXT-005): opens the project as a reader (no lock) and prints the query's value, with
 /// `--explain` its policy, dependencies and provenance. Exit 0 when answered, 2 on usage, an unknown query, open
 /// errors and a key that names no record or a record of another kind.
 pub(super) fn run_query(a: &QueryCli) -> i32 {

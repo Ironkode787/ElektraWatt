@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The content audit (NFR-LIC-06, NFR-LIC-07): every library document under `content/` and
-//! every copy under `fixtures/sample/sample.ew/lib/` (the sample project ships, AC-40) carries an SPDX licence, the
+//! every copy under `fixtures/sample/sample.ew/lib/` (the sample project ships) carries an SPDX licence, the
 //! licence of its kind (doc 07 §3.8: CC0-1.0 for part facts, CC-BY-SA-4.0 for drawn content), allowed by its file's
 //! row of `ci/licence-map.toml` under `content/`, and a source. Every map expression and designation pattern of a
 //! shipped part parses, and `content/README.md` lists every content set of `content/` (RC-07's inventory).

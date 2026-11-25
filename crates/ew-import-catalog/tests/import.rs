@@ -111,7 +111,7 @@ fn statuses(i: &PartsImport) -> Vec<(u32, String, String)> {
         .collect()
 }
 
-/// IM-1, IM-3, IM-4, IM-5: a list with other headers imports through a map; every row's outcome.
+/// A list with other headers imports through a map; every row's outcome.
 #[test]
 fn a_mapped_list_imports_with_a_report_of_every_row() {
     let i = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &target()).unwrap();
@@ -144,7 +144,7 @@ fn a_mapped_list_imports_with_a_report_of_every_row() {
     let c = i.counts();
     assert_eq!((c.new, c.duplicate, c.rejected), (5, 1, 4));
 
-    // IM-3: "A / B" is two parts, each flagged, and the report says so; never one number.
+    // "A / B" is two parts, each flagged, and the report says so; never one number.
     let split: Vec<_> = i.rows.iter().filter(|r| r.candidate).collect();
     assert_eq!(split.len(), 2);
     let flagged: Vec<_> = i
@@ -166,7 +166,7 @@ fn a_mapped_list_imports_with_a_report_of_every_row() {
         "no joined number"
     );
 
-    // IM-4: "Schneider" and "Schneider Electric" are one manufacturer, the alias reported once; "phoenix  contact"
+    // "Schneider" and "Schneider Electric" are one manufacturer, the alias reported once; "phoenix  contact"
     // folds onto Phoenix Contact; a name the master lacks becomes a new manufacturer of the target.
     let aliases: Vec<_> = i.report.with_code(Code::ALIAS_MAPPED).collect();
     assert_eq!(aliases.len(), 1);
@@ -201,7 +201,7 @@ fn a_mapped_list_imports_with_a_report_of_every_row() {
         "the new manufacturer is reported"
     );
 
-    // IM-5: each rejection is an error entry with its line and reason.
+    // Each rejection is an error entry with its line and reason.
     let errors: Vec<_> = i
         .report
         .entries
@@ -247,7 +247,7 @@ fn a_mapped_list_imports_with_a_report_of_every_row() {
     }
 }
 
-/// IM-1 at this level: the same list with English headers, comma-separated, through another map, gives the same
+/// At this level: the same list with English headers, comma-separated, through another map, gives the same
 /// parts.
 #[test]
 fn another_header_dialect_through_its_own_map_gives_the_same_parts() {
@@ -637,7 +637,7 @@ fn comparable(i: &PartsImport) -> (Vec<LibDocument>, Vec<Entry>) {
     (parts, report)
 }
 
-/// IM-2: the same list as XLSX gives the same parts, rows and report; a formula's cached value is read.
+/// The same list as XLSX gives the same parts, rows and report; a formula's cached value is read.
 #[test]
 fn the_same_list_as_xlsx_gives_the_same_parts_and_report() {
     let book = xlsx(&[("Teile", list_rows())]);
@@ -813,7 +813,7 @@ fn a_named_sheet_is_read_and_a_missing_one_refuses_the_file() {
     assert!(err.to_string().contains("no sheet named `Parts`"), "{err}");
 }
 
-/// IM-6 at this level: a second import of the changed list against the held parts keeps the item IDs, reports the
+/// At this level: a second import of the changed list against the held parts keeps the item IDs, reports the
 /// unchanged and updated rows, keeps the held version of a change (which a library refuses) unless bumped.
 #[test]
 fn a_second_import_updates_in_place() {
@@ -955,7 +955,7 @@ fn a_cell_above_32_kib_refuses_the_table() {
     );
 }
 
-/// IC-2: a workbook with an entry whose name leads out of the archive, is absolute or a drive path, has a
+/// A workbook with an entry whose name leads out of the archive, is absolute or a drive path, has a
 /// backslash or a NUL is refused, naming the rule and the entry.
 #[test]
 fn an_entry_name_outside_the_archive_refuses_the_workbook() {
@@ -983,7 +983,7 @@ fn an_entry_name_outside_the_archive_refuses_the_workbook() {
     }
 }
 
-/// IC-2: an entry that expands more than 200 : 1 is refused from the directory, before it is inflated; a workbook
+/// An entry that expands more than 200 : 1 is refused from the directory, before it is inflated; a workbook
 /// within the ratio reads.
 #[test]
 fn an_entry_above_the_expansion_ratio_is_refused() {
@@ -997,7 +997,7 @@ fn an_entry_above_the_expansion_ratio_is_refused() {
     assert!(import_bytes("liste.xlsx", book, &target()).is_ok());
 }
 
-/// IC-5 (b): a workbook part that declares a DOCTYPE is refused, naming it.
+/// A workbook part that declares a DOCTYPE is refused, naming it.
 #[test]
 fn a_part_with_a_doctype_is_refused() {
     let rels = r#"<?xml version="1.0"?><!DOCTYPE r [<!ENTITY e SYSTEM "file:///etc/passwd">]><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>"#;

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The supply groups of a part's PLC section (FR-PLC-024; PX-2): `PlcSection.supply_groups` types
+//! The supply groups of a part's PLC section (FR-PLC-024): `PlcSection.supply_groups` types
 //! `kind`, `cps {l_plus, m}` and `feeds`, keeps every other member in the group's own `extra` and every newer enum
 //! value as `Unknown`, writes byte-equal after `pin_of` and before the section's unknown members, omits an empty list,
 //! and refuses a group without one of its pins, naming the member.
@@ -32,7 +32,7 @@ fn part(doc: &LibDocument) -> &Part {
     &copy.item
 }
 
-/// PX-2: two groups, one feeding the outputs, one of a newer kind with an unknown member; the line reads typed and
+/// Two groups, one feeding the outputs, one of a newer kind with an unknown member; the line reads typed and
 /// writes byte-equal, the unknowns kept where they were.
 #[test]
 fn two_supply_groups_round_trip_with_their_unknowns() {
@@ -79,7 +79,7 @@ fn two_supply_groups_round_trip_with_their_unknowns() {
     assert_eq!(again, doc);
 }
 
-/// PX-2: `{"supply_groups": []}` writes as absent, and a section without groups writes the bytes it wrote before
+/// `{"supply_groups": []}` writes as absent, and a section without groups writes the bytes it wrote before
 /// (no copy's `sha256` moves).
 #[test]
 fn an_empty_group_list_writes_as_absent() {
@@ -95,7 +95,7 @@ fn an_empty_group_list_writes_as_absent() {
     assert_eq!(serde_json::to_string(&doc).unwrap(), before);
 }
 
-/// PX-2: a group without `cps.l_plus` (or `cps.m`, `cps` or `kind`) fails to load, the error naming the member.
+/// A group without `cps.l_plus` (or `cps.m`, `cps` or `kind`) fails to load, the error naming the member.
 #[test]
 fn a_group_without_a_required_member_fails_naming_it() {
     for (group, member) in [

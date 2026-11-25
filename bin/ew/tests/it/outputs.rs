@@ -54,9 +54,9 @@ fn block_id(first_folio: u32) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// OU-1: `ew render`
+// `ew render`
 
-/// OU-1 (FR-EXT-004): `ew render --page 103 --png --out 103.png` writes the bytes `ew export png` writes for folio
+/// `ew render --page 103 --png --out 103.png` writes the bytes `ew export png` writes for folio
 /// 103; without `--out` the PNG goes to `103.png` in the working directory and nothing to stdout but the summary;
 /// `--dpi 300` doubles both pixel dimensions.
 #[test]
@@ -93,7 +93,7 @@ fn render_writes_the_png_of_folio_103_that_export_png_writes() {
     assert_eq!(png_size(&std::fs::read(&out).unwrap()), (2 * w, 2 * h));
 }
 
-/// OU-1: an unknown folio exits 2 naming it and writes nothing; a `--dpi` outside 72 to 600 is a usage error.
+/// An unknown folio exits 2 naming it and writes nothing; a `--dpi` outside 72 to 600 is a usage error.
 #[test]
 fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
     let t = Tmp::new("ew-outputs");
@@ -176,7 +176,7 @@ fn a_page_too_large_to_rasterise_is_refused_with_words() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// OU-2: `ew export png`
+// `ew export png`
 
 /// `ew export png --out <dir>` writes one PNG per folio of the page order, the same bytes on one thread and on
 /// four (`--threads` changes the speed only).
@@ -247,7 +247,7 @@ fn export_png_holds_no_wire_colour_view() {
     assert_eq!(coloured, 0, "coloured pixels, the wire-colour view's");
 }
 
-/// OU-2: a directory of a person's own pictures is refused (exit 2, in words) and left as it was, though they are PNG
+/// A directory of a person's own pictures is refused (exit 2, in words) and left as it was, though they are PNG
 /// files; the directory of an earlier PNG export is replaced as a whole.
 #[test]
 fn export_png_refuses_a_directory_it_did_not_write() {
@@ -282,9 +282,9 @@ fn export_png_refuses_a_directory_it_did_not_write() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// OU-3: `ew export report`
+// `ew export report`
 
-/// OU-3 (FR-EXT-027): `ew export report --block 908 --format csv` writes the sample's 24 channel rows (8 on each card
+/// `ew export report --block 908 --format csv` writes the sample's 24 channel rows (8 on each card
 /// of -104A1 and on the valve terminal -201K1) on folios 908 and 908.1; by the block's ID it writes the same.
 #[test]
 fn report_csv_writes_the_24_channel_rows_of_folio_908() {
@@ -307,7 +307,7 @@ fn report_csv_writes_the_24_channel_rows_of_folio_908() {
     assert_eq!(stdout(&by_id), csv);
 }
 
-/// OU-3: `--format pdf` writes the PDF of folios 908 and 908.1 only: the bytes of `ew export pdf --pages
+/// `--format pdf` writes the PDF of folios 908 and 908.1 only: the bytes of `ew export pdf --pages
 /// 908,908.1`.
 #[test]
 fn report_pdf_writes_the_block_folios_only() {
@@ -341,7 +341,7 @@ fn report_pdf_writes_the_block_folios_only() {
     assert!(std::fs::read(&report).unwrap() == std::fs::read(&pages).unwrap());
 }
 
-/// OU-3: `--format xlsx` without `--out` exits 2 asking for the file; an unknown block exits 2 naming it.
+/// `--format xlsx` without `--out` exits 2 asking for the file; an unknown block exits 2 naming it.
 #[test]
 fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
     let t = Tmp::new("ew-outputs");
@@ -483,7 +483,7 @@ fn report_csv_of_folio_911_prints_the_revisions() {
     assert_eq!(stdout(&by_kind), csv);
 }
 
-/// RK-5: a block's `params` survive the save protocol byte for byte: `ew fmt` keeps the member verbatim and a
+/// A block's `params` survive the save protocol byte for byte: `ew fmt` keeps the member verbatim and a
 /// second check finds nothing to rewrite; `"Assembly"` (a value outside the kind) exports the component rows.
 #[test]
 fn block_params_survive_a_save_and_a_wrong_value_gives_the_default() {
@@ -531,9 +531,9 @@ fn block_params_survive_a_save_and_a_wrong_value_gives_the_default() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// OU-4: `ew export wires|terminals`, `--block`
+// `ew export wires|terminals`, `--block`
 
-/// OU-4: `ew export wires` lists the wires and then the sample's two bridges of -X1021 (terminals 1 to 4 and 5 to 8);
+/// `ew export wires` lists the wires and then the sample's two bridges of -X1021 (terminals 1 to 4 and 5 to 8);
 /// by its folio, to a file, it writes the same.
 #[test]
 fn export_wires_lists_the_wires_and_the_bridges() {
@@ -559,7 +559,7 @@ fn export_wires_lists_the_wires_and_the_bridges() {
     assert_eq!(std::fs::read_to_string(&out).unwrap(), want);
 }
 
-/// OU-4: without `--strip` `ew export terminals` writes the sample's three strips -X1011, -X1021 and -X1031 one after
+/// Without `--strip` `ew export terminals` writes the sample's three strips -X1011, -X1021 and -X1031 one after
 /// the other, each after a heading row, with the rows `--strip` writes for it: 5, 8 and 5 terminals.
 #[test]
 fn export_terminals_writes_one_strip_or_every_strip() {
@@ -587,7 +587,7 @@ fn export_terminals_writes_one_strip_or_every_strip() {
     assert_eq!(counts, [5, 8, 5]);
 }
 
-/// OU-4: a strip that is not there exits 2 naming it; a block of another kind exits 2 naming its kind.
+/// A strip that is not there exits 2 naming it; a block of another kind exits 2 naming its kind.
 #[test]
 fn row_exports_refuse_an_unknown_strip_and_a_block_of_another_kind() {
     let t = Tmp::new("ew-outputs");
@@ -620,7 +620,7 @@ fn row_exports_refuse_an_unknown_strip_and_a_block_of_another_kind() {
     );
 }
 
-/// OU-4: `ew export bom --block <id of 901>` equals the default bill of materials, in both modes; `cables --block 906`
+/// `ew export bom --block <id of 901>` equals the default bill of materials, in both modes; `cables --block 906`
 /// equals the default cable list.
 #[test]
 fn a_named_block_equals_the_default_one() {
@@ -640,14 +640,14 @@ fn a_named_block_equals_the_default_one() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// `ew print` (PR-1, PR-2, D9)
+// `ew print`
 
 /// The `--json` result of a run, parsed.
 fn json(o: &Output) -> serde_json::Value {
     serde_json::from_str(&stdout(o)).unwrap_or_else(|e| panic!("{e}: {}", stdout(o)))
 }
 
-/// PR-1 and D8: `ew print <sample> --sections 1 --paper A5 --fit --out <file>` writes the print set (its bytes are
+/// `ew print <sample> --sections 1 --paper A5 --fit --out <file>` writes the print set (its bytes are
 /// pinned by `ew-api`'s page-output test), prints nothing, leaves no temporary file; `--json` names section 1's
 /// divider and its five drawn folios at 70 %; `--paper A4 --fit` is 100 %; `--pages 101-105` prints the five folios.
 #[test]
@@ -723,7 +723,7 @@ fn print_of_section_1_on_a5_names_its_folios() {
     );
 }
 
-/// PR-2: a page on an A3 sheet printed on A4 with the fit reads 71 %; without it the page is clipped and the notice
+/// A page on an A3 sheet printed on A4 with the fit reads 71 %; without it the page is clipped and the notice
 /// names it, on stderr and in the result.
 #[test]
 fn print_of_an_a3_page_on_a4_is_scaled_or_clipped_with_a_notice() {
@@ -746,7 +746,7 @@ fn print_of_an_a3_page_on_a4_is_scaled_or_clipped_with_a_notice() {
     assert_eq!(stderr(&o), format!("notice: {notice}\n"));
 }
 
-/// D6 and D9: every refusal of `ew print`, whole, with exit 2 and nothing written; `--sections` on `export pdf`
+/// Every refusal of `ew print`, whole, with exit 2 and nothing written; `--sections` on `export pdf`
 /// refuses `--pages` beside it the same way.
 #[test]
 fn print_refusals_are_whole_texts() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The links of the layout kinds (LM-2, LM-6; doc 03 §4.2, §16): a placement cannot outlive its device
+//! The links of the layout kinds (doc 03 §4.2, §16): a placement cannot outlive its device
 //! or function (cascade, EW-LAY-002), an occupied carrier and an enclosure's device cannot be removed (forbid), a
 //! separate surface part's device leaves the surface without one (unlink), the containment chain cascades, and a
 //! location with a layout space cannot be deleted. The three named indexes agree with a rebuild.
@@ -151,7 +151,7 @@ fn layout_records_load_into_their_tables_and_indexes() {
     assert!(BaseIndexes::rebuild(&m).same_entries(m.indexes()));
 }
 
-/// LM-6: deleting a placed device removes its placement in the same plan; the undo restores it.
+/// Deleting a placed device removes its placement in the same plan; the undo restores it.
 #[test]
 fn deleting_a_placed_device_removes_its_placement() {
     let m = with_layout().expect("valid");
@@ -185,7 +185,7 @@ fn deleting_a_placed_function_removes_its_placement() {
     assert!(!removes(&ops, key::<Placement>(PL_F1)));
 }
 
-/// LM-6: an occupied carrier cannot be deleted other than by `layout.carrier.delete` (forbid); an empty one can.
+/// An occupied carrier cannot be deleted other than by `layout.carrier.delete` (forbid); an empty one can.
 #[test]
 fn an_occupied_carrier_is_referenced_and_an_empty_one_goes() {
     let m = with_layout().expect("valid");
@@ -199,7 +199,7 @@ fn an_occupied_carrier_is_referenced_and_an_empty_one_goes() {
     assert!(link.starts_with("placement.carrier."), "{link}");
 }
 
-/// LM-6: an enclosure's device cannot be deleted under it (forbid); a surface part's device can, and the surface
+/// An enclosure's device cannot be deleted under it (forbid); a surface part's device can, and the surface
 /// stays without one (unlink).
 #[test]
 fn an_enclosure_keeps_its_device_and_a_surface_lets_its_device_go() {
@@ -219,7 +219,7 @@ fn an_enclosure_keeps_its_device_and_a_surface_lets_its_device_go() {
     plan_commits(&m, &ops);
 }
 
-/// LM-2: the location of a layout space cannot be deleted while the space exists (forbid); the space with an
+/// The location of a layout space cannot be deleted while the space exists (forbid); the space with an
 /// occupied carrier cannot be deleted either (the cascade reaches the forbid), and once the placements are gone it
 /// takes its enclosure, surface and carriers with it.
 #[test]

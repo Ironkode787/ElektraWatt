@@ -5,7 +5,7 @@
 //!
 //! A connection's stored route is its drawing (ADR-0033): the scene never routes. A stored route holds
 //! every vertex from end `a`'s point to end `b`'s and is drawn as stored ([`connection_polyline`]). A connection
-//! without one is *unrouted* (D3): it is drawn as a right-angled line between its ends
+//! without one is *unrouted*: it is drawn as a right-angled line between its ends
 //! (`ew_drafting::unrouted_line`; the page draws it dashed in the thinnest pen), never as a diagonal, and as
 //! nothing where its ends meet.
 //!

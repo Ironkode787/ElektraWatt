@@ -1009,7 +1009,7 @@ impl Registry {
         out.into_values().collect()
     }
 
-    /// The part search of D6 over every installed library; an index error gives no hits.
+    /// The part search over every installed library; an index error gives no hits.
     pub fn search(&self, q: &PartQuery) -> Vec<PartHit> {
         self.try_search(q).unwrap_or_default()
     }

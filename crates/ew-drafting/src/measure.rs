@@ -40,31 +40,31 @@ pub enum TextRef {
 /// The items behind the faults and costs, each list in a fixed order (wires, parts and labels by ID).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Findings {
-    /// F2: a wire and the pin or junction it runs through, with the point.
+    /// A wire and the pin or junction it runs through, with the point.
     pub through_points: Vec<(WireId, Passed, Pt)>,
-    /// F3: two wires and the stretches they share.
+    /// Two wires and the stretches they share.
     pub on_wires: Vec<([WireId; 2], Vec<Seg>)>,
-    /// F4: a wire, the part it runs through and the stretches inside.
+    /// A wire, the part it runs through and the stretches inside.
     pub through_parts: Vec<(WireId, PartId, Vec<Seg>)>,
-    /// F5: a junction, its arms and its point.
+    /// A junction, its arms and its point.
     pub four_way: Vec<(JunctionId, usize, Pt)>,
-    /// F6: two wires and the point where their corners meet.
+    /// Two wires and the point where their corners meet.
     pub false_joints: Vec<([WireId; 2], Pt)>,
-    /// F7: a part and the part it lies on, or `None` where it leaves the drawing area.
+    /// A part and the part it lies on, or `None` where it leaves the drawing area.
     pub parts_on_parts: Vec<(PartId, Option<PartId>)>,
-    /// C3: two wires and the point they cross at.
+    /// Two wires and the point they cross at.
     pub crossings: Vec<([WireId; 2], Pt)>,
-    /// C2: each wire with corners, and how many.
+    /// Each wire with corners, and how many.
     pub bends: Vec<(WireId, usize)>,
-    /// C4: a wire, a text it runs through and the stretches inside.
+    /// A wire, a text it runs through and the stretches inside.
     pub across_texts: Vec<(WireId, TextRef, Vec<Seg>)>,
-    /// C5: a label and the text it lies on.
+    /// A label and the text it lies on.
     pub texts_on_texts: Vec<(LabelId, TextRef)>,
-    /// C5: a label and the body of another part it lies on.
+    /// A label and the body of another part it lies on.
     pub texts_on_parts: Vec<(LabelId, PartId)>,
-    /// C5: a label outside the drawing area.
+    /// A label outside the drawing area.
     pub texts_outside: Vec<LabelId>,
-    /// C8: each wire from a mark to a tap that bends on its way.
+    /// Each wire from a mark to a tap that bends on its way.
     pub mark_jogs: Vec<WireId>,
     /// Reported: each wire with turn-backs, and how many.
     pub turn_backs: Vec<(WireId, usize)>,
@@ -75,23 +75,23 @@ pub struct Findings {
 /// The counts behind the cost and the reported figures.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Counts {
-    /// C1: the routes' length, in ticks.
+    /// The routes' length, in ticks.
     pub length: i64,
-    /// C2: the corners.
+    /// The corners.
     pub bends: usize,
-    /// C3: the crossings.
+    /// The crossings.
     pub crossings: usize,
-    /// C4: the pairs of a wire and a text it runs through.
+    /// The pairs of a wire and a text it runs through.
     pub across_texts: usize,
-    /// C4: the ticks of wire on texts.
+    /// The ticks of wire on texts.
     pub on_texts: i64,
-    /// C5: the clashes of labels.
+    /// The clashes of labels.
     pub label_clashes: usize,
-    /// C6: the places down their lists, summed.
+    /// The places down their lists, summed.
     pub label_ranks: i64,
-    /// C7: the ticks of runs on the half grid.
+    /// The ticks of runs on the half grid.
     pub half_grid: i64,
-    /// C8: the wires from a mark to a tap that bend.
+    /// The wires from a mark to a tap that bend.
     pub mark_jogs: usize,
     /// The wires drawn straight.
     pub straight: usize,
@@ -401,7 +401,7 @@ fn f5(lines: &[Line], junctions: &[&Junction], f: &mut Findings) {
     }
 }
 
-/// C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2): [`MARK_JOG`] for each wire from a pin
+/// A wire into a mark stays on the mark's line, so its trunk does (§1.2): [`MARK_JOG`] for each wire from a pin
 /// of a mark (an interruption point or a supply mark) to a tap (a junction, or a pin another wire ends at too) with a
 /// corner, where the trunk it taps goes on along the mark's axis, off its line.
 fn c8(

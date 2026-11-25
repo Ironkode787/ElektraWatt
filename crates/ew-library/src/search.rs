@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Part and item search: the queries, the hits and the order of D6 (doc 07 §4.3).
+//! Part and item search: the queries, the hits and the order (doc 07 §4.3).
 //!
 //! **Order** (deterministic and without a clock):
 //! 1. with a compatibility filter, compatible parts before the others (doc 07 §4.3: "offers MCB 1P+N parts first");

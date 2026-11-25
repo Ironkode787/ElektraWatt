@@ -47,7 +47,7 @@ fn physical_nets(b: &ImportBatch) -> Vec<&PhysicalNet> {
         .collect()
 }
 
-/// BU-1's import half: the DP nets and the two ports, without a finding.
+/// The import half: the DP nets and the two ports, without a finding.
 #[test]
 fn the_dp_nets_and_ports_are_typed() {
     let b = common::import(&common::fixture_inputs()).expect("the test tables import");

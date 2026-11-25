@@ -154,7 +154,7 @@ fn a_paper_without_extent_is_a_size_error() {
 /// The rows a printer band holds.
 const BAND: u32 = 256;
 
-/// WN-2: an A4 sheet fitted to A5 (148/210, centred) with an overlay, at 300 dpi, rendered in
+/// An A4 sheet fitted to A5 (148/210, centred) with an overlay, at 300 dpi, rendered in
 /// bands of 256 rows: each band is the paper's width and at most 256 rows, and the bands stacked equal
 /// `render_placed`'s image within one level per channel. Text, a curve, a diagonal and a filled block cross the band
 /// edges. The count of pixels that differ at all is printed.

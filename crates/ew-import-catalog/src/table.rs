@@ -561,7 +561,7 @@ mod tests {
         assert_eq!(sheet_text("_x000D_", SourceFormat::Csv), "_x000D_");
     }
 
-    /// D12: a CSV reads as its header and its rows; an error value of a workbook reads empty (the `Cell` rule).
+    /// A CSV reads as its header and its rows; an error value of a workbook reads empty (the `Cell` rule).
     #[test]
     fn read_sheet_gives_headers_and_cell_texts() {
         let t = read_sheet(b"a;b\n1;\n\n3;x\n", SourceFormat::Csv, None, &Limits::default()).unwrap();

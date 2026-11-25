@@ -187,7 +187,7 @@ pub struct Replayed {
     pub r2: Vec<String>,
     /// A raw UUID in a line: `(line, uuid)`.
     pub uuid: Option<(usize, String)>,
-    /// R3: the number of lines that differ from the run's own transcript, when it is at hand.
+    /// The number of lines that differ from the run's own transcript, when it is at hand.
     pub r3: Option<usize>,
     /// The product's standard output as written, its header line first (for `rescore`).
     pub raw: Vec<String>,

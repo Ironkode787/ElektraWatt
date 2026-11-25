@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The crash log through the debug binary (PV-4, PV-6, PV-8): a forced
+//! The crash log through the debug binary: a forced
 //! panic at the end of a headless run that edited a copy of the sample exits 101 and leaves one log with its entry
 //! and the end line, the journal is kept, and the next start offers the project and the log; Recover replays the journal.
 
@@ -84,7 +84,7 @@ fn edit(project: &Path) -> [(&'static str, Value); 2] {
     ]
 }
 
-/// PV-4 and PV-6: the forced panic, its log, the kept journal, and the offer at the next start.
+/// The forced panic, its log, the kept journal, and the offer at the next start.
 #[test]
 fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     let tmp = Tmp::new();
@@ -181,7 +181,7 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     let after = lines[3]["describe"].as_str().unwrap();
     assert!(after.contains("page \"996\""), "{after}");
     assert!(!after.contains("startup \""), "{after}");
-    // D8: the panic unwound past the shutdown, and the journal replays to the model after the edit: equal
+    // The panic unwound past the shutdown, and the journal replays to the model after the edit: equal
     // digests of the two exports.
     let digest = |p: &Path| {
         use sha2::Digest as _;
@@ -194,7 +194,7 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     assert!(found[0].to_string_lossy().ends_with(".offered.log"), "{found:?}");
 }
 
-/// PV-8 (Unix): after a start the state directory, `journal/`, `crashes/` and the configuration directory are 0700
+/// After a start the state directory, `journal/`, `crashes/` and the configuration directory are 0700
 /// and a crash log and a journal segment 0600, also when the directories existed with 0755.
 #[cfg(unix)]
 #[test]

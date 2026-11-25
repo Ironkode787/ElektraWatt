@@ -37,7 +37,7 @@ fn folders(dir: &Path) -> Vec<PathBuf> {
     out
 }
 
-/// MG-6's steward half: the shipped chain, the released formats and the repository's corpus have no problem.
+/// The steward half: the shipped chain, the released formats and the repository's corpus have no problem.
 #[test]
 fn the_shipped_chain_and_corpus_pass_the_steward_check() {
     let problems = steward_problems(RELEASED_FORMATS, FORMAT, &MIGRATIONS, &corpus());

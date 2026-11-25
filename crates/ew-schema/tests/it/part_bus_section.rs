@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The part-level bus section (.1, D15; BU-7a, BU-7b): `PartSections.bus` with its port list types the
+//! The part-level bus section (.1, D15): `PartSections.bus` with its port list types the
 //! members the format names, keeps every other member in `extra` and every newer enum value as `Unknown`, writes byte-equal
 //! in §8a.1's member order, omits an empty port list, and refuses a port without a required member.
 
@@ -27,7 +27,7 @@ fn part(doc: &LibDocument) -> &Part {
     &copy.item
 }
 
-/// BU-7a: every typed member typed, the rest in `extra` or `Unknown`, and the line written byte-equal.
+/// Every typed member typed, the rest in `extra` or `Unknown`, and the line written byte-equal.
 #[test]
 fn a_bus_section_types_its_members_and_keeps_the_rest() {
     let line = part_line(concat!(
@@ -88,7 +88,7 @@ fn a_bus_section_types_its_members_and_keeps_the_rest() {
     assert_eq!(again, doc);
 }
 
-/// BU-7a: a part without `bus` writes as before, and an empty port list is written `{}` (the canonical form).
+/// A part without `bus` writes as before, and an empty port list is written `{}` (the canonical form).
 #[test]
 fn a_part_without_a_bus_section_and_an_empty_port_list() {
     let line = part_line(r#"{"plc":{"role":"station"}}"#);
@@ -120,7 +120,7 @@ fn the_bus_section_is_written_after_the_typed_sections_and_before_extra() {
     assert!(p.sections.bus.is_some());
 }
 
-/// BU-7b: a port without `interface`, without `bus` or without `role` fails to load, the error naming the member.
+/// A port without `interface`, without `bus` or without `role` fails to load, the error naming the member.
 #[test]
 fn a_port_without_a_required_member_fails_naming_it() {
     for (port, member) in [

@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! SVG structure, links, determinism and parallelism of the writer (doc 09 §4.4; FR-OUT-013, FR-OUT-019;
-//! AC-14 in miniature).
+//! SVG structure, links, determinism and parallelism of the writer (doc 09 §4.4; FR-OUT-013, FR-OUT-019).
 //!
 //! No XML parser is in the dependency graph, so the checks read the documents textually.
 

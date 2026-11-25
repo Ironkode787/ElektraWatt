@@ -306,7 +306,7 @@ mod tests {
         }
     }
 
-    /// TX-4 (NFR-SEC-17): the Excel presets guard a text cell that starts like a formula, quoted as RFC 4180 asks;
+    /// The Excel presets guard a text cell that starts like a formula, quoted as RFC 4180 asks;
     /// `rfc4180` writes it verbatim; a number cell is never guarded.
     #[test]
     fn the_excel_presets_guard_text_and_never_numbers() {

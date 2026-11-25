@@ -20,7 +20,7 @@ pub(super) fn lay_pose(t: [i64; 3], q: [i64; 4]) -> Value {
     json!({"t": t, "q": q})
 }
 
-/// EW-LAY-002, the fuzzer's layout invariant (LM-6): every placement's device exists; and (AS-7)
+/// EW-LAY-002, the fuzzer's layout invariant: every placement's device exists; and
 /// every placement's carrier or surface exists.
 pub fn placements_have_devices(q: &ew_derive::Q) -> Result<(), String> {
     let placements = q.table::<ew_schema::Placement>();

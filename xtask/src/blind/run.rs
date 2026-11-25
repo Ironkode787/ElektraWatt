@@ -144,7 +144,7 @@ pub const VISUAL_WINDOW: [u32; 2] = [1920, 1080];
 #[cfg(test)]
 pub const VISUAL_PPP: f64 = 1.0;
 
-/// The kinds of run (D3: the check run and the open brief of a visual run).
+/// The kinds of run (the check run and the open brief of a visual run).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
     /// The agent chooses its own task.

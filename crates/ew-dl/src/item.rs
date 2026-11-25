@@ -543,7 +543,7 @@ mod tests {
             ],
         };
         assert_eq!(dl.bounds(), Some(Rect::from_points(p(0, 0), p(100, 200))));
-        // R90: (x, y) → (−y, x); the rect spans x ∈ [−10, 5], y ∈ [−5, 5] → translated.
+        // (x, y) → (−y, x); the rect spans x ∈ [−10, 5], y ∈ [−5, 5] → translated.
         assert_eq!(
             dl.bounds_with(&lib),
             Some(Rect::from_points(p(0, 0), p(105, 205)))

@@ -62,7 +62,7 @@ fn check_flood(text: &str, name: &str) {
     assert_eq!(report.entries[k].location.as_ref().unwrap().line, Some(expected));
 }
 
-/// C1: 100 000 unsupported children, at the root and inside `<description>`, give a capped, linear report.
+/// 100 000 unsupported children, at the root and inside `<description>`, give a capped, linear report.
 #[test]
 fn many_findings_are_linear() {
     let cases = [

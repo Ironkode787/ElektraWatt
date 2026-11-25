@@ -29,7 +29,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 /// The category, the description and the severity print in the list's language (doc 09 §4.7).
 /// - `page`: the finding's drawn page, empty when it has none.
 ///
-/// A query cycle (a rule that reached the list through the page order, which D8's contract rules out) gives no rows,
+/// A query cycle (a rule that reached the list through the page order, which the contract rules out) gives no rows,
 /// `NotDerived::Cycle`, and a cycle note.
 #[derive(Clone, Copy, Debug)]
 pub struct OpenItems;

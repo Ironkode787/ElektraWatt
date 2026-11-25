@@ -438,19 +438,19 @@ fn each_rule_of_a_page_names_the_part_that_breaks_it() {
             .flat_map(|b| b.parts)
             .collect()
     };
-    // E1: a contact under the one it feeds through a pin facing down.
+    // A contact under the one it feeds through a pin facing down.
     let mut b = Page::new(40, 40);
     b.device("K1", p(10, 20));
     b.device("K2", p(10, 6));
     b.wire("w", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
     assert!(names(&b.page, Rule::E1).contains(&id("K2")));
-    // E3: an incoming mark at the right end of its wire.
+    // An incoming mark at the right end of its wire.
     let mut b = Page::new(40, 40);
     b.mark_in("in", p(30, 10));
     b.device("K", p(10, 12));
     b.wire("w", b.pin("in", "1"), b.pin("K", "1"), &[]);
     assert_eq!(names(&b.page, Rule::E3), vec![id("in")]);
-    // E4: a field device under a card's pin that faces up; E5: an earth symbol far from its pin.
+    // A field device under a card's pin that faces up; E5: an earth symbol far from its pin.
     let mut b = inputs();
     put(&mut b, "B2", p(22, 38));
     let earth = b.part("PE", p(50, 5), (p(-1, 0), p(1, 2)), &[("1", p(0, 0), Side::Up)]);
@@ -458,7 +458,7 @@ fn each_rule_of_a_page_names_the_part_that_breaks_it() {
     b.wire("pe", b.pin("PE", "1"), b.pin("B0", "1"), &[]);
     assert!(names(&b.page, Rule::E4).contains(&id("B2")));
     assert_eq!(names(&b.page, Rule::E5), vec![id("PE")]);
-    // A1: a part on a part.
+    // A part on a part.
     let mut b = inputs();
     put(&mut b, "B1", p(12, 19));
     assert!(names(&b.page, Rule::A1).contains(&id("B1")));

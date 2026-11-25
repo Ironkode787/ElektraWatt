@@ -864,7 +864,7 @@ mod tests {
         assert_eq!(files(&dir), before);
     }
 
-    /// RG-4/D15 through the CLI: the release of the prepared sample is refused with the gate's blockers listed (the
+    /// Through the CLI: the release of the prepared sample is refused with the gate's blockers listed (the
     /// release scheme's errors and EW-REL-001's checker), and the approval is refused while those errors are open.
     #[test]
     fn the_gate_refuses_release_and_approval_listing_the_blockers() {
@@ -891,7 +891,7 @@ mod tests {
         assert_eq!(files(&dir), before);
     }
 
-    /// RG-1/RG-3 and RA-1 through the CLI: the typed label approves (the safety waivers listed first), the author's
+    /// Through the CLI: the typed label approves (the safety waivers listed first), the author's
     /// role and a wrong label do not; the release shows its plan and needs the typed label, then writes the archive
     /// (with the sample's report blocks as CSV) and stamps the revision; a released revision is withdrawn on its typed
     /// label.
@@ -986,7 +986,7 @@ mod tests {
         assert!(revisions.contains("the terminal plan was wrong"), "{revisions}");
     }
 
-    /// RA-3 through the CLI: an archive of the open revision's label that no record names (what a crashed release
+    /// Through the CLI: an archive of the open revision's label that no record names (what a crashed release
     /// leaves: here the archive of an identical copy) is offered before a new release; `complete` stamps the revision
     /// with it, and a damaged one can only be discarded. A copy of the project finds the other copy's archive
     /// in the shared archive folder, but `discard` is not offered without this folder's run record, and typed it

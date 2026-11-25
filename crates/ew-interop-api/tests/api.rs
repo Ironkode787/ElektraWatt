@@ -177,7 +177,7 @@ fn limits_element_definition() {
     );
 }
 
-/// IC-1: `stricter` takes the smaller of every member, whichever side it comes from.
+/// `stricter` takes the smaller of every member, whichever side it comes from.
 #[test]
 fn stricter_covers_every_member() {
     let small = Limits {
@@ -201,7 +201,7 @@ fn stricter_covers_every_member() {
     assert_eq!(small.stricter(Limits::default()), small);
 }
 
-/// IC-2: the archive-name rule, each refusal's whole text.
+/// The archive-name rule, each refusal's whole text.
 #[test]
 fn archive_names_outside_the_archive_are_refused() {
     let cases = [
@@ -229,7 +229,7 @@ fn archive_names_outside_the_archive_are_refused() {
     }
 }
 
-/// D1: an entry names the records it is about.
+/// An entry names the records it is about.
 #[test]
 fn report_entries_name_their_targets() {
     let id = Uuid::from_u128(7);

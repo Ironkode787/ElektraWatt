@@ -32,7 +32,7 @@
 //!
 //! Oracles after every step that changed the model (an Ok command that moved the revision, an Ok undo/redo):
 //! - (a) `Model::integrity_check` (the full structural check against the engine's incremental one), and the layout
-//!   invariant: no placement without its device (LM-6);
+//!   invariant: no placement without its device;
 //! - (b) the memo oracle: a fixed sample of derived values is read through `session.query()` (every device
 //!   tag, the potential partition, the page order, the wire properties of every potential) and
 //!   `take_oracle_mismatches` is empty;
@@ -55,7 +55,7 @@
 //!   `the_default_arm_steps_hold_the_invariants_on_the_sample`, `every_arm_commits_on_the_sample`,
 //!   `a_whole_run_is_deterministic`, the regressions of `fuzz/regressions/command_sequence` as step sequences,
 //!   `save_and_reload_of_the_sample_round_trips`, `embed_then_undo_of_a_named_fndef_restores_the_sample`,
-//!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save` (LM-1).
+//!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save`.
 //! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
 //!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300), the cadences `EW_FUZZ_SAMPLE_EVERY`,
 //!   `EW_FUZZ_CHECK_EVERY`, `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and
@@ -843,7 +843,7 @@ fn run_fuzz_rng(
             if let Err(e) = session.world().model.integrity_check() {
                 fail(&log, "integrity_check", format!("{e:?}"));
             }
-            // (a') the layout invariant (LM-6): no placement without its device.
+            // (a') the layout invariant: no placement without its device.
             if let Err(e) = arms::placements_have_devices(&session.query()) {
                 fail(&log, "no placement without a device", e);
             }

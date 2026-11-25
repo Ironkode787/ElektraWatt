@@ -596,7 +596,7 @@ fn boxed(
 
 /// A connection `n` from `a` to `b` with the stored route `route` (grid points). A route of interior points only is a
 /// stale one: the scene joins each end to it with a straight segment; one point on the line between two
-/// aligned ends makes the straight wire. Without a route a connection is unrouted (D3) and no obstacle of a text.
+/// aligned ends makes the straight wire. Without a route a connection is unrouted and no obstacle of a text.
 fn routed(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> ConnectionView {
     let route: Vec<(i64, i64)> = route.iter().map(|&(x, y)| (g(x), g(y))).collect();
     routed_nm(n, a, b, &route)

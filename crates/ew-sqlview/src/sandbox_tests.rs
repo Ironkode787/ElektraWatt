@@ -390,7 +390,7 @@ fn a_huge_deadline_is_capped_and_never_overflows_the_clock() {
 /// The hostile SQL of the corpus (`crates/ew-testkit/hostile/sql/`).
 const HOSTILE_SQL: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-testkit/hostile/sql");
 
-/// SE-6 (NFR-SEC-06): every hostile SQL file of the corpus, which is also `sql_sandbox`'s seed corpus, is
+/// Every hostile SQL file of the corpus, which is also `sql_sandbox`'s seed corpus, is
 /// refused by the statement gate or the authorizer, or stopped by a limit or the deadline, with its error's text
 /// whole; the reader stays usable after each.
 #[test]

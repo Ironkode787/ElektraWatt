@@ -164,7 +164,7 @@ impl Store {
             });
         }
         // The manifest's ceiling: a generation above it is one the next open refuses, so a save that would
-        // write one is refused here, beside D5's pre-check and before any temp or move-aside. A save with nothing to
+        // write one is refused here, beside the pre-check and before any temp or move-aside. A save with nothing to
         // write (above) stays allowed.
         if g1 > ew_format::MAX_GENERATION {
             return Err(SaveError::GenerationLimit);

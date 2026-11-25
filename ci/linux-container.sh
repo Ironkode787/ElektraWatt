@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The Linux builds in the digest-pinned `ubuntu:22.04` container (NFR-MAINT-09, doc 18 §5.3): the
-# Linux jobs of package.yml (x86_64, and D16's aarch64 in the arm64 image). Runs inside
+# Linux jobs of package.yml (x86_64, and the aarch64 in the arm64 image). Runs inside
 # the container as root, from the checkout (mounted at its path on the runner, so the path remaps and the release
 # check see the runner's paths):
 #
@@ -27,7 +27,7 @@
 #         which must be at most 2.35 (glibc of Ubuntu 22.04, the oldest Supported Linux); it writes the container's
 #         `dpkg-query --show` to `target/container-packages.txt` for the job summary. The reports go under
 #         target/, so the checkout stays clean;
-#       - cli: the same for `ew` alone (D16's aarch64 CLI archive).
+#       - cli: the same for `ew` alone (the aarch64 CLI archive).
 #       The dependencies are fetched on the runner first (`cargo fetch --locked`), into the mounted cargo home.
 #   linux-container.sh appimage
 #       With no network. Installs squashfs-tools from the downloaded files, writes `mksquashfs -version`'s first line

@@ -1274,7 +1274,7 @@ fn defs() -> Vec<Def> {
             "G1/4",
             "8",
         ),
-        // F20: the plugs at a bus line's ends, chosen in the line's Cable form.
+        // The plugs at a bus line's ends, chosen in the line's Cable form.
         bus_plug(
             "EW-GEN-PLG-1",
             [
@@ -1741,7 +1741,7 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
             // A station without I/O ranges, so the cards' addresses start at byte 0; its DP port is
-            // the bus section (D17, `bus_section`).
+            // the bus section (`bus_section`).
             plc: Some(json!({"role": "station"})),
             mech: ts35("100", "100", "75"),
             sections: None,
@@ -2541,7 +2541,7 @@ fn the_door_lamps_are_found_by_colour() {
     }
 }
 
-/// D6: the registry of a session with no library configured holds the starter parts, compiled in; a part resolves
+/// The registry of a session with no library configured holds the starter parts, compiled in; a part resolves
 /// with its closure (the part, its template FnDefs from the starter, the manufacturer).
 #[test]
 fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
@@ -2610,7 +2610,7 @@ fn the_generic_cpu_is_a_station_without_io() {
     }
 }
 
-/// BU-7e: the generic CPU at 0.1.3 (its bus port from 0.1.1; its dimensions; its Dutch description) carries one bus
+/// The generic CPU at 0.1.3 (its bus port from 0.1.1; its dimensions; its Dutch description) carries one bus
 /// port `DP`, `profibus_dp`, `master`, with no port label, termination or other member; its CP pattern, function
 /// template and PLC section are 0.1.0's (the compact JSON of 0.1.0's members as `ew-starter-parts` 0.2.0 published
 /// them), and no other starter part has a bus section.

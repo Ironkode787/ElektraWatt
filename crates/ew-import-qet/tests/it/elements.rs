@@ -157,7 +157,7 @@ fn identity_and_provenance() {
         .unwrap();
     assert!(key.starts_with("qet:eldef:") && key.len() == 10 + 64);
     assert_eq!(s.item_id.as_uuid(), Uuid::new_v5(&namespace, key.as_bytes()));
-    // H2: the QET import library is project-local, so its `library_id` is the project ID (doc 05 §13.2).
+    // The QET import library is project-local, so its `library_id` is the project ID (doc 05 §13.2).
     assert_eq!(s.library_id.as_uuid(), PROJECT);
     assert_eq!(s.id, v5::lib_copy_id(PROJECT, s.item_id.as_uuid()));
     let f = f.unwrap();

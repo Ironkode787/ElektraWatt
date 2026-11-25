@@ -320,7 +320,7 @@ fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static 
     })
 }
 
-/// What the window says of a chain's result: a print or an opened viewer, with D11's notice when an earlier way
+/// What the window says of a chain's result: a print or an opened viewer, with the notice when an earlier way
 /// failed; nothing when the person cancelled the system's dialog; the last cause when every way failed.
 fn print_end(result: Result<ew_print::Printed, Vec<(&'static str, ew_print::PrintError)>>) -> PrintEnd {
     match result {
@@ -740,7 +740,7 @@ mod tests {
         );
     }
 
-    /// PV-5: with the hook installed, a panic caught on its way (as a rule run's EW-CORE-083 path catches one) appends
+    /// With the hook installed, a panic caught on its way (as a rule run's EW-CORE-083 path catches one) appends
     /// an entry without the end line, the run goes on, and the next start offers no such log. Nextest runs each test
     /// in a process of its own, so the hook stays in this one.
     #[test]
@@ -1116,8 +1116,8 @@ mod tests {
         assert_eq!(print_end(Err(Vec::new())), PrintEnd::Unavailable);
     }
 
-    /// The fixture of IN-2 under the system's temporary directory, removed on drop: the flat tree
-    /// of D3 beside an executable at `x/flat`, the `share/elektrawatt` tree for an executable at `inst/bin`, an
+    /// The fixture under the system's temporary directory, removed on drop: the flat tree
+    /// beside an executable at `x/flat`, the `share/elektrawatt` tree for an executable at `inst/bin`, an
     /// executable directory with nothing near it at `x/empty`, and the directories the environment names at `env/`.
     /// Each executable sits two levels below the root, so the source-tree fallback (`<exe dir>/../..`) lands on the
     /// root, which holds none of the resources.
@@ -1140,7 +1140,7 @@ mod tests {
         }
     }
 
-    /// IN-2's child: run by [`locate_resources_finds_the_installed_layouts`] with `-- <case> <root>` and the
+    /// The child: run by [`locate_resources_finds_the_installed_layouts`] with `-- <case> <root>` and the
     /// environment of the case set on the parent's side; run by the harness (no `--`), it does nothing.
     #[test]
     fn locate_resources_child() {
@@ -1201,7 +1201,7 @@ mod tests {
         }
     }
 
-    /// IN-2: `locate_resources` over the flat layout of D3 and the `share/elektrawatt` layout, an
+    /// `locate_resources` over the flat layout and the `share/elektrawatt` layout, an
     /// environment variable winning over both, and an absent resource `None`. Each case runs in a child process (this
     /// test binary, `--exact tests::locate_resources_child`) with the variables set or removed by `Command::env`, so
     /// that no variable of this process changes (`set_var` is `unsafe` in edition 2024, and this binary forbids

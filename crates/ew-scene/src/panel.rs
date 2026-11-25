@@ -34,7 +34,7 @@
 //! none: the axis runs through the middle of every footprint on the rail, and its zero-area rectangle would win the
 //! canvas's smallest-rectangle pick over the footprint a press lands on.
 //!
-//! # Labels (D10, FR-LAY-062)
+//! # Labels (FR-LAY-062)
 //!
 //! A label is printed in the text style [`LAYOUT_LABEL_STYLE`]
 //! (`xref.device`, 1.83 mm em printed), at its paper height at every scale: it is never scaled. Its ink
@@ -85,7 +85,7 @@ use crate::page::{Builder, PageView, TextSpec};
 /// The text style the label slot kind is bound to (doc 12 §5.2): `xref.device`.
 pub const LAYOUT_LABEL_STYLE: &str = "xref.device";
 
-/// The margin of a label's ink box on every side in the fit test: 0.1 mm (D10).
+/// The margin of a label's ink box on every side in the fit test: 0.1 mm.
 pub const LABEL_PAD: Nm = Nm(100_000);
 
 /// The gap between a label placed outside its footprint and the footprint's edge, bridged by the leader: 1.5 mm.
@@ -237,7 +237,7 @@ pub struct PlacementDraw {
     pub placement: Id<Placement>,
     /// The footprint.
     pub footprint: Rect,
-    /// Whether the footprint is unknown (drawn dashed, D5).
+    /// Whether the footprint is unknown (drawn dashed).
     pub unknown: bool,
     /// The `front_2d` outline placed in the surface's frame; empty draws the footprint (FR-LAY-011).
     pub outline: Vec<Vec<Pt2>>,
@@ -271,7 +271,7 @@ pub struct PanelLabel {
     pub moved: Option<Pt2>,
 }
 
-/// How a label was placed (D10's fit steps), in the order they are tried.
+/// How a label was placed (the fit steps), in the order they are tried.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LabelFit {
     /// Horizontal inside the footprint.
@@ -303,7 +303,7 @@ pub fn fit(w: Nm, h: Nm, fw: Nm, fh: Nm) -> Option<LabelFit> {
     }
 }
 
-/// A label as D10's fit places it on the page: what [`Layer::Labels`](ew_dl::Layer::Labels) draws and what
+/// A label as the fit places it on the page: what [`Layer::Labels`](ew_dl::Layer::Labels) draws and what
 /// [`Layer::Carriers`](ew_dl::Layer::Carriers) cuts the carriers around (see the module documentation).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PlacedLabel {
@@ -404,7 +404,7 @@ fn ink_box(at: Pt2, valign: i8, angle: Angle2, adv: Nm, m: &ew_text::VerticalMet
 }
 
 /// Places the label `text`, shaped as `shaped` in `style`, for the footprint `fp` (on the page) within the surface's
-/// page `bounds` (D10's fit steps, see the module documentation).
+/// page `bounds` (the fit steps, see the module documentation).
 pub fn place_label(
     fonts: &ew_text::FontSet,
     style: &ew_text::TextStyle,
@@ -540,7 +540,7 @@ fn outside_box(fp: Rect, side: LabelFit, w: Nm, h: Nm) -> (Rect, (Pt2, Pt2)) {
 
 /// The pieces of the axis-parallel segment `a`–`b` outside every box of `boxes` (a box's edges count as inside), in
 /// the order from `a` to `b`; pieces of no length are left out. A segment at another angle is returned whole (carriers
-/// are axis-parallel, D5).
+/// are axis-parallel).
 fn cut_segment(a: Pt2, b: Pt2, boxes: &[Rect]) -> Vec<(Pt2, Pt2)> {
     let horizontal = a.y == b.y;
     if !horizontal && a.x != b.x {

@@ -321,7 +321,7 @@ pub(crate) fn infer_tag<'l>(
             TagOutcome::Unlabeled,
         );
     }
-    // R1: {page}{letter}{counter} on the element's own folio, with the product sign.
+    // {page}{letter}{counter} on the element's own folio, with the product sign.
     if sign == TagSign::Shown
         && !folio.is_empty()
         && let Some(rest) = text.strip_prefix(folio)

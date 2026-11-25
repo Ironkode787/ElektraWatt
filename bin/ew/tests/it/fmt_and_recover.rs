@@ -10,7 +10,7 @@ use crate::support::*;
 use std::path::PathBuf;
 use std::process::Output;
 
-/// FM-3: `ew fmt` on a project with a crashed session's journal exits 2, pointing at `ew recover`, and writes nothing,
+/// `ew fmt` on a project with a crashed session's journal exits 2, pointing at `ew recover`, and writes nothing,
 /// though a file is out of canonical form; the journal stays.
 #[test]
 fn fmt_refuses_a_project_with_a_crashed_session_journal() {
@@ -100,7 +100,7 @@ fn beside_the_project(project: &std::path::Path) -> Vec<String> {
     names
 }
 
-/// EZ-5: `ew fmt --repair` on a page file of the sample's copy with one broken line
+/// `ew fmt --repair` on a page file of the sample's copy with one broken line
 /// prints the line (its text cut at 80 characters) and the backup, writes the backup `.ewz` beside the project folder
 /// (generation 1 as it was, the line included) and a project without the line, which opens editable and canonical; a
 /// second run has nothing to repair and writes nothing; run on the project as it was, it reuses the backup.
@@ -189,7 +189,7 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
     assert!(journal_files(&t).is_empty(), "the repair's journal is closed");
 }
 
-/// EZ-5 on a hand-edited copy of the sample: the broken line written by hand,
+/// On a hand-edited copy of the sample: the broken line written by hand,
 /// the manifest untouched (an edit outside ElektraWatt since the last save), and the same with the page file's hash
 /// pending in a merged manifest. `ew export ewz` refuses the project, which is no verified generation; `ew fmt
 /// --repair` writes the backup of the files as found, saying how many differ from the generation as saved, then the
@@ -490,7 +490,7 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     drop(t);
 }
 
-/// FM-4: `ew recover` prints the journal's summary and changes nothing; `--discard` off a terminal exits 2
+/// `ew recover` prints the journal's summary and changes nothing; `--discard` off a terminal exits 2
 /// before the project is opened (the typed paths are unit tests with the injected terminal, `cli/project_files.rs`);
 /// `--replay` saves the journal's transactions and removes it.
 #[test]

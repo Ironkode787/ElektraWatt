@@ -106,9 +106,9 @@ pub(crate) fn part(bytes: &[u8], name: &str) -> String {
     String::from_utf8(entry.data.clone()).unwrap()
 }
 
-/// D16: the workbooks of the sample, part 1's (`bom_parts`, `wires`, `block_908`) and part 2's (`strips_X1031` of `ew
+/// The workbooks of the sample, part 1's (`bom_parts`, `wires`, `block_908`) and part 2's (`strips_X1031` of `ew
 /// export table`, `io_list` of `ew export report --kind`), are the committed cell dumps, and each export
-/// twice gives the same bytes (TX-5, RT-6).
+/// twice gives the same bytes.
 #[test]
 fn the_workbooks_are_the_committed_dumps() {
     let t = Tmp::new("ew-tables");
@@ -162,7 +162,7 @@ fn the_workbooks_are_the_committed_dumps() {
     }
 }
 
-/// TX-1 (FR-REP-030): the wire list's workbook, read back, is the wire list's CSV: the header `id` and its labels, its
+/// The wire list's workbook, read back, is the wire list's CSV: the header `id` and its labels, its
 /// rows (the data rows and the heading rows) in folio 907's order with the same texts; column A is hidden; `_ew` names
 /// the block of folio 907 and every column read-only; there is no `_ew_base`.
 #[test]
@@ -204,7 +204,7 @@ fn the_wire_list_workbook_reads_back_as_the_wire_list() {
     assert!(workbook.contains("<sheet name=\"_ew\" sheetId=\"2\" state=\"hidden\" r:id=\"rId2\"/>"));
 }
 
-/// TX-2: the bill of materials' Qty is a numeric cell (the sample's 15 feed-through terminals, its rails' 0.94 m and
+/// The bill of materials' Qty is a numeric cell (the sample's 15 feed-through terminals, its rails' 0.94 m and
 /// its duct's 0.47 m); the block of folio 908 has the rows of its CSV (FR-EXT-027); the terminal diagrams give one
 /// sheet per strip; `ew sql` writes the query's rows.
 #[test]
@@ -294,7 +294,7 @@ fn the_row_exports_and_sql_write_workbooks() {
     }
 }
 
-/// TX-3 and D16: `--preset excel-nl`, `excel-en` and `rfc4180` on `ew export bom` are the committed files (`id` first,
+/// `--preset excel-nl`, `excel-en` and `rfc4180` on `ew export bom` are the committed files (`id` first,
 /// the quantities 0.94 and 0.47 written "0,94" and "0,47" in `excel-nl`); `--bom off --line-end lf` drops the
 /// byte-order mark and writes LF; the default is still the `ew` dialect. The presets write CRLF, asserted here; the
 /// committed files hold LF, as the repository's `eol=lf` stores every text file.
@@ -342,7 +342,7 @@ fn the_bom_presets_are_the_committed_files() {
         printed(&t, &args([&"export", &"bom", &p])),
         printed(&t, &args([&"export", &"bom", &p, &"--preset", &"ew"]))
     );
-    // The two refusals of D6, whole.
+    // The two refusals, whole.
     let o = t.ew(&args([
         &"export",
         &"bom",
@@ -369,7 +369,7 @@ fn the_bom_presets_are_the_committed_files() {
     );
 }
 
-/// TX-4 (NFR-SEC-17) end to end: a text that starts like a formula is an inline string in the workbook (no part has
+/// NFR-SEC-17 end to end: a text that starts like a formula is an inline string in the workbook (no part has
 /// an `<f>` element) and is guarded in the Excel presets, written verbatim in `rfc4180`; a negative number is never
 /// guarded.
 #[test]
@@ -410,7 +410,7 @@ fn formula_text_is_never_a_formula() {
     );
 }
 
-/// TX-5: with `SOURCE_DATE_EPOCH` set, `docProps/core.xml` carries that date; without it, the model's date.
+/// With `SOURCE_DATE_EPOCH` set, `docProps/core.xml` carries that date; without it, the model's date.
 #[test]
 fn the_workbook_date_is_the_export_date() {
     let t = Tmp::new("ew-tables");
@@ -432,7 +432,7 @@ fn the_workbook_date_is_the_export_date() {
     assert!(app.contains("<Application>ElektraWatt</Application>"));
 }
 
-/// TX-7: every `--json` export result names the format, the preset of a CSV and the revision.
+/// Every `--json` export result names the format, the preset of a CSV and the revision.
 #[test]
 fn the_json_results_name_format_preset_and_revision() {
     let t = Tmp::new("ew-tables");

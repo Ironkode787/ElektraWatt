@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The font subsetter (SV-2): glyph IDs kept, outlines of the used glyphs and their
+//! The font subsetter: glyph IDs kept, outlines of the used glyphs and their
 //! components byte for byte, every other glyph empty, `head`'s checksum adjustment valid, the dropped tables
 //! absent; hostile fonts refused with their error, never a panic. The subsets are read back with `skrifa`.
 
@@ -121,14 +121,14 @@ fn faces() -> Vec<(String, &'static [u8])> {
         .collect()
 }
 
-/// SV-2 on every bundled face: the subset of the glyphs of a short text keeps the glyph count and IDs, the
+/// On every bundled face: the subset of the glyphs of a short text keeps the glyph count and IDs, the
 /// outline bytes of the used glyphs (and of their components), empty glyphs elsewhere, the `cmap`, `hmtx`,
 /// `hhea`, `maxp`, `OS/2` and `name` as they are, `post` 3.0, long `loca`; the dropped tables are absent;
 /// the table checksums and `head`'s checksum adjustment are valid.
 #[test]
 fn a_subset_keeps_the_glyph_ids_and_the_used_outlines() {
     for (name, font) in faces() {
-        // The bundled faces are TrueType (`glyf`) and carry every table D3 keeps (the brief's stop).
+        // The bundled faces are TrueType (`glyf`) and carry every table the subsetter keeps.
         for tag in [
             b"glyf", b"loca", b"head", b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name", b"post",
         ] {
@@ -229,7 +229,7 @@ fn components(record: &[u8]) -> Vec<u16> {
     }
 }
 
-/// SV-2: a composite glyph brings its components, which keep their outlines although nothing asked for them,
+/// A composite glyph brings its components, which keep their outlines although nothing asked for them,
 /// and the composite draws in the subset as in the face.
 #[test]
 fn a_composite_glyph_brings_its_components() {
@@ -261,7 +261,7 @@ fn a_composite_glyph_brings_its_components() {
     assert!(!glyphs[usize::from(other)].is_empty());
 }
 
-// --- Hostile fonts, built in memory (D3's bounds) ---
+// --- Hostile fonts, built in memory (the bounds) ---
 
 /// A simple glyph: one contour of one on-curve point.
 fn simple() -> Vec<u8> {
@@ -389,7 +389,7 @@ fn a_hinted_face_keeps_its_hinting_tables_byte_for_byte() {
     }
 }
 
-/// SV-2: a `loca` that points past the end of `glyf` is refused.
+/// A `loca` that points past the end of `glyf` is refused.
 #[test]
 fn a_loca_past_glyf_is_refused() {
     let mut t = tables(&[simple(), simple(), simple()]);
@@ -403,7 +403,7 @@ fn a_loca_past_glyf_is_refused() {
     assert_eq!(refusal(&sfnt(&t), &[1]), "glyph 1 lies outside the `glyf` table");
 }
 
-/// SV-2: a composite glyph that contains itself, directly or through another, is refused.
+/// A composite glyph that contains itself, directly or through another, is refused.
 #[test]
 fn a_composite_cycle_is_refused() {
     let font = sfnt(&tables(&[simple(), composite(&[2]), composite(&[0, 1])]));
@@ -446,7 +446,7 @@ fn a_composite_deeper_than_16_levels_is_refused() {
     );
 }
 
-/// SV-2: a table directory that runs past the end of the file is refused, and so is a table outside it.
+/// A table directory that runs past the end of the file is refused, and so is a table outside it.
 #[test]
 fn a_truncated_table_directory_and_a_table_outside_the_file_are_refused() {
     let font = sfnt(&tables(&[simple(), simple()]));

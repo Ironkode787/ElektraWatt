@@ -899,7 +899,7 @@ mod tests {
         let e = column_edges(&toc);
         assert_eq!(e[1], Nm(79_730_000));
         assert_eq!(e[2], Nm(214_900_000));
-        // D17's first flow column, 108.00 to 191.00 mm at 10 : 22 : 16 : 35: 10, 22, 16 and 35 mm.
+        // The first flow column, 108.00 to 191.00 mm at 10 : 22 : 16 : 35: 10, 22, 16 and 35 mm.
         let e = column_edges_in(&cols(&[10, 22, 16, 35]), Nm(108_000_000), Nm(191_000_000));
         assert_eq!(
             e,

@@ -27,7 +27,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// lines of the device and of those descendants that have no representation of their own (a cabinet's
 /// mounting plate; a valve that the drawings show as its own symbol is not repeated in the box). Carrier
 /// lines (`LineSource::Carrier`, the rails and ducts) are left out: the legend on the same page lists every
-/// carrier (D16).
+/// carrier.
 ///
 /// Printed: the title "PART DATA", no header, the label and the part number at weights 3 : 10 (at 1 : 3
 /// the 35-character order code on folios 201 and 202 overflows at the 1.8 mm floor).

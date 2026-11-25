@@ -1288,7 +1288,7 @@ pub mod tests {
         );
     }
 
-    /// UR-5: in a round task the hand-back waits for the questionnaire (K7); a run of another task does not.
+    /// In a round task the hand-back waits for the questionnaire (K7); a run of another task does not.
     #[test]
     fn a_round_tasks_handback_waits_for_the_questionnaire() {
         let f = fixture(Kind::Brief);

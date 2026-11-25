@@ -200,7 +200,7 @@ pub struct Representation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub arrangement: Option<Ident>,
-    /// The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol
+    /// The cross-reference anchor policy of this representation (FR-SYM-010, D-14); absent: the symbol
     /// copy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive
     /// within format 0.1 (ADR-0011 amendment 4).
     #[serde(default, skip_serializing_if = "Option::is_none")]

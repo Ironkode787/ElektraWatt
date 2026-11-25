@@ -953,7 +953,7 @@ mod tests {
         }
     }
 
-    /// D5: an editable table carries `_ew_base` after `_ew`, hidden, with the rows of
+    /// An editable table carries `_ew_base` after `_ew`, hidden, with the rows of
     /// [`base_text`] and the digest row; without a digest the writer refuses; a table without an editable column has
     /// no `_ew_base`.
     #[test]
@@ -1014,7 +1014,7 @@ mod tests {
         assert_eq!(date_serial("01-01-2026"), None);
     }
 
-    /// TX-4 (NFR-SEC-17): a text that looks like a formula is an inline string, and no part has an `<f>` element.
+    /// A text that looks like a formula is an inline string, and no part has an `<f>` element.
     #[test]
     fn a_formula_text_stays_an_inline_string() {
         let mut t = table("Formula");

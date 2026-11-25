@@ -125,7 +125,7 @@ pub struct ItemDecision {
     pub decision: String,
 }
 
-/// D9's counts of an attempt: errors, undo and assists as counts, never times.
+/// The counts of an attempt: errors, undo and assists as counts, never times.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
 pub struct AttemptCounts {
     /// `do` calls.
@@ -155,7 +155,7 @@ pub struct BriefScore {
     /// `unassisted` (every hard item met, no hint), `with help` (met after a hint) or `not completed` (a hard item
     /// unmet, or the run ended early: a cap, a quit rule, the orchestrator, a lost session, a divergence).
     pub attempt: String,
-    /// D9's counts.
+    /// The counts.
     pub counts: AttemptCounts,
 }
 
@@ -173,7 +173,7 @@ pub fn attempt_of(end: Option<&str>, items: &[ItemDecision], hints: u32) -> &'st
 }
 
 /// The brief part of a stopped brief run's score: its acceptance list decided on `work/project` with `ew`, the
-/// attempt (D8) and the counts (D9). `ew` runs the product's `ew` in `work`.
+/// attempt and the counts. `ew` runs the product's `ew` in `work`.
 ///
 /// # Errors
 ///

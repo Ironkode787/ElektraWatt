@@ -94,7 +94,7 @@ fn merge_and_write(a: &MergeDriverCli, project: Project<'_>, limits: &Limits, me
         }
     };
     // A side above the file limit cannot be held by a conflict record that loads: the file stays ours, conflicted.
-    // An oversized base, read to one byte past the limit, is a base that does not read: the core merges it by D18's
+    // An oversized base, read to one byte past the limit, is a base that does not read: the core merges it by the
     // no-base rule.
     if [&ours, &theirs]
         .iter()
@@ -306,7 +306,7 @@ mod tests {
     }
 
     /// Ours or theirs above the file limit leaves `%A` as it was with exit 1 and no merge; a base above it
-    /// merges, past the limit, as a base that does not read (D18's no-base rule in the core).
+    /// merges, past the limit, as a base that does not read (the no-base rule in the core).
     #[test]
     fn a_side_above_the_file_limit_is_left_conflicted() {
         let (dir, args) = setup("0.1");

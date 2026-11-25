@@ -132,7 +132,7 @@ fn rgb_at(img: &[u8], width: u32, x: i64, y: i64) -> [u8; 3] {
     [img[i], img[i + 1], img[i + 2]]
 }
 
-/// A6: the canvas snapshot's sheet matches the page as `ew render` draws it at 150 dpi, the grid dots sit on the QET
+/// The canvas snapshot's sheet matches the page as `ew render` draws it at 150 dpi, the grid dots sit on the QET
 /// 10 px pitch, the surround and the page bounds are where the view says, and the dark theme changes the surround
 /// only.
 #[test]
@@ -260,7 +260,7 @@ fn the_canvas_snapshot_matches_the_rendered_page_and_shows_the_view() {
     }
 }
 
-/// A8: the canvas member and the describe lines through the binary; the pointer at an entity's centre hovers it
+/// The canvas member and the describe lines through the binary; the pointer at an entity's centre hovers it
 /// (or a smaller entity there).
 #[test]
 fn the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text() {
@@ -488,7 +488,7 @@ fn points(dir: &Path, folio: &str) -> ((f64, f64), (f64, f64)) {
     out
 }
 
-/// T7: the snapshot composites the Measure line, its snap markers, the grid cursor and a rubber band; twice the
+/// The snapshot composites the Measure line, its snap markers, the grid cursor and a rubber band; twice the
 /// same bytes; labels never.
 #[test]
 fn the_snapshot_composites_the_tool_overlay() {
@@ -578,7 +578,7 @@ fn the_snapshot_composites_the_tool_overlay() {
     );
 }
 
-/// T8: `canvas.preview_snapshot` writes the link preview (320 × 200 points), byte-identical twice; refused without
+/// `canvas.preview_snapshot` writes the link preview (320 × 200 points), byte-identical twice; refused without
 /// a preview.
 #[test]
 fn the_preview_snapshot_is_deterministic() {

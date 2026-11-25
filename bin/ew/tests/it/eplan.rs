@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `ew import edz` and `ew import parts-xml` (doc 14 §5.2, §5.3, §13): the parts of an EDZ into a user library with
-//! the terms notice, again as a no-op, and the previewed update of a project's part copy (AC-38) that `--apply`
+//! the terms notice, again as a no-op, and the previewed update of a project's part copy that `--apply`
 //! commits.
 
 use crate::support::{Tmp, args, stderr, stdout};

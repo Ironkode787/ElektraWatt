@@ -49,7 +49,7 @@ fn pack_files(files: &BTreeMap<String, Vec<u8>>, git: &BTreeMap<String, Vec<u8>>
     ewz::pack(&manifest, &listed, git).expect("the project packs")
 }
 
-/// EZ-1 (FR-COL-009's acceptance): a copy of the sample with git files packs twice, from two opens, to the same bytes;
+/// A copy of the sample with git files packs twice, from two opens, to the same bytes;
 /// `mimetype` is the first entry, stored, `manifest.json` the second, the rest in byte order; a stray, a foreign
 /// file, `.ew/`, a lock, a temp and `.git/` change nothing; extracting gives a directory byte-equal to the source.
 #[test]
@@ -226,7 +226,7 @@ fn names(vfs: &MemVfs) -> Vec<String> {
         .collect()
 }
 
-/// EZ-3: extracting onto an existing directory or file is refused before anything is written; an existing staging
+/// Extracting onto an existing directory or file is refused before anything is written; an existing staging
 /// directory is refused and not touched.
 #[test]
 fn an_existing_target_is_refused_and_nothing_is_written() {
@@ -273,7 +273,7 @@ fn an_existing_target_is_refused_and_nothing_is_written() {
     );
 }
 
-/// EZ-3: a failure injected through the `Vfs` at each call of an extract leaves no target and removes the staging
+/// A failure injected through the `Vfs` at each call of an extract leaves no target and removes the staging
 /// directory; without a fault the extract writes exactly the archive's files, durably (a power loss right after it
 /// keeps them).
 #[test]
@@ -528,7 +528,7 @@ fn ratio_201() -> Vec<u8> {
     panic!("no exact 201 : 1 size found");
 }
 
-/// EZ-4: archives with `..`, a backslash, a duplicate name ignoring case, an entry outside D9's set, a hash mismatch, a
+/// Archives with `..`, a backslash, a duplicate name ignoring case, an entry outside the set, a hash mismatch, a
 /// missing `mimetype` or a 201 : 1 entry are refused by the reader, each in words; so are an entry out of order, a
 /// stored entry, a listed file missing, a manifest that lists a path outside the project's files, and a Windows
 /// device name.

@@ -85,14 +85,14 @@ docs_title_nl="ElektraWatt Gebruikershandleiding ${docs_version}"
 sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- \
   env MDBOOK_BOOK__TITLE="$docs_title" "$work/mdbook/mdbook" build docs/book --dest-dir "$dest"
 
-# D14: the Dutch book, through the one preprocessor mdbook-gettext and docs/book/po/nl.po; a message nl.po does not
+# The Dutch book, through the one preprocessor mdbook-gettext and docs/book/po/nl.po; a message nl.po does not
 # translate, and every generated page, shows in English.
 sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- \
   env MDBOOK_BOOK__TITLE="$docs_title_nl" MDBOOK_BOOK__LANGUAGE=nl \
   MDBOOK_PREPROCESSOR__GETTEXT="{\"after\": [\"links\"], \"command\": \"$gettext\"}" \
   "$work/mdbook/mdbook" build docs/book --dest-dir "$dest/nl"
 
-# DC-4: the built book's index page carries the version in its title, the Dutch one too.
+# The built book's index page carries the version in its title, the Dutch one too.
 grep -qF "${docs_title}</title>" "$dest/index.html" \
   || fail "$dest/index.html does not carry the title '${docs_title}'"
 grep -qF "${docs_title_nl}</title>" "$dest/nl/index.html" \

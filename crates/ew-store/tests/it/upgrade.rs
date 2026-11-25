@@ -66,7 +66,7 @@ const FORMAT_STEP: FormatStep = FormatStep {
     record: same,
 };
 
-/// MG-1's test chain.
+/// The test chain.
 static CHAIN: Migrations = Migrations {
     kinds: &[KindStep {
         kind: Kind::Project,
@@ -77,7 +77,7 @@ static CHAIN: Migrations = Migrations {
     formats: &[FORMAT_STEP],
 };
 
-/// MG-2's: the project's step fails.
+/// The project's step fails.
 static FAILING: Migrations = Migrations {
     kinds: &[KindStep {
         kind: Kind::Project,
@@ -146,7 +146,7 @@ fn manifest_on(vfs: &MemVfs, root: &Path) -> Manifest {
     Manifest::parse(&vfs.read(&join(root, MANIFEST)).unwrap(), &Limits::default()).unwrap()
 }
 
-/// MG-1 through the store: the `"0.0"` project opens editable and migrated, with no finding for the file a step
+/// Through the store: the `"0.0"` project opens editable and migrated, with no finding for the file a step
 /// changed; that file, and only it, is in the next save; the shipped chain is empty and refuses the open.
 #[test]
 fn an_older_project_opens_migrated_with_its_changed_files_dirty() {
@@ -177,7 +177,7 @@ fn an_older_project_opens_migrated_with_its_changed_files_dirty() {
     );
 }
 
-/// MG-2: a step that fails refuses the open with its file, line and pointer; nothing on disk changes.
+/// A step that fails refuses the open with its file, line and pointer; nothing on disk changes.
 #[test]
 fn a_failing_step_refuses_the_open_and_changes_nothing() {
     let (vfs, root) = mem_of(files_v0());

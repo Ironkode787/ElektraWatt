@@ -154,7 +154,7 @@ fn smoke_script(dir: &Path, png: &Path, pdf: &Path) -> String {
     ])
 }
 
-/// A6: the smoke script of the spec through the built binary.
+/// The smoke script of the spec through the built binary.
 #[test]
 fn the_smoke_script_runs_on_the_sample() {
     let tmp = Tmp::new();
@@ -263,7 +263,7 @@ fn the_smoke_script_runs_on_the_sample() {
     assert_eq!(again.page_labels(), labels);
 }
 
-/// A7: the script run twice on equal inputs gives byte-identical transcripts, from a file and from stdin.
+/// The script run twice on equal inputs gives byte-identical transcripts, from a file and from stdin.
 #[test]
 fn the_transcript_is_deterministic() {
     let steps = |dir: &Path| {
@@ -451,7 +451,7 @@ fn unsaved_changes_need_discard_in_a_script() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
 
-/// A8: `--smoke` on a copy of the sample exits 0, on a missing directory 1.
+/// `--smoke` on a copy of the sample exits 0, on a missing directory 1.
 #[test]
 fn the_smoke_flag_opens_read_only_and_draws_a_page() {
     let tmp = Tmp::new();

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command-line how-to of the user guide runs as its page says (DC-8): every `console` block of
+//! The command-line how-to of the user guide runs as its page says: every `console` block of
 //! `docs/book/src/how-to/headless-workflow.md` is run in order in a folder that holds a copy of the sample project at
 //! `fixtures/sample/sample.ew`. An `ew` line runs the binary under test; `mkdir` makes the folder; `echo $?` shows the last
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared

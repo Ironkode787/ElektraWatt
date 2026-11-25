@@ -470,7 +470,7 @@ fn revision_members_of_part_1_are_typed() {
     assert_eq!(r.state, ew_schema::RevisionState::Withdrawn);
 }
 
-/// RL-1: a line written while the members were untyped (in `extra`, byte-wise order, nested objects too) loads into
+/// A line written while the members were untyped (in `extra`, byte-wise order, nested objects too) loads into
 /// the typed members, a partial sign-off and a partial release record included, and writes back byte for byte;
 /// with `purpose` (still in `extra`, sorting before them) it loads with the same values and writes the canonical
 /// order, `purpose` last.
@@ -507,7 +507,7 @@ fn a_revision_line_from_before_the_typing_loads_into_the_typed_members() {
     );
 }
 
-/// RL-1: every member of the sign-off and the release record, with a page digest map keyed by page ID, round-trips;
+/// Every member of the sign-off and the release record, with a page digest map keyed by page ID, round-trips;
 /// a member of the wrong type is a schema violation of the line (damage, not newer data), never silently dropped.
 #[test]
 fn a_complete_release_record_round_trips_and_a_malformed_member_is_refused() {

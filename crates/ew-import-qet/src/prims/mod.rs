@@ -335,7 +335,7 @@ pub fn parse_description(description: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: 
 mod tests {
     use super::*;
 
-    /// C1: findings beyond the cap are counted, not located, and summarised with their highest severity.
+    /// Findings beyond the cap are counted, not located, and summarised with their highest severity.
     #[test]
     fn findings_are_capped_and_summarised() {
         let xml = format!(

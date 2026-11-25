@@ -167,7 +167,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ("props.set", json!({"row": "device/parts[0].qty", "value": "2"})),
         ("ui.describe", json!({})),
         ("toast.dismiss", json!({})),
-        // A wire on 103: cross-section and colour overridden (AC-28).
+        // A wire on 103: cross-section and colour overridden.
         ("page.goto", json!({"folio": "103"})),
         ("select.set", json!({"ids": [wire]})),
         (

@@ -268,7 +268,7 @@ fn changes(
     out
 }
 
-/// A4: the partners that face the pins of one line (the pins of one part on one side, or of parts of one size whose
+/// The partners that face the pins of one line (the pins of one part on one side, or of parts of one size whose
 /// pins stand on one line: a card's edge, the terminals of a strip) out of the order of those pins across that side.
 /// Facing pairs only: wires that turn a corner nest, and wires that turn back lie inside one another, the other way
 /// round.
@@ -307,7 +307,7 @@ fn a4(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// A5: a pair of facing pins, the second at least two steps beyond the first, closed up (nearer than it stood and
+/// A pair of facing pins, the second at least two steps beyond the first, closed up (nearer than it stood and
 /// nearer than the chain gap) or spread (further than it stood, or than the chain gap, by more than [`ROW_PULL`]:
 /// what a row's common line may take); not a pair with a part that stood against another rule (it had to move).
 fn a5(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTreeSet<PartId>) -> Vec<Broken> {
@@ -338,7 +338,7 @@ fn a5(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTre
     out
 }
 
-/// E1: a pair from a pin that faces down to a pin that faces up whose first pin is not above the second.
+/// A pair from a pin that faces down to a pin that faces up whose first pin is not above the second.
 fn e1(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for (a, b) in w.pairs() {
@@ -399,7 +399,7 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
     out
 }
 
-/// E2: a part of a circuit above the rail that feeds it (or below the one it returns to): a rail is a trunk net with
+/// A part of a circuit above the rail that feeds it (or below the one it returns to): a rail is a trunk net with
 /// two junctions or more on one horizontal line and whose pins all face that line from one side, its circuits the
 /// parts reached from its pins through pairs; and any part but a mark above the highest feeding rail or below the
 /// lowest returning one.
@@ -429,7 +429,7 @@ fn e2(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// E3: an incoming mark not at the left end of its net (a pin or junction of the net further left), an outgoing one
+/// An incoming mark not at the left end of its net (a pin or junction of the net further left), an outgoing one
 /// not at the right end.
 fn e3(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
@@ -461,7 +461,7 @@ fn e3(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// E4: a card's partner not beyond the card's pin along its side, or two partners of one edge of a card out of the
+/// A card's partner not beyond the card's pin along its side, or two partners of one edge of a card out of the
 /// order of their channels. Not a partner whose own pin faces the same way as the card's: its wire turns back, and
 /// it has no place in the channel's column.
 fn e4(w: &Wiring<'_>) -> Vec<Broken> {
@@ -503,7 +503,7 @@ fn e4(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// E5: an earth symbol further than [`EARTH_REACH`] (city-block) from the nearest other pin of its net.
+/// An earth symbol further than [`EARTH_REACH`] (city-block) from the nearest other pin of its net.
 fn e5(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for n in &w.nets {
@@ -564,7 +564,7 @@ fn driven(w: &Wiring<'_>, v: usize) -> BTreeSet<usize> {
     out
 }
 
-/// F1: a pressure source or service unit not lower than every valve; an actuator not higher than a valve it is
+/// A pressure source or service unit not lower than every valve; an actuator not higher than a valve it is
 /// reached from through tubes and parts that are neither valves nor sources.
 fn f1(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
@@ -586,7 +586,7 @@ fn f1(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// F2: two actuators whose order from left to right changed.
+/// Two actuators whose order from left to right changed.
 fn f2(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>) -> Vec<Broken> {
     let order = |w: &Wiring<'_>| -> Vec<PartId> {
         let mut xs: Vec<(Tick, PartId)> = of_role(w, &[Role::Actuator])
@@ -609,7 +609,7 @@ fn f2(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>) -> Vec<Broken> {
     out
 }
 
-/// B1: two stations of a bus line out of the line's order from left to right (the line read from its controller,
+/// Two stations of a bus line out of the line's order from left to right (the line read from its controller,
 /// else from its leftmost station).
 fn b1(w: &Wiring<'_>) -> Vec<Broken> {
     let station = |i: usize| matches!(w.parts[i].role, Role::Station | Role::Controller);
@@ -648,7 +648,7 @@ fn b1(w: &Wiring<'_>) -> Vec<Broken> {
     out
 }
 
-/// B2: two stations of a pair whose ports face the same side not level.
+/// Two stations of a pair whose ports face the same side not level.
 fn b2(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for (a, b) in w.pairs() {

@@ -2281,7 +2281,7 @@ disallowed-types = [
         );
     }
 
-    /// F6: only `cfg(test)` and `cfg(all(.., test, ..))` are test code.
+    /// Only `cfg(test)` and `cfg(all(.., test, ..))` are test code.
     #[test]
     fn a_cfg_that_merely_mentions_test_is_production_code() {
         let bad = BAD;

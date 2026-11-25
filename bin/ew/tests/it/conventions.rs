@@ -111,7 +111,7 @@ fn compile(name: &str) -> (boon::Schemas, boon::SchemaIndex) {
     (schemas, index)
 }
 
-/// CL-2: the output is one JSON object whose first member is `$schema`, naming `name`, a file of the index; it
+/// The output is one JSON object whose first member is `$schema`, naming `name`, a file of the index; it
 /// validates against that file, deserialises into `T` with `deny_unknown_fields` and re-serialises byte-equal.
 pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &str) -> T {
     assert!(
@@ -138,10 +138,10 @@ pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &s
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// CL-1: `--project`
+// `--project`
 
-/// CL-1: for every subcommand that takes a project, the positional directory and `--project <dir>` give equal stdout
-/// and exit codes on the sample's copy, and both together exit 2 with D3's message. The human-only subcommands are
+/// For every subcommand that takes a project, the positional directory and `--project <dir>` give equal stdout
+/// and exit codes on the sample's copy, and both together exit 2 with the message. The human-only subcommands are
 /// compared off a terminal (both forms exit 2 before the project is opened).
 #[test]
 fn project_flag_equals_the_positional_directory() {
@@ -252,7 +252,7 @@ fn project_flag_equals_the_positional_directory() {
             "{positional:?}: {}",
             stderr(&a)
         );
-        // Both together: a usage error with D3's rule, in clap's words; the usage line is the subcommand's.
+        // Both together: a usage error with the rule, in clap's words; the usage line is the subcommand's.
         let mut both = positional.clone();
         both.push("--project".into());
         both.push(project.as_os_str().to_owned());
@@ -291,9 +291,9 @@ fn apply_with_the_project_flag_replays_as_the_positional_form() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// CL-2 and CL-7: `--json`
+// `--json`
 
-/// Runs `args` twice (CL-7: the same bytes both times) and checks the output as [`assert_result`] does.
+/// Runs `args` twice (the same bytes both times) and checks the output as [`assert_result`] does.
 fn json_twice<T: Serialize + DeserializeOwned>(t: &Tmp, args: &[OsString], name: &str, code: i32) -> T {
     let first = t.ew_with(args, true);
     assert_eq!(first.status.code(), Some(code), "{args:?}: {}", stderr(&first));
@@ -306,7 +306,7 @@ fn json_twice<T: Serialize + DeserializeOwned>(t: &Tmp, args: &[OsString], name:
     assert_result::<T>(&stdout(&first), name)
 }
 
-/// CL-2 and CL-7 for the subcommands that read a project or the libraries: each `--json` output validates against
+/// For the subcommands that read a project or the libraries: each `--json` output validates against
 /// its published schema, round-trips through its type and repeats byte for byte.
 #[test]
 fn every_reading_json_result_validates_round_trips_and_repeats() {
@@ -378,7 +378,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         0,
     );
     assert_eq!(r.files, ["101.svg", "102.svg"]);
-    // Part 2 (OU-6).
+    // Part 2.
     let wires: results::ExportRowsResult = json_twice(
         &t,
         &args([&"export", &"wires", &p, &"--json"]),
@@ -582,7 +582,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     );
 }
 
-/// CL-2 and CL-7 for the subcommands that write: each `--json` output validates and round-trips; two runs on two
+/// For the subcommands that write: each `--json` output validates and round-trips; two runs on two
 /// equal fresh targets print the same bytes (a library created with a new ID is the exception: its ID is new).
 #[test]
 fn every_writing_json_result_validates_and_round_trips() {
@@ -809,9 +809,8 @@ fn every_writing_json_result_validates_and_round_trips() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// CL-3 to CL-5
 
-/// CL-3: `--json` is `--format json` for `check` (byte for byte) and `sql`; with another `--format` it is a usage
+/// `--json` is `--format json` for `check` (byte for byte) and `sql`; with another `--format` it is a usage
 /// error.
 #[test]
 fn json_is_the_alias_of_format_json() {
@@ -838,7 +837,7 @@ fn json_is_the_alias_of_format_json() {
     assert_eq!(o.status.code(), Some(2));
 }
 
-/// CL-5: `ew commands --json` lists the command registry's index in its order; `ew schema` prints a command's
+/// `ew commands --json` lists the command registry's index in its order; `ew schema` prints a command's
 /// parameter schema and a result schema byte for byte as the registries generate them; an unknown name exits 2
 /// naming it.
 #[test]

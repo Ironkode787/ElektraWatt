@@ -81,7 +81,7 @@ pub struct TaskToml {
     pub start: Option<String>,
 }
 
-/// K9: a `task.toml` with another start.
+/// A `task.toml` with another start.
 pub const START_VALUES: &str = "task.toml: `start` is `sample`";
 
 /// The start projects a brief may name.
@@ -956,7 +956,7 @@ mod tests {
         );
     }
 
-    /// UR-2: an `actions` item is met when its actions were done in that order (others between them allowed, an
+    /// An `actions` item is met when its actions were done in that order (others between them allowed, an
     /// alternative joined by ` or ` counts), and not met when one is missing, refused or out of order.
     #[test]
     fn actions_are_met_in_order_only() {
@@ -1013,7 +1013,7 @@ mod tests {
         );
     }
 
-    /// D7 as built: a click on a cross-reference is the Select tool's follow and dispatches the canvas's press and
+    /// A click on a cross-reference is the Select tool's follow and dispatches the canvas's press and
     /// release, so a canvas click done after which another page shows counts as `nav.follow`; a click that leaves the
     /// page counts as nothing more; the prelude's lines give the page before the first step.
     #[test]
@@ -1039,7 +1039,7 @@ mod tests {
         );
     }
 
-    /// UR-2, D7: [`decide_items`] decides an `actions` item from the actions, a query item from its rows and an output
+    /// [`decide_items`] decides an `actions` item from the actions, a query item from its rows and an output
     /// item from the outputs, in the items' order.
     #[test]
     fn decide_items_reads_the_actions_the_queries_and_the_outputs() {
@@ -1071,7 +1071,7 @@ mod tests {
         assert_eq!(asked[2], "sql project SELECT 1 --format csv");
     }
 
-    /// K9: a start other than `sample` makes the brief not runnable; a task's hints are one to three and in
+    /// A start other than `sample` makes the brief not runnable; a task's hints are one to three and in
     /// the user's words.
     #[test]
     fn a_start_project_is_the_sample_and_the_hints_are_words() {

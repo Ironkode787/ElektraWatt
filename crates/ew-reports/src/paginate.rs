@@ -30,7 +30,7 @@
 //! # Table of contents
 //!
 //! A TOC block is not sliced by rows: [`toc_slices`] gives it the page count the `page_order` fixpoint
-//! settled on, with `r` rows per page, where `r` is the TOC page capacity of decision D3: the TOC form's data
+//! settled on, with `r` rows per page, where `r` is the TOC page capacity: the TOC form's data
 //! area (its capacity over its data-row height) when the form has a valid one, else the profile's
 //! `toc.rows_per_page` (`crate::queries::toc_rows_per_page`, which `ReportEngine` also reports to
 //! `page_order`).

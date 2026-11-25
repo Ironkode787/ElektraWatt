@@ -2911,7 +2911,7 @@ pub(super) fn usage_error(path: &[&str], message: impl std::fmt::Display) -> cla
 }
 
 /// `--json` beside an explicit `--format`: `--json` is the alias of `--format json`, so another format is a usage
-/// error (D3 (c)).
+/// error.
 fn json_alias(path: &[&str], json: bool, format: Option<&str>) -> Result<(), clap::Error> {
     match format {
         Some(f) if json && f != "json" => Err(usage_error(

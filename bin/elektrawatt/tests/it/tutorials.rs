@@ -439,7 +439,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
     );
 }
 
-/// Tutorial 2 (D10, DC-6): on tutorial 1's project, a strip with two terminals, the cabinet and the field
+/// Tutorial 2: on tutorial 1's project, a strip with two terminals, the cabinet and the field
 /// side wired, the field wires made a cable 3G1.5 by Cable… (its tag from its first core's page), its length set,
 /// the strip editor and the Cables navigator read, checked and saved: every step done, the end state the page names,
 /// and the lint.
@@ -489,7 +489,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     );
 }
 
-/// Tutorial 4 (D10, DC-6): on Help ▸ Tutorials' copy of the sample project, a parts list and a terminal
+/// Tutorial 4: on Help ▸ Tutorials' copy of the sample project, a parts list and a terminal
 /// overview added as report blocks, the pages exported as PDF, the print preview stepped through and the project
 /// saved: every step done, the pages, the PDF's page count and the preview the page names, and the lint.
 #[test]
@@ -574,7 +574,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     );
 }
 
-/// Tutorial 6 (D10, D17, DC-7): the tutorial's QElectroTech project imported through the front door and its preview,
+/// Tutorial 6: the tutorial's QElectroTech project imported through the front door and its preview,
 /// the migration report read, the return wire drawn and the four parts chosen, checked and saved: every step done, the
 /// report's counts before and after the fixes as the page states them, and the page passes the lint.
 #[test]
@@ -1003,7 +1003,7 @@ fn dutch_translations() -> Vec<(String, String)> {
     out
 }
 
-/// D14: every menu path that a Dutch translation names is the label path of a menu item of the window in Dutch, or of
+/// Every menu path that a Dutch translation names is the label path of a menu item of the window in Dutch, or of
 /// a menu or group above one (T6 for the Dutch guide).
 #[test]
 fn the_dutch_guide_names_the_dutch_windows_menu_paths() {
@@ -1019,7 +1019,7 @@ fn the_dutch_guide_names_the_dutch_windows_menu_paths() {
     assert_eq!(problems, Vec::<String>::new());
 }
 
-/// D9, D12, D13: the how-to and explanation pages that name menu paths pass the lint, as does the symbol editor's
+/// The how-to and explanation pages that name menu paths pass the lint, as does the symbol editor's
 /// reference page.
 #[test]
 fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {

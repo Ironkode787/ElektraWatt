@@ -122,12 +122,12 @@ fn seed_from(drafter: &Run, run: &Run) -> Result<()> {
 /// from its script, `fixtures/sample/sample.uiscript`).
 pub const SAMPLE_PROJECT_DIR: &str = "fixtures/sample/sample.ew";
 
-/// K8: a start project that cannot be made.
+/// A start project that cannot be made.
 pub fn start_refusal(start: &str, reason: &str) -> String {
     format!("the task's start project {start} could not be made: {reason}")
 }
 
-/// Makes the start project `start` (`sample`, D5) in `dest`: a copy of the sample project. A task that starts from
+/// Makes the start project `start` (`sample`) in `dest`: a copy of the sample project. A task that starts from
 /// less (the 24 V breaker of 102 taken away) makes it in its prelude. The fixture is only read; a failure leaves no
 /// `dest`.
 ///
@@ -154,7 +154,7 @@ pub fn make_start_project(root: &Path, start: &str, dest: &Path) -> Result<()> {
 
 /// Puts a check run's copy of the drafter's project back after `work/` was deleted (`resume`, a stateless call): the
 /// check prelude opens `project`. A brief run with a start project gets the copy kept in `.harness/start-project`
-/// (D5: the run's copy of the harness never reaches the repository). A run of another kind needs nothing.
+/// (the run's copy of the harness never reaches the repository). A run of another kind needs nothing.
 ///
 /// # Errors
 ///
@@ -965,7 +965,7 @@ mod tests {
         );
     }
 
-    /// UR-1: a brief with `start = "sample"` starts on a copy of the sample project in `work/project`, kept in
+    /// A brief with `start = "sample"` starts on a copy of the sample project in `work/project`, kept in
     /// `.harness/start-project`; `resume` and a stateless call put it back after `work/` was deleted; the round and the hints reach the run.
     #[test]
     fn a_brief_starts_on_a_copy_of_the_sample_project() {
@@ -1033,7 +1033,7 @@ mod tests {
         assert!(dir.join("work/project/project.json").is_file());
     }
 
-    /// UR-1, K8: a start project that cannot be made refuses the start whole and leaves no run folder; the copy is never
+    /// A start project that cannot be made refuses the start whole and leaves no run folder; the copy is never
     /// made into a folder that names the fixture.
     #[test]
     fn a_start_project_that_cannot_be_made_refuses_the_start() {

@@ -240,7 +240,7 @@ pub(super) fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             };
             Some(Step::cmd("device.place", base(target)))
         }
-        // A new terminal of a strip (AC-28), drawn with a terminal symbol.
+        // A new terminal of a strip, drawn with a terminal symbol.
         22 | 23 => {
             let strip = rng.pick(&live.strip_infos)?;
             let terminal = live.term_fndef.as_ref()?;
@@ -406,7 +406,7 @@ pub(super) fn template_kinds(
 /// The check that the Functions table grew by a new device's functions: the command's own main function
 /// on the FnDef copy `main`, and those normaliser N-FL-1 (`valve_functions`) gives a device with a valve
 /// part (a fluid section with solenoids): its valve entry's unless the main function is of contact kind valve, and
-/// one per coil entry but one on the main function's FnDef. With `from_part` (`valve.add`, D7) a part with an entry
+/// one per coil entry but one on the main function's FnDef. With `from_part` (`valve.add`) a part with an entry
 /// of contact kind valve drops the command's own main function.
 pub(super) fn functions_added(
     part: Option<Value>,

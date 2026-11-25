@@ -786,7 +786,7 @@ mod tests {
         assert_eq!(g.points.len(), 2);
     }
 
-    /// C2: only canonical indices count (as `format!("x{k}")` lookups did), in index order, whatever the
+    /// Only canonical indices count (as `format!("x{k}")` lookups did), in index order, whatever the
     /// attribute order.
     #[test]
     fn polygon_reads_canonical_indices_in_order() {

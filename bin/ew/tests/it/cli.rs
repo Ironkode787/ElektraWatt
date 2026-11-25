@@ -733,7 +733,7 @@ fn last_line(o: &Output) -> String {
     stderr(o).lines().last().unwrap_or_default().to_owned()
 }
 
-/// SE-9 at the call site: `ew sql`'s statement panics inside `run_sql`'s guard; the run ends
+/// At the call site: `ew sql`'s statement panics inside `run_sql`'s guard; the run ends
 /// with S1 and exit 2, prints no result, and the copy of the sample's files are as they were.
 #[test]
 fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
@@ -777,7 +777,7 @@ fn sql_a_panicking_result_writer_ends_with_s1_and_writes_nothing() {
     }
 }
 
-/// SE-9 at the call site: `ew import table --apply`'s read panics inside
+/// At the call site: `ew import table --apply`'s read panics inside
 /// `run_import_table`'s guard; the run ends with `error: ` and S2 with its first letter in lower case, exit 2, and the
 /// copy of the sample's files are as they were.
 #[test]
@@ -808,7 +808,7 @@ fn import_table_a_panicking_read_ends_with_s2_and_changes_nothing() {
     assert!(tree(&project) == before, "the copy's files changed");
 }
 
-/// SE-9 (NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of the sample stops at its deadline with
+/// A recursive-CTE bomb in `ew sql` on a copy of the sample stops at its deadline with
 /// exit 2, and the copy's files are as they were.
 #[test]
 fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
@@ -1511,7 +1511,7 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
         )
     );
     assert!(tree(&project) == before, "nothing is applied");
-    // FM-5: the other session's journal is still there, unchanged. The second half, a clean close deletes only
+    // The other session's journal is still there, unchanged. The second half, a clean close deletes only
     // its own segment, is `Journal::close` (`crates/ew-store/src/journal.rs`), shown by
     // `recovery_replays_the_newest_journal_and_keeps_the_other_unchanged` (`crates/ew-store/tests/it/recovery.rs`)
     // and `the_app_path_recovers_one_journal_at_a_time` (`crates/ew-api/tests/it/recovery.rs`).
@@ -2295,7 +2295,7 @@ pub(crate) fn swap_first_lines(project: &std::path::Path, rel: &str) {
     std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();
 }
 
-/// FM-1 (FR-EXT-008): `ew fmt --check` on the sample's copy exits 0; after two lines of a device file are swapped it
+/// `ew fmt --check` on the sample's copy exits 0; after two lines of a device file are swapped it
 /// exits 1 naming that file and writes nothing; `ew fmt` rewrites that file only (it saves through the plan that starts from
 /// `Loaded.rewrite`, never `Changes::All`); then
 /// `ew fmt --check` exits 0 and the files equal the original bytes. The manifest is a new generation by necessity; its
@@ -2365,7 +2365,7 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
     assert!(journal_files(&t).is_empty(), "the format's journal is closed");
 }
 
-/// FM-2 (ADR-0011's preservation): a line with an unknown member survives `ew fmt` verbatim, and a quarantined line
+/// A line with an unknown member survives `ew fmt` verbatim, and a quarantined line
 /// (EW-CORE-007, a schema violation) is listed as kept and stays in its file, while the file they share is rewritten
 /// for a swap. A line that is not JSON (EW-CORE-005) makes the project read-only: `ew fmt --check` lists it, and `ew
 /// fmt` is refused and writes nothing, so no line it cannot parse is lost.
