@@ -111,8 +111,8 @@ directly with `serde_json` gives the same rules without paths. A record with an 
    aspects). Never insert, reorder, rename or change the type, meaning or unit of an existing member
    within a format major (doc 05 §10.3).
 2. Make it **optional** with a default and `skip_serializing_if`, so files without it stay canonical.
-3. Record its `since = "<format minor>"` in the doc comment and in the format change log; it feeds
-   `min_reader` (ADR-0011 amendment 1).
+3. Record its `since = "<format minor>"` in the doc comment and in the format change log (a save stamps
+   `min_reader` with the format it writes, ADR-0011 amendment 9).
 4. Regenerate the schemas: `EW_SCHEMA_BLESS=1 cargo test -p ew-schema --test it schemas::`.
 5. Add or extend a canonical line in `tests/common/lines.rs` and the fixture of the format.
 6. Update the field table of doc 03 (or the owning feature document) in the same change.

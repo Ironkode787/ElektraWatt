@@ -4,7 +4,7 @@
 //! The save's safeguards: a save refuses to overwrite or remove a file
 //! changed outside the session, a save after a text-conflicted manifest continues from the greatest
 //! generation of its sides, a move-aside that a retry or a roll-forward repeats leaves one stray of
-//! equal bytes, and the computed `min_reader`.
+//! equal bytes, and the `min_reader` a save stamps.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]
