@@ -290,7 +290,10 @@ fn settings_schemes_the_command_layer_does_not_number_are_not_applied() {
                    "rules": [{"select": {"letter": "F"}, "format": "{letter}{counter}"}]}),
             "101F1",
         ),
-        (json!({"key": "flat", "format": "{letter}{page}.{counter}"}), "F101.1"),
+        (
+            json!({"key": "flat", "format": "{letter}{page}.{counter}"}),
+            "F101.1",
+        ),
     ];
     for (scheme, want) in cases {
         let mut fx = base();

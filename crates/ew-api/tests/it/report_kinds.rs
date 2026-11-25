@@ -448,7 +448,10 @@ fn the_parts_summary_mode_parameter() {
         let s = sample_with_block(parts_block(Some(params.clone())));
         assert_eq!(rows_of(&s, block), component_rows, "{params}: the component rows");
         let q = plain(&s);
-        assert!(q.get::<BlockRows>(block).column("covers").is_none(), "{params}: no Covers column");
+        assert!(
+            q.get::<BlockRows>(block).column("covers").is_none(),
+            "{params}: no Covers column"
+        );
     }
 }
 

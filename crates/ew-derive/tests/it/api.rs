@@ -20,10 +20,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use common::{Fx, id};
-use ew_derive::{
-    DepKey, DeviceTag, Policy, ProfileStatus, Q, Query,
-    RecordingTracker, StructureOf,
-};
+use ew_derive::{DepKey, DeviceTag, Policy, ProfileStatus, Q, Query, RecordingTracker, StructureOf};
 use ew_model::{AnyRow, Entity, IndexName, IxKey, Op, Rev};
 use ew_schema::{Device, Kind, Page};
 use serde_json::json;

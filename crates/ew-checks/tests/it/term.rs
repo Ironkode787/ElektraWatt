@@ -279,7 +279,11 @@ fn term005_cases() {
                     "case {c}: {}",
                     f[0].message()
                 );
-                assert!(f[0].message().starts_with("-?X1:"), "case {c}: {}", f[0].message());
+                assert!(
+                    f[0].message().starts_with("-?X1:"),
+                    "case {c}: {}",
+                    f[0].message()
+                );
             }),
             Case::silent("a terminal with a PE CP", with_pe),
             Case::silent("a terminal without the rail-bonded flag", unflagged),

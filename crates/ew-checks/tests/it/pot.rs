@@ -1164,7 +1164,10 @@ fn the_rail_terminal_findings_are_worded_by_their_patterns() {
     let m = fx.build();
     let words = |rule: &str| -> (String, String) {
         let f = findings_of(&m, rule);
-        let f = f.iter().find(|f| f.message().starts_with("-?X1:")).expect("the terminal's finding");
+        let f = f
+            .iter()
+            .find(|f| f.message().starts_with("-?X1:"))
+            .expect("the terminal's finding");
         (
             ew_checks::messages::render(f, "en-GB"),
             ew_checks::messages::render(f, "nl-NL"),
@@ -1178,8 +1181,17 @@ fn the_rail_terminal_findings_are_worded_by_their_patterns() {
         ),
         "{en}"
     );
-    assert!(nl.contains("heeft geen locatie, en het project heeft 2 eigen locaties"), "{nl}");
+    assert!(
+        nl.contains("heeft geen locatie, en het project heeft 2 eigen locaties"),
+        "{nl}"
+    );
     let (en, nl) = words("EW-TERM-005");
-    assert!(en.starts_with("-?X1:") && en.contains("has no PE connection point"), "{en}");
-    assert!(!nl.contains("rail_bonded") && nl.contains("heeft geen PE-aansluitpunt"), "{nl}");
+    assert!(
+        en.starts_with("-?X1:") && en.contains("has no PE connection point"),
+        "{en}"
+    );
+    assert!(
+        !nl.contains("rail_bonded") && nl.contains("heeft geen PE-aansluitpunt"),
+        "{nl}"
+    );
 }
