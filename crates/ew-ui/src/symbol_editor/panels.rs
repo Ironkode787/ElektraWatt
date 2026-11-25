@@ -5,10 +5,10 @@
 //! each row a click to the thing, and what is left to do), on the right Properties (the rows of the selection, or of
 //! the thing itself with nothing selected). Both paint what the view-model gives; a row's edit is one action.
 
-use super::fields::{cancelled, committed_text, enter_pressed, new_line_key, number};
+use super::fields::{enter_pressed, new_line_key, number};
 use super::label;
 use crate::app::Event;
-use crate::components::{self, Kind, Tip as _};
+use crate::components::{self, Kind, Tip as _, cancelled, committed_text};
 use crate::icons::IconId;
 use crate::theme;
 use egui::{Align, Layout, Rect, Sense, Ui, Vec2};

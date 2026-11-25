@@ -779,7 +779,7 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
             ui.horizontal(|ui| {
                 let mut name = pin.name.clone();
                 let label = strings::format(key!("part-pin-name"), &[&pin.name]);
-                if crate::symbol_editor::fields::committed_text(
+                if crate::components::committed_text(
                     ui,
                     "name",
                     &label,
