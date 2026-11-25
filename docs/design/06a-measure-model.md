@@ -438,7 +438,7 @@ The crate **`ew-drafting`** (GPL-3.0-or-later) holds the model, the measure, the
 router, the tracks, the placer, the guides and the numbers of §1.5. Of the workspace it depends on `ew-units` and
 `ew-ids` only (and the workspace-hack), which `ci/dep-rules.toml` confines it to; it reads no project record, so it
 builds and tests in seconds. Three crates use it: `ew-scene` calls its text placer and draws its marks;
-`ew-commands` places by its drawing distances; `ew-api` builds a `DraftPage` (it has the scene's text sizes) and
+`ew-commands` places by its drawing distances; `ew-api` reads the facts of the scene's `DraftPage` from the records and
 offers `page_draft`, `route_plan`, `arrange_plan`, `route_wire` and the layout findings. The tools get the model
 from the host.
 
