@@ -70,7 +70,7 @@ mod index;
 mod ip;
 mod items;
 mod joins;
-// The layout's pure geometry (D5), the compatibility table and the pose validator
+// The layout's pure geometry, the compatibility table and the pose validator
 pub mod layout;
 mod links;
 mod memo_keys;

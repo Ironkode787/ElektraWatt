@@ -196,7 +196,7 @@ pub fn rehome_pose(axis: &RailAxis, pose: &Pose3, clip: (i128, i128)) -> Option<
     })
 }
 
-/// The frame and usable polygon of a plate surface centred in its enclosure (D5): `t = ((W − w) / 2, (H − h) / 2, 0)`
+/// The frame and usable polygon of a plate surface centred in its enclosure: `t = ((W − w) / 2, (H − h) / 2, 0)`
 /// (rounded down to the nanometre), no turn, and the usable rectangle `(0, 0), (w, 0), (w, h), (0, h)` in the surface
 /// frame. An unknown enclosure size gives the frame `t = (0, 0, 0)`; an unknown plate size an empty usable polygon
 /// (and the frame at the origin).

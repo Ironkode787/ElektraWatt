@@ -19,7 +19,7 @@ use super::snap::{BracketRole, RailItem, brackets};
 use crate::Q;
 use crate::query::{Policy, Query};
 
-/// The end-bracket part a strip declares (D3): its first part use whose part copy has kind `end_bracket`, with that
+/// The end-bracket part a strip declares: its first part use whose part copy has kind `end_bracket`, with that
 /// part's `mech.width` in nanometres (absent or negative: 0). `None` when no part use is an end bracket.
 pub fn bracket_part(q: &Q, device: &Device) -> Option<(PartRef, i128)> {
     let parts = q.table::<LibCopy<Part>>();
@@ -37,7 +37,7 @@ pub fn bracket_part(q: &Q, device: &Device) -> Option<(PartRef, i128)> {
     })
 }
 
-/// The index in `Device.parts` of the part use a strip declares its end brackets by (D3): the first whose part copy
+/// The index in `Device.parts` of the part use a strip declares its end brackets by: the first whose part copy
 /// has kind `end_bracket`, as [`bracket_part`] finds it.
 pub fn bracket_use(q: &Q, device: &Device) -> Option<usize> {
     let parts = q.table::<LibCopy<Part>>();

@@ -884,7 +884,7 @@ fn a_channel_edit_re_runs_its_own_module_only() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The 1.0 layer: the tag-based profile, target tracking, automatic symbols (WP-S1.24)
+// The 1.0 layer: the tag-based profile, target tracking, automatic symbols
 
 /// FR-PLC-009 on the fixture: under `rockwell-logix` the station without a CPU is a remote adapter named by its tag,
 /// and a module moved to another manifold position prints its new slot.
@@ -1025,7 +1025,7 @@ fn traced_fixture(with_lamp: bool) -> Fx {
 
 /// FR-PLC-018 (A4's traced branch): a channel bound to its card's pin reaches the sensor through the terminal; the
 /// row names the sensor, its pin and the passed terminal, the channel is used, and the sensor's `PlcAddress` slot
-/// prints the channel's address (FT-700). With a lamp on the same signal the coil ranks first and the row is ambiguous.
+/// prints the channel's address. With a lamp on the same signal the coil ranks first and the row is ambiguous.
 #[test]
 fn a_pin_bound_channel_traces_to_the_field_device() {
     let m = traced_fixture(false).build();
@@ -1200,7 +1200,7 @@ fn io_link_ports_take_their_devices_windows() {
     assert_eq!(q.get::<ModuleStarts>(cfg())[&id(CARD)].input, Some(Start::At(0)));
 }
 
-/// FR-PLC-018's option (FT-1725): with the drawing setting `plc_address_at_terminals`, the terminal a traced channel's
+/// FR-PLC-018's option: with the drawing setting `plc_address_at_terminals`, the terminal a traced channel's
 /// signal passes prints the channel's address in its `PlcAddress` slot; without it, none.
 #[test]
 fn a_passed_terminal_prints_the_address_with_the_option() {

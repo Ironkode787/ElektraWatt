@@ -151,7 +151,7 @@ pub enum TagSource {
         format: String,
     },
     /// No tag: an earth connection (`crate::layout::is_earth_connection`) stands for a connection to earth, not for
-    /// an object, so it has no product designation (doc 03 §8.2, FT-1820).
+    /// an object, so it has no product designation (doc 03 §8.2).
     EarthConnection,
 }
 
@@ -219,7 +219,7 @@ fn push_product(d: &mut Designation, product: &str, cp: Option<&str>) {
 /// 1. a **frozen** tag (wins over every other rule, doc 03 §8.2): its text; the sign is hidden on pages for
 ///    `TagSign::Hidden`;
 /// 2. an **earth connection** (an earth symbol without a part, `crate::layout::is_earth_connection`): none; it
-///    stands for a connection to earth, not for an object (FT-1820), so only a frozen tag, typed or imported, names it;
+///    stands for a connection to earth, not for an object, so only a frozen tag, typed or imported, names it;
 /// 3. a **terminal** (`Terminal` aspect): its strip's product designation, the terminal designation as
 ///    connection point (`X1031` + `:1`), the strip's structure;
 /// 4. scheme **`Child`**: the parent's product designation, the scheme's `child_separator`, the letter and
@@ -546,7 +546,7 @@ pub fn cable_core_page(q: &Q, device: Id<Device>) -> Option<Id<Page>> {
 
 /// Renders a numbering format for a device. A cable without a drawn definition line takes the page of its first
 /// connected core or bus line, and without one no page: `{page}` prints nothing, its counter being the project's. An
-/// enclosure's device, which no page draws, prints no page either (FT-1899: Enclosure… numbers it so, `-UC1`).
+/// enclosure's device, which no page draws, prints no page either (Enclosure… numbers it so, `-UC1`).
 fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     let main_rep = *q.get::<MainRep>(id);
     let rep = main_rep.and_then(|r| q.reps().get(r));

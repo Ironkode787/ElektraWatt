@@ -17,12 +17,12 @@
 //! - `potential_id_prefers_definitions`: definition ID, EW-POT-017, else the minimum CP ID.
 //! - `derived_values_do_not_depend_on_record_order`: partition and stitch graph under record permutations.
 //! - `queries_survive_a_device_parent_cycle`: every query with rail-bonded terminals in a parent cycle.
-//! - `double_deck_terminal_keeps_its_levels_apart`: equal designations on two levels are not one pin (D2).
-//! - `duplicate_pins_join_only_on_pattern_functions`: duplicated pins are one pin on black boxes only (D2).
-//! - `pass_through_terminal_shorts_each_side`: a pass-through terminal shorts each side apart (D3).
+//! - `double_deck_terminal_keeps_its_levels_apart`: equal designations on two levels are not one pin.
+//! - `duplicate_pins_join_only_on_pattern_functions`: duplicated pins are one pin on black boxes only.
+//! - `pass_through_terminal_shorts_each_side`: a pass-through terminal shorts each side apart.
 //! - `override_provenance_names_the_constituent_that_carries_it`: level 7 names the constituent (F2).
 //! - `hub_arm_is_carried_by_the_connection_touching_its_end`: hub arm carrier, doc 08 §3.8.
-//! - `external_source_ip_names_an_undefined_potential`: an external source IP names, after non-external (D6).
+//! - `external_source_ip_names_an_undefined_potential`: an external source IP names, after non-external.
 //! - `ambiguous_junction_feed_is_noted`: EW-POT-011, a link that feeds both junctions or neither.
 //! - `ring_is_broken_at_its_highest_connection`: EW-POT-012, the highest connection of a ring forms no wire.
 //! - `conflicting_conductors_are_noted`: EW-POT-014, two constituents name different conductors.
@@ -884,7 +884,7 @@ fn external_source_ip_names_an_undefined_potential() {
         json!({"name": "SUPPLY", "direction": "source", "external": uid(0x910)}),
     );
     conn(&mut fx, 0x2002, Some(P1), cp(0x1101), cp(0x1001), Value::Null);
-    // No definition and no other source point: the external one names the potential (D6).
+    // No definition and no other source point: the external one names the potential.
     let m = fx.build();
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());

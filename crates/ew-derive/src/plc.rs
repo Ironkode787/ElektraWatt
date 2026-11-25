@@ -1694,7 +1694,7 @@ pub struct SolenoidSlot {
 /// `solenoid_positions(module)`: the solenoid-position map of the module's part (doc 10 §2.6
 /// `[plc.positions]`) applied to the module's valve children, one [`SolenoidSlot`] per position (1 …
 /// `count`) and map entry, in (position, map order). Empty for a module whose part has no position map.
-/// Derivation step 4 of doc 10 §3.2 ([`ChannelStates`]) and, later, EW-PLC-012 (FT-192) read it; normaliser
+/// Derivation step 4 of doc 10 §3.2 ([`ChannelStates`]) and, later, EW-PLC-012 read it; normaliser
 /// N2 (`ew-commands`) applies the same map through [`solenoid_channel`] and the rule of [`solenoid_coil`].
 #[derive(Debug)]
 pub struct SolenoidPositions;
@@ -2118,7 +2118,7 @@ pub struct TargetedChannels {
 /// `channels_by_target()`: the channels whose target is a manual or traced one (doc 10 §3.5), by target function, and
 /// the channels by the terminals their traced signal passes. The direct targets are left out: their function is
 /// bound, which [`PlcAddressText`] reads through the CP → channel index. A cut-off point over every station's targets,
-/// so a `PlcAddress` slot re-renders only when a manual or traced target changes (FT-700, FT-1725).
+/// so a `PlcAddress` slot re-renders only when a manual or traced target changes.
 #[derive(Debug)]
 pub struct ChannelsByTarget;
 
@@ -2178,9 +2178,9 @@ pub struct PlcAddressTexts {
     /// The slot text: the addresses of the function's own bound CPs, else (a fluid function, contact kind
     /// `valve`) of the bound internal coil CPs of its device's other functions; in solenoid order (a CP designated
     /// `14`, then `12`, then the others by CP index), joined by `" / "`; else the addresses of the channels whose
-    /// manual or traced target the function is, in channel-ID order (FT-700: a relay coil wired to a card output);
+    /// manual or traced target the function is, in channel-ID order (a relay coil wired to a card output);
     /// else, with the drawing setting `plc_address_at_terminals`, the addresses of the channels whose traced signal
-    /// passes the function as a terminal (FR-PLC-018's option, FT-1725). `None` when no address resolves.
+    /// passes the function as a terminal (FR-PLC-018's option). `None` when no address resolves.
     pub text: Option<String>,
     /// The function's own bound CPs that resolve, by CP index: `(idx, address text)`.
     pub pins: Vec<(u16, String)>,

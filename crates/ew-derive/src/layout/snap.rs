@@ -3,11 +3,11 @@
 
 //! The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of
 //! one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost
-//! and the commit agree by construction (D4).
+//! and the commit agree by construction.
 //!
 //! A rail holds *items* along `s ∈ [0, L]` (integer nanometres from `path[0]`): each placement's bare footprint
 //! interval `[s0, s1]` from `rail_occupancy`, its clearance pads (non-strips only) and, for a strip, the width `w` of
-//! the end-bracket part it declares. Nothing here reads the zoom or a window: target snapping is the tool's (D4).
+//! the end-bracket part it declares. Nothing here reads the zoom or a window: target snapping is the tool's.
 //!
 //! **Minimum gap** between consecutive items `a` (left) and `b` (right) ([`min_gap`]): strip–strip `w(a)`; strip–other
 //! `w(a) + pad_before(b)`; other–strip `pad_after(a) + w(b)`; other–other `pad_after(a) + pad_before(b)`; at the rail
@@ -75,7 +75,7 @@ impl RailItem {
     }
 }
 
-/// The minimum gap between consecutive items `a` (left) and `b` (right) (D3).
+/// The minimum gap between consecutive items `a` (left) and `b` (right).
 pub fn min_gap(a: &RailItem, b: &RailItem) -> i128 {
     match (a.strip, b.strip) {
         (true, true) => a.bw(),
@@ -128,7 +128,7 @@ pub fn runs(items: &[RailItem]) -> Vec<Vec<usize>> {
     out
 }
 
-/// Where an end bracket stands relative to the strip it is attributed to (D3).
+/// Where an end bracket stands relative to the strip it is attributed to.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum BracketRole {
     /// At the start of a run, before its first strip.
@@ -150,7 +150,7 @@ pub struct BracketSpan {
     pub role: BracketRole,
 }
 
-/// The end brackets of `items` (D3), sorted by `(s0, s1, item, role)`: per run, one at its start `[s0 − w, s0]` attributed
+/// The end brackets of `items`, sorted by `(s0, s1, item, role)`: per run, one at its start `[s0 − w, s0]` attributed
 /// to its first strip, and one after each strip `[s1, s1 + w]` attributed to it; a strip that declares no bracket part
 /// (`w` is `None`) contributes none. The same rule as `group_accessories`, over any arrangement, so a tool can show the
 /// brackets of a candidate.
@@ -226,7 +226,7 @@ pub fn next_fit(items: &[RailItem], length: i128, item: &RailItem, floor: i128) 
     None
 }
 
-/// How a dropped item is resolved against its neighbours (D5).
+/// How a dropped item is resolved against its neighbours.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SnapMode {
     /// Stay where it fits, else the nearest position where it fits; nothing else moves.
@@ -273,7 +273,7 @@ pub enum SnapError {
     SwapNoTarget,
 }
 
-/// `resolve(items, L, moved, s_left, mode)` (D4, D5): where `moved`, dropped with its footprint's left edge at
+/// `resolve(items, L, moved, s_left, mode)`: where `moved`, dropped with its footprint's left edge at
 /// `s_left`, lands on a rail of length `length` holding `items`, and which neighbours move.
 ///
 /// `items` is the rail's occupancy (any order; the moved placement may be among them and is removed first). `moved`

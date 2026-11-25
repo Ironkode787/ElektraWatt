@@ -33,8 +33,8 @@
 //!   template-origin terminal takes its CP indices from the part pattern,
 //!   which the FnDef's link indices do not name. Levels stay separate. A terminal that declares a
 //!   pass-through (disconnect, fuse) joins the CPs of one level *and one side*; the pass-through pair links
-//!   the sides (review decision D3). CPs without a level, or without a side on such a terminal, join nothing.
-//! - **Duplicated pins** (doc 03 §9.3, review decision D2): on a black box or a part-pattern-origin function
+//!   the sides. CPs without a level, or without a side on such a terminal, join nothing.
+//! - **Duplicated pins** (doc 03 §9.3): on a black box or a part-pattern-origin function
 //!   (not a terminal), two CPs with the same printed designation and level are one pin, hence one signal,
 //!   unless a declared pass-through pair links them; a black-box part pattern (a PSU with
 //!   +#1/+#2 and −#1/−#2, the MICO with 24VDC#1/#2 and GND#1/#2) declares no links of its own. Equal

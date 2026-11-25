@@ -20,7 +20,7 @@
 //!   as-built rule); in a mode, the mode selects the wires and the marker prints effective values (doc 08 §4.5). A
 //!   connection a wire-marker item lists draws no marker of its own; the item draws the group whenever one of its
 //!   connections would show a marker ([`group_marker`]).
-//! - **Wire numbers on the page** (FT-1692): `settings.extra.drawing.wire_numbers`; on, every connection prints the
+//! - **Wire numbers on the page**: `settings.extra.drawing.wire_numbers`; on, every connection prints the
 //!   number of the wire it belongs to ([`connection_number`]); a core prints none (its cable and core name it). A
 //!   fluid line prints its line tag (FR-FLU-011) whenever it has one, under the project's line-tag scheme or frozen,
 //!   as the Fluid settings promise (the tubes of a project tagged by page and counter showed no tag on the
@@ -465,7 +465,7 @@ pub fn connection_marker(q: &Q, c: &Connection, grouped: bool) -> Option<String>
     })
 }
 
-/// The number a connection prints on the page (FT-1692): a fluid line's line tag where it has one
+/// The number a connection prints on the page: a fluid line's line tag where it has one
 /// ([`crate::line_tag`]); else, with the project's `drawing.wire_numbers` on, the printed number of the (first)
 /// physical wire it belongs to; `None` with the setting off, and for a connection that forms no numbered wire (a
 /// cable's core, which its cable and core name; a bridge; a fluid line without a tag).

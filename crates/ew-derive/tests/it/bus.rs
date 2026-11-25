@@ -142,7 +142,7 @@ fn a_stub_makes_the_segment_branched() {
 }
 
 /// `net_members(lnet)`: the ports naming the net in ID order, the passive plug F3 that names no logical net but passes
-/// it through (FT-1767), and the master.
+/// it through, and the master.
 #[test]
 fn net_members_are_the_ports_of_the_net_and_its_master() {
     let m = fixture(Some(F4)).build();

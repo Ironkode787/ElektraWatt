@@ -29,7 +29,7 @@ use crate::query::{Policy, Query};
 use crate::structure::{DevicesByStructure, PageDisplayStructure, StructureOf};
 use crate::tag::DeviceTag;
 
-/// The side of the unknown footprint (D5): a 20 × 20 mm square about the pose.
+/// The side of the unknown footprint: a 20 × 20 mm square about the pose.
 pub const UNKNOWN_SIDE: i64 = 20_000_000;
 
 /// Whether a FnDef category is an earth point, a symbol that stands for a connection to earth: `EarthingBar / <kind>
@@ -148,7 +148,7 @@ pub enum Exempt {
 /// How a mountable device is placed (D8 cases 3, 5, 7 and 9).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum MountAs {
-    /// Case 3: a strip with terminals, placed as one placement; its footprint is its terminals' (D5).
+    /// Case 3: a strip with terminals, placed as one placement; its footprint is its terminals'.
     Strip,
     /// Case 5: a part use with a mount kind other than `none` and `on_parent`; it is the primary part.
     Part,
@@ -184,7 +184,7 @@ impl Mountability {
 
 /// `mountable(dev)`: the mountable predicate as built (doc 12 §2.7), first match wins:
 ///
-/// 1. a device whose location has no layout space: not considered (supplied by others, FT-209, waits for its
+/// 1. a device whose location has no layout space: not considered (supplied by others, waits for its
 ///    attribute);
 /// 2. the device of an enclosure or of a surface: exempt;
 /// 3. a strip with terminals: mountable, placed as a strip;
@@ -444,7 +444,7 @@ fn behind_terminals(q: &Q, device: Id<Device>) -> bool {
     reached
 }
 
-/// The devices Auto-fill rail offers for a rail of the layout space `space` (doc 12 §3.3, FT-1802): the space's
+/// The devices Auto-fill rail offers for a rail of the layout space `space` (doc 12 §3.3): the space's
 /// [`Unplaced`] devices, then the [`unlocated`] ones, each with its first guess of whether it goes on the rail. The
 /// guess reads what the model says of a device, first match wins:
 ///
@@ -503,7 +503,7 @@ fn field_category(category: &str) -> bool {
 // ---------------------------------------------------------------------------------------------------------
 // placement_geometry(p)
 
-/// The value of [`PlacementGeometry`]: a placement's footprint in the frame of its mounting surface (D5).
+/// The value of [`PlacementGeometry`]: a placement's footprint in the frame of its mounting surface.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PlacementGeom {
     /// The mounting surface whose frame the coordinates are in.
@@ -514,7 +514,7 @@ pub struct PlacementGeom {
     /// The part's turn on the surface: a rail's direction followed by the pose's 0° or 180°, or a surface pose's
     /// `k · 90°`.
     pub turn: Quarter,
-    /// The footprint is unknown (D5): the part has no `W` or `H`, the device has no part, or a terminal of the strip
+    /// The footprint is unknown: the part has no `W` or `H`, the device has no part, or a terminal of the strip
     /// has none; the square is drawn dashed.
     pub unknown: bool,
     /// The part's `front_2d` polylines in the surface frame; empty without them (the footprint is drawn instead,
@@ -529,14 +529,14 @@ pub struct PlacementGeom {
 struct Shape {
     /// `(W, H)`; `None`: unknown.
     size: Option<(i128, i128)>,
-    /// The clip point in the part frame (D5).
+    /// The clip point in the part frame.
     clip: (i128, i128),
     /// The `front_2d` polylines in the part frame.
     outline: Vec<Vec<Pt2>>,
     part: Option<PartRef>,
 }
 
-/// The shape of a placement (D5): a strip's terminals side by side (widths summed in strip order, the largest height,
+/// The shape of a placement: a strip's terminals side by side (widths summed in strip order, the largest height,
 /// the clip point at the left end at mid-height), else the realised part's `W × H` with its clip point
 /// (`rail_offset`, else the centre).
 fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
@@ -769,7 +769,7 @@ pub struct Occupied {
     pub device: Id<Device>,
     /// Whether the placement is locked (excluded from push, swap and auto-fill).
     pub locked: bool,
-    /// Whether its footprint is unknown (D5).
+    /// Whether its footprint is unknown.
     pub unknown: bool,
     /// The clearance pads along the rail axis, `[before, after]` in nanometres: the realised part's
     /// `clearance.left` and `clearance.right`, swapped when the placement is flipped (turned 180° on the rail); `[0, 0]`

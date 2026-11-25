@@ -154,7 +154,7 @@ pub(crate) fn ordered_children(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
 }
 
 /// The galleries a manifold joins, in this order (doc 11 §5.2). The pilot gallery of an external pilot supply is not
-/// derived: the `valve_terminal` aspect that would name it is not typed (WP-S1.25).
+/// derived: the `valve_terminal` aspect that would name it is not typed.
 pub const GALLERIES: [FluidPortRole; 5] = [
     FluidPortRole::Supply1,
     FluidPortRole::Exhaust3,

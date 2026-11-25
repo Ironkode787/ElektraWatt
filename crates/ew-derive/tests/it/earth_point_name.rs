@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1933: a protective-earth potential that only an earth symbol names (an earth connection, which has no tag: an
+//! A protective-earth potential that only an earth symbol names (an earth connection, which has no tag: an
 //! imported earth point whose pin is `1`) is called PE, not `1` (doc 08 §3.5).
 
 use crate::common;

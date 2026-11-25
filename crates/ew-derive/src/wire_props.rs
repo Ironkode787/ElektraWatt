@@ -54,7 +54,7 @@ pub enum SizeRule {
     PeHighestAtEnds,
     /// A bond wire: the class of its non-PE potential.
     Bond,
-    /// The rating of the device that protects the wire (FT-2055): the class's cross-section carries less than its
+    /// The rating of the device that protects the wire: the class's cross-section carries less than its
     /// rated current, so the current table's least cross-section that carries it; the size row's `profile` is the
     /// table's key.
     Rating {
@@ -347,7 +347,7 @@ fn scope_functions(q: &Q, scope: &EndScope) -> Vec<Id<Function>> {
 
 /// `end_rating(scope)`: the highest rated current, with its device, among the devices that protect the potentials
 /// holding a CP of the scope's functions; `None` when none has a rating. It is the PE rule's read of the rating at a
-/// device or a strip (FT-2055), once per scope as [`EndClass`] is. Policy Memo.
+/// device or a strip, once per scope as [`EndClass`] is. Policy Memo.
 #[derive(Debug)]
 pub struct EndRating;
 
@@ -389,7 +389,7 @@ fn potentials_of_functions(q: &Q, functions: impl IntoIterator<Item = Id<Functio
     potentials
 }
 
-/// The rating a wire's size must carry (FT-2055): for a wire of its class, its potential's protecting device and
+/// The rating a wire's size must carry: for a wire of its class, its potential's protecting device and
 /// rated current; for a PE wire, the highest rating at its two ends (the potentials of each end's function and
 /// [`EndRating`] of its device or strip), as the PE rule reads the class there. `None` without a rated device.
 fn rating(
@@ -723,7 +723,7 @@ impl Ctx<'_> {
         let colour0 = Some(Prov::new(builtin_colour_for(&colour_attrs, &class), built_in()));
         // Below level 3, a wire whose protecting device is rated above what that size carries by the current table
         // (a PE wire: the highest rating at its ends; no bond wire) takes the table's least size that carries it; a
-        // size below the table stays (doc 08 §4.2, FT-2055).
+        // size below the table stays (doc 08 §4.2).
         let below = pick([csa2, l1.csa, csa0]);
         let size = match &below {
             Some(Prov {

@@ -18,7 +18,7 @@ use crate::tag::DeviceTag;
 /// order is the rule's to the byte.
 const NO_DESIGNATION: &str = "a device without designation";
 
-/// `member_order(root)` (D6): `root` first, then its direct children (`Device.parent == root`) by `Device.position`
+/// `member_order(root)`: `root` first, then its direct children (`Device.parent == root`) by `Device.position`
 /// (none last), then their full designation in natural order, then their ID. Grandchildren are not members (a valve's
 /// accessories belong to the valve, EW-LAY-016 groups by direct parent). Pure and cold: the order is read from the
 /// device records and their tags each time. `root` is listed even when it is not in the project.

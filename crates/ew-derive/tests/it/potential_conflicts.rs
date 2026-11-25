@@ -274,7 +274,7 @@ fn role_func(fx: &mut Fx, n: u128, role: &str) {
     fx.rep(n + 0x10_000, P1, sym, &[n], 0, n as i64 * 1_000_000);
 }
 
-/// FT-1701: a single-phase input (role L) fed from one phase is no conflict, whether the phase is defined (a
+/// A single-phase input (role L) fed from one phase is no conflict, whether the phase is defined (a
 /// definition of type L1) or a member role (an L2 pin on the same wire); L on N stays one.
 #[test]
 fn an_l_role_on_one_phase_is_silent_and_on_n_is_noted() {

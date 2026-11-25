@@ -15,7 +15,7 @@
 //!   `ac_dc` is equal; `u_min <= voltage <= u_max` (inclusive).
 //! - A constrained field the potential does not know (no voltage, no AC/DC, no type) does not match.
 //! - A phase (type L1, L2 or L3) is a conductor of an AC supply: without an AC/DC of its own it matches as AC, and
-//!   without a known voltage its circuit class is mains (`attrs_of`, `own_class`; FT-1688).
+//!   without a known voltage its circuit class is mains (`attrs_of`, `own_class`).
 //! - `discipline` and `analogue` match only when the potential has that attribute. No potential has either in
 //!   this phase, so a selector that constrains one never matches.
 //! - Colour rows: the row with the most constrained fields wins, ties go to the first row. Class rules: the
@@ -62,7 +62,7 @@ fn is_phase(t: Option<&PotentialType>) -> bool {
 }
 
 /// The final attributes of a potential: the flow values, else its own (`potential_attrs`; none for an unknown
-/// ID). A phase (L1, L2, L3) that says neither AC nor DC is AC (FT-1688): a phase is a conductor of an AC supply.
+/// ID). A phase (L1, L2, L3) that says neither AC nor DC is AC: a phase is a conductor of an AC supply.
 pub(crate) fn attrs_of(q: &Q, id: PotentialId) -> Attrs {
     let mut attrs = if let Some(e) = q.get::<PotentialFlow>(id).as_ref() {
         Attrs {
@@ -85,8 +85,8 @@ pub(crate) fn attrs_of(q: &Q, id: PotentialId) -> Attrs {
 }
 
 /// The circuit class a potential's own definition gives it, if any; a conductor of an AC supply (a phase L1, L2, L3,
-/// a single phase L or the neutral N) whose voltage is not known is of the mains class (FT-1688: a potential given
-/// the type L1 took the control circuit's 0.75 mm²; FT-1834: so did a 16 A circuit of a single-phase supply).
+/// a single phase L or the neutral N) whose voltage is not known is of the mains class (a potential given
+/// the type L1 took the control circuit's 0.75 mm²; so did a 16 A circuit of a single-phase supply).
 pub(crate) fn own_class(q: &Q, id: PotentialId) -> Option<CircuitClass> {
     let own = q.get::<PotentialAttrsOf>(id);
     own.circuit_class.as_ref().map(|c| c.value.clone()).or_else(|| {
@@ -739,7 +739,7 @@ struct CurrentRow {
 }
 
 /// The current table a wire's cross-section is proposed from by the rating of the device that protects it (doc 08
-/// §4.2, FT-2055): `content/profiles/current/ew.current.iec60204-1-b2.toml`, its rows rising.
+/// §4.2): `content/profiles/current/ew.current.iec60204-1-b2.toml`, its rows rising.
 #[derive(Deserialize)]
 struct CurrentTable {
     id: String,

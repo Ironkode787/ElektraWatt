@@ -14,15 +14,15 @@
 //! | [`Profile`], [`RAIL_FITS`], [`fits_rail`], [`fits_surface`] | The mount-kind compatibility table (doc 12 §3.3) |
 //! | [`Quarter`], [`check_pose`], [`PoseOn`] | The degrees of freedom of a pose per carrier kind (doc 12 §2.3) |
 //! | [`clip_offset`], [`rehome_pose`] | The surface pose equivalent to a rail pose (doc 12 §3.6, `rehome_to_surface`) |
-//! | [`plate_frame`] | The frame and usable rectangle of a plate centred in its enclosure (D5) |
+//! | [`plate_frame`] | The frame and usable rectangle of a plate centred in its enclosure |
 //! | [`Mountable`] | `mountable(dev)`: the mountable predicate as built (D8, doc 12 §2.7) |
 //! | [`Unplaced`] | `unplaced(space)`: the mountable devices of the space's location without a placement |
-//! | [`PlacementGeometry`] | `placement_geometry(p)`: the footprint and outline in the surface frame (D5) |
+//! | [`PlacementGeometry`] | `placement_geometry(p)`: the footprint and outline in the surface frame |
 //! | [`RailOccupancy`] | `rail_occupancy(carrier)`: the sorted intervals along a rail |
 //! | [`LayoutLabel`] | `layout_label((p, page, mode))`: the label text (D10) |
 //! | [`CarrierGeometry`] | `carrier_geometry(carrier)`: the axis check, length, axis and outline of a carrier |
 //! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (D11, doc 12 §5.4) |
-//! | [`page_surface`], [`surface_pages`] | The surface a panel-layout page shows, and the pages that show a surface (D9) |
+//! | [`page_surface`], [`surface_pages`] | The surface a panel-layout page shows, and the pages that show a surface |
 //! | [`carrier_order`], [`metres_of_nm`] | The legend order of carriers and a length in metres exact to the millimetre (D11) |
 //! | [`carrier_labels`], [`CarrierLabel`] | "Rail n" and "Duct n" of a surface's carriers |
 //! | [`RailItem`], [`min_gap`], [`runs`], [`brackets`], [`free_length`] | The rail model: items, minimum gaps, runs of strips and their end brackets |
@@ -40,11 +40,11 @@
 
 // The rail items and the derived end brackets (D3)
 mod accessories;
-// The member order of an assembly (D6)
+// The member order of an assembly
 mod assembly;
 mod carrier;
 mod fit;
-// The layout legend and the surface of a panel page (D11)
+// The layout legend and the surface of a panel page
 mod legend;
 mod pose;
 // The layout queries (doc 12 §2.6)

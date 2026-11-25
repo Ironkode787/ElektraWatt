@@ -9,9 +9,9 @@
 
 use std::path::{Path, PathBuf};
 
+use ew_derive::{address_profile, builtin_profiles, default_profile, unreadable_profile};
 use ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_schema::LibDocument;
-use ew_derive::{address_profile, builtin_profiles, default_profile, unreadable_profile};
 
 fn dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/plc-profiles")

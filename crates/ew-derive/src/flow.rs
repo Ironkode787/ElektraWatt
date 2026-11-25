@@ -72,7 +72,7 @@ pub struct FlowEntry {
     pub protected_by: Option<Id<Function>>,
     /// The loads on the potential, in function ID order: its consuming functions (coils, lamps, PLC inputs,
     /// a PSU input), never a function with a pass-through pair touching it, a source feeding it, an
-    /// interruption point or a terminal (review decision D4).
+    /// interruption point or a terminal.
     pub loads: Vec<Load>,
 }
 
@@ -344,7 +344,7 @@ fn run_flow(q: &Q) -> Flow {
         level = level.saturating_add(1);
     }
 
-    // Loads (review decision D4): the consuming functions on a potential. Not a load: a function with a
+    // Loads: the consuming functions on a potential. Not a load: a function with a
     // pass-through pair touching the potential (the upstream feeder, an onward switch or protective
     // device, a bypassed contact), a function feeding the potential through a source-output CP, an
     // interruption point, a terminal.

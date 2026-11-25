@@ -232,7 +232,7 @@ pub struct DrawingSettings {
     /// `marker_mode` (FR-CON-024): which wires carry a marker; `None` (absent or an unknown value) is
     /// the as-built rule, a connection's `show_marker`.
     pub marker_mode: Option<crate::items::MarkerMode>,
-    /// `wire_numbers: true` (FT-1692): every wire prints its number on the page; absent or anything else: no number.
+    /// `wire_numbers: true`: every wire prints its number on the page; absent or anything else: no number.
     pub wire_numbers: bool,
     /// `wire_numbering: "per_potential"` (doc 08 §5.2): a wire's number is its potential's code; absent or anything
     /// else: each wire its own `{page}.{counter}`.

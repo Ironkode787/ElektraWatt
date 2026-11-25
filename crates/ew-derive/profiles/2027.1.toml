@@ -28,7 +28,7 @@ online = true
 child_separator = "-"
 
 # The cross-reference format (doc 03 §5.1 `XrefFormat`, doc 06 §2.8): the QET-style preset. Consumed by
-# `xref_text` (WP-S1.08); carried here so that the profile pins it.
+# `xref_text`; carried here so that the profile pins it.
 [xref]
 key = "qet-style"
 ip = "{page}-{row}{column}"

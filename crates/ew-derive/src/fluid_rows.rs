@@ -426,8 +426,7 @@ impl Query for ValveTerminalRows {
         let mut out = Vec::new();
         for (_, vt) in terminals {
             // A terminal that is its own valve module (the starter EW-GEN-VTM-1: valve positions of its own and no
-            // child that has them) lists its own positions; the valves in them are no modules of it (doc 11 §2.6,
-            // FT-1927).
+            // child that has them) lists its own positions; the valves in them are no modules of it (doc 11 §2.6).
             let own_module = !q
                 .idx()
                 .device_children(vt)

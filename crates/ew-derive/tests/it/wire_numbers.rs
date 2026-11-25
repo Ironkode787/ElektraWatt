@@ -30,7 +30,7 @@
 //! - The orientation's step 3 without minted IDs:
 //!   `the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids` and
 //!   `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
-//! - What a wire prints (FT-1858): `a_frozen_number_prints_and_keeps_its_place_in_the_count` and
+//! - What a wire prints: `a_frozen_number_prints_and_keeps_its_place_in_the_count` and
 //!   `per_potential_every_wire_of_a_potential_prints_its_code` (no code for a protective earth or a fallback name).
 //! - `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`: `cp_label` of a terminal whose FnDef
 //!   repeats a clamp letter on one level (a third-party FnDef) prints `/a#1`, `/a#2`; distinct letters print

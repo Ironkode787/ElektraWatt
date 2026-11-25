@@ -50,7 +50,7 @@ where the documents leave the data open:
   project-wide and is noted (EW-CORE-051).
 - **No conductor edge.** `Core` connections and the IP pairing suffice; the drawing graph has no separate
   conductor edge.
-- **Built-in defaults.** Without profiles the defaults of doc 08 §4.3 apply (decision log ID-150, the EN 60204-1
+- **Built-in defaults.** Without profiles the defaults of doc 08 §4.3 apply (the EN 60204-1
   column): an L-family potential of an AC control circuit is RD, and the cross-section is 1.5 mm² for Mains and
   0.75 mm² for every other class.
 - **Aliases.** Doc 08 §3.5: the aliases are every other distinct IP name of the potential in natural order

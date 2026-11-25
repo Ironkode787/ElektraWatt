@@ -135,7 +135,7 @@ impl Query for PotentialNameOf {
                 source: NameSource::Def(*d0),
             }
         } else if let Some((f, i)) = [false, true].into_iter().find_map(|external| {
-            // Non-external source points name first; external ones (D6) only when none does.
+            // Non-external source points name first; external ones only when none does.
             infos
                 .iter()
                 .filter(|(f, i)| {
@@ -362,7 +362,7 @@ fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
         return unknown().name;
     };
     // A protective earth that only an earth symbol (a device without a tag) names is PE, not that symbol's pin (`1`,
-    // an imported earth point's) (FT-1933).
+    // an imported earth point's).
     let tagless = q
         .functions()
         .get(cp.function)
@@ -593,7 +593,7 @@ pub(crate) fn member_roles(q: &Q, p: &Potential) -> Vec<(CpRef, PotentialType)> 
 /// [`role_rank`]) on one potential (doc 08 §3.6, the pairs of EW-POT-001). Either order of the two:
 ///
 /// - **Nothing to report:** equal values; an FE role on a PE or PEN potential (a separate check, EW-POT-003); PE or N
-///   on PEN; L on one phase, L1, L2 or L3 (a single-phase input fed from one phase, FT-1701); M with L− (two names
+///   on PEN; L on one phase, L1, L2 or L3 (a single-phase input fed from one phase); M with L− (two names
 ///   of one 0 V); a signal on any conductor but an earth (a signal pin wired straight to a supply is a fixed level);
 ///   an undefined role, or one of a newer format, with anything (it says nothing).
 /// - **A fault:** every other pair: a live conductor (L1, L2, L3, L, L+) on PE, PEN, FE, N, 0 V or another live
