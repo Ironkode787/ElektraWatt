@@ -1124,7 +1124,7 @@ pub const BU_ON_NON_N: RuleMeta = RuleMeta {
 /// The rule judges a colour the project chose (an override, a core's conductor, a potential definition, a colour
 /// profile row, the project default), not the program's built-in fallback (level 0 of doc 08 §4.1): the built-in
 /// table gives BU to L+, L-, M and DC signals by EN 60204-1 13.2.4 (doc 08 §4.3) when the project has no colour of
-/// its own, and a warning on the program's own default is not one the drafter chose (play-test).
+/// its own, and a warning on the program's own default is not one the drafter chose.
 #[derive(Clone, Copy, Debug)]
 pub struct BuOnNonN;
 
@@ -1813,8 +1813,7 @@ impl Rule for UnconnectedCp {
                     // the pin needs.
                     finding.with_fix(join_mark(CpRef::new(f, c.idx), m.1, page))
                 } else {
-                    // The message says "mark it unused": its quick fix does that (three personas of M3's round
-                    // looked for it on the message and did not find it).
+                    // The message says "mark it unused": its quick fix does that.
                     match mark_unused(function, c.idx) {
                         Some(fix) => finding.with_fix(fix),
                         None => finding,

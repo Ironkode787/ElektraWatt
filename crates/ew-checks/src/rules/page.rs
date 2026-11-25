@@ -909,8 +909,7 @@ impl Rule for LayoutRule {
 }
 
 /// A drawn wire as a layout finding names it: its connection and its words, its two ends as the page prints them
-/// (`-101F1:2 → -101E55:L`), and whether it is a fluid line, which a finding calls a tube (the persona round: "Wire …
-/// has no route" on a tube).
+/// (`-101F1:2 → -101E55:L`), and whether it is a fluid line, which a finding calls a tube.
 #[derive(Clone, Copy, Debug)]
 pub struct LayoutWire<'a> {
     /// The connection.

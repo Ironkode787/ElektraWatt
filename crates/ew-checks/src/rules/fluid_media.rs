@@ -309,7 +309,7 @@ impl Rule for NoTubeSpec {
             .filter(|r| !r.props.is_specified())
             .map(|r| {
                 let (text, text_nl) = tube_text(r);
-                // The persona round: a tube the tube table showed as 6×4 had "no tube specification"; it lacked a
+                // A tube the tube table showed as 6×4 had "no tube specification"; it lacked a
                 // material, and the finding says so.
                 let size = r.props.size_text();
                 let missing = if size.is_empty() { "spec" } else { "material" };

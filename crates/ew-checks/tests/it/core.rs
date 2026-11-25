@@ -158,7 +158,7 @@ fn core051_cases() {
                     );
                     assert_eq!(f[0].discriminator, "unpaired", "case {c}");
                     assert!(f[0].subject.contains("LONELY"), "case {c}: {}", f[0].subject);
-                    // Where it stands and what it lacks: a source its targets (a persona run read "no partner").
+                    // Where it stands and what it lacks: a source its targets.
                     assert!(
                         f[0].message()
                             .contains("is a source without a target: place where LONELY goes on"),

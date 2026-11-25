@@ -230,7 +230,7 @@ impl Rule for UnpairedInterruptionPoint {
         for g in &pairing.groups {
             for u in &g.unpaired {
                 // Where the mark stands (`102-C1`) and what it lacks, in a draughtsman's words: a target its one
-                // source, a source its targets (a persona run read "has no partner" and could not place what it meant).
+                // source, a source its targets.
                 let info = pairing.ips.get(u);
                 let at = info
                     .and_then(|i| i.rep)
