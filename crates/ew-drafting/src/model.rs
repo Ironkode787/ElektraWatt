@@ -530,8 +530,11 @@ pub enum LabelKind {
 struct KindRow {
     /// Labels are placed in this order, 1 first.
     priority: u8,
-    /// A symbol's text of the block rule: its tag, cross-reference, data or contact list.
-    symbol_text: bool,
+    /// A text of a part that joins the block of its side (the block rule): every one but a pin's number.
+    blocks: bool,
+    /// A symbol's own text (its tag, cross-reference, data or contact list): the first place of another own text of
+    /// its symbol not yet placed costs it nothing, so a symbol's texts stand by it before a neighbour's.
+    own_text: bool,
     /// A text of the two-rows rule.
     two_rows: bool,
 }
@@ -539,21 +542,22 @@ struct KindRow {
 impl LabelKind {
     /// The table of the kinds: one row each.
     fn row(self) -> KindRow {
-        let (priority, symbol_text, two_rows) = match self {
-            LabelKind::PinNumber(_) => (1, false, false),
-            LabelKind::TerminalName => (1, false, true),
-            LabelKind::Tag => (2, true, true),
-            LabelKind::BoxTag => (2, false, true),
-            LabelKind::Xref => (3, true, false),
-            LabelKind::ContactList => (3, true, true),
-            LabelKind::MarkName | LabelKind::MarkXref => (3, false, false),
-            LabelKind::Data => (4, true, false),
-            LabelKind::BoxData | LabelKind::PathFunction | LabelKind::StripTag => (4, false, false),
-            LabelKind::WireNumber | LabelKind::CableType | LabelKind::CableTag => (5, false, false),
+        let (priority, blocks, own_text, two_rows) = match self {
+            LabelKind::PinNumber(_) => (1, false, false, false),
+            LabelKind::TerminalName => (1, true, false, true),
+            LabelKind::Tag => (2, true, true, true),
+            LabelKind::BoxTag => (2, true, false, true),
+            LabelKind::Xref => (3, true, true, false),
+            LabelKind::ContactList => (3, true, true, true),
+            LabelKind::MarkName | LabelKind::MarkXref => (3, true, false, false),
+            LabelKind::Data => (4, true, true, false),
+            LabelKind::BoxData | LabelKind::PathFunction | LabelKind::StripTag => (4, true, false, false),
+            LabelKind::WireNumber | LabelKind::CableType | LabelKind::CableTag => (5, true, false, false),
         };
         KindRow {
             priority,
-            symbol_text,
+            blocks,
+            own_text,
             two_rows,
         }
     }
@@ -563,9 +567,14 @@ impl LabelKind {
         self.row().priority
     }
 
-    /// Whether it is a symbol's text of the block rule: its tag, cross-reference, data or contact list (§5.2).
-    pub(crate) fn symbol_text(self) -> bool {
-        self.row().symbol_text
+    /// Whether a text of a part of this kind joins the block of its side (the block rule, §5.2).
+    pub(crate) fn blocks(self) -> bool {
+        self.row().blocks
+    }
+
+    /// Whether it is a symbol's own text, which gives way to another own text of its symbol (§5.2).
+    pub(crate) fn own_text(self) -> bool {
+        self.row().own_text
     }
 
     /// Whether it is a text of the two-rows rule (§5.2).

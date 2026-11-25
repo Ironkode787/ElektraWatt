@@ -367,7 +367,7 @@ pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
         };
         let own: Vec<usize> = (0..units.len())
             .filter(|&v| {
-                units[v].owner == units[u].owner && units[v].kind.symbol_text() && units[u].kind.symbol_text()
+                units[v].owner == units[u].owner && units[v].kind.own_text() && units[u].kind.own_text()
             })
             .collect();
         let k = clear.unwrap_or_else(|| {

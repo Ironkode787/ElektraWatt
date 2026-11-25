@@ -13,15 +13,10 @@ use crate::model::{LabelId, LabelKind, Owner, PartId, Places, Pt, Rect, Side, Ti
 use super::places::mark_name_beyond;
 use super::{Ground, Unit};
 
-/// Whether a kind joins the block of its side of its part: every text of a part but a pin's number.
-fn blocks(kind: LabelKind) -> bool {
-    !matches!(kind, LabelKind::PinNumber(_))
-}
-
 /// The units of the page: the blocks of the block rule and every other label alone (§5.2).
 ///
-/// **The block rule.** The tag, cross-references, data and contact list of one part that stand on one side of its
-/// body (left of its middle, right of it, or across it) and one under the other are one block: it is placed as one
+/// **The block rule.** The texts of one part that join a block ([`LabelKind::blocks`]: every one but a pin's number)
+/// and stand on one side of its body (left of its middle, right of it, or across it) and one under the other are one block: it is placed as one
 /// label of their joined box, with the places of its first member's kind, and its members keep their places in it. A
 /// member that overlaps another at its first place, or stands beside the block, is placed on its own.
 pub(super) fn units(ground: &Ground<'_>) -> Vec<Unit> {
@@ -62,7 +57,7 @@ pub(super) fn units(ground: &Ground<'_>) -> Vec<Unit> {
     for &i in &order {
         let l = &page.labels[i];
         let first = match (&l.places, l.owner) {
-            (Places::At(at), Owner::Part(p)) if blocks(l.kind) => at.first().and_then(|a| {
+            (Places::At(at), Owner::Part(p)) if l.kind.blocks() => at.first().and_then(|a| {
                 let part = ground.parts.get(&p)?;
                 Some((p, Rect::sized(part.at.plus(*a), l.size), part.bounds()))
             }),
