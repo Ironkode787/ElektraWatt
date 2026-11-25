@@ -216,8 +216,8 @@ installed library's symbol by its key as well as by its address, before its firs
   identities and, because it is a move, connectivity (FR-CON-004): each wire whose other end stays behind is
   kept as a **pair of interruption points**, and the window lists the pairs in a preview before anything changes
   (FR-CON-043); Apply moves, one undo step. `rep.move` makes the pairs with `keep` (the two forms of the
-  interruption-point symbol and the library documents they need); without it a wire whose other end stays behind is
-  refused, the wire named.
+  interruption-point symbol and the library documents they need, embedded only when the move cuts a wire); without
+  it a wire whose other end stays behind is refused, the wire named.
   - **The name** of a pair is the wire's potential's (its name, a fallback name such as `-K1:13` included; `IP` for
     a wire the potentials do not know), the next free name of its series (`24VDC-1`, §3.5) where an interruption
     point of the project, or another pair of the same move, has it already: the rule of a new interruption point.

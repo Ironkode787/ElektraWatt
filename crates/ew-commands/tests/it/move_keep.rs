@@ -17,7 +17,7 @@ use ew_model::Model;
 use ew_model::fixture::*;
 use ew_schema::{
     Connection, Device, Dir4, Endpoint, Extra, FnRole, Function, FunctionKind, IpDirection, Junction,
-    LibDocument, Record, Representation, SymbolCp, SymbolDef,
+    LibCopy, LibDocument, Record, Representation, SymbolCp, SymbolDef,
 };
 use ew_units::Pt2;
 
@@ -39,11 +39,9 @@ fn at(i: usize) -> Pt2 {
     pt(AT[i].0 * G, AT[i].1 * G)
 }
 
-/// The library of these tests: the mini project's, the two-CP symbol and the interruption-point symbol.
-fn lib() -> Vec<LibDocument> {
-    let mut lib = library();
-    lib.push(LibDocument::Fndef(fndef_copy_for(LIBRARY_X, ITEM_IP, &["1"])));
-    let mut ip = symbol_using(SYM_IP, LIBRARY_X, ITEM_IP);
+/// An interruption-point symbol `symbol` drawing the FnDef `item` of `library`: one CP at its insertion point.
+fn ip_symbol(symbol: Id<SymbolDef>, library: Uuid, item: Uuid) -> LibCopy<SymbolDef> {
+    let mut ip = symbol_using(symbol, library, item);
     ip.item.cps = ew_schema::KeyedList::from_vec(vec![SymbolCp {
         idx: 0,
         fn_cp: 0,
@@ -53,8 +51,51 @@ fn lib() -> Vec<LibDocument> {
         extra: Extra::new(),
     }])
     .expect("one CP");
-    lib.push(LibDocument::Symbol(ip));
+    ip
+}
+
+/// The library of these tests: the mini project's, the two-CP symbol and the interruption-point symbol.
+fn lib() -> Vec<LibDocument> {
+    let mut lib = library();
+    lib.push(LibDocument::Fndef(fndef_copy_for(LIBRARY_X, ITEM_IP, &["1"])));
+    lib.push(LibDocument::Symbol(ip_symbol(SYM_IP, LIBRARY_X, ITEM_IP)));
     lib
+}
+
+/// The library of interruption-point documents the project does not hold.
+const LIBRARY_NEW: Uuid = Uuid::from_u128(0x9320_0000);
+
+/// `doc` as the document of `item` of [`LIBRARY_NEW`] (`lib/` JSON form: its copy identity as its ID and the hash of
+/// its item), with its copy ID.
+fn new_document(doc: LibDocument, item: Uuid) -> (Uuid, serde_json::Value) {
+    let identity: Id<()> = ew_ids::v5::lib_copy_id(LIBRARY_NEW, item);
+    let mut v = serde_json::to_value(&doc).expect("a library document");
+    v["library_id"] = serde_json::json!(LIBRARY_NEW.to_string());
+    v["item_id"] = serde_json::json!(item.to_string());
+    v["id"] = serde_json::json!(identity.to_string());
+    let hash = ew_format::library_copy_hash(&LibDocument::from_value(v.clone()).expect("a document"))
+        .expect("a known kind");
+    let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    v["sha256"] = serde_json::json!(format!("sha256:{hex}"));
+    (identity.as_uuid(), v)
+}
+
+/// `keep` with an interruption-point symbol and its FnDef the project does not hold, as their documents.
+fn keep_new() -> KeepAsIps {
+    let (fn_item, sym_item) = (Uuid::from_u128(0x9320_0001), Uuid::from_u128(0x9320_0002));
+    let (_, fndef) = new_document(
+        LibDocument::Fndef(fndef_copy_for(LIBRARY_NEW, fn_item, &["1"])),
+        fn_item,
+    );
+    let (symbol, doc) = new_document(
+        LibDocument::Symbol(ip_symbol(id(0x85), LIBRARY_NEW, fn_item)),
+        sym_item,
+    );
+    KeepAsIps {
+        source: Id::from_uuid(symbol),
+        target: Id::from_uuid(symbol),
+        copies: vec![fndef, doc],
+    }
 }
 
 /// The mini project with the symbols A to D on page 102, wired by `wires` (each `(id, a, b, route)`), with the
@@ -62,6 +103,15 @@ fn lib() -> Vec<LibDocument> {
 fn model(
     wires: &[(u128, Endpoint, Endpoint, Vec<Pt2>)],
     junctions: &[(Id<Junction>, Pt2, Vec<u128>)],
+) -> Model {
+    model_with(wires, junctions, |_| {})
+}
+
+/// [`model`] with its records changed by `edit` before the model is made.
+fn model_with(
+    wires: &[(u128, Endpoint, Endpoint, Vec<Pt2>)],
+    junctions: &[(Id<Junction>, Pt2, Vec<u128>)],
+    edit: impl FnOnce(&mut Vec<Record>),
 ) -> Model {
     let (project, mut records, _) = mini_project_parts();
     for i in 0..4 {
@@ -87,6 +137,7 @@ fn model(
         jr.at = *p;
         records.push(Record::Junction(jr));
     }
+    edit(&mut records);
     Model::from_records(project, records, lib()).expect("valid model")
 }
 
@@ -291,4 +342,42 @@ fn a_net_with_two_junctions_is_refused_in_words() {
     let why = reason(e.execute(&move_to_101(&[0])));
     assert!(why.contains("runs through more than one junction"), "{why}");
     assert_eq!(e.model().rev(), rev, "nothing is written");
+}
+
+/// The interruption point's symbol and FnDef copies `keep` brings are embedded only when the move cuts a wire: a move
+/// that cuts none leaves the project's library copies as they were; one that cuts a wire embeds both and draws its
+/// pair with them.
+#[test]
+fn the_points_documents_are_embedded_only_when_the_move_cuts_a_wire() {
+    let held = |e: &ew_commands::Engine| {
+        (
+            e.model().table::<LibCopy<SymbolDef>>().iter().count(),
+            e.model().table::<LibCopy<ew_schema::FnDef>>().iter().count(),
+        )
+    };
+    let keep = keep_new();
+    let mut e = engine(model(&[], &[]));
+    let before = held(&e);
+    e.execute(&MoveReps {
+        keep: Some(keep.clone()),
+        ..move_to_101(&[0])
+    })
+    .expect("the move");
+    assert_eq!(row::<Representation>(&e, REPS[0]).page, PAGE_101, "the symbol moves");
+    assert_eq!(held(&e), before, "no library copy is added");
+    let mut e = engine(model(
+        &[(0x4a0, cp(FNS[0], 0), cp(FNS[1], 0), vec![at(0), at(1)])],
+        &[],
+    ));
+    e.execute(&MoveReps {
+        keep: Some(keep.clone()),
+        ..move_to_101(&[0])
+    })
+    .expect("the move");
+    assert_eq!(held(&e), (before.0 + 1, before.1 + 1), "the point's symbol and FnDef");
+    let drawn = rows::<Representation>(&e)
+        .into_iter()
+        .filter(|r| r.symbol == keep.source)
+        .count();
+    assert_eq!(drawn, 2, "the pair is drawn with the new symbol");
 }

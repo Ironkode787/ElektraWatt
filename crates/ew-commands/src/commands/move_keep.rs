@@ -36,8 +36,8 @@ pub struct KeepAsIps {
     /// The target form, drawn on the page arrived on.
     #[schemars(with = "UuidS")]
     pub target: Id<SymbolDef>,
-    /// The library documents of the two forms and their FnDef (`lib/` JSON form), embedded first; empty when the
-    /// project holds them.
+    /// The library documents of the two forms and their FnDef (`lib/` JSON form), embedded when the move cuts a
+    /// wire; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
 }

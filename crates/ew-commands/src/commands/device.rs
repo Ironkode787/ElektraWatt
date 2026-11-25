@@ -1194,10 +1194,6 @@ impl MoveReps {
             Some(page) => Some(tx.require::<Page>(page)?),
             None => None,
         };
-        // The interruption points' symbols first, so that they resolve below.
-        if let Some(keep) = &self.keep {
-            embed_closure(Self::NAME, tx, &keep.copies)?;
-        }
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         let mut reps: Vec<Arc<Representation>> = Vec::new();
         let mut moved: Vec<Representation> = Vec::new();
@@ -1260,6 +1256,11 @@ impl MoveReps {
             }
             _ => super::move_keep::Plan::default(),
         };
+        // The interruption points' symbols, only when the move cuts a wire: a move that cuts none leaves the project's
+        // library copies as they were.
+        if let Some(keep) = self.keep.as_ref().filter(|_| !plan.cuts.is_empty()) {
+            embed_closure(Self::NAME, tx, &keep.copies)?;
+        }
         // What the cuts need of the page left before anything moves: each cut end's point, the points a pin or a
         // junction that stays holds there, and each cut wire's words.
         let mut ends: Vec<(Endpoint, Pt2)> = Vec::new();
