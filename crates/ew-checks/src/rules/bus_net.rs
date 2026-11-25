@@ -334,7 +334,7 @@ pub const SEGMENT_LIMITS: RuleMeta = RuleMeta {
     code: "111006",
     title: "Segment limits",
     kind: RuleKind::Conflict,
-    modes: Modes::letters("fr"),
+    modes: Modes::letters("r"),
     severity: Severity::Warning,
     release_severity: None,
     scope: ScopeKind::Pnet,

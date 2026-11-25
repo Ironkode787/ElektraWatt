@@ -354,8 +354,7 @@ pub(crate) enum Top {
     Lib(LibCli),
     /// List the command registry.
     ///
-    /// Lists the command registry (name, parameters version, exposure, cost, confirmation, undoable, stability,
-    /// aliases); exits 0.
+    /// Lists the command registry (name, exposure, cost, confirmation, undoable, aliases); exits 0.
     Commands(CommandsCli),
     /// Print a command's parameter schema or a result schema.
     ///

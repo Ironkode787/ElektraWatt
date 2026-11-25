@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Command metadata (doc 17 §2.1, §2.3): cost, exposure class, stability, confirmation and the origin of a
+//! Command metadata (doc 17 §2.1, §2.3): cost, exposure class, confirmation and the origin of a
 //! transaction.
 
 use serde::{Deserialize, Serialize};
@@ -60,18 +60,6 @@ impl Exposure {
     }
 }
 
-/// The stability promise of a command's name and parameters (doc 17 §2.1, §11).
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Stability {
-    /// Frozen; a breaking parameter change bumps `params_version`.
-    Stable,
-    /// May change before 1.0 (every v0 command).
-    Preview,
-    /// Not part of the public catalogue.
-    Internal,
-}
-
 /// Whether a front-end asks before submitting (ADR-0008 amendment 1, NFR-UX-07).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -90,16 +78,12 @@ pub enum Confirmation {
 pub struct CommandMeta {
     /// The stable dotted name, `[a-z_]+ "." [a-z_.]+`, never reused (FR-EXT-015).
     pub name: &'static str,
-    /// Bumped only by a breaking parameter change.
-    pub params_version: u16,
     /// The default cost; an instance may report another one (`edit.delete` above 500 records).
     pub cost: Cost,
     /// Whether the transaction enters the undo stack; otherwise it is a marker line.
     pub undoable: bool,
     /// The exposure class.
     pub exposure: Exposure,
-    /// The stability level.
-    pub stability: Stability,
     /// Retired names and palette aliases; they resolve to `name`, which the journal records.
     pub aliases: &'static [&'static str],
     /// Whether front-ends confirm before submitting.
@@ -110,16 +94,13 @@ pub struct CommandMeta {
 }
 
 impl CommandMeta {
-    /// The metadata of an undoable, interactive `Edit` command at `params_version` 1 and stability
-    /// `Preview`, without aliases: the shape of every v0 editor command.
+    /// The metadata of an undoable, interactive `Edit` command without aliases: the shape of every v0 editor command.
     pub const fn edit(name: &'static str) -> CommandMeta {
         CommandMeta {
             name,
-            params_version: 1,
             cost: Cost::Interactive,
             undoable: true,
             exposure: Exposure::Edit,
-            stability: Stability::Preview,
             aliases: &[],
             confirmation: Confirmation::None,
             reproduces: &[],

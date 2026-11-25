@@ -7,15 +7,15 @@
 //! The commands are listed once, in the `commands!` invocation below; [`CommandRegistry::builtin`] holds every one by
 //! name. The book's command table (`docs/book/src/reference/commands/index.md`) is generated from their schemas.
 //!
-//! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
+//! Every command is undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1), and `revision.release`,
 //! the release's stamp, which a released revision's immutability makes a barrier (FR-REV-009); every one is of exposure
 //! class `Edit` except `project.checks.set`, `check.waive` and `check.unwaive`, which are `HumanOnly` (ADR-0008 amendment
 //! 3: they decide a check outcome), `revision.set_author`, `revision.withdraw`, `revision.approve` and
 //! `revision.release`, which are `HumanOnly` because they decide the four-eyes sign-off and the release history,
 //! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back.
-//! `external.apply` is of exposure class `Internal` and stability `Internal`: only the session's external-change apply
-//! submits it, from the origin `external`.
+//! `external.apply` is of exposure class `Internal`: only the session's external-change apply submits it, from the
+//! origin `external`.
 
 mod assembly;
 mod assets;

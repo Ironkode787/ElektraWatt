@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The CLI table: one entry per subcommand path of the derive tree ([`crate::cli::command`]) with its
-//! flags, its exit codes, its result schema and its stability.
+//! flags, its exit codes and its result schema.
 //!
 //! The paths and the flags (name, value, repetition) come from walking clap's tree in declaration order, skipping
 //! clap's own help and version; the exit codes and the result of each path are its `Leaf` beside its run function
-//! (`cli/tree.rs`), which the walk reads as it goes ([`crate::cli::entries`]); every path is [`Stability::Preview`]
-//! before 1.0. The tests below tie the entries to the published result schemas ([`ew_api::cli_results::RESULTS`]).
+//! (`cli/tree.rs`), which the walk reads as it goes ([`crate::cli::entries`]). The tests below tie the entries to the
+//! published result schemas ([`ew_api::cli_results::RESULTS`]).
 //! It is the source of the CLI snapshot and the CLI reference.
 
 /// One flag of a subcommand.
@@ -30,13 +30,6 @@ pub struct Exit {
     pub meaning: &'static str,
 }
 
-/// The stability of a surface (doc 17 §11): every surface is Preview before 1.0.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Stability {
-    /// May change before 1.0 with a release-note line.
-    Preview,
-}
-
 /// One subcommand path of the CLI: its words and flags from the tree, its exits and result from its `Leaf`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Entry {
@@ -48,8 +41,6 @@ pub struct Entry {
     pub exits: &'static [Exit],
     /// The schema name of its `--json` result, or `None` when it prints none.
     pub result: Option<&'static str>,
-    /// Its stability.
-    pub stability: Stability,
 }
 
 /// The exit code `code` with what it means for a subcommand.
@@ -108,7 +99,6 @@ pub fn entry(
         flags: flags(cmd),
         exits,
         result,
-        stability: Stability::Preview,
     }
 }
 
@@ -275,7 +265,6 @@ mod tests {
                 None => assert!(!has("--json"), "{:?} takes `--json` without a result", e.path),
             }
             assert!(e.exits.iter().any(|x| x.code == 0), "{:?}", e.path);
-            assert_eq!(e.stability, Stability::Preview);
         }
         for r in ew_api::cli_results::RESULTS {
             let Some(flag) = r.flag else { continue };
@@ -313,7 +302,6 @@ mod tests {
         flags: Vec<SnapshotFlag>,
         exits: Vec<SnapshotExit>,
         result: Option<&'static str>,
-        stability: &'static str,
     }
 
     #[derive(serde::Serialize)]
@@ -354,9 +342,6 @@ mod tests {
                     })
                     .collect(),
                 result: e.result,
-                stability: match e.stability {
-                    Stability::Preview => "preview",
-                },
             })
             .collect();
         cli.sort_by(|a, b| a.path.cmp(&b.path));
@@ -390,14 +375,12 @@ mod tests {
                 flags: vec![flag("--out", true), flag("--json", false)],
                 exits: &[OK, USAGE_ETC],
                 result: Some("ew.export-pdf-result/1"),
-                stability: Stability::Preview,
             },
             Entry {
                 path: vec!["commands".to_owned()],
                 flags: Vec::new(),
                 exits: &[OK],
                 result: None,
-                stability: Stability::Preview,
             },
         ];
         assert_eq!(
@@ -413,8 +396,7 @@ mod tests {
           "meaning": "success"
         }
       ],
-      "result": null,
-      "stability": "preview"
+      "result": null
     },
     {
       "path": "export pdf",
@@ -440,8 +422,7 @@ mod tests {
           "meaning": "usage, open, I/O and every other error"
         }
       ],
-      "result": "ew.export-pdf-result/1",
-      "stability": "preview"
+      "result": "ew.export-pdf-result/1"
     }
   ]
 }

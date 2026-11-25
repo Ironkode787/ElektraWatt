@@ -192,11 +192,9 @@ impl CommandRegistry {
                 let m = &e.meta;
                 json!({
                     "name": m.name,
-                    "params_version": m.params_version,
                     "cost": m.cost,
                     "undoable": m.undoable,
                     "exposure": m.exposure,
-                    "stability": m.stability,
                     "aliases": m.aliases,
                     "confirmation": m.confirmation,
                     "schema": format!("{}.schema.json", m.name),

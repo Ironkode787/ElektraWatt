@@ -665,7 +665,7 @@ pub const DESCRIPTION_LINT: RuleMeta = RuleMeta {
     code: "104065",
     title: "Description lint",
     kind: RuleKind::Hygiene,
-    modes: Modes::letters("fr"),
+    modes: Modes::letters("r"),
     severity: Severity::Warning,
     release_severity: None,
     scope: ScopeKind::Project,

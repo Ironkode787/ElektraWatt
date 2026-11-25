@@ -22,7 +22,7 @@ use serde_json::Value;
 
 use crate::command::{DynCommand, Outcome};
 use crate::error::CmdError;
-use crate::meta::{CommandMeta, Cost, Exposure, Stability};
+use crate::meta::{CommandMeta, Cost, Exposure};
 use crate::tx::TxBuilder;
 use ew_l10n::TextArg;
 
@@ -404,7 +404,6 @@ impl DynCommand for ApplyImport {
             cost: Cost::Bulk,
             undoable: !self.checkpoint,
             exposure: Exposure::Import,
-            stability: Stability::Internal,
             ..CommandMeta::edit(Self::NAME)
         }
     }

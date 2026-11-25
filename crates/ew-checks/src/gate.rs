@@ -108,10 +108,8 @@ pub fn pack_definition(pack: &str) -> Option<String> {
         let modes = m.modes;
         let letters: String = [
             (modes.online, 'o'),
-            (modes.offline, 'f'),
             (modes.prevent, 'p'),
             (modes.release, 'r'),
-            (modes.export, 'x'),
             (modes.gate, 'g'),
         ]
         .iter()

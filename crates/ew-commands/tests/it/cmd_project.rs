@@ -237,7 +237,10 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     assert_eq!(lines(e.model()), before);
     assert!(e.model().asset(&logo.sha256).is_some(), "undo keeps the bytes");
     e.redo(&Origin::Gui).unwrap();
-    assert_eq!(ew_schema::company_logo(&e.model().project().extra, |_| None), Some(logo));
+    assert_eq!(
+        ew_schema::company_logo(&e.model().project().extra, |_| None),
+        Some(logo)
+    );
     // A raster logo says that it prints rasterised.
     let p = e
         .preview(&any(

@@ -1549,8 +1549,6 @@ pub struct CommandEntry {
     pub name: String,
     /// The other names it answers to.
     pub aliases: Vec<String>,
-    /// The version of its parameters.
-    pub params_version: u32,
     /// `interactive` or `batch`.
     pub cost: String,
     /// The exposure class (`edit`, `human_only`, …).
@@ -1559,8 +1557,6 @@ pub struct CommandEntry {
     pub confirmation: String,
     /// Whether it is undoable.
     pub undoable: bool,
-    /// `preview` before 1.0.
-    pub stability: String,
     /// The parameter schema's file (`ew schema <name>` prints it).
     pub schema: String,
 }

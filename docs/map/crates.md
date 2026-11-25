@@ -42,7 +42,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/catalogue.rs` |  | The CLI table: one entry per subcommand path of the derive tree ([`crate::cli::command`]) with its flags, its exit codes, its result schema and its stability. |
+| `src/catalogue.rs` |  | The CLI table: one entry per subcommand path of the derive tree ([`crate::cli::command`]) with its flags, its exit codes and its result schema. |
 | `src/cli.rs` |  | Argument parsing and the commands of the `ew` CLI. |
 | `src/cli/apply.rs` |  | `ew apply` and its preview, `ew update-copies`, `ew commands` and `ew schema`. |
 | `src/cli/assets.rs` |  | `ew project assets purge`. |
@@ -320,7 +320,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/history.rs` |  | The project-wide undo stack (ADR-0008, ARCH §5.3). |
 | `src/jsonschema.rs` |  | A JSON Schema 2020-12 validator for the subset of keywords that schemars 1.x emits for command parameters, so that `AnyCommand` parameters are rejected with the JSON Pointer of the offending value (doc 17 §2.1) before they are deserialised. |
 | `src/lib.rs` |  | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`. |
-| `src/meta.rs` |  | Command metadata (doc 17 §2.1, §2.3): cost, exposure class, stability, confirmation and the origin of a transaction. |
+| `src/meta.rs` |  | Command metadata (doc 17 §2.1, §2.3): cost, exposure class, confirmation and the origin of a transaction. |
 | `src/normalise/bound_texts.rs` |  | Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text of a symbol moves with it. |
 | `src/normalise/bus_nets.rs` |  | Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "nets from drawn lines"; doc 06 §3.2 after row 14a). |
 | `src/normalise/bus_ports.rs` |  | Normaliser #14a, bus ports from the part (N5; .2, D16; doc 06 §3.2 between rows 14 and 15). |

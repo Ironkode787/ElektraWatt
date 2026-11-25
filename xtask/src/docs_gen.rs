@@ -551,11 +551,10 @@ fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Su
             .to_owned();
         let _ = writeln!(
             rows,
-            "| [`{name}`]({name}.md) | {} | {} | {} | {} |",
+            "| [`{name}`]({name}.md) | {} | {} | {} |",
             cell(&summary),
             str_of(entry, "cost"),
             str_of(entry, "exposure"),
-            str_of(entry, "stability"),
         );
         files.insert(command_page_path(name), page);
         items.push((format!("`{name}`"), command_page_path(name), 0));
@@ -570,11 +569,16 @@ fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Su
          below gives the command's registry entry, its parameters with types and constraints, and the exit codes of \
          `ew apply`.\n\n\
          {} commands, as `ew commands --json` lists them; `ew schema <name>` prints a command's parameter schema. The \
-         catalogue of the command registry is [doc 17 §2.1]({}).\n\n\
-         | Command | Summary | Cost | Exposure | Stability |\n|---|---|---|---|---|\n{rows}",
+         catalogue of the command registry is [doc 17 §2.1]({}). Every command is Preview before 1.0: a breaking \
+         change needs a release-note line ([doc 17 §11]({})).\n\n\
+         | Command | Summary | Cost | Exposure |\n|---|---|---|---|\n{rows}",
         header("the command registry"),
         items.len(),
         repo_link("docs/design/17-commands-cli.md", Some("21-command-registry")),
+        repo_link(
+            "docs/design/17-scripting-sql-plugins.md",
+            Some("11-api-stability-and-versioning")
+        ),
     );
     files.insert(format!("{COMMANDS_DIR}/index.md"), page);
     Ok(items)
@@ -609,17 +613,12 @@ fn command_page(entry: &Value, schema: &Value, consts: &BTreeMap<&str, String>) 
         out,
         "## Registry entry\n\n| Item | Value |\n|---|---|\n\
          | Name | `{name}` |\n\
-         | Parameters version | {} |\n\
          | Cost | {} |\n\
          | Undoable | {} |\n\
          | Exposure | {} |\n\
-         | Stability | {} |\n\
          | Confirmation | {} |\n\
          | Aliases | {} |\n\
          | Parameter schema | `ew schema {name}` |\n\n",
-        entry
-            .get("params_version")
-            .map_or_else(String::new, Value::to_string),
         str_of(entry, "cost"),
         if entry.get("undoable").and_then(Value::as_bool) == Some(true) {
             "yes"
@@ -627,7 +626,6 @@ fn command_page(entry: &Value, schema: &Value, consts: &BTreeMap<&str, String>) 
             "no"
         },
         str_of(entry, "exposure"),
-        str_of(entry, "stability"),
         str_of(entry, "confirmation"),
         if aliases.is_empty() {
             "none".to_owned()
@@ -1344,10 +1342,9 @@ fn cli_group_page(
         let synopsis: Vec<String> = flags.iter().map(|f| flag_synopsis(f)).collect();
         let _ = write!(
             out,
-            "## `ew {path}`\n\n```text\new {path}{}{}\n```\n\nStability: {}.\n\n",
+            "## `ew {path}`\n\n```text\new {path}{}{}\n```\n\n",
             if synopsis.is_empty() { "" } else { " " },
             synopsis.join(" "),
-            str_of(entry, "stability"),
         );
         if flags.is_empty() {
             out.push_str("No flags.\n\n");
@@ -2309,8 +2306,8 @@ mod tests {
 
     #[test]
     fn a_command_page_lists_parameters_types_and_exit_codes() {
-        let entry = json!({"name": "x.y", "params_version": 1, "cost": "bulk", "undoable": true, "exposure": "edit",
-            "stability": "preview", "aliases": [], "confirmation": "none", "schema": "x.y.schema.json"});
+        let entry = json!({"name": "x.y", "cost": "bulk", "undoable": true, "exposure": "edit",
+            "aliases": [], "confirmation": "none", "schema": "x.y.schema.json"});
         let schema = json!({
             "$defs": {"Id": {"description": "An id.", "type": "string", "pattern": "^a$", "minLength": 1}},
             "description": "`x.y`: does a thing.\n\nRejected: nothing.",
@@ -2633,9 +2630,8 @@ mod tests {
             {"path": "export pdf", "flags": [{"name": flag, "value": true, "repeatable": false},
                 {"name": "--company", "value": true, "repeatable": true}],
              "exits": [{"code": 0, "meaning": "written"}, {"code": 2, "meaning": "usage | open"}],
-             "result": "ew.export-pdf-result/1", "stability": "preview"},
-            {"path": "schema", "flags": [], "exits": [{"code": 0, "meaning": "success"}], "result": null,
-             "stability": "preview"}
+             "result": "ew.export-pdf-result/1"},
+            {"path": "schema", "flags": [], "exits": [{"code": 0, "meaning": "success"}], "result": null}
         ]})
     }
 
@@ -2670,7 +2666,6 @@ mod tests {
              change the source and regenerate. -->\n\n\
              1 subcommand path(s). The synopsis lists the flags; `ew help` prints the positional arguments too.\n\n\
              ## `ew export pdf`\n\n```text\new export pdf [--out <out>] [--company <company>]...\n```\n\n\
-             Stability: preview.\n\n\
              | Flag | Takes a value | Repeatable |\n|---|---|---|\n| `--out` | yes | no |\n| `--company` | yes | yes |\n\n\
              **Exit codes**\n\n| Code | Meaning |\n|---|---|\n| 0 | written |\n| 2 | usage \\| open |\n\n\
              **Result** (`--json`): `ew.export-pdf-result/1`; `ew schema ew.export-pdf-result/1` prints its schema.\n\n\
@@ -2683,7 +2678,7 @@ mod tests {
              <!-- Generated by `cargo xtask docs-gen` from the catalogue of `ew` and its result schemas. Do not edit: \
              change the source and regenerate. -->\n\n\
              1 subcommand path(s). The synopsis lists the flags; `ew help` prints the positional arguments too.\n\n\
-             ## `ew schema`\n\n```text\new schema\n```\n\nStability: preview.\n\nNo flags.\n\n\
+             ## `ew schema`\n\n```text\new schema\n```\n\nNo flags.\n\n\
              **Exit codes**\n\n| Code | Meaning |\n|---|---|\n| 0 | success |\n\n\
              **Result:** none; the subcommand prints text only.\n\n"
         );

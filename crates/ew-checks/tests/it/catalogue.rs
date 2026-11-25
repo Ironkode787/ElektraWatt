@@ -19,10 +19,8 @@ use serde_json::{Value, json};
 fn modes(m: Modes) -> Vec<&'static str> {
     [
         (m.online, "online"),
-        (m.offline, "offline"),
         (m.prevent, "prevent"),
         (m.release, "release"),
-        (m.export, "export"),
         (m.gate, "gate"),
     ]
     .into_iter()

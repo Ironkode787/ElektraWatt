@@ -288,8 +288,8 @@ impl Leaf for CommandsCli {
     const RESULT: Option<&'static str> = Some(results::CommandsResult::SCHEMA);
 }
 
-/// `ew commands [--json]`: the command registry, one line per command (name, parameters version,
-/// exposure, cost, confirmation, undoable, stability, aliases), or its JSON result.
+/// `ew commands [--json]`: the command registry, one line per command (name, exposure, cost, confirmation, undoable,
+/// aliases), or its JSON result.
 pub(super) fn run_commands(json: bool) -> i32 {
     let list = results::commands();
     if json {
@@ -298,14 +298,12 @@ pub(super) fn run_commands(json: bool) -> i32 {
     }
     for c in &list.commands {
         println!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}",
             c.name,
-            c.params_version,
             c.exposure,
             c.cost,
             c.confirmation,
             if c.undoable { "undoable" } else { "not undoable" },
-            c.stability,
             c.aliases.join(",")
         );
     }

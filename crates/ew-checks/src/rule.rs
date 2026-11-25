@@ -38,20 +38,16 @@ impl RuleKind {
     }
 }
 
-/// The modes a rule runs in (doc 15 §3.1). The integrity-run, import-run and library-linter modes of the catalogue
-/// (n, i, l) are not modelled yet: no implemented rule has them.
+/// The modes a rule runs in (doc 15 §3.1). The offline, export, integrity-run, import-run and library-linter modes of
+/// the catalogue (f, x, n, i, l) are not modelled: no part of the program runs a rule in them.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct Modes {
     /// o: memoised `checks(scope)` on every commit.
     pub online: bool,
-    /// f: a check job on a fork.
-    pub offline: bool,
     /// p: the commit validator on the candidate snapshot (ADR-0009).
     pub prevent: bool,
     /// r: the release gate and `ew check`.
     pub release: bool,
-    /// x: before an exporter writes.
-    pub export: bool,
     /// g: the release gate only (doc 15 §3.2, §4.8; the EW-REL rules): never in an online run or a plain release-mode
     /// run, so `ew check` does not report them; [`gate`](crate::gate) evaluates them.
     pub gate: bool,
@@ -64,20 +60,16 @@ impl Modes {
         let b = s.as_bytes();
         let mut m = Modes {
             online: false,
-            offline: false,
             prevent: false,
             release: false,
-            export: false,
             gate: false,
         };
         let mut i = 0;
         while i < b.len() {
             match b[i] {
                 b'o' => m.online = true,
-                b'f' => m.offline = true,
                 b'p' => m.prevent = true,
                 b'r' => m.release = true,
-                b'x' => m.export = true,
                 b'g' => m.gate = true,
                 _ => {}
             }

@@ -656,7 +656,7 @@ pub const USED_WITHOUT_ADDRESS: RuleMeta = RuleMeta {
     code: "110008",
     title: "Used channel without address",
     kind: RuleKind::Completeness,
-    modes: Modes::letters("oxr"),
+    modes: Modes::letters("or"),
     severity: Severity::Warning,
     release_severity: None,
     scope: ScopeKind::Module,

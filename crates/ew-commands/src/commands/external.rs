@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
-use crate::meta::{CommandMeta, Exposure, Stability};
+use crate::meta::{CommandMeta, Exposure};
 use crate::tx::TxBuilder;
 
 /// `external.apply` (`ApplyExternal`): the records of a project that changed on disk (a pull, a checkout, a sync
@@ -42,7 +42,6 @@ impl Command for ApplyExternal {
     fn meta() -> CommandMeta {
         CommandMeta {
             exposure: Exposure::Internal,
-            stability: Stability::Internal,
             ..CommandMeta::edit(Self::NAME)
         }
     }

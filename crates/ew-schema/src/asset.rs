@@ -3634,12 +3634,18 @@ mod tests {
         assert_eq!(company_logo(&extra, |_| None), None);
         extra.insert(COMPANY_MEMBER.into(), serde_json::json!({"logo": hash}));
         assert_eq!(company_logo(&extra, |_| None), Some(png));
-        assert_eq!(company_logo(&extra, |sha| (*sha == svg.sha256).then_some(svg)), Some(svg));
+        assert_eq!(
+            company_logo(&extra, |sha| (*sha == svg.sha256).then_some(svg)),
+            Some(svg)
+        );
         extra.insert(
             COMPANY_MEMBER.into(),
             serde_json::json!({"logo": {"sha256": hash, "format": "svg", "size": [3, 1]}}),
         );
-        assert_eq!(company_logo(&extra, |_| Some(png)).map(|r| r.size), Some(Some((3, 1))));
+        assert_eq!(
+            company_logo(&extra, |_| Some(png)).map(|r| r.size),
+            Some(Some((3, 1)))
+        );
         extra.insert(COMPANY_MEMBER.into(), serde_json::json!({"logo": 5}));
         assert_eq!(company_logo(&extra, |_| None), None);
     }

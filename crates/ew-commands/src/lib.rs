@@ -123,7 +123,7 @@ pub use jsonschema::{
     MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS, MAX_PARAM_STRING, SchemaViolation, check_limits,
     validate as validate_schema,
 };
-pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin, Stability};
+pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
 pub use transaction::{Submit, Transaction};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
