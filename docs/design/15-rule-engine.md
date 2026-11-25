@@ -490,8 +490,8 @@ rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }; { $loa
   findings keep the words the store and the importer wrote (`words-as-written`). An argument is printed text, a
   number a pattern selects on, a word by key (`word-…`: "a location", "a device without designation"), a name a person
   wrote in several languages, another finding's text (EW-CORE-013), or a list of them joined by the language's words
-  (`join-…`); a pattern writes a measured value with `DECIMAL($x)` (the language's decimal separator). A quick fix's
-  label is a text by key (`fix-…`).
+  (`join-…`); a pattern writes a measured value with `DECIMAL($x)`: the decimal separator the project sets, in every
+  language, else the language's. A quick fix's label is a text by key (`fix-…`).
 - **F1 help.** F1 on a finding opens `docs` in the bundled offline documentation (FR-CHK-015, FR-UI-031): what is
   checked and why, the standard by number and clause without copied text, an example, quick fixes and waiver
   guidance (NFR-DOC-02). CI fails when the page is missing. Company packs ship `docs/<rule>.md`, which EW renders to

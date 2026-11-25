@@ -149,7 +149,7 @@ rule-ew-core-032 = core { $core } { $form ->
             [yes] { $sep_colour }colour { $colour_core } ≠ { $colour_part }
            *[no] {""}
         }{ $csa ->
-            [yes] { $sep_csa }cross-section { $csa_core } ≠ { $csa_part }
+            [yes] { $sep_csa }cross-section { DECIMAL($csa_core) } ≠ { DECIMAL($csa_part) }
            *[no] {""}
         }{ $kind ->
             [yes] { $sep_kind }kind { $kind_core } ≠ { $kind_part }
@@ -258,7 +258,7 @@ rule-ew-core-053 = { $item }: { $form ->
     .title = Cross-reference cell invalid
     .hint = Restore the default anchor policy, or move the anchor into a cell that holds the graphics.
 
-rule-ew-core-061 = { $name } prints { $height } mm high, too small to read on paper ({ $minimum } mm at least). Make it larger in Text styles.
+rule-ew-core-061 = { $name } prints { DECIMAL($height) } mm high, too small to read on paper ({ DECIMAL($minimum) } mm at least). Make it larger in Text styles.
     .title = Text below minimum height
     .hint = Open the message: Text styles opens at the style. Make it at least 1.2 mm high there, or press Set to 1.2 mm.
 
@@ -516,14 +516,14 @@ rule-ew-lay-006 = { $form ->
 
 rule-ew-lay-010 = { $form ->
         [on_duct] { $device } is placed on the duct at { $duct }, which carries no devices; place it on a rail
-        [off_rail] { $device } is placed at { $s } mm on the rail at { $rail }, outside its 0.0 to { $length } mm; move it onto the rail
+        [off_rail] { $device } is placed at { DECIMAL($s) } mm on the rail at { $rail }, outside its { DECIMAL("0.0") } to { DECIMAL($length) } mm; move it onto the rail
         [rail_turn] { $device } is turned on the rail at { $rail } by an angle other than 0° or 180°; turn it back
         [off_axis] { $device } is placed beside the axis of the rail at { $rail }; move it onto the rail
         [profile] { $device } (part { $part }) does not fit the rail at { $rail } ({ $profile }); place it on a rail it fits
         [surface_turn] { $device } is turned on the mounting plate by an angle other than a multiple of 90°; turn it back
         [off_surface] { $device } is placed off the plane of the mounting plate; place it on the plate
         [surface] { $device } (part { $part }) does not mount on the plate itself; place it on a rail
-        [overflow] { $device } occupies { $from } to { $to } mm on the rail at { $rail }, beyond its 0.0 to { $length } mm; shorten it or move it
+        [overflow] { $device } occupies { DECIMAL($from) } to { DECIMAL($to) } mm on the rail at { $rail }, beyond its { DECIMAL("0.0") } to { DECIMAL($length) } mm; shorten it or move it
         [outside] { $device } lies outside the usable area of the mounting plate; move it inside
         [bracket_overlap] The end bracket { $side ->
             [before] before
@@ -541,7 +541,7 @@ rule-ew-lay-010 = { $form ->
         } { $device } passes the { $edge ->
             [start] start
            *[end] end
-        } of { $rail } by { $by } mm.
+        } of { $rail } by { DECIMAL($by) } mm.
         [path] the path of the { $carrier ->
             [rail] rail at { $at } is not two points on one horizontal or vertical line
             [duct] duct at { $at } is not a line of horizontal and vertical segments
@@ -830,7 +830,7 @@ rule-ew-pot-001 = { $form ->
     .hint = Take away the wire that joins two different potentials, or correct the definition of one of them. A 0 V joined to earth some other way than by a wire drawn straight to an earth point needs its bond declared (Draw ▸ Connect ▸ Bond).
 
 pot-conflict-type = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: a wire joins two different potentials. If one of them is typed wrongly, correct its type; otherwise the wire goes to the wrong place: move it or take it away.
-pot-conflict-voltage = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: one conductor cannot carry two voltages. If one voltage is typed wrongly, correct it; otherwise the wire goes to the wrong place: move it or take it away.
+pot-conflict-voltage = { $p0 } ({ DECIMAL($p1) }) is wired to { $p2 } ({ DECIMAL($p3) }){ $p4 }: one conductor cannot carry two voltages. If one voltage is typed wrongly, correct it; otherwise the wire goes to the wrong place: move it or take it away.
 pot-conflict-environment = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: one conductor cannot be both. If one setting is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
 pot-conflict-class = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: one conductor cannot be in two circuit classes. If one class is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
 pot-conflict-role = { $p0 } ({ $p1 }) is wired to { $p2 } ({ $p3 }){ $p4 }: a wire joins two different potentials. If the pin is wired to the wrong conductor, move its wire; if { $p2 } is typed wrongly, correct its type.
@@ -879,10 +879,10 @@ rule-ew-pot-005 = Wire { $wire } is blue but carries { $potential }{ $type ->
     .title = BU on a non-N conductor
     .hint = Use another colour for the wire, or a cable whose blue core carries the neutral.
 
-rule-ew-pot-006 = PE wire { $wire } has { $pe } mm², below the { $required } mm² required for the { $line } mm² line conductors at { $at }{ $verified ->
+rule-ew-pot-006 = PE wire { $wire } has { DECIMAL($pe) } mm², below the { DECIMAL($required) } mm² required for the { DECIMAL($line) } mm² line conductors at { $at }{ $verified ->
         [yes] {""}
        *[no] {" "}(the sizing table is not verified against the standard)
-    }. Make it at least { $required } mm² in its Properties.
+    }. Make it at least { DECIMAL($required) } mm² in its Properties.
     .title = PE undersized
     .hint = Increase the protective conductor's cross-section to the required size.
 
@@ -956,7 +956,7 @@ rule-ew-pot-015 = Wire number { $number } is printed on { $count } wires that ar
     .hint = Give each wire its own number, or join the wires if they are one conductor.
 
 rule-ew-pot-016 = Wire { $wire } has { $member ->
-        [csa] its cross-section { $value }
+        [csa] its cross-section { DECIMAL($value) }
         [colour] its colour { $value }
         [wire_part] its wire part
         [insulation] its insulation
@@ -983,7 +983,7 @@ rule-ew-pot-021 = { $cp_shared ->
     .title = Load not returned
     .hint = Wire the load's return side to the return conductor of its supply (0 V, N), or link it to the module's return pin.
 
-rule-ew-pot-022 = Wire { $wire } has its cross-section { $size } set by hand, below the { $needed } that the { $current } A rating of { $device } needs by the current table (IEC 60204-1 Table 6, method B2). Take the proposed size.
+rule-ew-pot-022 = Wire { $wire } has its cross-section { DECIMAL($size) } set by hand, below the { DECIMAL($needed) } that the { DECIMAL($current) } A rating of { $device } needs by the current table (IEC 60204-1 Table 6, method B2). Take the proposed size.
     .title = Cross-section below its protection
     .hint = Take the proposed size, or a larger one, or protect the wire by a device of a lower rating.
 

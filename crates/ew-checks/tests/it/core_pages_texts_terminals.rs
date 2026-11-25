@@ -262,6 +262,31 @@ fn core061_reports_a_drawn_cp_label_style_once() {
     assert!(findings_of(&slots_fx(restyled).build(), "EW-CORE-061").is_empty());
 }
 
+/// EW-CORE-061 writes its millimetres with the decimal separator the project sets, in every language (a comma in
+/// en-GB, a point in nl-NL), and without one as the reader's language writes them.
+#[test]
+fn core061_writes_the_decimal_separator_the_project_sets() {
+    let message = |separator: Option<&str>, lang: &str| {
+        let mut fx = slots_fx(cp_slots(true));
+        if let Some(s) = separator {
+            fx.settings["formatting"]["decimal_separator"] = json!(s);
+        }
+        let f = findings_of(&fx.build(), "EW-CORE-061");
+        ew_checks::messages::render(&f[0], lang)
+    };
+    assert_eq!(message(None, "en-GB"), small_text("Pin designation").1);
+    assert_eq!(message(Some("point"), "en-GB"), small_text("Pin designation").1);
+    assert_eq!(
+        message(Some("comma"), "en-GB"),
+        "Pin designation prints 0,94 mm high, too small to read on paper (1,20 mm at least). Make it larger in Text \
+         styles."
+    );
+    let dutch = message(None, "nl-NL");
+    assert!(dutch.contains("0,94 mm") && dutch.contains("1,20 mm"), "{dutch}");
+    let dutch = message(Some("point"), "nl-NL");
+    assert!(dutch.contains("0.94 mm") && dutch.contains("1.20 mm"), "{dutch}");
+}
+
 /// EW-CORE-061: a shown wire marker prints in `marker`; with the CP labels both small styles are reported, in the
 /// table's order.
 #[test]

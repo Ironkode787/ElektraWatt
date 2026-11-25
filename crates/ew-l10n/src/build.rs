@@ -12,8 +12,8 @@ use std::path::Path;
 /// into the build's output directory, and has cargo run the build script again when the folder changes:
 ///
 /// - `texts.rs`: `TEXTS`, every one-line text of the en-GB files that takes only positional arguments (`{ $p0 }`,
-///   `{ $p1 }`, …), sorted by key, with its English: the arguments written `{0}`, `{1}`, … and a string literal
-///   (`{"{"}`, `{", "}`) as its text;
+///   `{ $p1 }`, …, also inside a function such as `{ DECIMAL($p1) }`), sorted by key, with its English: the arguments
+///   written `{0}`, `{1}`, … and a string literal (`{"{"}`, `{", "}`) as its text;
 /// - `keys.rs`: `KEYS`, every text key of the en-GB files, sorted by bytes;
 /// - `sources.rs`: `SOURCES`, every file of every language as (language, its text), the languages and each
 ///   language's files in name order.
@@ -109,8 +109,8 @@ pub fn generate(folder: &str) {
     std::fs::write(Path::new(&dir).join("sources.rs"), out).expect("the source list is written");
 }
 
-/// The table's form of a one-line Fluent value, or `None` when it holds anything but positional arguments and
-/// string literals without escapes.
+/// The table's form of a one-line Fluent value, or `None` when it holds anything but positional arguments (bare or as
+/// a function's one argument) and string literals without escapes.
 fn template(value: &str) -> Option<String> {
     let mut out = String::new();
     let mut rest = value;
@@ -129,6 +129,12 @@ fn template(value: &str) -> Option<String> {
         }
         let close = open + rest[open..].find('}')?;
         let inner = rest[open + 1..close].trim();
+        // A function of one positional argument (`DECIMAL($p1)`) holds that argument.
+        let inner = inner
+            .strip_suffix(')')
+            .and_then(|i| i.split_once('('))
+            .filter(|(f, _)| !f.is_empty() && f.bytes().all(|b| b.is_ascii_uppercase()))
+            .map_or(inner, |(_, a)| a.trim());
         let n = inner
             .strip_prefix("$p")
             .filter(|n| n.len() == 1 && n.as_bytes()[0].is_ascii_digit())?;

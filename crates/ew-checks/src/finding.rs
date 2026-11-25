@@ -160,6 +160,10 @@ pub struct Finding {
     /// The import code a live finding stands for in the migration report as well (one row per
     /// condition, [`crate::rules::imp::fold`]); `None` for every other finding.
     pub origin: Option<&'static str>,
+    /// The decimal separator the project sets (`Some(true)` a comma, `Some(false)` a point), which the message writes
+    /// its measured values with in every language; `None` where the project sets none, and the reader's language
+    /// decides ([`crate::messages`]). A run and prevent mode set it from the project.
+    pub decimal_comma: Option<bool>,
     /// The fingerprint.
     pub fingerprint: Fingerprint,
 }
@@ -196,6 +200,7 @@ impl Finding {
             fix: None,
             unverified_data: false,
             origin: None,
+            decimal_comma: None,
         }
     }
 

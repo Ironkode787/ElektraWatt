@@ -25,8 +25,9 @@
 //!
 //! The languages are rendered by the one renderer, `ew_l10n::render`, which inserts no Unicode isolation marks: the
 //! arguments are tags and names in the project's own text. `DECIMAL($x)` writes the decimal points of a printed number
-//! (`1.5 mm²`, `40.0`) as the language writes them (`1,5 mm²` in nl-NL; [`ew_l10n::render::decimal`]); a pattern wraps
-//! every argument that holds a measured value, never a wire number or a version.
+//! (`1.5 mm²`, `40.0`) with the decimal separator the project sets, in every language ([`Finding::decimal_comma`]),
+//! else as the language writes them (`1,5 mm²` in nl-NL; [`ew_l10n::render::decimal`]); a pattern of every language
+//! wraps every argument that holds a measured value, never a wire number or a version.
 
 use std::sync::OnceLock;
 
@@ -53,12 +54,23 @@ fn message_of(rule: &str) -> Option<&'static str> {
 /// `NUMBER(…, type: "ordinal")` (a pin's position) and `DECIMAL`. A resource that does not parse is a defect of this
 /// crate, caught by the message tests; the entries that parse are still served.
 fn bundle(lang: &str) -> Option<&'static Language> {
-    static CATALOGUE: OnceLock<ew_l10n::render::Catalogue> = OnceLock::new();
-    CATALOGUE
+    bundle_with(lang, None)
+}
+
+/// [`bundle`] whose `DECIMAL` writes the decimal separator `comma` a project sets ([`Finding::decimal_comma`]): a comma
+/// or a point in every language; `None`, as the language writes it.
+fn bundle_with(lang: &str, comma: Option<bool>) -> Option<&'static Language> {
+    static CATALOGUES: [OnceLock<ew_l10n::render::Catalogue>; 3] = [const { OnceLock::new() }; 3];
+    let (i, decimal): (usize, fn(&str, &str) -> String) = match comma {
+        None => (0, ew_l10n::render::decimal),
+        Some(true) => (1, |_, text| ew_l10n::render::decimal_with_comma(text)),
+        Some(false) => (2, |_, text| text.to_owned()),
+    };
+    CATALOGUES[i]
         .get_or_init(|| {
             ew_l10n::render::Catalogue::new(
                 &[crate::SOURCES, ew_derive::SOURCES],
-                &[("DECIMAL", ew_l10n::render::decimal)],
+                &[("DECIMAL", decimal)],
                 true,
             )
         })
@@ -91,7 +103,7 @@ pub fn text_style_name(key: &str, lang: &str) -> String {
 /// The finding's text rendered from the pattern of `lang`, when the language ships, the text's key has a pattern in it
 /// and the pattern resolves without an error; else `None`.
 pub fn format(f: &Finding, lang: &str) -> Option<String> {
-    bundle(lang)?.text(&f.text, OnError::Miss)
+    bundle_with(lang, f.decimal_comma)?.text(&f.text, OnError::Miss)
 }
 
 /// The finding's message in `lang` (`ew check --lang`, the message panel): in en-GB the message itself; in another
@@ -100,7 +112,7 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
 pub fn render(f: &Finding, lang: &str) -> String {
     format(f, lang)
         .or_else(|| format(f, DEFAULT_LANGUAGE))
-        .or_else(|| bundle(DEFAULT_LANGUAGE)?.text(&f.text, OnError::Keep))
+        .or_else(|| bundle_with(DEFAULT_LANGUAGE, f.decimal_comma)?.text(&f.text, OnError::Keep))
         .unwrap_or_else(|| f.text.to_string())
 }
 

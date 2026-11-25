@@ -399,6 +399,7 @@ fn run_rules(
         }
     }
 
+    with_project_decimal(q, &mut findings);
     sort_findings(&mut findings);
     let counts = count(&findings);
     evaluated.sort_by_key(|m| m.id);
@@ -465,8 +466,22 @@ pub fn prevent(before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
             out.extend(prevent_caught(*r, before, after, touched));
         }
     }
+    with_project_decimal(after, &mut out);
     sort_findings(&mut out);
     out
+}
+
+/// Gives each finding the decimal separator the project sets ([`Finding::decimal_comma`]), which its message writes
+/// its measured values with in every language, as the lists and Properties do.
+fn with_project_decimal(q: &Q, findings: &mut [Finding]) {
+    let comma = match q.project().settings.formatting.decimal_separator {
+        Some(ew_schema::DecimalSeparator::Comma) => Some(true),
+        Some(ew_schema::DecimalSeparator::Point) => Some(false),
+        Some(ew_schema::DecimalSeparator::Unknown(_)) | None => None,
+    };
+    for f in findings {
+        f.decimal_comma = comma;
+    }
 }
 
 /// The record IDs of a kind among the touched keys.

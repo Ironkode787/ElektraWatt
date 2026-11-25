@@ -452,11 +452,12 @@ fn a_growing_strip_pushes_the_items_after_it() {
     let mut s = fresh();
     insert_terminals(&mut s, "-X1021", 61);
     assert_eq!(s10(&s, "-X1031"), 1176 + 61 * 52);
+    // The sample sets a decimal point, which the finding writes in Dutch too.
     assert_eq!(
         bracket_findings(&s),
         pair(
             "The end bracket after +CAB-X1031 passes the end of rail 3 by 0.8 mm.",
-            "De eindsteun na +CAB-X1031 steekt 0,8 mm voorbij het einde van rail 3."
+            "De eindsteun na +CAB-X1031 steekt 0.8 mm voorbij het einde van rail 3."
         )
     );
 

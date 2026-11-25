@@ -371,9 +371,16 @@ pub fn writes_decimal_comma(tag: &str) -> bool {
 /// `text` with each decimal point between two digits written as the language `tag` writes it: the function `DECIMAL` of
 /// a rule's pattern, which wraps an argument that holds a measured value (`1.5 mm²` is `1,5 mm²` in nl-NL).
 pub fn decimal(tag: &str, text: &str) -> String {
-    if !writes_decimal_comma(tag) {
-        return text.to_owned();
+    if writes_decimal_comma(tag) {
+        decimal_with_comma(text)
+    } else {
+        text.to_owned()
     }
+}
+
+/// `text` with each decimal point between two digits written as a comma (`1.5 mm²` is `1,5 mm²`): what [`decimal`]
+/// writes in a language that writes a decimal comma, and a message of a project that sets the comma in every language.
+pub fn decimal_with_comma(text: &str) -> String {
     let chars: Vec<char> = text.chars().collect();
     chars
         .iter()

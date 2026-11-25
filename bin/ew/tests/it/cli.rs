@@ -589,7 +589,7 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
 }
 
 /// P5-2: `ew check --lang nl-NL` prints the Dutch text of the rules with an nl-NL pattern (EW-POT-006 on the sample's
-/// shield wire, set to 1.5 mm² for the test);
+/// shield wire, set to 1.5 mm² for the test; its values with the point the sample sets, in Dutch too);
 /// the default and `--lang en-GB` print the en-GB message; an unknown language is a usage error. The counts and the
 /// exit status do not depend on the language. A rule without an nl-NL pattern falls back to en-GB in `ew-checks`'
 /// `messages` tests.
@@ -629,7 +629,7 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     assert_eq!(nl.status.code(), Some(1));
     let nl_text = stdout(&nl);
     assert!(
-        nl_text.contains("-103W1/SHIELD: PE-draad -103W1/SHIELD heeft 1,5 mm², minder dan de 2,5 mm²"),
+        nl_text.contains("-103W1/SHIELD: PE-draad -103W1/SHIELD heeft 1.5 mm², minder dan de 2.5 mm²"),
         "{nl_text}"
     );
     // The same lines in the same order, the totals line equal.
