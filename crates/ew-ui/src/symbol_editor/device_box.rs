@@ -44,6 +44,19 @@ struct PinDrag(u16);
 /// One grid step of the box in millimetres.
 const STEP_MM: f32 = EDIT_STEP as f32 / 1e6;
 
+/// The steps of room around the box: one for its pins' wires and the rest for the eye, on each side.
+const ROOM_STEPS: f32 = 4.0;
+/// The zoom of the drawing in points per millimetre, at least and at most.
+const ZOOM_PT_PER_MM: std::ops::RangeInclusive<f32> = 2.0..=22.0;
+/// The width of the box's outline in points.
+const BODY_STROKE_PT: f32 = 2.0;
+/// The radius of a pin's end in points.
+const PIN_END_PT: f32 = 3.0;
+/// How much farther than `space.3` a pin answers to the pointer, in points.
+const PIN_REACH_EXTRA_PT: f32 = 2.0;
+/// The radius of the ring where a dragged pin would land, in points.
+const GHOST_RING_PT: f32 = 5.0;
+
 impl EditorView {
     /// The command row while a device box is edited: Add pin, and at the right end Test on a page, Save and Close box.
     pub(super) fn box_toolbar(
@@ -321,10 +334,10 @@ impl EditorView {
         let editable = b.places_pins();
         // The box with a step of room for its pins' wires and two for the eye, as large as the drawing allows.
         let (w, h) = (steps.w as f32 * STEP_MM, steps.h as f32 * STEP_MM);
-        let room = 4.0 * STEP_MM;
+        let room = ROOM_STEPS * STEP_MM;
         let zoom = ((canvas.width() - 2.0 * t.space_7) / (w + 2.0 * room))
             .min((canvas.height() - 2.0 * t.space_7) / (h + 2.0 * room))
-            .clamp(2.0, 22.0);
+            .clamp(*ZOOM_PT_PER_MM.start(), *ZOOM_PT_PER_MM.end());
         let origin = canvas.center() - Vec2::new(w, h) / 2.0 * zoom;
         let step = STEP_MM * zoom;
         let at = |kx: f32, ky: f32| origin + Vec2::new(kx, ky) * step;
@@ -336,7 +349,7 @@ impl EditorView {
                 for y in y0..=y0 + (canvas.height() / step).ceil() as i32 {
                     painter.circle_filled(
                         at(x as f32, y as f32),
-                        t.border_width * 1.5,
+                        t.border_width * super::canvas::CP_DOT_SHARE,
                         t.canvas_grid_dot.color32(),
                     );
                 }
@@ -396,7 +409,12 @@ impl EditorView {
         };
         let body = Rect::from_min_max(at_shown(0, 0), at_shown(shown.w, shown.h));
         let ink = t.canvas_sheet_line.color32();
-        painter.rect_stroke(body, 0.0, Stroke::new(2.0, ink), egui::StrokeKind::Middle);
+        painter.rect_stroke(
+            body,
+            0.0,
+            Stroke::new(BODY_STROKE_PT, ink),
+            egui::StrokeKind::Middle,
+        );
         // The handles that size the box, under the pins: the middle of each edge and each corner. The edges take the
         // pointer anywhere along them.
         if editable {
@@ -416,7 +434,7 @@ impl EditorView {
             theme::font(&t.type_body),
             t.text_tertiary.color32(),
         );
-        let reach = t.space_3 + 2.0;
+        let reach = t.space_3 + PIN_REACH_EXTRA_PT;
         let hovered = pointer
             .filter(|_| self.box_gesture == BoxGesture::None)
             .and_then(|p| {
@@ -430,9 +448,13 @@ impl EditorView {
         for line in &table {
             let p = pin_point(&line.side, shown_at(line.idx, line.at));
             let out = outward(&line.side);
-            painter.line_segment([p, p + out * step], Stroke::new(1.5, ink));
-            painter.circle_filled(p, 3.0, t.canvas_sheet.color32());
-            painter.circle_stroke(p, 3.0, Stroke::new(1.5, t.canvas_selection.color32()));
+            painter.line_segment([p, p + out * step], Stroke::new(super::canvas::RIM_PT, ink));
+            painter.circle_filled(p, PIN_END_PT, t.canvas_sheet.color32());
+            painter.circle_stroke(
+                p,
+                PIN_END_PT,
+                Stroke::new(super::canvas::RIM_PT, t.canvas_selection.color32()),
+            );
             // The pin's name inside the box, beside its point; on the top and bottom edges it reads upwards, as a
             // page draws it.
             let galley = painter.layout_no_wrap(line.name.clone(), theme::font(&t.type_small), ink);
@@ -467,7 +489,11 @@ impl EditorView {
             if b.selection.contains(&line.idx) {
                 super::canvas::selection_outline(&painter, &t, frame, false);
             } else if hovered == Some(line.idx) {
-                super::canvas::dashed_rect(&painter, frame, Stroke::new(1.0, t.canvas_selection.color32()));
+                super::canvas::dashed_rect(
+                    &painter,
+                    frame,
+                    Stroke::new(t.border_width, t.canvas_selection.color32()),
+                );
             }
         }
         // A press on an edge, the corner of two first, sizes the box (a pin under the pointer goes before it).
@@ -553,7 +579,11 @@ impl EditorView {
                 };
                 let place = (along.round() as i64).clamp(1, (length - 1).max(1));
                 let ghost = pin_point(&side, place);
-                painter.circle_stroke(ghost, 5.0, Stroke::new(t.focus_width, t.canvas_snap.color32()));
+                painter.circle_stroke(
+                    ghost,
+                    GHOST_RING_PT,
+                    Stroke::new(t.focus_width, t.canvas_snap.color32()),
+                );
                 painter.line_segment(
                     [ghost, ghost + outward(&side) * step],
                     Stroke::new(t.focus_width, t.canvas_snap.color32()),

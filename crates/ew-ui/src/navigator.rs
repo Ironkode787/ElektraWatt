@@ -1209,7 +1209,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                         if code == ew_viewmodel::ew_api::output::NOT_DRAWN
                             && matches!(kind, NavKind::Devices | NavKind::Plc)
                         {
-                            chip.on_hover_text(strings::text(key!("nav-badge-not-drawn-tip")));
+                            chip.tip(strings::text(key!("nav-badge-not-drawn-tip")));
                         // A library copy's state says what it means.
                         } else if kind == NavKind::Libraries
                             && let Some(tip) = ew_viewmodel::navigators::library_state_tip(code)
@@ -1349,10 +1349,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                 select_row(kind, &row.key, pages && row.openable, events);
             }
             crate::menu::row_context_menu(&response, |ui| {
-                crate::menu::fit_width(ui, &menu);
-                for item in &menu {
-                    crate::menu::row_item(ui, item, events);
-                }
+                crate::menu::items(ui, &menu, events);
             });
         }
     }

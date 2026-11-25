@@ -154,6 +154,7 @@ part-choose-target-bridge = the bridge { $p0 }
 part-choose-target-accessory = the { $p0 } { $p1 }
 part-choose-target-devices = { $p0 } devices
 part-none = none
+part-form-message = { $p0 }: { $p1 }
 part-placeholder-description = What it is
 part-placeholder-note = The parts list names it TBD with these words; choose the real part for one of its devices later and every device that has it takes that part.
 part-placeholder-use = Use as placeholder

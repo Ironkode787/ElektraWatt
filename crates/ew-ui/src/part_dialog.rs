@@ -28,6 +28,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::theme;
 use crate::theme::shares::{PART_FORM_SHARE, PART_LIST_SHARE};
 
@@ -207,7 +208,7 @@ pub(crate) fn chooser(
                             egui::Button::selectable(selected, job).wrap_mode(egui::TextWrapMode::Truncate),
                         );
                         let row = if description != o.description {
-                            row.on_hover_text(&o.description)
+                            row.tip(&o.description)
                         } else {
                             row
                         };
@@ -468,12 +469,6 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
                 events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
             });
         }
-        if let Some(m) = d.message(f) {
-            ui.colored_label(
-                t.error.color32(),
-                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args),
-            );
-        }
     }
     if small_form {
         return save;
@@ -492,12 +487,6 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
                 json!({ "field": field, "value": text }),
             ));
         });
-        if let Some(m) = d.message(&format!("tech:{k}")) {
-            ui.colored_label(
-                t.error.color32(),
-                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args),
-            );
-        }
     }
     save
 }
@@ -541,12 +530,6 @@ fn size_fields(
             save |= labelled_field(ui, label, d.text(f), false, |text| {
                 events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
             });
-        }
-        if let Some(m) = d.message(f) {
-            ui.colored_label(
-                t.error.color32(),
-                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args),
-            );
         }
         match f {
             "mech.depth" => {
@@ -718,12 +701,6 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             read_only(ui, strings::text(key!("part-field-source")), source);
         }
     });
-    // The refusal of the last Save stands under the form, above Save, in sight however far the form scrolls; its
-    // field's message stands at the field too.
-    if let Some(err) = &e.error {
-        ui.add_space(t.space_2);
-        ui.colored_label(t.error.color32(), err);
-    }
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
     }
@@ -746,7 +723,7 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
             true,
             0.0,
         )
-        .on_hover_text(strings::text(key!("part-pins-and-box-how")))
+        .tip(strings::text(key!("part-pins-and-box-how")))
         .clicked()
         {
             events.push(Event::Action("part.box", json!({})));
@@ -894,11 +871,8 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     );
     let label = |m: &str| ew_viewmodel::shell::part_dialog::plc_label(m).to_owned();
     let message = |ui: &mut Ui, m: &str| {
-        if let Some(msg) = d.message(&format!("plc.{m}")) {
-            ui.colored_label(
-                t.error.color32(),
-                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(msg.key), &msg.args),
-            );
+        if let Some(text) = field_message(d, &format!("plc.{m}")) {
+            ui.colored_label(t.error.color32(), text);
         }
     };
     let mut roles = vec![String::new()];
@@ -1066,14 +1040,7 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
     let mut save = false;
     ui.label(RichText::new(strings::text(key!("part-section-cable"))).font(theme::font(&t.type_body_strong)));
     let label = |m: &str| ew_viewmodel::shell::part_dialog::cable_label(m).to_owned();
-    let message = |ui: &mut Ui, field: &str| {
-        if let Some(msg) = d.message(field) {
-            ui.colored_label(
-                t.error.color32(),
-                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(msg.key), &msg.args),
-            );
-        }
-    };
+
     let send = |events: &mut Vec<Event>, field: &str, value: String| {
         events.push(Event::Action(
             "part.field",
@@ -1099,13 +1066,11 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
         },
         events,
     );
-    message(ui, "cable.bus");
     for m in ["cores", "csa"] {
         let field = format!("cable.{m}");
         save |= labelled_field(ui, &label(m), d.text(&field), false, |text| {
             send(events, &field, text)
         });
-        message(ui, &field);
     }
     let toggle = |ui: &mut Ui, m: &str, events: &mut Vec<Event>| {
         let field = format!("cable.{m}");
@@ -1116,7 +1081,6 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
                 send(events, &field, on.to_string());
             }
         });
-        message(ui, &field);
     };
     // A bus cable has no protective conductor.
     if d.text("cable.bus").is_empty() {
@@ -1169,8 +1133,6 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
                         }
                     }
                 });
-                message(ui, &format!("cable.core.{i}"));
-                message(ui, &format!("cable.colour.{i}"));
             });
         }
     }
@@ -1178,7 +1140,6 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
     save |= labelled_field(ui, &label("diameter"), d.text("cable.diameter"), false, |text| {
         send(events, "cable.diameter", text);
     });
-    message(ui, "cable.diameter");
     if let Some(reads) = d.cable.preview() {
         ui.add_space(t.space_2);
         ui.horizontal(|ui| {
@@ -1397,21 +1358,6 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
                     }
                 }
             });
-            for m in BUS_MEMBERS {
-                if let Some(msg) = d.message(&format!("bus.{i}.{m}")) {
-                    ui.colored_label(
-                        t.error.color32(),
-                        format!(
-                            "{}: {}",
-                            label(m),
-                            ew_viewmodel::shell::part_dialog::message_text(
-                                strings::Key::run_time(msg.key),
-                                &msg.args
-                            )
-                        ),
-                    );
-                }
-            }
         }
     }
     if d.new || d.own {
@@ -1437,6 +1383,12 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
         ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
     }
     ui.data_mut(|m| m.insert_temp(count, d.bus.len()));
+}
+
+/// The message of the field `field` of `d` in words; `None` while the field has none.
+fn field_message(d: &ew_viewmodel::ew_api::PartDraft, field: &str) -> Option<String> {
+    d.message(field)
+        .map(|m| ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args))
 }
 
 #[cfg(test)]

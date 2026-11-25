@@ -13,6 +13,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::components::{self, Kind};
 use crate::theme::{self, Tokens};
 
@@ -117,5 +118,5 @@ pub(crate) fn outline(ui: &mut Ui, t: &Tokens, width: i64, height: i64) {
         Stroke::new(1.0, t.text_secondary.color32()),
         egui::StrokeKind::Inside,
     );
-    response.on_hover_text(label);
+    response.tip(label);
 }

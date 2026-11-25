@@ -6,6 +6,21 @@
 
 use crate::theme;
 use egui::{Pos2, Stroke, Vec2};
+
+/// The radius of a connection point's ring in points: with its designation beside it, and in a small preview.
+const CP_RING_PT: f32 = 3.5;
+/// See [`CP_RING_PT`].
+const CP_RING_SMALL_PT: f32 = 1.8;
+/// How far a mark's name stands from its point, along each axis, in points.
+const NAME_OFFSET_PT: f32 = 5.0;
+/// The radius of a link point's ring in points.
+const LINK_RING_PT: f32 = 4.0;
+/// The radius of the anchor's ring in points.
+const ANCHOR_RING_PT: f32 = 6.0;
+/// Half the length of the arms of a named anchor's cross in points.
+const ANCHOR_ARM_PT: f32 = 9.0;
+/// How far the named anchor's word stands from the anchor, along each axis, in points.
+const ANCHOR_NAME_PT: f32 = 8.0;
 use ew_viewmodel::ew_api::symbols::{self, SymbolDraft};
 use ew_viewmodel::shell::symbol_editor::Item;
 use ew_viewmodel::strings;
@@ -36,7 +51,7 @@ pub(super) fn paint(
         let p = at(cp.pos);
         painter.circle_stroke(
             p,
-            if texts { 3.5 } else { 1.8 },
+            if texts { CP_RING_PT } else { CP_RING_SMALL_PT },
             Stroke::new(t.border_width, t.canvas_selection.color32()),
         );
         if texts
@@ -54,7 +69,7 @@ pub(super) fn paint(
                 .map(|c| c.designation.as_str())
                 .unwrap_or("");
             painter.text(
-                p + Vec2::new(5.0, -5.0),
+                p + Vec2::new(NAME_OFFSET_PT, -NAME_OFFSET_PT),
                 egui::Align2::LEFT_BOTTOM,
                 name,
                 theme::font(&t.type_small),
@@ -77,9 +92,13 @@ pub(super) fn paint(
             ][usize::from(variant)];
             for point in &draft.symbol.link_points {
                 let pos = at(orientation.apply(point.pos));
-                painter.circle_stroke(pos, 4.0, Stroke::new(t.border_width, t.canvas_snap.color32()));
+                painter.circle_stroke(
+                    pos,
+                    LINK_RING_PT,
+                    Stroke::new(t.border_width, t.canvas_snap.color32()),
+                );
                 painter.text(
-                    pos + Vec2::new(5.0, 5.0),
+                    pos + Vec2::splat(NAME_OFFSET_PT),
                     egui::Align2::LEFT_TOP,
                     point.name.as_str(),
                     theme::font(&t.type_small),
@@ -88,17 +107,18 @@ pub(super) fn paint(
             }
             painter.circle_stroke(
                 at(g.anchor),
-                6.0,
+                ANCHOR_RING_PT,
                 Stroke::new(t.border_width, t.canvas_snap.color32()),
             );
             // A cross-reference anchor of its own shows as a marker: its circle crossed, and its name.
             if matches!(draft.symbol.anchor, symbols::schema::AnchorPolicy::Named(_)) {
                 let p = at(g.anchor);
                 let stroke = Stroke::new(t.border_width, t.canvas_snap.color32());
-                painter.line_segment([p - Vec2::new(9.0, 0.0), p + Vec2::new(9.0, 0.0)], stroke);
-                painter.line_segment([p - Vec2::new(0.0, 9.0), p + Vec2::new(0.0, 9.0)], stroke);
+                let (x, y) = (Vec2::new(ANCHOR_ARM_PT, 0.0), Vec2::new(0.0, ANCHOR_ARM_PT));
+                painter.line_segment([p - x, p + x], stroke);
+                painter.line_segment([p - y, p + y], stroke);
                 painter.text(
-                    p + Vec2::new(8.0, -8.0),
+                    p + Vec2::new(ANCHOR_NAME_PT, -ANCHOR_NAME_PT),
                     egui::Align2::LEFT_BOTTOM,
                     label(ew_viewmodel::key!("symbol-anchor")),
                     theme::font(&t.type_small),

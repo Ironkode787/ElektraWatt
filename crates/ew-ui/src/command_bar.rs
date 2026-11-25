@@ -525,11 +525,9 @@ pub(crate) fn inline_command(ui: &mut Ui, b: &CommandButton) -> Response {
     command_button(ui, &t, b, rect).0
 }
 
-/// A menu of `items`: each an entry with its shortcut, greyed with its reason on a line under it when disabled.
+/// A menu of `items` ([`crate::menu::items`]).
 fn items_menu(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
-    for i in items {
-        crate::menu::row_item(ui, i, events);
-    }
+    crate::menu::items(ui, items, events);
 }
 
 /// The menu of the buttons of `g` (a collapsed group): plain commands as items, menu buttons as submenus.

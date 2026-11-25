@@ -101,10 +101,7 @@ impl CanvasHost {
                 .into_iter()
                 .chain(canvas_menu(shell, spot, self.views[group].menu_point))
                 .collect();
-            crate::menu::fit_width(ui, &items);
-            for item in &items {
-                crate::menu::row_item(ui, item, events);
-            }
+            crate::menu::items(ui, &items, events);
         });
     }
 

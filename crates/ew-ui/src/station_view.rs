@@ -39,6 +39,27 @@ use crate::icons::{self, IconId};
 use crate::theme::shares::{CATALOGUE_MAX, CATALOGUE_MIN, CATALOGUE_MOST_SHARE, CATALOGUE_SHARE};
 use crate::theme::{self, Tokens, TypeToken};
 
+/// The width the lists take beside the catalogue, in `size.table_column`s: the module list's fixed columns
+/// ([`MODULE_COLUMNS`]) and two for its part.
+const LISTS_COLUMNS: f32 = 7.1;
+/// The paddings across a pane that shows the lists beside the catalogue, each `space.5`.
+const PANE_PADDINGS: f32 = 4.0;
+/// The module list's columns in `size.table_column`s: the slot, the tag, the part (0: the room the others leave),
+/// the kind, the address and the page.
+const MODULE_COLUMNS: [f32; 6] = [0.7, 1.0, 0.0, 0.8, 1.25, 1.35];
+/// The narrowest the module list's part column gets, in `size.table_column`s.
+const PART_COLUMN_MIN: f32 = 0.5;
+/// The channel list: where the number's column ends and where the address's ends, in `size.table_column`s.
+const CHANNEL_NUMBER_END: f32 = 0.7;
+/// See [`CHANNEL_NUMBER_END`].
+const CHANNEL_ADDRESS_END: f32 = 1.9;
+/// The least room the channel list's symbol, function text and wiring share, in `size.table_column`s.
+const CHANNEL_REST_MIN: f32 = 3.0;
+/// Where the symbol's and the function text's columns end in that shared room, as shares of it.
+const CHANNEL_SPLITS: [f32; 2] = [0.3, 0.7];
+/// The width of the bar that marks a selected row of the lists, in points.
+const SELECTED_BAR_PT: f32 = 2.0;
+
 /// A module dragged by its card to another slot.
 #[derive(Clone, Copy)]
 struct ModuleDrag(Uuid);
@@ -257,7 +278,7 @@ pub(crate) fn lists_rect(full: Rect) -> Rect {
 
 /// The narrowest pane that holds both the lists (the table's columns) and the catalogue at its narrowest.
 fn wide_enough(t: &Tokens) -> f32 {
-    7.1 * t.size_table_column + CATALOGUE_MIN + 4.0 * t.space_5
+    LISTS_COLUMNS * t.size_table_column + CATALOGUE_MIN + PANE_PADDINGS * t.space_5
 }
 
 /// The view of the station of `tab` in the pane `ui`; `place` is the tab's group and index, `focused` whether it is
@@ -697,7 +718,7 @@ fn interact(
     if p.device.is_some() && !p.drawn && p.tag.contains('?') {
         let _ = response
             .clone()
-            .on_hover_text(strings::format(key!("rack-tag-unnumbered"), &[&p.tag]));
+            .tip(strings::format(key!("rack-tag-unnumbered"), &[&p.tag]));
     }
     // F1 on a card or a cell: the rack's section, or a valve terminal's positions.
     crate::help::offer_for(response, || {
@@ -800,11 +821,7 @@ fn tools(ui: &mut Ui, t: &Tokens, shell: &ShellModel, events: &mut Vec<Event>) {
                         None => {
                             egui::Popup::menu(&button)
                                 .style(crate::menu::menu_style(t))
-                                .show(|ui| {
-                                    for item in &items {
-                                        crate::menu::item(ui, item, events);
-                                    }
-                                });
+                                .show(|ui| crate::menu::items(ui, &items, events));
                         }
                     }
                 }
@@ -1015,17 +1032,10 @@ fn table(
 ) {
     ui.add_space(t.space_4);
     let width = ui.available_width();
-    let fixed = [
-        t.size_table_column * 0.7,
-        t.size_table_column,
-        0.0,
-        t.size_table_column * 0.8,
-        t.size_table_column * 1.25,
-        t.size_table_column * 1.35,
-    ];
+    let fixed = MODULE_COLUMNS.map(|share| t.size_table_column * share);
     // The part takes the room the other columns leave; in a narrow pane (side by side) it is cut first, its text whole
     // on hover.
-    let rest = (width - fixed.iter().sum::<f32>()).max(t.size_table_column * 0.5);
+    let rest = (width - fixed.iter().sum::<f32>()).max(t.size_table_column * PART_COLUMN_MIN);
     let widths = fixed.map(|w| if w == 0.0 { rest } else { w });
     let cells = |row: Rect| -> [Rect; 6] {
         let mut x = row.left();
@@ -1068,7 +1078,7 @@ fn table(
             ui.painter().rect_filled(row, 0.0, t.accent_subtle.color32());
             let bar = Rect::from_min_max(
                 pos2(row.left(), row.top() + t.space_2),
-                pos2(row.left() + 2.0, row.bottom() - t.space_2),
+                pos2(row.left() + SELECTED_BAR_PT, row.bottom() - t.space_2),
             );
             ui.painter()
                 .rect_filled(bar, theme::radius(t.radius_mark), t.accent.color32());
@@ -1204,11 +1214,7 @@ fn choose_part(ui: &mut Ui, shell: &ShellModel, p: &Place, events: &mut Vec<Even
     }
     egui::Popup::menu(&button)
         .style(crate::menu::menu_style(&t))
-        .show(|ui| {
-            for item in &replace_items(shell) {
-                crate::menu::item(ui, item, events);
-            }
-        });
+        .show(|ui| crate::menu::items(ui, &replace_items(shell), events));
 }
 
 /// The pages a Draw on a page… `button` offers (the schematic pages, or a valve terminal's fluid pages) by folio and
@@ -1278,22 +1284,17 @@ fn channels(
     let width = ui.available_width();
     let column = t.size_table_column;
     // The number and the address are short; the symbol, the function text and what is wired share the rest.
-    let rest = (width - column * 1.9).max(column * 3.0);
+    let (number, address) = (column * CHANNEL_NUMBER_END, column * CHANNEL_ADDRESS_END);
+    let rest = (width - address).max(column * CHANNEL_REST_MIN);
     let cells = |row: Rect| -> [Rect; 5] {
         let lefts = [
             0.0,
-            column * 0.7,
-            column * 1.9,
-            column * 1.9 + rest * 0.3,
-            column * 1.9 + rest * 0.7,
+            number,
+            address,
+            address + rest * CHANNEL_SPLITS[0],
+            address + rest * CHANNEL_SPLITS[1],
         ];
-        let rights = [
-            column * 0.7,
-            column * 1.9,
-            lefts[3],
-            lefts[4],
-            column * 1.9 + rest,
-        ];
+        let rights = [number, address, lefts[3], lefts[4], address + rest];
         [0, 1, 2, 3, 4].map(|i| {
             Rect::from_min_max(
                 pos2(row.left() + lefts[i] + t.space_4, row.top()),
@@ -1492,11 +1493,7 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: &StationShown, event
                     }
                     egui::Popup::menu(&button)
                         .style(crate::menu::menu_style(t))
-                        .show(|ui| {
-                            for item in &replace_items(shell) {
-                                crate::menu::item(ui, item, events);
-                            }
-                        });
+                        .show(|ui| crate::menu::items(ui, &replace_items(shell), events));
                 }
                 // A side of the station on a page of its kind: there at once when the button names the page (the
                 // one the view stands on, or a new one), else the pages of the kind and New page… to choose from.

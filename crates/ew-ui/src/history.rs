@@ -401,7 +401,8 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
     out
 }
 
-/// The Show changes popup while it is open: the dialog frame of doc 16a §6.12, small and non-modal.
+/// The Show changes popup while it is open: a small dialog of doc 16a §6.12, in the dialog's frame over its backdrop,
+/// its title as a dialog's; a click beside it closes it, as Escape and Close do.
 pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some((index, records)) = shell.history_pane().changes() else {
         return;
@@ -428,28 +429,14 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
     let grown = crate::dialog::small_width(&t, ctx.content_rect().width());
     let width = (longest + 2.0 * t.space_5 + t.space_3).clamp(t.size_dialog_small.min(grown), grown)
         - 2.0 * t.space_5;
-    let id = egui::Id::unique("history-changes");
-    // A click beside it closes it, as Escape and Close do.
-    components::overlay_backdrop(ctx, id, false, events);
-    egui::Window::new(&title)
-        .id(id)
-        .order(egui::Order::Foreground)
-        .title_bar(false)
+    let shown = egui::Modal::new(egui::Id::unique("history-changes"))
+        .backdrop_color(t.backdrop.color32())
         .frame(frame)
-        .collapsible(false)
-        .resizable(false)
-        .fixed_size(Vec2::new(width, 0.0))
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
+            ui.set_width(width);
             ui.spacing_mut().item_spacing.y = t.space_3;
-            // The title is painted: the window's node carries the name.
-            let galley = ui.painter().layout_no_wrap(
-                title.clone(),
-                theme::font(&t.type_title),
-                t.text_primary.color32(),
-            );
-            let (r, _) = ui.allocate_exact_size(galley.size(), Sense::hover());
-            ui.painter().galley(r.min, galley, t.text_primary.color32());
+            let heading = ui.label(crate::components::title(&t, &title));
+            heading.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &title));
             egui::ScrollArea::vertical()
                 .max_height(t.size_row * 10.0)
                 .auto_shrink([false, true])
@@ -475,6 +462,9 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
                 }
             });
         });
+    if shown.backdrop_response.clicked() {
+        events.push(Event::Action("ui.dismiss", json!({})));
+    }
 }
 
 #[cfg(test)]

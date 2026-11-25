@@ -633,7 +633,7 @@ impl PropertiesPane {
                 }
                 // Where every value shares its source (a report page's, generated), the header says it once.
                 if let Some(p) = ew_viewmodel::properties::shared_provenance(sheet) {
-                    crate::components::caption_chip(ui, chip_word(p)).on_hover_text(chip_text(p));
+                    crate::components::caption_chip(ui, chip_word(p)).tip(chip_text(p));
                 }
                 ui.add_space(t.space_2);
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
@@ -2018,7 +2018,7 @@ fn actions_menu(
                 );
                 // An entry whose label does not say what it does says it on hover (Make variable).
                 let response = match ew_viewmodel::properties::menu_tip(*a) {
-                    Some(tip) => response.on_hover_text(tip),
+                    Some(tip) => response.tip(tip),
                     None => response,
                 };
                 if response.clicked() {

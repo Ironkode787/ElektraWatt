@@ -435,7 +435,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ),
         );
         match disabled_reason(id) {
-            Some(r) if !enabled => link.on_disabled_hover_text(r),
+            Some(r) if !enabled => link.disabled_tip(r),
             _ => link,
         }
     };

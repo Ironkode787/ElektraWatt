@@ -25,6 +25,7 @@ use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::icons::{self, IconId};
 use crate::theme::shares::PALETTE_SHARE;
 use crate::theme::{self, Tokens};
@@ -143,7 +144,7 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
         tail_colour.color32(),
     );
     if elided {
-        response.clone().on_hover_text(tail);
+        response.clone().tip(tail);
     }
     response.clicked() && entry.enabled
 }

@@ -168,190 +168,204 @@ pub fn show(
     // focus to its first control.
     let primary_disabled = spec.primary.disabled.is_some();
     let refusal = shell.dialog_refusal();
-    let clicked = crate::dialog::show_sized(ctx, &spec, width, focus_primary, refusal, |ui| match d {
-        Dialog::About => {
-            ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().item_spacing.x = crate::theme::current(ui.ctx()).space_4;
-                for b in &links {
-                    if ui.link(&b.label).clicked() {
-                        link_clicked = Some(b.answer.clone());
+    // A form whose fields scroll says what is wrong in its footer row (the New part form).
+    let foot = match d {
+        Dialog::PartEdit(e) => e.foot_message(),
+        _ => None,
+    };
+    let clicked = crate::dialog::show_sized(
+        ctx,
+        &spec,
+        width,
+        focus_primary,
+        refusal,
+        foot.as_deref(),
+        |ui| match d {
+            Dialog::About => {
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = crate::theme::current(ui.ctx()).space_4;
+                    for b in &links {
+                        if ui.link(&b.label).clicked() {
+                            link_clicked = Some(b.answer.clone());
+                        }
+                    }
+                });
+            }
+            Dialog::Notices => {
+                let blocks = notice_blocks(&ew_viewmodel::about::notices_text(shell));
+                let t = crate::theme::current(ui.ctx());
+                ScrollArea::vertical()
+                    .max_height(t.size_row * 12.0)
+                    .show(ui, |ui| {
+                        // The underlined headings in `type.body.strong`, the text between them reflowed.
+                        for (i, block) in blocks.iter().enumerate() {
+                            match block {
+                                NoticeBlock::Heading(h) => {
+                                    if i > 0 {
+                                        ui.add_space(t.space_3);
+                                    }
+                                    ui.label(crate::components::body_strong(&t, h));
+                                }
+                                NoticeBlock::Text(text) => {
+                                    ui.add(
+                                        egui::Label::new(egui::RichText::new(reflow(text)).monospace())
+                                            .wrap(),
+                                    );
+                                }
+                            }
+                        }
+                    });
+            }
+            // The keymap editor.
+            Dialog::Shortcuts => crate::keymap_editor::show(ui, shell, just_opened, events),
+            // One block per colliding field: the record and the field in `type.body.strong`, then
+            // base, mine and theirs in `type.small`, and the choice of mine or theirs.
+            Dialog::ExternalChange { rows } => {
+                let t = crate::theme::current(ui.ctx());
+                ScrollArea::vertical()
+                    .max_height(t.size_row * 10.0)
+                    .show(ui, |ui| {
+                        for (i, r) in rows.iter().enumerate() {
+                            if i > 0 {
+                                ui.add_space(t.space_3);
+                            }
+                            ui.label(crate::components::body_strong(
+                                &t,
+                                strings::format(key!("external-row"), &[&r.record, &r.field]),
+                            ));
+                            let small = |ui: &mut Ui, name: ew_viewmodel::strings::Key<'_>, value: &str| {
+                                ui.label(crate::components::small_secondary(
+                                    &t,
+                                    strings::format(key!("external-side"), &[strings::text(name), value]),
+                                ));
+                            };
+                            small(ui, key!("external-base"), &r.base);
+                            ui.horizontal(|ui| {
+                                for (take, word, name, value) in [
+                                    (
+                                        ew_viewmodel::ew_api::external::Take::Mine,
+                                        "mine",
+                                        key!("external-mine"),
+                                        &r.mine,
+                                    ),
+                                    (
+                                        ew_viewmodel::ew_api::external::Take::Theirs,
+                                        "theirs",
+                                        key!("external-theirs"),
+                                        &r.theirs,
+                                    ),
+                                ] {
+                                    let label =
+                                        strings::format(key!("external-side"), &[strings::text(name), value]);
+                                    if ui.radio(r.take == take, label).clicked() {
+                                        events.push(Event::Action(
+                                            "external.choose",
+                                            json!({ "row": i + 1, "take": word }),
+                                        ));
+                                    }
+                                }
+                            });
+                        }
+                    });
+            }
+            Dialog::ConfirmUpgrade { .. }
+            | Dialog::OpenEwz { .. }
+            | Dialog::ImportDrawing { .. }
+            | Dialog::ImportEplan { .. }
+            | Dialog::ConfirmGitSetup { .. }
+            | Dialog::DiscardStation
+            | Dialog::ChooseStation { .. } => {}
+            Dialog::PlcImport(card) => crate::automation::plc_import(ui, card, events),
+            // The import card lists the kinds of findings under what they ask of the reader: a heading per group, then
+            // one row per kind, the first few of each group.
+            Dialog::ImportQet { groups, .. } => {
+                let t = crate::theme::current(ui.ctx());
+                for group in groups {
+                    ui.add_space(t.space_2);
+                    ui.label(egui::RichText::new(&group.heading).strong());
+                    for row in group.rows.iter().take(ew_viewmodel::dialogs::IMPORT_KINDS_LISTED) {
+                        ui.label(crate::components::small_secondary(&t, row));
+                    }
+                    if let Some(more) = ew_viewmodel::dialogs::import_more_kinds(group) {
+                        ui.label(crate::components::small_secondary(&t, more));
                     }
                 }
-            });
-        }
-        Dialog::Notices => {
-            let blocks = notice_blocks(&ew_viewmodel::about::notices_text(shell));
-            let t = crate::theme::current(ui.ctx());
-            ScrollArea::vertical()
-                .max_height(t.size_row * 12.0)
-                .show(ui, |ui| {
-                    // The underlined headings in `type.body.strong`, the text between them reflowed.
-                    for (i, block) in blocks.iter().enumerate() {
-                        match block {
-                            NoticeBlock::Heading(h) => {
-                                if i > 0 {
-                                    ui.add_space(t.space_3);
-                                }
-                                ui.label(crate::components::body_strong(&t, h));
-                            }
-                            NoticeBlock::Text(text) => {
-                                ui.add(
-                                    egui::Label::new(egui::RichText::new(reflow(text)).monospace()).wrap(),
-                                );
-                            }
-                        }
-                    }
-                });
-        }
-        // The keymap editor.
-        Dialog::Shortcuts => crate::keymap_editor::show(ui, shell, just_opened, events),
-        // One block per colliding field: the record and the field in `type.body.strong`, then
-        // base, mine and theirs in `type.small`, and the choice of mine or theirs.
-        Dialog::ExternalChange { rows } => {
-            let t = crate::theme::current(ui.ctx());
-            ScrollArea::vertical()
-                .max_height(t.size_row * 10.0)
-                .show(ui, |ui| {
-                    for (i, r) in rows.iter().enumerate() {
-                        if i > 0 {
-                            ui.add_space(t.space_3);
-                        }
-                        ui.label(crate::components::body_strong(
-                            &t,
-                            strings::format(key!("external-row"), &[&r.record, &r.field]),
-                        ));
-                        let small = |ui: &mut Ui, name: ew_viewmodel::strings::Key<'_>, value: &str| {
-                            ui.label(crate::components::small_secondary(
-                                &t,
-                                strings::format(key!("external-side"), &[strings::text(name), value]),
-                            ));
-                        };
-                        small(ui, key!("external-base"), &r.base);
-                        ui.horizontal(|ui| {
-                            for (take, word, name, value) in [
-                                (
-                                    ew_viewmodel::ew_api::external::Take::Mine,
-                                    "mine",
-                                    key!("external-mine"),
-                                    &r.mine,
-                                ),
-                                (
-                                    ew_viewmodel::ew_api::external::Take::Theirs,
-                                    "theirs",
-                                    key!("external-theirs"),
-                                    &r.theirs,
-                                ),
-                            ] {
-                                let label =
-                                    strings::format(key!("external-side"), &[strings::text(name), value]);
-                                if ui.radio(r.take == take, label).clicked() {
-                                    events.push(Event::Action(
-                                        "external.choose",
-                                        json!({ "row": i + 1, "take": word }),
-                                    ));
-                                }
-                            }
-                        });
-                    }
-                });
-        }
-        Dialog::ConfirmUpgrade { .. }
-        | Dialog::OpenEwz { .. }
-        | Dialog::ImportDrawing { .. }
-        | Dialog::ImportEplan { .. }
-        | Dialog::ConfirmGitSetup { .. }
-        | Dialog::DiscardStation
-        | Dialog::ChooseStation { .. } => {}
-        Dialog::PlcImport(card) => crate::automation::plc_import(ui, card, events),
-        // The import card lists the kinds of findings under what they ask of the reader: a heading per group, then
-        // one row per kind, the first few of each group.
-        Dialog::ImportQet { groups, .. } => {
-            let t = crate::theme::current(ui.ctx());
-            for group in groups {
-                ui.add_space(t.space_2);
-                ui.label(egui::RichText::new(&group.heading).strong());
-                for row in group.rows.iter().take(ew_viewmodel::dialogs::IMPORT_KINDS_LISTED) {
+            }
+            Dialog::ReimportMatch { .. } => {}
+            // The re-import card lists its rows under T8.
+            Dialog::Reimport { rows, .. } => {
+                let t = crate::theme::current(ui.ctx());
+                for row in rows.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
                     ui.label(crate::components::small_secondary(&t, row));
                 }
-                if let Some(more) = ew_viewmodel::dialogs::import_more_kinds(group) {
-                    ui.label(crate::components::small_secondary(&t, more));
-                }
             }
-        }
-        Dialog::ReimportMatch { .. } => {}
-        // The re-import card lists its rows under T8.
-        Dialog::Reimport { rows, .. } => {
-            let t = crate::theme::current(ui.ctx());
-            for row in rows.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
-                ui.label(crate::components::small_secondary(&t, row));
-            }
-        }
-        Dialog::ConfirmPurge { files, .. } => {
-            let t = crate::theme::current(ui.ctx());
-            for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {
-                ui.label(crate::components::small_secondary(&t, f));
-            }
-        }
-        // The elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a small
-        // secondary line under it (a hover tooltip covered the buttons).
-        Dialog::Recovery {
-            last_change_ms,
-            failed,
-            ..
-        } => {
-            let t = crate::theme::current(ui.ctx());
-            if let Some(when) = utc_text(*last_change_ms) {
-                let ago = strings::elapsed_text(*last_change_ms, dialog_now_ms(ui.ctx()));
-                ui.label(strings::format(key!("recovery-last-change"), &[&ago]));
-                ui.label(crate::components::small_tertiary(
-                    &t,
-                    strings::format(key!("recovery-last-change-utc"), &[&when]),
-                ));
-            }
-            if let Some(reason) = failed {
-                ui.colored_label(
-                    t.error.color32(),
-                    strings::format(key!("recovery-failed"), &[reason]),
-                );
-            }
-        }
-        Dialog::GotoPage { text } => {
-            let (changed, enter) = name_field(ui, key!("goto-hint"), text, just_opened);
-            if let Some(t) = &changed {
-                events.push(Event::GotoText(t.clone()));
-            }
-            submit_text = Some(changed.unwrap_or_else(|| text.clone()));
-            submit |= enter;
-        }
-        Dialog::SaveWorkspace { text } => {
-            let (changed, enter) = name_field(ui, key!("save-workspace-hint"), text, just_opened);
-            if let Some(t) = &changed {
-                events.push(Event::WorkspaceText(t.clone()));
-            }
-            submit_text = Some(changed.unwrap_or_else(|| text.clone()));
-            submit |= enter;
-        }
-        Dialog::Form(form) => {
-            // A revision dialog's list (the gate's findings, the release's steps) under its body.
-            if form.action.starts_with("revision.") {
+            Dialog::ConfirmPurge { files, .. } => {
                 let t = crate::theme::current(ui.ctx());
-                for line in shell.revision_list() {
-                    ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
+                for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {
+                    ui.label(crate::components::small_secondary(&t, f));
                 }
             }
-            submit |= form_fields(ui, shell, form, just_opened, primary_disabled, events);
-        }
-        Dialog::NewProject(d) => submit |= crate::templates::new_project(ui, d, just_opened, events),
-        Dialog::Templates(d) => crate::templates::templates(ui, d, events),
-        Dialog::TextStyles(d) => crate::text_styles::text_styles(ui, shell, d, just_opened, events),
-        Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
-        Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
-        Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),
-        Dialog::ConfirmDiscard { .. }
-        | Dialog::ConfirmJournalDiscard
-        | Dialog::ConfirmRemovePart { .. }
-        | Dialog::ConfirmReplaceDxf { .. } => {}
-    });
+            // The elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a small
+            // secondary line under it (a hover tooltip covered the buttons).
+            Dialog::Recovery {
+                last_change_ms,
+                failed,
+                ..
+            } => {
+                let t = crate::theme::current(ui.ctx());
+                if let Some(when) = utc_text(*last_change_ms) {
+                    let ago = strings::elapsed_text(*last_change_ms, dialog_now_ms(ui.ctx()));
+                    ui.label(strings::format(key!("recovery-last-change"), &[&ago]));
+                    ui.label(crate::components::small_tertiary(
+                        &t,
+                        strings::format(key!("recovery-last-change-utc"), &[&when]),
+                    ));
+                }
+                if let Some(reason) = failed {
+                    ui.colored_label(
+                        t.error.color32(),
+                        strings::format(key!("recovery-failed"), &[reason]),
+                    );
+                }
+            }
+            Dialog::GotoPage { text } => {
+                let (changed, enter) = name_field(ui, key!("goto-hint"), text, just_opened);
+                if let Some(t) = &changed {
+                    events.push(Event::GotoText(t.clone()));
+                }
+                submit_text = Some(changed.unwrap_or_else(|| text.clone()));
+                submit |= enter;
+            }
+            Dialog::SaveWorkspace { text } => {
+                let (changed, enter) = name_field(ui, key!("save-workspace-hint"), text, just_opened);
+                if let Some(t) = &changed {
+                    events.push(Event::WorkspaceText(t.clone()));
+                }
+                submit_text = Some(changed.unwrap_or_else(|| text.clone()));
+                submit |= enter;
+            }
+            Dialog::Form(form) => {
+                // A revision dialog's list (the gate's findings, the release's steps) under its body.
+                if form.action.starts_with("revision.") {
+                    let t = crate::theme::current(ui.ctx());
+                    for line in shell.revision_list() {
+                        ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
+                    }
+                }
+                submit |= form_fields(ui, shell, form, just_opened, primary_disabled, events);
+            }
+            Dialog::NewProject(d) => submit |= crate::templates::new_project(ui, d, just_opened, events),
+            Dialog::Templates(d) => crate::templates::templates(ui, d, events),
+            Dialog::TextStyles(d) => crate::text_styles::text_styles(ui, shell, d, just_opened, events),
+            Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
+            Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
+            Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),
+            Dialog::ConfirmDiscard { .. }
+            | Dialog::ConfirmJournalDiscard
+            | Dialog::ConfirmRemovePart { .. }
+            | Dialog::ConfirmReplaceDxf { .. } => {}
+        },
+    );
     let mut clicked = clicked.or(link_clicked);
     submit |= form_key && matches!(d, Dialog::Form(_));
     // Enter in New project's fields presses Create, when it can be pressed.

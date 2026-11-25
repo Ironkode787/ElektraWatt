@@ -37,16 +37,33 @@ pub(super) enum Gesture {
 /// The side of a selection handle in points (doc 16a §7.1).
 pub(super) const HANDLE: f32 = 8.0;
 
+/// The width of the selection outline in points, the page's `2s` (doc 16a §7.1).
+const SELECTION_OUTLINE_PT: f32 = 2.0;
+
+/// A thing's outline stands this far outside it, as on the page ([`ew_render2d::overlay::OUTLINE_OUTSET_PT`]).
+const OUTSET_PT: f32 = ew_render2d::overlay::OUTLINE_OUTSET_PT as f32;
+
+/// The rim of a handle, as a selected line's handle on the page ([`ew_render2d::overlay::GRIP_RING_PT`]).
+pub(super) const RIM_PT: f32 = ew_render2d::overlay::GRIP_RING_PT as f32;
+
+/// The dash of a dashed outline, on and off, as the page's hover outline ([`ew_render2d::overlay::HOVER_DASH_PX`]).
+const DASH_PT: f32 = ew_render2d::overlay::HOVER_DASH_PX as f32;
+
+/// The grid dots' radii as shares of a line's width: the drawing grid's small, the connection grid's larger.
+pub(super) const DRAWING_DOT_SHARE: f32 = 0.75;
+/// See [`DRAWING_DOT_SHARE`].
+pub(super) const CP_DOT_SHARE: f32 = 1.5;
+
 /// Paints the page's selection highlight around `rect`: the outline in the selection colour with a white casing on
 /// both sides, and with `handles` a handle on each corner.
 pub(super) fn selection_outline(painter: &egui::Painter, t: &theme::Tokens, rect: Rect, handles: bool) {
-    let casing = Stroke::new(1.0, t.canvas_sheet.color32());
-    painter.rect_stroke(rect.expand(2.0), 0.0, casing, egui::StrokeKind::Outside);
+    let casing = Stroke::new(t.border_width, t.canvas_sheet.color32());
+    painter.rect_stroke(rect.expand(OUTSET_PT), 0.0, casing, egui::StrokeKind::Outside);
     painter.rect_stroke(rect, 0.0, casing, egui::StrokeKind::Inside);
     painter.rect_stroke(
         rect,
         0.0,
-        Stroke::new(2.0, t.canvas_selection.color32()),
+        Stroke::new(SELECTION_OUTLINE_PT, t.canvas_selection.color32()),
         egui::StrokeKind::Outside,
     );
     if handles {
@@ -68,7 +85,7 @@ pub(super) fn handle(painter: &egui::Painter, t: &theme::Tokens, at: Pos2) {
     painter.rect_stroke(
         r,
         0.0,
-        Stroke::new(1.5, t.canvas_selection.color32()),
+        Stroke::new(RIM_PT, t.canvas_selection.color32()),
         egui::StrokeKind::Inside,
     );
 }
@@ -82,7 +99,7 @@ pub(super) fn dashed_rect(painter: &egui::Painter, rect: Rect, stroke: Stroke) {
         rect.left_bottom(),
         rect.left_top(),
     ];
-    painter.extend(egui::Shape::dashed_line(&corners, stroke, 4.0, 4.0));
+    painter.extend(egui::Shape::dashed_line(&corners, stroke, DASH_PT, DASH_PT));
 }
 
 /// The view of the drawing: where the symbol's origin stands on screen and the points per millimetre.
@@ -186,9 +203,9 @@ impl EditorView {
                 continue;
             };
             let radius = if k == 0 {
-                t.border_width * 0.75
+                t.border_width * DRAWING_DOT_SHARE
             } else {
-                t.border_width * 1.5
+                t.border_width * CP_DOT_SHARE
             };
             let x0 = ((rect.left() - view.origin.x) / step).floor() as i32;
             let y0 = ((rect.top() - view.origin.y) / step).floor() as i32;

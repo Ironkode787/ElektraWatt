@@ -154,6 +154,27 @@ impl PartEditor {
         }
     }
 
+    /// What the form's foot says beside Save and Cancel, on the one line every form keeps there: the refusal of the
+    /// last Save, else the newest message of a field, after the field's words (`Width (mm): "six" is not a length`);
+    /// the PLC section says its own in the lines it keeps. `None` while nothing is wrong.
+    pub fn foot_message(&self) -> Option<String> {
+        if let Some(error) = &self.error {
+            return Some(error.clone());
+        }
+        let m = (self.draft.messages.iter().rev()).find(|m| !m.field.starts_with("plc."))?;
+        let label = if m.field.starts_with("mech.") {
+            size_label(&m.field).to_owned()
+        } else if crate::ew_api::DRAFT_FIELDS.contains(&m.field.as_str()) {
+            self.identity_label(&m.field).to_owned()
+        } else {
+            field_label(&m.field)
+        };
+        Some(strings::format(
+            key!("part-form-message"),
+            &[&label, &message_text(Key::run_time(m.key), &m.args)],
+        ))
+    }
+
     /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`, `New cable type`, `New bus cable`, `New bus plug`).
     pub fn title(&self) -> String {
         match self.bus_part {

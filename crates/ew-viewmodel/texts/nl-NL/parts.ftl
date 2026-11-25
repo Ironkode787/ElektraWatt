@@ -149,6 +149,7 @@ part-choose-target-bridge = de brug { $p0 }
 part-choose-target-accessory = het { $p0 } { $p1 }
 part-choose-target-devices = { $p0 } apparaten
 part-none = geen
+part-form-message = { $p0 }: { $p1 }
 part-placeholder-description = Wat het is
 part-placeholder-note = De stuklijst noemt het TBD met deze woorden; kies later voor een van zijn apparaten het echte artikel en elk apparaat dat het heeft krijgt dat artikel.
 part-placeholder-use = Als plaatsvervanger gebruiken

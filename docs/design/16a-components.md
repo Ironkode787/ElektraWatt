@@ -299,7 +299,9 @@ one), and in a destructive confirmation the Primary is Cancel, so the journal-di
 A form whose Primary is disabled at open takes no first focus. **Enter on a focused check box does nothing;
 Space toggles it** ("Enter runs the Primary" gives way there, so Enter never submits a form by accident). **Ctrl+Enter**
 submits a form from any focus; with a disabled Primary its action refuses in its tooltip's words, and a refused submit
-shows its reason inside the form, which stays open. **A save refused for held collisions
+shows its reason inside the form, which stays open. A form whose fields scroll (New part) says what is wrong in its
+foot row, left of its buttons, naming the field ("Width (mm): …"): one line in a row it has anyway, so a message
+that comes and goes costs no height and moves no field. **A save refused for held collisions
 opens the collision dialog again**: the save is the user's own request and the dialog is the way out, while no poll
 reopens it after Decide later.
 

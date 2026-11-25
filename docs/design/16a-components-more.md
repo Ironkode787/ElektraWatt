@@ -251,8 +251,8 @@ The row cursor takes the Selected state. The row actions **Undo to here** (`hist
 lines** are separator rows: the marker text in `type.small` `color.text.tertiary` followed by a 1-px
 `color.border.subtle` rule to the row's end (the panel draws the text in italics). The header ("12 steps · cursor at 9") is
 `type.small` `color.text.secondary`; the empty panel is §6.17's empty state ("Nothing to undo yet"). **Show changes**
-is the dialog frame of §6.12, small and non-modal, titled "Changes of step n", its records as list rows, Close
-as a Secondary button; Escape closes.
+is a small dialog of §6.12 in its frame over its backdrop, titled "Changes of step n", its records as list rows, Close
+as a Secondary button; Escape or a click beside it closes it.
 
 **The chip line** ("Not on this page:") above the canvas: the label in `type.small`
 `color.text.secondary`, then one **jump chip** per target: `radius.pill`, 20 px high, 1-px `color.border.default`,

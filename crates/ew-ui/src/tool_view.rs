@@ -5,6 +5,7 @@
 //! overlay's marks in the renderer's form and the tool strip. The overlay's text labels, the kept preview's semantic
 //! ghost and the link preview's frame are canvas chips ([`crate::canvas_chips`]).
 
+use crate::components::Tip as _;
 use egui::Ui;
 use ew_render2d::overlay::{Dash, MarkerKind, ToolMark, ToolToken};
 use ew_viewmodel::key;
@@ -296,9 +297,7 @@ pub(crate) fn ip_fields(
     if let Some(proposal) = proposal {
         field = field.hint_text(proposal);
     }
-    let edit = ui
-        .add(field)
-        .on_hover_text(strings::text(key!("action-ip-name-hint")));
+    let edit = ui.add(field).tip(strings::text(key!("action-ip-name-hint")));
     // Named for assistive technology (and the tests); while it has the focus the canvas keys (P, D, B …) stay with it
     // (`app.rs`, the `text_edit_focused` gate of the key routing).
     let label = strings::text(key!("action-ip-name")).to_owned();

@@ -28,11 +28,11 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     press(&mut d, "Size and mounting");
     fill(&mut d, "Width (mm)", "six");
     assert!(
-        d.texts()
-            .iter()
-            .any(|t| t.starts_with("\u{201c}six\u{201d} is not a length")
-                || t.starts_with("\"six\" is not a length")),
-        "a wrong width is refused in words at its field"
+        d.texts().iter().any(
+            |t| t.starts_with("Width (mm): \u{201c}six\u{201d} is not a length")
+                || t.starts_with("Width (mm): \"six\" is not a length")
+        ),
+        "a wrong width is refused in words in the form's foot, naming its field"
     );
     for _ in 0..3 {
         d.input(&key("Backspace"));
@@ -78,4 +78,39 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
         ),
         "the size change is the part's update card"
     );
+}
+
+/// At 1920 × 1080 the whole New part form shows with its sections closed: the box "Also add to my parts library"
+/// stands inside the dialog above its foot row, and a field's message, said in the foot row, moves it not at all.
+#[test]
+fn the_new_part_forms_library_box_shows_and_a_message_moves_nothing() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&key("Shift+I"));
+    d.settle();
+    press(&mut d, "New part…");
+    let at = |d: &ew_ui::visual::Driver, name: &str| {
+        d.labels()
+            .into_iter()
+            .rfind(|(l, _)| l == name)
+            .unwrap_or_else(|| panic!("no widget named {name:?}"))
+            .1
+    };
+    let library = at(&d, "Also add to my parts library");
+    let save = at(&d, "Save");
+    let title = at(&d, "Manufacturer");
+    // A row below the box's centre and half a button above Save's: the box ends clear of the foot row.
+    assert!(
+        library.1 > title.1 && library.1 + 24 < save.1 - 18,
+        "{library:?} {save:?}"
+    );
+    fill(&mut d, "Manufacturer", "Acme");
+    press(&mut d, "Size and mounting");
+    let before = at(&d, "Width (mm)");
+    fill(&mut d, "Width (mm)", "six");
+    assert!(
+        d.texts().iter().any(|t| t.starts_with("Width (mm): ")),
+        "the foot names the field"
+    );
+    assert_eq!(at(&d, "Width (mm)"), before, "the message moves no field");
 }

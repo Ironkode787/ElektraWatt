@@ -62,21 +62,22 @@ fn quick_switch(
 
 /// Paints the start page into `ui`.
 pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    let t = crate::theme::current(ui.ctx());
     egui::ScrollArea::vertical().show(ui, |ui| {
         ui.vertical_centered(|ui| {
             ui.add_space((ui.available_height() * 0.08).min(60.0));
             ui.heading(strings::text(key!("start-title")));
-            ui.add_space(16.0);
+            ui.add_space(t.space_5);
             if ui.button(strings::text(key!("start-new"))).clicked() {
                 action(events, "file.new", Value::Null);
             }
-            ui.add_space(8.0);
+            ui.add_space(t.space_3);
             if ui.button(strings::text(key!("start-open"))).clicked() {
                 action(events, "file.open", Value::Null);
             }
             let names = shell.recent_names();
             if !names.is_empty() {
-                ui.add_space(12.0);
+                ui.add_space(t.space_4);
                 ui.label(strings::text(key!("start-recent")));
                 for (i, name) in names.iter().enumerate() {
                     let response = ui.button(name.as_str());
@@ -89,7 +90,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     }
                 }
             }
-            ui.add_space(12.0);
+            ui.add_space(t.space_4);
             let sample = ui.add_enabled(
                 shell.has_sample(),
                 egui::Button::new(strings::text(key!("start-sample"))),
@@ -108,7 +109,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ui.menu_button(strings::text(key!("start-tutorials")), |ui| {
                 crate::menu::tutorial_lists(ui, shell, events);
             });
-            ui.add_space(16.0);
+            ui.add_space(t.space_5);
             let settings = shell.settings();
             quick_switch(
                 ui,
@@ -126,7 +127,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 &settings.keymap,
                 &KEYMAPS,
             );
-            ui.add_space(16.0);
+            ui.add_space(t.space_5);
             // This version has no update check (doc 16a §8 item 2), so
             // there is nothing to change, and no Change button.
             ui.weak(strings::text(key!("start-update-check")));

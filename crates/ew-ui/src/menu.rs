@@ -41,13 +41,6 @@ pub(crate) fn menu_config(t: &crate::theme::Tokens) -> egui::containers::menu::M
         .submenu_gap(t.space_1)
 }
 
-/// One menu item (doc 16a §6.13): a row of `size.row` with a 16-px icon column (the action's icon,
-/// a check icon when checked, else empty so the labels align), the label, and the key in `color.text.secondary`
-/// right-aligned; hover uses the hover overlay, never the accent. Disabled with its reason as the tooltip.
-pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
-    item_in(ui, item, true, events);
-}
-
 /// A row's right-click menu (egui opens one at the pointer, so it covered the row it acts on): under the
 /// row, at the pointer's place along it when the menu opened, or over the row where there is no room under it. It
 /// opens and closes as egui's context menu does.
@@ -63,7 +56,7 @@ pub(crate) fn row_context_menu(response: &egui::Response, add: impl FnOnce(&mut 
         .show(add);
 }
 
-/// [`item`] in a right-click menu or a button's menu (a row's, the canvas's, a command bar button's, a panel's More;
+/// [`item_in`] in a right-click menu or a button's menu (a row's, the canvas's, a command bar button's, a panel's More;
 /// outside the navigators' row menus a greyed entry said why only on hover): a greyed entry shows its reason
 /// on a line under it, not only on hover (a panel's Place here must not say why only to a pointer that rested on it).
 /// The app menu keeps its reasons in the tooltips, a tree of greyed commands with a line each would bury it.
@@ -85,11 +78,20 @@ pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) 
     }
 }
 
+/// The entries of a right-click menu or a button's menu: as wide as the widest ([`fit_width`]), each greyed one with
+/// its reason on a line under it ([`row_item`]); every such menu of the window is drawn by this.
+pub(crate) fn items(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
+    fit_width(ui, items);
+    for item in items {
+        row_item(ui, item, events);
+    }
+}
+
 /// Sets a right-click menu of `items` as wide as its widest entry: the icon column, the label, a gap and the
 /// shortcut, so that no label wraps and no entry or reason line stretches the menu.
 /// A greyed
 /// entry's reason wraps within that width.
-pub(crate) fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a ActionItem>) {
+fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a ActionItem>) {
     let t = crate::theme::current(ui.ctx());
     let width = |text: egui::WidgetText, style: egui::TextStyle| {
         text.into_galley(ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, style)
@@ -114,8 +116,10 @@ pub(crate) fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a Act
     ui.set_width(t.icon_sm + spacing.icon_spacing + widest + 2.0 * spacing.button_padding.x);
 }
 
-/// [`item`], with the action's icon in the icon column only when `icons`; else the column holds the check alone, blank
-/// when the item is off (View ▸ Show's switches).
+/// One menu item (doc 16a §6.13): a row of `size.row` with a 16-px icon column (the action's icon when `icons`, a
+/// check icon when checked, else empty so the labels align; without `icons` the column holds the check alone, blank
+/// when the item is off, View ▸ Show's switches), the label, and the key in `color.text.secondary` right-aligned;
+/// hover uses the hover overlay, never the accent. Disabled with its reason as the tooltip.
 fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>) {
     let t = crate::theme::current(ui.ctx());
     let icon = if item.checked {
@@ -272,12 +276,13 @@ mod tests {
                 }
                 ui.set_width(160.0);
                 let mut events = Vec::new();
-                super::item(
+                super::item_in(
                     ui,
                     &entry("Rotate clockwise", Some("Nothing is selected")),
+                    true,
                     &mut events,
                 );
-                super::item(ui, &entry("Delete", None), &mut events);
+                super::item_in(ui, &entry("Delete", None), true, &mut events);
             });
         h.run();
         let first = h.get_by_label_contains("Rotate clockwise").rect();

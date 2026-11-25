@@ -1415,10 +1415,7 @@ impl TableDelegate for Delegate<'_> {
                 }
                 let events = &mut *self.events;
                 crate::menu::row_context_menu(&response, |ui| {
-                    crate::menu::fit_width(ui, &menu);
-                    for item in &menu {
-                        crate::menu::row_item(ui, item, events);
-                    }
+                    crate::menu::items(ui, &menu, events);
                 });
             }
         }

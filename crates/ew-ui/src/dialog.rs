@@ -56,13 +56,16 @@ pub(crate) type Clicked = Option<DialogAnswer>;
 /// Paints the dialog of `spec` with `content` between the body and the footer, at `width` when given (the print
 /// pre-dialog's [`preview_width`]), else at the width of the spec's kind. `focus_primary` gives the Primary the
 /// keyboard focus (the frame the dialog opens, when it has no field). `refusal`: why the button pressed last did
-/// nothing, in `color.error` over the buttons, as a form's refusal stands. Returns the answer of a clicked button.
+/// nothing, in `color.error` over the buttons, as a form's refusal stands. `foot`: what is wrong in a form whose
+/// fields are scrolled (the New part form's), in `color.error` in the footer's row left of its buttons, where it costs
+/// no height and moves nothing. Returns the answer of a clicked button.
 pub(crate) fn show_sized(
     ctx: &egui::Context,
     spec: &DialogSpec,
     width: Option<f32>,
     focus_primary: bool,
     refusal: Option<&str>,
+    foot: Option<&str>,
     content: impl FnOnce(&mut Ui),
 ) -> Clicked {
     let t = theme::current(ctx);
@@ -100,7 +103,7 @@ pub(crate) fn show_sized(
             clicked = ui
                 .scope_builder(
                     egui::UiBuilder::new().scope_id(Id::unique("ew-dialog-footer")),
-                    |ui| footer(ui, spec, focus_primary),
+                    |ui| footer(ui, spec, focus_primary, foot),
                 )
                 .inner;
         });
@@ -157,8 +160,9 @@ fn footer_width(ctx: &egui::Context, t: &crate::theme::Tokens, spec: &DialogSpec
     buttons.iter().sum::<f32>() + t.space_3 * buttons.len().saturating_sub(1) as f32
 }
 
-/// The footer: the destructive button at the left, the Primary and the others at the right in the platform's order.
-fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
+/// The footer: the destructive button at the left, the Primary and the others at the right in the platform's order,
+/// and `foot` (a form's message) left of them, cut to the room there with the whole of it on hover.
+fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool, foot: Option<&str>) -> Clicked {
     let t = components::tokens(ui);
     let mut clicked = None;
     let mut press = |ui: &mut Ui, b: &DialogButton, kind: Kind, focus: bool| {
@@ -208,6 +212,10 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
             order.reverse();
             for (b, kind, focus) in order {
                 press(ui, b, kind, focus);
+            }
+            if let Some(text) = foot {
+                ui.add_space(t.space_3);
+                ui.add(egui::Label::new(egui::RichText::new(text).color(t.error.color32())).truncate());
             }
         });
     });

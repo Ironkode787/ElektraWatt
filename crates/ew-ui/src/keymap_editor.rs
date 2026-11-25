@@ -19,6 +19,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::components::{self, Kind};
 use crate::theme;
 use crate::theme::shares::KEYMAP_LIST_SHARE;
@@ -237,7 +238,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                                 .sense(Sense::hover()),
                             );
                             if !row.notes.is_empty() {
-                                label.on_hover_text(row.notes.join("\n"));
+                                label.tip(row.notes.join("\n"));
                             }
                         });
                         if components::button(

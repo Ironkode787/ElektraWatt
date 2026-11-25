@@ -38,7 +38,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Eve
         spec.primary.answer = DialogAnswer::Action("startup.recover", json!({ "project": chosen }));
     }
     let mut choice = chosen;
-    let clicked = crate::dialog::show_sized(ctx, &spec, None, !was_shown, None, |ui: &mut Ui| {
+    let clicked = crate::dialog::show_sized(ctx, &spec, None, !was_shown, None, None, |ui: &mut Ui| {
         let t = crate::theme::current(ui.ctx());
         let several = offer.projects.len() > 1;
         for (i, p) in offer.projects.iter().enumerate() {

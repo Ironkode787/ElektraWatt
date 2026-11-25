@@ -432,7 +432,7 @@ impl EditorView {
                                     shell.has_project(),
                                     egui::Button::new(label(key!("symbol-make-part"))),
                                 )
-                                .on_hover_text(label(key!("symbol-make-part-how")))
+                                .tip(label(key!("symbol-make-part-how")))
                                 .disabled_tip(label(key!("reason-no-project")))
                                 .clicked()
                             {

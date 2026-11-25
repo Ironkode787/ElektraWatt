@@ -38,9 +38,8 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let settings = shell.settings();
     // The reading measure, kept fixed on purpose (running text gets no easier to read wider). Doc 16a §2:
     // the heading, the texts, the choices and the buttons share that one column, centred in the window.
-    let width = crate::theme::current(ui.ctx())
-        .size_text_measure
-        .min(ui.available_width());
+    let t = crate::theme::current(ui.ctx());
+    let width = t.size_text_measure.min(ui.available_width());
     ui.vertical_centered(|ui| {
         ui.add_space(ui.available_height() * 0.1);
         let column = egui::vec2(width, ui.available_height());
@@ -53,7 +52,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 FirstRunStep::ALL.len(),
                 strings::text(run.step.title_key())
             ));
-            ui.add_space(12.0);
+            ui.add_space(t.space_4);
             match run.step {
                 FirstRunStep::Language => {
                     ui.label(strings::text(key!("firstrun-text-language")));
@@ -99,7 +98,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     }
                 }
             }
-            ui.add_space(16.0);
+            ui.add_space(t.space_5);
             // Back and Skip at the column's left edge, Next at its right.
             let buttons = footer(run.step);
             let (left, next) = match buttons.split_last() {
