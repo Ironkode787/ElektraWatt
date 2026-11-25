@@ -21,7 +21,7 @@ use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::clipboard::{ClipKind, ClipboardState, copy_refusal, fragment_banner};
 use crate::key;
 use crate::properties::{Card, CardOrigin, PasteChoice, PasteConflict, PendingEdit};
-use crate::strings;
+use crate::strings::{self, Key};
 use crate::tools::PreviewState;
 use crate::tools::{PasteTool, SelectionChange, ToolOutput, tool_named};
 use ew_api::DerivedDiff;
@@ -33,7 +33,8 @@ impl ShellModel {
         &self.clip
     }
 
-    /// The page kind on show when it cannot take a paste (`edit.paste` refuses its kind); `None` on a page that can.
+    /// Why the page on show cannot take a paste, by its kind (`edit.paste` refuses the kind): `Nothing can be pasted
+    /// on a title page`; `None` on a page that can.
     ///
     /// The list mirrors the command's two page-kind checks: the kinds whose list is empty in
     /// `crates/ew-commands/src/commands/device.rs`'s `allowed_rep_types` (the title page, panel layout, model view,
@@ -41,29 +42,17 @@ impl ShellModel {
     /// `crates/ew-commands/src/commands/paste.rs`'s `PasteFragment::place` (`Report | TableOfContents |
     /// SectionDivider`). `tests/clipboard.rs` checks it against a real `edit.paste` dry run for every page kind the
     /// shell knows.
-    pub fn paste_page_kind(&self) -> Option<&ew_api::PageType> {
-        let kind = &self.page_rows().get(self.page_index())?.kind;
-        matches!(
-            kind,
-            ew_api::PageType::TitlePage
-                | ew_api::PageType::Report
-                | ew_api::PageType::TableOfContents
-                | ew_api::PageType::SectionDivider
-                | ew_api::PageType::PanelLayout
-                | ew_api::PageType::ModelView
-                | ew_api::PageType::ExternalDocument
-        )
-        .then_some(kind)
-    }
-
-    /// The refusal text of a paste on a page that cannot take one, with the page kind's name (`Nothing can be pasted on
-    /// a title page`); `None` on a page that can.
-    pub fn paste_page_reason(&self) -> Option<String> {
-        self.paste_page_kind().map(|kind| {
-            strings::format(
-                key!("reason-paste-page-kind"),
-                &[strings::kind_label(&ew_api::output::page_kind_name(kind)).trim_end_matches(" page")],
-            )
+    pub fn paste_page_refusal(&self) -> Option<Key<'static>> {
+        use ew_api::PageType;
+        Some(match self.page_rows().get(self.page_index())?.kind {
+            PageType::TitlePage => key!("reason-paste-title-page"),
+            PageType::Report => key!("reason-paste-report-page"),
+            PageType::TableOfContents => key!("reason-paste-contents-page"),
+            PageType::SectionDivider => key!("reason-paste-section-divider"),
+            PageType::PanelLayout => key!("reason-paste-panel-layout"),
+            PageType::ModelView => key!("reason-paste-model-view"),
+            PageType::ExternalDocument => key!("reason-paste-external-document"),
+            _ => return None,
         })
     }
 
@@ -202,13 +191,6 @@ impl ShellModel {
     /// headless the clipboard is read. One `parse_fragment`; a fragment arms the paste tool, plain text is refused
     /// (`reason-not-a-fragment`), any other error shows in the banner.
     pub(crate) fn act_paste_clip(&mut self, p: &Map<String, Value>) -> Outcome {
-        // A page whose kind takes no paste says so before the clipboard is read and no paste tool starts (window
-        // check, item 3).
-        if let Some(reason) = self.paste_page_reason() {
-            self.tools.notice = Some(reason);
-            self.tools.notice_sticky = false;
-            return Outcome::refused(key!("reason-paste-page-kind"));
-        }
         let text = match string_param(p, "text") {
             Ok(Some(t)) => {
                 // The window's Ctrl+V brings the system clipboard's text; when it is what this instance copied, the

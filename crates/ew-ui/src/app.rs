@@ -567,7 +567,6 @@ impl App {
         }
         if matches!(action, "edit.paste_clip" | "edit.paste_in_place")
             && params.get("text").is_none()
-            && self.shell.paste_page_reason().is_none()
             && ew_viewmodel::actions::find(action).is_some_and(|a| a.enabled_now(&self.shell).is_ok())
         {
             self.request_paste = true;

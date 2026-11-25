@@ -58,26 +58,36 @@ fn the_dropped_count_survives_a_paste_of_the_same_text() {
     shell.shutdown();
 }
 
-/// Window check, item 3: Ctrl+V on a page whose kind takes no paste says why and starts no paste tool; Edit ▸ Paste is
-/// disabled with the same reason.
+/// Window check, item 3: Ctrl+V on a page whose kind takes no paste says why and starts no paste tool; Edit ▸ Paste and
+/// the command search's Paste are disabled with the same reason, the gate's.
 #[test]
 fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
     let tmp = Tmp::new("clip-page-kind");
     let mut shell = writable(&tmp, "102");
     select_rep(&mut shell, "-102F1");
     done(&mut shell, "edit.copy", json!({}));
-    for (folio, kind) in [("1", "title page"), ("901", "report page")] {
+    for (folio, reason) in [
+        ("1", key!("reason-paste-title-page")),
+        ("901", key!("reason-paste-report-page")),
+    ] {
         done(&mut shell, "page.goto", json!({"folio": folio}));
         assert_eq!(
             shell.dispatch("edit.paste_clip", &json!({})),
-            Outcome::Refused {
-                reason_key: key!("reason-paste-page-kind")
-            },
+            Outcome::Refused { reason_key: reason },
             "paste on folio {folio}"
         );
-        let expected = format!("Nothing can be pasted on a {kind}");
+        let expected = ew_viewmodel::strings::text(reason).to_owned();
         assert_ne!(shell.tool().name(), "paste", "no paste tool on folio {folio}");
-        assert_eq!(shell.status_fields(false)[0], expected);
+        done(&mut shell, "tools.palette", json!({}));
+        shell.set_palette_query("paste");
+        let entry = shell
+            .palette_entries()
+            .into_iter()
+            .find(|e| e.id == "edit.paste_clip")
+            .expect("the command search offers Paste");
+        assert!(!entry.enabled, "greyed in the search on folio {folio}");
+        assert_eq!(entry.reason.as_deref(), Some(expected.as_str()));
+        done(&mut shell, "ui.dismiss", json!({}));
         let item = menu_model(&shell)
             .into_iter()
             .flat_map(|m| m.entries)
@@ -92,7 +102,7 @@ fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
     shell.shutdown();
 }
 
-/// `paste_page_kind`'s list must agree with `edit.paste`'s own page-kind check for every kind `page.new` offers
+/// `paste_page_refusal`'s list must agree with `edit.paste`'s own page-kind check for every kind `page.new` offers
 /// (plus a generated report page). A multi-line fragment may be refused on a schematic page for its representation
 /// type, so the comparison is the page-level refusal (`/page`) itself, not any refusal.
 #[test]
@@ -129,7 +139,7 @@ fn the_paste_page_kinds_agree_with_the_paste_command() {
     let anchor = fragment.params["anchor"].clone();
     for (kind, folio) in pages {
         done(&mut shell, "page.goto", json!({"folio": folio}));
-        let shell_refuses = shell.paste_page_kind().is_some();
+        let shell_refuses = shell.paste_page_refusal().is_some();
         let row = rows
             .iter()
             .find(|r| r.folio == folio)

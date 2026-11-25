@@ -1795,7 +1795,9 @@ impl ShellModel {
         // and the recovery banner stays.
         if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !meta.answers_recovery {
             return Outcome::Refused {
-                reason_key: (meta.enabled)(self).err().unwrap_or(key!("reason-dialog-open")),
+                reason_key: actions::enabled_with(meta, self, p)
+                    .err()
+                    .unwrap_or(key!("reason-dialog-open")),
             };
         }
         if !meta.keeps_banner {

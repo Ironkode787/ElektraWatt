@@ -863,7 +863,12 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
     );
     assert!(!row.is_empty());
     for item in row {
-        assert_eq!(item.reason.as_deref(), Some("The project is open read-only"));
+        // Edit strip opens the strip's editor, which a read-only project shows too.
+        if item.id == "strip.edit" {
+            assert!(item.enabled, "{}: {:?}", item.label, item.reason);
+        } else {
+            assert_eq!(item.reason.as_deref(), Some("The project is open read-only"));
+        }
     }
     shell.shutdown();
 }

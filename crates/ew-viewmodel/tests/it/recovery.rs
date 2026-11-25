@@ -393,3 +393,22 @@ fn a_failed_save_as_keeps_the_original_journal() {
     assert!(has_995(&again), "the edit is recovered");
     again.shutdown();
 }
+
+/// While the recovery dialog is open over the symbol editor, a drawing tool refuses with the editor's reason, as the
+/// menus grey it (the one gate), not with the page's.
+#[test]
+fn the_recovery_dialog_refuses_with_the_reason_the_gate_gives() {
+    let tmp = Tmp::new("jb7-symbol-editor");
+    let dir = crashed(&tmp);
+    let mut s = shell(&tmp, Mode::Headless);
+    done(
+        &mut s,
+        "symbol.new",
+        json!({"key": "example.recovered", "name": "Recovered contact"}),
+    );
+    open(&mut s, &dir);
+    assert!(matches!(s.dialog(), Some(Dialog::Recovery { .. })));
+    assert!(s.symbol_editor().is_some(), "the editor stays under the dialog");
+    assert_eq!(refused(&mut s, "tool.wire", json!({})), "symbol-editor-active");
+    s.shutdown();
+}

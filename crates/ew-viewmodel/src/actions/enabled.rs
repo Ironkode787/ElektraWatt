@@ -520,15 +520,13 @@ pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// A drawn page of a writable project for Paste (window check, item 3): the page's kind is checked by the action, which
-/// refuses it with `reason-paste-page-kind` and the kind's name in the status bar; the menu disables it with that text.
+/// A drawn page of a writable project for Paste (window check, item 3), of a kind that takes a paste: a kind that takes
+/// none names itself in the reason (a generated report has no canvas at all, and says so rather than the general one).
 pub(super) fn paste_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
-    // A page kind that takes no paste may have no canvas at all (a generated report): the action still runs, so it can
-    // refuse with the kind's reason rather than the general one.
-    if m.paste_page_kind().is_some() {
-        return Ok(());
+    if let Some(reason) = m.paste_page_refusal() {
+        return Err(reason);
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),

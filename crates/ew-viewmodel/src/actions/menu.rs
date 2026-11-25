@@ -169,21 +169,13 @@ pub struct MenuModel {
 /// The menu item of `meta` in the state of `model`.
 pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     let state = meta.enabled_now(model);
-    // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
-    // plain key, so the item formats it here.
-    let paste_reason = match meta.id {
-        _ if state.is_err() => None,
-        "edit.paste_clip" => model.paste_page_reason(),
-        _ => None,
-    };
-    let enabled = state.is_ok() && paste_reason.is_none();
     ActionItem {
         id: meta.id,
         params: Value::Object(serde_json::Map::new()),
         label: strings::text(Key::run_time(&meta.label_key())).to_owned(),
         shortcut: model.shortcut_text(meta),
-        enabled,
-        reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
+        enabled: state.is_ok(),
+        reason: state.err().map(|k| strings::text(k).to_owned()),
         checked: switch_on(model, meta.id).unwrap_or_else(|| match meta.id {
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             "tool.wire" => model.tool().name() == "wire",

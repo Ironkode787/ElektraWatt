@@ -935,48 +935,56 @@ pub fn navigator_row_menu(
     node: &crate::navigators::NavNode,
 ) -> Vec<ActionItem> {
     use crate::navigators::{NavKind, NavRole};
-    let writable = model.read_only_reason().is_none();
-    let item = |id: &'static str, params: serde_json::Value, label: Key<'static>| ActionItem {
-        id,
-        params,
-        label: strings::text(label).to_owned(),
-        shortcut: String::new(),
-        enabled: writable,
-        reason: (!writable).then(|| strings::text(key!("reason-read-only")).to_owned()),
-        checked: false,
-        topic: None,
+    // Each aimed at the row and enabled as the dispatch with its parameters is (the one gate).
+    let item = |id: &'static str, params: serde_json::Value, label: Key<'static>| {
+        model
+            .aimed(id, params, strings::text(label).to_owned())
+            .map(|mut item| {
+                item.shortcut = String::new();
+                item.topic = None;
+                item
+            })
     };
     match (kind, node.role, node.records.first()) {
-        (NavKind::Potentials, _, _) if node.define_at.is_some() => vec![item(
+        (NavKind::Potentials, _, _) if node.define_at.is_some() => item(
             "potential.draw_row",
             serde_json::json!({ "row": node.key }),
             key!("action-potential-draw-row"),
-        )],
+        )
+        .into_iter()
+        .collect(),
         (NavKind::Strips, NavRole::Strip, Some(strip)) => {
             let bare = model.strip_terminals_without_part(*strip).len();
             let strip = serde_json::json!({ "strip": strip.to_string() });
-            let mut choose = item("part.choose", strip.clone(), key!("action-part-choose"));
-            choose.label = strings::format_count(crate::count_key!("canvas-choose-part-strip"), bare);
-            if bare == 0 && choose.enabled {
-                choose.enabled = false;
-                choose.reason = Some(strings::text(key!("reason-strip-all-parts")).to_owned());
-            }
-            vec![
+            let choose = item("part.choose", strip.clone(), key!("action-part-choose")).map(|mut choose| {
+                choose.label = strings::format_count(crate::count_key!("canvas-choose-part-strip"), bare);
+                if bare == 0 && choose.enabled {
+                    choose.enabled = false;
+                    choose.reason = Some(strings::text(key!("reason-strip-all-parts")).to_owned());
+                }
+                choose
+            });
+            [
                 item("tool.place_terminal", strip.clone(), key!("canvas-add-terminal")),
                 choose,
                 item("strip.edit", strip, key!("canvas-edit-strip")),
             ]
+            .into_iter()
+            .flatten()
+            .collect()
         }
         // A device the layout cannot place to size: Give it a size… opens its part in the part editor (F23).
         (NavKind::Unplaced, NavRole::Device, Some(device))
             if node.badges.iter().any(|b| b == "unknown size") =>
         {
             match model.device_part(*device) {
-                Some(copy) => vec![item(
+                Some(copy) => item(
                     "part.edit",
                     serde_json::json!({ "part": format!("id:{copy}") }),
                     key!("action-part-give-size"),
-                )],
+                )
+                .into_iter()
+                .collect(),
                 None => model.row_fits(kind, node),
             }
         }

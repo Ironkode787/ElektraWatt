@@ -262,7 +262,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn aimed(&self, id: &str, params: Value, label: String) -> Option<ActionItem> {
+    pub(crate) fn aimed(&self, id: &str, params: Value, label: String) -> Option<ActionItem> {
         let meta = actions::find(id)?;
         let mut i = actions::item_of(meta, self);
         if let Some(p) = params.as_object().filter(|p| !p.is_empty()) {

@@ -1183,7 +1183,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | File | Size | What it holds |
 |---|---|---|
 | `src/about.rs` |  | The complete About dialog (FR-UI-038, NFR-PRIV-07, NFR-LIC-08, NFR-COMP-04): the text of the dialog and of the third-party notices, shared by the egui frame and `ui.describe`. |
-| `src/actions.rs` |  | The action registry (UX/UI doc 16 section 2.4) in toolkit-neutral form. |
+| `src/actions.rs` | large | The action registry (UX/UI doc 16 section 2.4) in toolkit-neutral form. |
 | `src/actions/enabled.rs` | large | The actions' enable checks: each `fn(&ShellModel) -> Result<(), Key>` that an entry of the action table names as its `enabled` or `enabled_when_named`, the reason key of a refusal in its error, and [`enabled_with`], which decides with the parameters of a call and holds the one rule that is not in the rows (the symbol editor's). |
 | `src/actions/menu.rs` |  | The menu model built from the action table (doc 16a §9.2): [`menu_model`], the app menu's submenus with their items ([`ActionItem`], [`MenuEntry`]), each item enabled or greyed with its reason; the submenus whose items the project gives (recent projects, workspaces, the station view's module commands); the shortcut text a menu shows. |
 | `src/actions/table.rs` |  | The action table in its sections. |
