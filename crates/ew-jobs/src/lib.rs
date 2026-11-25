@@ -391,33 +391,31 @@ mod tests {
         }
     }
 
-    fn counting_waker() -> (Waker, Arc<AtomicU32>) {
-        let count = Arc::new(AtomicU32::new(0));
-        let c = Arc::clone(&count);
+    /// A waker that sends one message per call, and the end that receives them.
+    fn channel_waker() -> (Waker, std::sync::mpsc::Receiver<()>) {
+        let (tx, rx) = std::sync::mpsc::channel();
         (
             Arc::new(move || {
-                c.fetch_add(1, Ordering::SeqCst);
+                let _ = tx.send(());
             }),
-            count,
+            rx,
         )
     }
 
-    /// Polls `job` until its end is there (bounded), the way the window's frames do.
-    fn poll<T: Send + 'static>(job: &mut Job<T>) -> JobEnd<T> {
-        for _ in 0..2000 {
-            if let Some(end) = job.try_end() {
-                return end;
-            }
-            std::thread::sleep(Duration::from_millis(5));
+    /// Waits for `n` calls of the waker of `wakes`, each bounded.
+    fn wait_wakes(wakes: &std::sync::mpsc::Receiver<()>, n: usize) {
+        for _ in 0..n {
+            wakes
+                .recv_timeout(Duration::from_secs(10))
+                .expect("the waker is called");
         }
-        panic!("the job did not end");
     }
 
     #[test]
     fn progress_and_the_end_arrive_through_try_end_once() {
         let gate = Gate::new();
         gate.hold("half");
-        let (waker, wakes) = counting_waker();
+        let (waker, wakes) = channel_waker();
         let mut job = Job::spawn(
             JobOptions {
                 name: "t".into(),
@@ -452,18 +450,14 @@ mod tests {
         assert!(!job.is_finished());
         assert_eq!(job.try_end(), None, "no end before the body returned");
         gate.release();
-        assert_eq!(poll(&mut job), JobEnd::Done(7));
+        // The waker: once per report (2) and once at the end, which follows the stored end and the flag, as the
+        // window's frame that it starts finds them.
+        wait_wakes(&wakes, 3);
+        assert_eq!(job.try_end(), Some(JobEnd::Done(7)));
         assert!(job.is_finished());
         assert_eq!(job.try_end(), None, "the end is handed over once");
         assert_eq!(job.progress().done, 2);
-        // The waker: once per report (2) and once at the end; the end's call follows the flag, so wait for it.
-        for _ in 0..200 {
-            if wakes.load(Ordering::SeqCst) == 3 {
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(5));
-        }
-        assert_eq!(wakes.load(Ordering::SeqCst), 3);
+        assert!(wakes.try_recv().is_err(), "no fourth wake");
     }
 
     #[test]
@@ -501,7 +495,7 @@ mod tests {
 
     #[test]
     fn a_panicking_body_is_reported_and_the_spawning_thread_goes_on() {
-        let (waker, wakes) = counting_waker();
+        let (waker, wakes) = channel_waker();
         let mut job: Job<u8> = Job::spawn(
             JobOptions {
                 name: "boom".into(),
@@ -511,14 +505,9 @@ mod tests {
             |_| panic!("project text that must not be kept"),
         )
         .unwrap();
-        assert_eq!(poll(&mut job), JobEnd::Panicked);
-        for _ in 0..200 {
-            if wakes.load(Ordering::SeqCst) == 1 {
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(5));
-        }
-        assert_eq!(wakes.load(Ordering::SeqCst), 1, "the end wakes once");
+        wait_wakes(&wakes, 1);
+        assert_eq!(job.try_end(), Some(JobEnd::Panicked));
+        assert!(wakes.try_recv().is_err(), "the end wakes once");
         // This thread is alive and can start another job.
         let again = Job::spawn(named("after"), |_| Ok(1u8)).unwrap();
         assert_eq!(again.wait(), JobEnd::Done(1));
