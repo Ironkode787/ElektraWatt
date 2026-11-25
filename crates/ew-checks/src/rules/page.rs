@@ -446,7 +446,7 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
 /// size: the em height of the project's effective text-style table, `ew_derive::text_styles`, times the faces' cap
 /// ratio 0.714, `ew_schema::cap_height`) is below the minimum of 1.2 mm (FR-CHK-023, FR-CHK-051; D-31, EF-12;
 /// ADR-0032 decision 5). One finding per text style, not per text (FR-CHK-051): no target, discriminator the style's
-/// key, subject the style's name as the Text styles page lists it (`messages::text_style_name`), and the fix Set to
+/// key, subject the style's name as the Text styles page lists it (`ew_derive::text::text_style_name`), and the fix Set to
 /// 1.2 mm, which sets the style's cap height to the minimum and keeps every other style. A style no text of the
 /// project prints with is not reported. Under the built-in table (no overrides) exactly `cp.small` and
 /// `marker` (0.94 mm) are reported; a new project overrides both to 7 QET px (1.32 mm), so its markers and pin numbers pass.
@@ -478,7 +478,7 @@ impl Rule for TextBelowMinimum {
             .filter(|s| used.contains(s.key.as_str()))
             .map(|s| {
                 let key = s.key.as_str();
-                let name = Named::from(crate::messages::text_style_words(key));
+                let name = Named::from(ew_derive::text::text_style_name(key));
                 let (height, minimum) = (
                     ew_derive::mm_hundredth(cap_height(s.em).0),
                     ew_derive::mm_hundredth(MIN_CAP_HEIGHT.0),

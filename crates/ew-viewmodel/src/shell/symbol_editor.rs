@@ -465,11 +465,16 @@ fn chosen_text_style(before: &SymbolDraft, after: &SymbolDraft) -> Option<String
         .and_then(|(_, s)| s.clone())
 }
 
-/// A text style's name in the window's words: `text-style-<key>`, else the key itself (a project's own
-/// style).
+/// A text style's name in the window's words, as the Text styles page names it (`ew_derive::text::text_style_name`); a
+/// project's own style by its key, so that two of them stay apart in the choice.
 pub fn text_style_words(key: &str) -> String {
-    strings::lookup(&format!("text-style-{}", key.replace(['.', '_'], "-")))
-        .map_or_else(|| key.to_owned(), str::to_owned)
+    let name = |key: &str| ew_api::checks::messages::text_style_name(key, strings::rule_language());
+    let words = name(key);
+    if words == name("") && !key.starts_with("qet.") {
+        key.to_owned()
+    } else {
+        words
+    }
 }
 
 /// A suffix that only the same content repeats: FNV-1a over the draft's document, without its key and identity.

@@ -30,7 +30,6 @@
 
 use std::sync::OnceLock;
 
-use ew_l10n::Text;
 use ew_l10n::render::{Language, OnError};
 
 use crate::finding::Finding;
@@ -83,40 +82,9 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
     out
 }
 
-/// The name of text style `key` as the Text styles page lists it and EW-CORE-061 names it: a built-in style by its
-/// word (`word-style-tag-main`, "Device tag"), a style a QElectroTech import made (`qet.<size>[.b][.i]`) as imported
-/// text of its point size, any other style a project adds as a text style of this project. Never the key itself.
-pub fn text_style_words(key: &str) -> Text {
-    if let Some(rest) = key.strip_prefix("qet.") {
-        let rest = rest.strip_suffix(".i").unwrap_or(rest);
-        return match rest.strip_suffix(".b") {
-            Some(size) => text!("word-style-imported-bold", size),
-            None => text!("word-style-imported", rest),
-        };
-    }
-    match key {
-        "tag.main" => text!("word-style-tag-main"),
-        "data.small" => text!("word-style-data-small"),
-        "cp.small" => text!("word-style-cp-small"),
-        "pin" => text!("word-style-pin"),
-        "xref.device" => text!("word-style-xref-device"),
-        "marker" => text!("word-style-marker"),
-        "terminal" => text!("word-style-terminal"),
-        "text.normal" => text!("word-style-text-normal"),
-        "field.label" => text!("word-style-field-label"),
-        "box.title" => text!("word-style-box-title"),
-        "cover.table" => text!("word-style-cover-table"),
-        "cover.title" => text!("word-style-cover-title"),
-        "cover.subtitle" => text!("word-style-cover-subtitle"),
-        "section.id" => text!("word-style-section-id"),
-        "section.subtitle" => text!("word-style-section-subtitle"),
-        _ => text!("word-style-own"),
-    }
-}
-
-/// [`text_style_words`] in `lang`, falling back to en-GB.
+/// A text style's name ([`ew_derive::text::text_style_name`]) in `lang`, falling back to en-GB.
 pub fn text_style_name(key: &str, lang: &str) -> String {
-    text(&text_style_words(key), lang)
+    text(&ew_derive::text::text_style_name(key), lang)
 }
 
 /// The finding's text rendered from the pattern of `lang`, when the language ships, the text's key has a pattern in it

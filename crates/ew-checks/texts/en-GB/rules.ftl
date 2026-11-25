@@ -1333,24 +1333,6 @@ word-class-bus = bus circuit
 word-class-pe = protective-earth circuit
 word-class-newer = a circuit class of a newer format
 # The text styles by the names the Text styles page lists them under (`messages::text_style_name`).
-word-style-tag-main = Device tag
-word-style-data-small = Device details
-word-style-cp-small = Connection point
-word-style-pin = Plug pin
-word-style-xref-device = Cross-reference
-word-style-marker = Wire marker
-word-style-terminal = Terminal number
-word-style-text-normal = Normal text
-word-style-field-label = Medium text
-word-style-box-title = Box title
-word-style-cover-table = Table title
-word-style-cover-title = Cover title
-word-style-cover-subtitle = Cover subtitle
-word-style-section-id = Section number
-word-style-section-subtitle = Section title
-word-style-imported = Imported text of { $p0 } pt
-word-style-imported-bold = Imported bold text of { $p0 } pt
-word-style-own = A text style of this project
 
 rule-ew-imp-251 =
     .title = Drawing without a unit, read in the chosen unit

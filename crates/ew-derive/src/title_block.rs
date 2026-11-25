@@ -200,8 +200,14 @@ fn project_scope(out: &mut Out, q: &Q, project: &Project) {
 fn scaled_title(title: &MlText, n: u32) -> MlText {
     let words = crate::text::in_languages(&text!("title-scale"));
     let with = |lang: &str, t: &str| {
-        let tag = if lang.eq_ignore_ascii_case("nl") { "nl-NL" } else { "en-GB" };
-        let word = words.get(&tag.parse().expect("a language tag")).unwrap_or_default();
+        let tag = if lang.eq_ignore_ascii_case("nl") {
+            "nl-NL"
+        } else {
+            "en-GB"
+        };
+        let word = words
+            .get(&tag.parse().expect("a language tag"))
+            .unwrap_or_default();
         if t.is_empty() {
             format!("{word} 1:{n}")
         } else {

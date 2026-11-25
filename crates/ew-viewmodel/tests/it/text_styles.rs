@@ -94,7 +94,7 @@ fn a_text_too_small_to_read_opens_text_styles_where_it_is_mended() {
     assert!(row(&shell, "Device tag").contains("2.46 mm"));
     assert!(row(&shell, "Wire marker").contains("1.32 mm"));
 
-    assert!(row(&shell, "Connection point").contains("1.32 mm"));
+    assert!(row(&shell, "Pin designation").contains("1.32 mm"));
     done(&mut shell, "ui.dismiss", json!({}));
     assert_eq!(
         findings(&mut shell, "EW-CORE-061"),

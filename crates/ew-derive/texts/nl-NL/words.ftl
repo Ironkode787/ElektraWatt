@@ -58,3 +58,24 @@ open-item-device-without-part = Apparaat zonder artikel
 open-item-unplaced-device = Niet geplaatst apparaat
 open-item-unconnected-cp = Niet aangesloten aansluitpunt
 open-item-missing-length = Lengte ontbreekt
+
+## A text style's name, as the Text styles page lists it and the symbol editor offers it
+
+text-style-tag-main = Apparaatkenmerk
+text-style-data-small = Kleine tekst
+text-style-cp-small = Aansluitcodering
+text-style-pin = Pintekst
+text-style-xref-device = Kruisverwijzing
+text-style-marker = Adermarkering
+text-style-terminal = Klemnummer
+text-style-text-normal = Normale tekst
+text-style-field-label = Veldlabel
+text-style-box-title = Titel kader
+text-style-cover-table = Tabel voorblad
+text-style-cover-title = Titel voorblad
+text-style-cover-subtitle = Ondertitel voorblad
+text-style-section-id = Sectienummer
+text-style-section-subtitle = Ondertitel sectie
+text-style-imported = Geïmporteerde tekst van { $p0 } pt
+text-style-imported-bold = Geïmporteerde vette tekst van { $p0 } pt
+text-style-own = Een tekststijl van dit project

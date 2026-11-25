@@ -247,7 +247,7 @@ fn core061_reports_nothing_without_drawn_texts() {
 #[test]
 fn core061_reports_a_drawn_cp_label_style_once() {
     let f = findings_of(&slots_fx(cp_slots(true)).build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("Connection point")]);
+    assert_eq!(texts(&f), [small_text("Pin designation")]);
     assert_eq!(f[0].code, "104061");
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].discriminator, "cp.small");
@@ -274,7 +274,7 @@ fn core061_reports_a_shown_wire_marker() {
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(
         texts(&f),
-        [small_text("Connection point"), small_text("Wire marker")]
+        [small_text("Pin designation"), small_text("Wire marker")]
     );
     // Every other style of the table is at or above the minimum.
     let small: Vec<&str> = ew_schema::BUILTIN_TEXT_STYLES
@@ -310,7 +310,7 @@ fn core061_reads_the_project_text_styles() {
     // One of the two overridden: only the other is reported.
     let half = json!({"text_styles": {"marker": {"size": 1_852_083}}});
     let f = findings_of(&marker_fx(half).build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("Connection point")]);
+    assert_eq!(texts(&f), [small_text("Pin designation")]);
     // Set to 1.2 mm raises the style to the minimum and keeps the other entry.
     let fix = f[0].fix.as_ref().expect("a fix");
     assert_eq!(fix.command, "project.settings.set");
@@ -336,7 +336,7 @@ fn core061_reads_the_project_text_styles() {
     let f = findings_of(&marker_fx(tiny).build(), "EW-CORE-061");
     assert_eq!(
         texts(&f),
-        [small_text("Connection point"), small_text("Wire marker")]
+        [small_text("Pin designation"), small_text("Wire marker")]
     );
 }
 

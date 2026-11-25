@@ -323,6 +323,37 @@ pub fn channel_kind(k: &ew_schema::ChannelKind) -> Text {
     }
 }
 
+/// A text style's name as the Text styles page lists it, the symbol editor offers it and EW-CORE-061 names it: a built-in
+/// style by its name (`text-style-tag-main`, "Device tag"), a style a QElectroTech import made (`qet.<size>[.b][.i]`) as
+/// imported text of its point size, any other style a project adds as a text style of this project. Never the key.
+pub fn text_style_name(key: &str) -> Text {
+    if let Some(rest) = key.strip_prefix("qet.") {
+        let rest = rest.strip_suffix(".i").unwrap_or(rest);
+        return match rest.strip_suffix(".b") {
+            Some(size) => text!("text-style-imported-bold", size.to_owned()),
+            None => text!("text-style-imported", rest.to_owned()),
+        };
+    }
+    match key {
+        "tag.main" => text!("text-style-tag-main"),
+        "data.small" => text!("text-style-data-small"),
+        "cp.small" => text!("text-style-cp-small"),
+        "pin" => text!("text-style-pin"),
+        "xref.device" => text!("text-style-xref-device"),
+        "marker" => text!("text-style-marker"),
+        "terminal" => text!("text-style-terminal"),
+        "text.normal" => text!("text-style-text-normal"),
+        "field.label" => text!("text-style-field-label"),
+        "box.title" => text!("text-style-box-title"),
+        "cover.table" => text!("text-style-cover-table"),
+        "cover.title" => text!("text-style-cover-title"),
+        "cover.subtitle" => text!("text-style-cover-subtitle"),
+        "section.id" => text!("text-style-section-id"),
+        "section.subtitle" => text!("text-style-section-subtitle"),
+        _ => text!("text-style-own"),
+    }
+}
+
 /// A PLC channel by its number and its module's tag ("channel 1 of -201U3").
 pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>) -> Text {
     let (number, module): (TextArg, TextArg) = (number.into(), module.into());

@@ -62,3 +62,24 @@ open-item-device-without-part = Device without part
 open-item-unplaced-device = Unplaced device
 open-item-unconnected-cp = Unconnected connection point
 open-item-missing-length = Missing length
+
+## A text style's name, as the Text styles page lists it and the symbol editor offers it
+
+text-style-tag-main = Device tag
+text-style-data-small = Small text
+text-style-cp-small = Pin designation
+text-style-pin = Pin text
+text-style-xref-device = Cross-reference
+text-style-marker = Wire marker
+text-style-terminal = Terminal number
+text-style-text-normal = Normal text
+text-style-field-label = Field label
+text-style-box-title = Box title
+text-style-cover-table = Cover table
+text-style-cover-title = Cover title
+text-style-cover-subtitle = Cover subtitle
+text-style-section-id = Section number
+text-style-section-subtitle = Section subtitle
+text-style-imported = Imported text of { $p0 } pt
+text-style-imported-bold = Imported bold text of { $p0 } pt
+text-style-own = A text style of this project
