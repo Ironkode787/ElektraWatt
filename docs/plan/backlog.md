@@ -14,9 +14,6 @@ moves to its milestone with a reason.
 
 From the owner's tests of 0.3.0's candidates and the persona runs.
 
-#### The station view and the PLC grid
-
-
 #### The window's finish
 
 - FT-2141 `ew-viewmodel`: The Dutch glossary and several action labels say "artikel" for a part where the locale test and the window's other words say "onderdeel" (seen in a fix lane, 2026-11-23). Left in round 3 (2026-11-25): the premise is the other way round. The term table (`texts/nl-NL/actions.ftl`: `part = artikel (not: onderdeel)`, which `locales.rs` holds) and the glossary say artikel, "artikel" stands on 407 lines of the nl-NL texts of five crates, and "onderdeel" on none a person reads; turning the term is the owner's call, not a few labels.
