@@ -17,8 +17,10 @@ use super::{
     Builder, Drawable, NOT_DRAWN, NavOpen, NavRole, base_facets, device_drawables, drawable, folios, group,
     sorted,
 };
-use super::{plain, plains};
+use super::{lowered, plain, plains};
 use crate::Session;
+use crate::Text;
+use ew_derive::EffectiveState;
 use ew_derive::short_tag;
 
 impl Session {
@@ -126,6 +128,23 @@ fn duplicate_channels(q: &Q, cfgs: &[Id<ew_schema::PlcConfigProject>]) -> std::c
     out
 }
 
+/// A channel row's cells as texts, its state in words ("used", "gebruikt"; "TBD" as it is).
+fn channel_cells(cells: Vec<String>, state: EffectiveState) -> Vec<Text> {
+    let words = match state {
+        EffectiveState::Used => lowered(key!("choice-used")),
+        EffectiveState::Spare => lowered(key!("choice-spare")),
+        EffectiveState::Reserved => lowered(key!("choice-reserved")),
+        EffectiveState::Deactivated => lowered(key!("choice-deactivated")),
+        EffectiveState::Tbd => plain(state.name()),
+    };
+    let at = PLC_COLUMNS.iter().position(|(k, _)| *k == "state");
+    let mut cells = plains(cells);
+    if let Some(cell) = at.and_then(|i| cells.get_mut(i)) {
+        *cell = words;
+    }
+    cells
+}
+
 /// PLC (FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → rack (only where a
 /// module of the station has an authored rack) → module → channel, from `plc_rows(station)` in slot and channel
 /// order, and the station's bus ports after its modules (the functions with a `bus_port` of the station and
@@ -172,13 +191,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
     if !cfgs.is_empty() {
         let cards = cards_without_cpu(q);
         if !cards.is_empty() {
-            let group = group(
-                b,
-                None,
-                NavRole::Section,
-                "cards:none",
-                plain(text!("nav-plc-no-cpu").to_string()),
-            );
+            let group = group(b, None, NavRole::Section, "cards:none", text!("nav-plc-no-cpu"));
             for (card, tag) in cards {
                 let drawables = device_drawables(q, &folios, card);
                 let facets = base_facets(NavRole::Module, &drawables);
@@ -296,7 +309,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                                         Some(snode),
                                         NavRole::Rack,
                                         &format!("rack:{rack}"),
-                                        plain(format!("Rack {rack}")),
+                                        text!("nav-rack", rack.to_string()),
                                         Vec::new(),
                                         Vec::new(),
                                         Vec::new(),
@@ -429,7 +442,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     badges,
                     vec![ch, r.module.as_uuid()],
                     Vec::new(),
-                    Some(plains(cells)),
+                    Some(channel_cells(cells, r.state)),
                     facets,
                 );
                 let node = &mut b.nodes[n as usize];

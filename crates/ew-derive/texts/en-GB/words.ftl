@@ -96,3 +96,6 @@ circuit-class-analogue = analogue
 circuit-class-bus = bus
 circuit-class-pe = PE
 circuit-class-other = other
+
+# Why a library's PLC profile is no address profile at hand (plc::unreadable_profile).
+lib-profile-unreadable = the address profile { $p0 } cannot be read: { $p1 }

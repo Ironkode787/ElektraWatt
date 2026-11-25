@@ -300,13 +300,12 @@ impl ShellModel {
             .filter(|(epoch, _)| *epoch == project.epoch)
             .map_or(&[][..], |(_, notes)| notes.as_slice());
         // The migration report, while it is the pane's choice and the project has an import.
-        let mut table = if state.migration && project.session.has_lineage() {
+        let table = if state.migration && project.session.has_lineage() {
             project.session.migration_table()
         } else {
             project.session.navigator_texts(NavKind::Messages)
         }
         .render(super::navigators::nav_words);
-        super::navigators::table_in_words(&mut table, project);
         messages::with_release_notes(table, notes)
     }
 

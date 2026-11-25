@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use ew_derive::{PageOrder, PageRef};
 
 use super::{Builder, NavOpen, NavRole};
-use super::{plain, plains};
+use super::{plain, yes_no};
 use crate::Session;
 use crate::output::PageRow;
 use crate::output::view::page_frame_id;
@@ -28,8 +28,11 @@ impl Session {
         let mut sections: BTreeMap<String, u32> = BTreeMap::new();
         for (row, entry) in rows.iter().zip(order.entries.iter()) {
             let (skey, slabel) = match &row.section {
-                None => ("s:front".to_owned(), "Front matter".to_owned()),
-                Some((n, title)) => (format!("s:{n}"), format!("Section {n} - {title}")),
+                None => ("s:front".to_owned(), text!("nav-front-matter")),
+                Some((n, title)) => (
+                    format!("s:{n}"),
+                    text!("nav-section", n.to_string(), title.as_str()),
+                ),
             };
             let parent = match sections.get(&skey) {
                 Some(p) => *p,
@@ -38,7 +41,7 @@ impl Session {
                         None,
                         NavRole::Section,
                         &skey,
-                        plain(slabel),
+                        slabel,
                         Vec::new(),
                         Vec::new(),
                         Vec::new(),
@@ -56,18 +59,17 @@ impl Session {
             if row.qet_grid {
                 badges.push("QET grid".to_owned());
             }
-            // The frame by the name Properties' Form row gives it, in English (the window words it), never its key.
+            // The frame by the name Properties' Form row gives it, never its key.
             let frame = page_frame_id(&q, &entry.page)
                 .and_then(|id| frames.iter().find(|(f, _)| *f == id.as_uuid()))
-                .map(|(_, name)| name.to_string())
-                .unwrap_or_default();
+                .map_or_else(|| plain(""), |(_, name)| name.clone());
             let cells = vec![
-                row.folio.clone(),
-                row.title.clone(),
-                crate::output::navigation::page_kind_name(&row.kind),
+                plain(row.folio.clone()),
+                plain(row.title.clone()),
+                plain(crate::output::navigation::page_kind_name(&row.kind)),
                 frame,
-                if row.generated { "yes" } else { "no" }.to_owned(),
-                row.changed_in.clone().unwrap_or_default(),
+                yes_no(&q, row.generated),
+                plain(row.changed_in.clone().unwrap_or_default()),
             ];
             let records = match entry.page {
                 PageRef::Drawn(p) => vec![p.as_uuid()],
@@ -81,7 +83,7 @@ impl Session {
                 badges,
                 records,
                 Vec::new(),
-                Some(plains(cells)),
+                Some(cells),
                 vec![
                     ("page".to_owned(), row.folio.to_lowercase()),
                     ("kind".to_owned(), "page".to_owned()),

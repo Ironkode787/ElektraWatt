@@ -124,7 +124,7 @@ The `Session` facade shared by every front-end.
 | `src/output/navigators/function_kind.rs` |  | A function's FnDef name and its kind in words ("NO contact", "changeover"), which the navigators, the properties, the catalogue and the part card print: a [`Text`] in every language of the session's texts. |
 | `src/output/navigators/highlight.rs` |  | Highlighting: what a highlight shows and the connections it draws. |
 | `src/output/navigators/ips.rs` |  | The Interruption points navigator (doc 16 §5.2): each name with its points, from the interruption-point pairing. |
-| `src/output/navigators/libraries.rs` |  | The tables of the Macros and Libraries navigators and the macro detail. |
+| `src/output/navigators/libraries.rs` | large | The tables of the Macros and Libraries navigators and the macro detail. |
 | `src/output/navigators/messages.rs` |  | The message panel's table and the migration report: the findings grouped by severity and rule, their target drawables and pages. |
 | `src/output/navigators/pages.rs` |  | The Pages navigator's tree (section view): the sections in page order and their pages. |
 | `src/output/navigators/parts.rs` |  | The Parts in use navigator (doc 16 §5.2): manufacturer, part, the devices it counts (the parts summary). |

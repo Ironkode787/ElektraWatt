@@ -275,7 +275,6 @@ nav-mode-section = Per sectie
 nav-mode-structure = Per structuur
 nav-sort-folio = Sorteren op folio
 nav-sort-type = Sorteren op type
-nav-front-matter = Voorwerk
 nav-badge-consumers = { $p0 ->
         [one] 1 verbruiker
        *[other] { $p0 } verbruikers
@@ -288,8 +287,6 @@ nav-badge-io-link-master = IO-Link-master
 nav-badge-drive = aandrijving
 nav-badge-external-partner = externe partner
 nav-badge-station = station
-nav-section = Sectie { $p0 } - { $p1 }
-nav-rack = Rek { $p0 }
 nav-filter-hint = Filter
 badge-generated = gegenereerd
 badge-qet-grid = QET 10 px

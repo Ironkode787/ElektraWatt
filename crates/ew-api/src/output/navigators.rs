@@ -9,7 +9,8 @@
 //! default order. **Keys** are path strings `<parent key>/<role word>:<id or text>` (no leading `/` at the top level):
 //! a record node carries its UUID text, a group node its label (`function:=P01/location:+J-E-2416/device:<uuid>`); the
 //! Pages keys stay as built (`s:<n>`, `s:front`, `…/p:<uuid>`). **Labels** are what the drawing prints (a device's
-//! short tag, a folio, a representation's `<folio>-<cell>`). **Badges** are fixed English words. **Tokens** are the
+//! short tag, a folio, a representation's `<folio>-<cell>`); labels, cells and headings are texts, which the
+//! reader renders ([`NavTable::render`]). **Badges** are fixed English words. **Tokens** are the English words of the
 //! label and every cell, case-folded and NFC, split at whitespace, at `- . _ : / + = ( ) ,` and at every letter/digit
 //! boundary ([`tokens`]). **Facets** come from the closed list `page`, `potential`, `state`, `kind`, `part`, and the
 //! flags `unplaced` and `frozen`. **Drawables** are the representations (and, in part 2, connections) that draw a
@@ -909,7 +910,7 @@ fn cell_words(q: &Q, cell: &ew_reports::Cell) -> crate::Text {
 /// choice's word as a cell reads it ("source", "bron").
 fn lowered(key: &'static str) -> crate::Text {
     let catalogue = crate::catalogue();
-    let text = crate::Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new());
+    let text = key_text(key);
     let in_each = catalogue.tags().into_iter().filter_map(|tag| {
         let words = catalogue.text_or_english(&text, tag);
         let mut chars = words.chars();
@@ -917,6 +918,24 @@ fn lowered(key: &'static str) -> crate::Text {
         Some((tag.parse().ok()?, lowered))
     });
     crate::Text::bare(crate::TextArg::Ml(ew_mltext::MlText::from_langs(in_each)))
+}
+
+/// The text of a key of the session's texts that the code names (`key!`).
+fn key_text(key: &'static str) -> crate::Text {
+    crate::Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
+}
+
+/// Words with a capital, unless their first word holds a digit ("3P-motor") or does not start with a lower-case
+/// letter ("NO-contact", "PLC profile").
+fn with_capital(words: &str) -> String {
+    let first_word = words.split(char::is_whitespace).next().unwrap_or_default();
+    let mut chars = words.chars();
+    match chars.next() {
+        Some(first) if first.is_lowercase() && !first_word.chars().any(|c| c.is_ascii_digit()) => {
+            first.to_uppercase().chain(chars).collect()
+        }
+        _ => words.to_owned(),
+    }
 }
 
 /// Yes or no, as a list prints them, in every language of the list texts.

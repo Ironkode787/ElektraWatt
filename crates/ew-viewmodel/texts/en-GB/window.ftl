@@ -144,7 +144,6 @@ status-findings-pending-one = 1 pending on this page
 status-renderer-why = The canvas draws on the CPU
 status-bar-saved = Saved
 status-bar-unsaved = Unsaved changes
-status-bar-read-only = Read-only
 splitter-name = Resize { $p0 } and { $p1 }
 bar-rail = Rail
 bar-duct = Duct

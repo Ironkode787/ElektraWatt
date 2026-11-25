@@ -783,7 +783,7 @@ impl ShellModel {
     }
 
     /// A language change (View ▸ Language) fetches the navigators' tables and the property sheet again, so that the
-    /// texts [`table_in_words`] and the sheet's words give follow it (the end of the dispatch fetches them).
+    /// navigators' words ([`nav_words`]) and the sheet's words follow it (the end of the dispatch fetches them).
     pub(super) fn refetch_for_language(&mut self) {
         for n in self.navs.values_mut() {
             n.table = None;
@@ -846,9 +846,7 @@ impl ShellModel {
             let table = if k == NavKind::Messages {
                 Self::messages_table_of(project, &self.messages)
             } else {
-                let mut table = project.session.navigator_texts(k).render(nav_words);
-                table_in_words(&mut table, project);
-                table
+                project.session.navigator_texts(k).render(nav_words)
             };
             bump(&self.calls, |c| c.navigator_table += 1);
             // The Messages pane's header names the scheme its table was built with.
@@ -866,8 +864,7 @@ impl ShellModel {
             .is_some_and(|n| n.table().is_none_or(|t| Some(t.rev) != rev))
             && let Some(project) = &self.project
         {
-            let mut table = project.session.navigator_texts(NavKind::Pages).render(nav_words);
-            table_in_words(&mut table, project);
+            let table = project.session.navigator_texts(NavKind::Pages).render(nav_words);
             bump(&self.calls, |c| c.navigator_table += 1);
             if let Some(n) = self.pages_table.as_mut() {
                 n.table = Some(Arc::new(table));
@@ -1953,267 +1950,6 @@ pub(super) fn nav_words(text: &ew_api::Text) -> String {
     match (text.is_bare(), text.args()) {
         (true, [ew_api::TextArg::Plain(value)]) => value.clone(),
         _ => strings::render(text),
-    }
-}
-
-/// A library row's tier, access and index state in the UI language: the tier by its facet, the access
-/// by the `writable` facet, the state cell's index words and an unreadable profile's note by their closed English forms
-/// (`ew-api`'s `index_word` and `ew_derive::unreadable_profile`), any other note as it is.
-fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usize>, state: Option<usize>) {
-    let facet = |name: &str| {
-        node.facets
-            .iter()
-            .find(|(f, _)| f == name)
-            .map(|(_, v)| v.clone())
-    };
-    if let Some(word) = facet("tier").and_then(|t| strings::lookup(&format!("lib-tier-{t}"))) {
-        if node.role == NavRole::Tier {
-            node.label = word.to_owned();
-        }
-        if let Some(cell) = tier.and_then(|i| node.cells.get_mut(i)) {
-            *cell = word.to_owned();
-        }
-    }
-    if node.role != NavRole::Library {
-        return;
-    }
-    let writable = facet("writable").is_some();
-    if let Some(cell) = access.and_then(|i| node.cells.get_mut(i)) {
-        *cell = strings::text(if writable {
-            key!("lib-access-writable")
-        } else {
-            key!("status-bar-read-only")
-        })
-        .to_owned();
-    }
-    if let Some(cell) = state.and_then(|i| node.cells.get_mut(i)) {
-        let words: Vec<String> = cell
-            .split("; ")
-            .map(|part| match part {
-                "Index up to date" => strings::text(key!("lib-index-fresh")).to_owned(),
-                "Index rebuilt" => strings::text(key!("lib-index-rebuilt")).to_owned(),
-                _ => {
-                    if let Some(m) = part.strip_prefix("Index failed: ") {
-                        strings::format(key!("lib-index-failed"), &[m])
-                    } else if let Some((profile, why)) = part
-                        .strip_prefix("the address profile ")
-                        .and_then(|r| r.split_once(" cannot be read: "))
-                    {
-                        strings::format(key!("lib-profile-unreadable"), &[profile, why])
-                    } else {
-                        part.to_owned()
-                    }
-                }
-            })
-            .collect();
-        *cell = words.join("; ");
-    }
-}
-
-/// A navigator table's texts in the UI language (`ew-api` gives the codes, the shell the words),
-/// once per fetch: the column headers by the key of the session's texts each names (`NavColumn::label_key`, the
-/// strip editor's columns with them), an accessory row's kind, the Messages pane's group headers
-/// (`messages-group-<severity>`) and, in a language other than en-GB, each rule group's title and each finding's
-/// message as the Messages detail renders it (`ew_api::checks::messages`). The badges keep their codes; the
-/// rows word them ([`super::macros::badge_word`]).
-pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &super::Project) {
-    // The PLC grid's texts are the PLC navigator's.
-    let nav = table.kind.source().word();
-    let lang = strings::rule_language();
-    let report = (table.kind == NavKind::Messages && lang != "en-GB").then(|| {
-        project
-            .session
-            .check(project.session.online_scheme(), ew_api::checks::CheckMode::Online)
-    });
-    let message = table.columns.iter().position(|c| c.key == "message");
-    let fix = table.columns.iter().position(|c| c.key == "fix");
-    // A yes-or-no column's cells ("Generated").
-    let yes_no: Vec<usize> = (table.columns.iter().enumerate())
-        .filter(|(_, c)| c.key == "generated")
-        .map(|(i, _)| i)
-        .collect();
-    // The closed sets' cells, a channel's state by its `choice-*` words.
-    let closed: Vec<(usize, &str)> = (table.columns.iter().enumerate())
-        .filter_map(|(i, c)| match (nav, c.key.as_str()) {
-            ("plc", "state") => Some((i, "choice")),
-            _ => None,
-        })
-        .collect();
-    let kind = (nav == "libraries")
-        .then(|| table.columns.iter().position(|c| c.key == "kind"))
-        .flatten();
-    // A library's tier, access and state cells; a report block's kind, by its code.
-    let column = |key: &str| table.columns.iter().position(|c| c.key == key);
-    let library = (nav == "libraries").then(|| (column("tier"), column("access"), column("state")));
-    let block_kind = (nav == "blocks").then(|| column("kind")).flatten();
-    // The Pages table's Frame column, which `ew-api` writes by the frame's English name: the name Properties' Form row
-    // gives it (`Session::frame_forms`, doc 09 §3.8), in the window's language.
-    let frame = (nav == "pages").then(|| column("frame")).flatten();
-    let frame_words: Vec<(String, String)> = match frame {
-        Some(_) => (project.session.frame_forms().iter())
-            .map(|(_, name)| (name.to_string(), super::text_words(name)))
-            .collect(),
-        None => Vec::new(),
-    };
-    for node in &mut table.nodes {
-        if let Some(cell) = frame.and_then(|i| node.cells.get_mut(i))
-            && let Some((_, words)) = frame_words.iter().find(|(english, _)| english == cell)
-        {
-            *cell = words.clone();
-        }
-        if let Some((tier, access, state)) = library
-            && matches!(node.role, NavRole::Tier | NavRole::Library)
-        {
-            library_in_words(node, tier, access, state);
-        }
-        if node.role == NavRole::ReportBlock
-            && let Some(code) = block_kind.and_then(|i| node.cells.get(i)).cloned()
-        {
-            let words = super::creation::report_kind_words(&code);
-            // The kind column, and the title cell and the label only where `ew-api` put the kind
-            // there for a block without a title, never a title that happens to read as a code.
-            let untitled = node.records.first().is_some_and(|id| {
-                project
-                    .session
-                    .query()
-                    .report_blocks()
-                    .iter()
-                    .any(|(b, block)| b.as_uuid() == *id && block.title.is_empty())
-            });
-            for (i, cell) in node.cells.iter_mut().enumerate() {
-                if *cell == code && (Some(i) == block_kind || untitled) {
-                    *cell = words.clone();
-                }
-            }
-            if untitled && node.label == code {
-                node.label = words;
-            }
-        }
-
-        // A library copy's kind column by its record kind's words: its last `kind` facet names it.
-        if node.role == NavRole::LibCopy
-            && let Some(record) = node
-                .facets
-                .iter()
-                .rev()
-                .find(|(f, _)| f == "kind")
-                .map(|(_, v)| v.clone())
-            && let Some(cell) = kind.and_then(|i| node.cells.get_mut(i))
-        {
-            *cell = strings::kind_heading(&record);
-        }
-        // A library copy's state by its code, in the words of its badge (`library_state_words`).
-        if node.role == NavRole::LibCopy
-            && let Some((_, code)) = node.facets.iter().rev().find(|(f, _)| f == "state")
-            && let Some(cell) = library
-                .and_then(|(_, _, state)| state)
-                .and_then(|i| node.cells.get_mut(i))
-        {
-            *cell = crate::navigators::library_state_words(code, cell);
-        }
-        for (i, prefix) in &closed {
-            if let Some(cell) = node.cells.get_mut(*i)
-                && let Some(text) = strings::lookup(&format!(
-                    "{prefix}-{}",
-                    cell.to_lowercase().replace([' ', '_'], "-")
-                ))
-            {
-                *cell = if cell.starts_with(|c: char| c.is_lowercase()) {
-                    let mut chars = text.chars();
-                    chars
-                        .next()
-                        .map(|c| c.to_lowercase().chain(chars).collect())
-                        .unwrap_or_default()
-                } else {
-                    strings::sentence_start(text).into_owned()
-                };
-            }
-        }
-        for i in &yes_no {
-            if let Some(cell) = node.cells.get_mut(*i) {
-                match cell.as_str() {
-                    "yes" => *cell = strings::text(key!("props-yes")).to_owned(),
-                    "no" => *cell = strings::text(key!("props-no")).to_owned(),
-                    _ => {}
-                }
-            }
-        }
-        // The section groups of the Pages tree and of the report blocks, the front matter's among them, as
-        // the page navigator words them.
-        let segment = node.key.rsplit('/').next().unwrap_or_default();
-        let section = segment
-            .strip_prefix("s:")
-            .or_else(|| segment.strip_prefix("section:"));
-        if section == Some("front") {
-            node.label = strings::text(key!("nav-front-matter")).to_owned();
-        } else if segment == "cards:none" {
-            node.label = strings::text(key!("nav-plc-no-cpu")).to_owned();
-        } else if segment == "nets:logical" {
-            node.label = strings::text(key!("nav-bus-logical")).to_owned();
-        } else if segment == "nets:physical" {
-            node.label = strings::text(key!("nav-bus-physical")).to_owned();
-        } else if segment == "ports:none" {
-            node.label = strings::text(key!("nav-bus-no-net")).to_owned();
-        } else if segment == "ports:undrawn" {
-            node.label = strings::text(key!("nav-bus-undrawn")).to_owned();
-        } else if let Some(n) = segment.strip_prefix("segment:") {
-            node.label = strings::format(key!("nav-bus-segment"), &[n]);
-        } else if let Some(n) = section
-            && let Some(title) = node.label.strip_prefix(&format!("Section {n} - "))
-        {
-            node.label = strings::format(key!("nav-section"), &[n, title]);
-        }
-        match node.role {
-            // A station's rack (`Rack 0`), by its number.
-            NavRole::Rack => {
-                if let Some(n) = node.key.rsplit('/').next().and_then(|s| s.strip_prefix("rack:")) {
-                    node.label = strings::format(key!("nav-rack"), &[n]);
-                }
-            }
-
-            NavRole::Severity => {
-                if let Some(text) = node
-                    .key
-                    .strip_prefix("severity:")
-                    .and_then(|word| strings::lookup(&format!("messages-group-{word}")))
-                {
-                    node.label = text.to_owned();
-                }
-            }
-            NavRole::Rule if report.is_some() => {
-                // The row's key is a path (`severity:<word>/rule:<id>`), so the rule is its last segment.
-                if let Some(rule) = crate::navigators::messages::rule_of(node)
-                    && let Some(title) = ew_api::checks::messages::title(&rule, lang)
-                {
-                    node.label = format!("{rule} {title}");
-                }
-            }
-            NavRole::Finding => {
-                let Some(f) = report.as_ref().and_then(|r| {
-                    let fp = crate::navigators::messages::fingerprint_of(&node.key)?;
-                    r.findings.iter().find(|f| f.fingerprint.to_string() == fp)
-                }) else {
-                    continue;
-                };
-                let text = ew_api::checks::messages::render(f, lang);
-                // As `ew-api` builds the row: the subject once, before the message unless the message names it.
-                let subject = f.subject_in(lang);
-                let leads = ew_api::output::names_subject(&subject, &text);
-                node.label = if subject.is_empty() || leads {
-                    text.clone()
-                } else {
-                    format!("{subject}: {text}")
-                };
-                if let Some(cell) = message.and_then(|i| node.cells.get_mut(i)) {
-                    *cell = text;
-                }
-                // The quick fix's label by its key.
-                if let (Some(q), Some(cell)) = (&f.fix, fix.and_then(|i| node.cells.get_mut(i))) {
-                    *cell = ew_api::checks::messages::fix_label(q, lang);
-                }
-            }
-            _ => {}
-        }
     }
 }
 

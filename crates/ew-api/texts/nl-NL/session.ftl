@@ -367,7 +367,7 @@ error-cable-section-colour = Ader { $p0 }: “{ $p1 }” is geen kleurcode; typ 
 part-misfit-cores = { $p0 } aders, te weinig voor zijn { $p1 } draden
 part-misfit-pe = geen beschermingsleiding voor zijn PE-draad
 
-# The navigators' group rows (output::navigators): the bus navigator's nets and ports, the PLC navigator's modules without a station.
+# The navigators' group rows (output::navigators): the bus navigator's nets and ports, the PLC navigator's modules without a station and racks, the sections, the fluid groups.
 nav-bus-logical = Logische netten
 nav-bus-physical = Fysieke netten
 nav-bus-no-net = Poorten zonder net
@@ -376,6 +376,9 @@ nav-bus-segment = Segment { $p0 }
 nav-plc-no-cpu = Modules zonder station
 nav-bridges = Bruggen
 nav-none = (geen)
+nav-front-matter = Voorwerk
+nav-section = Sectie { $p0 } - { $p1 }
+nav-rack = Rek { $p0 }
 nav-fluid-terminals = Ventieleilanden
 nav-fluid-devices = Fluïdumapparaten
 nav-fluid-media = Media
@@ -390,11 +393,27 @@ accessory-other = Toebehoren
 choice-source = Bron
 choice-target = Doel
 choice-undirected = Ongericht
+# The Messages pane's severity groups (output::navigators::messages).
+messages-group-error = Fouten
+messages-group-warning = Waarschuwingen
+messages-group-info = Info
+# A channel's state in the PLC navigator (output::navigators::plc; the field's choice too).
+choice-used = Gebruikt
+choice-spare = Reserve
+choice-reserved = Gereserveerd
+choice-deactivated = Gedeactiveerd
 
-# A library's index in the Libraries navigator (output::navigators::libraries).
+# A library's index, tier and access in the Libraries navigator (output::navigators::libraries; the status bar's Read-only too).
 lib-index-fresh = Index actueel
 lib-index-rebuilt = Index opnieuw opgebouwd
+lib-notes-between = { "; " }
 lib-index-failed = Index mislukt: { $p0 }
+lib-tier-system = Systeem
+lib-tier-community = Gemeenschap
+lib-tier-company = Bedrijf
+lib-tier-user = Gebruiker
+lib-access-writable = Beschrijfbaar
+status-bar-read-only = Alleen-lezen
 
 # The names of function kinds by their FnDef category (output::navigators::function_kind), and the spelt-out last entry of a changeover's category.
 kind-words-decoration = Decoratie

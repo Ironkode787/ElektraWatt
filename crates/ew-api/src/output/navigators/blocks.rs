@@ -10,8 +10,9 @@ use std::collections::BTreeMap;
 use ew_derive::{PageOrder, PageRef, Q};
 use ew_ids::{Id, Uuid};
 
+use super::plain;
 use super::{Builder, NavOpen, NavRole, group};
-use super::{plain, plains};
+use crate::{Text, TextArg};
 
 pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
     use ew_schema::{ReportBlock, ReportSource, Section};
@@ -19,7 +20,7 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
     // (sort key: section number, first page position, ID), cells, ID, open page, section.
     type BlockRow = (
         (Option<u16>, usize, Uuid),
-        Vec<String>,
+        Vec<Text>,
         Uuid,
         Option<Uuid>,
         Option<Id<Section>>,
@@ -51,14 +52,29 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
             ReportSource::SqlQuery(_) => "sql".to_owned(),
             _ => "unknown".to_owned(),
         };
+        // The kind by the list's name of it in every language of the list texts, else its word; a block without a
+        // title by its kind.
+        let names = crate::report_kind_names(&kind);
+        let kind = if names.is_empty() {
+            plain(kind)
+        } else {
+            let in_each = names
+                .into_iter()
+                .filter_map(|(tag, name)| Some((tag.parse().ok()?, name)));
+            Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(in_each)))
+        };
         let title = crate::output::view::neutral(&block.title);
-        let title = if title.is_empty() { kind.clone() } else { title };
+        let title = if title.is_empty() {
+            kind.clone()
+        } else {
+            plain(title)
+        };
         let cells = vec![
             title,
             kind,
-            first.map(|(_, e)| e.folio.clone()).unwrap_or_default(),
-            number.map(|n| n.to_string()).unwrap_or_default(),
-            generated.len().to_string(),
+            plain(first.map(|(_, e)| e.folio.clone()).unwrap_or_default()),
+            plain(number.map(|n| n.to_string()).unwrap_or_default()),
+            plain(generated.len().to_string()),
         ];
         let open = generated.first().map(|(_, e)| crate::output::page_uuid(e.page));
         rows.push((
@@ -78,11 +94,15 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
                 let (segment, label) = match (number, section.and_then(|s| q.sections().get(s))) {
                     (Some(n), Some(s)) => (
                         format!("section:{n}"),
-                        format!("Section {n} - {}", crate::output::view::neutral(&s.title)),
+                        text!(
+                            "nav-section",
+                            n.to_string(),
+                            crate::output::view::neutral(&s.title)
+                        ),
                     ),
-                    _ => ("section:front".to_owned(), "Front matter".to_owned()),
+                    _ => ("section:front".to_owned(), text!("nav-front-matter")),
                 };
-                let n = group(b, None, NavRole::Section, &segment, plain(label));
+                let n = group(b, None, NavRole::Section, &segment, label);
                 sections.insert(number, n);
                 n
             }
@@ -92,11 +112,11 @@ pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
             Some(snode),
             NavRole::ReportBlock,
             &format!("report_block:{id}"),
-            plain(cells[0].clone()),
+            cells[0].clone(),
             Vec::new(),
             vec![id],
             Vec::new(),
-            Some(plains(cells)),
+            Some(cells),
             facets,
         );
         // A paged block opens its first generated page with the block selected (R30 F9).

@@ -148,7 +148,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
     );
     // The library's profile that does not render is noted in its listing and left out of the profiles at hand.
     assert_eq!(
-        ew_api::unreadable_profiles(s.libraries(), lib),
+        ew_api::unreadable_profiles(s.libraries(), lib).iter().map(ToString::to_string).collect::<Vec<_>>(),
         ["the address profile fixture-hex@1 cannot be read: only base 10 is rendered"]
     );
     // The Libraries navigator notes it too, on the library's row.

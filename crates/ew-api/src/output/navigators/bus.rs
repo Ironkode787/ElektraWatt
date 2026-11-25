@@ -147,7 +147,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "nets:logical",
-            plain(text!("nav-bus-logical").to_string()),
+            text!("nav-bus-logical"),
         );
         for (_, id) in ranked_l {
             let Some(net) = lnets.get(id) else { continue };
@@ -199,7 +199,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "nets:physical",
-            plain(text!("nav-bus-physical").to_string()),
+            text!("nav-bus-physical"),
         );
         for (_, id) in ranked_p {
             let Some(net) = pnets.get(id) else { continue };
@@ -220,7 +220,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                     Some(node),
                     NavRole::Segment,
                     &format!("segment:{}", i + 1),
-                    plain(text!("nav-bus-segment", (i + 1).to_string()).to_string()),
+                    text!("nav-bus-segment", (i + 1).to_string()),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -303,13 +303,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
         .collect();
     loose.sort();
     if !loose.is_empty() {
-        let g = group(
-            b,
-            None,
-            NavRole::Section,
-            "ports:none",
-            plain(text!("nav-bus-no-net").to_string()),
-        );
+        let g = group(b, None, NavRole::Section, "ports:none", text!("nav-bus-no-net"));
         for (_, f) in loose {
             port_row(b, g, f, Vec::new());
         }
@@ -346,7 +340,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             None,
             NavRole::Section,
             "ports:undrawn",
-            plain(text!("nav-bus-undrawn").to_string()),
+            text!("nav-bus-undrawn"),
         );
         for (_, id, tag, label) in undrawn {
             let n = b.push(

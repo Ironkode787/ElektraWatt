@@ -286,7 +286,6 @@ nav-mode-section = By section
 nav-mode-structure = By structure
 nav-sort-folio = Sort by folio
 nav-sort-type = Sort by type
-nav-front-matter = Front matter
 nav-badge-consumers = { $p0 ->
         [one] 1 consumer
        *[other] { $p0 } consumers
@@ -299,8 +298,6 @@ nav-badge-io-link-master = IO-Link master
 nav-badge-drive = drive
 nav-badge-external-partner = external partner
 nav-badge-station = station
-nav-section = Section { $p0 } - { $p1 }
-nav-rack = Rack { $p0 }
 nav-filter-hint = Filter
 badge-generated = generated
 badge-qet-grid = QET 10 px

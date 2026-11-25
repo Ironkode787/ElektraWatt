@@ -87,7 +87,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<Text> {
     let words = |tag: &str| -> String {
         let say = |t: &Text| catalogue.text_or_english(t, tag);
         if let Some((key, with_cps)) = kind_words(before, last) {
-            return joined(&[&say(&key_text(key)), if with_cps { &cps } else { "" }]);
+            return joined(&[&say(&super::key_text(key)), if with_cps { &cps } else { "" }]);
         }
         let (lead, follow) = if !cps.is_empty() && last.eq_ignore_ascii_case(&cps.replace('-', "")) {
             (capitalised(before), None)
@@ -106,16 +106,11 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<Text> {
             (None, Some(b)) => (format!("{lead} {b}"), None),
             (None, None) => (lead.clone(), follow),
         };
-        joined(&[&capitalised_head(&head), rest.as_deref().unwrap_or(""), &cps])
+        joined(&[&super::with_capital(&head), rest.as_deref().unwrap_or(""), &cps])
     };
     Some(Text::bare(TextArg::Ml(MlText::from_langs(
         (catalogue.tags().into_iter()).filter_map(|tag| Some((tag.parse().ok()?, words(tag)))),
     ))))
-}
-
-/// The text of a key of the session's texts that the code names (`key!`).
-fn key_text(key: &'static str) -> Text {
-    Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
 }
 
 /// The words of a category entry as a segment of the generic rule (`kind-segment-<entry>`, lower-cased): the entry
@@ -142,18 +137,6 @@ fn capitalised(word: &str) -> String {
         .next()
         .map(|c| c.to_uppercase().chain(chars).collect())
         .unwrap_or_default()
-}
-
-/// A kind's leading words with a capital, unless their first word holds a digit ("3P-motor") or does not start with
-/// a lower-case letter ("NO-contact").
-fn capitalised_head(head: &str) -> String {
-    let first_word = head.split(char::is_whitespace).next().unwrap_or_default();
-    match head.chars().next() {
-        Some(first) if first.is_lowercase() && !first_word.chars().any(|c| c.is_ascii_digit()) => {
-            capitalised(head)
-        }
-        _ => head.to_owned(),
-    }
 }
 
 /// The display words of FnDef categories by their last two entries, where the generic rule of [`kind_text`]

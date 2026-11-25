@@ -83,12 +83,6 @@ parts-member-tech-data = Technical data: { $p0 }
 parts-member-free-prop = Free property: { $p0 }
 card-table-drop = Leave out
 card-reorder = { $p0 } · { $p1 }
-lib-tier-system = System
-lib-tier-community = Community
-lib-tier-company = Company
-lib-tier-user = User
-lib-access-writable = Writable
-lib-profile-unreadable = the address profile { $p0 } cannot be read: { $p1 }
 card-failed-rule = Rule { $p0 }
 
 # The Libraries navigator's copy detail

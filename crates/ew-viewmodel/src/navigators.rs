@@ -691,27 +691,6 @@ pub fn library_state_tip(code: &str) -> Option<String> {
     crate::strings::lookup(&format!("library-state-tip-{code}")).map(str::to_owned)
 }
 
-/// The words of a library copy's state, its row's `state` facet `code` (`current`, `source_missing`, …), in the UI
-/// language from the text `ew-api` writes in English (the State column must not stay English
-/// only); `english` is that cell, whose parentheses hold the library's version of an update.
-pub fn library_state_words(code: &str, english: &str) -> String {
-    use crate::strings;
-    match code {
-        "" | "current" => strings::text(crate::key!("library-state-current")).to_owned(),
-        "update_available" => {
-            let version = english
-                .rsplit_once('(')
-                .and_then(|(_, v)| v.strip_suffix(')'))
-                .unwrap_or_default();
-            strings::format(crate::key!("library-state-update"), &[version])
-        }
-        "deprecated" => strings::text(crate::key!("badge-deprecated")).to_owned(),
-        "source_missing" => strings::text(crate::key!("badge-source-missing")).to_owned(),
-        "local_fork" => strings::text(crate::key!("badge-local-fork")).to_owned(),
-        _ => english.to_owned(),
-    }
-}
-
 /// A terminal strip's label as the window shows it: a tag with a part not derived yet (`-X??`, a
 /// new strip before its first terminal) reads "New terminal strip · no tag yet"; any other tag as it is.
 pub fn strip_label(tag: &str) -> String {

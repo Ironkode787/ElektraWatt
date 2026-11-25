@@ -90,7 +90,7 @@ fn a_profile_that_does_not_render_says_why() {
     let mut def = c.item.clone();
     def.render.bit = "{area}{byte}".into();
     assert_eq!(
-        unreadable_profile(&def).as_deref(),
+        unreadable_profile(&def).map(|t| t.to_string()).as_deref(),
         Some("the address profile siemens-tia-intl@2027.1 cannot be read: its bit template has no {bit}")
     );
     let mut def = c.item.clone();

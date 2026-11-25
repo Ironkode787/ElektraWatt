@@ -17,7 +17,7 @@ use super::{
     Builder, Drawable, FIX_ALL, NavKind, NavOpen, NavRole, NavTable, connection_drawables, device_drawables,
     drawable, drawn_as_members, folios, group, sorted,
 };
-use super::{plain, plains};
+use super::{key_text, plain};
 use crate::Session;
 
 impl Session {
@@ -58,12 +58,19 @@ pub(super) const MESSAGE_COLUMNS: [(&str, &str); 7] = [
     ("state", key!("column-state")),
 ];
 
-/// The severities in the panel's group order, with the group labels.
+/// The severities in the panel's group order, with the keys of the group labels.
 const SEVERITY_GROUPS: [(crate::checks::Severity, &str); 3] = [
-    (crate::checks::Severity::Error, "Errors"),
-    (crate::checks::Severity::Warning, "Warnings"),
-    (crate::checks::Severity::Info, "Infos"),
+    (crate::checks::Severity::Error, key!("messages-group-error")),
+    (crate::checks::Severity::Warning, key!("messages-group-warning")),
+    (crate::checks::Severity::Info, key!("messages-group-info")),
 ];
+
+/// Words in each language the rule messages ship in (`ew_checks::messages::LANGUAGES`), as one text.
+fn in_each(words: impl Fn(&str) -> String) -> crate::Text {
+    let in_each =
+        (crate::checks::messages::LANGUAGES.iter()).filter_map(|tag| Some((tag.parse().ok()?, words(tag))));
+    crate::Text::bare(crate::TextArg::Ml(ew_mltext::MlText::from_langs(in_each)))
+}
 
 /// The word of a rule kind (`safety`, `conflict`, `completeness`, `hygiene`, `integrity`): the `kind` facet of a
 /// finding row and the detail line's kind.
@@ -169,7 +176,7 @@ impl Session {
                 None,
                 NavRole::Severity,
                 &format!("severity:{word}"),
-                plain(label.to_owned()),
+                key_text(label),
             );
             rank(b, snode);
             let rules: std::collections::BTreeSet<&'static str> =
@@ -197,10 +204,11 @@ impl Session {
                     Some(snode),
                     NavRole::Rule,
                     &format!("rule:{rule}"),
-                    match meta.map(|m| m.title()) {
-                        Some(title) if !title.is_empty() => plain(format!("{rule} {title}")),
-                        _ => plain(rule),
-                    },
+                    // The rule's ID and its title in each language.
+                    in_each(|tag| match crate::checks::messages::title(rule, tag) {
+                        Some(title) if !title.is_empty() => format!("{rule} {title}"),
+                        _ => rule.to_owned(),
+                    }),
                     badges,
                     Vec::new(),
                     Vec::new(),
@@ -309,17 +317,18 @@ fn finding_node(
     let waived = matches!(f.state, crate::checks::FindingState::Waived { .. });
     let state = if waived { "waived" } else { "open" };
     let word = f.severity.name();
+    // The message and the quick fix's label in each language.
     let cells = vec![
-        word.to_owned(),
-        f.rule.to_owned(),
-        f.message().clone(),
-        f.subject_english(),
-        page_cell,
-        f.fix
-            .as_ref()
-            .map(|x| crate::checks::messages::fix_label(x, crate::checks::messages::DEFAULT_LANGUAGE))
-            .unwrap_or_default(),
-        state.to_owned(),
+        plain(word),
+        plain(f.rule),
+        in_each(|tag| crate::checks::messages::render(f, tag)),
+        plain(f.subject_english()),
+        plain(page_cell),
+        match &f.fix {
+            Some(x) => in_each(|tag| crate::checks::messages::fix_label(x, tag)),
+            None => plain(""),
+        },
+        plain(state),
     ];
     let mut badges = vec![word.to_owned()];
     if waived {
@@ -338,12 +347,14 @@ fn finding_node(
     facets.push(("state".to_owned(), state.to_owned()));
     // A rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
     // no ...") shows the subject once; the findings themselves, the CSV and the reports are unchanged.
-    let subject = f.subject_english();
-    let label = if subject.is_empty() || names_subject(&subject, &f.message()) {
-        f.message().clone()
-    } else {
-        format!("{subject}: {}", f.message())
-    };
+    let label = in_each(|tag| {
+        let (subject, message) = (f.subject_in(tag), crate::checks::messages::render(f, tag));
+        if subject.is_empty() || names_subject(&subject, &message) {
+            message
+        } else {
+            format!("{subject}: {message}")
+        }
+    });
     let open_page = page
         .as_ref()
         .map(|(_, u)| *u)
@@ -364,11 +375,11 @@ fn finding_node(
         Some(parent),
         NavRole::Finding,
         &format!("finding:{}", f.fingerprint),
-        plain(label),
+        label,
         badges,
         records,
         drawables,
-        Some(plains(cells)),
+        Some(cells),
         facets,
     );
     rank(b, at);

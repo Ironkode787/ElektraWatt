@@ -92,3 +92,6 @@ circuit-class-analogue = analoog
 circuit-class-bus = bus
 circuit-class-pe = PE
 circuit-class-other = overig
+
+# Why a library's PLC profile is no address profile at hand (plc::unreadable_profile).
+lib-profile-unreadable = het adresprofiel { $p0 } kan niet worden gelezen: { $p1 }

@@ -123,7 +123,6 @@ status-findings-pending-one = 1 wachtend op deze pagina
 status-renderer-why = Het tekenvlak tekent op de CPU
 status-bar-saved = Opgeslagen
 status-bar-unsaved = Niet-opgeslagen wijzigingen
-status-bar-read-only = Alleen-lezen
 splitter-name = { $p0 } en { $p1 } van grootte veranderen
 bar-rail = Rail
 bar-duct = Kabelgoot

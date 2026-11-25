@@ -6,9 +6,6 @@
 # names, key caps, identifiers and units are not translated.
 
 messages-pending-note = Wachtende bevindingen staan op de pagina die u bewerkt: ze tellen mee zodra u die pagina verlaat of een controle uitvoert.
-messages-group-error = Fouten
-messages-group-warning = Waarschuwingen
-messages-group-info = Info
 check-error = 1 fout
 check-errors = { $p0 } fouten
 check-warning = 1 waarschuwing

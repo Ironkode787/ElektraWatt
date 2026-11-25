@@ -129,7 +129,11 @@ pub(super) fn run_lib(a: &LibCli, io: &mut Io<'_>) -> i32 {
                             .findings
                             .iter()
                             .cloned()
-                            .chain(ew_api::unreadable_profiles(&reg, l.id))
+                            .chain(
+                                ew_api::unreadable_profiles(&reg, l.id)
+                                    .iter()
+                                    .map(ToString::to_string),
+                            )
                             .collect(),
                     })
                     .collect();
@@ -158,12 +162,11 @@ pub(super) fn run_lib(a: &LibCli, io: &mut Io<'_>) -> i32 {
                         if l.writable { "rw" } else { "ro" },
                         index_state(&l.index)
                     );
-                    for f in l
-                        .findings
-                        .iter()
-                        .cloned()
-                        .chain(ew_api::unreadable_profiles(&reg, l.id))
-                    {
+                    for f in l.findings.iter().cloned().chain(
+                        ew_api::unreadable_profiles(&reg, l.id)
+                            .iter()
+                            .map(ToString::to_string),
+                    ) {
                         outln!(io, "  {f}");
                     }
                 }

@@ -61,7 +61,17 @@ const USED_BY_SHOWN: usize = 4;
 /// The label of the group of the project's own copies.
 const IN_PROJECT: &str = "In this project";
 
-/// A tier's name in words.
+/// A tier's name in words, in the Libraries navigator.
+fn tier_text(t: Tier) -> crate::Text {
+    match t {
+        Tier::System => text!("lib-tier-system"),
+        Tier::Community => text!("lib-tier-community"),
+        Tier::Company => text!("lib-tier-company"),
+        Tier::User => text!("lib-tier-user"),
+    }
+}
+
+/// A tier's name in words, in English.
 pub(crate) fn tier_word(t: Tier) -> &'static str {
     match t {
         Tier::System => "System",
@@ -88,13 +98,24 @@ pub(crate) fn copy_state(s: &CopyState) -> (&'static str, crate::Text) {
 }
 
 /// A library item kind as a cell or a label shows it: its name with a capital (`Part`, `Function definition`,
-/// `PLC profile`), in English as every cell `ew-api` writes ([`ew_derive::text::record_name`]).
+/// `PLC profile`), in English ([`ew_derive::text::record_name`]).
 fn kind_cell(kind: Kind) -> String {
     let name = ew_derive::text::record_name(kind).to_string();
     let mut chars = name.chars();
     chars
         .next()
         .map_or_else(String::new, |first| first.to_uppercase().chain(chars).collect())
+}
+
+/// A library item kind as a copy row's Kind cell shows it: its name with a capital, in every language of the
+/// session's texts.
+fn kind_heading(kind: Kind) -> crate::Text {
+    let catalogue = crate::catalogue();
+    let in_each = catalogue.tags().into_iter().filter_map(|tag| {
+        let name = crate::checks::messages::record_kind_name(kind.name(), false, tag);
+        Some((tag.parse().ok()?, super::with_capital(&name)))
+    });
+    crate::Text::bare(crate::TextArg::Ml(MlText::from_langs(in_each)))
 }
 
 /// A macro kind in words.
@@ -113,11 +134,11 @@ fn text(t: &MlText) -> String {
 }
 
 /// The words of a library's index state.
-fn index_word(s: &IndexState) -> String {
+fn index_word(s: &IndexState) -> crate::Text {
     match s {
-        IndexState::Fresh => text!("lib-index-fresh").to_string(),
-        IndexState::Rebuilt => text!("lib-index-rebuilt").to_string(),
-        IndexState::Failed(m) => text!("lib-index-failed", m.as_str()).to_string(),
+        IndexState::Fresh => text!("lib-index-fresh"),
+        IndexState::Rebuilt => text!("lib-index-rebuilt"),
+        IndexState::Failed(m) => text!("lib-index-failed", m.as_str()),
     }
 }
 
@@ -767,7 +788,7 @@ impl Session {
                 continue;
             }
             let word = tier_word(tier);
-            let tnode = tier_group(b, tier);
+            let tnode = tier_group(b, tier, plain(word));
             for (lib, c) in rows {
                 listed.insert(c.id.as_uuid());
                 let segment = format!("macro:{}:{}", lib.id, c.item_id.as_uuid());
@@ -798,9 +819,13 @@ impl Session {
             if of_tier(&libs, tier).next().is_none() {
                 continue;
             }
-            let tnode = tier_group(b, tier);
+            let tnode = tier_group(b, tier, tier_text(tier));
             for lib in of_tier(&libs, tier) {
-                let access = if lib.writable { "Writable" } else { "Read-only" };
+                let access = if lib.writable {
+                    text!("lib-access-writable")
+                } else {
+                    text!("status-bar-read-only")
+                };
                 let mut badges = Vec::new();
                 if matches!(lib.index, IndexState::Failed(_)) {
                     badges.push("index_failed".to_owned());
@@ -810,19 +835,21 @@ impl Session {
                 if !unreadable.is_empty() {
                     badges.push("profile_unreadable".to_owned());
                 }
-                let state = std::iter::once(index_word(&lib.index))
+                let notes: Vec<crate::TextArg> = std::iter::once(index_word(&lib.index))
                     .chain(unreadable)
-                    .collect::<Vec<_>>()
-                    .join("; ");
+                    .map(crate::TextArg::Text)
+                    .collect();
+                let between = || text!("lib-notes-between");
+                let state = crate::Text::bare(ew_l10n::List::new(notes, between(), between()));
                 let cells = vec![
-                    lib.name.clone(),
-                    "Library".to_owned(),
-                    tier_word(tier).to_owned(),
-                    lib.version.clone(),
-                    lib.licence.clone(),
-                    access.to_owned(),
+                    plain(lib.name.clone()),
+                    plain("Library"),
+                    tier_text(tier),
+                    plain(lib.version.clone()),
+                    plain(lib.licence.clone()),
+                    access,
                     state,
-                    String::new(),
+                    plain(""),
                 ];
                 let mut facets = vec![
                     ("kind".to_owned(), NavRole::Library.word().to_owned()),
@@ -839,7 +866,7 @@ impl Session {
                     badges,
                     Vec::new(),
                     Vec::new(),
-                    Some(plains(cells)),
+                    Some(cells),
                     facets,
                 );
             }
@@ -850,8 +877,7 @@ impl Session {
         }
         let gnode = project_group(b);
         for s in status {
-            let (code, text) = copy_state(&s.state);
-            let words = text.to_string();
+            let (code, words) = copy_state(&s.state);
             // A function definition by its kind in words, any other copy by its name.
             let label = (s.kind == Kind::Fndef)
                 .then(|| {
@@ -874,12 +900,12 @@ impl Session {
             };
             let cells = vec![
                 label.clone(),
-                plain(kind_cell(s.kind)),
+                kind_heading(s.kind),
                 plain(""),
                 plain(s.version.clone()),
                 plain(""),
                 plain(""),
-                plain(words),
+                words,
                 plain(used_by),
             ];
             let mut facets = vec![
@@ -910,13 +936,13 @@ impl Session {
     }
 }
 
-/// A tier's group node.
-fn tier_group(b: &mut Builder, tier: Tier) -> u32 {
+/// A tier's group node, labelled `label`.
+fn tier_group(b: &mut Builder, tier: Tier, label: crate::Text) -> u32 {
     b.push(
         None,
         NavRole::Tier,
         &format!("tier:{}", tier.name()),
-        plain(tier_word(tier).to_owned()),
+        label,
         Vec::new(),
         Vec::new(),
         Vec::new(),

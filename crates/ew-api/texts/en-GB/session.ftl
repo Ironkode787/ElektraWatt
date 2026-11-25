@@ -378,7 +378,7 @@ error-cable-section-colour = Core { $p0 }: “{ $p1 }” is no colour code; type
 part-misfit-cores = { $p0 } cores, too few for its { $p1 } wires
 part-misfit-pe = no protective conductor for its PE wire
 
-# The navigators' group rows (output::navigators): the bus navigator's nets and ports, the PLC navigator's modules without a station.
+# The navigators' group rows (output::navigators): the bus navigator's nets and ports, the PLC navigator's modules without a station and racks, the sections, the fluid groups.
 nav-bus-logical = Logical nets
 nav-bus-physical = Physical nets
 nav-bus-no-net = Ports without a net
@@ -387,6 +387,9 @@ nav-bus-segment = Segment { $p0 }
 nav-plc-no-cpu = Modules without a station
 nav-bridges = Bridges
 nav-none = (none)
+nav-front-matter = Front matter
+nav-section = Section { $p0 } - { $p1 }
+nav-rack = Rack { $p0 }
 nav-fluid-terminals = Valve terminals
 nav-fluid-devices = Fluid devices
 nav-fluid-media = Media
@@ -401,11 +404,27 @@ accessory-other = Accessory
 choice-source = Source
 choice-target = Target
 choice-undirected = Undirected
+# The Messages pane's severity groups (output::navigators::messages).
+messages-group-error = Errors
+messages-group-warning = Warnings
+messages-group-info = Infos
+# A channel's state in the PLC navigator (output::navigators::plc; the field's choice too).
+choice-used = Used
+choice-spare = Spare
+choice-reserved = Reserved
+choice-deactivated = Deactivated
 
-# A library's index in the Libraries navigator (output::navigators::libraries).
+# A library's index, tier and access in the Libraries navigator (output::navigators::libraries; the status bar's Read-only too).
 lib-index-fresh = Index up to date
 lib-index-rebuilt = Index rebuilt
 lib-index-failed = Index failed: { $p0 }
+lib-notes-between = { "; " }
+lib-tier-system = System
+lib-tier-community = Community
+lib-tier-company = Company
+lib-tier-user = User
+lib-access-writable = Writable
+status-bar-read-only = Read-only
 
 # The names of function kinds by their FnDef category (output::navigators::function_kind), and the spelt-out last entry of a changeover's category.
 kind-words-decoration = Decoration

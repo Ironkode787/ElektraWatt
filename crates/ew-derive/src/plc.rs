@@ -151,12 +151,10 @@ pub fn address_profile(def: &PlcProfileDef) -> Result<AddressProfile, ProfileErr
 
 /// Why a profile document is no address profile at hand (T2), as a library's listing and `library.embed`
 /// say it: `the address profile <id@version> cannot be read: <reason>`; `None` for a profile that renders.
-pub fn unreadable_profile(def: &PlcProfileDef) -> Option<String> {
+pub fn unreadable_profile(def: &PlcProfileDef) -> Option<ew_l10n::Text> {
     address_profile(def).err().map(|reason| {
-        format!(
-            "the address profile {}@{} cannot be read: {reason}",
-            def.profile.id, def.profile.version
-        )
+        let profile = format!("{}@{}", def.profile.id, def.profile.version);
+        text!("lib-profile-unreadable", profile, reason.to_string())
     })
 }
 

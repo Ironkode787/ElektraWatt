@@ -291,7 +291,7 @@ fn identity(doc: &LibDocument) -> Option<(Kind, Uuid, Uuid, Uuid, String, Sha256
 
 /// Why each address profile of `library` that does not render is left out of the profiles at hand (T2), in
 /// item order: the notes `ew lib list` shows under the library.
-pub fn unreadable_profiles(reg: &library::Registry, library: Uuid) -> Vec<String> {
+pub fn unreadable_profiles(reg: &library::Registry, library: Uuid) -> Vec<crate::Text> {
     reg.documents(library, Kind::PlcProfile)
         .iter()
         .filter_map(|d| match d {

@@ -29,8 +29,7 @@ fn column(key: &str, label: Text, key_column: bool) -> NavColumn<Text> {
 
 /// A column headed by the session's words of the key `text` (`column-…`).
 pub(super) fn keyed(key: &str, text: &'static str, key_column: bool) -> NavColumn<Text> {
-    let label = Text::checked_by_macro(text, crate::text_english(text).unwrap_or("?"), Vec::new());
-    column(key, label, key_column)
+    column(key, super::key_text(text), key_column)
 }
 
 /// The columns of a report kind, the first one the key column, each headed by the list's own heading (in every

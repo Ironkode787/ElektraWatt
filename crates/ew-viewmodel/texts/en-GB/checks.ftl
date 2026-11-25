@@ -6,9 +6,6 @@
 
 # The Messages panel's sentence at its top while findings are pending.
 messages-pending-note = Pending findings are on the page you are editing: they count once you leave that page or run a check.
-messages-group-error = Errors
-messages-group-warning = Warnings
-messages-group-info = Infos
 check-error = 1 error
 check-errors = { $p0 } errors
 check-warning = 1 warning
