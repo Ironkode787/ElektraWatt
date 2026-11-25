@@ -356,7 +356,7 @@ pub fn unlocated(q: &Q) -> Vec<Id<Device>> {
 /// The [`unlocated`] devices drawn on a wiring page (multi-line or single-line; a strip through its terminals), each
 /// with whether it stands behind terminals, in the field: a wire or core from it ends, past junctions, at a
 /// terminal's field side (its strip's `field_side`), and every one does. What a layout page's Give location offers the
-/// cabinet's location in one step, the field devices unticked (a persona was sent to Properties thirty times).
+/// cabinet's location in one step, the field devices unticked.
 pub fn unlocated_drawn(q: &Q) -> Vec<(Id<Device>, bool)> {
     let (pages, reps) = (q.pages(), q.table::<ew_schema::Representation>());
     let wiring = |f: Id<ew_schema::Function>| {
