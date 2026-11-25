@@ -677,7 +677,7 @@ impl App {
         self.toasts.expire(ctx, &self.shell, tokens, &mut events);
         let dispatch_started = self.clock.now();
         // The window repaints after an action that changed the model or the tool's marks without pointer motion
-        // (an undo, a key-driven commit, a gesture's release; window check): once at once, and once
+        // (an undo, a key-driven commit, a gesture's release, which painted nothing new before): once at once, and once
         // shortly after, when the page's new tiles have had time to arrive.
         let marks_before = (self.shell.revision(), self.shell.tool_overlay().len());
         for event in events {

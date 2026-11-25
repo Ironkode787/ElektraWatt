@@ -246,7 +246,7 @@ pub(crate) fn severity_count_chip(
 }
 
 /// A severity chip's tooltip: its findings, one "<rule>: <message>" line each; the Pending chip says first what it
-/// counts, then lists them (item 8).
+/// counts, then lists them.
 pub(crate) fn chip_tip(severity: Severity, lines: &[String]) -> String {
     let list = lines.join("\n");
     if severity == Severity::Pending {

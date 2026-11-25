@@ -210,7 +210,7 @@ pub(crate) fn entries(ui: &mut Ui, list: &[MenuEntry], icons: bool, events: &mut
     }
 }
 
-/// The Help menu's Tutorials and Guides submenus of `shell` (the start page's Tutorials and guides button, F5).
+/// The Help menu's Tutorials and Guides submenus of `shell` (the start page's Tutorials and guides button).
 pub(crate) fn tutorial_lists(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     use ew_viewmodel::actions::{Menu, Submenu};
     let lists: Vec<MenuEntry> = menu_model(shell)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Window memory in the window (item 9, DK6): the window builder from the saved geometry, and
+//! Window memory in the window: the window builder from the saved geometry, and
 //! the geometry the running window reports, recorded in the shell's settings (written once, at the end of the window,
 //! as a merge of `[window]` into the settings file on disk: `ew_viewmodel::settings::Settings::save_window`).
 //!

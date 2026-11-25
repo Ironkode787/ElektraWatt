@@ -352,12 +352,12 @@ fn preview(
     let (Some(p), Some(status)) = (shell.preview_state(), shell.preview_status()) else {
         return;
     };
-    // H40 item 6: a refusal the HUD line and the toast already say gets no "Preview of … failed" chip.
+    // A refusal the HUD line and the toast already say gets no "Preview of … failed" chip.
     if p.result.is_err() && shell.preview_refusal_in_hud() {
         return;
     }
     // A ready preview that changes no tag and no cross-reference text says nothing a chip should stand for (a route
-    // edit, a move): the tool's readout and the HUD carry it (window check).
+    // edit, a move): the tool's readout and the HUD carry it.
     if status == PreviewStatus::Ready
         && p.result.is_ok()
         && p.derived.tags.is_empty()

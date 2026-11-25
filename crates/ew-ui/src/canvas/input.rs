@@ -278,7 +278,7 @@ impl CanvasHost {
                 pointer["clear_hover"] = json!(true);
                 events.push(Event::Action("canvas.pointer", pointer));
                 // The drag ends here; its band goes with the release's answer. Paint the frame after it rather than
-                // leaving the band on screen until the pointer moves again (window check, item 5).
+                // leaving the band on screen until the pointer moves again.
                 ui.ctx().request_repaint();
             }
         }

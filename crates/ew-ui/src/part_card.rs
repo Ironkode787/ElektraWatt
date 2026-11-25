@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A part's data at a glance (F22): the card under the device browser's picture, on a device's row in the Devices
+//! A part's data at a glance: the card under the device browser's picture, on a device's row in the Devices
 //! list (its tooltip) and behind Part details in Properties. Read only: the identity and technical data as rows, the
 //! size with the part's outline drawn to scale beside a 35 mm rail, what it gives, where it comes from, and Edit part…
 //! for a part the project holds.

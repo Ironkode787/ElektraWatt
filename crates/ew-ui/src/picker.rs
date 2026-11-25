@@ -790,7 +790,7 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     if matches!(row, PickerRow::PartFn(..)) {
         line(ui, &texts.name, &t.type_small, t.text_secondary);
     }
-    // A part's card (F22) says where it comes from; a symbol's row its library.
+    // A part's card says where it comes from; a symbol's row its library.
     if picker.card.is_none() {
         line(ui, &library, &t.type_small, t.text_tertiary);
     }

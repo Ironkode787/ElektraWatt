@@ -117,7 +117,7 @@ impl App {
         egui::Popup::close_all(ctx);
         ctx.request_repaint();
         // A native dialog may still be closing while that frame paints (the window not yet enabled again); a second
-        // frame shortly after shows the answer's state (the tool's hint) without waiting for a pointer move (R30 F3).
+        // frame shortly after shows the answer's state (the tool's hint) without waiting for a pointer move.
         ctx.request_repaint_after(Duration::from_millis(100));
     }
 

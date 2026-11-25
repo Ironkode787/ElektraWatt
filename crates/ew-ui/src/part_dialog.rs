@@ -493,7 +493,7 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
     save
 }
 
-/// Size and mounting (F23): the part's width, height and depth, how it is mounted, its mass and its clearances, each
+/// Size and mounting: the part's width, height and depth, how it is mounted, its mass and its clearances, each
 /// group with its hint, and its outline as typed, to scale over a 35 mm rail. `true` when Enter was pressed in a field.
 fn size_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
     let t = theme::current(ui.ctx());

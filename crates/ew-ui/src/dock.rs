@@ -703,7 +703,7 @@ struct Header {
     segmented: Option<PaneKind>,
     /// The bottom dock's close button at the header's right end (a bottom pane alone).
     close: bool,
-    /// The help topic of the pane's guide, which a small "?" in the header opens (the PLC, Bus and Fluid panels, F5).
+    /// The help topic of the pane's guide, which a small "?" in the header opens (the PLC, Bus and Fluid panels).
     guide: Option<&'static str>,
     /// The pane's help topic: what F1 opens over its header.
     topic: &'static str,

@@ -1410,7 +1410,7 @@ impl PropertiesPane {
             ui.scroll_to_rect(p.rect.union(line.response.rect), None);
             self.error_shown = shown;
         }
-        // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (G-PP row 6).
+        // FR-NUM-029: a refused tag-letter edit offers its proposal as one button, which takes it.
         if let Some(prop) = props.tag_proposal().filter(|prop| prop.row == row.key) {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4 + t.icon_sm);

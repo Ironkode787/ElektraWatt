@@ -559,7 +559,7 @@ fn form_fields(
                 crate::components::focus_ring(ui, &combo, t.radius_md);
             }
         });
-        // A field's line under it, in the field column, `type.small` secondary. Window check F3 (doc 16a
+        // A field's line under it, in the field column, `type.small` secondary (doc 16a
         // §6.12): the line sits with its field, `space.1` under it, and the row gap follows it to the next field.
         if let Some(note) = shell.form_note(form, f.name) {
             field_line(ui, &t, label_width, note);

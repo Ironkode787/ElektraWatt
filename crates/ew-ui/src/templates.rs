@@ -19,7 +19,7 @@ use crate::components::{self, Kind, Tip as _};
 use crate::theme;
 
 /// A line in `type.small`, secondary, wrapped, under the control above it: indented by `indent`, the line's own height
-/// and no gap above it, so that it reads as that control's (window check F3, doc 16a §6.12).
+/// and no gap above it, so that it reads as that control's (doc 16a §6.12).
 fn under(ui: &mut Ui, t: &theme::Tokens, indent: f32, text: &str) {
     ui.add_space(-ui.spacing().item_spacing.y);
     ui.scope(|ui| {

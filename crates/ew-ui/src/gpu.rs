@@ -35,8 +35,8 @@ use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 
 /// The window's wgpu setup (eframe's `wgpu_options`): eframe's defaults, and with `--no-gpu` the adapter selector
-/// of the switch rule's row 1. The backends are the ones the build compiles (DX12 on Windows, Metal on
-/// macOS, Vulkan and GL on Linux).
+/// that takes the first CPU adapter ([`no_gpu_selector`]). The backends are the ones the build compiles (DX12 on
+/// Windows, Metal on macOS, Vulkan and GL on Linux).
 pub fn wgpu_configuration(flags: Flags) -> egui_wgpu::WgpuConfiguration {
     let mut config = egui_wgpu::WgpuConfiguration::default();
     if flags.no_gpu

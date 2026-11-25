@@ -189,7 +189,7 @@ pub trait Platform {
     }
 }
 
-/// Whether `ui.dismiss` goes to an open menu (item 5): while one is open the menu (with its
+/// Whether `ui.dismiss` goes to an open menu: while one is open the menu (with its
 /// submenus) closes and nothing else runs, as Escape does. The one place the window's event loop and a visual script's
 /// action line both reach.
 pub(crate) fn menu_takes_dismiss(ctx: &egui::Context) -> bool {

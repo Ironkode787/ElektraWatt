@@ -1262,7 +1262,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
-    // A device's row shows its part's card on hover (F22), read only when hovered; a valve terminal's says its kind
+    // A device's row shows its part's card on hover, read only when hovered; a valve terminal's says its kind
     // first.
     let response = if kind == NavKind::Devices {
         let device = tree
