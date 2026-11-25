@@ -245,6 +245,9 @@ fn briefs(root: &Path) -> Result<bool> {
     Ok(ok)
 }
 
+/// The lines `ew-check-passed` keeps: the latest checks, which are the trees a gate may meet again.
+const RECORD_LINES: usize = 200;
+
 /// The tree a check passes on and the scope it was run with, as `ew-check-passed` records them.
 struct Passed {
     /// `-p a -p b`, or `--workspace`; with ` --deep` when it ran the deep tests.
@@ -307,8 +310,11 @@ impl Passed {
     fn write(&self, root: &Path) -> Result<String> {
         let tree = working_tree(root)?;
         let path = record_path(root)?;
-        let mut text = std::fs::read_to_string(&path).unwrap_or_default();
-        text.push_str(&format!("{tree} {}\n", self.scope));
+        let old = std::fs::read_to_string(&path).unwrap_or_default();
+        let new = format!("{tree} {}", self.scope);
+        let lines: Vec<&str> = old.lines().chain([new.as_str()]).collect();
+        let kept = &lines[lines.len().saturating_sub(RECORD_LINES)..];
+        let text: String = kept.iter().map(|l| format!("{l}\n")).collect();
         std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))?;
         Ok(tree)
     }
