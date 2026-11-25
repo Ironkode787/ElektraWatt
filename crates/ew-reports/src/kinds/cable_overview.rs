@@ -134,7 +134,9 @@ fn part_number(q: &Q, cable: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
+/// A cable's length as every list prints it: metres to the millimetre, "from part" for a length the part gives, "length
+/// missing" for a cable without one (EW-CORE-033), else empty.
+pub(super) fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
     match q
         .devices()
         .get(cable)
@@ -145,6 +147,26 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         Some(LengthSource::FromPart) => words_cell(&text!("cell-from-part")),
         Some(LengthSource::Missing) => Cell::Missing(MissingReason::Length),
         Some(LengthSource::Unknown(_)) | None => Cell::Empty,
+    }
+}
+
+/// The length source whose words in a shipped language `text` is (any case, the spaces at its ends aside): a length
+/// taken from the part, or none ([`length_cell`]'s words); `None` for any other text.
+pub fn cable_length_words(text: &str) -> Option<LengthSource> {
+    let typed = text.trim().to_lowercase();
+    let said = |t: &ew_l10n::Text| {
+        let words = crate::words::in_languages(t);
+        words
+            .languages()
+            .filter_map(|l| words.get(l))
+            .any(|w| w.to_lowercase() == typed)
+    };
+    if said(&text!("cell-from-part")) {
+        Some(LengthSource::FromPart)
+    } else if said(&text!("cell-length-missing")) {
+        Some(LengthSource::Missing)
+    } else {
+        None
     }
 }
 

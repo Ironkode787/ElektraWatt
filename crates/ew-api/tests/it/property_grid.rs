@@ -664,6 +664,22 @@ fn the_cable_length_is_typed_in_metres_or_words() {
     assert_eq!(show(json!("missing")), "missing");
 }
 
+/// A cable's length reads back as the lists print it in any shipped language: a decimal comma, and the words of a
+/// length taken from the part and of a missing one in Dutch as in English.
+#[test]
+fn the_cable_length_reads_back_as_the_lists_print_it() {
+    let s = crate::common::sample();
+    let value = |text: &str| s.parse_field_input("device", "cable.length", text).unwrap().value;
+    assert_eq!(value("12,5 m"), json!({"manual": 12_500_000_000_i64}));
+    assert_eq!(value("0,75"), json!({"manual": 750_000_000_i64}));
+    assert_eq!(value("lengte ontbreekt"), json!("missing"));
+    assert_eq!(value("uit artikel"), json!("from_part"));
+    assert!(matches!(
+        s.parse_field_input("device", "cable.length", "1,2,3 m"),
+        Err(InputError::Invalid(_))
+    ));
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // PG8: the editors on the project's data
 

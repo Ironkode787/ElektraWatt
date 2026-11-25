@@ -177,9 +177,10 @@ pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
     })
 }
 
-/// A cable's length source typed as its words: `<number> m` (or the number alone, in metres)
-/// is a manual length, `missing` (or `length missing`, the cable overview's text) none, `from part` the part's.
-/// `None` for anything else (a JSON value, the field's own form, parsed as before).
+/// A cable's length source typed as the lists and the field print it: `<number> m` (or the number alone, in metres,
+/// with a decimal point or comma) is a manual length, `missing` or the lists' words for a missing length in a shipped
+/// language none, `from part` or the lists' words for it the part's. `None` for anything else (a JSON value, the
+/// field's own form, parsed as before).
 fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
     use ew_schema::LengthSource;
     use ew_units::Nm;
@@ -195,16 +196,20 @@ fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
         )
     };
     match t.to_lowercase().as_str() {
-        "missing" | "length missing" => return plain(LengthSource::Missing),
+        "missing" => return plain(LengthSource::Missing),
         "from part" | "from_part" => return plain(LengthSource::FromPart),
         _ => {}
     }
+    if let Some(source) = ew_reports::cable_length_words(t) {
+        return plain(source);
+    }
     let number = t.strip_suffix('m').map_or(t, str::trim_end);
-    if number.is_empty() || !number.chars().all(|c| c.is_ascii_digit() || c == '.') {
+    let point = |c: char| c == '.' || c == ',';
+    if number.is_empty() || !number.chars().all(|c| c.is_ascii_digit() || point(c)) {
         return None;
     }
-    let (whole, frac) = number.split_once('.').unwrap_or((number, ""));
-    if whole.is_empty() || frac.contains('.') || frac.len() > 9 {
+    let (whole, frac) = number.split_once(point).unwrap_or((number, ""));
+    if whole.is_empty() || frac.contains(point) || frac.len() > 9 {
         return Some(Err(InputError::Invalid(text!("refusal-input-metres", t))));
     }
     let nm = whole

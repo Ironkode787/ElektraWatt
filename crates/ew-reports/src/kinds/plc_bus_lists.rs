@@ -17,11 +17,12 @@ use ew_ids::Id;
 use ew_mltext::{MlText, natural_key};
 use ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_schema::{
-    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
-    LogicalNet, NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole,
-    ReportBlock, ReportKind,
+    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LogicalNet,
+    NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
+    ReportKind,
 };
 
+use super::cable_overview::length_cell;
 use super::conn::{put, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
@@ -56,19 +57,6 @@ fn logical_nets(q: &Q) -> Vec<Id<LogicalNet>> {
         .collect();
     nets.sort();
     nets.into_iter().map(|(_, id)| id).collect()
-}
-
-/// A cable's length as the lists print it: metres with three decimals at most (`45 m`), else empty.
-fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
-    match q
-        .devices()
-        .get(cable)
-        .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
-    {
-        Some(LengthSource::Manual(nm)) => text(&format!("{} m", ew_units::Dec3(nm.0 / 1_000_000))),
-        Some(LengthSource::FromPart) => words_cell(&text!("cell-from-part")),
-        _ => Cell::Empty,
-    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -384,7 +372,7 @@ impl ReportKindDef for BusOverview {
             ColumnDef::new("connector", CellType::Ident, text!("column-connector")).weighted(9),
             ColumnDef::new("termination", CellType::Text, text!("column-termination")).weighted(8),
             ColumnDef::new("cable", CellType::Ident, text!("column-cable")).weighted(8),
-            ColumnDef::new("length", CellType::Text, text!("column-length")).weighted(7),
+            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(7),
             ColumnDef::new("external", CellType::Bool, text!("column-external")).weighted(6),
         ]
     }
@@ -511,7 +499,7 @@ impl ReportKindDef for BusCableList {
             ColumnDef::new("cable", CellType::Ident, text!("column-cable")).weighted(9),
             ColumnDef::new("bus", CellType::Text, text!("column-bus-system")).weighted(10),
             ColumnDef::new("part", CellType::Ident, text!("column-part")).weighted(10),
-            ColumnDef::new("length", CellType::Text, text!("column-length")).weighted(7),
+            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(7),
             ColumnDef::new("from", CellType::Ident, text!("column-from")).weighted(12),
             ColumnDef::new("to", CellType::Ident, text!("column-to")).weighted(12),
             ColumnDef::new("segment", CellType::Ident, text!("column-segment")).weighted(9),

@@ -222,12 +222,33 @@ fn the_network_address_list_lists_ports_without_a_net() {
     assert_eq!(stations, [("", "-A3", "5"), ("", "-A4", "TBD")]);
 }
 
-/// A bus cable's length prints in metres to the millimetre without trailing zeros: 12.5 m.
+/// A bus cable's length is the cable overview's cell: metres to the millimetre without trailing zeros, with the
+/// decimal separator of the list's language (12.5 m, in Dutch 12,5 m).
 #[test]
 fn the_bus_cable_list_prints_the_length_in_metres() {
+    use ew_reports::render::{RenderOptions, render};
     let rows = rows("bus_cable_list");
     assert_eq!(rows.len(), 1, "{rows:?}");
     // A bus cable takes the page of its line.
     assert_eq!(rows[0][0], "-1W1");
-    assert_eq!(rows[0][3], "12.5 m");
+    let m = model();
+    let q = Q::new(&m);
+    let block: ReportBlock = serde_json::from_value(
+        json!({"id": uid(0x50), "source": {"kind": "bus_cable_list"}, "form": uid(0x51)}),
+    )
+    .expect("a report block");
+    let set = Registry::builtin()
+        .by_name("bus_cable_list")
+        .expect("a registered kind")
+        .rows(&q, &block);
+    let length = &set.rows[0].cells[3];
+    let printed = |lang: &str| {
+        let opts = RenderOptions {
+            lang: Some(lang.parse().expect("a language")),
+            ..RenderOptions::default()
+        };
+        render(&q, length, &opts)
+    };
+    assert_eq!(printed("en-GB"), "12.5 m");
+    assert_eq!(printed("nl-NL"), "12,5 m");
 }
