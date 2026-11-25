@@ -100,7 +100,7 @@ fn table_rules() -> Vec<&'static dyn Rule> {
 /// project's release scheme, else `pre-delivery` ([`release_scheme_of`]), that [`open_item_of`] places, in the
 /// engine's canonical order. Only the table's rules run, every finding of each (EW-BUS-001's `duplicate` ones
 /// take part in supersession), and the filter keeps the open items; the engine's own findings of the run (EW-CORE-081
-/// for a waiver of another rule, EW-CORE-083, EW-CORE-084) are not open items.
+/// for a waiver of another rule, EW-CORE-083) are not open items.
 ///
 /// # Errors
 ///

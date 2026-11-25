@@ -1250,8 +1250,8 @@ pub fn pe_sizing() -> &'static PeSizing {
     pe_sizing_data().expect("data/pe_sizing.toml parses")
 }
 
-/// The shipped PE sizing data, parsed once, or why it does not load: EW-POT-006 is then not evaluated and the engine
-/// reports EW-CORE-084 instead ([`data_tables`](crate::rules::system::data_tables)).
+/// The shipped PE sizing data, parsed once, or why it does not load (a build defect: EW-POT-006 then panics and the
+/// engine reports EW-CORE-083).
 pub fn pe_sizing_data() -> Result<&'static PeSizing, &'static str> {
     static DATA: OnceLock<Result<PeSizing, String>> = OnceLock::new();
     DATA.get_or_init(|| parse_pe_sizing(PE_SIZING_TOML))
@@ -1345,9 +1345,7 @@ impl Rule for PeUndersized {
         if final_type(q, p) != Some(PotentialType::Pe) {
             return Vec::new();
         }
-        let Ok(table) = pe_sizing_data() else {
-            return Vec::new();
-        };
+        let table = pe_sizing();
         let mut out = Vec::new();
         for (w, props) in owned_wires(q, p) {
             if w.bond.is_some() {

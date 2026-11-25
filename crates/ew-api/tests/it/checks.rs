@@ -472,7 +472,6 @@ fn the_core_rds_and_term_rules_are_quiet_on_the_sample() {
         "EW-CORE-048",
         "EW-CORE-061",
         "EW-CORE-083",
-        "EW-CORE-084",
         "EW-NUM-002",
         "EW-RDS-001",
         "EW-RDS-003",

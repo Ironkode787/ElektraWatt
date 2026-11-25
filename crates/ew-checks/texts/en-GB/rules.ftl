@@ -404,10 +404,6 @@ rule-ew-core-083 = rule { $rule } { $form ->
     .title = Rule not evaluated
     .hint = Report the defect; the rule's findings in that scope are missing until it is fixed.
 
-rule-ew-core-084 = pack { $pack } was not evaluated in full: its data table { $file } does not load ({ $error }); { $rules } did not run
-    .title = Rule pack not evaluated
-    .hint = Restore the pack's data file or trust the project, so that the pack can run.
-
 ## EW-FL: fluid power
 
 rule-ew-fl-001 = { $form ->
@@ -1038,10 +1034,6 @@ rule-ew-rel-001 = revision { $revision }: { $form ->
     }
     .title = Four eyes
     .hint = Set the author, then let another party approve the saved revision; approve again after a content edit.
-
-rule-ew-rel-002 =
-    .title = Stale committed computation
-    .hint = Recompute the stale result and commit it again before the release.
 
 rule-ew-rel-004 = revision { $revision }: { $form ->
         [format] the label is not in the project's revision label format { $pattern }

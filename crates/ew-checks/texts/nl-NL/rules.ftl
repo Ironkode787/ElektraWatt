@@ -408,10 +408,6 @@ rule-ew-core-083 = regel { $rule } { $form ->
     .title = Regel niet geëvalueerd
     .hint = Meld het defect; de bevindingen van de regel in dat bereik ontbreken tot het is verholpen.
 
-rule-ew-core-084 = pakket { $pack } is niet volledig beoordeeld: zijn gegevenstabel { $file } laadt niet ({ $error }); { $rules } liepen niet
-    .title = Regelpakket niet geëvalueerd
-    .hint = Herstel het gegevensbestand van het pakket of vertrouw het project, zodat het pakket kan draaien.
-
 rule-ew-fl-001 = { $form ->
         [many] { $valve }: werkpoorten { $ports } zijn open; sluit ze aan, zet er een blindstop op of blind ze af
        *[one] { $valve }: werkpoort { $port } is open; sluit hem aan, zet er een blindstop op of blind hem af
@@ -1060,10 +1056,6 @@ rule-ew-rel-001 = revisie { $revision }: { $form ->
     }
     .title = Vier-ogenprincipe
     .hint = Stel de auteur in en laat daarna een ander de opgeslagen revisie goedkeuren; keur opnieuw goed na een inhoudelijke wijziging.
-
-rule-ew-rel-002 =
-    .title = Verouderde vastgelegde berekening
-    .hint = Bereken het verouderde resultaat opnieuw en leg het vóór de vrijgave opnieuw vast.
 
 rule-ew-rel-004 = revisie { $revision }: { $form ->
         [format] het label volgt niet de notatie van revisielabels van het project, { $pattern }

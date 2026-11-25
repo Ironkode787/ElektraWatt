@@ -241,9 +241,9 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/rules/pot.rs` | large | EW-POT rules (doc 15 §4.3; content in doc 08 §3, §8.1, §8.2). |
 | `src/rules/process.rs` |  | EW-PRC-001, the process-tag rule of the EW-PLC pack's 1.0 content (doc 10 §3.4, §3.10; doc 15 §4.5.1; FR-PLC-049). |
 | `src/rules/rds.rs` |  | EW-RDS rules, pack EW-IEC81346 (doc 15 §4.2; numbering in doc 07; the parser and the identifier sets in `ew-rds`, ADR-0026). |
-| `src/rules/rel.rs` |  | EW-REL, the release gate's rules (doc 15 §4.8): EW-REL-001 "Four eyes", EW-REL-002 "Stale committed computation" and EW-REL-004 "Revision label order". |
+| `src/rules/rel.rs` |  | EW-REL, the release gate's rules (doc 15 §4.8): EW-REL-001 "Four eyes" and EW-REL-004 "Revision label order". |
 | `src/rules/safety.rs` |  | The EW-SAF rules (doc 10 §2.9, §3.10; doc 15 §4.5.1), in the 1.0 content of the EW-PLC pack: EW-SAF-001 (the F-destination address), EW-SAF-002 (the 1oo2 pair) and EW-SAF-003 (the test pulse). |
-| `src/rules/system.rs` |  | The rule system's own findings (doc 15 §4.2): EW-CORE-083 "Rule not evaluated" for a rule that panicked, and EW-CORE-084 "Rule pack not evaluated" for a pack whose data table does not load. |
+| `src/rules/system.rs` |  | The rule system's own finding (doc 15 §4.2): EW-CORE-083 "Rule not evaluated" for a rule that panicked. |
 | `src/rules/term.rs` | large | EW-TERM rules (doc 15 §4.4; content in doc 08 §6.8, §8.1). |
 | `src/scheme.rs` |  | Check modes and the shipped schemes (doc 15 §2.4, §3.1, §3.2, §4.9; ADR-0019 decision 5, amendment 6). |
 

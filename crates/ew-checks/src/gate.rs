@@ -24,14 +24,13 @@ use crate::scheme::{CheckMode, Scheme};
 pub use crate::rules::rel::GateInput;
 
 /// The release gate over the snapshot of `q` (doc 15 §5.5): [`run_with`] of `scheme` in release mode with `evidence`, as
-/// for `ew check`, then the EW-REL rules with `input` (EW-REL-001 against the content digest, EW-REL-002, EW-REL-004's
-/// gate half), joined into one report in canonical order with its totals. The EW-REL findings are integrity findings:
+/// for `ew check`, then the EW-REL rules with `input` (EW-REL-001 against the content digest, EW-REL-004's gate half),
+/// joined into one report in canonical order with its totals. The EW-REL findings are integrity findings:
 /// never waived. The report's rules list the EW-REL rules too.
 pub fn gate(q: &Q, scheme: &Scheme, input: &GateInput, evidence: Evidence) -> CheckReport {
     let mut report = run_with(q, scheme, CheckMode::Release, evidence);
     let mut rel: Vec<Finding> = four_eyes(q, input);
     rel.extend(label_order(q));
-    // EW-REL-002 reports nothing at MVP (no committed computation has an input hash yet).
     for r in rules() {
         let m = r.meta();
         if m.pack() == LABEL_ORDER.pack() && !report.rules.iter().any(|x| x.id == m.id) {

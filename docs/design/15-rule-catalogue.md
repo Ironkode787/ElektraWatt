@@ -281,6 +281,10 @@ or EW-CORE-083/084 at error level. Its named blockers are release-scheme rules a
   conflict records and EW-CORE-016 unknown data that affects outputs;
 - EW-REL-001 (author = checker, missing or stale sign-off) and EW-REL-002 (stale committed computations).
 
+Two of these rules are not registered yet: EW-REL-002 until a committed computation has an input hash to compare,
+and EW-CORE-084 until a pack can be untrusted or read a data table that is not compiled in (both 1.0); a shipped
+pack's compiled-in table that does not load is a build defect, which EW-CORE-083 reports.
+
 On a project before its sign-off, EW-REL-001 reports "checker not set".
 
 EW-REL-001, -002 and -004 are the EW-REL pack, in the gate-only mode `g`. `ew_checks::gate` evaluates the release scheme in release mode with the EW-REL rules and returns the blockers, the safety waivers in force (the waivers that waive a safety-kind finding of the gate report) and the pack versions (the build version plus the SHA-256 of each pack's definition; per-pack versions are not built). The pack definition names a rule's kind and scope by the catalogue's words (`RuleKind::name`, `ScopeKind::name`: `safety`, `conflict`, `completeness`, `hygiene`, `integrity`; `project`, `page`, `strip`, `device`, `cable`, `potential`, `module`, `cfg`), the `rules.json` text, not by a Rust type's `Debug` output, so the digest a sign-off binds does not follow a code change.

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-REL, the release gate's rules (doc 15 §4.8): EW-REL-001 "Four eyes", EW-REL-002 "Stale committed
-//! computation" and EW-REL-004 "Revision label order". All three are integrity rules (never waivable, never pending)
+//! EW-REL, the release gate's rules (doc 15 §4.8): EW-REL-001 "Four eyes" and EW-REL-004 "Revision label order".
+//! Both are integrity rules (never waivable, never pending)
 //! of mode `g`: only the release gate evaluates them ([`gate`](crate::gate)), never `ew check` or the message panel
 //! (doc 15 §3.2), so "checker not set" does not turn every open revision's check run red.
 //!
@@ -31,21 +31,6 @@ pub const FOUR_EYES: RuleMeta = RuleMeta {
     message: key!("rule-ew-rel-001"),
     code: "190001",
     title: "Four eyes",
-    kind: RuleKind::Integrity,
-    modes: Modes::letters("g"),
-    severity: Severity::Error,
-    release_severity: None,
-    scope: ScopeKind::Project,
-    supersedes: &[],
-    release: Release::Mvp,
-};
-
-/// EW-REL-002 "Stale committed computation" (doc 15 §4.8): integrity, g, error, project.
-pub const STALE_COMMITTED: RuleMeta = RuleMeta {
-    id: "EW-REL-002",
-    message: key!("rule-ew-rel-002"),
-    code: "190002",
-    title: "Stale committed computation",
     kind: RuleKind::Integrity,
     modes: Modes::letters("g"),
     severity: Severity::Error,
@@ -184,22 +169,6 @@ impl Rule for FourEyes {
 
     fn run(&self, q: &Q, _scope: &Scope) -> Vec<Finding> {
         four_eyes(q, &GateInput::default())
-    }
-}
-
-/// EW-REL-002 (doc 15 §4.8): a committed computation that a release output uses is stale. Registered so that the gate
-/// lists it; it reports nothing until committed routes, thermal results and frozen report snapshots exist:
-/// at MVP no committed computation has an input hash to compare.
-#[derive(Clone, Copy, Debug)]
-pub struct StaleCommitted;
-
-impl Rule for StaleCommitted {
-    fn meta(&self) -> &'static RuleMeta {
-        &STALE_COMMITTED
-    }
-
-    fn run(&self, _q: &Q, _scope: &Scope) -> Vec<Finding> {
-        Vec::new()
     }
 }
 

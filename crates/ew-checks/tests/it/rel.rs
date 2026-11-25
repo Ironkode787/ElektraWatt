@@ -54,7 +54,7 @@ fn gated(records: Vec<Record>, content_digest: Option<Sha256>) -> Vec<(&'static 
 /// plain release-mode run, so `ew check` never reports "checker not set" (doc 15 §3.2); the gate does.
 #[test]
 fn ew_rel_runs_in_the_gate_only() {
-    for id in ["EW-REL-001", "EW-REL-002", "EW-REL-004"] {
+    for id in ["EW-REL-001", "EW-REL-004"] {
         let m = rule(id).expect("registered").meta();
         assert_eq!(m.pack(), "EW-REL");
         assert_eq!(m.kind, RuleKind::Integrity);
@@ -268,7 +268,7 @@ fn the_gate_joins_the_release_run_and_ew_rel() {
         .collect();
     assert_eq!(without, plain.findings.iter().collect::<Vec<_>>());
     assert_eq!(g.counts.errors, plain.counts.errors + 1);
-    for id in ["EW-REL-001", "EW-REL-002", "EW-REL-004"] {
+    for id in ["EW-REL-001", "EW-REL-004"] {
         assert!(g.rules.iter().any(|r| r.id == id), "{id}");
     }
     let b: Vec<&str> = blockers(&g).iter().map(|f| f.rule).collect();
@@ -314,7 +314,6 @@ fn the_pack_definition_text_is_pinned() {
     let want = format!(
         "pack EW-REL {}\n\
          rule EW-REL-001 190001 integrity g error - project MVP [] Four eyes\n\
-         rule EW-REL-002 190002 integrity g error - project MVP [] Stale committed computation\n\
          rule EW-REL-004 190004 integrity pg error - project MVP [] Revision label order\n",
         env!("CARGO_PKG_VERSION")
     );

@@ -118,17 +118,6 @@ fn nl_nl_words_the_rule_system_s_findings() {
         &[("form", "prevent".into()), ("rule", "EW-POT-006".into())],
     );
     assert!(render(&edit, "nl-NL").starts_with("regel EW-POT-006 kon de bewerking niet toetsen"));
-    let pack = built(
-        "EW-CORE-084",
-        "",
-        &[
-            ("pack", "EW-POT".into()),
-            ("file", "data/pe_sizing.toml".into()),
-            ("error", "`rows` is missing".into()),
-            ("rules", "EW-POT-006".into()),
-        ],
-    );
-    assert!(render(&pack, "nl-NL").starts_with("pakket EW-POT is niet volledig beoordeeld"));
 }
 
 /// Every word a rule prints where a record has no name of its own (the en-GB messages `word-…`) has its text in

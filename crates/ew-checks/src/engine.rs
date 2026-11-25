@@ -15,9 +15,7 @@ use crate::finding::{Finding, FindingState, Fingerprint, Severity, Target, sort_
 use crate::registry::{rule, rules};
 use crate::rule::{Rule, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::core::{INTEGRITY, WAIVER_MATCHES_NOTHING};
-use crate::rules::system::{
-    DataTable, PACK_NOT_EVALUATED, data_tables, pack_findings, prevent_caught, run_caught,
-};
+use crate::rules::system::{prevent_caught, run_caught};
 use crate::scheme::{CheckMode, Scheme};
 
 /// `check_findings(rule, scope)`: the findings of one shipped rule in one scope, at the rule's own
@@ -265,8 +263,7 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// supersession (§3.6), waivers (§2.5) and EW-CORE-081 for waivers that match nothing; the findings sorted
 /// in canonical order ([`Finding::order_cmp`], §3.9). [`run_with`] joins evidence the snapshot does not hold.
 ///
-/// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is; a rule whose data
-/// table does not load is not evaluated and EW-CORE-084 names it.
+/// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is.
 ///
 /// # Panics
 ///
@@ -282,7 +279,7 @@ pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
 ///
 /// As [`run`].
 pub fn run_with(q: &Q, scheme: &Scheme, mode: CheckMode, evidence: Evidence) -> CheckReport {
-    match run_rules(q, scheme, mode, rules(), &data_tables(), true, evidence) {
+    match run_rules(q, scheme, mode, rules(), true, evidence) {
         Ok(report) => report,
         Err(cycle) => panic!("{cycle}"),
     }
@@ -304,10 +301,10 @@ pub fn run_table_rules(
     list: &[&'static dyn Rule],
     evidence: Evidence,
 ) -> Result<CheckReport, Cycle> {
-    run_rules(q, scheme, mode, list, &data_tables(), true, evidence)
+    run_rules(q, scheme, mode, list, true, evidence)
 }
 
-/// [`run_with`] over `list` with the data tables `tables`. With `memo` the rules are evaluated through [`CheckOf`]
+/// [`run_with`] over `list`. With `memo` the rules are evaluated through [`CheckOf`]
 /// (they must be registered), read with [`Q::try_get`]; without it directly, each under `catch_unwind`, which lets the
 /// unit tests add a rule that panics (P4-3). A query cycle of a memo read is returned as it is.
 fn run_rules(
@@ -315,17 +312,15 @@ fn run_rules(
     scheme: &Scheme,
     mode: CheckMode,
     list: &[&'static dyn Rule],
-    tables: &[DataTable],
     memo: bool,
     evidence: Evidence,
 ) -> Result<CheckReport, Cycle> {
-    let (pack_issues, skipped) = pack_findings(tables);
     let mut evaluated: Vec<&'static RuleMeta> = Vec::new();
     let mut findings: Vec<Finding> = Vec::new();
     let mut scope_cache: BTreeMap<ScopeKind, Vec<Scope>> = BTreeMap::new();
     for r in list {
         let meta = r.meta();
-        if !scheme.enabled(meta, mode) || skipped.contains(&meta.id) {
+        if !scheme.enabled(meta, mode) {
             continue;
         }
         evaluated.push(meta);
@@ -347,12 +342,6 @@ fn run_rules(
                 f.severity = mode.severity(own, f.severity);
                 findings.push(f);
             }
-        }
-    }
-    if scheme.enabled(&PACK_NOT_EVALUATED, mode) {
-        for mut f in pack_issues {
-            f.severity = mode.severity(&PACK_NOT_EVALUATED, f.severity);
-            findings.push(f);
         }
     }
     join(q, mode, evidence, &mut evaluated, &mut findings);
@@ -575,13 +564,11 @@ mod tests {
     fn a_panicking_rule_yields_ew_core_083_and_leaves_the_other_findings() {
         let m = duplicate_strip();
         let q = Q::new(&m);
-        let tables = data_tables();
         for (mode, severity) in [
             (CheckMode::Online, Severity::Warning),
             (CheckMode::Release, Severity::Error),
         ] {
-            let base =
-                run_rules(&q, &FULL, mode, rules(), &tables, false, Evidence::default()).expect("no cycle");
+            let base = run_rules(&q, &FULL, mode, rules(), false, Evidence::default()).expect("no cycle");
             assert_eq!(
                 printed(&base.findings),
                 printed(&run(&q, &FULL, mode).findings),
@@ -590,8 +577,7 @@ mod tests {
             assert!(base.findings.iter().any(|f| f.rule == "EW-TERM-002"));
             let mut list: Vec<&'static dyn Rule> = rules().to_vec();
             list.push(&PANICS_RULE);
-            let with =
-                run_rules(&q, &FULL, mode, &list, &tables, false, Evidence::default()).expect("no cycle");
+            let with = run_rules(&q, &FULL, mode, &list, false, Evidence::default()).expect("no cycle");
             let (caught, rest): (Vec<Finding>, Vec<Finding>) =
                 with.findings.into_iter().partition(|f| f.rule == "EW-CORE-083");
             assert_eq!(caught.len(), 1, "{caught:#?}");
@@ -617,38 +603,5 @@ mod tests {
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].rule, "EW-CORE-083");
         assert_eq!(v[0].severity, Severity::Error);
-    }
-
-    /// A rule whose data table does not load is not evaluated; EW-CORE-084 names it, at error in release mode.
-    #[test]
-    fn a_rule_without_its_data_table_is_not_evaluated() {
-        let m = duplicate_strip();
-        let q = Q::new(&m);
-        let tables = [DataTable {
-            rule: "EW-TERM-002",
-            pack: "EW-TERM",
-            file: "data/x.toml",
-            error: Some("missing".to_owned()),
-        }];
-        let report = run_rules(
-            &q,
-            &FULL,
-            CheckMode::Release,
-            rules(),
-            &tables,
-            false,
-            Evidence::default(),
-        )
-        .expect("no cycle");
-        assert!(!report.findings.iter().any(|f| f.rule == "EW-TERM-002"));
-        assert!(!report.rules.iter().any(|m| m.id == "EW-TERM-002"));
-        let f: Vec<&Finding> = report
-            .findings
-            .iter()
-            .filter(|f| f.rule == "EW-CORE-084")
-            .collect();
-        assert_eq!(f.len(), 1, "{f:#?}");
-        assert_eq!(f[0].severity, Severity::Error);
-        assert_eq!(report.exit_code(), 1);
     }
 }
