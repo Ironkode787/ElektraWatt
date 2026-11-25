@@ -367,7 +367,7 @@ fn export_places_a_new_file_and_refuses_an_existing_one() {
     let mut other = block();
     other.version = "2.0.0".into();
     let refused = symbols::export(&other, &path).unwrap_err();
-    assert!(matches!(&refused, symbols::Error::Input(code) if code == "symbol-export-exists"));
+    assert!(matches!(&refused, symbols::Error::Refused(t) if t.key() == "symbol-export-exists"));
     let names: Vec<_> = std::fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().into_string().unwrap())
@@ -408,7 +408,7 @@ fn export_without_hard_links_renames_after_checking_and_syncs_the_folder() {
     assert_eq!(SymbolDraft::parse(&files["power.symbol.json"]).unwrap(), draft);
     // The name is now taken: the fallback refuses and removes its temporary file.
     let refused = symbols::export_with(&vfs, &block(), path).unwrap_err();
-    assert!(matches!(&refused, symbols::Error::Input(code) if code == "symbol-export-exists"));
+    assert!(matches!(&refused, symbols::Error::Refused(t) if t.key() == "symbol-export-exists"));
     assert_eq!(
         vfs.files(Path::new("/out")).keys().collect::<Vec<_>>(),
         ["power.symbol.json"]

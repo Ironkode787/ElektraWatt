@@ -102,7 +102,11 @@ pub struct Issue {
 /// Authoring errors leave both draft and target unchanged.
 #[derive(Debug)]
 pub enum Error {
-    /// Input is malformed, unsupported, or over a resource bound.
+    /// A refusal of the readers and importers in words: input that is malformed, unsupported, or over a resource
+    /// bound.
+    Refused(crate::Text),
+    /// A reader's or the system's own message about the input (a parser's line and column, an operating system's
+    /// error), not in the program's words.
     Input(String),
     /// Publication refused by editor validation.
     Invalid(Vec<Issue>),
@@ -120,7 +124,8 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Input(s) => f.write_str(words(s).unwrap_or(s)),
+            Self::Refused(t) => t.fmt(f),
+            Self::Input(s) => f.write_str(s),
             Self::Invalid(v) => {
                 for (i, issue) in v.iter().enumerate() {
                     if i != 0 {
@@ -149,50 +154,14 @@ fn input(e: impl std::fmt::Display) -> Error {
     Error::Input(e.to_string())
 }
 
-/// The English words of a refusal key of the readers and importers, as the window's en-GB text has them, for every
-/// caller that prints an [`Error`], the CLI among them (SM25#3); `None` for a text that is no such key.
-fn words(key: &str) -> Option<&'static str> {
-    Some(match key {
-        "symbol-input-limit" => "The symbol file exceeds the supported size or item limit.",
-        "symbol-input-version" => "This symbol authoring format is not supported.",
-        "symbol-input-object" => "The symbol document is not valid.",
-        "symbol-function-required" => "Assign a function definition to this symbol.",
-        "symbol-function-changed" => {
-            "The assigned function definition changed. Assign it again before saving."
-        }
-        "symbol-geometry-limit" => {
-            "The symbol geometry exceeds the supported coordinate or complexity limit."
-        }
-        "symbol-import-stopped" => "The importer stopped on an internal error; nothing was imported.",
-        "dxf-input-limit" => "The DXF file exceeds the supported size or complexity.",
-        "dxf-input-invalid" => "The file is no DXF drawing this reader understands.",
-        "dxf-no-unit" => "The drawing names no unit. Choose the unit it is drawn in.",
-        "dxf-no-blocks" => "The drawing has no named block to make a symbol of.",
-        "eplan-input-limit" => "The EPLAN input exceeds the supported size or complexity.",
-        "eplan-archive-path" => "The EPLAN archive has unsafe or duplicate member names.",
-        "eplan-archive-invalid" => "The EPLAN archive is damaged, encrypted or unsupported.",
-        "eplan-archive-method" => "This archive compression method is unsupported.",
-        "eplan-binary-unsupported" => {
-            "This binary EPLAN library or macro is unsupported. Export a PXF XML macro or parts XML from EPLAN."
-        }
-        "eplan-xml-invalid" => "The EPLAN XML is malformed or contains forbidden declarations.",
-        "eplan-geometry-invalid" => "The EPLAN drawing contains invalid coordinates.",
-        "eplan-pxf-version" => "This EPLAN PXF version is unsupported; the reader supports revision 1.23.",
-        "eplan-no-symbols" => "No supported symbol drawing or connection template was found.",
-        "eplan-format-unsupported" => "This EPLAN document type is unsupported.",
-        "eplan-slk-invalid" => "The symbol-library database is damaged or has an unsupported record layout.",
-        "eplan-slk-version" => "This EPLAN symbol-library database version is not supported.",
-        "eplan-slk-encoding" => {
-            "This older SLK file uses an unsupported text encoding. UTF-16 and UTF-8 descriptors are supported."
-        }
-        "eplan-slk-companion" => {
-            "Keep the SLK file beside its complete .sdb folder, then open it again. A required drawing table is missing."
-        }
-        "eplan-slk-record-unsupported" => {
-            "The symbol-library database contains an unsupported record encoding."
-        }
-        _ => return None,
-    })
+/// A refusal of the EPLAN reader, which refuses by a key of this crate's texts (`eplan-…`): in its words; any other
+/// error of the reader as its own message.
+fn eplan_refusal(e: impl std::fmt::Display) -> Error {
+    let e = e.to_string();
+    match crate::TEXTS.iter().find(|(key, _)| *key == e) {
+        Some((key, english)) => Error::Refused(crate::Text::checked_by_macro(key, english, Vec::new())),
+        None => Error::Input(e),
+    }
 }
 
 /// What a symbol import returns through the front door: its drafts, or its own refusal.
@@ -206,7 +175,7 @@ impl crate::import::FrontDoorOutput for Drafts {}
 fn front_door(
     file: &str,
     sizes: &[u64],
-    limit: &str,
+    limit: crate::Text,
     run: impl FnOnce() -> Result<Vec<SymbolDraft>, Error>,
 ) -> Result<Vec<SymbolDraft>, Error> {
     use crate::import::{Limits, Refusal};
@@ -214,8 +183,8 @@ fn front_door(
         Ok(Drafts(run()))
     }) {
         Ok(Drafts(drafts)) => drafts,
-        Err(Refusal::Import(_)) => Err(input(limit)),
-        Err(_) => Err(input("symbol-import-stopped")),
+        Err(Refusal::Import(_)) => Err(Error::Refused(limit)),
+        Err(_) => Err(Error::Refused(text!("symbol-import-stopped"))),
     }
 }
 
@@ -234,7 +203,7 @@ impl crate::Session {
             let function = q
                 .fndefs()
                 .get(id)
-                .ok_or_else(|| input("symbol-function-required"))?;
+                .ok_or_else(|| Error::Refused(text!("symbol-function-required")))?;
             let mut d = SymbolDraft::new(key, key)?;
             d.identity = kept_identity(s, function, key);
             d.symbol = s.item.clone();
@@ -265,7 +234,7 @@ impl SymbolDraft {
                 }
                 _ => None,
             })
-            .ok_or_else(|| input("symbol-input-object"))?;
+            .ok_or_else(|| Error::Refused(text!("symbol-input-object")))?;
         Self::fork(registry, &found, key)
     }
 }
@@ -326,7 +295,7 @@ pub fn export_with(vfs: &dyn ew_store::Vfs, draft: &SymbolDraft, path: &Path) ->
     let _ = vfs.remove_file(&temporary);
     match placed {
         Ok(()) => Ok(()),
-        Err(e) if e.kind() == ErrorKind::AlreadyExists => Err(input("symbol-export-exists")),
+        Err(e) if e.kind() == ErrorKind::AlreadyExists => Err(Error::Refused(text!("symbol-export-exists"))),
         Err(e) => {
             // An unsynced name of a file this call placed: it goes too.
             if ours {
@@ -414,20 +383,20 @@ impl SymbolDraft {
     /// Size, depth, malformed JSON, unsupported envelope version, or invalid format values.
     pub fn parse(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() as u64 > MAX_BYTES {
-            return Err(input("symbol-input-limit"));
+            return Err(Error::Refused(text!("symbol-input-limit")));
         }
         // Bytes that are no text (an archive, say) are no authoring document: refused in words, not by the decoder.
-        let text = std::str::from_utf8(bytes).map_err(|_| input("symbol-input-object"))?;
+        let text = std::str::from_utf8(bytes).map_err(|_| Error::Refused(text!("symbol-input-object")))?;
         let value = ew_schema::parse_value(text).map_err(input)?;
         let draft: Self = serde_json::from_value(value).map_err(input)?;
         if draft.format != FORMAT {
-            return Err(input("symbol-input-version"));
+            return Err(Error::Refused(text!("symbol-input-version")));
         }
         if draft.symbol.graphics.len() > MAX_ITEMS
             || draft.symbol.cps.len() > MAX_ITEMS
             || draft.function.cps.len() > MAX_ITEMS
         {
-            return Err(input("symbol-input-limit"));
+            return Err(Error::Refused(text!("symbol-input-limit")));
         }
         Ok(draft)
     }
@@ -837,7 +806,7 @@ impl SymbolDraft {
             .iter()
             .any(|i| matches!(i.code, "symbol-geometry-limit" | "symbol-input-limit"))
         {
-            return Err(input("symbol-geometry-limit"));
+            return Err(Error::Refused(text!("symbol-geometry-limit")));
         }
         let orientations = [
             units::Orient2::R0,
@@ -892,7 +861,7 @@ impl SymbolDraft {
         symbol.fndef = match (&self.function_ref, identity.fndef) {
             (Some(r), _) => r.clone(),
             (None, item) => {
-                let item = item.ok_or_else(|| input("symbol-function-required"))?.as_uuid();
+                let item = item.ok_or_else(|| Error::Refused(text!("symbol-function-required")))?.as_uuid();
                 let key = format!("{}.function", self.key);
                 let mut function = self.function.clone();
                 function.meta = symbol.meta.clone();
@@ -1002,7 +971,7 @@ impl SymbolDraft {
         if let Some(r) = &self.function_ref {
             match registry.resolve(r).map_err(Error::Library)? {
                 LibDocument::Fndef(f) if f.item == self.function => {}
-                _ => return Err(input("symbol-function-changed")),
+                _ => return Err(Error::Refused(text!("symbol-function-changed"))),
             }
         }
         Ok(())
@@ -1015,7 +984,7 @@ impl SymbolDraft {
     pub fn fork(registry: &Registry, symbol: &LibCopy<SymbolDef>, key: &str) -> Result<Self, Error> {
         let LibDocument::Fndef(function) = registry.resolve(&symbol.item.fndef).map_err(Error::Library)?
         else {
-            return Err(input("symbol-function-required"));
+            return Err(Error::Refused(text!("symbol-function-required")));
         };
         let mut draft = Self::new(key, key)?;
         draft.identity = kept_identity(symbol, &function, key);
@@ -1075,7 +1044,7 @@ fn copy<T: Serialize>(
     let mut value = serde_json::to_value(item).map_err(input)?;
     let map = value
         .as_object_mut()
-        .ok_or_else(|| input("symbol-input-object"))?;
+        .ok_or_else(|| Error::Refused(text!("symbol-input-object")))?;
     map.extend(
         json!({"$k": kind, "id": v5::lib_copy_id::<()>(library, item_id),
         "library_id": library, "item_id": item_id, "version": version,
@@ -1086,13 +1055,13 @@ fn copy<T: Serialize>(
     );
     let (mut doc, malformed) = LibDocument::load(value).map_err(input)?;
     if !malformed.is_empty() {
-        return Err(input("symbol-input-object"));
+        return Err(Error::Refused(text!("symbol-input-object")));
     }
-    let hash = ew_format::library_copy_hash(&doc).ok_or_else(|| input("symbol-input-object"))?;
+    let hash = ew_format::library_copy_hash(&doc).ok_or_else(|| Error::Refused(text!("symbol-input-object")))?;
     match &mut doc {
         LibDocument::Symbol(s) => s.sha256 = Sha256(hash),
         LibDocument::Fndef(f) => f.sha256 = Sha256(hash),
-        _ => return Err(input("symbol-input-object")),
+        _ => return Err(Error::Refused(text!("symbol-input-object"))),
     }
     Ok(doc)
 }
@@ -1108,7 +1077,7 @@ pub fn read_file(path: &Path) -> Result<Vec<u8>, Error> {
 fn read_bounded_file(path: &Path, limit: u64) -> Result<Vec<u8>, Error> {
     let meta = std::fs::symlink_metadata(path).map_err(input)?;
     if !meta.file_type().is_file() || meta.len() > limit {
-        return Err(input("symbol-input-limit"));
+        return Err(Error::Refused(text!("symbol-input-limit")));
     }
     let mut bytes = Vec::new();
     std::fs::File::open(path)
@@ -1117,7 +1086,7 @@ fn read_bounded_file(path: &Path, limit: u64) -> Result<Vec<u8>, Error> {
         .read_to_end(&mut bytes)
         .map_err(input)?;
     if bytes.len() as u64 > limit {
-        return Err(input("symbol-input-limit"));
+        return Err(Error::Refused(text!("symbol-input-limit")));
     }
     Ok(bytes)
 }
@@ -1137,17 +1106,17 @@ pub fn json_schema() -> Value {
 /// # Errors
 /// Invalid or oversized XML, or an unresolved built-in function.
 pub fn import_qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
-    front_door(name, &[bytes.len() as u64], "symbol-input-limit", || {
+    front_door(name, &[bytes.len() as u64], text!("symbol-input-limit"), || {
         qet(bytes, name, key).map(|d| vec![d])
     })?
     .pop()
-    .ok_or_else(|| input("symbol-input-object"))
+    .ok_or_else(|| Error::Refused(text!("symbol-input-object")))
 }
 
 fn qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
     use ew_import_qet::ew_interop_api::{Limits, LineageInfo};
     if bytes.len() as u64 > MAX_BYTES {
-        return Err(input("symbol-input-limit"));
+        return Err(Error::Refused(text!("symbol-input-limit")));
     }
     let xml = std::str::from_utf8(bytes).map_err(input)?;
     let source = ew_import_qet::ElementSource::new(name, None).map_err(input)?;
@@ -1170,7 +1139,7 @@ fn qet(bytes: &[u8], name: &str, key: &str) -> Result<SymbolDraft, Error> {
             .map_err(Error::Library)?
         {
             LibDocument::Fndef(f) => f.item,
-            _ => return Err(input("symbol-function-required")),
+            _ => return Err(Error::Refused(text!("symbol-function-required"))),
         },
     };
     let mut draft = SymbolDraft::new(key, key)?;
@@ -1223,7 +1192,7 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
     if ext == "slk" {
         use sha2::{Digest, Sha256};
         let descriptor = read_bounded_file(path, 8192)?;
-        let directory = ew_import_eplan::slk::directory(&descriptor).map_err(input)?;
+        let directory = ew_import_eplan::slk::directory(&descriptor).map_err(eplan_refusal)?;
         let parent = path
             .parent()
             .filter(|p| !p.as_os_str().is_empty())
@@ -1235,15 +1204,15 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         let link = |p: &Path| {
             std::fs::symlink_metadata(p)
                 .map(|m| m.file_type().is_symlink())
-                .map_err(|_| input("eplan-slk-companion"))
+                .map_err(|_| Error::Refused(text!("eplan-slk-companion")))
         };
         let folder = parent.join(directory);
         if link(&folder)? {
-            return Err(input("eplan-archive-path"));
+            return Err(Error::Refused(text!("eplan-archive-path")));
         }
-        let root = folder.canonicalize().map_err(|_| input("eplan-slk-companion"))?;
+        let root = folder.canonicalize().map_err(|_| Error::Refused(text!("eplan-slk-companion")))?;
         if root.parent() != Some(parent.as_path()) {
-            return Err(input("eplan-archive-path"));
+            return Err(Error::Refused(text!("eplan-archive-path")));
         }
         let mut files = std::collections::BTreeMap::new();
         let mut hash = Sha256::new();
@@ -1255,16 +1224,16 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
             if link(&file)?
                 || file
                     .canonicalize()
-                    .map_err(|_| input("eplan-slk-companion"))?
+                    .map_err(|_| Error::Refused(text!("eplan-slk-companion")))?
                     .parent()
                     != Some(root.as_path())
             {
-                return Err(input("eplan-archive-path"));
+                return Err(Error::Refused(text!("eplan-archive-path")));
             }
             let bytes = read_bounded_file(&file, ew_import_eplan::MAX_FILE)?;
             total += bytes.len() as u64;
             if total > ew_import_eplan::MAX_TOTAL {
-                return Err(input("eplan-input-limit"));
+                return Err(Error::Refused(text!("eplan-input-limit")));
             }
             hash.update(name.as_bytes());
             hash.update((bytes.len() as u64).to_le_bytes());
@@ -1274,8 +1243,8 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         }
         let name = path.file_name().and_then(|e| e.to_str()).unwrap_or("symbol");
         let hash = format!("{:x}", hash.finalize());
-        return front_door(name, &sizes, "eplan-input-limit", || {
-            eplan_drafts(ew_import_eplan::slk::read(&files).map_err(input)?, key, &hash)
+        return front_door(name, &sizes, text!("eplan-input-limit"), || {
+            eplan_drafts(ew_import_eplan::slk::read(&files).map_err(eplan_refusal)?, key, &hash)
         });
     }
     let eplan = matches!(
@@ -1301,7 +1270,7 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         // A drawing without a unit is read in millimetres here, with EW-IMP-251 among its details.
         import_dxf(&bytes, name, key, Some(ew_import_dxf::Unit::Millimetre))
     } else {
-        front_door(name, &[bytes.len() as u64], "symbol-input-limit", || {
+        front_door(name, &[bytes.len() as u64], text!("symbol-input-limit"), || {
             Ok(vec![SymbolDraft::parse(&bytes)?])
         })
     }
@@ -1314,9 +1283,9 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
 /// Any importer refusal or a recovered object outside the native format.
 pub fn import_eplan(bytes: &[u8], name: &str, key: &str) -> Result<Vec<SymbolDraft>, Error> {
     use sha2::{Digest, Sha256};
-    front_door(name, &[bytes.len() as u64], "eplan-input-limit", || {
+    front_door(name, &[bytes.len() as u64], text!("eplan-input-limit"), || {
         let hash = format!("{:x}", Sha256::digest(bytes));
-        eplan_drafts(ew_import_eplan::read(bytes, name).map_err(input)?, key, &hash)
+        eplan_drafts(ew_import_eplan::read(bytes, name).map_err(eplan_refusal)?, key, &hash)
     })
 }
 
@@ -1338,19 +1307,19 @@ pub fn import_dxf(
     use ew_import_dxf::ew_interop_api::Limits;
     use sha2::{Digest, Sha256};
     let limits = Limits::default();
-    front_door(name, &[bytes.len() as u64], "dxf-input-limit", || {
+    front_door(name, &[bytes.len() as u64], text!("dxf-input-limit"), || {
         let blocks =
             ew_import_dxf::symbols(bytes, &limits, unit, ew_units::Grid::MM4, name).map_err(|e| match e {
                 ew_import_dxf::ew_interop_api::ImportError::Unsupported { message }
                     if message == ew_import_dxf::NO_UNIT =>
                 {
-                    input("dxf-no-unit")
+                    Error::Refused(text!("dxf-no-unit"))
                 }
-                ew_import_dxf::ew_interop_api::ImportError::LimitExceeded { .. } => input("dxf-input-limit"),
-                _ => input("dxf-input-invalid"),
+                ew_import_dxf::ew_interop_api::ImportError::LimitExceeded { .. } => Error::Refused(text!("dxf-input-limit")),
+                _ => Error::Refused(text!("dxf-input-invalid")),
             })?;
         if blocks.is_empty() {
-            return Err(input("dxf-no-blocks"));
+            return Err(Error::Refused(text!("dxf-no-blocks")));
         }
         let hash = format!("{:x}", Sha256::digest(bytes));
         blocks
@@ -1410,12 +1379,12 @@ mod tests {
     /// A panic inside a symbol import is the front door's refusal, in words.
     #[test]
     fn a_panic_in_a_symbol_import_is_refused_in_words() {
-        let e = front_door("x.edz", &[1], "eplan-input-limit", || panic!("decoder fault")).unwrap_err();
+        let e = front_door("x.edz", &[1], text!("eplan-input-limit"), || panic!("decoder fault")).unwrap_err();
         assert_eq!(
             e.to_string(),
             "The importer stopped on an internal error; nothing was imported."
         );
-        let e = front_door("x.edz", &[17 * 1024 * 1024], "eplan-input-limit", || {
+        let e = front_door("x.edz", &[17 * 1024 * 1024], text!("eplan-input-limit"), || {
             Ok(Vec::new())
         })
         .unwrap_err();
@@ -1423,22 +1392,5 @@ mod tests {
             e.to_string(),
             "The EPLAN input exceeds the supported size or complexity."
         );
-    }
-
-    /// SM25#3: the words are the en-GB texts of the same keys, which the window shows.
-    #[test]
-    fn the_words_are_the_windows_english() {
-        let ftl = crate::SOURCES
-            .iter()
-            .filter(|(l, _)| *l == "en-GB")
-            .flat_map(|(_, s)| s.lines());
-        let mut checked = 0;
-        for (key, text) in ftl.filter_map(|l| l.split_once(" = ")) {
-            if let Some(w) = words(key) {
-                assert_eq!(w, text, "{key}");
-                checked += 1;
-            }
-        }
-        assert!(checked > 0);
     }
 }

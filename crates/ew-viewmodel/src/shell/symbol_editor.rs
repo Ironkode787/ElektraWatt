@@ -547,8 +547,8 @@ fn nm(p: &Map<String, Value>, name: &str) -> Result<i64, String> {
     Ok(value.round() as i64)
 }
 
-/// A symbol error in the window's words: an invalid draft's issues one per line, a refusal key of the reader in its
-/// text, a taken key named, anything else as it reads.
+/// A symbol error in the window's words: an invalid draft's issues one per line, a refusal of the reader in its
+/// words, a taken key named, anything else as it reads.
 fn symbol_error(e: symbols::Error) -> String {
     match e {
         symbols::Error::Invalid(issues) => issues
@@ -556,11 +556,9 @@ fn symbol_error(e: symbols::Error) -> String {
             .map(|i| strings::format(strings::Key::run_time(i.code), &[&i.detail]))
             .collect::<Vec<_>>()
             .join("\n"),
-        symbols::Error::Input(s)
-            if (s.starts_with("symbol-") || s.starts_with("eplan-")) && !s.contains(' ') =>
-        {
-            strings::text(strings::Key::run_time(&s)).to_owned()
-        }
+        // A DXF reader's refusal reads in English here, as it always has: the open gives it its own words
+        // (`file_error`).
+        symbols::Error::Refused(t) if !t.key().starts_with("dxf-") => super::text_words(&t),
         symbols::Error::KeyTaken { key, function } => strings::format(
             if function {
                 key!("symbol-function-key-taken")
@@ -578,11 +576,8 @@ fn symbol_error(e: symbols::Error) -> String {
 /// can do; a refusal that is already in words stays.
 fn file_error(e: symbols::Error, words: strings::Key<'static>) -> String {
     match e {
-        symbols::Error::Input(s)
-            if !(s.starts_with("symbol-") || s.starts_with("eplan-")) || s.contains(' ') =>
-        {
-            strings::text(words).to_owned()
-        }
+        symbols::Error::Input(_) => strings::text(words).to_owned(),
+        symbols::Error::Refused(t) if t.key().starts_with("dxf-") => strings::text(words).to_owned(),
         e => symbol_error(e),
     }
 }
@@ -592,9 +587,8 @@ fn file_error(e: symbols::Error, words: strings::Key<'static>) -> String {
 // characters, say).
 fn edit_error(e: symbols::Error) -> String {
     match e {
-        symbols::Error::Input(s) if !s.starts_with("symbol-") || s.contains(' ') => {
-            words(key!("symbol-change-invalid"))
-        }
+        symbols::Error::Input(_) => words(key!("symbol-change-invalid")),
+        symbols::Error::Refused(t) if !t.key().starts_with("symbol-") => words(key!("symbol-change-invalid")),
         e => symbol_error(e),
     }
 }
