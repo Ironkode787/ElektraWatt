@@ -29,11 +29,11 @@ not used by a title block.
   project field's value, and Page properties ▸ Fields of your own each page field's. A row's menu there has Rename…
   and Remove.
 - **Made, renamed, removed.** A field is made from the cell that will show it (§3.9), or with New field of your own…
-  in Project properties ▸ Fields of your own. Remove deletes the definition and every value in one undo step, and is
+  in Project properties ▸ Fields of your own (`user_prop.define`, which mints the key). Rename… changes its name
+  (`user_prop.rename`). Remove (`user_prop.remove`) deletes the definition and every value in one undo step, and is
   refused while a form the project holds shows it, in words that name the pages that print it ("The title block of
-  pages 101 to 105 and 201 shows Order; give that cell another value first").
-- **Commands.** `user_prop.define {label, scope, value?}` (it mints the key), `user_prop.rename {key, label}`,
-  `user_prop.remove {key}`, and `fields.set` / `fields.set_many` on a project's or a page's `user_props.<key>`.
+  pages 101 to 105 and 201 shows Order; give that cell another value first"). A value is written with `fields.set`
+  on the project's or the page's `user_props`, the list whole, as the parties are.
 - **A template** passes its fields on with its frames: a project made from it holds the same definitions and the values
   the template holds (§3.9).
 
