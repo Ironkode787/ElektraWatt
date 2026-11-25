@@ -9,7 +9,7 @@ You need an open project.
 
 ## Start a new part
 
-1. Choose **Edit ▸ New part…**, or **New part…** in the device browser (**Draw ▸ Device**, `Shift+I`) or in the part
+1. Choose **Edit ▸ New part…**, or **New part…** in the device browser (**Draw ▸ Place ▸ Device from part…**, `Shift+I`) or in the part
    dialog (**Choose part…**). The part editor opens on a new part.
 2. Type the **Manufacturer** and the **Part number**, and a **Description**. A manufacturer the project and your
    libraries do not have yet is made with the part.

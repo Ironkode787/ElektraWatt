@@ -12,7 +12,7 @@ With no project open the window shows the start page. It has no news feed and op
 - **New project** opens the New project dialog: the name, the folder, and what the project starts from (see
   [Start a project and use templates](start-a-project.md)).
 - **Open...** opens a project directory; the recent projects are listed below it.
-- **Open sample project** opens the CC0 sample project read-only; use **Save as...** to make your own copy.
+- **Open sample project** opens the CC0 sample project read-only; use **Save as…** to make your own copy.
 - **Import QElectroTech project** reads a `.qet` file into a new project directory.
 - **Templates…** lists your templates, makes a new one and adds one somebody gave you (see
   [Your templates](start-a-project.md#your-templates)).
@@ -30,7 +30,7 @@ undo and redo, `Ctrl+S` saves and `Ctrl+Shift+S` saves under a new name.
 ## Sample project
 
 **File, Open sample project** opens the sample project read-only, so that nothing is written into the installation.
-**Save as...** writes a copy into a directory of your own and continues in the copy.
+**Save as…** writes a copy into a directory of your own and continues in the copy.
 
 ## Import a QElectroTech project
 

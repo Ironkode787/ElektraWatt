@@ -3092,7 +3092,7 @@ msgstr ""
 #: src/how-to/application-window.md:15
 msgid ""
 "**Open sample project** opens the CC0 sample project read-only; use **Save "
-"as...** to make your own copy."
+"as…** to make your own copy."
 msgstr ""
 
 #: src/how-to/application-window.md:16
@@ -3141,8 +3141,8 @@ msgstr ""
 #: src/how-to/application-window.md:32
 msgid ""
 "**File, Open sample project** opens the sample project read-only, so that "
-"nothing is written into the installation. **Save as...** writes a copy into "
-"a directory of your own and continues in the copy."
+"nothing is written into the installation. **Save as…** writes a copy into a "
+"directory of your own and continues in the copy."
 msgstr ""
 
 #: src/how-to/application-window.md:35
@@ -5446,8 +5446,8 @@ msgstr ""
 #: src/how-to/own-parts.md:12
 msgid ""
 "Choose **Edit ▸ New part…**, or **New part…** in the device browser (**Draw "
-"▸ Device**, `Shift+I`) or in the part dialog (**Choose part…**). The part "
-"editor opens on a new part."
+"▸ Place ▸ Device from part…**, `Shift+I`) or in the part dialog (**Choose "
+"part…**). The part editor opens on a new part."
 msgstr ""
 
 #: src/how-to/own-parts.md:14
