@@ -136,11 +136,6 @@ fn start_rows(
     }
 }
 
-/// The height of the editor's command row: the main window's.
-pub(crate) fn toolbar_height(t: &theme::Tokens) -> f32 {
-    t.size_command_row
-}
-
 /// The drawing tools of the bar: the action's word, the caption's key and the icon. Each has `symbol-tip-<word>`,
 /// what it does and how.
 const TOOLS: [(&str, strings::Key<'static>, &str); 13] = [

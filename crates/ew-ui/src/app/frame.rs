@@ -321,11 +321,8 @@ impl App {
     ) {
         let chrome = tokens.surface_chrome.color32();
         // The command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
-        let bar_height = if self.shell.symbol_editor().is_some() {
-            tokens.size_tab_row + crate::symbol_editor::toolbar_height(tokens) + tokens.border_width
-        } else {
-            crate::command_bar::bar_height(tokens, self.shell.command_bar_collapsed())
-        };
+        let bar_height =
+            crate::command_bar::bar_height(tokens, ew_viewmodel::command_bar::shown_collapsed(&self.shell));
         let command_bar = &mut self.command_bar;
         let shell = &self.shell;
         Panel::top("command-bar")

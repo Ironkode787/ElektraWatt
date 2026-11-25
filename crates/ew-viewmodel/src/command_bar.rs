@@ -116,10 +116,11 @@ impl Tab {
     }
 }
 
-/// Why `tab` is greyed in the state of `model` (no project is open for a tab that needs one); `None` while it can be
-/// chosen.
+/// Why `tab` is greyed in the state of `model` (no project is open for a tab that needs one; over the symbol editor,
+/// whose bar has its one tab, none is greyed); `None` while it can be chosen.
 pub fn tab_reason(model: &ShellModel, tab: Tab) -> Option<&'static str> {
-    (tab.needs_project() && !model.has_project()).then(|| strings::text(key!("reason-tab-needs-project")))
+    (tab.needs_project() && !model.has_project() && model.symbol_editor().is_none())
+        .then(|| strings::text(key!("reason-tab-needs-project")))
 }
 
 /// The groups of the command bar (doc 16a §5.3), in bar order: a tab's groups follow each other in this order.
@@ -469,6 +470,9 @@ pub struct CommandBarModel {
     pub tab: Tab,
     /// Whether the bar is collapsed to its tab row (Ctrl+F1).
     pub collapsed: bool,
+    /// Whether a double click on a tab collapses or expands the bar (not over the symbol editor, whose bar is never
+    /// collapsed).
+    pub collapsible: bool,
     /// Every tab with its label, left to right.
     pub tabs: Vec<(Tab, String)>,
     /// The quick-access buttons of the tab row: Save, Undo, Redo (doc 16a §5.2).
@@ -621,6 +625,7 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
     CommandBarModel {
         tab,
         collapsed: model.command_bar_collapsed(),
+        collapsible: true,
         tabs: Tab::ALL
             .into_iter()
             .map(|t| (t, strings::text(t.label_key()).to_owned()))
@@ -644,12 +649,19 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
 /// editor, which has its own row of commands, a bar never collapsed with the editor's one tab and no workspaces.
 pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
     let mut bar = command_bar(model);
+    bar.collapsed = shown_collapsed(model);
     if model.symbol_editor().is_some() {
-        bar.collapsed = false;
+        bar.collapsible = false;
         bar.tabs = vec![(bar.tab, strings::text(key!("symbol-title")).to_owned())];
         bar.workspaces.clear();
     }
     bar
+}
+
+/// Whether the command bar the window shows is collapsed to its tab row: the project's bar's collapse, never over
+/// the symbol editor ([`shown_command_bar`]).
+pub fn shown_collapsed(model: &ShellModel) -> bool {
+    model.command_bar_collapsed() && model.symbol_editor().is_none()
 }
 
 /// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.

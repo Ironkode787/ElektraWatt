@@ -659,14 +659,7 @@ impl CommandBarHost {
                 if !model.collapsed {
                     let row = Rect::from_min_size(
                         pos2(rect.left(), tab_row.bottom()),
-                        vec2(
-                            rect.width(),
-                            if shell.symbol_editor().is_some() {
-                                crate::symbol_editor::toolbar_height(&t)
-                            } else {
-                                t.size_command_row
-                            },
-                        ),
+                        vec2(rect.width(), t.size_command_row),
                     );
                     if shell.symbol_editor().is_some() {
                         ui.painter()
@@ -874,8 +867,7 @@ impl CommandBarHost {
                     x = r.right();
                     let active = *tab == model.tab;
                     // Without a project a tab that needs one is greyed with its reason.
-                    let reason = ew_viewmodel::command_bar::tab_reason(shell, *tab)
-                        .filter(|_| shell.symbol_editor().is_none());
+                    let reason = ew_viewmodel::command_bar::tab_reason(shell, *tab);
                     let enabled = reason.is_none();
                     let response = ui.interact(r, tab_id(*tab), Sense::click());
                     let name = label.clone();
@@ -916,7 +908,7 @@ impl CommandBarHost {
                                 json!({ "tab": tab.word() }),
                             ));
                         }
-                    } else if shell.symbol_editor().is_none() && response.double_clicked() {
+                    } else if model.collapsible && response.double_clicked() {
                         events.push(Event::Action("view.command_bar", json!({})));
                         self.popover = false;
                     } else if response.clicked() {
