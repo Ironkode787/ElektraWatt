@@ -24,7 +24,7 @@ use ew_units::Dec3;
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
-use crate::rules::{Named, and_listed, device_tag};
+use crate::rules::{and_listed, device_tag};
 use ew_l10n::TextArg;
 
 /// A tube as the messages name it: its line tag, else its two ends ("tee" at a junction), as the subject prints it and

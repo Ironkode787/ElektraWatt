@@ -2393,11 +2393,8 @@ impl Rule for RedundantOverride {
             let same = |a: Option<String>, b: Option<String>| a.is_some() && a == b;
             if o.csa.is_some() && props.csa.as_ref().map(|x| &x.value) == below.csa.as_ref().map(|x| &x.value)
             {
-                // A cross-section in mm² says its unit (`1.5 mm²`); AWG and kcmil print theirs.
-                let v = match o.csa.as_ref() {
-                    c => c.and_then(csa_with_unit),
-                }
-                .unwrap_or_default();
+                // A cross-section says its unit (`1.5 mm²`, `AWG18`).
+                let v = o.csa.as_ref().and_then(csa_with_unit).unwrap_or_default();
                 redundant.push(("csa", s.csa, v));
             }
             if o.colour.is_some()

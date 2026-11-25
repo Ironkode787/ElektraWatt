@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
-    ChannelsByCp, DeviceTag, FunctionCps, Q, ValveSlot, ValveSlots, driven_device, reached_device,
+    ChannelsByCp, FunctionCps, Q, ValveSlot, ValveSlots, driven_device, reached_device,
     valve_solenoids,
 };
 use ew_ids::Id;
@@ -21,7 +21,7 @@ use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
-use crate::rules::{Named, and_listed, device_tag, listed};
+use crate::rules::{and_listed, device_tag, listed};
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared texts
