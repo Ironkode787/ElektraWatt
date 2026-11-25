@@ -158,9 +158,9 @@ pub fn mm_micro(nm: Nm) -> String {
 
 /// A length in millimetres with one decimal, rounded half away from zero (`40.0`, `-0.5`): the layout checks' points.
 pub fn mm_tenth(nm: i128) -> String {
-    const NM_PER_TENTH: u128 = 100_000;
-    let tenths = (nm.unsigned_abs() + NM_PER_TENTH / 2) / NM_PER_TENTH;
-    let sign = if nm < 0 && tenths > 0 { "-" } else { "" };
+    let tenths = ew_units::arith::div_round_ties_away(nm, 100_000);
+    let sign = if tenths < 0 { "-" } else { "" };
+    let tenths = tenths.unsigned_abs();
     format!("{sign}{}.{}", tenths / 10, tenths % 10)
 }
 
@@ -184,10 +184,12 @@ pub fn mm_tenth_float(n: Nm) -> String {
     }
 }
 
-/// A length in millimetres with two decimals, rounded half up (`2.50`): the text-height check.
+/// A length in millimetres with two decimals, rounded half away from zero (`2.50`): the text-height check.
 pub fn mm_hundredth(nm: i64) -> String {
-    let hundredths = (nm + 5_000) / 10_000;
-    format!("{}.{:02}", hundredths / 100, hundredths % 100)
+    let hundredths = ew_units::arith::div_round_ties_away(i128::from(nm), 10_000);
+    let sign = if hundredths < 0 { "-" } else { "" };
+    let hundredths = hundredths.unsigned_abs();
+    format!("{sign}{}.{:02}", hundredths / 100, hundredths % 100)
 }
 
 /// A length in millimetres with three decimals, more when not exact (`40.000`, `0.0005`): the property fields.

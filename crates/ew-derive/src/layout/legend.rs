@@ -30,12 +30,7 @@ const NM_PER_MM: i128 = 1_000_000;
 /// A length in nanometres as metres exact to the millimetre (`Dec3`, thousandths): rounded half up (lengths are not
 /// negative; a negative input rounds half away from zero), saturating at the `Dec3` limits.
 pub fn metres_of_nm(nm: i128) -> Dec3 {
-    let half = NM_PER_MM / 2;
-    let mm = if nm >= 0 {
-        nm.saturating_add(half) / NM_PER_MM
-    } else {
-        nm.saturating_sub(half) / NM_PER_MM
-    };
+    let mm = ew_units::arith::div_round_ties_away(nm, NM_PER_MM);
     Dec3(i64::try_from(mm).unwrap_or(if mm < 0 { i64::MIN } else { i64::MAX }))
 }
 
