@@ -10,7 +10,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-pub use ew_format::EntryKind;
+use ew_format::EntryKind;
 
 /// What [`Vfs::stat`] reports about a path, without following links.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

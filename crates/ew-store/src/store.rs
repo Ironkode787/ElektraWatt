@@ -27,7 +27,8 @@ use crate::lock::{
     TAKEOVER_SETTLE, TakeoverError,
 };
 use crate::rows::{all_keys, file_of, follow_closure, is_library, record_row, row_line_key, row_text};
-use crate::vfs::{EntryKind, OsVfs, Vfs, is_transient, join};
+use crate::vfs::{OsVfs, Vfs, is_transient, join};
+use ew_format::EntryKind;
 
 mod external;
 mod open;

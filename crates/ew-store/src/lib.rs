@@ -72,4 +72,4 @@ pub use store::{
     RENAME_BACKOFF, ReadOnlyReason, RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store,
     StoreOptions, default_state_dir,
 };
-pub use vfs::{EntryKind, OsVfs, Stat, Vfs, is_transient, join};
+pub use vfs::{OsVfs, Stat, Vfs, is_transient, join};

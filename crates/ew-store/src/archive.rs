@@ -52,7 +52,8 @@ use std::time::SystemTime;
 
 use ew_format::{FileHash, Manifest, hash_text, sha256};
 
-use crate::vfs::{EntryKind, Vfs};
+use crate::vfs::Vfs;
+use ew_format::EntryKind;
 use ew_zip::{self as zip, Method, ZipError, ZipLimits};
 
 /// The media type in the `mimetype` entry.

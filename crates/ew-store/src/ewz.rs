@@ -50,7 +50,8 @@ use std::path::{Path, PathBuf};
 use ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, PathClass, classify, sha256};
 
 use crate::store::{GenerationError, Store};
-use crate::vfs::{EntryKind, Vfs, join};
+use crate::vfs::{Vfs, join};
+use ew_format::EntryKind;
 use ew_zip::{self as zip, Method, ZipError, ZipLimits};
 
 /// The media type in the `mimetype` entry.

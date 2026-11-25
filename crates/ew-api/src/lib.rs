@@ -139,7 +139,8 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_derive::{Oracle, PageOrder, Q, ReportPagesProvider, short_tag};
+use ew_derive::{PageOrder, Q, ReportPagesProvider, short_tag};
+use ew_memo::Oracle;
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 use ew_store::{Changes, LockState, SaveReport, Store};
@@ -193,7 +194,7 @@ pub struct UndrawnImage {
 
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
-pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch};
+pub use ew_derive::{BomMode, DeriveNote, MemoStore};
 /// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
 /// (docs/design/06a-drafting.md); the shell and the tests name it through `ew-api` (no workspace edge of their own).
 pub use ew_drafting as drafting;
@@ -206,6 +207,7 @@ pub use ew_jobs;
 /// The libraries: tiers, the `.ewlib` reader and writer, the index and search. The shell and the
 /// CLI name them through `ew-api` (no workspace edge of their own).
 pub use ew_library as library;
+pub use ew_memo::Mismatch;
 /// NFC normalisation (the form every `Ident` and text key takes): the shell names it through `ew-api` (no workspace
 /// edge of its own).
 pub use ew_mltext::to_nfc;
@@ -270,8 +272,7 @@ pub use transport::{EwzExport, ExportEwzError};
 pub use ew_commands::MAX_PARAM_STRING;
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,
-    EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
-    World,
+    EntityChange, History, HistoryLimits, ModelDiff, Origin, Preview, Receipt, Restored, Submit, World,
 };
 /// A command's registered metadata, its cost and its exposure class: the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
@@ -280,6 +281,8 @@ pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
 pub use ew_commands::{
     asset_error_text, comma_joined, ident_error_text, path_error_text, schema_error_text, serde_error_text,
 };
+/// The ID source a session can be given (`ew-ids`).
+pub use ew_ids::IdSource;
 /// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
 /// ([`SessionOptions::ids`]).
 pub use ew_ids::{EntropyError, UnixTime};

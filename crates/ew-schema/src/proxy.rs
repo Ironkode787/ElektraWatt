@@ -15,7 +15,7 @@ use std::borrow::Cow;
 
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 
-use crate::json::MAX_SAFE_INTEGER;
+use ew_units::MAX_SAFE_INTEGER;
 
 /// The canonical text of a `LangTag` (the RFC 5646 `langtag` production in the case convention of §2.1.1):
 /// a language with up to three extended languages (or a 4 to 8 letter language), a title-case script, an

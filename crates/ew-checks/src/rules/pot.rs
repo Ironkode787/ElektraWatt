@@ -16,14 +16,15 @@ use std::sync::OnceLock;
 
 use ew_derive::{
     AttrConflict, BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DefAttr, DeriveNote,
-    DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
-    NoteFact, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId,
-    PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential,
-    colour_text, cp_label, cp_point, cp_text, csa_short_of, csa_with_unit, device_location, potential_id_at,
+    DeviceTag, DrawnPageOrder, EffectiveState, EndKind, FlowBfs, FunctionCps, FunctionLinksOf, NoteFact,
+    PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
+    PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text,
+    cp_label, cp_point, cp_text, csa_short_of, csa_with_unit, device_location, potential_id_at,
     potential_part, ranked_defs, wire_props_below_overrides, wire_rating,
 };
 use ew_ids::Id;
 use ew_mltext::natural_cmp;
+use ew_model::EndpointKey;
 use ew_schema::{
     BondKind, Channel, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind,
     IecColour, Kind, Page, PotentialEarthing, PotentialType, StructureNode,

@@ -26,7 +26,8 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::vfs::{EntryKind, Stat, Vfs};
+use crate::vfs::{Stat, Vfs};
+use ew_format::EntryKind;
 
 /// A fault of the harness, armed with [`MemVfs::set_fault`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

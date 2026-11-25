@@ -12,11 +12,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
-    CpRef, DeviceTag, EndKind, EndpointKey, IpInfoOf, Member, PhysicalWire, PhysicalWiresOf,
-    PotentialPartition, Q, SettingsMember, WireNumbers, company_codes, csa_with_unit,
+    CpRef, DeviceTag, EndKind, IpInfoOf, Member, PhysicalWire, PhysicalWiresOf, PotentialPartition, Q,
+    SettingsMember, WireNumbers, company_codes, csa_with_unit,
 };
 use ew_ids::Id;
 use ew_mltext::natural_cmp;
+use ew_model::EndpointKey;
 use ew_schema::{
     CableCore, ColourCode, Conductor, Connection, ConnectionKind, Device, ExternalRef, Function,
     FunctionKind, Kind, LibCopy, Part, StructureNode,

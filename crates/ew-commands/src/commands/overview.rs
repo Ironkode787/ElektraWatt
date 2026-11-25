@@ -188,7 +188,7 @@ impl Command for GenerateOverview {
                 }
                 let y = grid.snap_point(self.y).unwrap_or(self.y);
                 // A point beyond what a record holds (a band given at the coordinate bound) is refused in words.
-                let bound = crate::geometry::MAX_COORD;
+                let bound = ew_units::MAX_SAFE_INTEGER;
                 if x.0.abs() > bound || y.0.abs() > bound {
                     return tx.reject(text!("refusal-overview-out-of-range"));
                 }

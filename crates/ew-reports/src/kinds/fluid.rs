@@ -8,11 +8,12 @@
 use std::collections::BTreeMap;
 
 use ew_derive::{
-    EndpointKey, MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
+    MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
     line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
 };
 use ew_ids::Id;
 use ew_mltext::MlText;
+use ew_model::EndpointKey;
 use ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, ReportKind, Unit};
 use ew_units::Nm;
 

@@ -31,9 +31,10 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
+use ew_ids::v5::conflict_file_id;
 use ew_schema::{
     ConflictBody, ConflictSide, Date, FORMAT, Kind, KindStatus, LibDocument, MERGE_STRATEGIES, MergeOrder,
-    MergeStrategy, Record, conflict_file_id,
+    MergeStrategy, Record,
 };
 use serde_json::{Map, Value};
 

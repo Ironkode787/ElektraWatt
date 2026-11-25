@@ -7,7 +7,7 @@
 //! asset (doc 05 §13.3).
 
 use ew_mltext::MlText;
-use ew_schema::{Extra, Party, PartyRole};
+use ew_schema::{COMPANY_MEMBER, Extra, Party, PartyRole};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -18,12 +18,6 @@ use crate::meta::CommandMeta;
 use crate::proxy::MlTextS;
 use crate::tx::TxBuilder;
 use ew_l10n::Text;
-
-/// The project-row member that holds the company data of a basic project until `Project` types it: an object
-/// `{"logo": <AssetRef>, "notice": <MlText>}` (the provisional source `title_block(page)` reads, doc 09 §2.6;
-/// the earlier `logo` form of a release before the asset store is read by `ew_schema::company_logo`).
-/// `project.company.set` writes `notice` and `logo` and keeps every other member.
-pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 
 /// Brings the image file of `text` (base64, RFC 4648 §4) into the project's asset store: the one path of the company logo
 /// and of an image given as data to `item.place`. The text is checked against [`ew_schema::MAX_LOGO_BYTES`] before it is

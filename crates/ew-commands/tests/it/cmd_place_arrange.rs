@@ -13,7 +13,7 @@ use std::fmt::Debug;
 
 use common::*;
 use ew_commands::commands::{
-    Crossings, DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,
+    DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,
     PlaceTarget, SetProjectSettings, TerminalSpec,
 };
 use ew_commands::{AnyCommand, CmdError, Engine};
@@ -1206,7 +1206,7 @@ fn move_by_steps_rejections() {
     // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres, names ... a
     // wire by its printed number: a wire whose route the move takes outside the drawable range is named by
     // its number.
-    let mut edge = engine(steps_model_at(Nm(ew_commands::geometry::MAX_COORD - 1)));
+    let mut edge = engine(steps_model_at(Nm(ew_units::MAX_SAFE_INTEGER - 1)));
     assert_eq!(
         rejection(edge.execute(&steps_cmd(vec![REP_102F2, REP_T1], [0, 1]))),
         "the move takes the route of wire 102.1 outside the drawable range; move it less far"
@@ -1662,11 +1662,12 @@ fn drawing_of(e: &Engine) -> Option<Value> {
     e.model().project().settings.extra.get("drawing").cloned()
 }
 
-/// `project.settings.set` of the drawing setting `crossings`: absent (`None`), `null` (`Some(None)`) or a value.
-fn set_drawing(crossings: Option<Option<Crossings>>) -> SetProjectSettings {
+/// `project.settings.set` of the drawing setting `crossings`: absent (`None`), `null` (`Some(None)`) or a value
+/// (`plain`, `hops`).
+fn set_drawing(crossings: Option<Option<&str>>) -> SetProjectSettings {
     let mut value = serde_json::Map::new();
     if let Some(c) = crossings {
-        value.insert("crossings".to_owned(), serde_json::to_value(c).unwrap());
+        value.insert("crossings".to_owned(), json!(c));
     }
     SetProjectSettings {
         member: "drawing".into(),
@@ -1684,10 +1685,10 @@ fn project_with_drawing(value: Value) -> Model {
 fn drawing_set_writes_merges_and_removes_crossings() {
     let mut e = engine(mini_model());
     assert_eq!(drawing_of(&e), None);
-    let r = e.execute(&set_drawing(Some(Some(Crossings::Hops)))).unwrap();
+    let r = e.execute(&set_drawing(Some(Some("hops")))).unwrap();
     assert_eq!(r.outcome.primary, None);
     assert_eq!(drawing_of(&e), Some(json!({"crossings": "hops"})));
-    e.execute(&set_drawing(Some(Some(Crossings::Plain)))).unwrap();
+    e.execute(&set_drawing(Some(Some("plain")))).unwrap();
     assert_eq!(drawing_of(&e), Some(json!({"crossings": "plain"})));
     // `null` removes the member and, the object being empty, the object.
     e.execute(&set_drawing(Some(None))).unwrap();
@@ -1702,7 +1703,7 @@ fn drawing_set_keeps_the_members_it_does_not_know() {
     let mut e = engine(project_with_drawing(
         json!({"future": {"a": 1}, "crossings": "plain"}),
     ));
-    e.execute(&set_drawing(Some(Some(Crossings::Hops)))).unwrap();
+    e.execute(&set_drawing(Some(Some("hops")))).unwrap();
     assert_eq!(
         drawing_of(&e),
         Some(json!({"future": {"a": 1}, "crossings": "hops"}))
@@ -1741,7 +1742,7 @@ fn drawing_set_rejections() {
     for odd in [json!("hops"), json!([1]), json!(7), Value::Null] {
         let mut e = engine(project_with_drawing(odd.clone()));
         rejected_with(
-            e.execute(&set_drawing(Some(Some(Crossings::Hops)))),
+            e.execute(&set_drawing(Some(Some("hops")))),
             "not an object",
         );
         assert_eq!(drawing_of(&e), Some(odd), "kept as it is");

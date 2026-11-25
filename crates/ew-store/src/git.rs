@@ -181,7 +181,7 @@ pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
         return Ok(None);
     };
     let dot_git = root.join(".git");
-    if vfs.stat(&dot_git)?.kind == crate::vfs::EntryKind::Dir {
+    if vfs.stat(&dot_git)?.kind == ew_format::EntryKind::Dir {
         return Ok(Some(dot_git));
     }
     let text = vfs.read(&dot_git)?;

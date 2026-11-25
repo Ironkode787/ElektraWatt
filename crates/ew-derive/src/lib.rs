@@ -143,8 +143,6 @@ pub use links::{
 };
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
-// The memo engine types a session configures and reads (oracle mode, statistics, memo counts).
-pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
 // The carrier of a 0 V–PE bond (EW-POT-001's quick fix).
 pub use bond_carrier::{BondCarrierQ, Carrier};
 // The bus model's derived data.
@@ -153,8 +151,6 @@ pub use bus::{
     bus_core_ends, bus_core_pins, bus_end_label, bus_termination_text, bus_word, cable_bus_line,
     external_partner_text, net_address_text, potential_member_count, station_bus_address,
 };
-// The endpoint type of a carrier's ends (and of a component's members), for the crates above this one.
-pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
@@ -252,6 +248,3 @@ pub use pages::{DrawnPageOrder, ReportPagesProvider};
 // Cross-references (relations, formats, texts) and the format token engine.
 pub use xref::{TargetRole, XrefKind, XrefRelationOf, XrefSettingsOf, XrefTarget, XrefText, XrefTextOf};
 pub use xref_format::{ItemOptions, ItemValues, Rendered, XrefToken, parse_format, render_item, render_list};
-
-/// The revision stamp of a snapshot (in this crate's public API through [`Recorded`]).
-pub use ew_model::Rev;

@@ -9,7 +9,8 @@
 use crate::common;
 
 use common::*;
-use ew_commands::commands::{COMPANY_MEMBER, SetCheckSchemes, SetCompany};
+use ew_commands::commands::{SetCheckSchemes, SetCompany};
+use ew_schema::COMPANY_MEMBER;
 use ew_commands::{
     AnyCommand, CmdError, CommandRegistry, Cost, DynCommand, Engine, Exposure, Origin, Submit,
 };

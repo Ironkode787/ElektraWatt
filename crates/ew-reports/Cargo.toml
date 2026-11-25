@@ -28,6 +28,8 @@ ew-l10n = { path = "../ew-l10n" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
 ew-ids = { path = "../ew-ids" }
 ew-mltext = { path = "../ew-mltext" }
+# The revision stamp of a row set; the unit tests' model snapshots (`Model::from_records`, no `raw-read`).
+ew-model = { path = "../ew-model" }
 ew-plcaddr = { path = "../ew-plcaddr" }
 ew-schema = { path = "../ew-schema" }
 ew-units = { path = "../ew-units" }
@@ -38,6 +40,4 @@ ew-l10n = { path = "../ew-l10n" }
 
 [dev-dependencies]
 automod.workspace = true
-# Unit tests build small snapshots (`Model::from_records`) to run row queries over a `Q`; no `raw-read`.
-ew-model = { path = "../ew-model" }
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

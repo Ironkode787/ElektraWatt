@@ -16,10 +16,11 @@
 use std::fmt::{self, Write as _};
 use std::ops::Range;
 
-use ew_derive::{PageRef, Rev};
+use ew_derive::PageRef;
 use ew_ids::{Id, Uuid};
 use ew_l10n::Text;
 use ew_mltext::MlText;
+use ew_model::Rev;
 use ew_schema::{AnyId, ColourSpec, Date, Device, Function, OrderUnit, Placement, Representation, Unit};
 use ew_units::{Dec3, Nm};
 

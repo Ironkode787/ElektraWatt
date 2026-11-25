@@ -98,7 +98,7 @@ fn the_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
 /// half's; every read runs through the oracle in the deep nightly (`nightly_the_check_oracle_is_quiet_on_every_read`).
 #[test]
 fn the_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
-    check_oracle_is_quiet(ew_derive::Oracle::OneIn(
+    check_oracle_is_quiet(ew_memo::Oracle::OneIn(
         std::num::NonZeroU32::new(16).expect("n is not zero"),
     ));
 }
@@ -108,10 +108,10 @@ fn the_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
 #[test]
 #[ignore = "deep run: the check oracle on every read"]
 fn nightly_the_check_oracle_is_quiet_on_every_read() {
-    check_oracle_is_quiet(ew_derive::Oracle::Every);
+    check_oracle_is_quiet(ew_memo::Oracle::Every);
 }
 
-fn check_oracle_is_quiet(sample: ew_derive::Oracle) {
+fn check_oracle_is_quiet(sample: ew_memo::Oracle) {
     let oracle = sample_with(MemoMode::Oracle, |_| {});
     let _ = oracle.take_oracle_mismatches();
     let store = oracle.memo().expect("memoising session");

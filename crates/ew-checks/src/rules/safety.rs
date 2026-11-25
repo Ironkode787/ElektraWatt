@@ -294,7 +294,7 @@ fn signal_devices(
     use ew_derive::Level;
     let graph = q.get::<ew_derive::StitchGraphQ>(());
     let mut out = std::collections::BTreeSet::new();
-    let Some(start) = graph.node_of(ew_derive::EndpointKey::Cp(function, idx)) else {
+    let Some(start) = graph.node_of(ew_model::EndpointKey::Cp(function, idx)) else {
         return out;
     };
     let mut seen = std::collections::BTreeSet::from([start]);

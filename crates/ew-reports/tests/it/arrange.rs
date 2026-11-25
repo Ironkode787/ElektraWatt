@@ -3,7 +3,8 @@
 
 //! `arrange`: manual exclusion, filter, sort, grouping (doc 09 §3.3, FR-REP-027).
 
-use ew_derive::{Q, Rev};
+use ew_derive::Q;
+use ew_model::Rev;
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
 use ew_reports::arrange::{cell_key, cell_text};

@@ -16,6 +16,8 @@ workspace = true
 
 [dependencies]
 ew-schema = { path = "../ew-schema" }
+# The ID of a file-level conflict record (`v5::conflict_file_id`).
+ew-ids = { path = "../ew-ids" }
 # The safe-integer bound of a JSON number (the manifest's generation).
 ew-units = { path = "../ew-units" }
 # The `$k`-first envelope of a row serialised without cloning it into a `Record` (same bytes as `Record`'s).

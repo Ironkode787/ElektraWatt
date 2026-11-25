@@ -5,7 +5,7 @@
 //! a representation's connection points, the path a connection without a route is drawn along, point-on-route
 //! tests, route splitting and the connection-grid checks of doc 06 §5.7.
 //!
-//! **Range.** Every stored coordinate lies within ±[`MAX_COORD`] = ±(2⁵³ − 1) nm, the range a record can
+//! **Range.** Every stored coordinate lies within ±[`MAX_SAFE_INTEGER`] = ±(2⁵³ − 1) nm, the range a record can
 //! be written in (ADR-0005). The arithmetic here is checked: a result outside that range is
 //! [`OutOfRange`], which the commands turn into a `Rejected` in words. Point tests treat a
 //! point outside the range as lying on nothing, which also keeps their `i128` products from overflowing.
@@ -16,16 +16,13 @@ use ew_ids::Id;
 use ew_schema::{
     Connection, Device, Dir4, Endpoint, Function, Junction, LibCopy, Page, Representation, Section, SymbolDef,
 };
-use ew_units::{Grid, Nm, Pt2, arith};
+use ew_units::{Grid, MAX_SAFE_INTEGER, Nm, Pt2, arith};
 
 use crate::error::CmdError;
 use crate::tx::TxBuilder;
 use ew_l10n::{Text, TextArg};
 
-/// The largest coordinate magnitude a record can hold: 2⁵³ − 1 nm (ADR-0005).
-pub const MAX_COORD: i64 = ew_units::MAX_SAFE_INTEGER;
-
-/// A coordinate computation left ±[`MAX_COORD`].
+/// A coordinate computation left ±[`MAX_SAFE_INTEGER`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct OutOfRange;
 
@@ -38,12 +35,12 @@ impl std::fmt::Display for OutOfRange {
     }
 }
 
-/// Whether a coordinate is within ±[`MAX_COORD`].
+/// Whether a coordinate is within ±[`MAX_SAFE_INTEGER`].
 pub fn in_range(x: Nm) -> bool {
-    (-MAX_COORD..=MAX_COORD).contains(&x.0)
+    (-MAX_SAFE_INTEGER..=MAX_SAFE_INTEGER).contains(&x.0)
 }
 
-/// Whether both coordinates of a point are within ±[`MAX_COORD`].
+/// Whether both coordinates of a point are within ±[`MAX_SAFE_INTEGER`].
 pub fn point_in_range(p: Pt2) -> bool {
     in_range(p.x) && in_range(p.y)
 }
@@ -72,7 +69,7 @@ pub struct RepCp {
     pub out: Option<Pt2>,
 }
 
-/// `a + b`, checked: [`OutOfRange`] when a coordinate of the result leaves ±[`MAX_COORD`].
+/// `a + b`, checked: [`OutOfRange`] when a coordinate of the result leaves ±[`MAX_SAFE_INTEGER`].
 pub fn add(a: Pt2, b: Pt2) -> Result<Pt2, OutOfRange> {
     Ok(Pt2::new(
         coord(a.x.0.checked_add(b.x.0))?,
@@ -93,13 +90,13 @@ pub fn sub(a: Pt2, b: Pt2) -> Result<Pt2, OutOfRange> {
 /// of the page's grid is the grid's own number for it ([`Grid::settle_point`]). The rule of `ew_derive`'s `cp_point`,
 /// the scene and the Wire tool's targets, so the CP-exact rule of [`require_route`] covers a black box's pins as it
 /// covers a symbol's; the terminals a strip segment draws are [`cp_position`]'s. A symbol copy that is not embedded
-/// yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is not drawn (the commands that place or move a
+/// yields no CPs; a CP whose position would leave ±[`MAX_SAFE_INTEGER`] is not drawn (the commands that place or move a
 /// representation refuse that with [`rep_cps_checked`]).
 pub fn rep_cps(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<RepCp> {
     cps_of(tx, rep).into_iter().filter_map(Result::ok).collect()
 }
 
-/// [`rep_cps`], but [`OutOfRange`] when a drawn CP's position leaves ±[`MAX_COORD`].
+/// [`rep_cps`], but [`OutOfRange`] when a drawn CP's position leaves ±[`MAX_SAFE_INTEGER`].
 pub fn rep_cps_checked(tx: &TxBuilder<'_>, rep: &Representation) -> Result<Vec<RepCp>, OutOfRange> {
     cps_of(tx, rep).into_iter().collect()
 }
@@ -434,7 +431,7 @@ fn fit_axis(
                 d = back;
             }
         }
-        if !(-i128::from(MAX_COORD)..=i128::from(MAX_COORD)).contains(&(a + d)) {
+        if !(-i128::from(MAX_SAFE_INTEGER)..=i128::from(MAX_SAFE_INTEGER)).contains(&(a + d)) {
             return Err(OutOfRange);
         }
         shift[j] = d;
@@ -551,7 +548,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
         return Vec::new();
     };
     // A point within 1 nm of a grid position is the grid's own number for it (`Grid::settle_point`, doc 06a §2.1).
-    // The commands place a CP within ±`MAX_COORD`: a local place or a page point beyond it is `OutOfRange`, and a
+    // The commands place a CP within ±`MAX_SAFE_INTEGER`: a local place or a page point beyond it is `OutOfRange`, and a
     // settled point beyond it keeps the unsettled one.
     let grid = tx.get::<Page>(rep.page).map_or(Grid::MM4, |p| p.grid);
     let placed = |local: Pt2| {
@@ -689,7 +686,7 @@ pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>
 }
 
 /// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the
-/// bounding box; [`ew_derive::on_segment`], the test of the page's drawn paths). A point outside ±[`MAX_COORD`]
+/// bounding box; [`ew_derive::on_segment`], the test of the page's drawn paths). A point outside ±[`MAX_SAFE_INTEGER`]
 /// lies on nothing; within the range the differences are below 2⁵⁴ and their products below 2¹⁰⁸, so the `i128`
 /// arithmetic cannot overflow.
 pub fn on_segment(p: Pt2, a: Pt2, b: Pt2) -> bool {
@@ -888,7 +885,7 @@ fn what_of(field: &str) -> Text {
 
 /// (doc 06 §5.7: CPs never leave the connection grid, in any tool and any origin): a position at which
 /// a command places or to which it moves a representation must lie on the connection grid of its page
-/// (`Page.grid`, ADR-0027) and within ±[`MAX_COORD`]. Front-ends snap before they submit. `field` is the
+/// (`Page.grid`, ADR-0027) and within ±[`MAX_SAFE_INTEGER`]. Front-ends snap before they submit. `field` is the
 /// JSON Pointer of the parameter (`/pos`), from which both refusals name the point in words: the range
 /// refusal by its position in mm ("the position at x 9007199254.7, y 0 mm lies outside the drawable range; move it
 /// nearer the page origin"), the grid refusal by its position and page ("the position at x 8.4, y 15.9 mm on page
@@ -961,7 +958,7 @@ pub fn require_split_point(
 ///   pins, ADR-0033 amendment 3), or equals that coordinate of a route end that meets its CP: a CP position can sit
 ///   up to 1 nm off a rational grid (the rounding pitfall of `Grid::cell`), and the segment leaving it stays
 ///   orthogonal;
-/// - every vertex lies within ±[`MAX_COORD`];
+/// - every vertex lies within ±[`MAX_SAFE_INTEGER`];
 /// - the route is tidy ([`route_defect`]): no vertex repeats the one before it, and no segment
 ///   runs over another one (a stretch of positive length shared on one line, a doubling back included).
 ///   A collinear vertex where the route runs straight on is no defect.
@@ -1103,7 +1100,7 @@ pub enum RouteDefect {
 /// A segment on its line: (reduced direction, offset, interval start, interval end, segment index).
 type LineSeg = ((i128, i128), i128, i128, i128, usize);
 
-/// The first defect of a route whose vertices lie within ±[`MAX_COORD`]: the first repeated vertex, else an
+/// The first defect of a route whose vertices lie within ±[`MAX_SAFE_INTEGER`]: the first repeated vertex, else an
 /// overlapping pair of segments, else `None`. Segments of any direction count (a route is meant to be orthogonal,
 /// but this check does not require it); two segments that only touch at a point do not overlap, so a collinear
 /// vertex where the route runs straight on is no defect, and a U-turn is. Deterministic, `O(n log n)`: the segments

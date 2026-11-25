@@ -14,7 +14,7 @@ use ew_commands::commands::{
     BULK_ABOVE, Connect, CreatePage, DeleteConnections, DeleteSelection, EditJunction, EndpointParam,
     KindName, MoveReps, PlaceIp, PlaceSymbol, PlaceTarget, RouteConnection, SetFields, TargetRef,
 };
-use ew_commands::geometry::MAX_COORD;
+use ew_units::MAX_SAFE_INTEGER;
 use ew_commands::rows::{row_json, row_text};
 use ew_commands::{CmdError, Command, Cost, DynCommand, Engine};
 use ew_ids::Id;
@@ -113,12 +113,12 @@ fn set_device(device: Id<Device>, path: &str, value: serde_json::Value) -> SetFi
 // ---------------------------------------------------------------------------------------------------------
 // Checked coordinates
 
-/// The largest coordinate on `grid` that is at most `MAX_COORD`.
+/// The largest coordinate on `grid` that is at most `MAX_SAFE_INTEGER`.
 fn largest_on_grid(grid: Grid) -> i64 {
-    let mut k = grid.snap(Nm(MAX_COORD));
+    let mut k = grid.snap(Nm(MAX_SAFE_INTEGER));
     loop {
         let x = grid.at(k).expect("on the grid").0;
-        if x <= MAX_COORD {
+        if x <= MAX_SAFE_INTEGER {
             return x;
         }
         k -= 1;
@@ -126,11 +126,11 @@ fn largest_on_grid(grid: Grid) -> i64 {
 }
 
 /// A move that would end outside the drawable range is refused in words and changes nothing: a second move by
-/// the largest grid coordinate, and a single move by `MAX_COORD` from a positive position.
+/// the largest grid coordinate, and a single move by `MAX_SAFE_INTEGER` from a positive position.
 #[test]
 fn a_move_out_of_the_drawable_range_is_refused_and_changes_nothing() {
     let d = largest_on_grid(Grid::QET_10PX);
-    for (first, second) in [(d, d), (G, MAX_COORD)] {
+    for (first, second) in [(d, d), (G, MAX_SAFE_INTEGER)] {
         let mut e = engine(mini_model());
         // The aux representation sits at the origin and has no connections.
         e.execute(&move_reps(vec![REP_102F2_AUX], pt(first, 0)))
@@ -187,7 +187,7 @@ fn a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() 
 fn a_position_outside_the_drawable_range_is_refused_in_words() {
     let mut e = engine(mini_model());
     assert_eq!(
-        rejection(e.execute(&place_k("K", PAGE_102, pt(MAX_COORD + 1, 0)))),
+        rejection(e.execute(&place_k("K", PAGE_102, pt(MAX_SAFE_INTEGER + 1, 0)))),
         "the position at x 9007199254.7, y 0 mm lies outside the drawable range; move it nearer the page origin"
     );
     // A position in range whose connection point (10 mm below it) is not.
@@ -202,12 +202,12 @@ fn a_position_outside_the_drawable_range_is_refused_in_words() {
 #[test]
 fn a_record_without_json_form_is_an_error_not_null() {
     let mut r = rep(REP_102F2_AUX, PAGE_102, vec![FN_102F2_AUX]);
-    r.pos = pt(MAX_COORD + 1, 0);
+    r.pos = pt(MAX_SAFE_INTEGER + 1, 0);
     let any = AnyRow::of(r);
     assert!(matches!(row_json(&any), Err(CmdError::Internal { .. })));
     assert!(matches!(row_text(&any), Err(CmdError::Internal { .. })));
 
-    let cmd = move_reps(vec![REP_102F2_AUX], pt(MAX_COORD + 1, 0));
+    let cmd = move_reps(vec![REP_102F2_AUX], pt(MAX_SAFE_INTEGER + 1, 0));
     assert!(matches!(
         DynCommand::to_json(&cmd),
         Err(CmdError::Internal { .. })

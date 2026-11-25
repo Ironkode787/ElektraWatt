@@ -1327,6 +1327,7 @@ dependencies = [
  "ew-jobs",
  "ew-l10n",
  "ew-library",
+ "ew-memo",
  "ew-mltext",
  "ew-model",
  "ew-plc",
@@ -1485,6 +1486,7 @@ name = "ew-format"
 version = "0.3.5"
 dependencies = [
  "automod",
+ "ew-ids",
  "ew-schema",
  "ew-testdir",
  "ew-units",

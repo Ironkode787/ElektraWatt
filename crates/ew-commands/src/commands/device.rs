@@ -1477,7 +1477,7 @@ impl Command for TransformReps {
 /// down toward an even one ([`Grid::index_of_half_steps`]), so every two quarter turns cancel: four turns
 /// bring the body back, a turn and its reverse too, two land where one half turn does, and the offset is the
 /// same wherever the body lies. `Ok(None)` without a point (the insertion point stays). [`OutOfRange`] when a
-/// point of the body or the result leaves ±[`MAX_COORD`](crate::geometry::MAX_COORD).
+/// point of the body or the result leaves ±[`MAX_SAFE_INTEGER`](ew_units::MAX_SAFE_INTEGER).
 fn pivot(grid: Grid, pos: Pt2, from: Orient2, to: Orient2, local: &[Pt2]) -> Result<Option<Pt2>, OutOfRange> {
     if local.is_empty() {
         return Ok(None);

@@ -6,11 +6,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
-    DeriveNote, DeviceTag, EndpointKey, FunctionCps, NoteFact, PhysicalWiresOf, PotentialPartition, Q,
-    RailTerminalOf, StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
+    DeriveNote, DeviceTag, FunctionCps, NoteFact, PhysicalWiresOf, PotentialPartition, Q, RailTerminalOf,
+    StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
 };
 use ew_ids::Id;
 use ew_mltext::{CaseSensitivity, natural_cmp};
+use ew_model::EndpointKey;
 use ew_schema::{
     Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, StructureNode, TagCase,
     Terminal,

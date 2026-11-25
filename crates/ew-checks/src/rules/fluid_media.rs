@@ -10,12 +10,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
-    CpRef, EndpointKey, FluidNets, FunctionCps, Galleries, MediumKey, MediumOrigin, MediumZones, NetId,
-    PotentialAttrsOf, PotentialPartition, Q, TubeRow, TubeRows, cp_label, is_fluid, is_fluid_terminal,
-    node_net, parent_chain, solenoid_coil, valve_functions, valve_solenoids,
+    CpRef, FluidNets, FunctionCps, Galleries, MediumKey, MediumOrigin, MediumZones, NetId, PotentialAttrsOf,
+    PotentialPartition, Q, TubeRow, TubeRows, cp_label, is_fluid, is_fluid_terminal, node_net, parent_chain,
+    solenoid_coil, valve_functions, valve_solenoids,
 };
 use ew_ids::Id;
 use ew_mltext::natural_key;
+use ew_model::EndpointKey;
 use ew_schema::{
     AcDc, ContactKind, CpOverride, Device, DeviceState, FluidPortRole, Function, Kind, Medium, SupplyKind,
 };

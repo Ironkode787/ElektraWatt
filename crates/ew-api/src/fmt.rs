@@ -49,9 +49,9 @@ use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use ew_format::{FilePath, Finding, FindingKind, PathClass, classify};
+use ew_format::{EntryKind, FilePath, Finding, FindingKind, PathClass, classify};
 use ew_store::ewz::{self, PackError};
-use ew_store::{EntryKind, GenerationError, Vfs};
+use ew_store::{GenerationError, Vfs};
 use serde_json::Value;
 
 use crate::{Access, OpenReport, ReadOnlyReason, SaveError, Session};

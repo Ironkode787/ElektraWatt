@@ -38,7 +38,8 @@ use ew_schema::{AnyId, AssetRef, Kind, Sha256, base64_decode, base64_encode};
 use serde_json::{Map, Value};
 
 use crate::rows::{row_value, value_row};
-use crate::vfs::{EntryKind, Vfs};
+use crate::vfs::Vfs;
+use ew_format::EntryKind;
 
 /// How long a leftover journal is kept (doc 05 §1: pruned after 30 days, NFR-PRIV-05).
 pub const KEEP_LEFTOVERS: Duration = Duration::from_secs(30 * 24 * 3600);

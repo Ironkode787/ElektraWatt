@@ -206,7 +206,7 @@ impl Query for DevicePartLines {
             // A tee: owned by the owner of the lowest tube at the junction that has one.
             if tube_owner(r) == Some(*key) {
                 for end in [&r.from, &r.to] {
-                    let crate::EndpointKey::Junction(j) = end.at else {
+                    let ew_model::EndpointKey::Junction(j) = end.at else {
                         continue;
                     };
                     let lowest = tubes

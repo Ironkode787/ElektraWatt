@@ -68,6 +68,8 @@ ew-l10n = { path = "../ew-l10n" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
 ew-format = { path = "../ew-format" }
 ew-ids = { path = "../ew-ids" }
+# The memo engine's oracle mode and its mismatch report (`Session::take_oracle_mismatches`).
+ew-memo = { path = "../ew-memo" }
 ew-rds = { path = "../ew-rds" }
 ew-zip = { path = "../ew-zip" }
 

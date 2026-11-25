@@ -77,7 +77,7 @@ pub(super) fn cables_table(q: &Q, b: &mut Builder) {
                     .filter_map(|c| q.connections().get(*c))
                     .flat_map(|c| [&c.a, &c.b])
                     .find_map(|e| {
-                        let key = ew_derive::EndpointKey::of(e)?;
+                        let key = ew_model::EndpointKey::of(e)?;
                         let p = partition.potential_at(key)?;
                         Some(q.get::<ew_derive::PotentialNameOf>(p.id).name.text.clone())
                     })

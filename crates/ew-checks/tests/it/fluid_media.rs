@@ -293,7 +293,7 @@ fn ew_fl_005_reports_two_media_and_a_defined_outlet_replaces_the_regulated_one()
     assert_eq!(messages(&fx, "EW-FL-005"), Vec::<String>::new());
     let m = fx.build();
     let q = ew_derive::Q::new(&m);
-    let net = ew_derive::node_net(&q, ew_derive::EndpointKey::Cp(id(CYL + 0x100), 0)).expect("a net");
+    let net = ew_derive::node_net(&q, ew_model::EndpointKey::Cp(id(CYL + 0x100), 0)).expect("a net");
     assert_eq!(
         q.get::<ew_derive::MediumZones>(()).effective(net),
         ew_derive::Effective::One(ew_derive::MediumKey::Defined(id(AIR_4)))

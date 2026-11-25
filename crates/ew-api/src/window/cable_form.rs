@@ -21,8 +21,9 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::{EndpointKey, PotentialPartition};
+use ew_derive::PotentialPartition;
 use ew_ids::Id;
+use ew_model::EndpointKey;
 use ew_schema::{Conductor, Connection, ConnectionKind, Csa, Device, PotentialType};
 use ew_units::Dec3;
 use serde_json::{Value, json};

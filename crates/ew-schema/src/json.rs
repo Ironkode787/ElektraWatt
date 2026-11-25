@@ -22,8 +22,7 @@ use crate::track::{check_value_at, de_open, note_extra, path_of, raise, variant_
 /// [`Record::validate`](crate::Record::validate) detects it.
 pub type Extra = BTreeMap<String, Value>;
 
-/// The largest integer magnitude a persisted integer may have (doc 05 §3.2): 2⁵³ − 1.
-pub use ew_units::MAX_SAFE_INTEGER;
+use ew_units::MAX_SAFE_INTEGER;
 
 /// Checks the number rule of doc 05 §3.2 on unknown content: no floats anywhere and every integer within
 /// ±(2⁵³ − 1). Typed members enforce the rule through their own types; this function covers `extra`

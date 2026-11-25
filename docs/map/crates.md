@@ -72,7 +72,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 
 ## ew-api
 
-`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-format`, `ew-ids`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units`, `ew-zip` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
+`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-format`, `ew-ids`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-memo`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units`, `ew-zip` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
 
 The `Session` facade shared by every front-end.
 
@@ -207,7 +207,7 @@ The neutral PLC exchange image and its AutomationML form (doc 10 §4.2, §4.3).
 
 ## ew-checks
 
-`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
+`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
 
 Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as queries, offline check jobs, waivers and quick fixes (ADR-0019, doc 15 §2–§4).
 
@@ -486,7 +486,7 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 
 ## ew-format
 
-`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-library`, `ew-store` · in tests by `ew-testkit`
+`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-library`, `ew-store` · in tests by `ew-testkit`
 
 JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-way record merge core and conflict records.
 
@@ -510,7 +510,7 @@ JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-wa
 
 ## ew-ids
 
-`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-testids`, `ew-testkit`, `xtask` · in tests by none
+`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-testids`, `ew-testkit`, `xtask` · in tests by none
 
 Typed identifiers `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones.
 
@@ -687,7 +687,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 
 ## ew-memo
 
-`crates/ew-memo` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-derive` · in tests by none
+`crates/ew-memo` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-derive` · in tests by none
 
 Generic memo engine: revisions, dependency recording, early cut-off, durability levels, statistics and oracle hooks. Knows nothing about ECAD.
 
@@ -722,7 +722,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 
 ## ew-model
 
-`crates/ew-model` · GPL-3.0-or-later · tier project · depends on `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-store`, `ew-testkit` · in tests by `ew-checks`, `ew-reports`
+`crates/ew-model` · GPL-3.0-or-later · tier project · depends on `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-reports`, `ew-store`, `ew-testkit` · in tests by none
 
 `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants and link delete policies.
 
@@ -857,7 +857,7 @@ The 2D canvas renderer: the CPU tile path and the wgpu path over one display lis
 
 ## ew-reports
 
-`crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-plcaddr`, `ew-schema`, `ew-units`, `ew-zip` · used by `ew-api` · in tests by none
+`crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plcaddr`, `ew-schema`, `ew-units`, `ew-zip` · used by `ew-api` · in tests by none
 
 Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0), pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]).
 

@@ -8,12 +8,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_interop_api::ew_schema::{
-    BUILTIN_TEXT_STYLES, FreeText, Graphic, GraphicShape, GraphicStroke, LineDash, MAX_SAFE_INTEGER,
-    PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, TextAlign, qet_px_em,
+    BUILTIN_TEXT_STYLES, FreeText, Graphic, GraphicShape, GraphicStroke, LineDash, PageItemKind, ShapeArc,
+    ShapeCircle, ShapeLine, ShapePoints, TextAlign, qet_px_em,
 };
 use ew_interop_api::{Code, ImportError, Limits, ReportEntry, Severity, SourceLocation};
 use ew_mltext::{Ident, MlText};
-use ew_units::{Angle2, Nm, Pt2, Rect};
+use ew_units::{Angle2, MAX_SAFE_INTEGER, Nm, Pt2, Rect};
 
 use crate::geom::{Affine, Converter, Geo, HAlign, Pattern, Shape, TOLERANCE_NM};
 use crate::parse::{Drawing, Entity, parse};

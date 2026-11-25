@@ -20,10 +20,10 @@
 use std::collections::BTreeSet;
 
 use ew_derive::{
-    CpRef, EndpointKey, FunctionCps, NameSource, PotentialAttrsOf, PotentialNameOf, PotentialPartition, Q,
-    cp_label,
+    CpRef, FunctionCps, NameSource, PotentialAttrsOf, PotentialNameOf, PotentialPartition, Q, cp_label,
 };
 use ew_ids::{Id, Uuid};
+use ew_model::EndpointKey;
 use ew_schema::{ContactKind, PotentialType};
 
 use crate::Session;
