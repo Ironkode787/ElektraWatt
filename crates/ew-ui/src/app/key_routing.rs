@@ -251,7 +251,9 @@ impl App {
                 }
                 Some(egui::Event::Paste(text)) => {
                     let action = pasting
-                        .filter(|a| ew_viewmodel::actions::find(a).is_some_and(|a| a.context == Context::Canvas))
+                        .filter(|a| {
+                            ew_viewmodel::actions::find(a).is_some_and(|a| a.context == Context::Canvas)
+                        })
                         .unwrap_or("edit.paste_clip");
                     events.push(routed(&self.shell, action, json!({ "text": text })));
                     return true;

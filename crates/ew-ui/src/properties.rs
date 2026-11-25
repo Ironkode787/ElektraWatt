@@ -26,9 +26,9 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
-    ChoiceKind, FieldType, LabelPath as _, Popup, PropRow, PropertySheet, Provenance, RowAction,
-    RowValue, SheetSection, ValueChooser, advanced_count, chip_text, chip_word, filtered, group_key, groups,
-    is_header, read_only_reason, row_label, value_text,
+    ChoiceKind, FieldType, LabelPath as _, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue,
+    SheetSection, ValueChooser, advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header,
+    read_only_reason, row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -1348,89 +1348,46 @@ impl PropertiesPane {
             .fixed_pos(pos)
             .constrain_to(bound)
             .show(ui.ctx(), |ui| {
-                crate::components::card_frame(t)
-                    .fill(t.surface_raised.color32())
-                    .corner_radius(crate::theme::radius(t.radius_md))
-                    .shadow(crate::theme::shadow(&t.elevation_1))
-                    .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
-                    .show(ui, |ui| {
-                        ui.set_width(width - 2.0 * pad);
-                        let list_rect = egui::Rect::from_min_size(
-                            ui.max_rect().min,
-                            Vec2::new(width - 2.0 * pad, max_height),
-                        );
-                        let list = ui.interact(list_rect, list_id, Sense::hover());
-                        let list_name = strings::format(key!("props-options"), &[label]);
-                        list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
-                        ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-                            egui::ScrollArea::vertical()
-                                .id_salt(("prop-choices-scroll", key))
-                                .max_height(max_height)
-                                .show(ui, |ui| {
-                                    ui.spacing_mut().item_spacing.y = 0.0;
-                                    for (i, (text, _)) in c.items.iter().enumerate() {
-                                        let selected = c.index == Some(i);
-                                        let (r, response) = ui.allocate_exact_size(
-                                            Vec2::new(ui.available_width(), row_height),
-                                            Sense::click(),
-                                        );
-                                        let detail = c.details.get(i);
-                                        let name = text.clone();
-                                        response.widget_info(|| {
-                                            egui::WidgetInfo::selected(
-                                                egui::Role::ListBoxOption,
-                                                true,
-                                                selected,
-                                                &name,
-                                            )
-                                        });
-                                        // Egui maps `selected` to `toggled` only; AccessKit's selected state.
-                                        ui.ctx().accesskit_node_builder(response.id, |n| {
-                                            n.set_selected(selected)
-                                        });
-                                        // The active row has the hover overlay (doc 16a §6.22: as menus, never the accent).
-                                        if selected || response.hovered() {
-                                            ui.painter().rect_filled(
-                                                r,
-                                                crate::theme::radius(t.radius_sm),
-                                                t.state_hover.color32(),
-                                            );
-                                        }
-                                        if let Some(detail) = detail {
-                                            let top = r.top() + t.space_1;
-                                            ui.painter().text(
-                                                egui::pos2(r.left() + t.space_2, top),
-                                                egui::Align2::LEFT_TOP,
-                                                text,
-                                                crate::theme::font(&t.type_body),
-                                                t.text_primary.color32(),
-                                            );
-                                            ui.painter().text(
-                                                egui::pos2(r.left() + t.space_2, top + t.type_body.line),
-                                                egui::Align2::LEFT_TOP,
-                                                detail,
-                                                crate::theme::font(&t.type_small),
-                                                t.text_secondary.color32(),
-                                            );
-                                        } else {
-                                            ui.painter().text(
-                                                egui::pos2(r.left() + t.space_2, r.center().y),
-                                                egui::Align2::LEFT_CENTER,
-                                                text,
-                                                crate::theme::font(&t.type_body),
-                                                t.text_primary.color32(),
-                                            );
-                                        }
-                                        if selected {
-                                            response.scroll_to_me(None);
-                                        }
-                                        if response.clicked() {
-                                            events.push(Event::Action("props.choose", json!({ "index": i })));
-                                        }
-                                    }
-                                });
-                        });
-                    });
+                crate::components::popover_frame(t).show(ui, |ui| {
+                    ui.set_width(width - 2.0 * pad);
+                    let list_name = strings::format(key!("props-options"), &[label]);
+                    let paint = |ui: &Ui, i: usize, r: egui::Rect| {
+                        let text = &c.items[i].0;
+                        if let Some(detail) = c.details.get(i) {
+                            let top = r.top() + t.space_1;
+                            ui.painter().text(
+                                egui::pos2(r.left() + t.space_2, top),
+                                egui::Align2::LEFT_TOP,
+                                text,
+                                crate::theme::font(&t.type_body),
+                                t.text_primary.color32(),
+                            );
+                            ui.painter().text(
+                                egui::pos2(r.left() + t.space_2, top + t.type_body.line),
+                                egui::Align2::LEFT_TOP,
+                                detail,
+                                crate::theme::font(&t.type_small),
+                                t.text_secondary.color32(),
+                            );
+                        } else {
+                            ui.painter().text(
+                                egui::pos2(r.left() + t.space_2, r.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                text,
+                                crate::theme::font(&t.type_body),
+                                t.text_primary.color32(),
+                            );
+                        }
+                    };
+                    let sizes = (width - 2.0 * pad, max_height, row_height);
+                    let rows = (c.items.len(), c.index);
+                    let name = |i: usize| c.items[i].0.clone();
+                    if let Some(i) =
+                        crate::components::chooser_list(ui, t, list_id, &list_name, sizes, rows, name, paint)
+                    {
+                        events.push(Event::Action("props.choose", json!({ "index": i })));
+                    }
+                });
             });
         self.choices_rect = Some((key.to_owned(), area.response.rect));
     }
@@ -2198,7 +2155,11 @@ mod tests {
         let groups = super::header::severity_groups(&findings, Some("101"));
         let count = |s: Severity| groups.iter().find(|(g, _)| *g == s).map_or(0, |(_, of)| of.len());
         assert_eq!(
-            (count(Severity::Error), count(Severity::Warning), count(Severity::Pending)),
+            (
+                count(Severity::Error),
+                count(Severity::Warning),
+                count(Severity::Pending)
+            ),
             (1, 1, 1)
         );
         let none = super::header::severity_groups(&findings, None);

@@ -397,7 +397,13 @@ mod thumbnail_tests {
             ty: ty.to_owned(),
             default: default.map(str::to_owned),
         };
-        assert_eq!(super::variable_line(&v("pt", "process_tag", None)), "pt (process tag)");
-        assert_eq!(super::variable_line(&v("n", "tag_counter", Some("3"))), "n (tag counter) = 3");
+        assert_eq!(
+            super::variable_line(&v("pt", "process_tag", None)),
+            "pt (process tag)"
+        );
+        assert_eq!(
+            super::variable_line(&v("n", "tag_counter", Some("3"))),
+            "n (tag counter) = 3"
+        );
     }
 }

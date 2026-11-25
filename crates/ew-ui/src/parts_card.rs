@@ -51,17 +51,14 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
             // Kept at `size.dialog.small` on purpose: one summary line ("parts.csv: 29 created, …") and
             // two buttons, which a wider window would only pad with empty space.
             ui.set_width(t.size_dialog_small);
-            egui::Frame::new()
-                .shadow(crate::theme::shadow(&t.elevation_1))
-                .corner_radius(crate::theme::radius(t.radius_md))
-                .show(ui, |ui| {
-                    let inline = InlineCard {
-                        title: strings::text(key!("parts-card-title")),
-                        summary: &summary,
-                        apply: "preview.apply",
-                        strip: true,
-                    };
-                    inline_card(ui, shell, inline, events, |_, _| {});
-                });
+            crate::components::lifted(&t).show(ui, |ui| {
+                let inline = InlineCard {
+                    title: strings::text(key!("parts-card-title")),
+                    summary: &summary,
+                    apply: "preview.apply",
+                    strip: true,
+                };
+                inline_card(ui, shell, inline, events, |_, _| {});
+            });
         });
 }

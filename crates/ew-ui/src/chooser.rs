@@ -13,15 +13,15 @@
 //! change is a registry action, so the headless mode drives the same model. AccessKit: a `ListBox` named by the
 //! question ("Join device"), its rows `ListBoxOption`s with position and set size; the active row is selected.
 
-use egui::text::{LayoutJob, TextFormat, TextWrapping};
-use egui::{FontId, Id, Key, Modifiers, Rect, Sense, Ui, pos2, vec2};
+use egui::{Id, Key, Modifiers, Rect, vec2};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::ChooserValue;
 use serde_json::json;
 
 use crate::app::Event;
-use crate::icons::{self, IconId};
-use crate::theme::{self, Rgba};
+use crate::components::{self, text_width};
+use crate::icons::IconId;
+use crate::theme;
 
 /// How long typed characters stay one type-ahead text, seconds.
 const TYPE_AHEAD_S: f64 = 1.0;
@@ -92,24 +92,6 @@ pub(crate) fn show(
     }
     let t = theme::current(ctx);
     let bound = pane.unwrap_or_else(|| ctx.content_rect());
-    let name_font = theme::font(&t.type_body);
-    let kind_font = theme::font(&t.type_small);
-    let widest = ch
-        .rows
-        .iter()
-        .map(|r| {
-            text_width(ctx, &r.name, name_font.clone())
-                + if r.kind.is_empty() {
-                    0.0
-                } else {
-                    text_width(ctx, &r.kind, kind_font.clone()) + t.space_4
-                }
-        })
-        .fold(0.0_f32, f32::max);
-    let content = t.space_2 + t.icon_sm + t.space_2 + widest + 2.0 * t.space_2;
-    let width = (content + 2.0 * (t.space_2 + t.border_width))
-        .clamp(t.size_chooser_min_width, t.size_chooser_max_width)
-        .min(bound.width());
     let rows = n.min(t.size_chooser_rows as usize);
     let max_height = t.size_row * rows as f32;
     // 8 px from the pointer's 16-px box (doc 16a §6.22), else the page view's centre.
@@ -126,112 +108,58 @@ pub(crate) fn show(
         .fixed_pos(at)
         .constrain_to(bound)
         .show(ctx, |ui| {
-            crate::components::card_frame(&t)
-                .fill(t.surface_raised.color32())
-                .corner_radius(theme::radius(t.radius_md))
-                .shadow(theme::shadow(&t.elevation_1))
-                .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
-                .show(ui, |ui| {
-                    let inner = width - 2.0 * (t.space_2 + t.border_width);
-                    ui.set_width(inner);
-                    let list_rect = Rect::from_min_size(ui.max_rect().min, vec2(inner, max_height));
-                    let list = ui.interact(list_rect, list_id, Sense::hover());
-                    list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &question));
-                    ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-                        egui::ScrollArea::vertical()
-                            .id_salt("join-chooser-scroll")
-                            .max_height(max_height)
-                            .show(ui, |ui| {
-                                ui.spacing_mut().item_spacing.y = 0.0;
-                                for (i, row) in ch.rows.iter().enumerate() {
-                                    let selected = i == ch.row;
-                                    let (r, response) = ui.allocate_exact_size(
-                                        vec2(ui.available_width(), t.size_row),
-                                        Sense::click(),
-                                    );
-                                    let name = if row.kind.is_empty() {
-                                        row.name.clone()
-                                    } else {
-                                        format!("{}, {}", row.name, row.kind)
-                                    };
-                                    response.widget_info(|| {
-                                        egui::WidgetInfo::selected(
-                                            egui::Role::ListBoxOption,
-                                            true,
-                                            selected,
-                                            &name,
-                                        )
-                                    });
-                                    ui.ctx().accesskit_node_builder(response.id, |node| {
-                                        node.set_selected(selected);
-                                        node.set_position_in_set(i + 1);
-                                        node.set_size_of_set(n);
-                                    });
-                                    // The hover overlay, as menus (doc 16a §6.13), never the accent.
-                                    if selected || response.hovered() {
-                                        ui.painter().rect_filled(
-                                            r,
-                                            theme::radius(t.radius_sm),
-                                            t.state_hover.color32(),
-                                        );
-                                    }
-                                    let icon = Rect::from_center_size(
-                                        pos2(r.left() + t.space_2 + t.icon_sm / 2.0, r.center().y),
-                                        vec2(t.icon_sm, t.icon_sm),
-                                    );
-                                    let glyph = match row.value {
-                                        ChooserValue::NewDevice => IconId::plus,
-                                        ChooserValue::Join { .. } | ChooserValue::JoinRep { .. } => {
-                                            IconId::circuit_switch_open
-                                        }
-                                    };
-                                    icons::paint(
-                                        ui.painter(),
-                                        glyph,
-                                        icon,
-                                        t.text_secondary.color32(),
-                                        t.icon_stroke,
-                                    );
-                                    let kind = text_width(ui.ctx(), &row.kind, kind_font.clone());
-                                    let text_rect = Rect::from_min_max(
-                                        pos2(icon.right() + t.space_2, r.top()),
-                                        pos2(r.right() - kind - 2.0 * t.space_2, r.bottom()),
-                                    );
-                                    paint_text(ui, text_rect, &row.name, name_font.clone(), t.text_primary);
-                                    let kind_rect = Rect::from_min_max(
-                                        pos2(r.right() - kind - t.space_2, r.top()),
-                                        pos2(r.right() - t.space_2, r.bottom()),
-                                    );
-                                    paint_text(ui, kind_rect, &row.kind, kind_font.clone(), t.text_tertiary);
-                                    if selected {
-                                        response.scroll_to_me(None);
-                                    }
-                                    if response.clicked() {
-                                        events.push(Event::Action("chooser.choose", json!({ "row": i })));
-                                    }
-                                }
-                            });
-                    });
-                    ui.add_space(t.space_2);
-                    ui.horizontal(|ui| {
-                        for chip in ["\u{2191} \u{2193}", "Enter", "Esc"] {
-                            crate::components::key_chip(ui, chip);
+            let (name_font, kind_font) = (theme::font(&t.type_body), theme::font(&t.type_small));
+            let widest = ch
+                .rows
+                .iter()
+                .map(|r| {
+                    text_width(ui, &r.name, name_font.clone())
+                        + if r.kind.is_empty() {
+                            0.0
+                        } else {
+                            text_width(ui, &r.kind, kind_font.clone()) + t.space_4
                         }
-                    });
-                });
+                })
+                .fold(0.0_f32, f32::max);
+            let content = t.space_2 + t.icon_sm + t.space_2 + widest + 2.0 * t.space_2;
+            let width = (content + 2.0 * (t.space_2 + t.border_width))
+                .clamp(t.size_chooser_min_width, t.size_chooser_max_width)
+                .min(bound.width());
+            components::popover_frame(&t).show(ui, |ui| {
+                let inner = width - 2.0 * (t.space_2 + t.border_width);
+                ui.set_width(inner);
+                let name = |i: usize| {
+                    let row = &ch.rows[i];
+                    if row.kind.is_empty() {
+                        row.name.clone()
+                    } else {
+                        format!("{}, {}", row.name, row.kind)
+                    }
+                };
+                let paint = |ui: &egui::Ui, i: usize, r: Rect| {
+                    let row = &ch.rows[i];
+                    let glyph = match row.value {
+                        ChooserValue::NewDevice => IconId::plus,
+                        ChooserValue::Join { .. } | ChooserValue::JoinRep { .. } => {
+                            IconId::circuit_switch_open
+                        }
+                    };
+                    components::chooser_row(ui, &t, r, glyph, &row.name, &row.kind);
+                };
+                let sizes = (inner, max_height, t.size_row);
+                if let Some(i) = components::chooser_list(
+                    ui,
+                    &t,
+                    list_id,
+                    &question,
+                    sizes,
+                    (n, Some(ch.row)),
+                    name,
+                    paint,
+                ) {
+                    events.push(Event::Action("chooser.choose", json!({ "row": i })));
+                }
+                components::chooser_keys(ui, &t);
+            });
         });
-}
-
-/// Paints `text` left-aligned and vertically centred in `rect`, truncated to its width.
-fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) {
-    let mut job = LayoutJob::single_section(text.to_owned(), TextFormat::simple(font, colour.color32()));
-    job.wrap = TextWrapping::truncate_at_width(rect.width().max(0.0));
-    let galley = ui.painter().layout_job(job);
-    let at = pos2(rect.left(), rect.center().y - galley.size().y / 2.0);
-    ui.painter().galley(at, galley, colour.color32());
-}
-
-/// The unwrapped width of `text` in `font`.
-fn text_width(ctx: &egui::Context, text: &str, font: FontId) -> f32 {
-    ctx.fonts_mut(|f| f.layout_no_wrap(text.to_owned(), font, theme::NONE).size().x)
 }

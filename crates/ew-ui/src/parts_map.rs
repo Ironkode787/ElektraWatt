@@ -46,12 +46,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
                 + 2.0 * (t.space_4 + t.border_width);
             let grown = crate::dialog::form_width(&t, ctx.content_rect().width());
             ui.set_width(need.max(t.size_dialog_form.min(grown)).min(grown));
-            egui::Frame::new()
-                .shadow(crate::theme::shadow(&t.elevation_1))
-                .corner_radius(crate::theme::radius(t.radius_md))
-                .show(ui, |ui| {
-                    crate::components::card_frame(&t).show(ui, |ui| body(ui, map, events));
-                });
+            crate::components::lifted(&t).show(ui, |ui| {
+                crate::components::card_frame(&t).show(ui, |ui| body(ui, map, events));
+            });
         });
 }
 

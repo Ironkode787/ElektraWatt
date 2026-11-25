@@ -887,6 +887,139 @@ pub(crate) fn card_frame(t: &Tokens) -> egui::Frame {
         .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_4)))
 }
 
+/// The popover of a chooser list (doc 16a §6.22): a card on `color.surface.raised` at `elevation.1`, with `space.2`
+/// padding.
+pub(crate) fn popover_frame(t: &Tokens) -> egui::Frame {
+    card_frame(t)
+        .fill(t.surface_raised.color32())
+        .shadow(theme::shadow(&t.elevation_1))
+        .inner_margin(egui::Margin::same(theme::margin_px(t.space_2)))
+}
+
+/// A card lifted over the window: `elevation.1`'s shadow at `radius.md` around the card's own frame.
+pub(crate) fn lifted(t: &Tokens) -> egui::Frame {
+    egui::Frame::new()
+        .shadow(theme::shadow(&t.elevation_1))
+        .corner_radius(theme::radius(t.radius_md))
+}
+
+/// The rows of a chooser list (doc 16a §6.22) inside its popover: a `ListBox` named `name` and `inner` wide, of `n`
+/// rows `row_height` tall, which scrolls past `max_height`. The active row and a hovered one have the hover overlay,
+/// as menus (doc 16a §6.13), never the accent; the active row scrolls into view. `label(i)` names row `i` for
+/// AccessKit and `paint` paints its content in its rect. Returns the row clicked.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn chooser_list(
+    ui: &mut Ui,
+    t: &Tokens,
+    id: egui::Id,
+    name: &str,
+    (inner, max_height, row_height): (f32, f32, f32),
+    (n, active): (usize, Option<usize>),
+    label: impl Fn(usize) -> String,
+    mut paint: impl FnMut(&Ui, usize, egui::Rect),
+) -> Option<usize> {
+    let list_rect = egui::Rect::from_min_size(ui.max_rect().min, Vec2::new(inner, max_height));
+    let list = ui.interact(list_rect, id, Sense::hover());
+    list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, name));
+    let mut clicked = None;
+    ui.scope_builder(egui::UiBuilder::new().accessibility_parent(id), |ui| {
+        egui::ScrollArea::vertical()
+            .id_salt(id.with("scroll"))
+            .max_height(max_height)
+            .show(ui, |ui| {
+                ui.spacing_mut().item_spacing.y = 0.0;
+                for i in 0..n {
+                    let selected = active == Some(i);
+                    let (r, response) =
+                        ui.allocate_exact_size(Vec2::new(ui.available_width(), row_height), Sense::click());
+                    let name = label(i);
+                    response.widget_info(|| {
+                        egui::WidgetInfo::selected(egui::Role::ListBoxOption, true, selected, &name)
+                    });
+                    // Egui maps `selected` to `toggled` only: AccessKit's selected state, and the row's place.
+                    ui.ctx().accesskit_node_builder(response.id, |node| {
+                        node.set_selected(selected);
+                        node.set_position_in_set(i + 1);
+                        node.set_size_of_set(n);
+                    });
+                    if selected || response.hovered() {
+                        ui.painter()
+                            .rect_filled(r, theme::radius(t.radius_sm), t.state_hover.color32());
+                    }
+                    paint(ui, i, r);
+                    if selected {
+                        response.scroll_to_me(None);
+                    }
+                    if response.clicked() {
+                        clicked = Some(i);
+                    }
+                }
+            });
+    });
+    clicked
+}
+
+/// A chooser row's content (doc 16a §6.22): a 16-px `icon` in `color.text.secondary`, `name` in `type.body`, and the
+/// kind word `kind` right-aligned in `type.small` `color.text.tertiary`.
+pub(crate) fn chooser_row(ui: &Ui, t: &Tokens, r: egui::Rect, icon: IconId, name: &str, kind: &str) {
+    let icon_rect = egui::Rect::from_center_size(
+        egui::pos2(r.left() + t.space_2 + t.icon_sm / 2.0, r.center().y),
+        Vec2::splat(t.icon_sm),
+    );
+    icons::paint(
+        ui.painter(),
+        icon,
+        icon_rect,
+        t.text_secondary.color32(),
+        t.icon_stroke,
+    );
+    let kind_font = theme::font(&t.type_small);
+    let kind_width = text_width(ui, kind, kind_font.clone());
+    let text_rect = egui::Rect::from_min_max(
+        egui::pos2(icon_rect.right() + t.space_2, r.top()),
+        egui::pos2(r.right() - kind_width - 2.0 * t.space_2, r.bottom()),
+    );
+    paint_text(ui, text_rect, name, theme::font(&t.type_body), t.text_primary);
+    let kind_rect = egui::Rect::from_min_max(
+        egui::pos2(r.right() - kind_width - t.space_2, r.top()),
+        egui::pos2(r.right() - t.space_2, r.bottom()),
+    );
+    paint_text(ui, kind_rect, kind, kind_font, t.text_tertiary);
+}
+
+/// A chooser list's last line: the key chips of its keys (doc 16a §6.22).
+pub(crate) fn chooser_keys(ui: &mut Ui, t: &Tokens) {
+    ui.add_space(t.space_2);
+    ui.horizontal(|ui| {
+        for chip in ["\u{2191} \u{2193}", "Enter", "Esc"] {
+            key_chip(ui, chip);
+        }
+    });
+}
+
+/// Paints `text` in `font` and `colour` at the left of `rect`, centred vertically and cut with an ellipsis at its
+/// width; returns the painted width.
+pub(crate) fn paint_text(ui: &Ui, rect: egui::Rect, text: &str, font: egui::FontId, colour: Rgba) -> f32 {
+    let mut job = egui::text::LayoutJob::single_section(
+        text.to_owned(),
+        egui::TextFormat::simple(font, colour.color32()),
+    );
+    job.wrap = egui::text::TextWrapping::truncate_at_width(rect.width().max(0.0));
+    let galley = ui.painter().layout_job(job);
+    let width = galley.size().x;
+    let at = egui::pos2(rect.left(), rect.center().y - galley.size().y / 2.0);
+    ui.painter().galley(at, galley, colour.color32());
+    width
+}
+
+/// The unwrapped width of `text` in `font`.
+pub(crate) fn text_width(ui: &Ui, text: &str, font: egui::FontId) -> f32 {
+    ui.painter()
+        .layout_no_wrap(text.to_owned(), font, theme::NONE)
+        .size()
+        .x
+}
+
 /// Whether the surface `id` opened in this frame: `now` is what it shows (`None` while closed), and it opened when
 /// that differs from what it showed when this was last asked (a dialog of a new opening, the palette's form of another
 /// action). Asked once a frame for each surface that keeps its first focus (doc 16a §6.12).

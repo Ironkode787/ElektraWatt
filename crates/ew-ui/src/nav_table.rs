@@ -33,7 +33,6 @@ use std::collections::BTreeSet;
 
 use std::sync::Arc;
 
-use egui::text::{LayoutJob, TextFormat, TextWrapping};
 use egui::{FontId, Key, Modifiers, Rect, RichText, Sense, StrokeKind, TextEdit, Ui, pos2, vec2};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate};
 use ew_viewmodel::ew_api::output::NavTable;
@@ -438,100 +437,28 @@ impl TableUi {
             .fixed_pos(at)
             .constrain_to(bound)
             .show(ui.ctx(), |ui| {
-                crate::components::card_frame(&t)
-                    .fill(t.surface_raised.color32())
-                    .corner_radius(theme::radius(t.radius_md))
-                    .shadow(theme::shadow(&t.elevation_1))
-                    .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
-                    .show(ui, |ui| {
-                        let inner = width - 2.0 * (t.space_2 + t.border_width);
-                        ui.set_width(inner);
-                        let list_rect = Rect::from_min_size(ui.max_rect().min, vec2(inner, max_height));
-                        let list = ui.interact(list_rect, list_id, Sense::hover());
-                        list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, question));
-                        ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-                            egui::ScrollArea::vertical()
-                                .id_salt(("strip-chooser-scroll", nav.kind.word()))
-                                .max_height(max_height)
-                                .show(ui, |ui| {
-                                    ui.spacing_mut().item_spacing.y = 0.0;
-                                    for (i, (text, _)) in ch.items.iter().enumerate() {
-                                        let selected = i == active;
-                                        let (r, response) = ui.allocate_exact_size(
-                                            vec2(ui.available_width(), t.size_row),
-                                            Sense::click(),
-                                        );
-                                        let name = text.clone();
-                                        response.widget_info(|| {
-                                            egui::WidgetInfo::selected(
-                                                egui::Role::ListBoxOption,
-                                                true,
-                                                selected,
-                                                &name,
-                                            )
-                                        });
-                                        ui.ctx().accesskit_node_builder(response.id, |node| {
-                                            node.set_selected(selected);
-                                            node.set_position_in_set(i + 1);
-                                            node.set_size_of_set(n);
-                                        });
-                                        if selected || response.hovered() {
-                                            ui.painter().rect_filled(
-                                                r,
-                                                theme::radius(t.radius_sm),
-                                                t.state_hover.color32(),
-                                            );
-                                        }
-                                        let icon = Rect::from_center_size(
-                                            pos2(r.left() + t.space_2 + t.icon_sm / 2.0, r.center().y),
-                                            vec2(t.icon_sm, t.icon_sm),
-                                        );
-                                        icons::paint(
-                                            ui.painter(),
-                                            IconId::package,
-                                            icon,
-                                            t.text_secondary.color32(),
-                                            t.icon_stroke,
-                                        );
-                                        let kind = text_width(ui, word, theme::font(&t.type_small));
-                                        let text_rect = Rect::from_min_max(
-                                            pos2(icon.right() + t.space_2, r.top()),
-                                            pos2(r.right() - kind - 2.0 * t.space_2, r.bottom()),
-                                        );
-                                        paint_text(
-                                            ui,
-                                            text_rect,
-                                            text,
-                                            theme::font(&t.type_body),
-                                            t.text_primary,
-                                        );
-                                        let word_rect = Rect::from_min_max(
-                                            pos2(r.right() - kind - t.space_2, r.top()),
-                                            pos2(r.right() - t.space_2, r.bottom()),
-                                        );
-                                        paint_text(
-                                            ui,
-                                            word_rect,
-                                            word,
-                                            theme::font(&t.type_small),
-                                            t.text_tertiary,
-                                        );
-                                        if selected {
-                                            response.scroll_to_me(None);
-                                        }
-                                        if response.clicked() {
-                                            pick(events, i);
-                                        }
-                                    }
-                                });
-                        });
-                        ui.add_space(t.space_2);
-                        ui.horizontal(|ui| {
-                            for chip in ["\u{2191} \u{2193}", "Enter", "Esc"] {
-                                crate::components::key_chip(ui, chip);
-                            }
-                        });
-                    });
+                crate::components::popover_frame(&t).show(ui, |ui| {
+                    let inner = width - 2.0 * (t.space_2 + t.border_width);
+                    ui.set_width(inner);
+                    let sizes = (inner, max_height, t.size_row);
+                    let paint = |ui: &Ui, i: usize, r: Rect| {
+                        crate::components::chooser_row(ui, &t, r, IconId::package, &ch.items[i].0, word);
+                    };
+                    let name = |i: usize| ch.items[i].0.clone();
+                    if let Some(i) = crate::components::chooser_list(
+                        ui,
+                        &t,
+                        list_id,
+                        question,
+                        sizes,
+                        (n, Some(active)),
+                        name,
+                        paint,
+                    ) {
+                        pick(events, i);
+                    }
+                    crate::components::chooser_keys(ui, &t);
+                });
             });
     }
 }
@@ -817,18 +744,6 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
     }
 }
 
-/// Paints `text` in `font` and `colour` at the left of `rect`, centred vertically and cut with an ellipsis at its
-/// width; returns the painted width.
-fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f32 {
-    let mut job = LayoutJob::single_section(text.to_owned(), TextFormat::simple(font, colour.color32()));
-    job.wrap = TextWrapping::truncate_at_width(rect.width().max(0.0));
-    let galley = ui.painter().layout_job(job);
-    let width = galley.size().x;
-    let at = pos2(rect.left(), rect.center().y - galley.size().y / 2.0);
-    ui.painter().galley(at, galley, colour.color32());
-    width
-}
-
 /// A cell's rect: the whole cell, or in egui_table's sizing pass (the first frame) `size.table_column` wide or as
 /// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
 /// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
@@ -901,14 +816,6 @@ pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
 /// scrolls sideways.
 pub(crate) fn fill_cap(t: &Tokens, pane: f32, others: f32) -> f32 {
     (pane - others).max(t.size_table_column)
-}
-
-/// The unwrapped width of `text` in `font`.
-fn text_width(ui: &Ui, text: &str, font: FontId) -> f32 {
-    ui.painter()
-        .layout_no_wrap(text.to_owned(), font, theme::NONE)
-        .size()
-        .x
 }
 
 /// The SemiBold cut of `type.small` (a header label, doc 16a §6.21).
@@ -1026,7 +933,7 @@ impl Delegate<'_> {
                 let column = &self.table.columns[c];
                 let icons =
                     usize::from(self.sort.is_some_and(|(i, _)| i == at)) + usize::from(column.derived);
-                let header = text_width(ui, &column.label, header_font.clone())
+                let header = crate::components::text_width(ui, &column.label, header_font.clone())
                     + icons as f32 * (t.icon_sm + t.space_2);
                 let cells = self
                     .rows
@@ -1034,7 +941,7 @@ impl Delegate<'_> {
                     .map(|r| {
                         ew_viewmodel::navigators::cell_text(self.table, &self.table.nodes[r.node as usize], c)
                     })
-                    .map(|text| text_width(ui, &text, cell_font.clone()))
+                    .map(|text| crate::components::text_width(ui, &text, cell_font.clone()))
                     .fold(0.0_f32, f32::max);
                 (header.max(cells) + 2.0 * t.space_4).max(start_width(t, self.kind, &column.key))
             })
@@ -1170,7 +1077,7 @@ impl TableDelegate for Delegate<'_> {
             &column.key,
             || cap,
             share,
-            || text_width(ui, &column.label, small_strong(&t)) + icon_room,
+            || crate::components::text_width(ui, &column.label, small_strong(&t)) + icon_room,
         );
         let response = ui.allocate_rect(rect, Sense::click());
         crate::command_bar::state_overlay(ui, &t, &response, true, 0.0);
@@ -1187,7 +1094,7 @@ impl TableDelegate for Delegate<'_> {
                 content.bottom(),
             ),
         );
-        let width = paint_text(ui, text_rect, &column.label, small_strong(&t), colour);
+        let width = crate::components::paint_text(ui, text_rect, &column.label, small_strong(&t), colour);
         let mut x = content.left() + width + t.space_2;
         for (id, colour) in icons {
             let at = Rect::from_min_size(
@@ -1315,7 +1222,7 @@ impl TableDelegate for Delegate<'_> {
             &column.key,
             || cap,
             share,
-            || text_width(ui, &text, theme::font(&t.type_small)),
+            || crate::components::text_width(ui, &text, theme::font(&t.type_small)),
         );
         // An unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
         // Place with the terminal's main function).
@@ -1362,9 +1269,10 @@ impl TableDelegate for Delegate<'_> {
             );
             content.max.x -= t.icon_sm + t.space_2;
         }
-        paint_text(ui, content, &text, theme::font(&t.type_small), colour);
+        crate::components::paint_text(ui, content, &text, theme::font(&t.type_small), colour);
         // A cell cut with an ellipsis shows its whole text in its tooltip (a read-only cell's reason first).
-        let elided = text_width(ui, &text, theme::font(&t.type_small)) > content.width() + 0.5;
+        let elided =
+            crate::components::text_width(ui, &text, theme::font(&t.type_small)) > content.width() + 0.5;
         if elided && !ui.is_sizing_pass() && !capped(self.kind, &column.key) {
             self.cut.push((column.key.clone(), text.clone()));
         }

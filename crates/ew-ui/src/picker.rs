@@ -398,7 +398,11 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
                 s.name.clone()
             };
             // What the symbol is for, in the ratings column: "Pneumatic", "Electrical".
-            let rating = s.discipline.as_ref().map(strings::discipline_words).unwrap_or_default();
+            let rating = s
+                .discipline
+                .as_ref()
+                .map(strings::discipline_words)
+                .unwrap_or_default();
             RowTexts {
                 name,
                 number: String::new(),

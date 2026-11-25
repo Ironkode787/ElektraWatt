@@ -91,13 +91,6 @@ pub(crate) fn search_width(t: &Tokens, row: f32) -> f32 {
     crate::dialog::grown(t.size_search_width, SEARCH_SHARE, row)
 }
 
-fn text_width(ui: &Ui, text: &str, font: egui::FontId) -> f32 {
-    ui.painter()
-        .layout_no_wrap(text.to_owned(), font, theme::NONE)
-        .size()
-        .x
-}
-
 fn compact(t: &Tokens) -> bool {
     t.density == Density::Compact
 }
@@ -110,7 +103,7 @@ fn has_chevron(b: &CommandButton) -> bool {
 /// The size of button `b`: a large button is `icon.md` over its label (Comfortable) or beside it (Compact); a small
 /// one `icon.sm` beside its label.
 fn button_size(ui: &Ui, t: &Tokens, b: &CommandButton) -> Vec2 {
-    let label = text_width(ui, &b.bar_label, theme::font(&t.type_small));
+    let label = crate::components::text_width(ui, &b.bar_label, theme::font(&t.type_small));
     let chevron = if has_chevron(b) {
         t.space_1 + t.icon_sm
     } else {
@@ -135,7 +128,7 @@ fn button_size(ui: &Ui, t: &Tokens, b: &CommandButton) -> Vec2 {
 
 /// The size of a menu button named `label` with an icon and a chevron (a collapsed group, More).
 fn menu_button_size(ui: &Ui, t: &Tokens, label: &str) -> Vec2 {
-    let w = text_width(ui, label, theme::font(&t.type_small));
+    let w = crate::components::text_width(ui, label, theme::font(&t.type_small));
     vec2(
         2.0 * t.space_icon + t.icon_sm + t.space_icon + w + t.space_1 + t.icon_sm,
         t.size_command_small,
@@ -193,7 +186,7 @@ fn group_width(ui: &Ui, t: &Tokens, g: &GroupModel) -> f32 {
 /// The size of the next-step Primary button, with its label or (`labelled` false) its icon alone.
 fn next_size(ui: &Ui, t: &Tokens, b: &CommandButton, labelled: bool) -> Vec2 {
     let label = if labelled {
-        t.space_icon + text_width(ui, &b.bar_label, theme::font(&t.type_body_strong))
+        t.space_icon + crate::components::text_width(ui, &b.bar_label, theme::font(&t.type_body_strong))
     } else {
         0.0
     };
@@ -852,7 +845,7 @@ impl CommandBarHost {
         let widths: Vec<f32> = model
             .tabs
             .iter()
-            .map(|(_, l)| text_width(ui, l, font.clone()) + 2.0 * t.space_4)
+            .map(|(_, l)| crate::components::text_width(ui, l, font.clone()) + 2.0 * t.space_4)
             .collect();
         let tabs_rect = Rect::from_min_size(pos2(x, row.top()), vec2(widths.iter().sum(), t.size_tab_row));
         let list_id = Id::unique("command-tabs");
@@ -1022,7 +1015,7 @@ fn workspace_switch(
     let item_w = model
         .workspaces
         .iter()
-        .map(|w| text_width(ui, &w.label, chosen_font.clone()))
+        .map(|w| crate::components::text_width(ui, &w.label, chosen_font.clone()))
         .fold(0.0, f32::max)
         + 2.0 * t.space_3;
     let n = model.workspaces.len() as f32;
