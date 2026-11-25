@@ -121,18 +121,18 @@ runs as a test of `ew-testkit` and layer 9 as a test of `ew-api`.
 
 ### 3.3 Property tests
 
-The generator `ew-testkit::gen::command()` produces commands that are valid against the current snapshot: targets
-are chosen by index into the live tables. When a law fails, proptest shrinks the sequence to a minimal one. The
-harness prints it as an `.ewcmd` script in the builder DSL (`ew_testkit::dsl`), so the failure becomes a regression fixture by
-copying one file.
+Two generators make the steps. The property tests of the commands (`ew-commands/tests/it/props.rs`) and of the
+model (`ew-model/src/tests/props.rs`) draw a plan from proptest and resolve each step against the live records of
+the mini model, by index, so a sequence stays meaningful whatever the earlier steps did; when a law fails, proptest
+shrinks the sequence to a minimal one. The command fuzzer of §3.6 is the second, over the sample project.
 
 | Law | Checked on |
 |---|---|
-| `undo(all) ∘ apply(cmds) = id`, for the model digest and every derived digest | GP, S |
-| `load(save(m)) = m`, and `save(load(save(m)))` byte-identical to `save(m)` | GP, QET corpus, S |
-| Incremental saves after every step are byte-identical to a full save of the final model (NFR-REL-16) | GP; M nightly |
-| `merge(o, a, a) = a`; `merge(o, o, b) = b`; for disjoint edits `merge(o, a, b) = merge(o, b, a)` | GP branches |
-| preview + commit = execute; journal replay = live state | GP |
+| `undo(all) ∘ apply(cmds) = id`, for the model digest and every derived digest | the mini model, the sample, S |
+| `load(save(m)) = m`, and `save(load(save(m)))` byte-identical to `save(m)` | the sample, QET corpus, S |
+| Incremental saves after every step are byte-identical to a full save of the final model (NFR-REL-16) | the sample |
+| `merge(o, a, a) = a`; `merge(o, o, b) = b`; for disjoint edits `merge(o, a, b) = merge(o, b, a)` | the sample's records |
+| preview + commit = execute; journal replay = live state | the mini model, the sample |
 | Renumbering keeps every `Id` reference; the tag map old → new is a bijection | renumbering steps |
 | Re-importing the same source yields identical IDs and an empty diff (FR-IMP-002) | QET corpus |
 | A hit-test result lies in the item's bounding box; a routed length ≥ the Euclidean distance (1.0) | S, layout fixture |
@@ -146,8 +146,7 @@ The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
 batches of steps over a fixture with named rows. **A step whose fixture row is gone is a no-op**: a generated step that
 names a fixture row (an FnDef copy, a page, a location node) which an earlier delete plan of the sequence removed is
 skipped, not issued, because the model rightly refuses it and the generator's "rejected unexpectedly" assertion would
-report a test defect as a model defect (the cycle-15 gate finding: `AddAuxFunction` after the FnDef copy had been
-removed). Proptest regression seeds are committed (`proptest-regressions/`) with the crate's SPDX header, which the
+report a test defect as a model defect (`AddAuxFunction` after its FnDef copy was removed). Proptest regression seeds are committed (`proptest-regressions/`) with the crate's SPDX header, which the
 licence-map check requires of every committed file, and every shrunk counterexample also becomes a named,
 deterministic replay test.
 
@@ -224,30 +223,8 @@ A derive check in `ew-schema` rejects `f32`/`f64` fields in persisted records (A
 
 ### 3.6 Command-sequence fuzzer
 
-```rust
-#[derive(Arbitrary)]
-enum FuzzCmd { Place { sym: u16, page: u8, x: i16, y: i16 }, Connect { a: u32, b: u32 }, Move { rep: u32, dx: i8, dy: i8 },
-               Delete { idx: u32 }, Renumber { scope: u8 }, SetField { idx: u32, field: u8, val: u16 },
-               InsertMacro { m: u8, page: u8 }, Undo, Redo, SaveReload, Import { batch: u8 } }
-
-fuzz_target!(|input: (u8, Vec<FuzzCmd>)| {
-    let mut s = Session::open(seed_fixture(input.0));         // a seed project or S
-    let d0 = s.world().digest();
-    for c in input.1.iter().take(256) {
-        if let Some(cmd) = c.resolve(&s.world()) { let _ = s.execute(cmd.as_ref()); }  // Err is fine, panic is a bug
-        s.assert_structural_invariants();
-        oracle_sample(&s, 16);
-    }
-    assert_round_trip(&s);                                    // save to a scratch directory, load, compare digests
-    while s.undo(&Origin::Gui).is_ok() {}
-    assert_eq!(s.world().digest(), d0);
-});
-```
-
-The corpus starts from the sample project with a few records more. PR runs use no sanitizer,
-for throughput. Nightly runs use AddressSanitizer, because the dependency closure contains `unsafe` code.
-
-The fuzzer is the test directory `crates/ew-testkit/tests/it/command_fuzz/`. A seeded SplitMix64 generator picks
+The fuzzer is the test module `crates/ew-testkit/tests/it/command_fuzz.rs` with its folder of arms, run on the
+sample project with a few records more and no sanitizer. A seeded SplitMix64 generator picks
 its targets by index into the live records read through `Session::query` (so the no-op rule of §3.3 holds by
 construction) and drives the registered commands over the sample project with the oracle on: hand arms build well-formed steps
 and deep states, and a schema-driven arm builds a step for every registered command from its parameter schema. The
@@ -262,7 +239,7 @@ the other `EW_FUZZ_*` variables.
 
 *Target for 1.0; not in the repository during the alpha.* A nightly `fuzz_long` run (CI-N-02), the cargo-fuzz form of
 the same generator as a target `command_sequence` whose tape bytes steer the generator's draws, and AddressSanitizer
-runs of both on a nightly toolchain pinned by date.
+runs of both on a nightly toolchain pinned by date, because the dependency closure contains `unsafe` code.
 
 ### 3.7 Snapshots
 
