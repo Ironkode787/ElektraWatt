@@ -122,6 +122,24 @@ pub const LEFT: [(&str, &str, PaneKind); 15] = [
     ("libraries", "books", PaneKind::Navigator(NavKind::Libraries)),
 ];
 
+/// The icon key of the left rail's entry that opens navigator `kind` (an empty navigator shows it): the PLC grid by the
+/// PLC's entry, the tube and medium tables by the fluid's; `None` for a navigator without an entry of its own (Devices,
+/// under Project; Messages).
+pub fn nav_icon(kind: NavKind) -> Option<&'static str> {
+    let entry = match kind {
+        NavKind::PlcGrid => NavKind::Plc,
+        NavKind::Tubes | NavKind::Media => NavKind::Fluid,
+        k => k,
+    };
+    LEFT.iter()
+        .find(|(_, _, pane)| match pane {
+            PaneKind::Navigator(k) => *k == entry,
+            PaneKind::Pages => entry == NavKind::Pages,
+            _ => false,
+        })
+        .map(|(_, icon, _)| *icon)
+}
+
 /// The right rail's palettes (doc 16a §5.6): until the palette panes are built,
 /// each opens its picker, the keyboard path the palettes keep.
 pub const RIGHT: [(&str, Key<'static>, &str, &str); 2] = [

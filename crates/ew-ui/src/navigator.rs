@@ -888,59 +888,36 @@ fn open(events: &mut Vec<Event>, kind: NavKind, pages: bool, key: &str, new_tab:
 /// The icon, line and sentence of the empty state of navigator `kind` without a filter (doc 16a §6.17).
 pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str, &'static str) {
     use crate::icons::IconId;
-    let (icon, line) = match kind {
-        NavKind::Messages => {
-            return (
-                IconId::circle_check,
-                strings::text(key!("empty-messages")),
-                strings::text(key!("empty-messages-text")),
-            );
-        }
-        NavKind::Pages => {
-            return (
-                IconId::files,
-                strings::text(key!("empty-nav-pages")),
-                strings::text(key!("empty-nav-pages-text")),
-            );
-        }
-        // The rail's icons (`ew_viewmodel::rail::LEFT`).
-        NavKind::Devices => (IconId::ew_black_box, key!("empty-nav-devices")),
-        NavKind::Connections => (IconId::plug_connected, key!("empty-nav-connections")),
-        NavKind::Strips => (IconId::ew_terminal_strip, key!("empty-nav-strips")),
-        NavKind::Cables => (IconId::ew_cable, key!("empty-nav-cables")),
-        NavKind::Plc | NavKind::PlcGrid => (IconId::cpu, key!("empty-nav-plc")),
-        NavKind::Bus => (IconId::topology_bus, key!("empty-nav-bus")),
-        NavKind::Fluid | NavKind::Tubes | NavKind::Media => (
-            IconId::droplet,
-            match kind {
-                NavKind::Tubes => key!("empty-nav-tubes"),
-                NavKind::Media => key!("empty-nav-media"),
-                _ => key!("empty-nav-fluid"),
-            },
-        ),
-        NavKind::Potentials => (IconId::ew_potential, key!("empty-nav-potentials")),
-        NavKind::Ips => (IconId::ew_interruption_point, key!("empty-nav-ips")),
-        NavKind::Structure => (IconId::sitemap, key!("empty-nav-structure")),
-        NavKind::Parts => (IconId::packages, key!("empty-nav-parts")),
-        NavKind::Blocks => (IconId::report, key!("empty-nav-blocks")),
-        NavKind::Macros => {
-            return (
-                IconId::package,
-                strings::text(key!("empty-nav-macros")),
-                strings::text(key!("empty-nav-macros-text")),
-            );
-        }
-        NavKind::Libraries => (IconId::books, key!("empty-nav-libraries")),
+    // The rail's icon of the navigator; Devices (under Project) and Messages have no entry of their own.
+    let icon = ew_viewmodel::rail::nav_icon(kind)
+        .and_then(IconId::from_key)
+        .unwrap_or(match kind {
+            NavKind::Messages => IconId::circle_check,
+            _ => IconId::ew_black_box,
+        });
+    let (line, text) = match kind {
+        NavKind::Messages => (key!("empty-messages"), key!("empty-messages-text")),
+        NavKind::Pages => (key!("empty-nav-pages"), key!("empty-nav-pages-text")),
+        NavKind::Macros => (key!("empty-nav-macros"), key!("empty-nav-macros-text")),
         // The pane draws the shell's texts (`ShellModel::unplaced_empty`); these are the first state's.
-        NavKind::Unplaced => {
-            return (
-                IconId::layout_dashboard,
-                strings::text(key!("empty-nav-unplaced")),
-                strings::text(key!("empty-nav-unplaced-text")),
-            );
-        }
+        NavKind::Unplaced => (key!("empty-nav-unplaced"), key!("empty-nav-unplaced-text")),
+        NavKind::Devices => (key!("empty-nav-devices"), key!("empty-nav-text")),
+        NavKind::Connections => (key!("empty-nav-connections"), key!("empty-nav-text")),
+        NavKind::Strips => (key!("empty-nav-strips"), key!("empty-nav-text")),
+        NavKind::Cables => (key!("empty-nav-cables"), key!("empty-nav-text")),
+        NavKind::Plc | NavKind::PlcGrid => (key!("empty-nav-plc"), key!("empty-nav-text")),
+        NavKind::Bus => (key!("empty-nav-bus"), key!("empty-nav-text")),
+        NavKind::Tubes => (key!("empty-nav-tubes"), key!("empty-nav-text")),
+        NavKind::Media => (key!("empty-nav-media"), key!("empty-nav-text")),
+        NavKind::Fluid => (key!("empty-nav-fluid"), key!("empty-nav-text")),
+        NavKind::Potentials => (key!("empty-nav-potentials"), key!("empty-nav-text")),
+        NavKind::Ips => (key!("empty-nav-ips"), key!("empty-nav-text")),
+        NavKind::Structure => (key!("empty-nav-structure"), key!("empty-nav-text")),
+        NavKind::Parts => (key!("empty-nav-parts"), key!("empty-nav-text")),
+        NavKind::Blocks => (key!("empty-nav-blocks"), key!("empty-nav-text")),
+        NavKind::Libraries => (key!("empty-nav-libraries"), key!("empty-nav-text")),
     };
-    (icon, strings::text(line), strings::text(key!("empty-nav-text")))
+    (icon, strings::text(line), strings::text(text))
 }
 
 /// The inline editor of a row whose label is being renamed: a one-line text field at the
@@ -1571,4 +1548,19 @@ pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An empty navigator shows the icon of the rail's entry that opens it: Macros its `template`, the PLC grid the
+    /// PLC's; Messages, which has no entry, its own.
+    #[test]
+    fn an_empty_navigator_shows_its_rail_icon() {
+        use crate::icons::IconId;
+        assert_eq!(empty_texts(NavKind::Macros).0, IconId::template);
+        assert_eq!(empty_texts(NavKind::PlcGrid).0, IconId::cpu);
+        assert_eq!(empty_texts(NavKind::Messages).0, IconId::circle_check);
+    }
 }
