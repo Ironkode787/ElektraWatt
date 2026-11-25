@@ -458,7 +458,15 @@ fn errors_before_the_commit_point_leave_g_intact() {
                     // Best-effort calls (pre-cleaning a stale temp, the journal's own housekeeping) may fail
                     // without the save noticing; any other failure must show in the report.
                     let call = &trace[usize::try_from(k).expect("small") - 1];
-                    if report.journal_error.is_none() && report.leftovers.is_empty() && !best_effort(call) {
+                    // On Windows the lock tries an access-denied call again: contention (doc 05 §7.4).
+                    let retried = cfg!(windows)
+                        && kind == std::io::ErrorKind::PermissionDenied
+                        && call.ends_with(".~ew.lock");
+                    if report.journal_error.is_none()
+                        && report.leftovers.is_empty()
+                        && !best_effort(call)
+                        && !retried
+                    {
                         failures.push(format!(
                             "{case}: Ok although call `{call}` failed, with neither a journal error nor leftovers: {report:?}"
                         ));

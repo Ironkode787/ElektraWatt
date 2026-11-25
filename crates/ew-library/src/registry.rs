@@ -656,7 +656,7 @@ impl Registry {
             libs,
             starter: starter_docs,
             index: Mutex::new(index),
-            me: lock::identity(concat!("ElektraWatt ", env!("CARGO_PKG_VERSION"))),
+            me: Identity::current(concat!("ElektraWatt ", env!("CARGO_PKG_VERSION"))),
             policy: LockPolicy::default(),
             limits,
             fault: None,

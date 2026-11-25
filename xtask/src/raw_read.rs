@@ -136,7 +136,7 @@ const RANDOM_REASON: &str = "no randomness in model, derive, format or export pa
 const KRILLA_DECODER_REASON: &str = "krilla's GIF and WebP decoders were audited as unreachable for 0.1.0: only PNG and JPEG reach krilla, after ew_render_cpu::decode_image; a new format needs a decision and a new audit";
 
 /// The randomly keyed hasher of the std hash containers, the generator of their iteration order: a `disallowed-types`
-/// entry after [`DISALLOWED_TYPES`]. The one use, the session ID of the lock, is a justified site.
+/// entry after [`DISALLOWED_TYPES`]. A use is a justified site.
 pub const RANDOM_STATE: &str = "std::hash::RandomState";
 
 /// The reason clippy prints with a use of [`RANDOM_STATE`].

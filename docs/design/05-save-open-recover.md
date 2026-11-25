@@ -361,7 +361,14 @@ editing".
    once and reopen the race. It then creates its own lock with `create_new` and re-reads it
    after 2 s.
 3. Where a file system cannot rename without replacement (some CIFS and NFS mounts **(verify)**), EW falls back to
-   the plain rename, and the re-read of step 2 plus the heartbeat's session check (§7.2) detect the loser.
+   the plain rename when the target name does not exist yet, and the re-read of step 2 plus the heartbeat's session
+   check (§7.2) detect the loser.
+
+A takeover that meets the target name taken, or the stale lock or its own new lock moved by another contender, is
+lost: the project is not taken over, and a library names the session that holds its lock. On Windows a read, a create
+or a rename refused with access denied is tried again for a short while, since Windows reports a file whose deletion
+another contender left pending that way. A lock of another session of the same process is live. The session ID is a
+UUIDv7 of `ew-ids`.
 
 A laptop that wakes after a takeover detects the loss at its next heartbeat (§7.2). `.~ew.lock.stale-*` files
 older than `lock.stale_after` (counted from the takeover, step 2) are deleted at the next editing open.

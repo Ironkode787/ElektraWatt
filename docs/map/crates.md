@@ -511,7 +511,7 @@ JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-wa
 
 ## ew-ids
 
-`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-testids`, `ew-testkit`, `xtask` · in tests by none
+`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-testids`, `ew-testkit`, `xtask` · in tests by none
 
 Typed identifiers `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones.
 
@@ -677,7 +677,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 | `src/error.rs` |  | [`LibraryError`]: why a registry operation did not happen. |
 | `src/index.rs` | large | The derived per-user search index (doc 07 §4.3, §4.7): one SQLite file in the cache directory, never authoritative, rebuilt per library when its generation or a file hash changes, and from scratch when it is missing, unreadable or of another schema. |
 | `src/lib.rs` |  | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects. |
-| `src/lock.rs` |  | `library.lock`, the writer's lock of a `.ewlib` directory: the project lock's record and protocol (`ew_store::lock`, doc 05 §7.1, §7.4) under the library's file names and rules ([`LIBRARY_LOCK`]), its outcomes as [`LibraryError`]s. |
+| `src/lock.rs` |  | `library.lock`, the writer's lock of a `.ewlib` directory: the project lock's record, rules and protocol (`ew_store::lock`, doc 05 §7.1, §7.4) under the library's file names ([`LIBRARY_LOCK`]), its outcomes as [`LibraryError`]s. |
 | `src/manifest.rs` |  | `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last. |
 | `src/record.rs` |  | Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2). |
 | `src/registry.rs` | large | [`Registry`]: the opened tiers, the one resolver and the search index (§7). |
@@ -995,7 +995,7 @@ Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natura
 
 ## ew-store
 
-`crates/ew-store` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-model`, `ew-schema`, `ew-zip` · used by `ew-api`, `ew-library` · in tests by none
+`crates/ew-store` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-ids`, `ew-model`, `ew-schema`, `ew-zip` · used by `ew-api`, `ew-library` · in tests by none
 
 Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags.
 

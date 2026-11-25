@@ -3,23 +3,25 @@
 
 //! The lock files of the program (doc 05 §7, ADR-0010 amendment 1, FR-COL-006, FR-COL-026): the project's
 //! `.~ew.lock` ([`PROJECT_LOCK`]) and a library's `library.lock` (`ew-library`), one record and one protocol over the
-//! [`Vfs`] ([`Lock`]). The rules in which the two differ are named in [`LockFile`].
+//! [`Vfs`] ([`Lock`]). The two differ in their file names alone ([`LockFile`]).
 //!
 //! - **Acquisition:** `create_new` of the lock with the record, then `sync`; no byte-range locks.
 //! - **Held:** the holder's session ID is in the file. Another opener is read-only and names the holder.
 //! - **Heartbeat** (the project's lock): the holder sets the lock's modification time every [`HEARTBEAT`] and
 //!   re-reads the session ID; a different or missing ID means the lock is lost (the session turns read-only).
 //! - **Stale:** older than `stale_after` (default [`STALE_AFTER`]), or on the same host with a dead PID or a
-//!   PID whose start time differs; a lock of this process as [`LockFile::own_process`] says.
+//!   PID whose start time differs; a lock of another session of this process is live.
 //! - **Takeover** (confirmed by the caller): rename the stale lock **without replacement** to
 //!   `<stale prefix><stale session>`, create our own lock, re-read it after the settle time ([`TAKEOVER_SETTLE`]).
+//!   A takeover that meets the lock moved by another contender is lost ([`TakeoverError::Lost`]).
+//! - **Contention on Windows:** a read, a create or a rename that Windows refuses with access denied is tried again
+//!   for a short while: Windows reports a file whose deletion is pending (another session's takeover just unlinked it
+//!   while a handle was open) that way, which is contention, not a read-only directory.
 
 use std::fmt;
-use std::hash::{BuildHasher, Hasher};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
 use serde_json::Value;
@@ -35,64 +37,19 @@ pub const STALE_AFTER: Duration = Duration::from_secs(60 * 60);
 /// The wait before a takeover re-reads its new lock (doc 05 §7.4 step 2).
 pub const TAKEOVER_SETTLE: Duration = Duration::from_secs(2);
 
-/// One lock file of the program and the rules in which the project's lock and a library's differ.
+/// One lock file of the program: the project's lock or a library's.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LockFile {
     /// The lock file's name in its directory.
     pub name: &'static str,
     /// The name of a stale lock a takeover renamed aside, before the stale session.
     pub stale_prefix: &'static str,
-    /// How the stale rule judges a lock of this process.
-    pub own_process: OwnProcess,
-    /// How the stale session becomes part of the renamed lock's name.
-    pub stale_name: StaleName,
-    /// Whether a read, a create or a rename that Windows refuses with access denied is tried again for a short while:
-    /// Windows reports a file whose deletion is pending (another session's takeover just unlinked it while a handle
-    /// was open) that way, which is contention, not a read-only directory. Elsewhere every call runs once.
-    pub retry_pending_delete: bool,
-    /// What a takeover makes of a lock file that another contender moved between two of its steps.
-    pub moved_away: MovedAway,
-}
-
-/// What a takeover makes of a lock file that another contender renamed or removed between two of its steps: the
-/// stale lock gone before the plain rename of doc 05 §7.4 step 3 (on Windows the rename without replacement is also
-/// refused while the other contender's unlink of the stale lock is pending), and its own new lock gone before it is
-/// synced.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum MovedAway {
-    /// An I/O error of the takeover; the plain rename replaces whatever is at the target (the project's lock).
-    IsAnError,
-    /// The takeover is lost; the plain rename is lost too when the target exists (a library's lock).
-    IsLost,
-}
-
-/// How the stale rule judges a lock that names this process's PID on this host.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum OwnProcess {
-    /// A lock of another session of this process is live; this session's own lock is judged by the process probe
-    /// (the project's lock).
-    OtherSessionsLive,
-    /// Every lock of this process is live (a library's lock).
-    AllLive,
-}
-
-/// How a takeover turns the stale lock's session into the renamed lock's name.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum StaleName {
-    /// Its hexadecimal digits and hyphens, lower-cased, at most 36; `unknown` when none is left (the project's lock).
-    Filtered,
-    /// The session unchanged when it holds only hexadecimal digits and hyphens, else `unknown` (a library's lock).
-    WholeOrUnknown,
 }
 
 /// The project's lock `.~ew.lock` (doc 05 §7).
 pub const PROJECT_LOCK: LockFile = LockFile {
     name: LOCK,
     stale_prefix: STALE_LOCK_PREFIX,
-    own_process: OwnProcess::OtherSessionsLive,
-    stale_name: StaleName::Filtered,
-    retry_pending_delete: false,
-    moved_away: MovedAway::IsAnError,
 };
 
 /// Who holds (or wants) the lock: the record of doc 05 §7.1.
@@ -200,40 +157,10 @@ fn process_started() -> SystemTime {
     *STARTED.get_or_init(SystemTime::now)
 }
 
-/// A fresh random UUID (version 4) as text, from the standard library's randomly keyed hasher: unique per
-/// session, which is all the lock and the journal need (it is not a record ID; those come from `ew-ids`).
+/// A fresh session ID: a UUIDv7 from `ew-ids` as text, unique per session, which is all the lock and the journal need
+/// (it is not a record ID).
 pub fn new_session_id() -> String {
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let word = |salt: u64| {
-        // Randomness and the clock only make the session ID unique (it names the lock and the journal, not a record).
-        #[allow(clippy::disallowed_types)]
-        // The randomly keyed hasher is the source of that uniqueness.
-        let mut h = std::collections::hash_map::RandomState::new().build_hasher();
-        h.write_u64(salt);
-        h.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
-        h.write_u32(std::process::id());
-        // Part of the uniqueness of the session ID (see above).
-        let nanos = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .map_or(0, |d| d.as_nanos());
-        h.write_u128(nanos);
-        h.finish()
-    };
-    let (a, b) = (word(0x5eed), word(0xface));
-    let mut bytes = [0u8; 16];
-    bytes[..8].copy_from_slice(&a.to_be_bytes());
-    bytes[8..].copy_from_slice(&b.to_be_bytes());
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
-    format!(
-        "{}-{}-{}-{}-{}",
-        &hex[..8],
-        &hex[8..12],
-        &hex[12..16],
-        &hex[16..20],
-        &hex[20..]
-    )
+    ew_ids::Id::<()>::new_v7().to_string()
 }
 
 impl Identity {
@@ -381,15 +308,13 @@ impl Lock<'_> {
         join(self.dir, self.file.name)
     }
 
-    /// Runs `op`, retried for a short while on a Windows access-denied when [`LockFile::retry_pending_delete`] is set;
-    /// else once.
+    /// Runs `op`, retried for a short while on a Windows access-denied (contention, see the module documentation);
+    /// elsewhere once.
     fn attempt<T>(&self, mut op: impl FnMut() -> io::Result<T>) -> io::Result<T> {
         let mut tries = 0;
         loop {
             match op() {
-                Err(e)
-                    if self.file.retry_pending_delete && cfg!(windows) && access_denied(&e) && tries < 20 =>
-                {
+                Err(e) if cfg!(windows) && access_denied(&e) && tries < 20 => {
                     tries += 1;
                     self.clock.sleep(Duration::from_millis(5));
                 }
@@ -398,7 +323,8 @@ impl Lock<'_> {
         }
     }
 
-    /// The stale rule of doc 05 §7.4 at `now`, a lock of this process judged as [`LockFile::own_process`] says.
+    /// The stale rule of doc 05 §7.4 at `now`: a lock of another session of this process is live; this session's own
+    /// lock is judged by the process probe.
     pub fn is_stale(
         &self,
         record: Option<&LockRecord>,
@@ -412,10 +338,7 @@ impl Lock<'_> {
         let Some(record) = record else {
             return false;
         };
-        let own_live = match self.file.own_process {
-            OwnProcess::OtherSessionsLive => record.pid == self.me.pid && record.session != self.me.session,
-            OwnProcess::AllLive => record.pid == self.me.pid,
-        };
+        let own_live = record.pid == self.me.pid && record.session != self.me.session;
         if record.host != self.me.host || own_live {
             return false;
         }
@@ -522,7 +445,7 @@ impl Lock<'_> {
         let stale_session = info
             .record
             .as_ref()
-            .map_or_else(|| "unknown".to_owned(), |r| self.file.stale_name.of(&r.session));
+            .map_or_else(|| "unknown".to_owned(), |r| stale_name(&r.session));
         let from = self.path();
         let to = join(self.dir, &format!("{}{stale_session}", self.file.stale_prefix));
         match self.rename_away(&from, &to)? {
@@ -551,11 +474,8 @@ impl Lock<'_> {
         match self.attempt(|| self.vfs.create_new(&from, record.as_bytes())) {
             Ok(()) => match self.vfs.sync(&from) {
                 Ok(()) => {}
-                Err(e)
-                    if e.kind() == io::ErrorKind::NotFound && self.file.moved_away == MovedAway::IsLost =>
-                {
-                    return Ok(Err(TakeoverError::Lost));
-                }
+                // Another contender moved our new lock before it was synced.
+                Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Err(TakeoverError::Lost)),
                 Err(e) => return Err(e),
             },
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => return Ok(Err(TakeoverError::Lost)),
@@ -577,21 +497,19 @@ impl Lock<'_> {
             Err(e) if matches!(e.kind(), io::ErrorKind::AlreadyExists | io::ErrorKind::NotFound) => {
                 Ok(Err(TakeoverError::Lost))
             }
-            // Doc 05 §7.4 step 3: no rename without replacement on this file system; the plain rename and the
-            // re-read after the settle time (plus the heartbeat's session check) detect the loser.
-            Err(e) if e.kind() == io::ErrorKind::Unsupported => match self.file.moved_away {
-                MovedAway::IsAnError => self.vfs.rename(from, to).map(Ok),
-                MovedAway::IsLost => {
-                    if self.vfs.stat(to).is_ok() {
-                        return Ok(Err(TakeoverError::Lost));
-                    }
-                    match self.vfs.rename(from, to) {
-                        Ok(()) => Ok(Ok(())),
-                        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Err(TakeoverError::Lost)),
-                        Err(e) => Err(e),
-                    }
+            // Doc 05 §7.4 step 3: no rename without replacement on this file system. A target that exists or a lock
+            // that is gone loses; else the plain rename, and the re-read after the settle time (plus the heartbeat's
+            // session check) detect the loser of a closer race.
+            Err(e) if e.kind() == io::ErrorKind::Unsupported => {
+                if self.vfs.stat(to).is_ok() {
+                    return Ok(Err(TakeoverError::Lost));
                 }
-            },
+                match self.vfs.rename(from, to) {
+                    Ok(()) => Ok(Ok(())),
+                    Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Err(TakeoverError::Lost)),
+                    Err(e) => Err(e),
+                }
+            }
             Err(e) => Err(e),
         }
     }
@@ -640,28 +558,16 @@ fn access_denied(e: &io::Error) -> bool {
                 .is_some_and(|inner| inner.kind() == io::ErrorKind::PermissionDenied))
 }
 
-impl StaleName {
-    /// The name part of the stale session `session`.
-    fn of(self, session: &str) -> String {
-        match self {
-            StaleName::Filtered => {
-                let s: String = session
-                    .chars()
-                    .filter(|c| c.is_ascii_hexdigit() || *c == '-')
-                    .map(|c| c.to_ascii_lowercase())
-                    .take(36)
-                    .collect();
-                if s.is_empty() { "unknown".to_owned() } else { s }
-            }
-            StaleName::WholeOrUnknown => {
-                if !session.is_empty() && session.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') {
-                    session.to_owned()
-                } else {
-                    "unknown".to_owned()
-                }
-            }
-        }
-    }
+/// The name part of a renamed stale lock of session `session`: its hexadecimal digits and hyphens, lower-cased, at
+/// most 36; `unknown` when none is left.
+fn stale_name(session: &str) -> String {
+    let s: String = session
+        .chars()
+        .filter(|c| c.is_ascii_hexdigit() || *c == '-')
+        .map(|c| c.to_ascii_lowercase())
+        .take(36)
+        .collect();
+    if s.is_empty() { "unknown".to_owned() } else { s }
 }
 
 #[cfg(test)]
@@ -694,14 +600,58 @@ mod tests {
         );
     }
 
+    /// On a file system that cannot rename without replacement, a project's takeover that finds the stale lock already
+    /// renamed aside by another contender is lost, and the other's renamed copy stays as it is.
     #[test]
-    fn session_ids_are_v4_and_differ() {
+    fn a_projects_takeover_that_meets_the_other_contenders_copy_is_lost() {
+        let vfs = crate::mem::MemVfs::new(crate::mem::DirSync::Implicit);
+        vfs.set_noreplace_unsupported(true);
+        let dir = Path::new("/p");
+        let stale = Identity {
+            session: "0192f3a4-5b6c-7d8e-8f01-23456789abd0".into(),
+            user: "someone".into(),
+            host: "elsewhere".into(),
+            pid: 7,
+            pid_started: SystemTime::UNIX_EPOCH,
+            app_version: "ElektraWatt test".into(),
+        };
+        let copy = format!("{STALE_LOCK_PREFIX}{}", stale.session);
+        vfs.put(
+            &join(dir, LOCK),
+            stale.record(SystemTime::UNIX_EPOCH).to_text().as_bytes(),
+        );
+        vfs.put(&join(dir, &copy), b"the other contender's copy");
+        let clock = crate::clock::ManualClock::new(SystemTime::now() + Duration::from_secs(86_400));
+        let me = Identity {
+            session: new_session_id(),
+            host: "here".into(),
+            ..stale.clone()
+        };
+        let lock = Lock {
+            file: PROJECT_LOCK,
+            vfs: &vfs,
+            dir,
+            clock: &clock,
+            probe: &OsProbe,
+            me: &me,
+            stale_after: STALE_AFTER,
+        };
+        let taken = lock.take_over(Duration::ZERO).expect("no I/O error");
+        assert_eq!(taken, Err(TakeoverError::Lost));
+        assert_eq!(
+            vfs.files(dir).get(&copy).map(Vec::as_slice),
+            Some(&b"the other contender's copy"[..])
+        );
+    }
+
+    /// A session ID is an identifier of `ew-ids`, a UUIDv7, and names a renamed stale lock as it is.
+    #[test]
+    fn session_ids_are_v7_and_differ() {
         let a = new_session_id();
         let b = new_session_id();
         assert_ne!(a, b);
-        assert_eq!(a.len(), 36);
-        assert_eq!(&a[14..15], "4");
-        assert_eq!(StaleName::Filtered.of(&a), a);
-        assert_eq!(StaleName::Filtered.of("../x"), "unknown");
+        assert_eq!(&a[14..15], "7");
+        assert_eq!(stale_name(&a), a);
+        assert_eq!(stale_name("../x"), "unknown");
     }
 }

@@ -1898,6 +1898,7 @@ dependencies = [
  "automod",
  "ew-format",
  "ew-hack",
+ "ew-ids",
  "ew-model",
  "ew-schema",
  "ew-testdir",

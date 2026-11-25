@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `library.lock`, the writer's lock of a `.ewlib` directory: the project lock's record and protocol
-//! (`ew_store::lock`, doc 05 §7.1, §7.4) under the library's file names and rules ([`LIBRARY_LOCK`]), its outcomes
-//! as [`LibraryError`]s. Readers never take it.
+//! `library.lock`, the writer's lock of a `.ewlib` directory: the project lock's record, rules and protocol
+//! (`ew_store::lock`, doc 05 §7.1, §7.4) under the library's file names ([`LIBRARY_LOCK`]), its outcomes as
+//! [`LibraryError`]s. Readers never take it.
 //!
 //! - **Acquire:** a live lock of another session is [`LibraryError::Locked`]; a stale one is [`LibraryError::Stale`],
 //!   and nothing is taken over without the user's confirmation.
 //! - **Stale** (the project lock's rule): older than `stale_after`, or, on Linux only, on this host with a process
-//!   that no longer runs; every lock of this process is live.
+//!   that no longer runs; a lock of another session of this process is live.
 //! - **Take over** ([`take_over`], called only after the user confirmed): the stale lock is renamed aside to
 //!   `library.lock.stale-<stale session>` and our own lock created; when another session's takeover moved the stale
 //!   lock first, ours is an ordinary [`acquire`], so of two concurrent takeovers exactly one ends holding the lock.
@@ -18,8 +18,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use ew_store::lock::{
-    Acquire, Identity, Lock, LockFile, LockInfo, MovedAway, OwnProcess, STALE_AFTER, StaleName,
-    TAKEOVER_SETTLE, TakeoverError,
+    Acquire, Identity, Lock, LockFile, LockInfo, STALE_AFTER, TAKEOVER_SETTLE, TakeoverError,
 };
 use ew_store::{Clock as _, OsProbe, OsVfs, SystemClock};
 
@@ -30,14 +29,10 @@ pub const LOCK: &str = "library.lock";
 /// The prefix of a stale lock renamed aside by a takeover.
 pub const STALE_PREFIX: &str = "library.lock.stale-";
 
-/// A library's lock file and its rules.
+/// A library's lock file.
 pub const LIBRARY_LOCK: LockFile = LockFile {
     name: LOCK,
     stale_prefix: STALE_PREFIX,
-    own_process: OwnProcess::AllLive,
-    stale_name: StaleName::WholeOrUnknown,
-    retry_pending_delete: true,
-    moved_away: MovedAway::IsLost,
 };
 
 /// The lock timing: `lock.stale_after` and the takeover's settle wait.
@@ -55,14 +50,6 @@ impl Default for LockPolicy {
             stale_after: STALE_AFTER,
             settle: TAKEOVER_SETTLE,
         }
-    }
-}
-
-/// This process as a registry's lock names it: a fresh session ID per registry, a UUIDv7 from `ew-ids`.
-pub fn identity(app_version: &str) -> Identity {
-    Identity {
-        session: ew_ids::Id::<()>::new_v7().to_string(),
-        ..Identity::current(app_version)
     }
 }
 
@@ -198,7 +185,7 @@ mod tests {
     #[test]
     fn a_live_lock_is_locked_and_a_stale_one_is_stale() {
         let dir = ew_testdir::Tmp::new("ew-library-lock");
-        let me = identity("test");
+        let me = Identity::current("test");
         plant(&dir, &other("elsewhere"), Duration::from_secs(1));
         match acquire(&dir, &me, &quick()) {
             Err(LibraryError::Locked { holder, host, .. }) => {
@@ -244,7 +231,7 @@ mod tests {
     #[test]
     fn a_crashed_takeovers_leftover_is_pruned() {
         let dir = ew_testdir::Tmp::new("ew-library-lock-leftover");
-        let me = identity("test");
+        let me = Identity::current("test");
         plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
         let bytes = std::fs::read(dir.join(LOCK)).unwrap();
         let target = dir.join(format!("{STALE_PREFIX}{}", other("x").session));
@@ -266,13 +253,13 @@ mod tests {
         let dir = ew_testdir::Tmp::new("ew-library-lock-lost");
         plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
         let path = dir.join(LOCK);
-        let b = identity("test");
+        let b = Identity::current("test");
         let found = lock(&dir, &b, &quick()).read(now()).unwrap().unwrap();
         let found_bytes = std::fs::read(&path).unwrap();
         // A wins: S moved aside, A's lock created.
         let target = dir.join(format!("{STALE_PREFIX}{}", other("x").session));
         std::fs::rename(&path, &target).unwrap();
-        let a = identity("test");
+        let a = Identity::current("test");
         acquire(&dir, &a, &quick()).unwrap();
         let a_bytes = std::fs::read(&path).unwrap();
         // B continues from its read of S.
@@ -307,7 +294,7 @@ mod tests {
                 .map(|_| {
                     let (dir, barrier) = (dir.to_path_buf(), Arc::clone(&barrier));
                     std::thread::spawn(move || {
-                        let me = identity("test");
+                        let me = Identity::current("test");
                         barrier.wait();
                         (take_over(&dir, &me, &policy), me.session)
                     })
