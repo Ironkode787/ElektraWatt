@@ -132,14 +132,6 @@ pub(crate) fn devices_of_changed_parts(tx: &TxBuilder<'_>) -> Vec<Id<Device>> {
         .collect()
 }
 
-/// A device's tag as a notice names it (`-A1`; `-A` before online numbering gives it a counter).
-fn tag_text(dev: &Device) -> String {
-    match dev.tag.counter {
-        Some(c) => format!("-{}{c}", dev.tag.letter.as_str()),
-        None => format!("-{}", dev.tag.letter.as_str()),
-    }
-}
-
 /// Whether `device` or one of its ancestors carries `plc_station` (bounded, so a parent cycle terminates).
 fn has_station_ancestor(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
     let mut at = Some(device);
@@ -192,7 +184,7 @@ fn config_project_for(
 ) -> Result<Id<PlcConfigProject>, CmdError> {
     let mut all = tx.iter::<PlcConfigProject>();
     all.sort_by(|a, b| (a.name.as_str(), a.id).cmp(&(b.name.as_str(), b.id)));
-    let tag = tag_text(station);
+    let tag = ew_derive::text::letter_counter_tag(&station.tag);
     let cpu = (*role == StationRole::Cpu).then_some(station.id);
     if let Some(first) = all.first() {
         if first.cpu.is_none() && cpu.is_some() {
@@ -221,7 +213,7 @@ pub(crate) fn create_config_project(
     cpu: Option<Id<Device>>,
 ) -> Result<Id<PlcConfigProject>, CmdError> {
     let all = tx.iter::<PlcConfigProject>();
-    let tag = tag_text(station);
+    let tag = ew_derive::text::letter_counter_tag(&station.tag);
     let taken: std::collections::BTreeSet<&str> = all.iter().map(|c| c.name.as_str()).collect();
     let n = (1u32..)
         .find(|n| !taken.contains(format!("PLC{n}").as_str()))
@@ -325,7 +317,11 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
         d.parent = Some(parent);
         d.position = Some(position);
     })?;
-    tx.notice(text!("notice-attached", tag_text(&station), position.to_string()));
+    tx.notice(text!(
+        "notice-attached",
+        ew_derive::text::letter_counter_tag(&station.tag),
+        position.to_string()
+    ));
     Ok(true)
 }
 

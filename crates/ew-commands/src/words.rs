@@ -23,10 +23,7 @@ fn tag_of(tx: &TxBuilder<'_>, id: ew_ids::Id<Device>, dev: &Device) -> String {
     if !short.is_empty() {
         return short;
     }
-    match dev.tag.counter {
-        Some(c) => format!("-{}{c}", dev.tag.letter.as_str()),
-        None => format!("-{}", dev.tag.letter.as_str()),
-    }
+    ew_derive::text::letter_counter_tag(&dev.tag)
 }
 
 /// The tag of a device that exists.

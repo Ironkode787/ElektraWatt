@@ -12,11 +12,22 @@ use std::sync::OnceLock;
 use ew_l10n::render::{Language, OnError};
 use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
-use ew_schema::{AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LineKind, PotentialType};
+use ew_schema::{
+    AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LineKind, PotentialType, TagSpec,
+};
 use ew_units::{Dec3, Nm};
 
 use crate::bus::net_address_text;
 use crate::plc::{ChannelAddr, Slot};
+
+/// A device's tag by its own letter and counter (`-K1`; `-K` before online numbering gives it a counter): how a
+/// notice names a device the derivation has not tagged.
+pub fn letter_counter_tag(tag: &TagSpec) -> String {
+    match tag.counter {
+        Some(c) => format!("-{}{c}", tag.letter.as_str()),
+        None => format!("-{}", tag.letter.as_str()),
+    }
+}
 
 /// The printed text of a cross-section on a wire marker (`2.5`, `AWG18`, `AWG2/0`, `250 kcmil`); `None` for a value of a
 /// newer format.

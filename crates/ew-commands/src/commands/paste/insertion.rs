@@ -867,7 +867,11 @@ impl Insertion<'_> {
                 }
                 Record::Device(d) => {
                     if parent_cleared {
-                        notice(text!("notice-paste-child", old_tag(d)), &mut notices);
+                        // The printed tag of the record before the paste clears its counter.
+                        notice(
+                            text!("notice-paste-child", ew_derive::text::letter_counter_tag(&d.tag)),
+                            &mut notices,
+                        );
                         d.position = None;
                         if d.tag.scheme == TagScheme::Child {
                             d.tag.scheme = TagScheme::Default;
@@ -1160,13 +1164,5 @@ pub(super) fn drop_lineage(v: &mut Value) {
 pub(super) fn notice(text: Text, notices: &mut Vec<Text>) {
     if !notices.contains(&text) {
         notices.push(text);
-    }
-}
-
-/// The printed tag of a device record before the paste clears its counter (`-F1`).
-pub(super) fn old_tag(d: &Device) -> String {
-    match d.tag.counter {
-        Some(c) => format!("-{}{c}", d.tag.letter.as_str()),
-        None => format!("-{}", d.tag.letter.as_str()),
     }
 }
