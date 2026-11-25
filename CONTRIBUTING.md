@@ -73,7 +73,8 @@ There is no continuous integration until 1.0. `check` is the check.
   The tests of the private corpus are among them and skip without `EW_PRIVATE_CORPUS`.
 - A test waits on an event, never on the wall clock: a job's end (`finish_jobs`, a job waker of the test), the page's
   tiles (the window tests run on the frame clock, where a frame takes the tiles the frame before asked for), a file
-  time it set. In every test build the model's structural check runs after each changing command.
+  time it set. In every test build the model's structural check runs after each changing command on a project that
+  passed it before.
 
 ### One place for every item
 

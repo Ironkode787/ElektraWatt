@@ -501,18 +501,21 @@ impl Engine {
                 touched_keys: ops.iter().map(Op::key).collect(),
                 touched_pages: affected_pages(&self.model, &candidate, &ops),
             };
-            self.model = candidate;
-            self.changes.push(change);
             // In every debug build (every test build) the whole project's structural check follows each changing
-            // command, so a command that leaves a record its next reader trips over fails where it is made. A shipped
-            // program, a release build, never builds it.
+            // command, so a command that leaves a record its next reader trips over fails where it is made. It judges
+            // the command: a project that failed the check before it (damaged copies embedded again one by one) is
+            // not the command's doing. A shipped program, a release build, never builds it.
             #[cfg(debug_assertions)]
-            if let Err(e) = self.model.integrity_check() {
+            if let Err(e) = candidate.integrity_check()
+                && self.model.integrity_check().is_ok()
+            {
                 panic!(
                     "`{}` left the project failing its structural check: {e}",
                     meta.name
                 );
             }
+            self.model = candidate;
+            self.changes.push(change);
         }
         if changed || !meta.undoable {
             self.history.push(

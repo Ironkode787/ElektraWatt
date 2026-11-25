@@ -321,7 +321,7 @@ the window holds no tool framework of its own.
 | Memoised equals cold | Random command sequences on the sample and synthetic projects: after every step the memoised results equal a cold recomputation; the command fuzzer feeds the same oracle |
 | Laws | `undo(all) ∘ apply(cmds) = id` for the model and the derived data; `load(save(m)) = m`, byte-stable; `merge(o,a,a) = a`; preview then commit equals execute; journal replay equals the live state |
 | Determinism | Loading in shuffled record order gives identical files, findings and PDF bytes; serial and parallel exports give identical digests |
-| Integrity after every command | In every debug build, every test build among them, the model's structural check (`Model::integrity_check`) runs after each changing command (`ew-commands`, `cfg(debug_assertions)`), so a command that leaves the project failing an invariant fails where it is made; a shipped program, a release build, never builds it |
+| Integrity after every command | In every debug build, every test build among them, the model's structural check (`Model::integrity_check`) runs after each changing command (`ew-commands`, `cfg(debug_assertions)`), so a command that leaves the project failing an invariant fails where it is made; it judges the command, so a project that failed the check before the command (damaged library copies embedded again one by one) does not trip it; a shipped program, a release build, never builds it |
 | Hostile input | Fuzzing of the loader, the migration chain, the merge driver, the importers and the SQL sandbox |
 
 A behaviour is tested at the lowest layer that has it; a layer above tests what it adds. The test strategy in

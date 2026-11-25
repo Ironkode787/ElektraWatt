@@ -330,6 +330,44 @@ fn every_copy_written_is_named_with_its_version() {
     assert!(strings::set_locale("en"));
 }
 
+/// The file of the sample copy's part copy of the starter part `number` in `dir`.
+fn part_copy(dir: &Path, number: &str) -> PathBuf {
+    files_in(dir, "lib/parts")
+        .into_iter()
+        .find(|p| {
+            serde_json::from_slice::<Value>(&std::fs::read(p).unwrap())
+                .is_ok_and(|v| v["part_number"] == number)
+        })
+        .unwrap_or_else(|| panic!("the sample holds a copy of {number}"))
+}
+
+/// Two part copies the sample's devices use, both damaged: each is embedded on a project that still lacks the other,
+/// which fails the structural check until the last is back, and the update writes both and opens the project for
+/// editing.
+#[test]
+fn two_damaged_part_copies_are_both_updated() {
+    let tmp = Tmp::new("ft1499-two-parts");
+    let dir = tmp.sample_copy();
+    copy_dir(Path::new(common::SAMPLE), &dir);
+    let files = [part_copy(&dir, "EW-GEN-MCB-1"), part_copy(&dir, "EW-GEN-PSU-1")];
+    let originals: Vec<Vec<u8>> = files.iter().map(|f| std::fs::read(f).unwrap()).collect();
+    for file in &files {
+        damage(file);
+    }
+    let mut s = open(&tmp, "en", None, &dir);
+    assert!(s.read_only_reason().is_some(), "the project opens read-only");
+    assert!(s.damaged_update_offered());
+    done(&mut s, "library.update_damaged", json!({}));
+    assert!(s.read_only_reason().is_none(), "the project edits");
+    for (file, original) in files.iter().zip(&originals) {
+        assert!(
+            std::fs::read(file).unwrap() == *original,
+            "the library's copy is written"
+        );
+    }
+    done(&mut s, "file.close", json!({}));
+}
+
 /// Another file of the project changed outside ElektraWatt (a page file, EW-CORE-002) beside the damaged copy: the
 /// update is refused in words, whole in both languages, and nothing is written.
 #[test]
