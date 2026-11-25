@@ -547,7 +547,7 @@ impl Query for MediumRows {
 pub fn medium_text(q: &Q, net: Option<NetId>) -> MlText {
     match net.map(|n| q.get::<MediumZones>(()).effective(n)) {
         Some(Effective::One(k)) => k.text(q),
-        Some(Effective::Mixed) => langs("mixed", "gemengd"),
+        Some(Effective::Mixed) => crate::text::in_languages(&text!("medium-mixed")),
         _ => MlText::default(),
     }
 }

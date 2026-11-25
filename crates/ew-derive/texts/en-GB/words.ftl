@@ -35,6 +35,11 @@ junction-in = the junction in { $p0 }
 
 medium-vacuum = vacuum (from { $p0 })
 medium-exhaust = exhaust
+medium-mixed = mixed
+
+## The word before a page's scale in its title block ("Scale 1:10")
+
+title-scale = Scale
 
 ## A PLC channel, as the fluid findings name it
 

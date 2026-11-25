@@ -195,15 +195,13 @@ fn project_scope(out: &mut Out, q: &Q, project: &Project) {
 }
 
 /// The title-block title of a page drawn to scale 1:n: `"<title> · <Scale> 1:n"` in every language of
-/// the title, `"<Scale> 1:n"` for an empty title. The word follows each language entry's primary subtag: "Schaal" for
-/// `nl`, else "Scale" (a neutral title too).
+/// the title, `"<Scale> 1:n"` for an empty title. The word (`title-scale`) follows each language entry's primary
+/// subtag: the Dutch for `nl`, else the English (a neutral title too).
 fn scaled_title(title: &MlText, n: u32) -> MlText {
+    let words = crate::text::in_languages(&text!("title-scale"));
     let with = |lang: &str, t: &str| {
-        let word = if lang.eq_ignore_ascii_case("nl") {
-            "Schaal"
-        } else {
-            "Scale"
-        };
+        let tag = if lang.eq_ignore_ascii_case("nl") { "nl-NL" } else { "en-GB" };
+        let word = words.get(&tag.parse().expect("a language tag")).unwrap_or_default();
         if t.is_empty() {
             format!("{word} 1:{n}")
         } else {
