@@ -239,70 +239,20 @@ impl NavigatorPane {
                     if pages {
                         // The New page entry beside the filter: the same action as Page, New page, disabled
                         // with its reason.
-                        crate::components::action_button(
-                            ui,
-                            shell,
-                            "page.new",
-                            (
-                                crate::icons::IconId::file_plus,
-                                strings::text(key!("nav-new-page")),
-                            ),
-                            events,
-                        );
+                        crate::components::action_button(ui, shell, "page.new", None, events);
                         // New section beside it: the same action as Page, New section.
-                        crate::components::action_button(
-                            ui,
-                            shell,
-                            "section.new",
-                            (
-                                crate::icons::IconId::folder_plus,
-                                strings::text(key!("nav-new-section")),
-                            ),
-                            events,
-                        );
+                        crate::components::action_button(ui, shell, "section.new", None, events);
                     }
                     // The Fluid panel's Fluid settings… and New medium… (so they are not found only through
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
-                    // The PLC panel's + is New station… (the rack comes first).
-                    let own: &[(&str, crate::icons::IconId, ew_viewmodel::strings::Key<'static>)] =
-                        match self.kind {
-                            NavKind::Plc => &[(
-                                "plc.new_station",
-                                crate::icons::IconId::plus,
-                                key!("action-plc-new-station"),
-                            )],
-                            _ => &[],
-                        };
-                    for (id, icon, label) in own {
-                        crate::components::action_button(
-                            ui,
-                            shell,
-                            id,
-                            (*icon, strings::text(*label)),
-                            events,
-                        );
-                    }
-                    if self.kind == NavKind::Fluid {
-                        for (id, icon, label) in [
-                            (
-                                "fluid.settings",
-                                crate::icons::IconId::adjustments,
-                                key!("action-fluid-settings"),
-                            ),
-                            (
-                                "fluid.medium_new",
-                                crate::icons::IconId::plus,
-                                key!("action-fluid-medium-new"),
-                            ),
-                        ] {
-                            crate::components::action_button(
-                                ui,
-                                shell,
-                                id,
-                                (icon, strings::text(label)),
-                                events,
-                            );
-                        }
+                    // The PLC panel's New station… (the rack comes first).
+                    let own: &[&str] = match self.kind {
+                        NavKind::Plc => &["plc.new_station"],
+                        NavKind::Fluid => &["fluid.settings", "fluid.medium_new"],
+                        _ => &[],
+                    };
+                    for id in own {
+                        crate::components::action_button(ui, shell, id, None, events);
                     }
                     // The Table toggle (`navigator.table`); the Messages pane
                     // has no table mode, so no toggle.

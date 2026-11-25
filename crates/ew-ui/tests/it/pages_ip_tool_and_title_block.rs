@@ -157,7 +157,7 @@ fn shown(d: &Driver, text: &str) -> usize {
 fn a_panel_layout_in_a_new_project_by_the_pointer() {
     let tmp = Tmp::new();
     let mut d = prelude(&tmp, Geometry::DEFAULT);
-    press(&mut d, "New page");
+    press(&mut d, "New page…");
     // The Type list, where a person clicks it (a form's field is named by its label's relation, which the
     // driver does not read): its row counted up from the footer's Create, the form's rows `size.control` and
     // `space.3` apart (36 points), the last row's centre 44 points above Create's, and the line under Type that says

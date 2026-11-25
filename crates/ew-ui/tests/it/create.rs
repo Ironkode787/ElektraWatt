@@ -45,11 +45,11 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     let before = h.state().shell().page_count();
     support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
-    h.get_by_label("New page…").click();
+    support::menu_node(&h, "New page…").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
-    // The navigator's button and the dialog's title.
-    assert_eq!(h.query_all_by_label("New page").count(), 2);
+    // The dialog's title; the navigator's button is named by the action, "New page…".
+    assert_eq!(h.query_all_by_label("New page").count(), 1);
     // The folio field holds the proposal for a multi-line page: the first free folio of the section that holds the
     // multi-line pages (the sample's section 1 holds 101 to 105), never one in the front matter that page 1 stands in.
     assert_eq!(form_values(&h)[0], ("folio".into(), "106".into()));
@@ -77,7 +77,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     // A second time Escape cancels and creates nothing.
     support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
-    h.get_by_label("New page…").click();
+    support::menu_node(&h, "New page…").click();
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("folio", "");
     settle(&mut h);
@@ -98,7 +98,7 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     settle(&mut h);
     let before = h.state().shell().page_count();
     // The page navigator's own New page opens the same dialog.
-    h.get_by_label("New page").click();
+    h.get_by_label("New page…").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The folio of an existing page: the command's refusal is shown under the fields, the dialog stays open.

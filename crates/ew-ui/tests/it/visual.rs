@@ -1108,7 +1108,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     let listed = |d: &Driver| d.labels().iter().any(|(l, _)| l.contains("Field wiring"));
     assert!(!listed(&d));
     d.input(&click(
-        d.find("New section")
+        d.find("New section…")
             .expect("the Pages panel's New section button"),
     ));
     d.settle();
@@ -1173,7 +1173,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     d.input(&click(row));
     d.settle();
     d.input(&click(
-        d.find("New page").expect("the Pages panel's New page button"),
+        d.find("New page…").expect("the Pages panel's New page button"),
     ));
     d.settle();
     match d.shell_mut().dialog() {

@@ -494,17 +494,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 &t,
                 strings::format(key!("messages-detail-fix"), &[fix]),
             ));
-            let reason = refusal("messages.fix", serde_json::Map::new());
-            let button = components::button(
-                ui,
-                Kind::Secondary,
-                strings::text(key!("messages-fix-button")),
-                reason.as_deref(),
-                0.0,
-            );
-            if button.clicked() {
-                events.push(Event::Action("messages.fix", Value::Null));
-            }
+            components::action_button(ui, shell, "messages.fix", Some(Kind::Secondary), events);
             // Every finding of its group with a fix of this kind: Fix all like this (n)….
             if let Some((group, n)) = shell
                 .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)

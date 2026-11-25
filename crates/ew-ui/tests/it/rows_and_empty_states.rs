@@ -318,7 +318,7 @@ fn fix_is_disabled_on_a_read_only_project() {
     dispatch(&mut h, "messages.next", json!({}));
     settle(&mut h);
     settle(&mut h);
-    let fix = h.get_by_role_and_label(egui::Role::Button, "Fix…");
+    let fix = h.get_by_role_and_label(egui::Role::Button, "Apply quick fix…");
     assert!(fix.accesskit_node().is_disabled(), "Fix… disabled");
     // The row's "Fix" badge is a named node.
     assert!(

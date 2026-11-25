@@ -425,22 +425,39 @@ pub(crate) fn icon_toggle(
     icon_toggle_tip(ui, id, name, name, refusal, on)
 }
 
-/// An action's icon button ([`icon_toggle`] with `icon` and `label`): enabled by the action's check, greyed with its
-/// reason as the tooltip; a click gives the action without parameters.
+/// The button of action `id` as the registry hands it out (doc 16a §3.5): with `kind` `None` its icon, its label the
+/// name and the tooltip ([`icon_toggle`]; a button of its label for an action without an icon), with a kind a button
+/// of that kind with its label. Greyed with the reason it cannot run, which the tooltip says; a click gives the action
+/// without parameters. Nothing for an action this build does not know.
 pub(crate) fn action_button(
     ui: &mut Ui,
     shell: &ShellModel,
-    action: &'static str,
-    (icon, label): (IconId, &str),
+    id: &str,
+    kind: Option<Kind>,
     events: &mut Vec<Event>,
 ) {
-    let refusal = match ew_viewmodel::actions::find(action).map(|a| a.enabled_now(shell)) {
-        Some(Err(reason)) => Some(strings::render(&reason)),
-        _ => None,
+    let Some(b) = ew_viewmodel::command_bar::action_button(shell, id) else {
+        return;
     };
-    let button = icon_toggle(ui, icon, label, refusal.as_deref(), None);
-    if button.clicked() {
-        events.push(Event::Action(action, Value::Null));
+    let reason = b.reason.as_deref().filter(|_| !b.enabled);
+    let response = match (kind, IconId::from_key(b.icon)) {
+        (None, Some(icon)) => icon_toggle(ui, icon, b.name(), reason, None),
+        (kind, _) => button(ui, kind.unwrap_or(Kind::Subtle), b.name(), reason, 0.0),
+    };
+    if response.clicked() {
+        events.push(Event::Action(b.id, Value::Null));
+    }
+}
+
+/// The width [`action_button`] takes for action `id` with `kind`; 0 for an action this build does not know.
+pub(crate) fn action_button_width(ui: &Ui, shell: &ShellModel, id: &str, kind: Option<Kind>) -> f32 {
+    let Some(b) = ew_viewmodel::command_bar::action_button(shell, id) else {
+        return 0.0;
+    };
+    let t = tokens(ui);
+    match (kind, IconId::from_key(b.icon)) {
+        (None, Some(_)) => t.size_control_inline,
+        _ => text_width(ui, b.name(), theme::font(&t.type_body)) + 2.0 * ui.spacing().button_padding.x,
     }
 }
 

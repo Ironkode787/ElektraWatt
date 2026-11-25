@@ -310,8 +310,6 @@ badge-qet-grid = QET 10 px
 badge-current = current
 nav-page-name = { $p0 } { $p1 }, page{ $p2 }
 nav-node-name = { $p0 }, { $p1 }
-nav-new-page = New page
-nav-new-section = New section
 table-sorted-ascending = { $p0 }, sorted ascending
 table-sorted-descending = { $p0 }, sorted descending
 

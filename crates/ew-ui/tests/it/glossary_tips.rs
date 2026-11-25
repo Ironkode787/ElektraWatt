@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! In the window: the glossary pane in the bottom dock with its Insert button and the
+//! In the window: the glossary pane in the bottom dock with its action buttons and the
 //! accessible-name walker over it, and the wire-colour view, which the PDF export never sees.
 
 use crate::support;
@@ -19,6 +19,14 @@ use support::{Scripted, Tmp, assert_accessible, dispatch, harness, settle};
 fn group(h: &Harness<'_, App>, name: &str) -> bool {
     h.get_all_by_label(name)
         .any(|n| n.accesskit_node().role() == egui::accesskit::Role::Group)
+}
+
+/// The first button named `name`: a glossary row's action button, named by the action's label as the registry
+/// hands it out.
+fn button<'h>(h: &'h Harness<'_, App>, name: &'h str) -> egui_kittest::Node<'h> {
+    h.get_all_by_label(name)
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .unwrap_or_else(|| panic!("a button named {name}"))
 }
 
 #[test]
@@ -45,7 +53,7 @@ fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_engli
         "its other cells, for a screen reader"
     );
     // On the title page the IP tool cannot be armed: the button is disabled.
-    let insert = h.get_by_label("Insert: Interruption point");
+    let insert = button(&h, "Interruption point");
     assert!(insert.accesskit_node().is_disabled());
     // Its reason, as the menus give it, beside the button.
     insert.hover();
@@ -60,10 +68,7 @@ fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_engli
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     // The pointer still rests on it: its tooltip names it too.
-    h.get_all_by_label("Insert: Interruption point")
-        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
-        .unwrap()
-        .click();
+    button(&h, "Interruption point").click();
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "ip");
     dispatch(&mut h, "tool.select", json!({}));
@@ -74,10 +79,7 @@ fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_engli
     assert!(group(&h, "Woordenlijst"), "the pane in Dutch");
     assert!(group(&h, "Onderbrekingspunt"), "the row in Dutch");
     // The interruption point's row first; the supply point's row inserts one too.
-    h.get_all_by_label("Invoegen: Onderbrekingspunt")
-        .next()
-        .expect("the row's Insert")
-        .click();
+    button(&h, "Onderbrekingspunt").click();
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "ip");
     // No term: the empty state.

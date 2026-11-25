@@ -541,13 +541,13 @@ pub(crate) fn chooser(
         // The table to a file and back, a separated block after the columns;
         // each runs on this navigator, which takes the focus first.
         ui.separator();
-        for (action, label) in [
-            ("navigator.export_table", key!("action-navigator-export-table")),
-            ("navigator.import_table", key!("action-navigator-import-table")),
-        ] {
-            // Drawn from the action's predicate, disabled with its reason as the tooltip (doc 16a §6.1).
-            let reason = ew_viewmodel::actions::find(action).and_then(|a| a.enabled_now(shell).err());
-            let response = ui.add_enabled(reason.is_none(), egui::Button::new(strings::text(label)));
+        for action in ["navigator.export_table", "navigator.import_table"] {
+            let Some(meta) = ew_viewmodel::actions::find(action) else {
+                continue;
+            };
+            // Drawn from the action's label and predicate, disabled with its reason as the tooltip (doc 16a §6.1).
+            let reason = meta.enabled_now(shell).err();
+            let response = ui.add_enabled(reason.is_none(), egui::Button::new(meta.label()));
             let response = match reason {
                 Some(r) => response.disabled_tip(strings::render(&r)),
                 None => response,

@@ -20,7 +20,7 @@ use ew_viewmodel::{actions, key};
 use serde_json::{Value, json};
 
 use crate::app::Event;
-use crate::components::{self, Kind, Tip as _};
+use crate::components;
 use crate::icons::IconId;
 use crate::theme::{self, Tokens};
 
@@ -36,19 +36,6 @@ pub fn column_widths(width: f32, longest: [f32; 3], actions: f32) -> [f32; 5] {
     });
     let definition = (width - text.iter().sum::<f32>() - actions).max(0.0);
     [text[0], text[1], text[2], definition, actions]
-}
-
-/// The text of a glossary button for action `id`, and its accessible name: "Insert" for an action that arms a tool,
-/// else the action's menu label.
-pub(crate) fn action_words(id: &str) -> Option<(String, String)> {
-    let meta = actions::find(id)?;
-    let label = meta.label().to_owned();
-    Some(if id.starts_with("tool.") {
-        let insert = strings::text(key!("glossary-insert")).to_owned();
-        (insert, strings::format(key!("glossary-insert-name"), &[&label]))
-    } else {
-        (label.clone(), label)
-    })
 }
 
 /// Paints the glossary pane of `shell`.
@@ -113,8 +100,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             return;
         }
         let width = ui.available_width();
-        // The widest button's label in `type.body` (the Subtle button's font) with its padding, or the header's title.
-        let pad = ui.spacing().button_padding.x;
+        // The widest action button, or the header's title.
         let measure = |text: String, font: &theme::TypeToken| {
             ui.painter()
                 .layout_no_wrap(text, theme::font(font), t.text_primary.color32())
@@ -124,8 +110,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let widest = rows
             .iter()
             .flat_map(|r| &r.actions)
-            .filter_map(|a| action_words(a))
-            .map(|(text, _)| measure(text, &t.type_body) + 2.0 * pad)
+            .map(|a| components::action_button_width(ui, shell, a, None))
             .fold(
                 measure(strings::text(key!("glossary-actions")).to_owned(), &t.type_small),
                 f32::max,
@@ -300,7 +285,7 @@ fn row(
     );
     child.spacing_mut().item_spacing.y = t.space_1;
     for a in &r.actions {
-        action_button(&mut child, shell, a, events);
+        components::action_button(&mut child, shell, a, None, events);
     }
     ui.painter().hline(
         rect.x_range(),
@@ -312,18 +297,4 @@ fn row(
 /// How many of `actions` this build knows (each is a button).
 fn actions_known(actions: &[String]) -> usize {
     actions.iter().filter(|a| actions::find(a).is_some()).count()
-}
-
-/// The button of action `id` (none for an action this build does not know).
-fn action_button(ui: &mut Ui, shell: &ShellModel, id: &str, events: &mut Vec<Event>) {
-    let (Some(meta), Some((text, name))) = (actions::find(id), action_words(id)) else {
-        return;
-    };
-    let refusal = meta.enabled_now(shell).err().map(|r| strings::render(&r));
-    let b = components::button(ui, Kind::Subtle, &text, refusal.as_deref(), 0.0);
-    b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, refusal.is_none(), &name));
-    let b = if refusal.is_none() { b.tip(name) } else { b };
-    if b.clicked() {
-        events.push(Event::Action(meta.id, Value::Null));
-    }
 }

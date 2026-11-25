@@ -302,7 +302,7 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     d.input(&key("Escape"));
     d.settle();
     let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
-    press(&mut d, "New page");
+    press(&mut d, "New page…");
     d.shell_mut().set_form_field("type", "bus_topology");
     d.input(&Input::Hover { at: (900, 600) });
     d.settle();

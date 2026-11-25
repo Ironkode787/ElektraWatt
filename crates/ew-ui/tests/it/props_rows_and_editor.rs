@@ -281,7 +281,7 @@ fn typing_over_a_pre_filled_field_replaces_it() {
     settle(&mut h);
     support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
-    h.get_by_label("New page…").click();
+    support::menu_node(&h, "New page…").click();
     settle(&mut h);
     let folio = || match h.state().shell().dialog() {
         Some(Dialog::Form(f)) => f.fields[0].value.clone(),

@@ -364,7 +364,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         let why = refusal.map(|why| strings::format(key!("name-refused"), &[&tip, &strings::render(&why)]));
         let response = crate::components::icon_toggle_tip(
             ui,
-            crate::icons::IconId::arrow_left,
+            crate::icons::IconId::from_key(b.icon).unwrap_or(crate::icons::IconId::arrow_left),
             &b.label,
             &tip,
             why.as_deref(),
