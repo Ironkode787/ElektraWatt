@@ -431,7 +431,21 @@ fn list_of(
     numbers: &[(Rect, bool, Seg)],
     u: usize,
 ) -> Vec<(Rect, bool)> {
-    let mut list = candidates(ground, &units[u], numbers);
+    // A mark's cross-reference reads where its name stands.
+    let name = (units[u].kind == LabelKind::MarkXref)
+        .then(|| {
+            (0..units.len()).find_map(|v| {
+                let (r, _, _) = placed[v]?;
+                let &(i, offset) = units[v]
+                    .members
+                    .iter()
+                    .find(|&&(i, _)| ground.page.labels[i].kind == LabelKind::MarkName)?;
+                (v != u && units[v].owner == units[u].owner)
+                    .then(|| Rect::sized(r.top_left().plus(offset), ground.page.labels[i].size))
+            })
+        })
+        .flatten();
+    let mut list = candidates(ground, &units[u], (numbers, name));
     if let (Some(first), Owner::Part(_)) = (units[u].given.first(), units[u].owner)
         && !matches!(units[u].kind, LabelKind::PinNumber(_))
         && let Some(bottom) = (0..units.len())
@@ -574,7 +588,7 @@ pub(crate) fn first_places(page: &DraftPage) -> Vec<(LabelId, Rect)> {
         if !matches!(unit.owner, Owner::Part(_)) {
             continue;
         }
-        let Some((r, _)) = candidates(&ground, &unit, &[]).first().copied() else {
+        let Some((r, _)) = candidates(&ground, &unit, (&[], None)).first().copied() else {
             continue;
         };
         for &(i, offset) in &unit.members {

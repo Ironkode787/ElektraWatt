@@ -66,3 +66,40 @@ fn a_marks_cross_reference_stands_past_the_number_of_the_pin_it_is_set_on() {
     }
     assert!(x.x0 > at(number).x1, "past the pin's number: {x:?}");
 }
+
+/// FT-2207: a power supply's two outputs one step apart, an outgoing mark set on each (0 V over 24 V), the upper one
+/// continued at four points (its cross-reference two lines), the lower one at one. A name is taller than the step, so
+/// both cannot stand in line: one steps aside, each cross-reference stands by its own mark, and no text lies on
+/// another text, an arrow or the supply.
+#[test]
+fn two_marks_one_step_apart_on_a_supplys_pins_keep_their_texts_apart() {
+    let mut b = Page::new(80, 40);
+    let supply = b.part(
+        "G1",
+        p(20, 10),
+        (p(-6, -2), p(0, 3)),
+        &[("+", p(0, 0), Side::Right), ("-", p(0, 1), Side::Right)],
+    );
+    let mut texts = Vec::new();
+    let mut bodies = vec![(supply, b.page.parts[0].bounds())];
+    for (name, row, refs) in [("0V", 10, (160, 40)), ("24V", 11, (55, 20))] {
+        let mark = b.mark_out(name, p(20, row));
+        bodies.push((mark, b.page.parts.last().expect("the mark").bounds()));
+        for (n, kind, size) in [(0, LabelKind::MarkName, (30, 21)), (1, LabelKind::MarkXref, refs)] {
+            texts.push((
+                mark,
+                b.label(Owner::Part(mark), n, kind, size, Places::At(Vec::new())),
+            ));
+        }
+    }
+    let settled = settle_labels(&b.page);
+    let at = |l: LabelId| -> Rect { settled.iter().find(|s| s.id == l).expect("placed").rect };
+    for (i, &(owner, a)) in texts.iter().enumerate() {
+        for &(_, other) in &texts[i + 1..] {
+            assert!(!at(a).overlaps(at(other)), "{:?} on {:?}", at(a), at(other));
+        }
+        for &(part, body) in &bodies {
+            assert!(part == owner || !at(a).overlaps(body), "{:?} on {body:?}", at(a));
+        }
+    }
+}

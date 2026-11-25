@@ -511,6 +511,83 @@ fn starter_marks_stack_two_steps_apart_without_their_texts_meeting() {
     }
 }
 
+/// FT-2207: two outgoing marks one grid step apart (a supply page's 24 V and 0 V), each continued at three points:
+/// each mark's references stand clear of its own name, of the other mark's texts and of their arrows, and the check
+/// finds no text on a text there.
+#[test]
+fn marks_one_step_apart_with_several_continuations_keep_their_texts_apart() {
+    let (mut s, page, _) = rk1_page(&[]);
+    for key in ["ew.gen.ip@qet10", "ew.gen.ip-target@qet10"] {
+        if let Some(embed) = s.starter_embed(key) {
+            run(&mut s, "library.embed", embed);
+        }
+    }
+    let (source, target) = (
+        s.starter_symbol_copy("ew.gen.ip@qet10").unwrap().to_string(),
+        s.starter_symbol_copy("ew.gen.ip-target@qet10")
+            .unwrap()
+            .to_string(),
+    );
+    // The upper mark's references take two lines (five of them, three a line), the lower one's one.
+    let continued = [
+        ("0V-S", 20, vec![(52, 23), (52, 26), (52, 29), (52, 32), (52, 35)]),
+        ("24V-S", 21, vec![(62, 26), (62, 29), (62, 32)]),
+    ];
+    for (name, row, targets) in continued {
+        run(
+            &mut s,
+            "ip.place",
+            serde_json::json!({"page": page, "symbol": source, "pos": grid(72, row),
+                "name": name, "direction": "source"}),
+        );
+        for &(c, r) in &targets {
+            run(
+                &mut s,
+                "ip.place",
+                serde_json::json!({"page": page, "symbol": target, "pos": grid(c, r),
+                    "name": name, "direction": "target"}),
+            );
+        }
+    }
+    use ew_api::drafting::LabelKind::{MarkName, MarkXref};
+    let ours: Vec<_> = s
+        .page_tables("103")
+        .unwrap()
+        .reps
+        .iter()
+        .filter(|r| r.ip.as_ref().is_some_and(|ip| ip.name.ends_with("V-S")))
+        .map(|r| r.id)
+        .collect();
+    let draft = s.page_draft("103").unwrap();
+    let settled = ew_api::drafting::settle_labels(&draft);
+    let texts: Vec<_> = draft
+        .labels
+        .iter()
+        .filter(|l| matches!(l.kind, MarkName | MarkXref) && ours.contains(&l.id.owner))
+        .filter_map(|l| settled.iter().find(|x| x.id == l.id))
+        .collect();
+    let bodies: Vec<_> = draft
+        .parts
+        .iter()
+        .filter(|p| ours.contains(&p.id.0))
+        .map(|p| p.bounds())
+        .collect();
+    for (i, a) in texts.iter().enumerate() {
+        for b in &texts[i + 1..] {
+            assert!(!a.rect.overlaps(b.rect), "{a:?} meets {b:?}");
+        }
+        for body in &bodies {
+            assert!(!a.rect.overlaps(*body), "{a:?} lies on a mark's arrow {body:?}");
+        }
+    }
+    let on_text: Vec<_> = findings(&s, "EW-CORE-075")
+        .into_iter()
+        .map(|f| f.0)
+        .filter(|m| m.contains("V-S"))
+        .collect();
+    assert_eq!(on_text, Vec::<String>::new());
+}
+
 /// Doc 06a §2.4: a symbol kept in place (`fields.set` of `locked`) is a locked part of the page's model, its
 /// neighbour is not; letting it go unlocks it again.
 #[test]

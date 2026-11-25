@@ -111,19 +111,19 @@ fn pin_places(q: Pt, side: Option<Side>, (w, h): (Tick, Tick)) -> Vec<Rect> {
 /// | function text | centred below, right of the body at its middle, then the corners |
 /// | tag of a drawn box | above the upper left corner ending at the left edge; above the upper edge from the corner; above the upper right corner; inside at the upper left |
 /// | data of a drawn box | left of the box under its top, under the box's data before it; right of it; inside under the tag; above the box over its tag |
-/// | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
-/// | cross-reference of a mark | beside the wire past the pin, under it then over it; the same past the number of a pin the mark is set on; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
+/// | name of a mark | in line with the pin beyond the body (the side away from the wire); beyond the body over the pin's line, then under it (a mark pin to pin with its neighbour, nearer than a name is tall); centred above; centred below; centred above one line higher |
+/// | cross-reference of a mark | beside the wire past the pin, under it then over it; the same past the number of a pin the mark is set on; the same beyond the arrow; centred under the arrow, then over it; under and over its name where the name stands (`name`), aligned to it on the arrow's side |
 /// | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
 /// | strip designation | left of the terminal at its middle; centred above it; the same past the terminal's name; above it, ending at its left edge |
 /// | wire number | along the wire ([`along_wire`]) |
 /// | cable tag and type | the type before the mark's line and the tag after it; both after it (tag over type); both before it |
-fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
+fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape, name: Option<Rect>) -> Vec<Rect> {
     let (b, g) = (s.body, LABEL_CLEAR);
     let (w, h) = unit.size;
     let c = b.centre();
     let first_pin = s.pins.first().copied();
     let line = ground.page.labels[unit.members[0].0].size.1;
-    let tag_top = first_top(ground, unit.owner, LabelKind::Tag).unwrap_or(b.y0 - g - line);
+    let tag_top = first_place(ground, unit.owner, LabelKind::Tag).map_or(b.y0 - g - line, |r| r.y0);
     match unit.kind {
         LabelKind::PinNumber(pin) => match ground.pins.get(&pin) {
             Some(&(q, side, _)) => pin_places(q, side, unit.size),
@@ -187,9 +187,19 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
             ]
         }
         LabelKind::MarkName => {
-            first_pin
-                .and_then(|pin| mark_name_beyond(b, pin, unit.size))
+            let beyond = first_pin.and_then(|pin| mark_name_beyond(b, pin, unit.size));
+            // Beyond the body over the pin's line and under it, for a pin that leaves sideways: of two marks nearer
+            // than a name is tall, one name stands in line and the other one steps aside.
+            let off_line = beyond
+                .zip(first_pin)
+                .filter(|(_, (_, side))| matches!(side, Some(Side::Left | Side::Right)));
+            beyond
                 .into_iter()
+                .chain(
+                    off_line.into_iter().flat_map(|(r, (q, _))| {
+                        [bx(r.x0, q.y - g - h, unit.size), bx(r.x0, q.y + g, unit.size)]
+                    }),
+                )
                 .chain([
                     bx(c.x - half(w), b.y0 - g - h, unit.size),
                     bx(c.x - half(w), b.y1 + g, unit.size),
@@ -200,75 +210,82 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
         }
         // Beside the wire past the pin, under it then over it, and the same past the number of a pin the mark is set
         // on; then the same beyond the arrow, where the wire turns at once; then centred under the arrow and over it,
-        // where the mark's name stands beyond it in line.
-        LabelKind::MarkXref => match first_pin {
-            Some((q, Some(Side::Right))) => {
-                let past = numbers_at(ground, unit.owner, q)
-                    .iter()
-                    .filter(|r| r.x0 >= q.x)
-                    .map(|r| r.x1)
-                    .max();
-                let mut out = vec![
-                    bx(q.x + g, q.y + g, unit.size),
+        // where the mark's name stands beyond it in line; then under and over the name where it stands, read from its
+        // box (placed, else at its first place), aligned to it on the arrow's side.
+        LabelKind::MarkXref => {
+            let name = name.or_else(|| first_place(ground, unit.owner, LabelKind::MarkName));
+            let by_name = |toward_left: bool| {
+                name.into_iter().flat_map(move |n| {
+                    let x = if toward_left { n.x1 - w } else { n.x0 };
+                    [bx(x, n.y1 + g, unit.size), bx(x, n.y0 - g - h, unit.size)]
+                })
+            };
+            match first_pin {
+                Some((q, Some(Side::Right))) => {
+                    let past = numbers_at(ground, unit.owner, q)
+                        .iter()
+                        .filter(|r| r.x0 >= q.x)
+                        .map(|r| r.x1)
+                        .max();
+                    let mut out = vec![
+                        bx(q.x + g, q.y + g, unit.size),
+                        bx(q.x + g, q.y - g - h, unit.size),
+                    ];
+                    out.extend(
+                        past.into_iter()
+                            .flat_map(|x| [bx(x + g, q.y + g, unit.size), bx(x + g, q.y - g - h, unit.size)]),
+                    );
+                    out.extend([
+                        bx(b.x0 - g - w, q.y + g, unit.size),
+                        bx(b.x0 - g - w, q.y - g - h, unit.size),
+                        bx(c.x - half(w), b.y1 + g, unit.size),
+                        bx(c.x - half(w), b.y0 - g - h, unit.size),
+                    ]);
+                    out.extend(by_name(true));
+                    out
+                }
+                Some((q, Some(Side::Left))) => {
+                    let past = numbers_at(ground, unit.owner, q)
+                        .iter()
+                        .filter(|r| r.x1 <= q.x)
+                        .map(|r| r.x0)
+                        .min();
+                    let mut out = vec![
+                        bx(q.x - g - w, q.y + g, unit.size),
+                        bx(q.x - g - w, q.y - g - h, unit.size),
+                    ];
+                    out.extend(past.into_iter().flat_map(|x| {
+                        [
+                            bx(x - g - w, q.y + g, unit.size),
+                            bx(x - g - w, q.y - g - h, unit.size),
+                        ]
+                    }));
+                    out.extend([
+                        bx(b.x1 + g, q.y + g, unit.size),
+                        bx(b.x1 + g, q.y - g - h, unit.size),
+                        bx(c.x - half(w), b.y1 + g, unit.size),
+                        bx(c.x - half(w), b.y0 - g - h, unit.size),
+                    ]);
+                    out.extend(by_name(false));
+                    out
+                }
+                Some((q, Some(Side::Up))) => vec![
                     bx(q.x + g, q.y - g - h, unit.size),
-                ];
-                out.extend(
-                    past.into_iter()
-                        .flat_map(|x| [bx(x + g, q.y + g, unit.size), bx(x + g, q.y - g - h, unit.size)]),
-                );
-                out.extend([
-                    bx(b.x0 - g - w, q.y + g, unit.size),
-                    bx(b.x0 - g - w, q.y - g - h, unit.size),
-                    bx(c.x - half(w), b.y1 + g, unit.size),
-                    bx(c.x - half(w), b.y0 - g - h, unit.size),
-                    bx(b.x0 - g - w, q.y + half(h) + g, unit.size),
-                    bx(b.x0 - g - w, q.y - half(h) - g - h, unit.size),
-                ]);
-                out
-            }
-            Some((q, Some(Side::Left))) => {
-                let past = numbers_at(ground, unit.owner, q)
-                    .iter()
-                    .filter(|r| r.x1 <= q.x)
-                    .map(|r| r.x0)
-                    .min();
-                let mut out = vec![
-                    bx(q.x - g - w, q.y + g, unit.size),
                     bx(q.x - g - w, q.y - g - h, unit.size),
-                ];
-                out.extend(past.into_iter().flat_map(|x| {
-                    [
-                        bx(x - g - w, q.y + g, unit.size),
-                        bx(x - g - w, q.y - g - h, unit.size),
-                    ]
-                }));
-                out.extend([
-                    bx(b.x1 + g, q.y + g, unit.size),
-                    bx(b.x1 + g, q.y - g - h, unit.size),
-                    bx(c.x - half(w), b.y1 + g, unit.size),
-                    bx(c.x - half(w), b.y0 - g - h, unit.size),
-                    // Beyond the arrow under and over a name in line with the wire there.
-                    bx(b.x1 + g, q.y + half(h) + g, unit.size),
-                    bx(b.x1 + g, q.y - half(h) - g - h, unit.size),
-                ]);
-                out
+                    bx(q.x + g, b.y1 + g, unit.size),
+                    bx(q.x - g - w, b.y1 + g, unit.size),
+                ],
+                Some((q, Some(Side::Down))) => vec![
+                    bx(q.x + g, q.y + g, unit.size),
+                    bx(q.x - g - w, q.y + g, unit.size),
+                    bx(q.x + g, b.y0 - g - h, unit.size),
+                    bx(q.x - g - w, b.y0 - g - h, unit.size),
+                ],
+                _ => corners(s, unit.size, (line, tag_top)),
             }
-            Some((q, Some(Side::Up))) => vec![
-                bx(q.x + g, q.y - g - h, unit.size),
-                bx(q.x - g - w, q.y - g - h, unit.size),
-                bx(q.x + g, b.y1 + g, unit.size),
-                bx(q.x - g - w, b.y1 + g, unit.size),
-            ],
-            Some((q, Some(Side::Down))) => vec![
-                bx(q.x + g, q.y + g, unit.size),
-                bx(q.x - g - w, q.y + g, unit.size),
-                bx(q.x + g, b.y0 - g - h, unit.size),
-                bx(q.x - g - w, b.y0 - g - h, unit.size),
-            ],
-            _ => corners(s, unit.size, (line, tag_top)),
-        },
+        }
         LabelKind::StripTag => {
-            let name = first_top(ground, unit.owner, LabelKind::TerminalName).unwrap_or(b.y0 - g);
+            let name = first_place(ground, unit.owner, LabelKind::TerminalName).map_or(b.y0 - g, |r| r.y0);
             vec![
                 bx(b.x0 - g - w, c.y - half(h), unit.size),
                 bx(c.x - half(w), b.y0 - g - h, unit.size),
@@ -317,8 +334,8 @@ fn numbers_at(ground: &Ground<'_>, owner: Owner, q: Pt) -> Vec<Rect> {
         .collect()
 }
 
-/// The top of the first place of `owner`'s first label of kind `kind` on the page, where it has one.
-fn first_top(ground: &Ground<'_>, owner: Owner, kind: LabelKind) -> Option<Tick> {
+/// The first place of `owner`'s first label of kind `kind` on the page, where it has one.
+fn first_place(ground: &Ground<'_>, owner: Owner, kind: LabelKind) -> Option<Rect> {
     let Owner::Part(p) = owner else { return None };
     let part = ground.parts.get(&p)?;
     let label = ground
@@ -328,7 +345,7 @@ fn first_top(ground: &Ground<'_>, owner: Owner, kind: LabelKind) -> Option<Tick>
         .filter(|l| l.owner == owner && l.kind == kind)
         .min_by_key(|l| l.id)?;
     match &label.places {
-        Places::At(at) => at.first().map(|a| Rect::sized(part.at.plus(*a), label.size).y0),
+        Places::At(at) => at.first().map(|a| Rect::sized(part.at.plus(*a), label.size)),
         Places::AlongWire => None,
     }
 }
@@ -480,11 +497,11 @@ fn along_wire(route: &[Pt], (w, h): (Tick, Tick), placed: &[(Rect, bool, Seg)]) 
 /// (the same), centred above (when no wire leaves upward), centred below, above the upper left and upper right
 /// corners, centred below one line lower, the upper corners half a step lower; for a part whose pins leave sideways: centred above, centred below, above
 /// and below at either end, centred below one line lower, centred above past its tag. Every gap to the owner is
-/// [`LABEL_CLEAR`].
+/// [`LABEL_CLEAR`]. `name` is where the name of a mark whose cross-reference `unit` is stands, where it is placed.
 pub(super) fn candidates(
     ground: &Ground<'_>,
     unit: &Unit,
-    numbers: &[(Rect, bool, Seg)],
+    (numbers, name): (&[(Rect, bool, Seg)], Option<Rect>),
 ) -> Vec<(Rect, bool)> {
     let mut list: Vec<(Rect, bool)> = unit.given.iter().map(|r| (*r, false)).collect();
     // A given place that leaves the drawing area, moved in by the least distance, to stand LABEL_CLEAR off the frame's
@@ -519,7 +536,11 @@ pub(super) fn candidates(
         Owner::Part(p) => {
             if let Some(part) = ground.parts.get(&p) {
                 let shape = Shape::of(ground, part);
-                list.extend(part_places(ground, unit, &shape).into_iter().map(|r| (r, false)));
+                list.extend(
+                    part_places(ground, unit, &shape, name)
+                        .into_iter()
+                        .map(|r| (r, false)),
+                );
             }
         }
         Owner::Mark(m) => list.extend(mark_places(ground, unit, m).into_iter().map(|r| (r, false))),

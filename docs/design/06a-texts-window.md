@@ -36,8 +36,8 @@ stand over its tag.
 | Make and type of a drawn box | left of the box under its top, line under line; right of it; inside it under the tag | 4 |
 | Contact list of a coil | left of the coil, under its tag, one line per contact; under the lower trunk below the coil; the same one line lower (two rows, where the neighbours' lists are in the way) | 3 |
 | Function text of a path | centred under the path beyond the lower trunk; right of the load | 4 |
-| Name of a mark (interruption point, supply mark) | in line with the wire beyond the arrow: left of an incoming mark, right of an outgoing one; above the arrow | 3 |
-| Cross-reference of a mark | under the wire on the wire's side of the arrow; above the wire there; the same past the number of the pin the mark is set on (an interruption point on a contact's pin) | 3 |
+| Name of a mark (interruption point, supply mark) | in line with the wire beyond the arrow: left of an incoming mark, right of an outgoing one; beyond the arrow over the wire's line, then under it (marks one step apart, where a name is taller than the step: one name stands in line, the next steps aside); above the arrow | 3 |
+| Cross-reference of a mark | under the wire on the wire's side of the arrow; above the wire there; the same past the number of the pin the mark is set on (an interruption point on a contact's pin); under and over the mark's name where the name stands | 3 |
 | Name of a terminal | right below the terminal's point; left below it | 1 |
 | Strip designation | left of the strip's first terminal, level with it; above it; above the terminal's name, where it stands over the terminal; above it, ending at its left edge; centred below it; right of it, level with it (where a wire comes to the terminal round its left and over its top) | 4 |
 | Wire number, tube tag | along the wire: on a vertical stretch right of the line, turned to read from the bottom; on a horizontal stretch above the line. Tried on each straight stretch at least the text's length plus two steps long: first level with the number of the parallel wire beside it that is already placed, then at the middle of the longest stretch, then at its quarters, then on the other side of the line | 5 |
@@ -130,7 +130,8 @@ their author's places do not count against each other. After §5.2's places each
 line lower (a tag in a row); above the upper corners; a strip designation above it, ending at its left edge; a
 mark's name one line higher; a drawn box's data under the earlier data, and above the box over its tag; a
 terminal's name turned a quarter, and beside its body; a mark's cross-reference beyond the arrow, under then over
-the wire. A label stands nowhere it reads as another part's (nearer another part of the same body size than its
+the wire. A mark's cross-reference reads its places by the name from the name's box where the name is placed, not
+from its own height. A label stands nowhere it reads as another part's (nearer another part of the same body size than its
 own), and a label of a part without pins stays inside its outline or clear of it. A place that is the free first
 place of a label not yet placed is taken only when no other is clear. A text whose author's place lies on a text
 of its own part placed before it has the place under that text second (line under line). A clashing label is then

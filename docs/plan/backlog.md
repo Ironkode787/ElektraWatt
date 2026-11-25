@@ -28,7 +28,6 @@ what the owner's test of 0.3.5 finds is added here.
 
 #### The page's drawing
 
-- FT-2207 `ew-scene`: An interruption point with several continuations prints its references over its own name and over the next point's (on a supply page, "24V" under three references), and the check that finds text on text offers no fix for it.
 - FT-2209 `ew-scene, ew-drafting, ew-commands`: A symbol turned after it is wired: its wires kink, a lamp gets a warning, and a tag dragged clear stands where it was after the next turn. From the same persona run: function texts typed in Properties are not drawn on the page, the Wire tool does not start in free space, and one 24 V rail carries four wire numbers. (FT-2111 has the grid change.)
 - FT-2210 `ew-reports, ew-scene`: A list page on the grid frame prints over the frame's column strip, and a project can hold the parts list twice with nothing said (two list pages in a persona run).
 - FT-2211 `ew-derive, ew-checks, ew-ui`: A wire's size is not derived where no supply stands upstream; its Override stands behind "…"; and 0.5 mm² set by hand behind a 16 A breaker is not flagged.
