@@ -1582,3 +1582,117 @@ fn layout_forms() {
     assert!(p(&["layout", "a", "--project", "b"]).is_err());
     assert!(p(&["layout", "--page"]).is_err());
 }
+
+#[test]
+fn recover_and_fmt_parse_their_flags() {
+    let recover = |project: Option<&str>, action, json| {
+        Ok(Top::Recover(RecoverCli {
+            project: ProjectArg(project.map(PathBuf::from)),
+            replay: action == RecoverAction::Replay,
+            discard: action == RecoverAction::Discard,
+            json,
+            yes: false,
+        }))
+    };
+    assert_eq!(p(&["recover"]), recover(None, RecoverAction::Summary, false));
+    assert_eq!(
+        p(&["recover", "p.ew", "--replay", "--json"]),
+        recover(Some("p.ew"), RecoverAction::Replay, true)
+    );
+    assert_eq!(
+        p(&["recover", "--discard", "--project", "p.ew"]),
+        recover(Some("p.ew"), RecoverAction::Discard, false)
+    );
+    assert_eq!(
+        p(&["recover", "--replay", "--discard"]),
+        usage_error(
+            "the argument '--replay' cannot be used with '--discard'",
+            "ew recover --replay [project-dir]"
+        )
+    );
+    assert_eq!(
+        p(&["recover", "--discard", "--json"]),
+        usage_error(
+            "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`",
+            "ew recover [OPTIONS] [project-dir]"
+        )
+    );
+    assert_eq!(
+        p(&["recover", "--yes"]),
+        usage_error(
+            "the following required arguments were not provided:\n  --replay",
+            "ew recover --replay --yes [project-dir]"
+        )
+    );
+    assert_eq!(
+        p(&["recover", "--replay", "--yes"]),
+        Ok(Top::Recover(RecoverCli {
+            project: ProjectArg(None),
+            replay: true,
+            discard: false,
+            json: false,
+            yes: true,
+        }))
+    );
+    assert_eq!(
+        p(&["fmt", "p.ew", "--check"]),
+        Ok(Top::Fmt(FmtArgs {
+            project: ProjectArg(Some(PathBuf::from("p.ew"))),
+            check: true,
+            repair: false,
+            json: false,
+        }))
+    );
+    assert_eq!(
+        p(&["fmt", "p.ew", "--repair", "--json"]),
+        Ok(Top::Fmt(FmtArgs {
+            project: ProjectArg(Some(PathBuf::from("p.ew"))),
+            check: false,
+            repair: true,
+            json: true,
+        }))
+    );
+    // `--repair` with `--check` is refused by the parser, before any open.
+    assert_eq!(
+        p(&["fmt", "p.ew", "--repair", "--check"]),
+        usage_error(
+            "the argument '--repair' cannot be used with '--check'",
+            "ew fmt --repair <project-dir>"
+        )
+    );
+    assert_eq!(
+        p(&["fmt", "a", "b"]),
+        usage_error("unexpected argument 'b' found", "ew fmt [OPTIONS] [project-dir]")
+    );
+    assert_eq!(
+        p(&["fmt", "a", "--project", "b"]),
+        usage_error(
+            "the argument '[project-dir]' cannot be used with '--project <dir>'",
+            "ew fmt <project-dir>"
+        )
+    );
+}
+
+#[test]
+fn upgrade_parses_its_flags() {
+    let upgrade = |project: Option<&str>, check, yes| {
+        Ok(Top::Upgrade(UpgradeArgs {
+            project: ProjectArg(project.map(PathBuf::from)),
+            check,
+            yes,
+        }))
+    };
+    assert_eq!(p(&["upgrade"]), upgrade(None, false, false));
+    assert_eq!(p(&["upgrade", "p.ew", "--check"]), upgrade(Some("p.ew"), true, false));
+    assert_eq!(
+        p(&["upgrade", "--yes", "--project", "p.ew"]),
+        upgrade(Some("p.ew"), false, true)
+    );
+    assert_eq!(
+        p(&["upgrade", "--check", "--yes"]),
+        usage_error(
+            "the argument '--check' cannot be used with '--yes'",
+            "ew upgrade --check [project-dir]"
+        )
+    );
+}

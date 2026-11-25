@@ -1045,7 +1045,6 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::*;
-    use crate::cli::{Top, parse};
 
     const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
@@ -1148,100 +1147,6 @@ mod tests {
             String::from_utf8(output).unwrap(),
             String::from_utf8(errors).unwrap(),
         )
-    }
-
-    #[test]
-    fn recover_and_fmt_parse_their_flags() {
-        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
-        let recover = |project: Option<&str>, action, json| {
-            Ok(Top::Recover(RecoverCli {
-                project: crate::cli::ProjectArg(project.map(PathBuf::from)),
-                replay: action == RecoverAction::Replay,
-                discard: action == RecoverAction::Discard,
-                json,
-                yes: false,
-            }))
-        };
-        assert_eq!(parse(&["recover"]), recover(None, RecoverAction::Summary, false));
-        assert_eq!(
-            parse(&["recover", "p.ew", "--replay", "--json"]),
-            recover(Some("p.ew"), RecoverAction::Replay, true)
-        );
-        assert_eq!(
-            parse(&["recover", "--discard", "--project", "p.ew"]),
-            recover(Some("p.ew"), RecoverAction::Discard, false)
-        );
-        assert_eq!(
-            parse(&["recover", "--replay", "--discard"]),
-            Err("error: the argument '--replay' cannot be used with '--discard'\n\nUsage: ew recover --replay \
-                 [project-dir]\n\nFor more information, try '--help'.\n"
-                .to_owned())
-        );
-        assert_eq!(
-            parse(&["recover", "--discard", "--json"]),
-            Err("error: `--discard` asks for a typed word on a terminal and prints no result: it takes no \
-                 `--json`\n\nUsage: ew recover [OPTIONS] [project-dir]\n\nFor more information, try '--help'.\n"
-                .to_owned())
-        );
-        assert_eq!(
-            parse(&["recover", "--yes"]),
-            Err("error: the following required arguments were not provided:\n  --replay\n\nUsage: ew recover \
-                 --replay --yes [project-dir]\n\nFor more information, try '--help'.\n"
-                .to_owned())
-        );
-        assert_eq!(
-            parse(&["recover", "--replay", "--yes"]),
-            Ok(Top::Recover(RecoverCli {
-                project: crate::cli::ProjectArg(None),
-                replay: true,
-                discard: false,
-                json: false,
-                yes: true,
-            }))
-        );
-        assert_eq!(
-            parse(&["fmt", "p.ew", "--check"]),
-            Ok(Top::Fmt(FmtArgs {
-                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
-                check: true,
-                repair: false,
-                json: false,
-            }))
-        );
-        assert_eq!(
-            parse(&["fmt", "p.ew", "--repair", "--json"]),
-            Ok(Top::Fmt(FmtArgs {
-                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
-                check: false,
-                repair: true,
-                json: true,
-            }))
-        );
-        // `--repair` with `--check` is refused by the parser, before any open.
-        assert_eq!(
-            parse(&["fmt", "p.ew", "--repair", "--check"]),
-            Err(
-                "error: the argument '--repair' cannot be used with '--check'\n\nUsage: ew fmt --repair \
-                 <project-dir>\n\nFor more information, try '--help'.\n"
-                    .to_owned()
-            )
-        );
-        assert_eq!(
-            parse(&["fmt", "a", "b"]),
-            Err(
-                "error: unexpected argument 'b' found\n\nUsage: ew fmt [OPTIONS] [project-dir]\n\nFor more \
-                 information, try '--help'.\n"
-                    .to_owned()
-            )
-        );
-        assert_eq!(
-            parse(&["fmt", "a", "--project", "b"]),
-            Err(
-                "error: the argument '[project-dir]' cannot be used with '--project <dir>'\n\nUsage: ew fmt \
-                 <project-dir>\n\nFor more information, try '--help'.\n"
-                    .to_owned()
-            )
-        );
     }
 
     /// `--discard` without a terminal exits 2 and changes nothing, with a terminal and
@@ -1709,35 +1614,6 @@ mod tests {
              else to abort: ",
             ew_api::FORMAT
         )
-    }
-
-    #[test]
-    fn upgrade_parses_its_flags() {
-        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
-        let upgrade = |project: Option<&str>, check, yes| {
-            Ok(Top::Upgrade(UpgradeArgs {
-                project: crate::cli::ProjectArg(project.map(PathBuf::from)),
-                check,
-                yes,
-            }))
-        };
-        assert_eq!(parse(&["upgrade"]), upgrade(None, false, false));
-        assert_eq!(
-            parse(&["upgrade", "p.ew", "--check"]),
-            upgrade(Some("p.ew"), true, false)
-        );
-        assert_eq!(
-            parse(&["upgrade", "--yes", "--project", "p.ew"]),
-            upgrade(Some("p.ew"), false, true)
-        );
-        assert_eq!(
-            parse(&["upgrade", "--check", "--yes"]),
-            Err(
-                "error: the argument '--check' cannot be used with '--yes'\n\nUsage: ew upgrade --check \
-                 [project-dir]\n\nFor more information, try '--help'.\n"
-                    .to_owned()
-            )
-        );
     }
 
     /// `--check` writes nothing and exits 1 on the test fixture and 0 on the sample (read only, no lock).
