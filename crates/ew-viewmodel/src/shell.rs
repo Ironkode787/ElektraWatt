@@ -2317,6 +2317,12 @@ impl ShellModel {
     /// link preview); with none open it sends `Escape` to the active tool, and when the tool was in its first state
     /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
     /// own, [`ShellModel::dismiss_banner`].
+    /// An action only the window runs (`ui.app_menu`, `ui.context_menu`: menus only the window draws), dispatched to
+    /// the shell: refused in words.
+    pub(crate) fn act_window_only(&mut self) -> Outcome {
+        Outcome::refused(key!("reason-window-only"))
+    }
+
     pub(crate) fn act_dismiss(&mut self) -> Outcome {
         // Escape in the supply marks' Potential panel places the marks without a potential (H9).
         if self.supply_panel.take().is_some() {

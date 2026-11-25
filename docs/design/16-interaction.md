@@ -118,7 +118,15 @@ keymap sheet) lists every binding per preset and context, and [the action map](.
   I and G beside M for Move); "EPLAN-like" ships only once EPLAN users confirm its bindings (FR-UI-014). The user's
   `keymap.toml` replaces the preset's bindings of the actions it names; a binding for an action the build does not
   know is kept and listed as unused.
-- **Contexts and chords.** The contexts are the registry's five (`global`, the parent, and four children). A chord
+- **Contexts and chords.** The contexts are the registry's seven (`global`, the parent, and six children): the four of
+  the focus (`canvas`, `navigator`, `properties`, `find`) and two of a panel, `supply_panel` (the supply marks'
+  Potential panel, whose Enter, `ip.supply_apply`, takes every row before the focus's keys while the panel is open)
+  and `symbol_editor` (while the editor shows, its drawing takes of the canvas's keys those of its tools and of what
+  acts on its selection, which run the editor's own actions, `keymap::context_takes`). The window asks the keymap which
+  contexts hold the keys (`keymap::key_contexts`). An action only the window runs, a menu only it draws, is in the
+  registry too (`window_only`): `ui.app_menu` (F10; Alt pressed and released alone runs it as well) and
+  `ui.context_menu` (Shift+F10 and the menu key, on the canvas); dispatched to the shell it is refused in words. So
+  every key of the window is a binding, and a rebinding holds wherever it applies. A chord
   is unique within its context: equal chords in one context are a conflict, a child context's chord over a global one
   shadows it (Ctrl+D duplicates on the canvas and fills down in a table; Shift+Enter finishes the tool on the canvas
   and opens the multi-language editor in the property grid; Ctrl+Enter is `canvas.activate_alt` on the canvas,

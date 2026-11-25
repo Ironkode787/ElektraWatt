@@ -68,6 +68,7 @@ const NAMED: &[&str] = &[
     "F10",
     "F11",
     "F12",
+    "Menu",
 ];
 
 /// The physical keys of the punctuation and the character the US layout prints on each: `]` in a binding text names
@@ -280,6 +281,8 @@ pub fn context_word(context: Context) -> &'static str {
         Context::Navigator => "navigator",
         Context::Properties => "properties",
         Context::Find => "find",
+        Context::SupplyPanel => "supply_panel",
+        Context::SymbolEditor => "symbol_editor",
     }
 }
 
@@ -291,9 +294,47 @@ pub fn context_of_word(word: &str) -> Option<Context> {
         Context::Navigator,
         Context::Properties,
         Context::Find,
+        Context::SupplyPanel,
+        Context::SymbolEditor,
     ]
     .into_iter()
     .find(|c| context_word(*c) == word)
+}
+
+/// The contexts whose bindings take a key press now, the first first on a tie of modifiers: the supply marks' panel
+/// while it is open, the symbol editor while it shows (with the canvas's keys it takes,
+/// [`context_takes`]), else the focus's context, then the global one.
+pub fn key_contexts(shell: &crate::shell::ShellModel) -> Vec<Context> {
+    use crate::shell::Focus;
+    let mut out = Vec::new();
+    if shell.supply_panel().is_some() {
+        out.push(Context::SupplyPanel);
+    }
+    if shell.symbol_editor().is_some() {
+        out.extend([Context::SymbolEditor, Context::Canvas]);
+    } else {
+        match shell.focus() {
+            Some(Focus::Navigator(_)) => out.push(Context::Navigator),
+            Some(Focus::Canvas(_)) => out.push(Context::Canvas),
+            Some(Focus::Properties) => out.push(Context::Properties),
+            Some(Focus::Find) => out.push(Context::Find),
+            Some(Focus::CommandBar | Focus::History) | None => {}
+        }
+    }
+    out.push(Context::Global);
+    out
+}
+
+/// The place among `contexts` ([`key_contexts`]) of a binding of `action` in `context`, the lower first; `None` where
+/// the binding takes no key press now. Under the symbol editor the canvas's bindings take only the editor's keys:
+/// those that choose its tools and those that act on its selection as on a page's (doc 16a P8).
+pub fn context_takes(contexts: &[Context], context: Context, action: &str) -> Option<usize> {
+    use crate::shell::symbol_editor::{EDIT_KEYS, TOOL_KEYS};
+    let at = contexts.iter().position(|c| *c == context)?;
+    let editor_key =
+        TOOL_KEYS.iter().any(|(_, a)| *a == action) || EDIT_KEYS.iter().any(|(a, ..)| *a == action);
+    let under_editor = contexts.contains(&Context::SymbolEditor) && context == Context::Canvas;
+    (!under_editor || editor_key).then_some(at)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -595,6 +636,21 @@ fn context_phrase(context: Context) -> &'static str {
         Context::Navigator => key!("keymap-in-navigator"),
         Context::Properties => key!("keymap-in-properties"),
         Context::Find => key!("keymap-in-find"),
+        Context::SupplyPanel => key!("keymap-in-supply-panel"),
+        Context::SymbolEditor => key!("keymap-in-symbol-editor"),
+    })
+}
+
+/// The label of a context, as the keyboard shortcuts' list names where a binding applies ("Canvas", "Everywhere").
+pub fn context_label(context: Context) -> &'static str {
+    strings::text(match context {
+        Context::Global => key!("keymap-context-global"),
+        Context::Canvas => key!("keymap-context-canvas"),
+        Context::Navigator => key!("keymap-context-navigator"),
+        Context::Properties => key!("keymap-context-properties"),
+        Context::Find => key!("keymap-context-find"),
+        Context::SupplyPanel => key!("keymap-context-supply-panel"),
+        Context::SymbolEditor => key!("keymap-context-symbol-editor"),
     })
 }
 

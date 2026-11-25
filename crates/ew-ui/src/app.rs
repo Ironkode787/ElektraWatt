@@ -317,6 +317,8 @@ pub struct App {
     alt_alone: bool,
     /// Whether Alt was down in the last frame.
     alt_down: bool,
+    /// The actions only the window runs that this frame asked for ([`App::window_actions`]).
+    window_actions: Vec<&'static str>,
     /// The actions the frame dispatched, oldest first, at most [`DISPATCH_LOG`] (tests: CB2).
     dispatch_log: std::collections::VecDeque<(&'static str, Value)>,
 }
@@ -397,6 +399,7 @@ impl App {
             disk_polled: (0.0, ew_viewmodel::ew_api::external::POLL_EVERY.as_secs_f64()),
             alt_alone: false,
             alt_down: false,
+            window_actions: Vec::new(),
             dispatch_log: std::collections::VecDeque::new(),
         }
     }
@@ -581,6 +584,11 @@ impl App {
             self.dispatch_log.pop_front();
         }
         self.dispatch_log.push_back((action, params.clone()));
+        // A menu only the window draws: the window opens it, from a key, the palette or a script alike.
+        if ew_viewmodel::actions::find(action).is_some_and(|a| a.window_only) {
+            self.window_actions.push(action);
+            return;
+        }
         self.run(Some(action), |shell| shell.dispatch(action, params));
     }
 

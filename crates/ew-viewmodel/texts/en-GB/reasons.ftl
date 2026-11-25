@@ -265,6 +265,7 @@ reason-no-running-job = No job is running
 reason-job-finished = The job has finished
 reason-no-result = No export has written a file
 reason-no-opener = The headless mode opens no file
+reason-window-only = Only the window opens this: it is a menu of the window
 reason-action-expired = The action is no longer valid
 reason-action-project-closed = Its project was closed since
 reason-action-undo-later = Later changes came after it; undo it in the History pane

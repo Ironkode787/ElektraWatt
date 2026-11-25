@@ -237,6 +237,9 @@ const POPUP_GROUP: usize = 2;
 
 /// The canvases' state between frames.
 pub struct CanvasHost {
+    /// `ui.context_menu` (Shift+F10 or the menu key) ran: the focused canvas opens its context menu at the
+    /// selection in its next frame.
+    menu_asked: bool,
     pool: Option<TilePool>,
     cache: TileCache<TextureHandle>,
     views: Vec<GroupView>,
@@ -307,11 +310,17 @@ fn key_of(page: &CanvasPage) -> SceneKey {
 }
 
 impl CanvasHost {
+    /// Asks the focused canvas for its context menu at the selection (`ui.context_menu`).
+    pub(crate) fn ask_context_menu(&mut self) {
+        self.menu_asked = true;
+    }
+
     /// A canvas host with nothing on it.
     pub fn new() -> CanvasHost {
         let leader = GpuHost::new();
         let follower = leader.follower();
         CanvasHost {
+            menu_asked: false,
             pool: None,
             cache: TileCache::new(DEFAULT_CACHE_BYTES),
             views: vec![GroupView::new(leader), GroupView::new(follower)],

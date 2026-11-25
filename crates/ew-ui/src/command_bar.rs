@@ -739,13 +739,17 @@ impl CommandBarHost {
             vec2(w, t.size_control_inline),
         );
         let menu_name = strings::text(key!("commandbar-menu"));
+        // Its key is the keymap's binding of the app menu (Alt alone opens it too).
+        let app_key = ew_viewmodel::actions::find("ui.app_menu")
+            .map(|m| ew_viewmodel::keymap::short_display(&shell.shortcut_text(m)))
+            .unwrap_or_default();
         let response = button_response(
             ui,
             Id::unique(APP_BUTTON),
             app,
             Spec {
                 name: menu_name,
-                shortcut: "F10",
+                shortcut: &app_key,
                 enabled: true,
                 checked: None,
                 sense: Sense::click(),

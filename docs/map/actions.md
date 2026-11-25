@@ -243,6 +243,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `bus.cable` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_bus_cable` `crates/ew-viewmodel/src/shell/cables.rs` | `action-bus-cable`, `bus-cable-lines-count`, `command-bus-cable-set`, `dialog-bus-cable-new-title`, `error-bus-cable-length`, `field-connection-derived-bus-cable`, `field-help-connection-derived-bus-cable`, `form-bus-cable-length`, `form-bus-cable-new`, `form-bus-cable-new-part`, `form-bus-cable-not-for`, `refusal-bus-cable-length`, `refusal-bus-cable-twice`, `report-kind-bus-cable-list`, `report-rows-bus-cable-list`, `toast-bus-cable` |
 | `potential.draw_row` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_potential_draw_row` `crates/ew-viewmodel/src/shell/bond.rs` | `action-potential-draw-row` |
 | `ip.supply_potential` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_supply_potential` `crates/ew-viewmodel/src/shell/supply_potential.rs` | `action-ip-supply-potential` |
+| `ip.supply_apply` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `apply_supply_panel` `crates/ew-viewmodel/src/shell/supply_potential.rs` | `action-ip-supply-apply` |
 | `potential.offer` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_potential_offer` `crates/ew-viewmodel/src/shell/bond.rs` | `action-potential-offer`, `potential-offer-accept`, `potential-offer-coil`, `potential-offer-decline`, `potential-offer-role`, `potential-offer-title`, `potential-offer-title-new`, `potential-offer-title-type`, `potential-offer-type`, `reason-no-potential-offer` |
 | `tool.marker` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_marker` `crates/ew-viewmodel/src/shell/drawing.rs` | `action-tool-marker`, `tool-marker` |
 | `marker.fields` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_marker_fields` `crates/ew-viewmodel/src/shell/drawing.rs` | `action-marker-fields` |
@@ -355,6 +356,8 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `ui.focus` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_focus` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-ui-focus` |
 | `ui.focus_next` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_focus_cycle` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-ui-focus-next` |
 | `ui.focus_previous` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_focus_cycle` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-ui-focus-previous` |
+| `ui.app_menu` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_window_only` `crates/ew-viewmodel/src/shell.rs` | `action-ui-app-menu` |
+| `ui.context_menu` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_window_only` `crates/ew-viewmodel/src/shell.rs` | `action-ui-context-menu` |
 | `ui.dismiss` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_dismiss` `crates/ew-viewmodel/src/shell.rs` | `action-ui-dismiss` |
 | `settings.set` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_settings_set` `crates/ew-viewmodel/src/shell/onboarding.rs` | `action-settings-set`, `command-project-settings-set` |
 | `first_run.set` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_first_run_set` `crates/ew-viewmodel/src/shell/onboarding.rs` | `action-first-run-set` |

@@ -246,6 +246,7 @@ reason-no-running-job = Er loopt geen taak
 reason-job-finished = De taak is klaar
 reason-no-result = Geen export heeft een bestand geschreven
 reason-no-opener = De headless modus opent geen bestand
+reason-window-only = Alleen het venster opent dit: het is een menu van het venster
 reason-action-expired = De actie is niet meer geldig
 reason-action-project-closed = Het project is intussen gesloten
 reason-action-undo-later = Er kwamen latere wijzigingen na; maak het ongedaan in het paneel Geschiedenis

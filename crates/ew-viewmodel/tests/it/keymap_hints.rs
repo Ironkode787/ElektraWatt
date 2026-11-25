@@ -49,7 +49,7 @@ fn cursor(s: &mut ShellModel, k: (i64, i64)) {
 }
 
 /// With the default keymap the texts read as before; Enter rebound to F9 shows in the Measure and the Place
-/// hints, Escape rebound to F10 in the Place hint and, in its short form, in the Place HUD.
+/// hints, Escape rebound to F11 in the Place hint and, in its short form, in the Place HUD.
 #[test]
 fn a_rebound_key_shows_in_the_hints_and_the_hud() {
     let tmp = Tmp::new("ft964-rebind");
@@ -74,7 +74,7 @@ fn a_rebound_key_shows_in_the_hints_and_the_hud() {
     let tmp = Tmp::new("ft964-rebound");
     user_keymap(
         &tmp,
-        "[[bind]]\nkeys = \"F10\"\naction = \"ui.dismiss\"\ncontext = \"global\"\n",
+        "[[bind]]\nkeys = \"F11\"\naction = \"ui.dismiss\"\ncontext = \"global\"\n",
     );
     let mut s = on_101(&tmp);
     assert_eq!(s.banner(), None, "the keymap file is taken");
@@ -86,17 +86,17 @@ fn a_rebound_key_shows_in_the_hints_and_the_hud() {
     cursor(&mut s, (75, 25));
     assert_eq!(
         s.tool_hint(),
-        "Click or F9 to place; R, X, Y and V turn it; F10 ends"
+        "Click or F9 to place; R, X, Y and V turn it; F11 ends"
     );
     let rebound = hud(&s);
     assert_eq!(
         rebound,
-        prompt.replace("Esc done", "F10 done"),
+        prompt.replace("Esc done", "F11 done"),
         "the HUD names the rebound key"
     );
     assert_eq!(
         s.status_fields(false)[0],
-        "Click or F9 to place; R, X, Y and V turn it; F10 ends"
+        "Click or F9 to place; R, X, Y and V turn it; F11 ends"
     );
 }
 

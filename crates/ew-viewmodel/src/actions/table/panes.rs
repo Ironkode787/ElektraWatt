@@ -920,6 +920,26 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_focus_cycle(-1),
     ))),
+    // The app menu (doc 16a §5.2) and a canvas's context menu: popups only the window draws, so it runs them itself.
+    // Alt pressed and released alone opens the app menu too, as on every desktop.
+    keeps_banner(window_only(act(
+        "ui.app_menu",
+        View,
+        Menu::Window,
+        &["F10"],
+        always,
+        None,
+        |s, _| s.act_window_only(),
+    ))),
+    keeps_banner(window_only(in_canvas(act(
+        "ui.context_menu",
+        View,
+        Menu::Edit,
+        &["Shift+F10", "Menu"],
+        always,
+        None,
+        |s, _| s.act_window_only(),
+    )))),
     keeps_link_preview(answers_recovery(keeps_banner(hidden(act(
         "ui.dismiss",
         View,

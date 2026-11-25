@@ -238,8 +238,8 @@ impl Submenu {
     }
 }
 
-/// Where an action's keyboard shortcuts apply: the window binds a context's chords only while the
-/// shell's focus is in that context; a context's binding shadows a global one with the same chord.
+/// Where an action's keyboard shortcuts apply: the window binds a context's chords only while that context holds
+/// the keys ([`crate::keymap::key_contexts`]); a context's binding shadows a global one with the same chord.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Context {
     /// Everywhere.
@@ -252,6 +252,11 @@ pub enum Context {
     Properties,
     /// While the find pane has the focus.
     Find,
+    /// While the supply marks' Potential panel is open over the canvas, before the focus's own keys.
+    SupplyPanel,
+    /// While the symbol editor shows: its drawing takes the canvas's keys of its tools and of what acts on its
+    /// selection ([`crate::shell::symbol_editor::TOOL_KEYS`], [`crate::shell::symbol_editor::EDIT_KEYS`]).
+    SymbolEditor,
 }
 
 /// Where an action sits in the app menu.
@@ -349,6 +354,9 @@ pub struct ActionMeta {
     /// The parameters whose type does not tell how they take a UUID or a reference (a list, a text, JSON), each with
     /// the form it takes it in; a `ref` of the signature takes it whole without a line here ([`Self::alias_forms`]).
     pub aliases: &'static [(&'static str, ParamForm)],
+    /// The window runs the action itself: it opens a popup only the window draws (the app menu, a canvas's context
+    /// menu); dispatched to the shell, it is refused in words.
+    pub window_only: bool,
     /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
     pub(crate) handler: Handler,
 }
@@ -511,6 +519,7 @@ const fn act(
         reads_clipboard: false,
         chord_param: None,
         aliases: &[],
+        window_only: false,
         handler,
     }
 }
@@ -606,6 +615,17 @@ const fn in_properties(mut a: ActionMeta) -> ActionMeta {
 
 const fn in_find(mut a: ActionMeta) -> ActionMeta {
     a.context = Context::Find;
+    a
+}
+
+const fn in_supply_panel(mut a: ActionMeta) -> ActionMeta {
+    a.context = Context::SupplyPanel;
+    a
+}
+
+/// Marks an action the window runs itself ([`ActionMeta::window_only`]).
+const fn window_only(mut a: ActionMeta) -> ActionMeta {
+    a.window_only = true;
     a
 }
 

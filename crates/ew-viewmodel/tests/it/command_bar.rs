@@ -34,12 +34,17 @@ const KEY_ONLY: &[&str] = &[
     "strip.insert",
     "strip.move",
     "strip.unbridge",
+    // The Potential panel's Enter and Apply.
+    "ip.supply_apply",
     "command.run",
     "table.fill_down",
     "table.pattern_fill",
     "table.paste",
     "table.copy",
     "table.clear",
+    // The menus only the window draws, opened by their keys: the app menu itself and a canvas's context menu.
+    "ui.app_menu",
+    "ui.context_menu",
     // A PLC module's and a channel's own settings, reached through their row menus.
     "plc.module_safety",
     "plc.channel_settings",

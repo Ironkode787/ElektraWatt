@@ -10,19 +10,10 @@
 //! [ hidden][ needs-parameters] params "<signature>"`. It carries the licence of this crate (it is made of its
 //! strings), as the rest of the reference does.
 
-use ew_viewmodel::actions::{ACTIONS, ActionKind, Context, parse_signature};
+use ew_viewmodel::actions::{ACTIONS, ActionKind, parse_signature};
+use ew_viewmodel::keymap::context_word;
 use ew_viewmodel::strings;
 use ew_viewmodel::strings::Key;
-
-fn context_word(c: Context) -> &'static str {
-    match c {
-        Context::Global => "global",
-        Context::Canvas => "canvas",
-        Context::Navigator => "navigator",
-        Context::Properties => "properties",
-        Context::Find => "find",
-    }
-}
 
 fn menu_text(a: &ew_viewmodel::actions::ActionMeta) -> String {
     match a.menu {

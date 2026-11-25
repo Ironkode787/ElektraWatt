@@ -187,8 +187,9 @@ impl App {
         if focused.is_some() {
             self.window_focused = focused;
         }
-        // Alt pressed and released alone, or F10, opens the app menu (doc 16a §5.2).
+        // Alt pressed and released alone opens the app menu (doc 16a §5.2), and the actions only the window runs go.
         self.app_menu_keys(ctx);
+        self.window_actions(ctx);
         // The jobs wake the window after each progress report and at their end, and every frame takes
         // the ends that are in (no `Session` call).
         // On the frame clock (a visual run) the driver waits for the jobs itself: no job thread wakes the frame, so
@@ -684,6 +685,10 @@ impl App {
                 continue;
             }
             self.apply(event);
+        }
+        // A menu a key of this frame asked for opens in the next frame.
+        if !self.window_actions.is_empty() {
+            ctx.request_repaint();
         }
         // What a copy wrote goes to the system clipboard (egui's `copy_text`).
         if let Some(text) = self.shell.take_clipboard_outbox() {

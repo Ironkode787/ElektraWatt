@@ -10,8 +10,8 @@ impl CanvasHost {
     /// The canvas context menu: a right-click with the Select tool opens, at the pointer, what fits the
     /// thing under it ([`ew_viewmodel::command_bar::canvas_menu`]): over an object, selected first when it is not, its
     /// own entries and then the general ones; over the title block its fields; over an empty spot Paste, the page's
-    /// properties and New page (the selection cleared, so Properties shows the page). Shift+F10 or the menu key opens
-    /// the same menu at the selection while the canvas has the keys. A disabled entry shows its reason in its tooltip;
+    /// properties and New page (the selection cleared, so Properties shows the page). `ui.context_menu` (Shift+F10 or the
+    /// menu key, the keymap's) opens the same menu at the selection while the canvas has the keys. A disabled entry shows its reason in its tooltip;
     /// a click on an entry dispatches its action and closes the menu.
     ///
     /// With any other tool a right-click is Escape (a right click cancels
@@ -32,9 +32,7 @@ impl CanvasHost {
         let keys = select
             && shell.focus() == Some(Focus::Canvas(group))
             && !shell.selection().items.is_empty()
-            && response.ctx.input_mut(|i| {
-                i.consume_key(Modifiers::SHIFT, Key::F10) || i.consume_key(Modifiers::NONE, Key::Menu)
-            });
+            && std::mem::take(&mut self.menu_asked);
         if response.secondary_clicked() && select {
             // Picked at the pointer now, not from the hover a click before cleared: of the entities a press there can
             // pick a selected one first, so a right click on what a click selected keeps it, else the hover's pick.
@@ -360,7 +358,7 @@ impl CanvasHost {
                         use crate::components::{Kind, button};
                         if button(ui, Kind::Primary, strings::text(key!("dialog-apply")), None, 0.0).clicked()
                         {
-                            events.push(Event::Action("ip.supply_potential", json!({"apply": true})));
+                            events.push(Event::Action("ip.supply_apply", serde_json::Value::Null));
                         }
                         if button(
                             ui,

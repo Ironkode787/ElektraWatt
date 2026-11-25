@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The routing of the keyboard: what lies over the window, the panes' own keys, the command bar's arrows, the chords
-//! by physical and by logical key, the clipboard events, and the app menu's Alt and F10.
+//! by physical and by logical key in the keymap's contexts, the clipboard events, and the app menu's Alt.
 
 use super::*;
 
@@ -18,20 +18,21 @@ impl App {
         if self.popup_keys(ctx, palette_open, events) || self.pane_keys(ctx, palette_open, events) {
             return;
         }
+        let contexts = ew_viewmodel::keymap::key_contexts(&self.shell);
         let focused = self.key_context();
         if !palette_open
             && (self.command_bar_keys(ctx, events)
-                || self.physical_keys(ctx, focused, events)
+                || self.physical_keys(ctx, &contexts, events)
                 || self.clipboard_keys(ctx, focused, pasting, events))
         {
             return;
         }
-        self.bound_keys(ctx, focused, palette_open, events);
+        self.bound_keys(ctx, &contexts, focused, palette_open, events);
     }
 
-    /// The keys of what lies over the window, in order: Enter in the supply marks' panel, Escape for an open menu,
-    /// the collapsed bar's popover, the palette, a dialog or a popup, and the start-up offer; then nothing more while a
-    /// dialog or a popup is open or a text field outside the palette has the focus. `true` when the routing ends here.
+    /// The keys of what lies over the window, in order: Escape for an open menu, the collapsed bar's popover, the
+    /// palette, a dialog or a popup, and the start-up offer; then nothing more while a dialog or a popup is open or a
+    /// text field outside the palette has the focus. `true` when the routing ends here.
     fn popup_keys(&mut self, ctx: &egui::Context, palette_open: bool, events: &mut Vec<Event>) -> bool {
         let dialog_open = self.shell.dialog().is_some();
         // The junction sequence editor is a popup like the picker: Escape closes it, its own keys
@@ -44,15 +45,6 @@ impl App {
             // The notifications log is a popup too.
             || self.shell.notifications().popup_open();
         let overlay = palette_open || dialog_open || picker_open;
-        // Enter in the supply marks' Potential panel takes every row (H9), before the canvas's Enter.
-        if self.shell.supply_panel().is_some()
-            && !overlay
-            && !egui::Popup::is_any_open(ctx)
-            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter))
-        {
-            events.push(Event::Action("ip.supply_potential", json!({"apply": true})));
-            return true;
-        }
         // Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
         // Any open menu, a context menu among them, closes and nothing else (the selection stays).
         if egui::Popup::is_any_open(ctx) && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
@@ -132,17 +124,13 @@ impl App {
         false
     }
 
-    /// The keymap's context of the focus: the focused context's chords go first, then the global ones.
+    /// The context of the focus among the keymap's contexts ([`ew_viewmodel::keymap::key_contexts`]): the first that is
+    /// not a panel's (the symbol editor's drawing is a canvas); the global one where the focus has none.
     fn key_context(&self) -> Context {
-        match self.shell.focus() {
-            // Doc 16a P8: the symbol editor's drawing is a canvas; its tools take the canvas's keys.
-            _ if self.shell.symbol_editor().is_some() => Context::Canvas,
-            Some(Focus::Navigator(_)) => Context::Navigator,
-            Some(Focus::Canvas(_)) => Context::Canvas,
-            Some(Focus::Properties) => Context::Properties,
-            Some(Focus::Find) => Context::Find,
-            Some(Focus::CommandBar | Focus::History) | None => Context::Global,
-        }
+        ew_viewmodel::keymap::key_contexts(&self.shell)
+            .into_iter()
+            .find(|c| !matches!(c, Context::SupplyPanel | Context::SymbolEditor))
+            .unwrap_or(Context::Global)
     }
 
     /// Doc 16a §5.9: on the command bar Left and Right move between the tabs. `true` when one did.
@@ -171,13 +159,8 @@ impl App {
     /// The chords bound by physical key (`]` and `[` in the canvas, any `phys:` key of a keymap), matched on the key's
     /// position, so they need no AltGr on QWERTZ and AZERTY; a chord without Shift also takes the key with Shift.
     /// `true` when one matched.
-    fn physical_keys(&mut self, ctx: &egui::Context, focused: Context, events: &mut Vec<Event>) -> bool {
-        let physical = candidates(
-            &self.bindings,
-            self.shell.symbol_editor().is_some(),
-            true,
-            focused,
-        );
+    fn physical_keys(&mut self, ctx: &egui::Context, contexts: &[Context], events: &mut Vec<Event>) -> bool {
+        let physical = candidates(&self.bindings, true, contexts);
         let hit = ctx.input_mut(|i| {
             let mut hit = None;
             i.events.retain(|e| match e {
@@ -303,16 +286,12 @@ impl App {
     fn bound_keys(
         &mut self,
         ctx: &egui::Context,
+        contexts: &[Context],
         focused: Context,
         palette_open: bool,
         events: &mut Vec<Event>,
     ) {
-        for binding in candidates(
-            &self.bindings,
-            self.shell.symbol_editor().is_some(),
-            false,
-            focused,
-        ) {
+        for binding in candidates(&self.bindings, false, contexts) {
             // Plain Escape is `ui.dismiss`'s own path above; a `ui.dismiss` the keymap binds to another key is matched
             // here, as the physical-key loop matches one.
             let escape =
@@ -349,10 +328,9 @@ impl App {
         }
     }
 
-    /// Alt pressed and released with nothing else, or F10, opens the app menu (doc 16a §5.2); not while a dialog or a
-    /// file dialog is open.
+    /// Alt pressed and released with nothing else runs `ui.app_menu`, as its binding (F10) does (doc 16a §5.2).
     pub(super) fn app_menu_keys(&mut self, ctx: &egui::Context) {
-        let (alt, other, f10) = ctx.input_mut(|i| {
+        let (alt, other) = ctx.input(|i| {
             let other = i.events.iter().any(|e| {
                 matches!(
                     e,
@@ -361,11 +339,9 @@ impl App {
                         | egui::Event::Text(_)
                 )
             });
-            // F10 alone: `consume_key` matches logically and would take Shift+F10, the context menu key (FR-UI-031).
-            let f10 = i.modifiers.is_none() && i.consume_key(Modifiers::NONE, Key::F10);
-            (i.modifiers.alt, other, f10)
+            (i.modifiers.alt, other)
         });
-        let mut open = f10;
+        let mut open = false;
         if alt && !self.alt_down {
             self.alt_alone = !other;
         } else if alt && other {
@@ -378,39 +354,43 @@ impl App {
             self.alt_alone = false;
         }
         self.alt_down = alt;
-        if open && self.shell.dialog().is_none() && self.pending_pick.is_none() {
-            egui::Popup::open_id(ctx, crate::command_bar::app_menu_id());
+        if open {
+            self.window_actions.push("ui.app_menu");
+        }
+    }
+
+    /// Runs the actions only the window runs ([`ew_viewmodel::actions::ActionMeta::window_only`]) that this frame
+    /// asked for: the app menu (not while a dialog or a file dialog is open) and the canvas's context menu.
+    pub(super) fn window_actions(&mut self, ctx: &egui::Context) {
+        for action in std::mem::take(&mut self.window_actions) {
+            match action {
+                "ui.app_menu" if self.shell.dialog().is_none() && self.pending_pick.is_none() => {
+                    egui::Popup::open_id(ctx, crate::command_bar::app_menu_id());
+                }
+                "ui.context_menu" => self.canvas.ask_context_menu(),
+                _ => {}
+            }
         }
     }
 }
 
-/// The bindings of `bindings` matched by their physical key (`physical`) or by their logical one, in the global context
-/// and in `focused`, most modifiers first (egui matches an extra Shift or Alt logically, so Alt+Left must be asked
-/// before Left), the focused context first on a tie. While the symbol editor shows (`editor`), of the canvas's keys
-/// those that choose its tools apply, and those that act on its selection as they do on a page's (the arrows, Delete,
-/// the clipboard, Select all).
-fn candidates(bindings: &[Binding], editor: bool, physical: bool, focused: Context) -> Vec<&Binding> {
-    use ew_viewmodel::shell::symbol_editor::{EDIT_KEYS, TOOL_KEYS};
-    let applies = |b: &Binding| {
-        !editor
-            || b.context != Context::Canvas
-            || TOOL_KEYS.iter().any(|(_, action)| *action == b.action)
-            || EDIT_KEYS.iter().any(|(action, ..)| *action == b.action)
-    };
-    let mut candidates: Vec<&Binding> = bindings
+/// The bindings of `bindings` matched by their physical key (`physical`) or by their logical one that take a key press
+/// in `contexts` ([`ew_viewmodel::keymap::context_takes`]), most modifiers first (egui matches an extra Shift or Alt
+/// logically, so Alt+Left must be asked before Left), the earlier context first on a tie.
+fn candidates<'b>(bindings: &'b [Binding], physical: bool, contexts: &[Context]) -> Vec<&'b Binding> {
+    let mut candidates: Vec<(usize, &Binding)> = bindings
         .iter()
-        .filter(|b| {
-            b.physical == physical && (b.context == Context::Global || b.context == focused) && applies(b)
-        })
+        .filter(|b| b.physical == physical)
+        .filter_map(|b| ew_viewmodel::keymap::context_takes(contexts, b.context, b.action).map(|at| (at, b)))
         .collect();
-    candidates.sort_by_key(|b| {
+    candidates.sort_by_key(|(at, b)| {
         let m = b.shortcut.modifiers;
         (
             std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command)),
-            b.context != focused,
+            *at,
         )
     });
-    candidates
+    candidates.into_iter().map(|(_, b)| b).collect()
 }
 
 /// Takes the first of the frame's input events that `wanted` picks (a clipboard event), the others left in place.

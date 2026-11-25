@@ -11,7 +11,6 @@
 //! which ends the recording through `ui.dismiss`) is sent as `keymap.record` with the chord's text.
 
 use egui::{Align, Layout, RichText, Sense, Ui, vec2};
-use ew_viewmodel::actions::Context;
 use ew_viewmodel::key;
 use ew_viewmodel::keymap::EditorRow;
 use ew_viewmodel::shell::ShellModel;
@@ -26,17 +25,6 @@ use crate::theme::shares::KEYMAP_LIST_SHARE;
 
 /// The width of a row's Record and Reset buttons (a dialog button's minimum, doc 16a §6.2).
 const BUTTON_WIDTH: f32 = 72.0;
-
-/// The label key of where a binding applies.
-fn context_key(context: Context) -> strings::Key<'static> {
-    match context {
-        Context::Global => key!("keymap-context-global"),
-        Context::Canvas => key!("keymap-context-canvas"),
-        Context::Navigator => key!("keymap-context-navigator"),
-        Context::Properties => key!("keymap-context-properties"),
-        Context::Find => key!("keymap-context-find"),
-    }
-}
 
 /// The recording: the first key press of this frame (Escape excepted) as `keymap.record`, taken out of the input so
 /// that no widget or shortcut sees it.
@@ -90,7 +78,7 @@ pub(crate) fn columns(room: f32, keys_need: f32, where_need: f32) -> (f32, f32, 
 
 /// The text of a row's "where" cell: where its keys apply, "Changed" for the user's own, "shadows" when it shadows.
 fn where_text(row: &EditorRow) -> String {
-    let mut place = strings::text(context_key(row.context)).to_owned();
+    let mut place = ew_viewmodel::keymap::context_label(row.context).to_owned();
     if row.custom {
         place = strings::format(
             key!("keymap-where-note"),

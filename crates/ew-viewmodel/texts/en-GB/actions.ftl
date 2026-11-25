@@ -227,6 +227,9 @@ action-ip-continue-on = Continue on page…
 action-ip-supply-in = Supply comes in here…
 # H9: the supply marks' Potential panel: a row per mark placed, its conductor and voltage.
 action-ip-supply-potential = Potential…
+action-ip-supply-apply = Apply the potentials
+action-ui-app-menu = App menu
+action-ui-context-menu = Context menu
 # Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
 action-supply-place = Supply…
 action-ip-arrange-selected = Arrange interruption points
@@ -690,12 +693,16 @@ keymap-in-canvas = in the canvas
 keymap-in-navigator = in the navigator
 keymap-in-properties = in Properties
 keymap-in-find = in Find
+keymap-in-supply-panel = in the Potential panel
+keymap-in-symbol-editor = in the symbol editor
 keymap-none = No action matches the search.
 keymap-context-global = Everywhere
 keymap-context-canvas = Canvas
 keymap-context-navigator = Navigator
 keymap-context-properties = Properties
 keymap-context-find = Find
+keymap-context-supply-panel = Potential panel
+keymap-context-symbol-editor = Symbol editor
 
 # The macro card's ad-hoc values and Save as macro's value-set table.
 action-macros-value = Type a value of the macro card's variable

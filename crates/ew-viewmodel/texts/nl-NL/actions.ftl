@@ -263,6 +263,9 @@ action-ip-continue-on = Voortzetten op pagina…
 action-ip-supply-in = Voeding komt hier binnen…
 # H9: het paneel Potentiaal van de voedingsmarkeringen: een rij per geplaatste markering, met geleider en spanning.
 action-ip-supply-potential = Potentiaal…
+action-ip-supply-apply = Potentialen toepassen
+action-ui-app-menu = App-menu
+action-ui-context-menu = Contextmenu
 # Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
 action-supply-place = Voeding…
 action-ip-arrange-selected = Onderbrekingspunten schikken
@@ -671,12 +674,16 @@ keymap-in-canvas = in het tekenvlak
 keymap-in-navigator = in de navigator
 keymap-in-properties = in Eigenschappen
 keymap-in-find = in Zoeken
+keymap-in-supply-panel = in het paneel Potentiaal
+keymap-in-symbol-editor = in de symbooleditor
 keymap-none = Geen actie komt overeen met de zoekopdracht.
 keymap-context-global = Overal
 keymap-context-canvas = Tekenvlak
 keymap-context-navigator = Navigator
 keymap-context-properties = Eigenschappen
 keymap-context-find = Zoeken
+keymap-context-supply-panel = Paneel Potentiaal
+keymap-context-symbol-editor = Symbooleditor
 action-macros-value = Een waarde typen voor de variabele van de macrokaart
 action-revision-approve = Revisie goedkeuren…
 action-revision-release = Revisie vrijgeven…

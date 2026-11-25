@@ -219,3 +219,47 @@ fn a_rebound_help_and_rail_key_hold_and_the_default_keys_go() {
     let log = actions_of(&mut h, Modifiers::COMMAND, Key::Num2);
     assert!(!log.iter().any(|a| a == "rail.entry"), "{log:?}");
 }
+
+/// F10 for the app menu and Shift+F10 for a canvas's context menu were keys the window read itself, outside the
+/// keymap, so they could not be changed. They are bindings of the window's own actions (`ui.app_menu`,
+/// `ui.context_menu`): bound to other keys, the new keys open the menus and the old ones no longer do.
+#[test]
+fn the_app_menu_and_the_context_menu_keys_are_bindings_a_person_can_change() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(
+        &tmp,
+        FIRST_RUN_DONE,
+        Some(
+            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"F9\"\naction = \"ui.app_menu\"\n\
+             context = \"global\"\n\n[[bind]]\nkeys = \"Ctrl+F9\"\naction = \"ui.context_menu\"\ncontext = \"canvas\"\n",
+        ),
+    );
+    assert_eq!(h.state().shell().banner(), None);
+    let menu_open = |h: &Harness<'_, App>| support::off_chrome(h, "File").is_some();
+    h.key_press(Key::F10);
+    settle(&mut h);
+    assert!(!menu_open(&h), "F10 is no longer the app menu's");
+    h.key_press(Key::F9);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(menu_open(&h), "F9 opens the app menu");
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    // A selected symbol's menu at the selection, by the new key.
+    let rep = h.state().shell().canvas().unwrap().page().tables.reps[0]
+        .id
+        .to_string();
+    dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
+    dispatch(&mut h, "ui.focus", json!({ "area": "canvas" }));
+    settle(&mut h);
+    let menus = |h: &Harness<'_, App>| h.query_all(egui_kittest::kittest::by()).count();
+    let closed = menus(&h);
+    h.key_press_modifiers(Modifiers::SHIFT, Key::F10);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(menus(&h), closed, "Shift+F10 is no longer the context menu's");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::F9);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(menus(&h) > closed, "Ctrl+F9 opens the canvas's context menu");
+}

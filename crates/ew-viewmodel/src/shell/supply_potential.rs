@@ -193,9 +193,6 @@ impl ShellModel {
     /// opens the panel for the selected supply marks; `row` with `kind` or `voltage` changes that row's cell; `apply`
     /// takes every row. Escape (`ui.dismiss`) closes the panel.
     pub(crate) fn act_supply_potential(&mut self, p: &Map<String, Value>) -> Outcome {
-        if p.get("apply").and_then(Value::as_bool) == Some(true) {
-            return self.apply_supply_panel();
-        }
         if let Some(row) = p.get("row").and_then(Value::as_u64) {
             let (kind, voltage) = match (string_param(p, "kind"), string_param(p, "voltage")) {
                 (Err(e), _) | (_, Err(e)) => return e,
@@ -242,7 +239,7 @@ impl ShellModel {
     /// definition at it, in one undo step, all rows or none (a later row refused takes the earlier ones back); a text a
     /// cell does not take keeps the panel open with the refusal in words. A mark deleted meanwhile is left out; with
     /// every mark gone the panel closes and says so.
-    fn apply_supply_panel(&mut self) -> Outcome {
+    pub(crate) fn apply_supply_panel(&mut self) -> Outcome {
         let Some(mut panel) = self.supply_panel.clone() else {
             return Outcome::refused(key!("reason-supply-potential-select"));
         };

@@ -1516,7 +1516,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // The supply marks' Potential panel (it opens when marks are placed; Potential… on their right-click menu).
     keeps_banner(with_params(
-        "row?:int, kind?:text, voltage?:text, apply?:bool",
+        "row?:int, kind?:text, voltage?:text",
         hidden(in_canvas(act(
             "ip.supply_potential",
             Command,
@@ -1527,6 +1527,16 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_supply_potential(p),
         ))),
     )),
+    // The panel's Apply, and its Enter, which takes every row (H9) before the canvas's Enter.
+    keeps_banner(in_supply_panel(act(
+        "ip.supply_apply",
+        Command,
+        Menu::Draw,
+        &["Enter"],
+        writable,
+        None,
+        |s, _| s.apply_supply_panel(),
+    ))),
     // Accept and Decline on the card of a potential reasoned for the selected wire.
     keeps_banner(with_params(
         "accept:bool",

@@ -487,7 +487,7 @@ fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
         shell.supply_panel().is_some(),
         "the panel stands over the deleted marks"
     );
-    let out = shell.dispatch("ip.supply_potential", &json!({"apply": true}));
+    let out = shell.dispatch("ip.supply_apply", &json!({}));
     assert_eq!(
         out,
         Outcome::refused(ew_viewmodel::key!("reason-supply-potential-gone"))
