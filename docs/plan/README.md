@@ -8,7 +8,6 @@ M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](https://github.com/Ironkode78
 | File | What it is |
 |---|---|
 | [m3.5.md](m3.5.md) | The hygiene milestone that is running: the scan, the steps, the loop measured |
-| [m3.5-reference-project.md](m3.5-reference-project.md) | Step 9's design: what ends with the reference project, the sample that replaces it, the lanes |
 | [m3.5-architecture.md](m3.5-architecture.md) | Step 15's rework to the architecture of ADR-0035: the rule every lane keeps, what was decided and not built, the second scan |
 | [m5.md](m5.md) | The fluid milestone, decided and not started: its scope, its work packages, the order |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |
@@ -17,10 +16,13 @@ M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](https://github.com/Ironkode78
 | [../../ROADMAP.md](../../ROADMAP.md) | The milestones by name and content |
 
 **How the plan is kept.**
-- A milestone has one file like [m3.5.md](m3.5.md): what it is for, its steps, and at the end what it did. When it closes, the file goes and this page links its last text in git.
+- A milestone has one file like [m3.5.md](m3.5.md): what it is for, its steps, and at the end what it did. When it
+  closes, the file goes and this page links its last text in git. A step's own design file goes when the step is
+  done, and the milestone's file links it in git (step 9's,
+  [m3.5-reference-project.md](https://github.com/Ironkode787/ElektraWatt/blob/cf5d3e1fb778c424c56f8a6827e6058dce11cdb6/docs/plan/m3.5-reference-project.md)).
 - Open work is a row of the backlog. There is no separate list of decisions: a decision that changes how something
   works is written into the document that describes it, and the commit message says why.
-- The plan carries no dates.
+- The plan sets no target dates: a date in it says when something was decided or done.
 
 **History.** Up to 0.1.0 the plan folder also held the global plan with a section per development cycle, the gates,
 the risk register, two decision logs with about 1,500 rulings, the follow-up lists, the generated records and the
