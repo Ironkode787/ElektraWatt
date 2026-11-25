@@ -33,10 +33,16 @@ pub(crate) fn check(files: &[(String, Vec<u8>)], crates: &[String]) -> Vec<Strin
         }
         let own = owner.replace('-', "_");
         let text = String::from_utf8_lossy(bytes);
-        for (i, line) in text.lines().enumerate() {
-            let Some(rest) = line.trim_start().strip_prefix("pub use ") else {
+        let lines: Vec<&str> = text.lines().collect();
+        let tests = test_modules(&lines);
+        for (i, line) in lines.iter().enumerate() {
+            if tests.contains(&i) {
+                continue;
+            }
+            let Some(rest) = without_attributes(line.trim_start()).strip_prefix("pub use ") else {
                 continue;
             };
+            let rest = rest.trim_start().trim_start_matches("::");
             let named = rest.split([':', ';', ' ', '{']).next().unwrap_or("");
             if named != own && idents.iter().any(|c| c == named) {
                 out.push(format!(
@@ -47,6 +53,49 @@ pub(crate) fn check(files: &[(String, Vec<u8>)], crates: &[String]) -> Vec<Strin
                 ));
             }
         }
+    }
+    out
+}
+
+/// `line` without the attributes that stand before an item on its line (`#[doc(inline)] pub use …`).
+fn without_attributes(mut line: &str) -> &str {
+    while let Some(rest) = line.strip_prefix("#[") {
+        let Some(end) = rest.find(']') else {
+            return line;
+        };
+        line = rest[end + 1..].trim_start();
+    }
+    line
+}
+
+/// The indices of the lines of the test modules among `lines`: a `mod` that a `#[cfg(test)]` line stands before,
+/// to its closing brace. A test module's `pub use` re-exports nothing.
+fn test_modules(lines: &[&str]) -> std::collections::BTreeSet<usize> {
+    let mut out = std::collections::BTreeSet::new();
+    let mut i = 0;
+    while i < lines.len() {
+        let opens = lines[i].trim() == "#[cfg(test)]"
+            && lines.get(i + 1).is_some_and(|l| {
+                let l = l.trim_start();
+                (l.starts_with("mod ") || l.starts_with("pub mod ") || l.starts_with("pub(crate) mod "))
+                    && l.trim_end().ends_with('{')
+            });
+        if !opens {
+            i += 1;
+            continue;
+        }
+        let (mut opened, mut closed) = (0, 0);
+        let mut j = i + 1;
+        while j < lines.len() {
+            opened += lines[j].matches('{').count();
+            closed += lines[j].matches('}').count();
+            out.insert(j);
+            j += 1;
+            if closed >= opened {
+                break;
+            }
+        }
+        i = j;
     }
     out
 }
@@ -64,8 +113,9 @@ fn owner(path: &str) -> Option<&str> {
 mod tests {
     use super::check;
 
-    /// A re-export of another workspace crate or of its item is named, outside a facade; a crate's own items, an
-    /// external crate's and a facade's are not.
+    /// A re-export of another workspace crate or of its item is named, outside a facade, also behind an attribute on
+    /// its line and with a leading `::`; a crate's own items, an external crate's, a facade's and a test module's are
+    /// not.
     #[test]
     fn a_reexport_of_another_workspace_crate_is_named() {
         let crates: Vec<String> = ["ew-a", "ew-b", "ew-api"].map(String::from).to_vec();
@@ -74,7 +124,9 @@ mod tests {
             file(
                 "crates/ew-a/src/lib.rs",
                 "pub use ew_b;\npub use ew_b::{X, Y};\n    pub use ew_b::Z;\npub use crate::m::W;\npub use ew_a::V;\n\
-                 pub use serde::Serialize;\npub(crate) use ew_b::Q;\n",
+                 pub use serde::Serialize;\npub(crate) use ew_b::Q;\n#[doc(inline)] pub use ew_b::R;\n\
+                 pub use ::ew_b::S;\n#[cfg(test)]\nmod tests {\n    pub use ew_b::T;\n    fn f() {}\n}\n\
+                 pub use ew_b::U;\n",
             ),
             file("crates/ew-api/src/lib.rs", "pub use ew_b;\n"),
             file("crates/ew-a/tests/it.rs", "pub use ew_b;\n"),
@@ -86,7 +138,10 @@ mod tests {
             [
                 "crates/ew-a/src/lib.rs:1",
                 "crates/ew-a/src/lib.rs:2",
-                "crates/ew-a/src/lib.rs:3"
+                "crates/ew-a/src/lib.rs:3",
+                "crates/ew-a/src/lib.rs:8",
+                "crates/ew-a/src/lib.rs:9",
+                "crates/ew-a/src/lib.rs:15"
             ]
         );
     }
