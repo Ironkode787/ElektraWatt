@@ -508,7 +508,10 @@ impl Engine {
             // never builds it.
             #[cfg(feature = "testkit")]
             if let Err(e) = self.model.integrity_check() {
-                panic!("`{}` left the project failing its structural check: {e}", meta.name);
+                panic!(
+                    "`{}` left the project failing its structural check: {e}",
+                    meta.name
+                );
             }
         }
         if changed || !meta.undoable {

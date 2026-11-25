@@ -308,8 +308,13 @@ fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_r
     s.create(&dir, memory_store(&vfs)).expect("the copy is written");
     let live = s.world().model.clone();
     s.close();
-    let (mut r, report) = Session::open(&dir, memory_store(&vfs), SessionOptions::default(), Recovery::Keep)
-        .expect("the copy reopens");
+    let (mut r, report) = Session::open(
+        &dir,
+        memory_store(&vfs),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .expect("the copy reopens");
     assert!(report.findings.is_empty(), "{:#?}", report.findings);
     let back = r.world().model.clone();
     assert!(
@@ -331,8 +336,13 @@ fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_r
     r.save().expect("the later save writes the page");
     let live = r.world().model.clone();
     r.close();
-    let (again, report) = Session::open(&dir, memory_store(&vfs), SessionOptions::default(), Recovery::Keep)
-        .expect("the copy reopens after the later save");
+    let (again, report) = Session::open(
+        &dir,
+        memory_store(&vfs),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .expect("the copy reopens after the later save");
     assert!(report.findings.is_empty(), "{:#?}", report.findings);
     let back = again.world().model.clone();
     assert!(

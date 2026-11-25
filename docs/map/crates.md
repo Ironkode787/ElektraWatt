@@ -1381,7 +1381,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/filter.rs` |  | The harness filter and the typed `key=value` arguments. |
 | `src/blind/friction.rs` |  | The friction log (visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` appends one entry to the run's `friction.jsonl` (`ew.blindfriction/1`), in a text run as in a visual one. |
 | `src/blind/keeper.rs` |  | The session keeper (D6): the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
-| `src/blind/mod.rs` |  | `cargo xtask blind`: the blind-drafter harness. |
+| `src/blind/mod.rs` | large | `cargo xtask blind`: the blind-drafter harness. |
 | `src/blind/normalise.rs` |  | The normalisation of product output (D14) and the guards that go with it. |
 | `src/blind/protocol.rs` | large | The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time. |
 | `src/blind/replay.rs` |  | Recording, bless and replay (D14, D15). |

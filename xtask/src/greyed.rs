@@ -26,16 +26,48 @@ const REACH: usize = 16;
 
 /// The functions (file, function) that grey a control without a reason of their own, each with why.
 const WITHOUT: &[(&str, &str, &str)] = &[
-    ("components.rs", "button_with_icon", "a component: its caller gives the reason"),
-    ("components.rs", "icon_toggle_tip", "a component: its caller gives the reason"),
+    (
+        "components.rs",
+        "button_with_icon",
+        "a component: its caller gives the reason",
+    ),
+    (
+        "components.rs",
+        "icon_toggle_tip",
+        "a component: its caller gives the reason",
+    ),
     // Greyed without a reason in words today; a reason is a new text of the window, an item of the owner's list.
-    ("nav_table.rs", "chooser", "the key column's check box, which cannot be unticked"),
-    ("notifications.rs", "one_link", "a toast's action that no longer applies"),
-    ("print_dialog.rs", "sections", "the section boxes while the range is not Sections"),
-    ("print_dialog.rs", "pages_field", "the Pages field while the range is not Pages"),
-    ("symbol_editor/panels.rs", "sheet_row", "a locked row of the symbol's sheet"),
+    (
+        "nav_table.rs",
+        "chooser",
+        "the key column's check box, which cannot be unticked",
+    ),
+    (
+        "notifications.rs",
+        "one_link",
+        "a toast's action that no longer applies",
+    ),
+    (
+        "print_dialog.rs",
+        "sections",
+        "the section boxes while the range is not Sections",
+    ),
+    (
+        "print_dialog.rs",
+        "pages_field",
+        "the Pages field while the range is not Pages",
+    ),
+    (
+        "symbol_editor/panels.rs",
+        "sheet_row",
+        "a locked row of the symbol's sheet",
+    ),
     ("symbol_editor.rs", "toolbar", "Make a part without a project"),
-    ("wizard.rs", "step_form", "the wizard's choice after its project's folder exists"),
+    (
+        "wizard.rs",
+        "step_form",
+        "the wizard's choice after its project's folder exists",
+    ),
 ];
 
 /// The violations: each greying call without a reason, by file, line and function.
@@ -67,11 +99,7 @@ fn findings(rel: &str, src: &str) -> Vec<String> {
         if line.trim_start().starts_with("//") || !GREYING.iter().any(|g| line.contains(g)) {
             continue;
         }
-        let function = lines[..=i]
-            .iter()
-            .rev()
-            .find_map(|l| fn_name(l))
-            .unwrap_or("");
+        let function = lines[..=i].iter().rev().find_map(|l| fn_name(l)).unwrap_or("");
         if WITHOUT.iter().any(|(f, n, _)| *f == rel && *n == function) {
             continue;
         }
@@ -94,7 +122,11 @@ fn findings(rel: &str, src: &str) -> Vec<String> {
 fn fn_name(line: &str) -> Option<&str> {
     let at = line.find("fn ")?;
     let before = line[..at].trim();
-    if !(before.is_empty() || before.split_whitespace().all(|w| w.starts_with("pub") || w == "const")) {
+    if !(before.is_empty()
+        || before
+            .split_whitespace()
+            .all(|w| w.starts_with("pub") || w == "const"))
+    {
         return None;
     }
     let rest = &line[at + 3..];
@@ -129,8 +161,10 @@ mod tests {
                    ui.add_enabled(on, Button::new(text));\n}\n";
         assert_eq!(
             findings("panel.rs", src),
-            ["crates/ew-ui/src/panel.rs:8: `silent` greys a control without saying why: give it its reason \
-              (`disabled_tip`), or name the function in xtask/src/greyed.rs with why it has none"]
+            [
+                "crates/ew-ui/src/panel.rs:8: `silent` greys a control without saying why: give it its reason \
+              (`disabled_tip`), or name the function in xtask/src/greyed.rs with why it has none"
+            ]
         );
     }
 }

@@ -20,9 +20,7 @@ const WHOLE: &[&str] = &["src/introduction.md", "src/tutorials/"];
 
 /// The violations: each message of a page of [`WHOLE`] that `nl.po` leaves untranslated, by its first line.
 pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
-    let read = |rel: &str| {
-        std::fs::read_to_string(root.join(rel)).with_context(|| format!("reading {rel}"))
-    };
+    let read = |rel: &str| std::fs::read_to_string(root.join(rel)).with_context(|| format!("reading {rel}"));
     let template = crate::book_po::parse(&read(TEMPLATE)?)?;
     let dutch = crate::book_po::parse(&read(DUTCH)?)?;
     Ok(untranslated(&template, &dutch))

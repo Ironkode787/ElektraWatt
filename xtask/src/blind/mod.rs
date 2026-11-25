@@ -657,7 +657,9 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 .unwrap_or_else(|| root.join("target/debug"))
                 .join(format!("elektrawatt{}", std::env::consts::EXE_SUFFIX));
             if let Some(step) = until {
-                let name = dir.file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+                let name = dir
+                    .file_name()
+                    .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
                 let at = root.join("target/blind-until").join(format!("{name}-{step}"));
                 let _ = std::fs::remove_dir_all(&at);
                 let (lines, text) = replay::replay_until(root, &exe, inputs, step, &at)?;

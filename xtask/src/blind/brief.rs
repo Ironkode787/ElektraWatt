@@ -1108,5 +1108,4 @@ mod tests {
         assert_ne!(a, b);
         assert_eq!(a.parent(), Some(parent));
     }
-
 }

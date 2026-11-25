@@ -264,7 +264,13 @@ pub fn replay_command(exe: &Path, inputs: &Inputs, dir: &Path) -> Command {
 /// # Errors
 ///
 /// The product does not start.
-pub fn replay_until(root: &Path, exe: &Path, mut inputs: Inputs, step: usize, at: &Path) -> Result<(usize, String)> {
+pub fn replay_until(
+    root: &Path,
+    exe: &Path,
+    mut inputs: Inputs,
+    step: usize,
+    at: &Path,
+) -> Result<(usize, String)> {
     let total = inputs.steps.len();
     inputs.steps.truncate(step);
     inputs.outcomes.truncate(step);
@@ -279,7 +285,11 @@ pub fn replay_until(root: &Path, exe: &Path, mut inputs: Inputs, step: usize, at
         "the run at its step {step} of {}: {} (the project in work/project, the script replay.uiscript{})",
         total,
         at.display(),
-        if inputs.visual { ", the frames in frames/" } else { "" }
+        if inputs.visual {
+            ", the frames in frames/"
+        } else {
+            ""
+        }
     );
     if let Some(last) = replayed.raw.last() {
         text.push_str(&format!("\nits last line: {last}"));

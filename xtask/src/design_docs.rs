@@ -94,7 +94,8 @@ fn row_number(line: &str) -> Option<&str> {
         while let Some(at) = line[from..].find(prefix) {
             let start = from + at;
             let after = &line[start + prefix.len()..];
-            let word_start = start == 0 || !line[..start].ends_with(|c: char| c.is_alphanumeric() || c == '-');
+            let word_start =
+                start == 0 || !line[..start].ends_with(|c: char| c.is_alphanumeric() || c == '-');
             let digits = after.trim_start_matches('S');
             if word_start && digits.starts_with(|c: char| c.is_ascii_digit()) {
                 let len = prefix.len()

@@ -38,7 +38,6 @@ fn stand_in_program() -> Program {
     }
 }
 
-
 /// A fresh empty directory, removed on drop.
 struct Dir(ew_testdir::Tmp);
 

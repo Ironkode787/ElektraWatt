@@ -1618,10 +1618,7 @@ support::shard_tests!(
 /// The Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
 /// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the
 /// page pane, light Comfortable.
-fn the_place_ghost_wires_and_hud_hint(
-    dev: &ew_render2d::gpu::HeadlessDevice,
-    failures: &mut Vec<String>,
-) {
+fn the_place_ghost_wires_and_hud_hint(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");

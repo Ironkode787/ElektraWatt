@@ -142,7 +142,9 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         }
         let touched = touched_paths(root)?;
         if let Some(path) = touched.iter().find(|p| asks_for_briefs(p)) {
-            println!("==> briefs: `{path}` and the other paths of the change ask for the replay of every brief");
+            println!(
+                "==> briefs: `{path}` and the other paths of the change ask for the replay of every brief"
+            );
             summary.push(("briefs", briefs(root)?));
         }
     }
@@ -202,7 +204,11 @@ fn touched_paths(root: &Path) -> Result<Vec<String>> {
 /// and replayed on them; `false`, with what failed, on a build that fails, a list that is not written, or a brief that
 /// is not runnable or leaves a hard item unmet.
 fn briefs(root: &Path) -> Result<bool> {
-    if !cargo(root, &["build", "--all-features"], &["-p".into(), "elektrawatt".into(), "-p".into(), "ew".into()])? {
+    if !cargo(
+        root,
+        &["build", "--all-features"],
+        &["-p".into(), "elektrawatt".into(), "-p".into(), "ew".into()],
+    )? {
         eprintln!("briefs: elektrawatt and ew do not build");
         return Ok(false);
     }
@@ -265,7 +271,11 @@ impl Passed {
         let mut scope = if packages.is_empty() {
             "--workspace".to_owned()
         } else {
-            packages.iter().map(|p| format!("-p {p}")).collect::<Vec<_>>().join(" ")
+            packages
+                .iter()
+                .map(|p| format!("-p {p}"))
+                .collect::<Vec<_>>()
+                .join(" ")
         };
         if args.deep {
             scope.push_str(" --deep");
@@ -347,7 +357,11 @@ fn working_tree(root: &Path) -> Result<String> {
             .output()
             .with_context(|| format!("running git {}", args.join(" ")))?;
         if !out.status.success() {
-            bail!("git {}: {}", args.join(" "), String::from_utf8_lossy(&out.stderr).trim());
+            bail!(
+                "git {}: {}",
+                args.join(" "),
+                String::from_utf8_lossy(&out.stderr).trim()
+            );
         }
         Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
     };

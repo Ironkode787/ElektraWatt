@@ -297,7 +297,11 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
         .into_iter()
         .map(|(k, _)| k)
         .collect();
-    assert_eq!(keys.len(), ew_testdir::sample_facts().terminals, "the sample's terminals");
+    assert_eq!(
+        keys.len(),
+        ew_testdir::sample_facts().terminals,
+        "the sample's terminals"
+    );
     mark(&mut shell, NavKind::Strips, &keys);
     let fn_col = col(&shell, NavKind::Strips, "Function text");
     done(

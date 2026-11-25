@@ -3,8 +3,8 @@
 
 //! Shell-model transitions on a temporary copy of the sample (acceptance checks A2, A3, A9).
 
-use crate::common::refused;
 use crate::common::Tmp;
+use crate::common::refused;
 
 use std::path::Path;
 
