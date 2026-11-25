@@ -33,4 +33,4 @@ do it for a customer.
 
 ## History
 
-- Version 1: the third candidate's persona round (RP2).
+- Version 1: persona brief RP2.

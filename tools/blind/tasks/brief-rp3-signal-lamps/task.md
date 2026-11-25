@@ -17,5 +17,5 @@ Run `{run}` is a `{kind}` run with the caps {turns} turns, {steps} steps, {looks
 
 ## History
 
-- Version 1: the third candidate's persona round (RP3), on a copy of Golden A.
+- Version 1: persona brief RP3, on a copy of Golden A.
 - Version 2: on the sample project, the contactor lamp of its folio 102.
